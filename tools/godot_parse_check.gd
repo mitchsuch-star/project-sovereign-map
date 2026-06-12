@@ -27,6 +27,9 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/main.gd",
 	"res://scripts/diplomacy_wizard.gd",
 	"res://scripts/proposal_confirm_popup.gd",
+	# G4F-17: renders the armistice mechanics block on incoming offers
+	# (and is the counter-offer popup surface) — settlement-adjacent.
+	"res://scripts/incoming_proposal_popup.gd",
 	"res://scripts/war_detail_popup.gd",
 	"res://scripts/war_status_panel.gd",
 	"res://scripts/diplomatic_ledger.gd",

@@ -2872,6 +2872,16 @@ def _execute_pair_substitute_handoff(
             target=selected_target,
             proposer_leader=proposer_leader,
         )
+        # G4F-15 (user-approved June 12, 2026): the armistice arm carries
+        # the player's CONCESSIONS only. Carrying the joint draft's demands
+        # into a ceasefire scored it dead on arrival (a carried territory
+        # demand probed 19/REJECT where a bare armistice sat at 38) and a
+        # truce that extracts tribute is not a truce. The bilateral-peace
+        # arm keeps the full G4F-8 carry-over.
+        armistice_demands_dropped = False
+        if proposal_type == "armistice" and seed["demands"]:
+            armistice_demands_dropped = True
+            seed = dict(seed, demands=[])
         if seed["demands"] or seed["sweeteners"]:
             seeded = False
             for opt in proposal_dialogue.get("options", []):
@@ -2899,6 +2909,19 @@ def _execute_pair_substitute_handoff(
                 except Exception:  # pragma: no cover - defensive
                     pass
                 proposal_dialogue["carried_from_settlement"] = True
+        if armistice_demands_dropped:
+            # D3 never-wordless: the drop is voiced in the popup the player
+            # is about to read, not silently applied.
+            drop_line = (
+                "I shall not press demands in the same breath as a "
+                f"ceasefire, Sire — your concessions travel with me; your "
+                f"claims on {selected_target} await a peace table."
+            )
+            existing_text = str(proposal_dialogue.get("talleyrand_text") or "")
+            proposal_dialogue["talleyrand_text"] = (
+                f"{existing_text}\n\n{drop_line}".strip()
+            )
+            proposal_dialogue["armistice_demands_dropped"] = True
 
     world.dialogue_manager.pop()
     if isinstance(proposal_dialogue, Mapping):

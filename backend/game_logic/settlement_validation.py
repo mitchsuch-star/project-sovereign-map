@@ -290,6 +290,21 @@ PAIR_SUBSTITUTE_ACTIONS = frozenset({"seek_armistice_instead", "seek_bilateral_p
 PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES = frozenset({"cooldown_active"})
 
 
+# G4F-16: refusals that render as a DISABLED button with the reason shown,
+# instead of hiding the arm wordlessly. The original SC-29 policy reserved
+# disabled rendering for `cooldown_active`; the live smoke showed the
+# armistice arm vanishing with no explanation whenever the pair was already
+# in armistice (peace still rendered — the asymmetry read as a bug) or DP
+# ran short. These three are exactly the "possible in principle, not right
+# now" states a player can act on; structural codes (stale view, archived
+# war, wrong pair, collisions) stay hidden — rendering them would be noise.
+PAIR_SUBSTITUTE_DISABLED_RENDER_CODES = frozenset({
+    "cooldown_active",
+    "already_in_armistice",
+    "insufficient_resources",
+})
+
+
 PAIR_SUBSTITUTE_REFUSAL_CODES = frozenset({
     "already_at_peace",
     "already_in_armistice",

@@ -409,6 +409,15 @@ func _render_armistice_detail(w: Dictionary):
 	bbcode += "Relations: [color=" + rel_color + "]" + rel_sign + str(relation) + " (" + rel_desc + ")[/color]\n"
 	bbcode += "Trend: " + _trend_str(rel_trend) + "\n"
 
+	# G4F-17: project the expiry fork — where this truce is heading and why.
+	var projected = str(w.get("armistice_projected_outcome", ""))
+	if projected != "":
+		var threshold = int(float(w.get("armistice_auto_peace_threshold", -60)))
+		if projected == "peace":
+			bbcode += "[color=" + COLOR_GREEN + "]On course for peace: relations have healed past " + str(threshold) + ".[/color]\n"
+		else:
+			bbcode += "[color=" + COLOR_AMBER + "]On course to collapse: unless relations heal to " + str(threshold) + " or better, the war resumes at expiry.[/color]\n"
+
 	content_label.text = bbcode
 
 

@@ -262,6 +262,13 @@ func _add_armistice_card(war_data: Dictionary):
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.add_theme_font_size_override("font_size", 9)
 	btn.add_theme_color_override("font_color", COLOR_DIMMED)
+	# G4F-17: the HUD card whispers the expiry fork — tooltip names where
+	# the truce is heading (peace vs collapse) without growing the card.
+	var projected = str(war_data.get("armistice_projected_outcome", ""))
+	if projected == "peace":
+		btn.tooltip_text = "Armistice with %s — %d turns left, on course for peace." % [opponent, remaining]
+	elif projected == "war":
+		btn.tooltip_text = "Armistice with %s — %d turns left, on course to collapse back to war unless relations heal." % [opponent, remaining]
 	btn.pressed.connect(func(): card_clicked.emit(opponent, "armistice", str(war_data.get("war_instance_id", ""))))
 	vbox.add_child(btn)
 

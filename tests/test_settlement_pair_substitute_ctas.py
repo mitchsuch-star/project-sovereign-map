@@ -587,6 +587,16 @@ def test_settlement_helper_signatures_are_distinct_and_not_substituted():
     assert "actionable_kind" not in pair_result
     # The closed temporal refusal set covers only cooldown_active.
     assert PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES == {"cooldown_active"}
+    # G4F-16: the disabled-with-reason render set widens to the
+    # player-actionable states; everything else stays hidden.
+    from backend.game_logic.settlement_validation import (
+        PAIR_SUBSTITUTE_DISABLED_RENDER_CODES,
+    )
+    assert PAIR_SUBSTITUTE_DISABLED_RENDER_CODES == {
+        "cooldown_active",
+        "already_in_armistice",
+        "insufficient_resources",
+    }
 
 
 # ───────────────────────────────────────────────────────────────────────

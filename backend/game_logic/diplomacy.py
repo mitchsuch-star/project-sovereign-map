@@ -3546,6 +3546,11 @@ PEACE_CLASS_ACTIONS = frozenset({
 
 ARMISTICE_DURATION = 5
 
+# G4F-17: the expiry fork — relations at or above this line when the truce
+# runs out convert to PEACE; below it the war resumes. Single source for
+# the expiry processor and every surface that explains the rule.
+ARMISTICE_AUTO_PEACE_RELATION = -60
+
 HARSHNESS_LABELS = [
     (0.10, "generous"),
     (0.25, "balanced"),
@@ -3806,6 +3811,44 @@ def build_war_context_snapshot(
         snapshot["armistice_remaining_turns"] = int(max(0, ARMISTICE_DURATION - armistice_elapsed))
         cooldown = world.armistice_cooldowns.get(diplo_key, 0)
         snapshot["armistice_cooldown_active"] = bool(cooldown > 0)
+
+    # G4F-17: the UI never explained what an armistice IS at decision time
+    # (fixed 5-turn ceasefire; expiry forks on relations vs the -60 line;
+    # war score freezes; no terms convert at expiry). Attach the mechanics
+    # block whenever an armistice is being proposed OR is already running.
+    if proposed_state == "ARMISTICE" or current_state == "ARMISTICE":
+        relation_now = int(world.nation_relations.get(diplo_key, 0))
+        on_course_for_peace = relation_now >= ARMISTICE_AUTO_PEACE_RELATION
+        if on_course_for_peace:
+            projection_line = (
+                f"Relations stand at {relation_now} — on course to settle "
+                "into peace when the truce expires."
+            )
+        else:
+            projection_line = (
+                f"Relations stand at {relation_now} — unless they heal to "
+                f"{ARMISTICE_AUTO_PEACE_RELATION} or better, the war "
+                "resumes when the truce expires."
+            )
+        snapshot["armistice_mechanics"] = {
+            "duration_turns": int(ARMISTICE_DURATION),
+            "auto_peace_relation_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
+            "current_relation": relation_now,
+            "projected_outcome": "peace" if on_course_for_peace else "war",
+            "display_lines": [
+                (
+                    f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops "
+                    "and the war score freezes. No territory or gold "
+                    "changes hands at its end."
+                ),
+                (
+                    f"When it expires: peace if relations have healed to "
+                    f"{ARMISTICE_AUTO_PEACE_RELATION} or better — otherwise "
+                    "the war resumes."
+                ),
+                projection_line,
+            ],
+        }
 
     return snapshot
 
@@ -8880,7 +8923,7 @@ def _process_armistice_expiration(world) -> List[Dict]:
         armistice_turns[diplo_key] = armistice_turns.get(diplo_key, 0) + 1
         turns = armistice_turns[diplo_key]
 
-        if turns < 5:
+        if turns < ARMISTICE_DURATION:
             continue
 
         # Armistice expired — check relations to determine outcome
@@ -8890,7 +8933,7 @@ def _process_armistice_expiration(world) -> List[Dict]:
         nation_a, nation_b = parts
         relation = world.nation_relations.get(diplo_key, 0)
 
-        if relation >= -60:
+        if relation >= ARMISTICE_AUTO_PEACE_RELATION:
             # Transition to PEACE (R2: setter handles armistice cleanup).
             # Slice A2 §7.3: ARMISTICE -> PEACE moves the pair to
             # resolved_diplo_keys with pair_status='resolved'.

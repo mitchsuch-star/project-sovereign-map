@@ -1777,3 +1777,292 @@ class TestArmisticeVariantScoringConsistency:
             calculate_acceptance(preview_shape, world)["score"]
             == calculate_acceptance(send_shape, world)["score"]
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-15 — the armistice arm carries CONCESSIONS only (user-approved)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestArmisticeArmCarriesConcessionsOnly:
+    """The G4F-8 carry-over fed the joint draft's DEMANDS into "Armistice
+    with X only" — a carried territory demand probed 19/REJECT where a bare
+    armistice sat at 38. A truce that extracts tribute is not a truce: the
+    armistice arm now drops demands (voiced), keeps proposer-paid
+    sweeteners, and the peace arm keeps the full carry-over."""
+
+    @staticmethod
+    def _confirmed_handoff(world, action):
+        review = _blocked_review_with_authored_gold(world)
+        chooser = handle_settlement_dialogue_action(
+            world,
+            action=action,
+            dialogue=review,
+            action_params={"action": action},
+        )
+        assert chooser["success"] is True
+        result = handle_settlement_dialogue_action(
+            world,
+            action="confirm_pair_substitute",
+            dialogue=chooser["diplomatic_dialogue"],
+            action_params={"action": "confirm_pair_substitute"},
+        )
+        assert result["success"] is True, result.get("error_display")
+        return result["diplomatic_dialogue"]
+
+    @staticmethod
+    def _execute_terms(dialogue):
+        for opt in dialogue.get("options", []):
+            if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                return opt["terms"]
+        return {}
+
+    def test_armistice_handoff_drops_demands_and_voices_it(self):
+        world, _war = _winning_two_court_world()
+        bilateral = self._confirmed_handoff(world, "seek_armistice_instead")
+        terms = self._execute_terms(bilateral)
+        assert not terms.get("demands"), terms
+        assert bilateral.get("armistice_demands_dropped") is True
+        text = str(bilateral.get("talleyrand_text") or "")
+        assert "ceasefire" in text.lower()
+        assert "concessions travel" in text.lower()
+
+    def test_armistice_handoff_keeps_proposer_paid_sweeteners(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        dialogue = _add_demand_gold(world, dialogue, "Britain", 300)
+        # Author a France-paid concession so the seed has a sweetener side.
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_demand_add",
+            dialogue=dialogue,
+            action_params={
+                "action": "settlement_demand_add",
+                "nation": "Britain",
+                "clause_type": "gold_indemnity",
+                "group": "offer",
+                "amount": 200,
+            },
+        )
+        assert result["success"] is True, result.get("error_display")
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=result["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        assert submit["success"] is True
+        chooser = handle_settlement_dialogue_action(
+            world,
+            action="seek_armistice_instead",
+            dialogue=submit["diplomatic_dialogue"],
+            action_params={"action": "seek_armistice_instead"},
+        )
+        confirmed = handle_settlement_dialogue_action(
+            world,
+            action="confirm_pair_substitute",
+            dialogue=chooser["diplomatic_dialogue"],
+            action_params={"action": "confirm_pair_substitute"},
+        )
+        terms = self._execute_terms(confirmed["diplomatic_dialogue"])
+        assert not terms.get("demands")
+        assert {"type": "gold_lump", "value": 200} in (terms.get("sweeteners") or [])
+
+    def test_peace_arm_still_carries_demands(self):
+        world, _war = _winning_two_court_world()
+        bilateral = self._confirmed_handoff(world, "seek_bilateral_peace")
+        terms = self._execute_terms(bilateral)
+        assert {"type": "gold_lump", "value": 300} in (terms.get("demands") or [])
+        assert not bilateral.get("armistice_demands_dropped")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-16 — armistice arm absence is explained (disabled-with-reason widening)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestPairSubstituteDisabledRendering:
+    """SC-29 hid every refusal except cooldown_active wordlessly; the live
+    smoke could not tell why the armistice arm was absent. The
+    player-actionable states (cooldown / already-in-armistice /
+    insufficient DP) now render disabled WITH the reason; structural codes
+    stay hidden."""
+
+    def test_already_in_armistice_renders_disabled_with_clock(self):
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        pair = world._make_diplo_key("France", "Britain")
+        world.diplomatic_states[pair] = "ARMISTICE"
+        world.armistice_turns = {pair: 2}
+        # Re-stage so the rail re-evaluates eligibility against live state.
+        restaged = handle_settlement_dialogue_action(
+            world,
+            action="return_to_settlement_terms",
+            dialogue=review,
+            action_params={"action": "return_to_settlement_terms"},
+        )
+        assert restaged["success"] is True
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=restaged["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        options = submit["diplomatic_dialogue"]["options"]
+        by_action = {o.get("action"): o for o in options}
+        arm = by_action.get("seek_armistice_instead")
+        assert arm is not None, [o.get("action") for o in options]
+        assert arm.get("available") is False
+        reason = str(arm.get("disabled_reason_display") or "")
+        assert "already in armistice" in reason.lower()
+        assert "3 turns to run" in reason
+        # The peace arm stays live from ARMISTICE — the asymmetry that
+        # read as a bug is now explained instead of wordless.
+        peace = by_action.get("seek_bilateral_peace")
+        assert peace is not None and peace.get("available", True) is not False
+
+    def test_insufficient_dp_renders_disabled_with_reason(self):
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        world.diplomatic_points = 0
+        restaged = handle_settlement_dialogue_action(
+            world,
+            action="return_to_settlement_terms",
+            dialogue=review,
+            action_params={"action": "return_to_settlement_terms"},
+        )
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=restaged["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        options = submit["diplomatic_dialogue"]["options"]
+        by_action = {o.get("action"): o for o in options}
+        arm = by_action.get("seek_armistice_instead")
+        assert arm is not None
+        assert arm.get("available") is False
+        assert "diplomatic points" in str(
+            arm.get("disabled_reason_display") or ""
+        ).lower()
+
+    def test_structural_refusals_stay_hidden(self):
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        pair = world._make_diplo_key("France", "Britain")
+        world.diplomatic_states[pair] = "PEACE"  # already_at_peace
+        restaged = handle_settlement_dialogue_action(
+            world,
+            action="return_to_settlement_terms",
+            dialogue=review,
+            action_params={"action": "return_to_settlement_terms"},
+        )
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=restaged["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        actions = [
+            o.get("action") for o in submit["diplomatic_dialogue"]["options"]
+        ]
+        assert "seek_bilateral_peace" not in actions
+        assert "seek_armistice_instead" not in actions
+
+    def test_popup_reads_display_reason_and_renders_withheld_block(self):
+        source = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        assert 'opt.get("disabled_reason_display"' in source
+        assert "Not available now" in source
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-17 — armistice mechanics explained at decision time (fixed 5 + explain)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestArmisticeMechanicsExplained:
+    def test_armistice_proposal_snapshot_carries_mechanics_block(self):
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+
+        world = _bilateral_war_world(relations=-80)
+        snapshot = build_war_context_snapshot(
+            world, "France", "Britain", "armistice"
+        )
+        block = snapshot.get("armistice_mechanics")
+        assert block, snapshot.keys()
+        assert block["duration_turns"] == 5
+        assert block["auto_peace_relation_threshold"] == -60
+        assert block["current_relation"] == -80
+        assert block["projected_outcome"] == "war"
+        lines = block["display_lines"]
+        assert len(lines) == 3
+        assert "5-turn ceasefire" in lines[0]
+        assert "-60" in lines[1]
+        assert "war resumes" in lines[2]
+        for key in (
+            "duration_turns", "auto_peace_relation_threshold",
+            "current_relation",
+        ):
+            assert isinstance(block[key], int)  # Godot int rule
+
+    def test_projection_flips_to_peace_when_relations_healed(self):
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+
+        world = _bilateral_war_world(relations=-40)
+        snapshot = build_war_context_snapshot(
+            world, "France", "Britain", "armistice"
+        )
+        block = snapshot["armistice_mechanics"]
+        assert block["projected_outcome"] == "peace"
+        assert "peace" in block["display_lines"][2]
+
+    def test_peace_proposal_snapshot_has_no_armistice_block(self):
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+
+        world = _bilateral_war_world()
+        snapshot = build_war_context_snapshot(world, "France", "Britain", "peace")
+        assert "armistice_mechanics" not in snapshot
+
+    def test_war_status_projects_active_armistice_outcome(self):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.war_status import build_active_wars
+
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Britain", "ARMISTICE", "g4f17")
+        pair = world._make_diplo_key("France", "Britain")
+        world.armistice_turns = {pair: 1}
+        world.nation_relations[pair] = -75
+        entry = next(
+            w for w in build_active_wars(world)["wars"]
+            if w.get("status") == "armistice" and w.get("opponent") == "Britain"
+        )
+        assert entry["armistice_remaining"] == 4
+        assert entry["armistice_projected_outcome"] == "war"
+        assert entry["armistice_auto_peace_threshold"] == -60
+
+        world.nation_relations[pair] = -20
+        entry2 = next(
+            w for w in build_active_wars(world)["wars"]
+            if w.get("status") == "armistice" and w.get("opponent") == "Britain"
+        )
+        assert entry2["armistice_projected_outcome"] == "peace"
+
+    def test_godot_surfaces_render_the_mechanics(self):
+        confirm = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        incoming = (GODOT_SCRIPTS / "incoming_proposal_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        detail = (GODOT_SCRIPTS / "war_detail_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        panel = (GODOT_SCRIPTS / "war_status_panel.gd").read_text(
+            encoding="utf-8"
+        )
+        assert "armistice_mechanics" in confirm
+        assert "armistice_mechanics" in incoming
+        assert "armistice_projected_outcome" in detail
+        assert "armistice_projected_outcome" in panel

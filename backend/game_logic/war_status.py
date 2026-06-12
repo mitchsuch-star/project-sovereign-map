@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
+ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
 
 
 def build_active_wars(world) -> Dict[str, Any]:
@@ -328,6 +329,13 @@ def build_active_wars(world) -> Dict[str, Any]:
             "army_strength": None,
             "status": "armistice",
             "armistice_remaining": remaining,
+            # G4F-17: project the expiry fork (relations vs the -60 line)
+            # so the HUD/detail can say where the truce is heading, not
+            # just how long it has left.
+            "armistice_projected_outcome": (
+                "peace" if relation >= ARMISTICE_AUTO_PEACE_RELATION else "war"
+            ),
+            "armistice_auto_peace_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
             "relation": relation,
             "relation_descriptor": relation_desc,
             "relation_trend": rel_trend,

@@ -195,6 +195,16 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
 
+	# G4F-17: incoming armistice offers explain the truce mechanics too.
+	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
+	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
+		bbcode += "\n[b]Armistice Terms[/b]\n"
+		for line in armistice_mechanics.get("display_lines", []):
+			var line_color = "#a0a0d0"
+			if str(line).begins_with("Relations stand"):
+				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
+			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
+
 	bbcode += "\n[b]Proposed Terms[/b]\n"
 	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
 	if annotated is Array and not annotated.is_empty():

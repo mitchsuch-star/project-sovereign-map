@@ -78,7 +78,7 @@ from backend.game_logic.settlement_routes import (
     mint_settlement_route_id,
 )
 from backend.game_logic.settlement_validation import (
-    PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES,
+    PAIR_SUBSTITUTE_DISABLED_RENDER_CODES,
     _active_cross_side_pairs,
     _blocked_payload,
     _check_gold_payment_budget_conflict,
@@ -2340,18 +2340,41 @@ def build_settlement_confirm_dialogue(
                 action=action_id,
             )
             if not eligibility.get("eligible"):
-                # SC-29 + Disabled vs Hidden Affordance Policy: only
-                # `cooldown_active` may render as a pre-click disabled
-                # button after SC-29 lands. Every other refusal hides
-                # the substitute action entirely.
-                if eligibility.get("refusal_code") in PAIR_SUBSTITUTE_TEMPORAL_REFUSAL_CODES:
+                # SC-29 Disabled vs Hidden Affordance Policy, widened by
+                # G4F-16: cooldown_active / already_in_armistice /
+                # insufficient_resources render as a pre-click disabled
+                # button WITH the reason (the live smoke could not tell why
+                # the armistice arm was absent). Structural refusals still
+                # hide the substitute action entirely.
+                refusal_code = eligibility.get("refusal_code")
+                if refusal_code in PAIR_SUBSTITUTE_DISABLED_RENDER_CODES:
+                    reason_display = str(
+                        eligibility.get("disabled_reason_display") or ""
+                    )
+                    if refusal_code == "already_in_armistice":
+                        # Name the clock: how long until the truce resolves.
+                        from backend.game_logic.diplomacy import (
+                            ARMISTICE_DURATION,
+                        )
+                        pair_key = world._make_diplo_key(
+                            actor_for_substitute, resolved_target
+                        )
+                        elapsed = int(
+                            (getattr(world, "armistice_turns", {}) or {}).get(
+                                pair_key, 0
+                            )
+                        )
+                        remaining = max(0, ARMISTICE_DURATION - elapsed)
+                        if remaining:
+                            reason_display = (
+                                f"{reason_display} It has {remaining} "
+                                f"turn{'s' if remaining != 1 else ''} to run."
+                            )
                     options.append({
                         "label": label,
                         "action": action_id,
                         "available": False,
-                        "disabled_reason_display": eligibility.get(
-                            "disabled_reason_display"
-                        ),
+                        "disabled_reason_display": reason_display,
                         "scope": "selected_pair",
                         "war_id": war_id,
                         "selected_target_nation": resolved_target,

@@ -130,7 +130,10 @@ func show_dialogue(data: Dictionary):
 		var original_label = str(opt.get("label", "???"))
 		var original_tooltip = str(opt.get("description", ""))
 		var available = bool(opt.get("available", true))
-		var disabled_reason = str(opt.get("disabled_reason", original_tooltip))
+		# G4F-16: the backend's pair-substitute disabled options carry the
+		# reason in `disabled_reason_display` (the wizard's key); the old
+		# `disabled_reason`-only read rendered a bare "Unavailable" tooltip.
+		var disabled_reason = str(opt.get("disabled_reason_display", opt.get("disabled_reason", original_tooltip)))
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
@@ -582,6 +585,23 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			var recurring_reasoning = str(recurring_payload.get("reasoning", ""))
 			if recurring_reasoning != "":
 				bbcode += "[color=#80b8c0][b]Talleyrand's recurring-gold draft:[/b] %s[/color]\n" % recurring_reasoning
+
+	# G4F-16 (D3 never-wordless): disabled rail options carry their reason
+	# in the popup body, not only in a hover tooltip the player may never
+	# find. The backend emits `available: false` + `disabled_reason_display`
+	# for the cooldown / already-in-armistice / insufficient-DP states.
+	var withheld_lines = ""
+	for opt in data.get("options", []):
+		if not opt is Dictionary:
+			continue
+		if bool(opt.get("available", true)):
+			continue
+		var withheld_reason = _safe_str(opt.get("disabled_reason_display"))
+		if withheld_reason == "":
+			continue
+		withheld_lines += "  [color=#808080]%s — %s[/color]\n" % [_safe_str(opt.get("label")), withheld_reason]
+	if withheld_lines != "":
+		bbcode += "[b]Not available now[/b]\n" + withheld_lines
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
@@ -1181,6 +1201,17 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		bbcode += "[color=#e04040]They hold: %s[/color]\n" % ", ".join(held_by_them)
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
+
+	# G4F-17: explain what an armistice IS at decision time — duration,
+	# the relations-vs--60 expiry fork, and where this one is heading.
+	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
+	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
+		bbcode += "\n[b]Armistice Terms[/b]\n"
+		for line in armistice_mechanics.get("display_lines", []):
+			var line_color = "#a0a0d0"
+			if str(line).begins_with("Relations stand"):
+				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
+			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
 
 	bbcode += "\n[b]Proposed Terms[/b]\n"
 	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
