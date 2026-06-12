@@ -1937,6 +1937,23 @@ def build_settlement_confirm_dialogue(
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
+    # G4F-7 (Gate-4 smoke): a multilateral settlement is labeled by its
+    # COVERAGE, not the leader pair — "the settlement of France vs Britain"
+    # on a Britain + Prussia table fed the "Britain-only" misreading. The
+    # leader-pair `_war_label` stays for war-scoped surfaces; the SETTLEMENT
+    # dialogue names every covered court.
+    covered_for_label = [
+        str(n)
+        for n in (preview.get("covered_enemy_participants") or [])
+        if n
+    ]
+    proposer_leader_for_label = str(
+        leaders.get(str(preview.get("proposer_side") or "")) or ""
+    )
+    if covered_for_label and proposer_leader_for_label:
+        war_label = (
+            f"{proposer_leader_for_label} vs {' + '.join(covered_for_label)}"
+        )
     # SC-14c: settlement route id format is `settlement:{war_id}:{turn}:{seq}`,
     # minted from the per-(war_id, turn) `world.settlement_route_seq` counter
     # so two same-turn settlement events for one war never share a focus id.

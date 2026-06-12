@@ -762,6 +762,159 @@ class TestDialFeedbackReachesThePopup:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# G4F-6 — the pre-proposal objection judges the DISPLAYED terms
+# (live smoke: "such generous terms... rewards their failure" on a
+# PUNITIVE / REJECT bilateral preview — the objection stub was empty)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestObjectionJudgesDisplayedTerms:
+    def _world_with_winning_war(self):
+        world, _war = _winning_two_court_world()
+        return world
+
+    def test_no_too_generous_line_when_displayed_terms_are_harsh(self):
+        from backend.game_logic.diplomatic_dialogue import (
+            _merge_pre_proposal_objection,
+        )
+
+        world = self._world_with_winning_war()
+        dialogue = {
+            "options": [{
+                "action": "execute_proposal",
+                "terms": {
+                    "type": "peace",
+                    "demands": [
+                        {"type": "gold_per_turn", "value": 200},
+                        {"type": "territory_cede", "value": 1},
+                    ],
+                    "sweeteners": [],
+                },
+            }],
+        }
+        merged = _merge_pre_proposal_objection(
+            dict(dialogue),
+            {"proposal_type": "peace", "target_nation": "Britain", "clauses": []},
+            world,
+        )
+        import json as _json
+
+        assert "rewards their failure" not in _json.dumps(merged)
+
+    def test_too_generous_line_still_fires_on_genuinely_light_terms(self):
+        from backend.game_logic.diplomatic_dialogue import (
+            _merge_pre_proposal_objection,
+        )
+
+        world = self._world_with_winning_war()
+        dialogue = {
+            "talleyrand_text": "",
+            "options": [{
+                "action": "execute_proposal",
+                "terms": {
+                    "type": "peace",
+                    "demands": [],
+                    "sweeteners": [{"type": "gold_lump", "value": 100}],
+                },
+            }],
+        }
+        merged = _merge_pre_proposal_objection(
+            dict(dialogue),
+            {"proposal_type": "peace", "target_nation": "Britain", "clauses": []},
+            world,
+        )
+        import json as _json
+
+        assert "rewards their failure" in _json.dumps(merged)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-7 — the full-deal carry verdict is loud, attributed, and honest
+# (live smoke: two "Near acceptable" chips at 44/35 read as "net terms
+# acceptable" while BOTH courts were blocking holdouts)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestCarryVerdictPresentation:
+    def test_band_chips_are_threshold_honest(self):
+        from backend.display_names import acceptance_band_display
+
+        assert acceptance_band_display("accept") == "Will sign"
+        assert acceptance_band_display("near_acceptable") == "Holding out (close)"
+        assert acceptance_band_display("reject") == "Holding out"
+        # The word "acceptable" never appears on a blocking band again.
+        assert "acceptable" not in acceptance_band_display("near_acceptable").lower()
+
+    def test_blocked_verdict_names_every_holdout_with_scores(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        overall = dialogue.get("overall_acceptance") or {}
+        verdict = str(overall.get("carry_verdict_display") or "")
+        assert verdict.startswith("Will NOT carry as drafted"), verdict
+        assert "must reach 50" in verdict
+        rows = {
+            r["nation"]: r for r in dialogue.get("per_court_acceptance") or []
+        }
+        for holdout in overall.get("holdout_courts") or []:
+            row = rows[holdout]
+            assert f"{holdout} {int(row['total'])}/{int(row['threshold'])}" in verdict
+
+    def test_carrying_verdict_states_the_pass(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_generous",
+            dialogue=dialogue,
+            action_params={
+                "action": "settlement_dial_generous", "scope": "table",
+            },
+        )
+        assert result["success"] is True, result.get("error_display")
+        overall = result["diplomatic_dialogue"].get("overall_acceptance") or {}
+        if overall.get("carries"):
+            verdict = str(overall.get("carry_verdict_display") or "")
+            assert verdict.startswith("Will carry as drafted"), verdict
+            assert "at or above 50" in verdict
+
+    def test_settlement_label_names_every_covered_court(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        assert dialogue.get("war_label") == "France vs Britain + Prussia"
+        # The blocked copy now reads "the settlement of France vs
+        # Britain + Prussia ..." — the leader-pair label fed the
+        # "Britain-only" misreading.
+        result = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=dialogue,
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        assert result["success"] is True, result.get("error_display")
+        assert "Britain + Prussia" in str(result.get("message") or "")
+
+    def test_popup_header_leads_with_the_carry_verdict(self):
+        text = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        preamble = text.split("func _build_settlement_table_preamble", 1)[1]
+        preamble = preamble.split("\nfunc ", 1)[0]
+        assert "carry_verdict_display" in preamble
+        # The verdict renders BEFORE the treasury line (header lead).
+        assert preamble.index("carry_verdict_display") < preamble.index(
+            "treasury_line"
+        )
+
+    def test_popup_rows_use_threshold_framing(self):
+        text = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        block = text.split("func _build_settlement_per_court_block", 1)[1]
+        block = block.split("\nfunc ", 1)[0]
+        assert '" (%d/%d)" % [int(total), int(row.get("threshold", 50))]' in block
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # GT-A5 (GT-Slice-5) — ceiling-triggered territory escalation
 # (user-approved June 11, 2026: the OQ#7 crossing — spec §3.5 GT-A5)
 # ═══════════════════════════════════════════════════════════════════════════

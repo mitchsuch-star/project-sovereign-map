@@ -518,7 +518,9 @@ def test_enrich_acceptance_display_humanizes_band_and_components():
     })
 
     assert enriched["band"] == "near_acceptable"
-    assert enriched["band_display"] == "Near acceptable"
+    # G4F-7: threshold-honest chip — a below-threshold court is mechanically
+    # a holdout; the chip no longer contains the word "acceptable".
+    assert enriched["band_display"] == "Holding out (close)"
     assert enriched["band_phrase"].startswith("Close")
     # Top components are capped at 3.
     assert len(enriched["top_components"]) == 3

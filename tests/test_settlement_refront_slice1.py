@@ -256,7 +256,11 @@ def test_propose_mode_payload_shape_per_court_and_overall():
     for row in per_court:
         assert required <= set(row), row
     overall = block["overall_acceptance"]
-    assert set(overall) == {"carries", "holdout_courts", "summary_display"}
+    assert set(overall) == {
+        "carries", "holdout_courts", "summary_display",
+        # G4F-7: the loud full-deal verdict with per-court score attribution.
+        "carry_verdict_display",
+    }
     assert isinstance(overall["carries"], bool)
 
 

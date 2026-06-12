@@ -740,12 +740,42 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
         evaluate_pre_proposal_objection, get_objection_text,
     )
 
-    # Build a lightweight proposal for objection evaluation
+    # G4F-6 (Gate-4 smoke): evaluate the objection against the SAME terms the
+    # popup displays. `_enrich_proposal_summary` runs before this merge and
+    # resolves the displayed package onto the execute_proposal option (the
+    # suggested terms when the player named none) — the old parsed-clause
+    # stub was EMPTY on every suggested-terms flow, so harshness read 0.0
+    # and Talleyrand called a PUNITIVE preview "such generous terms... it
+    # rewards their failure" in the live smoke.
+    resolved_terms: Dict = {}
+    for opt in dialogue.get("options", []):
+        if opt.get("action") == "execute_proposal" and opt.get("terms"):
+            resolved_terms = opt["terms"]
+            break
+    demands = list(resolved_terms.get("demands") or [])
+    sweeteners = list(resolved_terms.get("sweeteners") or [])
+    if not demands and not sweeteners:
+        parsed_clauses = list(parsed_command.get("clauses") or [])
+        if parsed_clauses:
+            demands = parsed_clauses
+        else:
+            # Mirror _enrich_proposal_summary's fallback so the objection
+            # always judges what the player is about to see.
+            from backend.game_logic.diplomatic_templates import (
+                generate_suggested_terms,
+            )
+            suggested = generate_suggested_terms(
+                parsed_command.get("target_nation", ""),
+                parsed_command.get("proposal_type", "peace"),
+                world,
+            )
+            demands = list(suggested.get("demands") or [])
+            sweeteners = list(suggested.get("sweeteners") or [])
     proposal = {
         "type": parsed_command.get("proposal_type", "peace"),
         "target_nation": parsed_command.get("target_nation", ""),
-        "demands": parsed_command.get("clauses", []),
-        "sweeteners": [],
+        "demands": demands,
+        "sweeteners": sweeteners,
     }
 
     # Get Talleyrand

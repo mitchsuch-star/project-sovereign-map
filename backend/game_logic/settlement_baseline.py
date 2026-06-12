@@ -1951,11 +1951,44 @@ def compute_per_court_acceptance(
         summary_display = f"{len(holdout_courts)} courts hold out."
     else:
         summary_display = "No covered courts."
+    # G4F-7 (Gate-4 smoke): the ONE full-deal fact — carries iff EVERY
+    # covered court reaches the threshold — stated with per-court score
+    # attribution ("Britain 44/50"), so the table's per-court integers can
+    # never again read as an aggregate "high acceptance". Rendered by the
+    # popup HEADER (above the scroll), not just the below-the-fold summary.
+    holdout_set = set(holdout_courts)
+
+    def _holdout_score_label(row: Mapping[str, Any]) -> str:
+        nation = str(row.get("nation") or "?")
+        total = row.get("total")
+        if total is None:
+            return f"{nation} (no terms can move them)"
+        return f"{nation} {int(total)}/{int(row.get('threshold') or accept_threshold)}"
+
+    if carries:
+        carry_verdict_display = (
+            "Will carry as drafted — every court at or above "
+            f"{int(accept_threshold)}."
+        )
+    elif holdout_courts:
+        carry_verdict_display = (
+            f"Will NOT carry as drafted — every court must reach "
+            f"{int(accept_threshold)}. Holding out: "
+            + ", ".join(
+                _holdout_score_label(r)
+                for r in per_court
+                if r.get("nation") in holdout_set
+            )
+            + "."
+        )
+    else:
+        carry_verdict_display = "No covered courts."
     return {
         "per_court_acceptance": per_court,
         "overall_acceptance": {
             "carries": bool(carries),
             "holdout_courts": holdout_courts,
             "summary_display": summary_display,
+            "carry_verdict_display": carry_verdict_display,
         },
     }

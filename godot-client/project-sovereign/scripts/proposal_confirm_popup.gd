@@ -596,6 +596,18 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
 	var authoring_surface = (dialogue_mode == "PROPOSE")
 	var bbcode = ""
+	# G4F-7: the carry verdict LEADS the header — the one full-deal fact
+	# (carries iff every court reaches the threshold), with per-court score
+	# attribution. The per-court integers alone read as "high acceptance"
+	# in the live smoke while both courts were holdouts.
+	var overall_verdict = data.get("overall_acceptance", {})
+	if overall_verdict is Dictionary:
+		var verdict_line = _safe_str(overall_verdict.get("carry_verdict_display"))
+		if verdict_line != "":
+			var verdict_color = "#e05050"
+			if bool(overall_verdict.get("carries", false)):
+				verdict_color = "#80c080"
+			bbcode += "[b][color=%s]%s[/color][/b]\n" % [verdict_color, verdict_line]
 	# Guided Terms §3.4 (GT-A1): the shared-treasury allocation line, one pool
 	# across every court's France-paid gold. PROPOSE-only payload.
 	var treasury = data.get("treasury_line", {})
@@ -661,7 +673,9 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		var total = row.get("total", null)
 		var total_text = ""
 		if total != null:
-			total_text = " (%d)" % int(total)
+			# G4F-7: threshold-honest framing — "44/50" makes the ratify bar
+			# visible in the number itself instead of a bare integer.
+			total_text = " (%d/%d)" % [int(total), int(row.get("threshold", 50))]
 		var is_focused = (focused_court != "" and nation == focused_court)
 		# REFRONT-9 (OQ-5/GT-A4): on PROPOSE the court name is the focus
 		# trigger — clicking it round-trips presentation-only

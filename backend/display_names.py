@@ -650,12 +650,18 @@ SIDE_LABEL_DISPLAY = {
     "defenders": "Defenders",
 }
 
+# G4F-7 (Gate-4 smoke): the band chips must be threshold-honest. A court
+# below the ratify threshold is mechanically a HOLDOUT — the old
+# "Near acceptable" chip put the word "acceptable" on a blocking state, and
+# two such rows read as "net terms acceptable" in the live smoke. Wording
+# aligns with the committed multi-court voice families (will sign /
+# leaning / holds out).
 ACCEPTANCE_BAND_DISPLAY = {
-    "accept": "Acceptable",
-    "acceptable": "Acceptable",
-    "near_acceptable": "Near acceptable",
-    "reject": "Unlikely",
-    "unlikely": "Unlikely",
+    "accept": "Will sign",
+    "acceptable": "Will sign",
+    "near_acceptable": "Holding out (close)",
+    "reject": "Holding out",
+    "unlikely": "Holding out",
     "blocked": "Blocked",
 }
 
