@@ -72,3 +72,7 @@ pytest_tmp_runtime/
 /game_window.png
 /terminal.png
 /terminal_b64.txt
+
+# Gate-4 smoke scratch: probe scripts are tracked; server logs echo env details
+smoke_logs/*.log
+smoke_logs/*.out
