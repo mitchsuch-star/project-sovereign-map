@@ -698,13 +698,17 @@ def _handle_settlement_tier2_action(
         new_covered = sorted(set(covered) - {nation})
         if not new_covered:
             # V5 coverage floor — at least one covered enemy must remain.
+            # G4F-18: `no_covered_enemy_participants` described a missing
+            # SELECTION ("No enemy participant is selected") — wrong story
+            # for "you tried to drop the last court". The floor code names
+            # the actual rule and the way out.
             return {
                 "success": False,
                 "dialogue_type": "settlement_confirm",
                 "action": action,
                 "war_id": war_id,
-                "error": "no_covered_enemy_participants",
-                "error_display": _error_display("no_covered_enemy_participants"),
+                "error": "coverage_floor",
+                "error_display": _error_display("coverage_floor"),
                 "mutated": False,
                 "suppress_proposal_result_popup": True,
             }

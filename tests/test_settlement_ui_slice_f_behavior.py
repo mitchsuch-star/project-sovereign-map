@@ -91,7 +91,10 @@ def test_resolve_with_war_id_invalid_returns_invalid_war_id():
     assert result["war_id"] == "war_does_not_exist"
 
 
-def test_resolve_with_ended_war_id_returns_inactive_war_instance():
+def test_resolve_with_ended_war_id_returns_war_archived_with_recovery_route():
+    # G4F-21: an ENDED war is settled, not "changed" — the refusal names
+    # the settlement-history routing instead of "reopen settlement review"
+    # and carries the recovery surface for the client fallback.
     world = WorldState()
     war = _install_war(world)
     war["ended_turn"] = 5
@@ -101,7 +104,10 @@ def test_resolve_with_ended_war_id_returns_inactive_war_instance():
     )
 
     assert result["ok"] is False
-    assert result["error"] == "inactive_war_instance"
+    assert result["error"] == "war_archived"
+    route = result.get("recovery_route") or {}
+    assert route.get("surface") == "settlement_history"
+    assert route.get("war_id") == "war_1"
 
 
 def test_resolve_with_war_id_target_not_in_war_returns_state_changed():

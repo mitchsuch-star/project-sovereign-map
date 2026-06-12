@@ -497,7 +497,12 @@ def test_cover_drop_last_court_blocked_by_coverage_floor():
             action_params={"nation": "Prussia"},
         )
     assert result.get("success") is False
-    assert result.get("error") == "no_covered_enemy_participants"
+    # G4F-18: the last-court drop names the coverage floor, not a missing
+    # selection.
+    assert result.get("error") == "coverage_floor"
+    assert "at least one covered enemy" in str(
+        result.get("error_display") or ""
+    ).lower()
     assert result.get("mutated") is False
 
 
@@ -672,7 +677,8 @@ def test_blocked_last_court_drop_reattaches_dialogue_to_reshow():
             dialogue=narrowed, action_params={"nation": "Prussia"},
         )
     assert blocked.get("success") is False
-    assert blocked.get("error") == "no_covered_enemy_participants"
+    # G4F-18: the floor refusal names the rule, not a missing selection.
+    assert blocked.get("error") == "coverage_floor"
     assert blocked.get("diplomatic_dialogue")
     assert blocked["diplomatic_dialogue"]["covered_enemy_participants"] == ["Prussia"]
 

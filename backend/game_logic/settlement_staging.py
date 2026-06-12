@@ -2050,6 +2050,21 @@ def build_settlement_confirm_dialogue(
     # action can ratify an empty package. AI/system staging
     # (caller_kind != "player_editor") still respects acceptance gating only.
     staged_terms_for_gate = list(preview.get("settlement_terms") or [])
+    # G4F-19: a package the player has stripped to the bare peace clause IS
+    # a white peace — label and gate it like one. The typed
+    # `propose_white_peace` path sets the flag explicitly; the guided rows
+    # reach the same state by removing every material clause, and the old
+    # flag-only read left that package unlabeled (generic heading, generic
+    # ratify label, no White Peace banner).
+    if (
+        not white_peace
+        and staged_terms_for_gate
+        and all(
+            isinstance(t, Mapping) and t.get("type") == "peace"
+            for t in staged_terms_for_gate
+        )
+    ):
+        white_peace = True
     empty_editor_block = (
         caller_kind == "player_editor"
         and not staged_terms_for_gate
@@ -2225,7 +2240,11 @@ def build_settlement_confirm_dialogue(
         and int(side_pressure_score) >= 0
     )
     if can_ratify:
-        options.append({"label": "Ratify Settlement", "action": "confirm_settlement"})
+        # G4F-19: the white-peace ratify action is labeled as one.
+        options.append({
+            "label": "Ratify White Peace" if white_peace else "Ratify Settlement",
+            "action": "confirm_settlement",
+        })
         available_action_ids.append("confirm_settlement")
     elif can_re_author_with_concessions:
         options.append({

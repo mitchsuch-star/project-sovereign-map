@@ -5340,16 +5340,32 @@ class WorldState:
                 # Insertion order: the last non-empty entry per war wins.
                 latest_by_war[wid] = (selected, clauses)
             for wid, (selected, clauses) in latest_by_war.items():
+                selected_display = "" if selected == "_none" else str(selected)
+                clause_count = int(len(clauses))
+                # G4F-22: name the draft the player just lost — the
+                # generic "Unratified settlement draft discarded" line
+                # never said WHICH table or how much authored work it
+                # carried.
+                clause_phrase = (
+                    f"{clause_count} clause{'s' if clause_count != 1 else ''}"
+                )
+                if selected_display:
+                    message_display = (
+                        f"Your unratified settlement draft with "
+                        f"{selected_display} ({clause_phrase}) was set "
+                        "aside at turn's end."
+                    )
+                else:
+                    message_display = (
+                        f"An unratified settlement draft ({clause_phrase}) "
+                        "was set aside at turn's end."
+                    )
                 notices.append({
                     "war_id": str(wid),
                     "turn_discarded": int(self.current_turn),
-                    "draft_clause_count": int(len(clauses)),
-                    "selected_target_nation": (
-                        "" if selected == "_none" else str(selected)
-                    ),
-                    "message_display": (
-                        "Unratified settlement draft discarded at turn end."
-                    ),
+                    "draft_clause_count": clause_count,
+                    "selected_target_nation": selected_display,
+                    "message_display": message_display,
                 })
         self.pending_settlement_drafts_by_key = {}
         # G2-Slice-3 SC-14b: per-turn reset of reopen attempts so the

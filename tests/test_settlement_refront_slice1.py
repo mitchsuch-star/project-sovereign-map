@@ -353,9 +353,19 @@ def test_holdout_court_offers_ease_or_drop_not_dead_end():
     blocked-REVIEW rail's `Return to terms`, and the one-click Ease/Drop
     live on the PROPOSE rows."""
     world, inst = _three_court_world(prussia=70, britain=-70, austria=0)
-    # Prussia is the only holdout.
+    # Prussia is the only holdout. G4F-19: the package carries a material
+    # clause — a bare [peace] package is a WHITE PEACE, which ratifies past
+    # the per-court gate by design and would not stage this blocked rail.
     scorer = _make_scorer({"Austria": 60, "Britain": 60, "Prussia": 20})
-    staged = _stage_review(world, [{"type": "peace"}], scorer=scorer)
+    staged = _stage_review(
+        world,
+        [
+            {"type": "peace"},
+            {"type": "gold_indemnity", "from": "Prussia", "to": "France",
+             "amount": 100},
+        ],
+        scorer=scorer,
+    )
     dialogue = staged["diplomatic_dialogue"]
     rows = dialogue["per_court_acceptance"]
     prussia = next(r for r in rows if r["nation"] == "Prussia")

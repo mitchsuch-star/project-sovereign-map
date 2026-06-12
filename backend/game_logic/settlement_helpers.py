@@ -1902,7 +1902,21 @@ def resolve_or_backfill_war_instance_for_settlement(
         if not instance:
             return {"ok": False, "error": "invalid_war_id", "war_id": requested}
         if instance.get("ended_turn") is not None:
-            return {"ok": False, "error": "inactive_war_instance", "war_id": requested}
+            # G4F-21: an ENDED war is not a "changed state" — it is
+            # settled. The distinct code carries the settlement-history
+            # routing copy instead of "reopen settlement review", and the
+            # refusal names the recovery surface for the client fallback
+            # (the SC-5R-2 cached-war-list guard is the primary route).
+            return {
+                "ok": False,
+                "error": "war_archived",
+                "war_id": requested,
+                "recovery_route": {
+                    "surface": "settlement_history",
+                    "review_target": "ledger_settlements",
+                    "war_id": requested,
+                },
+            }
         attackers = set(instance.get("attackers") or [])
         defenders = set(instance.get("defenders") or [])
         if player_nation not in attackers | defenders or target_nation not in attackers | defenders:

@@ -229,7 +229,11 @@ def test_hard_stop_row_carries_empty_component_breakdown():
 def test_review_mode_rows_expose_no_dial_or_holdout_affordances():
     """UX-2 server half: outside PROPOSE the per-court rows carry NO
     dial/holdout affordances — REVIEW freezes the terms; the route back to
-    shaping is the blocked rail's `Return to terms`."""
+    shaping is the blocked rail's `Return to terms`.
+
+    G4F-19 note: the package carries a material clause — a bare [peace]
+    package is now a WHITE PEACE, which ratifies past the per-court gate
+    by design and would not stage the blocked rail this test pins."""
     world, _ = _three_court_world()
     scorer = _make_scorer({"Austria": 60, "Britain": 60, "Prussia": 20})
     with patch(_SCORER_PATH, side_effect=scorer):
@@ -237,7 +241,11 @@ def test_review_mode_rows_expose_no_dial_or_holdout_affordances():
             world,
             war_id="war_gt",
             actor_nation="France",
-            settlement_terms=[{"type": "peace"}],
+            settlement_terms=[
+                {"type": "peace"},
+                {"type": "gold_indemnity", "from": "Prussia", "to": "France",
+                 "amount": 100},
+            ],
             covered_enemy_participants=["Britain", "Prussia", "Austria"],
             selected_target_nation="Austria",
             caller_kind="player_editor",

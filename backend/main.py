@@ -266,6 +266,12 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "opening_attack_guidance",
     "mild_concerns",
     "morning_dispatch",
+    # G4F-21: failed mounts (e.g. opening a settlement on an archived war)
+    # name their refusal code and recovery surface; the /command response
+    # dropped them while /respond_to_diplomatic_dialogue passed them through.
+    "error",
+    "error_display",
+    "recovery_route",
 )
 
 

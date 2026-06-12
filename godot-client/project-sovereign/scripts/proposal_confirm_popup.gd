@@ -498,6 +498,19 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			bbcode += "  [color=#a0a0a0][i]" + terminal_recovery_copy + "[/i][/color]\n"
 		bbcode += "\n"
 
+	# G4F-20: the SC-16 forced-alliance coalition threat projection was
+	# computed and shipped on every preview but never rendered — the only
+	# consumer died with the retired freeform editor. A forced alliance is
+	# the single most coalition-provoking clause; the projection renders
+	# whenever one is staged.
+	var threat_preview = review.get("forced_alliance_threat_preview", {}) if review is Dictionary else {}
+	if threat_preview is Dictionary:
+		var threat_display = _safe_str(threat_preview.get("display"))
+		if threat_display != "":
+			var crossed = threat_preview.get("crossed_threshold_displays", [])
+			var threat_color = "#e04040" if (crossed is Array and crossed.size() > 0) else "#e0a040"
+			bbcode += "[color=%s]%s[/color]\n\n" % [threat_color, threat_display]
+
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
 	if warnings is Dictionary:
 		var inline_warns = warnings.get("inline", [])

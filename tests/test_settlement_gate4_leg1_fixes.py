@@ -1,4 +1,4 @@
-"""Gate-4 leg-1 smoke fix slice (G4F-1 / G4F-2 / G4F-3).
+﻿"""Gate-4 leg-1 smoke fix slice (G4F-1 / G4F-2 / G4F-3).
 
 June 11, 2026 player smoke findings, reproduced through the real HTTP wire
 shapes and fixed:
@@ -9,11 +9,11 @@ shapes and fixed:
   placebos (the frozen 63/50). Fix: the demands dialect prices
   ``gold_indemnity`` at the existing 0.08-per-100-gold weight, and the
   package raw harshness is computed over the ACCEPTING-side burden terms
-  only (``compute_settlement_package_raw_harshness``) — proposer-paid
+  only (``compute_settlement_package_raw_harshness``) â€” proposer-paid
   concessions belong to ``concession_credit``, never to harshness.
 - G4L1-2: the dial grew gold past the payer court's balance and relied on
   the restage validator to bounce (`gold_payment_budget_conflict` rendered
-  as the generic blame-the-player copy) — the DC-1 class. Fix: dial grows
+  as the generic blame-the-player copy) â€” the DC-1 class. Fix: dial grows
   clamp at the payer's remaining capacity (``compute_gold_payer_budgets``,
   the clamp-side mirror of the budget validator) with a player-facing note;
   the guided magnitude verbs refuse explicit over-budget amounts arm-side
@@ -22,7 +22,7 @@ shapes and fixed:
   every ``Add demand`` affordance below the fold; the preamble now renders
   in the header and the viewport fits the court rows.
 - G4F-5 (leg-2+ follow-up, June 11): the whole-table Harsher/More generous
-  dial was a SILENT DEAD CLICK on a gold-free table — the sweep only tunes
+  dial was a SILENT DEAD CLICK on a gold-free table â€” the sweep only tunes
   existing gold/territory lines, the seed was gated to focused
   (``len(scope) == 1``) dials on clause-less courts, and the multilateral
   smoke baseline authors no gold. Six Harsher clicks changed nothing,
@@ -31,7 +31,7 @@ shapes and fixed:
   left unchanged and unnoted (budget/cap/leader-gated, cap break appends a
   note), and the ceiling/protection notes now ride the restaged dialogue as
   one-shot ``authoring_voice_beats`` (kind ``dial_note``) so the popup
-  preamble renders them — the D3 never-wordless contract, in the popup the
+  preamble renders them â€” the D3 never-wordless contract, in the popup the
   player is actually looking at.
 """
 
@@ -72,7 +72,7 @@ def _winning_two_court_world(
     *, france_gold=800, britain_gold=1500, prussia_gold=800,
 ):
     """France (attacker leader) beating Britain (defender leader) + Prussia
-    in one shared war — the `settlement_multilateral` smoke shape."""
+    in one shared war â€” the `settlement_multilateral` smoke shape."""
     world = WorldState()
     war = make_synthetic_war_instance(
         "war_1",
@@ -146,16 +146,16 @@ def _row(dialogue, nation):
     raise AssertionError(f"no per-court row for {nation}")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-1 — gold demands price into harshness; concessions stay credit-side
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-1 â€” gold demands price into harshness; concessions stay credit-side
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestGoldPricing:
     def test_gold_demand_magnitude_moves_acceptance(self):
         """The frozen-63 class: demanding more gold from a court must lower
-        that court's acceptance (0.08 raw per 100 gold — the existing
-        bilateral gold weight, spec §6.acceptance line 1115)."""
+        that court's acceptance (0.08 raw per 100 gold â€” the existing
+        bilateral gold weight, spec Â§6.acceptance line 1115)."""
         world, war = _winning_two_court_world()
 
         def score(amount):
@@ -234,7 +234,7 @@ class TestGoldPricing:
         assert abs(raw - 0.7) < 1e-9
 
     def test_ratified_treaty_clauses_dialect_prices_settlement_shapes(self):
-        """settlement_ratify records treaties via `{"clauses": pair_terms}` —
+        """settlement_ratify records treaties via `{"clauses": pair_terms}` â€”
         the settlement clause shapes (gold_indemnity, singular `region`,
         vassalage) must price there too, or stored `raw_harshness` reads
         near-zero for every ledger / AI / coalition consumer."""
@@ -260,7 +260,7 @@ class TestGoldPricing:
 
     def test_bilateral_clause_shapes_unchanged(self):
         """The bilateral dialect (regions list, perpetual gold_per_turn)
-        keeps its existing sums — settlement aliases must not perturb
+        keeps its existing sums â€” settlement aliases must not perturb
         bilateral acceptance."""
         raw = calculate_raw_treaty_harshness({
             "clauses": [
@@ -272,9 +272,9 @@ class TestGoldPricing:
         assert abs(raw - 0.7) < 1e-9
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-2 — dial clamps + arm-level refusals (through the real handler shapes)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-2 â€” dial clamps + arm-level refusals (through the real handler shapes)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestDialBudgetClamp:
@@ -317,8 +317,8 @@ class TestDialBudgetClamp:
     def test_focused_press_on_broke_court_never_authors_gold(self):
         """A focused press on a court with no slice and no treasury never
         authors an unpayable gold demand (G4F-2). GT-A5: the exhausted gold
-        lever now escalates into the court's suggested TERRITORY demand —
-        the press still moves the needle, just not in coin — and the pivot
+        lever now escalates into the court's suggested TERRITORY demand â€”
+        the press still moves the needle, just not in coin â€” and the pivot
         is voiced; a SECOND press (territory already escalated) falls back
         to the ceiling note."""
         world, _war = _winning_two_court_world(prussia_gold=0)
@@ -355,7 +355,7 @@ class TestDialBudgetClamp:
         assert prussia_territory[0].get("authored_by") == "talleyrand"
         assert "asked for land" in str(result.get("message") or "")
 
-        # Second press: gold still unfundable, territory already escalated —
+        # Second press: gold still unfundable, territory already escalated â€”
         # the once-per-court-per-direction guard holds and the click falls
         # back to the D3 ceiling note (never a second land grab, never
         # wordless).
@@ -448,9 +448,9 @@ class TestMagnitudeBudgetRefusals:
         assert result.get("diplomatic_dialogue")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-4 — bare action-id `choice` resolves exactly (the wire's verb shape)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-4 â€” bare action-id `choice` resolves exactly (the wire's verb shape)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestChoiceActionIdResolution:
@@ -459,7 +459,7 @@ class TestChoiceActionIdResolution:
         ("submit_settlement_for_review" matches no label substring), which is
         how per-id carve-outs like `suspend_settlement_editor` accreted.
         Exact action-id equality resolves the wire's verb before any fuzzy
-        pass — through the real dialogue-response entry point."""
+        pass â€” through the real dialogue-response entry point."""
         from backend.commands.diplomatic_executor import DiplomaticExecutor
 
         world, _war = _winning_two_court_world()
@@ -474,9 +474,9 @@ class TestChoiceActionIdResolution:
         assert refreshed.get("dialogue_mode") == "REVIEW"
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-3 — the guided surface is not hidden below the scroll fold
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-3 â€” the guided surface is not hidden below the scroll fold
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestPerCourtViewport:
@@ -486,7 +486,7 @@ class TestPerCourtViewport:
         )
         assert "func _build_settlement_table_preamble" in text
         assert "_build_settlement_table_preamble(data)" in text
-        # The scrollable block starts at the table itself — the treasury /
+        # The scrollable block starts at the table itself â€” the treasury /
         # narration preamble must NOT consume scroll viewport height.
         block = text.split("func _build_settlement_per_court_block", 1)[1]
         block = block.split("\nfunc ", 1)[0]
@@ -503,13 +503,13 @@ class TestPerCourtViewport:
         assert "custom_minimum_size = Vector2(0, 320)" in scroll_chunk
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-5 — the whole-table dial is never a silent dead click
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-5 â€” the whole-table dial is never a silent dead click
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def _strip_to_peace_only(world, dialogue):
-    """Replace the staged draft's terms with the bare shared peace clause —
+    """Replace the staged draft's terms with the bare shared peace clause â€”
     the live leg-2 smoke shape (the tuned multilateral baseline authored no
     gold, so the whole-table sweep had nothing to tune)."""
     refreshed = dict(dialogue)
@@ -522,7 +522,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
     def test_whole_table_harsher_seeds_every_unpressed_court(self):
         """The live dead click: peace + a kept territory demand, no gold.
         Pre-fix the whole-table sweep changed nothing (territory demands are
-        KEPT on harsher, the seed was focused-only) — now every scoped court
+        KEPT on harsher, the seed was focused-only) â€” now every scoped court
         without a material delta gets the modest seed."""
         terms = [
             {"type": "peace"},
@@ -542,7 +542,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
         # The kept territory demand survives untouched (identity is Tier 3).
         terr = [t for t in out if t.get("type") == "territory_cede"]
         assert len(terr) == 1 and terr[0]["region"] == "Netherlands"
-        # BOTH courts now carry a pressed gold demand — the click moved the
+        # BOTH courts now carry a pressed gold demand â€” the click moved the
         # needle for every court the label claims to press.
         for court in ("Britain", "Prussia"):
             seeds = [
@@ -554,7 +554,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
             assert seeds[0]["amount"] == SETTLEMENT_DIAL_GOLD_STEP
 
     def test_repeat_whole_table_clicks_accumulate(self):
-        """Click 2 grows what click 1 seeded — repeated presses escalate
+        """Click 2 grows what click 1 seeded â€” repeated presses escalate
         instead of re-producing the same package."""
         terms = [{"type": "peace"}]
         first = _redial_settlement_terms(
@@ -646,7 +646,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
 
     def test_capped_package_notes_instead_of_silent_break(self):
         """At MAX_SETTLEMENT_CLAUSE_COUNT the seed loop must SAY it has no
-        room (the D3 never-wordless contract) — not break silently."""
+        room (the D3 never-wordless contract) â€” not break silently."""
         terms = [{"type": "peace"}]
         i = 0
         while len(terms) < MAX_SETTLEMENT_CLAUSE_COUNT:
@@ -654,7 +654,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
                 "type": "gold_indemnity",
                 "from": "Britain",
                 "to": "France",
-                "amount": 1500,  # at the hard cap — presses note, not grow
+                "amount": 1500,  # at the hard cap â€” presses note, not grow
             })
             i += 1
         notes: list = []
@@ -675,7 +675,7 @@ class TestWholeTableDialSeedsUnpressedCourts:
 class TestDialFeedbackReachesThePopup:
     def test_whole_table_press_on_peace_only_draft_moves_terms_live(self):
         """The exact live repro, through the real handler + real scorer: a
-        peace-only PROPOSE draft, one whole-table press → both courts carry
+        peace-only PROPOSE draft, one whole-table press â†’ both courts carry
         a gold demand and the response restages the dialogue."""
         world, _war = _winning_two_court_world()
         dialogue = _stage_propose(world)
@@ -697,9 +697,9 @@ class TestDialFeedbackReachesThePopup:
     def test_ceiling_feedback_rides_the_restaged_dialogue_as_voice_beats(self):
         """G4F-5b: `message` prints to the terminal BEHIND the modal popup,
         so ceiling feedback must ride the restaged dialogue as one-shot
-        `authoring_voice_beats` — the carrier the popup preamble renders.
+        `authoring_voice_beats` â€” the carrier the popup preamble renders.
         Click 1: the broke court ESCALATES (GT-A5) and the pivot is a
-        `talleyrand_line` beat. Click 2: escalation exhausted — the D3
+        `talleyrand_line` beat. Click 2: escalation exhausted â€” the D3
         ceiling note arrives as a `dial_note` beat."""
         world, _war = _winning_two_court_world(prussia_gold=0)
         dialogue = _stage_propose(world)
@@ -735,7 +735,7 @@ class TestDialFeedbackReachesThePopup:
         )
 
         # Click 2: Prussia's gold is still unfundable and its territory is
-        # already escalated — the ceiling NOTE now reaches the popup as a
+        # already escalated â€” the ceiling NOTE now reaches the popup as a
         # `dial_note` beat (the original G4F-5b contract).
         second = handle_settlement_dialogue_action(
             world,
@@ -761,11 +761,11 @@ class TestDialFeedbackReachesThePopup:
         assert "Prussia can pay no more" in str(second.get("message") or "")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-6 — the pre-proposal objection judges the DISPLAYED terms
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-6 â€” the pre-proposal objection judges the DISPLAYED terms
 # (live smoke: "such generous terms... rewards their failure" on a
-# PUNITIVE / REJECT bilateral preview — the objection stub was empty)
-# ═══════════════════════════════════════════════════════════════════════════
+# PUNITIVE / REJECT bilateral preview â€” the objection stub was empty)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestObjectionJudgesDisplayedTerms:
@@ -828,11 +828,11 @@ class TestObjectionJudgesDisplayedTerms:
         assert "rewards their failure" in _json.dumps(merged)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-7 — the full-deal carry verdict is loud, attributed, and honest
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-7 â€” the full-deal carry verdict is loud, attributed, and honest
 # (live smoke: two "Near acceptable" chips at 44/35 read as "net terms
 # acceptable" while BOTH courts were blocking holdouts)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestCarryVerdictPresentation:
@@ -882,7 +882,7 @@ class TestCarryVerdictPresentation:
         dialogue = _stage_propose(world)
         assert dialogue.get("war_label") == "France vs Britain + Prussia"
         # The blocked copy now reads "the settlement of France vs
-        # Britain + Prussia ..." — the leader-pair label fed the
+        # Britain + Prussia ..." â€” the leader-pair label fed the
         # "Britain-only" misreading.
         result = handle_settlement_dialogue_action(
             world,
@@ -915,7 +915,7 @@ class TestCarryVerdictPresentation:
 
     def test_footer_lead_court_score_suppressed_on_per_court_table(self):
         """G4F-12: the footer 'Acceptance' block is the LEAD COURT's score,
-        not a deal aggregate — on the per-court table it duplicated one row
+        not a deal aggregate â€” on the per-court table it duplicated one row
         and could contradict the header carry verdict. It renders only when
         no per-court rows exist."""
         text = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
@@ -927,12 +927,12 @@ class TestCarryVerdictPresentation:
         assert "not has_per_court_rows and acceptance is Dictionary" in block
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-8 — the pair substitute is a confirmed handoff that carries terms
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-8 â€” the pair substitute is a confirmed handoff that carries terms
 # (live smoke: "Make peace with Britain only" read as a verdict; one click
 # silently discarded the authored joint draft and opened the bilateral
 # engine with fresh auto-terms)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def _blocked_review_with_authored_gold(world, court="Britain", amount=300):
@@ -1098,7 +1098,7 @@ class TestPairSubstituteConfirmStep:
                  "amount": 200},
                 {"type": "vassalage", "from": "Britain", "to": "France"},
                 {"type": "gold_indemnity", "from": "Prussia", "to": "France",
-                 "amount": 999},  # other court — never carried
+                 "amount": 999},  # other court â€” never carried
             ],
             target="Britain",
             proposer_leader="France",
@@ -1117,11 +1117,11 @@ class TestPairSubstituteConfirmStep:
         assert not any(d.get("value") == 999 for d in seed["demands"])
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-9 — Talleyrand never suggests a package his own estimator rejects
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-9 â€” Talleyrand never suggests a package his own estimator rejects
 # (live smoke: suggested 200/turn + Waterloo scored 3/REJECT while the
 # assessment read PUNITIVE and the commentary claimed the terms fit)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestSuggestEstimateConvergence:
@@ -1165,12 +1165,12 @@ class TestSuggestEstimateConvergence:
             )
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-11 — the ratification event names amounts, regions, and the full table
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-11 â€” the ratification event names amounts, regions, and the full table
 # (term-reflection audit: the dispatch line and the recent-settlements
 # record read "Settlement of France vs Britain: Gold indemnity:
-# Britain→France" — leader-pair label, no amount, no region name)
-# ═══════════════════════════════════════════════════════════════════════════
+# Britainâ†’France" â€” leader-pair label, no amount, no region name)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestRatificationEventRichness:
@@ -1210,23 +1210,23 @@ class TestRatificationEventRichness:
         ]
         assert summaries, world.event_log
         event = summaries[-1]
-        # Full-sides label — never the first-vs-first pair form.
+        # Full-sides label â€” never the first-vs-first pair form.
         assert event.get("war_label") == "France vs Britain + Prussia"
         lines = [str(line) for line in event.get("terms_summary") or []]
         assert lines
         # Rich formatter: a gold line names its amount and direction; the
-        # thin "type: from→to" form named neither.
+        # thin "type: fromâ†’to" form named neither.
         gold_lines = [ln for ln in lines if "gold" in ln.lower()]
         if gold_lines:
             assert any("gold from" in ln for ln in gold_lines), lines
         # No thin arrow-form remnants.
-        assert not any("→" in ln and " from " not in ln for ln in lines), lines
+        assert not any("â†’" in ln and " from " not in ln for ln in lines), lines
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# GT-A5 (GT-Slice-5) — ceiling-triggered territory escalation
-# (user-approved June 11, 2026: the OQ#7 crossing — spec §3.5 GT-A5)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# GT-A5 (GT-Slice-5) â€” ceiling-triggered territory escalation
+# (user-approved June 11, 2026: the OQ#7 crossing â€” spec Â§3.5 GT-A5)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestDialTerritoryEscalation:
@@ -1263,14 +1263,14 @@ class TestDialTerritoryEscalation:
         terr = [t for t in out if t.get("type") == "territory_cede"]
         assert len(terr) == 1 and terr[0]["region"] == "Silesia"
         assert terr[0]["authored_by"] == "talleyrand"
-        # Gold held at the budget — never grown past capacity.
+        # Gold held at the budget â€” never grown past capacity.
         gold = next(t for t in out if t.get("type") == "gold_indemnity")
         assert gold["amount"] == 500
         assert [e for e in events if e.get("kind") == "territory_escalation"]
         assert not notes  # the escalation IS the feedback this click
 
         # Next press: candidate consumed (the handler's once-per-direction
-        # guard supplies none) — the D3 ceiling note returns.
+        # guard supplies none) â€” the D3 ceiling note returns.
         notes2: list = []
         out2 = _redial_settlement_terms(
             terms=out,
@@ -1287,7 +1287,7 @@ class TestDialTerritoryEscalation:
         assert any("can pay no more" in n for n in notes2)
 
     def test_ease_at_treasury_cap_escalates_to_france_territory_offer(self):
-        """The symmetric ladder (Building Blocks — the same machinery must
+        """The symmetric ladder (Building Blocks â€” the same machinery must
         serve Slice G1's AI offer producer): an ease at France's treasury
         ceiling offers the court a region instead."""
         terms = [
@@ -1325,7 +1325,7 @@ class TestDialTerritoryEscalation:
         assert not notes
 
     def test_escalation_respects_clause_cap_and_still_notes(self):
-        """A maxed package never gains an over-cap escalation clause — and
+        """A maxed package never gains an over-cap escalation clause â€” and
         the refusal is voiced, never silent."""
         terms = [{"type": "peace"}]
         while len(terms) < MAX_SETTLEMENT_CLAUSE_COUNT:
@@ -1340,7 +1340,7 @@ class TestDialTerritoryEscalation:
             direction="harsher",
             proposer_side_leader="France",
             protected_notes=notes,
-            payer_gold_budgets={"Prussia": 0},  # seed unfundable → ceiling
+            payer_gold_budgets={"Prussia": 0},  # seed unfundable â†’ ceiling
             territory_escalations={
                 "Prussia": {
                     "type": "territory_cede", "from": "Prussia",
@@ -1414,7 +1414,7 @@ class TestDialTerritoryEscalation:
 
     def test_ease_with_empty_treasury_offers_land_through_the_handler(self):
         """End to end through the real handler + scorer: France with an
-        empty treasury eases the whole table — the courts receive France
+        empty treasury eases the whole table â€” the courts receive France
         territory offers (distinct regions), voiced as escalation beats.
         France must hold CAPTURED land first: the transferable-region
         selector never cedes proposer home territory, so a fresh-start
@@ -1454,9 +1454,9 @@ class TestDialTerritoryEscalation:
         ), beats
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-13 — a COUNTER_OFFER verdict yields an actual counter (player-sent)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-13 â€” a COUNTER_OFFER verdict yields an actual counter (player-sent)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def _bilateral_war_world(*, france_gold=2000, britain_dp=3, relations=-40):
@@ -1531,7 +1531,7 @@ class TestCounterOfferReachesThePlayer:
         world = _bilateral_war_world(britain_dp=2)
         result = generate_counter_offer(_armistice_proposal(), world)
         assert result is not None
-        # R138: the AUTHOR (Britain) pays 1 DP — not France, not skipped.
+        # R138: the AUTHOR (Britain) pays 1 DP â€” not France, not skipped.
         assert world.nation_dp["Britain"] == 1
 
     def test_counter_reaches_the_sign_bar_for_player_sent(self):
@@ -1631,7 +1631,7 @@ class TestCounterOfferReachesThePlayer:
     def test_counter_respects_ratification_relation_gate(self):
         """A peace counter at relations below the STATE_RELATION_REQUIREMENTS
         threshold (-60) would bind on the formula and then fail
-        _ratify_treaty — the generator must refuse it, and the preview must
+        _ratify_treaty â€” the generator must refuse it, and the preview must
         name the gate (the live smoke accepted a counter and got
         'Relations with Britain are insufficient for PEACE')."""
         from backend.game_logic.ai_diplomacy import generate_counter_offer
@@ -1651,7 +1651,7 @@ class TestCounterOfferReachesThePlayer:
         warning = str(enriched.get("ratification_gate_warning", ""))
         assert "-80" in warning and "-60" in warning
         assert "armistice" in warning.lower()
-        # Armistice itself has NO relation requirement — no gate warning.
+        # Armistice itself has NO relation requirement â€” no gate warning.
         world2 = _bilateral_war_world(relations=-80)
         dialogue2b = {
             "type": "proposal_confirm",
@@ -1666,7 +1666,7 @@ class TestCounterOfferReachesThePlayer:
 
     def test_accept_counter_with_failed_ratification_reports_failure(self):
         """'You have accepted X's counter-proposal. Relations are
-        insufficient' — the success copy must not survive a failed
+        insufficient' â€” the success copy must not survive a failed
         ratification."""
         from backend.commands.executor import CommandExecutor
 
@@ -1714,16 +1714,16 @@ class TestCounterOfferReachesThePlayer:
         assert "ratification_gate_warning" in source
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-14 — generic "armistice" scores as its war-score variant everywhere
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-14 â€” generic "armistice" scores as its war-score variant everywhere
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestArmisticeVariantScoringConsistency:
     """Preview scored terms["type"] (variant); send/resolution scored
-    terms["proposal_type"] (generic, absent from BASE_DISPOSITION → default
+    terms["proposal_type"] (generic, absent from BASE_DISPOSITION â†’ default
     30). Same package: 45 generic / 38 winning / 58 losing on the live
-    fixture — enough to cross both verdict thresholds between the popup
+    fixture â€” enough to cross both verdict thresholds between the popup
     estimate and the actual resolution."""
 
     @staticmethod
@@ -1766,7 +1766,7 @@ class TestArmisticeVariantScoringConsistency:
     def test_preview_and_send_proposal_shapes_now_agree(self):
         """The exact two shapes the wire builds: the preview scores
         terms["type"]="armistice_winning", execute_proposal scores
-        proposal_type-first → generic "armistice". They must be the same
+        proposal_type-first â†’ generic "armistice". They must be the same
         number."""
         from backend.game_logic.diplomacy import calculate_acceptance
 
@@ -1779,14 +1779,14 @@ class TestArmisticeVariantScoringConsistency:
         )
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-15 — the armistice arm carries CONCESSIONS only (user-approved)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-15 â€” the armistice arm carries CONCESSIONS only (user-approved)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestArmisticeArmCarriesConcessionsOnly:
     """The G4F-8 carry-over fed the joint draft's DEMANDS into "Armistice
-    with X only" — a carried territory demand probed 19/REJECT where a bare
+    with X only" â€” a carried territory demand probed 19/REJECT where a bare
     armistice sat at 38. A truce that extracts tribute is not a truce: the
     armistice arm now drops demands (voiced), keeps proposer-paid
     sweeteners, and the peace arm keeps the full carry-over."""
@@ -1876,9 +1876,9 @@ class TestArmisticeArmCarriesConcessionsOnly:
         assert not bilateral.get("armistice_demands_dropped")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-16 — armistice arm absence is explained (disabled-with-reason widening)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-16 â€” armistice arm absence is explained (disabled-with-reason widening)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestPairSubstituteDisabledRendering:
@@ -1916,7 +1916,7 @@ class TestPairSubstituteDisabledRendering:
         reason = str(arm.get("disabled_reason_display") or "")
         assert "already in armistice" in reason.lower()
         assert "3 turns to run" in reason
-        # The peace arm stays live from ARMISTICE — the asymmetry that
+        # The peace arm stays live from ARMISTICE â€” the asymmetry that
         # read as a bug is now explained instead of wordless.
         peace = by_action.get("seek_bilateral_peace")
         assert peace is not None and peace.get("available", True) is not False
@@ -1977,9 +1977,9 @@ class TestPairSubstituteDisabledRendering:
         assert "Not available now" in source
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# G4F-17 — armistice mechanics explained at decision time (fixed 5 + explain)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-17 â€” armistice mechanics explained at decision time (fixed 5 + explain)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class TestArmisticeMechanicsExplained:
@@ -2066,3 +2066,190 @@ class TestArmisticeMechanicsExplained:
         assert "armistice_mechanics" in incoming
         assert "armistice_projected_outcome" in detail
         assert "armistice_projected_outcome" in panel
+
+
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# G4F-18..22 â€” Part-2 coverage-sweep fixes (the surfaces no eyes had touched)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+
+class TestCoverageSweepFixes:
+    def test_last_court_drop_names_the_coverage_floor(self):
+        """G4F-18: dropping the LAST covered court refuses with the floor
+        rule, not the missing-selection copy."""
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        dropped = handle_settlement_dialogue_action(
+            world,
+            action="settlement_cover_drop",
+            dialogue=dialogue,
+            action_params={"action": "settlement_cover_drop", "nation": "Prussia"},
+        )
+        assert dropped["success"] is True
+        blocked = handle_settlement_dialogue_action(
+            world,
+            action="settlement_cover_drop",
+            dialogue=dropped["diplomatic_dialogue"],
+            action_params={"action": "settlement_cover_drop", "nation": "Britain"},
+        )
+        assert blocked["success"] is False
+        assert blocked["error"] == "coverage_floor"
+        display = str(blocked.get("error_display") or "")
+        assert "at least one covered enemy" in display.lower()
+        assert "back out" in display.lower()
+        # CH-5: the dialogue stays attached â€” never a dead popup.
+        assert blocked.get("diplomatic_dialogue")
+
+    def test_bare_package_is_labeled_white_peace(self):
+        """G4F-19: stripping the package to the bare peace clause labels the
+        dialogue, the heading, and the ratify action as a White Peace."""
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        # Remove every material clause through the real verb.
+        guard = 0
+        while guard < 12:
+            guard += 1
+            line = None
+            for row in dialogue.get("per_court_acceptance") or []:
+                for cd in row.get("current_demands") or []:
+                    if cd.get("remove_action"):
+                        line = cd
+                        break
+                if line:
+                    break
+            if not line:
+                break
+            removed = handle_settlement_dialogue_action(
+                world,
+                action="settlement_demand_remove",
+                dialogue=dialogue,
+                action_params=dict(
+                    line["remove_action"].get("action_params") or {}
+                ),
+            )
+            assert removed["success"] is True, removed.get("error_display")
+            dialogue = removed["diplomatic_dialogue"]
+        types_left = [
+            t.get("type") for t in (dialogue.get("settlement_terms") or [])
+        ]
+        assert types_left == ["peace"], types_left
+        assert dialogue.get("white_peace") is True
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=dialogue,
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        review = submit["diplomatic_dialogue"]
+        assert review.get("white_peace") is True
+        labels = {
+            o.get("action"): o.get("label") for o in review.get("options", [])
+        }
+        if "confirm_settlement" in labels:
+            assert labels["confirm_settlement"] == "Ratify White Peace"
+        assert "white peace" in str(review.get("talleyrand_text") or "").lower()
+
+    def test_material_package_is_not_white_peace(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        dialogue = _add_demand_gold(world, dialogue, "Britain", 200)
+        assert not dialogue.get("white_peace")
+
+    def test_forced_alliance_threat_preview_rides_the_dialogue(self):
+        """G4F-20: the SC-16 projection is computed on every preview; the
+        staged dialogue must carry the display the popup renders."""
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        added = handle_settlement_dialogue_action(
+            world,
+            action="settlement_demand_add",
+            dialogue=dialogue,
+            action_params={
+                "action": "settlement_demand_add",
+                "nation": "Britain",
+                "clause_type": "forced_alliance",
+                "group": "demand",
+            },
+        )
+        assert added["success"] is True, added.get("error_display")
+        review_sections = (
+            added["diplomatic_dialogue"].get("review_sections") or {}
+        )
+        preview = review_sections.get("forced_alliance_threat_preview") or {}
+        assert int(preview.get("forced_alliance_clauses") or 0) >= 1
+        assert "coalition threat" in str(preview.get("display") or "").lower()
+
+    def test_popup_renders_threat_preview(self):
+        source = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        assert "forced_alliance_threat_preview" in source
+
+    def test_archived_war_reentry_routes_to_settlement_history(self):
+        """G4F-21: re-entering a settled war names the settlement-history
+        route â€” never 'reopen settlement review' for a war that is OVER."""
+        from backend.game_logic.settlement_helpers import (
+            resolve_or_backfill_war_instance_for_settlement,
+        )
+        from backend.game_logic.settlement_validation import (
+            evaluate_open_settlement_eligibility,
+        )
+
+        world, war = _winning_two_court_world()
+        war["ended_turn"] = 3
+        result = resolve_or_backfill_war_instance_for_settlement(
+            world, "France", "Britain", requested_war_id="war_1",
+        )
+        assert result["ok"] is False
+        assert result["error"] == "war_archived"
+        assert (result.get("recovery_route") or {}).get("surface") == (
+            "settlement_history"
+        )
+        eligibility = evaluate_open_settlement_eligibility(
+            world, war_id="war_1", actor_nation="France",
+        )
+        assert eligibility.get("error") == "war_archived"
+        display = str(eligibility.get("error_display") or "")
+        assert "settlement history" in display.lower()
+        assert "reopen settlement review" not in display.lower()
+
+    def test_sc28_discard_notice_names_the_draft(self):
+        """G4F-22: the end-turn discard notice names the court and the
+        authored clause count, not just 'a draft was discarded'."""
+        from backend.game_logic.settlement_preview import (
+            save_scoped_settlement_draft,
+        )
+
+        world, _war = _winning_two_court_world()
+        save_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation="Britain",
+            covered_enemy_participants=["Britain", "Prussia"],
+            settlement_terms=[
+                {"type": "peace"},
+                {"type": "gold_indemnity", "from": "Britain", "to": "France",
+                 "amount": 250},
+            ],
+        )
+        world.advance_turn()
+        notices = world.drain_settlement_draft_notices()
+        assert len(notices) == 1
+        notice = notices[0]
+        assert notice["selected_target_nation"] == "Britain"
+        assert notice["draft_clause_count"] == 2
+        message = notice["message_display"]
+        assert "Britain" in message
+        assert "2 clauses" in message
+
+
+
+def test_command_response_forwards_refusal_and_recovery_fields():
+    """G4F-21: /command forwards error / error_display / recovery_route from
+    executor results (the dialogue endpoint always did; the typed-mount
+    refusal dropped them, so the archived-war recovery route never reached
+    the client)."""
+    from backend.main import _COMMAND_RESULT_SIMPLE_FIELDS
+
+    for key in ("error", "error_display", "recovery_route"):
+        assert key in _COMMAND_RESULT_SIMPLE_FIELDS

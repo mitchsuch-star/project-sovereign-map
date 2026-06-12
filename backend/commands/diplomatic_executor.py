@@ -2044,7 +2044,7 @@ class DiplomaticExecutor:
                     "error_display": settlement_disabled_reason_display(err),
                 }
             display_reason = settlement_disabled_reason_display(err)
-            return {
+            refusal = {
                 "success": False,
                 "error": err,
                 "error_display": display_reason,
@@ -2053,6 +2053,11 @@ class DiplomaticExecutor:
                     f"{target_nation}: {display_reason}"
                 ),
             }
+            # G4F-21: an archived war names its recovery surface so the
+            # client can route to settlement history even on a cache miss.
+            if resolution.get("recovery_route"):
+                refusal["recovery_route"] = resolution["recovery_route"]
+            return refusal
         war_id = resolution["war_id"]
         # GT-Slice-4: the editor's structured Submit-for-Review POST is
         # retired (verify-dead pass — no non-editor producer carried

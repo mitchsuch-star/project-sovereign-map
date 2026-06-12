@@ -531,6 +531,11 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "active_pair_changed": "The war changed while the settlement was open.",
     "no_selected_target_nation": "No settlement target court is selected.",
     "no_covered_enemy_participants": "No enemy participant is selected for settlement.",
+    # G4F-18: the V5 coverage floor — distinct from a missing selection.
+    "coverage_floor": (
+        "At least one covered enemy court must remain. To abandon the "
+        "settlement entirely, use Back Out instead."
+    ),
     "selected_target_not_covered": "The selected settlement target is outside this settlement scope.",
     "settlement_eligibility_unavailable": "Settlement eligibility could not be evaluated; reopen war detail.",
     "malformed_route": "This recovery route is incomplete.",

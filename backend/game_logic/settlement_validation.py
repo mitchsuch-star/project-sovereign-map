@@ -825,7 +825,9 @@ def evaluate_open_settlement_eligibility(
     if not instance:
         return _blocked_payload("invalid_war_id", war_id=war_id)
     if instance.get("ended_turn") is not None:
-        return _blocked_payload("inactive_war_instance", war_id=war_id)
+        # G4F-21: a settled war routes to settlement history, not to the
+        # generic "war state has changed; reopen settlement review" copy.
+        return _blocked_payload("war_archived", war_id=war_id)
     if not is_common_settlement_worth_showing(instance):
         return _blocked_payload("one_to_one_war", war_id=war_id)
 
