@@ -1035,8 +1035,10 @@ def try_deliver_queued_proposal(world) -> Optional[Dict]:
 # M3 COUNTER-OFFER ALGORITHM (§9b)
 # ═══════════════════════════════════════════════════════════════
 
-def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
-    """Generate a deterministic counter-offer for an AI proposal.
+def generate_counter_offer(
+    proposal: Dict, world, *, counter_author: str = "", dry_run: bool = False
+) -> Optional[Dict]:
+    """Generate a deterministic counter-offer to a proposal.
 
     Algorithm (§9b):
         Step 1: Calculate per-clause acceptance impact using SWEETENER/DEMAND values.
@@ -1048,36 +1050,81 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
                  per-nation desire table.
         Step 5: If score >= 50: present as counter. If < 30: REJECT.
 
+    G4F-13: the counter is authored by the court that RECEIVED the proposal.
+    The M3 path (player counters an AI proposal) keeps proposer_nation as the
+    author; for a PLAYER-SENT proposal the author is target_nation — its desire
+    table, its diplomat, its DP. Sweeteners are always paid by the PROPOSING
+    side, so affordability checks run against the proposer's treasury in both
+    directions. For player-sent proposals the bar is the plain sign threshold
+    (50) — personality already shapes the score itself, and the counter is the
+    AI naming the price at which it WOULD sign.
+
     Args:
-        proposal: The original AI proposal terms dict. This is the "terms" field
-                  from the AI proposal, which the player is now counter-offering
-                  (we modify it to be more favorable to France).
+        proposal: The proposal terms dict being countered.
         world: WorldState
+        counter_author: Explicit countering nation; derived when empty.
+        dry_run: Constructibility check only — no DP charge or world mutation.
 
     Returns:
-        Modified terms dict if counter succeeds (score >= 50), or
-        None if counter fails (score < 30 after adjustments).
+        Modified terms dict if counter succeeds, or None if no counter can
+        be constructed (the caller degrades to a rejection).
     """
     import copy
     terms = copy.deepcopy(proposal)
     source_nation = terms.get("proposer_nation", "")
+    player_nation = getattr(world, 'player_nation', 'France')
+    player_sent = bool(source_nation) and source_nation == player_nation
+    author = counter_author or (
+        terms.get("target_nation", "") if player_sent else source_nation
+    )
 
-    # R138: Counter-offers cost 1 DP for AI nations
-    if source_nation and source_nation != getattr(world, 'player_nation', 'France'):
+    # R138: Counter-offers cost 1 DP for AI nations (the AUTHOR pays).
+    if not dry_run and author and author != player_nation:
         nation_dp = getattr(world, 'nation_dp', {})
-        current_dp = nation_dp.get(source_nation, 0)
+        current_dp = nation_dp.get(author, 0)
         if current_dp < 1:
             return None  # AI can't afford counter-offer — reject instead
-        nation_dp[source_nation] = current_dp - 1
+        nation_dp[author] = current_dp - 1
         world.nation_dp = nation_dp
 
-    # R125: Look up personality-based acceptance/rejection thresholds
-    diplomats = getattr(world, 'diplomats', {})
-    diplomat = diplomats.get(source_nation)
-    diplomat_personality = getattr(diplomat, 'personality', 'loyalist') if diplomat else 'loyalist'
-    thresholds = PERSONALITY_COUNTER_THRESHOLDS.get(diplomat_personality, PERSONALITY_COUNTER_THRESHOLDS["loyalist"])
-    accept_threshold = thresholds["accept"]
-    floor_threshold = thresholds["floor"]
+    # G4F-13: never author a counter the ratify gate would veto. A peace
+    # counter at relations below the STATE_RELATION_REQUIREMENTS threshold
+    # would "bind" at >= 50 on the formula and then fail _ratify_treaty —
+    # the player accepts and nothing happens. Unratifiable type → no
+    # counter (the resolution degrades to an honest rejection instead).
+    _counter_target = terms.get("target_nation", "")
+    if _counter_target:
+        from backend.game_logic.diplomacy import (
+            check_relation_requirement,
+        )
+        _state_for_type = {
+            "peace": "PEACE", "armistice": "ARMISTICE",
+            "armistice_losing": "ARMISTICE", "armistice_winning": "ARMISTICE",
+            "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+            "open_borders": "OPEN_BORDERS", "non_aggression": "NON_AGGRESSION",
+        }
+        _target_state = _state_for_type.get(str(terms.get("type", "")))
+        if _target_state:
+            _pair_key = world._make_diplo_key(
+                terms.get("proposer_nation", "") or "France", _counter_target
+            )
+            _relation = getattr(world, 'nation_relations', {}).get(_pair_key, 0)
+            _current = world.diplomatic_states.get(_pair_key, "PEACE")
+            if not check_relation_requirement(_current, _target_state, _relation):
+                return None
+
+    # R125: personality thresholds (the AUTHOR's diplomat) govern the M3
+    # path. Player-sent proposals use the formula's own bands (G4F-13).
+    if player_sent:
+        accept_threshold = 50
+        floor_threshold = 30
+    else:
+        diplomats = getattr(world, 'diplomats', {})
+        diplomat = diplomats.get(author)
+        diplomat_personality = getattr(diplomat, 'personality', 'loyalist') if diplomat else 'loyalist'
+        thresholds = PERSONALITY_COUNTER_THRESHOLDS.get(diplomat_personality, PERSONALITY_COUNTER_THRESHOLDS["loyalist"])
+        accept_threshold = thresholds["accept"]
+        floor_threshold = thresholds["floor"]
 
     # ── Step 1: Calculate per-clause impact ──
     # We test removing each sweetener/demand/clause individually to see
@@ -1134,13 +1181,33 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
             "description": f"clause:{c}",
         })
 
+    def _bridge(candidate: Dict) -> Optional[Dict]:
+        """Desire-table walk, then the universal gold bridge (G4F-13).
+
+        Player-sent counters restrict the desire walk to gold types: the
+        table's territory/clause entries describe things the AI cedes from
+        its OWN holdings (M3 semantics) and would ratify as nonsense when
+        France is the payer.
+        """
+        improved = _try_add_desired_clauses(
+            candidate, author, world,
+            accept_threshold=accept_threshold, payer_nation=source_nation,
+            gold_only=player_sent,
+        )
+        if improved is not None:
+            return improved
+        return _gold_bridge_counter(
+            candidate, world,
+            accept_threshold=accept_threshold, payer_nation=source_nation,
+        )
+
     # ── Step 2: Find clause with largest NEGATIVE impact on acceptance ──
     # (The clause that, when present, hurts acceptance the most =
     #  removing it would INCREASE acceptance the most =
     #  highest positive impact value)
     if not clause_impacts:
         # Nothing to remove — try adding desired clauses directly
-        return _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
+        return _bridge(terms)
 
     # Sort by impact descending (removing the one with highest positive impact
     # improves the score the most — that's the one the AI hates most)
@@ -1150,7 +1217,7 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     # Only remove if it actually improves the score
     if worst_clause["impact"] <= 0:
         # No single removal helps — try adding desired clauses
-        return _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
+        return _bridge(terms)
 
     # ── Step 3: Remove that clause ──
     category = worst_clause["category"]
@@ -1171,7 +1238,7 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
 
     if floor_threshold <= new_score < accept_threshold:
         # Try adding cheapest desired clause from nation's desire table
-        improved = _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
+        improved = _bridge(terms)
         if improved is not None:
             return improved
 
@@ -1179,17 +1246,68 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     if new_score < floor_threshold:
         return None
 
-    # Between floor and accept but couldn't add desired clauses: still return as counter
+    # Between floor and accept but couldn't bridge the gap: the M3 path
+    # still returns the trimmed package as a counter (legacy behavior).
+    # A player-sent counter is the AI naming the price it WOULD sign at,
+    # so an under-bar package degrades to an honest rejection instead.
+    if player_sent:
+        return None
     return terms
 
 
+def _payer_gold(world, payer_nation: str) -> int:
+    """Treasury of the side that pays counter sweeteners (proposer side).
+
+    `world.gold` is a property over nation_gold[player_nation], so the
+    nation_gold lookup is payer-correct for player and AI alike.
+    """
+    try:
+        return int(getattr(world, 'nation_gold', {}).get(payer_nation, 0))
+    except Exception:
+        return 0
+
+
+def _gold_bridge_counter(
+    terms: Dict, world, *, accept_threshold: int, payer_nation: str
+) -> Optional[Dict]:
+    """G4F-13 universal fallback: bridge the acceptance gap with gold.
+
+    Courts without a NATION_DESIRES entry (and desire walks that fall
+    short) still get a constructible counter: the smallest 100-gold step
+    the payer can afford that lifts the package to the accept bar. Walks
+    the live formula, so no pricing-rate assumption is baked in.
+    """
+    import copy
+
+    if not payer_nation:
+        return None
+    treasury = _payer_gold(world, payer_nation)
+    if treasury < 100:
+        return None
+    max_amount = min(treasury, 3000)
+    amount = 100
+    while amount <= max_amount:
+        test_terms = copy.deepcopy(terms)
+        test_terms.setdefault("sweeteners", []).append(
+            {"type": "gold_lump", "value": int(amount)}
+        )
+        result = calculate_acceptance(test_terms, world)
+        if result["score"] >= accept_threshold:
+            return test_terms
+        amount += 100
+    return None
+
+
 def _try_add_desired_clauses(
-    terms: Dict, source_nation: str, world, accept_threshold: int = 50
+    terms: Dict, source_nation: str, world, accept_threshold: int = 50,
+    payer_nation: str = "", gold_only: bool = False,
 ) -> Optional[Dict]:
     """Try adding the cheapest desired clause from the nation's desire table.
 
-    The AI nation adds additional sweeteners it offers TO France to bridge
-    the acceptance gap toward >= accept_threshold. See NATION_DESIRES design note above.
+    The countering nation picks from ITS desire table; the sweetener is paid
+    by the proposing side (`payer_nation`, defaulting to source_nation for
+    the M3 direction where author and payer coincide). See NATION_DESIRES
+    design note above.
 
     R125: accept_threshold is personality-driven (hawk=60, dove=40, default=50).
 
@@ -1197,6 +1315,7 @@ def _try_add_desired_clauses(
     """
     import copy
 
+    payer = payer_nation or source_nation
     desires = NATION_DESIRES.get(source_nation, [])
     if not desires:
         return None
@@ -1206,6 +1325,11 @@ def _try_add_desired_clauses(
         test_terms = copy.deepcopy(terms)
         dtype = desire.get("type", "")
 
+        # G4F-13: player-sent counters only walk gold desires — the
+        # territory/clause entries carry M3 (author-cedes) semantics.
+        if gold_only and dtype not in ("gold_lump", "gold_per_turn"):
+            continue
+
         # Add as a sweetener from the AI nation to France
         if dtype in ("gold_lump", "gold_per_turn", "territory"):
             # Fix 6: Only apply max(5,...) for gold types; territory uses max(1,...)
@@ -1213,14 +1337,16 @@ def _try_add_desired_clauses(
                 sweetener_value = max(5, int(desire.get("value", 0)))
             else:
                 sweetener_value = max(1, int(desire.get("value", 0)))
-            # R113: Validate gold sweetener against treasury (prevent negative gold)
+            # R113: Validate gold sweetener against the PAYER's treasury
+            # (prevent negative gold)
             if dtype == "gold_lump":
-                nation_gold = world.nation_gold.get(source_nation, 0)
+                nation_gold = world.nation_gold.get(payer, 0)
                 if nation_gold < sweetener_value:
                     continue  # Can't afford this sweetener
-            # R113: Validate gold_per_turn against income (prevent unsustainable offers)
+            # R113: Validate gold_per_turn against the PAYER's income
+            # (prevent unsustainable offers)
             if dtype == "gold_per_turn":
-                income_data = world.calculate_turn_income(source_nation)
+                income_data = world.calculate_turn_income(payer)
                 max_per_turn = income_data["income"] // 2  # 50% of region income
                 if max_per_turn <= 0:
                     continue

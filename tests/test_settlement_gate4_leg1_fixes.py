@@ -1452,3 +1452,328 @@ class TestDialTerritoryEscalation:
             and "offered" in str(b.get("line") or "")
             for b in beats
         ), beats
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-13 — a COUNTER_OFFER verdict yields an actual counter (player-sent)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _bilateral_war_world(*, france_gold=2000, britain_dp=3, relations=-40):
+    """France vs Britain bilateral WAR in the COUNTER band shape the live
+    smoke reproduced (France winning ~+50, hostile relations)."""
+    from backend.game_logic.diplomacy import set_diplomatic_state
+
+    world = WorldState()
+    set_diplomatic_state(world, "France", "Britain", "WAR", "g4f13-fixture")
+    key = world._make_diplo_key("France", "Britain")
+    world.nation_relations[key] = relations
+    world.war_scores[key] = 50 if key.split("|")[0] == "France" else -50
+    world.nation_gold["France"] = france_gold
+    world.nation_dp = dict(getattr(world, "nation_dp", {}) or {})
+    world.nation_dp["Britain"] = britain_dp
+    return world
+
+
+def _armistice_proposal(sweeteners=None):
+    return {
+        "type": "armistice",
+        "proposer_nation": "France",
+        "target_nation": "Britain",
+        "sweeteners": list(sweeteners or []),
+        "demands": [],
+        "clauses": [],
+    }
+
+
+class TestCounterOfferReachesThePlayer:
+    """The live smoke sent two COUNTER-verdict proposals and got the
+    'not entirely opposed' rejection both times: generate_counter_offer
+    resolved FRANCE as the countering court (no desire table, wrong
+    diplomat), so a counter was structurally impossible for player-sent
+    proposals."""
+
+    def test_player_sent_counter_band_proposal_yields_counter_dialogue(self):
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        world = _bilateral_war_world()
+        proposal = _armistice_proposal(sweeteners=[{"type": "gold_lump", "value": 200}])
+        baseline = calculate_acceptance(proposal, world)
+        assert baseline.get("outcome") == "COUNTER_OFFER", baseline
+
+        world.current_turn = 2
+        world.proposal_in_transit = {
+            "target": "Britain",
+            "proposal": proposal,
+            "turn_sent": 1,
+            "dp_cost": 1,
+            "acceptance_snapshot": int(baseline["score"]),
+            "diplomatic_state_at_send": "WAR",
+        }
+        events = world._process_proposal_in_transit()
+
+        outcomes = [e.get("outcome") for e in events]
+        assert "COUNTER_OFFER" in outcomes, events
+        active = world.dialogue_manager.peek()
+        assert active is not None and active.get("type") == "counter_offer_response"
+        counter_terms = active["context"]["counter_terms"]
+        added_gold = [
+            s for s in counter_terms.get("sweeteners", [])
+            if "gold" in str(s.get("type", ""))
+        ]
+        assert added_gold, counter_terms
+        assert world.incoming_proposal_popup
+        assert world.talleyrand_state == "IDLE"
+
+    def test_counter_author_is_target_court_and_pays_r138_dp(self):
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+
+        world = _bilateral_war_world(britain_dp=2)
+        result = generate_counter_offer(_armistice_proposal(), world)
+        assert result is not None
+        # R138: the AUTHOR (Britain) pays 1 DP — not France, not skipped.
+        assert world.nation_dp["Britain"] == 1
+
+    def test_counter_reaches_the_sign_bar_for_player_sent(self):
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        world = _bilateral_war_world()
+        result = generate_counter_offer(_armistice_proposal(), world)
+        assert result is not None
+        # The counter is the price Britain WOULD sign at: >= 50, even
+        # though Britain's diplomat is a hawk (R125 accept=60 stays M3-only).
+        assert calculate_acceptance(result, world)["score"] >= 50
+
+    def test_counter_degrades_honestly_when_payer_cannot_bridge(self):
+        world = _bilateral_war_world(france_gold=0)
+        world.current_turn = 2
+        proposal = _armistice_proposal()
+        world.proposal_in_transit = {
+            "target": "Britain",
+            "proposal": proposal,
+            "turn_sent": 1,
+            "dp_cost": 1,
+            "acceptance_snapshot": 38,
+            "diplomatic_state_at_send": "WAR",
+        }
+        events = world._process_proposal_in_transit()
+        outcomes = [e.get("outcome") for e in events]
+        assert "COUNTER_OFFER" not in outcomes
+        popup = world.proposal_result_popup
+        assert popup and popup.get("outcome") == "REJECT"
+        active = world.dialogue_manager.peek()
+        assert active is None or active.get("type") != "counter_offer_response"
+
+    def test_dry_run_charges_no_dp_and_mutates_nothing(self):
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+
+        world = _bilateral_war_world(britain_dp=2)
+        gold_before = dict(world.nation_gold)
+        result = generate_counter_offer(
+            _armistice_proposal(), world, dry_run=True
+        )
+        assert result is not None
+        assert world.nation_dp["Britain"] == 2
+        assert world.nation_gold == gold_before
+
+    def test_m3_direction_keeps_proposer_as_author(self):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Austria", "WAR", "g4f13-m3")
+        key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[key] = -20
+        world.nation_gold["Austria"] = 1000
+        world.nation_dp = {"Austria": 2, "Britain": 5}
+        proposal = {
+            "type": "armistice_losing",
+            "proposer_nation": "Austria",
+            "target_nation": "France",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        generate_counter_offer(proposal, world)
+        # Austria (the proposer-author, M3 semantics) paid the DP charge.
+        assert world.nation_dp["Austria"] == 1
+        assert world.nation_dp["Britain"] == 5
+
+    def test_preview_enrich_attaches_counter_constructibility(self):
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+
+        world = _bilateral_war_world()
+        terms = _armistice_proposal()
+        terms["type"] = "armistice_winning"
+        dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Britain",
+            "options": [{"action": "execute_proposal", "terms": terms}],
+            "context": {},
+        }
+        enriched = _enrich_proposal_summary(dialogue, "Britain", "armistice", world)
+        assert enriched.get("acceptance_outcome") == "COUNTER_OFFER"
+        assert enriched.get("counter_constructible") is True
+        assert enriched.get("acceptance_outcome_display") == "COUNTER expected"
+
+        broke = _bilateral_war_world(france_gold=0)
+        dialogue2 = {
+            "type": "proposal_confirm",
+            "target_nation": "Britain",
+            "options": [{"action": "execute_proposal", "terms": dict(terms)}],
+            "context": {},
+        }
+        enriched2 = _enrich_proposal_summary(dialogue2, "Britain", "armistice", broke)
+        assert enriched2.get("counter_constructible") is False
+        assert "REJECT likely" in str(enriched2.get("acceptance_outcome_display"))
+
+    def test_counter_respects_ratification_relation_gate(self):
+        """A peace counter at relations below the STATE_RELATION_REQUIREMENTS
+        threshold (-60) would bind on the formula and then fail
+        _ratify_treaty — the generator must refuse it, and the preview must
+        name the gate (the live smoke accepted a counter and got
+        'Relations with Britain are insufficient for PEACE')."""
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+
+        world = _bilateral_war_world(relations=-80)
+        peace = dict(_armistice_proposal(), type="peace")
+        assert generate_counter_offer(peace, world, dry_run=True) is None
+
+        dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Britain",
+            "options": [{"action": "execute_proposal", "terms": dict(peace)}],
+            "context": {},
+        }
+        enriched = _enrich_proposal_summary(dialogue, "Britain", "peace", world)
+        warning = str(enriched.get("ratification_gate_warning", ""))
+        assert "-80" in warning and "-60" in warning
+        assert "armistice" in warning.lower()
+        # Armistice itself has NO relation requirement — no gate warning.
+        world2 = _bilateral_war_world(relations=-80)
+        dialogue2b = {
+            "type": "proposal_confirm",
+            "target_nation": "Britain",
+            "options": [
+                {"action": "execute_proposal", "terms": _armistice_proposal()}
+            ],
+            "context": {},
+        }
+        enriched2b = _enrich_proposal_summary(dialogue2b, "Britain", "armistice", world2)
+        assert not enriched2b.get("ratification_gate_warning")
+
+    def test_accept_counter_with_failed_ratification_reports_failure(self):
+        """'You have accepted X's counter-proposal. Relations are
+        insufficient' — the success copy must not survive a failed
+        ratification."""
+        from backend.commands.executor import CommandExecutor
+
+        world = _bilateral_war_world(relations=-80)
+        counter_terms = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Britain",
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        world.dialogue_manager.push({
+            "type": "counter_offer_response",
+            "target_nation": "Britain",
+            "talleyrand_text": "test",
+            "options": [
+                {"label": "Accept counter-offer", "action": "accept_counter_offer"},
+                {"label": "Reject", "action": "reject_counter_offer"},
+            ],
+            "context": {
+                "source_nation": "Britain",
+                "original_proposal": dict(counter_terms),
+                "counter_terms": counter_terms,
+            },
+            "turn_created": 1,
+            "blocking": True,
+        })
+        executor = CommandExecutor()
+        result = executor.handle_diplomatic_dialogue_response(
+            "accept_counter_offer", {"world": world}
+        )
+        assert result.get("success") is False
+        assert "could not be ratified" in str(result.get("message", ""))
+        assert "accepted" not in str(result.get("message", "")).lower()
+
+    def test_popup_renders_constructibility_display(self):
+        """Godot source pin: both render sites prefer the
+        constructibility-aware verdict copy over the raw band outcome."""
+        source = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        assert source.count("acceptance_outcome_display") >= 1
+        assert source.count('acceptance.get("outcome_display"') >= 1
+        assert "ratification_gate_warning" in source
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-14 — generic "armistice" scores as its war-score variant everywhere
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestArmisticeVariantScoringConsistency:
+    """Preview scored terms["type"] (variant); send/resolution scored
+    terms["proposal_type"] (generic, absent from BASE_DISPOSITION → default
+    30). Same package: 45 generic / 38 winning / 58 losing on the live
+    fixture — enough to cross both verdict thresholds between the popup
+    estimate and the actual resolution."""
+
+    @staticmethod
+    def _package(world, ptype):
+        return {
+            "type": ptype,
+            "proposer_nation": "France",
+            "target_nation": "Britain",
+            "sweeteners": [{"type": "gold_lump", "value": 200}],
+            "demands": [],
+            "clauses": [],
+        }
+
+    def test_generic_armistice_scores_as_winning_variant_when_winning(self):
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        world = _bilateral_war_world()
+        generic = calculate_acceptance(self._package(world, "armistice"), world)
+        winning = calculate_acceptance(
+            self._package(world, "armistice_winning"), world
+        )
+        losing = calculate_acceptance(
+            self._package(world, "armistice_losing"), world
+        )
+        assert generic["score"] == winning["score"]
+        assert winning["score"] != losing["score"]
+
+    def test_generic_armistice_scores_as_losing_variant_when_losing(self):
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        world = _bilateral_war_world()
+        key = world._make_diplo_key("France", "Britain")
+        world.war_scores[key] = -50 if key.split("|")[0] == "France" else 50
+        generic = calculate_acceptance(self._package(world, "armistice"), world)
+        losing = calculate_acceptance(
+            self._package(world, "armistice_losing"), world
+        )
+        assert generic["score"] == losing["score"]
+
+    def test_preview_and_send_proposal_shapes_now_agree(self):
+        """The exact two shapes the wire builds: the preview scores
+        terms["type"]="armistice_winning", execute_proposal scores
+        proposal_type-first → generic "armistice". They must be the same
+        number."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        world = _bilateral_war_world()
+        preview_shape = self._package(world, "armistice_winning")
+        send_shape = self._package(world, "armistice")
+        assert (
+            calculate_acceptance(preview_shape, world)["score"]
+            == calculate_acceptance(send_shape, world)["score"]
+        )

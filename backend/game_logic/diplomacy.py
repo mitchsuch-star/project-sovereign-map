@@ -3703,15 +3703,30 @@ def build_war_context_snapshot(
                 largest_pos_key, largest_pos_val = k, v
             if v < largest_neg_val:
                 largest_neg_key, largest_neg_val = k, v
+        # G4F-13: a COUNTER verdict only reads "expected" when the real
+        # generator can construct one (dry run — no DP charge).
+        acceptance_outcome_display = ""
+        if acceptance_outcome == "COUNTER":
+            from backend.game_logic.ai_diplomacy import generate_counter_offer
+            _counter_ok = generate_counter_offer(
+                proposal_for_calc, world, dry_run=True
+            ) is not None
+            acceptance_outcome_display = (
+                "COUNTER expected"
+                if _counter_ok
+                else "REJECT likely — no workable counter"
+            )
     except Exception:
         acceptance_score = 0
         acceptance_outcome = "REJECT"
+        acceptance_outcome_display = ""
         largest_pos_key = ""
         largest_neg_key = ""
 
     acceptance_preview = {
         "score": int(acceptance_score),
         "outcome": acceptance_outcome,
+        "outcome_display": acceptance_outcome_display,
         "largest_positive": largest_pos_key.replace("_", " ").title() if largest_pos_key else "",
         "largest_negative": largest_neg_key.replace("_", " ").title() if largest_neg_key else "",
     }
@@ -6440,6 +6455,20 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     proposal_type = proposal.get("type", "peace")
     proposer = proposal.get("proposer_nation", "France")
     target = proposal.get("target_nation", "")
+
+    # G4F-14: resolve generic "armistice" to its war-score variant AT THE
+    # SCORING SEAM. BASE_DISPOSITION only carries armistice_losing (40) /
+    # armistice_winning (20); a generic string silently fell to the default
+    # 30, so a preview scored on terms["type"] (variant, from
+    # _build_base_terms) and a send scored on terms["proposal_type"]
+    # (generic) disagreed by ±10 base points — enough to cross both verdict
+    # thresholds. Same losing-rule as _build_base_terms: proposer losing →
+    # armistice_losing.
+    if proposal_type == "armistice" and target:
+        _ws_for_variant = get_war_score_for(world, proposer, target)
+        proposal_type = (
+            "armistice_losing" if _ws_for_variant < 0 else "armistice_winning"
+        )
 
     # Get diplomats
     diplomats = getattr(world, 'diplomats', {})
@@ -9492,9 +9521,13 @@ def get_likelihood_descriptor(score: int) -> str:
     elif score >= 50:
         return "Favorable"
     elif score >= 40:
-        return "Uncertain — may counter"
+        # G4F-13: the closer the score sits to the sign bar, the cheaper a
+        # counter is to construct — the 40s read "likely", the 30s "may".
+        # The exact promise lives on the proposal preview itself
+        # (counter_constructible), which dry-runs the real generator.
+        return "Uncertain — a counter is likely"
     elif score >= 30:
-        return "Doubtful — expect counter"
+        return "Doubtful — may counter"
     elif score >= 15:
         return "Unlikely"
     else:

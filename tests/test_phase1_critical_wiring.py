@@ -548,6 +548,11 @@ class TestR2CounterOffer:
     def test_executor_accept_counter_offer(self):
         world = _make_world()
         world.enemy_nations = ["Prussia", "Austria", "Britain", "Russia", "Saxony"]
+        # G4F-13: accept now reports a FAILED ratification as failure — meet
+        # the NON_AGGRESSION relation gate (>= 0) so this pins the happy path
+        # it always intended.
+        key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[key] = 20
         counter_terms = {
             "type": "non_aggression",
             "proposer_nation": "France",

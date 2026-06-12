@@ -649,6 +649,23 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         dialogue["acceptance_estimate"] = max(0, min(100, score))
         dialogue["acceptance_outcome"] = result.get("outcome", "Unknown")
 
+        # G4F-13: the COUNTER band only promises a counter the AI can
+        # actually CONSTRUCT (desire table or affordable gold bridge).
+        # Dry-run the real generator so the preview verdict copy and the
+        # in-transit resolution can never disagree about whether a counter
+        # is coming.
+        if dialogue["acceptance_outcome"] == "COUNTER_OFFER":
+            from backend.game_logic.ai_diplomacy import generate_counter_offer
+            counter_ok = generate_counter_offer(
+                proposal_for_calc, world, dry_run=True
+            ) is not None
+            dialogue["counter_constructible"] = counter_ok
+            dialogue["acceptance_outcome_display"] = (
+                "COUNTER expected"
+                if counter_ok
+                else "REJECT likely — no workable counter"
+            )
+
         # Extract key obstacle from components for player hint
         from backend.display_names import FEEDBACK_STRINGS
         components = result.get("components", {})
@@ -687,6 +704,29 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE",
         "vassalage": "VASSAL",
     }
+    # G4F-13: surface the ratify gate at preview time. A proposal can clear
+    # the acceptance formula and still be vetoed by the relation
+    # requirement at ratification (PEACE needs relations >= -60); the old
+    # preview promised outcomes the treaty gate would silently refuse.
+    from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
+    _gate_state = _state_map.get(proposal_type, "")
+    _gate_req = STATE_RELATION_REQUIREMENTS.get(_gate_state)
+    if _gate_req is not None:
+        _gate_key = world._make_diplo_key(player_nation, target_nation)
+        _gate_relation = int(world.nation_relations.get(_gate_key, 0))
+        _gate_current = world.get_diplomatic_state(player_nation, target_nation)
+        if _gate_relation < _gate_req:
+            warning = (
+                f"Their court will not ratify {_gate_state.replace('_', ' ').title()} "
+                f"while relations stand at {_gate_relation} (it requires {_gate_req})."
+            )
+            if _gate_state == "PEACE" and _gate_current == "WAR":
+                warning += (
+                    " An armistice asks no such warmth, Sire — five turns of"
+                    " quiet may cool tempers enough to sign."
+                )
+            dialogue["ratification_gate_warning"] = warning
+
     current_diplo = world.get_diplomatic_state(get_player_nation(world), target_nation)
     target_diplo = _state_map.get(proposal_type, "PEACE")
     jump_cost = get_transition_dp_cost(current_diplo, target_diplo)

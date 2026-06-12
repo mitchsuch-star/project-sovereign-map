@@ -4466,6 +4466,23 @@ class DiplomaticExecutor:
             from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
             apply_acceptance_cooldown(source_nation, world)
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
+            # G4F-13: a failed ratification must not read as "accepted".
+            # The generator now refuses to author gate-vetoed counters, but
+            # the world can drift between authoring and the click.
+            if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
+                world.log_event({
+                    "type": "counter_offer_rejected",
+                    "source": source_nation,
+                    "proposal_type": counter_terms.get("type", "unknown"),
+                    "decision_reason": "counterparty_reversal",
+                })
+                return {
+                    "success": False,
+                    "message": (
+                        f"{source_nation}'s counter-terms could not be "
+                        f"ratified: {treaty_msg}"
+                    ),
+                }
             world.log_event({
                 "type": "counter_offer_accepted",
                 "source": source_nation,

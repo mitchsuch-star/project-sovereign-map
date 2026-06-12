@@ -235,7 +235,11 @@ func _build_content(data: Dictionary) -> String:
 
 	# Acceptance estimate
 	var acceptance = data.get("acceptance_estimate", -1)
-	var outcome = data.get("acceptance_outcome", "")
+	# G4F-13: prefer the constructibility-aware verdict copy ("COUNTER
+	# expected" / "REJECT likely — no counter within their means") over the
+	# raw band outcome, so the preview never promises a counter the AI
+	# cannot build.
+	var outcome = str(data.get("acceptance_outcome_display", data.get("acceptance_outcome", "")))
 	if acceptance >= 0:
 		var a_color = "#e04040"  # red
 		if acceptance >= 50:
@@ -246,6 +250,11 @@ func _build_content(data: Dictionary) -> String:
 		var hint = data.get("acceptance_hint", "")
 		if hint:
 			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+	# G4F-13: the ratify gate can veto a formula-passing deal (PEACE needs
+	# relations >= -60) — say so BEFORE the player spends DP on it.
+	var gate_warning = str(data.get("ratification_gate_warning", ""))
+	if gate_warning != "":
+		bbcode += "[color=#e0a040]%s[/color]\n" % gate_warning
 
 	# DP cost
 	var dp_cost = data.get("dp_cost", -1)
@@ -1203,7 +1212,11 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			a_color = "#80c080"
 		elif outcome == "COUNTER" or outcome == "COUNTER_OFFER":
 			a_color = "#e0e060"
-		bbcode += "Score: [color=%s]%d - %s[/color]\n" % [a_color, score, outcome]
+		# G4F-13: constructibility-aware verdict copy when present.
+		var outcome_label = str(acceptance.get("outcome_display", ""))
+		if outcome_label == "":
+			outcome_label = outcome
+		bbcode += "Score: [color=%s]%d - %s[/color]\n" % [a_color, score, outcome_label]
 		var lp = str(acceptance.get("largest_positive", ""))
 		var ln = str(acceptance.get("largest_negative", ""))
 		if lp:

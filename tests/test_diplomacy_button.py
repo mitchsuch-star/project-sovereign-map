@@ -79,16 +79,20 @@ class TestLikelihoodDescriptor:
         assert get_likelihood_descriptor(69) == "Favorable"
 
     def test_uncertain_at_40(self):
-        assert get_likelihood_descriptor(40) == "Uncertain — may counter"
+        # G4F-13: the 40s sit closest to the sign bar, so a counter is
+        # cheapest to construct there — "likely", not just "may".
+        assert get_likelihood_descriptor(40) == "Uncertain — a counter is likely"
 
     def test_uncertain_at_49(self):
-        assert get_likelihood_descriptor(49) == "Uncertain — may counter"
+        assert get_likelihood_descriptor(49) == "Uncertain — a counter is likely"
 
     def test_doubtful_at_30(self):
-        assert get_likelihood_descriptor(30) == "Doubtful — expect counter"
+        # G4F-13: the 30s no longer PROMISE a counter ("expect") — the
+        # exact promise is the preview's counter_constructible dry-run.
+        assert get_likelihood_descriptor(30) == "Doubtful — may counter"
 
     def test_doubtful_at_39(self):
-        assert get_likelihood_descriptor(39) == "Doubtful — expect counter"
+        assert get_likelihood_descriptor(39) == "Doubtful — may counter"
 
     def test_unlikely_at_15(self):
         assert get_likelihood_descriptor(15) == "Unlikely"
