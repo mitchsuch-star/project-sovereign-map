@@ -57,6 +57,7 @@ from backend.game_logic.settlement_routes import (
 from backend.game_logic.settlement_staging import (
     SETTLEMENT_EDITOR_CALLER_KIND,
     _DEMAND_CLAUSE_CAP_REASON,
+    _build_pair_substitute_confirm_dialogue,
     _demand_hard_stop_reason,
     _dialogue_scope_values,
     _discard_scoped_settlement_draft_for_dialogue,
@@ -2552,6 +2553,23 @@ def _handle_settlement_dialogue_action_inner(
             world, action=action, dialogue=dialogue,
             action_params=params, war_id=war_id,
         )
+    if dialogue_type == "settlement_pair_substitute_confirm":
+        # G4F-8: chooser-scoped dispatch — same TYPE-first selection as the
+        # scope-replace chooser above.
+        handler = SETTLEMENT_PAIR_SUBSTITUTE_DISPATCH.get(action)
+        if handler is None:
+            return {
+                "success": False,
+                "dialogue_type": "settlement_pair_substitute_confirm",
+                "action": action,
+                "war_id": war_id,
+                "error": "unknown_settlement_action",
+                "mutated": False,
+            }
+        return handler(
+            world, action=action, dialogue=dialogue,
+            action_params=params, war_id=war_id,
+        )
     handler = SETTLEMENT_ACTION_DISPATCH.get(action)
     if handler is None:
         return {"success": False, "error": "unknown_settlement_action", "mutated": False}
@@ -2655,12 +2673,6 @@ def _handle_pair_peace_substitute_action(
     selected_target = str(dialogue.get("selected_target_nation") or "")
     actor = str(getattr(world, "player_nation", "France") or "France")
     proposal_type = "armistice" if action == "seek_armistice_instead" else "peace"
-    voice_key = (
-        "settlement_seek_armistice_instead_talleyrand"
-        if action == "seek_armistice_instead"
-        else "settlement_seek_bilateral_peace_instead_talleyrand"
-    )
-    war_label = str(dialogue.get("war_label") or war_id or "this war")
 
     eligibility = evaluate_pair_peace_substitute_eligibility(
         world,
@@ -2685,6 +2697,115 @@ def _handle_pair_peace_substitute_action(
             "mutated": False,
             "suppress_proposal_result_popup": True,
         }
+
+    # G4F-8: the substitute is no longer a one-click trapdoor. Mount the
+    # confirm chooser — the joint draft stays untouched, Cancel restores
+    # the REVIEW exactly, and the handoff (draft discard + bilateral mount
+    # with the target's authored slice carried over) runs only on
+    # `confirm_pair_substitute`.
+    confirm_dialogue = _build_pair_substitute_confirm_dialogue(
+        dialogue,
+        action=action,
+        proposal_type=proposal_type,
+        selected_target=selected_target,
+        eligibility=eligibility,
+    )
+    world.dialogue_manager.replace(confirm_dialogue)
+    return {
+        "success": True,
+        "dialogue_type": "settlement_pair_substitute_confirm",
+        "action": action,
+        "war_id": war_id,
+        "selected_target_nation": selected_target,
+        "scope": "selected_pair",
+        "proposal_type": proposal_type,
+        "diplomatic_dialogue": confirm_dialogue,
+        "message": str(confirm_dialogue.get("message") or ""),
+        "awaiting_diplomatic_response": True,
+        "mutated": False,
+        "suppress_proposal_result_popup": True,
+    }
+
+
+def _pair_substitute_seed_terms(
+    settlement_terms: List[Mapping[str, Any]],
+    *,
+    target: str,
+    proposer_leader: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """G4F-8 carry-over — translate the target court's slice of the
+    authored settlement package into the bilateral demands/sweeteners
+    dialect, so confirming the pair substitute does not throw the player's
+    drafting away.
+
+    Mapping (settlement clause → bilateral term):
+    - ``gold_indemnity`` FROM the target → demand ``gold_lump`` at face
+      value (TO the target → sweetener ``gold_lump``).
+    - ``gold_per_turn`` → ``gold_lump`` at ``amount × turns`` — the
+      total-obligation basis the solvency check projects. The bilateral
+      recurring dialect is PERPETUAL (no ``turns`` field), so a finite
+      settlement stream must convert by total, never by rate.
+    - ``territory_cede`` FROM the target → one aggregated
+      ``territory_cede`` demand carrying every region.
+    - Identity-bearing clauses (vassalage, liberation, forced_alliance, …)
+      and proposer-paid territory are settlement-tier — skipped; the
+      bilateral flow's own authoring handles anything further.
+    """
+    demands: List[Dict[str, Any]] = []
+    sweeteners: List[Dict[str, Any]] = []
+    demanded_regions: List[str] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        frm = str(term.get("from") or "")
+        to = str(term.get("to") or "")
+        amount = int(term.get("amount", 0) or 0)
+        if ttype == "gold_indemnity" and amount > 0:
+            if frm == target:
+                demands.append({"type": "gold_lump", "value": amount})
+            elif frm == proposer_leader and to == target:
+                sweeteners.append({"type": "gold_lump", "value": amount})
+        elif ttype == "gold_per_turn" and amount > 0:
+            total = amount * max(0, int(term.get("turns", 0) or 0))
+            if total <= 0:
+                continue
+            if frm == target:
+                demands.append({"type": "gold_lump", "value": total})
+            elif frm == proposer_leader and to == target:
+                sweeteners.append({"type": "gold_lump", "value": total})
+        elif ttype == "territory_cede" and frm == target:
+            region = str(term.get("region") or "")
+            if region:
+                demanded_regions.append(region)
+    if demanded_regions:
+        demands.append({
+            "type": "territory_cede",
+            "value": len(demanded_regions),
+            "regions": demanded_regions,
+        })
+    return {"demands": demands, "sweeteners": sweeteners}
+
+
+def _execute_pair_substitute_handoff(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    war_id: str,
+    selected_target: str,
+    proposal_type: str,
+) -> Dict[str, Any]:
+    """The confirmed pair-substitute handoff (the pre-G4F-8 one-click body):
+    discard the now-stale scoped draft, mount the bilateral proposal flow,
+    and seed it from the target's authored slice (``dialogue`` is the PRIOR
+    settlement dialogue carried on the confirm chooser)."""
+    voice_key = (
+        "settlement_seek_armistice_instead_talleyrand"
+        if action == "seek_armistice_instead"
+        else "settlement_seek_bilateral_peace_instead_talleyrand"
+    )
+    war_label = str(dialogue.get("war_label") or war_id or "this war")
 
     # SC-29 / War Detail recovery contract: a successful pair substitute
     # makes any preserved scoped settlement draft that covers the target
@@ -2725,6 +2846,60 @@ def _handle_pair_peace_substitute_action(
         except Exception:  # pragma: no cover - defensive
             proposal_dialogue = None
 
+    # G4F-8 carry-over: seed the bilateral draft from the target court's
+    # authored slice instead of discarding the player's drafting. Override
+    # the execute_proposal option's terms and re-run the display enrichment
+    # so the summary / annotated terms / acceptance estimate all describe
+    # the SEEDED package (the G4F-6 objection judged the pre-seed suggested
+    # terms — with the G4F-9 ladder those are never light-while-winning, so
+    # the stale-beat edge is the rare white-peace floor only).
+    if isinstance(proposal_dialogue, dict):
+        proposer_side = str(dialogue.get("proposer_side") or "")
+        staged_leaders = dialogue.get("staged_leaders") or {}
+        proposer_leader = str(
+            staged_leaders.get(proposer_side)
+            or _side_leader(
+                (getattr(world, "war_instances", {}) or {}).get(war_id) or {},
+                proposer_side,
+            )
+            or ""
+        )
+        seed = _pair_substitute_seed_terms(
+            [
+                t for t in (dialogue.get("settlement_terms") or [])
+                if isinstance(t, Mapping)
+            ],
+            target=selected_target,
+            proposer_leader=proposer_leader,
+        )
+        if seed["demands"] or seed["sweeteners"]:
+            seeded = False
+            for opt in proposal_dialogue.get("options", []):
+                if opt.get("action") == "execute_proposal":
+                    base_terms = dict(opt.get("terms") or {})
+                    base_terms["type"] = base_terms.get("type", proposal_type)
+                    base_terms["proposal_type"] = proposal_type
+                    base_terms["demands"] = seed["demands"]
+                    base_terms["sweeteners"] = seed["sweeteners"]
+                    base_terms["carried_from_settlement"] = True
+                    opt["terms"] = base_terms
+                    seeded = True
+                    break
+            if seeded:
+                try:
+                    from backend.game_logic.diplomatic_dialogue import (
+                        _enrich_proposal_summary,
+                    )
+                    proposal_dialogue = _enrich_proposal_summary(
+                        proposal_dialogue,
+                        selected_target,
+                        proposal_type,
+                        world,
+                    )
+                except Exception:  # pragma: no cover - defensive
+                    pass
+                proposal_dialogue["carried_from_settlement"] = True
+
     world.dialogue_manager.pop()
     if isinstance(proposal_dialogue, Mapping):
         world.dialogue_manager.replace(dict(proposal_dialogue))
@@ -2747,7 +2922,6 @@ def _handle_pair_peace_substitute_action(
         "talleyrand_text": talleyrand_text,
         "message": talleyrand_text,
         "draft_invalidated": draft_invalidated,
-        "pair_substitute_eligibility": eligibility,
         "diplomatic_dialogue": proposal_dialogue
         if isinstance(proposal_dialogue, Mapping)
         else None,
@@ -2763,3 +2937,113 @@ def _handle_pair_peace_substitute_action(
         "mutated": False,
         "suppress_proposal_result_popup": True,
     }
+
+
+def _action_confirm_pair_substitute(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Mapping[str, Any],
+    war_id: str,
+) -> Dict[str, Any]:
+    """G4F-8 — the confirmed handoff. ``dialogue`` is the chooser; the prior
+    settlement dialogue rides on it. Eligibility is re-validated at confirm
+    time — a pair gone ineligible between beats restores the REVIEW with the
+    refusal named (CH-5 re-attach), mutating nothing."""
+    prior = dialogue.get("prior_dialogue")
+    sub_action = str(dialogue.get("pair_substitute_action") or "")
+    selected_target = str(dialogue.get("selected_target_nation") or "")
+    proposal_type = str(dialogue.get("proposal_type") or "peace")
+    if not isinstance(prior, Mapping) or not sub_action or not selected_target:
+        return {
+            "success": False,
+            "dialogue_type": "settlement_pair_substitute_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "malformed_route",
+            "error_display": _error_display("malformed_route"),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    actor = str(getattr(world, "player_nation", "France") or "France")
+    eligibility = evaluate_pair_peace_substitute_eligibility(
+        world,
+        war_id=war_id,
+        actor_nation=actor,
+        target_nation=selected_target,
+        action=sub_action,
+    )
+    if not eligibility.get("eligible"):
+        restored = dict(prior)
+        world.dialogue_manager.replace(restored)
+        refusal = eligibility.get("refusal_code") or "malformed_route"
+        return {
+            "success": False,
+            "dialogue_type": str(restored.get("dialogue_type") or "settlement_confirm"),
+            "action": action,
+            "war_id": war_id,
+            "selected_target_nation": selected_target,
+            "error": refusal,
+            "error_display": eligibility.get("disabled_reason_display")
+            or _error_display(refusal),
+            "pair_substitute_eligibility": eligibility,
+            "diplomatic_dialogue": restored,
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    return _execute_pair_substitute_handoff(
+        world,
+        action=sub_action,
+        dialogue=prior,
+        war_id=war_id,
+        selected_target=selected_target,
+        proposal_type=proposal_type,
+    )
+
+
+def _action_keep_joint_settlement(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Mapping[str, Any],
+    war_id: str,
+) -> Dict[str, Any]:
+    """G4F-8 — Cancel on the pair-substitute chooser: restore the prior
+    settlement dialogue exactly (the scope-replace keep semantics — a no-op
+    that re-shows the staged REVIEW; the joint draft was never touched)."""
+    prior = dialogue.get("prior_dialogue")
+    if not isinstance(prior, Mapping):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_pair_substitute_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "malformed_route",
+            "error_display": _error_display("malformed_route"),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
+    restored = dict(prior)
+    world.dialogue_manager.replace(restored)
+    return {
+        "success": True,
+        "dialogue_type": str(restored.get("dialogue_type") or "settlement_confirm"),
+        "action": action,
+        "war_id": war_id,
+        "diplomatic_dialogue": restored,
+        "message": "Staying with the joint settlement, Sire.",
+        "awaiting_diplomatic_response": True,
+        "mutated": False,
+        "suppress_proposal_result_popup": True,
+    }
+
+
+# G4F-8 — chooser-scoped dispatch (the scope-replace pattern): while the
+# pair-substitute confirm dialogue is mounted, ONLY its two verbs resolve;
+# stray table actions fail closed instead of running against the chooser.
+SETTLEMENT_PAIR_SUBSTITUTE_DISPATCH: Dict[str, Any] = {
+    "confirm_pair_substitute": _action_confirm_pair_substitute,
+    "keep_joint_settlement": _action_keep_joint_settlement,
+}

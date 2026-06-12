@@ -75,6 +75,8 @@ func show_dialogue(data: Dictionary):
 			bbcode = _build_settlement_content(data)
 		"settlement_scope_replace_confirm":
 			bbcode = _build_settlement_scope_replace_content(data)
+		"settlement_pair_substitute_confirm":
+			bbcode = _build_pair_substitute_confirm_content(data)
 		# SC-5 reversal commit 2 (Slice G1): incoming AI settlement
 		# offers render with accepting-side framing — the player is
 		# reading a draft authored by a foreign court, so the popup
@@ -1037,6 +1039,24 @@ func _emit_settlement_action(action: String, payload: Dictionary):
 	hide()
 	choice_made.emit(action, payload)
 
+
+func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
+	# G4F-8: the pair-substitute confirm chooser. States the consequence
+	# (other courts fight on; drafted terms for the target carry over)
+	# BEFORE anything is discarded — the one-click trapdoor read as the
+	# system's verdict in the Gate-4 smoke.
+	var target = str(data.get("selected_target_nation", "the court"))
+	var war_label = str(data.get("war_label", data.get("war_id", "this war")))
+	var bbcode = ""
+	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
+	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % target
+	bbcode += "[color=#80b0e0]Your drafted terms for %s carry into the talks.[/color]\n" % target
+	bbcode += "[color=#a0a0a8]The joint draft stays untouched if you cancel.[/color]\n\n"
+	var ttext = str(data.get("talleyrand_text", ""))
+	if ttext != "":
+		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+	return bbcode
 
 func _build_settlement_scope_replace_content(data: Dictionary) -> String:
 	var war_label = str(data.get("war_label", data.get("war_id", "Settlement")))

@@ -433,6 +433,10 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "author_gold_per_turn_terms",
     "replace_current_scope_draft",
     "keep_current_scope_draft",
+    # G4F-8 pair-substitute confirm chooser: Proceed runs the handoff with
+    # terms carry-over; Cancel restores the prior REVIEW exactly.
+    "confirm_pair_substitute",
+    "keep_joint_settlement",
 ]
 
 # SC-5 reversal commit 2 / Slice G1 incoming-offer dispatch tuple.

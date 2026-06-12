@@ -135,14 +135,16 @@ def test_deferral_flag_is_off_after_sc5_reversal():
 
 def test_settlement_family_set_keeps_offer_for_defensive_guards():
     """SC-18 v0.17 amendment: `SETTLEMENT_FAMILY_DIALOGUE_TYPES` keeps
-    `settlement_confirm`, `incoming_settlement_offer`, and the G2e
-    `settlement_scope_replace_confirm` regardless of SC-5 reversal status
-    so cross-war family guards keep catching all settlement-family types."""
+    `settlement_confirm`, `incoming_settlement_offer`, the G2e
+    `settlement_scope_replace_confirm`, and the G4F-8 pair-substitute
+    confirm chooser regardless of SC-5 reversal status so cross-war family
+    guards keep catching all settlement-family types."""
     assert SETTLEMENT_FAMILY_DIALOGUE_TYPES == frozenset(
         {
             "settlement_confirm",
             "incoming_settlement_offer",
             "settlement_scope_replace_confirm",
+            "settlement_pair_substitute_confirm",
         }
     )
 

@@ -25,6 +25,9 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"war_purpose_selection",
 	"settlement_confirm",
 	"settlement_scope_replace_confirm",
+	# G4F-8: the pair-substitute confirm chooser (leave the joint
+	# settlement?) — joint draft kept until Proceed; Cancel restores REVIEW.
+	"settlement_pair_substitute_confirm",
 	# SC-5 reversal commit 2 (Slice G1): incoming AI settlement offers
 	# reuse the proposal_confirm popup; the popup script branches on
 	# dtype to render the incoming-offer arrival copy and Voice Bible
@@ -96,6 +99,10 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	# G2-Slice-G2e same-war different-scope settlement chooser.
 	"replace_current_scope_draft",
 	"keep_current_scope_draft",
+	# G4F-8 pair-substitute confirm chooser: Proceed runs the handoff with
+	# terms carry-over; Cancel restores the prior REVIEW exactly.
+	"confirm_pair_substitute",
+	"keep_joint_settlement",
 	# SC-5 reversal commit 2 (Slice G1) incoming-offer actions. Accept
 	# stages settlement_confirm with the offered package preserved;
 	# Reject removes the pending entry without mutation; Request

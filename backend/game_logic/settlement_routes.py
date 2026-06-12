@@ -37,7 +37,13 @@ SETTLEMENT_ROUTE_NAMESPACE = "settlement"
 
 
 SETTLEMENT_FAMILY_DIALOGUE_TYPES = frozenset(
-    {"settlement_confirm", "incoming_settlement_offer", "settlement_scope_replace_confirm"}
+    {
+        "settlement_confirm",
+        "incoming_settlement_offer",
+        "settlement_scope_replace_confirm",
+        # G4F-8 — the pair-substitute confirm chooser.
+        "settlement_pair_substitute_confirm",
+    }
 )
 
 

@@ -319,15 +319,16 @@ def test_same_war_restage_with_differing_clause_keeps_active_draft_without_dead_
 
 
 def test_settlement_family_dialogue_types_match_canonical_set():
-    """SC-18 (anchor for SC-26): the settlement-family dialogue type set is
-    `{"settlement_confirm", "incoming_settlement_offer",
-    "settlement_scope_replace_confirm"}` so collision protection covers hard
-    stops, current-turn offers, and the G2e same-war scope chooser."""
+    """SC-18 (anchor for SC-26): the settlement-family dialogue type set
+    covers hard stops, current-turn offers, the G2e same-war scope chooser,
+    and the G4F-8 pair-substitute confirm chooser, so collision protection
+    catches every settlement-family type."""
     assert SETTLEMENT_FAMILY_DIALOGUE_TYPES == frozenset(
         {
             "settlement_confirm",
             "incoming_settlement_offer",
             "settlement_scope_replace_confirm",
+            "settlement_pair_substitute_confirm",
         }
     )
 

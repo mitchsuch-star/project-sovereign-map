@@ -252,6 +252,77 @@ def _build_settlement_scope_replace_confirm_dialogue(
     }
 
 
+def _build_pair_substitute_confirm_dialogue(
+    current_dialogue: Mapping[str, Any],
+    *,
+    action: str,
+    proposal_type: str,
+    selected_target: str,
+    eligibility: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """G4F-8 (Gate-4 smoke) — the pair-substitute confirm chooser.
+
+    "Make peace with {target} only" on a blocked REVIEW read as the
+    system's VERDICT and one click silently discarded the authored joint
+    draft, popped the settlement, and opened the bilateral engine with
+    fresh terms. The substitute now mounts this chooser first: the joint
+    draft is untouched until the player confirms, Cancel restores the
+    REVIEW exactly (the scope-replace prior-snapshot pattern), and the
+    copy states the consequence — the other courts fight on; the drafted
+    terms for the target travel into the new talks.
+    """
+    war_id = str(current_dialogue.get("war_id") or "")
+    war_label = str(current_dialogue.get("war_label") or war_id or "this war")
+    arm_label = "an armistice" if proposal_type == "armistice" else "peace"
+    message = resolve_settlement_voice_line(
+        "settlement_pair_substitute_confirm_talleyrand",
+        war_label=war_label,
+        target_nation=selected_target,
+    ) or (
+        f"Leave the joint settlement and seek {arm_label} with "
+        f"{selected_target} alone? The other courts stay at war."
+    )
+    return {
+        "type": "settlement_pair_substitute_confirm",
+        "dialogue_type": "settlement_pair_substitute_confirm",
+        "war_id": war_id,
+        "war_label": war_label,
+        "selected_target_nation": selected_target,
+        "pair_substitute_action": str(action),
+        "proposal_type": str(proposal_type),
+        "prior_dialogue": copy.deepcopy(dict(current_dialogue)),
+        "pair_substitute_eligibility": dict(eligibility),
+        "available_action_ids": [
+            "confirm_pair_substitute",
+            "keep_joint_settlement",
+        ],
+        "options": [
+            {
+                "label": (
+                    f"Proceed — {arm_label} with {selected_target} alone"
+                ),
+                "action": "confirm_pair_substitute",
+                "description": (
+                    "Set aside the joint settlement; the other courts stay "
+                    f"at war. Your drafted terms for {selected_target} "
+                    "carry into the talks."
+                ),
+            },
+            {
+                "label": "Stay with the joint settlement",
+                "action": "keep_joint_settlement",
+                "description": "Return to the staged review unchanged.",
+            },
+        ],
+        "outer_cancel_action": "keep_joint_settlement",
+        "outer_cancel_treated_as_keep": True,
+        "message": message,
+        "talleyrand_text": message,
+        "mutated": False,
+        "blocking": True,
+    }
+
+
 # §3.1 / §3.3 — the two row-authoring refusal reasons, shared verbatim
 # between the GT-Slice-1 add verb (server-side rejection) and the GT-Slice-2
 # row payload (pre-click disabled state) so the copy can never drift.

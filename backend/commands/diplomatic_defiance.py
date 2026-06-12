@@ -478,8 +478,13 @@ def evaluate_pre_proposal_objection(
             return ConcernLevel.STRONG
         return ConcernLevel.MODERATE
 
-    # Generous terms when winning → MILD
-    if harshness < 0.3 and target_nation:
+    # Generous terms when winning → MILD. G4F-8 follow-through: "offering
+    # such generous terms... it rewards their failure" means GIVING WITHOUT
+    # TAKING, so it fires only when the package demands nothing. The old
+    # `harshness < 0.3` gate caught a one-region cession or a 200-gold
+    # tribute (weight 0.2 each) and grumbled "too generous" at real
+    # demands — the live-smoke contradiction class.
+    if not proposal.get("demands") and target_nation:
         diplo_key = world._make_diplo_key(player_nation, target_nation)
         war_score = world.war_scores.get(diplo_key, 0)
         # Adjust sign for France perspective

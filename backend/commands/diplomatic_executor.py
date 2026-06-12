@@ -2890,6 +2890,11 @@ class DiplomaticExecutor:
             # G2-Slice-G2e same-war different-scope settlement chooser.
             "replace_current_scope_draft",
             "keep_current_scope_draft",
+            # G4F-8 pair-substitute confirm chooser (leave the joint
+            # settlement?) — Proceed runs the handoff with terms carry-over;
+            # Cancel restores the prior REVIEW exactly.
+            "confirm_pair_substitute",
+            "keep_joint_settlement",
         ):
             from backend.game_logic.settlement_actions import (
                 handle_settlement_dialogue_action,

@@ -915,6 +915,244 @@ class TestCarryVerdictPresentation:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# G4F-8 — the pair substitute is a confirmed handoff that carries terms
+# (live smoke: "Make peace with Britain only" read as a verdict; one click
+# silently discarded the authored joint draft and opened the bilateral
+# engine with fresh auto-terms)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _blocked_review_with_authored_gold(world, court="Britain", amount=300):
+    dialogue = _stage_propose(world)
+    dialogue = _add_demand_gold(world, dialogue, court, amount)
+    result = handle_settlement_dialogue_action(
+        world,
+        action="submit_settlement_for_review",
+        dialogue=dialogue,
+        action_params={"action": "submit_settlement_for_review"},
+    )
+    assert result["success"] is True, result.get("error_display")
+    review = result["diplomatic_dialogue"]
+    assert review.get("dialogue_mode") == "REVIEW"
+    return review
+
+
+class TestPairSubstituteConfirmStep:
+    def test_substitute_click_mounts_chooser_and_keeps_draft(self):
+        from backend.game_logic.settlement_preview import (
+            load_scoped_settlement_draft,
+        )
+
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        result = handle_settlement_dialogue_action(
+            world,
+            action="seek_bilateral_peace",
+            dialogue=review,
+            action_params={"action": "seek_bilateral_peace"},
+        )
+        assert result["success"] is True, result.get("error_display")
+        chooser = result["diplomatic_dialogue"]
+        assert chooser["type"] == "settlement_pair_substitute_confirm"
+        assert [o["action"] for o in chooser["options"]] == [
+            "confirm_pair_substitute", "keep_joint_settlement",
+        ]
+        assert isinstance(chooser.get("prior_dialogue"), dict)
+        # The joint draft is UNTOUCHED until Proceed.
+        kept = load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=str(
+                review.get("selected_target_nation") or ""
+            ),
+            covered_enemy_participants=list(
+                review.get("covered_enemy_participants") or []
+            ),
+        )
+        assert kept, "the scoped draft must survive the chooser mount"
+
+    def test_keep_restores_the_review_unchanged(self):
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        chooser = handle_settlement_dialogue_action(
+            world,
+            action="seek_bilateral_peace",
+            dialogue=review,
+            action_params={"action": "seek_bilateral_peace"},
+        )["diplomatic_dialogue"]
+        result = handle_settlement_dialogue_action(
+            world,
+            action="keep_joint_settlement",
+            dialogue=chooser,
+            action_params={"action": "keep_joint_settlement"},
+        )
+        assert result["success"] is True, result.get("error_display")
+        restored = result["diplomatic_dialogue"]
+        assert restored.get("dialogue_mode") == "REVIEW"
+        assert restored.get("settlement_terms") == review.get("settlement_terms")
+        assert world.pending_diplomatic_dialogue.get("dialogue_mode") == "REVIEW"
+
+    def test_confirm_discards_draft_and_seeds_bilateral_from_authored_slice(self):
+        from backend.game_logic.settlement_preview import (
+            load_scoped_settlement_draft,
+        )
+
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world, amount=300)
+        staged_terms = list(review.get("settlement_terms") or [])
+        chooser = handle_settlement_dialogue_action(
+            world,
+            action="seek_bilateral_peace",
+            dialogue=review,
+            action_params={"action": "seek_bilateral_peace"},
+        )["diplomatic_dialogue"]
+        result = handle_settlement_dialogue_action(
+            world,
+            action="confirm_pair_substitute",
+            dialogue=chooser,
+            action_params={"action": "confirm_pair_substitute"},
+        )
+        assert result["success"] is True, result.get("error_display")
+        assert result.get("draft_invalidated") is True
+        assert not load_scoped_settlement_draft(
+            world,
+            war_id="war_1",
+            selected_target_nation=str(
+                review.get("selected_target_nation") or ""
+            ),
+            covered_enemy_participants=list(
+                review.get("covered_enemy_participants") or []
+            ),
+        )
+        bilateral = result["diplomatic_dialogue"]
+        assert bilateral.get("carried_from_settlement") is True
+        terms = {}
+        for opt in bilateral.get("options", []):
+            if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                terms = opt["terms"]
+                break
+        demands = terms.get("demands") or []
+        # The authored 300-gold demand on Britain travels as a lump.
+        assert {"type": "gold_lump", "value": 300} in demands
+        # A staged Britain territory demand travels as an aggregated
+        # regions clause.
+        staged_regions = [
+            str(t.get("region"))
+            for t in staged_terms
+            if t.get("type") == "territory_cede" and t.get("from") == "Britain"
+        ]
+        if staged_regions:
+            terr = [d for d in demands if d.get("type") == "territory_cede"]
+            assert terr and sorted(terr[0].get("regions") or []) == sorted(
+                staged_regions
+            )
+
+    def test_chooser_blocks_stray_table_actions(self):
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        chooser = handle_settlement_dialogue_action(
+            world,
+            action="seek_bilateral_peace",
+            dialogue=review,
+            action_params={"action": "seek_bilateral_peace"},
+        )["diplomatic_dialogue"]
+        stray = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=chooser,
+            action_params={"action": "settlement_dial_harsher", "scope": "table"},
+        )
+        assert stray["success"] is False
+        assert stray["error"] == "unknown_settlement_action"
+
+    def test_seed_transform_speaks_the_bilateral_dialect(self):
+        from backend.game_logic.settlement_actions import (
+            _pair_substitute_seed_terms,
+        )
+
+        seed = _pair_substitute_seed_terms(
+            [
+                {"type": "peace"},
+                {"type": "gold_indemnity", "from": "Britain", "to": "France",
+                 "amount": 400},
+                {"type": "gold_per_turn", "from": "Britain", "to": "France",
+                 "amount": 100, "turns": 3},
+                {"type": "territory_cede", "from": "Britain", "to": "France",
+                 "region": "Waterloo"},
+                {"type": "territory_cede", "from": "Britain", "to": "France",
+                 "region": "Hanover"},
+                {"type": "gold_indemnity", "from": "France", "to": "Britain",
+                 "amount": 200},
+                {"type": "vassalage", "from": "Britain", "to": "France"},
+                {"type": "gold_indemnity", "from": "Prussia", "to": "France",
+                 "amount": 999},  # other court — never carried
+            ],
+            target="Britain",
+            proposer_leader="France",
+        )
+        assert {"type": "gold_lump", "value": 400} in seed["demands"]
+        # Finite stream converts by TOTAL obligation (the bilateral
+        # recurring dialect is perpetual).
+        assert {"type": "gold_lump", "value": 300} in seed["demands"]
+        terr = [d for d in seed["demands"] if d.get("type") == "territory_cede"]
+        assert len(terr) == 1
+        assert sorted(terr[0]["regions"]) == ["Hanover", "Waterloo"]
+        assert terr[0]["value"] == 2
+        assert {"type": "gold_lump", "value": 200} in seed["sweeteners"]
+        # Identity-bearing and other-court clauses never travel.
+        assert not any(d.get("type") == "vassalage" for d in seed["demands"])
+        assert not any(d.get("value") == 999 for d in seed["demands"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# G4F-9 — Talleyrand never suggests a package his own estimator rejects
+# (live smoke: suggested 200/turn + Waterloo scored 3/REJECT while the
+# assessment read PUNITIVE and the commentary claimed the terms fit)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestSuggestEstimateConvergence:
+    def test_suggested_peace_terms_never_self_reject(self):
+        from backend.game_logic.diplomacy import calculate_acceptance
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+
+        world, _war = _winning_two_court_world()
+        suggested = generate_suggested_terms("Britain", "peace", world)
+        proposal = {
+            "type": suggested.get("type", "peace"),
+            "proposer_nation": "France",
+            "target_nation": "Britain",
+            "demands": suggested.get("demands", []),
+            "sweeteners": suggested.get("sweeteners", []),
+            "clauses": suggested.get("clauses", []),
+        }
+        result = calculate_acceptance(proposal, world)
+        assert str(result.get("verdict")) != "REJECT", (
+            suggested, result.get("score"),
+        )
+
+    def test_easing_ladder_drops_territory_before_gold(self):
+        # At the smoke fixture the raw suggestion (recurring gold + a
+        # region) REJECTS; gold alone counters. The ladder must land on
+        # the gold rung, not over-ease to white peace.
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+
+        world, _war = _winning_two_court_world()
+        suggested = generate_suggested_terms("Britain", "peace", world)
+        if suggested.get("suggestion_eased_to_estimate"):
+            demands = suggested.get("demands") or []
+            assert demands, "eased to white peace despite a viable gold rung"
+            assert not any(
+                d.get("type") in ("territory_cede", "territory")
+                for d in demands
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # GT-A5 (GT-Slice-5) — ceiling-triggered territory escalation
 # (user-approved June 11, 2026: the OQ#7 crossing — spec §3.5 GT-A5)
 # ═══════════════════════════════════════════════════════════════════════════

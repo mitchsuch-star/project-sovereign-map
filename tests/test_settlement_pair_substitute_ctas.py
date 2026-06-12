@@ -345,6 +345,18 @@ def test_pair_substitute_clicks_do_not_consume_reopen_attempts():
 # ───────────────────────────────────────────────────────────────────────
 
 
+def _confirm_pair_substitute(world, first_result):
+    """G4F-8: the substitute mounts a confirm chooser first (the joint
+    draft survives until Proceed). Drive the second beat and return the
+    handoff result the pre-G4F-8 pins asserted on."""
+    assert first_result["success"] is True, first_result.get("error_display")
+    chooser = first_result["diplomatic_dialogue"]
+    assert chooser["type"] == "settlement_pair_substitute_confirm"
+    return handle_settlement_dialogue_action(
+        world, action="confirm_pair_substitute", dialogue=chooser,
+    )
+
+
 def test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_target_only():
     """The substitute CTA stages a proposal_confirm dialogue scoped to
     the selected pair only. Other hostile pairs in the same war remain
@@ -353,9 +365,9 @@ def test_seek_bilateral_peace_instead_creates_per_pair_peace_with_selected_targe
     _install_rejected_war(world)
 
     dialogue = _stage_rejected_dialogue(world)
-    result = handle_settlement_dialogue_action(
+    result = _confirm_pair_substitute(world, handle_settlement_dialogue_action(
         world, action="seek_bilateral_peace", dialogue=dialogue,
-    )
+    ))
     assert result["success"] is True
     assert result["mutated"] is False
     assert result["scope"] == "selected_pair"
@@ -378,9 +390,9 @@ def test_seek_armistice_instead_creates_per_pair_armistice_with_selected_target_
     _install_rejected_war(world)
 
     dialogue = _stage_rejected_dialogue(world)
-    result = handle_settlement_dialogue_action(
+    result = _confirm_pair_substitute(world, handle_settlement_dialogue_action(
         world, action="seek_armistice_instead", dialogue=dialogue,
-    )
+    ))
     assert result["success"] is True
     assert result["mutated"] is False
     assert result["scope"] == "selected_pair"
@@ -422,9 +434,9 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
         covered_enemy_participants=dialogue.get("covered_enemy_participants"),
         settlement_terms=list(terms),
     )
-    result = handle_settlement_dialogue_action(
+    result = _confirm_pair_substitute(world, handle_settlement_dialogue_action(
         world, action="seek_bilateral_peace", dialogue=dialogue,
-    )
+    ))
     assert result["success"] is True
     assert result["draft_invalidated"] is True
     assert load_scoped_settlement_draft(
@@ -456,8 +468,11 @@ def test_pair_substitute_handoff_preserves_or_invalidates_scoped_draft_correctly
         "settlement_terms": [],
         "caller_kind": "player_editor",
     }
-    result_off_scope = handle_settlement_dialogue_action(
-        world2, action="seek_bilateral_peace", dialogue=dialogue_off_scope,
+    result_off_scope = _confirm_pair_substitute(
+        world2,
+        handle_settlement_dialogue_action(
+            world2, action="seek_bilateral_peace", dialogue=dialogue_off_scope,
+        ),
     )
     # Substitute action succeeds against Prussia; Prussia is NOT in the
     # dialogue's covered scope (which lists only Austria), so the saved
@@ -521,10 +536,10 @@ def test_seek_bilateral_peace_instead_routes_through_committed_voice_family_not_
         "settlement_seek_bilateral_peace_instead_talleyrand"
     )
     assert "Austria" in entry["talleyrand_text"]
-    # The handler also stamps the voice family.
-    result = handle_settlement_dialogue_action(
+    # The confirmed handoff stamps the voice family.
+    result = _confirm_pair_substitute(world, handle_settlement_dialogue_action(
         world, action="seek_bilateral_peace", dialogue=dialogue,
-    )
+    ))
     assert result["voice_family"] == (
         "settlement_seek_bilateral_peace_instead_talleyrand"
     )
@@ -540,9 +555,9 @@ def test_seek_armistice_instead_routes_through_committed_voice_family_not_generi
     entry = by_action["seek_armistice_instead"]
     assert entry["voice_family"] == "settlement_seek_armistice_instead_talleyrand"
     assert "Austria" in entry["talleyrand_text"]
-    result = handle_settlement_dialogue_action(
+    result = _confirm_pair_substitute(world, handle_settlement_dialogue_action(
         world, action="seek_armistice_instead", dialogue=dialogue,
-    )
+    ))
     assert result["voice_family"] == "settlement_seek_armistice_instead_talleyrand"
     assert "Austria" in result["talleyrand_text"]
 

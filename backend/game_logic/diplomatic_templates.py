@@ -1173,6 +1173,16 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "front while {war_label} continues elsewhere; it does not end "
         "the war, but it does end the bleeding."
     ),
+    # G4F-8 (Gate-4 smoke): the pair substitute is no longer a one-click
+    # trapdoor — Talleyrand states what leaving the joint settlement MEANS
+    # (the other courts fight on; the drafted terms for the target travel
+    # into the new talks) and asks before he moves.
+    "settlement_pair_substitute_confirm_talleyrand": (
+        "Sire, this sets aside the joint settlement of {war_label} to "
+        "treat with {target_nation} alone — every other court keeps its "
+        "war. Your drafted terms for {target_nation} travel with me. "
+        "Shall I proceed?"
+    ),
     # SC-31 / G2-Slice-8 Voice Bible §16.1 surrender / dependency families.
     # Surrender preset is a structured, labeled action — Talleyrand frames
     # it as deliberate concession, not collapse — and the foreign-court
@@ -2261,6 +2271,27 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     # --- Stage 3: Economic reality check ---
     _validate_economic_feasibility(terms, target_nation, world, war_score=war_score)
 
+    # --- Stage 3.5: G4F-9 — estimate convergence (peace family only) ---
+    # The advisor must never SUGGEST a package his own displayed estimate
+    # REJECTS (live Gate-4 smoke: 200/turn + a region at war score +50
+    # scored 3/REJECT under `calculate_acceptance` while the assessment
+    # read PUNITIVE and the commentary claimed the terms fit the
+    # situation). Mirrors the settlement baseline's degrade-to-peace-floor
+    # ladder: drop territory demands → halve gold demands → white peace,
+    # stopping at the first package the estimator does not REJECT. The
+    # acceptance FORMULA is untouched — its conservative war-score credit
+    # (+15 at +50) is a standing calibration question owned by the
+    # pre-flight audit ledger, not a smoke fix.
+    if proposal_type in (
+        "peace", "armistice", "armistice_winning", "armistice_losing",
+    ):
+        terms = _ease_suggestion_until_not_rejected(
+            terms,
+            target_nation=target_nation,
+            player_nation=player_nation,
+            world=world,
+        )
+
     # --- Stage 4: Commentary ---
     if not context_tags:
         if war_score < -30:
@@ -2289,6 +2320,76 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
 
     # --- Stage 5: Return ---
     return terms
+
+
+def _ease_suggestion_until_not_rejected(
+    terms: Dict,
+    *,
+    target_nation: str,
+    player_nation: str,
+    world,
+) -> Dict:
+    """G4F-9 — ease a suggested peace/armistice package until the bilateral
+    estimator no longer REJECTS it (self-consistency: the popup shows the
+    estimator's verdict next to Talleyrand's suggestion, so the two must
+    agree). Ladder: drop territory demands → halve gold demands (floor 50)
+    → white-peace floor. Sweeteners and identity metadata are untouched;
+    the original dict is never mutated. ``suggestion_eased_to_estimate``
+    marks an eased result for tests/telemetry.
+    """
+    from backend.game_logic.diplomacy import calculate_acceptance
+
+    def _verdict(candidate: Dict) -> str:
+        proposal = {
+            "type": candidate.get("type", "peace"),
+            "proposer_nation": player_nation,
+            "target_nation": target_nation,
+            "demands": candidate.get("demands", []),
+            "sweeteners": candidate.get("sweeteners", []),
+            "clauses": candidate.get("clauses", []),
+        }
+        try:
+            result = calculate_acceptance(proposal, world)
+        except Exception:
+            return ""
+        if isinstance(result, dict):
+            return str(result.get("verdict") or result.get("outcome") or "")
+        return ""
+
+    if _verdict(terms) != "REJECT":
+        return terms
+    eased = {
+        **terms,
+        "demands": [dict(d) for d in terms.get("demands", [])],
+        "sweeteners": [dict(s) for s in terms.get("sweeteners", [])],
+    }
+    eased["suggestion_eased_to_estimate"] = True
+    # Step 1: drop territory demands — the steepest rung of the bilateral
+    # harshness curve (the live-smoke package crossed the cliff on the
+    # region + recurring-gold combination).
+    without_territory = [
+        d for d in eased["demands"]
+        if d.get("type") not in ("territory_cede", "territory")
+    ]
+    if len(without_territory) != len(eased["demands"]):
+        eased["demands"] = without_territory
+        if _verdict(eased) != "REJECT":
+            return eased
+    # Step 2: halve gold demand magnitudes (floor 50).
+    halved = False
+    for demand in eased["demands"]:
+        if demand.get("type") in ("gold_per_turn", "gold_lump"):
+            value = int(demand.get("value", 0) or 0)
+            if value > 50:
+                demand["value"] = max(50, value // 2)
+                halved = True
+    if halved and _verdict(eased) != "REJECT":
+        return eased
+    # Step 3: white-peace floor — no demand survives the estimator. (If
+    # even this rejects, there is nothing softer to suggest; the verdict
+    # display stays honest.)
+    eased["demands"] = []
+    return eased
 
 
 def _build_base_terms(target_nation: str, proposal_type: str, world, deterministic: bool = False) -> Dict:
