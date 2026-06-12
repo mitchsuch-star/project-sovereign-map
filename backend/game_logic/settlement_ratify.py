@@ -360,6 +360,22 @@ def _apply_settlement_terms(
                     f"recurring_gold:{from_nation}:{to_nation}:"
                     f"{ratified_turn}:{seq}"
                 )
+                # G4F smoke follow-up: stamp the display label NOW, while
+                # the war instance is still alive — by the time the income
+                # phase pays, the ratified war is archived and the
+                # processor's live lookup would fall back to the raw
+                # war_id ("the settlement of war_1" reached the player's
+                # morning dispatch).
+                label_instance = (
+                    getattr(world, "war_instances", {}) or {}
+                ).get(str(war_id or "")) or {}
+                label_attackers = list(label_instance.get("attackers") or [])
+                label_defenders = list(label_instance.get("defenders") or [])
+                war_label_for_record = (
+                    f"{label_attackers[0]} vs {' + '.join(label_defenders)}"
+                    if label_attackers and label_defenders
+                    else str(war_id or "the settlement")
+                )
                 payments.append({
                     "payment_id": payment_id,
                     "from": from_nation,
@@ -368,6 +384,7 @@ def _apply_settlement_terms(
                     "turns_remaining": int(turns),
                     "total_turns": int(turns),
                     "war_id": str(war_id or ""),
+                    "war_label": war_label_for_record,
                     "ratified_turn": int(ratified_turn),
                     "settlement_route_id": str(settlement_route_id or ""),
                     "source_clause_index": int(idx),

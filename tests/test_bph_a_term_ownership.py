@@ -263,8 +263,9 @@ class TestPeaceRatifiedCampaignLog:
     def test_type_count(self):
         # 81 baseline + 2 D1/D2 settlement reaction event families
         # (`settlement_summary`, `settlement_digest`) per
-        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6.
-        assert len(CAMPAIGN_LOG_TYPES) == 83
+        # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 + 4 SC-33 recurring
+        # settlement gold families (G4F smoke follow-up).
+        assert len(CAMPAIGN_LOG_TYPES) == 87
 
     def test_format_peace_oneliner(self):
         event = {

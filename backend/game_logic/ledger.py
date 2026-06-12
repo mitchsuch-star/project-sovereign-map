@@ -235,7 +235,44 @@ def _build_economy(world, player: str) -> dict:
                            if getattr(r, 'controller', '') == vassal_name)
             vassal_tribute += int(v_income * tribute_rate)
 
-    net = int(income + trade_income + admin_bonus + treaty_gold + vassal_tribute - upkeep)
+    # SC-33 recurring settlement streams (G4F smoke follow-up): the
+    # ratified gold_per_turn obligations the income phase actually moves —
+    # previously the per-turn tribute was invisible everywhere except the
+    # one-morning dispatch line. Sign mirrors `treaty_gold` (incoming
+    # positive).
+    settlement_gold = 0
+    settlement_streams = []
+    for entry in getattr(world, "recurring_settlement_payments", None) or []:
+        if not isinstance(entry, dict):
+            continue
+        payer = str(entry.get("from") or "")
+        recipient = str(entry.get("to") or "")
+        stream_amount = int(entry.get("amount_per_turn", 0) or 0)
+        stream_turns = int(entry.get("turns_remaining", 0) or 0)
+        if stream_amount <= 0 or stream_turns <= 0:
+            continue
+        if player not in (payer, recipient):
+            continue
+        incoming = recipient == player
+        settlement_gold += stream_amount if incoming else -stream_amount
+        counterparty = payer if incoming else recipient
+        settlement_streams.append({
+            "direction": "incoming" if incoming else "outgoing",
+            "counterparty": counterparty,
+            "amount_per_turn": int(stream_amount),
+            "turns_remaining": int(stream_turns),
+            "display": (
+                f"{'+' if incoming else '-'}{stream_amount}g/turn "
+                f"{'from' if incoming else 'to'} {counterparty} "
+                f"({stream_turns} turns remain)"
+            ),
+        })
+    settlement_gold = int(settlement_gold)
+
+    net = int(
+        income + trade_income + admin_bonus + treaty_gold + vassal_tribute
+        + settlement_gold - upkeep
+    )
 
     # Construction queue: iterate player regions with active builds
     construction_queue = []
@@ -268,6 +305,8 @@ def _build_economy(world, player: str) -> dict:
         "admin_bonus": admin_bonus,
         "treaty_gold": treaty_gold,
         "vassal_tribute": vassal_tribute,
+        "settlement_gold": settlement_gold,
+        "settlement_streams": settlement_streams,
         "upkeep": upkeep,
         "net": net,
         "bankruptcy_turns": int(world.bankruptcy_turns),

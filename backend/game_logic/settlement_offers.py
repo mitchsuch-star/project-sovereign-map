@@ -1401,6 +1401,13 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
             active_nations = None
 
     def _war_label_for(entry: Mapping[str, Any]) -> str:
+        # G4F smoke follow-up: prefer the label stamped at ratification —
+        # the settled war is archived by the time the income phase pays,
+        # so the live lookup below would fall back to the raw war_id
+        # ("the settlement of war_1" reached the morning dispatch).
+        stored = str(entry.get("war_label") or "")
+        if stored:
+            return stored
         wid = str(entry.get("war_id") or "")
         if not wid:
             return "the settlement"
@@ -1410,6 +1417,14 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
         if attackers and defenders:
             return f"{attackers[0]} vs {defenders[0]}"
         return wid
+
+    def _log_campaign(event_type: str, fields: Dict[str, Any]) -> None:
+        # G4F smoke follow-up: payments fired in the morning dispatch but
+        # vanished from the campaign log history — mirror each event into
+        # `world.event_log` for the fog-filtered log surface.
+        log = getattr(world, "log_event", None)
+        if callable(log):
+            log({"type": event_type, **fields})
 
     for entry in payments:
         if not isinstance(entry, Mapping):
@@ -1437,6 +1452,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "war_label": _war_label_for(entry),
                 "reason": reason,
             }, "always")
+            _log_campaign("settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            })
             continue
         if _is_recurring_payment_nation_eliminated(
             world,
@@ -1459,6 +1480,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "war_label": _war_label_for(entry),
                 "reason": reason,
             }, "always")
+            _log_campaign("settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            })
             continue
         if _is_recurring_payment_nation_eliminated(
             world,
@@ -1481,6 +1508,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "war_label": _war_label_for(entry),
                 "reason": reason,
             }, "always")
+            _log_campaign("settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            })
             continue
         if _is_renewed_war_between(world, payer, recipient):
             reason = "renewed_war"
@@ -1497,6 +1530,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "war_label": _war_label_for(entry),
                 "reason": reason,
             }, "always")
+            _log_campaign("settlement_recurring_gold_cancelled", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "war_label": _war_label_for(entry),
+                "reason": reason,
+            })
             continue
 
         # Tick: transfer what's affordable, decrement, surface partial /
@@ -1524,6 +1563,13 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "amount_due": str(int(amount)),
                 "war_label": _war_label_for(entry),
             }, "always")
+            _log_campaign("settlement_recurring_gold_partial", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": int(transfer),
+                "amount_due": int(amount),
+                "war_label": _war_label_for(entry),
+            })
         elif transfer > 0:
             events["paid"].append({
                 "payment_id": str(entry.get("payment_id") or ""),
@@ -1539,6 +1585,13 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "turns_remaining": str(int(turns_remaining)),
                 "war_label": _war_label_for(entry),
             }, "always")
+            _log_campaign("settlement_recurring_gold_paid", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "amount_paid": int(transfer),
+                "turns_remaining": int(turns_remaining),
+                "war_label": _war_label_for(entry),
+            })
 
         if turns_remaining <= 0:
             total_amount = int(record.get("total_turns", 0) or 0) * int(amount)
@@ -1554,6 +1607,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "total_amount": str(int(total_amount)),
                 "war_label": _war_label_for(entry),
             }, "always")
+            _log_campaign("settlement_recurring_gold_completed", {
+                "from_nation": payer,
+                "to_nation": recipient,
+                "total_amount": int(total_amount),
+                "war_label": _war_label_for(entry),
+            })
             # Drop the record on natural completion.
             continue
 

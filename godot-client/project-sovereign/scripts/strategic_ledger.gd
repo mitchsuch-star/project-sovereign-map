@@ -336,6 +336,13 @@ func _render_economy():
 	bbcode += "  Income:   +" + str(income) + "g\n"
 	if trade > 0:
 		bbcode += "  Trade:    +" + str(trade) + "g\n"
+	# SC-33 recurring settlement streams (G4F smoke follow-up): the ratified
+	# gold-per-turn tribute is real per-turn cash — show its net line and the
+	# per-stream detail instead of leaving it dispatch-only.
+	var settlement_gold = int(econ.get("settlement_gold", 0))
+	if settlement_gold != 0:
+		var sg_sign = "+" if settlement_gold > 0 else ""
+		bbcode += "  Settlements: " + sg_sign + str(settlement_gold) + "g\n"
 	bbcode += "  Upkeep:   -" + str(upkeep) + "g\n"
 
 	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
@@ -344,6 +351,20 @@ func _render_economy():
 
 	if bankruptcy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
+
+	# Active settlement payment streams (incoming tribute / outgoing
+	# obligations), with turns remaining.
+	var streams = econ.get("settlement_streams", [])
+	if streams is Array and streams.size() > 0:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]Settlement Payments[/color]\n"
+		for stream in streams:
+			if not (stream is Dictionary):
+				continue
+			var line = str(stream.get("display", ""))
+			if line == "":
+				continue
+			var s_color = Utils.COLOR_SUCCESS if str(stream.get("direction", "")) == "incoming" else Utils.COLOR_ERROR
+			bbcode += "  [color=#" + s_color + "]" + line + "[/color]\n"
 
 	# Income breakdown
 	var breakdown = econ.get("income_breakdown", [])

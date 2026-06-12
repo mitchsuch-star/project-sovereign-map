@@ -819,3 +819,151 @@ class TestWizardCommandPath:
                 "invalid_clause_schema",
                 "submitted_terms_failed_revalidation",
             }, result
+
+
+# ===========================================================================
+# G4F smoke follow-up (June 12, 2026) - the payment must be SEEN, not just
+# paid: ratify-time war_label stamp (the dispatch read "the settlement of
+# war_1" once the war archived), campaign-log persistence, and the
+# strategic-ledger economy streams.
+# ===========================================================================
+
+
+import pathlib as _pathlib
+
+_REPO_ROOT = _pathlib.Path(__file__).resolve().parents[1]
+_GODOT_SCRIPTS = _REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
+
+
+class TestRecurringGoldSurfaces:
+    def _ratified_record(self, world):
+        _install_recurring_gold_war(world)
+        applied = _apply_settlement_terms(
+            world,
+            settlement_terms=[
+                {"type": "peace"},
+                {
+                    "type": "gold_per_turn", "from": "Prussia",
+                    "to": "France", "amount": 50, "turns": 3,
+                },
+            ],
+            war_id="war_1",
+            settlement_route_id="settlement:war_1:5:1",
+        )
+        assert applied
+        records = getattr(world, "recurring_settlement_payments", [])
+        assert len(records) == 1
+        return records[0]
+
+    def test_payment_record_carries_war_label_stamped_at_ratify(self):
+        world = WorldState()
+        record = self._ratified_record(world)
+        assert record["war_label"] == "France vs Britain + Prussia"
+
+    def test_dispatch_label_survives_war_archival(self):
+        world = WorldState()
+        self._ratified_record(world)
+        # The settled war is archived (and its pairs at PEACE, as the
+        # ratify pipeline leaves them) before the first income phase - the
+        # live label lookup would fall back to the raw id.
+        world.war_instances.clear()
+        world.diplomatic_states["France|Prussia"] = "PEACE"
+        world.diplomatic_states["Britain|France"] = "PEACE"
+        world.pending_dispatch_events = []
+        process_recurring_settlement_payments(world)
+        paid = [
+            e for e in world.pending_dispatch_events
+            if e.get("type") == "settlement_recurring_gold_paid"
+        ]
+        assert paid, world.pending_dispatch_events
+        label = paid[0]["template_vars"]["war_label"]
+        assert label == "France vs Britain + Prussia"
+        assert "war_1" not in label
+
+    def test_payments_enter_campaign_log_with_prose(self):
+        from backend.campaign_log import (
+            CAMPAIGN_LOG_TYPES,
+            filter_campaign_log,
+            format_event_oneliner,
+        )
+
+        for etype in (
+            "settlement_recurring_gold_paid",
+            "settlement_recurring_gold_partial",
+            "settlement_recurring_gold_completed",
+            "settlement_recurring_gold_cancelled",
+        ):
+            assert etype in CAMPAIGN_LOG_TYPES, etype
+
+        world = WorldState()
+        self._ratified_record(world)
+        world.war_instances.clear()
+        world.diplomatic_states["France|Prussia"] = "PEACE"
+        world.diplomatic_states["Britain|France"] = "PEACE"
+        world.event_log = []
+        process_recurring_settlement_payments(world)
+        logged = [
+            e for e in world.event_log
+            if e.get("type") == "settlement_recurring_gold_paid"
+        ]
+        assert logged, world.event_log
+        event = logged[0]
+        # The player (France) is the recipient - always visible.
+        assert filter_campaign_log([event], world)
+        line = format_event_oneliner(event)
+        assert "Prussia paid 50 gold to France" in line
+        assert "France vs Britain + Prussia" in line
+        assert "war_1" not in line
+
+    def test_ledger_economy_lists_settlement_streams(self):
+        from backend.game_logic.ledger import _build_economy
+
+        world = WorldState()
+        world.recurring_settlement_payments = [
+            {
+                "payment_id": "recurring_gold:Prussia:France:1:0",
+                "from": "Prussia", "to": "France",
+                "amount_per_turn": 50, "turns_remaining": 2,
+                "total_turns": 3, "war_id": "war_1",
+                "war_label": "France vs Britain + Prussia",
+                "ratified_turn": 1,
+            },
+            {
+                "payment_id": "recurring_gold:France:Austria:1:0",
+                "from": "France", "to": "Austria",
+                "amount_per_turn": 30, "turns_remaining": 4,
+                "total_turns": 4, "war_id": "war_2",
+                "war_label": "France vs Austria",
+                "ratified_turn": 1,
+            },
+            {   # expired stream - never listed
+                "payment_id": "recurring_gold:Britain:France:1:0",
+                "from": "Britain", "to": "France",
+                "amount_per_turn": 99, "turns_remaining": 0,
+                "total_turns": 3, "war_id": "war_3",
+                "ratified_turn": 1,
+            },
+        ]
+        econ = _build_economy(world, "France")
+        assert econ["settlement_gold"] == 20  # +50 in, -30 out
+        streams = econ["settlement_streams"]
+        assert len(streams) == 2
+        by_dir = {s["direction"]: s for s in streams}
+        assert "from Prussia" in by_dir["incoming"]["display"]
+        assert "(2 turns remain)" in by_dir["incoming"]["display"]
+        assert "to Austria" in by_dir["outgoing"]["display"]
+        # The net projection includes the streams.
+        base = _build_economy(
+            WorldState(), "France"
+        )
+        assert econ["net"] == base["net"] + 20
+
+    def test_godot_economy_tab_renders_settlement_streams(self):
+        text = (_GODOT_SCRIPTS / "strategic_ledger.gd").read_text(
+            encoding="utf-8"
+        )
+        block = text.split("func _render_economy", 1)[1]
+        block = block.split("\nfunc ", 1)[0]
+        assert "settlement_gold" in block
+        assert "settlement_streams" in block
+        assert "Settlement Payments" in block

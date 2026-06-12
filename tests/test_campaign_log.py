@@ -79,13 +79,15 @@ class TestTypeWhitelist:
         assert result[1]["type"] == "recruitment"
 
     def test_fortyfive_types_in_constant(self):
-        """Verify the type set has exactly 83 entries.
+        """Verify the type set has exactly 87 entries.
 
         81 baseline (post-WB-C) + 2 D1/D2 settlement reaction event
         families (`settlement_summary`, `settlement_digest`) per
-        WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6.
+        WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 + 4 SC-33 recurring
+        settlement gold families (G4F smoke follow-up: paid / partial /
+        completed / cancelled now persist into the log history).
         """
-        assert len(CAMPAIGN_LOG_TYPES) == 83
+        assert len(CAMPAIGN_LOG_TYPES) == 87
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

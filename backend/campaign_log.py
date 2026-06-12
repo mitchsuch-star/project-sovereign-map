@@ -152,6 +152,13 @@ CAMPAIGN_LOG_TYPES = {
     # reaction event families with their own settlement route metadata.
     "settlement_summary",
     "settlement_digest",
+    # SC-33 recurring settlement gold (G4F smoke follow-up): the per-turn
+    # payments must survive into the campaign log history, not just the
+    # one-morning dispatch.
+    "settlement_recurring_gold_paid",
+    "settlement_recurring_gold_partial",
+    "settlement_recurring_gold_completed",
+    "settlement_recurring_gold_cancelled",
 }
 
 # ============================================================================
@@ -257,6 +264,11 @@ CATEGORY_MAP = {
     # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 (D1/D2)
     "settlement_summary": "diplomacy",
     "settlement_digest": "diplomacy",
+    # SC-33 recurring settlement gold (G4F smoke follow-up)
+    "settlement_recurring_gold_paid": "diplomacy",
+    "settlement_recurring_gold_partial": "diplomacy",
+    "settlement_recurring_gold_completed": "diplomacy",
+    "settlement_recurring_gold_cancelled": "diplomacy",
 }
 
 
@@ -275,6 +287,12 @@ def _is_player_event(event: dict, player_nation: str) -> bool:
         return True
     # captured_by for region_captured
     if event.get("captured_by") == player_nation:
+        return True
+    # SC-33 recurring settlement payments — the player is a party as payer
+    # or recipient (G4F smoke follow-up).
+    if event.get("from_nation") == player_nation:
+        return True
+    if event.get("to_nation") == player_nation:
         return True
     return False
 
@@ -908,6 +926,42 @@ def format_event_oneliner(event: dict) -> str:
         )
 
         return compose_digest_oneliner(event)
+
+    # SC-33 recurring settlement gold (G4F smoke follow-up): the payments
+    # fired in the morning dispatch but vanished from the campaign log
+    # history entirely (type-filtered out).
+    if event_type == "settlement_recurring_gold_paid":
+        return (
+            f"{event.get('from_nation', 'Unknown')} paid "
+            f"{event.get('amount_paid', '?')} gold to "
+            f"{event.get('to_nation', 'Unknown')} on the settlement of "
+            f"{event.get('war_label', 'the war')} "
+            f"({event.get('turns_remaining', '?')} turns remaining)."
+        )
+
+    if event_type == "settlement_recurring_gold_partial":
+        return (
+            f"{event.get('from_nation', 'Unknown')} could only pay "
+            f"{event.get('amount_paid', '?')}/{event.get('amount_due', '?')} "
+            f"gold to {event.get('to_nation', 'Unknown')} on the settlement "
+            f"of {event.get('war_label', 'the war')}."
+        )
+
+    if event_type == "settlement_recurring_gold_completed":
+        return (
+            f"Settlement obligation fulfilled: {event.get('total_amount', '?')} "
+            f"gold from {event.get('from_nation', 'Unknown')} to "
+            f"{event.get('to_nation', 'Unknown')} "
+            f"({event.get('war_label', 'the war')})."
+        )
+
+    if event_type == "settlement_recurring_gold_cancelled":
+        reason = str(event.get("reason", "circumstances")).replace("_", " ")
+        return (
+            f"Recurring settlement payment from "
+            f"{event.get('from_nation', 'Unknown')} to "
+            f"{event.get('to_nation', 'Unknown')} cancelled ({reason})."
+        )
 
     if event_type == "hard_block_surfaced":
         beneficiary = event.get("beneficiary", "Unknown")
