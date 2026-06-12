@@ -408,8 +408,19 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				bbcode += "  [color=#808080]+%d more participants in the ledger[/color]\n" % overflow
 			bbcode += "\n"
 
+	# G4F-12 (Gate-4 smoke): this footer block is the LEAD COURT's score
+	# (the pre-refront single-leader gate), not a deal aggregate — on the
+	# per-court table it duplicated one row, read as "the aggregate", and
+	# could flash green ("Will sign") under a table the red header verdict
+	# says will NOT carry. The header carry verdict + per-court rows own
+	# acceptance on the settlement table; render this block only when no
+	# per-court rows exist (legacy/single-court payloads).
+	var has_per_court_rows = (
+		data.get("per_court_acceptance", []) is Array
+		and (data.get("per_court_acceptance", []) as Array).size() > 0
+	)
 	var acceptance = data.get("acceptance_display", sections.get("acceptance", {}))
-	if acceptance is Dictionary and not acceptance.is_empty():
+	if not has_per_court_rows and acceptance is Dictionary and not acceptance.is_empty():
 		var band = str(acceptance.get("band_display", acceptance.get("band", "Review").replace("_", " ").capitalize()))
 		var band_code = str(acceptance.get("band", "")).to_lower()
 		# Color decisions are made off the raw enum band code, never the

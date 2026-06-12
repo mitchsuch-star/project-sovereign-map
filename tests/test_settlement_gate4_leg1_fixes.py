@@ -913,6 +913,19 @@ class TestCarryVerdictPresentation:
         block = block.split("\nfunc ", 1)[0]
         assert '" (%d/%d)" % [int(total), int(row.get("threshold", 50))]' in block
 
+    def test_footer_lead_court_score_suppressed_on_per_court_table(self):
+        """G4F-12: the footer 'Acceptance' block is the LEAD COURT's score,
+        not a deal aggregate — on the per-court table it duplicated one row
+        and could contradict the header carry verdict. It renders only when
+        no per-court rows exist."""
+        text = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(
+            encoding="utf-8"
+        )
+        block = text.split("func _build_settlement_footer", 1)[1]
+        block = block.split("\nfunc ", 1)[0]
+        assert "has_per_court_rows" in block
+        assert "not has_per_court_rows and acceptance is Dictionary" in block
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # G4F-8 — the pair substitute is a confirmed handoff that carries terms
