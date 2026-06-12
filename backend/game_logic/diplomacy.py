@@ -9593,7 +9593,11 @@ def get_relation_descriptor(relation: int) -> str:
 
 # ═══════ ASSESSMENT TEMPLATES (§3f) ═══════
 _ASSESSMENT_TEMPLATES = {
-    "war_winning": "{nation} falters, Your Excellency. Our armies press the advantage — an armistice now would be accepted from a position of strength.",
+    # G4F-13 sibling: the old line promised "an armistice now would be
+    # accepted" — while the winning-side armistice carries the LOWEST base
+    # disposition (a court not yet broken resents a truce that freezes its
+    # defeat). Keep the strength flavor, drop the acceptance promise.
+    "war_winning": "{nation} falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them.",
     "war_losing": "The campaign goes poorly against {nation}. An armistice may be wise — though they will sense our weakness and demand terms.",
     "war_stalemate": "The war with {nation} grinds on without decisive result. Both sides bleed. An armistice may find receptive ears.",
     "armistice_wary": "The guns are silent, but the wound festers. Peace may be achievable with {nation}, though they will demand terms.",
@@ -9783,7 +9787,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if target_nation in cooldowns and cooldowns[target_nation] > 0:
             available = False
             reason = f"Cooldown: {cooldowns[target_nation]} turns"
-        type_key = f"{target_nation}_{target_state.lower()}"
+        # Type-scoped cooldowns are stored under the PROPOSAL type
+        # ("{target}_vassalage" from proposal["type"]), not the state name —
+        # the old state.lower() key missed the VASSAL cooldown entirely.
+        _cooldown_type = (
+            "vassalage" if target_state == "VASSAL" else target_state.lower()
+        )
+        type_key = f"{target_nation}_{_cooldown_type}"
         if type_key in cooldowns and cooldowns[type_key] > 0:
             available = False
             reason = f"Cooldown: {cooldowns[type_key]} turns"

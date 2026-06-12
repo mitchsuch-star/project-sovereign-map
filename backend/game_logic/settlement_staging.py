@@ -2389,6 +2389,34 @@ def build_settlement_confirm_dialogue(
                                 f"{reason_display} It has {remaining} "
                                 f"turn{'s' if remaining != 1 else ''} to run."
                             )
+                    elif refusal_code == "cooldown_active":
+                        # G4F sibling sweep: name THIS clock too — the bare
+                        # "a cooldown is active" left the player guessing
+                        # how long.
+                        cooldowns = (
+                            getattr(world, "player_proposal_cooldowns", {})
+                            or {}
+                        )
+                        cd_type = (
+                            "armistice"
+                            if action_id == "seek_armistice_instead"
+                            else "peace"
+                        )
+                        cd_remaining = max(
+                            int(cooldowns.get(resolved_target, 0) or 0),
+                            int(
+                                cooldowns.get(
+                                    f"{resolved_target}_{cd_type}", 0
+                                )
+                                or 0
+                            ),
+                        )
+                        if cd_remaining > 0:
+                            reason_display = (
+                                f"{reason_display} ({cd_remaining} "
+                                f"turn{'s' if cd_remaining != 1 else ''} "
+                                "remaining.)"
+                            )
                     options.append({
                         "label": label,
                         "action": action_id,

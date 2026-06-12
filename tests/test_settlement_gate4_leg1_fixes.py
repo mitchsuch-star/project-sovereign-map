@@ -2253,3 +2253,76 @@ def test_command_response_forwards_refusal_and_recovery_fields():
 
     for key in ("error", "error_display", "recovery_route"):
         assert key in _COMMAND_RESULT_SIMPLE_FIELDS
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part-3 related-issue scan — siblings of the session's fix classes
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestPart3SiblingScan:
+    def test_war_winning_assessment_promises_no_acceptance(self):
+        """Sibling of G4F-13's promise class: the wizard assessment claimed
+        "an armistice now would be accepted" while the winning-side
+        armistice carries the LOWEST base disposition (20)."""
+        from backend.game_logic.diplomacy import _ASSESSMENT_TEMPLATES
+
+        line = _ASSESSMENT_TEMPLATES["war_winning"]
+        assert "would be accepted" not in line
+        assert "falters" in line  # the flavor the button test pins stays
+
+    def test_cooldown_disabled_reason_names_the_clock(self):
+        """Sibling of the G4F-16 armistice clock: the cooldown_active
+        disabled reason names how many turns remain."""
+        world, _war = _winning_two_court_world()
+        review = _blocked_review_with_authored_gold(world)
+        world.player_proposal_cooldowns["Britain_armistice"] = 4
+        restaged = handle_settlement_dialogue_action(
+            world,
+            action="return_to_settlement_terms",
+            dialogue=review,
+            action_params={"action": "return_to_settlement_terms"},
+        )
+        submit = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=restaged["diplomatic_dialogue"],
+            action_params={"action": "submit_settlement_for_review"},
+        )
+        by_action = {
+            o.get("action"): o
+            for o in submit["diplomatic_dialogue"]["options"]
+        }
+        arm = by_action.get("seek_armistice_instead")
+        assert arm is not None and arm.get("available") is False
+        assert "4 turns remaining" in str(arm.get("disabled_reason_display"))
+        # The peace arm has no type-scoped cooldown — it stays live.
+        peace = by_action.get("seek_bilateral_peace")
+        assert peace is not None and peace.get("available", True) is not False
+
+    def test_wizard_vassal_cooldown_key_matches_the_stored_type(self):
+        """Wrong-key sibling: type-scoped cooldowns are stored under the
+        proposal type ("X_vassalage"); the wizard checked "X_vassal" and
+        never greyed vassalage during its cooldown. The wizard offers
+        vassalage from non-war states, so the pin uses OPEN_BORDERS."""
+        from backend.game_logic.diplomacy import (
+            get_available_diplomatic_actions,
+            set_diplomatic_state,
+        )
+
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Britain", "OPEN_BORDERS", "p3")
+        key = world._make_diplo_key("France", "Britain")
+        world.nation_relations[key] = 40
+        world.player_proposal_cooldowns["Britain_vassalage"] = 3
+        world.diplomatic_points = 10
+        actions = get_available_diplomatic_actions(world, "Britain")
+        vassal = next(
+            (a for a in actions if "vassal" in str(a.get("action", ""))),
+            None,
+        )
+        assert vassal is not None, [a.get("action") for a in actions]
+        assert vassal.get("available") is False
+        assert "Cooldown: 3 turns" in str(
+            vassal.get("reason") or vassal.get("disabled_reason") or ""
+        )
