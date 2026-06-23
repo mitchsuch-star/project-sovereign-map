@@ -278,3 +278,25 @@ pass, and make the S2.5 roster gate explicit before any backend wiring.
   --lookup …/europe_lookup.png` → PASS.
 - Lookup measurements (gap distribution, per-province px) via the project's own
   `tools.validate_province_map.read_png_rgb_bytes`.
+
+---
+
+## Second independent verification pass — June 22, 2026
+
+A fresh reviewer re-ran every measurement against the live assets and **reconfirmed all findings above**. Reproduced numbers (validator `--strict` → PASS, exit 0; lookup decode; PSD byte-scan; `rg -w` over `tests/`):
+
+- 126 provinces / **126 distinct non-black colors** / sea=black; 2560×1600 = 4,096,000 px; **land 1,788,712 (43.7%)**; province px min **575** / max **106,777** / median 8,741; validator 0 findings.
+- Adjacency gap bimodality reproduced: **≤15px (land) 73.6% / 16–40 (ambiguous) 2.9% / ≥41px (sea) 23.5%** (35,633 samples) — decision #5 (auto-land + hand-sea) holds.
+- PSD: 35 layers; **TySh=0, Txt=0, TxLr=0** (no editable text anywhere); `letters` rasterized, **83/126** anchors in bbox; layer 14 `help with spain` confirms Iberia incomplete; layer 17 `Map_Napoleon_Total_War` is a placed smart-object underlay.
+- **Legacy footprint re-measured larger:** **10,255** word-boundary match-lines across **275 of 326** test files (8,343 / 241 excl. the Saxony collision; Belgium 2,344, Paris 2,129, Saxony 2,034, Waterloo 1,312 dominate). The legacy-as-fixture call is reinforced.
+- Direct view of the rendered art confirmed coverage: British Isles, Iberia, Italy + islands, Balkans/Anatolia, Crimea, southern Scandinavia, and a North-African coastal strip are on-map; the Russian heartland/far north are off-map.
+
+Three updates folded into `MAP_IMPLEMENTATION_PLAN.md` (amendment 8):
+
+1. **Roster authoring debt sharpened.** `NATION_POWER_TIERS` already authors 13 nations (tiers mostly done); the real gaps are `NATION_COLORS` (8 incl. "Neutral") and `NATION_DESIRE_PROFILES` (only **4**: Austria/Britain/Prussia/Saxony). `TALLEYRAND_COMMENTARY` has a `_default` fallback (graceful). Prioritize desire profiles.
+2. **Roster Design Gate (Slice 2.5)** made explicit, with the researched **1805 North-African owners**: **Morocco independent** (Alaouite sultanate, Sultan Moulay Slimane); **Algiers/Tunis/Tripoli as Ottoman client-regencies** (nominal Porte suzerainty → Ottoman vassals; or independent Barbary minors if the Ottoman is itself a proxy). British Isles confirmed on-map → **Britain = London**; Russia/Ottoman/Sweden are the proxy cases.
+3. **Render + parser methods named:** owner fills use a **fragment shader** (or cached per-province pixel-index), not a per-turn full-image mirror (Slice 6, F2); `grid_position` at 126 must pick centroid-bucket vs. parser-refactor (Slice 4, F5).
+
+**Score (this spec, post-amendment):** doability **9** / clarity **9** / gaps **7.5** / completeness **8.5** → **overall 8.5/10 — GO**, start Slice 1; treat Slice 2 (naming) and the 1805 Scenario Setup as the real schedule drivers.
+
+Sources for the North-African ownership research: [state.gov — Barbary Wars](https://history.state.gov/milestones/1801-1829/barbary-wars); [Regency of Algiers](https://en.wikipedia.org/wiki/Regency_of_Algiers), [Ottoman Tripolitania](https://en.wikipedia.org/wiki/Kingdom_of_Tripoli), [Alawi dynasty](https://en.wikipedia.org/wiki/Alawi_dynasty), [Slimane of Morocco](https://en.wikipedia.org/wiki/Slimane_of_Morocco) (Wikipedia).
