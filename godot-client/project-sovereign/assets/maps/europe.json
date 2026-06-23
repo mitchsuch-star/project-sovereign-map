@@ -1,0 +1,4676 @@
+{
+  "version": 2,
+  "schema_version": 2,
+  "padding": 140,
+  "no_province_color": [
+    0,
+    0,
+    0
+  ],
+  "source": "map final1.psd :: County Colors (auto-generated draft)",
+  "regions": {
+    "Region_000": {
+      "province_id": "prov_000",
+      "anchor": [
+        2281,
+        362
+      ],
+      "unit_anchor": [
+        2281,
+        362
+      ],
+      "label_anchor": [
+        2281,
+        362
+      ],
+      "garrison_anchor": [
+        2281,
+        362
+      ],
+      "building_anchor": [
+        2281,
+        362
+      ],
+      "radius": 184,
+      "lookup_color": [
+        198,
+        75,
+        75
+      ],
+      "visual_tint": [
+        198,
+        75,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_001": {
+      "province_id": "prov_001",
+      "anchor": [
+        2051,
+        159
+      ],
+      "unit_anchor": [
+        2051,
+        159
+      ],
+      "label_anchor": [
+        2051,
+        159
+      ],
+      "garrison_anchor": [
+        2051,
+        159
+      ],
+      "building_anchor": [
+        2051,
+        159
+      ],
+      "radius": 183,
+      "lookup_color": [
+        75,
+        111,
+        198
+      ],
+      "visual_tint": [
+        75,
+        111,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_002": {
+      "province_id": "prov_002",
+      "anchor": [
+        1991,
+        1153
+      ],
+      "unit_anchor": [
+        1991,
+        1153
+      ],
+      "label_anchor": [
+        1991,
+        1153
+      ],
+      "garrison_anchor": [
+        1991,
+        1153
+      ],
+      "building_anchor": [
+        1991,
+        1153
+      ],
+      "radius": 145,
+      "lookup_color": [
+        147,
+        198,
+        75
+      ],
+      "visual_tint": [
+        147,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_003": {
+      "province_id": "prov_003",
+      "anchor": [
+        1855,
+        563
+      ],
+      "unit_anchor": [
+        1855,
+        563
+      ],
+      "label_anchor": [
+        1855,
+        563
+      ],
+      "garrison_anchor": [
+        1855,
+        563
+      ],
+      "building_anchor": [
+        1855,
+        563
+      ],
+      "radius": 114,
+      "lookup_color": [
+        198,
+        75,
+        183
+      ],
+      "visual_tint": [
+        198,
+        75,
+        183
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_004": {
+      "province_id": "prov_004",
+      "anchor": [
+        2195,
+        1193
+      ],
+      "unit_anchor": [
+        2195,
+        1193
+      ],
+      "label_anchor": [
+        2195,
+        1193
+      ],
+      "garrison_anchor": [
+        2195,
+        1193
+      ],
+      "building_anchor": [
+        2195,
+        1193
+      ],
+      "radius": 113,
+      "lookup_color": [
+        75,
+        198,
+        178
+      ],
+      "visual_tint": [
+        75,
+        198,
+        178
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_005": {
+      "province_id": "prov_005",
+      "anchor": [
+        287,
+        1460
+      ],
+      "unit_anchor": [
+        287,
+        1460
+      ],
+      "label_anchor": [
+        287,
+        1460
+      ],
+      "garrison_anchor": [
+        287,
+        1460
+      ],
+      "building_anchor": [
+        287,
+        1460
+      ],
+      "radius": 112,
+      "lookup_color": [
+        198,
+        142,
+        75
+      ],
+      "visual_tint": [
+        198,
+        142,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_006": {
+      "province_id": "prov_006",
+      "anchor": [
+        1281,
+        245
+      ],
+      "unit_anchor": [
+        1281,
+        245
+      ],
+      "label_anchor": [
+        1281,
+        245
+      ],
+      "garrison_anchor": [
+        1281,
+        245
+      ],
+      "building_anchor": [
+        1281,
+        245
+      ],
+      "radius": 109,
+      "lookup_color": [
+        106,
+        75,
+        198
+      ],
+      "visual_tint": [
+        106,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_007": {
+      "province_id": "prov_007",
+      "anchor": [
+        1653,
+        630
+      ],
+      "unit_anchor": [
+        1653,
+        630
+      ],
+      "label_anchor": [
+        1653,
+        630
+      ],
+      "garrison_anchor": [
+        1653,
+        630
+      ],
+      "building_anchor": [
+        1653,
+        630
+      ],
+      "radius": 108,
+      "lookup_color": [
+        80,
+        198,
+        75
+      ],
+      "visual_tint": [
+        80,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_008": {
+      "province_id": "prov_008",
+      "anchor": [
+        2026,
+        508
+      ],
+      "unit_anchor": [
+        2026,
+        508
+      ],
+      "label_anchor": [
+        2026,
+        508
+      ],
+      "garrison_anchor": [
+        2026,
+        508
+      ],
+      "building_anchor": [
+        2026,
+        508
+      ],
+      "radius": 103,
+      "lookup_color": [
+        198,
+        75,
+        116
+      ],
+      "visual_tint": [
+        198,
+        75,
+        116
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_009": {
+      "province_id": "prov_009",
+      "anchor": [
+        763,
+        1382
+      ],
+      "unit_anchor": [
+        763,
+        1382
+      ],
+      "label_anchor": [
+        763,
+        1382
+      ],
+      "garrison_anchor": [
+        763,
+        1382
+      ],
+      "building_anchor": [
+        763,
+        1382
+      ],
+      "radius": 100,
+      "lookup_color": [
+        75,
+        152,
+        198
+      ],
+      "visual_tint": [
+        75,
+        152,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_010": {
+      "province_id": "prov_010",
+      "anchor": [
+        1585,
+        791
+      ],
+      "unit_anchor": [
+        1585,
+        791
+      ],
+      "label_anchor": [
+        1585,
+        791
+      ],
+      "garrison_anchor": [
+        1585,
+        791
+      ],
+      "building_anchor": [
+        1585,
+        791
+      ],
+      "radius": 100,
+      "lookup_color": [
+        188,
+        198,
+        75
+      ],
+      "visual_tint": [
+        188,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_011": {
+      "province_id": "prov_011",
+      "anchor": [
+        807,
+        826
+      ],
+      "unit_anchor": [
+        807,
+        826
+      ],
+      "label_anchor": [
+        807,
+        826
+      ],
+      "garrison_anchor": [
+        807,
+        826
+      ],
+      "building_anchor": [
+        807,
+        826
+      ],
+      "radius": 100,
+      "lookup_color": [
+        173,
+        75,
+        198
+      ],
+      "visual_tint": [
+        173,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_012": {
+      "province_id": "prov_012",
+      "anchor": [
+        2139,
+        517
+      ],
+      "unit_anchor": [
+        2139,
+        517
+      ],
+      "label_anchor": [
+        2139,
+        517
+      ],
+      "garrison_anchor": [
+        2139,
+        517
+      ],
+      "building_anchor": [
+        2139,
+        517
+      ],
+      "radius": 98,
+      "lookup_color": [
+        94,
+        249,
+        172
+      ],
+      "visual_tint": [
+        94,
+        249,
+        172
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_013": {
+      "province_id": "prov_013",
+      "anchor": [
+        1646,
+        60
+      ],
+      "unit_anchor": [
+        1646,
+        60
+      ],
+      "label_anchor": [
+        1646,
+        60
+      ],
+      "garrison_anchor": [
+        1646,
+        60
+      ],
+      "building_anchor": [
+        1646,
+        60
+      ],
+      "radius": 92,
+      "lookup_color": [
+        249,
+        126,
+        94
+      ],
+      "visual_tint": [
+        249,
+        126,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_014": {
+      "province_id": "prov_014",
+      "anchor": [
+        1748,
+        358
+      ],
+      "unit_anchor": [
+        1748,
+        358
+      ],
+      "label_anchor": [
+        1748,
+        358
+      ],
+      "garrison_anchor": [
+        1748,
+        358
+      ],
+      "building_anchor": [
+        1748,
+        358
+      ],
+      "radius": 92,
+      "lookup_color": [
+        94,
+        108,
+        249
+      ],
+      "visual_tint": [
+        94,
+        108,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_015": {
+      "province_id": "prov_015",
+      "anchor": [
+        1458,
+        751
+      ],
+      "unit_anchor": [
+        1458,
+        751
+      ],
+      "label_anchor": [
+        1458,
+        751
+      ],
+      "garrison_anchor": [
+        1458,
+        751
+      ],
+      "building_anchor": [
+        1458,
+        751
+      ],
+      "radius": 92,
+      "lookup_color": [
+        153,
+        249,
+        94
+      ],
+      "visual_tint": [
+        153,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_016": {
+      "province_id": "prov_016",
+      "anchor": [
+        1572,
+        1017
+      ],
+      "unit_anchor": [
+        1572,
+        1017
+      ],
+      "label_anchor": [
+        1572,
+        1017
+      ],
+      "garrison_anchor": [
+        1572,
+        1017
+      ],
+      "building_anchor": [
+        1572,
+        1017
+      ],
+      "radius": 92,
+      "lookup_color": [
+        249,
+        94,
+        198
+      ],
+      "visual_tint": [
+        249,
+        94,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_017": {
+      "province_id": "prov_017",
+      "anchor": [
+        2274,
+        1054
+      ],
+      "unit_anchor": [
+        2274,
+        1054
+      ],
+      "label_anchor": [
+        2274,
+        1054
+      ],
+      "garrison_anchor": [
+        2274,
+        1054
+      ],
+      "building_anchor": [
+        2274,
+        1054
+      ],
+      "radius": 91,
+      "lookup_color": [
+        94,
+        243,
+        249
+      ],
+      "visual_tint": [
+        94,
+        243,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_018": {
+      "province_id": "prov_018",
+      "anchor": [
+        1180,
+        1007
+      ],
+      "unit_anchor": [
+        1180,
+        1007
+      ],
+      "label_anchor": [
+        1180,
+        1007
+      ],
+      "garrison_anchor": [
+        1180,
+        1007
+      ],
+      "building_anchor": [
+        1180,
+        1007
+      ],
+      "radius": 87,
+      "lookup_color": [
+        249,
+        210,
+        94
+      ],
+      "visual_tint": [
+        249,
+        210,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_019": {
+      "province_id": "prov_019",
+      "anchor": [
+        1717,
+        828
+      ],
+      "unit_anchor": [
+        1717,
+        828
+      ],
+      "label_anchor": [
+        1717,
+        828
+      ],
+      "garrison_anchor": [
+        1717,
+        828
+      ],
+      "building_anchor": [
+        1717,
+        828
+      ],
+      "radius": 86,
+      "lookup_color": [
+        165,
+        94,
+        249
+      ],
+      "visual_tint": [
+        165,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_020": {
+      "province_id": "prov_020",
+      "anchor": [
+        1125,
+        157
+      ],
+      "unit_anchor": [
+        1125,
+        157
+      ],
+      "label_anchor": [
+        1125,
+        157
+      ],
+      "garrison_anchor": [
+        1125,
+        157
+      ],
+      "building_anchor": [
+        1125,
+        157
+      ],
+      "radius": 85,
+      "lookup_color": [
+        94,
+        249,
+        120
+      ],
+      "visual_tint": [
+        94,
+        249,
+        120
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_021": {
+      "province_id": "prov_021",
+      "anchor": [
+        1623,
+        1198
+      ],
+      "unit_anchor": [
+        1623,
+        1198
+      ],
+      "label_anchor": [
+        1623,
+        1198
+      ],
+      "garrison_anchor": [
+        1623,
+        1198
+      ],
+      "building_anchor": [
+        1623,
+        1198
+      ],
+      "radius": 85,
+      "lookup_color": [
+        249,
+        94,
+        114
+      ],
+      "visual_tint": [
+        249,
+        94,
+        114
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_022": {
+      "province_id": "prov_022",
+      "anchor": [
+        1054,
+        1472
+      ],
+      "unit_anchor": [
+        1054,
+        1472
+      ],
+      "label_anchor": [
+        1054,
+        1472
+      ],
+      "garrison_anchor": [
+        1054,
+        1472
+      ],
+      "building_anchor": [
+        1054,
+        1472
+      ],
+      "radius": 84,
+      "lookup_color": [
+        94,
+        159,
+        249
+      ],
+      "visual_tint": [
+        94,
+        159,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_023": {
+      "province_id": "prov_023",
+      "anchor": [
+        1861,
+        366
+      ],
+      "unit_anchor": [
+        1861,
+        366
+      ],
+      "label_anchor": [
+        1861,
+        366
+      ],
+      "garrison_anchor": [
+        1861,
+        366
+      ],
+      "building_anchor": [
+        1861,
+        366
+      ],
+      "radius": 81,
+      "lookup_color": [
+        205,
+        249,
+        94
+      ],
+      "visual_tint": [
+        205,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_024": {
+      "province_id": "prov_024",
+      "anchor": [
+        1940,
+        666
+      ],
+      "unit_anchor": [
+        1940,
+        666
+      ],
+      "label_anchor": [
+        1940,
+        666
+      ],
+      "garrison_anchor": [
+        1940,
+        666
+      ],
+      "building_anchor": [
+        1940,
+        666
+      ],
+      "radius": 81,
+      "lookup_color": [
+        198,
+        75,
+        198
+      ],
+      "visual_tint": [
+        198,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_025": {
+      "province_id": "prov_025",
+      "anchor": [
+        2273,
+        1308
+      ],
+      "unit_anchor": [
+        2273,
+        1308
+      ],
+      "label_anchor": [
+        2273,
+        1308
+      ],
+      "garrison_anchor": [
+        2273,
+        1308
+      ],
+      "building_anchor": [
+        2273,
+        1308
+      ],
+      "radius": 80,
+      "lookup_color": [
+        75,
+        198,
+        162
+      ],
+      "visual_tint": [
+        75,
+        198,
+        162
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_026": {
+      "province_id": "prov_026",
+      "anchor": [
+        1483,
+        548
+      ],
+      "unit_anchor": [
+        1483,
+        548
+      ],
+      "label_anchor": [
+        1483,
+        548
+      ],
+      "garrison_anchor": [
+        1483,
+        548
+      ],
+      "building_anchor": [
+        1483,
+        548
+      ],
+      "radius": 79,
+      "lookup_color": [
+        198,
+        126,
+        75
+      ],
+      "visual_tint": [
+        198,
+        126,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_027": {
+      "province_id": "prov_027",
+      "anchor": [
+        1850,
+        799
+      ],
+      "unit_anchor": [
+        1850,
+        799
+      ],
+      "label_anchor": [
+        1850,
+        799
+      ],
+      "garrison_anchor": [
+        1850,
+        799
+      ],
+      "building_anchor": [
+        1850,
+        799
+      ],
+      "radius": 79,
+      "lookup_color": [
+        90,
+        75,
+        198
+      ],
+      "visual_tint": [
+        90,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_028": {
+      "province_id": "prov_028",
+      "anchor": [
+        1750,
+        943
+      ],
+      "unit_anchor": [
+        1750,
+        943
+      ],
+      "label_anchor": [
+        1750,
+        943
+      ],
+      "garrison_anchor": [
+        1750,
+        943
+      ],
+      "building_anchor": [
+        1750,
+        943
+      ],
+      "radius": 78,
+      "lookup_color": [
+        96,
+        198,
+        75
+      ],
+      "visual_tint": [
+        96,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_029": {
+      "province_id": "prov_029",
+      "anchor": [
+        1174,
+        49
+      ],
+      "unit_anchor": [
+        1174,
+        49
+      ],
+      "label_anchor": [
+        1174,
+        49
+      ],
+      "garrison_anchor": [
+        1174,
+        49
+      ],
+      "building_anchor": [
+        1174,
+        49
+      ],
+      "radius": 77,
+      "lookup_color": [
+        198,
+        75,
+        132
+      ],
+      "visual_tint": [
+        198,
+        75,
+        132
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_030": {
+      "province_id": "prov_030",
+      "anchor": [
+        544,
+        1081
+      ],
+      "unit_anchor": [
+        544,
+        1081
+      ],
+      "label_anchor": [
+        544,
+        1081
+      ],
+      "garrison_anchor": [
+        544,
+        1081
+      ],
+      "building_anchor": [
+        544,
+        1081
+      ],
+      "radius": 76,
+      "lookup_color": [
+        75,
+        168,
+        198
+      ],
+      "visual_tint": [
+        75,
+        168,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_031": {
+      "province_id": "prov_031",
+      "anchor": [
+        1674,
+        461
+      ],
+      "unit_anchor": [
+        1674,
+        461
+      ],
+      "label_anchor": [
+        1674,
+        461
+      ],
+      "garrison_anchor": [
+        1674,
+        461
+      ],
+      "building_anchor": [
+        1674,
+        461
+      ],
+      "radius": 75,
+      "lookup_color": [
+        198,
+        193,
+        75
+      ],
+      "visual_tint": [
+        198,
+        193,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_032": {
+      "province_id": "prov_032",
+      "anchor": [
+        949,
+        639
+      ],
+      "unit_anchor": [
+        949,
+        639
+      ],
+      "label_anchor": [
+        949,
+        639
+      ],
+      "garrison_anchor": [
+        949,
+        639
+      ],
+      "building_anchor": [
+        949,
+        639
+      ],
+      "radius": 75,
+      "lookup_color": [
+        157,
+        75,
+        198
+      ],
+      "visual_tint": [
+        157,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_033": {
+      "province_id": "prov_033",
+      "anchor": [
+        1741,
+        1033
+      ],
+      "unit_anchor": [
+        1741,
+        1033
+      ],
+      "label_anchor": [
+        1741,
+        1033
+      ],
+      "garrison_anchor": [
+        1741,
+        1033
+      ],
+      "building_anchor": [
+        1741,
+        1033
+      ],
+      "radius": 74,
+      "lookup_color": [
+        75,
+        198,
+        121
+      ],
+      "visual_tint": [
+        75,
+        198,
+        121
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_034": {
+      "province_id": "prov_034",
+      "anchor": [
+        415,
+        1057
+      ],
+      "unit_anchor": [
+        415,
+        1057
+      ],
+      "label_anchor": [
+        415,
+        1057
+      ],
+      "garrison_anchor": [
+        415,
+        1057
+      ],
+      "building_anchor": [
+        415,
+        1057
+      ],
+      "radius": 74,
+      "lookup_color": [
+        198,
+        85,
+        75
+      ],
+      "visual_tint": [
+        198,
+        85,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_035": {
+      "province_id": "prov_035",
+      "anchor": [
+        1615,
+        1563
+      ],
+      "unit_anchor": [
+        1615,
+        1563
+      ],
+      "label_anchor": [
+        1615,
+        1563
+      ],
+      "garrison_anchor": [
+        1615,
+        1563
+      ],
+      "building_anchor": [
+        1615,
+        1563
+      ],
+      "radius": 74,
+      "lookup_color": [
+        75,
+        101,
+        198
+      ],
+      "visual_tint": [
+        75,
+        101,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_036": {
+      "province_id": "prov_036",
+      "anchor": [
+        1343,
+        1139
+      ],
+      "unit_anchor": [
+        1343,
+        1139
+      ],
+      "label_anchor": [
+        1343,
+        1139
+      ],
+      "garrison_anchor": [
+        1343,
+        1139
+      ],
+      "building_anchor": [
+        1343,
+        1139
+      ],
+      "radius": 73,
+      "lookup_color": [
+        173,
+        249,
+        94
+      ],
+      "visual_tint": [
+        173,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_037": {
+      "province_id": "prov_037",
+      "anchor": [
+        394,
+        1187
+      ],
+      "unit_anchor": [
+        394,
+        1187
+      ],
+      "label_anchor": [
+        394,
+        1187
+      ],
+      "garrison_anchor": [
+        394,
+        1187
+      ],
+      "building_anchor": [
+        394,
+        1187
+      ],
+      "radius": 73,
+      "lookup_color": [
+        249,
+        94,
+        218
+      ],
+      "visual_tint": [
+        249,
+        94,
+        218
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_038": {
+      "province_id": "prov_038",
+      "anchor": [
+        1328,
+        771
+      ],
+      "unit_anchor": [
+        1328,
+        771
+      ],
+      "label_anchor": [
+        1328,
+        771
+      ],
+      "garrison_anchor": [
+        1328,
+        771
+      ],
+      "building_anchor": [
+        1328,
+        771
+      ],
+      "radius": 73,
+      "lookup_color": [
+        94,
+        249,
+        236
+      ],
+      "visual_tint": [
+        94,
+        249,
+        236
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_039": {
+      "province_id": "prov_039",
+      "anchor": [
+        2033,
+        719
+      ],
+      "unit_anchor": [
+        2033,
+        719
+      ],
+      "label_anchor": [
+        2033,
+        719
+      ],
+      "garrison_anchor": [
+        2033,
+        719
+      ],
+      "building_anchor": [
+        2033,
+        719
+      ],
+      "radius": 72,
+      "lookup_color": [
+        249,
+        191,
+        94
+      ],
+      "visual_tint": [
+        249,
+        191,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_040": {
+      "province_id": "prov_040",
+      "anchor": [
+        706,
+        491
+      ],
+      "unit_anchor": [
+        706,
+        491
+      ],
+      "label_anchor": [
+        706,
+        491
+      ],
+      "garrison_anchor": [
+        706,
+        491
+      ],
+      "building_anchor": [
+        706,
+        491
+      ],
+      "radius": 71,
+      "lookup_color": [
+        145,
+        94,
+        249
+      ],
+      "visual_tint": [
+        145,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_041": {
+      "province_id": "prov_041",
+      "anchor": [
+        1383,
+        145
+      ],
+      "unit_anchor": [
+        1383,
+        145
+      ],
+      "label_anchor": [
+        1383,
+        145
+      ],
+      "garrison_anchor": [
+        1383,
+        145
+      ],
+      "building_anchor": [
+        1383,
+        145
+      ],
+      "radius": 70,
+      "lookup_color": [
+        94,
+        249,
+        100
+      ],
+      "visual_tint": [
+        94,
+        249,
+        100
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_042": {
+      "province_id": "prov_042",
+      "anchor": [
+        1277,
+        666
+      ],
+      "unit_anchor": [
+        1277,
+        666
+      ],
+      "label_anchor": [
+        1277,
+        666
+      ],
+      "garrison_anchor": [
+        1277,
+        666
+      ],
+      "building_anchor": [
+        1277,
+        666
+      ],
+      "radius": 68,
+      "lookup_color": [
+        249,
+        94,
+        134
+      ],
+      "visual_tint": [
+        249,
+        94,
+        134
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_043": {
+      "province_id": "prov_043",
+      "anchor": [
+        1284,
+        534
+      ],
+      "unit_anchor": [
+        1284,
+        534
+      ],
+      "label_anchor": [
+        1284,
+        534
+      ],
+      "garrison_anchor": [
+        1284,
+        534
+      ],
+      "building_anchor": [
+        1284,
+        534
+      ],
+      "radius": 66,
+      "lookup_color": [
+        94,
+        179,
+        249
+      ],
+      "visual_tint": [
+        94,
+        179,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_044": {
+      "province_id": "prov_044",
+      "anchor": [
+        356,
+        964
+      ],
+      "unit_anchor": [
+        356,
+        964
+      ],
+      "label_anchor": [
+        356,
+        964
+      ],
+      "garrison_anchor": [
+        356,
+        964
+      ],
+      "building_anchor": [
+        356,
+        964
+      ],
+      "radius": 65,
+      "lookup_color": [
+        224,
+        249,
+        94
+      ],
+      "visual_tint": [
+        224,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_045": {
+      "province_id": "prov_045",
+      "anchor": [
+        1981,
+        333
+      ],
+      "unit_anchor": [
+        1981,
+        333
+      ],
+      "label_anchor": [
+        1981,
+        333
+      ],
+      "garrison_anchor": [
+        1981,
+        333
+      ],
+      "building_anchor": [
+        1981,
+        333
+      ],
+      "radius": 64,
+      "lookup_color": [
+        229,
+        94,
+        249
+      ],
+      "visual_tint": [
+        229,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_046": {
+      "province_id": "prov_046",
+      "anchor": [
+        770,
+        979
+      ],
+      "unit_anchor": [
+        770,
+        979
+      ],
+      "label_anchor": [
+        770,
+        979
+      ],
+      "garrison_anchor": [
+        770,
+        979
+      ],
+      "building_anchor": [
+        770,
+        979
+      ],
+      "radius": 63,
+      "lookup_color": [
+        94,
+        249,
+        184
+      ],
+      "visual_tint": [
+        94,
+        249,
+        184
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_047": {
+      "province_id": "prov_047",
+      "anchor": [
+        492,
+        396
+      ],
+      "unit_anchor": [
+        492,
+        396
+      ],
+      "label_anchor": [
+        492,
+        396
+      ],
+      "garrison_anchor": [
+        492,
+        396
+      ],
+      "building_anchor": [
+        492,
+        396
+      ],
+      "radius": 63,
+      "lookup_color": [
+        249,
+        139,
+        94
+      ],
+      "visual_tint": [
+        249,
+        139,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_048": {
+      "province_id": "prov_048",
+      "anchor": [
+        666,
+        942
+      ],
+      "unit_anchor": [
+        666,
+        942
+      ],
+      "label_anchor": [
+        666,
+        942
+      ],
+      "garrison_anchor": [
+        666,
+        942
+      ],
+      "building_anchor": [
+        666,
+        942
+      ],
+      "radius": 63,
+      "lookup_color": [
+        75,
+        76,
+        198
+      ],
+      "visual_tint": [
+        75,
+        76,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_049": {
+      "province_id": "prov_049",
+      "anchor": [
+        423,
+        1276
+      ],
+      "unit_anchor": [
+        423,
+        1276
+      ],
+      "label_anchor": [
+        423,
+        1276
+      ],
+      "garrison_anchor": [
+        423,
+        1276
+      ],
+      "building_anchor": [
+        423,
+        1276
+      ],
+      "radius": 63,
+      "lookup_color": [
+        112,
+        198,
+        75
+      ],
+      "visual_tint": [
+        112,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_050": {
+      "province_id": "prov_050",
+      "anchor": [
+        924,
+        845
+      ],
+      "unit_anchor": [
+        924,
+        845
+      ],
+      "label_anchor": [
+        924,
+        845
+      ],
+      "garrison_anchor": [
+        924,
+        845
+      ],
+      "building_anchor": [
+        924,
+        845
+      ],
+      "radius": 62,
+      "lookup_color": [
+        198,
+        75,
+        148
+      ],
+      "visual_tint": [
+        198,
+        75,
+        148
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_051": {
+      "province_id": "prov_051",
+      "anchor": [
+        278,
+        1206
+      ],
+      "unit_anchor": [
+        278,
+        1206
+      ],
+      "label_anchor": [
+        278,
+        1206
+      ],
+      "garrison_anchor": [
+        278,
+        1206
+      ],
+      "building_anchor": [
+        278,
+        1206
+      ],
+      "radius": 61,
+      "lookup_color": [
+        75,
+        184,
+        198
+      ],
+      "visual_tint": [
+        75,
+        184,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_052": {
+      "province_id": "prov_052",
+      "anchor": [
+        1466,
+        943
+      ],
+      "unit_anchor": [
+        1466,
+        943
+      ],
+      "label_anchor": [
+        1466,
+        943
+      ],
+      "garrison_anchor": [
+        1466,
+        943
+      ],
+      "building_anchor": [
+        1466,
+        943
+      ],
+      "radius": 59,
+      "lookup_color": [
+        198,
+        177,
+        75
+      ],
+      "visual_tint": [
+        198,
+        177,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_053": {
+      "province_id": "prov_053",
+      "anchor": [
+        1353,
+        42
+      ],
+      "unit_anchor": [
+        1353,
+        42
+      ],
+      "label_anchor": [
+        1353,
+        42
+      ],
+      "garrison_anchor": [
+        1353,
+        42
+      ],
+      "building_anchor": [
+        1353,
+        42
+      ],
+      "radius": 59,
+      "lookup_color": [
+        141,
+        75,
+        198
+      ],
+      "visual_tint": [
+        141,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_054": {
+      "province_id": "prov_054",
+      "anchor": [
+        1648,
+        233
+      ],
+      "unit_anchor": [
+        1648,
+        233
+      ],
+      "label_anchor": [
+        1648,
+        233
+      ],
+      "garrison_anchor": [
+        1648,
+        233
+      ],
+      "building_anchor": [
+        1648,
+        233
+      ],
+      "radius": 58,
+      "lookup_color": [
+        75,
+        198,
+        105
+      ],
+      "visual_tint": [
+        75,
+        198,
+        105
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_055": {
+      "province_id": "prov_055",
+      "anchor": [
+        297,
+        1063
+      ],
+      "unit_anchor": [
+        297,
+        1063
+      ],
+      "label_anchor": [
+        297,
+        1063
+      ],
+      "garrison_anchor": [
+        297,
+        1063
+      ],
+      "building_anchor": [
+        297,
+        1063
+      ],
+      "radius": 58,
+      "lookup_color": [
+        198,
+        75,
+        81
+      ],
+      "visual_tint": [
+        198,
+        75,
+        81
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_056": {
+      "province_id": "prov_056",
+      "anchor": [
+        686,
+        816
+      ],
+      "unit_anchor": [
+        686,
+        816
+      ],
+      "label_anchor": [
+        686,
+        816
+      ],
+      "garrison_anchor": [
+        686,
+        816
+      ],
+      "building_anchor": [
+        686,
+        816
+      ],
+      "radius": 58,
+      "lookup_color": [
+        75,
+        117,
+        198
+      ],
+      "visual_tint": [
+        75,
+        117,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_057": {
+      "province_id": "prov_057",
+      "anchor": [
+        1162,
+        727
+      ],
+      "unit_anchor": [
+        1162,
+        727
+      ],
+      "label_anchor": [
+        1162,
+        727
+      ],
+      "garrison_anchor": [
+        1162,
+        727
+      ],
+      "building_anchor": [
+        1162,
+        727
+      ],
+      "radius": 57,
+      "lookup_color": [
+        153,
+        198,
+        75
+      ],
+      "visual_tint": [
+        153,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_058": {
+      "province_id": "prov_058",
+      "anchor": [
+        2204,
+        1487
+      ],
+      "unit_anchor": [
+        2204,
+        1487
+      ],
+      "label_anchor": [
+        2204,
+        1487
+      ],
+      "garrison_anchor": [
+        2204,
+        1487
+      ],
+      "building_anchor": [
+        2204,
+        1487
+      ],
+      "radius": 57,
+      "lookup_color": [
+        198,
+        75,
+        189
+      ],
+      "visual_tint": [
+        198,
+        75,
+        189
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_059": {
+      "province_id": "prov_059",
+      "anchor": [
+        462,
+        484
+      ],
+      "unit_anchor": [
+        462,
+        484
+      ],
+      "label_anchor": [
+        462,
+        484
+      ],
+      "garrison_anchor": [
+        462,
+        484
+      ],
+      "building_anchor": [
+        462,
+        484
+      ],
+      "radius": 55,
+      "lookup_color": [
+        75,
+        198,
+        172
+      ],
+      "visual_tint": [
+        75,
+        198,
+        172
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_060": {
+      "province_id": "prov_060",
+      "anchor": [
+        992,
+        891
+      ],
+      "unit_anchor": [
+        992,
+        891
+      ],
+      "label_anchor": [
+        992,
+        891
+      ],
+      "garrison_anchor": [
+        992,
+        891
+      ],
+      "building_anchor": [
+        992,
+        891
+      ],
+      "radius": 54,
+      "lookup_color": [
+        249,
+        171,
+        94
+      ],
+      "visual_tint": [
+        249,
+        171,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_061": {
+      "province_id": "prov_061",
+      "anchor": [
+        673,
+        313
+      ],
+      "unit_anchor": [
+        673,
+        313
+      ],
+      "label_anchor": [
+        673,
+        313
+      ],
+      "garrison_anchor": [
+        673,
+        313
+      ],
+      "building_anchor": [
+        673,
+        313
+      ],
+      "radius": 54,
+      "lookup_color": [
+        126,
+        94,
+        249
+      ],
+      "visual_tint": [
+        126,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_062": {
+      "province_id": "prov_062",
+      "anchor": [
+        689,
+        1075
+      ],
+      "unit_anchor": [
+        689,
+        1075
+      ],
+      "label_anchor": [
+        689,
+        1075
+      ],
+      "garrison_anchor": [
+        689,
+        1075
+      ],
+      "building_anchor": [
+        689,
+        1075
+      ],
+      "radius": 52,
+      "lookup_color": [
+        109,
+        249,
+        94
+      ],
+      "visual_tint": [
+        109,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_063": {
+      "province_id": "prov_063",
+      "anchor": [
+        624,
+        598
+      ],
+      "unit_anchor": [
+        624,
+        598
+      ],
+      "label_anchor": [
+        624,
+        598
+      ],
+      "garrison_anchor": [
+        624,
+        598
+      ],
+      "building_anchor": [
+        624,
+        598
+      ],
+      "radius": 52,
+      "lookup_color": [
+        249,
+        94,
+        154
+      ],
+      "visual_tint": [
+        249,
+        94,
+        154
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_064": {
+      "province_id": "prov_064",
+      "anchor": [
+        2054,
+        803
+      ],
+      "unit_anchor": [
+        2054,
+        803
+      ],
+      "label_anchor": [
+        2054,
+        803
+      ],
+      "garrison_anchor": [
+        2054,
+        803
+      ],
+      "building_anchor": [
+        2054,
+        803
+      ],
+      "radius": 52,
+      "lookup_color": [
+        94,
+        199,
+        249
+      ],
+      "visual_tint": [
+        94,
+        199,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_065": {
+      "province_id": "prov_065",
+      "anchor": [
+        1133,
+        894
+      ],
+      "unit_anchor": [
+        1133,
+        894
+      ],
+      "label_anchor": [
+        1133,
+        894
+      ],
+      "garrison_anchor": [
+        1133,
+        894
+      ],
+      "building_anchor": [
+        1133,
+        894
+      ],
+      "radius": 51,
+      "lookup_color": [
+        244,
+        249,
+        94
+      ],
+      "visual_tint": [
+        244,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_066": {
+      "province_id": "prov_066",
+      "anchor": [
+        1590,
+        442
+      ],
+      "unit_anchor": [
+        1590,
+        442
+      ],
+      "label_anchor": [
+        1590,
+        442
+      ],
+      "garrison_anchor": [
+        1590,
+        442
+      ],
+      "building_anchor": [
+        1590,
+        442
+      ],
+      "radius": 51,
+      "lookup_color": [
+        209,
+        94,
+        249
+      ],
+      "visual_tint": [
+        209,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_067": {
+      "province_id": "prov_067",
+      "anchor": [
+        738,
+        716
+      ],
+      "unit_anchor": [
+        738,
+        716
+      ],
+      "label_anchor": [
+        738,
+        716
+      ],
+      "garrison_anchor": [
+        738,
+        716
+      ],
+      "building_anchor": [
+        738,
+        716
+      ],
+      "radius": 50,
+      "lookup_color": [
+        94,
+        249,
+        164
+      ],
+      "visual_tint": [
+        94,
+        249,
+        164
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_068": {
+      "province_id": "prov_068",
+      "anchor": [
+        1256,
+        822
+      ],
+      "unit_anchor": [
+        1256,
+        822
+      ],
+      "label_anchor": [
+        1256,
+        822
+      ],
+      "garrison_anchor": [
+        1256,
+        822
+      ],
+      "building_anchor": [
+        1256,
+        822
+      ],
+      "radius": 50,
+      "lookup_color": [
+        249,
+        119,
+        94
+      ],
+      "visual_tint": [
+        249,
+        119,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_069": {
+      "province_id": "prov_069",
+      "anchor": [
+        1393,
+        882
+      ],
+      "unit_anchor": [
+        1393,
+        882
+      ],
+      "label_anchor": [
+        1393,
+        882
+      ],
+      "garrison_anchor": [
+        1393,
+        882
+      ],
+      "building_anchor": [
+        1393,
+        882
+      ],
+      "radius": 50,
+      "lookup_color": [
+        94,
+        115,
+        249
+      ],
+      "visual_tint": [
+        94,
+        115,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_070": {
+      "province_id": "prov_070",
+      "anchor": [
+        643,
+        253
+      ],
+      "unit_anchor": [
+        643,
+        253
+      ],
+      "label_anchor": [
+        643,
+        253
+      ],
+      "garrison_anchor": [
+        643,
+        253
+      ],
+      "building_anchor": [
+        643,
+        253
+      ],
+      "radius": 50,
+      "lookup_color": [
+        160,
+        249,
+        94
+      ],
+      "visual_tint": [
+        160,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_071": {
+      "province_id": "prov_071",
+      "anchor": [
+        568,
+        1211
+      ],
+      "unit_anchor": [
+        568,
+        1211
+      ],
+      "label_anchor": [
+        568,
+        1211
+      ],
+      "garrison_anchor": [
+        568,
+        1211
+      ],
+      "building_anchor": [
+        568,
+        1211
+      ],
+      "radius": 49,
+      "lookup_color": [
+        249,
+        94,
+        206
+      ],
+      "visual_tint": [
+        249,
+        94,
+        206
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_072": {
+      "province_id": "prov_072",
+      "anchor": [
+        1107,
+        346
+      ],
+      "unit_anchor": [
+        1107,
+        346
+      ],
+      "label_anchor": [
+        1107,
+        346
+      ],
+      "garrison_anchor": [
+        1107,
+        346
+      ],
+      "building_anchor": [
+        1107,
+        346
+      ],
+      "radius": 49,
+      "lookup_color": [
+        75,
+        198,
+        197
+      ],
+      "visual_tint": [
+        75,
+        198,
+        197
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_073": {
+      "province_id": "prov_073",
+      "anchor": [
+        1246,
+        1307
+      ],
+      "unit_anchor": [
+        1246,
+        1307
+      ],
+      "label_anchor": [
+        1246,
+        1307
+      ],
+      "garrison_anchor": [
+        1246,
+        1307
+      ],
+      "building_anchor": [
+        1246,
+        1307
+      ],
+      "radius": 49,
+      "lookup_color": [
+        198,
+        161,
+        75
+      ],
+      "visual_tint": [
+        198,
+        161,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_074": {
+      "province_id": "prov_074",
+      "anchor": [
+        588,
+        1015
+      ],
+      "unit_anchor": [
+        588,
+        1015
+      ],
+      "label_anchor": [
+        588,
+        1015
+      ],
+      "garrison_anchor": [
+        588,
+        1015
+      ],
+      "building_anchor": [
+        588,
+        1015
+      ],
+      "radius": 49,
+      "lookup_color": [
+        125,
+        75,
+        198
+      ],
+      "visual_tint": [
+        125,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_075": {
+      "province_id": "prov_075",
+      "anchor": [
+        698,
+        392
+      ],
+      "unit_anchor": [
+        698,
+        392
+      ],
+      "label_anchor": [
+        698,
+        392
+      ],
+      "garrison_anchor": [
+        698,
+        392
+      ],
+      "building_anchor": [
+        698,
+        392
+      ],
+      "radius": 47,
+      "lookup_color": [
+        75,
+        198,
+        89
+      ],
+      "visual_tint": [
+        75,
+        198,
+        89
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_076": {
+      "province_id": "prov_076",
+      "anchor": [
+        605,
+        515
+      ],
+      "unit_anchor": [
+        605,
+        515
+      ],
+      "label_anchor": [
+        605,
+        515
+      ],
+      "garrison_anchor": [
+        605,
+        515
+      ],
+      "building_anchor": [
+        605,
+        515
+      ],
+      "radius": 47,
+      "lookup_color": [
+        198,
+        75,
+        97
+      ],
+      "visual_tint": [
+        198,
+        75,
+        97
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_077": {
+      "province_id": "prov_077",
+      "anchor": [
+        1581,
+        320
+      ],
+      "unit_anchor": [
+        1581,
+        320
+      ],
+      "label_anchor": [
+        1581,
+        320
+      ],
+      "garrison_anchor": [
+        1581,
+        320
+      ],
+      "building_anchor": [
+        1581,
+        320
+      ],
+      "radius": 47,
+      "lookup_color": [
+        75,
+        133,
+        198
+      ],
+      "visual_tint": [
+        75,
+        133,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_078": {
+      "province_id": "prov_078",
+      "anchor": [
+        244,
+        1146
+      ],
+      "unit_anchor": [
+        244,
+        1146
+      ],
+      "label_anchor": [
+        244,
+        1146
+      ],
+      "garrison_anchor": [
+        244,
+        1146
+      ],
+      "building_anchor": [
+        244,
+        1146
+      ],
+      "radius": 47,
+      "lookup_color": [
+        169,
+        198,
+        75
+      ],
+      "visual_tint": [
+        169,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_079": {
+      "province_id": "prov_079",
+      "anchor": [
+        1072,
+        734
+      ],
+      "unit_anchor": [
+        1072,
+        734
+      ],
+      "label_anchor": [
+        1072,
+        734
+      ],
+      "garrison_anchor": [
+        1072,
+        734
+      ],
+      "building_anchor": [
+        1072,
+        734
+      ],
+      "radius": 47,
+      "lookup_color": [
+        192,
+        75,
+        198
+      ],
+      "visual_tint": [
+        192,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_080": {
+      "province_id": "prov_080",
+      "anchor": [
+        907,
+        973
+      ],
+      "unit_anchor": [
+        907,
+        973
+      ],
+      "label_anchor": [
+        907,
+        973
+      ],
+      "garrison_anchor": [
+        907,
+        973
+      ],
+      "building_anchor": [
+        907,
+        973
+      ],
+      "radius": 47,
+      "lookup_color": [
+        75,
+        198,
+        156
+      ],
+      "visual_tint": [
+        75,
+        198,
+        156
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_081": {
+      "province_id": "prov_081",
+      "anchor": [
+        498,
+        1189
+      ],
+      "unit_anchor": [
+        498,
+        1189
+      ],
+      "label_anchor": [
+        498,
+        1189
+      ],
+      "garrison_anchor": [
+        498,
+        1189
+      ],
+      "building_anchor": [
+        498,
+        1189
+      ],
+      "radius": 46,
+      "lookup_color": [
+        198,
+        120,
+        75
+      ],
+      "visual_tint": [
+        198,
+        120,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_082": {
+      "province_id": "prov_082",
+      "anchor": [
+        1536,
+        409
+      ],
+      "unit_anchor": [
+        1536,
+        409
+      ],
+      "label_anchor": [
+        1536,
+        409
+      ],
+      "garrison_anchor": [
+        1536,
+        409
+      ],
+      "building_anchor": [
+        1536,
+        409
+      ],
+      "radius": 46,
+      "lookup_color": [
+        84,
+        75,
+        198
+      ],
+      "visual_tint": [
+        84,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_083": {
+      "province_id": "prov_083",
+      "anchor": [
+        1877,
+        1107
+      ],
+      "unit_anchor": [
+        1877,
+        1107
+      ],
+      "label_anchor": [
+        1877,
+        1107
+      ],
+      "garrison_anchor": [
+        1877,
+        1107
+      ],
+      "building_anchor": [
+        1877,
+        1107
+      ],
+      "radius": 46,
+      "lookup_color": [
+        102,
+        198,
+        75
+      ],
+      "visual_tint": [
+        102,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_084": {
+      "province_id": "prov_084",
+      "anchor": [
+        607,
+        762
+      ],
+      "unit_anchor": [
+        607,
+        762
+      ],
+      "label_anchor": [
+        607,
+        762
+      ],
+      "garrison_anchor": [
+        607,
+        762
+      ],
+      "building_anchor": [
+        607,
+        762
+      ],
+      "radius": 46,
+      "lookup_color": [
+        249,
+        94,
+        174
+      ],
+      "visual_tint": [
+        249,
+        94,
+        174
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_085": {
+      "province_id": "prov_085",
+      "anchor": [
+        1081,
+        516
+      ],
+      "unit_anchor": [
+        1081,
+        516
+      ],
+      "label_anchor": [
+        1081,
+        516
+      ],
+      "garrison_anchor": [
+        1081,
+        516
+      ],
+      "building_anchor": [
+        1081,
+        516
+      ],
+      "radius": 45,
+      "lookup_color": [
+        94,
+        219,
+        249
+      ],
+      "visual_tint": [
+        94,
+        219,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_086": {
+      "province_id": "prov_086",
+      "anchor": [
+        1032,
+        1169
+      ],
+      "unit_anchor": [
+        1032,
+        1169
+      ],
+      "label_anchor": [
+        1032,
+        1169
+      ],
+      "garrison_anchor": [
+        1032,
+        1169
+      ],
+      "building_anchor": [
+        1032,
+        1169
+      ],
+      "radius": 45,
+      "lookup_color": [
+        249,
+        235,
+        94
+      ],
+      "visual_tint": [
+        249,
+        235,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_087": {
+      "province_id": "prov_087",
+      "anchor": [
+        1380,
+        596
+      ],
+      "unit_anchor": [
+        1380,
+        596
+      ],
+      "label_anchor": [
+        1380,
+        596
+      ],
+      "garrison_anchor": [
+        1380,
+        596
+      ],
+      "building_anchor": [
+        1380,
+        596
+      ],
+      "radius": 45,
+      "lookup_color": [
+        190,
+        94,
+        249
+      ],
+      "visual_tint": [
+        190,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_088": {
+      "province_id": "prov_088",
+      "anchor": [
+        1762,
+        150
+      ],
+      "unit_anchor": [
+        1762,
+        150
+      ],
+      "label_anchor": [
+        1762,
+        150
+      ],
+      "garrison_anchor": [
+        1762,
+        150
+      ],
+      "building_anchor": [
+        1762,
+        150
+      ],
+      "radius": 44,
+      "lookup_color": [
+        94,
+        249,
+        144
+      ],
+      "visual_tint": [
+        94,
+        249,
+        144
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_089": {
+      "province_id": "prov_089",
+      "anchor": [
+        1155,
+        805
+      ],
+      "unit_anchor": [
+        1155,
+        805
+      ],
+      "label_anchor": [
+        1155,
+        805
+      ],
+      "garrison_anchor": [
+        1155,
+        805
+      ],
+      "building_anchor": [
+        1155,
+        805
+      ],
+      "radius": 43,
+      "lookup_color": [
+        249,
+        99,
+        94
+      ],
+      "visual_tint": [
+        249,
+        99,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_090": {
+      "province_id": "prov_090",
+      "anchor": [
+        1056,
+        819
+      ],
+      "unit_anchor": [
+        1056,
+        819
+      ],
+      "label_anchor": [
+        1056,
+        819
+      ],
+      "garrison_anchor": [
+        1056,
+        819
+      ],
+      "building_anchor": [
+        1056,
+        819
+      ],
+      "radius": 42,
+      "lookup_color": [
+        94,
+        135,
+        249
+      ],
+      "visual_tint": [
+        94,
+        135,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_091": {
+      "province_id": "prov_091",
+      "anchor": [
+        1253,
+        598
+      ],
+      "unit_anchor": [
+        1253,
+        598
+      ],
+      "label_anchor": [
+        1253,
+        598
+      ],
+      "garrison_anchor": [
+        1253,
+        598
+      ],
+      "building_anchor": [
+        1253,
+        598
+      ],
+      "radius": 42,
+      "lookup_color": [
+        180,
+        249,
+        94
+      ],
+      "visual_tint": [
+        180,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_092": {
+      "province_id": "prov_092",
+      "anchor": [
+        1000,
+        718
+      ],
+      "unit_anchor": [
+        1000,
+        718
+      ],
+      "label_anchor": [
+        1000,
+        718
+      ],
+      "garrison_anchor": [
+        1000,
+        718
+      ],
+      "building_anchor": [
+        1000,
+        718
+      ],
+      "radius": 41,
+      "lookup_color": [
+        249,
+        94,
+        225
+      ],
+      "visual_tint": [
+        249,
+        94,
+        225
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_093": {
+      "province_id": "prov_093",
+      "anchor": [
+        917,
+        736
+      ],
+      "unit_anchor": [
+        917,
+        736
+      ],
+      "label_anchor": [
+        917,
+        736
+      ],
+      "garrison_anchor": [
+        917,
+        736
+      ],
+      "building_anchor": [
+        917,
+        736
+      ],
+      "radius": 41,
+      "lookup_color": [
+        94,
+        249,
+        228
+      ],
+      "visual_tint": [
+        94,
+        249,
+        228
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_094": {
+      "province_id": "prov_094",
+      "anchor": [
+        848,
+        669
+      ],
+      "unit_anchor": [
+        848,
+        669
+      ],
+      "label_anchor": [
+        848,
+        669
+      ],
+      "garrison_anchor": [
+        848,
+        669
+      ],
+      "building_anchor": [
+        848,
+        669
+      ],
+      "radius": 41,
+      "lookup_color": [
+        249,
+        183,
+        94
+      ],
+      "visual_tint": [
+        249,
+        183,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_095": {
+      "province_id": "prov_095",
+      "anchor": [
+        1442,
+        472
+      ],
+      "unit_anchor": [
+        1442,
+        472
+      ],
+      "label_anchor": [
+        1442,
+        472
+      ],
+      "garrison_anchor": [
+        1442,
+        472
+      ],
+      "building_anchor": [
+        1442,
+        472
+      ],
+      "radius": 40,
+      "lookup_color": [
+        138,
+        94,
+        249
+      ],
+      "visual_tint": [
+        138,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_096": {
+      "province_id": "prov_096",
+      "anchor": [
+        1323,
+        481
+      ],
+      "unit_anchor": [
+        1323,
+        481
+      ],
+      "label_anchor": [
+        1323,
+        481
+      ],
+      "garrison_anchor": [
+        1323,
+        481
+      ],
+      "building_anchor": [
+        1323,
+        481
+      ],
+      "radius": 40,
+      "lookup_color": [
+        77,
+        198,
+        75
+      ],
+      "visual_tint": [
+        77,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_097": {
+      "province_id": "prov_097",
+      "anchor": [
+        1105,
+        448
+      ],
+      "unit_anchor": [
+        1105,
+        448
+      ],
+      "label_anchor": [
+        1105,
+        448
+      ],
+      "garrison_anchor": [
+        1105,
+        448
+      ],
+      "building_anchor": [
+        1105,
+        448
+      ],
+      "radius": 39,
+      "lookup_color": [
+        198,
+        75,
+        113
+      ],
+      "visual_tint": [
+        198,
+        75,
+        113
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_098": {
+      "province_id": "prov_098",
+      "anchor": [
+        1382,
+        670
+      ],
+      "unit_anchor": [
+        1382,
+        670
+      ],
+      "label_anchor": [
+        1382,
+        670
+      ],
+      "garrison_anchor": [
+        1382,
+        670
+      ],
+      "building_anchor": [
+        1382,
+        670
+      ],
+      "radius": 39,
+      "lookup_color": [
+        75,
+        149,
+        198
+      ],
+      "visual_tint": [
+        75,
+        149,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_099": {
+      "province_id": "prov_099",
+      "anchor": [
+        1149,
+        652
+      ],
+      "unit_anchor": [
+        1149,
+        652
+      ],
+      "label_anchor": [
+        1149,
+        652
+      ],
+      "garrison_anchor": [
+        1149,
+        652
+      ],
+      "building_anchor": [
+        1149,
+        652
+      ],
+      "radius": 38,
+      "lookup_color": [
+        185,
+        198,
+        75
+      ],
+      "visual_tint": [
+        185,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_100": {
+      "province_id": "prov_100",
+      "anchor": [
+        1187,
+        856
+      ],
+      "unit_anchor": [
+        1187,
+        856
+      ],
+      "label_anchor": [
+        1187,
+        856
+      ],
+      "garrison_anchor": [
+        1187,
+        856
+      ],
+      "building_anchor": [
+        1187,
+        856
+      ],
+      "radius": 38,
+      "lookup_color": [
+        176,
+        75,
+        198
+      ],
+      "visual_tint": [
+        176,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_101": {
+      "province_id": "prov_101",
+      "anchor": [
+        1014,
+        941
+      ],
+      "unit_anchor": [
+        1014,
+        941
+      ],
+      "label_anchor": [
+        1014,
+        941
+      ],
+      "garrison_anchor": [
+        1014,
+        941
+      ],
+      "building_anchor": [
+        1014,
+        941
+      ],
+      "radius": 38,
+      "lookup_color": [
+        75,
+        198,
+        140
+      ],
+      "visual_tint": [
+        75,
+        198,
+        140
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_102": {
+      "province_id": "prov_102",
+      "anchor": [
+        1200,
+        484
+      ],
+      "unit_anchor": [
+        1200,
+        484
+      ],
+      "label_anchor": [
+        1200,
+        484
+      ],
+      "garrison_anchor": [
+        1200,
+        484
+      ],
+      "building_anchor": [
+        1200,
+        484
+      ],
+      "radius": 37,
+      "lookup_color": [
+        198,
+        104,
+        75
+      ],
+      "visual_tint": [
+        198,
+        104,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_103": {
+      "province_id": "prov_103",
+      "anchor": [
+        780,
+        543
+      ],
+      "unit_anchor": [
+        780,
+        543
+      ],
+      "label_anchor": [
+        780,
+        543
+      ],
+      "garrison_anchor": [
+        780,
+        543
+      ],
+      "building_anchor": [
+        780,
+        543
+      ],
+      "radius": 36,
+      "lookup_color": [
+        75,
+        82,
+        198
+      ],
+      "visual_tint": [
+        75,
+        82,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_104": {
+      "province_id": "prov_104",
+      "anchor": [
+        1053,
+        570
+      ],
+      "unit_anchor": [
+        1053,
+        570
+      ],
+      "label_anchor": [
+        1053,
+        570
+      ],
+      "garrison_anchor": [
+        1053,
+        570
+      ],
+      "building_anchor": [
+        1053,
+        570
+      ],
+      "radius": 34,
+      "lookup_color": [
+        118,
+        198,
+        75
+      ],
+      "visual_tint": [
+        118,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_105": {
+      "province_id": "prov_105",
+      "anchor": [
+        1836,
+        1070
+      ],
+      "unit_anchor": [
+        1836,
+        1070
+      ],
+      "label_anchor": [
+        1836,
+        1070
+      ],
+      "garrison_anchor": [
+        1836,
+        1070
+      ],
+      "building_anchor": [
+        1836,
+        1070
+      ],
+      "radius": 33,
+      "lookup_color": [
+        198,
+        75,
+        154
+      ],
+      "visual_tint": [
+        198,
+        75,
+        154
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_106": {
+      "province_id": "prov_106",
+      "anchor": [
+        1166,
+        592
+      ],
+      "unit_anchor": [
+        1166,
+        592
+      ],
+      "label_anchor": [
+        1166,
+        592
+      ],
+      "garrison_anchor": [
+        1166,
+        592
+      ],
+      "building_anchor": [
+        1166,
+        592
+      ],
+      "radius": 33,
+      "lookup_color": [
+        75,
+        190,
+        198
+      ],
+      "visual_tint": [
+        75,
+        190,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_107": {
+      "province_id": "prov_107",
+      "anchor": [
+        997,
+        536
+      ],
+      "unit_anchor": [
+        997,
+        536
+      ],
+      "label_anchor": [
+        997,
+        536
+      ],
+      "garrison_anchor": [
+        997,
+        536
+      ],
+      "building_anchor": [
+        997,
+        536
+      ],
+      "radius": 33,
+      "lookup_color": [
+        198,
+        171,
+        75
+      ],
+      "visual_tint": [
+        198,
+        171,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_108": {
+      "province_id": "prov_108",
+      "anchor": [
+        1022,
+        736
+      ],
+      "unit_anchor": [
+        1022,
+        736
+      ],
+      "label_anchor": [
+        1022,
+        736
+      ],
+      "garrison_anchor": [
+        1022,
+        736
+      ],
+      "building_anchor": [
+        1022,
+        736
+      ],
+      "radius": 31,
+      "lookup_color": [
+        170,
+        94,
+        249
+      ],
+      "visual_tint": [
+        170,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_109": {
+      "province_id": "prov_109",
+      "anchor": [
+        1105,
+        610
+      ],
+      "unit_anchor": [
+        1105,
+        610
+      ],
+      "label_anchor": [
+        1105,
+        610
+      ],
+      "garrison_anchor": [
+        1105,
+        610
+      ],
+      "building_anchor": [
+        1105,
+        610
+      ],
+      "radius": 30,
+      "lookup_color": [
+        94,
+        249,
+        125
+      ],
+      "visual_tint": [
+        94,
+        249,
+        125
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_110": {
+      "province_id": "prov_110",
+      "anchor": [
+        1144,
+        546
+      ],
+      "unit_anchor": [
+        1144,
+        546
+      ],
+      "label_anchor": [
+        1144,
+        546
+      ],
+      "garrison_anchor": [
+        1144,
+        546
+      ],
+      "building_anchor": [
+        1144,
+        546
+      ],
+      "radius": 30,
+      "lookup_color": [
+        249,
+        94,
+        110
+      ],
+      "visual_tint": [
+        249,
+        94,
+        110
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_111": {
+      "province_id": "prov_111",
+      "anchor": [
+        2092,
+        1373
+      ],
+      "unit_anchor": [
+        2092,
+        1373
+      ],
+      "label_anchor": [
+        2092,
+        1373
+      ],
+      "garrison_anchor": [
+        2092,
+        1373
+      ],
+      "building_anchor": [
+        2092,
+        1373
+      ],
+      "radius": 29,
+      "lookup_color": [
+        94,
+        155,
+        249
+      ],
+      "visual_tint": [
+        94,
+        155,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_112": {
+      "province_id": "prov_112",
+      "anchor": [
+        1066,
+        633
+      ],
+      "unit_anchor": [
+        1066,
+        633
+      ],
+      "label_anchor": [
+        1066,
+        633
+      ],
+      "garrison_anchor": [
+        1066,
+        633
+      ],
+      "building_anchor": [
+        1066,
+        633
+      ],
+      "radius": 29,
+      "lookup_color": [
+        200,
+        249,
+        94
+      ],
+      "visual_tint": [
+        200,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_113": {
+      "province_id": "prov_113",
+      "anchor": [
+        1182,
+        391
+      ],
+      "unit_anchor": [
+        1182,
+        391
+      ],
+      "label_anchor": [
+        1182,
+        391
+      ],
+      "garrison_anchor": [
+        1182,
+        391
+      ],
+      "building_anchor": [
+        1182,
+        391
+      ],
+      "radius": 27,
+      "lookup_color": [
+        249,
+        94,
+        245
+      ],
+      "visual_tint": [
+        249,
+        94,
+        245
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_114": {
+      "province_id": "prov_114",
+      "anchor": [
+        946,
+        556
+      ],
+      "unit_anchor": [
+        946,
+        556
+      ],
+      "label_anchor": [
+        946,
+        556
+      ],
+      "garrison_anchor": [
+        946,
+        556
+      ],
+      "building_anchor": [
+        946,
+        556
+      ],
+      "radius": 27,
+      "lookup_color": [
+        94,
+        249,
+        208
+      ],
+      "visual_tint": [
+        94,
+        249,
+        208
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_115": {
+      "province_id": "prov_115",
+      "anchor": [
+        1041,
+        1056
+      ],
+      "unit_anchor": [
+        1041,
+        1056
+      ],
+      "label_anchor": [
+        1041,
+        1056
+      ],
+      "garrison_anchor": [
+        1041,
+        1056
+      ],
+      "building_anchor": [
+        1041,
+        1056
+      ],
+      "radius": 26,
+      "lookup_color": [
+        249,
+        163,
+        94
+      ],
+      "visual_tint": [
+        249,
+        163,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_116": {
+      "province_id": "prov_116",
+      "anchor": [
+        753,
+        612
+      ],
+      "unit_anchor": [
+        753,
+        612
+      ],
+      "label_anchor": [
+        753,
+        612
+      ],
+      "garrison_anchor": [
+        753,
+        612
+      ],
+      "building_anchor": [
+        753,
+        612
+      ],
+      "radius": 25,
+      "lookup_color": [
+        118,
+        94,
+        249
+      ],
+      "visual_tint": [
+        118,
+        94,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_117": {
+      "province_id": "prov_117",
+      "anchor": [
+        1749,
+        1402
+      ],
+      "unit_anchor": [
+        1749,
+        1402
+      ],
+      "label_anchor": [
+        1749,
+        1402
+      ],
+      "garrison_anchor": [
+        1749,
+        1402
+      ],
+      "building_anchor": [
+        1749,
+        1402
+      ],
+      "radius": 25,
+      "lookup_color": [
+        116,
+        249,
+        94
+      ],
+      "visual_tint": [
+        116,
+        249,
+        94
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_118": {
+      "province_id": "prov_118",
+      "anchor": [
+        733,
+        588
+      ],
+      "unit_anchor": [
+        733,
+        588
+      ],
+      "label_anchor": [
+        733,
+        588
+      ],
+      "garrison_anchor": [
+        733,
+        588
+      ],
+      "building_anchor": [
+        733,
+        588
+      ],
+      "radius": 24,
+      "lookup_color": [
+        249,
+        94,
+        161
+      ],
+      "visual_tint": [
+        249,
+        94,
+        161
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_119": {
+      "province_id": "prov_119",
+      "anchor": [
+        1407,
+        966
+      ],
+      "unit_anchor": [
+        1407,
+        966
+      ],
+      "label_anchor": [
+        1407,
+        966
+      ],
+      "garrison_anchor": [
+        1407,
+        966
+      ],
+      "building_anchor": [
+        1407,
+        966
+      ],
+      "radius": 24,
+      "lookup_color": [
+        94,
+        207,
+        249
+      ],
+      "visual_tint": [
+        94,
+        207,
+        249
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_120": {
+      "province_id": "prov_120",
+      "anchor": [
+        315,
+        1312
+      ],
+      "unit_anchor": [
+        315,
+        1312
+      ],
+      "label_anchor": [
+        315,
+        1312
+      ],
+      "garrison_anchor": [
+        315,
+        1312
+      ],
+      "building_anchor": [
+        315,
+        1312
+      ],
+      "radius": 20,
+      "lookup_color": [
+        198,
+        196,
+        75
+      ],
+      "visual_tint": [
+        198,
+        196,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_121": {
+      "province_id": "prov_121",
+      "anchor": [
+        1047,
+        726
+      ],
+      "unit_anchor": [
+        1047,
+        726
+      ],
+      "label_anchor": [
+        1047,
+        726
+      ],
+      "garrison_anchor": [
+        1047,
+        726
+      ],
+      "building_anchor": [
+        1047,
+        726
+      ],
+      "radius": 20,
+      "lookup_color": [
+        161,
+        75,
+        198
+      ],
+      "visual_tint": [
+        161,
+        75,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_122": {
+      "province_id": "prov_122",
+      "anchor": [
+        749,
+        1178
+      ],
+      "unit_anchor": [
+        749,
+        1178
+      ],
+      "label_anchor": [
+        749,
+        1178
+      ],
+      "garrison_anchor": [
+        749,
+        1178
+      ],
+      "building_anchor": [
+        749,
+        1178
+      ],
+      "radius": 20,
+      "lookup_color": [
+        75,
+        198,
+        125
+      ],
+      "visual_tint": [
+        75,
+        198,
+        125
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_123": {
+      "province_id": "prov_123",
+      "anchor": [
+        1443,
+        277
+      ],
+      "unit_anchor": [
+        1443,
+        277
+      ],
+      "label_anchor": [
+        1443,
+        277
+      ],
+      "garrison_anchor": [
+        1443,
+        277
+      ],
+      "building_anchor": [
+        1443,
+        277
+      ],
+      "radius": 20,
+      "lookup_color": [
+        198,
+        89,
+        75
+      ],
+      "visual_tint": [
+        198,
+        89,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_124": {
+      "province_id": "prov_124",
+      "anchor": [
+        1701,
+        1220
+      ],
+      "unit_anchor": [
+        1701,
+        1220
+      ],
+      "label_anchor": [
+        1701,
+        1220
+      ],
+      "garrison_anchor": [
+        1701,
+        1220
+      ],
+      "building_anchor": [
+        1701,
+        1220
+      ],
+      "radius": 20,
+      "lookup_color": [
+        75,
+        98,
+        198
+      ],
+      "visual_tint": [
+        75,
+        98,
+        198
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    },
+    "Region_125": {
+      "province_id": "prov_125",
+      "anchor": [
+        1568,
+        223
+      ],
+      "unit_anchor": [
+        1568,
+        223
+      ],
+      "label_anchor": [
+        1568,
+        223
+      ],
+      "garrison_anchor": [
+        1568,
+        223
+      ],
+      "building_anchor": [
+        1568,
+        223
+      ],
+      "radius": 20,
+      "lookup_color": [
+        134,
+        198,
+        75
+      ],
+      "visual_tint": [
+        134,
+        198,
+        75
+      ],
+      "is_coastal": false,
+      "wired": true,
+      "interactive": true
+    }
+  },
+  "note": "Auto-generated smoke draft. Names are placeholders; wiring scope and real names are assigned in the map implementation plan."
+}

@@ -76,3 +76,6 @@ pytest_tmp_runtime/
 # Gate-4 smoke scratch: probe scripts are tracked; server logs echo env details
 smoke_logs/*.log
 smoke_logs/*.out
+
+# PSD region-key generator working output (promoted copies live in assets/maps)
+tools/mapgen_out/
