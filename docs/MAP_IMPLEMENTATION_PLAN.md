@@ -24,7 +24,12 @@
 > 5. **Slice 2 is the critical path** — a manual historical-research pass (budget **1–2 sessions**), not an
 >    ordinary slice.
 > 6. **`grid_position` at 126** needs explicit pixel→grid bucketing design (Slice 4); the legacy reference
->    count is corrected below. Net roadmap ≈ **10–11 sessions**.
+>    count is corrected below.
+> 7. **1805 Scenario Setup is its own design-gate step** (end of this plan): re-authoring armies + the 1805
+>    diplomatic posture for 14–16 nations is a second authoring pass, not a Slice-3 clause, and it carries
+>    the campaign start-point decision. Net roadmap ≈ **11–12 sessions**.
+
+(Review-outcome list updated from six to seven amendments by the June 22 scenario-setup follow-up.)
 
 ## Goal
 
@@ -92,6 +97,7 @@ Approve these before any implementation code lands:
 - [ ] **Open verification items 1–3** (geographic coverage / chancery-fallback voices / save-incompat) accepted as scoped.
 - [ ] **Slice ordering** (low-risk-first; Slice 1 lands then pauses for review).
 - [ ] **Owner-row table** (DEF-1..5) accepted as the home for non-v1 work.
+- [ ] **1805 Scenario Setup gate** (explicit step at the end of this plan): the campaign **start-point decision** (Third Coalition already at war vs. just before) + the army/diplomacy re-authoring scope accepted as its own step, not folded into Slice 3.
 
 ---
 
@@ -211,4 +217,24 @@ ruff check backend/
 
 ## Sequencing note
 
-Land **Slice 1, then pause for user review** (per the slice-review cadence — first low-risk slice, then checkpoint before the big ones). Slices 2–9 proceed after that review. The two genuine "replace outright" flips (Slice 5 backend, Slice 7 frontend) are each preceded by a fully-tested, un-wired build-up slice (4 and 6) so the cutover itself is a small, reversible change rather than a big bang.
+Land **Slice 1, then pause for user review** (per the slice-review cadence — first low-risk slice, then checkpoint before the big ones). Slices 2–9 proceed after that review. The two genuine "replace outright" flips (Slice 5 backend, Slice 7 frontend) are each preceded by a fully-tested, un-wired build-up slice (4 and 6) so the cutover itself is a small, reversible change rather than a big bang. The **1805 Scenario Setup design gate** (explicit step below) runs after the roster (Slice 3) and backend cutover (Slice 5) and **before the Slice 8 playtest** — its start-point decision is a prerequisite for a meaningful playtest.
+
+---
+
+## 1805 Scenario Setup — DESIGN GATE (explicit step)
+
+> Added June 22, 2026 (review follow-up). **Sequence position:** after Slice 3 (roster config) + Slice 5 (backend cutover), **before Slice 8 (playtest)** — the Europe world cannot be meaningfully playtested until it is populated with the correct 1805 armies + diplomatic posture. Captured here as an explicit step + design gate so it is **never folded silently into Slice 3**.
+
+**Why this is its own step.** Today the entire starting state is hardcoded for the 5-nation / 19-region world: `create_starting_marshals()` + `create_enemy_marshals()` (`backend/models/marshal.py`, ~11 marshals whose `location` is an old 19-region name) and the 10-pair `diplomatic_states` / `nation_relations` matrices (`backend/models/world_state.py:381` / `:394`) plus coalition state. The Europe cutover must **re-author all of it** at the new scale — a second authoring/design pass comparable to the naming pass, not two clauses in Slice 3.
+
+**Scope:**
+- **Army placement:** every marshal `location` re-mapped to the new province names; **author marshals for the 9–11 new nations** (Russia, Spain, Ottoman, Sweden, Naples, Portugal, Denmark-Norway, Bavaria-as-independent, …) which have **zero** today — who / where / strength / personality / ability / relationships — via the data-driven `create_marshals_from_data`, not the hardcoded functions.
+- **Diplomatic posture:** the 1805 state matrix across all 14–16 independents (the Third Coalition vs. France + Spain, Prussian neutrality, Ottoman stance, …), numeric relations, and any pre-formed coalition / war state.
+- **The seam:** the Europe world gets its **own** marshal-placement + diplomacy-init path (parallel to the legacy `create_starting_marshals`/`create_enemy_marshals`), wired into `create_europe_regions` / bootstrap — the legacy 5-nation init stays the test fixture. Ideally this lives in the `scenario_config` loader (SCALE_READINESS_PLAN §5.5) rather than a second hardcoded init.
+
+**THE DESIGN DECISION (this gate — decide here, do not default silently):** **does the campaign start with the War of the Third Coalition already underway** (France ↔ Britain / Austria / Russia / Sweden / Naples at war at turn 1, coalition pre-seeded) **or just before it** (armed peace; the coalition forms in play)? This drives the entire starting matrix, whether a coalition is pre-formed, and where the armies sit.
+
+- **Files:** `backend/models/marshal.py` (or a Europe scenario module / `scenario_config`), `backend/models/world_state.py` (Europe diplomacy/relations/coalition init seam), `backend/game_logic/diplomacy.py` (starting relations), possibly `backend/game_logic/coalition.py` (pre-seeded coalition). Legacy fixtures untouched.
+- **Tests:** Europe world starts with every nation's marshals placed on valid **owned** provinces; the 1805 diplomatic matrix is symmetric + valid; a turn advances without error; the legacy 5-nation start is unchanged.
+- **STATUS line:** `Map 1805 Scenario Setup LANDED — armies placed for all 14–16 nations on Europe provinces; 1805 diplomatic posture + coalition state authored (<start-point decision>); legacy 5-nation start retained as fixture.`
+- **Completion:** a fresh Europe game opens in a correct, playable 1805 situation — armies, diplomacy, and coalition state authored and turn-stable — ready for the Slice 8 playtest.

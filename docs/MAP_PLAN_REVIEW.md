@@ -229,13 +229,16 @@ parse harness.
 | **6** | **Roster & Diplomacy Scaling** (§5.2 dispatch collapse, §5.3 coalition friction, §5.6 trade-income cache + AI proposal throttle) | **DEF-4 promoted** | Load-bearing for *playability* at 14–16 independents — must precede playtest | dispatch readability + friction sanity | density tests; suite green |
 | **7** | **Godot owner-shape fills** (shader **or** cached pixel-index — decide per F2; verify on smoke) | Slice 6 | Frontend-only; can run in **parallel after S3** (needs colors + europe.json) | smoke shows owner-colored provinces, re-tint is instant | source-level renderer test + parse harness 0 failures |
 | **8** | **Godot game cutover** (main.tscn → Europe renderer; wire update_all_regions/topology/focus/ledger; retire placeholder) | Slice 7 | Frontend flip — small because S7 pre-built fills | headless instantiation + manual F6 smoke | parse harness 0 + headless instantiation OK |
+| **8.5** | **1805 Scenario Setup — DESIGN GATE** (place armies for all 14–16 nations on Europe provinces; author the 1805 diplomatic posture + coalition state; the 9–11 new nations have **zero** marshals today) | new (explicit step at end of plan) | The starting state is hardcoded for 5 nations / 19 regions (`marshal.py`, `world_state.py:381`); re-authoring it at scale is a **second authoring pass**, and the campaign start-point is a design call | **User decides: Third Coalition already at war at turn 1 vs. just before** | Europe world starts with marshals on valid owned provinces + symmetric 1805 matrix; turn advances; legacy start unchanged |
 | **9** | **Scale + balance validation + manual playtest** (hot-path audit at 126: trade income, coalition sums, grid_position; AI at 126; economy; full playtest) | Slice 8 | Prove 126 regions × full roster is performant + playable | playtest checklist | scale test at 126 within budget; playtest PASS |
 | **10** | **Cleanup & docs** (retire placeholder assets; SAVE_FORMAT/STATUS/CLAUDE/§4–§5 closeout; close DEF rows) | Slice 9 | Close-out | docs reflect shipped behavior | suite green; no dangling `Region_NNN` |
 
 **Dependency graph (critical path in bold):**
-`S1 → S2 → S2.5 → **S3 → S4 → S5 → S6 → S8 → S9 → S10**`, with **S7 branching off after S3** (frontend-only,
-reads `europe.json` + `NATION_COLORS`) and rejoining at S8. S2 may be **2 sessions** (West / Central+East).
-So **10–11 sessions** total; the long pole is S2 (human research), not any code slice.
+`S1 → S2 → S2.5 → **S3 → S4 → S5 → S6 → S8 → S8.5 → S9 → S10**`, with **S7 branching off after S3**
+(frontend-only, reads `europe.json` + `NATION_COLORS`) and rejoining at S8. **S8.5 (1805 Scenario Setup)**
+depends on S3 (roster) + S5 (Europe world) + S2 (province names for army placement) and must precede the
+S9 playtest. S2 may be **2 sessions** (West / Central+East). So **11–12 sessions** total; the long poles are
+S2 (naming research) and S8.5 (army + diplomacy authoring) — both human passes, not code slices.
 
 **Is "land Slice 1, then pause" the right low-risk start?** Yes — tools/assets only, zero suite risk, and
 it validates the riskiest tool (the adjacency deriver) and produces the naming artifact. Keep it. The one
@@ -258,6 +261,9 @@ pass, and make the S2.5 roster gate explicit before any backend wiring.
    `scenario_config` migration (faster, plan's implicit path) vs. build the loader first as the roster's
    home (cleaner, +1 session). For a prototype, recommend hardcode-now.
 7. **Legacy count (F4):** correct "2,462/190" → the verified ≈8,463/273 in the plan; keep legacy-as-fixture.
+8. **1805 Scenario Setup (new gate, S8.5):** the campaign **start-point** — Third Coalition already at war
+   at turn 1 vs. just before — plus accepting army-placement + 1805 diplomatic-posture re-authoring for
+   14–16 nations as its **own explicit step** (end of `MAP_IMPLEMENTATION_PLAN.md`), not a Slice-3 clause.
 
 ---
 
