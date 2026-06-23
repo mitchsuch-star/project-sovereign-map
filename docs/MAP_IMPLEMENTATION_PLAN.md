@@ -3,6 +3,29 @@
 > **Status: DESIGN GATE — awaiting user sign-off. No implementation code until the gate below is approved.**
 > Owner: Map cutover. Supersedes the "After the smoke passes → create the Map Implementation Plan" action in `docs/STATUS.md` (▶ NEXT UP: Real-Map Cutover).
 
+> **Reviewed June 22, 2026 — verdict GO WITH CHANGES.** An independent review verified every claim against
+> the real assets (PSD byte-inspection, validator run, registry parse, test grep, lookup measurement).
+> Full findings + the session-by-session roadmap live in [`MAP_PLAN_REVIEW.md`](MAP_PLAN_REVIEW.md). Six
+> amendments are folded into this plan:
+> 1. **Naming (decision #3):** the PSD has **no text layers** — `letters` is **rasterized single-character
+>    glyphs** on only 83/126 provinces (absent from Iberia). Naming is a **manual geography pass** against
+>    the `Map_Napoleon_Total_War` underlay + an 1805 atlas, verified by an annotated overlay — NOT
+>    letters-layer extraction (the layer is at most a weak initial-letter hint).
+> 2. **Adjacency (decision #5):** measured inter-province gaps are cleanly bimodal (land ≤~15px = 72.6%,
+>    sea ≥41px = 24.4%). **Auto-derive land; hand-author the ~10–20 real sea links** from a generated
+>    candidate list — no auto sea-heuristic (it connects every coast-facing pair).
+> 3. **Owner fills (Slice 6):** the §4.4 overlay it's modeled on early-outs on all-wired maps (never
+>    load-tested here) and is a 4.1M-px per-pixel loop. Use a **fragment shader (≤126-entry owner palette)**
+>    or cached per-province pixel-index — NOT a per-turn full-image mirror.
+> 4. **Roster (DEF-4):** the art supports **~14–16 independents + ~10 vassals**. Promote DEF-4 to its **own
+>    session** (§5.2 dispatch / §5.3 coalition friction / §5.6 trade-income cache) *before* the playtest,
+>    and add a **roster design gate** after Slice 2. Britain can take a **real London** (its isles are
+>    on-map); Russia/Ottoman/Sweden are the genuine proxy cases.
+> 5. **Slice 2 is the critical path** — a manual historical-research pass (budget **1–2 sessions**), not an
+>    ordinary slice.
+> 6. **`grid_position` at 126** needs explicit pixel→grid bucketing design (Slice 4); the legacy reference
+>    count is corrected below. Net roadmap ≈ **10–11 sessions**.
+
 ## Goal
 
 Cut the game over from the 19-region placeholder map to the **full commissioned 126-province Europe map** — rendered as a real political map, owned by nations, clickable, and playable. The smoke scene (`europe_map_smoke.tscn`) already proves the art loads and hit-testing works; this plan turns that art into the live game map.
@@ -13,9 +36,9 @@ Cut the game over from the 19-region placeholder map to the **full commissioned 
 |---|----------|--------|
 | 1 | Wiring scope | **All 126 provinces playable in v1** (no greyed core) |
 | 2 | Nation roster | **Every sovereign on the map, historically accurate, tiered** — great/secondary powers independent (France [player], Britain, Austria, Prussia, Russia, Spain, Ottoman, Sweden, Naples, Bavaria, Saxony, Portugal, Denmark + any other genuine 1805 sovereigns the 126 provinces cover, e.g. Papal States / Sardinia-Piedmont / Swiss); minor German/Italian statelets modeled as **historically-accurate vassals/satellites** of their 1805 patron via the existing vassal system. **Not capped at 13** — the exact roster is discovered while authoring 1805 ownership in Slice 2. |
-| 3 | Province naming | **Historical names, hand-authored, cross-checked vs the PSD `letters` layer** |
+| 3 | Province naming | **Historical names, hand-authored from geography** (the PSD `letters` layer is rasterized single-char glyphs, not names — weak initial-letter hint at most; see Review amendment 1) |
 | 4 | Ownership render | **Province-shape fills via the lookup mask** (new renderer pass, mirrors the §4.4 grey overlay) |
-| 5 | Adjacency | **Auto-derive everything, incl. a sea-gap heuristic**; fix failures in playtest |
+| 5 | Adjacency | **Auto-derive land adjacency; hand-author sea links** from a generated >40px candidate list (see Review amendment 2) |
 | 6 | Cutover | **Replace the 19-region placeholder outright** as the game map |
 | 7 | Per-province data | **Author owner / terrain / region_type / is_coastal**; income, supply, garrison, buildings, grid derive from existing tables |
 
@@ -25,7 +48,7 @@ The `major / secondary / minor` power-tier taxonomy and France-as-player are alr
 
 ## The one reconciliation the gate must bless: "replace outright" vs. a green test suite
 
-`WorldState.__init__` builds **every** world from `create_regions()` → `REGIONS_DATA` (`backend/models/world_state.py:128`). **2,462 references to the 19 region names span 190 test files**, and the pre-commit hook runs the full suite and must stay green (no `--no-verify`).
+`WorldState.__init__` builds **every** world from `create_regions()` → `REGIONS_DATA` (`backend/models/world_state.py:128`). **Verified ≈8,463 references to the 19 region names span 273 test files** (≈6,887 / 232 even after excluding the `Saxony` nation/region name collision; the plan's earlier "2,462 / 190" materially under-counted), and the pre-commit hook runs the full suite and must stay green (no `--no-verify`). The larger true footprint only **strengthens** the legacy-as-fixture decision below.
 
 A literal "delete `REGIONS_DATA`, swap in 126 provinces" detonates the suite. So **"replace outright" is honored at the _game_ level, not the _test-fixture_ level**:
 
