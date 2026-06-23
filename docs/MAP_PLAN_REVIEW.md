@@ -300,3 +300,69 @@ Three updates folded into `MAP_IMPLEMENTATION_PLAN.md` (amendment 8):
 **Score (this spec, post-amendment):** doability **9** / clarity **9** / gaps **7.5** / completeness **8.5** → **overall 8.5/10 — GO**, start Slice 1; treat Slice 2 (naming) and the 1805 Scenario Setup as the real schedule drivers.
 
 Sources for the North-African ownership research: [state.gov — Barbary Wars](https://history.state.gov/milestones/1801-1829/barbary-wars); [Regency of Algiers](https://en.wikipedia.org/wiki/Regency_of_Algiers), [Ottoman Tripolitania](https://en.wikipedia.org/wiki/Kingdom_of_Tripoli), [Alawi dynasty](https://en.wikipedia.org/wiki/Alawi_dynasty), [Slimane of Morocco](https://en.wikipedia.org/wiki/Slimane_of_Morocco) (Wikipedia).
+
+---
+
+## Third independent verification pass — June 22, 2026
+
+A third reviewer re-ran **every** measurement from scratch against the live assets (validator `--strict`; a full
+PSD byte-scan + layer-record walk; a from-scratch lookup decode; a fresh row+column adjacency-gap scan;
+**rendered crops of the `letters` layer, inspected by eye**; and read-only Explore sweeps of the backend
+seams). The prior two passes' numbers **reproduced almost exactly** — then six items the first two passes did
+not capture were surfaced. **No prior-pass finding was withdrawn.**
+
+**Re-measured (matches prior passes):**
+- Validator `--strict` → `PASS: no findings`, exit 0.
+- Lookup 2560×1600 = 4,096,000 px; **land 1,788,712 (43.7%)**, sea 56.3%; **126** distinct non-black colors,
+  **0** unmapped; per-province px **min 575 / max 106,777** / median 8,668 / mean 14,196.
+- Adjacency gaps (**35,633** samples): ≤15px (land) **73.6%** / 16–40 (ambiguous) **2.9%** / ≥41px (sea)
+  **23.5%**, max 1123px — bimodality holds; auto-land + hand-sea confirmed.
+- PSD: 35 layers; `TySh`/`TxLr`/`Txt `/`tySh`/`Txt2` = **0** (only `luni` layer-name records, ×35); `letters`
+  (layer 15) bbox (578,160)-(2166,1031), **83/126** anchors inside; layer 14 `help with spain`; layer 17
+  `Map_Napoleon_Total_War` underlay. **The `letters` crops were rendered and visually confirmed as single
+  hand-drawn capital letters + digits (H, P, V, G, M, S, T, k, B, 3, 5, 7…), one per province, NO words** —
+  even where a glyph exists it is an ambiguous initial (a "k" could be Kraków/Königsberg/Kurland). F1 decisive.
+- Legacy footprint corroborated: `Belgium` alone = **2,344** matches / **133** files (the original "2,462
+  total" was ~4× under).
+- Backend seams: REGIONS_DATA=19, `create_regions()` at world_state.py:128 (no factory seam), no
+  `create_europe_regions()`; RUNTIME_NATIONS=5; NATION_POWER_TIERS=13; NATION_DESIRE_PROFILES=4;
+  NATION_COLORS=8 (incl. "Neutral"); `calculate_trade_income` (diplomacy.py:8849) O(N²), uncached.
+
+**New findings (folded into `MAP_IMPLEMENTATION_PLAN.md` as amendment 9):**
+
+- **N1 — "Britain = London" is entangled with the legacy-as-fixture decision.** `NATION_CAPITALS` is a single
+  **GLOBAL** dict (region.py) read by `settlement_scoring.py` (CLAUDE.md's documented Britain proxy), marshal
+  spawn locations, and `covets_regions`. The legacy fixture **depends on** Britain→Netherlands. If Slice 3
+  mutates the global to "London," it perturbs the very fixture the plan relies on staying green. **Fix:
+  scenario-scope capitals** — the Europe build carries its own capital map (seed at construction); the global
+  stays Netherlands for the legacy fixture. The prior passes' "retire the Netherlands proxy" is right for the
+  *game*, wrong if applied to the *global constant*. (Slices 3 + 4.)
+- **N2 — the scenario LOADER already exists.** `WorldState.from_scenario_file()` (world_state.py:4790) +
+  `collect_scenario_nations()` / `validate_scenario_runtime_support()` (nation_config.py) + a full
+  `backend/modding/validator.py`. What is missing is an **authored 1805 Europe scenario file**, not the
+  loader. The 1805 Scenario Setup step should author a **scenario JSON loaded via `from_scenario_file()`**, not
+  a second hardcoded `create_*_marshals()` init — this **moots Decision #6** (hardcode-vs-build-loader).
+- **N3 — the 1805 diplomatic matrix is a hidden long pole.** 10 hardcoded pairs today (world_state.py:381) →
+  **C(16,2) = 120** at the full roster. **Mechanic: default-to-PEACE + author only the exceptions** (the Third
+  Coalition, the Franco-Spanish alliance, Prussian neutrality, …) so 120 pairs stays tractable. (Scenario
+  Setup step.)
+- **N4 — `grid_position` bucketing collides at the suggested ≈12×10.** 120 cells for 126 provinces →
+  guaranteed collisions (pigeonhole), and collisions break `resolve_direction()`'s "move north"
+  disambiguation (the parser reads a **unique** `(row,col)` per region, strategic_parser.py:33-39). **Fix:
+  derive `(row,col)` by centroid spatial-rank** (col = rank of centroid-x within a latitude band, row = rank
+  of centroid-y) so every province gets a unique, order-preserving cell — no parser refactor. (Slice 4.)
+- **N5 — minor correction:** `NATION_HONOR_BIAS` covers only **2** nations (Prussia, Spain), not the "13" the
+  prior passes implied by lumping it with `NATION_POWER_TIERS`. It is sparse/optional (defaults apply), so
+  low-impact — but Slice 3 should not assume honor bias is "mostly done."
+- **N6 — the broad scale fears (item G) are largely DEFUSED.** Fog is **O(marshals), not O(regions)** (LOW);
+  the AI distance cache is **on-demand BFS, not O(N²)-at-init** (LOW); the vassal system is **data-driven with
+  no O(vassals×regions) per-turn loop** (LOW, supports ~10 vassals across multiple patrons). The real scale
+  risks are narrower than "everything at 126": `calculate_trade_income` O(N²) **uncached**, dispatch/coalition
+  density, and **marshal-count growth from the 1805 armies** feeding the O(marshals) fog paths. Slice 6
+  (Roster & Diplomacy Scaling) should be scoped to those specific sites.
+
+**Score (third pass, pre-fold):** doability **9** / clarity **9** / gaps **7.5** / completeness **8.5** →
+**overall 8.5/10 — GO**; folding N1–N4 tightens gaps toward 8.5. Start Slice 1; **Slice 2 (naming) and the
+1805 Scenario Setup remain the schedule drivers.** Reproduction tooling: a single read-only inspection script
+(`%TEMP%\_map_review_inspect.py`) re-derives the PSD layer walk + text-signature scan, the lookup geometry,
+the adjacency-gap distribution, and the `letters`-layer crops; the project validator runs unchanged.
