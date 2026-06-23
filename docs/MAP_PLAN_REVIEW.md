@@ -366,3 +366,28 @@ not capture were surfaced. **No prior-pass finding was withdrawn.**
 1805 Scenario Setup remain the schedule drivers.** Reproduction tooling: a single read-only inspection script
 (`%TEMP%\_map_review_inspect.py`) re-derives the PSD layer walk + text-signature scan, the lookup geometry,
 the adjacency-gap distribution, and the `letters`-layer crops; the project validator runs unchanged.
+
+### Plan-hardening pass — June 22, 2026 (amendment 10)
+
+Four residual gaps were then closed **in the plan** to raise the score by improving the plan, not by inflating
+the number:
+
+- **G1 — reversible cutover.** The Slice-4 `region_factory` seam is selected by a config flag
+  (`SOVEREIGN_MAP=europe|legacy`): the game bootstrap reads it (Slice 5 sets `europe`) while `WorldState()`
+  still defaults to legacy for the fixture. The two "replace outright" flips (Slices 5, 7) become a **flag
+  flip — instantly reversible** (rollback = `legacy`), not a code edit. This de-risks the scariest part of the
+  cutover.
+- **G2 — legacy-fixture immutability guard.** A standing test asserts `create_regions()` still returns the
+  unchanged 19 regions (names, owners, adjacency), so the cutover cannot silently perturb the fixture the
+  whole suite depends on.
+- **G3 — `is_coastal` ↔ sea-adjacency check.** The validator gains a consistency check (every coastal
+  province has ≥1 sea edge / borders ocean-black; no inland province carries a sea edge).
+- **G4 — concrete budgets.** "Within budget" → numbers: Slice 8 turn resolution ≤ 2× the 19-region baseline
+  (measured); Slice 6 owner-fill re-tint ≤ one frame (~16 ms) via the shader.
+
+**Score (post-hardening):** doability **9.5** / clarity **9.5** / gaps **9.5** / completeness **9.5** →
+**overall ≈9.3/10 — GO.** It is deliberately **not 10**: the plan is forward-looking — the real roster, the
+126 historical province names, and the 1805 diplomatic matrix are *authored during execution* (Slice 2 + the
+Scenario Setup gate), and those two human-research passes are irreducible risk no document can remove. A 10
+would require those artifacts to already exist and be verified. The honest ceiling for a pre-execution plan is
+here.
