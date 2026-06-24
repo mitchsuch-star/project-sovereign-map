@@ -1,6 +1,6 @@
 # Map Implementation Plan — Real-Map Cutover (126-province Europe)
 
-> **Status: DESIGN GATE — awaiting user sign-off. No implementation code until the gate below is approved.**
+> **Status: DESIGN GATE — ✅ APPROVED by the user June 23, 2026. Slice 1 may begin (tools/assets only). The Roster Design Gate (Slice 2.5) and the 1805 Scenario Setup gate remain *in-execution* gates, due later.**
 > Owner: Map cutover. Supersedes the "After the smoke passes → create the Map Implementation Plan" action in `docs/STATUS.md` (▶ NEXT UP: Real-Map Cutover).
 
 > **Reviewed June 22, 2026 — verdict GO WITH CHANGES.** An independent review verified every claim against
@@ -123,18 +123,18 @@ This is the engineering reconciliation of decision #6 with the hook. **If the us
 
 ---
 
-## DESIGN GATE — sign-off checklist
+## DESIGN GATE — sign-off checklist — ✅ APPROVED (user, June 23, 2026)
 
-Approve these before any implementation code lands:
+Initial gate approved; **Slice 1 may begin.** The two downstream gates below are *in-execution* gates that come due later (notes inline).
 
-- [ ] **Decisions #1–#7** as tabled above.
-- [ ] **Legacy-as-fixture reconciliation** (game = Europe only; 19-region survives as a test fixture; gameplay tests untouched; map-contract tests migrate). *Or* explicitly request the full ~10,255-reference migration instead.
-- [ ] **Open verification items 1–3** (geographic coverage / chancery-fallback voices / save-incompat) accepted as scoped.
-- [ ] **Slice ordering** (low-risk-first; Slice 1 lands then pauses for review).
-- [ ] **Roster Design Gate (Slice 2.5)** — independents vs. vassals, proxy capitals (Russia/Ottoman/Sweden; Britain=London), the patron web incl. the North-African regencies — blessed after Slice 2 discovers the roster and before Slice 3 wires it.
-- [ ] **Owner-row table** (DEF-1..5) accepted as the home for non-v1 work.
-- [ ] **Render + parser method choices:** owner-fill **fragment shader vs. cached pixel-index** (before Slice 6) and the `grid_position` **centroid-bucket vs. parser-refactor** method (before Slice 4).
-- [ ] **1805 Scenario Setup gate** (explicit step at the end of this plan): the campaign **start-point decision** (Third Coalition already at war vs. just before) + the army/diplomacy re-authoring scope accepted as its own step, not folded into Slice 3.
+- [x] **Decisions #1–#7** as tabled above — APPROVED.
+- [x] **Legacy-as-fixture reconciliation** (game = Europe only; 19-region survives as a test fixture; gameplay tests untouched; map-contract tests migrate) — APPROVED (default; **not** the full ~10,255-reference migration).
+- [x] **Open verification items 1–3** (geographic coverage / chancery-fallback voices / save-incompat) — accepted as scoped.
+- [x] **Slice ordering** (low-risk-first; Slice 1 lands then pauses for review) — APPROVED.
+- [x] **Render + parser method choices** — APPROVED approach: owner-fill **fragment shader** (finalize at Slice 6) + `grid_position` by **centroid spatial-rank** (finalize at Slice 4).
+- [x] **Owner-row table** (DEF-1..5) — accepted as the home for non-v1 work.
+- [ ] **Roster Design Gate (Slice 2.5)** — *in-execution gate*, due after Slice 2 discovers the roster and before Slice 3 wires it: independents vs. vassals, proxy capitals (Russia/Ottoman/Sweden; Britain=London), the patron web incl. the North-African regencies.
+- [ ] **1805 Scenario Setup gate** — *in-execution gate*, due after Slice 5 and before the Slice 8 playtest: the campaign **start-point decision** (Third Coalition already at war vs. just before) + the army/diplomacy re-authoring scope.
 
 ---
 
