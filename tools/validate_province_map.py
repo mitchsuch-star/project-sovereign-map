@@ -18,6 +18,14 @@ tool covers the offline acceptance checks that the runtime cannot do well:
     6. Unmapped colors -- any non-sentinel color in the lookup image that is
        not declared in the registry is reported with pixel count and a
        sample ``(x, y)`` coordinate.
+    7. Adjacency unknown target (Slice 1) -- an ``adjacent`` edge points at a
+       province not in the registry.
+    8. Adjacency asymmetry (Slice 1) -- A lists B but B does not list A back.
+    9. Isolated province (Slice 1, warning) -- a province with no land
+       adjacency (islands, until sea links are hand-authored in Slice 2).
+
+    The adjacency checks (7-9) run only when at least one region declares an
+    ``adjacent`` list, so legacy registries without adjacency stay clean.
 
 The runtime loader fails on the FIRST unmapped pixel; this tool collects ALL
 failures so a commissioned-art delivery produces one acceptance report
@@ -387,6 +395,80 @@ def validate_registry(province_data: dict) -> list[ValidationFailure]:
 
 
 # ---------------------------------------------------------------------------
+# Adjacency validation (Slice 1).
+# ---------------------------------------------------------------------------
+
+
+def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
+    """Registry-side adjacency-graph checks (Slice 1).
+
+    Runs only when at least one region declares an ``adjacent`` list, so legacy
+    registries without adjacency stay clean:
+
+      - ``ADJACENCY_UNKNOWN_TARGET`` (error): an edge points at a province not
+        in the registry.
+      - ``ADJACENCY_ASYMMETRY`` (error): A lists B but B does not list A.
+      - ``ISOLATED_PROVINCE`` (warning): a province has no land adjacency --
+        expected for islands until sea links are hand-authored (Slice 2).
+    """
+    regions = province_data["regions"]
+    if not any("adjacent" in entry for entry in regions.values()):
+        return []
+
+    findings: list[ValidationFailure] = []
+    names = set(regions)
+    adj: dict[str, list[str]] = {
+        name: list(entry.get("adjacent") or []) for name, entry in regions.items()
+    }
+
+    for name in sorted(adj):
+        for target in adj[name]:
+            if target not in names:
+                findings.append(
+                    ValidationFailure(
+                        code="ADJACENCY_UNKNOWN_TARGET",
+                        severity=ERROR,
+                        message=(
+                            f"Province {name!r} lists adjacency to unknown "
+                            f"province {target!r}."
+                        ),
+                        detail={"region": name, "target": target},
+                    )
+                )
+
+    for name in sorted(adj):
+        for target in adj[name]:
+            if target in names and name not in adj.get(target, []):
+                findings.append(
+                    ValidationFailure(
+                        code="ADJACENCY_ASYMMETRY",
+                        severity=ERROR,
+                        message=(
+                            f"Province {name!r} lists {target!r} but {target!r} "
+                            f"does not list {name!r} back."
+                        ),
+                        detail={"from": name, "to": target},
+                    )
+                )
+
+    for name in sorted(adj):
+        if not adj[name]:
+            findings.append(
+                ValidationFailure(
+                    code="ISOLATED_PROVINCE",
+                    severity=WARNING,
+                    message=(
+                        f"Province {name!r} has no land adjacency -- island or "
+                        f"awaiting Slice-2 sea links."
+                    ),
+                    detail={"region": name},
+                )
+            )
+
+    return findings
+
+
+# ---------------------------------------------------------------------------
 # Image validation.
 # ---------------------------------------------------------------------------
 
@@ -639,6 +721,7 @@ def validate_all(
     report = ValidationReport()
     province_data = load_registry(registry_path)
     report.extend(validate_registry(province_data))
+    report.extend(validate_adjacency(province_data))
     if visual_path is not None and lookup_path is not None:
         report.extend(
             validate_images(

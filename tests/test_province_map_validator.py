@@ -225,6 +225,83 @@ def test_registry_loader_rejects_empty_regions(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Adjacency checks (Slice 1).
+# ---------------------------------------------------------------------------
+
+
+def _registry_with_adjacency(adjacency: dict[str, list[str]]) -> dict:
+    """Build a registry whose regions carry the given adjacency lists."""
+    colors = {
+        "Paris": (179, 68, 55),
+        "Belgium": (198, 97, 34),
+        "Berlin": (74, 102, 47),
+        "Sicily": (55, 88, 179),
+    }
+    data = _make_registry({n: colors[n] for n in adjacency})
+    for name, neighbors in adjacency.items():
+        data["regions"][name]["adjacent"] = list(neighbors)
+    return data
+
+
+def test_adjacency_symmetric_graph_passes():
+    data = _registry_with_adjacency({"Paris": ["Belgium"], "Belgium": ["Paris"]})
+    assert vpm.validate_adjacency(data) == []
+
+
+def test_adjacency_skipped_when_no_region_declares_it():
+    """A registry without any 'adjacent' field is not adjacency-checked."""
+    data = _make_registry({"Paris": (179, 68, 55), "Belgium": (198, 97, 34)})
+    assert vpm.validate_adjacency(data) == []
+
+
+def test_placeholder_registry_passes_adjacency_checks():
+    """The shipped placeholder (no adjacency) stays clean under the new check."""
+    province_data = vpm.load_registry(PLACEHOLDER_REGISTRY)
+    assert vpm.validate_adjacency(province_data) == []
+
+
+def test_adjacency_unknown_target_is_error():
+    data = _registry_with_adjacency({"Paris": ["Atlantis"], "Belgium": ["Paris"]})
+    findings = vpm.validate_adjacency(data)
+    unknown = [f for f in findings if f.code == "ADJACENCY_UNKNOWN_TARGET"]
+    assert len(unknown) == 1
+    assert unknown[0].severity == vpm.ERROR
+    assert unknown[0].detail == {"region": "Paris", "target": "Atlantis"}
+
+
+def test_adjacency_asymmetry_is_error():
+    # Paris lists Belgium; Belgium does not list Paris back.
+    data = _registry_with_adjacency({"Paris": ["Belgium"], "Belgium": []})
+    findings = vpm.validate_adjacency(data)
+    asym = [f for f in findings if f.code == "ADJACENCY_ASYMMETRY"]
+    assert len(asym) == 1
+    assert asym[0].severity == vpm.ERROR
+    assert asym[0].detail == {"from": "Paris", "to": "Belgium"}
+
+
+def test_adjacency_isolated_province_is_warning():
+    # Belgium has no land edges: a warning (island / awaiting sea links), not
+    # an error; Paris<->Berlin stay symmetric and clean.
+    data = _registry_with_adjacency(
+        {"Paris": ["Berlin"], "Berlin": ["Paris"], "Belgium": []}
+    )
+    findings = vpm.validate_adjacency(data)
+    assert [f.code for f in findings if f.severity == vpm.ERROR] == []
+    isolated = [f for f in findings if f.code == "ISOLATED_PROVINCE"]
+    assert len(isolated) == 1
+    assert isolated[0].severity == vpm.WARNING
+    assert isolated[0].detail == {"region": "Belgium"}
+
+
+def test_validate_all_runs_adjacency_checks(tmp_path):
+    """validate_all wires the adjacency pass in alongside the registry checks."""
+    data = _registry_with_adjacency({"Paris": ["Atlantis"], "Belgium": ["Paris"]})
+    registry = _write_registry(tmp_path, data)
+    report = vpm.validate_all(registry, None, None)
+    assert "ADJACENCY_UNKNOWN_TARGET" in _failure_codes(report.failures)
+
+
+# ---------------------------------------------------------------------------
 # Image-side checks.
 # ---------------------------------------------------------------------------
 

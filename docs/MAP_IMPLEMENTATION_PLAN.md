@@ -142,7 +142,10 @@ Initial gate approved; **Slice 1 may begin.** The two downstream gates below are
 
 Each slice: **Scope · Files · Tests · STATUS line · Completion definition.** Slices 1–2 touch only `tools/` + `assets/` (zero game logic, zero suite risk). The cutover risk is concentrated in Slices 5 and 7, each preceded by a fully-tested, un-wired build-up slice.
 
-### Slice 1 — Adjacency derivation + registry/validator tooling *(tools/assets only — LAND FIRST, then pause for review)*
+### Slice 1 — Adjacency derivation + registry/validator tooling ✅ LANDED *(tools/assets only — landed first; PAUSE for review)*
+
+> **LANDED (Map Slice 1).** `build_region_key_from_psd.py` gains a pure, unit-tested `derive_adjacency()` (horizontal+vertical run-length scanlines: land ≤15px, sea-candidate 41–400px, 16–40px dead zone ignored), `apply_adjacency_to_registry()`, an `--adjacency-only` re-derivation path (no PSD / no PNG rewrite), and an `--inspect-letters` naming-seed dump. `validate_province_map.py` gains `ADJACENCY_UNKNOWN_TARGET` + `ADJACENCY_ASYMMETRY` (errors) and `ISOLATED_PROVINCE` (warning), skipped when no region declares adjacency (legacy registries stay clean). `europe.json` regenerated: **248 symmetric land edges, 0 asymmetry, 144 sea candidates, 5 land-isolated islands** (all with sea candidates → genuine islands for Slice-2 authoring). Validator run against the three assets → **0 errors, 5 island warnings**. Tests: new `tests/test_province_adjacency_derivation.py` (12) + 7 new validator checks; focused run 50 passed. **PAUSED for user review.**
+
 
 - **Scope:** Extend the offline pipeline so the registry can carry a derived adjacency graph and the new gameplay fields, with validation. **No backend, no Godot, no game logic.**
   - `build_region_key_from_psd.py`: add an adjacency pass — for each province, scan the lookup image for the nearest distinct province color across the black moats (border-dilation / nearest-non-black within a tunable gap radius) to produce land adjacency; add a coarse **sea-gap heuristic** (coastal provinces within a larger radius across black get a candidate sea edge, tagged `sea: true`). Emit symmetric `adjacent` lists into `europe.json`.
