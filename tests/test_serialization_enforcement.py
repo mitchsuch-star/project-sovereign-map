@@ -410,6 +410,11 @@ class TestWorldStateSerializationEnforcement:
             "_live_bargains_by_target_enemy",
             "_live_bargains_by_claim_region",
             "_national_power_cache",
+            # Map Slice 4: the roster-scoped capital map is DERIVED from
+            # `sovereign_map` (legacy => NATION_CAPITALS global; europe =>
+            # EUROPE_NATION_CAPITALS) and reconstructed by __init__/from_dict,
+            # so it is not serialized independently.
+            "nation_capitals",
         }
         # Add any computed properties here as needed
 

@@ -124,7 +124,10 @@ def resolve_direction(from_region: str, direction: str, world, marshal_name: Opt
     if not vector:
         return None
 
-    from_pos = REGION_POSITIONS.get(from_region)
+    # Prefer the grid_position carried on the live region object (world-scoped,
+    # so the Europe and legacy maps never collide on a shared name); fall back to
+    # the module-level REGION_POSITIONS derived from the legacy REGIONS_DATA.
+    from_pos = getattr(region_obj, "grid_position", None) or REGION_POSITIONS.get(from_region)
     if not from_pos:
         return None
 
@@ -133,7 +136,8 @@ def resolve_direction(from_region: str, direction: str, world, marshal_name: Opt
     best_score = -999
 
     for adj in adjacent:
-        adj_pos = REGION_POSITIONS.get(adj)
+        adj_obj = world.get_region(adj)
+        adj_pos = (getattr(adj_obj, "grid_position", None) if adj_obj else None) or REGION_POSITIONS.get(adj)
         if not adj_pos:
             continue
         # How well does this adjacent region match the requested direction?

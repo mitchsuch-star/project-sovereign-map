@@ -3,7 +3,10 @@ Region Model for Project Sovereign
 Represents a region/territory on the map
 """
 
-from typing import Dict, List, Optional
+import json
+from functools import lru_cache
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 
 # ============================================================================
@@ -119,6 +122,7 @@ class Region:
             terrain: str = "plains",
             region_type: str = "town",
             is_coastal: bool = False,
+            grid_position: Optional[Tuple[int, int]] = None,
     ):
         if terrain not in VALID_TERRAINS:
             raise ValueError(f"Invalid terrain '{terrain}'. Must be one of: {sorted(VALID_TERRAINS)}")
@@ -132,6 +136,13 @@ class Region:
         self.terrain = terrain
         self.region_type = region_type
         self.is_coastal = bool(is_coastal)
+        # (row, col) for LLM cardinal-direction resolution (row=0 north, col=0 west).
+        # Legacy regions read this from REGIONS_DATA; Europe regions derive it via
+        # centroid spatial-rank (create_europe_regions). None => resolve_direction
+        # falls back to the module-level REGION_POSITIONS map.
+        self.grid_position: Optional[Tuple[int, int]] = (
+            tuple(grid_position) if grid_position is not None else None
+        )
 
         # Game state (changes during play)
         self.controller: Optional[str] = None
@@ -279,6 +290,7 @@ class Region:
             "terrain": self.terrain,
             "region_type": self.region_type,
             "is_coastal": self.is_coastal,
+            "grid_position": list(self.grid_position) if self.grid_position is not None else None,
             "controller": self.controller,
             "garrison_strength": self.garrison_strength,
             "garrison_detachment": self.garrison_detachment,
@@ -306,6 +318,10 @@ class Region:
             is_coastal=data.get(
                 "is_coastal",
                 REGIONS_DATA.get(data["name"], {}).get("is_coastal", False),
+            ),
+            grid_position=data.get(
+                "grid_position",
+                REGIONS_DATA.get(data["name"], {}).get("grid_position"),
             ),
         )
         region.controller = data.get("controller")
@@ -538,6 +554,111 @@ def create_regions() -> dict[str, Region]:
             terrain=data.get("terrain", "plains"),
             region_type=data.get("region_type", "town"),
             is_coastal=data.get("is_coastal", False),
+            grid_position=data.get("grid_position"),
+        )
+    return regions
+
+
+# ============================================================================
+# FULL-EUROPE (126-province) WORLD — Map Slice 4
+# ============================================================================
+#
+# The commissioned europe.json registry is the SINGLE source of truth shared by
+# the backend region set and the Godot renderer (Map Implementation Plan
+# "One province source of truth"). This backend loader reads the SAME file the
+# smoke scene reads, so the map can never drift between them.
+#
+# The registry is keyed by internal ids (Region_NNN); each entry carries a unique
+# historical `name`. The game world keys regions by that historical name, so the
+# loader translates every `adjacent` id-list into names. Income/supply/garrison
+# derive from the REGION_TYPE_* tables (decision #7); grid_position derives from
+# the pixel anchor via centroid spatial-rank (amendment N4).
+
+EUROPE_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe.json"
+)
+
+
+@lru_cache(maxsize=1)
+def _load_europe_registry() -> dict:
+    """Load + cache the europe.json registry (the shared province source of truth)."""
+    with open(EUROPE_REGISTRY_PATH, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def derive_europe_grid_positions(regions: Dict[str, dict]) -> Dict[str, Tuple[int, int]]:
+    """Derive a unique (row, col) per province from its pixel anchor (amendment N4).
+
+    Centroid spatial-rank: row = north→south rank of the anchor's y, col =
+    west→east rank of the anchor's x. Each province gets a UNIQUE (row, col)
+    (row alone is unique — sorted-rank), which `resolve_direction`'s dot-product
+    disambiguation requires, while preserving N/S/E/W ordering. A coarse ~12×10
+    bucket would collide for 126 provinces and break "move north".
+
+    Keyed by the province's historical `name`.
+    """
+    entries = []
+    for idx, (key, data) in enumerate(regions.items()):
+        anchor = data.get("anchor") or [0, 0]
+        # Tie-break on the id so the ranking is deterministic regardless of
+        # dict order and stable for provinces sharing an anchor coordinate.
+        entries.append((data["name"], int(anchor[0]), int(anchor[1]), idx))
+
+    row_rank = {
+        name: rank
+        for rank, (name, _x, _y, _i) in enumerate(
+            sorted(entries, key=lambda e: (e[2], e[3]))  # north (small y) first
+        )
+    }
+    col_rank = {
+        name: rank
+        for rank, (name, _x, _y, _i) in enumerate(
+            sorted(entries, key=lambda e: (e[1], e[3]))  # west (small x) first
+        )
+    }
+    return {name: (row_rank[name], col_rank[name]) for name, *_ in entries}
+
+
+def get_europe_starting_controllers() -> Dict[str, str]:
+    """Return {region_name: nation} for the 126-province Europe world."""
+    registry = _load_europe_registry()
+    return {
+        data["name"]: data["starting_controller"]
+        for data in registry["regions"].values()
+    }
+
+
+def create_europe_regions() -> Dict[str, Region]:
+    """Build the 126-province Europe world from europe.json (Map Slice 4).
+
+    Region objects are keyed by historical name; adjacency id-lists are
+    translated to names; income/supply/garrison derive from the REGION_TYPE_*
+    tables; grid_position derives via centroid spatial-rank. This does NOT set
+    controllers or garrisons — WorldState._setup_initial_control owns that,
+    reading get_europe_starting_controllers().
+    """
+    registry = _load_europe_registry()
+    raw = registry["regions"]
+
+    # id (Region_NNN) → historical name, for adjacency translation.
+    id_to_name = {rid: data["name"] for rid, data in raw.items()}
+    grid = derive_europe_grid_positions(raw)
+
+    regions: Dict[str, Region] = {}
+    for data in raw.values():
+        name = data["name"]
+        region_type = data.get("region_type", "town")
+        adjacency = [id_to_name[a] for a in data.get("adjacent", []) if a in id_to_name]
+        regions[name] = Region(
+            name=name,
+            adjacent_regions=adjacency,
+            income_value=REGION_TYPE_INCOME.get(region_type, REGION_TYPE_INCOME["town"]),
+            is_capital=data.get("is_capital", False),
+            terrain=data.get("terrain", "plains"),
+            region_type=region_type,
+            is_coastal=data.get("is_coastal", False),
+            grid_position=grid.get(name),
         )
     return regions
 

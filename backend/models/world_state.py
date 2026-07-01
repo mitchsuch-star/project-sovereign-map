@@ -13,14 +13,20 @@ import copy  # noqa: F401 - used in to_dict() for deepcopy
 import os
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any, Set
-from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
+from backend.models.region import Region, create_regions, create_europe_regions, get_europe_starting_controllers, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.nation_config import (
     DEFAULT_PLAYER_NATION,
+    EUROPE_NATION_CAPITALS,
     build_default_nation_actions,
     build_default_nation_authority,
     build_default_nation_gold,
     build_enemy_nations,
+    build_europe_enemy_nations,
+    build_europe_nation_actions,
+    build_europe_nation_authority,
+    build_europe_nation_gold,
+    get_europe_vassal_web,
 )
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
@@ -115,22 +121,44 @@ class WorldState:
     - Provides game logic (income, proximity, etc.)
     """
 
-    def __init__(self, player_nation: str = DEFAULT_PLAYER_NATION):
+    def __init__(self, player_nation: str = DEFAULT_PLAYER_NATION, *, sovereign_map: str = "legacy"):
         """
         Initialize world state.
 
         Args:
             player_nation: Which nation the player controls (default: France)
+            sovereign_map: Which map/roster to build — "legacy" (the 19-region /
+                5-nation test fixture, the default the whole gameplay suite
+                depends on) or "europe" (the commissioned 126-province Europe
+                world from europe.json). This is the (G1) region-factory seam:
+                the game bootstrap selects it via the SOVEREIGN_MAP flag
+                (Slice 5); WorldState() itself still defaults to legacy so the
+                cutover is a reversible flag flip, not a code change.
         """
         self.player_nation = player_nation
+        self.sovereign_map = sovereign_map
+        europe = sovereign_map == "europe"
 
-        # Create map
-        self.regions: Dict[str, Region] = create_regions()
+        # Create map + its roster-scoped config. The Europe world carries its OWN
+        # capital map / starting controllers so it never mutates the legacy
+        # globals (amendment N1). Army placement + the full 1805 diplomatic matrix
+        # are authored later by the 1805 Scenario Setup gate (post-Slice-5); the
+        # Europe world starts army-less here, which is honest and turn-stable.
+        if europe:
+            self.regions: Dict[str, Region] = create_europe_regions()
+            self.nation_capitals: Dict[str, str] = dict(EUROPE_NATION_CAPITALS)
+            self._starting_controllers: Dict[str, str] = get_europe_starting_controllers()
+        else:
+            self.regions = create_regions()
+            self.nation_capitals = NATION_CAPITALS
+            self._starting_controllers = get_starting_controllers()
 
-        # Create ALL marshals (player + enemies)
+        # Create ALL marshals (player + enemies). Legacy only — the Europe roster's
+        # armies are authored by the 1805 Scenario Setup gate.
         self.marshals: Dict[str, Marshal] = {}
-        self.marshals.update(create_starting_marshals())  # Add French marshals
-        self.marshals.update(create_enemy_marshals())  # Add enemy marshals
+        if not europe:
+            self.marshals.update(create_starting_marshals())  # Add French marshals
+            self.marshals.update(create_enemy_marshals())  # Add enemy marshals
 
         # R9: Transient marshal-by-region index for O(1) region lookups.
         # Rebuilt at turn start, after from_dict(), and after __init__.
@@ -167,7 +195,11 @@ class WorldState:
         #   Britain: income 200 (Netherlands+Waterloo+Hanover)
         #   Prussia: income 400 (Rhineland+Berlin)
         #   Austria/Saxony: not in economy yet (static, added in 1B)
-        self.nation_gold: Dict[str, int] = build_default_nation_gold(self.player_nation)
+        self.nation_gold: Dict[str, int] = (
+            build_europe_nation_gold(self.player_nation)
+            if europe
+            else build_default_nation_gold(self.player_nation)
+        )
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         # Nation-level reserve pools that gate recruitment.
         # Cavalry is precious and slow to rebuild; infantry is cheap and plentiful.
@@ -291,10 +323,18 @@ class WorldState:
 
         # Explicit list of enemy nations (not derived from marshals)
         # Nations exist even if all their marshals are destroyed
-        self.enemy_nations: List[str] = build_enemy_nations(self.player_nation)
+        self.enemy_nations: List[str] = (
+            build_europe_enemy_nations(self.player_nation)
+            if europe
+            else build_enemy_nations(self.player_nation)
+        )
 
         # Actions per nation
-        self.nation_actions: Dict[str, int] = build_default_nation_actions(self.player_nation)
+        self.nation_actions: Dict[str, int] = (
+            build_europe_nation_actions(self.player_nation)
+            if europe
+            else build_default_nation_actions(self.player_nation)
+        )
 
         # AI Stagnation Counter (persists across turns, read/written by EnemyAI)
         # Tracks consecutive turns where each marshal took no meaningful action
@@ -407,15 +447,21 @@ class WorldState:
         # ============================================================
         # DIPLOMACY - Session 2: Diplomats, DP, war scores, battle tracking
         # ============================================================
-        from backend.models.diplomat import create_starting_diplomats
-        self.diplomats: Dict[str, Any] = create_starting_diplomats()
+        from backend.models.diplomat import create_starting_diplomats, create_europe_diplomats
+        self.diplomats: Dict[str, Any] = (
+            create_europe_diplomats() if europe else create_starting_diplomats()
+        )
 
         # Diplomatic Points (non-accumulating — reset each turn)
         self.diplomatic_points: int = 5   # France starting (3 base + 1 skill + 1 authority)
         self.max_diplomatic_points: int = 5
 
         # AI Nation authority (0-100, affects DP generation)
-        self.nation_authority: Dict[str, int] = build_default_nation_authority(self.player_nation)
+        self.nation_authority: Dict[str, int] = (
+            build_europe_nation_authority(self.player_nation)
+            if europe
+            else build_default_nation_authority(self.player_nation)
+        )
 
         # AI Nation DP pools (regenerated each turn, consumed by AI diplomacy)
         self.nation_dp: Dict[str, int] = {}
@@ -502,6 +548,8 @@ class WorldState:
         # VASSAL SYSTEM (Phase 8 Session 5)
         # ============================================================
         self.vassals: Dict[str, Dict] = {}  # nation_name -> vassal state dict
+        if europe:
+            self._seed_europe_vassals()
         self.vassal_investment_cooldowns: Dict[str, int] = {}  # vassal_name -> turns remaining
         self.vassal_release_cooldowns: Dict[str, int] = {}  # R14: nation_name -> turns remaining
         self.cascade_triggered: set = set()  # diplo_keys where cascade already fired
@@ -1815,12 +1863,44 @@ class WorldState:
             result.append(entry)
         return result
 
+    def _seed_europe_vassals(self) -> None:
+        """Seed the authored 1805 client-parent web into world.vassals (Map Slice 4).
+
+        Reads the scenario-scoped EUROPE_VASSAL_WEB (via nation_config's getter),
+        mapping the string autonomy label to the vassal.py AUTONOMY_* constant and
+        deriving the matching tribute rate. Only the three genuine French satellite
+        states are seeded; every other roster nation stays independent.
+        """
+        from backend.game_logic.vassal import (
+            AUTONOMY_SATELLITE,
+            AUTONOMY_NAMES,
+            TRIBUTE_RATES,
+            LOYALTY_MAX,
+        )
+
+        label_to_level = {name.lower(): level for level, name in AUTONOMY_NAMES.items()}
+        for vassal, state in get_europe_vassal_web().items():
+            autonomy = label_to_level.get(str(state.get("autonomy", "satellite")).lower(), AUTONOMY_SATELLITE)
+            self.vassals[vassal] = {
+                "lord": state["lord"],
+                "loyalty": int(LOYALTY_MAX),
+                "autonomy": int(autonomy),
+                "path": "scenario",
+                "created_turn": 1,
+                "tribute_rate": TRIBUTE_RATES.get(autonomy, TRIBUTE_RATES[AUTONOMY_SATELLITE]),
+                "carved_from": None,
+                "regions": None,
+            }
+
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start.
 
-        Derives controllers from region.py starting_controller field (single source of truth).
+        Derives controllers from the map's starting_controller field (single
+        source of truth) — the legacy REGIONS_DATA map or the Europe registry,
+        selected at construction (self._starting_controllers).
         """
-        for region_name, nation in get_starting_controllers().items():
+        starting_controllers = getattr(self, "_starting_controllers", None) or get_starting_controllers()
+        for region_name, nation in starting_controllers.items():
             if region_name in self.regions:
                 self.regions[region_name].controller = nation
 
@@ -1867,8 +1947,14 @@ class WorldState:
         return self.regions.get(region_name)
 
     def get_nation_capital(self, nation: str) -> Optional[str]:
-        """Get the capital/home region for a nation."""
-        return NATION_CAPITALS.get(nation)
+        """Get the capital/home region for a nation.
+
+        Reads the world's own capital map (Europe carries its own; legacy uses
+        the NATION_CAPITALS global) so the Europe and legacy worlds never share
+        Britain's proxy. Defensive getattr keeps deserialized worlds safe.
+        """
+        capitals = getattr(self, "nation_capitals", None) or NATION_CAPITALS
+        return capitals.get(nation)
 
     def get_settlement_home_capital(self, nation: str) -> Optional[str]:
         """Get the mapped settlement home/capital for a nation."""
@@ -3872,6 +3958,7 @@ class WorldState:
 
             # ═══════ CORE GAME STATE ═══════
             "player_nation": self.player_nation,
+            "sovereign_map": getattr(self, "sovereign_map", "legacy"),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -4218,7 +4305,10 @@ class WorldState:
         Returns:
             Restored WorldState object
         """
-        world = cls(player_nation=data.get("player_nation", DEFAULT_PLAYER_NATION))
+        world = cls(
+            player_nation=data.get("player_nation", DEFAULT_PLAYER_NATION),
+            sovereign_map=data.get("sovereign_map", "legacy"),
+        )
 
         # ═══════ CORE GAME STATE ═══════
         world.current_turn = data.get("current_turn", 1)
