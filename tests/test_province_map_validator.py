@@ -279,6 +279,19 @@ def test_adjacency_asymmetry_is_error():
     assert asym[0].detail == {"from": "Paris", "to": "Belgium"}
 
 
+def test_adjacency_self_loop_is_error():
+    # A province listing itself is a self-loop error, not an unknown target,
+    # and must not also fire an asymmetry finding for the self-edge.
+    data = _registry_with_adjacency({"Paris": ["Paris"], "Belgium": []})
+    findings = vpm.validate_adjacency(data)
+    loops = [f for f in findings if f.code == "ADJACENCY_SELF_LOOP"]
+    assert len(loops) == 1
+    assert loops[0].severity == vpm.ERROR
+    assert loops[0].detail == {"region": "Paris"}
+    assert not [f for f in findings if f.code == "ADJACENCY_UNKNOWN_TARGET"]
+    assert not [f for f in findings if f.code == "ADJACENCY_ASYMMETRY"]
+
+
 def test_adjacency_isolated_province_is_warning():
     # Belgium has no land edges: a warning (island / awaiting sea links), not
     # an error; Paris<->Berlin stay symmetric and clean.

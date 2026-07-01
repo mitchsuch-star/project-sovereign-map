@@ -20,11 +20,12 @@ tool covers the offline acceptance checks that the runtime cannot do well:
        sample ``(x, y)`` coordinate.
     7. Adjacency unknown target (Slice 1) -- an ``adjacent`` edge points at a
        province not in the registry.
-    8. Adjacency asymmetry (Slice 1) -- A lists B but B does not list A back.
-    9. Isolated province (Slice 1, warning) -- a province with no land
-       adjacency (islands, until sea links are hand-authored in Slice 2).
+    8. Adjacency self-loop (Slice 1) -- a province lists itself as adjacent.
+    9. Adjacency asymmetry (Slice 1) -- A lists B but B does not list A back.
+    10. Isolated province (Slice 1, warning) -- a province with no land
+        adjacency (islands, until sea links are hand-authored in Slice 2).
 
-    The adjacency checks (7-9) run only when at least one region declares an
+    The adjacency checks (7-10) run only when at least one region declares an
     ``adjacent`` list, so legacy registries without adjacency stay clean.
 
 The runtime loader fails on the FIRST unmapped pixel; this tool collects ALL
@@ -407,6 +408,7 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
 
       - ``ADJACENCY_UNKNOWN_TARGET`` (error): an edge points at a province not
         in the registry.
+      - ``ADJACENCY_SELF_LOOP`` (error): a province lists itself as adjacent.
       - ``ADJACENCY_ASYMMETRY`` (error): A lists B but B does not list A.
       - ``ISOLATED_PROVINCE`` (warning): a province has no land adjacency --
         expected for islands until sea links are hand-authored (Slice 2).
@@ -423,7 +425,16 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
 
     for name in sorted(adj):
         for target in adj[name]:
-            if target not in names:
+            if target == name:
+                findings.append(
+                    ValidationFailure(
+                        code="ADJACENCY_SELF_LOOP",
+                        severity=ERROR,
+                        message=f"Province {name!r} lists itself as adjacent.",
+                        detail={"region": name},
+                    )
+                )
+            elif target not in names:
                 findings.append(
                     ValidationFailure(
                         code="ADJACENCY_UNKNOWN_TARGET",
@@ -438,6 +449,8 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
 
     for name in sorted(adj):
         for target in adj[name]:
+            if target == name:
+                continue
             if target in names and name not in adj.get(target, []):
                 findings.append(
                     ValidationFailure(

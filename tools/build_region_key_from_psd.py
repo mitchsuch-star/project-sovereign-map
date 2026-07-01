@@ -379,6 +379,12 @@ def derive_adjacency(color_keys, width, height, province_keys, sentinel_key, *,
     Pure function over a flat RGB-int color-key grid (unit-tested on synthetic
     lookups). Returns ``(land, sea)`` where ``land`` is a set of normalized
     ``(lo_key, hi_key)`` pairs and ``sea`` maps such a pair -> minimum gap px.
+
+    By design the two orthogonal scans do NOT detect a diagonal-only contact
+    (provinces touching solely at a pixel corner): such a corner is not a real
+    shared border, and any genuine border spans >=1px horizontally or vertically
+    within ``land_gap_max`` and so is caught along its length. Do not treat a
+    missing diagonal-only edge as a bug.
     """
     province_keys = set(province_keys)
     land: set = set()
@@ -404,6 +410,11 @@ def apply_adjacency_to_registry(registry, color_keys, width, height, *,
 
     Adds a sorted ``adjacent`` list to every region, a top-level ``sea_candidates``
     list (hand-curated in Slice 2), and an ``adjacency_derivation`` metadata block.
+
+    Precondition: ``lookup_color`` is unique per region (the standard
+    ``DUPLICATE_LOOKUP_COLOR`` validator check guarantees this). If two regions
+    share a color, ``key_to_region`` collapses them last-wins and their edges are
+    misattributed -- run ``validate_province_map`` first when hand-editing.
     """
     sentinel_key = _rgb_int(registry["no_province_color"])
     key_to_region = {_rgb_int(e["lookup_color"]): name
