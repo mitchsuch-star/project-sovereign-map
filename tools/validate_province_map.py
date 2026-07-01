@@ -57,6 +57,7 @@ from __future__ import annotations
 import argparse
 from array import array
 import json
+import re
 import struct
 import sys
 import zlib
@@ -401,7 +402,7 @@ def validate_registry(province_data: dict) -> list[ValidationFailure]:
 
 
 def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
-    """Registry-side adjacency-graph checks (Slice 1).
+    """Registry-side adjacency-graph checks (Slice 1, hardened in Slice 2).
 
     Runs only when at least one region declares an ``adjacent`` list, so legacy
     registries without adjacency stay clean:
@@ -410,8 +411,16 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
         in the registry.
       - ``ADJACENCY_SELF_LOOP`` (error): a province lists itself as adjacent.
       - ``ADJACENCY_ASYMMETRY`` (error): A lists B but B does not list A.
-      - ``ISOLATED_PROVINCE`` (warning): a province has no land adjacency --
-        expected for islands until sea links are hand-authored (Slice 2).
+      - ``ISOLATED_PROVINCE`` (warning): a province has no adjacency -- expected
+        for islands until sea links are hand-authored (Slice 2).
+      - ``DUPLICATE_ADJACENCY_ENTRY`` (warning, Slice-2 M5): a province lists the
+        same neighbour twice.
+
+    Slice-2 M4 -- omitted vs. empty ``adjacent``: a region whose ``adjacent``
+    key is *absent* is treated as "not yet authored" and is exempt from the
+    isolation warning and from being demanded as an asymmetry back-edge, so a
+    mid-slice partial hand-edit does not produce a confusing error burst. Only
+    an *explicit* empty list (``"adjacent": []``) is reported as isolated.
     """
     regions = province_data["regions"]
     if not any("adjacent" in entry for entry in regions.values()):
@@ -419,12 +428,27 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
 
     findings: list[ValidationFailure] = []
     names = set(regions)
+    authored = {name for name, entry in regions.items() if "adjacent" in entry}
     adj: dict[str, list[str]] = {
         name: list(entry.get("adjacent") or []) for name, entry in regions.items()
     }
 
     for name in sorted(adj):
+        seen_targets: set[str] = set()
         for target in adj[name]:
+            if target in seen_targets:
+                findings.append(
+                    ValidationFailure(
+                        code="DUPLICATE_ADJACENCY_ENTRY",
+                        severity=WARNING,
+                        message=(
+                            f"Province {name!r} lists {target!r} more than once."
+                        ),
+                        detail={"region": name, "target": target},
+                    )
+                )
+                continue
+            seen_targets.add(target)
             if target == name:
                 findings.append(
                     ValidationFailure(
@@ -448,10 +472,11 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
                 )
 
     for name in sorted(adj):
-        for target in adj[name]:
-            if target == name:
+        for target in set(adj[name]):
+            if target == name or target not in names:
                 continue
-            if target in names and name not in adj.get(target, []):
+            # M4: only demand a back-edge from an *authored* neighbour.
+            if target in authored and name not in adj.get(target, []):
                 findings.append(
                     ValidationFailure(
                         code="ADJACENCY_ASYMMETRY",
@@ -464,19 +489,166 @@ def validate_adjacency(province_data: dict) -> list[ValidationFailure]:
                     )
                 )
 
-    for name in sorted(adj):
+    for name in sorted(authored):
         if not adj[name]:
             findings.append(
                 ValidationFailure(
                     code="ISOLATED_PROVINCE",
                     severity=WARNING,
                     message=(
-                        f"Province {name!r} has no land adjacency -- island or "
+                        f"Province {name!r} has no adjacency -- island or "
                         f"awaiting Slice-2 sea links."
                     ),
                     detail={"region": name},
                 )
             )
+
+    return findings
+
+
+# ---------------------------------------------------------------------------
+# Gameplay-field validation (Slice 2).
+# ---------------------------------------------------------------------------
+
+# Mirror of backend.models.region.VALID_TERRAINS / VALID_REGION_TYPES. Kept
+# inline so this tool stays stdlib-only and importable without the backend.
+VALID_TERRAINS = {"plains", "forest", "urban", "mountains", "hills", "river_crossing"}
+VALID_REGION_TYPES = {"city", "town", "rural", "capital", "major_city"}
+_PLACEHOLDER_NAME = re.compile(r"^Region_\d+$")
+
+
+def validate_gameplay_fields(province_data: dict) -> list[ValidationFailure]:
+    """Slice-2 registry data checks for the authored gameplay fields.
+
+    Runs only when at least one region declares ``starting_controller`` -- so
+    the Slice-1 / placeholder registries (render fields only) stay clean.
+
+      - ``MISSING_GAMEPLAY_FIELD`` (error): a required authored field is absent.
+      - ``PLACEHOLDER_NAME`` (error): a province still carries its ``Region_NNN``
+        placeholder name.
+      - ``DUPLICATE_PROVINCE_NAME`` (error): two provinces share a ``name``.
+      - ``INVALID_TERRAIN`` / ``INVALID_REGION_TYPE`` (error): value outside the
+        canonical set.
+      - ``NATION_MISSING_CAPITAL`` / ``NATION_MULTIPLE_CAPITALS`` (error): every
+        nation that owns provinces must have exactly one ``is_capital`` province.
+      - ``INLAND_SEA_EDGE`` (error, G3): a non-coastal province is an endpoint of
+        a hand-authored ``sea_links`` crossing.
+    """
+    regions = province_data["regions"]
+    if not any("starting_controller" in entry for entry in regions.values()):
+        return []
+
+    findings: list[ValidationFailure] = []
+    required = ("name", "starting_controller", "terrain", "region_type",
+                "is_coastal", "is_capital")
+    seen_names: dict[str, str] = {}
+    capitals: dict[str, list[str]] = {}
+    owners: set[str] = set()
+
+    for name in sorted(regions):
+        entry = regions[name]
+        for field_name in required:
+            if field_name not in entry:
+                findings.append(
+                    ValidationFailure(
+                        code="MISSING_GAMEPLAY_FIELD",
+                        severity=ERROR,
+                        message=f"Province {name!r} is missing '{field_name}'.",
+                        detail={"region": name, "field": field_name},
+                    )
+                )
+        prov_name = entry.get("name")
+        if isinstance(prov_name, str):
+            if _PLACEHOLDER_NAME.match(prov_name):
+                findings.append(
+                    ValidationFailure(
+                        code="PLACEHOLDER_NAME",
+                        severity=ERROR,
+                        message=f"Province {name!r} still has placeholder name {prov_name!r}.",
+                        detail={"region": name, "name": prov_name},
+                    )
+                )
+            elif prov_name in seen_names:
+                findings.append(
+                    ValidationFailure(
+                        code="DUPLICATE_PROVINCE_NAME",
+                        severity=ERROR,
+                        message=(
+                            f"Province name {prov_name!r} is shared by "
+                            f"{seen_names[prov_name]!r} and {name!r}."
+                        ),
+                        detail={"name": prov_name,
+                                "regions": [seen_names[prov_name], name]},
+                    )
+                )
+            else:
+                seen_names[prov_name] = name
+        terrain = entry.get("terrain")
+        if terrain is not None and terrain not in VALID_TERRAINS:
+            findings.append(
+                ValidationFailure(
+                    code="INVALID_TERRAIN",
+                    severity=ERROR,
+                    message=f"Province {name!r} has invalid terrain {terrain!r}.",
+                    detail={"region": name, "terrain": terrain},
+                )
+            )
+        rtype = entry.get("region_type")
+        if rtype is not None and rtype not in VALID_REGION_TYPES:
+            findings.append(
+                ValidationFailure(
+                    code="INVALID_REGION_TYPE",
+                    severity=ERROR,
+                    message=f"Province {name!r} has invalid region_type {rtype!r}.",
+                    detail={"region": name, "region_type": rtype},
+                )
+            )
+        controller = entry.get("starting_controller")
+        if controller:
+            owners.add(controller)
+            if entry.get("is_capital"):
+                capitals.setdefault(controller, []).append(name)
+
+    for nation in sorted(owners):
+        caps = capitals.get(nation, [])
+        if not caps:
+            findings.append(
+                ValidationFailure(
+                    code="NATION_MISSING_CAPITAL",
+                    severity=ERROR,
+                    message=f"Nation {nation!r} owns provinces but has no capital.",
+                    detail={"nation": nation},
+                )
+            )
+        elif len(caps) > 1:
+            findings.append(
+                ValidationFailure(
+                    code="NATION_MULTIPLE_CAPITALS",
+                    severity=ERROR,
+                    message=(
+                        f"Nation {nation!r} has {len(caps)} capitals: {sorted(caps)}."
+                    ),
+                    detail={"nation": nation, "regions": sorted(caps)},
+                )
+            )
+
+    # G3: sea-link endpoints must be coastal.
+    for pair in province_data.get("sea_links", []):
+        for idx in pair:
+            key = f"Region_{idx:03d}" if isinstance(idx, int) else idx
+            entry = regions.get(key)
+            if entry is not None and entry.get("is_coastal") is False:
+                findings.append(
+                    ValidationFailure(
+                        code="INLAND_SEA_EDGE",
+                        severity=ERROR,
+                        message=(
+                            f"Province {key!r} is not coastal but is a sea-link "
+                            f"endpoint {pair}."
+                        ),
+                        detail={"region": key, "sea_link": list(pair)},
+                    )
+                )
 
     return findings
 
@@ -735,6 +907,7 @@ def validate_all(
     province_data = load_registry(registry_path)
     report.extend(validate_registry(province_data))
     report.extend(validate_adjacency(province_data))
+    report.extend(validate_gameplay_fields(province_data))
     if visual_path is not None and lookup_path is not None:
         report.extend(
             validate_images(

@@ -42,14 +42,19 @@
         75,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_001",
         "Region_012",
         "Region_045"
-      ]
+      ],
+      "name": "White Russia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_001": {
       "province_id": "prov_001",
@@ -84,7 +89,7 @@
         111,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -94,7 +99,12 @@
         "Region_045",
         "Region_054",
         "Region_088"
-      ]
+      ],
+      "name": "Estonia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_002": {
       "province_id": "prov_002",
@@ -129,14 +139,19 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_004",
         "Region_017",
         "Region_083"
-      ]
+      ],
+      "name": "Anatolia",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_003": {
       "province_id": "prov_003",
@@ -181,7 +196,12 @@
         "Region_023",
         "Region_024",
         "Region_031"
-      ]
+      ],
+      "name": "Silesia",
+      "starting_controller": "Prussia",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_004": {
       "province_id": "prov_004",
@@ -216,14 +236,19 @@
         198,
         178
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_002",
         "Region_017",
         "Region_025"
-      ]
+      ],
+      "name": "Karaman",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_005": {
       "province_id": "prov_005",
@@ -258,13 +283,18 @@
         142,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_009",
         "Region_120"
-      ]
+      ],
+      "name": "Algarve",
+      "starting_controller": "Portugal",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_006": {
       "province_id": "prov_006",
@@ -299,7 +329,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -308,7 +338,12 @@
         "Region_041",
         "Region_053",
         "Region_113"
-      ]
+      ],
+      "name": "Stockholm",
+      "starting_controller": "Sweden",
+      "terrain": "forest",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_007": {
       "province_id": "prov_007",
@@ -356,7 +391,12 @@
         "Region_027",
         "Region_031",
         "Region_066"
-      ]
+      ],
+      "name": "Dresden",
+      "starting_controller": "Saxony",
+      "terrain": "forest",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_008": {
       "province_id": "prov_008",
@@ -401,7 +441,12 @@
         "Region_024",
         "Region_039",
         "Region_045"
-      ]
+      ],
+      "name": "Lithuania",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_009": {
       "province_id": "prov_009",
@@ -436,13 +481,19 @@
         152,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_005",
-        "Region_022"
-      ]
+        "Region_022",
+        "Region_122"
+      ],
+      "name": "Andalusia",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_010": {
       "province_id": "prov_010",
@@ -487,7 +538,12 @@
         "Region_019",
         "Region_028",
         "Region_052"
-      ]
+      ],
+      "name": "Bohemia",
+      "starting_controller": "Austria",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_011": {
       "province_id": "prov_011",
@@ -533,7 +589,12 @@
         "Region_067",
         "Region_093",
         "Region_094"
-      ]
+      ],
+      "name": "Berry",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_012": {
       "province_id": "prov_012",
@@ -568,7 +629,7 @@
         249,
         172
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -576,7 +637,12 @@
         "Region_008",
         "Region_039",
         "Region_045"
-      ]
+      ],
+      "name": "Volhynia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_013": {
       "province_id": "prov_013",
@@ -611,12 +677,17 @@
         126,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_088"
-      ]
+      ],
+      "name": "Norrland",
+      "starting_controller": "Sweden",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_014": {
       "province_id": "prov_014",
@@ -660,7 +731,12 @@
         "Region_023",
         "Region_031",
         "Region_054"
-      ]
+      ],
+      "name": "East Prussia",
+      "starting_controller": "Prussia",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_015": {
       "province_id": "prov_015",
@@ -707,7 +783,12 @@
         "Region_069",
         "Region_087",
         "Region_098"
-      ]
+      ],
+      "name": "Franconia",
+      "starting_controller": "Bavaria",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_016": {
       "province_id": "prov_016",
@@ -742,7 +823,7 @@
         94,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -751,7 +832,12 @@
         "Region_028",
         "Region_033",
         "Region_052"
-      ]
+      ],
+      "name": "Carniola",
+      "starting_controller": "Austria",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_017": {
       "province_id": "prov_017",
@@ -786,13 +872,19 @@
         243,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_002",
-        "Region_004"
-      ]
+        "Region_004",
+        "Region_111"
+      ],
+      "name": "Trebizond",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_018": {
       "province_id": "prov_018",
@@ -827,15 +919,21 @@
         210,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_036",
         "Region_060",
         "Region_065",
-        "Region_101"
-      ]
+        "Region_101",
+        "Region_115"
+      ],
+      "name": "Piedmont",
+      "starting_controller": "KingdomOfItaly",
+      "terrain": "mountains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_019": {
       "province_id": "prov_019",
@@ -878,7 +976,12 @@
         "Region_010",
         "Region_027",
         "Region_028"
-      ]
+      ],
+      "name": "Vienna",
+      "starting_controller": "Austria",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_020": {
       "province_id": "prov_020",
@@ -913,13 +1016,18 @@
         249,
         120
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_006",
         "Region_029"
-      ]
+      ],
+      "name": "Trondheim",
+      "starting_controller": "Denmark",
+      "terrain": "forest",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_021": {
       "province_id": "prov_021",
@@ -954,14 +1062,19 @@
         94,
         114
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_016",
         "Region_033",
         "Region_124"
-      ]
+      ],
+      "name": "Albania",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_022": {
       "province_id": "prov_022",
@@ -996,12 +1109,17 @@
         159,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_009"
-      ]
+      ],
+      "name": "Algiers",
+      "starting_controller": "Ottoman",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_023": {
       "province_id": "prov_023",
@@ -1045,7 +1163,12 @@
         "Region_008",
         "Region_014",
         "Region_045"
-      ]
+      ],
+      "name": "Samogitia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_024": {
       "province_id": "prov_024",
@@ -1089,7 +1212,12 @@
         "Region_008",
         "Region_027",
         "Region_039"
-      ]
+      ],
+      "name": "Podolia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_025": {
       "province_id": "prov_025",
@@ -1124,13 +1252,18 @@
         198,
         162
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_004",
         "Region_058"
-      ]
+      ],
+      "name": "Syria",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_026": {
       "province_id": "prov_026",
@@ -1176,7 +1309,12 @@
         "Region_082",
         "Region_087",
         "Region_095"
-      ]
+      ],
+      "name": "Berlin",
+      "starting_controller": "Prussia",
+      "terrain": "forest",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_027": {
       "province_id": "prov_027",
@@ -1211,7 +1349,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1220,7 +1358,12 @@
         "Region_024",
         "Region_028",
         "Region_039"
-      ]
+      ],
+      "name": "Moravia",
+      "starting_controller": "Austria",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_028": {
       "province_id": "prov_028",
@@ -1255,7 +1398,7 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1264,7 +1407,12 @@
         "Region_019",
         "Region_027",
         "Region_033"
-      ]
+      ],
+      "name": "Hungary",
+      "starting_controller": "Austria",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_029": {
       "province_id": "prov_029",
@@ -1299,14 +1447,19 @@
         75,
         132
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_006",
         "Region_020",
         "Region_053"
-      ]
+      ],
+      "name": "Nordland",
+      "starting_controller": "Denmark",
+      "terrain": "forest",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_030": {
       "province_id": "prov_030",
@@ -1352,7 +1505,12 @@
         "Region_071",
         "Region_074",
         "Region_081"
-      ]
+      ],
+      "name": "Aragon",
+      "starting_controller": "Spain",
+      "terrain": "mountains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_031": {
       "province_id": "prov_031",
@@ -1397,7 +1555,12 @@
         "Region_054",
         "Region_066",
         "Region_077"
-      ]
+      ],
+      "name": "Posen",
+      "starting_controller": "Prussia",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_032": {
       "province_id": "prov_032",
@@ -1432,7 +1595,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1443,7 +1606,12 @@
         "Region_107",
         "Region_112",
         "Region_114"
-      ]
+      ],
+      "name": "Artois",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_033": {
       "province_id": "prov_033",
@@ -1478,7 +1646,7 @@
         198,
         121
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1486,7 +1654,12 @@
         "Region_021",
         "Region_028",
         "Region_105"
-      ]
+      ],
+      "name": "Croatia",
+      "starting_controller": "Austria",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_034": {
       "province_id": "prov_034",
@@ -1530,7 +1703,12 @@
         "Region_044",
         "Region_051",
         "Region_055"
-      ]
+      ],
+      "name": "Leon",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_035": {
       "province_id": "prov_035",
@@ -1565,10 +1743,17 @@
         101,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
-      "adjacent": []
+      "adjacent": [
+        "Region_073"
+      ],
+      "name": "Sicily",
+      "starting_controller": "Naples",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_036": {
       "province_id": "prov_036",
@@ -1603,13 +1788,19 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_018",
-        "Region_073"
-      ]
+        "Region_073",
+        "Region_086"
+      ],
+      "name": "Rome",
+      "starting_controller": "PapalStates",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_037": {
       "province_id": "prov_037",
@@ -1653,7 +1844,12 @@
         "Region_049",
         "Region_051",
         "Region_081"
-      ]
+      ],
+      "name": "Beira",
+      "starting_controller": "Portugal",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_038": {
       "province_id": "prov_038",
@@ -1698,7 +1894,12 @@
         "Region_068",
         "Region_069",
         "Region_098"
-      ]
+      ],
+      "name": "Swabia",
+      "starting_controller": "Bavaria",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_039": {
       "province_id": "prov_039",
@@ -1733,7 +1934,7 @@
         191,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1742,7 +1943,12 @@
         "Region_024",
         "Region_027",
         "Region_064"
-      ]
+      ],
+      "name": "Ukraine",
+      "starting_controller": "Russia",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_040": {
       "province_id": "prov_040",
@@ -1777,7 +1983,7 @@
         94,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1786,7 +1992,12 @@
         "Region_076",
         "Region_103",
         "Region_118"
-      ]
+      ],
+      "name": "Midlands",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_041": {
       "province_id": "prov_041",
@@ -1821,13 +2032,18 @@
         249,
         100
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_006",
         "Region_053"
-      ]
+      ],
+      "name": "Gothland",
+      "starting_controller": "Sweden",
+      "terrain": "forest",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_042": {
       "province_id": "prov_042",
@@ -1872,7 +2088,12 @@
         "Region_091",
         "Region_098",
         "Region_099"
-      ]
+      ],
+      "name": "Rhineland",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_043": {
       "province_id": "prov_043",
@@ -1919,7 +2140,12 @@
         "Region_102",
         "Region_106",
         "Region_110"
-      ]
+      ],
+      "name": "Brunswick",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_044": {
       "province_id": "prov_044",
@@ -1954,7 +2180,7 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -1962,7 +2188,12 @@
         "Region_034",
         "Region_055",
         "Region_074"
-      ]
+      ],
+      "name": "Galicia",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_045": {
       "province_id": "prov_045",
@@ -2006,7 +2237,12 @@
         "Region_008",
         "Region_012",
         "Region_023"
-      ]
+      ],
+      "name": "Vilna",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_046": {
       "province_id": "prov_046",
@@ -2041,7 +2277,7 @@
         249,
         184
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2051,7 +2287,12 @@
         "Region_062",
         "Region_074",
         "Region_080"
-      ]
+      ],
+      "name": "Gascony",
+      "starting_controller": "France",
+      "terrain": "mountains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_047": {
       "province_id": "prov_047",
@@ -2086,12 +2327,18 @@
         139,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_059"
-      ]
+        "Region_059",
+        "Region_070"
+      ],
+      "name": "Ulster",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_048": {
       "province_id": "prov_048",
@@ -2126,7 +2373,7 @@
         76,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2134,7 +2381,12 @@
         "Region_046",
         "Region_056",
         "Region_074"
-      ]
+      ],
+      "name": "Guyenne",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_049": {
       "province_id": "prov_049",
@@ -2169,7 +2421,7 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2178,7 +2430,12 @@
         "Region_071",
         "Region_081",
         "Region_120"
-      ]
+      ],
+      "name": "La Mancha",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_050": {
       "province_id": "prov_050",
@@ -2224,7 +2481,12 @@
         "Region_090",
         "Region_092",
         "Region_093"
-      ]
+      ],
+      "name": "Limousin",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_051": {
       "province_id": "prov_051",
@@ -2259,7 +2521,7 @@
         184,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2268,7 +2530,12 @@
         "Region_049",
         "Region_055",
         "Region_078"
-      ]
+      ],
+      "name": "Lisbon",
+      "starting_controller": "Portugal",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_052": {
       "province_id": "prov_052",
@@ -2303,7 +2570,7 @@
         177,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2312,7 +2579,12 @@
         "Region_016",
         "Region_069",
         "Region_119"
-      ]
+      ],
+      "name": "Tyrol",
+      "starting_controller": "Austria",
+      "terrain": "mountains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_053": {
       "province_id": "prov_053",
@@ -2347,14 +2619,19 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_006",
         "Region_029",
         "Region_041"
-      ]
+      ],
+      "name": "Lapland",
+      "starting_controller": "Sweden",
+      "terrain": "forest",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_054": {
       "province_id": "prov_054",
@@ -2389,7 +2666,7 @@
         198,
         105
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2399,7 +2676,12 @@
         "Region_077",
         "Region_088",
         "Region_125"
-      ]
+      ],
+      "name": "Finland",
+      "starting_controller": "Sweden",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_055": {
       "province_id": "prov_055",
@@ -2434,7 +2716,7 @@
         75,
         81
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2442,7 +2724,12 @@
         "Region_044",
         "Region_051",
         "Region_078"
-      ]
+      ],
+      "name": "Asturias",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_056": {
       "province_id": "prov_056",
@@ -2477,7 +2764,7 @@
         117,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2485,7 +2772,12 @@
         "Region_048",
         "Region_067",
         "Region_084"
-      ]
+      ],
+      "name": "Anjou",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_057": {
       "province_id": "prov_057",
@@ -2530,7 +2822,12 @@
         "Region_079",
         "Region_089",
         "Region_099"
-      ]
+      ],
+      "name": "Lorraine",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_058": {
       "province_id": "prov_058",
@@ -2565,12 +2862,17 @@
         75,
         189
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_025"
-      ]
+      ],
+      "name": "Egypt",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_059": {
       "province_id": "prov_059",
@@ -2605,12 +2907,17 @@
         198,
         172
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_047"
-      ]
+      ],
+      "name": "Munster",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "city",
+      "is_capital": false
     },
     "Region_060": {
       "province_id": "prov_060",
@@ -2655,7 +2962,12 @@
         "Region_080",
         "Region_090",
         "Region_101"
-      ]
+      ],
+      "name": "Lyonnais",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_061": {
       "province_id": "prov_061",
@@ -2690,13 +3002,18 @@
         94,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_070",
         "Region_075"
-      ]
+      ],
+      "name": "Scotland",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_062": {
       "province_id": "prov_062",
@@ -2731,7 +3048,7 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2739,7 +3056,12 @@
         "Region_046",
         "Region_071",
         "Region_074"
-      ]
+      ],
+      "name": "Bearn",
+      "starting_controller": "France",
+      "terrain": "mountains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_063": {
       "province_id": "prov_063",
@@ -2774,7 +3096,7 @@
         94,
         154
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2782,7 +3104,12 @@
         "Region_076",
         "Region_116",
         "Region_118"
-      ]
+      ],
+      "name": "Cornwall",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_064": {
       "province_id": "prov_064",
@@ -2817,12 +3144,17 @@
         199,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_039"
-      ]
+      ],
+      "name": "Bessarabia",
+      "starting_controller": "Russia",
+      "terrain": "hills",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_065": {
       "province_id": "prov_065",
@@ -2857,7 +3189,7 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2865,7 +3197,12 @@
         "Region_060",
         "Region_090",
         "Region_100"
-      ]
+      ],
+      "name": "Savoy",
+      "starting_controller": "France",
+      "terrain": "mountains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_066": {
       "province_id": "prov_066",
@@ -2909,7 +3246,12 @@
         "Region_031",
         "Region_077",
         "Region_082"
-      ]
+      ],
+      "name": "Brandenburg",
+      "starting_controller": "Prussia",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_067": {
       "province_id": "prov_067",
@@ -2944,7 +3286,7 @@
         249,
         164
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2952,7 +3294,12 @@
         "Region_056",
         "Region_084",
         "Region_094"
-      ]
+      ],
+      "name": "Maine",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_068": {
       "province_id": "prov_068",
@@ -2987,7 +3334,7 @@
         119,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2996,7 +3343,12 @@
         "Region_069",
         "Region_089",
         "Region_100"
-      ]
+      ],
+      "name": "Franche-Comte",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_069": {
       "province_id": "prov_069",
@@ -3031,7 +3383,7 @@
         115,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3040,7 +3392,12 @@
         "Region_052",
         "Region_068",
         "Region_119"
-      ]
+      ],
+      "name": "Munich",
+      "starting_controller": "Bavaria",
+      "terrain": "mountains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_070": {
       "province_id": "prov_070",
@@ -3075,12 +3432,18 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
+        "Region_047",
         "Region_061"
-      ]
+      ],
+      "name": "Highlands",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_071": {
       "province_id": "prov_071",
@@ -3115,7 +3478,7 @@
         94,
         206
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3123,7 +3486,12 @@
         "Region_049",
         "Region_062",
         "Region_081"
-      ]
+      ],
+      "name": "Toledo",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_072": {
       "province_id": "prov_072",
@@ -3158,13 +3526,18 @@
         198,
         197
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_097",
         "Region_113"
-      ]
+      ],
+      "name": "Bergen",
+      "starting_controller": "Denmark",
+      "terrain": "forest",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_073": {
       "province_id": "prov_073",
@@ -3199,12 +3572,18 @@
         161,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
+        "Region_035",
         "Region_036"
-      ]
+      ],
+      "name": "Naples",
+      "starting_controller": "Naples",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_074": {
       "province_id": "prov_074",
@@ -3239,7 +3618,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3248,7 +3627,12 @@
         "Region_046",
         "Region_048",
         "Region_062"
-      ]
+      ],
+      "name": "Bordelais",
+      "starting_controller": "France",
+      "terrain": "mountains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_075": {
       "province_id": "prov_075",
@@ -3283,13 +3667,18 @@
         198,
         89
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_040",
         "Region_061"
-      ]
+      ],
+      "name": "Northumbria",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_076": {
       "province_id": "prov_076",
@@ -3324,13 +3713,18 @@
         75,
         97
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_040",
         "Region_063"
-      ]
+      ],
+      "name": "Wales",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_077": {
       "province_id": "prov_077",
@@ -3365,7 +3759,7 @@
         133,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3373,7 +3767,12 @@
         "Region_054",
         "Region_066",
         "Region_082"
-      ]
+      ],
+      "name": "Livonia",
+      "starting_controller": "Russia",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_078": {
       "province_id": "prov_078",
@@ -3408,13 +3807,18 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_051",
         "Region_055"
-      ]
+      ],
+      "name": "Porto",
+      "starting_controller": "Portugal",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_079": {
       "province_id": "prov_079",
@@ -3461,7 +3865,12 @@
         "Region_109",
         "Region_112",
         "Region_121"
-      ]
+      ],
+      "name": "Orleanais",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_080": {
       "province_id": "prov_080",
@@ -3496,7 +3905,7 @@
         198,
         156
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3504,7 +3913,12 @@
         "Region_050",
         "Region_060",
         "Region_101"
-      ]
+      ],
+      "name": "Languedoc",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_081": {
       "province_id": "prov_081",
@@ -3547,7 +3961,12 @@
         "Region_037",
         "Region_049",
         "Region_071"
-      ]
+      ],
+      "name": "Madrid",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_082": {
       "province_id": "prov_082",
@@ -3582,7 +4001,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3590,7 +4009,12 @@
         "Region_066",
         "Region_077",
         "Region_095"
-      ]
+      ],
+      "name": "Pomerania",
+      "starting_controller": "Prussia",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_083": {
       "province_id": "prov_083",
@@ -3625,13 +4049,18 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_002",
         "Region_105"
-      ]
+      ],
+      "name": "Constantinople",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_084": {
       "province_id": "prov_084",
@@ -3666,13 +4095,18 @@
         94,
         174
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_056",
         "Region_067"
-      ]
+      ],
+      "name": "Brittany",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_085": {
       "province_id": "prov_085",
@@ -3707,7 +4141,7 @@
         219,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3717,7 +4151,12 @@
         "Region_107",
         "Region_109",
         "Region_110"
-      ]
+      ],
+      "name": "Oldenburg",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "town",
+      "is_capital": false
     },
     "Region_086": {
       "province_id": "prov_086",
@@ -3752,12 +4191,18 @@
         235,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
+        "Region_036",
         "Region_115"
-      ]
+      ],
+      "name": "Cagliari",
+      "starting_controller": "Sardinia",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_087": {
       "province_id": "prov_087",
@@ -3802,7 +4247,12 @@
         "Region_043",
         "Region_091",
         "Region_098"
-      ]
+      ],
+      "name": "Frankfurt",
+      "starting_controller": "Hesse",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_088": {
       "province_id": "prov_088",
@@ -3837,14 +4287,19 @@
         249,
         144
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_001",
         "Region_013",
         "Region_054"
-      ]
+      ],
+      "name": "Karelia",
+      "starting_controller": "Sweden",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_089": {
       "province_id": "prov_089",
@@ -3888,7 +4343,12 @@
         "Region_079",
         "Region_090",
         "Region_100"
-      ]
+      ],
+      "name": "Nivernais",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_090": {
       "province_id": "prov_090",
@@ -3935,7 +4395,12 @@
         "Region_092",
         "Region_100",
         "Region_108"
-      ]
+      ],
+      "name": "Burgundy",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_091": {
       "province_id": "prov_091",
@@ -3979,7 +4444,12 @@
         "Region_087",
         "Region_099",
         "Region_106"
-      ]
+      ],
+      "name": "Gelderland",
+      "starting_controller": "Holland",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_092": {
       "province_id": "prov_092",
@@ -4024,7 +4494,12 @@
         "Region_093",
         "Region_108",
         "Region_112"
-      ]
+      ],
+      "name": "Champagne",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_093": {
       "province_id": "prov_093",
@@ -4068,7 +4543,12 @@
         "Region_050",
         "Region_092",
         "Region_094"
-      ]
+      ],
+      "name": "Paris",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_094": {
       "province_id": "prov_094",
@@ -4103,7 +4583,7 @@
         183,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4111,7 +4591,12 @@
         "Region_032",
         "Region_067",
         "Region_093"
-      ]
+      ],
+      "name": "Normandy",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_095": {
       "province_id": "prov_095",
@@ -4146,15 +4631,21 @@
         94,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_026",
         "Region_043",
         "Region_082",
-        "Region_096"
-      ]
+        "Region_096",
+        "Region_123"
+      ],
+      "name": "Scania",
+      "starting_controller": "Sweden",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_096": {
       "province_id": "prov_096",
@@ -4189,14 +4680,20 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_043",
         "Region_095",
-        "Region_102"
-      ]
+        "Region_102",
+        "Region_123"
+      ],
+      "name": "Jutland",
+      "starting_controller": "Denmark",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_097": {
       "province_id": "prov_097",
@@ -4231,7 +4728,7 @@
         75,
         113
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4239,7 +4736,12 @@
         "Region_085",
         "Region_102",
         "Region_113"
-      ]
+      ],
+      "name": "Oslo",
+      "starting_controller": "Denmark",
+      "terrain": "forest",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_098": {
       "province_id": "prov_098",
@@ -4282,7 +4784,12 @@
         "Region_038",
         "Region_042",
         "Region_087"
-      ]
+      ],
+      "name": "Nassau",
+      "starting_controller": "Hesse",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_099": {
       "province_id": "prov_099",
@@ -4327,7 +4834,12 @@
         "Region_091",
         "Region_106",
         "Region_109"
-      ]
+      ],
+      "name": "Brabant",
+      "starting_controller": "Holland",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_100": {
       "province_id": "prov_100",
@@ -4362,7 +4874,7 @@
         75,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4370,7 +4882,12 @@
         "Region_068",
         "Region_089",
         "Region_090"
-      ]
+      ],
+      "name": "Bern",
+      "starting_controller": "Switzerland",
+      "terrain": "mountains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_101": {
       "province_id": "prov_101",
@@ -4405,14 +4922,19 @@
         198,
         140
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_018",
         "Region_060",
         "Region_080"
-      ]
+      ],
+      "name": "Provence",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_102": {
       "province_id": "prov_102",
@@ -4447,7 +4969,7 @@
         104,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4456,7 +4978,12 @@
         "Region_096",
         "Region_097",
         "Region_110"
-      ]
+      ],
+      "name": "Hanover",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_103": {
       "province_id": "prov_103",
@@ -4491,14 +5018,19 @@
         82,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_040",
         "Region_116",
         "Region_118"
-      ]
+      ],
+      "name": "East Anglia",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_104": {
       "province_id": "prov_104",
@@ -4542,7 +5074,12 @@
         "Region_107",
         "Region_109",
         "Region_112"
-      ]
+      ],
+      "name": "Westphalia",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_105": {
       "province_id": "prov_105",
@@ -4577,13 +5114,18 @@
         75,
         154
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_033",
         "Region_083"
-      ]
+      ],
+      "name": "Rumelia",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_106": {
       "province_id": "prov_106",
@@ -4627,7 +5169,12 @@
         "Region_099",
         "Region_109",
         "Region_110"
-      ]
+      ],
+      "name": "Amsterdam",
+      "starting_controller": "Holland",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_107": {
       "province_id": "prov_107",
@@ -4662,7 +5209,7 @@
         171,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4670,7 +5217,12 @@
         "Region_085",
         "Region_104",
         "Region_114"
-      ]
+      ],
+      "name": "East Frisia",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_108": {
       "province_id": "prov_108",
@@ -4714,7 +5266,12 @@
         "Region_092",
         "Region_112",
         "Region_121"
-      ]
+      ],
+      "name": "Ile-de-France",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_109": {
       "province_id": "prov_109",
@@ -4749,7 +5306,7 @@
         249,
         125
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4759,8 +5316,14 @@
         "Region_104",
         "Region_106",
         "Region_110",
-        "Region_112"
-      ]
+        "Region_112",
+        "Region_116"
+      ],
+      "name": "Flanders",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_110": {
       "province_id": "prov_110",
@@ -4804,7 +5367,12 @@
         "Region_102",
         "Region_106",
         "Region_109"
-      ]
+      ],
+      "name": "Osnabruck",
+      "starting_controller": "Hanover",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_111": {
       "province_id": "prov_111",
@@ -4839,10 +5407,17 @@
         155,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
-      "adjacent": []
+      "adjacent": [
+        "Region_017"
+      ],
+      "name": "Cyprus",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_112": {
       "province_id": "prov_112",
@@ -4887,7 +5462,12 @@
         "Region_104",
         "Region_108",
         "Region_109"
-      ]
+      ],
+      "name": "Picardy",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_113": {
       "province_id": "prov_113",
@@ -4922,14 +5502,19 @@
         94,
         245
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_006",
         "Region_072",
         "Region_097"
-      ]
+      ],
+      "name": "Dalarna",
+      "starting_controller": "Sweden",
+      "terrain": "forest",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_114": {
       "province_id": "prov_114",
@@ -4964,13 +5549,18 @@
         249,
         208
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_032",
         "Region_107"
-      ]
+      ],
+      "name": "Friesland",
+      "starting_controller": "Holland",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_115": {
       "province_id": "prov_115",
@@ -5005,12 +5595,18 @@
         163,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
+        "Region_018",
         "Region_086"
-      ]
+      ],
+      "name": "Corsica",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "major_city",
+      "is_capital": false
     },
     "Region_116": {
       "province_id": "prov_116",
@@ -5045,14 +5641,20 @@
         94,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_063",
         "Region_103",
+        "Region_109",
         "Region_118"
-      ]
+      ],
+      "name": "London",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_117": {
       "province_id": "prov_117",
@@ -5087,10 +5689,17 @@
         249,
         94
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
-      "adjacent": []
+      "adjacent": [
+        "Region_124"
+      ],
+      "name": "Crete",
+      "starting_controller": "Ottoman",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_118": {
       "province_id": "prov_118",
@@ -5133,7 +5742,12 @@
         "Region_063",
         "Region_103",
         "Region_116"
-      ]
+      ],
+      "name": "Wessex",
+      "starting_controller": "Britain",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_119": {
       "province_id": "prov_119",
@@ -5168,13 +5782,18 @@
         207,
         249
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_052",
         "Region_069"
-      ]
+      ],
+      "name": "Milan",
+      "starting_controller": "KingdomOfItaly",
+      "terrain": "mountains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_120": {
       "province_id": "prov_120",
@@ -5209,13 +5828,18 @@
         196,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_005",
         "Region_049"
-      ]
+      ],
+      "name": "Alentejo",
+      "starting_controller": "Portugal",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_121": {
       "province_id": "prov_121",
@@ -5256,7 +5880,12 @@
       "adjacent": [
         "Region_079",
         "Region_108"
-      ]
+      ],
+      "name": "Ardennes",
+      "starting_controller": "France",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_122": {
       "province_id": "prov_122",
@@ -5291,10 +5920,17 @@
         198,
         125
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
-      "adjacent": []
+      "adjacent": [
+        "Region_009"
+      ],
+      "name": "Balearics",
+      "starting_controller": "Spain",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_123": {
       "province_id": "prov_123",
@@ -5329,10 +5965,18 @@
         89,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
-      "adjacent": []
+      "adjacent": [
+        "Region_095",
+        "Region_096"
+      ],
+      "name": "Copenhagen",
+      "starting_controller": "Denmark",
+      "terrain": "plains",
+      "region_type": "capital",
+      "is_capital": true
     },
     "Region_124": {
       "province_id": "prov_124",
@@ -5367,12 +6011,18 @@
         98,
         198
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_021"
-      ]
+        "Region_021",
+        "Region_117"
+      ],
+      "name": "Epirus",
+      "starting_controller": "Ottoman",
+      "terrain": "hills",
+      "region_type": "rural",
+      "is_capital": false
     },
     "Region_125": {
       "province_id": "prov_125",
@@ -5407,15 +6057,20 @@
         198,
         75
       ],
-      "is_coastal": false,
+      "is_coastal": true,
       "wired": true,
       "interactive": true,
       "adjacent": [
         "Region_054"
-      ]
+      ],
+      "name": "Ostrobothnia",
+      "starting_controller": "Sweden",
+      "terrain": "plains",
+      "region_type": "rural",
+      "is_capital": false
     }
   },
-  "note": "Auto-generated smoke draft. Names are placeholders; wiring scope and real names are assigned in the map implementation plan.",
+  "note": "Slice 2 authored: 126 provinces, 1805 owners + historical names, terrain/region_type/coastal, capitals, sea links.",
   "sea_candidates": [
     {
       "a": "Region_001",
@@ -6144,5 +6799,55 @@
     "sea_gap_max": 400,
     "land_edges": 248,
     "sea_candidates": 144
-  }
+  },
+  "sea_links": [
+    [
+      116,
+      109
+    ],
+    [
+      47,
+      70
+    ],
+    [
+      86,
+      115
+    ],
+    [
+      115,
+      18
+    ],
+    [
+      86,
+      36
+    ],
+    [
+      35,
+      73
+    ],
+    [
+      122,
+      9
+    ],
+    [
+      123,
+      96
+    ],
+    [
+      123,
+      95
+    ],
+    [
+      117,
+      124
+    ],
+    [
+      111,
+      17
+    ],
+    [
+      83,
+      105
+    ]
+  ]
 }
