@@ -2524,8 +2524,10 @@ class WorldState:
 
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation == getattr(self, 'player_nation', 'France'):
-            from backend.models.region import get_starting_controllers
-            starting = get_starting_controllers()
+            # Map Slice 5: read the WORLD's starting map (legacy or Europe),
+            # not the legacy module global — else every Europe-only province
+            # name misses and recapturing own territory would accrue threat.
+            starting = getattr(self, "_starting_controllers", None) or get_starting_controllers()
             if starting.get(region_name) != capturing_nation:
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture")
@@ -6478,12 +6480,15 @@ class WorldState:
                     # example payload (actor_nation == to_controller). Skip when
                     # the recipient is the proposer regaining their own
                     # territory — that's a settlement of own territory, not
-                    # ally restoration. Lawful owner comes from
-                    # `get_starting_controllers()` because the Region class
-                    # does not retain the starting controller after init.
+                    # ally restoration. Lawful owner comes from the world's
+                    # starting-controller map (legacy or Europe — Map Slice 5)
+                    # because the Region class does not retain the starting
+                    # controller after init.
                     if from_nation and to_nation and to_nation != proposer:
-                        from backend.models.region import get_starting_controllers
-                        starting_controllers = get_starting_controllers()
+                        starting_controllers = (
+                            getattr(self, "_starting_controllers", None)
+                            or get_starting_controllers()
+                        )
                         if starting_controllers.get(region_name) == to_nation:
                             from backend.game_logic.war_contribution import (
                                 accrue_occupation_event,

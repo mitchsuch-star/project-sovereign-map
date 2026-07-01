@@ -177,3 +177,29 @@ def test_legacy_fixture_adjacency_unchanged():
 def test_legacy_nation_capitals_unchanged():
     """The Britain->Netherlands proxy (settlement_scoring.py contract) is intact."""
     assert dict(NATION_CAPITALS) == LEGACY_NATION_CAPITALS_SNAPSHOT
+
+
+# ════════════════════════════════════════════════════════════════════
+# WORLD-SCOPED STARTING-CONTROLLER READS — Europe cutover regressions
+# ════════════════════════════════════════════════════════════════════
+
+def test_capture_threat_reads_the_world_starting_map():
+    """capture_region's R16 threat check must consult the WORLD's starting
+    map, not the legacy module global: France recapturing its own Europe
+    starting province ("Berry" — a Europe-only name absent from the legacy
+    19) accrues NO threat, while capturing foreign territory still does."""
+    from backend.models.world_state import WorldState
+
+    world = WorldState(sovereign_map="europe")
+    baseline = int(getattr(world, "threat_level", 0))
+
+    # Recapture of own 1805 starting territory: no threat.
+    world.regions["Berry"].controller = "Prussia"
+    world.capture_region("Berry", "France")
+    assert int(world.threat_level) == baseline, (
+        "Recapturing France's own starting province must not add threat"
+    )
+
+    # Conquest of foreign starting territory: +2 threat.
+    world.capture_region("Silesia", "France")
+    assert int(world.threat_level) == baseline + 2
