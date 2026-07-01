@@ -78,6 +78,19 @@ NATION_POWER_TIERS: Dict[str, str] = {
     "Saxony": "minor",
     "Portugal": "minor",
     "Denmark-Norway": "minor",
+    # ── Full-Europe (126-province) roster additions (Map Slice 3) ──
+    # These are the extra minors the europe.json ownership pass discovered.
+    # Additive-only: NATION_POWER_TIERS is a `.get()` lookup with a
+    # `secondary` default, so authoring more keys never perturbs the legacy
+    # 5-nation world (it only ever queries its own nations).
+    "Denmark": "minor",           # registry key (europe.json uses "Denmark")
+    "PapalStates": "minor",
+    "Sardinia": "minor",          # Piedmont-Sardinia
+    "Hanover": "minor",
+    "Hesse": "minor",
+    "Holland": "minor",           # Batavian Republic (French satellite)
+    "KingdomOfItaly": "minor",    # French satellite (Napoleon as King)
+    "Switzerland": "minor",       # Helvetic Confederation (French satellite)
 }
 
 # Fallback when `NATION_POWER_TIERS` lacks an explicit authored entry —
@@ -91,6 +104,12 @@ _POWER_TIER_DEFAULT = "secondary"
 NATION_HONOR_BIAS: Dict[str, float] = {
     "Prussia": 1.15,
     "Spain": 0.85,
+    # NOTE (Map Slice 3): per-nation honor bias for the Europe roster is
+    # intentionally NOT authored here. Unlike the `.get()` lookups (colors,
+    # tiers, desire profiles), honor bias multiplies live reliability-delta
+    # math, so seeding it perturbs existing reliability fixtures. Europe honor
+    # bias is owned by the 1805 Scenario Setup gate / balance pass; roster
+    # nations fall back to the neutral 1.0 default until then.
 }
 
 RUNTIME_NATIONS = tuple(
@@ -254,3 +273,155 @@ def validate_scenario_runtime_support(scenario_data: Mapping[str, Any]) -> list[
         collect_scenario_nations(scenario_data),
         region_names=region_names,
     )
+
+
+# ════════════════════════════════════════════════════════════════
+# FULL-EUROPE (126-province) ROSTER — Map Slice 3
+# ════════════════════════════════════════════════════════════════
+#
+# Scenario-scoped config for the commissioned 126-province Europe map. This is
+# DELIBERATELY separate from the legacy globals above: `RUNTIME_NATIONS`,
+# `NATION_CAPITALS`, `DEFAULT_NATION_GOLD`, and `STARTING_DIPLOMATS` all feed the
+# default `WorldState()` constructor, which the ~275-file gameplay test fixture
+# and `settlement_scoring.py` (the documented Britain→Netherlands proxy) depend
+# on. Per the Map Implementation Plan amendment N1 (third review pass), the
+# Europe world carries its OWN capital map / roster / economy at construction —
+# it never mutates the globals. Slice 4 (`create_europe_regions` + the
+# `WorldState(region_factory=…)` seam) consumes this surface; Slice 3 only
+# authors + tests the data.
+#
+# Roster blessed at the Slice 2.5 Roster Design Gate (July 1, 2026):
+#   • 17 independents + 3 genuine 1805 French satellite states (vassals).
+#   • Britain retires the Netherlands proxy for a real London; Russia/Ottoman/
+#     Sweden use frontier/edge proxy capitals authored in europe.json.
+#   • North Africa: Algiers + the Egypt sliver are Ottoman-owned (the art did
+#     not separate Morocco/Tunis/Tripoli into their own provinces).
+
+# The 20-nation Europe roster (player first, then major → secondary → minor →
+# satellite). Matches the `starting_controller` set authored in europe.json.
+EUROPE_ROSTER: tuple[str, ...] = (
+    # Major courts
+    "France", "Britain", "Russia", "Austria", "Prussia",
+    # Secondary courts
+    "Spain", "Ottoman", "Sweden", "Naples",
+    # Minor independents (sovereign in autumn 1805)
+    "Portugal", "Denmark", "Bavaria", "Saxony", "Hanover", "Hesse",
+    "PapalStates", "Sardinia",
+    # French satellite states — modeled as vassals of France (see
+    # EUROPE_VASSAL_WEB). Still full nations that own their provinces.
+    "Holland", "KingdomOfItaly", "Switzerland",
+)
+
+# Authored 1805 capitals for the Europe world. Mirrors the `is_capital` flags in
+# godot-client/.../europe.json; a consistency test guards the two against drift.
+EUROPE_NATION_CAPITALS: Dict[str, str] = {
+    "France": "Paris",
+    "Britain": "London",           # real London — retires the Netherlands proxy
+    "Russia": "Vilna",             # frontier proxy (heartland off-map)
+    "Austria": "Vienna",
+    "Prussia": "Berlin",
+    "Spain": "Madrid",
+    "Ottoman": "Constantinople",   # sits at the map edge
+    "Sweden": "Stockholm",
+    "Naples": "Naples",
+    "Portugal": "Lisbon",
+    "Denmark": "Copenhagen",
+    "Bavaria": "Munich",
+    "Saxony": "Dresden",
+    "Hanover": "Hanover",
+    "Hesse": "Frankfurt",
+    "PapalStates": "Rome",
+    "Sardinia": "Cagliari",
+    "Holland": "Amsterdam",
+    "KingdomOfItaly": "Milan",
+    "Switzerland": "Bern",
+}
+
+# The historically-accurate 1805 client-parent web (Slice 2.5 gate). Only the
+# three genuine French satellite states are modeled as vassals; Bavaria, Saxony,
+# Hanover, and Hesse were sovereign in autumn 1805 and stay independent.
+# Autonomy is a string here to keep this module import-light; Slice 4 maps it to
+# the `vassal.AUTONOMY_*` constant when it seeds `world.vassals`.
+EUROPE_VASSAL_WEB: Dict[str, Dict[str, str]] = {
+    "Holland": {"lord": "France", "autonomy": "satellite"},         # Batavian Republic
+    "KingdomOfItaly": {"lord": "France", "autonomy": "satellite"},  # Napoleon as King
+    "Switzerland": {"lord": "France", "autonomy": "satellite"},     # Helvetic Confederation
+}
+
+# Per-nation economy overrides for the Europe majors/secondaries. Everything
+# absent falls back to DEFAULT_NATION_DEFAULTS (minors). Real 1805 balance is
+# owned by the 1805 Scenario Setup gate + DEF-3; these are sane starting values.
+EUROPE_NATION_GOLD: Dict[str, int] = {
+    "France": 800,
+    "Britain": 2000,   # the paymaster of the coalitions
+    "Russia": 1000,
+    "Austria": 700,
+    "Prussia": 800,
+    "Spain": 700,
+    "Ottoman": 600,
+    "Sweden": 400,
+    "Naples": 400,
+}
+
+EUROPE_BASE_ACTIONS: Dict[str, int] = {
+    "France": 4,
+    "Britain": 4,
+    "Russia": 4,
+    "Austria": 3,
+    "Prussia": 4,
+    "Spain": 3,
+    "Ottoman": 3,
+    "Sweden": 2,
+    "Naples": 2,
+}
+
+# Authority uses the flat DEFAULT default (60) for every Europe nation in v1;
+# authored per-nation authority is owned by the 1805 Scenario Setup gate.
+EUROPE_NATION_AUTHORITY: Dict[str, int] = {}
+
+
+def get_europe_runtime_nations() -> tuple[str, ...]:
+    """The full 20-nation roster for the 126-province Europe world."""
+    return EUROPE_ROSTER
+
+
+def build_europe_enemy_nations(player_nation: str = DEFAULT_PLAYER_NATION) -> list[str]:
+    """Non-player nations of the Europe roster for a given player."""
+    return [nation for nation in EUROPE_ROSTER if nation != player_nation]
+
+
+def build_europe_nation_gold(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
+    """Starting gold for every Europe nation (override → DEFAULT fallback)."""
+    gold = {
+        nation: int(EUROPE_NATION_GOLD.get(nation, DEFAULT_NATION_DEFAULTS["gold"]))
+        for nation in EUROPE_ROSTER
+    }
+    if player_nation and player_nation not in gold:
+        gold[player_nation] = int(EUROPE_NATION_GOLD.get(player_nation, DEFAULT_NATION_DEFAULTS["gold"]))
+    return gold
+
+
+def build_europe_nation_actions(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
+    """AI action budgets for the non-player Europe nations."""
+    return {
+        nation: int(EUROPE_BASE_ACTIONS.get(nation, DEFAULT_NATION_DEFAULTS["actions"]))
+        for nation in build_europe_enemy_nations(player_nation)
+    }
+
+
+def build_europe_nation_authority(player_nation: str = DEFAULT_PLAYER_NATION) -> Dict[str, int]:
+    """Authority values for the non-player Europe nations."""
+    return {
+        nation: int(EUROPE_NATION_AUTHORITY.get(nation, DEFAULT_NATION_DEFAULTS["authority"]))
+        for nation in build_europe_enemy_nations(player_nation)
+    }
+
+
+def get_europe_capital(nation: str) -> str | None:
+    """Scenario-scoped Europe capital for a nation (None if not in the roster)."""
+    return EUROPE_NATION_CAPITALS.get(nation)
+
+
+def get_europe_vassal_web() -> Dict[str, Dict[str, str]]:
+    """A copy of the authored 1805 client-parent web (vassal → {lord, autonomy})."""
+    return {vassal: dict(state) for vassal, state in EUROPE_VASSAL_WEB.items()}

@@ -1996,6 +1996,141 @@ NATION_DESIRE_PROFILES = {
         "diplomatic_lever": "survival",
         "weakness": "desperation",
     },
+    # ── Full-Europe (126-province) roster additions — Map Slice 3 ──
+    # `NATION_DESIRE_PROFILES` is a `.get()` lookup, so authoring these is
+    # additive: AI proposals for these nations no longer degrade to empty
+    # desires. `covets_regions` uses real europe.json province names (things
+    # the nation does NOT already own where possible). Per-nation Talleyrand
+    # commentary falls back to the `("_default", …)` lines below — bespoke
+    # in-voice copy is owner-row DEF-1 ("Roster Voices").
+    "France": {
+        "covets_regions": ["Hanover", "Piedmont"],
+        "values_gold": "low",
+        "values_territory": "high",
+        "values_ap": "medium",
+        "diplomatic_lever": "grandeur",
+        "weakness": "overreach",
+    },
+    "Russia": {
+        "covets_regions": ["Finland", "Constantinople"],
+        "values_gold": "low",
+        "values_territory": "high",
+        "values_ap": "medium",
+        "diplomatic_lever": "prestige",
+        "weakness": "distance",
+    },
+    "Spain": {
+        "covets_regions": ["Lisbon", "Algarve"],
+        "values_gold": "medium",
+        "values_territory": "medium",
+        "values_ap": "low",
+        "diplomatic_lever": "dynasty",
+        "weakness": "dependence",
+    },
+    "Ottoman": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "high",
+        "values_ap": "low",
+        "diplomatic_lever": "survival",
+        "weakness": "decay",
+    },
+    "Sweden": {
+        "covets_regions": ["Trondheim", "Nordland"],
+        "values_gold": "high",
+        "values_territory": "medium",
+        "values_ap": "low",
+        "diplomatic_lever": "honor",
+        "weakness": "isolation",
+    },
+    "Naples": {
+        "covets_regions": ["Rome"],
+        "values_gold": "medium",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "survival",
+        "weakness": "exposure",
+    },
+    "Portugal": {
+        "covets_regions": [],
+        "values_gold": "medium",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "trade",
+        "weakness": "isolation",
+    },
+    "Denmark": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "neutrality",
+        "weakness": "exposure",
+    },
+    "Bavaria": {
+        "covets_regions": ["Tyrol"],
+        "values_gold": "medium",
+        "values_territory": "high",
+        "values_ap": "medium",
+        "diplomatic_lever": "ambition",
+        "weakness": "dependence",
+    },
+    "Hanover": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "survival",
+        "weakness": "occupation",
+    },
+    "Hesse": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "survival",
+        "weakness": "desperation",
+    },
+    "PapalStates": {
+        "covets_regions": [],
+        "values_gold": "low",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "legitimacy",
+        "weakness": "defenselessness",
+    },
+    "Sardinia": {
+        "covets_regions": ["Piedmont"],
+        "values_gold": "medium",
+        "values_territory": "high",
+        "values_ap": "low",
+        "diplomatic_lever": "legitimacy",
+        "weakness": "exile",
+    },
+    "Holland": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "trade",
+        "weakness": "dependence",
+    },
+    "KingdomOfItaly": {
+        "covets_regions": [],
+        "values_gold": "low",
+        "values_territory": "medium",
+        "values_ap": "low",
+        "diplomatic_lever": "patronage",
+        "weakness": "dependence",
+    },
+    "Switzerland": {
+        "covets_regions": [],
+        "values_gold": "medium",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "neutrality",
+        "weakness": "dependence",
+    },
 }
 
 
@@ -2033,6 +2168,16 @@ TALLEYRAND_COMMENTARY = {
     ("Saxony", "neutral_deal"): "A small nation, easily satisfied. Einsiedel will accept any arrangement that preserves Saxony.",
     ("Saxony", "friendly_deal"): "Einsiedel is a loyal friend. A gentle deal strengthens bonds cheaply.",
     ("Saxony", "hostile_deal"): "Even gentle Einsiedel has turned cold. We must offer more than usual.",
+    # --- Full-Europe roster flavor (Map Slice 3): the largest new courts. ---
+    # Every other new nation resolves through the ("_default", …) lines below;
+    # bespoke voice for the full roster is owner-row DEF-1 ("Roster Voices").
+    ("Russia", "neutral_deal"): "The Tsar's court weighs prestige above coin. I've kept the terms dignified — Petersburg does not haggle.",
+    ("Russia", "hostile_deal"): "Alexander regards us as the disturber of Europe. Only terms that flatter his sense of destiny will move him.",
+    ("Russia", "dominant_terms"): "Russia is vast but her armies are far away. Press now, while the distance is on our side.",
+    ("Spain", "gold_for_poor"): "Madrid's treasury bleeds silver to keep its fleet afloat. Gold steadies a nervous ally.",
+    ("Spain", "neutral_deal"): "Godoy binds Spain to our star for now. A clean arrangement keeps that convenient loyalty intact.",
+    ("Ottoman", "neutral_deal"): "The Porte answers slowly and forgets nothing. I've made the terms plain, so nothing is lost in the delay.",
+    ("Ottoman", "gold_for_poor"): "Constantinople's coffers are hollow. Gold, discreetly offered, opens doors that armies cannot.",
     # --- Coveted unavailable (France doesn't control what they want) ---
     ("Prussia", "coveted_unavailable"): "Hardenberg dreams of Saxony, but it is not yet ours to offer. Conquer it first, Sire, and he will come to the table eagerly.",
     ("Austria", "coveted_unavailable"): "Metternich yearns for Bavaria, but we do not hold it. Secure it first, and these negotiations transform entirely.",

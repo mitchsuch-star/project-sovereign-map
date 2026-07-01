@@ -44,6 +44,20 @@ const NATION_COLORS = {
 	"Saxony": Color(0.4, 0.6, 0.3),
 	"Russia": Color(0.2, 0.5, 0.2),
 	"Spain": Color(0.8, 0.6, 0.1),
+	# --- Full-Europe (126-province) roster — Map Slice 3 ---
+	"Ottoman": Color(0.0, 0.5, 0.4),
+	"Sweden": Color(0.0, 0.42, 0.65),
+	"Naples": Color(0.5, 0.7, 0.85),
+	"Portugal": Color(0.1, 0.55, 0.35),
+	"Denmark": Color(0.85, 0.3, 0.3),
+	"Bavaria": Color(0.45, 0.6, 0.85),
+	"Hanover": Color(0.55, 0.35, 0.15),
+	"Hesse": Color(0.6, 0.5, 0.3),
+	"PapalStates": Color(0.9, 0.85, 0.55),
+	"Sardinia": Color(0.7, 0.7, 0.72),
+	"Holland": Color(0.9, 0.5, 0.1),
+	"KingdomOfItaly": Color(0.2, 0.6, 0.35),
+	"Switzerland": Color(0.8, 0.2, 0.2),
 	"Neutral": Color(0.565, 0.933, 0.565),
 }
 
