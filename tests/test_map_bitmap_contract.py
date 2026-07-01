@@ -3,6 +3,10 @@
 These tests do not execute GDScript; the repo has no Godot runtime harness in
 pytest. Instead they exercise the bitmap asset contract directly with tiny PNG
 fixtures so CI catches regressions that source-level greps miss.
+
+Map Slice 5: migrated to the game's map — the contract fixtures are keyed off
+the europe.json registry (126 provinces, sea = pure black sentinel) instead of
+the retired-from-play 19-region placeholder JSON.
 """
 
 from __future__ import annotations
@@ -21,8 +25,12 @@ PROVINCE_JSON = (
     / "project-sovereign"
     / "assets"
     / "maps"
-    / "session8_placeholder_provinces.json"
+    / "europe.json"
 )
+
+# Two real provinces from the Europe registry drive the tiny PNG fixtures.
+PROV_A = "Region_000"
+PROV_B = "Region_001"
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 TMP_ROOT = REPO_ROOT / ".pytest_tmp_local_run"
@@ -178,7 +186,7 @@ def test_fixture_bitmap_loader_rejects_missing_and_mismatched_files():
     TMP_ROOT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=TMP_ROOT) as temp_dir:
         tmp_path = Path(temp_dir)
-        lookup, province_data = _province_lookup(("Paris", "Belgium"))
+        lookup, province_data = _province_lookup((PROV_A, PROV_B))
         sentinel = tuple(province_data["no_province_color"])
 
         visual_path = tmp_path / "visual.png"
@@ -203,10 +211,10 @@ def test_fixture_bitmap_loader_rejects_unknown_and_missing_lookup_colors():
     TMP_ROOT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=TMP_ROOT) as temp_dir:
         tmp_path = Path(temp_dir)
-        lookup, province_data = _province_lookup(("Paris", "Belgium"))
+        lookup, province_data = _province_lookup((PROV_A, PROV_B))
         sentinel = tuple(province_data["no_province_color"])
-        paris = tuple(province_data["regions"]["Paris"]["lookup_color"])
-        belgium = tuple(province_data["regions"]["Belgium"]["lookup_color"])
+        prov_a = tuple(province_data["regions"][PROV_A]["lookup_color"])
+        prov_b = tuple(province_data["regions"][PROV_B]["lookup_color"])
 
         visual_path = tmp_path / "visual.png"
         lookup_path = tmp_path / "lookup.png"
@@ -214,29 +222,29 @@ def test_fixture_bitmap_loader_rejects_unknown_and_missing_lookup_colors():
 
         _write_rgba_png(
             lookup_path,
-            [[_rgba(paris), _rgba((paris[0], paris[1], min(255, paris[2] + 1)))]],
+            [[_rgba(prov_a), _rgba((prov_a[0], prov_a[1], min(255, prov_a[2] + 1)))]],
         )
         ok, error = _load_bitmap_contract(visual_path, lookup_path, lookup, sentinel)
         assert not ok
-        assert error == f"unmapped color {paris[0]},{paris[1]},{min(255, paris[2] + 1)} at 1,0"
+        assert error == f"unmapped color {prov_a[0]},{prov_a[1]},{min(255, prov_a[2] + 1)} at 1,0"
 
         _write_rgba_png(
             lookup_path,
-            [[_rgba(paris), _rgba(sentinel)]],
+            [[_rgba(prov_a), _rgba(sentinel)]],
         )
         ok, error = _load_bitmap_contract(visual_path, lookup_path, lookup, sentinel)
         assert not ok
-        assert error == f"missing colors ['{_color_to_key(belgium)}']"
+        assert error == f"missing colors ['{_color_to_key(prov_b)}']"
 
 
 def test_fixture_bitmap_lookup_round_trips_region_hits_with_zero_origin():
     TMP_ROOT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=TMP_ROOT) as temp_dir:
         tmp_path = Path(temp_dir)
-        lookup, province_data = _province_lookup(("Paris", "Belgium"))
+        lookup, province_data = _province_lookup((PROV_A, PROV_B))
         sentinel = tuple(province_data["no_province_color"])
-        paris = tuple(province_data["regions"]["Paris"]["lookup_color"])
-        belgium = tuple(province_data["regions"]["Belgium"]["lookup_color"])
+        prov_a = tuple(province_data["regions"][PROV_A]["lookup_color"])
+        prov_b = tuple(province_data["regions"][PROV_B]["lookup_color"])
 
         visual_path = tmp_path / "visual.png"
         lookup_path = tmp_path / "lookup.png"
@@ -250,8 +258,8 @@ def test_fixture_bitmap_lookup_round_trips_region_hits_with_zero_origin():
         _write_rgba_png(
             lookup_path,
             [
-                [_rgba(paris), _rgba(belgium), _rgba(sentinel)],
-                [_rgba(sentinel), _rgba(belgium), _rgba(paris)],
+                [_rgba(prov_a), _rgba(prov_b), _rgba(sentinel)],
+                [_rgba(sentinel), _rgba(prov_b), _rgba(prov_a)],
             ],
         )
 
@@ -260,10 +268,10 @@ def test_fixture_bitmap_lookup_round_trips_region_hits_with_zero_origin():
         contract = payload
         assert contract["map_origin"] == (0, 0)
         assert contract["map_canvas_size"] == (3, 2)
-        assert _lookup_region_from_contract(contract, lookup, 0, 0) == "Paris"
-        assert _lookup_region_from_contract(contract, lookup, 1, 0) == "Belgium"
+        assert _lookup_region_from_contract(contract, lookup, 0, 0) == PROV_A
+        assert _lookup_region_from_contract(contract, lookup, 1, 0) == PROV_B
         assert _lookup_region_from_contract(contract, lookup, 2, 0) == ""
-        assert _lookup_region_from_contract(contract, lookup, 1, 1) == "Belgium"
-        assert _lookup_region_from_contract(contract, lookup, 2, 1) == "Paris"
+        assert _lookup_region_from_contract(contract, lookup, 1, 1) == PROV_B
+        assert _lookup_region_from_contract(contract, lookup, 2, 1) == PROV_A
         assert _lookup_region_from_contract(contract, lookup, -1, 0) == ""
         assert _lookup_region_from_contract(contract, lookup, 3, 0) == ""

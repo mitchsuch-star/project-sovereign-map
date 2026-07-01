@@ -49,9 +49,24 @@ game_state = {"world": None, "debug_mode": DEBUG_MODE}
 state_lock = threading.Lock()  # 3A-1: Protects state-mutating endpoints
 
 
+def _resolve_sovereign_map() -> str:
+    """Resolve the SOVEREIGN_MAP flag for the game bootstrap (Map Slice 5, G1).
+
+    The game ships the 126-province Europe map: the default is "europe".
+    Rollback is a flag flip, not a code change — set SOVEREIGN_MAP=legacy to
+    restore the 19-region world. Read per-call (not cached at import) so a
+    running process and the test suite can exercise both paths.
+    """
+    value = os.getenv("SOVEREIGN_MAP", "europe").strip().lower()
+    if value not in ("europe", "legacy"):
+        print(f"[WARN] Unknown SOVEREIGN_MAP={value!r} — falling back to 'europe'")
+        return "europe"
+    return value
+
+
 def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
     """Create a fresh campaign world with the default start-state."""
-    return WorldState(player_nation=player_nation)
+    return WorldState(player_nation=player_nation, sovereign_map=_resolve_sovereign_map())
 
 
 def _set_active_world(new_world: WorldState) -> WorldState:
@@ -68,6 +83,7 @@ def _reset_world_state(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState
 
 
 _reset_world_state()
+print(f"SOVEREIGN_MAP: {world.sovereign_map} ({len(world.regions)} regions)")
 
 
 def get_llm_game_state() -> dict:
@@ -870,23 +886,31 @@ def get_map_topology():
     Source of truth for region adjacency shared between backend and Godot.
     Per-turn state (controller, marshals, fog) still lives in
     `game_state.map_data`; this endpoint exposes only authored scenario data.
-    """
-    from backend.models.region import REGIONS_DATA, NATION_CAPITALS
 
+    Map Slice 5: serves the ACTIVE world's map — the 126-province Europe
+    graph on the default bootstrap, the 19-region set under
+    SOVEREIGN_MAP=legacy — so backend and renderer can never drift.
+    """
+    from backend.models.region import get_starting_controllers
+
+    starting_controllers = (
+        getattr(world, "_starting_controllers", None) or get_starting_controllers()
+    )
     regions = {}
-    for name, data in REGIONS_DATA.items():
+    for name, region in world.regions.items():
+        grid = region.grid_position or (0, 0)
         regions[name] = {
-            "adjacent": list(data["adjacent"]),
-            "terrain": data.get("terrain", "plains"),
-            "region_type": data.get("region_type", "town"),
-            "is_capital": bool(data.get("is_capital", False)),
-            "starting_controller": data.get("starting_controller"),
-            "grid_position": list(data.get("grid_position", (0, 0))),
+            "adjacent": list(region.adjacent_regions),
+            "terrain": region.terrain,
+            "region_type": region.region_type,
+            "is_capital": bool(region.is_capital),
+            "starting_controller": starting_controllers.get(name),
+            "grid_position": [int(grid[0]), int(grid[1])],
         }
     return {
         "success": True,
         "regions": regions,
-        "nation_capitals": dict(NATION_CAPITALS),
+        "nation_capitals": dict(world.nation_capitals),
     }
 
 

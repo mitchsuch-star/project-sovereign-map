@@ -419,6 +419,25 @@ class TestBackwardCompat:
         assert result["success"] is False
         assert "incompatible" in result["message"].lower()
 
+    def test_pre_cutover_v2_save_rejected_with_clear_message(self, test_save_dir, world):
+        """DEF-2 (Map Slice 5): a 19-region-era save (format v2) fails with a
+        clear versioned message — no crash, no silent load of stale region keys."""
+        filepath = test_save_dir / "pre_cutover.json"
+        data = {
+            "metadata": {"format_version": 2, "save_name": "Pre-Cutover"},
+            "world_state": world.to_dict()
+        }
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+
+        result = load_game(filepath)
+        assert result["success"] is False
+        assert result["world"] is None
+        assert "incompatible" in result["message"].lower()
+        # The message is versioned: names both the save's format and the current one.
+        assert "v2" in result["message"]
+        assert f"v{FORMAT_VERSION}" in result["message"]
+
     def test_extra_unknown_fields_ignored(self, test_save_dir, world):
         """Save file with extra keys still loads."""
         filepath = test_save_dir / "extra_fields.json"

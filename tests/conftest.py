@@ -58,6 +58,18 @@ def _isolate_sovereign_smoke_start(monkeypatch):
     monkeypatch.delenv("SOVEREIGN_SMOKE_START", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_sovereign_map(monkeypatch):
+    """Ensure SOVEREIGN_MAP is unset for every test (Map Slice 5, G1).
+
+    The game bootstrap reads SOVEREIGN_MAP (default "europe"; "legacy" is the
+    rollback flip). A developer's shell/.env value must not skew the suite:
+    tests that exercise a specific map set the flag (or `sovereign_map=`)
+    explicitly.
+    """
+    monkeypatch.delenv("SOVEREIGN_MAP", raising=False)
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # MARSHAL FACTORY
 # ════════════════════════════════════════════════════════════════════════════════

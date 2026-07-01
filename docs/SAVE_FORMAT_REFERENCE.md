@@ -165,6 +165,7 @@ A future save/load system should use this as the specification.
 |-------|------|---------|-------------|
 | `format_version` | string | "1.1" | Save format version for compatibility |
 | `player_nation` | string | "France" | Nation controlled by player |
+| `sovereign_map` | string | "legacy" | Which map the world was built on: "legacy" (19-region fixture) or "europe" (126-province game map). `from_dict` rebuilds the matching region set + roster (Map Slice 4/5). |
 | `current_turn` | int | 1 | Current turn number |
 | `max_turns` | int | 40 | Maximum turns before game ends |
 | `gold` | int | 800 | Player's treasury (backward compat, reads from nation_gold) |
@@ -726,6 +727,8 @@ Reserved future `event_log` payloads:
 | `is_capital` | bool | Whether this is a capital |
 | `terrain` | string | Terrain type: plains, forest, hills, mountains, urban, river_crossing. Default "plains" for backward compat. |
 | `region_type` | string | Region type: capital, major_city, city, town, rural. Default "town" for backward compat. |
+| `is_coastal` | bool | Whether the region borders the sea. Default false for backward compat. |
+| `grid_position` | list\|null | `(row, col)` for direction resolution — authored for the legacy 19, centroid spatial-rank for the 126 Europe provinces (Map Slice 4). Default null for backward compat. |
 | `controller` | string\|null | Nation controlling region |
 | `garrison_strength` | int | Garrison troops (capital: 15k start, player-placed: 3k detachment) |
 | `garrison_detachment` | bool | True if garrison was placed by marshal detachment — player or AI (no regen, no 5k collapse). Default false. Backward compat: `from_dict` also reads old `garrison_player_placed` key. |
@@ -949,6 +952,8 @@ When format changes:
 3. Support reading old versions
 
 **Version 2 (Session 1A):** Map expanded from 13 to 19 regions. Hard break — version 1 saves are rejected with a clear message. No migration path (map structure changed too fundamentally).
+
+**Version 3 (Map Slice 5, July 1, 2026):** The 126-province Europe cutover (`save_manager.FORMAT_VERSION = 3`). Region keys changed wholesale, so pre-cutover (v1/v2) saves are rejected with a clear versioned message naming both formats (DEF-2 — no silent crash, no migration path). The `metadata.format_version` written by `save_manager.py` is the integer 3; new fields `sovereign_map` (WorldState) and `grid_position`/`is_coastal` (Region) are documented above.
 
 ### Save File Structure (Pre-EA)
 

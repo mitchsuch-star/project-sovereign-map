@@ -6,7 +6,7 @@ listing saves, and deleting saves.
 Save format:
 {
     "metadata": {
-        "format_version": 1,
+        "format_version": 3,
         "save_name": "...",
         "saved_at": "ISO-8601",
         "turn": int,
@@ -30,7 +30,12 @@ from backend.models.world_state import WorldState
 
 SAVE_DIR = Path("saves")
 AUTOSAVE_FILENAME = "autosave.json"
-FORMAT_VERSION = 2
+# Format history (DEF-2 — every bump invalidates older saves with a clear
+# message rather than a silent crash):
+#   1 — 13-region map
+#   2 — 19-region map (pre-Europe-cutover)
+#   3 — 126-province Europe map cutover (Map Slice 5); region keys changed
+FORMAT_VERSION = 3
 MAX_MANUAL_SAVES = 10
 
 
@@ -105,11 +110,18 @@ def load_game(filepath: Path) -> Dict:
         metadata = save_data.get("metadata", {})
         world_data = save_data.get("world_state")
 
-        # Hard break: reject saves from 13-region map (format version 1)
+        # Hard break: reject saves that predate the current map (DEF-2).
+        # v1 = 13-region map, v2 = 19-region map; the 126-province Europe
+        # cutover (format v3) changed every region key, so older saves
+        # cannot load — fail with a clear versioned message, never crash.
         save_version = metadata.get("format_version", 1)
         if save_version < FORMAT_VERSION:
             return {"success": False,
-                    "message": "This save is from a 13-region map and is incompatible with the current version.",
+                    "message": (
+                        f"This save (format v{save_version}) predates the "
+                        f"126-province Europe map (format v{FORMAT_VERSION}) "
+                        "and is incompatible with the current version."
+                    ),
                     "world": None, "metadata": metadata}
 
         if world_data is None:

@@ -13,8 +13,15 @@ from backend.save_manager import AUTOSAVE_FILENAME, autosave, save_game
 
 
 @pytest.fixture
-def restart_client():
-    """Provide a TestClient with an isolated save directory and fresh world."""
+def restart_client(monkeypatch):
+    """Provide a TestClient with an isolated save directory and fresh world.
+
+    Pinned to the legacy 19-region fixture via the G1 rollback flag: these
+    tests exercise the restart MECHANICS against the marshal-populated legacy
+    world (Ney, France gold baseline). The Europe restart path is covered by
+    tests/test_map_slice5_cutover.py.
+    """
+    monkeypatch.setenv("SOVEREIGN_MAP", "legacy")
     save_dir = Path("saves") / "__restart_flow_tmp__"
     if save_dir.exists():
         shutil.rmtree(save_dir)
@@ -25,6 +32,7 @@ def restart_client():
         main_module._reset_world_state()
         with TestClient(main_module.app) as client:
             yield client, main_module, save_dir
+        monkeypatch.delenv("SOVEREIGN_MAP", raising=False)
         main_module._reset_world_state()
     if save_dir.exists():
         shutil.rmtree(save_dir)
