@@ -351,6 +351,35 @@ def test_art_layer_filters_smoothly_but_lookup_stays_exact():
     assert "var max_zoom: float = 2.5" in source
 
 
+def test_sea_link_lines_are_dashed_dark_ink():
+    """July 2 user report: the sea-link lines blended into the sea art and
+    read as artifacts. They now draw dashed in dark map-ink so they read as
+    deliberate crossing routes on the chart."""
+    connection_gd = GODOT_SCENES_DIR / "map_connection_layer.gd"
+    source = _read(connection_gd)
+    assert "draw_dashed_line(" in source, "sea links must draw dashed"
+    assert "draw_line(start_pos, end_pos" not in source, "solid line must not return"
+    dash = float(re.search(r"const DASH_LENGTH: float = ([0-9.]+)", source).group(1))
+    assert dash > 0
+    utils_source = _read(UTILS_GD)
+    match = re.search(
+        r"const COLOR_CONNECTION = Color\(([0-9.]+),\s*([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)\)",
+        utils_source,
+    )
+    assert match, "COLOR_CONNECTION must carry an explicit alpha"
+    r, g, b, a = (float(match.group(i)) for i in range(1, 5))
+    luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    assert luminance < 0.35, (
+        f"COLOR_CONNECTION luminance {luminance:.2f} — must stay dark ink, "
+        f"the light grey vanished against the sea art"
+    )
+    assert 0.5 <= a <= 1.0
+    # The Europe map must still resolve the line color through the single
+    # source (also pinned by test_map_slice7_cutover's _get_colors check).
+    map_gd = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map.gd"
+    assert "Utils.COLOR_CONNECTION" in _read(map_gd)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # DEF-11 — zoom-LOD map labels
 # ═══════════════════════════════════════════════════════════════════════════

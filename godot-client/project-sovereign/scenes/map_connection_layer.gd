@@ -1,5 +1,10 @@
 extends Control
 
+# Slice 7.5 fold: connection lines (the Europe map's 12 hand-authored sea
+# links) draw DASHED so they read as deliberate crossing routes on the chart
+# — a solid light line blended into the sea art and looked like an artifact.
+const DASH_LENGTH: float = 12.0
+
 var _connections: Array = []
 var _line_color: Color = Color(0.6, 0.6, 0.6)
 var _line_width: float = 2.0
@@ -21,4 +26,4 @@ func _draw():
 	for connection in _connections:
 		var start_pos = connection.get("start", Vector2.ZERO)
 		var end_pos = connection.get("end", Vector2.ZERO)
-		draw_line(start_pos, end_pos, _line_color, _line_width, true)
+		draw_dashed_line(start_pos, end_pos, _line_color, _line_width, DASH_LENGTH, true, true)

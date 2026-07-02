@@ -99,7 +99,10 @@ static func display_nation_name(nation: String) -> String:
 	return result
 
 # === Map Connection Line Color ===
-const COLOR_CONNECTION = Color(0.6, 0.6, 0.6)
+# Slice 7.5 fold (user report: lines blend in with the map): sea-link routes
+# draw as dashed dark map-ink — the old light grey vanished against the
+# blue-grey sea art and read as a rendering artifact rather than a route.
+const COLOR_CONNECTION = Color(0.25, 0.17, 0.1, 0.8)
 
 # === Default Fallback Colors for Unknown Nations ===
 # Deliberately artificial magenta (Slice 7.5 / DEF-10): the old muted red sat
