@@ -36,6 +36,42 @@ const UNWIRED_TOOLTIP_PANEL := Color(0.14, 0.11, 0.08, 0.95)
 const UNWIRED_TOOLTIP_BORDER := Color(0.55, 0.42, 0.28, 0.9)
 const UNWIRED_TOOLTIP_TITLE_COLOR := Color(0.82, 0.72, 0.55)
 const UNWIRED_TOOLTIP_SUFFIX_COLOR := Color(0.72, 0.58, 0.38)
+# Map Slice 6: province ownership fills. In bitmap mode every province is
+# tinted by its owner's Utils.NATION_COLORS color through the lookup mask on a
+# dedicated shader layer. OWNER_FILL_STRENGTH is the tint alpha over the
+# terrain art (0.0 = invisible, 1.0 = flat political map). An ownership change
+# costs ONE <=128-entry palette uniform upload (G4: re-tint in <= one frame) —
+# never a per-pixel CPU pass; the per-pixel §4.4 grey-overlay pattern is
+# load-time-only and must not be mirrored here.
+const OWNER_FILL_STRENGTH: float = 0.55
+const OWNER_FILL_MAX_PROVINCES: int = 128
+# The palette match loop runs per on-screen fragment every frame; the sea
+# early-out (sentinel [0,0,0] covers most of the image) bounds it and also
+# guarantees a zeroed palette slot can never paint open water.
+const OWNER_FILL_SHADER := """
+shader_type canvas_item;
+
+uniform int province_count = 0;
+uniform vec4 lookup_colors[128];
+uniform vec4 owner_colors[128];
+uniform float fill_strength = 0.55;
+
+void fragment() {
+	vec4 key = texture(TEXTURE, UV);
+	if (key.r + key.g + key.b < 0.002) {
+		COLOR = vec4(0.0);
+	} else {
+		vec4 result = vec4(0.0);
+		for (int i = 0; i < province_count; i++) {
+			if (all(lessThan(abs(key.rgb - lookup_colors[i].rgb), vec3(0.002)))) {
+				result = vec4(owner_colors[i].rgb, owner_colors[i].a * fill_strength);
+				break;
+			}
+		}
+		COLOR = result;
+	}
+}
+"""
 static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
@@ -88,6 +124,7 @@ var garrison_layer: Control
 var tooltip_layer
 var visual_map_layer: TextureRect
 var highlight_map_layer: TextureRect
+var owner_fill_layer: TextureRect
 
 var region_nodes := {}
 var marshal_hitboxes: Array = []
@@ -98,6 +135,14 @@ var province_color_lookup := {}
 var province_lookup_image: Image = null
 var visual_map_texture = null
 var highlight_map_texture = null
+# True iff _load_map_images() delivered artist bitmaps (vs the circle
+# fallback). The owner-fill layer only exists in bitmap mode — the legacy
+# circle map keeps its per-region Panel fills as the ownership display.
+var _bitmap_mode := false
+# Fixed province ordering shared by the lookup_colors and owner_colors shader
+# palettes — index alignment between the two arrays is the load-bearing
+# invariant of the owner-fill pass.
+var _owner_fill_province_order: Array = []
 var map_origin: Vector2 = Vector2.ZERO
 var map_canvas_size: Vector2 = Vector2.ZERO
 var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
@@ -247,6 +292,8 @@ func _build_province_shapes():
 	province_lookup_image = null
 	visual_map_texture = null
 	highlight_map_texture = null
+	_bitmap_mode = false
+	_owner_fill_province_order = []
 
 	var positions = _get_region_positions()
 	if positions.is_empty():
@@ -379,6 +426,7 @@ func _load_map_images() -> bool:
 	map_origin = Vector2.ZERO
 	map_canvas_size = Vector2(visual_image.get_size())
 	province_lookup_image = lookup_image
+	_bitmap_mode = true
 	_apply_unwired_grey_overlay(visual_image, lookup_image)
 	visual_map_texture = ImageTexture.create_from_image(visual_image)
 	_clear_highlight_texture()
@@ -630,6 +678,8 @@ func _create_scene_layers():
 	visual_map_layer.texture = visual_map_texture
 	world_layer.add_child(visual_map_layer)
 
+	_create_owner_fill_layer()
+
 	highlight_map_layer = TextureRect.new()
 	highlight_map_layer.name = "ProvinceHighlightLayer"
 	highlight_map_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -675,6 +725,74 @@ func _create_scene_layers():
 	tooltip_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tooltip_layer.z_index = 100
 	add_child(tooltip_layer)
+
+
+func _create_owner_fill_layer():
+	# Map Slice 6: political ownership fills. Same z_index as the visual layer
+	# but a later sibling, so it draws above the terrain art and below the
+	# hover highlight (z -1). Skipped entirely on the circle-fallback path.
+	owner_fill_layer = null
+	if not _bitmap_mode or province_lookup_image == null:
+		return
+	if province_shapes.size() > OWNER_FILL_MAX_PROVINCES:
+		push_error(
+			"Owner-fill palette holds %d provinces; registry has %d — the overflow will never tint" %
+			[OWNER_FILL_MAX_PROVINCES, province_shapes.size()]
+		)
+
+	owner_fill_layer = TextureRect.new()
+	owner_fill_layer.name = "OwnerFillLayer"
+	owner_fill_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	owner_fill_layer.position = map_origin - world_bounds.position
+	owner_fill_layer.size = map_canvas_size
+	owner_fill_layer.stretch_mode = TextureRect.STRETCH_SCALE
+	owner_fill_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	owner_fill_layer.z_index = -2
+	owner_fill_layer.texture = ImageTexture.create_from_image(province_lookup_image)
+
+	var shader = Shader.new()
+	shader.code = OWNER_FILL_SHADER
+	var fill_material = ShaderMaterial.new()
+	fill_material.shader = shader
+
+	# Both palette arrays MUST iterate _owner_fill_province_order so slot i's
+	# lookup color and owner color describe the same province. Arrays are
+	# always uploaded at exactly OWNER_FILL_MAX_PROVINCES entries — a short
+	# upload would leave zeroed tail slots.
+	_owner_fill_province_order = []
+	var lookups := PackedColorArray()
+	lookups.resize(OWNER_FILL_MAX_PROVINCES)
+	for region_name in province_shapes:
+		if _owner_fill_province_order.size() >= OWNER_FILL_MAX_PROVINCES:
+			break
+		_owner_fill_province_order.append(region_name)
+	for i in range(_owner_fill_province_order.size()):
+		lookups[i] = province_shapes[_owner_fill_province_order[i]]["lookup_color"]
+	fill_material.set_shader_parameter("lookup_colors", lookups)
+	fill_material.set_shader_parameter("province_count", _owner_fill_province_order.size())
+	fill_material.set_shader_parameter("fill_strength", OWNER_FILL_STRENGTH)
+	owner_fill_layer.material = fill_material
+	world_layer.add_child(owner_fill_layer)
+
+	_refresh_owner_fill_palette()
+
+
+func _refresh_owner_fill_palette():
+	# G4 hot path: an ownership change costs one <=128-entry uniform upload.
+	# Called on every update_all_regions/update_region, including the legacy
+	# circle map where no owner layer exists — must no-op there.
+	if owner_fill_layer == null:
+		return
+	var owners := PackedColorArray()
+	owners.resize(OWNER_FILL_MAX_PROVINCES)
+	for i in range(_owner_fill_province_order.size()):
+		var region_name: String = _owner_fill_province_order[i]
+		var owner_color := Color(0, 0, 0, 0)
+		if region_controllers.has(region_name) and _is_region_wired(region_name):
+			var controller = str(region_controllers[region_name])
+			owner_color = Utils.NATION_COLORS.get(controller, Utils.COLOR_ENEMY_DEFAULT)
+		owners[i] = owner_color
+	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
 
 
 func _build_static_map_visuals():
@@ -1862,6 +1980,7 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 		region_marshals.erase(region_name)
 
 	_refresh_region_visual(region_name)
+	_refresh_owner_fill_palette()
 	_rebuild_dynamic_nodes()
 	queue_redraw()
 
@@ -1915,5 +2034,6 @@ func update_all_regions(map_data: Dictionary):
 			region_garrisons.erase(region_name)
 
 	_refresh_all_region_visuals()
+	_refresh_owner_fill_palette()
 	_rebuild_dynamic_nodes()
 	queue_redraw()

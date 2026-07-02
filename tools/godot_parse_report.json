@@ -74,7 +74,19 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scripts/mailbox_panel.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/map_renderer_base.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/europe_map.gd"
     }
   ],
-  "timestamp": "2026-06-12T20:34:02Z"
+  "timestamp": "2026-07-02T03:00:51Z"
 }

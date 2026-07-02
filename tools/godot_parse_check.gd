@@ -38,6 +38,16 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/mailbox_panel.gd",
 ]
 
+# Map Slice 6: the owner-fill renderer scripts live under scenes/, not
+# scripts/ — kept in their own list because the pytest staleness guard for
+# SETTLEMENT_CRITICAL_SCRIPTS resolves names against scripts/ only; the
+# scenes-dir coverage + staleness checks are owned by
+# tests/test_map_owner_fill.py.
+const MAP_CRITICAL_SCRIPTS = [
+	"res://scenes/map_renderer_base.gd",
+	"res://scenes/europe_map.gd",
+]
+
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"
 
 
@@ -50,7 +60,7 @@ func _init():
 		"scripts": [],
 	}
 	var any_failed = false
-	for script_path in SETTLEMENT_CRITICAL_SCRIPTS:
+	for script_path in SETTLEMENT_CRITICAL_SCRIPTS + MAP_CRITICAL_SCRIPTS:
 		var entry = _check_script(script_path)
 		report["scripts"].append(entry)
 		if not entry["parse_ok"] or not entry["load_ok"]:
