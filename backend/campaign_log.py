@@ -159,6 +159,10 @@ CAMPAIGN_LOG_TYPES = {
     "settlement_recurring_gold_partial",
     "settlement_recurring_gold_completed",
     "settlement_recurring_gold_cancelled",
+    # SC-30 / Slice G1: the Request Terms lifecycle
+    "settlement_terms_requested",
+    "settlement_terms_request_granted",
+    "settlement_terms_request_refused",
 }
 
 # ============================================================================
@@ -269,6 +273,9 @@ CATEGORY_MAP = {
     "settlement_recurring_gold_partial": "diplomacy",
     "settlement_recurring_gold_completed": "diplomacy",
     "settlement_recurring_gold_cancelled": "diplomacy",
+    "settlement_terms_requested": "diplomacy",
+    "settlement_terms_request_granted": "diplomacy",
+    "settlement_terms_request_refused": "diplomacy",
 }
 
 
@@ -930,6 +937,25 @@ def format_event_oneliner(event: dict) -> str:
     # SC-33 recurring settlement gold (G4F smoke follow-up): the payments
     # fired in the morning dispatch but vanished from the campaign log
     # history entirely (type-filtered out).
+    # SC-30 / Slice G1: the Request Terms lifecycle beats.
+    if event_type == "settlement_terms_requested":
+        return (
+            f"Terms requested from {event.get('answering_leader', 'the enemy court')} "
+            f"on {event.get('war_label', 'the war')}."
+        )
+
+    if event_type == "settlement_terms_request_granted":
+        return (
+            f"{event.get('answering_leader', 'The enemy court')} answered our "
+            f"request with settlement terms for {event.get('war_label', 'the war')}."
+        )
+
+    if event_type == "settlement_terms_request_refused":
+        return (
+            f"{event.get('answering_leader', 'The enemy court')} refused to name "
+            f"terms for {event.get('war_label', 'the war')}."
+        )
+
     if event_type == "settlement_recurring_gold_paid":
         return (
             f"{event.get('from_nation', 'Unknown')} paid "

@@ -288,6 +288,14 @@ Incoming settlement-offer families:
 | `settlement_incoming_offer_request_revision_talleyrand` | Talleyrand | "Sire, I shall lay the offered terms for {war_label} on our own table, court by court. We answer the dispatch from {proposer_leader} with a counter draft, not silence." *(Guided Terms §5 copy retarget, GT-Slice-V — the beat lands on the guided settlement table, no longer on an editor.)* |
 | `settlement_incoming_offer_blocked_recovery_talleyrand` | Talleyrand | "Sire, the offer from {proposer_leader} cannot ratify as it stands: {top_blocker}. Request a revision and we answer with our own draft instead of refusing without a reply." |
 
+Request Terms lifecycle families (SC-30 / Slice G1, July 2, 2026 — a GRANTED request produces a real incoming offer, which speaks through the arrival family above; the refusal is spoken FOR the answering court by its named diplomat / chancery, never anonymous):
+
+| Family | Speaker | Authored copy contract |
+| --- | --- | --- |
+| `settlement_request_terms_sent_talleyrand` | Talleyrand | "I shall ask {court}'s chancery to name its terms for {war_label}, Sire. Expect an answer with the next dispatches." |
+| `settlement_request_terms_refused_court` | Named diplomat / chancery (via `resolve_named_diplomat`) | "{speaker} answers for {court}: the court sees no need to name terms while the war runs in its favor. The request may be renewed when the field has spoken again." |
+| `settlement_request_terms_lapsed_talleyrand` | Talleyrand | "Our request for terms on {war_label} has lapsed, Sire — the war has changed shape since we asked." |
+
 Settlement recovery routing table:
 
 | Trigger | Required family |
@@ -424,6 +432,7 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 
 ## Changelog
 
+- **July 2, 2026** - Slice G1 (SC-30 Request Terms lifecycle): added the `settlement_request_terms_sent_talleyrand` / `settlement_request_terms_refused_court` / `settlement_request_terms_lapsed_talleyrand` families to §16.1. The refusal resolves its speaker through `resolve_named_diplomat("envoy", court, world)` with chancery fallback (never anonymous); the grant deliberately has no template — it produces a real incoming offer that speaks through the existing arrival family. SC-32 D5 boundary verified over the new copy.
 - **June 10, 2026** - GT-Slice-V (Settlement Guided Terms §9): added the guided per-court demand-authoring voice family to §16.1a — the DC-4 concede-court caution line (verbatim from the Gate-4 pre-flight audit), the named-court `demand_received` / `offer_received` authoring reactions, the OQ-6 budget-bound recommendation extension of `settlement_budget_bound_constraint_talleyrand`, and the eleven committed `settlement_guided_reason_*_talleyrand` suggestion-reason templates. Retargeted `settlement_incoming_offer_request_revision_talleyrand` onto the guided table (Guided Terms §5 — the beat no longer references opening an editor). SC-32 D5 boundary extended over all new copy.
 
 - **May 8, 2026** - Added explicit 16.1 Imperial Settlement voice-family anchors for blocked ratification, rescored drafts, discard confirmation, active-review collision, reopen-cap recovery, foreign-court observation, and review headings so `SETTLEMENT_UI_CLEANUP_SPEC.md` SC-19 has authored copy in this Voice Bible.

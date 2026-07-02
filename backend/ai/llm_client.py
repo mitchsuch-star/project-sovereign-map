@@ -511,6 +511,12 @@ class LLMClient:
         if any(kw in command_lower for kw in _common_peace_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
+        # SC-30 / Slice G1: Request Terms lifecycle keywords route to
+        # diplomacy without requiring "Talleyrand".
+        _request_terms_keywords = ["request terms", "request their terms"]
+        if any(kw in command_lower for kw in _request_terms_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
                            "foreign minister", "ambassador"]
@@ -1065,6 +1071,8 @@ class LLMClient:
             "repair relations", "offer reparations", "send reparations",
             # WB-C: Repudiate bargain
             "repudiate bargain", "break bargain", "renounce bargain",
+            # SC-30 / Slice G1: Request Terms lifecycle
+            "request terms", "request their terms",
         ]
         has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
 
@@ -1174,6 +1182,13 @@ class LLMClient:
             "open settlement with", "settle with",
         ]):
             action = "propose_common_peace"
+        # SC-30 / Slice G1 — Request Terms lifecycle (ask the enemy war
+        # leader to name settlement terms). Checked before the generic
+        # demand branch ("request" alone is not a demand keyword).
+        elif any(kw in command_lower for kw in [
+            "request terms", "request their terms", "ask them to name terms",
+        ]):
+            action = "request_terms"
         elif any(kw in command_lower for kw in ["demand", "insist", "require"]):
             action = "diplomatic_proposal"
             tone = "demand"

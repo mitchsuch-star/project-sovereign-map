@@ -40,6 +40,7 @@ ACTION_DISPLAY = {
     "repudiate_bargain": "repudiates bargain with",  # WB-C
     "propose_common_peace": "opens settlement with",  # Imperial Settlement
     "open_settlement": "opens settlement with",       # Godot wizard action
+    "request_terms": "requests terms from",           # SC-30 / Slice G1
 }
 
 # ============================================================================
@@ -94,6 +95,7 @@ OBJECTION_DISPLAY = {
     "repudiate_bargain": "repudiating bargain",   # WB-C
     "propose_common_peace": "opening settlement",  # Imperial Settlement
     "open_settlement": "opening settlement",       # Godot wizard action
+    "request_terms": "requesting terms",            # SC-30 / Slice G1
 }
 
 # ============================================================================
@@ -130,6 +132,7 @@ DEFIANCE_DISPLAY = {
     "repudiate_bargain": "repudiated bargain",   # WB-C
     "propose_common_peace": "opened settlement",  # Imperial Settlement
     "open_settlement": "opened settlement",       # Godot wizard action
+    "request_terms": "requested terms",            # SC-30 / Slice G1
 }
 
 # ============================================================================

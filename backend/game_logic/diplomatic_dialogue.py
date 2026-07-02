@@ -799,11 +799,10 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # estimate even promising "COUNTER expected") before learning the
     # proposal cannot be delivered at all. Surface the block at MOUNT, in
     # the same G4F-13 honest-preview pattern, and name the routes that DO
-    # work on a shared coalition war. (Whether armistice should be exempt
-    # from the paradox rule is a separate design question — this only stops
-    # the preview promising what Send will refuse.)
-    if proposal_type in ("peace", "armistice", "armistice_losing",
-                         "armistice_winning"):
+    # work on a shared coalition war. Slice G1 / D-G1-1 (user-approved):
+    # the paradox gates bilateral PEACE only — armistice variants are
+    # exempt at the send gate, so the mount warning matches.
+    if proposal_type == "peace":
         from backend.game_logic.diplomacy import get_peace_commitment_conflicts
         _conflicts = get_peace_commitment_conflicts(
             world, player_nation, target_nation,

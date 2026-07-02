@@ -345,6 +345,8 @@ func _ready():
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
 		if war_detail_popup.has_signal("settlement_clicked"):
 			war_detail_popup.settlement_clicked.connect(_on_war_settlement_clicked)
+		if war_detail_popup.has_signal("request_terms_clicked"):
+			war_detail_popup.request_terms_clicked.connect(_on_war_request_terms_clicked)
 		war_detail_popup.war_ended.connect(_on_war_ended_notification)
 
 	# Mailbox panel (Session 2 follow-up: browsable inbox, layer 119)
@@ -3696,6 +3698,25 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, {
 			"action": "propose_common_peace",
+			"target_nation": nation,
+			"war_id": war_id,
+		}, _on_command_result)
+	else:
+		api_client.send_command(command, _on_command_result)
+
+
+func _on_war_request_terms_clicked(war_id: String, nation: String):
+	"""SC-30 / Slice G1: ask the enemy war leader to name settlement terms.
+
+	The answer arrives on the next AI phase — a granted request produces a
+	real incoming settlement offer (the existing offer popup/mailbox), a
+	refusal arrives as a voiced notification."""
+	var command = "request terms from " + nation
+	add_output("[color=#d9c08c]Requesting terms from %s[/color]" % Utils.display_nation_name(nation))
+	set_input_enabled(false)
+	if api_client.has_method("send_structured_command"):
+		api_client.send_structured_command(command, {
+			"action": "request_terms",
 			"target_nation": nation,
 			"war_id": war_id,
 		}, _on_command_result)

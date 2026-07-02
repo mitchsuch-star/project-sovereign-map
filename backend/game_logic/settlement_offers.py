@@ -936,6 +936,10 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
         # popup's options onto the dialogue itself — the standard dialogue
         # contract every other family satisfies.
         popup = dialogue["popup_payload"]
+        if isinstance(popup, dict) and not dialogue.get("war_label"):
+            # E-5: the mailbox summary renders the humanized war label —
+            # the producer entry itself never carried one.
+            dialogue["war_label"] = str(popup.get("war_label") or "")
         if not dialogue.get("options") and isinstance(popup, dict):
             dialogue["options"] = [
                 dict(opt) for opt in (popup.get("options") or [])

@@ -573,7 +573,7 @@ def _derive_proposal_result_outcome(result: dict) -> str:
     # neither accepted nor rejected — the hard REJECT default titled every
     # such send "Diplomatic Action Rejected" on the notice rail.
     if ("departs for" in message or "expect a response" in message
-            or "en route" in message):
+            or "expect an answer" in message or "en route" in message):
         return "PENDING"
 
     return "REJECT"

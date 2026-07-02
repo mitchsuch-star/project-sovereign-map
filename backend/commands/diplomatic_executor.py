@@ -1988,6 +1988,140 @@ class DiplomaticExecutor:
     # IMPERIAL SETTLEMENT — COMMON PEACE PROPOSAL (Slice C2 / spec §11)
     # ════════════════════════════════════════════════════════════════════════════════
 
+    def _execute_request_terms(self, command: Dict, game_state: Dict) -> Dict:
+        """SC-30 / Slice G1 — ask the enemy war leader to name terms.
+
+        Writes a `settlement_terms_requests[war_id]` entry with
+        `status="requested"`; the AI answers on its next diplomatic phase
+        (`ai_diplomacy._resolve_settlement_terms_requests`): a GRANT
+        produces a real incoming settlement offer, a REFUSAL arrives with
+        voice and a cooldown. Click-time re-runs the affordance
+        (`evaluate_request_terms_affordance`) so a stale button can never
+        author a request the lifecycle cannot advance. Costs 1 DP; no DP
+        is consumed on any refusal path.
+        """
+        world = game_state.get("world") if isinstance(game_state, dict) else game_state
+        cmd = command.get("command", command) if isinstance(command.get("command"), dict) else command
+        target_nation = (
+            cmd.get("target_nation")
+            or (cmd.get("diplomatic_data") or {}).get("target_nation")
+        )
+        requested_war_id = str(
+            cmd.get("war_id")
+            or (cmd.get("diplomatic_data") or {}).get("war_id")
+            or ""
+        )
+        player = world.player_nation
+        if not requested_war_id:
+            # Typed route: resolve the war from the named court (the same
+            # resolver the settlement mount uses — multi-war ambiguity
+            # refuses rather than picking a fallback war).
+            if not target_nation:
+                return {
+                    "success": False,
+                    "message": (
+                        "Sire, whose terms shall I request? Name the court "
+                        "or open the war detail."
+                    ),
+                }
+            from backend.game_logic.settlement_helpers import (
+                resolve_or_backfill_war_instance_for_settlement,
+            )
+            resolution = resolve_or_backfill_war_instance_for_settlement(
+                world, player, str(target_nation),
+            )
+            if not resolution.get("ok"):
+                from backend.display_names import (
+                    settlement_disabled_reason_display,
+                )
+                err = str(resolution.get("error") or "request_terms_ineligible")
+                return {
+                    "success": False,
+                    "error": err,
+                    "error_display": settlement_disabled_reason_display(err),
+                    "message": settlement_disabled_reason_display(err),
+                }
+            requested_war_id = str(resolution.get("war_id") or "")
+
+        from backend.game_logic.settlement_routes import (
+            evaluate_request_terms_affordance,
+        )
+        affordance = evaluate_request_terms_affordance(world, requested_war_id)
+        state = str(affordance.get("state") or "absent")
+        if state != "available":
+            from backend.display_names import settlement_disabled_reason_display
+            reason = str(affordance.get("reason") or "request_terms_ineligible")
+            display = (
+                str(affordance.get("reason_display") or "")
+                or settlement_disabled_reason_display("request_terms_ineligible")
+            )
+            return {
+                "success": False,
+                "error": reason,
+                "error_display": display,
+                "message": display,
+            }
+
+        dp_cost = 1
+        if int(getattr(world, "diplomatic_points", 0)) < dp_cost:
+            return {
+                "success": False,
+                "message": (
+                    f"Insufficient Diplomatic Points. Need {dp_cost}, "
+                    f"have {int(world.diplomatic_points)}."
+                ),
+            }
+
+        war = (getattr(world, "war_instances", {}) or {}).get(requested_war_id) or {}
+        from backend.game_logic.ai_diplomacy import (
+            _settlement_offer_opposing_side_leader,
+            _settlement_request_war_label,
+        )
+        side_by_nation = war.get("side_by_nation") or {}
+        player_side = side_by_nation.get(player)
+        answering_leader = str(
+            _settlement_offer_opposing_side_leader(war, player_side=player_side)
+            or ""
+        )
+        war_label = _settlement_request_war_label(war, requested_war_id)
+
+        world.diplomatic_points -= dp_cost
+        requests = getattr(world, "settlement_terms_requests", None)
+        if not isinstance(requests, dict):
+            requests = {}
+            world.settlement_terms_requests = requests
+        requests[requested_war_id] = {
+            "status": "requested",
+            "requested_turn": int(getattr(world, "current_turn", 0) or 0),
+            "resolved_turn": None,
+            "resolve_reason": "",
+            "cooldown_until_turn": 0,
+            "answering_leader": answering_leader,
+        }
+        if hasattr(world, "log_event"):
+            world.log_event({
+                "type": "settlement_terms_requested",
+                "nation": player,
+                "war_id": requested_war_id,
+                "war_label": war_label,
+                "answering_leader": answering_leader,
+                "turn": int(getattr(world, "current_turn", 0) or 0),
+            })
+        from backend.game_logic.diplomatic_templates import (
+            resolve_settlement_voice_line,
+        )
+        line = resolve_settlement_voice_line(
+            "settlement_request_terms_sent_talleyrand",
+            court=answering_leader, war_label=war_label,
+        )
+        return {
+            "success": True,
+            "message": line,
+            "war_id": requested_war_id,
+            "request_terms_state": dict(requests[requested_war_id]),
+            "suppress_proposal_result_popup": False,
+        }
+
     def _execute_propose_common_peace(self, command: Dict, game_state: Dict) -> Dict:
         """Open the C2 settlement_confirm dialogue for a common peace.
 
@@ -3067,7 +3201,15 @@ class DiplomaticExecutor:
                         "diplomatic_dialogue": dialogue,
                     }
 
-            if proposal_type in ("peace", "armistice", "armistice_losing", "armistice_winning"):
+            # Slice G1 / D-G1-1 (user-approved July 2, 2026): the BPH-C
+            # §10.1 alliance-paradox HARD_STOP applies to bilateral PEACE
+            # only. An ARMISTICE is a truce, not a separate peace — on the
+            # 1805 shared coalition war the paradox fired on the very
+            # armistice ladder the game's own counsel recommends, leaving
+            # ally-entangled courts bilaterally unreachable. The armistice's
+            # auto-peace expiry still meets the peace gates naturally; the
+            # reliability substrate prices the act rather than forbidding it.
+            if proposal_type == "peace":
                 from backend.game_logic.diplomacy import get_peace_commitment_conflicts
                 conflicts = get_peace_commitment_conflicts(
                     world,

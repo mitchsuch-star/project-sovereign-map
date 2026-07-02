@@ -281,6 +281,9 @@ class WorldState:
             # Imperial Settlement (spec §11): opening the C2 dialogue is
             # free; the AP cost is spent on ratification (`confirm_settlement`).
             "propose_common_peace": 0,
+            # SC-30 / Slice G1: asking for terms costs 1 DP (charged in
+            # the executor), never AP.
+            "request_terms": 0,
         }
 
         # ============================================================
@@ -750,6 +753,12 @@ class WorldState:
         # and separate from bilateral AI proposal cooldowns.
         self.pending_settlement_dialogues: List[Dict[str, Any]] = []
         self.ai_settlement_cooldowns: Dict[str, int] = {}
+        # SC-30 / Slice G1: the Request Terms lifecycle, keyed by war_id.
+        # {"status": "requested"|"granted"|"refused", "requested_turn": int,
+        #  "resolved_turn": int|None, "resolve_reason": str,
+        #  "cooldown_until_turn": int, "answering_leader": str}. Resolved by
+        # `ai_diplomacy._resolve_settlement_terms_requests` each AI phase.
+        self.settlement_terms_requests: Dict[str, Dict[str, Any]] = {}
         # SC-5R-1 scoped settlement draft store keyed by
         # `compute_settlement_draft_key(war_id, selected_target_nation,
         # covered_enemy_participants)`. Same-war drafts with different
@@ -4288,6 +4297,12 @@ class WorldState:
                 str(war_id): int(turn)
                 for war_id, turn in self.ai_settlement_cooldowns.items()
             },
+            # SC-30 / Slice G1: the Request Terms lifecycle store.
+            "settlement_terms_requests": {
+                str(war_id): copy.deepcopy(entry)
+                for war_id, entry in self.settlement_terms_requests.items()
+                if isinstance(entry, dict)
+            },
             "pending_settlement_drafts_by_key": {
                 str(key): [copy.deepcopy(c) for c in clauses]
                 for key, clauses in self.pending_settlement_drafts_by_key.items()
@@ -4808,6 +4823,14 @@ class WorldState:
         world.ai_settlement_cooldowns = {
             str(war_id): int(turn)
             for war_id, turn in (data.get("ai_settlement_cooldowns") or {}).items()
+        }
+        # SC-30 / Slice G1: pre-G1 saves default to no open requests.
+        world.settlement_terms_requests = {
+            str(war_id): copy.deepcopy(entry)
+            for war_id, entry in (
+                data.get("settlement_terms_requests") or {}
+            ).items()
+            if isinstance(entry, dict)
         }
         # SC-5R-1 scoped store: old saves without this key default to an
         # empty dict; explicit entries round-trip with deep-copied clauses.

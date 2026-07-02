@@ -1387,6 +1387,25 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "The chancery records the draft of {war_label} as blocked. "
         "{top_blocker} leaves no court with signatures to exchange."
     ),
+    # SC-30 / Slice G1 — the Request Terms lifecycle voice family
+    # (Voice Bible §16.1). The GRANT beat deliberately has no template of
+    # its own: a granted request produces a real incoming offer, which
+    # speaks through the existing `settlement_incoming_offer_arrival_*`
+    # family. The refusal is spoken FOR the answering court by its named
+    # diplomat / chancery (never anonymous — §16.1a resolver rule).
+    "settlement_request_terms_sent_talleyrand": (
+        "I shall ask {court}'s chancery to name its terms for {war_label}, "
+        "Sire. Expect an answer with the next dispatches."
+    ),
+    "settlement_request_terms_refused_court": (
+        "{speaker} answers for {court}: the court sees no need to name "
+        "terms while the war runs in its favor. The request may be "
+        "renewed when the field has spoken again."
+    ),
+    "settlement_request_terms_lapsed_talleyrand": (
+        "Our request for terms on {war_label} has lapsed, Sire — the war "
+        "has changed shape since we asked."
+    ),
     # G2-Slice-W1 white-peace heading families. Authored as part of the
     # May 24, 2026 audit punch list Tier 2: `build_settlement_confirm_dialogue`
     # already calls `resolve_settlement_voice_line` for these two keys at

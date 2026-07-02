@@ -12,6 +12,8 @@ extends CanvasLayer
 signal negotiate_clicked(nation: String)
 signal target_clicked(nation: String)
 signal settlement_clicked(war_id: String, target_nation: String)
+# SC-30 / Slice G1: ask the enemy war leader to name settlement terms.
+signal request_terms_clicked(war_id: String, target_nation: String)
 signal war_ended(message: String)
 
 @onready var background_overlay = $BackgroundOverlay
@@ -78,6 +80,12 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_add_negotiate_button(_current_nation)
 	if bool(war_data.get("settlement_available", false)):
 		_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
+	# SC-30 / Slice G1: Request Terms — absent state never renders (the
+	# no-false-affordance rule); disabled renders ONLY for deterministic
+	# temporal reasons, with the pre-click clock in the tooltip (G4F-16).
+	var rt_state = war_data.get("request_terms_state", {})
+	if rt_state is Dictionary and str(rt_state.get("state", "absent")) != "absent":
+		_add_request_terms_button(_current_war_id, _current_nation, rt_state)
 	show()
 
 
@@ -455,6 +463,23 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 		hide()
 		settlement_clicked.emit(war_id, nation)
 	)
+	button_row.add_child(btn)
+
+
+func _add_request_terms_button(war_id: String, nation: String, rt_state: Dictionary):
+	var btn = Button.new()
+	btn.text = "Request Terms"
+	btn.custom_minimum_size = Vector2(150, 36)
+	btn.add_theme_font_size_override("font_size", 13)
+	if str(rt_state.get("state", "")) == "available":
+		btn.tooltip_text = "Ask the enemy war leader to name settlement terms."
+		btn.pressed.connect(func():
+			hide()
+			request_terms_clicked.emit(war_id, nation)
+		)
+	else:
+		btn.disabled = true
+		btn.tooltip_text = str(rt_state.get("reason_display", "Unavailable now."))
 	button_row.add_child(btn)
 
 

@@ -128,6 +128,8 @@ class CommandParser:
             # payload, but valid_actions still names it so action-id
             # validation accepts it.
             "propose_white_peace",
+            # SC-30 / Slice G1: Request Terms lifecycle
+            "request_terms",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

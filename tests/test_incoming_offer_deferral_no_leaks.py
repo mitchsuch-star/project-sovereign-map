@@ -470,15 +470,63 @@ def test_wait_for_enemy_offer_only_visible_when_offer_producer_and_cooldown_path
 
 
 def test_ask_for_terms_visible_only_when_request_terms_state_can_actually_advance(fastapi_client):
-    """SC-30 spec required test: `Ask for terms` cannot ship as a
-    click-only polite refusal. G2-Slice-G2d removes the orphan
-    `_visible=False` payload flag while keeping the control absent."""
+    """SC-30 spec required test, INVERTED by Slice G1 (July 2, 2026): the
+    Request Terms lifecycle is live. The affordance appears ONLY when the
+    lifecycle can actually advance; deterministic temporal blocks render
+    disabled-with-clock; every structural block keeps the control ABSENT
+    (never a click-only refusal). The retired G2d `Ask for terms`
+    click-only copy stays gone from the offer popup."""
+    from backend.game_logic.settlement_routes import (
+        evaluate_request_terms_affordance,
+    )
+
     client, backend_main = fastapi_client
     world = backend_main.game_state["world"]
     world.current_turn = 5
     _install_multi_party_war(world)
-    _produce_and_promote(world)
+    world.invalidate_war_instance_indexes()
 
+    # Eligible multi-party war, no offer on the desk -> AVAILABLE.
+    assert evaluate_request_terms_affordance(world, "war_1") == {
+        "state": "available", "reason": "",
+    }
+    from backend.game_logic.war_status import build_active_wars
+    row = next(
+        w for w in build_active_wars(world)["wars"]
+        if w.get("war_instance_id") == "war_1"
+    )
+    assert row["request_terms_state"]["state"] == "available"
+
+    # A one-to-one war can never advance the lifecycle -> ABSENT.
+    duel = make_synthetic_war_instance(
+        "war_2",
+        attackers=["France"], defenders=["Prussia"],
+        attacker_leader="France", defender_leader="Prussia",
+        created_turn=1,
+    )
+    world.war_instances["war_2"] = duel
+    world.diplomatic_states["France|Prussia"] = "WAR"
+    world.invalidate_war_instance_indexes()
+    assert evaluate_request_terms_affordance(world, "war_2")["state"] == "absent"
+
+    # An offer already on the desk is structural, not temporal -> ABSENT.
+    _produce_and_promote(world)
+    assert evaluate_request_terms_affordance(world, "war_1")["state"] == "absent"
+
+    # A too-young war is a deterministic clock -> DISABLED with the clock named.
+    young = make_synthetic_war_instance(
+        "war_3",
+        attackers=["France", "Saxony"], defenders=["Britain", "Prussia"],
+        attacker_leader="France", defender_leader="Britain",
+        created_turn=world.current_turn,
+    )
+    world.war_instances["war_3"] = young
+    world.invalidate_war_instance_indexes()
+    young_affordance = evaluate_request_terms_affordance(world, "war_3")
+    assert young_affordance["state"] == "disabled"
+    assert "remaining" in young_affordance["reason_display"]
+
+    # The retired click-only copy stays gone (G2d cut is terminal).
     popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
     assert "ask_for_terms_visible" not in popup
     labels = [str(opt.get("label", "")) for opt in popup.get("options", [])]
@@ -537,22 +585,50 @@ def test_wait_for_enemy_offer_unavailable_display_string_removed():
 
 
 def test_ask_for_terms_click_produces_observable_state_change_not_just_copy(fastapi_client):
-    """SC-30 spec required test: no `ask_for_terms` action id reaches
-    the backend dispatcher in this commit, so a forged client request
-    cannot drive an observable state change. Stale-save defensive
-    error display copy stays humanized."""
+    """SC-30 spec required test, INVERTED by Slice G1 (July 2, 2026): the
+    click writes a real `settlement_terms_requests` entry (observable in
+    the war-status payload), and the next AI phase resolves it into a
+    REAL incoming offer carrying `requested_by_player` provenance —
+    state change, not copy. Driven through the exact Godot wire shape
+    (the §9 D4 lesson)."""
     client, backend_main = fastapi_client
     world = backend_main.game_state["world"]
     world.current_turn = 5
+    world.diplomatic_points = 5
     _install_multi_party_war(world)
-    _produce_and_promote(world)
+    world.invalidate_war_instance_indexes()
 
-    # No incoming-offer popup option exposes `ask_for_terms`.
-    popup = client.get("/pending_envoy").json()["incoming_settlement_offer"]
-    for opt in popup.get("options", []):
-        assert str(opt.get("action", "")) != "ask_for_terms"
+    dp_before = int(world.diplomatic_points)
+    response = client.post("/command", json={
+        "command": "request terms from Austria",
+        "action": "request_terms",
+        "target_nation": "Austria",
+        "war_id": "war_1",
+    }).json()
+    assert response["success"] is True, response.get("message")
 
-    # Defensive display copy stays humanized for the deferred control.
+    entry = world.settlement_terms_requests["war_1"]
+    assert entry["status"] == "requested"
+    assert entry["answering_leader"] == "Austria"
+    assert int(world.diplomatic_points) == dp_before - 1
+    from backend.game_logic.war_status import build_active_wars
+    row = next(
+        w for w in build_active_wars(world)["wars"]
+        if w.get("war_instance_id") == "war_1"
+    )
+    assert row["request_terms_state"]["status"] == "requested"
+    assert row["request_terms_state"]["state"] == "disabled"
+    assert "answer" in row["request_terms_state"]["reason_display"].lower()
+
+    # The next AI phase answers: not decisively winning -> GRANT, a real
+    # offer with request provenance.
+    produced = process_settlement_offer_phase(world)
+    assert produced, "the granted request must produce a real offer"
+    assert produced[0].get("requested_by_player") is True
+    assert produced[0]["war_id"] == "war_1"
+    assert world.settlement_terms_requests["war_1"]["status"] == "granted"
+
+    # Defensive display copy stays humanized for the structural refusal.
     assert settlement_disabled_reason_display("request_terms_ineligible")
 
 

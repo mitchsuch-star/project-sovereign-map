@@ -293,7 +293,11 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
     # validated entry points; VALID_ACTIONS is the LLM-classified set,
     # META_ACTIONS is the marshal-less / free-action set — settlement
     # entry historically lives in META_ACTIONS).
-    backend_required = {"propose_common_peace", "propose_white_peace"}
+    # Slice G1: `request_terms` joins the settlement-family structured
+    # action surface (War Detail button + typed route).
+    backend_required = {
+        "propose_common_peace", "propose_white_peace", "request_terms",
+    }
     known_actions = VALID_ACTIONS | META_ACTIONS
     for action in backend_required:
         assert action in known_actions, (
@@ -307,6 +311,7 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
     for method_name in (
         "_execute_propose_common_peace",
         "_execute_propose_white_peace",
+        "_execute_request_terms",
     ):
         assert hasattr(DiplomaticExecutor, method_name), (
             f"DiplomaticExecutor missing {method_name!r}; backend "
@@ -316,7 +321,8 @@ def test_settlement_action_id_whitelists_are_in_sync_across_backend_main_gd_and_
     # The top-level executor router has match arms for both actions.
     executor_path = REPO_ROOT / "backend" / "commands" / "executor.py"
     executor_text = executor_path.read_text(encoding="utf-8")
-    for action in ("propose_common_peace", "propose_white_peace"):
+    for action in ("propose_common_peace", "propose_white_peace",
+                   "request_terms"):
         assert f'action == "{action}"' in executor_text, (
             f"backend/commands/executor.py missing dispatch arm for "
             f"{action!r}."

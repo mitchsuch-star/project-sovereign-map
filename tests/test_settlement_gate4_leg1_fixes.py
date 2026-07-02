@@ -2598,14 +2598,14 @@ class TestGate4SmokeParadoxSurfacesAtMount:
         set_diplomatic_state(world, "Prussia", "Britain", "WAR", "test")
         return world
 
-    def test_armistice_mount_names_the_paradox_block(self):
+    def test_peace_mount_names_the_paradox_block(self):
         from backend.game_logic.diplomatic_dialogue import (
             _enrich_proposal_summary,
         )
 
         world = self._paradox_world()
         dialogue = _enrich_proposal_summary(
-            {"options": []}, "Britain", "armistice", world
+            {"options": []}, "Britain", "peace", world
         )
         block = str(dialogue.get("commitment_block_warning") or "")
         assert "Prussia" in block
@@ -2614,6 +2614,20 @@ class TestGate4SmokeParadoxSurfacesAtMount:
             str(w.get("text") or "") for w in dialogue.get("warnings") or []
         )
         assert "Prussia" in warning_texts
+
+    def test_armistice_is_exempt_from_the_paradox_block(self):
+        """Slice G1 / D-G1-1 (user-approved): a truce is not a separate
+        peace — the armistice mount carries NO paradox block, and the send
+        gate no longer refuses it (the mount warning and the gate agree)."""
+        from backend.game_logic.diplomatic_dialogue import (
+            _enrich_proposal_summary,
+        )
+
+        world = self._paradox_world()
+        dialogue = _enrich_proposal_summary(
+            {"options": []}, "Britain", "armistice", world
+        )
+        assert not dialogue.get("commitment_block_warning")
 
     def test_no_block_warning_without_a_paradox(self):
         from backend.game_logic.diplomacy import set_diplomatic_state
@@ -2624,7 +2638,7 @@ class TestGate4SmokeParadoxSurfacesAtMount:
         world = WorldState()
         set_diplomatic_state(world, "France", "Britain", "WAR", "test")
         dialogue = _enrich_proposal_summary(
-            {"options": []}, "Britain", "armistice", world
+            {"options": []}, "Britain", "peace", world
         )
         assert not dialogue.get("commitment_block_warning")
 

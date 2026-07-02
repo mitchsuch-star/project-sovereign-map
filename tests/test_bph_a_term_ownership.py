@@ -265,7 +265,8 @@ class TestPeaceRatifiedCampaignLog:
         # (`settlement_summary`, `settlement_digest`) per
         # WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC §11.6 + 4 SC-33 recurring
         # settlement gold families (G4F smoke follow-up).
-        assert len(CAMPAIGN_LOG_TYPES) == 87
+        # Slice G1 (July 2, 2026): +3 request-terms lifecycle types.
+        assert len(CAMPAIGN_LOG_TYPES) == 90
 
     def test_format_peace_oneliner(self):
         event = {

@@ -121,6 +121,9 @@ META_ACTIONS: Set[str] = {
     # distinct labeled action that stages settlement_confirm with
     # white_peace=true and bypasses the editor empty-Ratify gate.
     "propose_white_peace",
+    # SC-30 / Slice G1 — ask the enemy war leader to name settlement
+    # terms (the Request Terms lifecycle). No marshal needed.
+    "request_terms",
 }
 
 # Valid stances for stance_change action

@@ -224,6 +224,11 @@ def build_active_wars(world) -> Dict[str, Any]:
             "settlement_draft_kept": settlement_draft_kept,
             "settlement_eligibility": settlement_eligibility,
             "war_detail_actionability": war_detail_actionability,
+            # SC-30 / Slice G1: the Request Terms affordance + lifecycle
+            # state for the War Detail popup.
+            "request_terms_state": _evaluate_request_terms_state(
+                world, contribution.get("war_id", ""),
+            ),
             "settlement_disabled_reason": settlement_eligibility.get(
                 "display_reason", ""
             ) if not settlement_available else "",
@@ -584,3 +589,37 @@ def _evaluate_war_detail_actionability(
             "refusal_code_display": "War detail recovery is unavailable.",
             "peace_seeking_controls": [],
         }
+
+
+def _evaluate_request_terms_state(world: Any, war_id: str) -> Dict[str, Any]:
+    """SC-30 / Slice G1 — the per-war Request Terms block for the HUD/detail.
+
+    Merges the affordance (available / disabled-with-clock / absent) with
+    the lifecycle's observable state so the War Detail popup can render the
+    button AND the pending/answered status line.
+    """
+    try:
+        from backend.game_logic.settlement_routes import (
+            evaluate_request_terms_affordance,
+        )
+        affordance = evaluate_request_terms_affordance(world, war_id)
+    except Exception:
+        affordance = {"state": "absent", "reason": "request_terms_ineligible"}
+    entry = (getattr(world, "settlement_terms_requests", None) or {}).get(
+        str(war_id or "")
+    )
+    block: Dict[str, Any] = {
+        "state": str(affordance.get("state") or "absent"),
+        "reason": str(affordance.get("reason") or ""),
+        "reason_display": str(affordance.get("reason_display") or ""),
+        "status": "",
+        "requested_turn": 0,
+        "resolved_turn": 0,
+        "resolve_reason": "",
+    }
+    if isinstance(entry, dict):
+        block["status"] = str(entry.get("status") or "")
+        block["requested_turn"] = int(entry.get("requested_turn") or 0)
+        block["resolved_turn"] = int(entry.get("resolved_turn") or 0)
+        block["resolve_reason"] = str(entry.get("resolve_reason") or "")
+    return block

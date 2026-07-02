@@ -87,7 +87,8 @@ class TestTypeWhitelist:
         settlement gold families (G4F smoke follow-up: paid / partial /
         completed / cancelled now persist into the log history).
         """
-        assert len(CAMPAIGN_LOG_TYPES) == 87
+        # Slice G1 (July 2, 2026): +3 request-terms lifecycle types.
+        assert len(CAMPAIGN_LOG_TYPES) == 90
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

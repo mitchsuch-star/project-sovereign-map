@@ -257,6 +257,100 @@ def evaluate_war_detail_actionability(
     }
 
 
+def evaluate_request_terms_affordance(world: Any, war_id: str) -> Dict[str, Any]:
+    """SC-30 / Slice G1 — the Request Terms affordance for one war.
+
+    Closed-enum contract (the cleanup-spec no-false-affordance rule —
+    "a click-only polite refusal is forbidden"):
+
+    - ``{"state": "available"}`` — the lifecycle can advance; render enabled.
+    - ``{"state": "disabled", "reason": <temporal code>, "reason_display"}``
+      ONLY for deterministic temporal blocks, each naming its clock:
+      ``request_pending`` (an answer arrives with the next AI phase),
+      ``request_cooldown`` (N turns remaining), ``war_too_young`` (war age
+      grows monotonically toward the producer's minimum).
+    - ``{"state": "absent", "reason": <structural code>}`` — the AI side
+      cannot create or advance the lifecycle (one-to-one war, no opposing
+      leader, war archived, an offer already on the desk, ...); the
+      control must NOT render.
+    """
+    # Function-level import — ai_diplomacy sits above the settlement
+    # package (the established cycle-break pattern).
+    from backend.game_logic.ai_diplomacy import (
+        SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS,
+        _settlement_offer_already_pending,
+        _settlement_offer_already_promoted,
+        _settlement_offer_eligible_for_war,
+    )
+
+    war_id_str = str(war_id or "")
+    current_turn = int(getattr(world, "current_turn", 0) or 0)
+    player = str(getattr(world, "player_nation", "France"))
+    war = (getattr(world, "war_instances", {}) or {}).get(war_id_str)
+    if not isinstance(war, dict):
+        return {"state": "absent", "reason": "war_unknown"}
+
+    requests = getattr(world, "settlement_terms_requests", None) or {}
+    entry = requests.get(war_id_str)
+    if isinstance(entry, dict):
+        if entry.get("status") == "requested":
+            return {
+                "state": "disabled",
+                "reason": "request_pending",
+                "reason_display": (
+                    "Terms already requested, Sire — an answer is expected "
+                    "with the next dispatches."
+                ),
+            }
+        cooldown_until = int(entry.get("cooldown_until_turn") or 0)
+        if current_turn < cooldown_until:
+            remaining = cooldown_until - current_turn
+            return {
+                "state": "disabled",
+                "reason": "request_cooldown",
+                "reason_display": (
+                    f"The court was asked recently, Sire. "
+                    f"({remaining} turn{'s' if remaining != 1 else ''} "
+                    f"remaining.)"
+                ),
+            }
+
+    # One-active-offer guard FIRST: the eligibility function returns its
+    # FIRST refusal, so the producer's periodic `cooldown_active` (which a
+    # direct request bypasses) can mask an offer already on the desk.
+    pending = getattr(world, "pending_settlement_dialogues", None) or []
+    if _settlement_offer_already_pending(pending, war_id=war_id_str) or (
+        _settlement_offer_already_promoted(world, war_id=war_id_str)
+    ):
+        return {"state": "absent", "reason": "offer_already_pending"}
+
+    structural = _settlement_offer_eligible_for_war(
+        world, war, player=player, current_turn=current_turn,
+    )
+    if structural == "war_too_young":
+        created_turn = int(war.get("created_turn") or current_turn)
+        ready_turn = created_turn + SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS
+        remaining = max(1, ready_turn - current_turn)
+        return {
+            "state": "disabled",
+            "reason": "war_too_young",
+            "reason_display": (
+                f"No court names terms this early in a war, Sire. "
+                f"({remaining} turn{'s' if remaining != 1 else ''} "
+                f"remaining.)"
+            ),
+        }
+    if structural in ("offer_already_pending", "offer_already_promoted"):
+        # Not temporal — the offer on the desk IS the affordance now.
+        return {"state": "absent", "reason": structural}
+    if structural not in (None, "cooldown_active"):
+        # The producer's periodic `cooldown_active` clock does NOT gate a
+        # direct request (the request cooldown above is the request's own
+        # clock); every other refusal is structural — the control is absent.
+        return {"state": "absent", "reason": structural}
+    return {"state": "available", "reason": ""}
+
+
 # ---------------------------------------------------------------------------
 # SC-29 / G2-Slice-7: pair-scoped peace substitute CTAs
 # ---------------------------------------------------------------------------

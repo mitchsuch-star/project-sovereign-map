@@ -82,6 +82,11 @@ BARGAIN_VOIDED = "bargain_voided"                # NORMAL: bargain lapsed
 # offers touch entire wars and persist across turns until accept /
 # reject. Review target routes to the incoming-settlement-offer popup.
 INCOMING_SETTLEMENT_OFFER = "incoming_settlement_offer"
+# SC-30 / Slice G1: the Request Terms lifecycle's resolution notice —
+# a court refused to name terms, or the request lapsed with the war.
+# (A GRANTED request produces a real incoming offer, which notifies
+# through INCOMING_SETTLEMENT_OFFER above.)
+SETTLEMENT_TERMS_REQUEST_RESULT = "settlement_terms_request_result"
 # G2-Slice-G2b: advisory allied-court petition about settlement scope.
 # It is mailbox-eligible and notification-visible, but never blocks the
 # player's own settlement ratification.

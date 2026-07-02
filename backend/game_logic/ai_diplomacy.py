@@ -1754,6 +1754,14 @@ SETTLEMENT_OFFER_BASE_GOLD_AMOUNT = 500
 SETTLEMENT_OFFER_PER_DURATION_BONUS = 50
 SETTLEMENT_OFFER_MAX_GOLD_AMOUNT = 2000
 
+# SC-30 / Slice G1 — the Request Terms lifecycle. A player request is
+# answered on the next AI diplomatic phase: GRANTED (the answering leader
+# authors a real incoming offer through the normal producer path) unless
+# the answering side is decisively winning, in which case the court
+# REFUSES with voice and the request enters its own cooldown.
+REQUEST_TERMS_COOLDOWN_TURNS = 5
+REQUEST_TERMS_REFUSAL_WAR_SCORE = 30
+
 
 def _settlement_offer_next_seq(
     pending: List[Dict],
@@ -1914,6 +1922,242 @@ def _settlement_offer_eligible_for_war(
     return None
 
 
+def _emit_settlement_offer_for_war(
+    world,
+    war_id: str,
+    war: Dict,
+    *,
+    player: str,
+    current_turn: int,
+    pending: List[Dict],
+    cooldowns: Dict[str, int],
+    requested_by_player: bool = False,
+) -> Dict:
+    """Author one incoming settlement offer for an already-vetted war.
+
+    Shared by the periodic producer scan and the SC-30 request-terms
+    grant path (Building Blocks: a granted request produces its offer
+    through the SAME emission, tagged with provenance)."""
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    proposer_nation = _settlement_offer_opposing_side_leader(
+        war, player_side=player_side,
+    )
+    covered_enemies = [
+        nation
+        for nation, side in side_by_nation.items()
+        if side == opposing_side and nation != player
+    ]
+    war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
+
+    terms = _settlement_offer_build_terms(
+        player=player,
+        proposer_nation=proposer_nation,
+        war_age_turns=war_age_turns,
+    )
+    seq = _settlement_offer_next_seq(
+        pending, war_id=str(war_id), current_turn=current_turn,
+    )
+    offer_id = f"settlement_offer:{war_id}:{current_turn}:{seq}"
+
+    offer = {
+        "type": "incoming_settlement_offer",
+        "dialogue_type": "incoming_settlement_offer",
+        "offer_id": offer_id,
+        "war_id": str(war_id),
+        "proposer_nation": proposer_nation,
+        "proposer_side": opposing_side,
+        "accepting_side": player_side,
+        "accepting_leader": player,
+        "covered_enemy_participants": list(covered_enemies),
+        "settlement_terms": terms,
+        "turn_created": current_turn,
+    }
+    if requested_by_player:
+        offer["requested_by_player"] = True
+    pending.append(offer)
+    cooldowns[str(war_id)] = current_turn + SETTLEMENT_OFFER_COOLDOWN_TURNS
+    return offer
+
+
+def _resolve_settlement_terms_requests(
+    world,
+    *,
+    player: str,
+    current_turn: int,
+    pending: List[Dict],
+    cooldowns: Dict[str, int],
+) -> List[Dict]:
+    """SC-30 / Slice G1 — answer open player terms requests.
+
+    Runs BEFORE the periodic producer scan so a granted request cannot be
+    swallowed by that scan's cooldown gate (the request has its own
+    cooldown; the grant still writes the producer cooldown as usual).
+    Every open request resolves OBSERVABLY this phase:
+
+    - GRANT: the answering side is not decisively winning
+      (`get_war_score_for(leader, player) < REQUEST_TERMS_REFUSAL_WAR_SCORE`)
+      → a real incoming offer via `_emit_settlement_offer_for_war` with
+      `requested_by_player` provenance; state -> "granted".
+    - REFUSE: the winning court declines with voice (named diplomat /
+      chancery — never anonymous) + a notification + a campaign-log
+      event; state -> "refused" with `REQUEST_TERMS_COOLDOWN_TURNS`.
+    - LAPSE: the war archived / lost its multi-party shape since the ask
+      → state -> "refused" with reason "war_changed", a Talleyrand lapse
+      notice, and NO cooldown (the war itself moved on).
+
+    Returns the granted offers (already appended to `pending`).
+    """
+    requests = getattr(world, "settlement_terms_requests", None)
+    if not isinstance(requests, dict) or not requests:
+        return []
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.diplomatic_templates import (
+        resolve_named_diplomat,
+        resolve_settlement_voice_line,
+    )
+    from backend.notifications import (
+        NotificationPriority,
+        SETTLEMENT_TERMS_REQUEST_RESULT,
+        create_notification,
+    )
+
+    war_instances = getattr(world, "war_instances", None) or {}
+    granted: List[Dict] = []
+    for war_id in sorted(requests.keys()):
+        entry = requests.get(war_id)
+        if not isinstance(entry, dict) or entry.get("status") != "requested":
+            continue
+        war = war_instances.get(war_id)
+        structural = (
+            _settlement_offer_eligible_for_war(
+                world, war, player=player, current_turn=current_turn,
+            )
+            if isinstance(war, dict)
+            else "war_archived"
+        )
+        war_label = _settlement_request_war_label(war, war_id)
+        leader = str(entry.get("answering_leader") or "")
+        if structural in (None, "cooldown_active", "war_too_young") and (
+            _settlement_offer_already_pending(pending, war_id=str(war_id))
+            or _settlement_offer_already_promoted(world, war_id=str(war_id))
+        ):
+            # An offer surfaced between the ask and the answer (the
+            # eligibility function's first-refusal-wins ordering can mask
+            # this behind `cooldown_active`) — never double-produce.
+            structural = "offer_already_pending"
+        if structural in (None, "cooldown_active", "war_too_young"):
+            # Structurally answerable. `cooldown_active` is the producer's
+            # periodic clock — a direct request bypasses it by design; the
+            # request's own cooldown gated the click. `war_too_young` was
+            # already gated at click time and only shrinks.
+            score = int(get_war_score_for(world, leader, player)) if leader else 0
+            if score >= REQUEST_TERMS_REFUSAL_WAR_SCORE:
+                entry["status"] = "refused"
+                entry["resolved_turn"] = int(current_turn)
+                entry["resolve_reason"] = "winning_side_refuses"
+                entry["cooldown_until_turn"] = int(
+                    current_turn + REQUEST_TERMS_COOLDOWN_TURNS
+                )
+                # A court that refuses to name terms does not spontaneously
+                # offer them the same phase — the refusal quiets the
+                # periodic producer for the same window.
+                cooldowns[str(war_id)] = int(
+                    current_turn + SETTLEMENT_OFFER_COOLDOWN_TURNS
+                )
+                speaker = resolve_named_diplomat("envoy", leader, world)
+                line = resolve_settlement_voice_line(
+                    "settlement_request_terms_refused_court",
+                    speaker=speaker, court=leader,
+                )
+                world.notifications.add(create_notification(
+                    notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,
+                    priority=NotificationPriority.NORMAL,
+                    title=f"Terms refused by {leader}",
+                    message=line,
+                    turn_created=int(current_turn),
+                    details={
+                        "war_id": str(war_id),
+                        "result": "refused",
+                        "resolve_reason": "winning_side_refuses",
+                    },
+                ))
+                if hasattr(world, "log_event"):
+                    world.log_event({
+                        "type": "settlement_terms_request_refused",
+                        "nation": player,
+                        "war_id": str(war_id),
+                        "war_label": war_label,
+                        "answering_leader": leader,
+                        "turn": int(current_turn),
+                    })
+                continue
+            offer = _emit_settlement_offer_for_war(
+                world, str(war_id), war,
+                player=player, current_turn=current_turn,
+                pending=pending, cooldowns=cooldowns,
+                requested_by_player=True,
+            )
+            entry["status"] = "granted"
+            entry["resolved_turn"] = int(current_turn)
+            entry["resolve_reason"] = "terms_granted"
+            entry["cooldown_until_turn"] = int(
+                current_turn + REQUEST_TERMS_COOLDOWN_TURNS
+            )
+            granted.append(offer)
+            if hasattr(world, "log_event"):
+                world.log_event({
+                    "type": "settlement_terms_request_granted",
+                    "nation": player,
+                    "war_id": str(war_id),
+                    "war_label": war_label,
+                    "answering_leader": leader,
+                    "turn": int(current_turn),
+                })
+        elif structural in ("offer_already_pending", "offer_already_promoted"):
+            # An offer surfaced between the ask and the answer — the
+            # request is trivially satisfied; the player reviews THAT.
+            entry["status"] = "granted"
+            entry["resolved_turn"] = int(current_turn)
+            entry["resolve_reason"] = "offer_already_available"
+            entry["cooldown_until_turn"] = int(
+                current_turn + REQUEST_TERMS_COOLDOWN_TURNS
+            )
+        else:
+            # The war archived or lost its answerable shape since the ask.
+            entry["status"] = "refused"
+            entry["resolved_turn"] = int(current_turn)
+            entry["resolve_reason"] = "war_changed"
+            entry["cooldown_until_turn"] = int(current_turn)
+            lapse = resolve_settlement_voice_line(
+                "settlement_request_terms_lapsed_talleyrand",
+                war_label=war_label,
+            )
+            world.notifications.add(create_notification(
+                notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,
+                priority=NotificationPriority.NORMAL,
+                title="Request for terms lapsed",
+                message=lapse,
+                turn_created=int(current_turn),
+                details={
+                    "war_id": str(war_id),
+                    "result": "refused",
+                    "resolve_reason": "war_changed",
+                },
+            ))
+    return granted
+
+
+def _settlement_request_war_label(war, war_id: str) -> str:
+    if isinstance(war, dict):
+        attackers = list(war.get("attackers") or [])
+        defenders = list(war.get("defenders") or [])
+        if attackers and defenders:
+            return f"{' + '.join(attackers)} vs {' + '.join(defenders)}"
+    return str(war_id) or "the war"
+
+
 def process_settlement_offer_phase(world) -> List[Dict]:
     """Produce AI-originated incoming settlement offers for the player.
 
@@ -1924,12 +2168,12 @@ def process_settlement_offer_phase(world) -> List[Dict]:
     `settlement_preview.py` is the package-preserving consumer; the
     UI promotion layer that surfaces these offers in
     `dialogue_manager` lands in commit 2 of the SC-5 reversal.
+    SC-30 / Slice G1: open player terms requests are answered FIRST
+    (grant / refuse / lapse — see `_resolve_settlement_terms_requests`).
     """
     player = getattr(world, "player_nation", "France")
     current_turn = int(getattr(world, "current_turn", 0))
     war_instances = getattr(world, "war_instances", None) or {}
-    if not war_instances:
-        return []
 
     # Defensive: ensure the storage attributes exist on legacy saves.
     pending = getattr(world, "pending_settlement_dialogues", None)
@@ -1942,6 +2186,15 @@ def process_settlement_offer_phase(world) -> List[Dict]:
         world.ai_settlement_cooldowns = cooldowns
 
     produced: List[Dict] = []
+    produced.extend(_resolve_settlement_terms_requests(
+        world,
+        player=player,
+        current_turn=current_turn,
+        pending=pending,
+        cooldowns=cooldowns,
+    ))
+    if not war_instances:
+        return produced
 
     # Deterministic iteration order so tests can pin offer_id sequence.
     for war_id in sorted(war_instances.keys()):
@@ -1955,44 +2208,10 @@ def process_settlement_offer_phase(world) -> List[Dict]:
         if refusal is not None:
             continue
 
-        side_by_nation = war.get("side_by_nation") or {}
-        player_side = side_by_nation.get(player)
-        opposing_side = "defenders" if player_side == "attackers" else "attackers"
-        proposer_nation = _settlement_offer_opposing_side_leader(
-            war, player_side=player_side,
-        )
-        covered_enemies = [
-            nation
-            for nation, side in side_by_nation.items()
-            if side == opposing_side and nation != player
-        ]
-        war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
-
-        terms = _settlement_offer_build_terms(
-            player=player,
-            proposer_nation=proposer_nation,
-            war_age_turns=war_age_turns,
-        )
-        seq = _settlement_offer_next_seq(
-            pending, war_id=str(war_id), current_turn=current_turn,
-        )
-        offer_id = f"settlement_offer:{war_id}:{current_turn}:{seq}"
-
-        offer = {
-            "type": "incoming_settlement_offer",
-            "dialogue_type": "incoming_settlement_offer",
-            "offer_id": offer_id,
-            "war_id": str(war_id),
-            "proposer_nation": proposer_nation,
-            "proposer_side": opposing_side,
-            "accepting_side": player_side,
-            "accepting_leader": player,
-            "covered_enemy_participants": list(covered_enemies),
-            "settlement_terms": terms,
-            "turn_created": current_turn,
-        }
-        pending.append(offer)
-        cooldowns[str(war_id)] = current_turn + SETTLEMENT_OFFER_COOLDOWN_TURNS
-        produced.append(offer)
+        produced.append(_emit_settlement_offer_for_war(
+            world, str(war_id), war,
+            player=player, current_turn=current_turn,
+            pending=pending, cooldowns=cooldowns,
+        ))
 
     return produced
