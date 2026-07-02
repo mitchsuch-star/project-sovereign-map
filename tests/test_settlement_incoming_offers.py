@@ -701,5 +701,102 @@ def test_ai_settlement_cooldowns_survive_save_load_round_trip():
     assert process_settlement_offer_phase(rehydrated) == []
 
 
+# ---------------------------------------------------------------------------
+# Gate-4 1805 smoke (E-3) — the offer must be ANSWERABLE through the wire.
+# The direct-handler tests above never exercised dialogue-choice RESOLUTION:
+# the promoted dialogue carried its actions only inside `popup_payload`,
+# while resolution reads top-level `options`, so accept / revise / reject
+# could never resolve and the offer sat unanswerable in the mailbox.
+# ---------------------------------------------------------------------------
+
+
+def _produce_and_promote(world):
+    from backend.game_logic.settlement_offers import (
+        promote_pending_settlement_offers,
+    )
+
+    produced = process_settlement_offer_phase(world)
+    assert produced, "producer fixture must emit an offer"
+    promoted = promote_pending_settlement_offers(world)
+    assert promoted, "offer must promote into the dialogue manager"
+    return promoted[0]
+
+
+def test_promoted_offer_carries_top_level_options_for_choice_resolution():
+    world = _world_at_turn(5)
+    _install_multi_party_war(world)
+    dialogue = _produce_and_promote(world)
+    actions = [opt.get("action") for opt in (dialogue.get("options") or [])]
+    assert "accept_settlement_offer" in actions
+    assert "request_settlement_revision" in actions
+    assert "reject_settlement_offer" in actions
+    assert list(dialogue.get("available_action_ids") or []) == actions
+
+
+def test_promoted_offer_reject_resolves_through_dialogue_response_wire():
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+    world = _world_at_turn(5)
+    _install_multi_party_war(world)
+    _produce_and_promote(world)
+    result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+        "reject_settlement_offer", {"world": world}
+    )
+    assert result.get("success") is True, (
+        result.get("message"), result.get("error_display"),
+    )
+    assert "I don't understand" not in str(result.get("message") or "")
+    # The offer is consumed — no unanswerable ACTIVE item remains.
+    current = world.dialogue_manager.peek() or {}
+    assert (
+        str(current.get("dialogue_type") or current.get("type") or "")
+        != "incoming_settlement_offer"
+    )
+
+
+def test_promoted_offer_accept_resolves_and_stages_review_through_wire():
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+    world = _world_at_turn(5)
+    _install_multi_party_war(world)
+    offered = _produce_and_promote(world)
+    offered_terms = [dict(t) for t in offered.get("settlement_terms") or []]
+    result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+        "accept_settlement_offer", {"world": world}
+    )
+    assert result.get("success") is True, (
+        result.get("message"), result.get("error_display"),
+    )
+    staged = world.pending_diplomatic_dialogue or {}
+    assert str(staged.get("dialogue_type") or staged.get("type")) == (
+        "settlement_confirm"
+    )
+    staged_types = sorted(
+        str(t.get("type")) for t in (staged.get("settlement_terms") or [])
+    )
+    assert staged_types == sorted(str(t.get("type")) for t in offered_terms)
+
+
+def test_pre_fix_saved_offer_dialogue_resolves_via_popup_payload_fallback():
+    """A dialogue promoted BEFORE the promote-time fix (e.g. living in an
+    older save) has no top-level options — resolution falls back to the
+    popup payload so the offer stays answerable."""
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+    world = _world_at_turn(5)
+    _install_multi_party_war(world)
+    dialogue = _produce_and_promote(world)
+    # Simulate the pre-fix shape: strip the top-level actions.
+    dialogue.pop("options", None)
+    dialogue.pop("available_action_ids", None)
+    assert dialogue.get("popup_payload", {}).get("options")
+    result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+        "reject_settlement_offer", {"world": world}
+    )
+    assert result.get("success") is True, (
+        result.get("message"), result.get("error_display"),
+    )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

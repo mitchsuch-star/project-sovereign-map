@@ -2858,7 +2858,11 @@ class TestResolveNationName:
 
     def test_no_match(self):
         from backend.game_logic.diplomatic_dialogue import resolve_nation_name
-        assert resolve_nation_name("Spain") is None
+        # E-1 inversion: Spain is a shipped 1805 Europe nation now — the
+        # roster-scan fallback resolves it (the old pin predates the map
+        # cutover, when only the legacy alias table existed).
+        assert resolve_nation_name("Spain") == "Spain"
+        assert resolve_nation_name("Atlantis") is None
         assert resolve_nation_name("random text") is None
 
 

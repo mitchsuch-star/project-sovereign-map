@@ -309,10 +309,12 @@ class DialogueManager:
             if dtype == "incoming_settlement_offer":
                 source = d.get("proposer_nation", "Unknown")
                 ptype = "settlement_offer"
-                war_id = d.get("war_id", "")
+                # Gate-4 1805 smoke (E-5): the row is player-facing — use the
+                # humanized war label, never the raw internal war id (R7).
+                war_label = d.get("war_label", "") or d.get("war_id", "")
                 summary = (
                     f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Settlement offer')}"
-                    + (f": {war_id}" if war_id else "")
+                    + (f": {war_label}" if war_label else "")
                 )
             elif dtype == "ally_settlement_petition":
                 source = d.get("ally_nation", "Unknown")

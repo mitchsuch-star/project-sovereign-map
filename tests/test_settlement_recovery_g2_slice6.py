@@ -241,3 +241,50 @@ def test_smoke_start_multiwar_ambiguity_fixture_has_multiple_war_instances(monke
     assert world.settlement_smoke_fixture["name"] == SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY
     assert len(world.war_instances) >= 2
     assert len(world.settlement_smoke_fixture["war_ids"]) == len(world.war_instances)
+
+
+def test_smoke_start_multiwar_ambiguity_fixture_actually_exercises_sc8b(monkeypatch):
+    """LEGD-1 (Gate-4 1805 smoke): the old seed created three DISJOINT
+    one-to-one wars — every mount died at `one_to_one_war` and the
+    `multi_war_ambiguity` contract the fixture exists for (cleanup spec
+    line 1343) was unreachable. The seed now authors the SC-8b defended
+    shape: the France|Austria pair active in TWO multi-party instances."""
+    from backend.game_logic.settlement_helpers import (
+        resolve_or_backfill_war_instance_for_settlement,
+    )
+
+    monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY)
+    world = WorldState()
+
+    assert world.settlement_smoke_fixture["ambiguous_nation"] == "Austria"
+    owners = [
+        wid
+        for wid, inst in world.war_instances.items()
+        if "Austria|France" in (inst.get("active_diplo_keys") or [])
+    ]
+    assert len(owners) == 2, owners
+    # Every instance is multi-party (no one_to_one_war gate).
+    for inst in world.war_instances.values():
+        assert len(inst.get("active_participants") or []) >= 3
+
+    # No-war_id mount targeting the shared court must DISAMBIGUATE,
+    # never pick a sorted fallback war.
+    resolved = resolve_or_backfill_war_instance_for_settlement(
+        world, "France", "Austria",
+    )
+    assert resolved.get("ok") is False
+    assert resolved.get("error") == "multi_war_ambiguity"
+    assert sorted(resolved.get("available_wars") or []) == sorted(owners)
+
+    # An explicit war_id stays scoped to that instance.
+    scoped = resolve_or_backfill_war_instance_for_settlement(
+        world, "France", "Austria", requested_war_id=owners[0],
+    )
+    assert scoped.get("ok") is True
+    assert scoped.get("war_id") == owners[0]
+
+    # The unshared courts stay unambiguous.
+    britain = resolve_or_backfill_war_instance_for_settlement(
+        world, "France", "Britain",
+    )
+    assert britain.get("ok") is True

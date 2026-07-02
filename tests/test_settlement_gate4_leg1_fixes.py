@@ -2326,3 +2326,406 @@ class TestPart3SiblingScan:
         assert "Cooldown: 3 turns" in str(
             vassal.get("reason") or vassal.get("disabled_reason") or ""
         )
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# G4S-1 / G4S-2 / G4S-3 — the July 2026 end-of-queue Gate-4 smoke on the
+# shipped 1805 boot (see docs/STATUS.md for the session record)
+# ═════════════════════════════════════════════════════════════════════════
+
+
+class TestGate4SmokeUnresolvedChoiceShape:
+    """G4S-1: an unresolvable choice on a STAGED settlement-family dialogue
+    must honor the CH-5 response shape (re-attached dialogue + rendered
+    ``error_display``) — the bare "I don't understand that choice" refusal
+    left the Godot player at an invisible hard stop (the popup hides itself
+    when it sends a response; the staged REVIEW kept blocking commands with
+    nothing on screen)."""
+
+    def test_unknown_verb_on_staged_settlement_reattaches_with_error_display(self):
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world, _war = _winning_two_court_world()
+        _stage_propose(world)
+        executor = DiplomaticExecutor(None)
+        submitted = executor.handle_diplomatic_dialogue_response(
+            "submit_settlement_for_review", {"world": world}
+        )
+        assert submitted.get("success") is True
+        mode_before = str(
+            (world.pending_diplomatic_dialogue or {}).get("dialogue_mode")
+        )
+        result = executor.handle_diplomatic_dialogue_response(
+            "settlement_totally_fake_action", {"world": world}
+        )
+        assert result.get("success") is False
+        assert result.get("error") == "settlement_choice_not_recognized"
+        assert str(result.get("error_display") or "").strip()
+        reattached = result.get("diplomatic_dialogue") or {}
+        assert reattached, "failed choice must re-attach the staged dialogue"
+        assert str(reattached.get("dialogue_mode")) == mode_before
+        # The staged dialogue is untouched — a valid verb still resolves.
+        back = executor.handle_diplomatic_dialogue_response(
+            "return_to_settlement_terms", {"world": world}
+        )
+        assert back.get("success") is True
+        assert (
+            str((world.pending_diplomatic_dialogue or {}).get("dialogue_mode"))
+            == "PROPOSE"
+        )
+
+    def test_non_settlement_dialogue_keeps_legacy_bare_refusal(self):
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+
+        world = WorldState()
+        world.dialogue_manager.push({
+            "type": "proposal_confirm",
+            "options": [{"action": "dismiss", "label": "Dismiss"}],
+        })
+        result = DiplomaticExecutor(None).handle_diplomatic_dialogue_response(
+            "settlement_totally_fake_action", {"world": world}
+        )
+        assert result.get("success") is False
+        assert result.get("error") is None
+        assert "diplomatic_dialogue" not in result
+
+
+class TestGate4SmokeDialBudgetPreCharge:
+    """G4S-2: the dial budget must pre-charge EVERY existing gold line, so a
+    grow on one line can never overspend capacity another EXISTING line
+    already occupies. The consume-on-visit accounting authored an
+    over-capacity package (Austria's grow ate Britain's committed gold), the
+    restage validator bounced the whole redial — discarding the ceiling
+    notes and the GT-A5 territory escalation — and every further ease click
+    repeated the same refusal (the 1805 leg-A 37/50 dead end)."""
+
+    def test_grow_cannot_overspend_capacity_occupied_by_other_lines(self):
+        terms = [
+            {"type": "peace"},
+            {"type": "gold_indemnity", "from": "France", "to": "Britain",
+             "amount": 400},
+            {"type": "gold_indemnity", "from": "France", "to": "Prussia",
+             "amount": 400},
+        ]
+        notes = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="generous",
+            proposer_side_leader="France",
+            protected_notes=notes,
+            payer_gold_budgets={"France": 800},
+        )
+        total = sum(
+            int(t.get("amount", 0) or 0)
+            for t in out
+            if t.get("type") == "gold_indemnity" and t.get("from") == "France"
+        )
+        # Pre-fix accounting produced 900 on an 800 capacity (500 + 400).
+        assert total <= 800
+        amounts = sorted(
+            int(t.get("amount", 0) or 0)
+            for t in out
+            if t.get("type") == "gold_indemnity"
+        )
+        assert amounts == [400, 400]
+        # Both courts exhausted with no escalation candidates -> D3 notes,
+        # never wordless, never a validator bounce.
+        assert any("bear no more" in n for n in notes)
+
+    def test_exhausted_lever_escalates_to_supplied_territory_candidate(self):
+        terms = [
+            {"type": "peace"},
+            {"type": "gold_indemnity", "from": "France", "to": "Britain",
+             "amount": 400},
+            {"type": "gold_indemnity", "from": "France", "to": "Prussia",
+             "amount": 400},
+        ]
+        seeded = []
+        out = _redial_settlement_terms(
+            terms=terms,
+            scope_courts=["Britain", "Prussia"],
+            direction="generous",
+            proposer_side_leader="France",
+            seeded_events=seeded,
+            payer_gold_budgets={"France": 800},
+            territory_escalations={
+                "Britain": {
+                    "type": "territory_cede", "from": "France",
+                    "to": "Britain", "region": "Waterloo",
+                    "authored_by": "talleyrand",
+                },
+            },
+        )
+        regions = [
+            t.get("region") for t in out if t.get("type") == "territory_cede"
+        ]
+        assert "Waterloo" in regions
+        kinds = [e.get("kind") for e in seeded]
+        assert "territory_escalation" in kinds
+
+    def test_fifth_ease_click_never_bounces_through_the_real_handler(self):
+        """End-to-end through the CH-5 wrapper: repeated whole-table ease on a
+        two-court table with France at 800 gold walks 100->400 per court then
+        CEILINGS (note or escalation) — the pre-fix behavior was a
+        `gold_payment_budget_conflict` validator bounce on every click after
+        the fourth."""
+        world, _war = _winning_two_court_world(france_gold=800)
+        dialogue = _stage_propose(world)
+        for click in range(1, 7):
+            result = handle_settlement_dialogue_action(
+                world,
+                action="settlement_dial_generous",
+                dialogue=world.pending_diplomatic_dialogue or dialogue,
+                action_params={"scope": "table"},
+            )
+            assert result.get("success") is True, (
+                f"ease click {click} bounced: {result.get('error')} / "
+                f"{result.get('error_display')}"
+            )
+        refreshed = world.pending_diplomatic_dialogue or {}
+        total = sum(
+            int(t.get("amount", 0) or 0)
+            for t in (refreshed.get("settlement_terms") or [])
+            if t.get("type") == "gold_indemnity"
+            and t.get("from") == "France"
+        )
+        assert total <= 800
+
+
+class TestGate4SmokeReviewFrozenAgainstRawDials:
+    """G4C-2: REVIEW is frozen — the Tier-2 dial/coverage affordances are
+    absent from REVIEW rows, but a raw wire verb could still mutate the
+    staged terms (and flip ``can_ratify``) without re-submitting through the
+    PROPOSE -> REVIEW gate. The server now refuses like the GT-Slice-1
+    demand-verb guard does."""
+
+    def test_dial_on_review_refuses_without_mutation(self):
+        world, _war = _winning_two_court_world()
+        _stage_propose(world)
+        submitted = handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={},
+        )
+        assert submitted.get("success") is True
+        review = world.pending_diplomatic_dialogue or {}
+        assert review.get("dialogue_mode") == "REVIEW"
+        terms_before = [dict(t) for t in (review.get("settlement_terms") or [])]
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_generous",
+            dialogue=review,
+            action_params={"scope": "table"},
+        )
+        assert result.get("success") is False
+        assert result.get("error") == "settlement_review_terms_frozen"
+        assert str(result.get("error_display") or "").strip()
+        assert result.get("diplomatic_dialogue"), "CH-5 re-attach"
+        refreshed = world.pending_diplomatic_dialogue or {}
+        assert refreshed.get("dialogue_mode") == "REVIEW"
+        assert [dict(t) for t in (refreshed.get("settlement_terms") or [])] == terms_before
+
+    def test_coverage_drop_on_review_refuses(self):
+        world, _war = _winning_two_court_world()
+        _stage_propose(world)
+        handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={},
+        )
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_cover_drop",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={"nation": "Prussia"},
+        )
+        assert result.get("success") is False
+        assert result.get("error") == "settlement_review_terms_frozen"
+        covered = (world.pending_diplomatic_dialogue or {}).get(
+            "covered_enemy_participants"
+        ) or []
+        assert "Prussia" in covered
+
+    def test_focus_court_stays_allowed_on_review(self):
+        world, _war = _winning_two_court_world()
+        _stage_propose(world)
+        handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={},
+        )
+        result = handle_settlement_dialogue_action(
+            world,
+            action="settlement_focus_court",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={"nation": "Britain"},
+        )
+        assert result.get("success") is True, result.get("error_display")
+        assert (world.pending_diplomatic_dialogue or {}).get("focused_court") == "Britain"
+
+
+class TestGate4SmokeCoverageLabelInNarration:
+    """G4S-3: the multi-court table narration resolved BEFORE the G4F-7
+    coverage-aware label was computed, so it read the leader-pair label
+    ("this settlement of France vs Britain seats 3 courts") while the rest
+    of the dialogue named every covered court."""
+
+    def test_table_narration_names_every_covered_court(self):
+        world, _war = _winning_two_court_world()
+        dialogue = _stage_propose(world)
+        narration = str(dialogue.get("multi_court_table_narration") or "")
+        assert "France vs Britain + Prussia" in narration
+
+
+class TestGate4SmokeParadoxSurfacesAtMount:
+    """E-2 honesty half: the BPH-C §10.1 alliance-paradox HARD_STOP fired
+    only at Send — on the shipped 1805 boot every bilateral peace AND
+    armistice with Britain/Austria/Russia walks the full flow (estimate
+    promising "COUNTER expected") before the send refuses. The mount now
+    carries `commitment_block_warning` naming the block and the routes
+    that work. The paradox mechanics themselves are unchanged."""
+
+    def _paradox_world(self):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Britain", "WAR", "test")
+        set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "test")
+        set_diplomatic_state(world, "Prussia", "Britain", "WAR", "test")
+        return world
+
+    def test_armistice_mount_names_the_paradox_block(self):
+        from backend.game_logic.diplomatic_dialogue import (
+            _enrich_proposal_summary,
+        )
+
+        world = self._paradox_world()
+        dialogue = _enrich_proposal_summary(
+            {"options": []}, "Britain", "armistice", world
+        )
+        block = str(dialogue.get("commitment_block_warning") or "")
+        assert "Prussia" in block
+        assert "settlement table" in block
+        warning_texts = " ".join(
+            str(w.get("text") or "") for w in dialogue.get("warnings") or []
+        )
+        assert "Prussia" in warning_texts
+
+    def test_no_block_warning_without_a_paradox(self):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.diplomatic_dialogue import (
+            _enrich_proposal_summary,
+        )
+
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Britain", "WAR", "test")
+        dialogue = _enrich_proposal_summary(
+            {"options": []}, "Britain", "armistice", world
+        )
+        assert not dialogue.get("commitment_block_warning")
+
+
+class TestGate4SmokeSameWarRestageNeverStacks:
+    """LEGB-F2: a same-war restage while a settlement dialogue is mounted
+    used `preempt`, which RE-QUEUED the displaced twin — Back Out then
+    popped only the top copy, and the stale twin resurrected the discarded
+    draft on the next mount. Same-war restages now REPLACE."""
+
+    def test_back_out_after_same_war_refresh_discards_for_real(self):
+        world, _war = _winning_two_court_world()
+        _stage_propose(world)
+        baseline = [
+            (t.get("type"), t.get("amount"))
+            for t in (world.pending_diplomatic_dialogue or {}).get(
+                "settlement_terms"
+            ) or []
+        ]
+        # Mutate the draft, then refresh the SAME war while mounted.
+        handle_settlement_dialogue_action(
+            world,
+            action="settlement_dial_harsher",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={"scope": "table"},
+        )
+        _stage_propose(world)  # the GT-Slice-4 §6 mounted-draft refresh
+        # No displaced settlement twin may survive in the queue.
+        queued_types = [
+            str(d.get("type") or "") for d in world.dialogue_manager._queue
+        ]
+        assert "settlement_confirm" not in queued_types
+        handle_settlement_dialogue_action(
+            world,
+            action="submit_settlement_for_review",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={},
+        )
+        result = handle_settlement_dialogue_action(
+            world,
+            action="back_out_settlement",
+            dialogue=world.pending_diplomatic_dialogue,
+            action_params={},
+        )
+        assert result.get("success") is True
+        assert world.pending_diplomatic_dialogue is None
+        fresh = _stage_propose(world)
+        restored = [
+            (t.get("type"), t.get("amount"))
+            for t in fresh.get("settlement_terms") or []
+        ]
+        assert restored == baseline, (
+            "back_out must discard — the re-mount resurrected the "
+            f"discarded draft: {restored} != {baseline}"
+        )
+
+
+class TestGate4SmokeRosterNationExtraction:
+    """E-1: nation extraction used only the legacy hardcoded alias table
+    (Britain / Prussia / Austria / Saxony / France variants), so typed AND
+    F1-wizard-composed proposals were unreachable for 15 of the 19 Europe
+    nations in every LLM mode ("propose peace with Russia" -> "which
+    nation should I direct this proposal to?"). Extraction now falls back
+    to the full shipped rosters (display form + internal key, word-bounded,
+    longest-first)."""
+
+    def test_every_europe_nation_is_extractable_by_display_name(self):
+        from backend.display_names import display_nation
+        from backend.game_logic.diplomatic_dialogue import (
+            extract_nation_from_command,
+        )
+        from backend.nation_config import EUROPE_ROSTER
+
+        for key in EUROPE_ROSTER:
+            if key == "France":
+                continue
+            command = f"propose open borders with {display_nation(key)}"
+            assert extract_nation_from_command(command) == key, command
+
+    def test_prussia_and_russia_never_cross_match(self):
+        from backend.game_logic.diplomatic_dialogue import (
+            extract_nation_from_command,
+        )
+
+        assert extract_nation_from_command("propose peace with Prussia") == "Prussia"
+        assert extract_nation_from_command("propose peace with Russia") == "Russia"
+
+    def test_mock_parser_routes_russia_proposal_end_to_end(self):
+        from backend.ai.llm_client import LLMClient
+
+        result = LLMClient()._parse_with_mock("propose armistice with Russia")
+        assert result.matched is True
+        assert result.action == "diplomatic_proposal"
+        assert result.diplomatic_data["target_nation"] == "Russia"
+        assert result.diplomatic_data["proposal_type"] == "armistice"
+
+    def test_mock_parser_routes_multiword_display_name(self):
+        from backend.ai.llm_client import LLMClient
+
+        result = LLMClient()._parse_with_mock(
+            "propose open borders with Kingdom of Italy"
+        )
+        assert result.matched is True
+        assert result.diplomatic_data["target_nation"] == "KingdomOfItaly"

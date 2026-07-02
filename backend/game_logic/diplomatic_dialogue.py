@@ -150,6 +150,50 @@ MISSION_DESCRIPTIONS = {
 }
 
 
+_ROSTER_NATION_PATTERNS: Optional[list] = None
+
+
+def _roster_nation_patterns() -> list:
+    """(compiled word-boundary pattern, canonical key) for every shipped
+    nation on BOTH rosters (legacy + 1805 Europe), matching the display form
+    ("Kingdom of Italy", "Papal States", "Ottoman Empire") and the internal
+    key. Longest needle first so "prussia" always wins over its embedded
+    "russia". Gate-4 1805 smoke (E-1): the alias table alone covered only
+    Britain/Prussia/Austria/Saxony/France, so typed AND wizard-composed
+    proposals ("propose peace with Russia") were unreachable for 15 of the
+    19 Europe nations in every LLM mode.
+    """
+    global _ROSTER_NATION_PATTERNS
+    if _ROSTER_NATION_PATTERNS is None:
+        import re
+
+        from backend.display_names import display_nation
+        from backend.nation_config import EUROPE_ROSTER, RUNTIME_NATIONS
+
+        needles: Dict[str, str] = {}
+        for key in (*EUROPE_ROSTER, *RUNTIME_NATIONS):
+            for form in (display_nation(key), key):
+                needles.setdefault(str(form).lower(), key)
+        _ROSTER_NATION_PATTERNS = [
+            (re.compile(r"\b" + re.escape(needle) + r"\b"), canonical)
+            for needle, canonical in sorted(
+                needles.items(), key=lambda kv: -len(kv[0])
+            )
+        ]
+    return _ROSTER_NATION_PATTERNS
+
+
+def _scan_rosters_for_nation(
+    text_lower: str, *, exclude_france: bool
+) -> Optional[str]:
+    for pattern, canonical in _roster_nation_patterns():
+        if exclude_france and canonical == "France":
+            continue
+        if pattern.search(text_lower):
+            return canonical
+    return None
+
+
 def resolve_nation_name(text: str) -> Optional[str]:
     """Fuzzy match a nation name from text. Returns canonical name or None."""
     # NOTE: Uses substring matching which could theoretically false-positive
@@ -157,12 +201,13 @@ def resolve_nation_name(text: str) -> Optional[str]:
     # commands which are short and focused on diplomatic actions.
     text_lower = text.lower().strip()
 
-    # Direct alias match
+    # Direct alias match (adjectives / typos / historical synonyms)
     for alias, canonical in NATION_ALIASES.items():
         if alias in text_lower:
             return canonical
 
-    return None
+    # E-1: full-roster fallback — any shipped nation's display name or key.
+    return _scan_rosters_for_nation(text_lower, exclude_france=False)
 
 
 def extract_nation_from_command(raw_text: str) -> Optional[str]:
@@ -174,7 +219,8 @@ def extract_nation_from_command(raw_text: str) -> Optional[str]:
         if alias in text_lower and canonical != "France":
             return canonical
 
-    return None
+    # E-1: full-roster fallback — any shipped nation's display name or key.
+    return _scan_rosters_for_nation(text_lower, exclude_france=True)
 
 
 def extract_proposal_type(raw_text: str) -> Optional[str]:
@@ -747,6 +793,35 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     )
     if warnings:
         dialogue["warnings"] = list(dialogue.get("warnings", [])) + warnings
+
+    # Gate-4 1805 smoke (E-2, honesty half): the BPH-C §10.1 alliance-paradox
+    # HARD_STOP only fired at Send — the player walked the whole flow (the
+    # estimate even promising "COUNTER expected") before learning the
+    # proposal cannot be delivered at all. Surface the block at MOUNT, in
+    # the same G4F-13 honest-preview pattern, and name the routes that DO
+    # work on a shared coalition war. (Whether armistice should be exempt
+    # from the paradox rule is a separate design question — this only stops
+    # the preview promising what Send will refuse.)
+    if proposal_type in ("peace", "armistice", "armistice_losing",
+                         "armistice_winning"):
+        from backend.game_logic.diplomacy import get_peace_commitment_conflicts
+        _conflicts = get_peace_commitment_conflicts(
+            world, player_nation, target_nation,
+            (dialogue.get("proposal_terms") or {}).get("clauses", [])
+            if isinstance(dialogue.get("proposal_terms"), dict) else [],
+        )
+        _hard = [c for c in _conflicts if c.get("severity") == "HARD_STOP"]
+        if _hard:
+            _ally = str(_hard[0].get("affected_entity") or "an ally")
+            block_text = (
+                f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
+                f"Settle the war jointly at the settlement table, or resolve "
+                f"{_ally}'s war first."
+            )
+            dialogue["commitment_block_warning"] = block_text
+            dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
+                {"severity": "high", "text": block_text}
+            ]
 
     return dialogue
 

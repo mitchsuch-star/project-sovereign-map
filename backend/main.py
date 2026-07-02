@@ -568,6 +568,13 @@ def _derive_proposal_result_outcome(result: dict) -> str:
         return "REJECT"
     if "accept" in message or "agreed" in message or "excellent news" in message:
         return "ACCEPT"
+    # Gate-4 1805 smoke (E-4): a successful in-transit dispatch ("Talleyrand
+    # departs for the Saxony court... Expect a response by next turn.") is
+    # neither accepted nor rejected — the hard REJECT default titled every
+    # such send "Diplomatic Action Rejected" on the notice rail.
+    if ("departs for" in message or "expect a response" in message
+            or "en route" in message):
+        return "PENDING"
 
     return "REJECT"
 
@@ -590,10 +597,14 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
     message = str(proposal_result.get("message", "")).strip()
     feedback = str(proposal_result.get("feedback", "")).strip()
 
+    outcome_word = {
+        "ACCEPT": "Accepted",
+        "PENDING": "Dispatched",
+    }.get(outcome, "Rejected")
     world.notifications.add(create_notification(
         DIPLOMATIC_PROPOSAL_RESULT,
         NotificationPriority.NORMAL,
-        f"{proposal_type} {'Accepted' if outcome == 'ACCEPT' else 'Rejected'}",
+        f"{proposal_type} {outcome_word}",
         message or f"{target_nation} has responded to our {proposal_type.lower()}.",
         int(world.current_turn),
         details={

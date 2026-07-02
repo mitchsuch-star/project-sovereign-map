@@ -1050,22 +1050,65 @@ class WorldState:
         }
 
     def _seed_settlement_multiwar_ambiguity_smoke_start(self) -> None:
-        """Seed multiple active France wars for wizard ambiguity smoke."""
-        from backend.game_logic.settlement_helpers import _create_skeleton_instance
+        """Seed the SC-8b multi-war disambiguation shape (Gate-4 fixture).
 
-        for opponent in ("Britain", "Austria", "Prussia"):
+        LEGD-1 (Gate-4 1805 smoke): the old seed created three DISJOINT
+        one-to-one France wars, so every settlement mount was rejected by
+        the `one_to_one_war` eligibility gate and the `multi_war_ambiguity`
+        contract this fixture exists to exercise (cleanup spec line 1343 /
+        smoke step 1) was structurally unreachable. The disambiguation
+        branch defends against the same France pair being ACTIVE in two
+        instances — a state the live merge machinery normally prevents
+        (`attach_pair_to_war_instance` / `ensure_war_instance_for_pair`
+        merge dual owners), so the fixture authors the defended shape
+        directly: two multi-party instances (France vs Britain + Austria;
+        France vs Prussia + Austria) that BOTH carry the France|Austria
+        pair. Targeting Austria without a war_id must disambiguate or
+        hide; Britain / Prussia stay unambiguous single-instance targets.
+        """
+        from backend.game_logic.settlement_helpers import (
+            _create_skeleton_instance,
+            _make_pair_key,
+        )
+
+        entry_path = "smoke_start_settlement_multiwar_ambiguity"
+        shared_court = "Austria"
+        shared_pair = _make_pair_key("France", shared_court)
+        for primary in ("Britain", "Prussia"):
             instance = _create_skeleton_instance(
                 self,
                 "France",
-                opponent,
-                entry_path="smoke_start_settlement_multiwar_ambiguity",
-                root_episode_id=f"smoke_start_settlement_multiwar_ambiguity_France_{opponent}",
+                primary,
+                entry_path=entry_path,
+                root_episode_id=f"{entry_path}_France_{primary}",
             )
+            turn = int(instance.get("created_turn") or 1)
+            instance["defenders"].append(shared_court)
+            instance["active_participants"].append(shared_court)
+            instance["side_by_nation"][shared_court] = "defenders"
+            instance["active_diplo_keys"].append(shared_pair)
+            instance["objective_keys"].append(shared_pair)
+            instance["diplo_key_meta"][shared_pair] = {
+                "attacker": "France",
+                "defender": shared_court,
+                "joined_turn": turn,
+                "pair_status": "war",
+                "resolved_turn": None,
+                "entry_path": entry_path,
+            }
+            instance["participant_meta"][shared_court] = {
+                "side": "defenders",
+                "joined_turn": turn,
+                "exited_turn": None,
+                "entry_path": entry_path,
+            }
             for pair in instance.get("active_diplo_keys", []):
                 self.diplomatic_states[pair] = "WAR"
+        self.invalidate_war_instance_indexes()
         self.settlement_smoke_fixture = {
             "name": SMOKE_START_SETTLEMENT_MULTIWAR_AMBIGUITY,
             "war_ids": sorted((self.war_instances or {}).keys()),
+            "ambiguous_nation": shared_court,
         }
 
     def drain_settlement_draft_notices(self) -> List[Dict[str, Any]]:

@@ -2633,6 +2633,12 @@ class DiplomaticExecutor:
 
         dialogue = world.pending_diplomatic_dialogue
         options = dialogue.get("options", [])
+        if not options and isinstance(dialogue.get("popup_payload"), dict):
+            # Gate-4 1805 smoke (E-3): dialogues promoted before the offer
+            # promote-time fix (e.g. a pre-fix save) carry their actions only
+            # inside `popup_payload` — fall back so the offer stays
+            # answerable instead of every click dying in unknown-choice.
+            options = dialogue["popup_payload"].get("options") or []
 
         # Re-front Slice 2: structured settlement Tier-2 affordances (dials,
         # coverage edits, focus) ride on per-court rows / rail buttons and carry
@@ -2680,11 +2686,39 @@ class DiplomaticExecutor:
                 world,
             )
 
+        def _unresolved_choice_failure(message: str) -> Dict:
+            """Gate-4 G4S-1 — an unresolvable choice on a STAGED settlement-family
+            dialogue must honor the CH-5 response shape (re-attached dialogue +
+            rendered ``error_display``), never a bare refusal. The Godot popup
+            hides itself when it sends a response; a bare refusal leaves the
+            player at an invisible hard stop (the staged dialogue still blocks
+            commands, but nothing is on screen). Non-settlement dialogues keep
+            the legacy terminal message unchanged.
+            """
+            result: Dict = {"success": False, "message": message}
+            from backend.game_logic.settlement_routes import (
+                SETTLEMENT_FAMILY_DIALOGUE_TYPES,
+            )
+            dtype = str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+            if dtype in SETTLEMENT_FAMILY_DIALOGUE_TYPES:
+                from backend.game_logic.settlement_actions import (
+                    _enforce_settlement_response_shape,
+                )
+                result["error"] = "settlement_choice_not_recognized"
+                result["error_display"] = (
+                    "That order matched nothing on the settlement table, Sire — "
+                    "the table stands as it was."
+                )
+                result["suppress_proposal_result_popup"] = True
+                return _enforce_settlement_response_shape(result, dialogue)
+            return result
+
         # Resolve choice to option
         selected = None
         if isinstance(choice, int):
             if choice < 1 or choice > len(options):
-                return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+                return _unresolved_choice_failure(
+                    f"Please choose an option (1-{len(options)}), Sire.")
             selected = options[choice - 1]
         elif isinstance(choice, str):
             # Try parsing as int
@@ -2774,14 +2808,16 @@ class DiplomaticExecutor:
                             if selected:
                                 break
         else:
-            return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+            return _unresolved_choice_failure(
+                f"Please choose an option (1-{len(options)}), Sire.")
 
         if not selected:
             labels = [opt.get("label", "?") for opt in options]
             numbered = ", ".join(
                 f"{i+1}={label}" for i, label in enumerate(labels)
             )
-            return {"success": False, "message": f"I don't understand that choice, Sire. Options: {numbered}"}
+            return _unresolved_choice_failure(
+                f"I don't understand that choice, Sire. Options: {numbered}")
 
         # Process the selected action
         action = selected.get("action", "dismiss")

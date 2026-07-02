@@ -69,6 +69,7 @@ from backend.game_logic.settlement_baseline import (
     compute_settlement_treasury_line,
 )
 from backend.game_logic.settlement_routes import (
+    SETTLEMENT_FAMILY_DIALOGUE_TYPES,
     _error_display,
     _mounted_settlement_dialogue,
     _normalize_nation_list,
@@ -888,6 +889,7 @@ def _redial_settlement_terms(
     """
     scope = {str(n) for n in (scope_courts or []) if n}
     leader = str(proposer_side_leader or "")
+    term_list = [t for t in (terms or []) if isinstance(t, Mapping)]
     out: List[Dict[str, Any]] = []
     # G4F-5: `changed` = courts that took a material delta this sweep (grown /
     # shrunk / dropped clause); `noted` = courts whose lack of movement already
@@ -910,16 +912,30 @@ def _redial_settlement_terms(
             return abs(amount) * max(0, turns)
         return abs(amount)
 
-    def _consume_budget(clause: Mapping[str, Any]) -> None:
+    def _adjust_budget(payer: str, delta: int) -> None:
         if remaining_budget is None:
             return
-        payer = str(clause.get("from") or "")
         if payer in remaining_budget:
-            remaining_budget[payer] -= _gold_consumption(clause)
+            remaining_budget[payer] -= delta
+
+    # G4S-2 (Gate-4 1805 smoke): pre-charge EVERY existing gold line against
+    # its payer's capacity up front, then adjust by DELTA as the sweep tunes
+    # each line. The old consume-on-visit accounting let an early line's grow
+    # overspend the budget a LATER existing line already occupied — the sweep
+    # authored an over-capacity package, the restage validator bounced the
+    # whole redial (discarding the ceiling notes and the GT-A5 territory
+    # escalation with it), and every further dial click repeated the same
+    # refusal (the 1805 leg-A dead end at 37/50). Pre-charging keeps the
+    # never-bounce invariant: an exhausted gold lever now classes as
+    # `ceiling` (note / escalation), never as a validator bounce.
+    if remaining_budget is not None:
+        for t in term_list:
+            if str(t.get("type") or "") in (
+                "gold_indemnity", "gold_lump", "gold_per_turn",
+            ):
+                _adjust_budget(str(t.get("from") or ""), _gold_consumption(t))
     notes = protected_notes if protected_notes is not None else []
-    for term in terms:
-        if not isinstance(term, Mapping):
-            continue
+    for term in term_list:
         clause = dict(term)
         ttype = str(clause.get("type") or "")
         frm = str(clause.get("from") or "")
@@ -927,34 +943,35 @@ def _redial_settlement_terms(
         court = frm if frm in scope else (to if to in scope else "")
         if not court or ttype == "peace":
             out.append(clause)
-            # G4F-2: an out-of-scope gold line still draws on its payer's
-            # capacity — count it so a scoped grow cannot overspend.
-            if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
-                _consume_budget(clause)
+            # G4S-2: out-of-scope gold lines are already pre-charged above —
+            # no per-visit consumption (it would double-count).
             continue
         is_demand = frm == court  # the court pays/cedes => a demand on it
         player_authored = str(clause.get("authored_by") or "") == "player"
         if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
             amount = int(clause.get("amount", 0) or 0)
             original_amount = amount
+            per_unit = (
+                max(1, int(clause.get("turns", 0) or 0))
+                if ttype == "gold_per_turn"
+                else 1
+            )
             # Grow on harsher-demand / generous-concession; shrink otherwise.
             if (direction == "harsher") == is_demand:
                 grown = min(
                     amount + SETTLEMENT_DIAL_GOLD_STEP,
                     CONCESSION_BASELINE_GOLD_HARD_CAP,
                 )
-                # G4F-2 / DC-1: bound the grow at the payer's remaining gold
-                # capacity so a sweep never authors a package the budget
-                # validator would bounce as `gold_payment_budget_conflict`.
+                # G4F-2 / DC-1 (+ G4S-2 delta accounting): bound the grow at
+                # the payer's remaining EXTRA capacity — the whole package is
+                # pre-charged, so `remaining_budget` is what the payer can
+                # still add on top of every existing line — so a sweep never
+                # authors a package the budget validator would bounce as
+                # `gold_payment_budget_conflict`.
                 if remaining_budget is not None and frm in remaining_budget:
-                    per_unit = (
-                        max(1, int(clause.get("turns", 0) or 0))
-                        if ttype == "gold_per_turn"
-                        else 1
-                    )
-                    affordable = max(0, remaining_budget[frm]) // per_unit
-                    if grown > affordable:
-                        grown = max(amount, affordable)
+                    extra_units = max(0, remaining_budget[frm]) // per_unit
+                    if grown > amount + extra_units:
+                        grown = amount + extra_units
                 if grown == amount:
                     # A press at the ceiling — budget OR the 1500 hard cap —
                     # keeps the amount. GT-A5: the note is DEFERRED to the
@@ -981,12 +998,16 @@ def _redial_settlement_terms(
                     )
             elif amount <= 0:
                 changed.add(court)  # the drop IS the material delta
+                # G4S-2: refund the dropped line's pre-charged consumption.
+                _adjust_budget(frm, -original_amount * per_unit)
                 continue  # drop the clause (count down) — never below zero
             clause["amount"] = int(amount)
             if int(amount) != original_amount:
                 changed.add(court)
             out.append(clause)
-            _consume_budget(clause)
+            # G4S-2: adjust by DELTA only — the original amount is already
+            # pre-charged (a shrink refunds; a grow consumes the increase).
+            _adjust_budget(frm, (int(amount) - original_amount) * per_unit)
             continue
         if ttype.startswith("territory"):
             # Territory is binary (count), never identity. Harsher keeps a
@@ -1054,7 +1075,7 @@ def _redial_settlement_terms(
                 }
                 seed_group = "offer"
             out.append(seed)
-            _consume_budget(seed)
+            _adjust_budget(str(seed.get("from") or ""), _gold_consumption(seed))
             if seeded_events is not None:
                 # GT-Slice-V / DC-4: the dial handler needs to know the seed
                 # fired (and in which arm) so a demand seeded on a court that
@@ -1981,13 +2002,38 @@ def build_settlement_confirm_dialogue(
     overall_acceptance = dict(preview.get("overall_acceptance") or {})
     per_court_carries = bool(overall_acceptance.get("carries"))
     holdout_courts = list(overall_acceptance.get("holdout_courts") or [])
+    leaders = {
+        "attackers": war_instance.get("attacker_leader"),
+        "defenders": war_instance.get("defender_leader"),
+    }
+    war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
+    # G4F-7 (Gate-4 smoke): a multilateral settlement is labeled by its
+    # COVERAGE, not the leader pair — "the settlement of France vs Britain"
+    # on a Britain + Prussia table fed the "Britain-only" misreading. The
+    # leader-pair `_war_label` stays for war-scoped surfaces; the SETTLEMENT
+    # dialogue names every covered court. G4S-3 (1805 smoke): computed BEFORE
+    # the table voice below — the narration previously resolved against the
+    # leader-pair label ("this settlement of France vs Britain seats 3
+    # courts") while the rest of the dialogue was already coverage-aware.
+    covered_for_label = [
+        str(n)
+        for n in (preview.get("covered_enemy_participants") or [])
+        if n
+    ]
+    proposer_leader_for_label = str(
+        leaders.get(str(preview.get("proposer_side") or "")) or ""
+    )
+    if covered_for_label and proposer_leader_for_label:
+        war_label = (
+            f"{proposer_leader_for_label} vs {' + '.join(covered_for_label)}"
+        )
     # REFRONT-V: each per-court row speaks through its NAMED diplomat (chancery
     # fallback — never an anonymous beat), and Talleyrand narrates the table.
     multi_court_voice = resolve_multi_court_settlement_voice(
         world,
         per_court_acceptance=per_court_acceptance,
         overall_acceptance=overall_acceptance,
-        war_label=str(preview.get("war_label") or _war_label(war_id, war_instance)),
+        war_label=war_label,
     )
     _voice_by_court = {
         str(v.get("nation")): v for v in multi_court_voice.get("per_court_voice") or []
@@ -2001,30 +2047,8 @@ def build_settlement_confirm_dialogue(
         enriched_per_court.append(row)
     per_court_acceptance = enriched_per_court
     multi_court_table_narration = multi_court_voice.get("table_narration", "")
-    leaders = {
-        "attackers": war_instance.get("attacker_leader"),
-        "defenders": war_instance.get("defender_leader"),
-    }
     score = preview["acceptance"].get("score")
     verdict = preview["acceptance"].get("verdict")
-    war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
-    # G4F-7 (Gate-4 smoke): a multilateral settlement is labeled by its
-    # COVERAGE, not the leader pair — "the settlement of France vs Britain"
-    # on a Britain + Prussia table fed the "Britain-only" misreading. The
-    # leader-pair `_war_label` stays for war-scoped surfaces; the SETTLEMENT
-    # dialogue names every covered court.
-    covered_for_label = [
-        str(n)
-        for n in (preview.get("covered_enemy_participants") or [])
-        if n
-    ]
-    proposer_leader_for_label = str(
-        leaders.get(str(preview.get("proposer_side") or "")) or ""
-    )
-    if covered_for_label and proposer_leader_for_label:
-        war_label = (
-            f"{proposer_leader_for_label} vs {' + '.join(covered_for_label)}"
-        )
     # SC-14c: settlement route id format is `settlement:{war_id}:{turn}:{seq}`,
     # minted from the per-(war_id, turn) `world.settlement_route_seq` counter
     # so two same-turn settlement events for one war never share a focus id.
@@ -3183,7 +3207,18 @@ def stage_settlement_confirm(
         )
     except ValueError as exc:
         return {"success": False, **_blocked_payload(str(exc), war_id=war_id_str)}
-    if getattr(world.dialogue_manager, "peek", lambda: None)() is None:
+    _current = getattr(world.dialogue_manager, "peek", lambda: None)()
+    if _current is None:
+        world.dialogue_manager.replace(dialogue)
+    elif (
+        str(_current.get("type") or _current.get("dialogue_type") or "")
+        in SETTLEMENT_FAMILY_DIALOGUE_TYPES
+        and str(_current.get("war_id") or "") == war_id_str
+    ):
+        # LEGB-F2 (Gate-4 1805 smoke): a same-war restage REPLACES the
+        # mounted settlement dialogue. Preempting re-queued the displaced
+        # twin, so Back Out popped only the top copy — the stale twin then
+        # resurrected the discarded draft on the next mount.
         world.dialogue_manager.replace(dialogue)
     elif hasattr(world.dialogue_manager, "preempt"):
         world.dialogue_manager.preempt(dialogue)

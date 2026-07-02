@@ -301,11 +301,17 @@ def _pick_counterplay_hint(world, hegemon: str, share: float, band: int) -> str:
         world.vassals[top].get("lord") == hegemon
     )
     is_ally = world.get_diplomatic_state(hegemon, top) in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+    # Gate-4 1805 smoke (E-6): player-facing copy — keep the display-form
+    # nation name, never a lowercased internal key ("non-france").
+    from backend.display_names import display_nation
+
+    hegemon_display = display_nation(hegemon)
+    top_display = display_nation(top)
     if is_vassal:
-        return (f"{top} is the decisive non-{hegemon.lower()} slice of the bloc; "
+        return (f"{top_display} is the decisive non-{hegemon_display} slice of the bloc; "
                 f"releasing it shrinks the share immediately.")
     if is_ally:
-        return (f"{top} is the decisive non-{hegemon.lower()} slice of the bloc; "
+        return (f"{top_display} is the decisive non-{hegemon_display} slice of the bloc; "
                 f"letting the alliance lapse would ease Europe's pressure.")
     # Fallback to restraint floor (no shipped lever)
     if band == 1:

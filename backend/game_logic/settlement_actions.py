@@ -478,6 +478,30 @@ def _handle_settlement_tier2_action(
             "mutated": False,
             "suppress_proposal_result_popup": True,
         }
+    # G4C-2 (Gate-4 1805 smoke) / UX-2 server half: REVIEW is FROZEN. The
+    # affordances are already absent from REVIEW rows, but a raw wire verb
+    # could still dial/re-cover a staged REVIEW — mutating terms (and
+    # flipping `can_ratify`) without ever re-submitting through the
+    # PROPOSE -> REVIEW gate. Mirror the GT-Slice-1 demand-verb guard:
+    # every MUTATING Tier-2 verb requires PROPOSE mode; `settlement_focus_
+    # court` stays allowed (presentation-only, no term mutation).
+    if (
+        action != "settlement_focus_court"
+        and str(dialogue.get("dialogue_mode") or "") != "PROPOSE"
+    ):
+        return {
+            "success": False,
+            "dialogue_type": "settlement_confirm",
+            "action": action,
+            "war_id": war_id,
+            "error": "settlement_review_terms_frozen",
+            "error_display": (
+                "The terms are staged for review and frozen, Sire — "
+                "use Return to terms to reshape them."
+            ),
+            "mutated": False,
+            "suppress_proposal_result_popup": True,
+        }
     proposer_side = str(dialogue.get("proposer_side") or "")
     accepting_side = str(dialogue.get("accepting_side") or "") or _other_side(proposer_side)
     covered = sorted({str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n})

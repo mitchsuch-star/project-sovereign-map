@@ -840,7 +840,10 @@ def build_incoming_settlement_offer_popup(
         {
             "label": "Request Revision",
             "description": (
-                "Open the offered terms in the editor and answer with a counter draft."
+                # GT-Slice-4 retired the freeform editor; the counter route
+                # is the guided per-court table (LEGF-3 copy retarget).
+                "Lay the offered terms on our own table, court by court, "
+                "and answer with a counter draft."
             ),
             "action": "request_settlement_revision",
             "available": True,
@@ -924,6 +927,23 @@ def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:
         dialogue["popup_payload"] = build_incoming_settlement_offer_popup(
             world, entry
         )
+        # Gate-4 1805 smoke (E-3): dialogue-choice resolution reads TOP-LEVEL
+        # `options` (diplomatic_executor `options = dialogue.get("options")`),
+        # but the producer entry carries none — the popup contract's actions
+        # lived only inside `popup_payload`, so accept / request-revision /
+        # reject could NEVER resolve (every click fell to the unknown-choice
+        # refusal and the offer sat unanswerable in the mailbox). Promote the
+        # popup's options onto the dialogue itself — the standard dialogue
+        # contract every other family satisfies.
+        popup = dialogue["popup_payload"]
+        if not dialogue.get("options") and isinstance(popup, dict):
+            dialogue["options"] = [
+                dict(opt) for opt in (popup.get("options") or [])
+                if isinstance(opt, dict)
+            ]
+            dialogue["available_action_ids"] = list(
+                popup.get("available_action_ids") or []
+            )
         dm.push(dialogue)
         promoted.append(dialogue)
         pruned_offer = True
