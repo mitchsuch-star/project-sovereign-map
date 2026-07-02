@@ -77,7 +77,10 @@ def test_camera_cutover_replaces_manual_world_transform():
     assert "world_layer.position = pan_offset" not in source
     assert "world_layer.scale = Vector2(zoom_level, zoom_level)" not in source
     assert "const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)" in source
-    assert "const INITIAL_CAMERA_OVERSCAN: float = 1.18" in source
+    # Slice 7.5 (DEF-9): the 1.18 INITIAL_CAMERA_OVERSCAN was retired — it
+    # guaranteed out-of-map void at boot. Boot zoom is exact contain-fit and
+    # min_zoom floors at the fit ratio (see test_map_slice75_presentation.py).
+    assert "INITIAL_CAMERA_OVERSCAN" not in source
     assert "var max_zoom: float = 4.0" in source
     assert "map_camera.zoom = Vector2(_zoom_level, _zoom_level)" in source
     assert "map_camera.position = _clamp_camera_position(target)" in source
@@ -314,7 +317,8 @@ def test_camera_cutover_sets_initial_zoom_and_reverses_wheel_mapping():
     assert "_set_camera_zoom_level(_get_initial_zoom_level())" in source
     assert "func _get_initial_zoom_level() -> float:" in source
     assert "var fit_ratio = min(width_ratio, height_ratio)" in source
-    assert "return clamp(fit_ratio / INITIAL_CAMERA_OVERSCAN, min_zoom, max_zoom)" in source
+    # Slice 7.5 (DEF-9): initial zoom = exact contain-fit (no overscan divisor).
+    assert "return clamp(_get_fit_zoom_level(), min_zoom, max_zoom)" in source
     assert "_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)" in source
     assert "_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)" in source
 

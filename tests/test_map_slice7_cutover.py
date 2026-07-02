@@ -287,19 +287,32 @@ def _parse_fog_overlays() -> dict[str, tuple[float, float, float, float]]:
     return overlays
 
 
+def _parse_fog_hue_scale() -> float:
+    """Slice 7.5 (DEF-10): the rgb lerp is scaled below the raw fog alpha so
+    the national hue survives the wash (the full-alpha lerp collapsed the
+    turn-1 palette to grey-brown)."""
+    source = _read(BASE_GD)
+    match = re.search(r"const FOG_HUE_LERP_SCALE: float = ([0-9.]+)", source)
+    assert match, "map_renderer_base.gd must define FOG_HUE_LERP_SCALE (Slice 7.5)"
+    return float(match.group(1))
+
+
 def _fog_composite(
     owner: tuple[float, float, float, float],
     fog: tuple[float, float, float, float],
+    hue_scale: float,
 ) -> tuple[float, float, float, float]:
-    """Python mirror of the Slice-7 palette fog wash in
-    `_refresh_owner_fill_palette`: rgb lerps toward the fog color by its
-    alpha; alpha takes the max so unknown-but-unowned provinces still wash."""
+    """Python mirror of the palette fog wash in `_refresh_owner_fill_palette`:
+    rgb lerps toward the fog color by its alpha scaled by FOG_HUE_LERP_SCALE
+    (Slice 7.5 — hue retention); alpha takes the max so unknown-but-unowned
+    provinces still wash."""
     if fog[3] <= 0.0:
         return owner
+    wash = fog[3] * hue_scale
     return (
-        owner[0] + (fog[0] - owner[0]) * fog[3],
-        owner[1] + (fog[1] - owner[1]) * fog[3],
-        owner[2] + (fog[2] - owner[2]) * fog[3],
+        owner[0] + (fog[0] - owner[0]) * wash,
+        owner[1] + (fog[1] - owner[1]) * wash,
+        owner[2] + (fog[2] - owner[2]) * wash,
         max(owner[3], fog[3]),
     )
 
@@ -312,11 +325,16 @@ def test_fog_wash_rides_the_owner_palette_upload():
     assert 'region_visibility.get(region_name, "full")' in body
     assert "FOG_OVERLAYS.get(visibility" in body
     assert body.count("lerpf(") == 3, "rgb channels lerp toward the fog color"
+    assert "fog.a * FOG_HUE_LERP_SCALE" in body, (
+        "the hue lerp must be scaled below the raw fog alpha (Slice 7.5 DEF-10)"
+    )
     assert "maxf(owner_color.a, fog.a)" in body
     assert "if fog.a > 0.0:" in body, 'visibility "full" (alpha 0) must be a no-op'
     assert body.count('set_shader_parameter("owner_colors"') == 1, (
         "the fog wash must not add a second uniform upload"
     )
+    scale = _parse_fog_hue_scale()
+    assert 0.0 < scale < 1.0, "hue retention must weaken, not remove or invert, the wash"
 
 
 def test_fog_overlays_carry_the_legacy_visibility_tiers():
@@ -334,22 +352,26 @@ def test_fog_overlays_carry_the_legacy_visibility_tiers():
 
 def test_fog_wash_mirror_rules():
     overlays = _parse_fog_overlays()
+    scale = _parse_fog_hue_scale()
     france = (0.2, 0.4, 0.8, 1.0)
 
     # Full visibility: palette entry unchanged (the pre-Slice-7 contract).
-    assert _fog_composite(france, overlays["full"]) == france
+    assert _fog_composite(france, overlays["full"], scale) == france
 
-    # Owned but unknown: still opaque, every channel pulled toward the fog.
-    washed = _fog_composite(france, overlays["unknown"])
+    # Owned but unknown: still opaque, every channel pulled toward the fog —
+    # but never all the way (Slice 7.5 hue retention: the owner hue survives).
+    washed = _fog_composite(france, overlays["unknown"], scale)
     assert washed[3] == 1.0
     for owner_c, fog_c, washed_c in zip(france[:3], overlays["unknown"][:3], washed[:3]):
         assert min(owner_c, fog_c) <= washed_c <= max(owner_c, fog_c)
         assert washed_c != owner_c
+        # Hue retention: the wash may not close more than `scale` of the gap.
+        assert abs(washed_c - owner_c) <= abs(fog_c - owner_c) * scale + 1e-9
 
     # Unowned (transparent slot) but unknown: the dark wash still lands so
     # unscouted provinces read as fogged over the raw art.
     unowned = (0.0, 0.0, 0.0, 0.0)
-    washed = _fog_composite(unowned, overlays["unknown"])
+    washed = _fog_composite(unowned, overlays["unknown"], scale)
     assert washed[3] == overlays["unknown"][3] > 0.0
 
 

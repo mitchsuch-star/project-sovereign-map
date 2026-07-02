@@ -504,6 +504,7 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]")
 		add_output("")
 		_add_separator()
 		

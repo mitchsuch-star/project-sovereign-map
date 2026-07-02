@@ -41,31 +41,72 @@ const NATION_COLORS = {
 	"Britain": Color(0.863, 0.078, 0.235),
 	"Prussia": Color(0.2, 0.2, 0.2),
 	"Austria": Color(1.0, 0.843, 0.0),
-	"Saxony": Color(0.4, 0.6, 0.3),
+	"Saxony": Color(0.62, 0.72, 0.18),
 	"Russia": Color(0.2, 0.5, 0.2),
 	"Spain": Color(0.8, 0.6, 0.1),
 	# --- Full-Europe (126-province) roster — Map Slice 3 ---
+	# Re-authored as a SET in Map Slice 7.5 (DEF-10): the original entries
+	# clustered (5 greens, 3 reds, 2 steel blues, 6 parchment-adjacent tans)
+	# and became indistinguishable under the 0.55 owner-fill blend over the
+	# terrain art. Values are measured on the shipped art — min pairwise
+	# blended deltaE 14.4 (was 4.5). Re-verify any edit with the perceptual
+	# floor test in tests/test_map_slice75_presentation.py.
 	"Ottoman": Color(0.0, 0.5, 0.4),
 	"Sweden": Color(0.0, 0.42, 0.65),
-	"Naples": Color(0.5, 0.7, 0.85),
-	"Portugal": Color(0.1, 0.55, 0.35),
-	"Denmark": Color(0.85, 0.3, 0.3),
-	"Bavaria": Color(0.45, 0.6, 0.85),
+	"Naples": Color(0.62, 0.15, 0.4),
+	"Portugal": Color(0.45, 0.25, 0.6),
+	"Denmark": Color(0.5, 0.08, 0.12),
+	"Bavaria": Color(0.62, 0.78, 0.95),
 	"Hanover": Color(0.55, 0.35, 0.15),
-	"Hesse": Color(0.6, 0.5, 0.3),
-	"PapalStates": Color(0.9, 0.85, 0.55),
-	"Sardinia": Color(0.7, 0.7, 0.72),
-	"Holland": Color(0.9, 0.5, 0.1),
-	"KingdomOfItaly": Color(0.2, 0.6, 0.35),
-	"Switzerland": Color(0.8, 0.2, 0.2),
+	"Hesse": Color(0.66, 0.53, 0.82),
+	"PapalStates": Color(0.95, 0.93, 0.88),
+	"Sardinia": Color(0.6, 0.62, 0.65),
+	"Holland": Color(0.95, 0.44, 0.03),
+	"KingdomOfItaly": Color(0.25, 0.78, 0.35),
+	"Switzerland": Color(0.92, 0.5, 0.6),
 	"Neutral": Color(0.565, 0.933, 0.565),
 }
+
+# === Nation Display Names (map labels / player-facing surfaces) ===
+# Internal nation keys are single tokens ("KingdomOfItaly"); never show them
+# raw (R7). Map labels resolve through display_nation_name(); keys absent
+# here fall back to a camelCase split.
+const NATION_DISPLAY_NAMES = {
+	"Ottoman": "Ottoman Empire",
+	"PapalStates": "Papal States",
+	"KingdomOfItaly": "Kingdom of Italy",
+}
+
+static func contrast_text_color(background: Color) -> Color:
+	# Slice 7.5 review fold: light palette entries (PapalStates white, Bavaria
+	# pale blue, Austria gold) made white chip text illegible. Any consumer
+	# drawing text directly over a raw NATION_COLORS fill picks its text color
+	# here so the palette can be re-authored without re-auditing every chip.
+	if background.get_luminance() > 0.62:
+		return Color(0.12, 0.1, 0.08)
+	return Color.WHITE
+
+
+static func display_nation_name(nation: String) -> String:
+	if NATION_DISPLAY_NAMES.has(nation):
+		return NATION_DISPLAY_NAMES[nation]
+	var result := ""
+	for i in range(nation.length()):
+		var ch := nation[i]
+		if i > 0 and ch == ch.to_upper() and ch != ch.to_lower():
+			result += " "
+		result += ch
+	return result
 
 # === Map Connection Line Color ===
 const COLOR_CONNECTION = Color(0.6, 0.6, 0.6)
 
 # === Default Fallback Colors for Unknown Nations ===
-const COLOR_ENEMY_DEFAULT = Color(0.7, 0.2, 0.2)
+# Deliberately artificial magenta (Slice 7.5 / DEF-10): the old muted red sat
+# a blended deltaE ~4 from Switzerland, so an unmapped controller silently
+# impersonated Swiss territory. A controller falling back to this color is a
+# BUG to be seen, not camouflage.
+const COLOR_ENEMY_DEFAULT = Color(0.9, 0.05, 0.85)
 
 # === Formatting Helpers ===
 

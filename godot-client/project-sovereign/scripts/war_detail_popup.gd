@@ -244,12 +244,15 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 			fill.size = Vector2(fill_width, bar_height)
 			container.add_child(fill)
 
-	# Score label
+	# Score label. Slice 7.5 review fold: dark outline keeps the score
+	# readable over light nation fills (e.g. PapalStates white) at high scores.
 	var score_label = Label.new()
 	var score_sign = "+" if score > 0 else ""
 	score_label.text = score_sign + str(score)
 	score_label.add_theme_font_size_override("font_size", font_size)
 	score_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	score_label.add_theme_constant_override("outline_size", 3)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(score_label)

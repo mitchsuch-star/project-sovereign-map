@@ -49,6 +49,7 @@ MAP_CRITICAL_SCRIPTS = [
     "europe_map.gd",
     "europe_map_smoke.gd",
     "map.gd",
+    "map_label_layer.gd",
 ]
 
 
@@ -73,6 +74,12 @@ def _parse_nation_colors() -> dict[str, tuple[float, float, float]]:
         r'"([A-Za-z]+)":\s*Color\(([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)\)', block
     ):
         colors[name] = (float(r), float(g), float(b))
+    # Slice 7.5 review fold: 3-arg-only regex — a 4-arg alpha edit would
+    # silently drop an entry from every mirror below. Keep entries 3-arg.
+    assert len(colors) >= 21, (
+        f"parsed only {len(colors)} NATION_COLORS entries — a non-3-arg "
+        f"Color entry silently escaped the palette mirrors"
+    )
     return colors
 
 

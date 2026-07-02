@@ -48,6 +48,7 @@ const MAP_CRITICAL_SCRIPTS = [
 	"res://scenes/europe_map.gd",
 	"res://scenes/europe_map_smoke.gd",
 	"res://scenes/map.gd",
+	"res://scenes/map_label_layer.gd",
 ]
 
 # Map Slice 7: headless scene-instantiation checks. instantiate() attaches

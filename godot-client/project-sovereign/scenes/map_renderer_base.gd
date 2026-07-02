@@ -5,6 +5,7 @@ signal region_clicked(region_name)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
+const MapLabelLayer = preload("res://scenes/map_label_layer.gd")
 
 const REGION_RADIUS: float = 30.0
 const REGION_DIAMETER: float = REGION_RADIUS * 2.0
@@ -18,7 +19,17 @@ const GARRISON_Y_OFFSET: float = 38.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
-const INITIAL_CAMERA_OVERSCAN: float = 1.18
+# Slice 7.5 (DEF-9): with commissioned art the out-of-map margin reads as the
+# map sheet itself — parchment sampled from the art's edge (rgb 153,125,90) —
+# instead of a black void band. The legacy circle map keeps the dark canvas.
+const BITMAP_LETTERBOX_COLOR := Color(0.6, 0.49, 0.353, 1.0)
+# Slice 7.5 (DEF-9): Camera2D hardware limits are deliberately disabled (set
+# to the engine's wide-open defaults). When the visible extent exceeded the
+# map, Godot's limit clamps (left->right, bottom->top; last write wins)
+# pinned the view to limit_right/limit_top and dumped the entire letterbox
+# deficit on one side as a single void band — fighting (and beating)
+# _clamp_camera_position()'s centered letterboxing.
+const CAMERA_LIMIT_DISABLED: int = 10000000
 const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
 # §4.4: unwired provinces are painted over with a flat grey tint so authors can
 # see map coverage without exposing outlined-but-unimplemented territory as
@@ -45,9 +56,34 @@ const UNWIRED_TOOLTIP_SUFFIX_COLOR := Color(0.72, 0.58, 0.38)
 # load-time-only and must not be mirrored here.
 const OWNER_FILL_STRENGTH: float = 0.55
 const OWNER_FILL_MAX_PROVINCES: int = 128
+# Slice 7.5 (DEF-12 cheap tier): three intensities on the SAME fill_strength
+# uniform — "blended" (shipped default), "political" (near-flat ownership),
+# "terrain" (art-forward, fills faint). Cycled with the M key; one uniform
+# write per switch, the same G4 budget shape as the palette upload. A real
+# multi-overlay map-mode system (supply/diplomatic overlays, fog decoupled
+# from the owner palette) stays owned by the DEF-12 future spec.
+const MAP_FILL_MODE_ORDER: Array = ["blended", "political", "terrain"]
+const MAP_FILL_MODE_STRENGTHS := {
+	"blended": OWNER_FILL_STRENGTH,
+	"political": 0.85,
+	"terrain": 0.15,
+}
+# Slice 7.5 (DEF-10): fog previously lerped owner rgb by the FULL fog alpha —
+# "unknown" (0.75) destroyed 75% of the national hue and collapsed the mostly
+# fogged turn-1 map to uniform grey-brown (measured mean pairwise deltaE 11.7
+# across the 20-nation roster). The HUE lerp is scaled down so fogged-but-
+# known ownership stays readable, while the alpha wash (maxf) keeps fog
+# clearly visible. Measured at 0.6: turn-1 mean pairwise deltaE 26.5.
+const FOG_HUE_LERP_SCALE: float = 0.6
 # The palette match loop runs per on-screen fragment every frame; the sea
 # early-out (sentinel [0,0,0] covers most of the image) bounds it and also
 # guarantees a zeroed palette slot can never paint open water.
+# Slice 7.5 (DEF-10) border pass: fragments whose lookup key differs from the
+# right/down neighbor darken into a 1px province border — the art's painted
+# borders are washed by the owner fill, and without edges the re-authored
+# palette still smears at province granularity. Land-land edges only (sea
+# neighbors are skipped) so coastlines keep the painted art. Two extra texture
+# taps + key compares per land fragment; no palette rescans, no CPU.
 const OWNER_FILL_SHADER := """
 shader_type canvas_item;
 
@@ -55,6 +91,7 @@ uniform int province_count = 0;
 uniform vec4 lookup_colors[128];
 uniform vec4 owner_colors[128];
 uniform float fill_strength = 0.55;
+uniform float border_strength = 0.5;
 
 void fragment() {
 	vec4 key = texture(TEXTURE, UV);
@@ -67,6 +104,13 @@ void fragment() {
 				result = vec4(owner_colors[i].rgb, owner_colors[i].a * fill_strength);
 				break;
 			}
+		}
+		vec3 right = texture(TEXTURE, UV + vec2(TEXTURE_PIXEL_SIZE.x, 0.0)).rgb;
+		vec3 down = texture(TEXTURE, UV + vec2(0.0, TEXTURE_PIXEL_SIZE.y)).rgb;
+		bool right_differs = (right.r + right.g + right.b >= 0.002) && any(greaterThanEqual(abs(key.rgb - right), vec3(0.002)));
+		bool down_differs = (down.r + down.g + down.b >= 0.002) && any(greaterThanEqual(abs(key.rgb - down), vec3(0.002)));
+		if (right_differs || down_differs) {
+			result = vec4(mix(result.rgb, vec3(0.13, 0.1, 0.07), 0.7), max(result.a, border_strength));
 		}
 		COLOR = result;
 	}
@@ -146,7 +190,10 @@ var _owner_fill_province_order: Array = []
 var map_origin: Vector2 = Vector2.ZERO
 var map_canvas_size: Vector2 = Vector2.ZERO
 var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
-var _debug_label: Label = null
+# Slice 7.5 (DEF-11): the zoom-LOD label layer; null outside bitmap mode.
+var map_label_layer = null
+# Slice 7.5 (DEF-12 cheap tier): the active fill mode key.
+var _map_fill_mode: String = "blended"
 
 
 func _get_region_positions() -> Dictionary:
@@ -198,19 +245,6 @@ func _ready():
 	_create_scene_layers()
 	_build_static_map_visuals()
 	call_deferred("_finalize_view_setup")
-	_create_debug_label()
-
-
-func _create_debug_label():
-	_debug_label = Label.new()
-	_debug_label.name = "DebugLabel"
-	_debug_label.position = Vector2(10, 40)
-	_debug_label.size = Vector2(600, 160)
-	_debug_label.add_theme_font_size_override("font_size", 11)
-	_debug_label.add_theme_color_override("font_color", Color.YELLOW)
-	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_debug_label.z_index = 200
-	add_child(_debug_label)
 
 
 func _initialize_map():
@@ -632,6 +666,8 @@ func _create_scene_layers():
 	viewport_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	viewport_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	viewport_background.color = MAP_BACKGROUND_COLOR
+	if _bitmap_mode:
+		viewport_background.color = BITMAP_LETTERBOX_COLOR
 	add_child(viewport_background)
 
 	map_viewport_container = SubViewportContainer.new()
@@ -719,6 +755,17 @@ func _create_scene_layers():
 	garrison_layer.z_index = 3
 	world_layer.add_child(garrison_layer)
 
+	# Slice 7.5 (DEF-11): zoom-LOD name labels — bitmap-art maps only; the
+	# legacy circle map draws its own per-region labels in _build_region_nodes.
+	map_label_layer = null
+	if _bitmap_mode:
+		map_label_layer = MapLabelLayer.new()
+		map_label_layer.name = "MapLabelLayer"
+		map_label_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		map_label_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		map_label_layer.z_index = 4
+		world_layer.add_child(map_label_layer)
+
 	tooltip_layer = MapTooltipLayer.new()
 	tooltip_layer.name = "TooltipLayer"
 	tooltip_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -793,21 +840,84 @@ func _refresh_owner_fill_palette():
 			owner_color = Utils.NATION_COLORS.get(controller, Utils.COLOR_ENEMY_DEFAULT)
 		# Map Slice 7: province-level fog rides the same palette entry (legacy
 		# parity with the circle map's FogOverlay panels). rgb lerps toward the
-		# fog color by its alpha; alpha takes the max so unknown-but-unowned
-		# provinces still get a dark wash over the raw art. Pure per-province
-		# color math ahead of the SAME single uniform upload — the G4 re-tint
-		# budget (no per-pixel work) is preserved.
+		# fog color by its alpha (scaled by FOG_HUE_LERP_SCALE since Slice 7.5
+		# so the national hue survives the wash — DEF-10); alpha takes the max
+		# so unknown-but-unowned provinces still get a dark wash over the raw
+		# art. Pure per-province color math ahead of the SAME single uniform
+		# upload — the G4 re-tint budget (no per-pixel work) is preserved.
 		var visibility := str(region_visibility.get(region_name, "full"))
 		var fog: Color = FOG_OVERLAYS.get(visibility, FOG_OVERLAYS["full"])
 		if fog.a > 0.0:
+			var hue_wash: float = fog.a * FOG_HUE_LERP_SCALE
 			owner_color = Color(
-				lerpf(owner_color.r, fog.r, fog.a),
-				lerpf(owner_color.g, fog.g, fog.a),
-				lerpf(owner_color.b, fog.b, fog.a),
+				lerpf(owner_color.r, fog.r, hue_wash),
+				lerpf(owner_color.g, fog.g, hue_wash),
+				lerpf(owner_color.b, fog.b, hue_wash),
 				maxf(owner_color.a, fog.a)
 			)
 		owners[i] = owner_color
 	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
+
+
+func cycle_map_fill_mode() -> String:
+	# Slice 7.5 (DEF-12 cheap tier): M key cycles blended -> political ->
+	# terrain. Returns the new mode key so callers can surface it.
+	var idx: int = MAP_FILL_MODE_ORDER.find(_map_fill_mode)
+	_map_fill_mode = MAP_FILL_MODE_ORDER[(idx + 1) % MAP_FILL_MODE_ORDER.size()]
+	_apply_map_fill_mode()
+	return _map_fill_mode
+
+
+func _apply_map_fill_mode():
+	# One fill_strength uniform write — the same G4 budget shape as the
+	# palette upload; no-ops on the legacy circle map (no owner layer).
+	if owner_fill_layer == null:
+		return
+	owner_fill_layer.material.set_shader_parameter(
+		"fill_strength", MAP_FILL_MODE_STRENGTHS[_map_fill_mode]
+	)
+
+
+func _refresh_map_labels():
+	# Slice 7.5 (DEF-11): rebuild both label tiers from the same ownership
+	# state the owner fill renders (region_controllers) — labels can never
+	# reveal more than the fill already tints. Province tier reads the
+	# registry's label_anchor; nation tier sits at the radius^2-weighted
+	# centroid of owned provinces (multi-blob nations get a naive centroid —
+	# accepted first pass). Per-province work only; no per-pixel cost.
+	if map_label_layer == null:
+		return
+	var province_labels: Array = []
+	var nation_accum := {}
+	for region_name in province_shapes:
+		var shape: Dictionary = province_shapes[region_name]
+		if not bool(shape.get("wired", true)):
+			continue
+		var label_pos: Vector2 = _world_to_layer_position(
+			shape.get("label_anchor", shape.get("center", Vector2.ZERO))
+		)
+		province_labels.append({"text": region_name, "position": label_pos})
+		if not region_controllers.has(region_name):
+			continue
+		var controller := str(region_controllers[region_name])
+		if controller == "" or controller == "Neutral":
+			continue
+		var radius := float(shape.get("radius", REGION_RADIUS))
+		var weight := radius * radius
+		if not nation_accum.has(controller):
+			nation_accum[controller] = [Vector2.ZERO, 0.0]
+		nation_accum[controller][0] += label_pos * weight
+		nation_accum[controller][1] += weight
+	var nation_labels: Array = []
+	for nation in nation_accum:
+		var weight_sum: float = nation_accum[nation][1]
+		if weight_sum <= 0.0:
+			continue
+		nation_labels.append({
+			"text": Utils.display_nation_name(str(nation)),
+			"position": nation_accum[nation][0] / weight_sum,
+		})
+	map_label_layer.set_labels(nation_labels, province_labels)
 
 
 func _build_static_map_visuals():
@@ -817,6 +927,7 @@ func _build_static_map_visuals():
 	_build_connection_nodes()
 	_build_region_nodes()
 	_refresh_all_region_visuals()
+	_refresh_map_labels()
 
 
 func _world_to_layer_position(world_position: Vector2) -> Vector2:
@@ -1063,8 +1174,10 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	var colors = _get_colors()
 	var nation_color = colors.get(controller, Color(0.5, 0.5, 0.5))
 	var fill_color = nation_color
-	var text_color = Color.WHITE
-	var border_color = Color(0.9, 0.9, 0.9)
+	# Slice 7.5 review fold: light nation fills (PapalStates white, Bavaria
+	# pale blue) need dark text/border — white-on-near-white was illegible.
+	var text_color: Color = Utils.contrast_text_color(nation_color)
+	var border_color = Color(0.9, 0.9, 0.9) if text_color == Color.WHITE else Color(0.25, 0.22, 0.18)
 	var label_text = "?"
 	if strength >= 1000:
 		label_text = "%sk" % int(strength / 1000)
@@ -1133,6 +1246,7 @@ func _on_map_area_resized():
 			max(1, int(round(size.y)))
 		)
 		map_viewport.size = viewport_size
+	_update_zoom_floor()
 	_update_camera_limits()
 	queue_redraw()
 
@@ -1143,12 +1257,31 @@ func _get_camera_viewport_size() -> Vector2:
 	return Vector2(max(size.x, 1.0), max(size.y, 1.0))
 
 
-func _get_initial_zoom_level() -> float:
+func _get_fit_zoom_level() -> float:
+	# Contain-fit: the zoom at which the whole map is exactly visible on the
+	# longer-fitting axis. Anything below it can only add out-of-map margin.
 	var viewport_size = _get_camera_viewport_size()
 	var width_ratio = viewport_size.x / max(world_bounds.size.x, 1.0)
 	var height_ratio = viewport_size.y / max(world_bounds.size.y, 1.0)
 	var fit_ratio = min(width_ratio, height_ratio)
-	return clamp(fit_ratio / INITIAL_CAMERA_OVERSCAN, min_zoom, max_zoom)
+	return fit_ratio
+
+
+func _update_zoom_floor():
+	# Slice 7.5 (DEF-9): min_zoom is the contain-fit ratio, recomputed on every
+	# viewport resize — the map can never be zoomed out past the whole-map
+	# view. The old hard 0.5 floor sat far below fit on any modern monitor and
+	# let the view sink into void.
+	min_zoom = clampf(_get_fit_zoom_level(), 0.05, max_zoom)
+	if _zoom_level < min_zoom:
+		_set_camera_zoom_level(min_zoom)
+
+
+func _get_initial_zoom_level() -> float:
+	# Slice 7.5 (DEF-9): boot at exact contain-fit (the whole theater visible,
+	# any letterbox symmetric and parchment-toned). The old /1.18 overscan
+	# deliberately zoomed past fit and guaranteed void at boot on every aspect.
+	return clamp(_get_fit_zoom_level(), min_zoom, max_zoom)
 
 
 func _sync_camera_zoom():
@@ -1192,17 +1325,24 @@ func _set_camera_zoom_level(value: float):
 	_sync_camera_zoom()
 	if map_camera != null:
 		map_camera.position = _clamp_camera_position(map_camera.position)
+	if map_label_layer != null:
+		map_label_layer.set_zoom_level(_zoom_level)
 	_refresh_hover_state()
 	queue_redraw()
 
 
 func _update_camera_limits():
+	# Slice 7.5 (DEF-9): hardware limits stay wide open —
+	# _clamp_camera_position() is the single clamping authority (it centers
+	# each axis whenever the map is smaller than the view; see
+	# CAMERA_LIMIT_DISABLED for why the old map-rect limits produced the
+	# one-sided void band). The call still re-clamps after resizes.
 	if map_camera == null:
 		return
-	map_camera.limit_left = int(floor(world_bounds.position.x))
-	map_camera.limit_top = int(floor(world_bounds.position.y))
-	map_camera.limit_right = int(ceil(world_bounds.position.x + world_bounds.size.x))
-	map_camera.limit_bottom = int(ceil(world_bounds.position.y + world_bounds.size.y))
+	map_camera.limit_left = -CAMERA_LIMIT_DISABLED
+	map_camera.limit_top = -CAMERA_LIMIT_DISABLED
+	map_camera.limit_right = CAMERA_LIMIT_DISABLED
+	map_camera.limit_bottom = CAMERA_LIMIT_DISABLED
 	_set_camera_position(map_camera.position)
 
 
@@ -1364,7 +1504,6 @@ func _should_handle_map_pointer_event(event) -> bool:
 
 
 func _draw():
-	_update_debug_label()
 	if hovered_marshal.size() > 0:
 		_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
@@ -1378,20 +1517,6 @@ func _draw():
 		_draw_region_tooltip()
 	elif tooltip_layer != null:
 		tooltip_layer.clear_tooltip()
-
-
-func _update_debug_label():
-	if _debug_label == null:
-		return
-	var map_mouse = _get_map_mouse_position()
-	var xform = map_viewport.canvas_transform if map_viewport else Transform2D.IDENTITY
-	var manual = map_camera.position + (mouse_position - global_position - size / 2.0) / _zoom_level if map_camera else mouse_position
-	_debug_label.text = "Screen: %s | World(xform): %s | World(manual): %s\nCam: %s | Zoom: %.3f | GPos: %s\nSize: %s | VP: %s | Hover: %s\nXform: %s" % [
-		mouse_position, map_mouse, manual,
-		map_camera.position if map_camera else "null", _zoom_level, global_position,
-		size, Vector2(map_viewport.size) if map_viewport else "null", hovered_region,
-		xform,
-	]
 
 
 func _screen_to_map_position(screen_position: Vector2) -> Vector2:
@@ -1483,6 +1608,8 @@ func _unhandled_input(event):
 				_zoom_at_point(screen_center, 1.0 - ZOOM_SPEED)
 			KEY_HOME:
 				_center_view_on_map()
+			KEY_M:
+				cycle_map_fill_mode()
 func _zoom_at_point(point: Vector2, zoom_factor: float):
 	var new_zoom = clamp(_zoom_level * zoom_factor, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom, _zoom_level):
@@ -1996,6 +2123,7 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 
 	_refresh_region_visual(region_name)
 	_refresh_owner_fill_palette()
+	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
 	queue_redraw()
 
@@ -2050,5 +2178,6 @@ func update_all_regions(map_data: Dictionary):
 
 	_refresh_all_region_visuals()
 	_refresh_owner_fill_palette()
+	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
 	queue_redraw()
