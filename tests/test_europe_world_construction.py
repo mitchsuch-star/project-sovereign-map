@@ -158,9 +158,19 @@ def test_ownership_matches_registry(europe_world):
 
 
 def test_capitals_start_with_garrison(europe_world):
+    """DEF-6 (Slice 8): Europe capital garrisons are tier-differentiated —
+    majors 25k / secondary 15k / minors 10k (legacy stays flat 15k)."""
+    from backend.nation_config import get_europe_capital_garrison
+
     for nation in EUROPE_ROSTER:
         capital = europe_world.get_nation_capital(nation)
-        assert europe_world.regions[capital].garrison_strength == 15000
+        expected = get_europe_capital_garrison(nation)
+        assert europe_world.regions[capital].garrison_strength == expected, nation
+    # Tier spot-pins so the helper itself can't silently drift:
+    assert get_europe_capital_garrison("France") == 25000     # major
+    assert get_europe_capital_garrison("Spain") == 15000      # secondary
+    assert get_europe_capital_garrison("Denmark") == 10000    # minor
+    assert get_europe_capital_garrison("UnknownCourt") == 15000  # tier default
 
 
 def test_vassal_web_matches_authored_patrons(europe_world):

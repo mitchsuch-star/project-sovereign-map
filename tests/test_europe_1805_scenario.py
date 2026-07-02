@@ -136,15 +136,30 @@ def test_every_marshal_placed_on_valid_owned_province(world1805):
 
 
 def test_region_control_and_garrisons_injected(world1805):
-    """The omitted-`regions` injection must stamp the default world's control."""
+    """The omitted-`regions` injection must stamp the default world's control.
+
+    DEF-6 (Slice 8): capital garrisons are tier-differentiated on Europe —
+    majors 25k, secondary courts 15k, minors 10k — and the scenario's
+    region_overrides stamps the Flanders Channel-coast depot (12k) so the
+    London<->Flanders sea link is never a free walk into France."""
     assert world1805.regions["Paris"].controller == "France"
     assert world1805.regions["Swabia"].controller == "Bavaria"
     assert world1805.regions["Milan"].controller == "KingdomOfItaly"
     assert len(world1805.get_nation_regions("France")) == 28
-    for capital in ("Paris", "London", "Vienna", "Berlin"):
-        assert world1805.regions[capital].garrison_strength == 15000
+    for capital in ("Paris", "London", "Vienna", "Berlin"):  # major courts
+        assert world1805.regions[capital].garrison_strength == 25000
+    assert world1805.regions["Madrid"].garrison_strength == 15000       # secondary
+    assert world1805.regions["Amsterdam"].garrison_strength == 10000    # minor satellite
+    assert world1805.regions["Copenhagen"].garrison_strength == 10000   # minor
     # nation_starting_regions derives from the loaded control (pre-slice item 3)
     assert "Paris" in world1805.nation_starting_regions.get("France", [])
+
+
+def test_flanders_channel_depot_authored(world1805):
+    """DEF-6: the region_overrides Flanders garrison sits above the P4.5
+    walk-in gate (>= 5,000) — Britain cannot enter France unopposed."""
+    assert world1805.regions["Flanders"].garrison_strength == 12000
+    assert world1805.regions["Flanders"].controller == "France"
 
 
 def test_marshal_statlines_match_blessed_roster(world1805):
@@ -443,3 +458,44 @@ def test_milan_terrain_corrected_to_plains(world1805):
     assert world1805.regions["Milan"].terrain == "plains"
     assert world1805.regions["Milan"].supply_capacity == 50_000
     assert world1805.marshals["Massena"].strength <= world1805.regions["Milan"].supply_capacity
+
+
+# ══════════════════════════ scenario-boot fog (Slice 8 fix) ══════════════════════════
+
+
+def test_scenario_boot_computes_visibility(world1805):
+    """Slice 8 fix (user-reported): from_scenario never ran calculate_visibility,
+    so EVERY province — including French home soil — booted "unknown" ("No
+    intelligence" tooltips over France, the whole map fog-washed at turn 1).
+    Scenario boots must mirror the constructor (:807) and save-load
+    (save_manager.py) paths: own territory PARTIAL+, marshal locations FULL,
+    distant enemy interior still unknown (fog intact)."""
+    from backend.models.intel import FULL, PARTIAL, UNKNOWN
+
+    for name, region in world1805.regions.items():
+        if region.controller == "France":
+            assert world1805.get_region_intel(name).visibility in (FULL, PARTIAL), (
+                f"French province {name} booted {world1805.get_region_intel(name).visibility}"
+            )
+    for marshal in world1805.marshals.values():
+        if marshal.nation == "France":
+            assert world1805.get_region_intel(marshal.location).visibility == FULL, (
+                f"French marshal location {marshal.location} not FULL"
+            )
+    # Fog still stands: the remote Russian interior is out of French sight.
+    assert world1805.get_region_intel("Estonia").visibility == UNKNOWN
+
+
+def test_legacy_scenario_boot_computes_visibility(tmp_path):
+    """The fix is path-scoped, not map-scoped: legacy scenarios boot with
+    computed fog too (own regions PARTIAL+; from_dict alone stays intel-empty
+    per the fog backward-compat pin in test_fog_of_war.py)."""
+    from backend.models.intel import FULL, PARTIAL
+
+    path = tmp_path / "legacy_fog.json"
+    path.write_text(json.dumps({"player_nation": "France"}), encoding="utf-8")
+    world = WorldState.from_scenario(str(path))
+    own = [n for n, r in world.regions.items() if r.controller == "France"]
+    assert own, "legacy scenario should stamp French control"
+    for name in own:
+        assert world.get_region_intel(name).visibility in (FULL, PARTIAL), name

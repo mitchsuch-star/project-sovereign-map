@@ -496,10 +496,11 @@ class EconomyExecutor:
                 "message": f"A garrison already holds {region_name}, Your Majesty."
             }
 
-        # Validation: nation garrison cap (includes capital garrisons)
+        # Validation: nation garrison cap (includes capital garrisons).
+        # Golden Rule 8: count over the cached region index (Slice 8 audit).
         nation_garrisons = sum(
-            1 for r in world.regions.values()
-            if r.garrison_strength > 0 and r.controller == marshal.nation
+            1 for r_name in world.get_nation_regions(marshal.nation)
+            if world.regions[r_name].garrison_strength > 0
         )
         if nation_garrisons >= self.GARRISON_MAX_PER_NATION:
             return {

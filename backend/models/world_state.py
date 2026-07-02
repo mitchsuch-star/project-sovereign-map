@@ -1386,6 +1386,21 @@ class WorldState:
         except (TypeError, ValueError):
             return 1.0
 
+    def get_capital_garrison_target(self, nation: Optional[str]) -> int:
+        """DEF-6 (Slice 8): the capital-garrison strength/regen cap for a
+        capital held by `nation`. World-scoped: Europe worlds differentiate
+        by authored power tier (majors 25k / secondary 15k / minors 10k);
+        the legacy fixture keeps its flat 15,000. Keyed off the CURRENT
+        holder so a captured capital regens toward its new owner's tier.
+        """
+        from backend.nation_config import (
+            LEGACY_CAPITAL_GARRISON,
+            get_europe_capital_garrison,
+        )
+        if getattr(self, "sovereign_map", "legacy") == "europe":
+            return int(get_europe_capital_garrison(nation))
+        return int(LEGACY_CAPITAL_GARRISON)
+
     def invalidate_bloc_members_cache(self):
         """Clear bloc-members cache. Call at every seam that mutates
         vassalage or alliance state (treaty ratification, vassal add/remove,
@@ -1920,11 +1935,15 @@ class WorldState:
             if region_name in self.regions:
                 self.regions[region_name].controller = nation
 
-        # Capital garrisons: all capital regions start with a 15,000 garrison
-        # Garrisons defend the capital when no marshal is present
+        # Capital garrisons defend the capital when no marshal is present.
+        # DEF-6 (Slice 8): Europe capitals are tier-differentiated (majors
+        # 25k / secondary 15k / minors 10k); the legacy fixture keeps its
+        # flat 15,000 (N1 — the ~275-file gameplay fixture is untouched).
         for region in self.regions.values():
             if region.is_capital:
-                region.garrison_strength = 15000
+                region.garrison_strength = self.get_capital_garrison_target(
+                    region.controller
+                )
 
         # Record starting regions for each nation (used by AI homeland defense)
         starting_map: Dict[str, list] = {}
@@ -3524,7 +3543,9 @@ class WorldState:
         Returns {"infantry": int, "cavalry": int, "artillery": int}.
         Single source of truth — used by _process_manpower_regen() and ledger.py.
         """
-        controlled = [r for r in self.regions.values() if r.controller == nation]
+        # Golden Rule 8: called per active nation per turn — ride the cached
+        # helper instead of a raw O(R) controller scan (Slice 8 audit).
+        controlled = [self.regions[n] for n in self.get_nation_regions(nation)]
 
         # Infantry: generous base regen (no territory dependency)
         inf_regen = INFANTRY_BASE_REGEN
@@ -4971,16 +4992,48 @@ class WorldState:
             starting_controllers = (
                 get_europe_starting_controllers() if europe else get_starting_controllers()
             )
+            from backend.nation_config import (
+                LEGACY_CAPITAL_GARRISON,
+                get_europe_capital_garrison,
+            )
             for name, region in default_regions.items():
                 controller = starting_controllers.get(name)
                 if controller:
                     region.controller = controller
                 if region.is_capital:
-                    region.garrison_strength = 15000
+                    # DEF-6 (Slice 8): tier-differentiated on Europe,
+                    # flat 15,000 on legacy (mirrors _setup_initial_control).
+                    region.garrison_strength = (
+                        get_europe_capital_garrison(region.controller)
+                        if europe else LEGACY_CAPITAL_GARRISON
+                    )
             scenario_data["regions"] = {
                 name: region.to_dict()
                 for name, region in default_regions.items()
             }
+
+        # DEF-6 (Slice 8): `region_overrides` lets a scenario author a
+        # handful of per-province field overrides WITHOUT inlining all 126
+        # region dicts (the omitted-`regions` injection above stays the
+        # bulk source). Shallow field merge onto the region dicts; unknown
+        # province names fail LOUDLY (an override that silently misses is
+        # a scenario-authoring error). The 1805 scenario uses this for the
+        # Flanders Channel-coast garrison (the Boulogne rear depot) so the
+        # cross-Channel sea link is never a free walk into France.
+        region_overrides = scenario_data.get("region_overrides") or {}
+        if region_overrides:
+            for name, override in region_overrides.items():
+                if name not in scenario_data["regions"]:
+                    raise ValueError(
+                        f"Invalid scenario: region_overrides names unknown "
+                        f"province {name!r}"
+                    )
+                if not isinstance(override, dict):
+                    raise ValueError(
+                        f"Invalid scenario: region_overrides[{name!r}] must "
+                        f"be an object of region fields"
+                    )
+                scenario_data["regions"][name].update(override)
 
         # If no marshals specified, use defaults. Europe scenarios get NO
         # legacy injection: the legacy roster's locations don't exist on the
@@ -5044,6 +5097,16 @@ class WorldState:
         for nation in world.enemy_nations:
             if not world.get_marshals_by_nation(nation):
                 world.eliminated_nations_notified.add(nation)
+
+        # Scenario worlds must boot with computed fog, exactly like the
+        # constructor (:807) and the save-load path (save_manager.py):
+        # from_dict replaces world.intel with the scenario's (usually
+        # absent) intel dict, so without this refresh EVERY province —
+        # including the player's own capital — reads "unknown" until the
+        # first end-turn. Placement: from_dict is pinned to leave intel
+        # empty (test_fog_of_war.py backward-compat), so the refresh
+        # belongs here, after marshals/regions/turn are final.
+        world.calculate_visibility()
 
         return world
 
@@ -5653,13 +5716,18 @@ class WorldState:
         tactical_events.extend(supply_events)
 
         # ════════════════════════════════════════════════════════════
-        # CAPITAL GARRISON REGENERATION — +2,000/turn, capped at 15,000
-        # Only when capital is controlled by a nation (any nation)
+        # CAPITAL GARRISON REGENERATION — +2,000/turn, capped at the
+        # holder's tier target (DEF-6: Europe majors 25k / secondary 15k /
+        # minors 10k; legacy flat 15k). Only when capital is controlled
+        # by a nation (any nation).
         # ════════════════════════════════════════════════════════════
         for region in self.regions.values():
-            if region.is_capital and region.controller and region.garrison_strength < 15000 and not region.garrison_detachment:
+            if not (region.is_capital and region.controller and not region.garrison_detachment):
+                continue
+            garrison_cap = self.get_capital_garrison_target(region.controller)
+            if region.garrison_strength < garrison_cap:
                 old = region.garrison_strength
-                region.garrison_strength = min(15000, region.garrison_strength + 2000)
+                region.garrison_strength = min(garrison_cap, region.garrison_strength + 2000)
                 if region.garrison_strength > old:
                     tactical_events.append({
                         "type": "garrison_regen",

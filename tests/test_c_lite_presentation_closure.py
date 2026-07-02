@@ -121,7 +121,9 @@ def test_dg4_cascade_profile_overrides_severity_and_roundtrips():
         victim="Austria",
     )
 
-    assert result["reliability_delta"] == -20
+    # round(-10 base x 2.0 cascade-profile override x 1.1 Russia honor
+    # bias) = -22 (Slice 8 retune).
+    assert result["reliability_delta"] == -22
     assert result["anti_renewal_cooldown_turns"] == 7
     assert (
         result["severity_factors"]["defensive_refusal_severity_multiplier"]

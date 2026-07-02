@@ -1161,6 +1161,26 @@ The player still has no clean restart path from the running build. Starting fres
 
 ---
 
+## Open (Low): MOCK-parser bare-command auto-assign on Europe names
+
+Found by the Map Slice 8 playtest smoke (July 2, 2026), **dev-mode only**:
+with `LLM_MODE=mock`, marshal-less typed commands using Europe province
+names ("scout Swabia", "move to Flanders") fail to extract the target and
+fall to the Berthier recovery template instead of routing to
+`auto_assign_scout` / auto-assign move (the parser's classify path at
+`backend/commands/parser.py:603-605` is reachable but the mock extraction
+returns no target; a direct probe also shows a `"Marshal 'Swabia' not
+found"` variant). "Ney, scout Swabia" (marshal-prefixed) works. The shipped
+game runs `LLM_MODE=anthropic`, where the real LLM extracts the target —
+this is a mock-keyword/extraction gap, not a player-facing defect, but the
+in-game help copy advertises bare "scout Swabia", so mock-mode dev
+playtests hit it. Owner: fold into the next parser maintenance pass;
+fix = teach the mock target-extraction to fuzzy-match `game_state`
+`map_data` keys before the marshal-required branch. Graceful today (the
+Berthier recovery renders; nothing crashes).
+
+---
+
 ## Fixed Bug Archive
 
 28 bugs fixed across playtest Sessions 1-12 and Sessions A-C.

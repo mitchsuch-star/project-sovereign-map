@@ -41,11 +41,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             continue
         opponent = nations[0] if nations[1] == france else nations[1]
 
-        # Skip eliminated nations (0 regions + 0 living marshals)
-        opp_regions = sum(
-            1 for r in world.regions.values()
-            if r.controller == opponent
-        )
+        # Skip eliminated nations (0 regions + 0 living marshals).
+        # Golden Rule 8: this builder runs on EVERY HTTP response — use the
+        # cached region index, never a raw O(R) scan (Slice 8 audit).
+        opp_regions = len(world.get_nation_regions(opponent))
         opp_marshals = sum(
             1 for m in world.marshals.values()
             if m.nation == opponent and m.strength > 0

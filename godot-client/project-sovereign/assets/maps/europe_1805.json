@@ -1,11 +1,14 @@
 {
-    "_comment": "The 1805 campaign opening (Sept 25, 1805 anchor - the Grande Armee crossing the Rhine). Authored against the landed 1805 Loader + Constants pre-slice contract: sovereign_map europe, regions OMITTED (the validated 126-province world is injected), ordered France-first starting_wars (ONE shared coalition instance, Britain defender leader), coalition seeded via active_coalition/threat_level/coalition_count. Boot via SOVEREIGN_SCENARIO=<path to this file>. Source of truth: docs/MAP_IMPLEMENTATION_PLAN.md SS'Researched 1805 opening draft' (design gate BLESSED July 1, 2026). Supply-cap deviations of record (July 1, 2026): Ney<->Soult provinces swapped (Rhineland stack fit), Mack 58k->52k + Charles 65k->54k (Carniola home cap; preserves Charles > Mack), Milan registry terrain corrected mountains->plains (Po plain; Massena supply).",
+    "_comment": "The 1805 campaign opening (Sept 25, 1805 anchor - the Grande Armee crossing the Rhine). Authored against the landed 1805 Loader + Constants pre-slice contract: sovereign_map europe, regions OMITTED (the validated 126-province world is injected), ordered France-first starting_wars (ONE shared coalition instance, Britain defender leader), coalition seeded via active_coalition/threat_level/coalition_count. Boot via SOVEREIGN_SCENARIO=<path to this file>. Source of truth: docs/MAP_IMPLEMENTATION_PLAN.md SS'Researched 1805 opening draft' (design gate BLESSED July 1, 2026). Supply-cap deviations of record (July 1, 2026): Ney<->Soult provinces swapped (Rhineland stack fit), Mack 58k->52k + Charles 65k->54k (Carniola home cap; preserves Charles > Mack), Milan registry terrain corrected mountains->plains (Po plain; Massena supply). DEF-6 (Slice 8, July 2, 2026): region_overrides stamps a 12,000 Flanders garrison (the Boulogne rear depot / Channel-coast pickets) so the London<->Flanders sea link is never a free walk into France; capital garrisons are tier-differentiated by the loader (majors 25k / secondary 15k / minors 10k).",
     "scenario_schema_version": 1,
     "scenario_name": "The Third Coalition, 1805",
     "scenario_description": "September 25, 1805. The Grande Armee wheels from the Channel to the Rhine. Britain, Austria and Russia stand in arms; Mack's Austrians have crossed the Inn into Bavaria; Kutuzov marches west. Sweden and Naples lean toward the Coalition but have not yet drawn the sword. Prussia watches, armed and neutral.",
     "sovereign_map": "europe",
     "player_nation": "France",
     "current_turn": 1,
+    "region_overrides": {
+        "Flanders": {"garrison_strength": 12000}
+    },
     "starting_wars": [
         {"attacker": "France", "defender": "Britain"},
         {"attacker": "France", "defender": "Austria"},

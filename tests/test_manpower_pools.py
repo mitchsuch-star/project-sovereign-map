@@ -325,12 +325,15 @@ class TestManpowerRegen:
         world._process_manpower_regen()
         regen_before = world.manpower_pools["France"]["cavalry"]
 
-        # Lose a plains region
+        # Lose a plains region. Direct controller mutation must invalidate the
+        # per-turn region index (the Golden Rule 8 contract every live capture
+        # path follows) — get_manpower_regen_rates reads the cached index.
         world.manpower_pools["France"]["cavalry"] = 0
         for r in world.regions.values():
             if r.controller == "France" and r.terrain == "plains":
                 r.controller = "Britain"
                 break
+        world.invalidate_active_nations_cache()
         world._process_manpower_regen()
         regen_after = world.manpower_pools["France"]["cavalry"]
         assert regen_after < regen_before

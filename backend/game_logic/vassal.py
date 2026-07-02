@@ -683,11 +683,12 @@ def process_vassal_tribute(world) -> dict:
         lord = state["lord"]
         tribute_rate = state.get("tribute_rate", 0.5)
 
-        # Calculate vassal's base income (respects stability and war damage)
+        # Calculate vassal's base income (respects stability and war damage).
+        # Golden Rule 8: per-vassal per-turn — use the cached region index
+        # instead of a raw O(R) controller scan (Slice 8 audit).
         vassal_income = 0
-        for region_name, region in world.regions.items():
-            if getattr(region, 'controller', '') == vassal_name:
-                vassal_income += region.get_effective_income()
+        for region_name in world.get_nation_regions(vassal_name):
+            vassal_income += world.regions[region_name].get_effective_income()
 
         tribute_amount = int(vassal_income * tribute_rate)
         if tribute_amount <= 0:

@@ -130,7 +130,12 @@ class Region:
             raise ValueError(f"Invalid region_type '{region_type}'. Must be one of: {sorted(VALID_REGION_TYPES)}")
 
         self.name = name
-        self.adjacent_regions = adjacent_regions
+        # Defensive copy: callers hand in lists that may be shared module data
+        # (REGIONS_DATA["adjacent"]) — an in-place mutation of one world's
+        # adjacency must never bleed into REGIONS_DATA or other worlds
+        # (latent cross-world pollution found by the Slice 8 audit: a test
+        # removing an edge silently rewired every later world in-process).
+        self.adjacent_regions = list(adjacent_regions)
         self.income_value = income_value
         self.is_capital = is_capital
         self.terrain = terrain

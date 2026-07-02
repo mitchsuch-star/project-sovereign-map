@@ -394,9 +394,11 @@ class TestCallToArmsRefusedDefensive:
 
         assert result["strike_record"]["recorded"] is True
         assert result["grievance_flag"]["grievance_type"] == "defensive_call_refused"
-        assert result["reliability_after"] == 2
+        # 20 + round(-10 base x 1.75 defensive severity x 1.1 Russia honor
+        # bias) = 20 + round(-19.25) = 1 (bias 1.1 per the Slice 8 retune).
+        assert result["reliability_after"] == 1
         assert result["victim_strikes"] == 2
-        assert int(world.diplomatic_reliability["Russia"]) == 2
+        assert int(world.diplomatic_reliability["Russia"]) == 1
 
         flags = _get_grievance_flags(world, "Russia", "Austria")
         assert len(flags) == 1
@@ -960,7 +962,9 @@ class TestDG4WitnessScope:
             assert vars_["victim_nation"] == "Austria"
             assert vars_["source_episode_type"] == "call_to_arms_refused_defensive"
             assert vars_["reliability_delta"] == 0
-            assert vars_["relation_delta"] == -5
+            # round(-3 witness base x 1.75 defensive x 1.1 Russia bias) =
+            # round(-5.775) = -6 (Slice 8 retune).
+            assert vars_["relation_delta"] == -6
             assert vars_["scope_reason"] in DG4_WITNESS_SCOPE_PRECEDENCE
 
 
@@ -1119,7 +1123,9 @@ class TestDG4Completion:
             world, breaker="Russia", victim="France",
         )
 
-        assert result["reliability_delta"] == -6
+        # round(-6 base x 1.0 offensive severity x 1.1 Russia bias) =
+        # round(-6.6) = -7 (Slice 8 retune).
+        assert result["reliability_delta"] == -7
         assert result["strike_record"]["strikes_added"] == 1
         assert any(
             e.get("type") == "call_to_arms_refused_offensive"
@@ -1148,7 +1154,10 @@ class TestDG4Completion:
             world, honorer="Russia", victim="Austria",
         )
 
-        assert result["reliability_delta"] == 5
+        # round(+5 honored-costly base x 1.1 Russia bias) = round(5.5) = 6
+        # (banker's rounding; Slice 8 retune — the positive delta scales
+        # with bias too, per spec §8.8.12).
+        assert result["reliability_delta"] == 6
         assert result["loyalty_bond"]["relation_delta"] == 10
         assert result["cleared_oathbreaker"] is True
         assert has_oathbreaker_posture(world, "Russia") is False

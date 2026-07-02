@@ -439,6 +439,10 @@ class EnemyAI:
         self._enemy_query_cache = {}
         self._enemy_query_world_id = id(world) if world is not None else None
         self._enemy_query_turn = getattr(world, "current_turn", None) if world is not None else None
+        # Slice 8: the coarse strategic-target memo shares this evaluation
+        # scope — reset together so a reused EnemyAI instance can never leak
+        # another world's region list (same-turn key collisions across worlds).
+        self._strategic_enemy_regions_cache = None
 
     def _enter_indexed_evaluation_scope(self, world: WorldState) -> None:
         """Mark marshal indexes as fresh for a tight evaluation loop."""
@@ -575,14 +579,30 @@ class EnemyAI:
         return list(self._enemy_query_cache[cache_key])
 
     def _get_strategic_enemy_regions(self, nation: str, world: WorldState) -> List[str]:
-        """Return hostile-controlled regions as coarse targets when no enemies are visible."""
-        return [
-            region_name
-            for region_name, region in world.regions.items()
-            if region.controller
-            and region.controller not in (nation, "Neutral")
-            and world.is_at_war(nation, region.controller)
-        ]
+        """Return hostile-controlled regions as coarse targets when no enemies are visible.
+
+        Golden Rule 8: fires per AI action with no visible contacts (common in
+        the 1805 opening's isolated fronts) — memoized per (nation, turn) and
+        built from the cached active-nation/region indexes, never a raw O(R)
+        scan (Slice 8 audit). Controller changes bump the per-turn caches via
+        invalidate_active_nations_cache(), but within one nation-turn the
+        coarse target list staying momentarily stale is acceptable (same
+        contract as the per-turn region index itself).
+        """
+        cache = getattr(self, '_strategic_enemy_regions_cache', None)
+        key = (nation, world.current_turn)
+        if cache is not None and cache.get("key") == key:
+            return list(cache["regions"])
+
+        regions = []
+        for controller in world.get_active_nations():
+            if controller in (nation, "Neutral"):
+                continue
+            if not world.is_at_war(nation, controller):
+                continue
+            regions.extend(world.get_nation_regions(controller))
+        self._strategic_enemy_regions_cache = {"key": key, "regions": regions}
+        return list(regions)
 
     # ═══════════════════════════════════════════════════════════════════
     # FAILED ACTION COOLDOWN HELPERS
@@ -3507,11 +3527,12 @@ class EnemyAI:
             ai_debug(f"    P6.75: {marshal.name} cannot garrison - fortified")
             return None
 
-        # Nation garrison cap check (same cap as player — Building Blocks)
+        # Nation garrison cap check (same cap as player — Building Blocks).
+        # Golden Rule 8: count over the cached region index (Slice 8 audit).
         from backend.commands.executor import CommandExecutor
         nation_garrisons = sum(
-            1 for r in world.regions.values()
-            if r.garrison_strength > 0 and r.controller == nation
+            1 for r_name in world.get_nation_regions(nation)
+            if world.regions[r_name].garrison_strength > 0
         )
         if nation_garrisons >= CommandExecutor.GARRISON_MAX_PER_NATION:
             ai_debug(f"    P6.75: {nation} at garrison cap ({nation_garrisons}/{CommandExecutor.GARRISON_MAX_PER_NATION})")
@@ -5280,11 +5301,12 @@ class EnemyAI:
         return best_step
 
     def _find_best_stables_region(self, nation: str, world) -> Optional[str]:
-        """Find region to build stables. Prefer plains (thematic), then highest-income."""
+        """Find region to build stables. Prefer plains (thematic), then highest-income.
+
+        Golden Rule 8: iterates the cached region index (Slice 8 audit)."""
         candidates = []
-        for name, region in world.regions.items():
-            if region.controller != nation:
-                continue
+        for name in world.get_nation_regions(nation):
+            region = world.regions[name]
             if region.region_type not in ("capital", "major_city", "city"):
                 continue
             if region.has_building("stables", functional_only=False):

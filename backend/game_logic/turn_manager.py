@@ -914,17 +914,16 @@ class TurnManager:
         last_alerts = getattr(self.world, '_capital_proximity_last_alert', {})
         current_turn = self.world.current_turn
 
-        for region in self.world.regions.values():
+        # Golden Rule 8: iterate the player's cached region index and use the
+        # per-region marshal index for the adjacency probe (Slice 8 audit).
+        for region_name in self.world.get_player_regions():
+            region = self.world.regions[region_name]
             if not region.is_capital:
-                continue
-            # Only alert for player's capital
-            if region.controller != self.world.player_nation:
                 continue
             for adj_name in region.adjacent_regions:
                 enemies_adj = [
-                    m for m in self.world.marshals.values()
-                    if m.location == adj_name
-                    and m.nation != self.world.player_nation
+                    m for m in self.world.get_marshals_in_region(adj_name)
+                    if m.nation != self.world.player_nation
                     and self.world.is_at_war(self.world.player_nation, m.nation)
                     and m.strength > 0
                 ]

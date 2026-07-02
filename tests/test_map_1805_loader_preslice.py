@@ -379,9 +379,11 @@ def test_honor_bias_covers_every_europe_roster_nation():
         assert nation in NATION_HONOR_BIAS, f"{nation} missing honor bias"
 
 
-def test_honor_bias_russia_is_explicit_neutral():
-    """DG-4 spec-closure fixtures pin Russia-breaker deltas at bias 1.0."""
-    assert NATION_HONOR_BIAS["Russia"] == 1.0
+def test_honor_bias_russia_retuned_by_1805_balance_pass():
+    """Map Slice 8 (July 2, 2026): Russia retuned 1.0 -> 1.1 — Alexander I's
+    coalition-loyal, honor-driven court, below Prussia's rigid 1.15 ceiling.
+    The DG-4 spec-closure fixtures carry pins RE-DERIVED at 1.1."""
+    assert NATION_HONOR_BIAS["Russia"] == 1.1
 
 
 def test_honor_bias_legacy_values_unchanged():

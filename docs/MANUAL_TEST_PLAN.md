@@ -3,12 +3,63 @@
 ## Setup (every test session)
 
 ```bash
-# Start backend
-python backend/main.py
+# Start backend (module form — required post-cutover)
+".venv\Scripts\python.exe" -m backend.main
 
 # Verify connection in Godot
 # Should see "Connected" or similar
 ```
+
+---
+
+## Test E: Europe 1805 Campaign Smoke (Map Slice 8)
+
+> The default boot IS the 126-province 1805 campaign (no env vars needed).
+> Never combine `SOVEREIGN_SMOKE_START` with `SOVEREIGN_SCENARIO`.
+
+### E1. Boot + fog sanity
+
+Start a new game. On the map:
+- 126 provinces render with owner fills; sea untinted; 20 distinct nation colors.
+- **French home provinces are NOT fog-washed** and hovering them shows
+  `<Province> / France / <type> | <terrain>` with income — never
+  "No intelligence" (the Slice 8 scenario-boot visibility fix).
+- Distant enemy interior (e.g. Russia's Estonia) IS fogged: terrain +
+  "No intelligence" only.
+- Turn 1/60, 800 gold, Third Coalition panel visible, 21-marshal front.
+
+### E2. Garrisons (DEF-6)
+
+Hover Flanders, then the capitals.
+**Expected:** Flanders shows a 12,000 garrison (the Channel depot). Paris/
+London/Vienna/Berlin show 25,000; Amsterdam/Copenhagen 10,000; Madrid 15,000.
+
+### E3. Play a front
+
+```
+Ney, scout Swabia
+Ney, attack Mack
+end turn
+```
+**Expected:** the scout report reads Europe names; the attack resolves (Mack
+52k on Swabia); the enemy phase runs — Mack captures Swabia for Austria turn 1
+(deliberate: Austria's invasion of Bavaria), Moore does NOT walk into France
+unopposed (the Flanders depot forces a garrison assault), the map re-tints any
+captures next frame; labels/tooltips stay in sync.
+
+### E4. Several turns + screens
+
+End 3-5 turns. Verify: end-turn stays fast (<3s round-trip), dispatch stays
+navigable at 20 nations, Ledger (L) / Marshal Management (G) / Diplomatic
+Ledger (D) / war panel all render Europe names via display translation
+(no raw `KingdomOfItaly` keys), and the M key cycles blended/political/
+terrain fills.
+
+### E5. Rollback drill (G1)
+
+Restart the backend with `SOVEREIGN_MAP=legacy` (and no scenario): the
+terminal game runs the 19-region world (the Europe-only client shows no map
+regions — expected); unset it to return to the 1805 campaign.
 
 ---
 

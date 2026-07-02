@@ -553,6 +553,14 @@ def test_ai_undefended_capture_refreshes_indexes_for_direct_calls():
     world = WorldFactory.with_marshals([marshal], player_nation="France")
     _set_war(world, "Britain", "France")
     world.get_region("Belgium").controller = "France"
+    # Make Belgium the ONLY undefended candidate: garrison the other three
+    # France-controlled Paris neighbours above the P4.5 walk-in gate (>= 5000).
+    # (Historically this test relied on a sibling test's in-place adjacency
+    # mutation leaking through shared REGIONS_DATA lists and deleting the
+    # Paris-Normandy edge process-wide; the Slice 8 Region defensive copy
+    # fixed that isolation bug, so the target must be pinned deliberately.)
+    for neighbour in ("Normandy", "Lyon", "Bordeaux"):
+        world.get_region(neighbour).garrison_strength = 15000
     world._marshals_by_region = {}
 
     ai = EnemyAI(CommandExecutor())
@@ -810,3 +818,158 @@ def test_distance_cache_measurably_faster_on_100_region_graph():
         f"Cached path must be at least 2x faster on 100-region graph; "
         f"got uncached={t_uncached * 1000:.1f}ms vs cached={t_cached * 1000:.1f}ms"
     )
+
+
+# --- Map Slice 8: G4 turn-resolution budgets + hot-path scan regression pins --
+# Plan: docs/MAP_IMPLEMENTATION_PLAN.md (G4) "Slice 8 turn resolution <= 2x the
+# 19-region baseline (measured)" + the Slice 8 Tests line "no hot-path scan
+# regression". The G4 budget guards MAP cost (it predates the 1805 scenario);
+# the authored campaign multiplies ROSTER workload (9 armed AI nations /
+# 21 marshals vs the legacy handful), which is a separate axis — measured and
+# regression-guarded with generous headroom rather than held to the map gate.
+# July 2, 2026 measurements (median of 10, warm): legacy 4.3ms, bare-Europe
+# 2.1ms (0.49x — G4 PASSES), 1805 campaign 23.1ms (5.4x roster workload).
+
+
+_SCENARIO_1805 = None
+
+
+def _europe_1805_path():
+    global _SCENARIO_1805
+    if _SCENARIO_1805 is None:
+        from pathlib import Path
+        _SCENARIO_1805 = str(
+            Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+            / "assets" / "maps" / "europe_1805.json"
+        )
+    return _SCENARIO_1805
+
+
+def _median_turn_seconds(build_world, turns: int = 3) -> float:
+    """Median wall-clock of full end_turn cycles (enemy phase + advance)."""
+    import contextlib
+    import io
+    import statistics
+    from time import perf_counter
+
+    from backend.game_logic.turn_manager import TurnManager
+
+    world = build_world()
+    tm = TurnManager(world, CommandExecutor())
+    game_state = {"world": world}
+    times = []
+    with contextlib.redirect_stdout(io.StringIO()):  # AI debug prints skew timing
+        tm.end_turn(game_state)  # warm-up turn (index/caches/imports)
+        for _ in range(turns):
+            t0 = perf_counter()
+            tm.end_turn(game_state)
+            times.append(perf_counter() - t0)
+    return statistics.median(times)
+
+
+def test_g4_turn_resolution_map_cost_within_2x_baseline():
+    """(G4) The 126-province map itself must not blow up turn time.
+
+    Apples-to-apples on the MAP axis: the bare army-less Europe world
+    (126 regions, 20 nations, no wars) vs the legacy 19-region armed
+    fixture, measured in the same process. Measured ratio at landing:
+    0.49x — the per-region turn phases (visibility, supply, income)
+    scale comfortably. Relative gate, never absolute ms (CI-safe)."""
+    from backend.models.world_state import WorldState
+
+    legacy = _median_turn_seconds(lambda: WorldState())
+    bare_europe = _median_turn_seconds(lambda: WorldState(sovereign_map="europe"))
+
+    assert bare_europe <= 2.0 * legacy, (
+        f"G4 map-cost budget exceeded: bare 126-region turn "
+        f"{bare_europe * 1000:.1f}ms > 2x legacy {legacy * 1000:.1f}ms"
+    )
+
+
+def test_1805_campaign_turn_time_regression_guard():
+    """Roster-workload tripwire: the authored 1805 campaign turn (9 armed AI
+    nations, 21 marshals, live coalition war) measured 5.4x the legacy turn
+    at landing — all roster count, not map cost (see the map-cost gate
+    above). The 15x ceiling is generous headroom that still catches a
+    quadratic blowup (e.g. an O(N^2 x R) regression in the AI-AI
+    diplomacy phase) without flaking on CI noise."""
+    from backend.models.world_state import WorldState
+
+    legacy = _median_turn_seconds(lambda: WorldState())
+    campaign = _median_turn_seconds(
+        lambda: WorldState.from_scenario(_europe_1805_path())
+    )
+
+    assert campaign <= 15.0 * legacy, (
+        f"1805 campaign turn regressed: {campaign * 1000:.1f}ms > 15x legacy "
+        f"{legacy * 1000:.1f}ms — check for new per-region or per-pair scans"
+    )
+
+
+def test_slice8_hot_paths_ride_cached_region_index():
+    """Source pins for the Slice 8 Golden-Rule-8 audit fixes: the per-turn /
+    per-response hot paths converted off raw `world.regions` scans must not
+    regress to them. Each pinned function routes through the cached
+    get_nation_regions()/get_active_nations() helpers."""
+    import inspect
+
+    from backend.ai.enemy_ai import EnemyAI
+    from backend.commands.economy_executor import EconomyExecutor
+    from backend.game_logic import vassal, war_status
+    from backend.game_logic.turn_manager import TurnManager
+    from backend.models.world_state import WorldState
+
+    pins = [
+        # (callable, must-contain, must-not-contain)
+        (WorldState.get_manpower_regen_rates, "get_nation_regions", ".regions.values()"),
+        (vassal.process_vassal_tribute, "get_nation_regions", ".regions.items()"),
+        (war_status.build_active_wars, "get_nation_regions(opponent)", None),
+        (EnemyAI._get_strategic_enemy_regions, "get_active_nations", ".regions.items()"),
+        (EnemyAI._find_best_stables_region, "get_nation_regions", ".regions.items()"),
+        (TurnManager._check_capital_proximity, "get_player_regions", ".regions.values()"),
+        (EconomyExecutor._execute_garrison, "get_nation_regions", None),
+    ]
+    for func, need, forbid in pins:
+        src = inspect.getsource(func)
+        assert need in src, f"{func.__qualname__} lost its cached-index routing"
+        if forbid:
+            assert forbid not in src, (
+                f"{func.__qualname__} regressed to a raw region scan"
+            )
+    # war_status: the eliminated-check must not re-grow a full region scan
+    ws_src = inspect.getsource(war_status.build_active_wars)
+    assert "for r in world.regions.values()" not in ws_src
+
+
+def test_strategic_enemy_regions_memo_resets_with_evaluation_scope():
+    """The Slice 8 (nation, turn) memo on _get_strategic_enemy_regions must
+    reset with the enemy-query evaluation scope, or a reused EnemyAI
+    instance leaks one world's region list into another world at the same
+    turn number (the exact cross-world collision the scope reset exists
+    to prevent)."""
+    marshal = MarshalFactory.infantry(
+        name="Wellington", location="Paris", strength=30000,
+        nation="Britain", personality="aggressive",
+    )
+    world_a = WorldFactory.with_marshals([marshal], player_nation="France")
+    _set_war(world_a, "Britain", "France")
+
+    ai = EnemyAI(CommandExecutor())
+    regions_a = ai._get_strategic_enemy_regions("Britain", world_a)
+    assert regions_a  # France's regions are hostile to Britain
+    # Memoized within the scope:
+    assert ai._get_strategic_enemy_regions("Britain", world_a) == regions_a
+
+    # New world, same turn number, Britain at PEACE (the legacy fixture
+    # auto-seeds France|Britain WAR — force it off) -> after a scope reset
+    # the memo must not leak world_a's target list.
+    marshal_b = MarshalFactory.infantry(
+        name="Uxbridge", location="Paris", strength=30000,
+        nation="Britain", personality="aggressive",
+    )
+    world_b = WorldFactory.with_marshals([marshal_b], player_nation="France")
+    for key in list(world_b.diplomatic_states):
+        if "Britain" in key.split("|"):
+            world_b.diplomatic_states[key] = "PEACE"
+    ai._reset_enemy_query_cache(world_b)
+    assert ai._get_strategic_enemy_regions("Britain", world_b) == []

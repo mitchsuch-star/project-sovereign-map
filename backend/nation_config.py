@@ -8,7 +8,7 @@ and diplomatic helpers.
 
 from __future__ import annotations
 
-from typing import Any, Collection, Dict, Iterable, Mapping, Set
+from typing import Any, Collection, Dict, Iterable, Mapping, Optional, Set
 
 from backend.models.diplomat import STARTING_DIPLOMATS
 from backend.models.region import NATION_CAPITALS
@@ -107,13 +107,16 @@ NATION_HONOR_BIAS: Dict[str, float] = {
     # ── Europe roster additions (1805 Loader + Constants pre-slice, item 8;
     # deferred from Map Slice 3). Honor bias multiplies live DG-4
     # reliability-delta and strike-decay math, so the legacy five keep their
-    # pre-slice values (France/Britain/Austria/Saxony stay unauthored → 1.0)
-    # and Russia is authored EXPLICITLY NEUTRAL: the DG-4 spec-closure
-    # fixtures (test_dg4_spec_closure / test_c_lite_presentation_closure /
-    # test_bb4_grievance) pin Russia-breaker deltas derived at bias 1.0.
-    # Re-biasing Russia is owned by the 1805 balance pass together with a
-    # conscious re-derivation of those fixture numbers.
-    "Russia": 1.0,            # explicit neutral — see fixture note above
+    # pre-slice values (France/Britain/Austria/Saxony stay unauthored → 1.0).
+    # Russia was held EXPLICITLY NEUTRAL (1.0) until the 1805 balance pass
+    # (Map Slice 8, July 2, 2026) retuned it to 1.1 — Alexander I's
+    # coalition-loyal, honor-driven court: punished harder as a breaker,
+    # rewarded more for costly honoring, remembers betrayals longer
+    # (11-turn high-severity strike decay) — below Prussia's rigid 1.15
+    # ceiling. The DG-4 spec-closure fixtures (test_dg4_spec_closure /
+    # test_c_lite_presentation_closure / test_bb4_grievance) carry pins
+    # RE-DERIVED at bias 1.1; any future retune re-derives them again.
+    "Russia": 1.1,            # 1805 balance pass — see fixture note above
     "Ottoman": 0.85,          # distant court, shifting commitments
     "Sweden": 1.1,            # Gustav IV's quixotic principle
     "Naples": 0.7,            # the Sept 1805 double-game court
@@ -470,6 +473,28 @@ EUROPE_MANPOWER_POOLS: Dict[str, Dict[str, int]] = {
     "KingdomOfItaly": {"infantry": 15000, "cavalry": 2500, "artillery": 1500},
     "Switzerland":    {"infantry": 10000, "cavalry": 1500, "artillery": 800},
 }
+
+
+# DEF-6 (Map Slice 8): tier-differentiated capital garrisons for the Europe
+# world. The legacy 19-region fixture keeps its flat 15,000 (N1 — never
+# perturb the legacy globals the ~275-file gameplay fixture depends on).
+# Majors hold as real fortresses (3 assaults to collapse under the >=5,000
+# collapse floor: 25k -> 12.5k -> 6.25k -> 3.1k); minors stop bare P4.5
+# walk-ins but fall to a determined assault (10k -> 5k -> 2.5k).
+CAPITAL_GARRISON_BY_TIER: Dict[str, int] = {
+    "major": 25000,
+    "secondary": 15000,
+    "minor": 10000,
+}
+LEGACY_CAPITAL_GARRISON: int = 15000
+
+
+def get_europe_capital_garrison(nation: Optional[str]) -> int:
+    """Authored capital-garrison strength for a Europe-world nation (by tier)."""
+    tier = NATION_POWER_TIERS.get(nation or "") or _POWER_TIER_DEFAULT
+    return CAPITAL_GARRISON_BY_TIER.get(
+        tier, CAPITAL_GARRISON_BY_TIER[_POWER_TIER_DEFAULT]
+    )
 
 
 def get_europe_runtime_nations() -> tuple[str, ...]:
