@@ -729,8 +729,7 @@
         "Region_001",
         "Region_003",
         "Region_023",
-        "Region_031",
-        "Region_054"
+        "Region_031"
       ],
       "name": "East Prussia",
       "starting_controller": "Prussia",
@@ -1307,8 +1306,7 @@
         "Region_043",
         "Region_066",
         "Region_082",
-        "Region_087",
-        "Region_095"
+        "Region_087"
       ],
       "name": "Berlin",
       "starting_controller": "Prussia",
@@ -1552,9 +1550,7 @@
         "Region_003",
         "Region_007",
         "Region_014",
-        "Region_054",
-        "Region_066",
-        "Region_077"
+        "Region_066"
       ],
       "name": "Posen",
       "starting_controller": "Prussia",
@@ -2037,7 +2033,8 @@
       "interactive": true,
       "adjacent": [
         "Region_006",
-        "Region_053"
+        "Region_053",
+        "Region_095"
       ],
       "name": "Gothland",
       "starting_controller": "Sweden",
@@ -2135,8 +2132,6 @@
         "Region_026",
         "Region_087",
         "Region_091",
-        "Region_095",
-        "Region_096",
         "Region_102",
         "Region_106",
         "Region_110"
@@ -2570,7 +2565,7 @@
         177,
         75
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -2671,8 +2666,6 @@
       "interactive": true,
       "adjacent": [
         "Region_001",
-        "Region_014",
-        "Region_031",
         "Region_077",
         "Region_088",
         "Region_125"
@@ -3244,7 +3237,6 @@
         "Region_007",
         "Region_026",
         "Region_031",
-        "Region_077",
         "Region_082"
       ],
       "name": "Brandenburg",
@@ -3334,7 +3326,7 @@
         119,
         94
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3383,7 +3375,7 @@
         115,
         249
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -3763,9 +3755,7 @@
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_031",
         "Region_054",
-        "Region_066",
         "Region_082"
       ],
       "name": "Livonia",
@@ -4145,7 +4135,6 @@
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_097",
         "Region_102",
         "Region_104",
         "Region_107",
@@ -4635,10 +4624,8 @@
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_026",
-        "Region_043",
+        "Region_041",
         "Region_082",
-        "Region_096",
         "Region_123"
       ],
       "name": "Scania",
@@ -4684,8 +4671,7 @@
       "wired": true,
       "interactive": true,
       "adjacent": [
-        "Region_043",
-        "Region_095",
+        "Region_097",
         "Region_102",
         "Region_123"
       ],
@@ -4733,8 +4719,7 @@
       "interactive": true,
       "adjacent": [
         "Region_072",
-        "Region_085",
-        "Region_102",
+        "Region_096",
         "Region_113"
       ],
       "name": "Oslo",
@@ -4874,7 +4859,7 @@
         75,
         198
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -4976,7 +4961,6 @@
         "Region_043",
         "Region_085",
         "Region_096",
-        "Region_097",
         "Region_110"
       ],
       "name": "Hanover",
@@ -5782,7 +5766,7 @@
         207,
         249
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -6070,7 +6054,7 @@
       "is_capital": false
     }
   },
-  "note": "Slice 2 authored: 126 provinces, 1805 owners + historical names, terrain/region_type/coastal, capitals, sea links.",
+  "note": "Slice 2 authored: 126 provinces, 1805 owners + historical names, terrain/region_type/coastal, capitals, sea links. DEF-7/DEF-8 registry mini-pass applied July 2, 2026 (see adjacency_derivation.def7_pass).",
   "sea_candidates": [
     {
       "a": "Region_001",
@@ -6797,8 +6781,9 @@
     "land_gap_max": 15,
     "sea_gap_min": 41,
     "sea_gap_max": 400,
-    "land_edges": 248,
-    "sea_candidates": 144
+    "land_edges": 250,
+    "sea_candidates": 144,
+    "def7_pass": "July 2, 2026 cross-Baltic mini-pass: 10 compressed land edges cut (Scania-Berlin/Brunswick/Jutland, EastPrussia-Finland, Posen-Finland/Livonia, Brandenburg-Livonia, Hanover-Oslo, Oldenburg-Oslo, Jutland-Brunswick), 4 demoted to sea links (Livonia-Pomerania, Livonia-Finland, Scania-Pomerania, Finland-Estonia), 2 connectivity sea links added (Oslo-Jutland, Scania-Gothland), Hanover-Jutland kept as the Holstein land bridge, Estonia-EastPrussia kept as the Courland stand-in; DEF-8: is_coastal corrected to false for Franche-Comte/Munich/Bern/Tyrol/Milan. adjacent edge count 258 -> 250; sea_links 12 -> 18."
   },
   "sea_links": [
     [
@@ -6848,6 +6833,30 @@
     [
       83,
       105
+    ],
+    [
+      77,
+      82
+    ],
+    [
+      77,
+      54
+    ],
+    [
+      95,
+      82
+    ],
+    [
+      54,
+      1
+    ],
+    [
+      97,
+      96
+    ],
+    [
+      95,
+      41
     ]
   ]
 }

@@ -282,3 +282,91 @@ def test_m5_duplicate_adjacency_entry_is_warning():
     assert dups[0].detail == {"region": "A", "target": "B"}
     # the duplicate must not spuriously fire asymmetry (A<->B is symmetric)
     assert not [f for f in findings if f.code == "ADJACENCY_ASYMMETRY"]
+
+
+# ---------------------------------------------------------------------------
+# DEF-7 cross-Baltic registry mini-pass (July 2, 2026) + DEF-8 coastal fixes.
+# Plan reference: docs/MAP_IMPLEMENTATION_PLAN.md deferred table rows DEF-7/DEF-8.
+# ---------------------------------------------------------------------------
+
+
+def _name_to_id(europe: dict) -> dict[str, str]:
+    return {e["name"]: rid for rid, e in europe["regions"].items()}
+
+
+def _sea_link_pairs(europe: dict) -> set[frozenset[str]]:
+    return {
+        frozenset(f"Region_{idx:03d}" for idx in pair)
+        for pair in europe.get("sea_links", [])
+    }
+
+
+# The DEF-7 row's listed pairs plus the same-class siblings discovered and
+# dispositioned in the pass. "cut" = no longer walkable; "sea" = walkable but
+# a deliberate sea crossing (in adjacent AND sea_links).
+DEF7_CUT_PAIRS = [
+    ("Scania", "Berlin"),
+    ("Scania", "Brunswick"),
+    ("Scania", "Jutland"),
+    ("East Prussia", "Finland"),
+    ("Posen", "Finland"),
+    ("Posen", "Livonia"),
+    ("Brandenburg", "Livonia"),
+    ("Hanover", "Oslo"),
+    ("Oldenburg", "Oslo"),
+    ("Jutland", "Brunswick"),
+]
+DEF7_SEA_PAIRS = [
+    ("Livonia", "Pomerania"),
+    ("Livonia", "Finland"),
+    ("Scania", "Pomerania"),
+    ("Finland", "Estonia"),
+    # connectivity restorers added by the pass (Denmark/Sweden internal routes)
+    ("Oslo", "Jutland"),
+    ("Scania", "Gothland"),
+]
+# Decisions of record: kept as ordinary LAND edges (walkable, not sea links).
+DEF7_KEPT_LAND_PAIRS = [
+    ("Hanover", "Jutland"),       # Holstein land bridge (no Holstein province)
+    ("Estonia", "East Prussia"),  # Courland stand-in (no Courland province)
+]
+
+
+def test_def7_listed_pairs_are_not_land_adjacent(europe):
+    """No DEF-7 pair remains a plain land edge: each is cut or a sea link."""
+    ids = _name_to_id(europe)
+    sea = _sea_link_pairs(europe)
+    for a, b in DEF7_CUT_PAIRS:
+        ra, rb = ids[a], ids[b]
+        assert rb not in europe["regions"][ra].get("adjacent", []), f"{a}<->{b} not cut"
+        assert ra not in europe["regions"][rb].get("adjacent", []), f"{b}<->{a} not cut"
+        assert frozenset((ra, rb)) not in sea, f"{a}<->{b} unexpectedly a sea link"
+
+
+def test_def7_sea_pairs_are_walkable_sea_links(europe):
+    """Demoted/added crossings stay in adjacent (backend-walkable) AND draw as sea links."""
+    ids = _name_to_id(europe)
+    sea = _sea_link_pairs(europe)
+    for a, b in DEF7_SEA_PAIRS:
+        ra, rb = ids[a], ids[b]
+        assert rb in europe["regions"][ra]["adjacent"], f"{a}<->{b} lost walkability"
+        assert ra in europe["regions"][rb]["adjacent"], f"{b}<->{a} lost walkability"
+        assert frozenset((ra, rb)) in sea, f"{a}<->{b} missing from sea_links"
+
+
+def test_def7_kept_land_bridges(europe):
+    """The two decisions of record stay plain land edges."""
+    ids = _name_to_id(europe)
+    sea = _sea_link_pairs(europe)
+    for a, b in DEF7_KEPT_LAND_PAIRS:
+        ra, rb = ids[a], ids[b]
+        assert rb in europe["regions"][ra]["adjacent"], f"{a}<->{b} land bridge lost"
+        assert ra in europe["regions"][rb]["adjacent"], f"{b}<->{a} land bridge lost"
+        assert frozenset((ra, rb)) not in sea, f"{a}<->{b} should stay a land edge"
+
+
+def test_def8_known_wrong_coastal_flags_corrected(europe):
+    """DEF-8: the five image-derivation false positives are pinned inland."""
+    by_name = {e["name"]: e for e in europe["regions"].values()}
+    for name in ("Franche-Comte", "Munich", "Bern", "Tyrol", "Milan"):
+        assert by_name[name]["is_coastal"] is False, f"{name} must be inland"
