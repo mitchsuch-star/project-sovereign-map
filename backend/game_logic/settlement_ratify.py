@@ -268,8 +268,13 @@ def _apply_settlement_terms(
                 region.stability = 50
                 transferred.append(region_name)
                 if from_nation and to_nation:
+                    # World-scoped starting map (1805 pre-slice item 7 family —
+                    # Europe cessions must fire `allied_region_restored` too).
                     from backend.models.region import get_starting_controllers
-                    starting_controllers = get_starting_controllers()
+                    starting_controllers = (
+                        getattr(world, "_starting_controllers", None)
+                        or get_starting_controllers()
+                    )
                     if starting_controllers.get(region_name) == to_nation:
                         from backend.game_logic.war_contribution import (
                             _resolve_war_id_for_pair_on_opposite_sides,

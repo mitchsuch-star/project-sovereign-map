@@ -1305,8 +1305,8 @@ RETREAT RECOVERY (3 turns):
             if getattr(marshal, 'administrative', False):
                 marshal.administrative = False
                 strength = getattr(marshal, 'administrative_strength', 0)
-                from backend.models.region import NATION_CAPITALS
-                location = getattr(marshal, 'administrative_location', None) or NATION_CAPITALS.get(marshal.nation, 'Paris')
+                location = (getattr(marshal, 'administrative_location', None)
+                            or world.get_nation_capital(marshal.nation) or 'Paris')
                 marshal.strength = strength
                 marshal.location = location
                 world.bonus_actions = max(0, getattr(world, 'bonus_actions', 0) - 1)

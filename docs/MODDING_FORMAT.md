@@ -75,6 +75,19 @@ A scenario file is a JSON object with the following structure:
 | `marshals` | object | (default marshals) | Custom marshals |
 | `enemy_nations` | array | ["Britain", "Prussia"] | AI-controlled nations |
 | `nations` | object | {} | Optional authored nation records. In schema v1, this is where static nation metadata like `power_tier` belongs. Runtime `political_status` is not authored here. |
+| `sovereign_map` | string | "legacy" | Which world the scenario targets: `"legacy"` (19-region fixture) or `"europe"` (the 126-province Europe world). Selects the default map/roster injected for omitted fields AND which nation roster the runtime-support validator checks against (1805 Loader pre-slice). |
+| `starting_wars` | array | [] | ORDERED list of `{"attacker": str, "defender": str}` pairs. Seeded through the live `ensure_war_instance_for_pair` machinery after load — the first entry naming a side fixes the war instance's leaders, and later entries sharing a participant attach to the same instance (so France-first ordering yields ONE shared coalition war). Also sets the pair's diplomatic state to WAR and seeds `war_start_turns`. Do NOT hand-author raw `war_instance` JSON. |
+
+### Europe-map scenarios (1805 Loader pre-slice)
+
+With `"sovereign_map": "europe"`:
+
+- Omitting `regions` injects the validated 126-province Europe world (`create_europe_regions()`) — you do not inline 126 region dicts.
+- Omitting `marshals` yields an **army-less** start (the legacy marshal roster is never injected — its locations don't exist on the Europe map).
+- Omitted roster surfaces (`nation_gold`, `nation_actions`, `nation_authority`, `diplomats`, `manpower_pools`, `enemy_nations`, `vassals`) keep the Europe world's own construction-time values, including the 3 seeded French satellite vassals.
+- `max_turns` defaults to **60** on the Europe world (legacy stays 40).
+- Nation references validate against the 20-nation Europe roster (`EUROPE_NATION_CAPITALS` + the Europe diplomat cast).
+- To boot the backend directly into a scenario, set the `SOVEREIGN_SCENARIO` environment variable to the file path — the import-time bootstrap and `/new_game` both load it via `WorldState.from_scenario` (missing/invalid files fail loudly).
 
 ### Nations in schema v1
 

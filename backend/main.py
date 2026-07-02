@@ -64,8 +64,28 @@ def _resolve_sovereign_map() -> str:
     return value
 
 
+def _resolve_scenario_path() -> str:
+    """Resolve the SOVEREIGN_SCENARIO flag (1805 Loader pre-slice, item 4).
+
+    When set, every fresh campaign (import-time bootstrap and /new_game) loads
+    the named scenario JSON via `WorldState.from_scenario` instead of the
+    default `WorldState(sovereign_map=...)` start. Empty/unset = default start.
+    Read per-call (not cached at import) so tests can exercise both paths.
+    """
+    return os.getenv("SOVEREIGN_SCENARIO", "").strip()
+
+
 def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
-    """Create a fresh campaign world with the default start-state."""
+    """Create a fresh campaign world with the default start-state.
+
+    A configured SOVEREIGN_SCENARIO fails LOUDLY (missing file / invalid
+    scenario raises) — silently falling back to the default world would run
+    the wrong campaign and hide scenario-authoring errors.
+    """
+    scenario_path = _resolve_scenario_path()
+    if scenario_path:
+        print(f"SOVEREIGN_SCENARIO: loading scenario from {scenario_path!r}")
+        return WorldState.from_scenario(scenario_path)
     return WorldState(player_nation=player_nation, sovereign_map=_resolve_sovereign_map())
 
 
@@ -2938,13 +2958,12 @@ def debug_vassal_loyalty(nation: str):
 
     # Compute modifiers manually to match vassal.py process_vassal_loyalty
     from backend.game_logic.vassal import AUTONOMY_DRIFT
-    from backend.models.region import NATION_CAPITALS
 
     autonomy = state.get("autonomy", 1)
     drift = AUTONOMY_DRIFT.get(autonomy, 0)
 
     garrison_bonus = 0
-    vassal_capital = NATION_CAPITALS.get(nation)
+    vassal_capital = world.get_nation_capital(nation)
     if vassal_capital:
         region = world.regions.get(vassal_capital)
         if region:

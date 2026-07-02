@@ -104,12 +104,29 @@ _POWER_TIER_DEFAULT = "secondary"
 NATION_HONOR_BIAS: Dict[str, float] = {
     "Prussia": 1.15,
     "Spain": 0.85,
-    # NOTE (Map Slice 3): per-nation honor bias for the Europe roster is
-    # intentionally NOT authored here. Unlike the `.get()` lookups (colors,
-    # tiers, desire profiles), honor bias multiplies live reliability-delta
-    # math, so seeding it perturbs existing reliability fixtures. Europe honor
-    # bias is owned by the 1805 Scenario Setup gate / balance pass; roster
-    # nations fall back to the neutral 1.0 default until then.
+    # ── Europe roster additions (1805 Loader + Constants pre-slice, item 8;
+    # deferred from Map Slice 3). Honor bias multiplies live DG-4
+    # reliability-delta and strike-decay math, so the legacy five keep their
+    # pre-slice values (France/Britain/Austria/Saxony stay unauthored → 1.0)
+    # and Russia is authored EXPLICITLY NEUTRAL: the DG-4 spec-closure
+    # fixtures (test_dg4_spec_closure / test_c_lite_presentation_closure /
+    # test_bb4_grievance) pin Russia-breaker deltas derived at bias 1.0.
+    # Re-biasing Russia is owned by the 1805 balance pass together with a
+    # conscious re-derivation of those fixture numbers.
+    "Russia": 1.0,            # explicit neutral — see fixture note above
+    "Ottoman": 0.85,          # distant court, shifting commitments
+    "Sweden": 1.1,            # Gustav IV's quixotic principle
+    "Naples": 0.7,            # the Sept 1805 double-game court
+    "Portugal": 1.0,
+    "Denmark": 1.05,          # stubborn armed neutrality
+    "Bavaria": 0.9,           # hedged both sides until Bogenhausen
+    "Hanover": 1.0,
+    "Hesse": 0.9,             # the hedging Elector
+    "PapalStates": 1.0,
+    "Sardinia": 1.05,         # implacable but consistent foe of France
+    "Holland": 0.95,          # satellite — obligations under duress
+    "KingdomOfItaly": 0.95,   # satellite
+    "Switzerland": 1.0,       # satellite, neutral tradition
 }
 
 RUNTIME_NATIONS = tuple(
@@ -229,33 +246,75 @@ def collect_scenario_nations(scenario_data: Mapping[str, Any]) -> Set[str]:
             if isinstance(controller, str) and controller.strip():
                 nations.add(controller)
 
+    # 1805 Loader pre-slice: scenario-seeded war instances name nations too.
+    starting_wars = scenario_data.get("starting_wars")
+    if isinstance(starting_wars, Collection) and not isinstance(starting_wars, (str, bytes, bytearray)):
+        for entry in starting_wars:
+            if not isinstance(entry, Mapping):
+                continue
+            for role in ("attacker", "defender"):
+                nation = entry.get(role)
+                if isinstance(nation, str) and nation.strip():
+                    nations.add(nation)
+
     return nations
+
+
+def _europe_diplomat_nations() -> Set[str]:
+    """Nations with a diplomat in the Europe cast (lazy — validation-only path)."""
+    from backend.models.diplomat import create_europe_diplomats
+
+    return set(create_europe_diplomats().keys())
 
 
 def validate_runtime_nation_support(
     nations: Iterable[str],
     region_names: Collection[str] | None = None,
+    *,
+    sovereign_map: str = "legacy",
 ) -> list[str]:
-    """Validate that every referenced nation has the required runtime config."""
+    """Validate that every referenced nation has the required runtime config.
+
+    1805 Loader pre-slice (item 1): the check is WORLD-SCOPED. Legacy scenarios
+    validate against the legacy 5-nation globals; ``sovereign_map="europe"``
+    scenarios validate against `EUROPE_NATION_CAPITALS` + the Europe diplomat
+    cast + the EUROPE_* economy overrides, so the 20-nation roster is loadable
+    without perturbing the legacy contract (the Venice/Milan rejection messages
+    stay pinned by tests/test_session7_backend_hardening.py).
+    """
     errors: list[str] = []
     available_regions = set(region_names) if region_names is not None else None
+    europe = str(sovereign_map or "legacy").strip().lower() == "europe"
+
+    if europe:
+        capitals_map: Mapping[str, str] = EUROPE_NATION_CAPITALS
+        diplomat_nations: Collection[str] = _europe_diplomat_nations()
+        gold_overrides: Mapping[str, int] = EUROPE_NATION_GOLD
+        action_overrides: Mapping[str, int] = EUROPE_BASE_ACTIONS
+        authority_overrides: Mapping[str, int] = EUROPE_NATION_AUTHORITY
+    else:
+        capitals_map = NATION_CAPITALS
+        diplomat_nations = STARTING_DIPLOMATS
+        gold_overrides = DEFAULT_NATION_GOLD
+        action_overrides = BASE_NATION_ACTIONS
+        authority_overrides = DEFAULT_NATION_AUTHORITY
 
     for nation in sorted({str(n).strip() for n in nations if str(n).strip()}):
-        if nation not in NATION_CAPITALS:
+        if nation not in capitals_map:
             errors.append(f"{nation}: missing capital mapping")
-        if nation not in STARTING_DIPLOMATS:
+        if nation not in diplomat_nations:
             errors.append(f"{nation}: missing diplomat config")
         # Gold / action-budget / authority fall back to DEFAULT_NATION_DEFAULTS
         # when no per-nation override is present, so a missing entry is only
         # an error if the baseline default has also been removed.
-        if nation not in DEFAULT_NATION_GOLD and "gold" not in DEFAULT_NATION_DEFAULTS:
+        if nation not in gold_overrides and "gold" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing economy default")
-        if nation not in BASE_NATION_ACTIONS and "actions" not in DEFAULT_NATION_DEFAULTS:
+        if nation not in action_overrides and "actions" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing action-budget default")
-        if nation not in DEFAULT_NATION_AUTHORITY and "authority" not in DEFAULT_NATION_DEFAULTS:
+        if nation not in authority_overrides and "authority" not in DEFAULT_NATION_DEFAULTS:
             errors.append(f"{nation}: missing authority default")
 
-        capital = NATION_CAPITALS.get(nation)
+        capital = capitals_map.get(nation)
         if available_regions is not None and capital and capital not in available_regions:
             errors.append(f"{nation}: capital '{capital}' missing from scenario regions")
 
@@ -272,6 +331,7 @@ def validate_scenario_runtime_support(scenario_data: Mapping[str, Any]) -> list[
     return validate_runtime_nation_support(
         collect_scenario_nations(scenario_data),
         region_names=region_names,
+        sovereign_map=str(scenario_data.get("sovereign_map") or "legacy"),
     )
 
 
@@ -354,7 +414,7 @@ EUROPE_VASSAL_WEB: Dict[str, Dict[str, str]] = {
 EUROPE_NATION_GOLD: Dict[str, int] = {
     "France": 800,
     "Britain": 2000,   # the paymaster of the coalitions
-    "Russia": 1000,
+    "Russia": 1500,    # 1805 pre-slice item 8: fatter treasury for sustained AI pressure
     "Austria": 700,
     "Prussia": 800,
     "Spain": 700,
@@ -367,7 +427,7 @@ EUROPE_BASE_ACTIONS: Dict[str, int] = {
     "France": 4,
     "Britain": 4,
     "Russia": 4,
-    "Austria": 3,
+    "Austria": 4,      # 1805 pre-slice item 8: 3→4 — two-front Austria needs the tempo
     "Prussia": 4,
     "Spain": 3,
     "Ottoman": 3,
@@ -378,6 +438,38 @@ EUROPE_BASE_ACTIONS: Dict[str, int] = {
 # Authority uses the flat DEFAULT default (60) for every Europe nation in v1;
 # authored per-nation authority is owned by the 1805 Scenario Setup gate.
 EUROPE_NATION_AUTHORITY: Dict[str, int] = {}
+
+# Starting manpower pools for all 20 Europe nations (1805 pre-slice item 5 —
+# without these, 15 nations can never recruit and the war deflates after first
+# contact). Sized so coalition majors can fund 1–2 rebuilt armies, not endless
+# waves; real 1805 balance is owned by the Scenario Setup gate + DEF-3. Every
+# entry carries all three pool types (the artillery invariant is test-pinned).
+EUROPE_MANPOWER_POOLS: Dict[str, Dict[str, int]] = {
+    # Major courts
+    "France":   {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
+    "Britain":  {"infantry": 30000, "cavalry": 6000,  "artillery": 4000},
+    "Russia":   {"infantry": 70000, "cavalry": 12000, "artillery": 6000},
+    "Austria":  {"infantry": 55000, "cavalry": 9000,  "artillery": 6000},
+    "Prussia":  {"infantry": 60000, "cavalry": 10000, "artillery": 5000},
+    # Secondary courts
+    "Spain":    {"infantry": 30000, "cavalry": 5000,  "artillery": 3000},
+    "Ottoman":  {"infantry": 35000, "cavalry": 7000,  "artillery": 3000},
+    "Sweden":   {"infantry": 15000, "cavalry": 3000,  "artillery": 1500},
+    "Naples":   {"infantry": 15000, "cavalry": 2500,  "artillery": 1500},
+    # Minor independents
+    "Portugal": {"infantry": 12000, "cavalry": 2000,  "artillery": 1000},
+    "Denmark":  {"infantry": 15000, "cavalry": 2500,  "artillery": 1500},
+    "Bavaria":  {"infantry": 20000, "cavalry": 3000,  "artillery": 2000},
+    "Saxony":   {"infantry": 20000, "cavalry": 3000,  "artillery": 2000},
+    "Hanover":  {"infantry": 8000,  "cavalry": 1500,  "artillery": 800},
+    "Hesse":    {"infantry": 10000, "cavalry": 1500,  "artillery": 800},
+    "PapalStates": {"infantry": 8000, "cavalry": 1000, "artillery": 500},
+    "Sardinia": {"infantry": 10000, "cavalry": 1500,  "artillery": 800},
+    # French satellite states
+    "Holland":        {"infantry": 12000, "cavalry": 2000, "artillery": 1000},
+    "KingdomOfItaly": {"infantry": 15000, "cavalry": 2500, "artillery": 1500},
+    "Switzerland":    {"infantry": 10000, "cavalry": 1500, "artillery": 800},
+}
 
 
 def get_europe_runtime_nations() -> tuple[str, ...]:
@@ -415,6 +507,11 @@ def build_europe_nation_authority(player_nation: str = DEFAULT_PLAYER_NATION) ->
         nation: int(EUROPE_NATION_AUTHORITY.get(nation, DEFAULT_NATION_DEFAULTS["authority"]))
         for nation in build_europe_enemy_nations(player_nation)
     }
+
+
+def build_europe_manpower_pools() -> Dict[str, Dict[str, int]]:
+    """Fresh starting manpower pools for the full 20-nation Europe roster."""
+    return {nation: pools.copy() for nation, pools in EUROPE_MANPOWER_POOLS.items()}
 
 
 def get_europe_capital(nation: str) -> str | None:

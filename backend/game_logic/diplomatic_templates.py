@@ -2259,9 +2259,8 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
             t_region = regions.get(t_name)
             if not t_region:
                 continue
-            # Skip capitals
-            from backend.models.region import NATION_CAPITALS
-            if t_name == NATION_CAPITALS.get(target_nation):
+            # Skip capitals (world-scoped — 1805 pre-slice item 7 family)
+            if t_name == world.get_nation_capital(target_nation):
                 continue
             connections = getattr(t_region, 'adjacent_regions', [])
             if any(c in france_regions for c in connections):
@@ -2301,7 +2300,6 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
       5. Return
     """
     from backend.game_logic.diplomacy import get_war_score_for, SPECIAL_BONUSES
-    from backend.models.region import NATION_CAPITALS
 
     player_nation = get_player_nation(world)
     war_score = get_war_score_for(world, player_nation, target_nation)
@@ -2362,7 +2360,7 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     for rname in target_regions:
         region = world.regions.get(rname)
         if region and any(adj in player_regions for adj in region.adjacent_regions):
-            if rname != NATION_CAPITALS.get(target_nation):
+            if rname != world.get_nation_capital(target_nation):
                 border.append(rname)
 
     if has_territory_demand or (war_score > 30 and border):
@@ -2579,8 +2577,7 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
 
             # R147: Offer territory cession when losing
             # Non-capital regions first; capital only as desperate last resort
-            from backend.models.region import NATION_CAPITALS
-            player_capital = NATION_CAPITALS.get(player_nation, "Paris")
+            player_capital = world.get_nation_capital(player_nation) or "Paris"
             player_regions = world.get_nation_regions(player_nation)
             non_capital = [r for r in player_regions if r != player_capital]
             max_cede = 1 if war_score >= -40 else 2
@@ -2634,8 +2631,7 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
 
         if war_score < -30:
             # Offer 1 territory as armistice sweetener (non-capital first)
-            from backend.models.region import NATION_CAPITALS
-            player_capital = NATION_CAPITALS.get(player_nation, "Paris")
+            player_capital = world.get_nation_capital(player_nation) or "Paris"
             player_regions = world.get_nation_regions(player_nation)
             non_capital = [r for r in player_regions if r != player_capital]
             if non_capital:
@@ -2786,9 +2782,9 @@ def rank_cession_candidates(world, player_nation: str, target_nation: str) -> li
     Returns list of [region_name, reason_text] pairs, sorted best-to-cede first.
     Excludes the player's capital.
     """
-    from backend.models.region import NATION_CAPITALS, REGION_TYPE_INCOME
+    from backend.models.region import REGION_TYPE_INCOME
 
-    capital = NATION_CAPITALS.get(player_nation, "")
+    capital = world.get_nation_capital(player_nation) or ""
     player_regions = world.get_nation_regions(player_nation)
     target_regions = world.get_nation_regions(target_nation)
 
@@ -2831,9 +2827,9 @@ def rank_ultimatum_territory_candidates(world, player_nation: str, target_nation
     Returns list of [region_name, reason_text] pairs, sorted best-to-demand first.
     Only includes regions adjacent to player territory. Excludes target's capital.
     """
-    from backend.models.region import NATION_CAPITALS, REGION_TYPE_INCOME
+    from backend.models.region import REGION_TYPE_INCOME
 
-    capital = NATION_CAPITALS.get(target_nation, "")
+    capital = world.get_nation_capital(target_nation) or ""
     player_regions = set(world.get_nation_regions(player_nation))
     target_region_names = world.get_nation_regions(target_nation)
 

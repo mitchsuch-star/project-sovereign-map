@@ -1041,8 +1041,6 @@ def _build_peace_settlement_section(world) -> List[Dict]:
 
     Returns entries from the ratification log that were signed the previous turn.
     """
-    from backend.models.region import NATION_CAPITALS
-
     previous_turn = int(world.current_turn) - 1
     settlements = []
     for entry in getattr(world, 'peace_ratification_log', []):
@@ -1052,7 +1050,7 @@ def _build_peace_settlement_section(world) -> List[Dict]:
             continue
         dur = entry.get("war_duration_turns", 0)
         target = entry.get("target_nation", "Unknown")
-        target_capital = entry.get("target_capital") or NATION_CAPITALS.get(target, target)
+        target_capital = entry.get("target_capital") or world.get_nation_capital(target) or target
         outcome = entry.get("war_outcome", "")
         gained = entry.get("territory_gained", [])
         score = entry.get("final_war_score", 0)

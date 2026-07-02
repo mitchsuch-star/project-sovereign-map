@@ -4357,8 +4357,12 @@ class EnemyAI:
         # CHECK 1: Undefended enemy region nearby (always capture)
         # ════════════════════════════════════════════════════════════
         safe_capture_candidates = []
+        # World-scoped starting map (1805 pre-slice item 7 family) — Europe
+        # province names always miss the legacy 19-region dict.
         from backend.models.region import get_starting_controllers
-        starting_controllers = get_starting_controllers()
+        starting_controllers = (
+            getattr(world, "_starting_controllers", None) or get_starting_controllers()
+        )
 
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)

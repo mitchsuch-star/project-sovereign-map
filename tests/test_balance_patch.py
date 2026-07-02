@@ -278,14 +278,20 @@ class TestNationStartingRegions:
         world2 = WorldState.from_dict(data)
         assert world2.nation_starting_regions == world.nation_starting_regions
 
-    def test_from_dict_missing_field_defaults_empty(self):
-        """Legacy saves without nation_starting_regions should get empty dict."""
+    def test_from_dict_missing_field_derives_from_loaded_control(self):
+        """Saves/scenarios without nation_starting_regions derive them from
+        the loaded regions' controllers (1805 Loader pre-slice item 3 — the
+        old `{}` fallback silently disabled homeland-defense AI for
+        hand-authored scenario payloads)."""
         world = WorldState()
 
         data = world.to_dict()
         del data["nation_starting_regions"]
         world2 = WorldState.from_dict(data)
-        assert world2.nation_starting_regions == {}
+        # At a fresh start, current control IS starting control, so the
+        # derivation reproduces the constructor's map exactly.
+        assert {k: sorted(v) for k, v in world2.nation_starting_regions.items()} == \
+               {k: sorted(v) for k, v in world.nation_starting_regions.items()}
 
 
 class TestIsEnemyNearby:

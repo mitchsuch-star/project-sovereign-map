@@ -374,9 +374,14 @@ def _exposes_capital(marshal, target, game_state) -> bool:
 
     world = getattr(game_state, 'world', game_state)
 
-    # V2-79: Use nation capital instead of hardcoded "Paris"
+    # V2-79/item 7: world-scoped nation capital, legacy global as the
+    # fallback. Objection heuristics receive dict/MagicMock worlds in tests,
+    # so only trust the attribute when it is a real mapping.
     from backend.models.region import NATION_CAPITALS
-    capital = NATION_CAPITALS.get(marshal.nation, "Paris")
+    capitals = getattr(world, "nation_capitals", None)
+    if not isinstance(capitals, dict):
+        capitals = NATION_CAPITALS
+    capital = capitals.get(marshal.nation, "Paris")
     if marshal.location != capital:
         return False
 

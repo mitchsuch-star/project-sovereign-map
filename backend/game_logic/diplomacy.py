@@ -2771,8 +2771,6 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     "battles": int, "decisive": int, "capital": int, "ticking": int}
     instead of int.
     """
-    from backend.models.region import NATION_CAPITALS
-
     # Territory score (cap ±40)
     territory_score = 0
     a_starting = set(world.nation_starting_regions.get(nation_a, []))
@@ -2809,10 +2807,12 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
             decisive_score -= 10
     decisive_score = max(-20, min(20, decisive_score))
 
-    # Capital score (cap ±30)
+    # Capital score (cap ±30). World-scoped capital reads (1805 pre-slice
+    # item 7) — the legacy global silently zeroed this component for every
+    # Europe-only nation (Vienna's capture must move war score).
     capital_score = 0
-    a_capital = NATION_CAPITALS.get(nation_a)
-    b_capital = NATION_CAPITALS.get(nation_b)
+    a_capital = world.get_nation_capital(nation_a)
+    b_capital = world.get_nation_capital(nation_b)
 
     if b_capital and b_capital in world.regions:
         b_cap_region = world.regions[b_capital]
@@ -3211,9 +3211,7 @@ def create_war_objective(
 
 def get_available_war_objectives(world, aggressor: str, target: str) -> list:
     """Return available objectives for the War Purpose popup."""
-    from backend.models.region import NATION_CAPITALS
-
-    target_capital = NATION_CAPITALS.get(target)
+    target_capital = world.get_nation_capital(target)
     objectives = []
 
     objectives.append({
@@ -3383,14 +3381,14 @@ def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_k
 
 def _get_liberation_targets(world, occupying_nation: str) -> tuple:
     """Return French-held vassal capitals that a coalition can liberate."""
-    from backend.models.region import NATION_CAPITALS
-
     target_regions = []
     vassal_nations = []
     for vassal_nation, vassal_data in getattr(world, 'vassals', {}).items():
         if vassal_data.get("lord") != occupying_nation:
             continue
-        capital = NATION_CAPITALS.get(vassal_nation)
+        # World-scoped (item 7): the Europe satellites are not in the legacy
+        # dict, so coalition liberation objectives silently never fired.
+        capital = world.get_nation_capital(vassal_nation)
         if not capital or capital not in world.regions:
             continue
         if world.regions[capital].controller == occupying_nation:
@@ -3998,8 +3996,6 @@ def build_peace_ratification_summary(
     ``pre_cleanup_data`` comes from ``_capture_pre_cleanup_war_data`` called
     before ``cleanup_war_end`` clears battle records and war scores.
     """
-    from backend.models.region import NATION_CAPITALS
-
     player = world.player_nation
     war_duration = int(pre_cleanup_data.get("war_duration", 0))
     war_score = int(pre_cleanup_data.get("war_score", 0))
@@ -4061,8 +4057,8 @@ def build_peace_ratification_summary(
     target_state = treaty.get("state_transition", "").split("_TO_")[-1] if treaty.get("state_transition") else "PEACE"
     previous_state = treaty.get("state_transition", "").split("_TO_")[0] if treaty.get("state_transition") else "WAR"
 
-    # Capital name for dispatch treaty name
-    target_capital = NATION_CAPITALS.get(target_nation, target_nation)
+    # Capital name for dispatch treaty name (world-scoped — item 7)
+    target_capital = world.get_nation_capital(target_nation) or target_nation
 
     return {
         "target_nation": target_nation,
@@ -4325,9 +4321,8 @@ def _find_friendly_retreat(world, marshal) -> str:
                 visited.add(adj_name)
                 queue.append(adj_name)
 
-    # Fallback: capital
-    from backend.models.region import NATION_CAPITALS
-    capital = NATION_CAPITALS.get(marshal.nation, "")
+    # Fallback: capital (world-scoped — item 7)
+    capital = world.get_nation_capital(marshal.nation) or ""
     if capital and world.get_region(capital):
         return capital
 
@@ -4436,10 +4431,8 @@ def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
     Returns analysis dict with demanded regions, counts, income weights,
     escalating costs, and elimination status.
     """
-    from backend.models.region import NATION_CAPITALS
-
     target_regions = world.get_nation_regions(target_nation)
-    target_capital = NATION_CAPITALS.get(target_nation)
+    target_capital = world.get_nation_capital(target_nation)
 
     # Collect all demanded territory regions, handling both formats
     demanded_regions_raw = []
@@ -6608,9 +6601,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                     bargain_conflict_penalty = -8
                     break
 
-    # ── Deal Balance ──
+    # ── Deal Balance ── (world-scoped capital set — item 7)
     from backend.models.region import NATION_CAPITALS
-    _all_capitals = set(NATION_CAPITALS.values())
+    _all_capitals = set((getattr(world, "nation_capitals", None) or NATION_CAPITALS).values())
 
     sweetener_total = 0.0
     for s in proposal.get("sweeteners", []):
@@ -6678,10 +6671,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         is_harsh = True
     personality_mod = harsh_mod if is_harsh else peace_mod
 
-    # ── Military Supremacy (§6b.1) ──
+    # ── Military Supremacy (§6b.1) ── (world-scoped — item 7)
     military_supremacy = 0
-    from backend.models.region import NATION_CAPITALS
-    target_capital = NATION_CAPITALS.get(target)
+    target_capital = world.get_nation_capital(target)
     if war_score >= 70 and target_capital:
         cap_region = world.regions.get(target_capital)
         if cap_region and cap_region.controller == proposer:
@@ -7302,8 +7294,9 @@ def _defensive_call_context(world, *, aggressor: str, victim: str, callee: str) 
 
     capital_threat = False
     try:
-        from backend.models.region import NATION_CAPITALS
-        capital = NATION_CAPITALS.get(callee)
+        # World-scoped (item 7): DG-4 impossibility must see Europe capitals,
+        # else excusable refusals get scored as breaches.
+        capital = world.get_nation_capital(callee)
         region = getattr(world, "regions", {}).get(capital) if capital else None
         if region and getattr(region, "controller", callee) not in (callee, ""):
             capital_threat = True
@@ -7595,8 +7588,9 @@ def declare_war(
     # WPS-A: Create war objectives
     diplo_key_obj = world._make_diplo_key(aggressor, target)
     if war_objective and war_objective in OFFENSIVE_OBJECTIVE_TYPES:
-        from backend.models.region import NATION_CAPITALS as _NATION_CAPITALS
-        target_capital = _NATION_CAPITALS.get(target)
+        # World-scoped (item 7): with the legacy global, offensive objectives
+        # vs Europe-only nations got empty target_regions → ticking never fired.
+        target_capital = world.get_nation_capital(target)
         target_regions = [target_capital] if target_capital else []
 
         if diplo_key_obj not in world.war_objectives:
@@ -8801,7 +8795,6 @@ def _is_nation_eliminated(world, nation: str) -> bool:
 
 def _process_dp_regen(world) -> None:
     """Regenerate DP for all nations. DP does NOT accumulate — reset each turn."""
-    from backend.models.region import NATION_CAPITALS
     diplomats = getattr(world, 'diplomats', {})
     nation_auth = getattr(world, 'nation_authority', {})
 
@@ -8816,7 +8809,10 @@ def _process_dp_regen(world) -> None:
         else:
             authority = nation_auth.get(nation, 60)
 
-        capital = NATION_CAPITALS.get(nation)
+        # World-scoped (item 7): with the legacy global, every Europe-only
+        # nation (and Britain via the Netherlands proxy miss) was treated as
+        # "capital lost" → permanent -1 DP every turn.
+        capital = world.get_nation_capital(nation)
         controls_capital = False
         if capital and capital in world.regions:
             controls_capital = world.regions[capital].controller == nation

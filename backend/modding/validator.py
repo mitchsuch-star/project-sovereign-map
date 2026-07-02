@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Set
 
 from backend.models.region import NATION_CAPITALS
-from backend.nation_config import validate_scenario_runtime_support
+from backend.nation_config import EUROPE_NATION_CAPITALS, validate_scenario_runtime_support
 
 
 
@@ -70,7 +70,10 @@ class ValidationResult:
 VALID_PERSONALITIES = {"aggressive", "cautious", "literal", "balanced", "loyal"}
 VALID_STANCES = {"neutral", "defensive", "aggressive"}
 
-VALID_NATIONS = set(NATION_CAPITALS.keys())
+# Unknown-nation WARNING set only (hard nation gating is world-scoped in
+# `validate_scenario_runtime_support`) — covers both rosters so Europe-scenario
+# marshals don't spam warnings. 1805 Loader pre-slice.
+VALID_NATIONS = set(NATION_CAPITALS.keys()) | set(EUROPE_NATION_CAPITALS.keys())
 VALID_SKILLS = {"tactical", "shock", "defense", "logistics", "administration", "command"}
 
 MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
@@ -432,6 +435,28 @@ def validate_scenario(
     if "game_over" in data:
         if not isinstance(data["game_over"], bool):
             result.add_error("game_over", f"Must be a boolean, got {type(data['game_over']).__name__}")
+
+    # Validate starting_wars (1805 Loader pre-slice): an ORDERED list of
+    # {"attacker": str, "defender": str} pairs seeded through the live war
+    # machinery by `from_scenario` — never hand-authored war_instance JSON.
+    if "starting_wars" in data:
+        starting_wars = data["starting_wars"]
+        if not isinstance(starting_wars, list):
+            result.add_error("starting_wars", f"Must be a list, got {type(starting_wars).__name__}")
+        else:
+            for i, entry in enumerate(starting_wars):
+                path = f"starting_wars[{i}]"
+                if not isinstance(entry, dict):
+                    result.add_error(path, f"Must be an object, got {type(entry).__name__}")
+                    continue
+                attacker = entry.get("attacker")
+                defender = entry.get("defender")
+                for role, value in (("attacker", attacker), ("defender", defender)):
+                    if not isinstance(value, str) or not value.strip():
+                        result.add_error(f"{path}.{role}", "Must be a non-empty string")
+                if (isinstance(attacker, str) and isinstance(defender, str)
+                        and attacker.strip() and attacker.strip() == defender.strip()):
+                    result.add_error(path, f"attacker and defender are both '{attacker}'")
 
     for runtime_error in validate_scenario_runtime_support(data):
         result.add_error("runtime_support", runtime_error)

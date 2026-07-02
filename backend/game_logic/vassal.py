@@ -272,9 +272,10 @@ def process_vassal_loyalty(world) -> List[dict]:
         drift = AUTONOMY_DRIFT.get(autonomy, 0)
         delta += drift
 
-        # 2. Garrison in vassal capital
-        from backend.models.region import NATION_CAPITALS
-        vassal_capital = NATION_CAPITALS.get(vassal_name)
+        # 2. Garrison in vassal capital — world-scoped (1805 pre-slice item 7
+        # family): the Europe satellites (Holland/KingdomOfItaly/Switzerland)
+        # are not in the legacy dict, so their garrison loyalty never applied.
+        vassal_capital = world.get_nation_capital(vassal_name)
         if vassal_capital:
             region = world.regions.get(vassal_capital)
             if region:
@@ -1130,8 +1131,7 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         import random as _rng
         if _rng.random() < 0.60:
             from backend.game_logic.dispatch import queue_dispatch_event
-            from backend.models.region import NATION_CAPITALS
-            vassal_capital = NATION_CAPITALS.get(vassal_name, vassal_name)
+            vassal_capital = world.get_nation_capital(vassal_name) or vassal_name
             queue_dispatch_event(world, "diplomatic_vassal_courting",
                                 {"enemy": nation, "vassal_capital": vassal_capital},
                                 "detection_60pct")

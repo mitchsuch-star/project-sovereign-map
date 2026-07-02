@@ -786,9 +786,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     dp_remaining = int(getattr(world, 'diplomatic_points', 0) or 0)
     dp_max = int(getattr(world, 'max_diplomatic_points', 3) or 0)
 
-    # TA3: DP breakdown
-    from backend.models.region import NATION_CAPITALS
-    player_capital = NATION_CAPITALS.get(player, "Paris")
+    # TA3: DP breakdown (world-scoped capital — 1805 pre-slice item 7 family)
+    player_capital = world.get_nation_capital(player) or "Paris"
     controls_capital = False
     cap_region = world.regions.get(player_capital)
     if cap_region:

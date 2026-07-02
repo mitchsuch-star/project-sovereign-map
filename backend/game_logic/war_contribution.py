@@ -1280,24 +1280,30 @@ def _classify_capture_occupation_kind(
     if not actor_side:
         return ""
 
-    # Capital match — single source of truth in `region.NATION_CAPITALS`.
+    # Capital match — world-scoped capital map (1805 pre-slice item 7 family):
+    # the legacy global misses every Europe capital, so Europe captures never
+    # classified as `enemy_capital_captured`. Legacy global stays the
+    # mock-world fallback.
     if from_controller:
         try:
             from backend.models.region import NATION_CAPITALS
+            capitals = getattr(world, "nation_capitals", None) or NATION_CAPITALS
         except Exception:  # pragma: no cover — import guard
-            NATION_CAPITALS = {}
-        if NATION_CAPITALS.get(from_controller) == region:
+            capitals = {}
+        if capitals.get(from_controller) == region:
             return "enemy_capital_captured"
 
     # Ally restoration — captured region's lawful (starting) owner is a
     # same-side ally of actor in this war_instance. The Region class doesn't
-    # store starting controller (only current controller); the
-    # `get_starting_controllers()` helper is the single source of truth
-    # (see `region.NATION_CAPITALS` documentation block).
+    # store starting controller (only current controller); the WORLD's own
+    # starting map is the source of truth (legacy or Europe — same family as
+    # the Slice-5 `_starting_controllers` fold), with the legacy helper as the
+    # deserialization-safety fallback.
     starting_controller = ""
     try:
         from backend.models.region import get_starting_controllers
-        starting_controller = get_starting_controllers().get(region, "") or ""
+        starting_map = getattr(world, "_starting_controllers", None) or get_starting_controllers()
+        starting_controller = starting_map.get(region, "") or ""
     except Exception:  # pragma: no cover — import guard
         starting_controller = ""
     if (

@@ -1883,7 +1883,6 @@ class DiplomaticExecutor:
             get_available_war_objectives,
             OBJECTIVE_TYPES,
         )
-        from backend.models.region import NATION_CAPITALS
 
         if not target_nation:
             return {"success": False, "message": "Sire, against which nation shall we set our purpose?"}
@@ -1952,7 +1951,10 @@ class DiplomaticExecutor:
                 or f"{objective_type.replace('_', ' ').title()} is not available.",
             }
 
-        target_capital = NATION_CAPITALS.get(target_nation)
+        # World-scoped (1805 pre-slice item 7 family — same defect as the
+        # declare_war objective path): legacy global → empty target_regions
+        # for Europe-only nations → objective ticking dead.
+        target_capital = world.get_nation_capital(target_nation)
         target_regions = [target_capital] if target_capital else []
 
         if diplo_key not in world.war_objectives:

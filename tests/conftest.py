@@ -70,6 +70,17 @@ def _isolate_sovereign_map(monkeypatch):
     monkeypatch.delenv("SOVEREIGN_MAP", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_sovereign_scenario(monkeypatch):
+    """Ensure SOVEREIGN_SCENARIO is unset for every test (1805 Loader pre-slice).
+
+    The game bootstrap loads a scenario JSON via `WorldState.from_scenario`
+    whenever SOVEREIGN_SCENARIO names a file. A developer's shell/.env value
+    must not skew the suite: scenario tests set the flag explicitly.
+    """
+    monkeypatch.delenv("SOVEREIGN_SCENARIO", raising=False)
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # MARSHAL FACTORY
 # ════════════════════════════════════════════════════════════════════════════════

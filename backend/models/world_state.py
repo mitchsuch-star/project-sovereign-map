@@ -23,6 +23,7 @@ from backend.nation_config import (
     build_default_nation_gold,
     build_enemy_nations,
     build_europe_enemy_nations,
+    build_europe_manpower_pools,
     build_europe_nation_actions,
     build_europe_nation_authority,
     build_europe_nation_gold,
@@ -188,7 +189,12 @@ class WorldState:
 
         # Game state - ALL INTEGERS
         self.current_turn: int = 1
-        self.max_turns: int = 40
+        # 1805 pre-slice item 6: at 40 turns / 75% provinces (94 of 126 from a
+        # 28-province start) a historically dominant Europe campaign ends in a
+        # "Time expired" defeat — the Europe world gets 60. Legacy keeps 40
+        # (the whole gameplay fixture depends on it). The DG-5 hegemony victory
+        # remains the decided-but-unbuilt alternative (SCALE_READINESS_PLAN).
+        self.max_turns: int = 60 if europe else 40
         # Balance patch: Economy rebalanced for 4-marshal France (includes Drouot)
         # Economics (5g upkeep per 1000 troops):
         #   France:  income 1100 (Paris+Belgium+Lyon+Marseille+Brittany+Bordeaux+Normandy+Milan)
@@ -203,9 +209,13 @@ class WorldState:
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         # Nation-level reserve pools that gate recruitment.
         # Cavalry is precious and slow to rebuild; infantry is cheap and plentiful.
-        self.manpower_pools: Dict[str, Dict[str, int]] = {
-            k: v.copy() for k, v in DEFAULT_MANPOWER_POOLS.items()
-        }
+        # 1805 pre-slice item 5: the Europe world carries pools for all 20
+        # roster nations (else 15 nations can never recruit).
+        self.manpower_pools: Dict[str, Dict[str, int]] = (
+            build_europe_manpower_pools()
+            if europe
+            else {k: v.copy() for k, v in DEFAULT_MANPOWER_POOLS.items()}
+        )
 
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
@@ -2932,7 +2942,9 @@ class WorldState:
             Region name controlled by marshal's nation (or capital as last resort)
         """
         nation = marshal.nation
-        spawn_loc = getattr(marshal, 'spawn_location', None) or NATION_CAPITALS.get(nation, 'Paris')
+        # World-scoped capital read (1805 pre-slice item 7 family) — the legacy
+        # global misses every Europe-only nation.
+        spawn_loc = getattr(marshal, 'spawn_location', None) or self.get_nation_capital(nation) or 'Paris'
 
         # 1. Check spawn_location (V2-93: skip if it's the battle location)
         if spawn_loc != exclude:
@@ -2941,7 +2953,7 @@ class WorldState:
                 return spawn_loc
 
         # 2. Check nation capital (V2-93: skip if it's the battle location)
-        capital = NATION_CAPITALS.get(nation, spawn_loc)
+        capital = self.get_nation_capital(nation) or spawn_loc
         if capital != exclude:
             capital_region = self.regions.get(capital)
             if capital_region and capital_region.controller == nation:
@@ -4313,25 +4325,31 @@ class WorldState:
         )
 
         # ═══════ CORE GAME STATE ═══════
+        # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
+        # construction-time values (already correct per `sovereign_map`), not
+        # the legacy builders — identical for legacy saves, and a Europe
+        # scenario/save no longer has its surfaces clobbered by the 5-nation
+        # defaults.
         world.current_turn = data.get("current_turn", 1)
-        world.max_turns = data.get("max_turns", 40)
+        world.max_turns = data.get("max_turns", world.max_turns)
         # Per-nation gold: prefer nation_gold dict, fall back to old single gold field
         if "nation_gold" in data:
             world.nation_gold = {k: int(v) for k, v in data["nation_gold"].items()}
         else:
-            # Backward compat: old save with single gold field
-            # Start with defaults for known nations, then override player nation
+            # Backward compat: old save with single gold field. The constructor
+            # already seeded world-scoped defaults; just override the player.
             old_gold = data.get("gold", 1200)
-            world.nation_gold = build_default_nation_gold(world.player_nation)
             world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
         world.victory = data.get("victory")
 
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         raw_pools = data.get("manpower_pools", {})
+        # World-scoped defaults: the constructor pools (legacy 5-nation table
+        # or the 20-nation Europe table) backfill missing nations/pool types.
+        default_pools = world.manpower_pools
         world.manpower_pools = {k: v.copy() for k, v in raw_pools.items()}
-        # Fill missing nations or missing pool types from defaults
-        for nation, defaults in DEFAULT_MANPOWER_POOLS.items():
+        for nation, defaults in default_pools.items():
             if nation not in world.manpower_pools:
                 world.manpower_pools[nation] = defaults.copy()
             else:
@@ -4377,13 +4395,27 @@ class WorldState:
         world.gold_spent_this_turn = data.get("gold_spent_this_turn", {}).copy()
 
         # ═══════ ENEMY AI ═══════
-        world.nation_starting_regions = {k: list(v) for k, v in data.get("nation_starting_regions", {}).items()}
+        starting_regions_data = data.get("nation_starting_regions")
+        if starting_regions_data:
+            world.nation_starting_regions = {k: list(v) for k, v in starting_regions_data.items()}
+        else:
+            # Omitted (hand-authored scenario/partial dict): derive from the
+            # LOADED regions — at a scenario start, current control IS starting
+            # control. The old `{}` fallback silently disabled homeland-defense
+            # AI; real saves always carry the key (serialization-enforced).
+            derived_starting: Dict[str, list] = {}
+            for _region_name, _region in world.regions.items():
+                controller = getattr(_region, "controller", None)
+                if controller:
+                    derived_starting.setdefault(controller, []).append(_region_name)
+            world.nation_starting_regions = derived_starting
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
         world.ai_attack_futility = data.get("ai_attack_futility", {}).copy()
-        world.enemy_nations = data.get("enemy_nations", build_enemy_nations(world.player_nation)).copy()
-        world.nation_actions = data.get("nation_actions", build_default_nation_actions(world.player_nation)).copy()
+        # Item 3: world-scoped fallbacks (constructor values, not legacy builders)
+        world.enemy_nations = data.get("enemy_nations", world.enemy_nations).copy()
+        world.nation_actions = data.get("nation_actions", world.nation_actions).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
         world.battle_history = [b.copy() for b in data.get("battle_history", [])]
 
@@ -4428,17 +4460,17 @@ class WorldState:
         world.nation_relations = {k: int(v) for k, v in data.get("nation_relations", {}).items()}
 
         # ═══════ DIPLOMACY Session 2 ═══════
-        from backend.models.diplomat import DiplomaticRepresentative, create_starting_diplomats
+        from backend.models.diplomat import DiplomaticRepresentative
         diplomats_data = data.get("diplomats", {})
         if diplomats_data:
             world.diplomats = {k: DiplomaticRepresentative.from_dict(v) for k, v in diplomats_data.items()}
-        else:
-            world.diplomats = create_starting_diplomats()
+        # else: keep the constructor's world-scoped cast (legacy five or the
+        # 20-diplomat Europe roster) — item 3, no legacy clobber.
         world.diplomatic_points = int(data.get("diplomatic_points", 4))
         world.max_diplomatic_points = int(data.get("max_diplomatic_points", 5))
         world.nation_authority = {
             k: int(v)
-            for k, v in data.get("nation_authority", build_default_nation_authority(world.player_nation)).items()
+            for k, v in data.get("nation_authority", world.nation_authority).items()
         }
         world.nation_dp = {k: int(v) for k, v in data.get("nation_dp", {}).items()}
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
@@ -4526,7 +4558,11 @@ class WorldState:
         world.relation_history = {k: list(v) for k, v in data.get("relation_history", {}).items()}
 
         # ═══════ VASSAL SYSTEM (Session 5) ═══════
-        world.vassals = {k: v.copy() for k, v in data.get("vassals", {}).items()}
+        if "vassals" in data:
+            world.vassals = {k: v.copy() for k, v in data["vassals"].items()}
+        # else: keep the constructor's vassals (Europe seeds the 3 French
+        # satellites; legacy starts empty) — item 3, an omitted key must not
+        # wipe the seeded satellite web.
         world.vassal_investment_cooldowns = {k: int(v) for k, v in data.get("vassal_investment_cooldowns", {}).items()}
         world.vassal_release_cooldowns = {k: int(v) for k, v in data.get("vassal_release_cooldowns", {}).items()}
         world.cascade_triggered = set(data.get("cascade_triggered", []))
@@ -4902,15 +4938,26 @@ class WorldState:
         if not isinstance(scenario_data, dict):
             raise ValueError(f"Scenario must be a JSON object, got {type(scenario_data).__name__}")
 
+        # 1805 pre-slice item 2: the default map is world-scoped. A scenario
+        # declaring `sovereign_map: "europe"` gets the validated 126-province
+        # registry world injected when it omits `regions` — it does not have
+        # to inline all 126 region dicts. Legacy scenarios keep the 19-region
+        # default (pinned by tests/test_serialization.py).
+        europe = str(scenario_data.get("sovereign_map") or "legacy").strip().lower() == "europe"
+
         # If no regions specified, use default map
         if not scenario_data.get("regions"):
+            region_factory = create_europe_regions if europe else create_regions
             scenario_data["regions"] = {
                 name: region.to_dict()
-                for name, region in create_regions().items()
+                for name, region in region_factory().items()
             }
 
-        # If no marshals specified, use defaults
-        if not scenario_data.get("marshals"):
+        # If no marshals specified, use defaults. Europe scenarios get NO
+        # legacy injection: the legacy roster's locations don't exist on the
+        # Europe map (the 1805 armies are authored scenario data), so an
+        # army-less world is the honest default.
+        if not scenario_data.get("marshals") and not europe:
             from backend.models.marshal import create_starting_marshals, create_enemy_marshals
             default_marshals = {**create_starting_marshals(), **create_enemy_marshals()}
             scenario_data["marshals"] = {
@@ -4926,7 +4973,40 @@ class WorldState:
             raise ValueError(f"Invalid scenario: {errors_str}")
 
         # Use from_dict for actual loading
-        return cls.from_dict(scenario_data)
+        world = cls.from_dict(scenario_data)
+
+        # 1805 pre-slice: seed scenario-declared wars through the LIVE war
+        # machinery (`ensure_war_instance_for_pair` — the smoke-start path)
+        # instead of hand-authored raw `war_instance` JSON, which would load
+        # as an unvalidated deep copy. `starting_wars` is an ORDERED list of
+        # {"attacker": ..., "defender": ...}: order is semantic — the first
+        # entry naming a side fixes the instance's leaders, and later entries
+        # sharing a participant attach to the same instance (one shared
+        # coalition war), exactly like live declarations.
+        starting_wars = scenario_data.get("starting_wars") or []
+        if starting_wars:
+            from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
+            for entry in starting_wars:
+                attacker = str(entry.get("attacker") or "").strip()
+                defender = str(entry.get("defender") or "").strip()
+                pair = world._make_diplo_key(attacker, defender)
+                result = ensure_war_instance_for_pair(
+                    world,
+                    attacker,
+                    defender,
+                    entry_path="scenario_start",
+                    root_episode_id=f"scenario_start_{pair.replace('|', '_')}",
+                    reason="scenario_starting_war",
+                )
+                if not result.get("ok"):
+                    raise ValueError(
+                        f"Invalid scenario: starting_wars entry {attacker} vs {defender} "
+                        f"failed to seed a war instance: {result.get('error') or result}"
+                    )
+                world.diplomatic_states[pair] = "WAR"
+                world.war_start_turns.setdefault(pair, int(world.current_turn))
+
+        return world
 
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
@@ -8347,9 +8427,8 @@ class WorldState:
         if not safe_regions:
             return None  # Surrounded! No retreat possible
 
-        # Retreat toward capital
-        from backend.models.region import NATION_CAPITALS
-        capital = NATION_CAPITALS.get(marshal.nation, self.player_capital or "Paris")
+        # Retreat toward capital (world-scoped — 1805 pre-slice item 7 family)
+        capital = self.get_nation_capital(marshal.nation) or self.player_capital or "Paris"
         closest_to_capital = min(safe_regions,
                                  key=lambda r: self.get_distance(r, capital))
         return closest_to_capital

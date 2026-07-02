@@ -430,7 +430,8 @@ def _concession_baseline_transferable_candidates(
 ) -> List[str]:
     """Ranked list of concession-region candidates per the spec algorithm.
 
-    Sort key: (BFS distance from `NATION_CAPITALS[accepting_leader]` when
+    Sort key: (BFS distance from the accepting leader's world-scoped capital
+    (`world.get_nation_capital`) when
     reachable inside `CONCESSION_BASELINE_BFS_MAX_DEPTH`, else a sentinel
     above all real depths), then economic income value (low first), then
     region name. Eligible regions are currently controlled by a proposer-side
@@ -447,22 +448,29 @@ def _concession_baseline_transferable_candidates(
     a dropdown, so this returns the whole ranked pool; the single-pick
     selector below takes the head.
 
-    Historical home lookup goes through `region.get_starting_controllers()`
-    rather than `region.starting_controller` because the Region class
-    stores the starting controller only in the module-level
-    REGIONS_DATA dict; the Region instance carries the live `controller`
-    field only.
+    Historical home lookup goes through the world's own starting-controller
+    map (`world._starting_controllers`, legacy helper as fallback) because
+    the Region instance carries the live `controller` field only — it does
+    not retain the starting controller after init.
     """
     proposer_set = {str(n) for n in proposer_side_participants if n}
     if not proposer_set:
         return []
-    from backend.models.region import NATION_CAPITALS, get_starting_controllers
+    from backend.models.region import get_starting_controllers
 
-    target_region = NATION_CAPITALS.get(accepting_leader)
+    # World-scoped capital + starting map (1805 pre-slice item 7 family): the
+    # legacy globals miss Europe courts/provinces, degrading the BFS anchor
+    # and the historical-home exclusion. Attribute-fallback idiom because
+    # scorer tests drive this with shim worlds lacking the accessor.
+    from backend.models.region import NATION_CAPITALS
+    _capitals = getattr(world, "nation_capitals", None) or NATION_CAPITALS
+    target_region = _capitals.get(accepting_leader)
     regions = getattr(world, "regions", None)
     if not isinstance(regions, Mapping):
         return []
-    starting_controllers = get_starting_controllers()
+    starting_controllers = (
+        getattr(world, "_starting_controllers", None) or get_starting_controllers()
+    )
 
     # Golden Rule 8: iterate per-participant via the cached
     # `world.get_nation_regions(...)` lookup and union the results
@@ -1014,10 +1022,12 @@ def _demand_baseline_region_candidates(
     regions = getattr(world, "regions", None)
     if not isinstance(regions, Mapping):
         return []
-    from backend.models.region import NATION_CAPITALS
-
     excluded = {str(r) for r in (excluded_regions or []) if r}
-    court_capital = NATION_CAPITALS.get(court)
+    # World-scoped (item 7 family): Europe courts' capitals must stay
+    # excluded from demand candidates. Attribute-fallback idiom (shim-safe).
+    from backend.models.region import NATION_CAPITALS
+    _capitals = getattr(world, "nation_capitals", None) or NATION_CAPITALS
+    court_capital = _capitals.get(court)
     try:
         court_regions = list(world.get_nation_regions(court))
     except Exception:
