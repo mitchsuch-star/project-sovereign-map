@@ -7,6 +7,12 @@ Guards the cutover contract from docs/MAP_IMPLEMENTATION_PLAN.md Slice 5:
       builds the Europe world by default via the SOVEREIGN_MAP flag.
     * (G1) Rollback drill: SOVEREIGN_MAP=legacy restores the 19-region game
       without a code change; flipping back restores Europe.
+
+Slice 7 note: "default" here means the BARE-MAP default — the suite-wide
+conftest fixture pins SOVEREIGN_SCENARIO=none, opting out of the shipped 1805
+scenario default so these bootstrap pins keep the fast army-less world they
+were written against. The shipped (delenv) default — the 1805 scenario boot —
+is pinned in tests/test_map_slice7_cutover.py.
     * (G2) Legacy-fixture immutability: `create_regions()` still returns the
       EXACT 19-region fixture (names, owners, adjacency) the ~275-file
       gameplay suite depends on — pinned as a frozen snapshot.
@@ -35,7 +41,8 @@ def _isolated_save_dir(tmp_path, monkeypatch):
 
 @pytest.fixture
 def default_bootstrap(monkeypatch):
-    """Fresh default bootstrap (SOVEREIGN_MAP unset) with post-test restore."""
+    """Fresh bare-map bootstrap (SOVEREIGN_MAP unset; SOVEREIGN_SCENARIO stays
+    on the conftest "none" sentinel) with post-test restore."""
     monkeypatch.delenv("SOVEREIGN_MAP", raising=False)
     yield main_module._reset_world_state()
     main_module._reset_world_state()

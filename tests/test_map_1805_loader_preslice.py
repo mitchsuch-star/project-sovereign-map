@@ -197,9 +197,14 @@ def test_from_dict_omitted_starting_regions_derive_from_loaded_regions():
 
 @pytest.fixture
 def restore_bootstrap(monkeypatch):
-    """Restore the default module world after scenario-bootstrap tests."""
+    """Restore the suite's bare-world module state after bootstrap tests.
+
+    Slice 7 made the 1805 scenario the SHIPPED no-env default, so teardown
+    pins the "none" sentinel (the suite-wide conftest default) rather than
+    delenv — a delenv reset would boot the full 1805 scenario here.
+    """
     yield
-    monkeypatch.delenv("SOVEREIGN_SCENARIO", raising=False)
+    monkeypatch.setenv("SOVEREIGN_SCENARIO", "none")
     main_module._reset_world_state()
 
 
@@ -231,12 +236,23 @@ def test_sovereign_scenario_missing_file_fails_loudly(monkeypatch, restore_boots
 
 
 def test_unset_sovereign_scenario_builds_default_world(monkeypatch, restore_bootstrap):
+    """Slice 7 default-boot flip: the unset-env default IS the 1805 scenario
+    (the full pin suite lives in tests/test_map_slice7_cutover.py; the
+    "none" sentinel restores the bare army-less world)."""
     monkeypatch.delenv("SOVEREIGN_SCENARIO", raising=False)
     monkeypatch.delenv("SOVEREIGN_MAP", raising=False)
     world = main_module._reset_world_state()
     assert world.sovereign_map == "europe"
     assert len(world.regions) == 126
     assert world.current_turn == 1
+    assert world.get_marshal("Ney") is not None, (
+        "the shipped default boot carries the authored 1805 armies"
+    )
+
+    monkeypatch.setenv("SOVEREIGN_SCENARIO", "none")
+    bare = main_module._reset_world_state()
+    assert len(bare.regions) == 126
+    assert not bare.marshals, "the none sentinel opts out to the bare Europe world"
 
 
 # ════════════════════════════════════════════════════════════════════

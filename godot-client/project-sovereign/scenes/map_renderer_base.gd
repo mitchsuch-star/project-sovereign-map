@@ -791,6 +791,21 @@ func _refresh_owner_fill_palette():
 		if region_controllers.has(region_name) and _is_region_wired(region_name):
 			var controller = str(region_controllers[region_name])
 			owner_color = Utils.NATION_COLORS.get(controller, Utils.COLOR_ENEMY_DEFAULT)
+		# Map Slice 7: province-level fog rides the same palette entry (legacy
+		# parity with the circle map's FogOverlay panels). rgb lerps toward the
+		# fog color by its alpha; alpha takes the max so unknown-but-unowned
+		# provinces still get a dark wash over the raw art. Pure per-province
+		# color math ahead of the SAME single uniform upload — the G4 re-tint
+		# budget (no per-pixel work) is preserved.
+		var visibility := str(region_visibility.get(region_name, "full"))
+		var fog: Color = FOG_OVERLAYS.get(visibility, FOG_OVERLAYS["full"])
+		if fog.a > 0.0:
+			owner_color = Color(
+				lerpf(owner_color.r, fog.r, fog.a),
+				lerpf(owner_color.g, fog.g, fog.a),
+				lerpf(owner_color.b, fog.b, fog.a),
+				maxf(owner_color.a, fog.a)
+			)
 		owners[i] = owner_color
 	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
 

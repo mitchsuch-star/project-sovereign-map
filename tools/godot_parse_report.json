@@ -1,7 +1,22 @@
 {
   "godot_version": "4.4.1-stable (official)",
   "harness": "tools/godot_parse_check.gd",
-  "note": "GT-Slice-4 refresh: settlement_editor_popup.gd retired (freeform editor removed; guided per-court rows are the deep tier). Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+  "note": "Map Slice 7 refresh: map.gd is the Europe game map (extends europe_map.gd); europe_map_smoke.gd carries the smoke-only demo; scene-instantiation checks added. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+  "scenes": [
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "map_area_script": "res://scenes/map.gd",
+      "path": "res://scenes/main.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/europe_map_smoke.tscn"
+    }
+  ],
   "scripts": [
     {
       "errors": [],
@@ -86,7 +101,19 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scenes/europe_map.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/europe_map_smoke.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/map.gd"
     }
   ],
-  "timestamp": "2026-07-02T03:00:51Z"
+  "timestamp": "2026-07-02T03:36:29Z"
 }

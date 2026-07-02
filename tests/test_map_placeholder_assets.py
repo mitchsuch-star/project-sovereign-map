@@ -7,6 +7,11 @@ Schema v2 (Map Readiness Closure Pass §4.1) adds:
 
 Any change to this schema must update these tests plus the renderer seams in
 `map_renderer_base.gd` that consume the new fields.
+
+Slice 7 note: map.gd no longer loads this asset (the game map is the Europe
+renderer — see tests/test_map_slice7_cutover.py), so the map.gd-tied pins that
+used to live here are retired. The asset itself + its schema guards stay until
+the Slice 9 cleanup pass retires the placeholder assets with owner rows.
 """
 
 import json
@@ -17,7 +22,6 @@ from backend.models.region import REGIONS_DATA
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MAP_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map.gd"
 MAP_RENDERER_BASE_GD = (
     REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map_renderer_base.gd"
 )
@@ -47,45 +51,10 @@ def _load_province_definition() -> dict:
     return json.loads(PROVINCE_JSON.read_text(encoding="utf-8"))
 
 
-def _parse_map_positions(source: str) -> dict[str, tuple[int, int]]:
-    positions_match = re.search(
-        r"const REGION_POSITIONS\s*=\s*\{(.*?)\}",
-        source,
-        re.DOTALL,
-    )
-    assert positions_match, "Could not find REGION_POSITIONS in map.gd"
-    positions_block = positions_match.group(1)
-
-    parsed: dict[str, tuple[int, int]] = {}
-    for name, x_str, y_str in re.findall(
-        r'"([^"]+)":\s*Vector2\(([-\d.]+),\s*([-\d.]+)\)',
-        positions_block,
-    ):
-        parsed[name] = (int(float(x_str)), int(float(y_str)))
-    return parsed
-
-
-def test_placeholder_province_asset_is_referenced_from_map_script():
-    source = _read_text(MAP_GD)
-    assert "PLACEHOLDER_PROVINCE_DEFINITION_PATH" in source
-    assert "session8_placeholder_provinces.json" in source
-    assert "func _get_map_asset_definition_path() -> String:" in source
-
-
 def test_placeholder_province_asset_covers_all_backend_regions():
     province_data = _load_province_definition()
     regions = province_data["regions"]
     assert set(regions) == set(REGIONS_DATA)
-
-
-def test_placeholder_province_asset_anchors_match_map_positions():
-    map_positions = _parse_map_positions(_read_text(MAP_GD))
-    province_data = _load_province_definition()
-
-    for region_name, position in map_positions.items():
-        assert region_name in province_data["regions"], f"Missing province entry: {region_name}"
-        anchor = tuple(province_data["regions"][region_name]["anchor"])
-        assert anchor == position, f"Anchor mismatch for {region_name}: {anchor} != {position}"
 
 
 def test_placeholder_province_lookup_colors_are_unique_and_non_sentinel():
@@ -239,22 +208,8 @@ def test_renderer_consumes_new_anchor_fields():
     assert '"province_id"' in source, "Renderer must read province_id from province data"
 
 
-def test_placeholder_map_script_does_not_opt_into_bitmap_mode():
-    """§4.2: the 19-region placeholder scene must NOT declare bitmap paths.
-
-    The placeholder has no commissioned art — it relies on the circle-fallback
-    path inside `_build_map_textures()`. If `map.gd` ever overrides
-    `_get_map_visual_bitmap_path()` or `_get_map_lookup_bitmap_path()` to a
-    non-empty value without shipping the actual PNGs, the loader will log a
-    warning every load and silently keep running on circles — this test pins
-    the "dev mode stays on circles" invariant.
-    """
-    source = _read_text(MAP_GD)
-    assert "_get_map_visual_bitmap_path" not in source, (
-        "Placeholder map.gd must not override _get_map_visual_bitmap_path — "
-        "the base default (empty string) keeps circle fallback active."
-    )
-    assert "_get_map_lookup_bitmap_path" not in source, (
-        "Placeholder map.gd must not override _get_map_lookup_bitmap_path — "
-        "the base default (empty string) keeps circle fallback active."
-    )
+# The "dev mode stays on circles" pin (map.gd must not declare bitmap paths)
+# retired with the Slice 7 cutover: the game map IS the bitmap Europe renderer
+# now (map.gd -> europe_map.gd, which owns the bitmap-path overrides). The
+# bitmap contract pins live in tests/test_map_slice7_cutover.py and
+# tests/test_map_owner_fill.py.

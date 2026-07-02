@@ -72,13 +72,17 @@ def _isolate_sovereign_map(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _isolate_sovereign_scenario(monkeypatch):
-    """Ensure SOVEREIGN_SCENARIO is unset for every test (1805 Loader pre-slice).
+    """Pin SOVEREIGN_SCENARIO to the no-scenario sentinel for every test.
 
-    The game bootstrap loads a scenario JSON via `WorldState.from_scenario`
-    whenever SOVEREIGN_SCENARIO names a file. A developer's shell/.env value
-    must not skew the suite: scenario tests set the flag explicitly.
+    Map Slice 7 flipped the shipped default boot to the 1805 scenario
+    (europe_1805.json). The suite pins the "none" sentinel so main-module
+    tests keep the fast, army-less bare-Europe (or flag-pinned legacy) world
+    they were written against — no per-reset scenario validation cost, no
+    silent suite-wide re-baselining. Tests that exercise a scenario set the
+    flag explicitly; tests that pin the SHIPPED default (the 1805 boot)
+    delenv it explicitly (see tests/test_map_slice7_cutover.py).
     """
-    monkeypatch.delenv("SOVEREIGN_SCENARIO", raising=False)
+    monkeypatch.setenv("SOVEREIGN_SCENARIO", "none")
 
 
 # ════════════════════════════════════════════════════════════════════════════════

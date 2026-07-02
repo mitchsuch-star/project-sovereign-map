@@ -38,7 +38,7 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/mailbox_panel.gd",
 ]
 
-# Map Slice 6: the owner-fill renderer scripts live under scenes/, not
+# Map Slices 6-7: the map renderer scripts live under scenes/, not
 # scripts/ — kept in their own list because the pytest staleness guard for
 # SETTLEMENT_CRITICAL_SCRIPTS resolves names against scripts/ only; the
 # scenes-dir coverage + staleness checks are owned by
@@ -46,7 +46,20 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 const MAP_CRITICAL_SCRIPTS = [
 	"res://scenes/map_renderer_base.gd",
 	"res://scenes/europe_map.gd",
+	"res://scenes/europe_map_smoke.gd",
+	"res://scenes/map.gd",
 ]
+
+# Map Slice 7: headless scene-instantiation checks. instantiate() attaches
+# scripts and loads every ext_resource WITHOUT entering the tree (_ready never
+# runs, no backend needed). main.tscn additionally verifies the MapArea node is
+# scripted by the Europe game map (scenes/map.gd).
+const SCENE_INSTANTIATION_CHECKS = [
+	"res://scenes/main.tscn",
+	"res://scenes/europe_map_smoke.tscn",
+]
+const MAIN_SCENE_PATH = "res://scenes/main.tscn"
+const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"
 
@@ -56,8 +69,9 @@ func _init():
 		"timestamp": Time.get_datetime_string_from_system(true, false) + "Z",
 		"godot_version": Engine.get_version_info().get("string", ""),
 		"harness": "tools/godot_parse_check.gd",
-		"note": "GT-Slice-4 refresh: settlement_editor_popup.gd retired (freeform editor removed; guided per-court rows are the deep tier). Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
+		"note": "Map Slice 7 refresh: map.gd is the Europe game map (extends europe_map.gd); europe_map_smoke.gd carries the smoke-only demo; scene-instantiation checks added. Invoke from repo root with --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd after a headless editor/import pass if the class-name cache is missing.",
 		"scripts": [],
+		"scenes": [],
 	}
 	var any_failed = false
 	for script_path in SETTLEMENT_CRITICAL_SCRIPTS + MAP_CRITICAL_SCRIPTS:
@@ -66,6 +80,12 @@ func _init():
 		if not entry["parse_ok"] or not entry["load_ok"]:
 			any_failed = true
 			push_error("[godot_parse_check] %s failed: %s" % [script_path, entry["errors"]])
+	for scene_path in SCENE_INSTANTIATION_CHECKS:
+		var scene_entry = _check_scene(scene_path)
+		report["scenes"].append(scene_entry)
+		if not scene_entry["load_ok"] or not scene_entry["instantiate_ok"]:
+			any_failed = true
+			push_error("[godot_parse_check] %s failed: %s" % [scene_path, scene_entry["errors"]])
 	var report_text = JSON.stringify(report, "  ")
 	var f = FileAccess.open(REPORT_PATH, FileAccess.WRITE)
 	if f == null:
@@ -105,4 +125,40 @@ func _check_script(path: String) -> Dictionary:
 		entry["errors"].append("reload_error_%d" % reload_err)
 		return entry
 	entry["load_ok"] = true
+	return entry
+
+
+func _check_scene(path: String) -> Dictionary:
+	# instantiate() never adds the node to the tree, so _ready()/@onready never
+	# run — this validates the scene's resource graph + attached scripts, not
+	# runtime behavior (the live smoke owns that).
+	var entry = {
+		"path": path,
+		"load_ok": false,
+		"instantiate_ok": false,
+		"errors": [],
+	}
+	if not ResourceLoader.exists(path):
+		entry["errors"].append("scene_not_found")
+		return entry
+	var packed = ResourceLoader.load(path)
+	if packed == null or not (packed is PackedScene):
+		entry["errors"].append("scene_load_failed")
+		return entry
+	entry["load_ok"] = true
+	var root = packed.instantiate()
+	if root == null:
+		entry["errors"].append("instantiate_returned_null")
+		return entry
+	if path == MAIN_SCENE_PATH:
+		var map_area = root.get_node_or_null("MapArea")
+		var map_script = map_area.get_script() if map_area != null else null
+		var script_path = map_script.resource_path if map_script != null else ""
+		entry["map_area_script"] = script_path
+		if script_path != MAP_AREA_EXPECTED_SCRIPT:
+			entry["errors"].append("map_area_script_mismatch:%s" % script_path)
+			root.free()
+			return entry
+	entry["instantiate_ok"] = true
+	root.free()
 	return entry

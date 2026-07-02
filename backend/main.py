@@ -5,6 +5,8 @@ Connects Godot frontend to Python game logic
 
 import os
 import threading  # noqa: E402 - 3A-1: needed for state_lock
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load .env BEFORE any imports that might read env vars
@@ -64,15 +66,41 @@ def _resolve_sovereign_map() -> str:
     return value
 
 
-def _resolve_scenario_path() -> str:
-    """Resolve the SOVEREIGN_SCENARIO flag (1805 Loader pre-slice, item 4).
+# Map Slice 7 default-boot flip: the shipped campaign IS the 1805 scenario.
+# Absolute (repo-root-derived) so the boot works regardless of CWD.
+_DEFAULT_SCENARIO_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
+)
+# Explicit opt-out sentinel: with a scenario as the default, tests/devs need an
+# env value that means "no scenario — boot the bare flag-resolved world".
+SCENARIO_NONE_SENTINEL = "none"
 
-    When set, every fresh campaign (import-time bootstrap and /new_game) loads
-    the named scenario JSON via `WorldState.from_scenario` instead of the
-    default `WorldState(sovereign_map=...)` start. Empty/unset = default start.
-    Read per-call (not cached at import) so tests can exercise both paths.
+
+def _resolve_scenario_path() -> str:
+    """Resolve the scenario for the game bootstrap (Slice 7 default-boot flip).
+
+    Precedence (read per-call so tests can exercise every path):
+    1. SOVEREIGN_SCENARIO=<path> — explicit scenario, fails loudly downstream.
+    2. SOVEREIGN_SCENARIO=none — bare flag-resolved world (opt-out sentinel).
+    3. SOVEREIGN_MAP=legacy — no scenario (the G1 rollback drill stays a pure
+       flag flip: legacy world, legacy marshals, no code change).
+    4. SOVEREIGN_SMOKE_START set — no scenario (presets seed their own wars in
+       the WorldState constructor; combining them with a scenario is untested
+       by design — the never-combine rule, STATUS §Diplomacy accommodations).
+    5. Default: the authored 1805 opening (europe_1805.json).
     """
-    return os.getenv("SOVEREIGN_SCENARIO", "").strip()
+    explicit = os.getenv("SOVEREIGN_SCENARIO", "").strip()
+    if explicit:
+        if explicit.lower() == SCENARIO_NONE_SENTINEL:
+            return ""
+        return explicit
+    if _resolve_sovereign_map() == "legacy":
+        return ""
+    if os.getenv("SOVEREIGN_SMOKE_START", "").strip():
+        print("[WARN] SOVEREIGN_SMOKE_START set — skipping the default 1805 scenario boot")
+        return ""
+    return str(_DEFAULT_SCENARIO_PATH)
 
 
 def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
@@ -84,6 +112,17 @@ def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
     """
     scenario_path = _resolve_scenario_path()
     if scenario_path:
+        if os.getenv("SOVEREIGN_SMOKE_START", "").strip():
+            # An EXPLICIT scenario + a smoke preset is the documented
+            # never-combine pair (the preset seeds wars in the constructor,
+            # the scenario seeds its own) — fail loudly rather than boot an
+            # untested hybrid. (The DEFAULT scenario already yields to the
+            # preset in _resolve_scenario_path.)
+            raise ValueError(
+                "SOVEREIGN_SCENARIO and SOVEREIGN_SMOKE_START are both set — "
+                "never combine them (unset one; see docs/STATUS.md "
+                "'Diplomacy accommodations')."
+            )
         print(f"SOVEREIGN_SCENARIO: loading scenario from {scenario_path!r}")
         return WorldState.from_scenario(scenario_path)
     return WorldState(player_nation=player_nation, sovereign_map=_resolve_sovereign_map())

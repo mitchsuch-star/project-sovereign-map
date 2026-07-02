@@ -5,6 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MAP_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map.gd"
+EUROPE_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "europe_map.gd"
 BASE_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map_renderer_base.gd"
 TOOLTIP_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map_tooltip_layer.gd"
 
@@ -18,8 +19,12 @@ def _func_body(source: str, signature: str) -> str:
 
 
 def test_map_script_extends_renderer_base():
+    """Slice 7: the game map is the Europe renderer chain —
+    map.gd -> europe_map.gd -> map_renderer_base.gd."""
     source = _read(MAP_GD)
-    assert 'extends "res://scenes/map_renderer_base.gd"' in source
+    assert 'extends "res://scenes/europe_map.gd"' in source
+    europe_source = _read(EUROPE_GD)
+    assert 'extends "res://scenes/map_renderer_base.gd"' in europe_source
 
 
 def test_renderer_base_declares_scene_layers():

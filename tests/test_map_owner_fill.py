@@ -31,6 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"
 BASE_GD = GODOT_SCENES_DIR / "map_renderer_base.gd"
 EUROPE_GD = GODOT_SCENES_DIR / "europe_map.gd"
+EUROPE_SMOKE_GD = GODOT_SCENES_DIR / "europe_map_smoke.gd"
 UTILS_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts" / "utils.gd"
 EUROPE_JSON = (
     REPO_ROOT
@@ -46,6 +47,8 @@ REPORT_PATH = REPO_ROOT / "tools" / "godot_parse_report.json"
 MAP_CRITICAL_SCRIPTS = [
     "map_renderer_base.gd",
     "europe_map.gd",
+    "europe_map_smoke.gd",
+    "map.gd",
 ]
 
 
@@ -117,12 +120,16 @@ def _build_palette_mirror(
     nation_colors: dict[str, tuple[float, float, float]],
     enemy_default: tuple[float, float, float],
 ) -> list[tuple[float, float, float, float]]:
-    """Python mirror of `_refresh_owner_fill_palette`'s per-slot rules.
+    """Python mirror of `_refresh_owner_fill_palette`'s per-slot OWNER rules.
 
     - province absent from region_controllers -> transparent (no fill)
     - unwired province -> transparent (the §4.4 grey overlay owns its look)
     - known controller -> Utils.NATION_COLORS entry, opaque
     - unknown controller -> Utils.COLOR_ENEMY_DEFAULT, opaque
+
+    The Slice-7 fog wash composites AFTER these rules (visibility "full" is a
+    no-op, so every scenario here is fog-neutral); its mirror lives in
+    tests/test_map_slice7_cutover.py.
     """
     palette = []
     for region_name in order:
@@ -288,25 +295,27 @@ def test_palette_reads_centralized_nation_colors():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Source-level guardrails — europe_map.gd (smoke scene)
+# Source-level guardrails — europe_map.gd (shared Europe renderer) +
+# europe_map_smoke.gd (the smoke-only subclass; Slice 7 split)
 # ═══════════════════════════════════════════════════════════════════════════
 
 
 def test_europe_map_rekeys_registry_by_historical_name():
     """The registry keys regions by Region_NNN ids; backend map_data is keyed
     by historical name (create_europe_regions() does the same re-key
-    server-side). The smoke subclass must re-key at load so ownership data
-    and hit-testing share one key scheme."""
+    server-side). The shared Europe renderer must re-key at load so ownership
+    data and hit-testing share one key scheme."""
     source = _read(EUROPE_GD)
     body = _func_body(source, "func _load_province_definition() -> Dictionary:")
-    assert 'renamed[str(row.get("name", region_id))] = row' in body
+    assert 'var region_name := str(row.get("name", region_id))' in body
+    assert "renamed[region_name] = row" in body
     assert 'definition["regions"] = renamed' in body
 
 
 def test_europe_map_seeds_ownership_through_update_all_regions():
     """The 1805 snapshot must flow through the SAME update_all_regions()
     entry point the live game uses — not by poking renderer state."""
-    source = _read(EUROPE_GD)
+    source = _read(EUROPE_SMOKE_GD)
     ready_body = _func_body(source, "func _ready():")
     assert "_seed_registry_ownership()" in ready_body
     seed_body = _func_body(source, "func _seed_registry_ownership():")
@@ -321,7 +330,7 @@ def test_europe_map_click_cycle_keeps_tooltip_and_fill_in_sync():
     """The smoke G4 demo mutates the retained seed dict and re-sends the whole
     snapshot, so region_full_data (tooltip) and region_controllers (fill)
     can never diverge."""
-    source = _read(EUROPE_GD)
+    source = _read(EUROPE_SMOKE_GD)
     cycle_body = _func_body(source, "func _cycle_smoke_owner(region_name: String):")
     assert '_seeded_map_data[region_name]["controller"] = next_owner' in cycle_body
     assert "update_all_regions(_seeded_map_data)" in cycle_body
@@ -330,7 +339,7 @@ def test_europe_map_click_cycle_keeps_tooltip_and_fill_in_sync():
 def test_europe_map_owner_cycle_uses_names_only():
     """No nation-color literals outside utils.gd — the cycle list carries
     names; colors always resolve through Utils.NATION_COLORS."""
-    source = _read(EUROPE_GD)
+    source = _read(EUROPE_SMOKE_GD)
     cycle_line = next(
         line for line in source.splitlines() if "const SMOKE_OWNER_CYCLE" in line
     )
