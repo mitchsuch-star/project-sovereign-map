@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://b5jllyegyt3u5"]
 
-[ext_resource type="Script" path="res://scenes/europe_map_smoke.gd" id="1_europe"]
+[ext_resource type="Script" uid="uid://dyddvdykepe5r" path="res://scenes/europe_map_smoke.gd" id="1_europe"]
 
 [node name="EuropeMapSmoke" type="Control"]
 layout_mode = 3
