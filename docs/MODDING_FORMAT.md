@@ -77,6 +77,7 @@ A scenario file is a JSON object with the following structure:
 | `nations` | object | {} | Optional authored nation records. In schema v1, this is where static nation metadata like `power_tier` belongs. Runtime `political_status` is not authored here. |
 | `sovereign_map` | string | "legacy" | Which world the scenario targets: `"legacy"` (19-region fixture) or `"europe"` (the 126-province Europe world). Selects the default map/roster injected for omitted fields AND which nation roster the runtime-support validator checks against (1805 Loader pre-slice). |
 | `starting_wars` | array | [] | ORDERED list of `{"attacker": str, "defender": str}` pairs. Seeded through the live `ensure_war_instance_for_pair` machinery after load — the first entry naming a side fixes the war instance's leaders, and later entries sharing a participant attach to the same instance (so France-first ordering yields ONE shared coalition war). Also sets the pair's diplomatic state to WAR and seeds `war_start_turns`. Do NOT hand-author raw `war_instance` JSON. |
+| `region_overrides` | object | {} | Per-province shallow field overrides applied AFTER the default-map injection (Map Slice 8 / DEF-6): `{"Flanders": {"garrison_strength": 12000}}` stamps fields onto the named region dict without inlining the whole map. Keys must name existing provinces — an unknown name fails the load loudly. Works with authored `regions` too (merge wins). The shipped 1805 scenario uses it for the Flanders Channel-coast depot. |
 
 ### Europe-map scenarios (1805 Loader pre-slice)
 

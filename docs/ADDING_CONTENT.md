@@ -1965,7 +1965,7 @@ Update the region tables in:
 
 ### Province Registry (schema v2)
 
-**What it is.** The province registry is the Godot-side asset that maps each backend region to renderer data: lookup colors for the color-keyed hit-test bitmap, radii / anchors for overlay placement, and the `wired` / `interactive` gameplay flags introduced in Map Readiness §4.1. Placeholder file: [`godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json`](../godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json). Commissioned Europe art will ship its own file alongside the visual/lookup PNG pair.
+**What it is.** The province registry is the shared asset (read by BOTH the Godot renderer and `backend.models.region.create_europe_regions()`) that maps each province to renderer + gameplay data: lookup colors for the color-keyed hit-test bitmap, anchors for overlay placement, the `wired` / `interactive` flags from Map Readiness §4.1, and the Slice-2 gameplay fields (`name`, `starting_controller`, `terrain`, `region_type`, `is_coastal`, `is_capital`, `adjacent`, top-level `sea_links`). **Live file:** [`godot-client/project-sovereign/assets/maps/europe.json`](../godot-client/project-sovereign/assets/maps/europe.json) (126 provinces, alongside the visual/lookup PNG pair). The Session-8 placeholder file was retired at Map Slice 9 (July 2, 2026). NOTE: the backend caches the registry via `lru_cache` — restart a running server after edits, and never regenerate adjacency with `build_region_key_from_psd.py --adjacency-only` (it clobbers the hand-authored sea-link folds and the DEF-7 cuts).
 
 **`schema_version: 2` contract.** Every region entry must carry these fields:
 
@@ -2001,12 +2001,12 @@ Update the region tables in:
 }
 ```
 
-**Cross-reference — this is enforced by tests:** Every region in `REGIONS_DATA` **must** have `wired: true` in the registry — `test_every_backend_region_is_wired_in_registry` in `tests/test_map_placeholder_assets.py` will fail otherwise. Set equality against `REGIONS_DATA` is also pinned by `test_placeholder_province_asset_covers_all_backend_regions`.
+**Cross-reference — this is enforced by tests:** the registry's data contract is pinned by `tests/test_europe_registry_data.py` (full authoring, symmetric adjacency, coastal sea-link endpoints, unique names, per-nation capitals, strict-validator PASS, the DEF-7/DEF-8 dispositions) and its world-construction mirror `tests/test_europe_world_construction.py`.
 
 **Running the offline validator.** Registry-only mode (cheapest gate, no PNGs needed) for day-to-day edits:
 
 ```bash
-".venv\Scripts\python.exe" -m tools.validate_province_map --registry godot-client/project-sovereign/assets/maps/session8_placeholder_provinces.json
+".venv\Scripts\python.exe" -m tools.validate_province_map --registry godot-client/project-sovereign/assets/maps/europe.json
 ```
 
 Full-delivery mode for commissioned art acceptance (both PNGs required together):

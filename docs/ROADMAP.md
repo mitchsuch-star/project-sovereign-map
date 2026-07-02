@@ -266,6 +266,8 @@ All icons become proper textures instead of procedural `draw_rect`/`draw_arc`/`d
 
 ### Option C: Partial Europe Wiring
 
+> **SUPERSEDED BY SHIPPED REALITY (Map Slices 1–9, closed July 2, 2026):** the commissioned art arrived with **126 provinces and ALL of them landed wired and in play** — the running game is the full 1805 Europe campaign (see `docs/MAP_IMPLEMENTATION_PLAN.md` + `docs/STATUS.md`). No partial-wiring EA staging is planned; the `wired:false` grey-out machinery (§4.4) stays available for future maps/mods.
+
 Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the art are visible but greyed out. Expand playable area in EA updates. Players see this as a roadmap, not a limitation.
 
 **Dependencies:** Phase 6 (needs data to display), commissioned map art

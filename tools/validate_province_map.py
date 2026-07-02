@@ -949,7 +949,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--registry",
         required=True,
         type=Path,
-        help="Path to the province registry JSON (e.g. session8_placeholder_provinces.json).",
+        help="Path to the province registry JSON (e.g. europe.json).",
     )
     parser.add_argument(
         "--visual",

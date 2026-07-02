@@ -9,8 +9,8 @@ A future save/load system should use this as the specification.
 
 ## Version
 
-- **Format version:** 1.1
-- **Last updated:** 2026-05-02
+- **Format version:** 3 (`save_manager.FORMAT_VERSION` — v3 since Map Slice 5's Europe cutover, July 1, 2026; pre-cutover v1/v2 saves fail with a clear versioned message, see the Version-3 migration paragraph near the end of this doc)
+- **Last updated:** 2026-07-02 (Map Slice 9 header reconciliation; the example blocks below are LEGACY-shaped — 19-region world, `max_turns: 40`, 5-nation tables — kept as compact illustrations; a Europe-world save carries `"sovereign_map": "europe"`, 126 name-keyed regions, the 20-nation tables, `max_turns: 60`, and per-region `grid_position`/`is_coastal`)
 - **Compatible with:** Memory and Pressure v2.4.3 substrate (nation-level `diplomatic_reliability`, `betrayal_history`, `next_episode_id`, `commitment_paradox_popup`, `anti_renewal_cooldown`, `oathbreaker_posture`, `call_to_arms_loyalty_bonds`) + Diplomacy Button Session A + Peace Deals WPS-A (`war_objectives`) + WPS-C (`alliance_origins`) + WB-A (`diplomatic_commitments`, `next_commitment_id`) + WB-C (`next_join_opportunity_id`, `war_entry_reroll_memory`, `pending_ally_entry_opportunities`) + Imperial Settlement Slices A1/A2/A3 (`next_war_instance_id`, `war_instances`, `archived_war_instances`, plus bargain `war_id`/`side_at_creation`/`side_leader_at_creation` snapshot fields and `participant_meta[nation].exited_turn`/`exit_path` elimination stamps) + Imperial Settlement Slice B1 + B2 (`war_contribution_scores` episode-scoped per-nation records with B2 emitter dedupe state `seen_occupation_event_ids`, `seen_support_event_ids`, `support_caps`) + pending Imperial Settlement Slice C/D fields documented below
 
 > Slice A3 post-review fix `d5bcefc` extends merge rewrite and invariant coverage to nested event-log / ledger payload `war_id` fields in addition to bargains, pending dispatch events, and no-op-safe future Slice B/C containers.

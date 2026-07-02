@@ -14,19 +14,10 @@ The constants mirror the GDScript definitions at the top of
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PROVINCE_JSON = (
-    REPO_ROOT
-    / "godot-client"
-    / "project-sovereign"
-    / "assets"
-    / "maps"
-    / "session8_placeholder_provinces.json"
-)
 BASE_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map_renderer_base.gd"
 
 
@@ -34,9 +25,14 @@ BASE_GD = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes" / "map_ren
 UNWIRED_GREY_RGB = (int(round(0.32 * 255)), int(round(0.32 * 255)), int(round(0.34 * 255)))
 UNWIRED_GREY_BLEND = 0.7
 
-
-def _load_province_definition() -> dict:
-    return json.loads(PROVINCE_JSON.read_text(encoding="utf-8"))
+# Self-contained synthetic lookup fixture (Slice 9: the session8 placeholder
+# registry these tests used to sample colors from is retired). The overlay
+# formula only needs distinct province lookup colors plus the sentinel — it
+# never depended on any real registry, so these are deliberately NOT drawn
+# from europe.json.
+WIRED_LOOKUP_RGB = (179, 68, 55)  # stands in for a wired province
+UNWIRED_LOOKUP_RGB = (198, 97, 34)  # stands in for an unwired province
+SENTINEL_RGB = (0, 0, 0)  # the "no province" background sentinel
 
 
 def _color_key(rgb: tuple[int, int, int]) -> str:
@@ -113,25 +109,16 @@ def test_overlay_constants_match_renderer_source():
 def test_all_wired_overlay_is_a_no_op():
     """When the registry has zero unwired regions, overlay is a no-op.
 
-    This matches the current 19-region placeholder — every province is
-    wired, so the overlay helper returns early and the final texture is
-    visually identical to the pre-overlay visual image.
+    With an empty unwired set the overlay helper returns early and the
+    final texture is visually identical to the pre-overlay visual image.
     """
-    province_data = _load_province_definition()
-    assert all(entry["wired"] is True for entry in province_data["regions"].values()), (
-        "Test assumption: placeholder has no unwired regions yet. "
-        "If this changes, update this test."
-    )
-    paris_rgb = tuple(province_data["regions"]["Paris"]["lookup_color"])
-    belgium_rgb = tuple(province_data["regions"]["Belgium"]["lookup_color"])
-
     visual = [
         [(200, 150, 100), (50, 80, 200)],
         [(120, 120, 120), (255, 255, 255)],
     ]
     lookup = [
-        [paris_rgb, belgium_rgb],
-        [paris_rgb, belgium_rgb],
+        [WIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB],
+        [WIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB],
     ]
     result = _apply_overlay(visual, lookup, unwired_keys=set())
     assert result == visual
@@ -139,31 +126,25 @@ def test_all_wired_overlay_is_a_no_op():
 
 def test_overlay_blends_only_unwired_pixels_toward_grey():
     """The overlay must touch ONLY pixels belonging to unwired provinces."""
-    province_data = _load_province_definition()
-    paris_rgb = tuple(province_data["regions"]["Paris"]["lookup_color"])
-    belgium_rgb = tuple(province_data["regions"]["Belgium"]["lookup_color"])
-    sentinel_rgb = tuple(province_data["no_province_color"])
-
-    # Paris is wired; Belgium stands in for an unwired province for this test.
-    unwired_keys = {_color_key(belgium_rgb)}
+    unwired_keys = {_color_key(UNWIRED_LOOKUP_RGB)}
 
     visual = [
         [(200, 150, 100), (50, 80, 200), (10, 10, 10)],
         [(120, 120, 120), (0, 0, 0), (255, 255, 255)],
     ]
     lookup = [
-        [paris_rgb, belgium_rgb, sentinel_rgb],
-        [paris_rgb, belgium_rgb, sentinel_rgb],
+        [WIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB, SENTINEL_RGB],
+        [WIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB, SENTINEL_RGB],
     ]
     result = _apply_overlay(visual, lookup, unwired_keys)
 
-    # Paris + sentinel pixels untouched.
+    # Wired-province + sentinel pixels untouched.
     assert result[0][0] == (200, 150, 100)
     assert result[1][0] == (120, 120, 120)
     assert result[0][2] == (10, 10, 10)
     assert result[1][2] == (255, 255, 255)
 
-    # Belgium pixels blended toward UNWIRED_GREY_RGB by UNWIRED_GREY_BLEND.
+    # Unwired-province pixels blended toward UNWIRED_GREY_RGB by UNWIRED_GREY_BLEND.
     expected_top = _lerp_rgb((50, 80, 200), UNWIRED_GREY_RGB, UNWIRED_GREY_BLEND)
     expected_bottom = _lerp_rgb((0, 0, 0), UNWIRED_GREY_RGB, UNWIRED_GREY_BLEND)
     assert result[0][1] == expected_top
@@ -174,13 +155,11 @@ def test_overlay_drives_pure_tint_toward_grey_color():
     """Feeding a pure-grey visual through the overlay snaps toward the
     configured UNWIRED_GREY_RGB, proving the lerp target is correct.
     """
-    province_data = _load_province_definition()
-    belgium_rgb = tuple(province_data["regions"]["Belgium"]["lookup_color"])
-    unwired_keys = {_color_key(belgium_rgb)}
+    unwired_keys = {_color_key(UNWIRED_LOOKUP_RGB)}
 
     # Base pixel: pure black. Lerp(black, grey, 0.7) = 0.7 * grey.
     visual = [[(0, 0, 0)]]
-    lookup = [[belgium_rgb]]
+    lookup = [[UNWIRED_LOOKUP_RGB]]
     result = _apply_overlay(visual, lookup, unwired_keys)
 
     expected = (
@@ -195,9 +174,6 @@ def test_overlay_ignores_sentinel_pixels_even_if_visually_flagged():
     """The sentinel "no province" color must never be treated as unwired —
     that color signals background, not a province.
     """
-    province_data = _load_province_definition()
-    sentinel_rgb = tuple(province_data["no_province_color"])
-
     # If someone erroneously listed the sentinel as unwired, the overlay
     # SHOULD still treat it as a province-less background pixel. The
     # renderer's _unwired_lookup_keys() only emits keys drawn from
@@ -206,7 +182,7 @@ def test_overlay_ignores_sentinel_pixels_even_if_visually_flagged():
     unwired_keys = set()  # sentinel MUST NOT appear here in the real flow
 
     visual = [[(77, 77, 77)]]
-    lookup = [[sentinel_rgb]]
+    lookup = [[SENTINEL_RGB]]
     result = _apply_overlay(visual, lookup, unwired_keys)
     assert result == visual
 
@@ -237,15 +213,13 @@ def test_overlay_preserves_alpha_channel_under_rgba_mirror():
     pins that contract end-to-end: partial, zero, and full alpha inputs all
     survive the overlay unchanged on their alpha channel.
     """
-    province_data = _load_province_definition()
-    belgium_rgb = tuple(province_data["regions"]["Belgium"]["lookup_color"])
-    unwired_keys = {_color_key(belgium_rgb)}
+    unwired_keys = {_color_key(UNWIRED_LOOKUP_RGB)}
 
     # Three pixels spanning the alpha range: fully transparent, half, fully
     # opaque. All three sit on an unwired province, so all three WILL be
     # touched by the overlay — but only on RGB. Alpha must be identical.
     visual_rgba = [[(200, 150, 100, 0), (50, 80, 200, 128), (10, 10, 10, 255)]]
-    lookup = [[belgium_rgb, belgium_rgb, belgium_rgb]]
+    lookup = [[UNWIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB, UNWIRED_LOOKUP_RGB]]
 
     result = _apply_overlay_rgba(visual_rgba, lookup, unwired_keys)
 

@@ -511,6 +511,40 @@ def test_unwired_region_tooltip_renders_name_and_suffix():
     assert "UNWIRED_TOOLTIP_BORDER" in body
 
 
+# The two tests below moved here from the retired tests/test_map_placeholder_assets.py
+# (Slice 9 placeholder-asset retirement): they pin live map_renderer_base.gd code
+# (§4.1 schema-field consumption), not the deleted session8 placeholder asset.
+
+
+def test_renderer_consumes_wired_and_interactive_flags():
+    """The GDScript renderer must reference the §4.1 schema flags so the
+    province-definition plumbing actually affects runtime behavior.
+    """
+    source = _read(BASE_GD)
+    # Parses the flags out of the province definition entries.
+    assert '"wired"' in source, "Renderer must read wired flag from province data"
+    assert '"interactive"' in source, "Renderer must read interactive flag from province data"
+    # Hover/click path must gate on interactive.
+    assert "interactive" in source and "_lookup_region_from_color_map" in source
+    # update_all_regions must gate on wired so unwired provinces never populate
+    # gameplay dicts.
+    assert "func update_all_regions(map_data: Dictionary):" in source, (
+        "Could not locate update_all_regions in renderer"
+    )
+    update_body = _func_body(source, "func update_all_regions(map_data: Dictionary):")
+    assert "wired" in update_body, "update_all_regions must gate on wired flag"
+
+
+def test_renderer_consumes_new_anchor_fields():
+    """Every §4.1 anchor field must be parsed by the renderer so commissioned
+    art can drive per-feature placement.
+    """
+    source = _read(BASE_GD)
+    for field in ("unit_anchor", "label_anchor", "garrison_anchor", "building_anchor"):
+        assert f'"{field}"' in source, f"Renderer must read {field} from province data"
+    assert '"province_id"' in source, "Renderer must read province_id from province data"
+
+
 def test_lookup_region_from_color_map_still_returns_unwired_regions():
     """§4.4: the color-map hit-test must keep returning unwired region names
     so hover can identify them. Only `interactive` gates the lookup; `wired`

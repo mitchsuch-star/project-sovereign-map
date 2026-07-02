@@ -871,6 +871,8 @@ VALID_NATIONS = set(NATION_CAPITALS.keys())
 
 ## Phase 4: Map Art Pipeline
 
+> **SUPERSEDED / CLOSED (Map Slice 9, July 2, 2026):** every §4 item landed and the commissioned-art cutover it prepared for is COMPLETE (`docs/MAP_IMPLEMENTATION_PLAN.md` Slices 1–9). The schema-v2 registry contract now lives in the shipped `godot-client/project-sovereign/assets/maps/europe.json` (126 provinces); the Session-8 placeholder file this section describes was retired at Slice 9 (its schema tests deleted with it; the still-live renderer pins moved to `tests/test_map_renderer_cutover.py`). The text below is preserved as the design record.
+
 **When:** Before artist handoff / commissioned Europe art integration.
 **Why:** The current renderer proves the color-lookup concept but can't ingest real bitmap art. Without this phase, debugging asset pipeline failures happens at the same time as validating Europe gameplay.
 **Estimated effort:** 1-2 sessions.
@@ -1061,6 +1063,8 @@ func _load_map_images() -> bool:
 **Execution order inside this phase:** `5.5` first as schema/loader prerequisite, then `5.1`, `5.2`, `5.3`, and `5.6`. `5.4` is deferred unless a later scenario explicitly opts into hard objectives.
 
 ### 5.5 Scenario-Configured Pacing Loader
+
+> **Shipped-reality note (Map Slice 9, July 2, 2026):** this item's intent landed through a DIFFERENT shape than specced — `WorldState.from_scenario` + the `SOVEREIGN_SCENARIO` env boot (no separate `backend/scenario_config.py`), a 20-nation roster (not the 13-nation DG-1 draft), Europe `max_turns = 60` (not 80), and per-nation AP/gold/manpower via `nation_config.py`'s `EUROPE_BASE_ACTIONS` / `EUROPE_NATION_GOLD` / `EUROPE_MANPOWER_POOLS` (+ the Slice-8 `region_overrides` scenario key). See `docs/MODDING_FORMAT.md` for the live schema. The text below is the historical spec draft; route new work against the shipped loader, not this section.
 
 **Implements:** DG-6 decision (locked to scenario-configured pacing, schema version 1). This item is a prerequisite for `5.1` because `5.1` consumes `cascade_profile`.
 
@@ -1289,20 +1293,20 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 2.1 | Cache `get_distance()` | 2 | DONE | April 19, 2026 |
 | 2.2 | Wire spatial index into AI | 2 | DONE | April 19, 2026 |
 | 2.3 | Extend fog to all AI nations | 2 | DONE | April 19, 2026 |
-| 3.1 | Nation config factory | 3 | | |
+| 3.1 | Nation config factory | 3 | DONE | April 19, 2026 |
 | 3.2 | Frontend loads adjacency from backend | 3 | DONE | April 19, 2026 |
 | 3.3 | Centralize nation colors | 3 | DONE | April 19, 2026 |
 | 3.4 | Fix prompt/parser/validator hardcoding | 3 | DONE | April 19, 2026 |
-| 4.1 | Province registry schema | 4 | DONE | April 19, 2026 |
+| 4.1 | Province registry schema | 4 | DONE | April 19, 2026 (registry contract now in europe.json — Slice 9 note in §4) |
 | 4.2 | External bitmap loading | 4 | DONE | April 19, 2026 |
 | 4.3 | Color-map validator | 4 | DONE | April 19, 2026 |
 | 4.4 | Unwired province support | 4 | COMPLETE | April 19, 2026 |
-| 5.1 | Direct-only war entry + refusal event | 5 | | |
-| 5.2 | Categorized dispatch sections + priority escalation | 5 | | |
-| 5.3 | Coalition friction scaling | 5 | | |
-| 5.4 | Hegemony victory check | 5 | | |
-| 5.5 | Scenario-configured pacing loader | 5 | | |
-| 5.6 | Bilateral diplomacy O(N^2) | 5 | | |
+| 5.1 | Direct-only war entry + refusal event | 5 | DONE | April 25, 2026 (DG-4 amendment families — see §5.1 closeout) |
+| 5.2 | Categorized dispatch sections + priority escalation | 5 | OPEN | DEF-4 fallback home; Slice 8 (July 2, 2026) measured density NOT forcing it |
+| 5.3 | Coalition friction scaling | 5 | OPEN | DEF-4 fallback home; same Slice 8 measurement |
+| 5.4 | Hegemony victory check | 5 | | (§5.4's live content is the optional scenario-objectives hook) |
+| 5.5 | Scenario-configured pacing loader | 5 | SUPERSEDED | Shipped via from_scenario/SOVEREIGN_SCENARIO — see §5.5 note (July 2, 2026) |
+| 5.6 | Bilateral diplomacy O(N^2) | 5 | OPEN | DEF-4 fallback home; 15× campaign-turn tripwire stands watch |
 | 6.1 | Marshal management pagination | 6 | | |
 | 6.2 | Strategic ledger sectioning | 6 | | |
 | 6.3 | Incremental map updates | 6 | | |

@@ -9,9 +9,9 @@ These tests pin the validator's behavioral contract:
 
 Plan reference: docs/SCALE_READINESS_PLAN.md Section 4.3.
 
-The placeholder asset itself is also pinned: it must always pass the
-registry-only checks so the validator stays trustworthy as a regression
-gate before any commissioned art is delivered.
+The live Europe registry (europe.json) is also pinned: it must always pass
+the registry-only checks so the validator stays trustworthy as a regression
+gate for the shipped map data.
 """
 from __future__ import annotations
 
@@ -28,13 +28,13 @@ from tools import validate_province_map as vpm
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLACEHOLDER_REGISTRY = (
+LIVE_REGISTRY = (
     REPO_ROOT
     / "godot-client"
     / "project-sovereign"
     / "assets"
     / "maps"
-    / "session8_placeholder_provinces.json"
+    / "europe.json"
 )
 TMP_ROOT = REPO_ROOT / ".pytest_tmp_local_run"
 
@@ -161,9 +161,9 @@ def _failure_codes(failures) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def test_placeholder_registry_passes_registry_only_checks():
-    """The shipped placeholder must always pass the cheap acceptance gate."""
-    province_data = vpm.load_registry(PLACEHOLDER_REGISTRY)
+def test_live_registry_passes_registry_only_checks():
+    """The shipped Europe registry must always pass the cheap acceptance gate."""
+    province_data = vpm.load_registry(LIVE_REGISTRY)
     assert vpm.validate_registry(province_data) == []
 
 
@@ -254,9 +254,9 @@ def test_adjacency_skipped_when_no_region_declares_it():
     assert vpm.validate_adjacency(data) == []
 
 
-def test_placeholder_registry_passes_adjacency_checks():
-    """The shipped placeholder (no adjacency) stays clean under the new check."""
-    province_data = vpm.load_registry(PLACEHOLDER_REGISTRY)
+def test_live_registry_passes_adjacency_checks():
+    """The shipped Europe registry's authored adjacency graph stays clean."""
+    province_data = vpm.load_registry(LIVE_REGISTRY)
     assert vpm.validate_adjacency(province_data) == []
 
 
@@ -560,10 +560,10 @@ def test_image_validation_drops_alpha_before_color_comparison(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_cli_exit_zero_on_clean_placeholder():
+def test_cli_exit_zero_on_clean_live_registry():
     buf = io.StringIO()
     with redirect_stdout(buf):
-        rc = vpm.main(["--registry", str(PLACEHOLDER_REGISTRY)])
+        rc = vpm.main(["--registry", str(LIVE_REGISTRY)])
     assert rc == 0
     assert "PASS" in buf.getvalue()
 
@@ -594,7 +594,7 @@ def test_cli_exit_two_on_visual_without_lookup(tmp_path):
         rc = vpm.main(
             [
                 "--registry",
-                str(PLACEHOLDER_REGISTRY),
+                str(LIVE_REGISTRY),
                 "--visual",
                 str(tmp_path / "ignored.png"),
             ]
