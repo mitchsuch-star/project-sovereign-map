@@ -145,7 +145,10 @@ var pan_keys_pressed := {
 
 var _zoom_level: float = 1.0
 var min_zoom: float = 0.5
-var max_zoom: float = 4.0
+# Slice 7.5 fold (user zoom feedback): capped at the art's useful limit —
+# the 2560x1600 sheet carries no information past ~2.5x; the old 4.0 was
+# pure upscaled pixel soup.
+var max_zoom: float = 2.5
 var is_panning: bool = false
 var pan_start_pos: Vector2 = Vector2.ZERO
 var zoom_tween: Tween = null
@@ -462,6 +465,9 @@ func _load_map_images() -> bool:
 	province_lookup_image = lookup_image
 	_bitmap_mode = true
 	_apply_unwired_grey_overlay(visual_image, lookup_image)
+	# Slice 7.5 fold: mipmaps let the linear filter minify without shimmer at
+	# low zoom (one-time load cost; the lookup image stays mip-less/NEAREST).
+	visual_image.generate_mipmaps()
 	visual_map_texture = ImageTexture.create_from_image(visual_image)
 	_clear_highlight_texture()
 	return true
@@ -709,7 +715,15 @@ func _create_scene_layers():
 	visual_map_layer.position = map_origin - world_bounds.position
 	visual_map_layer.size = map_canvas_size
 	visual_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
-	visual_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Slice 7.5 fold: the commissioned art scales smoothly (mipmapped linear
+	# — NEAREST was blocky zoomed in and shimmered minified). The legacy
+	# circle canvas keeps hard NEAREST edges. The owner-fill layer must stay
+	# NEAREST regardless: filtering would blend province lookup keys at
+	# borders and break the shader's exact palette match.
+	visual_map_layer.texture_filter = (
+		CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if _bitmap_mode
+		else CanvasItem.TEXTURE_FILTER_NEAREST
+	)
 	visual_map_layer.z_index = -2
 	visual_map_layer.texture = visual_map_texture
 	world_layer.add_child(visual_map_layer)
@@ -722,7 +736,10 @@ func _create_scene_layers():
 	highlight_map_layer.position = map_origin - world_bounds.position
 	highlight_map_layer.size = map_canvas_size
 	highlight_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
-	highlight_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	highlight_map_layer.texture_filter = (
+		CanvasItem.TEXTURE_FILTER_LINEAR if _bitmap_mode
+		else CanvasItem.TEXTURE_FILTER_NEAREST
+	)
 	highlight_map_layer.z_index = -1
 	highlight_map_layer.texture = highlight_map_texture
 	world_layer.add_child(highlight_map_layer)
@@ -755,16 +772,22 @@ func _create_scene_layers():
 	garrison_layer.z_index = 3
 	world_layer.add_child(garrison_layer)
 
-	# Slice 7.5 (DEF-11): zoom-LOD name labels — bitmap-art maps only; the
-	# legacy circle map draws its own per-region labels in _build_region_nodes.
+	# Slice 7.5 (DEF-11, screen-space fold): zoom-LOD name labels — a SCREEN-
+	# SPACE overlay (sibling of the tooltip layer) that re-projects world
+	# anchors through the camera transform each draw. NOT a world_layer child:
+	# world-space text rasterized glyphs at tiny world font sizes and the
+	# camera scaled them up blurry, and constant-screen-size labels read as
+	# "shrinking" while the map grew. Bitmap-art maps only — the legacy circle
+	# map draws its own per-region labels in _build_region_nodes.
 	map_label_layer = null
 	if _bitmap_mode:
 		map_label_layer = MapLabelLayer.new()
 		map_label_layer.name = "MapLabelLayer"
 		map_label_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		map_label_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-		map_label_layer.z_index = 4
-		world_layer.add_child(map_label_layer)
+		map_label_layer.z_index = 50
+		map_label_layer.setup(self)
+		add_child(map_label_layer)
 
 	tooltip_layer = MapTooltipLayer.new()
 	tooltip_layer.name = "TooltipLayer"
@@ -893,9 +916,9 @@ func _refresh_map_labels():
 		var shape: Dictionary = province_shapes[region_name]
 		if not bool(shape.get("wired", true)):
 			continue
-		var label_pos: Vector2 = _world_to_layer_position(
-			shape.get("label_anchor", shape.get("center", Vector2.ZERO))
-		)
+		# WORLD coords — the screen-space layer projects them through the
+		# camera transform at draw time.
+		var label_pos: Vector2 = shape.get("label_anchor", shape.get("center", Vector2.ZERO))
 		province_labels.append({"text": region_name, "position": label_pos})
 		if not region_controllers.has(region_name):
 			continue
@@ -1316,6 +1339,8 @@ func _set_camera_position(target: Vector2):
 	if map_camera == null:
 		return
 	map_camera.position = _clamp_camera_position(target)
+	if map_label_layer != null:
+		map_label_layer.queue_redraw()
 	_refresh_hover_state()
 	queue_redraw()
 

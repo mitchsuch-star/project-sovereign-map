@@ -332,6 +332,25 @@ def test_enemy_default_fallback_is_artificial_and_distant():
         )
 
 
+def test_art_layer_filters_smoothly_but_lookup_stays_exact():
+    """July 2 zoom-feedback fold: the commissioned art upscales with a
+    mipmapped linear filter (NEAREST was blocky zoomed in, shimmered
+    minified); the legacy circle canvas keeps NEAREST. The owner-fill layer
+    must stay NEAREST — filtering would blend province lookup keys at
+    borders and break the shader's exact palette match."""
+    source = _read(BASE_GD)
+    body = _func_body(source, "func _create_scene_layers():")
+    visual_idx = body.index("visual_map_layer.texture_filter = (")
+    assert "CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if _bitmap_mode" in body[visual_idx:]
+    owner_body = _func_body(source, "func _create_owner_fill_layer():")
+    assert "owner_fill_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST" in owner_body
+    loader_body = _func_body(source, "func _load_map_images() -> bool:")
+    assert "visual_image.generate_mipmaps()" in loader_body
+    # Zoom is capped at the art's useful limit — past ~2.5x the 2560x1600
+    # sheet is pure upscaled pixels.
+    assert "var max_zoom: float = 2.5" in source
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # DEF-11 — zoom-LOD map labels
 # ═══════════════════════════════════════════════════════════════════════════
@@ -345,9 +364,46 @@ def test_label_layer_script_draws_two_lod_tiers():
     draw_body = _func_body(source, "func _draw():")
     assert "_zoom_level >= PROVINCE_LABEL_MIN_ZOOM" in draw_body
     assert "_province_labels" in draw_body and "_nation_labels" in draw_body
-    tier_body = _func_body(source, "func _draw_label_tier(font: Font, labels: Array, font_px: float) -> void:")
+    tier_body = _func_body(
+        source,
+        "func _draw_label_tier(font: Font, labels: Array, xform: Transform2D, font_screen_px: float) -> void:",
+    )
     assert "draw_string_outline(" in tier_body, "labels need an outline to read on the art"
     assert "draw_string(" in tier_body
+
+
+def test_labels_are_screen_space_and_grow_with_zoom():
+    """July 2 zoom-feedback fold: world-space labels rasterized blurry under
+    camera zoom and read as 'shrinking' while the map grew. The layer is a
+    screen-space overlay projecting WORLD anchors through the SubViewport
+    canvas transform, with font sizes that GROW with zoom inside clamps."""
+    source = _read(LABEL_GD)
+    assert "_renderer.map_viewport.canvas_transform" in source
+    draw_body = _func_body(source, "func _draw():")
+    assert "clampf(PROVINCE_FONT_BASE * _zoom_level, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)" in draw_body
+    assert "clampf(NATION_FONT_BASE * _zoom_level, NATION_FONT_MIN, NATION_FONT_MAX)" in draw_body
+    # Growth clamps must be a real range (min < max) so labels neither
+    # vanish nor explode.
+    for tier in ["NATION", "PROVINCE"]:
+        base = float(re.search(rf"const {tier}_FONT_BASE: float = ([0-9.]+)", source).group(1))
+        lo = float(re.search(rf"const {tier}_FONT_MIN: float = ([0-9.]+)", source).group(1))
+        hi = float(re.search(rf"const {tier}_FONT_MAX: float = ([0-9.]+)", source).group(1))
+        assert 0 < lo < hi and base > 0
+    tier_body = _func_body(
+        source,
+        "func _draw_label_tier(font: Font, labels: Array, xform: Transform2D, font_screen_px: float) -> void:",
+    )
+    assert "xform * Vector2(label.get(" in tier_body, "anchors project world -> screen each draw"
+    assert "cull_rect" in tier_body, "offscreen labels must be culled"
+    # Camera pans must re-project labels (zoom changes already redraw via
+    # set_zoom_level).
+    base_source = _read(BASE_GD)
+    pos_body = _func_body(base_source, "func _set_camera_position(target: Vector2):")
+    assert "map_label_layer.queue_redraw()" in pos_body
+    # Label data is stored in WORLD coords — layer-space conversion would
+    # double-offset under the projection.
+    refresh_body = _func_body(base_source, "func _refresh_map_labels():")
+    assert "_world_to_layer_position" not in refresh_body
 
 
 def test_base_creates_label_layer_bitmap_gated():
@@ -360,7 +416,11 @@ def test_base_creates_label_layer_bitmap_gated():
     guard_idx = body.index("if _bitmap_mode:", reset_idx)
     create_idx = body.index("map_label_layer = MapLabelLayer.new()")
     assert reset_idx < guard_idx < create_idx
-    assert "map_label_layer.z_index = 4" in body, "labels draw above garrison markers (z 3)"
+    assert "map_label_layer.setup(self)" in body, "the layer projects via the renderer's viewport"
+    assert "map_label_layer.z_index = 50" in body, "labels sit under the tooltip layer (z 100)"
+    assert "world_layer.add_child(map_label_layer)" not in body, (
+        "screen-space overlay — never a world_layer (camera-scaled) child"
+    )
 
 
 def test_label_refresh_rides_the_update_paths():

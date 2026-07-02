@@ -81,7 +81,8 @@ def test_camera_cutover_replaces_manual_world_transform():
     # guaranteed out-of-map void at boot. Boot zoom is exact contain-fit and
     # min_zoom floors at the fit ratio (see test_map_slice75_presentation.py).
     assert "INITIAL_CAMERA_OVERSCAN" not in source
-    assert "var max_zoom: float = 4.0" in source
+    # Slice 7.5 fold: max zoom capped at the 2560x1600 art's useful limit.
+    assert "var max_zoom: float = 2.5" in source
     assert "map_camera.zoom = Vector2(_zoom_level, _zoom_level)" in source
     assert "map_camera.position = _clamp_camera_position(target)" in source
     assert "func focus_on_region(region_name: String):" in source
