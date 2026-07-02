@@ -37,23 +37,25 @@ func show_paradox(data: Dictionary):
 	var defender = str(data.get("defender", "?"))
 	var defender_alliance = str(data.get("defender_alliance", "?"))
 	var message = str(data.get("message", ""))
+	var attacker_display = Utils.display_nation_name(attacker)
+	var defender_display = Utils.display_nation_name(defender)
 
 	var bbcode = ""
 	bbcode += "[center][color=red][b]COMMITMENT PARADOX[/b][/color][/center]\n\n"
 	if message:
 		bbcode += message + "\n\n"
 	else:
-		bbcode += "Attacking %s would violate our %s.\n\n" % [defender, defender_alliance]
+		bbcode += "Attacking %s would violate our %s.\n\n" % [defender_display, Utils.display_diplo_state(str(defender_alliance)).to_lower()]
 	bbcode += Utils.bbcode_color(
 		"Talleyrand: \"Europe watches how we honor one promise without disgracing another, Sire.\"",
 		Utils.COLOR_INFO
 	)
 
-	honor_button.text = "Honor " + defender
-	break_button.text = "Side with " + attacker
+	honor_button.text = "Honor " + defender_display
+	break_button.text = "Side with " + attacker_display
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 	show()
 
 
@@ -81,7 +83,7 @@ func _show_after_choice_aside(choice: String):
 	var diplomat_key = "attacker_diplomat" if choice == "honor_defender" else "defender_diplomat"
 	var diplomat = str(_data.get(diplomat_key, ""))
 	if diplomat == "":
-		diplomat = "The Chancery of " + spurned
+		diplomat = "The Chancery of " + Utils.display_nation_name(spurned)
 
 	var aside = "\n\n" + Utils.bbcode_color(
 		diplomat + ": \"The wound is recorded. Europe will remember which oath France chose.\"",

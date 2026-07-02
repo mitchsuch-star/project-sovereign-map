@@ -217,7 +217,7 @@ def test_forces_strategic_order_move_to():
     )
     ledger = build_strategic_ledger(world)
     g = [f for f in ledger["forces"] if f["name"] == "Grouchy"][0]
-    assert g["strategic_order"] == "MOVE_TO Vienna (3 turns left)"
+    assert g["strategic_order"] == "March Vienna (3 turns left)"
 
 
 def test_forces_strategic_order_pursue():
@@ -230,7 +230,7 @@ def test_forces_strategic_order_pursue():
     )
     ledger = build_strategic_ledger(world)
     n = [f for f in ledger["forces"] if f["name"] == "Ney"][0]
-    assert n["strategic_order"] == "PURSUE Wellington (tracking)"
+    assert n["strategic_order"] == "Pursue Wellington (tracking)"
 
 
 def test_forces_strategic_order_support():
@@ -243,7 +243,7 @@ def test_forces_strategic_order_support():
     )
     ledger = build_strategic_ledger(world)
     g = [f for f in ledger["forces"] if f["name"] == "Grouchy"][0]
-    assert g["strategic_order"] == "SUPPORT Ney (active)"
+    assert g["strategic_order"] == "Support Ney (active)"
 
 
 def test_forces_strategic_order_hold():
@@ -256,7 +256,7 @@ def test_forces_strategic_order_hold():
     )
     ledger = build_strategic_ledger(world)
     d = [f for f in ledger["forces"] if f["name"] == "Davout"][0]
-    assert d["strategic_order"] == "HOLD at Paris"
+    assert d["strategic_order"] == "Hold at Paris"
 
 
 def test_forces_strategic_order_none():

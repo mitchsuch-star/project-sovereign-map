@@ -847,7 +847,11 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
         defiance_risk = "High" if concern >= ConcernLevel.STRONG else "Medium"
         target_nation_obj = parsed_command.get("target_nation", "")
         proposal_type_obj = parsed_command.get("proposal_type", "peace")
-        proposal_summary = f"{proposal.get('type', 'unknown')} with {proposal.get('target_nation', 'unknown')}"
+        from backend.display_names import display_nation, proposal_display_name
+        proposal_summary = (
+            f"{proposal_display_name(proposal.get('type', 'unknown'))}"
+            f" with {display_nation(proposal.get('target_nation', 'unknown'))}"
+        )
 
         # Enrich with proposal terms so objection popup can display them
         terms_for_display = []

@@ -214,7 +214,7 @@ func _render_forces():
 			"idle":
 				status_color = Utils.COLOR_GREY
 
-		bbcode += "  Status: [color=#" + status_color + "]" + status + "[/color]"
+		bbcode += "  Status: [color=#" + status_color + "]" + status.replace("_", " ").capitalize() + "[/color]"
 		bbcode += "  Location: " + loc + "\n"
 		bbcode += "  Strength: " + _format_number(strength)
 		bbcode += "  Stance: " + stance + "\n"
@@ -364,7 +364,7 @@ func _render_economy():
 			if line == "":
 				continue
 			var s_color = Utils.COLOR_SUCCESS if str(stream.get("direction", "")) == "incoming" else Utils.COLOR_ERROR
-			bbcode += "  [color=#" + s_color + "]" + line + "[/color]\n"
+			bbcode += "  [color=#" + s_color + "]" + Utils.humanize_nation_keys_in_text(line) + "[/color]\n"
 
 	# Income breakdown
 	var breakdown = econ.get("income_breakdown", [])
@@ -424,7 +424,7 @@ func _render_intel():
 					vis_color = Utils.COLOR_ERROR
 					vis_label = "[last known]"
 
-			bbcode += "  " + ename + " (" + enation + ") at " + eloc + " — " + estr
+			bbcode += "  " + ename + " (" + Utils.display_nation_name(enation) + ") at " + eloc + " — " + estr
 			bbcode += " [color=#" + vis_color + "]" + vis_label + "[/color]\n"
 
 	# Nation summaries
@@ -436,7 +436,7 @@ func _render_intel():
 			var smarshals = int(s.get("known_marshals", 0))
 			var sstrength = int(s.get("estimated_strength", 0))
 			var sregions = int(s.get("regions_controlled", 0))
-			bbcode += "  " + sname + ": " + str(smarshals) + " marshals spotted"
+			bbcode += "  " + Utils.display_nation_name(sname) + ": " + str(smarshals) + " marshals spotted"
 			bbcode += ", ~" + _format_number(sstrength) + " est. strength"
 			bbcode += ", " + str(sregions) + " regions\n"
 

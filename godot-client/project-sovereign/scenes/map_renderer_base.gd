@@ -16,6 +16,11 @@ const MARSHAL_ICON_SPACING: float = 8.0
 const MARSHAL_ICON_Y_OFFSET: float = -50.0
 const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
+# UI cleanup (July 2 playtest feedback): force name labels draw straight on
+# the terrain art — without an outline the white text vanished on light
+# provinces and read as part of the colliding province labels.
+const FORCE_NAME_OUTLINE_COLOR := Color(0.09, 0.07, 0.05, 0.9)
+const FORCE_NAME_OUTLINE_SIZE: int = 4
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
@@ -195,6 +200,10 @@ var map_canvas_size: Vector2 = Vector2.ZERO
 var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
 # Slice 7.5 (DEF-11): the zoom-LOD label layer; null outside bitmap mode.
 var map_label_layer = null
+# WORLD-coord rects occupied by marshal icons, name stacks, and garrison
+# chips this rebuild — pushed to the label layer so province labels dodge
+# the map furniture instead of drawing through it.
+var _label_avoid_world_rects: Array = []
 # Slice 7.5 (DEF-12 cheap tier): the active fill mode key.
 var _map_fill_mode: String = "blended"
 
@@ -1079,6 +1088,7 @@ func _rebuild_dynamic_nodes():
 	_clear_children(garrison_layer)
 	marshal_hitboxes.clear()
 	fogged_force_hitboxes.clear()
+	_label_avoid_world_rects.clear()
 	var positions = _get_active_region_positions()
 
 	for region_name in positions:
@@ -1098,6 +1108,8 @@ func _rebuild_dynamic_nodes():
 			var visibility = region_visibility.get(region_name, "full")
 			_create_garrison_node(region_pos, region_garrisons[region_name], controller, visibility)
 
+	if map_label_layer != null:
+		map_label_layer.set_avoid_rects(_label_avoid_world_rects)
 	_refresh_hover_state()
 
 
@@ -1121,19 +1133,24 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		force_layer.add_child(icon_panel)
 
 		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+		var name_offset := Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = layer_icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
+		name_label.position = layer_icon_pos + name_offset
 		name_label.size = Vector2(name_width, 14.0)
 		name_label.text = marshal_name
 		name_label.add_theme_font_size_override("font_size", 11)
 		name_label.add_theme_color_override("font_color", Color.WHITE)
+		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 		force_layer.add_child(name_label)
 
 		marshal_hitboxes.append({
 			"rect": Rect2(icon_pos, MARSHAL_ICON_SIZE),
 			"marshal": marshal,
 		})
+		_label_avoid_world_rects.append(Rect2(icon_pos, MARSHAL_ICON_SIZE))
+		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, 14.0)))
 
 
 func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regular_marshal_offset: int):
@@ -1174,9 +1191,10 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		force_layer.add_child(icon_label)
 
 		var name_width = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+		var name_offset := Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - slot * 14.0)
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = layer_icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - slot * 14.0)
+		name_label.position = layer_icon_pos + name_offset
 		name_label.size = Vector2(name_width, 14.0)
 		name_label.text = force_name
 		name_label.add_theme_font_size_override("font_size", 11)
@@ -1184,12 +1202,16 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 			"font_color",
 			Color(0.7, 0.7, 0.75, 0.7) if fog_level == "partial" else Color(0.5, 0.5, 0.55, 0.5)
 		)
+		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 		force_layer.add_child(name_label)
 
 		fogged_force_hitboxes.append({
 			"rect": Rect2(icon_pos, MARSHAL_ICON_SIZE),
 			"force": force,
 		})
+		_label_avoid_world_rects.append(Rect2(icon_pos, MARSHAL_ICON_SIZE))
+		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, 14.0)))
 
 
 func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
@@ -1225,10 +1247,12 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	var panel = Panel.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.position = _world_to_layer_position(region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0))
+	var panel_world_pos := region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0)
+	panel.position = _world_to_layer_position(panel_world_pos)
 	panel.size = panel_size
 	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
 	garrison_layer.add_child(panel)
+	_label_avoid_world_rects.append(Rect2(panel_world_pos, panel_size))
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1708,7 +1732,7 @@ func _draw_marshal_tooltip():
 	var lines: Array = []
 
 	_push_tooltip_line(lines, str(marshal.get("name", "Unknown")), Color.WHITE, 14)
-	_push_tooltip_line(lines, str(marshal.get("nation", "Neutral")), Color(0.7, 0.7, 0.7))
+	_push_tooltip_line(lines, Utils.display_nation_name(str(marshal.get("nation", "Neutral"))), Color(0.7, 0.7, 0.7))
 	_push_tooltip_spacer(lines, 8.0)
 
 	_push_tooltip_line(lines, "Troops: " + _format_number(marshal.get("strength", 0)), Color.WHITE)
@@ -1909,7 +1933,8 @@ func _draw_fogged_force_tooltip():
 		intel_color = Color(0.8, 0.6, 0.4)
 
 	_push_tooltip_line(lines, str(force.get("name", "Unknown")), Color(0.85, 0.85, 0.9), 14)
-	_push_tooltip_line(lines, str(force.get("nation", "Unknown")), _get_colors().get(str(force.get("nation", "Unknown")), Color(0.7, 0.7, 0.7)).lightened(0.2))
+	# Display name in the text; the raw key stays in the color lookup.
+	_push_tooltip_line(lines, Utils.display_nation_name(str(force.get("nation", "Unknown"))), _get_colors().get(str(force.get("nation", "Unknown")), Color(0.7, 0.7, 0.7)).lightened(0.2))
 	_push_tooltip_spacer(lines, 8.0)
 	_push_tooltip_line(lines, "Estimated: " + str(force.get("strength_band", "unknown forces")), Color(0.8, 0.75, 0.5))
 	_push_tooltip_line(lines, intel_text, intel_color)
@@ -1941,7 +1966,8 @@ func _draw_region_tooltip():
 	var lines: Array = []
 
 	_push_tooltip_line(lines, hovered_region, Color.WHITE if visibility == "full" else Color(0.7, 0.7, 0.75), 14)
-	_push_tooltip_line(lines, str(controller), _get_colors().get(str(controller), Color(0.7, 0.7, 0.7)))
+	# Display name in the text; the raw key stays in the color lookup.
+	_push_tooltip_line(lines, Utils.display_nation_name(str(controller)), _get_colors().get(str(controller), Color(0.7, 0.7, 0.7)))
 	_push_tooltip_spacer(lines, 8.0)
 
 	if visibility == "unknown" or visibility == "last_known":

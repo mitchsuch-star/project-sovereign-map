@@ -163,7 +163,7 @@ func _add_coalition_header(coalition_name: String):
 func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	"""Add a compact war entry: entire row is clickable."""
 	var opponent = str(war_data.get("opponent", "?"))
-	var opponent_display = str(war_data.get("opponent_display", opponent))
+	var opponent_display = Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(opponent))))
 	var score = int(float(war_data.get("war_score", 0)))
 	var duration = int(float(war_data.get("duration", 0)))
 
@@ -213,7 +213,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 func _build_war_tooltip(war_data: Dictionary) -> String:
 	var lines = []
 	if bool(war_data.get("is_multi_participant_war", false)):
-		lines.append("Shared war: " + str(war_data.get("opponent_display", war_data.get("opponent", "?"))))
+		lines.append("Shared war: " + Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(str(war_data.get("opponent", "?")))))))
 	var tier = str(war_data.get("settlement_tier_display", ""))
 	if tier:
 		lines.append("Settlement: " + tier)
@@ -240,7 +240,7 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			var standing = str(row.get("standing_display", "Standing pending"))
 			var material = float(row.get("material_share", 0.0)) * 100.0
 			var leader_marker = "*" if row.get("is_leader", false) else " "
-			lines.append("  " + leader_marker + " " + nation + " — " + standing + " (" + str(int(round(material))) + "%)")
+			lines.append("  " + leader_marker + " " + Utils.display_nation_name(nation) + " — " + standing + " (" + str(int(round(material))) + "%)")
 		var overflow = int(war_data.get("contribution_overflow_count", 0))
 		if overflow > 0:
 			lines.append("  +" + str(overflow) + " more participant(s)")
@@ -254,10 +254,11 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 
 func _add_armistice_card(war_data: Dictionary):
 	var opponent = str(war_data.get("opponent", "?"))
+	var opponent_display = Utils.display_nation_name(opponent)
 	var remaining = int(float(war_data.get("armistice_remaining", 0)))
 
 	var btn = Button.new()
-	btn.text = opponent + "  " + str(remaining) + "t"
+	btn.text = opponent_display + "  " + str(remaining) + "t"
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.add_theme_font_size_override("font_size", 9)
@@ -266,9 +267,9 @@ func _add_armistice_card(war_data: Dictionary):
 	# the truce is heading (peace vs collapse) without growing the card.
 	var projected = str(war_data.get("armistice_projected_outcome", ""))
 	if projected == "peace":
-		btn.tooltip_text = "Armistice with %s — %d turns left, on course for peace." % [opponent, remaining]
+		btn.tooltip_text = "Armistice with %s — %d turns left, on course for peace." % [opponent_display, remaining]
 	elif projected == "war":
-		btn.tooltip_text = "Armistice with %s — %d turns left, on course to collapse back to war unless relations heal." % [opponent, remaining]
+		btn.tooltip_text = "Armistice with %s — %d turns left, on course to collapse back to war unless relations heal." % [opponent_display, remaining]
 	btn.pressed.connect(func(): card_clicked.emit(opponent, "armistice", str(war_data.get("war_instance_id", ""))))
 	vbox.add_child(btn)
 

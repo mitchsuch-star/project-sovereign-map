@@ -64,7 +64,7 @@ func _on_overlay_input(event):
 func show_war(war_data: Dictionary, _coalition_data) -> void:
 	"""Show bilateral war detail (N4b)."""
 	_current_nation = str(war_data.get("opponent", ""))
-	var opponent_display = str(war_data.get("opponent_display", _current_nation))
+	var opponent_display = Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(_current_nation))))
 	_current_war_id = str(war_data.get("war_instance_id", ""))
 	_current_mode = "war"
 	header_label.text = "WAR WITH " + opponent_display.to_upper()
@@ -111,7 +111,7 @@ func show_armistice(war_data: Dictionary) -> void:
 	"""Show armistice detail (N4b armistice variant)."""
 	_current_nation = str(war_data.get("opponent", ""))
 	_current_mode = "armistice"
-	header_label.text = "ARMISTICE WITH " + _current_nation.to_upper()
+	header_label.text = "ARMISTICE WITH " + Utils.display_nation_name(_current_nation).to_upper()
 	_clear_score_bars()
 	_render_armistice_detail(war_data)
 	_clear_buttons()
@@ -164,7 +164,7 @@ func refresh_if_open(active_wars_data: Dictionary) -> void:
 
 	if not found:
 		# War ended entirely — notify before closing (Fix 10)
-		war_ended.emit("The war with " + _current_nation + " has ended.")
+		war_ended.emit("The war with " + Utils.display_nation_name(_current_nation) + " has ended.")
 		_close_popup()
 
 
@@ -188,7 +188,7 @@ func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, b
 	row.add_theme_constant_override("separation", 6)
 
 	var lbl = Label.new()
-	lbl.text = opponent
+	lbl.text = Utils.display_nation_name(opponent)
 	lbl.custom_minimum_size = Vector2(60, 0)
 	lbl.add_theme_font_size_override("font_size", 10)
 	var score_color_val = Color(0.29, 0.67, 0.29) if score > 0 else (Color(0.67, 0.27, 0.27) if score < 0 else Color(0.75, 0.75, 0.78))
@@ -356,7 +356,7 @@ func _render_war_detail(w: Dictionary):
 			var outcome_color = COLOR_GREEN if b.get("won", false) else COLOR_RED
 			bbcode += "  " + prefix + "[color=" + outcome_color + "]" + outcome + "[/color] at " + str(b.get("location", "?")) + " (T:" + str(int(b.get("turn", 0))) + ")\n"
 
-	content_label.text = bbcode
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 
 func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
@@ -364,7 +364,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 	var posture = str(coalition_data.get("posture", "defensive")).capitalize()
 
 	var bbcode = ""
-	bbcode += "Leader: [color=" + COLOR_GOLD + "]" + leader + "[/color]   Posture: " + posture + "\n\n"
+	bbcode += "Leader: [color=" + COLOR_GOLD + "]" + Utils.display_nation_name(leader) + "[/color]   Posture: " + posture + "\n\n"
 
 	# Members (text summary — bars are in score_bar_container above)
 	for w in wars:
@@ -373,7 +373,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 		var opp_name = str(w.get("opponent", "?"))
 		var we = w.get("war_exhaustion", null)
 		var army = str(w.get("army_strength", "Unknown"))
-		var line = opp_name
+		var line = Utils.display_nation_name(opp_name)
 		if we != null:
 			line += "  WE:" + str(int(float(we)))
 		line += "  " + army
@@ -388,14 +388,14 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 		for c in coordination:
 			var quality = str(c.get("quality", "?"))
 			var q_color = COLOR_GREEN if quality == "Good" else (COLOR_AMBER if quality == "Strained" else COLOR_RED)
-			bbcode += "  " + str(c.get("nation_a", "")) + "-" + str(c.get("nation_b", "")) + ": [color=" + q_color + "]" + quality + "[/color]\n"
+			bbcode += "  " + Utils.display_nation_name(str(c.get("nation_a", ""))) + "-" + Utils.display_nation_name(str(c.get("nation_b", ""))) + ": [color=" + q_color + "]" + quality + "[/color]\n"
 
 	# Weak link
 	var weak_link = coalition_data.get("weak_link", null)
 	if weak_link != null:
-		bbcode += "\n[color=" + COLOR_AMBER + "]Weak link: " + str(weak_link) + " (highest WE)[/color]\n"
+		bbcode += "\n[color=" + COLOR_AMBER + "]Weak link: " + Utils.display_nation_name(str(weak_link)) + " (highest WE)[/color]\n"
 
-	content_label.text = bbcode
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 
 func _render_armistice_detail(w: Dictionary):
@@ -421,7 +421,7 @@ func _render_armistice_detail(w: Dictionary):
 		else:
 			bbcode += "[color=" + COLOR_AMBER + "]On course to collapse: unless relations heal to " + str(threshold) + " or better, the war resumes at expiry.[/color]\n"
 
-	content_label.text = bbcode
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 
 # ── BUTTONS ──
@@ -460,7 +460,7 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 
 func _add_target_button(nation: String):
 	var btn = Button.new()
-	btn.text = "Target " + nation
+	btn.text = "Target " + Utils.display_nation_name(nation)
 	btn.tooltip_text = "Open diplomatic options for this coalition member; this is not a settlement action."
 	btn.custom_minimum_size = Vector2(130, 36)
 	btn.add_theme_font_size_override("font_size", 12)

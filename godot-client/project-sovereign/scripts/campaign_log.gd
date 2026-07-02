@@ -116,7 +116,7 @@ func _on_campaign_log_received(response):
 			var color = CATEGORY_COLORS.get(category, "a0a0a8")
 			var display_text = evt.get("display", "Unknown event")
 
-			label.text = "  %s [color=#%s]%s[/color]" % [icon, color, display_text]
+			label.text = "  %s [color=#%s]%s[/color]" % [icon, color, Utils.humanize_nation_keys_in_text(str(display_text))]
 			event_container.add_child(label)
 
 		if is_first:

@@ -92,7 +92,7 @@ func open_for_nation(nation: String):
 	_current_step = 2
 	_selected_nation = nation
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — " + nation
+	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_clear_content_list()
 	_add_loading_label()
@@ -269,7 +269,7 @@ func _add_nation_button(nation_data: Dictionary):
 	var btn = Button.new()
 	var nation_name = str(nation_data.get("name", "?"))
 	var state_display = str(nation_data.get("state_display", "?"))
-	var text = nation_name + "  —  " + state_display
+	var text = Utils.display_nation_name(nation_name) + "  —  " + state_display
 
 	# W1: Relation score and descriptor
 	var relation = nation_data.get("relation")
@@ -296,7 +296,7 @@ func _on_nation_selected(nation: String):
 	_selected_nation = nation
 	_current_step = 2
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — " + nation
+	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_clear_content_list()
 	_add_loading_label()
@@ -345,7 +345,7 @@ func _render_preview(data: Dictionary):
 			state_color = Utils.COLOR_BLUE
 
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + _selected_nation.to_upper() + "[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + "[/color]\n"
 	bbcode += "Status: [color=#" + state_color + "]" + state_display + "[/color]"
 	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
 
@@ -355,7 +355,7 @@ func _render_preview(data: Dictionary):
 		var autonomy = str(data.get("vassal_autonomy", "?"))
 		var trend = str(data.get("vassal_loyalty_trend", "stable"))
 		var tribute = int(data.get("vassal_tribute", 0))
-		var trend_arrow = "→"
+		var trend_arrow = ""
 		if trend == "rising":
 			trend_arrow = "↑"
 		elif trend == "falling":

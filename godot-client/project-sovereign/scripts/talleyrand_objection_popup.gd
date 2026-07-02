@@ -56,22 +56,25 @@ func show_objection(data: Dictionary):
 	# Acceptance estimate with color coding
 	var acceptance = data.get("acceptance_estimate", -1)
 	var outcome = data.get("acceptance_outcome", "")
+	var outcome_display = data.get("acceptance_outcome_display", "")
+	if not outcome_display:
+		outcome_display = str(outcome).capitalize()
 	if acceptance >= 0:
 		var a_color = "#e04040"
 		if acceptance >= 50:
 			a_color = "#80c080"
 		elif acceptance >= 30:
 			a_color = "#e0e060"
-		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
+		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome_display]
 		var hint = data.get("acceptance_hint", "")
 		if hint:
 			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
 
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
-	bbcode += "[b]Regarding:[/b] %s" % proposal_summary
+	bbcode += "[b]Regarding:[/b] %s" % Utils.humanize_nation_keys_in_text(str(proposal_summary))
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	proceed_btn.disabled = false
 	modify_btn.disabled = false

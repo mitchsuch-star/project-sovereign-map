@@ -2185,6 +2185,7 @@ func _add_separator():
 
 func add_output(text: String):
 	"""Add text to output display with message limit."""
+	text = Utils.humanize_nation_keys_in_text(text)
 	message_count += 1
 	
 	# Trim old messages if over limit

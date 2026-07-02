@@ -33,6 +33,7 @@ func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
 	current_data = data
 	var from_nation = data.get("from_nation", "Unknown")
+	var from_display = Utils.display_nation_name(str(from_nation))
 	var diplomat_name = data.get("diplomat_name", "An envoy")
 	var diplomat_personality = data.get("diplomat_personality", "")
 	var proposal_type = data.get("proposal_type", "unknown")
@@ -51,17 +52,17 @@ func show_proposal(data: Dictionary):
 	if is_counter:
 		# Counter-offer: distinct header + context
 		bbcode += "[center][color=#7eb8da][b]COUNTER-OFFER[/b][/color][/center]\n"
-		var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
-		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
-		bbcode += "[color=#a0a0a8]In response to your %s proposal, %s offers modified terms:[/color]\n\n" % [type_display, from_nation]
+		var pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_display]
+		bbcode += "[color=#a0a0a8]In response to your %s proposal, %s offers modified terms:[/color]\n\n" % [type_display, from_display]
 		bbcode += "[b]Revised Terms:[/b]\n"
 		# Style: blue border for counter-offers
 		panel_style.border_color = Color(0.494, 0.722, 0.855, 1.0)  # Steel blue
 	else:
 		# Normal AI proposal
 		bbcode += "[b]DIPLOMATIC ENVOY[/b]\n"
-		var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
-		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
+		var pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_display]
 		bbcode += "[b]Proposes:[/b] %s\n" % type_display
 		bbcode += "[b]Terms:[/b]\n"
 		# Restore default gold border
@@ -94,7 +95,9 @@ func show_proposal(data: Dictionary):
 		bbcode += "\n[color=#e0c060][i]This offer will lapse at end of turn.[/i][/color]"
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	# Backend prose (clause strings, court rationale, hints) can embed raw
+	# multi-word nation keys — humanize once at the render chokepoint.
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	# Enable buttons — hide Counter for counter-offers (no counter-counter)
 	accept_btn.disabled = false

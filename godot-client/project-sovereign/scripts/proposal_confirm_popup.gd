@@ -94,7 +94,9 @@ func show_dialogue(data: Dictionary):
 			else:
 				bbcode = _build_content(data)
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	# Backend prose (Voice Bible lines, clause strings) can embed raw
+	# multi-word nation keys — humanize once at the render chokepoint.
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	# GT-Slice-3 + UX-5: the settlement_confirm surface renders in three
 	# regions — header (ContentLabel), the scrollable per-court table
@@ -114,11 +116,11 @@ func show_dialogue(data: Dictionary):
 		# viewport holds only the court rows — at 2 courts the second
 		# court and the Add demand affordances were below the fold and the
 		# guided authoring surface read as missing.
-		content_label.append_text(_build_settlement_table_preamble(data))
+		content_label.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(data)))
 		_render_per_court_table()
 		if footer_label:
 			footer_label.text = ""
-			footer_label.append_text(_build_settlement_footer(data))
+			footer_label.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_footer(data)))
 
 	# Create buttons dynamically from dialogue options
 	_clear_buttons()
@@ -209,7 +211,7 @@ func _build_content(data: Dictionary) -> String:
 	var proposal_display = data.get("proposal_type_display", "Proposal")
 
 	var bbcode = ""
-	bbcode += "[b]DIPLOMATIC PROPOSAL — %s[/b]\n\n" % target
+	bbcode += "[b]DIPLOMATIC PROPOSAL — %s[/b]\n\n" % Utils.display_nation_name(str(target))
 
 	# BPH-A: Annotated terms grouped by direction
 	var annotated = data.get("annotated_terms", [])
@@ -359,9 +361,18 @@ func _build_settlement_content(data: Dictionary) -> String:
 			if overall_review is Dictionary:
 				var holdouts = overall_review.get("holdout_courts", [])
 				if holdouts is Array and holdouts.size() > 0:
-					bbcode += "[color=#e0a040]▸ Holding out: %s[/color]\n" % ", ".join(PackedStringArray(holdouts))
+					var holdout_names: Array = []
+					for holdout in holdouts:
+						holdout_names.append(Utils.display_nation_name(str(holdout)))
+					bbcode += "[color=#e0a040]▸ Holding out: %s[/color]\n" % ", ".join(PackedStringArray(holdout_names))
 
-	var chips = data.get("covered_enemy_display_chips", data.get("covered_enemy_participants", []))
+	var chips = data.get("covered_enemy_display_chips", null)
+	if chips == null:
+		var raw_chips = data.get("covered_enemy_participants", [])
+		chips = []
+		if raw_chips is Array:
+			for raw_chip in raw_chips:
+				chips.append(Utils.display_nation_name(str(raw_chip)))
 	if chips is Array and chips.size() > 0:
 		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
 	var uncovered = data.get("uncovered_enemy_display_chips", review.get("uncovered_enemy_display_chips", [])) if review is Dictionary else []
@@ -390,7 +401,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			if ally_voice != "":
 				bbcode += "  [color=#e0c070]*[/color] [i]\"" + ally_voice + "\"[/i]\n"
 			else:
-				bbcode += "  [color=#e0c070]*[/color] " + ally + " petitions over settlement scope.\n"
+				bbcode += "  [color=#e0c070]*[/color] " + Utils.display_nation_name(ally) + " petitions over settlement scope.\n"
 		bbcode += "\n"
 
 	var allies = sections.get("allies", {}) if sections is Dictionary else {}
@@ -414,7 +425,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				var stamp_text = ""
 				if stamps.size() > 0:
 					stamp_text = " [color=#808080](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
-				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [nation, standing, stamp_text]
+				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [Utils.display_nation_name(nation), standing, stamp_text]
 			var overflow = int(allies.get("overflow_count", 0))
 			if overflow > 0:
 				bbcode += "  [color=#808080]+%d more participants in the ledger[/color]\n" % overflow
@@ -636,7 +647,7 @@ func _render_per_court_table():
 	if per_court_table == null:
 		return
 	per_court_table.text = ""
-	per_court_table.append_text(_build_settlement_per_court_block(current_data))
+	per_court_table.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_per_court_block(current_data)))
 
 
 func _build_settlement_table_preamble(data: Dictionary) -> String:
@@ -736,10 +747,11 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		# trigger — clicking it round-trips presentation-only
 		# `settlement_focus_court` and the focused row expands into the full
 		# component breakdown below. Clicking again clears the focus.
-		var name_cell = "[b]%s[/b]" % nation
+		var nation_display = Utils.display_nation_name(nation)
+		var name_cell = "[b]%s[/b]" % nation_display
 		if authoring_surface:
 			name_cell = "[url=focus:%d][b]%s[/b] %s[/url]" % [
-				court_index, nation, "▾" if is_focused else "▸",
+				court_index, nation_display, "▾" if is_focused else "▸",
 			]
 		bbcode += "  [color=#e0c070]*[/color] %s - %s%s" % [name_cell, band_display, total_text]
 		if direction != "":
@@ -793,7 +805,7 @@ func _build_focused_component_breakdown(row: Dictionary) -> String:
 	if not (breakdown is Array) or breakdown.size() == 0:
 		return ""
 	var nation = str(row.get("nation", "?"))
-	var bbcode = "      [b]Why %s stands here[/b]\n" % nation
+	var bbcode = "      [b]Why %s stands here[/b]\n" % Utils.display_nation_name(nation)
 	for entry in breakdown:
 		if not (entry is Dictionary):
 			continue
@@ -880,7 +892,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 				entries.append([sugg_index, sugg])
 		if entries.size() == 0:
 			continue
-		var group_label = ("Demands of %s" % nation) if group_name == "demand" else ("Offers to %s" % nation)
+		var group_label = ("Demands of %s" % Utils.display_nation_name(nation)) if group_name == "demand" else ("Offers to %s" % Utils.display_nation_name(nation))
 		var group_key = "%s|%s" % [nation, group_name]
 		var expanded = pre_expanded or bool(_trailing_group_expanded.get(group_key, false))
 		if not expanded:
@@ -922,7 +934,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		for opt in options:
 			opt_index += 1
 			bbcode += "            [url=suggpick:%d:%d:%d][color=#9ec0e0]%s[/color][/url]\n" % [
-				court_index, sugg_index, opt_index, str(opt),
+				court_index, sugg_index, opt_index, Utils.display_nation_name(str(opt)),
 			]
 	return bbcode
 
@@ -1103,8 +1115,8 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	var bbcode = ""
 	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
 	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
-	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % target
-	bbcode += "[color=#80b0e0]Your drafted terms for %s carry into the talks.[/color]\n" % target
+	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % Utils.display_nation_name(target)
+	bbcode += "[color=#80b0e0]Your drafted terms for %s carry into the talks.[/color]\n" % Utils.display_nation_name(target)
 	bbcode += "[color=#a0a0a8]The joint draft stays untouched if you cancel.[/color]\n\n"
 	var ttext = str(data.get("talleyrand_text", ""))
 	if ttext != "":
@@ -1127,7 +1139,7 @@ func _build_settlement_scope_replace_content(data: Dictionary) -> String:
 
 func _build_war_purpose_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b]WAR PURPOSE - %s[/b]\n\n" % target
+	var bbcode = "[b]WAR PURPOSE - %s[/b]\n\n" % Utils.display_nation_name(str(target))
 	var message = str(data.get("message", "Choose your war purpose."))
 	bbcode += message + "\n\n"
 
@@ -1153,7 +1165,7 @@ func _build_war_purpose_content(data: Dictionary) -> String:
 func _build_peace_preview_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
 	var snapshot = data.get("war_context_snapshot", {})
-	var bbcode = "[b]PEACE PREVIEW - %s[/b]\n\n" % target
+	var bbcode = "[b]PEACE PREVIEW - %s[/b]\n\n" % Utils.display_nation_name(str(target))
 
 	bbcode += "[b]War Summary[/b]\n"
 	var war_score = int(snapshot.get("war_score", 0))
@@ -1321,7 +1333,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 
 func _build_ultimatum_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b][color=#e04040]ULTIMATUM — %s[/color][/b]\n\n" % target
+	var bbcode = "[b][color=#e04040]ULTIMATUM — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
 
 	# Talleyrand text (wizard step instructions)
 	var ttext = data.get("talleyrand_text", "")
@@ -1375,7 +1387,7 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 			var nation_name = s.get("nation", "?")
 			var penalty = s.get("relation_penalty", 0)
 			var treaty = str(s.get("treaty_with_target", "")).replace("_", " ").to_lower()
-			bbcode += "  [color=#e09040]\u2022[/color] %s: %d relations (%s)\n" % [nation_name, penalty, treaty]
+			bbcode += "  [color=#e09040]\u2022[/color] %s: %d relations (%s)\n" % [Utils.display_nation_name(str(nation_name)), penalty, treaty]
 
 	# Threat preview
 	var threat = data.get("threat_increase_preview", "")
@@ -1386,7 +1398,7 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 
 func _build_mission_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b]DIPLOMATIC MISSION — %s[/b]\n\n" % target
+	var bbcode = "[b]DIPLOMATIC MISSION — %s[/b]\n\n" % Utils.display_nation_name(str(target))
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n\n" % ttext
@@ -1399,13 +1411,13 @@ func _build_mission_content(data: Dictionary) -> String:
 
 func _build_feasibility_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b]FEASIBILITY ASSESSMENT — %s[/b]\n\n" % target
+	var bbcode = "[b]FEASIBILITY ASSESSMENT — %s[/b]\n\n" % Utils.display_nation_name(str(target))
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n\n" % ttext
 	# Acceptance estimate
 	var acceptance = data.get("acceptance_estimate", -1)
-	var outcome = data.get("acceptance_outcome", "")
+	var outcome = str(data.get("acceptance_outcome_display", str(data.get("acceptance_outcome", "")).capitalize()))
 	if acceptance >= 0:
 		var a_color = "#e04040"
 		if acceptance >= 50:
@@ -1429,7 +1441,7 @@ func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 	var proposer = str(data.get("proposer_nation", "Unknown"))
 	var war_label = str(data.get("war_label", data.get("war_id", "settlement")))
 	var bbcode = ""
-	bbcode += "[b]SETTLEMENT OFFER FROM %s[/b]\n\n" % proposer.to_upper()
+	bbcode += "[b]SETTLEMENT OFFER FROM %s[/b]\n\n" % Utils.display_nation_name(proposer).to_upper()
 	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
 
 	var proposer_voice = str(data.get("proposer_voice", ""))
@@ -1445,7 +1457,10 @@ func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 
 	var covered = data.get("covered_enemy_participants", [])
 	if covered is Array and covered.size() > 0:
-		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(covered)) + "\n\n"
+		var covered_names: Array = []
+		for covered_nation in covered:
+			covered_names.append(Utils.display_nation_name(str(covered_nation)))
+		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(covered_names)) + "\n\n"
 
 	var talleyrand = str(data.get("talleyrand_text", ""))
 	if talleyrand != "":
@@ -1461,7 +1476,7 @@ func _build_ally_settlement_petition_content(data: Dictionary) -> String:
 	var claim_region = str(data.get("claim_region", "claim"))
 	var target_enemy = str(data.get("target_enemy", "the enemy"))
 	var bbcode = ""
-	bbcode += "[b]ALLY SETTLEMENT PETITION - %s[/b]\n\n" % ally.to_upper()
+	bbcode += "[b]ALLY SETTLEMENT PETITION - %s[/b]\n\n" % Utils.display_nation_name(ally).to_upper()
 	bbcode += "[color=#a0a0a8]%s[/color]\n" % war_label
 	if claim_war != "":
 		bbcode += "[color=#a0a0a8]Related claim: %s[/color]\n" % claim_war
@@ -1473,7 +1488,7 @@ func _build_ally_settlement_petition_content(data: Dictionary) -> String:
 
 	bbcode += "[b]Claim at issue:[/b] %s" % claim_region
 	if target_enemy != "":
-		bbcode += " against " + target_enemy
+		bbcode += " against " + Utils.display_nation_name(target_enemy)
 	bbcode += "\n\n"
 
 	var talleyrand = str(data.get("talleyrand_text", ""))
@@ -1486,7 +1501,7 @@ func _build_advisory_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "")
 	var header = "TALLEYRAND'S ASSESSMENT"
 	if target:
-		header += " — %s" % target
+		header += " — %s" % Utils.display_nation_name(str(target))
 	var bbcode = "[b]%s[/b]\n\n" % header
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
@@ -1495,7 +1510,7 @@ func _build_advisory_content(data: Dictionary) -> String:
 
 func _build_war_confirm_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b][color=#e04040]WAR DECLARATION — %s[/color][/b]\n\n" % target
+	var bbcode = "[b][color=#e04040]WAR DECLARATION — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#e09040]%s[/color]\n" % ttext
@@ -1513,7 +1528,7 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 				color = "#e09040"
 			elif severity == "medium":
 				color = "#e0c060"
-			bbcode += "  [color=%s]â€¢[/color] %s\n" % [color, str(warning.get("text", ""))]
+			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
 		if warnings.size() > shown:
 			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
 				warnings.size() - shown,
@@ -1523,7 +1538,7 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 
 func _build_conflict_alert_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b][color=#e09040]ALLIANCE CONFLICT — %s[/color][/b]\n\n" % target
+	var bbcode = "[b][color=#e09040]ALLIANCE CONFLICT — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
@@ -1541,7 +1556,7 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 				color = "#e09040"
 			elif severity == "medium":
 				color = "#e0c060"
-			bbcode += "  [color=%s]â€¢[/color] %s\n" % [color, str(warning.get("text", ""))]
+			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
 		if warnings.size() > shown:
 			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
 				warnings.size() - shown,

@@ -29,7 +29,7 @@ func show_coalition(data: Dictionary):
 	var bbcode = ""
 	bbcode += "[center][color=red][b]⚔ COALITION DECLARED ⚔[/b][/color][/center]\n\n"
 	bbcode += "[b]%s[/b] has declared war on France.\n\n" % coalition_name
-	bbcode += "[b]Leader:[/b] %s\n" % leader
+	bbcode += "[b]Leader:[/b] %s\n" % Utils.display_nation_name(str(leader))
 	bbcode += "[b]Posture:[/b] %s\n" % posture.capitalize()
 	bbcode += "[b]Combined Strength:[/b] %s\n\n" % combined_str
 	bbcode += "[b]Members:[/b]\n"
@@ -41,12 +41,12 @@ func show_coalition(data: Dictionary):
 			var nation = member.get("nation", "?")
 			var strength = member.get("strength_display", "?")
 			var we = int(float(member.get("war_exhaustion", 0)))
-			bbcode += "  - %s: %s — War Exhaustion: %d/100\n" % [nation, strength, we]
+			bbcode += "  - %s: %s — War Exhaustion: %d/100\n" % [Utils.display_nation_name(str(nation)), strength, we]
 
 	bbcode += "\n" + Utils.bbcode_color("Talleyrand: \"The courts of Europe have united against us, Sire.\"", Utils.COLOR_INFO)
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 	show()
 
 func _on_continue_pressed():

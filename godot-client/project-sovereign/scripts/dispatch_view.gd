@@ -226,7 +226,7 @@ func _on_dispatch_received(response):
 		for lapse in lapsed_offers:
 			var l_nation = str(lapse.get("nation", "?"))
 			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
-			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_nation + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
 		bbcode += "\n"
 
 	# ═══ ENVOYS AWAITING RESPONSE ═══
@@ -242,7 +242,7 @@ func _on_dispatch_received(response):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))
 			var envoy_type = str(envoy.get("proposal_type", "proposal")).capitalize()
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - " + envoy_nation + " — " + envoy_type + "[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - " + Utils.display_nation_name(envoy_nation) + " — " + envoy_type + "[/color]\n"
 		if pending_envoys.size() > 3:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]\n"
 		bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"[/color]\n\n"
@@ -290,7 +290,7 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
-	content_label.text = bbcode
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 # TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
 # marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.

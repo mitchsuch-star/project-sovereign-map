@@ -71,7 +71,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 			# Nation header with colored name
 			var nation_color = _get_nation_color(nation)
-			content += "[color=#" + nation_color + "][b]" + nation.to_upper() + "[/b][/color]\n"
+			content += "[color=#" + nation_color + "][b]" + Utils.display_nation_name(nation).to_upper() + "[/b][/color]\n"
 			content += "[color=#" + Utils.COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
 
 			# Process each action
@@ -109,7 +109,7 @@ func _format_action(action: Dictionary) -> String:
 	if marshal_name != "":
 		action_str = marshal_name + " "
 	elif nation != "":
-		action_str = nation + " "
+		action_str = Utils.display_nation_name(nation) + " "
 
 	# Detect bombardment (AI sends action="attack" but result has bombardment_result)
 	var is_bombardment = action.has("bombardment_result")

@@ -43,6 +43,24 @@ ACTION_DISPLAY = {
 }
 
 # ============================================================================
+# NATION DISPLAY — player-facing names for multi-word internal nation keys
+# Internal nation keys are single tokens; three read wrong raw (R7). Mirrors
+# Godot's Utils.NATION_DISPLAY_NAMES — keep the two maps in sync.
+# ============================================================================
+
+NATION_DISPLAY = {
+    "Ottoman": "Ottoman Empire",
+    "PapalStates": "Papal States",
+    "KingdomOfItaly": "Kingdom of Italy",
+}
+
+
+def display_nation(nation: str) -> str:
+    """Return the player-facing name for an internal nation key."""
+    return NATION_DISPLAY.get(nation, nation)
+
+
+# ============================================================================
 # OBJECTION DISPLAY — gerund form for objection context
 # Source: campaign_log.py _OBJECTION_DISPLAY
 # ============================================================================

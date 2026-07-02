@@ -343,7 +343,7 @@ func _set_talleyrand_summary(mission_summary: String):
 	var clean_summary = mission_summary.strip_edges()
 	if clean_summary == "":
 		clean_summary = "Idle"
-	var full_text = "Talleyrand: " + clean_summary
+	var full_text = "Talleyrand: " + Utils.humanize_nation_keys_in_text(clean_summary)
 	talleyrand_label.tooltip_text = full_text
 	if full_text.length() > TALLEYRAND_SUMMARY_MAX_CHARS:
 		talleyrand_label.text = full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."

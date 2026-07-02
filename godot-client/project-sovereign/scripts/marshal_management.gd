@@ -130,7 +130,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += "[color=#" + Utils.COLOR_GREY + "]" + key_hint + "[/color]"
 	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
 	bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
-	bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + nation + "[/color]\n"
+	bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + Utils.display_nation_name(nation) + "[/color]\n"
 
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))

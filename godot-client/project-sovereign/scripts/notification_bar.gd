@@ -162,7 +162,7 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	var btn = Button.new()
 	btn.custom_minimum_size = Vector2(38, 28)
 	btn.text = _icon_text_for(notif)
-	btn.tooltip_text = str(notif.get("title", "Notification"))
+	btn.tooltip_text = Utils.humanize_nation_keys_in_text(str(notif.get("title", "Notification")))
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.focus_mode = Control.FOCUS_NONE
 
@@ -295,7 +295,7 @@ func _show_expanded_panel(notif: Dictionary):
 	vbox.add_child(header)
 
 	var title_label = Label.new()
-	title_label.text = str(notif.get("title", "Notification"))
+	title_label.text = Utils.humanize_nation_keys_in_text(str(notif.get("title", "Notification")))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.add_theme_color_override("font_color", accent)
 	title_label.add_theme_font_size_override("font_size", 12)
@@ -360,23 +360,26 @@ func _build_detail_text(notif: Dictionary) -> String:
 	var text = ""
 	var message = str(notif.get("message", "")).strip_edges()
 	if message != "":
-		text += "[color=#d7d7dc]%s[/color]\n" % message
+		text += "[color=#d7d7dc]%s[/color]\n" % Utils.humanize_nation_keys_in_text(message)
 
 	var notif_type = str(notif.get("type", ""))
 	var details = notif.get("details", {})
 	if details is Dictionary:
 		match notif_type:
 			"coalition_declared":
-				text += "\n[color=#e0c060]Leader:[/color] %s\n" % str(details.get("leader", "Unknown"))
+				text += "\n[color=#e0c060]Leader:[/color] %s\n" % Utils.display_nation_name(str(details.get("leader", "Unknown")))
 				text += "[color=#e0c060]Posture:[/color] %s\n" % str(details.get("posture", "Unknown")).capitalize()
 				var combined_strength = int(details.get("combined_strength", 0))
 				if combined_strength > 0:
 					text += "[color=#e0c060]Combined Strength:[/color] %s\n" % _format_number(combined_strength)
 				var members = details.get("members", [])
 				if members is Array and not members.is_empty():
-					text += "[color=#e0c060]Members:[/color] %s\n" % ", ".join(members)
+					var member_names: Array = []
+					for member in members:
+						member_names.append(Utils.display_nation_name(str(member)))
+					text += "[color=#e0c060]Members:[/color] %s\n" % ", ".join(member_names)
 			"diplomatic_proposal_result":
-				text += "\n[color=#e0c060]Nation:[/color] %s\n" % str(details.get("target_nation", "Unknown"))
+				text += "\n[color=#e0c060]Nation:[/color] %s\n" % Utils.display_nation_name(str(details.get("target_nation", "Unknown")))
 				text += "[color=#e0c060]Proposal:[/color] %s\n" % str(details.get("proposal_type", "Diplomatic Action"))
 				text += "[color=#e0c060]Outcome:[/color] %s\n" % str(details.get("outcome", "Unknown")).capitalize()
 				var feedback = str(details.get("feedback", "")).strip_edges()

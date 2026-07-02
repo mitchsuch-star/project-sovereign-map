@@ -90,12 +90,52 @@ static func contrast_text_color(background: Color) -> Color:
 static func display_nation_name(nation: String) -> String:
 	if NATION_DISPLAY_NAMES.has(nation):
 		return NATION_DISPLAY_NAMES[nation]
+	# The camelCase split only applies to strict single-token alphabetic keys.
+	# Anything carrying a space, hyphen, or digit is already display text
+	# (e.g. region names like "Franche-Comte" pass through untouched, so the
+	# helper is safe on mixed nation-or-region fields).
+	for i in range(nation.length()):
+		var ch := nation[i]
+		if ch.to_upper() == ch.to_lower():
+			return nation
 	var result := ""
 	for i in range(nation.length()):
 		var ch := nation[i]
 		if i > 0 and ch == ch.to_upper() and ch != ch.to_lower():
 			result += " "
 		result += ch
+	return result
+
+
+# === Diplomatic State Display (player-facing pills) ===
+# Internal diplomatic states are SNAKE_CASE enums; multi-word states must not
+# leak raw underscores to players (R7). Pills stay upper-case by convention.
+const DIPLO_STATE_DISPLAY = {
+	"NON_AGGRESSION": "NON-AGGRESSION",
+}
+
+static func display_diplo_state(state: String) -> String:
+	if DIPLO_STATE_DISPLAY.has(state):
+		return DIPLO_STATE_DISPLAY[state]
+	return state.replace("_", " ")
+
+
+# === Backend-Prose Nation Key Substitution ===
+# Backend-composed prose (dispatch lines, notifications, headlines) can embed
+# raw multi-word nation keys mid-sentence. These tokens never appear in
+# correct display text, so whole-string replacement is safe. "Ottoman" is
+# deliberately EXCLUDED: it is valid prose on its own ("the Ottoman court")
+# and substituting "Ottoman Empire" would corrupt existing sentences.
+const PROSE_NATION_KEY_SUBSTITUTIONS = {
+	"KingdomOfItaly": "Kingdom of Italy",
+	"PapalStates": "Papal States",
+}
+
+static func humanize_nation_keys_in_text(text: String) -> String:
+	var result := text
+	for key in PROSE_NATION_KEY_SUBSTITUTIONS:
+		if result.contains(key):
+			result = result.replace(key, PROSE_NATION_KEY_SUBSTITUTIONS[key])
 	return result
 
 # === Map Connection Line Color ===

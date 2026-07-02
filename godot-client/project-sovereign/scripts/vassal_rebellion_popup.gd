@@ -36,13 +36,13 @@ func show_rebellion(data: Dictionary):
 
 	var bbcode = ""
 	bbcode += "[b]REBELLION IMMINENT[/b]\n"
-	bbcode += "[color=red]%s loyalty: %d/100[/color]\n\n" % [nation, loyalty]
+	bbcode += "[color=red]%s loyalty: %d/100[/color]\n\n" % [Utils.display_nation_name(str(nation)), loyalty]
 	bbcode += "[b]Invest (%d DP)[/b] — %s\n" % [invest_cost, invest_effect]
 	bbcode += "[b]Send Garrison (costs %d AP)[/b] — %s\n" % [garrison_cost, garrison_effect]
 	bbcode += "[b]Accept the Risk[/b] — %s" % accept_effect
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	invest_btn.disabled = false
 	garrison_btn.disabled = false

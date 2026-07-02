@@ -39,7 +39,7 @@ func show_sabotage(data: Dictionary):
 	bbcode += "[color=green]Overlook:[/color] Authority -%d" % auth_penalty
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	confront_btn.disabled = false
 	overlook_btn.disabled = false

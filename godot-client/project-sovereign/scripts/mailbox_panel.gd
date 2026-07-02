@@ -107,7 +107,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	top_row.add_child(state_badge)
 
 	var source_label = Label.new()
-	source_label.text = source
+	source_label.text = Utils.display_nation_name(source)
 	source_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	source_label.add_theme_font_size_override("font_size", 13)
 	source_label.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
@@ -133,12 +133,13 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	top_row.add_child(turn_label)
 
 	var summary_label = Label.new()
-	summary_label.text = summary
+	var summary_display = Utils.humanize_nation_keys_in_text(summary)
+	summary_label.text = summary_display
 	summary_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	summary_label.add_theme_font_size_override("font_size", 11)
 	summary_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.86, 1.0))
-	summary_label.tooltip_text = summary
+	summary_label.tooltip_text = summary_display
 	vbox.add_child(summary_label)
 
 	return panel

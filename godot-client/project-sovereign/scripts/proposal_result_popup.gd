@@ -48,7 +48,7 @@ func show_result(data: Dictionary):
 	else:
 		bbcode += "[center][color=#e04040][b]PROPOSAL REJECTED[/b][/color][/center]\n\n"
 
-	bbcode += "[b]Nation:[/b] %s\n" % target_nation
+	bbcode += "[b]Nation:[/b] %s\n" % Utils.display_nation_name(str(target_nation))
 	bbcode += "[b]Proposal:[/b] %s\n\n" % proposal_type
 
 	if message != "":
@@ -63,7 +63,7 @@ func show_result(data: Dictionary):
 		)
 
 	content_label.text = ""
-	content_label.append_text(bbcode)
+	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 	# Re-enable button (close_popup disables all buttons via PopupBase)
 	continue_btn.disabled = false
 	show()

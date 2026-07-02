@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 
+from backend.display_names import display_nation
+
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
 
@@ -404,7 +406,9 @@ def _collapse_shared_war_instance_rows(
         combined["opponent"] = (
             ordered_opponents[0] if ordered_opponents else representative.get("opponent", "")
         )
-        combined["opponent_display"] = " + ".join(ordered_opponents)
+        combined["opponent_display"] = " + ".join(
+            display_nation(nation) for nation in ordered_opponents
+        )
         combined["is_multi_participant_war"] = True
         collapsed.append(combined)
 

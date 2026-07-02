@@ -86,7 +86,9 @@ def _derive_status(marshal) -> str:
 
 
 def _derive_strategic_order_summary(marshal) -> str:
-    """Format strategic order summary string."""
+    """Format strategic order summary string (player-facing verbs, R7)."""
+    from backend.display_names import get_strategic_display
+
     order = marshal.strategic_order
     if order is None:
         return "None"
@@ -94,14 +96,14 @@ def _derive_strategic_order_summary(marshal) -> str:
     target = order.target
     if cmd == "MOVE_TO":
         turns_left = len(order.path)
-        return f"MOVE_TO {target} ({turns_left} turns left)"
+        return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
     if cmd == "PURSUE":
-        return f"PURSUE {target} (tracking)"
+        return f"{get_strategic_display(cmd)} {target} (tracking)"
     if cmd == "SUPPORT":
-        return f"SUPPORT {target} (active)"
+        return f"{get_strategic_display(cmd)} {target} (active)"
     if cmd == "HOLD":
-        return f"HOLD at {target}"
-    return f"{cmd} {target}"
+        return f"{get_strategic_display(cmd)} at {target}"
+    return f"{get_strategic_display(cmd)} {target}"
 
 
 def _derive_unit_type(marshal) -> str:

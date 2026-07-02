@@ -295,18 +295,17 @@ func _render_nations():
 		if rel_desc:
 			rel_text += " (" + rel_desc + ")"
 
-		# N7: Relation trend arrow
+		# N7: Relation trend arrow. Stable draws nothing — a flat "→" after
+		# the descriptor read as a dangling artifact, not a trend.
 		var trend = str(n.get("relation_trend", "stable"))
-		var trend_arrow = " →"
 		if trend == "rising":
-			trend_arrow = " ↑"
+			rel_text += " ↑"
 		elif trend == "falling":
-			trend_arrow = " ↓"
-		rel_text += trend_arrow
+			rel_text += " ↓"
 
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + name + "[/b][/color]"
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
 		bbcode += _format_bloc_stamp(n.get("bloc_stamp"))
-		bbcode += " — [color=#" + state_color + "]" + diplo_state + "[/color]"
+		bbcode += " — [color=#" + state_color + "]" + Utils.display_diplo_state(diplo_state) + "[/color]"
 		bbcode += "  Relation: [color=#" + rel_color + "]" + rel_text + "[/color]"
 
 		# N4: Vassal eligibility
@@ -320,7 +319,7 @@ func _render_nations():
 		var diplomat = n.get("diplomat")
 		if diplomat != null and diplomat is Dictionary:
 			var d_name = str(diplomat.get("name", "?"))
-			var d_pers = str(diplomat.get("personality", "?"))
+			var d_pers = str(diplomat.get("personality", "?")).capitalize()
 			var d_skill = int(diplomat.get("skill", 0))
 			bbcode += "  Diplomat: " + d_name + " (" + d_pers + ") — Skill " + str(d_skill) + "\n"
 		else:
@@ -365,7 +364,7 @@ func _render_nations():
 					ar_desc_color = Utils.COLOR_SUCCESS
 				elif ar_relation < 0:
 					ar_desc_color = COLOR_RED
-				ai_parts.append(ar_nation + " [color=#" + ar_state_color + "][" + ar_state + "][/color] — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
+				ai_parts.append(Utils.display_nation_name(ar_nation) + " [color=#" + ar_state_color + "][" + Utils.display_diplo_state(ar_state) + "][/color] — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
 			bbcode += "  AI Relations: " + ", ".join(PackedStringArray(ai_parts)) + "\n"
 
 		# N2: War Score Breakdown (WAR only)
@@ -430,9 +429,9 @@ func _render_treaties():
 		var involves_player = t.get("involves_player", true)
 		var header_color = Utils.COLOR_GOLD if involves_player else Utils.COLOR_GREY
 
-		bbcode += "[color=#" + header_color + "]" + nation_a + "[/color]"
+		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_a) + "[/color]"
 		bbcode += " [color=#" + Utils.COLOR_INFO + "]↔[/color] "
-		bbcode += "[color=#" + header_color + "]" + nation_b + "[/color]"
+		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_b) + "[/color]"
 		bbcode += ": [b]" + treaty_type.replace("_", " ").capitalize() + "[/b]\n"
 
 		# Clauses
@@ -470,7 +469,7 @@ func _render_treaties():
 				var gpt_from = str(gpt.get("from", "?"))
 				var gpt_to = str(gpt.get("to", "?"))
 				var gpt_amount = int(gpt.get("amount", 0))
-				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + gpt_from + " → " + gpt_to + ": " + str(gpt_amount) + "g/turn[/color]\n"
+				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + Utils.display_nation_name(gpt_from) + " → " + Utils.display_nation_name(gpt_to) + ": " + str(gpt_amount) + "g/turn[/color]\n"
 
 		bbcode += "\n"
 
@@ -496,7 +495,7 @@ func _render_treaties():
 			var row_type_display = str(row.get("row_type_display", row_type.capitalize()))
 			var s_war_id = str(row.get("war_id", "?"))
 			var s_turn = int(row.get("turn", 0))
-			var s_headline = str(row.get("headline", "Settlement"))
+			var s_headline = Utils.humanize_nation_keys_in_text(str(row.get("headline", "Settlement")))
 			var s_route = str(row.get("route_id", ""))
 			if row_type == "settlement":
 				var s_meta = "settlement:" + str(h_idx) + ":" + s_route
@@ -547,7 +546,7 @@ func _render_treaties():
 		for settle in recent_settlements:
 			var s_war_id = str(settle.get("war_id", "?"))
 			var s_turn = int(settle.get("turn", 0))
-			var s_headline = str(settle.get("headline", "Settlement"))
+			var s_headline = Utils.humanize_nation_keys_in_text(str(settle.get("headline", "Settlement")))
 			var s_route = str(settle.get("route_id", ""))
 			var s_meta = "settlement:" + str(s_idx) + ":" + s_route
 			var focus_match = (
@@ -574,9 +573,9 @@ func _render_treaties():
 		var peace_idx = 0
 		for peace in recent_peace:
 			var meta_key = "peace_ratification:" + str(peace_idx)
-			var headline = str(peace.get("headline", "Peace Ratification"))
-			var summary = str(peace.get("summary", ""))
-			var detail = str(peace.get("detail", ""))
+			var headline = Utils.humanize_nation_keys_in_text(str(peace.get("headline", "Peace Ratification")))
+			var summary = Utils.humanize_nation_keys_in_text(str(peace.get("summary", "")))
+			var detail = Utils.humanize_nation_keys_in_text(str(peace.get("detail", "")))
 			var expanded = bool(_expanded_peace_ratifications.get(meta_key, false))
 			var marker = "v" if expanded else ">"
 			bbcode += "  [url=" + meta_key + "][color=#" + Utils.COLOR_GOLD + "]" + marker + " " + headline + "[/color][/url]"
@@ -590,12 +589,12 @@ func _render_treaties():
 				if terms is Array and terms.size() > 0:
 					bbcode += "    Terms:\n"
 					for term in terms:
-						bbcode += "      - " + str(term) + "\n"
+						bbcode += "      - " + Utils.humanize_nation_keys_in_text(str(term)) + "\n"
 				var aftermath = peace.get("political_aftermath", [])
 				if aftermath is Array and aftermath.size() > 0:
 					bbcode += "    Aftermath:\n"
 					for item in aftermath:
-						bbcode += "      - " + str(item) + "\n"
+						bbcode += "      - " + Utils.humanize_nation_keys_in_text(str(item)) + "\n"
 			peace_idx += 1
 		bbcode += "\n"
 
@@ -616,23 +615,24 @@ func _render_balance_of_europe():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]────────────────[/color]\n"
 
 	var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
-	var hegemon = str(boe.get("hegemon", ""))
+	var hegemon = Utils.display_nation_name(str(boe.get("hegemon", "")))
 	var share_pct = int(float(boe.get("hegemon_share", 0.0)) * 100.0)
 	var bloc_label = str(boe.get("bloc_label", ""))
 	var descriptive_label = str(boe.get("descriptive_label", ""))
 	var label = bloc_label if bloc_label != "" and bloc_label != "<null>" else descriptive_label
 	if label == "" or label == "<null>":
 		label = hegemon
+	label = Utils.humanize_nation_keys_in_text(label)
 	var bloc_members = boe.get("bloc_members", [])
 	var member_line = ""
 	if bloc_members is Array and bloc_members.size() > 1:
 		var member_names = []
 		for member in bloc_members:
-			member_names.append(str(member))
+			member_names.append(Utils.display_nation_name(str(member)))
 		member_line = "Bloc members: " + ", ".join(PackedStringArray(member_names)) + ".\n"
 	match headline_case:
 		"ACTIVE_COALITION":
-			var leader = str(boe.get("coalition_leader", ""))
+			var leader = Utils.display_nation_name(str(boe.get("coalition_leader", "")))
 			bbcode += "[color=#" + COLOR_RED + "]Coalition declared"
 			if leader != "":
 				bbcode += " under " + leader
@@ -725,7 +725,7 @@ func _render_balance_of_europe():
 	else:
 		var qual_strs = []
 		for q in qualifying:
-			qual_strs.append(str(q))
+			qual_strs.append(Utils.display_nation_name(str(q)))
 		bbcode += "  " + ", ".join(PackedStringArray(qual_strs)) + "\n"
 	bbcode += "\n"
 
@@ -736,8 +736,8 @@ func _render_balance_of_europe():
 	var active_coalition = boe.get("active_coalition")
 
 	if active_coalition != null and active_coalition is Dictionary:
-		var c_name = str(active_coalition.get("name", "Unknown"))
-		var c_leader = str(active_coalition.get("leader", "?"))
+		var c_name = Utils.humanize_nation_keys_in_text(str(active_coalition.get("name", "Unknown")))
+		var c_leader = Utils.display_nation_name(str(active_coalition.get("leader", "?")))
 		var c_posture = str(active_coalition.get("posture", "defensive"))
 		bbcode += "  [color=#" + COLOR_RED + "]ACTIVE: " + c_name + " — Leader: " + c_leader + ", Posture: " + c_posture.capitalize() + "[/color]\n"
 		bbcode += "  Combined Strength: " + str(active_coalition.get("combined_strength_display", "Unknown")) + "\n\n"
@@ -745,7 +745,7 @@ func _render_balance_of_europe():
 		# Per-member block
 		var members = active_coalition.get("members", [])
 		for mem in members:
-			var m_nation = str(mem.get("nation", "?"))
+			var m_nation = Utils.display_nation_name(str(mem.get("nation", "?")))
 			var m_strength = str(mem.get("strength_display", "?"))
 			var m_we = int(mem.get("war_exhaustion", 0))
 
@@ -844,7 +844,7 @@ func _render_talleyrand():
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Idle — no active diplomatic mission.[/color]\n"
 	else:
 		var m_type = str(mission.get("type", "?"))
-		var m_target = str(mission.get("target", "?"))
+		var m_target = Utils.display_nation_name(str(mission.get("target", "?")))
 		var m_duration = int(mission.get("duration", 0))
 		var m_paused = mission.get("paused", false)
 		var status = "Active"
@@ -894,7 +894,7 @@ func _render_talleyrand():
 	if pit == null or not (pit is Dictionary):
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]None[/color]\n"
 	else:
-		var p_target = str(pit.get("target", "?"))
+		var p_target = Utils.display_nation_name(str(pit.get("target", "?")))
 		var p_type = str(pit.get("type", "?"))
 		var p_eta = int(pit.get("eta", 0))
 		bbcode += "  To " + p_target + ": " + p_type.replace("_", " ").capitalize()
@@ -914,7 +914,7 @@ func _render_talleyrand():
 	else:
 		for w in warnings:
 			if w is Dictionary:
-				var w_target = str(w.get("target", "?"))
+				var w_target = Utils.display_nation_name(str(w.get("target", "?")))
 				var w_type = str(w.get("type", "?"))
 				bbcode += "  [color=#" + Utils.COLOR_ERROR + "]WARNING: " + w_type + " targeting " + w_target + "[/color]\n"
 			else:
@@ -954,7 +954,7 @@ func _render_talleyrand():
 			if entry is Dictionary:
 				var h_turn = int(entry.get("turn", 0))
 				var h_type = str(entry.get("type") if entry.get("type") != null else "?")
-				var h_target = str(entry.get("target", ""))
+				var h_target = Utils.display_nation_name(str(entry.get("target", "")))
 				var h_nation = str(entry.get("nation", ""))
 				var h_detail = str(entry.get("detail", ""))
 				# Color by type
@@ -1014,9 +1014,9 @@ func _render_war_bargains():
 
 
 func _format_bargain_entry(b: Dictionary) -> String:
-	var promiser = str(b.get("promiser", "?"))
-	var beneficiary = str(b.get("beneficiary", "?"))
-	var named_enemy = str(b.get("named_enemy", "?"))
+	var promiser = Utils.display_nation_name(str(b.get("promiser", "?")))
+	var beneficiary = Utils.display_nation_name(str(b.get("beneficiary", "?")))
+	var named_enemy = Utils.display_nation_name(str(b.get("named_enemy", "?")))
 	var claim_region = str(b.get("claim_region", "?"))
 	var status = str(b.get("status", "?"))
 	var created_turn = int(b.get("created_turn", 0))
@@ -1161,8 +1161,8 @@ func _format_settlement_sections(sections) -> String:
 				if not term is Dictionary:
 					continue
 				var ttype = str(term.get("display_label", term.get("type_display", term.get("type", "?"))))
-				var t_from = str(term.get("from", ""))
-				var t_to = str(term.get("to", ""))
+				var t_from = Utils.display_nation_name(str(term.get("from", "")))
+				var t_to = Utils.display_nation_name(str(term.get("to", "")))
 				var arrow = ""
 				if t_from != "" or t_to != "":
 					arrow = " " + t_from + "→" + t_to
@@ -1180,7 +1180,7 @@ func _format_settlement_sections(sections) -> String:
 			for ally in ally_rows:
 				if not ally is Dictionary:
 					continue
-				var nation = str(ally.get("nation", "?"))
+				var nation = Utils.display_nation_name(str(ally.get("nation", "?")))
 				var standing = str(ally.get("standing_display", ally.get("standing", "consult")))
 				var marker = ""
 				if bool(ally.get("is_beneficiary", false)):
@@ -1207,7 +1207,7 @@ func _format_settlement_sections(sections) -> String:
 				var warn_color = Utils.COLOR_INFO
 				if sev == "HARD_STOP":
 					warn_color = COLOR_RED
-				bbcode += "      [color=#" + warn_color + "]• [" + sev + "] " + code
+				bbcode += "      [color=#" + warn_color + "]• [" + sev.replace("_", " ") + "] " + code
 				if detail != "":
 					bbcode += " — " + detail
 				bbcode += "[/color]\n"
