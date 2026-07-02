@@ -1901,6 +1901,12 @@ class WorldState:
                 "carved_from": None,
                 "regions": None,
             }
+            # Live-game parity (1805 scenario fold): every vassal-creation
+            # path stamps the pair's diplomatic state (vassal.py treaty/
+            # conquest vassalization), and "VASSAL" is an OPEN_MOVEMENT
+            # state — without it the lord's marshals cannot legally enter
+            # satellite soil (France locked out of Milan/Amsterdam/Bern).
+            self.diplomatic_states[self._make_diplo_key(state["lord"], vassal)] = "VASSAL"
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start.
@@ -4335,9 +4341,14 @@ class WorldState:
         # Per-nation gold: prefer nation_gold dict, fall back to old single gold field
         if "nation_gold" in data:
             world.nation_gold = {k: int(v) for k, v in data["nation_gold"].items()}
-        else:
+        elif "gold" in data or world.sovereign_map != "europe":
             # Backward compat: old save with single gold field. The constructor
             # already seeded world-scoped defaults; just override the player.
+            # Legacy dicts with NEITHER key keep the pinned 1200 default;
+            # a Europe world without a legacy `gold` key keeps its
+            # construction-time treasury (1805 pre-slice item 3 —
+            # EUROPE_NATION_GOLD, France 800), so an omitted-gold scenario
+            # doesn't hand the player a +50% treasury.
             old_gold = data.get("gold", 1200)
             world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
@@ -4948,9 +4959,27 @@ class WorldState:
         # If no regions specified, use default map
         if not scenario_data.get("regions"):
             region_factory = create_europe_regions if europe else create_regions
+            default_regions = region_factory()
+            # Mirror WorldState._setup_initial_control(): the region factory
+            # leaves controller/garrison for the constructor to stamp, but
+            # from_dict OVERWRITES the constructor-stamped regions with these
+            # injected dicts — so an omitted-`regions` scenario must inject
+            # the same start-state control the default world would have
+            # (controllers from the map's starting map + 15,000 capital
+            # garrisons). Without this, every region loads controller-less:
+            # zero income, no supply attrition, no capturable territory.
+            starting_controllers = (
+                get_europe_starting_controllers() if europe else get_starting_controllers()
+            )
+            for name, region in default_regions.items():
+                controller = starting_controllers.get(name)
+                if controller:
+                    region.controller = controller
+                if region.is_capital:
+                    region.garrison_strength = 15000
             scenario_data["regions"] = {
                 name: region.to_dict()
-                for name, region in region_factory().items()
+                for name, region in default_regions.items()
             }
 
         # If no marshals specified, use defaults. Europe scenarios get NO
@@ -5005,6 +5034,16 @@ class WorldState:
                     )
                 world.diplomatic_states[pair] = "WAR"
                 world.war_start_turns.setdefault(pair, int(world.current_turn))
+
+        # 1805 scenario authoring: nations that START without marshals are
+        # deliberately army-less (e.g. Hanover disbanded since Artlenburg),
+        # not "eliminated". Pre-seed the enemy-phase notification dedupe so
+        # the first end-turn doesn't announce "their forces are spent" for
+        # every authored army-less nation; a nation that starts ARMED and
+        # later loses its last marshal still notifies normally.
+        for nation in world.enemy_nations:
+            if not world.get_marshals_by_nation(nation):
+                world.eliminated_nations_notified.add(nation)
 
         return world
 

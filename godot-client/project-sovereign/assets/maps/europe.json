@@ -5791,7 +5791,7 @@
       ],
       "name": "Milan",
       "starting_controller": "KingdomOfItaly",
-      "terrain": "mountains",
+      "terrain": "plains",
       "region_type": "capital",
       "is_capital": true
     },
