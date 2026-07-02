@@ -1,5 +1,7 @@
 # Manual Test Plan (Godot + Backend)
 
+> **Which world am I testing?** Test E (E1-E5) is the current default-boot smoke — the 126-province 1805 Europe campaign (no env vars needed). Tests 1-17, Test G, and Test M were authored against the retired 19-region world; to run them as written, boot with `SOVEREIGN_MAP=legacy` and no scenario env. They remain valid legacy-fixture drills.
+
 ## Setup (every test session)
 
 ```bash
@@ -742,7 +744,7 @@ Hover over Lyon (player-placed garrison):
 #### G4C. Hover tooltip — capital garrison
 
 Hover over Paris:
-- Tooltip shows "Garrison: 15,000" (no [Detachment] tag)
+- Tooltip shows "Garrison: 15,000" (no [Detachment] tag) *(legacy value; on the 1805 default boot Paris is a major-tier capital at 25,000 — `get_capital_garrison_target`)*
 
 ---
 
@@ -794,7 +796,7 @@ end turn
 ```
 
 **Expected:**
-- Status bar shows: `Turn: 1  Actions: 4/4  Admin: 2/2  Gold: 1,200  Inf: 80,000  Cav: 15,000`
+- Status bar shows: `Turn: 1  Actions: 4/4  Admin: 2/2  Gold: 1,200  Inf: 80,000  Cav: 15,000` *(legacy start values; the 1805 boot starts at 800 gold — see Test E1)*
 - Inf value is green, Cav value is reddish
 - No layout clipping — all 6 items visible in status bar
 
@@ -1139,8 +1141,8 @@ Verify manpower HUD updates after each interaction type:
 
 ### DL10. Top bar envoy indicator
 1. Start game (no envoys) — envoy indicator hidden
-2. Get diplomatic proposal from AI — envoy indicator appears with count
-3. Click envoy indicator — auto-types advisory command in terminal
+2. Get diplomatic proposal from AI — top-bar "Envoys (N)" button appears with count
+3. Click "Envoys (N)" — opens the mailbox/inbox panel (PL-27, April 2026; formerly auto-typed an advisory command)
 **Expected:** Clickable, amber badge, hidden when count is 0.
 
 ### DL11. R key opens dispatch (rebind from D)
@@ -1596,7 +1598,7 @@ curl http://127.0.0.1:8005/authority_status
 - No more than 1 AI proposal per 2-3 turns
 - Rejected proposals have 3+ turn cooldown before same nation re-proposes
 - Player can at minimum check status while proposal is pending
-- Currently FAILS — proposals arrive nearly every turn and block all commands
+- FIXED April 2026 (PL-27 + offer-lifetime refactor: proposals are non-blocking soft-stops, "Not Now" defers, unanswered offers lapse at end of turn)
 
 ### DP16. Defeat warning before game over (PL-28 investigation)
 
@@ -1609,7 +1611,7 @@ curl http://127.0.0.1:8005/authority_status
 **Expected (ideal):**
 - Warning notification when France controls ≤ 4 regions (1 above defeat threshold?)
 - Morning dispatch mentions critical territory loss
-- Currently FAILS — no warning, sudden "The war is over"
+- FIXED April 2026 (PL-28 defeat-imminent warning)
 
 ### DP17. Combat winnable scenario (PL-26 investigation)
 
@@ -1624,5 +1626,19 @@ curl http://127.0.0.1:8005/authority_status
 **Expected (ideal):**
 - At least some attack configurations should produce attacker victories
 - Player should have a viable combat strategy, not just "throw troops and lose"
-- Currently UNCLEAR — no attacker victories observed in 2 full playtests
+- FIXED April 2026 (PL-26)
+
+---
+
+## Test S — Settlement (interim)
+
+The settlement manual checklist currently lives as the Gate 4 residual eyes-only list in `docs/STATUS.md`'s July 2, 2026 entry:
+
+- Settlement popup at 3+ court width
+- Blocked-REVIEW recovery rail
+- Incoming-offer click-through
+- War detail → settlement routing
+- Discard-notice render
+
+A full ported Test S section is owned by the next manual-test-plan pass after Gate 4 passage is recorded.
 

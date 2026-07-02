@@ -170,6 +170,8 @@ Supply lines is a gameplay feature, not a scaling prerequisite. The current loca
 
 **No code changes required for map scaling.** The existing `process_supply_attrition` and `region.supply_capacity` work at any region count.
 
+**Trigger FIRED July 2, 2026 (Slice 8 playtest ran) — the evaluation is owned by `docs/ECONOMY_REVISIT_SPEC.md` EC-7.**
+
 ---
 
 ### DG-4. War Cascade Depth Policy
@@ -393,6 +395,8 @@ The France-led 1805 Europe prototype is an open-ended campaign by default. Real-
 - `strategic_power` remains a weighting / salience concept for AI and UI. It does not create a required global victory denominator in the base prototype.
 - Existing defeat / collapse rules may still exist separately; this gate is only about mandatory win conditions, not about making the campaign impossible to lose.
 - Any later hard-objective system must be scenario-authored and optional. Do not reintroduce a single global `VICTORY_REGION_FRACTION` rule for all campaigns.
+
+**July 2, 2026: three-way doc/code contradiction recorded** (decided no-hard-victory vs live `VICTORY_REGION_FRACTION=0.75` + 60-turn time-expired end vs CLAUDE.md hegemony gloss) — **the decision is owned by `docs/ECONOMY_REVISIT_SPEC.md` EC-6.**
 
 ---
 
@@ -1302,20 +1306,20 @@ After playtesting with real Europe prototype: adjust threat thresholds, friction
 | 4.3 | Color-map validator | 4 | DONE | April 19, 2026 |
 | 4.4 | Unwired province support | 4 | COMPLETE | April 19, 2026 |
 | 5.1 | Direct-only war entry + refusal event | 5 | DONE | April 25, 2026 (DG-4 amendment families — see §5.1 closeout) |
-| 5.2 | Categorized dispatch sections + priority escalation | 5 | OPEN | DEF-4 fallback home; Slice 8 (July 2, 2026) measured density NOT forcing it |
-| 5.3 | Coalition friction scaling | 5 | OPEN | DEF-4 fallback home; same Slice 8 measurement |
-| 5.4 | Hegemony victory check | 5 | | (§5.4's live content is the optional scenario-objectives hook) |
+| 5.2 | Categorized dispatch sections + priority escalation | 5 | OPEN | DEF-4 fallback home unchanged; measured NOT forced at Slice 8 (July 2, 2026); the 15× tripwire stands watch |
+| 5.3 | Coalition friction scaling | 5 | OPEN | DEF-4 fallback home unchanged; measured NOT forced at Slice 8 (July 2, 2026); the 15× tripwire stands watch |
+| 5.4 | Hegemony victory check | 5 | Deferred-with-contract (unchanged) | (§5.4's live content is the optional scenario-objectives hook.) NOTE July 2, 2026: live code currently violates the no-global-victory contract (`VICTORY_REGION_FRACTION` + turn-limit end active) — reconciliation owned by `docs/ECONOMY_REVISIT_SPEC.md` EC-6 |
 | 5.5 | Scenario-configured pacing loader | 5 | SUPERSEDED | Shipped via from_scenario/SOVEREIGN_SCENARIO — see §5.5 note (July 2, 2026) |
-| 5.6 | Bilateral diplomacy O(N^2) | 5 | OPEN | DEF-4 fallback home; 15× campaign-turn tripwire stands watch |
-| 6.1 | Marshal management pagination | 6 | | |
-| 6.2 | Strategic ledger sectioning | 6 | | |
-| 6.3 | Incremental map updates | 6 | | |
-| 6.4 | Diplomatic ledger collapsibles | 6 | | |
-| 6.5 | Talleyrand advisory prioritization | 6 | | |
-| 7.1 | Tooltip caching | 7 | | |
-| 7.2 | All-pairs distance precomputation | 7 | | |
-| 7.3 | Save file migration | 7 | | |
-| 7.4 | Coalition full retuning | 7 | | |
+| 5.6 | Bilateral diplomacy O(N^2) | 5 | OPEN | DEF-4 fallback home unchanged; measured NOT forced at Slice 8 (July 2, 2026); the 15× tripwire stands watch |
+| 6.1 | Marshal management pagination | 6 | OPEN | Re-homed July 2, 2026 to the DEF-13 UI-Scale Mini-Pass evaluation (assess together at that slice; open sub-items there or close measured-not-needed) |
+| 6.2 | Strategic ledger sectioning | 6 | OPEN | Re-homed July 2, 2026 to the DEF-13 UI-Scale Mini-Pass evaluation (assess together at that slice; open sub-items there or close measured-not-needed) |
+| 6.3 | Incremental map updates | 6 | OPEN | Re-homed July 2, 2026 to the DEF-13 UI-Scale Mini-Pass evaluation (assess together at that slice; open sub-items there or close measured-not-needed). Partially mooted by the Slice-6 owner-fill shader (re-tint is one uniform upload); residual = the `_rebuild_dynamic_nodes` marker path |
+| 6.4 | Diplomatic ledger collapsibles | 6 | OPEN | Re-homed July 2, 2026 to the DEF-13 UI-Scale Mini-Pass evaluation (assess together at that slice; open sub-items there or close measured-not-needed) |
+| 6.5 | Talleyrand advisory prioritization | 6 | OPEN | Re-homed July 2, 2026 to the DEF-13 UI-Scale Mini-Pass evaluation (assess together at that slice; open sub-items there or close measured-not-needed) |
+| 7.1 | Tooltip caching | 7 | CLOSED | July 2, 2026 — measured-not-forced under the standing Slice-8 tripwires (bare-Europe 2× / campaign 15× in `tests/test_scale_readiness_phase2.py`); reopen only on a tripwire trip |
+| 7.2 | All-pairs distance precomputation | 7 | CLOSED | July 2, 2026 — measured-not-forced under the standing Slice-8 tripwires (bare-Europe 2× / campaign 15× in `tests/test_scale_readiness_phase2.py`); reopen only on a tripwire trip |
+| 7.3 | Save file migration | 7 | SUPERSEDED | July 2, 2026 — superseded by the DEF-2 disposition: `save_manager.FORMAT_VERSION=3` versioned-incompat guard, no migrator demanded (MAP_IMPLEMENTATION_PLAN DEF-2 row) |
+| 7.4 | Coalition full retuning | 7 | OPEN | Merged with COALITION_SPEC §15 playtest tuning; owner: the first sustained 1805 balance pass (see `docs/ECONOMY_REVISIT_SPEC.md` umbrella) |
 
 ---
 

@@ -1,7 +1,8 @@
 # Ink & Iron: Future Design Concepts
 
 > **CONCEPTUAL DESIGNS** — not yet implemented. Phase scheduling lives in ROADMAP.md.
-> **Last Updated:** February 25, 2026 (Trimmed: removed implemented sections, archived verbose examples)
+> **Entries here are CONCEPTS, not promises.** Nothing in this file ships without an owner row/spec per CLAUDE.md Golden Rule 9; implemented systems are removed from this file as they land.
+> **Last Updated:** July 2, 2026 (Landed systems removed: Phase 8 diplomacy, vassals, coalition triggers, war goals & peace terms)
 
 ---
 
@@ -38,14 +39,13 @@ Scale -3 (Civil War) to +3 (Triumphant). Affects action count, revolt risk. Chan
 
 ## Diplomacy System (Phase 8)
 
-- Natural language negotiation with AI leaders via persistent conversation threads
-- LLM remembers broken promises, past deals
-- Treaties are mechanical (peace, alliance, war declaration, envoy, treaty-breaking)
-- Relationship level (-100 to +100), war weariness, active proposals
+**LANDED** — Phase 8 diplomacy is live in `diplomacy.py` and companion modules (treaties, relations, proposals, dialogue). See `docs/DIPLOMACY_SPEC.md` + `docs/SYSTEMS_REFERENCE.md`.
 
 ---
 
 ## Naval & Colonial Power Abstraction
+
+> Live owner: the DEF-5 naval spec row in `docs/MAP_IMPLEMENTATION_PLAN.md`.
 
 **No ship-to-ship combat.** Britain's naval supremacy = economic/strategic effects (blockade -30% income, expeditionary support to coastal regions, trade dominance +100 gold/turn). France counters via Continental System, coastal forts, alliances.
 
@@ -57,24 +57,22 @@ Scale -3 (Civil War) to +3 (Triumphant). Affects action count, revolt risk. Chan
 
 - **Timeline:** Year-based (1805-1815), monthly turns, ~120 turn campaign
 - **Character Death:** Battle (5%), illness (2%/year), old age (10%/year over 60). LLM generates death narrative + replacement marshal.
-- **Vassal System:** Conquered nations get autonomy levels (puppet/satellite/ally/independent). Loyalty affected by war weariness, French defeats, distance, nationalism.
+- **Vassal System:** LANDED — live in `vassal.py` (autonomy levels, loyalty, rebellion, tribute, investment). See `docs/SYSTEMS_REFERENCE.md`.
 
 ---
 
 ## Missing Design Elements (EA Priority)
 
-> Implemented systems: Supply/Logistics (Phase 6.2), Manpower Pools (Session 41), Fog of War (Sessions 33-36), Terrain (Phase 6.1), Attrition (Phase 6.2.F). See SYSTEMS_REFERENCE.md.
+> Implemented systems: Supply/Logistics (Phase 6.2), Manpower Pools (Session 41), Fog of War (Sessions 33-36), Terrain (Phase 6.1), Attrition (Phase 6.2.F), Coalition Triggers (LANDED — `coalition.py`, Phase 8), War Goals & Peace Terms (LANDED — WPS + Imperial Settlement + war bargains, April 2026). See SYSTEMS_REFERENCE.md.
 
 ### Still Needed
 
 | System | Priority | Notes |
 |--------|----------|-------|
-| Coalition Triggers | Phase 8 | Threat calculation, 2-4 turn warning, preventable via diplomacy |
-| Weather & Seasons | EA | Spring/summer/autumn/winter cycle, movement -1 in mud, +3 attrition in winter |
-| Siege Mechanics | EA | 3 fortress levels, starve/assault/bombardment/negotiate options |
-| War Goals & Peace Terms | EA | Warscore from battles/occupation/capital → annex/puppet/reparations/trade |
+| Weather & Seasons | EA | Spring/summer/autumn/winter cycle, movement -1 in mud, +3 attrition in winter. Concept only — no owner row; becomes a promise only when a phase adopts it |
+| Siege Mechanics | EA | 3 fortress levels, starve/assault/bombardment/negotiate options. Concept only — no owner row; becomes a promise only when a phase adopts it |
 | Supply Lines (distance-based) | Post-EA | Armies can be unsupplied, foraging, combat penalty |
-| Winter Attrition | Post-EA | Disease events, base idle attrition |
+| Winter Attrition | Post-EA | Disease events, base idle attrition. Concept only — no owner row; becomes a promise only when a phase adopts it |
 
 ### Nice to Have (Post-EA)
 Espionage, trade routes, legitimacy/government, religion (minor), detailed economics, leader traits, naval battle events.
@@ -145,7 +143,7 @@ Nation personalities define aggression, courage, pragmatism, honor, opportunism 
 
 ### AI-AI Strategic Intent (Building Blocks Prep)
 
-> **Status:** Infrastructure is 95% nation-agnostic (Mar 2026 audit). Missing: AI *decision-making* to proactively attack, vassalize, or exploit other AI nations.
+> **Status (July 2026):** Infrastructure is 95% nation-agnostic (Mar 2026 audit). `ai_diplomacy.py` now carries the Trigger 2 "Opportunistic Downgrade" (AI-AI relations slide toward war opportunistically), but the three named capabilities below remain unimplemented: opportunistic war declaration, AI vassalization of beaten opponents (`create_vassal_conquest()` still has no AI caller), and cross-AI peacetime threat assessment. **Owner: the ROADMAP critical-path 8c row.**
 
 **What already works generically:**
 - Combat, territory conquest, war declaration (via downgrade), treaty upgrades, nation elimination, vassal creation mechanics, enemy AI targeting (`get_enemies_of_nation()`)
@@ -173,13 +171,14 @@ Replace `historical_ownership` with `core_territories`. Core territories always 
 
 ## Army Cohesion (Deferred)
 
-New Marshal field `cohesion: int` (0-100). Rabble/Green/Trained/Veterans with combat modifiers. Raised by drilling, winning battles, time together. Lowered by mass recruitment (dilution). **Deferred until playtesting shows morale dilution alone is insufficient.**
+New Marshal field `cohesion: int` (0-100). Rabble/Green/Trained/Veterans with combat modifiers. Raised by drilling, winning battles, time together. Lowered by mass recruitment (dilution). **Evaluate at the Marshal Content Pass design gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`) — else delete.**
 
 ---
 
 ## Imperial Governance — Marshals as Military Governors (Phase 8.5/11)
 
 > **NEEDS SPEC.** Raw concept — critical design risks identified below.
+> **Owner:** the ROADMAP Phase 8.5 Imperial Governance Events row + the Phase 11 Imperial Governance → Vassals row; the full system needs its own spec + design gate before any code.
 
 **Core idea:** Territory management through marshals, not spreadsheets. Marshal who conquers a region becomes military governor. Personality shapes outcomes (Davout stabilizes, Ney suppresses but damages long-term). **Best general = best governor** creates command dilemma.
 
@@ -195,4 +194,4 @@ New Marshal field `cohesion: int` (0-100). Rabble/Green/Trained/Veterans with co
 
 ---
 
-*Last updated February 25, 2026. Verbose code examples archived — see git history for full designs.*
+*Last updated July 2, 2026. Verbose code examples archived — see git history for full designs.*

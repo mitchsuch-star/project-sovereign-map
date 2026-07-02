@@ -2,6 +2,10 @@
 
 Consolidated reference for all game systems. Read when modifying related code.
 
+> **Shipped world (July 2, 2026):** the running game is the 20-nation / 126-province 1805 campaign (real-map cutover complete July 2, 2026). Legacy 5-nation / 19-region numbers in older sections below describe the test-fixture world unless marked otherwise.
+>
+> **Editorial note:** this doc contains duplicate section numbers (two §6b, two §17, two §18) from historical accretion — deliberately NOT renumbered, because cross-references elsewhere depend on them.
+
 ---
 
 ## Table of Contents
@@ -1122,11 +1126,11 @@ AI marshals at recklessness 3+ always charge (no popup decision needed).
 Player Input ("Ney, march to Belgium")
     |
     v
-1. FAST PARSER          llm_client.py:441      Keywords -> action="move"
+1. FAST PARSER          llm_client.py:~442     Keywords -> action="move"
     |
     v
 2. STRATEGIC DETECTION  parser.py:316          detect_strategic_command()
-    |                   strategic_parser.py:81  -> returns is_strategic, strategic_type, etc.
+    |                   strategic_parser.py:~218 -> returns is_strategic, strategic_type, etc.
     |
     v
 3. VALIDATION           validation.py:117      VALID_STRATEGIC_TYPES check
@@ -1167,7 +1171,7 @@ Player Input ("Ney, march to Belgium")
 ### Stage 2: Strategic Detection
 
 **File:** `backend/ai/strategic_parser.py`
-- **Line 81:** `detect_strategic_command(text, marshals, regions, world)` -- main entry
+- **Line ~218:** `detect_strategic_command(text, marshals, regions, world)` -- main entry
 - **Line 189:** `_detect_strategic_type(text)` -- classifies: MOVE_TO, PURSUE, HOLD, SUPPORT
 - **Line 264:** `_classify_target(target, regions, marshals, world)` -- target_type: region, marshal, battle, generic
 - **Line 348:** `_parse_condition(text)` -- parses: until_marshal_arrives, until_marshal_destroyed, max_turns, until_battle_won
@@ -1357,6 +1361,8 @@ When a player issues a tactical command to a marshal with an active strategic or
 
 ## 5. LLM Integration
 
+> The known 1805 roster-pinning parser defect and the parser/LLM hardening phase plan (slices CR-0..CR-7) live in `docs/COMMAND_ROBUSTNESS_SPEC.md` (CR-0 owns the roster-pinning defect).
+
 ### Command Parsing Pipeline
 
 ```
@@ -1431,7 +1437,7 @@ ANTHROPIC_API_KEY=sk-ant-api03-...   # Required if LLM_MODE=anthropic
 ### Cost Estimation (Anthropic Haiku)
 - Per request: ~500 input + ~200 output tokens = **~$0.0004**
 - 1,000 ambiguous commands = **~$0.40**
-- Fast parser catches 90%+, so real cost is much lower
+- Fast parser catches most commands (unmeasured; a parser eval harness is owned by `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-1), so real cost is much lower
 
 ### Strategic Score & Ambiguity
 
@@ -2143,7 +2149,7 @@ Two new methods on `WorldState` alongside existing BFS:
 | `move` | Movement | 1 | Move to adjacent region |
 | `retreat` | Movement | 1 | Withdraw from combat |
 | `scout` | Intel | 1 | Gather intelligence |
-| `recruit` | Economic | 1 Admin AP | Raise 10k troops (uses admin AP, not CP). Cost: 150-300 gold. Morale dilution. |
+| `recruit` | Economic | 1 Admin AP | Raise troops (uses admin AP, not CP). Cost: base 200/300/400 gold (infantry/cavalry/artillery, `world_state.py:90-92`) with capital ×0.75 / settling-stability ×1.5 (`economy_executor.py:140-154`) → true range 150-600. Morale dilution. |
 | `reinforce` | Movement | 1 | Move to ally marshal |
 | `fortify` | Tactical | 1 | Dig in for defense bonus |
 | `unfortify` | Tactical | 1 | Abandon fortifications |
@@ -2241,15 +2247,7 @@ Each region has a `region_type` field that determines its base income:
 
 ### Per-Nation Gold (Phase 6.2.A)
 
-Gold is tracked per nation in `world_state.nation_gold` dict:
-
-```python
-self.nation_gold = {
-    "France": 800,   # Player starting gold
-    "Britain": 800,  # Naval/trade wealth
-    "Prussia": 300,  # Smaller economy
-}
-```
+Gold is tracked per nation in `world_state.nation_gold` dict. Starting values have a SINGLE SOURCE in `backend/nation_config.py`: `DEFAULT_NATION_GOLD` for the legacy fixture world (France 800, Britain 1500, Prussia 800, Austria 600, Saxony 200) and `EUROPE_NATION_GOLD` for the shipped 1805 world (France 800; Russia 1500 post-retune), applied on the Europe path via `build_europe_nation_gold()`.
 
 **Convenience property:** `world.gold` reads/writes `nation_gold[player_nation]`. All existing code referencing `world.gold` continues to work unchanged.
 
@@ -2673,7 +2671,7 @@ Dedicated field on Region (not a building slot). Every region type allowed.
 
 ### AI and Fog
 
-AI is omniscient on 19 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly (war-gated — see §16). Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
+**Superseded (Scale Readiness Phase 2.3, April 19, 2026):** enemy AI is no longer omniscient on scale-sensitive queries. The nation-perspective live-visibility seam is landed — enemy AI routes scale-sensitive contact queries through `_should_use_fog_aware_enemy_query()` and the fog-aware cached contacts in `_get_enemy_contacts()` (`enemy_ai.py:540-573`); player autonomous AI keeps the player-facing RegionIntel view. Direct `world.marshals` / `get_enemies_in_region()` reads survive only on non-scale-sensitive paths (war-gated — see §16). Auto-charge still ignores fog (spec §9.2 — reckless cavalry finds trouble). The old "revisit at 80+ regions" deferral is overtaken — the 126-province map shipped July 2, 2026.
 
 ### Objection System + Fog
 
@@ -2704,6 +2702,8 @@ Backend sends `visibility_status` per region in `get_filtered_game_state_summary
 | **LAST_KNOWN** | Dark grey (65% alpha) | Not shown | Minimal: name, controller, "Last known (outdated)" |
 | **UNKNOWN** | Near-black (75% alpha) | Not shown | Minimal: name, controller, "No intelligence" |
 
+**Shipped Europe map:** province fog rides the owner-fill shader palette instead — `_refresh_owner_fill_palette()` (map_renderer_base.gd) composites the `FOG_OVERLAYS` color into each province's palette slot, with the hue lerp scaled by `FOG_HUE_LERP_SCALE = 0.6` (Slice 7.5). The Region Overlay alpha column above describes the legacy circle map only.
+
 Fogged enemies (PARTIAL/STALE) use `fogged_forces[]` from backend response. Tooltip shows name, nation, strength band, intel quality.
 
 Key files: `map.gd` (`_draw_fogged_force_icons()`, `_draw_fogged_tooltip()`, `FOG_OVERLAYS` const).
@@ -2731,6 +2731,8 @@ Marshal type (`cavalry: bool`, `artillery: bool`) auto-determines which pool is 
 | France | 80,000 | 15,000 | 10,000 |
 | Britain | 50,000 | 8,000 | 5,000 |
 | Prussia | 60,000 | 10,000 | 5,000 |
+
+Legacy fixture values above. The shipped 1805 world seeds pools from `EUROPE_MANPOWER_POOLS` in `backend/nation_config.py` — all 20 nations, the same three pool types, sized so coalition majors can fund 1-2 rebuilt armies (not endless waves).
 
 ### Regen (per turn)
 
@@ -2787,7 +2789,7 @@ Manpower pools are displayed permanently in the Godot status bar alongside Turn,
 |------|-------------|
 | `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, `get_artillery_regen_rate()`, serialization, `get_game_state_summary()` (manpower in API) |
 | `region.py` | `"stables"` in `BUILDING_TYPES` |
-| `executor.py` | `_execute_recruit` (pool drawing, type-based costs, Berthier voice), `_calculate_recruit_cost(base_cost)`, `_extract_building_type` (stables), `_execute_economy` (manpower section) |
+| `economy_executor.py` | `_execute_recruit` (pool drawing, type-based costs, Berthier voice), `_calculate_recruit_cost(base_cost)`, `_extract_building_type` (stables), `_execute_economy` (manpower section) — live in `backend/commands/economy_executor.py` since the R13A split, not `executor.py` |
 | `enemy_ai.py` | Pool/cost-aware recruit, `_should_build_stables()`, `_find_best_stables_region()`, Priority 4.5 |
 | `main.py` | `manpower_pools` in `/test` endpoint response |
 | `main.tscn` | ManpowerDisplay nodes (InfLabel, InfValue, CavLabel, CavValue) |
@@ -3176,7 +3178,7 @@ Phase 8 Sessions 1A+1B foundation. Full spec in `docs/DIPLOMACY_SPEC.md`.
 
 ### Nations
 
-5 nations: France (player), Britain, Prussia, Austria, Saxony. 19 regions (expanded from 13).
+Legacy fixture world: 5 nations (France player, Britain, Prussia, Austria, Saxony), 19 regions (expanded from 13). **The running game (July 2, 2026 cutover) is 20 nations / 126 provinces**, built via `create_europe_regions()` + `create_europe_diplomats()` — 15 additional diplomats beyond the named cast below, voiced through the chancery fallback until DEF-1 Roster Voices lands.
 
 ### Diplomatic States
 
@@ -3221,8 +3223,8 @@ enemies = [m for m in world.marshals.values()
 |------|---------|
 | `world_state.py` | `_make_diplo_key()`, `is_at_war()`, `get_diplomatic_state()`, `modify_nation_relation()`, `get_enemies_in_region()`, `_find_nearest_enemy_for_nation()` |
 | `enemy_ai.py` | All inline enemy checks use `world.is_at_war()` |
-| `region.py` | 19 regions, `NATION_CAPITALS`, `starting_controller` |
-| `marshal.py` | `create_enemy_marshals()` — 7 enemy marshals across 4 nations |
+| `region.py` | 19 legacy fixture regions (`REGIONS_DATA`), `NATION_CAPITALS`, `starting_controller`; the shipped 126-province world comes from `create_europe_regions()` |
+| `marshal.py` | `create_enemy_marshals()` — 7 enemy marshals across 4 nations (legacy fixture; the 1805 campaign roster is scenario-authored) |
 | `tests/test_session_1b.py` | 56 gate tests for Session 1B |
 | `tests/test_diplomatic_war_gating.py` | 16 regression tests for war gating |
 
@@ -3592,11 +3594,13 @@ MapArea (Control, full-rect)
 │           ├── MapCamera (Camera2D, enabled=true)
 │           ├── WorldLayer (show_behind_parent)
 │           ├── VisualMapLayer
+│           ├── OwnerFillLayer (Slice 6 — political owner-fill fragment shader over the lookup bitmap; bitmap maps only)
 │           ├── ProvinceHighlightLayer
 │           ├── ConnectionLayer (MapConnectionLayer)
 │           ├── RegionLayer
 │           ├── ForceLayer
 │           └── GarrisonLayer
+├── MapLabelLayer (screen-space zoom-LOD name labels, `scenes/map_label_layer.gd` — bitmap maps only)
 └── TooltipLayer (MapTooltipLayer, outside viewport — screen-space)
 ```
 
@@ -3608,9 +3612,9 @@ MapArea (Control, full-rect)
 map_camera.zoom = Vector2(_zoom_level, _zoom_level)
 ```
 
-Key constants: `min_zoom = 0.3`, `max_zoom = 4.0`, `ZOOM_SPEED = 0.1`, `INITIAL_CAMERA_OVERSCAN = 1.18`.
+Key constants (post-Slice-7.5 / DEF-9): `min_zoom` is floored at the contain-fit ratio and recomputed on every resize; `max_zoom = 2.5`; `ZOOM_SPEED = 0.1`. `INITIAL_CAMERA_OVERSCAN` is deleted.
 
-Initial zoom fits the map with overscan: `fit_ratio / INITIAL_CAMERA_OVERSCAN`.
+Initial zoom is the exact contain-fit ratio — boot shows the whole theater, no overscan.
 
 ### Coordinate Conversion
 
@@ -3650,6 +3654,6 @@ map_camera.position = _clamp_camera_position(target_position)
 | File | Role |
 |------|------|
 | `map_renderer_base.gd` | Base class: layers, camera, input, province lookup, hover/click, draw |
-| `map.gd` | Extends base: region positions, connections, colors, asset paths |
+| `map.gd` | Post-Slice-7: the Europe game map, on the chain `map_renderer_base.gd` → `europe_map.gd` → `map.gd` — adds only game glue (backend `/map_topology` handoff, shared color scheme). Smoke logic lives in `europe_map_smoke.gd` |
 | `map_connection_layer.gd` | Connection line drawing |
 | `map_tooltip_layer.gd` | Screen-space tooltip rendering (outside SubViewport) |

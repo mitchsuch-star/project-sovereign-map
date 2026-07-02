@@ -63,10 +63,12 @@ The April 19 design pass collapsed the v2.3 plan around the Napoleonic balance-o
 
 **Deferred-item closeout ledger (must be called out by the final session agent):**
 
+> **July 2, 2026 re-staging:** the D1 / D2 / N+1-callback / archive-polish rows below are re-affirmed OPEN. D2 additionally owns Historical Precision P2 (Britain reactive bloc pressure — see `docs/DESIGN_REFINEMENT.md`).
+
 - Slice D1: advisory-first strategic focus + deeper AI integration
 - Slice D2: coalition buildout + non-France-hegemon / per-target threat-scalar generalization
 - **Slice D3: per-row bloc stamps on the Nations tab** (opened and landed April 25, 2026)
-- WB-* bargain-era work moved to `WAR_BARGAIN_SPEC.md`, including bargain response routes, callbacks, and witness-depth presentation work that still depends on Peace Deals phase
+- ~~WB-* bargain-era work moved to `WAR_BARGAIN_SPEC.md`, including bargain response routes, callbacks, and witness-depth presentation work that still depends on Peace Deals phase~~ **CLOSED/LANDED — War Bargains shipped April 2026** (`WAR_BARGAIN_SPEC.md` v1.1 is the historical landed reference; the WB-D presentation pass landed with it)
 - N+1 Talleyrand aftermath callback / richer callback architecture if later playtest proves the single-turn surfaces still land too flat
 - Archive / expansion polish: retroactive campaign-log renaming, member-list compound bloc names, and richer hover / right-click stamp detail (dependent on Slice D3 landing first)
 

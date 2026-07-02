@@ -3,7 +3,7 @@
 > **Status:** v1.2 — v0.5.3 aligned — 2026-04-25
 > **v0.5.3 scope note (2026-04-25):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.3 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with `noticed` / `alarming` / `crisis` variants aligned to the `33 / 50 / 60` activation gate in presentation spec §8.1a, and (c) one `amends_offered` acknowledgment line per foreign court. Bloc naming is adopted for Balance of Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview `hegemony` warnings, coalition-declaration contrast copy, and D3 per-row bloc stamps. Stamps reuse deterministic labels and do not require new authored-diplomat lines. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
 > **Purpose:** Single-page voice reference per diplomat so that every headline commitments line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
-> **Scope:** Five named diplomats in `backend/models/diplomat.py`. Talleyrand has the most lines; the four foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
+> **Scope:** The live cast in `backend/models/diplomat.py` is now **20 named diplomats** (July 2, 2026): the 5 bespoke-voiced diplomats this Bible covers (Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel) plus 15 Europe additions shipped at Map Slice 3 on chancery fallback. Bespoke registers for the 15 are owned by **DEF-1 Roster Voices** (`docs/MAP_IMPLEMENTATION_PLAN.md` deferred table). Note: 6 of the 15 carry a `loyalist` personality that this Bible's Hawk/Schemer/Dove taxonomy does not yet define — DEF-1 must author that register class. Talleyrand has the most lines; the four legacy foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
 
 ---
@@ -396,13 +396,15 @@ Rare Talleyrand fallback / relaxation asides reuse the bloc-naming register abov
 Additive minimum families that also need committed copy in this phase:
 
 - `paradox_after_choice_*` — one foreign-diplomat after-choice aside per foreign court when that court's alliance is spurned.
-- `reactive_summon_*` — one short reactive one-exchange summon/advisory line per foreign cast member.
+- `reactive_summon_*` — one short reactive one-exchange summon/advisory line per foreign cast member. (July 2, 2026: no code counterpart found under any name — verify-or-author at DEF-1.)
 - `hard_reject_clear_*` — one chancery-voice reopening line per foreign court for `hard_reject_posture_cleared`.
 - `witness_strike_*` — one visible witness-reaction line per foreign court so later witness fallout does not collapse into generic system prose.
 
-### Deferred to WB-D (bargain-era presentation extension)
+### WB-D bargain-era lines (reconciliation needed — verify-or-author at DEF-1)
 
-Five lines. Authored when bargains ship. Each candidate line must pass the "Never says" check before landing.
+> **Status update (July 2, 2026):** War bargains and the WB-D presentation pass **LANDED April 2026** — this block is no longer "authored when bargains ship" future-tense. However, **none of the five named template identifiers below exist in backend code** under these keys. Reconciliation task, owned by DEF-1: verify whether WB-D landed equivalents under different keys (the `commitments_notice_*` family) — if so, update this table to the live identifiers; if not, author these five as part of the DEF-1 copy backlog.
+
+Five lines. Each candidate line must pass the "Never says" check before landing.
 
 | Nation | Personality | Scene | Template source |
 |---|---|---|---|

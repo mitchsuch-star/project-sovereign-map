@@ -326,7 +326,7 @@ The coalition leader determines the coalition's **strategic posture**, reassesse
 
 While a coalition is active, all coalition members receive:
 
-- **Adjacency scoring boost:** P4.77 ally adjacency bonus applies across ALL coalition nations (already implemented in `enemy_ai.py` — the TODO-1805 `is_ally` check will be updated to use formal coalition membership instead of the current "not player" hack).
+- **Adjacency scoring boost:** P4.77 ally adjacency bonus applies across ALL coalition nations (implemented in `enemy_ai.py` — the TODO-1805 `is_ally` check was updated: `is_ally` now derives from `is_coalition_member()` for both nations, replacing the earlier "not player" hack).
 - **No additional mechanical bonuses.** Coalition strength comes from *numbers*, not magic buffs. This preserves Building Blocks: same combat rules for everyone.
 
 ### §4e. British Subsidy (Leader-Specific)
@@ -962,6 +962,8 @@ Coalition features integrate into the DIPLOMACY_SPEC §14 unified session plan. 
 ## §15. Open Questions (For Playtesting)
 
 These are intentionally deferred to playtesting rather than over-designed:
+
+> **July 2, 2026:** These questions become LIVE at the first sustained 1805 balance pass — the 1805 boot pre-seeds a coalition at threat 85, so formation/brewing paths run differently than on the legacy map. Umbrella owner: `docs/ECONOMY_REVISIT_SPEC.md` balance passes + 8.EVAL.
 
 1. **Threat values tuning.** All §2a values are starting estimates. If coalitions form too early/late, adjust source values before thresholds.
 2. **Coalition loyalty penalty (-15).** May need adjustment. Too high = coalitions unbreakable. Too low = trivially broken.

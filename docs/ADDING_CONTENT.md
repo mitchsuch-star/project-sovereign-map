@@ -36,7 +36,7 @@ Step-by-step guides for adding new marshals, personalities, strategic commands, 
    - [Test Fix Guide](#test-fix-guide)
    - [Victory Threshold Scaling](#victory-threshold-scaling)
    - [Common Pitfalls (Map Expansion)](#common-pitfalls-map-expansion)
-   - [Quick Reference: Current 19-Region Map](#quick-reference-current-19-region-map)
+   - [Quick Reference: Legacy 19-Region Fixture Map](#quick-reference-legacy-19-region-fixture-map)
 4. [Adding a Diplomatic Representative](#4-adding-a-diplomatic-representative)
    - [Diplomat vs Marshal](#diplomat-vs-marshal)
    - [Diplomatic Personality Types](#diplomatic-personality-types)
@@ -76,8 +76,8 @@ Answer these questions BEFORE writing any code:
   - [ ] France (player)
   - [ ] Britain (enemy)
   - [ ] Prussia (enemy)
-  - [ ] Austria (enemy - not yet in game)
-  - [ ] Russia (enemy - not yet in game)
+  - [ ] Austria (enemy - live armed nation in the shipped 1805 campaign)
+  - [ ] Russia (enemy - live armed nation in the shipped 1805 campaign)
   - [ ] Other: ____________
 - [ ] **Is this a new nation?** If yes, you'll need extra steps (see [Adding New Nations](#adding-new-nations))
 
@@ -328,6 +328,8 @@ Fill out this sheet completely before implementing:
 ---
 
 ### Step-by-Step Implementation
+
+> **Primary path (shipped 1805 campaign, July 2, 2026): scenario JSON.** Marshals in the shipped campaign are authored in `europe_1805.json` and built via `create_marshals_from_data` (`backend/models/marshal.py`) — add new campaign marshals there per `docs/MODDING_FORMAT.md`. The `create_starting_marshals()` / parser-list path below documents the **legacy fixture**. Note: the parser marshal-list step (Step 2) is being dynamized by `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0.
 
 #### Step 1: Add Marshal Definition
 
@@ -699,21 +701,24 @@ Marshal(
 
 #### Pitfall 3: Nonexistent Starting Region
 
-**WRONG:**
+**This pitfall applies only to the LEGACY 19-region fixture.** On the shipped Europe map, London exists and IS Britain's real capital (Moore starts there). Always check the starting region exists on the map the marshal is authored for.
+
+**WRONG (legacy fixture only):**
 ```python
 Marshal(
     name="SomeGeneral",
-    location="London",  # London doesn't exist in the 19-region test map!
+    location="London",  # London doesn't exist in the LEGACY 19-region test fixture!
     ...
 )
 ```
 
 **RIGHT:**
 ```python
-# Check backend/models/region.py for valid regions:
+# Legacy fixture: check backend/models/region.py for valid regions:
 # Paris, Belgium, Netherlands, Waterloo, Rhineland, Bavaria, Vienna,
 # Lyon, Marseille, Milan, Brittany, Bordeaux, Normandy, Hanover,
 # Berlin, Saxony, Dresden, Bohemia, Tyrol
+# Shipped Europe map: check the 126-province europe.json registry instead.
 Marshal(
     name="SomeGeneral",
     location="Vienna",  # Valid region
@@ -816,7 +821,9 @@ Marshal(
 
 ### Quick Reference Tables
 
-#### Valid Regions (Current 13-Region Map)
+#### Valid Regions (Legacy 19-Region Fixture Map)
+
+> **This table documents the LEGACY test-fixture regions.** The shipped game map is the **126-province `europe.json` registry** — see `docs/MODDING_FORMAT.md` and the registry sections.
 
 | Region | Default Controller | Notes |
 |--------|-------------------|-------|
@@ -881,13 +888,15 @@ Marshal(
 
 #### Historical French Marshals (For Future Addition)
 
+> **July 1, 2026:** Murat, Lannes, Soult, Massena, and Bernadotte (plus, from the enemy table below, Archduke Charles, Kutuzov, and Moore) **SHIPPED in the 1805 roster** — with personalities as authored in `europe_1805.json`, several of which differ from these tables' suggestions. The tables remain useful for marshals not yet in any roster.
+
 | Marshal | Suggested Personality | Notes |
 |---------|----------------------|-------|
-| Murat | aggressive | Cavalry genius, King of Naples |
-| Lannes | loyal | "Roland of the Army" |
-| Soult | balanced | "Hand of Iron" |
-| Massena | cautious | Defensive expert |
-| Bernadotte | cautious | Future Swedish king |
+| Murat | aggressive | Cavalry genius, King of Naples — **SHIPPED (1805 roster)** |
+| Lannes | loyal | "Roland of the Army" — **SHIPPED (1805 roster)** |
+| Soult | balanced | "Hand of Iron" — **SHIPPED (1805 roster)** |
+| Massena | cautious | Defensive expert — **SHIPPED (1805 roster)** |
+| Bernadotte | cautious | Future Swedish king — **SHIPPED (1805 roster)** |
 | Bessieres | loyal | Imperial Guard commander |
 | Mortier | balanced | Artillery expert |
 | Oudinot | aggressive | "Bayard of the Army" |
@@ -899,10 +908,10 @@ Marshal(
 | Commander | Nation | Suggested Personality |
 |-----------|--------|----------------------|
 | Schwarzenberg | Austria | cautious |
-| Archduke Charles | Austria | cautious |
-| Kutuzov | Russia | cautious |
+| Archduke Charles | Austria | cautious — **SHIPPED (1805 roster, July 1, 2026)** |
+| Kutuzov | Russia | cautious — **SHIPPED (1805 roster, July 1, 2026)** |
 | Bagration | Russia | aggressive |
-| Moore | Britain | balanced |
+| Moore | Britain | balanced — **SHIPPED (1805 roster, July 1, 2026)** |
 
 ---
 
@@ -1346,7 +1355,7 @@ If adding a wired special ability: See [Wiring a Special Ability](#wiring-a-spec
 
 ### Wiring a Special Ability (Full Checklist)
 
-Most generals are personality-driven only (aggressive/cautious/literal gives them a complete gameplay identity). Only historically distinguished commanders with a unique tactical identity should get a wired special ability. See `docs/SPECIAL_ABILITIES_EVALUATION.md` for design principles and roster planning.
+Most generals are personality-driven only (aggressive/cautious/literal gives them a complete gameplay identity). Only historically distinguished commanders with a unique tactical identity should get a wired special ability. See `docs/archive/SPECIAL_ABILITIES_EVALUATION.md` for design principles and roster planning.
 
 **If your general has a unique ability that needs to DO something mechanically (not just display text), follow this checklist.**
 
@@ -1566,6 +1575,8 @@ AUTOMATICALLY HANDLED (no changes needed):
 
 ### 1805 Roster Planning Notes
 
+> **Owner: `docs/MARSHAL_CONTENT_PASS_SPEC.md` (July 2, 2026).**
+
 For the 1805 full Europe map, every nation needs a roster of generals. Design principles:
 
 1. **Only great generals get unique abilities.** Most are personality-driven only (like Grouchy). Out of ~30-40 total generals, only ~10-12 should have wired abilities.
@@ -1573,7 +1584,7 @@ For the 1805 full Europe map, every nation needs a roster of generals. Design pr
 3. **One ability per general, maximum.** Keep it simple.
 4. **Abilities should create tactical decisions, not passive bonuses.** The player should have to think about when/how to use the ability.
 
-See `docs/SPECIAL_ABILITIES_EVALUATION.md` for detailed roster estimates, ability candidates per nation, and design principles.
+See `docs/archive/SPECIAL_ABILITIES_EVALUATION.md` for detailed roster estimates, ability candidates per nation, and design principles.
 
 ---
 
@@ -2304,7 +2315,9 @@ Connection lines are now driven by backend `GET /map_topology`. If adjacency loo
 
 ---
 
-### Quick Reference: Current 19-Region Map
+### Quick Reference: Legacy 19-Region Fixture Map
+
+> **This table documents the LEGACY test-fixture regions** (`SOVEREIGN_MAP=legacy` rollback + test suite). The shipped game map is the **126-province `europe.json` registry** — see `docs/MODDING_FORMAT.md` and the registry sections.
 
 | Region | Terrain | Type | Income | Capital | Controller | Adjacent To |
 |--------|---------|------|--------|---------|------------|-------------|
@@ -2508,6 +2521,8 @@ Diplomat skill feeds into the acceptance formula: `skill_bonus = (player_diploma
 ---
 
 ### Quick Reference: Current Diplomats
+
+> **July 2, 2026:** The current cast is **20 diplomats** — the 5 legacy bespoke-voiced diplomats below plus 15 Europe additions defined in `_EUROPE_EXTRA_DIPLOMAT_DEFINITIONS` (`backend/models/diplomat.py`), which run on chancery fallback until DEF-1 Roster Voices authors their bespoke registers.
 
 | Nation | Representative | Personality | Skill | Trust | Notes |
 |--------|---------------|-------------|-------|-------|-------|

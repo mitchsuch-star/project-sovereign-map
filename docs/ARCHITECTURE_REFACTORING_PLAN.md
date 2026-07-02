@@ -2198,9 +2198,11 @@ Lines 390-1519: execute() (~1,130 lines) — main router: guards, objection eval
 
 ---
 
-## Phase F: AI Fog Integration (Sessions 17-20) — DEFERRED
+## Phase F: AI Fog Integration (Sessions 17-20) — SUPERSEDED
 
-> **DEFERRED (March 29, 2026).** At 19 regions, AI omniscience is acceptable — the roadmap (line 698) explicitly says "at 19 regions, AI omniscience is fine." This is a scaling concern for 80+ regions. When revisited, this needs its own dedicated spec (not just refactoring steps) covering: difficulty tiers, AI compensation mechanics, behavioral tuning, and playtesting at scale. See `ROADMAP.md` §AI Fog of War for design notes.
+> **SUPERSEDED (July 2, 2026).** Scale Readiness Phase 2.3 (April 19, 2026) landed live AI fog via a **different seam** than the one specced below: `enemy_ai.py` fog-aware queries, not the `get_ai_visible_enemies(difficulty)` world-state method — which was **never built**. The R14a-d session plans below are historical; do not implement them as written. Residual open content: **AI difficulty tiers + compensation need their own spec** (backlog note, no owner yet — candidate for 8.EVAL).
+>
+> *(Original deferral, March 29, 2026):* At 19 regions, AI omniscience is acceptable — the roadmap (line 698) explicitly says "at 19 regions, AI omniscience is fine." This is a scaling concern for 80+ regions. When revisited, this needs its own dedicated spec (not just refactoring steps) covering: difficulty tiers, AI compensation mechanics, behavioral tuning, and playtesting at scale. See `ROADMAP.md` §AI Fog of War for design notes.
 
 ### Session 17: R14a — AI Fog Foundation
 
@@ -2307,6 +2309,8 @@ Full integration test session:
 ## Phase G: Modding (Session 21)
 
 ### Session 21: R19 — Modding Validator Extension
+
+> **July 2, 2026: relevance raised** — scenario JSON (`europe_1805.json` + `region_overrides`) is now the shipped boot path; scheduled as a loose-ends candidate in the re-staged ROADMAP queue (Phase A). ~3h, LOW risk.
 
 | Field | Value |
 |-------|-------|
@@ -2443,16 +2447,16 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | # | Finding | Severity | Rationale for Deferral |
 |---|---------|----------|----------------------|
 | 1-2 | Auto-bombardment decisive_victory + war score | CRITICAL | Addressed in Session 2 (R1) — bundled with pipeline unification |
-| 6 | Trust/authority death spiral | MAJOR | Balance tuning — address during Jealousy system implementation or dedicated balance pass |
+| 6 | Trust/authority death spiral | MAJOR | Balance tuning — address during Jealousy system implementation or dedicated balance pass. (July 2, 2026: binds to the Jealousy design gate, now sequenced after the Marshal Content Pass — see `docs/MARSHAL_CONTENT_PASS_SPEC.md`) |
 | 7 | Combat modifier snapshot drift | MAJOR | Low recurrence risk — battle_report snapshot is display-only, doesn't affect gameplay |
 | 15 | Capital capture blocks AI proposals | MODERATE | Intentional design — prevents AI peace spam during conquest. Revisit if player feedback indicates issue |
 | 17 | Recklessness preserved through break/respawn | MODERATE | Edge case — recklessness only affects AI cavalry. Monitor during playtesting |
 | 22 | LLM fallback threshold | MODERATE | Only affects anthropic mode (not mock). Tune when LLM mode is primary |
-| 23 | Fixed AI nation order (Britain first-mover) | LOW | Minimal gameplay impact at 4 nations. Address during 80-region expansion (more nations = bigger effect) |
+| 23 | Fixed AI nation order (Britain first-mover) | LOW | Condition arrived (July 2, 2026: 19 AI nations act in fixed order on the shipped 126-province map); evaluate at 8.EVAL |
 | 24 | Notification lifecycle (no expiry/dedup) | LOW | No player-reported issues. Address if notification bar becomes cluttered |
-| 29 | BALANCED/LOYAL personalities unimplemented | LOW | These personalities aren't assigned to any marshal. Implement when adding new marshals |
+| 29 | BALANCED/LOYAL personalities unimplemented | LOW | Owned by `docs/MARSHAL_CONTENT_PASS_SPEC.md` MC-4 (July 2, 2026) |
 | 31 | Dispatch hardcoded "France" | LOW | Player is always France in current game. Fix when adding faction selection |
-| 33 | Region name substring matching | LOW | Works correctly for current 19 regions. Fix during 80-region expansion |
+| 33 | Region name substring matching | LOW | Condition arrived (July 2, 2026: 126 provinces shipped); owned by `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0/CR-2 (name-collision surface) |
 | 34 | Talleyrand turn_number fallback | LOW | Defensive fallback — no crash, just uses 0. Fix during next Talleyrand work |
 
 ### Finding → R-Item Cross-Reference

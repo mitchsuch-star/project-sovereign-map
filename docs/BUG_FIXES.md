@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: April 12, 2026 (Session 8 renderer cutover slice 3 complete: the current 19-region Godot map now isolates map rendering inside a `SubViewport`, uses native `Camera2D` zoom/pan with world-bound clamping, and preserves placeholder province color-map hover/click identity plus the `update_all_regions(map_data)` contract for `main.gd`. Sessions 1-7 are complete; remaining Session 8 work is commissioned art integration and final Godot smoke validation.)
+> Last Updated: July 2, 2026 (re-staging audit: three open defects recorded below with owners — parser roster pinning P0 → `COMMAND_ROBUSTNESS_SPEC.md` CR-0; advance-turn AP reset → `ECONOMY_REVISIT_SPEC.md` EC-0; marshal-overview ability display → `MARSHAL_CONTENT_PASS_SPEC.md` MC-0. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -46,7 +46,7 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** Session 8 - Renderer cutover prep and replacement.
+**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. The three July-2 open defects below route to their phase owners (CR-0 / EC-0 / MC-0); overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
 
@@ -1161,23 +1161,72 @@ The player still has no clean restart path from the running build. Starting fres
 
 ---
 
-## Open (Low): MOCK-parser bare-command auto-assign on Europe names
+## Open (P0 — UPGRADED July 2, 2026): Parser roster pinning — 5 of 7 French marshals uncommandable by typed text on the shipped 1805 boot (ALL LLM modes)
 
-Found by the Map Slice 8 playtest smoke (July 2, 2026), **dev-mode only**:
-with `LLM_MODE=mock`, marshal-less typed commands using Europe province
-names ("scout Swabia", "move to Flanders") fail to extract the target and
-fall to the Berthier recovery template instead of routing to
-`auto_assign_scout` / auto-assign move (the parser's classify path at
-`backend/commands/parser.py:603-605` is reachable but the mock extraction
-returns no target; a direct probe also shows a `"Marshal 'Swabia' not
-found"` variant). "Ney, scout Swabia" (marshal-prefixed) works. The shipped
-game runs `LLM_MODE=anthropic`, where the real LLM extracts the target —
-this is a mock-keyword/extraction gap, not a player-facing defect, but the
-in-game help copy advertises bare "scout Swabia", so mock-mode dev
-playtests hit it. Owner: fold into the next parser maintenance pass;
-fix = teach the mock target-extraction to fuzzy-match `game_state`
-`map_data` keys before the marshal-required branch. Graceful today (the
-Berthier recovery renders; nothing crashes).
+**Owner: `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0** (behavior tests over both worlds land with the fix).
+
+Originally recorded (Map Slice 8 smoke, July 2, 2026) as the low-severity
+mock-only bare-command gap below. The July 2 re-staging audit probe
+**disproved the "dev-mode only" framing for marshal-name commands**:
+
+- `parser.py:56` hardcodes `valid_marshals` to the legacy 4 (Ney, Davout,
+  Grouchy, Drouot); the mock parser's player-marshal extraction matches
+  (`llm_client.py:610-615`). On the shipped `europe_1805.json` boot,
+  **"Soult, attack Mack" / "Marshal Soult, attack Mack" / "Lannes, move to
+  Swabia" / "Massena, hold Milan" all FAIL in every LLM mode** with
+  "Marshal not found — Available: Davout, Drouot, Grouchy" (suggesting
+  marshals absent from the 1805 world).
+- The failure is invisible to the LLM safety net: the fast parser awards
+  0.8 confidence for any recognized action verb (≥ the 0.7 LLM-fallback
+  threshold, `llm_client.py:48/:210`), so the LLM is never consulted before
+  `_apply_fuzzy_matching` (`parser.py:216-272`) hard-errors.
+- Related same-owner gaps: `known_regions` derives from legacy
+  `REGIONS_DATA` (19 names on a 126-province map — no typo correction for
+  Europe provinces); the mock target-extraction ladder is legacy-hardcoded
+  (`llm_client.py:857-911`); meta-actions skip marshal matching so
+  "Murat, charge" silently drops the addressee (`parser.py:209`).
+- The ORIGINAL entry (kept for lineage): with `LLM_MODE=mock`, bare
+  marshal-less commands on Europe names ("scout Swabia", "move to
+  Flanders") fail target extraction and fall to Berthier recovery instead
+  of `auto_assign_scout`; "Ney, scout Swabia" parses but drops
+  `target=None` in mock mode. Graceful (no crash), but the in-game help
+  advertises these forms.
+
+Fix direction (CR-0): derive parser rosters from the live world (mirror
+`_get_known_enemies(world)` and the E-1 both-roster precedent), regions
+from `world.regions`, mock ladder from game_state.
+
+---
+
+## Open (High — July 2, 2026 re-staging audit): advance-turn AP reset uses the legacy nation builder
+
+**Owner: `docs/ECONOMY_REVISIT_SPEC.md` EC-0** (fix BEFORE any AP/economy balance work).
+
+`world_state.py:5925-5928` resets `nation_actions` from
+`build_default_nation_actions` (legacy `BASE_NATION_ACTIONS`) on every
+`advance_turn` regardless of `sovereign_map`. On the shipped Europe world
+(init from `build_europe_nation_actions`; `EUROPE_BASE_ACTIONS` Austria=4)
+this squashes **Austria 4 → 3 after turn 1** (silently nullifying the
+approved 1805 pre-slice item-8 tuning) and never resets Europe-only
+nations, so `ap_per_turn` treaty penalties **compound permanently** for
+Russia/Spain/Ottoman/etc. Every AI-pressure measurement since the cutover
+ran Austria at the un-tuned value — Slice-8 balance verdicts touching
+Austrian tempo must be re-baselined after the fix. (Also spawned as a
+background task chip during the audit.)
+
+---
+
+## Open (Medium — July 2, 2026 re-staging audit): marshal-overview ability display shows "None" as an active ability
+
+**Owner: `docs/MARSHAL_CONTENT_PASS_SPEC.md` MC-0** (independent quick fix allowed).
+
+`marshal_overview._build_ability` gates on marshal NAME
+(`marshal_overview.py:28/:138`), so scenario-authored 1805 Ney/Davout —
+who boot with `ability={"name": "None"}` via `create_marshal_from_data` —
+report `ability_active=True` with ability name "None" in the management
+screen. Root context: the entire 21-marshal 1805 roster ships without
+authored abilities/skills/relationships (the Marshal Content Pass owns the
+content half; MC-0 owns this display defect).
 
 ---
 

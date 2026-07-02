@@ -1,7 +1,7 @@
 # Scale Readiness — Europe Audit Report
 
 > **HISTORICAL SNAPSHOT** — frozen at audit date April 16, 2026.
-> **Do not use this document as current routing.** For the active map-readiness state see `docs/STATUS.md` "Actionable now" and `docs/SCALE_READINESS_PLAN.md` §§3-4 (per-item contracts). As of April 19, 2026 the non-art map-readiness closure pass is COMPLETE: §§3.1-3.4 and §§4.1-4.4 all landed. Real-map readiness is art-blocked only.
+> **Do not use this document as current routing.** For the active map-readiness state see `docs/STATUS.md` "Actionable now" and `docs/SCALE_READINESS_PLAN.md` §§3-4 (per-item contracts). As of April 19, 2026 the non-art map-readiness closure pass is COMPLETE: §§3.1-3.4 and §§4.1-4.4 all landed. The commissioned art was subsequently delivered and the **real-map cutover COMPLETED July 2, 2026** — the running game is the 126-province 1805 campaign (see `docs/STATUS.md`).
 > Last Updated: April 16, 2026
 > Audit Date: April 16, 2026
 

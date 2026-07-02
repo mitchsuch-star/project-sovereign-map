@@ -1,8 +1,8 @@
 # Design Refinement
 
-> **Design items and addons for evaluation.** Work here begins after `BUG_FIXES.md` is clear and playtesting confirms stability.
+> **Design items and addons for evaluation.** This is the design-refinement backlog; execution routes through `docs/ROADMAP.md`'s current phase queue. (The old "work begins after `BUG_FIXES.md` is clear" gate cleared April 2026.)
 >
-> **Last Updated:** April 16, 2026 (Memory and Pressure rescope: war_bargain mechanic split out into `docs/WAR_BARGAIN_SPEC.md`, scheduled in the later Peace Deals phase; queue item 1 renamed `Reliability + Commitments` → `Memory and Pressure`. April 13 routing context preserved below.)
+> **Last Updated:** July 2, 2026 (present-tense pass: landed work marked landed; every open row re-pointed at its current owner — `docs/ECONOMY_REVISIT_SPEC.md`, `docs/COMMAND_ROBUSTNESS_SPEC.md`, `docs/MARSHAL_CONTENT_PASS_SPEC.md`, or the ROADMAP 8.EVAL evaluation gate. April 16, 2026 rescope context preserved below as history.)
 
 ---
 
@@ -10,15 +10,15 @@
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Player Feedback (Wave 3 remaining) | 7 | Pending consolidation into post-fix diplomacy specs |
-| Nation Rivalry System (EU4-inspired) | 1 | Folded into `Memory and Pressure` spec (substrate shipped; remaining: rivalry seed + acceptance formula + C3-lite presentation) |
-| Territorial Promises (Wave 3) | 1 | Folded into `WAR_BARGAIN_SPEC.md` — deferred to Peace Deals phase |
-| War System Overhaul (EU4-inspired) | 4 | Ready for dedicated spec work |
-| AI Diplomacy Improvements | 3 | Re-scope into the agenda / motive spec track |
-| Gold Sink Options (B4) | 1 | Candidate follow-up after the first diplomacy spec queue |
-| Wave 4 — New Features | 19 | Needs per-item approval after the core diplomacy spec queue |
-| Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks below |
-| Jealousy System | 1 | Separate design gate; not part of the diplomacy queue |
+| Player Feedback (Wave 3 remaining) | 7 | Open — R129/R128 → 8.EVAL triage; R131/R132/R17d-f → queue item 6 (8.EVAL) |
+| Nation Rivalry System (EU4-inspired) | 1 | Superseded by Memory and Pressure v2.4.3 (COMPLETE); dynamic-agenda residual → queue item 5 |
+| Territorial Promises (Wave 3) | 1 | ✅ LANDED April 2026 as war bargains (`WAR_BARGAIN_SPEC.md`) |
+| War System Overhaul (EU4-inspired) | 4 | ✅ LANDED — war_objectives / power cap / forced_alliance / liberation live in code |
+| AI Diplomacy Improvements | 3 | N1 verified live; A4 historical note; A3 residual rides queue item 5 (8.EVAL) |
+| Gold Sink Options (B4) | 1 | Re-pointed → `docs/ECONOMY_REVISIT_SPEC.md` EC-2 |
+| Wave 4 — New Features | 19 | Needs per-item approval (8.EVAL); R26 → EC-5, R161 → EC-8, R162 gated behind queue items 5-6 |
+| Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
+| Jealousy System | 1 | Separate design gate; Marshal Content Pass MC-3 now an effective prerequisite |
 | **Total** | **45** | |
 
 ---
@@ -37,29 +37,39 @@ The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are c
 
 ### Historical spec queue (April 16, 2026 rescope; superseded by April 28 status)
 
-This queue records the April 16 diplomacy rescope. It is no longer the live implementation queue. Current status is tracked in `docs/STATUS.md`; BPH, WPS, and WB have landed, and Ally Participation + Common Peace is implementation-ready through `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` v1.10 and `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` v1.7.
+This queue records the April 16 diplomacy rescope. It is no longer the live implementation queue. Current status is tracked in `docs/STATUS.md`; items 1-4 below are ALL LANDED — BPH, WPS, and WB landed, and Ally Participation + Common Peace LANDED as the Imperial Settlement system, complete through Slice G1 (July 2, 2026, commit `1a9da53`).
 
 1. `Memory and Pressure` (renamed from `Reliability + Commitments` April 16)
+   **✅ COMPLETE — Memory and Pressure v2.4.3, all slices landed (see `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`). The remaining-work list and the "~68-74 tests, ~3 sessions remaining" estimate below are historical v2.2-era text.**
    Substrate (betrayal memory, concern witness scope, hard-reject posture, episode_id, structured warnings) is **shipped**. Remaining work this phase: seed `nation_concerns` (4 authored pairs), wire `direct_concern_mod` + `concern_conflict_mod` + graduated `bilateral_betrayal_mod` into acceptance, wire third-party anger on ratification, redemption tick (`actor_honored_turns` +3 / 5 honored turns at OPEN_BORDERS+), rename `alliance_paradox` → `commitment_paradox`, ship C3-lite presentation pass (spotlight tier, split-voice render, named-diplomat resolution per Voice Bible). See `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.2, `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` v0.4 (C3-lite). ~68-74 tests, ~3 sessions remaining (Slice C split into Godot-surfaces + tests/mock-prose sessions; v2.2 renames rivalry→concern for balance-of-power scale architecture + adds auto-downgrade rule + France-Austria concern pair + Make Amends verb).
    **Scale note (v2.2):** `nation_concerns` is named for the target dynamic balance-of-power architecture (see spec §7.7). v0.1 ships static seeded values; dynamic concern evaluation is `Nation Agendas` scope (queue item 5).
 2. `Bilateral Peace Hardening`
+   **✅ LANDED — shipped per `docs/BILATERAL_PEACE_HARDENING_SPEC.md`.**
    Tighten separate peace / bilateral peace preview, explicit term ownership, promise-breach warnings, and peace-treaty legibility before any ally-aware settlement system exists. **Needs dedicated spec.**
 3. `War Purpose + Score Semantics`
+   **✅ LANDED — shipped per `docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`; `war_objectives`, forced alliance, and liberation are live in code.**
    Collapse war objectives, ticking war score, vassalage power cap, forced alliance, and liberation into one war-goal / score-legibility spec. **Needs dedicated spec.**
 3.5. `War Bargains` — `docs/WAR_BARGAIN_SPEC.md`
+   **✅ LANDED April 2026 — the `war_bargain` mechanic shipped per the spec.**
    The named-enemy bilateral promise mechanic split out of `Reliability + Commitments` v1.0 in the April 16 rescope. Adds `war_bargain` clause type, lifecycle (active / triggered / fulfilled / void / breached), `join_opportunity` ally-entry contract, counter-bargains, `war_entry_score`, Bargain Review surface, and the WB-D presentation extension (bargain spotlights, scope-branched copy, response routes). **Depends on items 1-3.** Implementable as a single Peace Deals phase precursor before item 4. ~80-90 tests.
 4. `Ally Participation + Common Peace`
+   **✅ LANDED — shipped as the Imperial Settlement system, complete through Slice G1 (July 2, 2026, commit `1a9da53`); see `docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32 and `docs/STATUS.md`.**
    Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. **Current state:** the dedicated spec and implementation plan now own the active Slice A handoff; this item is no longer merely a later-direction draft.
 5. `Nation Agendas + Motive Legibility`
+   **OPEN — owner: the 8.EVAL evaluation gate (`docs/ROADMAP.md`). Collapsed item list unchanged.**
    Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec. **Also owns the dynamic concern system:** converting `nation_concerns` from static seeded values (shipped in Memory and Pressure) to dynamic balance-of-power evaluation driven by territory, military power, treaty opposition, and proximity — the Napoleonic "your success creates your opposition" loop. See `RELIABILITY_COMMITMENTS_SPEC.md` §7.7 for the scale architecture target and the "what breaks at 15+ nations" punch list.
 6. `Talleyrand Desk + Explanation Layer`
+   **OPEN — owner: the 8.EVAL evaluation gate (`docs/ROADMAP.md`). Collapsed item list unchanged.**
    Collapse `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, and `R159` into one explanation / trend / advisory surface spec.
 7. `Economic Diplomacy`
+   **RE-POINTED — owner: `docs/ECONOMY_REVISIT_SPEC.md` EC-8 (economic diplomacy, incl. R161). Original text kept as historical context.**
    Collapse `R161` plus diplomacy-facing B4 candidates into one reciprocal-trade / subsidy / pressure spec.
+
+**Diplo-wide ledger rows `DWL-DIP-E7` + `DWL-DIP-METTERNICH`:** their "settlement final gate closes" trigger goes LIVE when the user confirms the Gate 4 visual half (the smoke's HTTP half ran July 2, 2026) — they enter the 8.EVAL evaluation gate at that point.
 
 ### Still lower priority
 
-- `R162: AI Ultimatums to Player` is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above are written. It adds interruption surface before the core diplomacy has enough political weight.
+- `R162: AI Ultimatums to Player` is no longer blocked by the old attention contract, but it should still wait until the commitment and agenda specs above are written. It adds interruption surface before the core diplomacy has enough political weight. **(July 2, 2026: R162 stays gated behind queue items 5-6, which are owned by the 8.EVAL evaluation gate.)**
 - Presentation-only diplomacy polish remains downstream of the grouped spec work above, except for the narrow post-commitments presentation pass proposed in `docs/COMMITMENTS_PRESENTATION_SPEC.md`.
 
 ---
@@ -81,12 +91,14 @@ These refine existing systems and are still implementation-ready later, but they
 
 ### R129: Override Feedback in Dispatch
 - **Category:** Player Feedback
+- **Owner (July 2, 2026):** 8.EVAL triage.
 - **Summary:** Add feedback when diplomatic override actions succeed/fail.
 - **Details:** Success: +2 trust + dispatch note. Failure: +1 concern boost + dispatch note. Fix timing bug at diplomatic_defiance.py:741.
 - **Files:** `diplomatic_defiance.py`, `dispatch.py`
 
 ### R128: Sabotage Consequence Feedback
 - **Category:** Player Feedback
+- **Owner (July 2, 2026):** 8.EVAL triage.
 - **Summary:** Track and report sabotage outcomes with Talleyrand feedback.
 - **Details:** Track in `world.sabotage_history`. Dispatch note next turn. Trust +3 if Talleyrand was correct.
 - **Files:** `diplomatic_defiance.py`, `dispatch.py`
@@ -129,7 +141,7 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 
 ### Already justified by current evidence
 
-- **R160: Nation Rivalry System** — confirmed as the highest-leverage legitimacy upgrade. Current diplomacy still lets France drift toward broad friendship without enough forced political choice.
+- **R160: Nation Rivalry System** — confirmed as the highest-leverage legitimacy upgrade. Current diplomacy still lets France drift toward broad friendship without enough forced political choice. *(Since SUPERSEDED by Memory and Pressure v2.4.3 — see the R160 row below.)*
 - **R155: AI Proposal Personality Voice** — needs to expand from flavor text into motive legibility. The audit confirmed that AI personality currently changes a few constants, but not enough of proposal timing, persistence, target choice, or player-facing explanation.
 - **R156: Diplomacy Strategic Optionality** — confirmed. Proposals happen, but they do not create enough meaningful branching until rivalry / exclusion pressure exists.
 
@@ -158,8 +170,9 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 - **Remaining (unshipped):** any future dynamic rivalry / agenda system must grow out of bloc geometry, betrayal memory, grievance persistence, and AI agendas rather than restoring `nation_rivalries` / `direct_rivalry_mod` / `rival_conflict_mod`. That work still belongs to queue item 5 (`Nation Agendas + Motive Legibility`).
 - **Files:** `diplomacy.py`, `ai_diplomacy.py`, `diplomatic_ledger.py`, `world_state.py`
 
-### R151: Territorial Promise Clauses — **MOVED to WAR_BARGAIN_SPEC**
+### R151: Territorial Promise Clauses — **LANDED via WAR_BARGAIN_SPEC (April 2026)**
 - **Category:** Diplomacy Feature
+- **Disposition (July 2, 2026):** ✅ LANDED — the `war_bargain` mechanic shipped April 2026; the "scheduled in the Peace Deals phase" text below is historical.
 - **Status:** The broader concept (France makes named-enemy promises to allies, tracking obligation, breach/fulfillment, betrayal consequences) is now fully designed as the `war_bargain` clause type in `docs/WAR_BARGAIN_SPEC.md`. The spec covers creation, validation, lifecycle, fulfillment, breach/void, war-entry integration, and the Bargain Review surface. Scheduled in the Peace Deals phase after `Bilateral Peace Hardening` + `War Purpose + Score Semantics` (queue items 2-3.5).
 - **Files:** `diplomacy.py`, `ai_diplomacy.py`, `diplomatic_executor.py`
 
@@ -167,10 +180,13 @@ The focused attention / AI diplomacy audit tightened which diplomacy legitimacy 
 - **Category:** Marshal Feature
 - **Summary:** Glory Ladder targeting, personality expressions, escalation, confrontation popups.
 - **Details:** Full spec at `docs/JEALOUSY_SPEC.md`. Core design settled. Top of ladder: +1 all core stats while #1. Defeats cost glory. DO NOT CODE WITHOUT USER APPROVAL.
+- **Sequencing note July 2, 2026:** the Marshal Content Pass (`docs/MARSHAL_CONTENT_PASS_SPEC.md`, MC-3 relationship authoring) is effectively a prerequisite — the shipped 21-marshal roster has zero authored relationships; a v3.2 addendum must re-derive scenario impact/tuning against that roster before the gate.
 
 ---
 
-## War System Overhaul (EU4-Inspired — Design Gate)
+## War System Overhaul (EU4-Inspired — Design Gate) — **✅ LANDED**
+
+**Disposition (July 2, 2026):** this entire section LANDED via the War Purpose + Score Semantics work (`docs/WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`) — `world.war_objectives` ticking score, the vassalage power cap, the `forced_alliance` clause type, and the liberation mechanic are all live in code. The text below is preserved as historical design intent.
 
 Full design spec in `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` lines 215-722. Addresses core balance problem: defensive play is overwhelmingly superior because no ticking score incentivizes holding territory over time.
 
@@ -211,6 +227,7 @@ Full design spec in `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` lines 215-722. A
 
 ### A3: AI War Exhaustion Integration
 - **Source:** `docs/archive/DIPLOMACY_DESIGN_FIXES.md` lines 55-61
+- **Disposition (July 2, 2026):** the proposal-side integration is LANDED in `ai_diplomacy.py`; the residual (the `enemy_ai.py` war-vs-diplomacy choice) rides queue item 5 (`Nation Agendas + Motive Legibility`), per the Memory and Pressure interaction note above.
 - **Summary:** Proposal-side war exhaustion integration is already partially landed in `ai_diplomacy.py` (`effective_p1_threshold`, `effective_stalemate_turns`). Remaining work, if any, is broader war-exhaustion integration in `enemy_ai.py` and diplomacy-vs-war choice, so this item now needs re-scope rather than blind implementation.
 - **Files:** `ai_diplomacy.py`, `enemy_ai.py`
 - **Est. tests:** ~4
@@ -226,6 +243,8 @@ Full design spec in `docs/archive/PLAYTEST_AUDIT_2026_03_29.md` lines 215-722. A
 ## Wave 4 — Decide Gate (Per-Item Approval)
 
 These are new feature designs. Each needs individual approval before implementation.
+
+**July 2, 2026:** per-item user approval is still required. Items already re-pointed above have new owners: R26 → `docs/ECONOMY_REVISIT_SPEC.md` EC-5 (Continental System); R161 → `ECONOMY_REVISIT_SPEC.md` EC-8; R162 → gated behind queue items 5-6 (8.EVAL).
 
 | ID | Item | Summary |
 |----|------|---------|
@@ -253,6 +272,7 @@ These are new feature designs. Each needs individual approval before implementat
 
 ### R161: One-Time Trade (Expanded)
 - **Category:** Diplomacy Feature
+- **Owner (July 2, 2026):** re-pointed to `docs/ECONOMY_REVISIT_SPEC.md` EC-8 (economic diplomacy, alongside queue item 7). Original design text kept as historical context.
 - **Summary:** Voluntary, consensual resource exchange between nations — no state change, no coercion. The "carrot" complement to ultimatums (the "stick").
 - **Details:** Player proposes a trade (gold, manpower, territory) to any nation at OPEN_BORDERS or better. Both sides give and receive. Uses existing conversational diplomacy flow with `generate_trade_terms()`. Acceptance via full formula. No threat increase, no relation penalty — pure commerce.
 - **Building Blocks principle:** Reuses `_ratify_treaty` clause processing, `calculate_acceptance()`, dialogue enrichment, splash damage (none for trades). Same executor path as proposals but with `type: "trade"` and no state transition.
@@ -263,6 +283,7 @@ These are new feature designs. Each needs individual approval before implementat
 
 ### R162: AI Ultimatums to Player
 - **Category:** AI Diplomacy — Building Blocks
+- **Status (July 2, 2026):** stays gated behind queue items 5-6 (Nation Agendas + Talleyrand Desk), which are owned by the 8.EVAL evaluation gate.
 - **Summary:** AI nations issue ultimatums to the player using the same ultimatum system the player uses. Building Blocks principle (§23): same systems, different input values.
 - **Details:** AI evaluates ultimatum opportunity in `enemy_ai.py` decision tree (new P-trigger). Conditions: military superiority over player in a region, low relations, not in coalition with player. Generates terms via `generate_ultimatum_terms()` (same function player uses). Delivered as popup with [Accept][Reject] options. Rejection gives AI casus belli. Same splash damage, threat (reduces player threat if AI is aggressor), and cooldown mechanics.
 - **Building Blocks reuse:** `generate_ultimatum_terms()`, `calculate_acceptance()` (inverted — player is target), `_ratify_treaty` clause processing, splash damage formula, global cooldown (separate AI cooldown counter).
@@ -272,6 +293,7 @@ These are new feature designs. Each needs individual approval before implementat
 
 ### National Power Tiers (Great Power / Secondary / Minor) — Design Gate
 - **SUPERSEDED — April 17, 2026.** Canonical `power_tier` is now defined in `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy". Under the canonical definition, `power_tier` is **authored scenario data** with values `major / secondary / minor` and is **never recomputed at runtime**. The dynamic numeric-tier model below is superseded and must not be implemented. If a numeric strength-derived signal is needed for AI threat weighting, coalition calculations, or dispatch priority, it lives in a separate `power_score` field that does not overwrite `power_tier`. The original text is preserved below as historical design intent.
+- **Residual disposition (July 2, 2026):** the tier model stays SUPERSEDED — Phase 0's authored `power_tier` shipped with the real-map cutover. The optional numeric `power_score` idea: evaluate at the 8.EVAL gate, else drop.
 - **Category:** Diplomacy + War — Balance + Immersion
 - **Summary:** Dynamic numeric power tiers (`great_power / secondary_power / minor_power`) calculated from controlled regions, income, military strength, and partial vassal contribution. Affects acceptance formula (great powers resist vassalization), coalition formation (great powers lead coalitions, minor powers join), war settlement (consultation rights scale with tier), and AI threat assessment (great powers escalate coalition faster).
 - **Origin:** Conceptual three-tier model exists in `docs/WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` §8.3. Data fields (`nation_power_scores`, `nation_power_tiers`) listed as deferred in `RELIABILITY_COMMITMENTS_SPEC.md` §12.3.
@@ -287,6 +309,8 @@ These are new feature designs. Each needs individual approval before implementat
 ## Gold Sink Options (B4 Balance — Design Gate)
 
 **Priority:** MEDIUM | **Phase:** Pre-EA refinement
+
+**RE-POINTED (July 2, 2026):** owner is `docs/ECONOMY_REVISIT_SPEC.md` EC-2 (the B4 gold-sinks gate). The candidates below are re-cost candidates for the ~3.4k/turn 1805 economy — France income is ~3.4k/turn on 28 provinces, upkeep ~950g, and the whole building stock costs ~1.85k — so this section's "~700g vs ~250g" numbers are legacy (19-region map). Original text kept as historical context.
 
 Gold accumulation is a known design gap (~700g/turn income vs ~250g upkeep). Manpower-gated recruitment means gold piles up with no meaningful spending options. This section tracks candidate gold sinks for evaluation.
 
@@ -312,6 +336,8 @@ Gold accumulation is a known design gap (~700g/turn income vs ~250g upkeep). Man
 
 **Priority:** LOW | **Phase:** After full 1805 map implementation
 
+**RE-POINTED (July 2, 2026):** owner is `docs/ECONOMY_REVISIT_SPEC.md` EC-4 (enemy AP). The revisit trigger fired July 2, 2026 — the full 1805 map shipped with the real-map cutover. NOTE: the EC-0 AP-reset defect must land first. Original text kept as historical context.
+
 Enemy AI action budget (currently 4 paid AP per nation) may need rebalancing once the full map is implemented with all nations, regions, and marshal counts at scale. Current 4-nation, 19-region map doesn't stress the action economy the same way a full campaign will. Revisit AP values, per-nation scaling, and aggregate action counts after full map playtesting.
 
 ---
@@ -320,9 +346,11 @@ Enemy AI action budget (currently 4 paid AP per nation) may need rebalancing onc
 
 Cross-system findings from comprehensive review. Needs design gate as a batch.
 
+**July 2, 2026:** per-item user approval is still required. Items already re-pointed above have new owners: R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 (parser confidence feedback).
+
 **Diplomatic Term Novelty — PARTIALLY ABSORBED into PL-25 (BUG_FIXES.md).** PL-25 covers the 80/20: amount jitter, personality-biased pen nudge, nation desire profile bias in `_build_base_terms()`, situational flavor lines. R155/R157 retain the remaining full scope: hawk/dove personality weight table for ALL AI proposals (not just Talleyrand's pen nudge), deep `TALLEYRAND_COMMENTARY` integration, and AI-initiated proposal personality voice.
 
-**Focused audit routing:** R155 / R156 are now directly validated by current code evidence. R160 remains the highest-leverage legitimacy upgrade once the BUG_FIXES attention-contract work lands. R162 stays gated until the diplomacy mailbox / recovery surface exists.
+**Focused audit routing (updated July 2, 2026):** R155 / R156 remain validated by code evidence and route to queue items 5-6 (8.EVAL). R160 is SUPERSEDED by Memory and Pressure v2.4.3 (see its row above) — it is no longer a pending upgrade. The diplomacy mailbox / recovery surface LANDED long since; R162 is not transport-blocked, it stays gated behind queue items 5-6.
 
 | ID | Item | Summary |
 |----|------|---------|
@@ -345,18 +373,21 @@ These items are conscious trade-offs where v0.1 chose recognizability, immersion
 - **Summary:** The four foreign diplomats in `backend/models/diplomat.py` (Hardenberg / Metternich / Castlereagh / Einsiedel) are recognizable Napoleonic-era names but historically took their depicted roles **after** the 1805 campaign start: Hardenberg as Prussian chancellor from 1810, Metternich as Austrian foreign minister from 1809, Castlereagh as British foreign secretary from 1812, Einsiedel as Saxon minister from 1813. The actual 1805 ministers were Haugwitz (Prussia), Stadion or Cobenzl (Austria), Mulgrave (Britain), and Bose or Löss (Saxony).
 - **Design trade-off (deliberate):** recognizability was prioritized for v0.1 because the four chosen figures are well known to strategy players and the Voice Bible's Hawk / Schemer / Dove register distinctions were drawn from their historical voices. Swapping them in v0.1 would lose the established register voices without adding mechanical value and would force the Voice Bible exemplars to be re-authored before any useful commitments work shipped.
 - **When to revisit:** once the full 1805 campaign ships (Early Access) and the game claims period fidelity as a feature. Swap to the 1805-accurate ministers and port the register notes. The Voice Bible's "Characteristic openings" / "Never says" framework should transfer cleanly — Haugwitz was a Prussian Hawk in the Hardenberg mold, Stadion a Schemer adjacent to Metternich, Mulgrave less distinctive than Castlereagh but workable, Bose closer to Einsiedel's dove register.
+- **Revisit condition MET July 2, 2026:** the full 1805 campaign shipped (real-map cutover complete). Still EA-scope; interacts with DEF-1 Roster Voices register authoring.
 - **Files:** `backend/models/diplomat.py`, `docs/DIPLOMAT_VOICE_BIBLE.md`, `backend/game_logic/diplomatic_templates.py`, any committed breach / hard-reject mock prose
 - **Est. sessions:** 1 (cast swap + voice port + test refresh)
 
 ### P2: Britain reactive bloc pressure (continental-hegemon pattern)
 - **Summary:** The v0.1 rivalry model has Britain as France's direct rival but gives Britain no *reactive* posture when France deepens ties with a continental power. Historically Britain opposed any continental hegemon on principle, paying subsidies to any continental power willing to fight France. Flagged in `RELIABILITY_COMMITMENTS_SPEC.md` v2.1 §7.4.C as the #1 historical-texture debt for Memory and Pressure.
 - **When to land:** `Coalition Generalization` (D2, follow-up after Memory and Pressure). D2 should include continental-hegemon reactive threat accumulation — not just bloc-target parameterization — so Britain gains automatic threat against any power approaching continental hegemony, not only France by name.
+- **Owner (updated July 2, 2026):** the `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` deferred-ledger D2 row. The previously-named "Coalition Generalization (D2)" is not a landed slice — this item rides that deferred-ledger row.
 - **Files:** `backend/game_logic/coalition.py`, `backend/game_logic/diplomacy.py`
 - **Est. sessions:** folded into D2 spec work
 
 ### P3: Diplomatic Ledger sort / filter at scale
 - **Summary:** The Diplomatic Ledger's Nations tab currently renders one row per nation. At 5 nations this is clean; at 6-8 full 1805 nations with multiple rivals each, the list becomes dense. Commitments rows (active rivals, betrayal warnings, posture markers) multiply the cell count.
 - **When to land:** Pre-EA polish alongside Map Renderer UX pass, or absorbed into the Talleyrand Desk + Explanation Layer spec (diplomacy queue item 6).
+- **Urgency raised (July 2, 2026):** 20 nations render now in the shipped 1805 campaign. Owner: queue item 6 (Talleyrand Desk + Explanation Layer) or pre-EA polish.
 - **Files:** `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`
 - **Est. sessions:** 1 as a standalone UX slice, or folded into the Talleyrand Desk pass
 

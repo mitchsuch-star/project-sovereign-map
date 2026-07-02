@@ -2,7 +2,27 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** May 29, 2026. **Phase 8 settlement gate (current):** the Settlement UI Cleanup Spec reached **v0.32 GO** (SC-5R editor + SC-32/Slice G2 LANDED); **Gate 4 manual smoke is still open**; the **next-up item is the Settlement Conversational Re-front v0.6** (`docs/SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`, DESIGN GATE — NEEDS APPROVAL); Slice G AI/ally agency stays gated behind Gate 4 smoke. See `docs/STATUS.md` for live state. (Historical: the May 6 entry pinned cleanup v0.17.)
+> **Last Updated:** July 2, 2026 — **the post-map / post-diplo RE-STAGING.** The real-map cutover is COMPLETE (the running game is the 126-province 1805 campaign) and the Phase 8 Peace Deals arc is functionally complete (Slice G1 landed at `1a9da53`; Gate 4 smoke ran — visual half pending user confirmation). The forward queue is re-staged below as **§Current Phase Queue** — new phases CR (Command Robustness), EC (Economy Revisit), and MC (Marshal Content Pass) join the surviving 8.EVAL → 8.5 → Steam → 9/10/11 → Pre-EA → EA spine. See `docs/STATUS.md` for live state.
+
+---
+
+## Current Phase Queue (re-staged July 2, 2026)
+
+Ordering below is the recommended sequence; A-items are small and interleave freely. User priorities anchored this staging: (1) command-by-text robustness, (2) economy revisit, (3) docs that cover the bases for a great game.
+
+| # | Phase | Contents | Gate | Spec |
+|---|-------|----------|------|------|
+| **A** | **Loose-Ends Closeout** | Gate 4 visual-half confirmation (USER — checklist in STATUS.md July 2 entry) → record gate passage; ~~G2 closure bookkeeping~~ (DONE July 2, this re-staging); **Slice H design gate** (spec drafted, awaiting user) → H-1/H-2; R19 modding validator (~3h); Jealousy stays gated (sequenced after MC per its prerequisite note). | Slice H + Jealousy need user gates | `SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` |
+| **CR** | **Command Robustness** ("Talk to Your Marshals") | Promotes the Post-Diplomacy Command Layer Queue (below) to a numbered phase. CR-0 fixes the **P0 parser roster gap** (5 of 7 French marshals uncommandable by text on the shipped boot — BUG_FIXES.md); then eval harness, clarification dialogue, LLM modernization, context carryover, personality-biased disambiguation. | Scope blessing; CR-6 needs its own design gate | `COMMAND_ROBUSTNESS_SPEC.md` |
+| **EC** | **Economy Revisit** (1805-scale economy + campaign feel) | EC-0 fixes the **AP-reset defect** (Austria's approved 4 AP silently squashed; treaty AP penalties compound); DEF-3 authored income; gold sinks at 3.4k/turn scale (Province Development anchor); manpower/garrison retunes; enemy AP; Continental System decision; **DG-5 victory-condition decision**; DG-3 campaign-feel evaluation. | EC-2 design gate; EC-5/6/7 user decisions | `ECONOMY_REVISIT_SPEC.md` |
+| **MC** | **Marshal Content Pass** | Previously UNOWNED gap: all 21 shipped marshals boot with ability "None", flat skills, zero relationships. Ability set (~10-12 wired), skills/trust, relationship web, balanced/loyal personality decision. Prerequisite for the Jealousy gate. MC-0 (ability display bug) may land as an independent fix. | **USER DESIGN GATE** (ability set) | `MARSHAL_CONTENT_PASS_SPEC.md` |
+| **B** | **DEF-1 Roster Voices + presentation polish** | Bespoke registers for the 15 chancery-fallback diplomats (incl. the new `loyalist` register class), commitments copy depth, Voice Bible reconciliation (WB-D five lines, reactive_summon), TALLEYRAND_COMMENTARY coverage; DEF-13 UI-Scale Mini-Pass (dated, baseline pinned); optional DEF-12 map-modes mini-gate. | DEF-12 needs gate | DEF rows in `MAP_IMPLEMENTATION_PLAN.md` |
+| **8.EVAL** | **Pre-8.5 Evaluation Gate** (unchanged owner for its rows) | Triage: war-LLM improvement items, DWL-DIP-E7 + DWL-DIP-METTERNICH (triggers go live at Gate 4 passage), DW-2 dual-acceptance-model convergence + war-score credit calibration, DESIGN_REFINEMENT queue items 5-6 (Nation Agendas, Talleyrand Desk), Wave 4/5 items, AI P3-P6 opportunism, arch-plan findings #23. Output: keep/defer/drop list. | Evaluation session with user | ROADMAP §8.EVAL (below) |
+| — | **Then the existing spine** | Phase 8.5 (Events/Gazette/Marshal Voice) → STEAM PAGE + LLC → 9 (Advisors) → 10 (Character & People) → 11 (Britain naval/subsidy + governance; vassal core already landed) → Pre-EA → EA. | per phase | below |
+
+Standing deferred rows that survive this staging with owners: DEF-4 (behind the 15× tripwire), DEF-5 naval spec (needed before Phase 11 Britain), Jealousy v3.1 (gate after MC), Historical Precision P1 ministers (EA), Post-EA table.
+
+**Open design decisions parked for the user:** Slice H gate (D-H1..5 in its spec) · EC-2 sink set · EC-5 Continental System upgrade-vs-trim · EC-6/DG-5 victory conditions · MC-1 ability set · MC-4 personality types · CR scope blessing + CR-6 gate · DEF-12 map modes · Jealousy v3.1 (after MC + v3.2 addendum).
 
 ---
 
@@ -13,26 +33,24 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
-| **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
-| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **Peace Deals closure in progress.** Settlement UI Cleanup Spec reached **v0.32 GO** (the 5 cleanup slices + SC-5R editor + SC-32/Slice G2 LANDED). **Current: Gate 4 manual smoke open; next-up = Settlement Conversational Re-front v0.6** (DESIGN GATE, NEEDS APPROVAL — `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`). Then: Slice G AI/ally agency (gated behind Gate 4 smoke). See `docs/STATUS.md`. |
+| **6.5** | **Information & UI Systems** | **COMPLETE** (map renderer shipped with the July 2, 2026 real-map cutover — 126-province 1805 campaign is the running game) |
+| **7 Core** | **Multi-Marshal Coordination** | **COMPLETE.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
+| **7b** | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b | **COMPLETE.** Residuals re-homed July 2, 2026: Jealousy = standing design gate (after the Marshal Content Pass); Gneisenau Staff Work → 8.EVAL triage (its 1805 landing condition arrived with no owner slice); cross-nation coordination → 8.EVAL triage. |
+| **8** | **Diplomacy & Peace** | **FUNCTIONALLY COMPLETE July 2, 2026.** Cleanup spec v0.32; all settlement slices + Guided Terms + Slice G1 landed (`1a9da53`); SC-32 formally closed. Remaining tail: Gate 4 visual-half confirmation (USER) + the Slice H design gate (`SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`). See `docs/STATUS.md`. |
 | **8.EVAL** | **Pre-8.5 War LLM + Diplomacy Refinement Evaluation** | **Planned after Imperial Settlement final gate, before 8.5.** Audit buried war-LLM improvement items, battle/war narration toggle scope, creative-command war uses, `DESIGN_REFINEMENT.md` diplomacy queue items, AI ultimatums/trade/agenda/motive/Talleyrand Desk candidates, and decide what ships before 8.5 vs moves to Pre-EA/Post-EA. |
+| **CR** | **Command Robustness** (NEW July 2, 2026) | Next major phase after A-items — `COMMAND_ROBUSTNESS_SPEC.md` (user priority) |
+| **EC** | **Economy Revisit** (NEW July 2, 2026) | `ECONOMY_REVISIT_SPEC.md` (user priority) |
+| **MC** | **Marshal Content Pass** (NEW July 2, 2026) | `MARSHAL_CONTENT_PASS_SPEC.md` — NEEDS DESIGN GATE |
+| 8.EVAL | Pre-8.5 Evaluation Gate | Trigger arrives with Gate 4 passage; see §Current Phase Queue |
 | 8.5 | Events, Goals & National Identity | Planned, blocked on 8.EVAL |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
 | 10 | Character & People (Minimal) | Planned |
-| 11 | Vassals | Planned |
+| 11 | Britain (naval/subsidy) & Imperial Governance | Planned — vassal core LANDED in Phase 8; remaining rows are Britain naval/subsidy pressure (needs DEF-5) + governance promotion |
 | Pre-EA | Polish & Infrastructure | Planned |
-| EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
+| EA | 1805 Campaign | TBD 2026 — the 126-province map shipped FULLY WIRED July 2, 2026 (Option C partial wiring is superseded) |
 
-**Phase 8 settlement work order** (updated May 29 — steps 1–2 largely landed; the **Settlement Conversational Re-front v0.6** is the next-up item — DESIGN GATE pending approval — and re-fronts step 1's editor; see `docs/STATUS.md`):
-1. **Settlement UI Cleanup Spec** — **LANDED at v0.32 GO** (`docs/SETTLEMENT_UI_CLEANUP_SPEC.md`): Foundation (SC-1–4) → Entry Safety (SC-8/8b/10–13) → Continuity (SC-14/14b–e/7b/26) → Incoming Offers (SC-5/6/7) → Presentation & Metadata (SC-15/15b/16/17/19/20/23–25), plus the SC-5R editor and SC-32/Slice G2. **Gate 4 manual smoke is still open.**
-2. **Manual Godot smoke** — settlement wizard, war detail, coalition detail, notification/dispatch routes, stale-state recovery, CanvasLayer 50 one-screen rule.
-3. **Slice G** — AI/ally settlement agency (AI war-leader packages, non-leader ally petitions/advisories). See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` §Slice G.
-4. **Final Gate** — bundled pytest across settlement + WB/WPS/BPH test files + `ruff check`. See `WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md` line 500.
-5. **8.EVAL** — audit buried war-LLM improvements, diplomacy refinement queue, LLM cost/toggle, AI agenda/ultimatum/trade/Talleyrand Desk candidates. Output: keep/defer/drop decision list + scoped handoff for anything shipping before 8.5.
-6. **Phase 8.5** — Events, Goals & National Identity.
+**Phase 8 settlement closure record (July 2, 2026):** cleanup spec v0.32 GO with all five slice families + SC-5R + SC-32/G2 + SC-31 landed; Guided Terms complete (June 10); CH-1..5 landed; the ONE end-of-queue Gate 4 smoke RAN July 2 (16 findings, 11 fixed at `7635229`; machine half green; visual half pending user confirmation); Slice G1 landed July 2 at `1a9da53` (SC-30 closed; SC-32 formally closed). The only live settlement successors are the Gate 4 visual half and Slice H (design-gated).
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
@@ -50,7 +68,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3799 (verified Feb 24, 2026)
+**Total Tests:** 3799 (verified Feb 24, 2026 — historical; the suite was **10,781 passed, 1 skipped** at Slice G1, July 2, 2026)
 
 ---
 
@@ -330,8 +348,8 @@ Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md` for full spec.
 |---------|-------------|------------|--------|
 | **V2b: Defiance/Vindication** | MODERATE/STRONG/EXTREME concerns trigger defiance (5%/15%/35% base). 40% hard cap, vindication decay, authority feedback loop, fog migration, relationship SUPPORT objections. Full spec: `V2B_DEFIANCE_SPEC.md`. Sessions 0-3 + audit cleanup. | Medium | **COMPLETE** |
 | **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. Open: trigger threshold, consequence type, duration, objection interaction. | Medium | Deferred — NEEDS DESIGN |
-| **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
-| **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
+| **Cross-nation coordination** | Coalition partners coordinate. The diplomacy layer now provides alliance/coalition state. See amendments C3. | Medium | **Re-homed July 2, 2026 → 8.EVAL triage** (was an unowned deferral) |
+| **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. | Low | **Re-homed July 2, 2026 → 8.EVAL triage** (its "1805 full campaign" landing condition arrived July 2 with no owner slice; note Gneisenau is not in the shipped 21-marshal roster — the triage decides implement-on-roster-add vs drop) |
 
 **Moved to Phase 8:** Coalition Trigger — threat mechanics are inherently diplomatic and should ship alongside peace treaties and nation relations.
 
@@ -419,7 +437,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 ### Post-Phase 8 Refinement Order
 
-Phase 8 implementation is complete, but the diplomacy refinement queue after it is now explicitly sequenced:
+**(July 2, 2026: items 1–4 below ALL LANDED** — Memory and Pressure v2.4.3 complete; BPH landed; WPS landed; War Bargains landed April 2026; Ally Participation + Common Peace landed as the Imperial Settlement system through Slice G1. Item 5's tracks route through 8.EVAL and the new EC/CR phases. Kept as the historical sequencing record.)
 
 1. `Memory and Pressure`
    First diplomacy follow-up implementation target. Keep this bilateral and legible. Current canonical docs are `docs/RELIABILITY_COMMITMENTS_SPEC.md` v2.4.3, `docs/RELIABILITY_IMPLEMENTATION_PLAN.md` v2.4.3, `docs/COMMITMENTS_PRESENTATION_SPEC.md` v0.5.2, and `docs/DIPLOMAT_VOICE_BIBLE.md` v1.2. Audit-block sequence: Block 1 doc cleanup (complete), Block 2 substrate fixes (complete), Block 3 bloc naming (SUPERSEDED — folded back into §8.1a + voice bible + parent slices). Remaining implementation slices open directly.
@@ -444,7 +462,7 @@ Reference planning docs:
 
 ### Post-Diplomacy Command Layer Queue
 
-Once the diplomacy refinement queue above is stable, the next interaction-layer work is the command surface itself. These items are explicitly queued after the current diplomacy fixes/refinements and all remain **NEEDS SPEC**.
+**PROMOTED July 2, 2026 → the Command Robustness phase (`docs/COMMAND_ROBUSTNESS_SPEC.md`).** The gating condition ("once the diplomacy refinement queue above is stable") was met; each row below maps to a CR slice in that spec (which is now the owner). The table is kept as the design-intent record.
 
 | Item | Description | Status |
 |------|-------------|--------|
@@ -782,6 +800,8 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 
 ### Economy Rebalance for 1805
 
+**OWNED July 2, 2026 by `docs/ECONOMY_REVISIT_SPEC.md`** (this section is its historical design rationale; the 1805-scale numbers there supersede the legacy figures below — France measured ~3.4k gold/turn on 28 provinces at Slice 8).
+
 The 19-region map has known balance tensions surfaced by Session 26 Opus audit:
 - **Admin AP bonus (150g) is disproportionately important** — 9-43% of a nation's income. Creates strong disincentive for Coalition AI to recruit/build.
 - **Coalition death spiral** — battle losses → recruitment needs → lost admin bonus → deficit → bankruptcy → desertion → more losses.
@@ -797,6 +817,8 @@ These are acceptable for the tutorial scenario (France should feel dominant). Fo
 
 ### AI Fog of War for 1805
 
+**RESOLVED (April 19, 2026):** Scale Readiness Phase 2.3 landed the live nation-perspective fog seam (`enemy_ai.py` fog-aware queries); the shipped 126-province campaign runs with AI fog live. Residual open idea: AI difficulty tiers/compensation (needs its own spec — see ARCHITECTURE_REFACTORING_PLAN Phase F supersession note). Historical rationale below.
+
 At 19 regions, AI omniscience is fine — too few regions for fog to matter strategically. At 80+ regions, omniscient AI feels unfair (it always knows where you are, you never know where it is). Options to evaluate:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
@@ -806,7 +828,7 @@ The practical Phase 2 seam is a nation-perspective **live** visibility helper fo
 
 ### Executor Refactoring for 1805
 
-Deferred from Systems Audit Sessions 13-14 (architecture refactoring). Do alongside 80-region map rework:
+**LANDED (R10A/B–R13A/B decomposition):** executor.py is ~1.5k lines with 8 sub-executors (see CLAUDE.md file table); this section is historical. Residual shared-helper items, if any, route through 8.EVAL. Historical scope below:
 - **Executor decomposition:** Extract `_execute_debug` (~867 lines) and `_process_dialogue_choice` (~1,098 lines) out of executor.py. Resolves 125 inline imports / circular deps.
 - **Shared helpers:** Extract duplicated recruit cost formula (3 locations), drill check helper (3 locations), auto-end-turn logic. Replace 43 hand-rolled AI enemy queries with helper methods.
 - **Risk:** HIGH for executor decomposition (circular deps), MEDIUM for helpers (behavioral equivalence). Strong test suite (6,904+) makes verification practical.

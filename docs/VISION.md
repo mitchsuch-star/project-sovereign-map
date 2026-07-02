@@ -29,7 +29,7 @@ When a marshal objects, the player chooses: **Trust** (accept their judgment), *
 ## Three Layers of Agency
 
 ```
-Layer 1: ADVISORS (future)
+Layer 1: ADVISORS (future — Phase 9)
   Talleyrand: "Sire, attacking Austria would provoke a coalition."
   → Gates what you CAN do (diplomacy, intel)
 
@@ -37,7 +37,7 @@ Layer 2: MARSHALS (implemented)
   Ney: "Attack? With pleasure!" / Davout: "Those odds are suicide."
   → Gates HOW your orders are executed
 
-Layer 3: NATIONS (future)
+Layer 3: NATIONS (implemented — Phase 8 diplomacy: coalitions, AI-AI diplomacy, vassals)
   Prussia: *secretly negotiates with Austria*
   → The world reacts to your actions
 ```
@@ -79,4 +79,4 @@ Conquered territory isn't managed through spreadsheets — it's managed through 
 
 ---
 
-*For implementation details, see COMPLETED.md. For timeline, see ROADMAP.md.*
+*For the session record, see `docs/STATUS.md`. For timeline, see `docs/ROADMAP.md`.*

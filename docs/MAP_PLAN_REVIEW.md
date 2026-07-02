@@ -1,5 +1,7 @@
 # Map Implementation Plan — Independent Review & Phased Roadmap
 
+> **HISTORICAL — Frozen June 22, 2026 pre-execution review.** Every roadmap session executed by July 2, 2026 (cutover COMPLETE). Verified-fact tables below reflect pre-cutover code and now contradict shipped reality in places (e.g. §5 statuses, the Britain proxy capital, `max_turns`). Do not route work from here; see `docs/STATUS.md`.
+
 > Reviewer pass over `docs/MAP_IMPLEMENTATION_PLAN.md`, June 22, 2026. Every number below was
 > verified against the real code/assets (validator run, PSD byte-inspection, registry parse, test
 > grep, lookup-image measurement) — not taken from the plan. Reproduction tooling listed in the
