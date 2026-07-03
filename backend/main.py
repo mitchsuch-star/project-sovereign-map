@@ -204,6 +204,12 @@ def get_llm_game_state() -> dict:
         "marshals": marshals,
         "enemies": enemies,
         "map_data": map_data,
+        # July 2026 AI audit: the live providers read game_state["world"]
+        # for the command-history repetition guardrail (anti-spam on the
+        # strategic-score bonuses) — without it they silently sent empty
+        # history on every parse. Never serialized: this dict only feeds
+        # prompt building.
+        "world": world,
     }
 
 def _get_talleyrand_state_label(w) -> str:

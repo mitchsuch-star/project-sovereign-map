@@ -152,6 +152,13 @@ class TestNeyBravestOfTheBrave:
 
         combat = CombatResolver()
 
+        # Deterministic RNG: this statistical comparison (expected ~7%
+        # delta, threshold 3%) flaked when unrelated suite changes shifted
+        # the global random-stream position (observed 2.4% under one
+        # full-suite ordering, July 2026 AI-audit session)
+        import random
+        random.seed(20260703)
+
         # Run many battles to average out variance (50 battles for stability)
         num_battles = 50
         with_ability_total_damage = 0

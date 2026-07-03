@@ -1157,7 +1157,11 @@ class TestBugFix1_IntentTracking:
         gneisenau.strength = 70000  # Strong enough to pass safety check
 
         # Ensure Netherlands is enemy-controlled and undefended
+        # (July 2026 AI audit: the capture path now correctly refuses
+        # GARRISONED regions — zero the legacy capital garrison so the
+        # region is genuinely undefended, which is this test's premise)
         self.world.regions["Netherlands"].controller = "France"
+        self.world.regions["Netherlands"].garrison_strength = 0
 
         # Clear ALL French marshals away from Belgium and Netherlands
         # This prevents P0 engagement check from triggering
@@ -1182,7 +1186,9 @@ class TestBugFix1_IntentTracking:
         gneisenau.fortified = False  # Already unfortified
 
         # Ensure Netherlands is enemy-controlled and undefended
+        # (garrison zeroed — see note in test_unfortify_stores_capture_intent)
         self.world.regions["Netherlands"].controller = "France"
+        self.world.regions["Netherlands"].garrison_strength = 0
         for m in self.world.marshals.values():
             if m.nation == "France" and m.location == "Netherlands":
                 m.location = "Paris"
@@ -1212,7 +1218,9 @@ class TestBugFix1_IntentTracking:
         gneisenau.stance = Stance.DEFENSIVE  # Set defensive stance
 
         # Ensure Netherlands is enemy-controlled and undefended
+        # (garrison zeroed — see note in test_unfortify_stores_capture_intent)
         self.world.regions["Netherlands"].controller = "France"
+        self.world.regions["Netherlands"].garrison_strength = 0
 
         # Clear ALL French marshals away from Belgium and Netherlands
         for m in self.world.marshals.values():

@@ -421,11 +421,33 @@ class CommandExecutor:
         if action != "end_turn" and hasattr(world, '_auto_advanced_to_turn'):
             world._auto_advanced_to_turn = 0
 
+        # ════════════════════════════════════════════════════════════
+        # AI-EXECUTION CONTEXT (July 2026 AI audit): commands originating
+        # from the enemy phase / AI admin phase / autonomous marshals must
+        # never be gated on the PLAYER's pending dialogues or AP pools, and
+        # must never trigger the player's auto-end-turn (AI admin builds
+        # were draining the player's admin pool and could recursively
+        # end_turn mid-enemy-phase). Detection: the _autonomous_execution
+        # flag, an _acting_nation other than the player, or a command
+        # marshal belonging to another nation.
+        # ════════════════════════════════════════════════════════════
+        _early_command = parsed_command.get("command", {})
+        is_ai_command = bool(_early_command.get("_autonomous_execution"))
+        _acting_nation = _early_command.get("_acting_nation")
+        if _acting_nation and _acting_nation != world.player_nation:
+            is_ai_command = True
+        if not is_ai_command and _early_command.get("marshal"):
+            _early_m = world.get_marshal(_early_command.get("marshal"))
+            if _early_m and _early_m.nation != world.player_nation:
+                is_ai_command = True
+
         # ============================================================
         # DISOBEDIENCE CHECK: Is there a pending objection?
+        # (Player-originated commands only — the enemy AI never answers
+        # the player's pending dialogues.)
         # ============================================================
 
-        if world.pending_objection is not None:
+        if world.pending_objection is not None and not is_ai_command:
             return {
                 "success": False,
                 "message": "A marshal is awaiting your response! Use /respond_to_objection to continue.",
@@ -437,7 +459,7 @@ class CommandExecutor:
         # ============================================================
         # CAPTURE CHOICE CHECK (Phase 6.2.E): Plunder or Secure?
         # ============================================================
-        if world.pending_capture_choice is not None:
+        if world.pending_capture_choice is not None and not is_ai_command:
             return {
                 "success": False,
                 "message": "You must decide how to handle the captured region first! Choose 'plunder' or 'secure'.",
@@ -458,8 +480,11 @@ class CommandExecutor:
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
 
-        # PL-27: Only hard-stop dialogues block commands (cheat always bypasses)
-        if world.dialogue_manager.is_hard_stop() and action != "cheat":
+        # PL-27: Only hard-stop dialogues block commands (cheat always
+        # bypasses; AI-originated commands too — a hard-stop promoted
+        # before/during the enemy phase must not zero out every AI nation's
+        # turn and poison their failed-action cooldowns)
+        if world.dialogue_manager.is_hard_stop() and action != "cheat" and not is_ai_command:
             dialogue = world.pending_diplomatic_dialogue
             option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
             options_text = "  ".join(option_labels)
@@ -539,7 +564,10 @@ class CommandExecutor:
             action_costs_point = False
 
         # Check if this is a player action (enemy AI has separate action budget)
-        is_player_action_check = True
+        # July 2026 AI audit: the AI-execution context covers marshal-less AI
+        # commands too (admin builds carry _acting_nation, no marshal — they
+        # were gating on and DRAINING the player's admin AP pool)
+        is_player_action_check = not is_ai_command
         early_marshal_name = command.get("marshal")
         if early_marshal_name:
             early_marshal = world.get_marshal(early_marshal_name)
@@ -636,7 +664,13 @@ class CommandExecutor:
             action in objection_actions and
             marshal_name is not None and
             not is_strategic_execution and  # Phase 5.2-C: marshal can't object to own decision
-            not is_strategic_command  # Phase M: strategic objection handled separately
+            not is_strategic_command and  # Phase M: strategic objection handled separately
+            # July 2026 AI audit: an autonomous marshal executing his OWN
+            # AI-decided action can neither object to himself nor be blocked
+            # by the "cannot command autonomous marshal" gate below — that
+            # gate made the entire autonomy feature a no-op (every decided
+            # action bounced off the player-facing refusal)
+            not command.get("_autonomous_execution")
         )
 
         if should_check_objection:
@@ -1384,7 +1418,9 @@ class CommandExecutor:
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
 
         # Determine if this is a player action (should consume from player's action budget)
-        is_player_action = True  # Default to player action
+        # July 2026 AI audit: AI-execution context (marshal-less admin
+        # builds, autonomous marshals) must never consume player pools
+        is_player_action = not is_ai_command
         marshal_name = command.get("marshal")
         if marshal_name:
             executing_marshal = world.get_marshal(marshal_name)

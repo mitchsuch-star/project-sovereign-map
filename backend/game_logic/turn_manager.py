@@ -111,13 +111,25 @@ class TurnManager:
         # Then player's "end turn" command arrives, calling end_turn() again on turn N+1.
         # The _auto_advanced_to_turn flag is set by auto-advance and cleared by any
         # non-end-turn player action, so it only blocks the immediate double-end.
+        # July 2026 AI audit: the guard also CONSUMES the flag — a turn-number
+        # check alone cannot distinguish the stale duplicate end-turn from a
+        # deliberate "pass the new turn" press, and the flag previously only
+        # cleared on non-end-turn commands, so End Turn soft-locked until the
+        # player issued some other command. Now the first press after an
+        # auto-advance is absorbed (the stale-duplicate case) and any further
+        # press genuinely ends the new turn.
         if self.world._auto_advanced_to_turn >= old_turn:
-            debug_print(f"[C3 GUARD] turn {old_turn} already auto-advanced, skipping")
+            self.world._auto_advanced_to_turn = 0
+            debug_print(f"[C3 GUARD] turn {old_turn} already auto-advanced, absorbing duplicate end-turn")
             return {
                 "turn_ended": old_turn,
                 "next_turn": self.world.current_turn,
                 "victory_check": {"game_over": False, "result": None, "reason": ""},
-                "message": f"Turn {old_turn} already ended",
+                "message": (
+                    f"The turn already advanced to {self.world.current_turn} when your last "
+                    f"action point was spent. Order 'end turn' again to pass turn "
+                    f"{self.world.current_turn}."
+                ),
                 "events": [],
             }
 

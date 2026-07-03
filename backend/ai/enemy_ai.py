@@ -749,13 +749,19 @@ class EnemyAI:
 
         ai_debug(f"  Decided: {action.get('action')} (priority {priority})")
 
-        # Execute through the same executor (Building Blocks principle)
+        # Execute through the same executor (Building Blocks principle).
+        # _autonomous_execution marks the AI-execution context: the marshal
+        # is acting on his OWN decision, so the executor must skip the
+        # "cannot command autonomous marshal" gate, objections, and the
+        # player AP charge (July 2026 AI audit — the gate previously
+        # bounced EVERY autonomous action, making autonomy a no-op).
         command = {
             "command": {
                 "type": "specific",
                 "marshal": action.get("marshal"),
                 "action": action.get("action"),
                 "target": action.get("target"),
+                "_autonomous_execution": True,
             }
         }
 
@@ -1041,7 +1047,14 @@ class EnemyAI:
                 actual_cost = variable_cost
                 is_free_action = (actual_cost == 0)
             else:
-                actual_cost = 1 if not (is_free_action_type or is_free_action_result) else 0
+                # July 2026 AI audit (Golden Rule 5): read the SAME cost
+                # table the player pays through — the flat literal 1 gave
+                # the AI garrison at half the player's 2-AP price and would
+                # silently diverge on any future retuning
+                if is_free_action_type or is_free_action_result:
+                    actual_cost = 0
+                else:
+                    actual_cost = world.get_action_cost(selected_action["action"])
                 is_free_action = is_free_action_type or is_free_action_result
 
             # Track actions used by this marshal (for fairness - only successful actions)
@@ -1110,15 +1123,17 @@ class EnemyAI:
                     print(f"  [STAGNATION] {m_name} attacked but achieved nothing - not counted as meaningful")
             elif action in ("move", "drill", "recruit", "unfortify", "retreat"):
                 meaningful_actions.add(m_name)
-            elif action == "fortify" and not any(
-                m.name == m_name and getattr(m, 'fortified', False)
-                for m in world.get_marshals_by_nation(nation)
-            ):
-                # Balance patch: First fortify only meaningful if enemy within 2 regions.
-                # Fortifying with no nearby threat is stalling, not defending.
+            elif action == "fortify":
+                # Balance patch: fortify is only meaningful if an enemy is
+                # within 2 regions — fortifying with no nearby threat is
+                # stalling, not defending. (July 2026 AI audit: the old
+                # guard also required the marshal to NOT be fortified AFTER
+                # a successful fortify — impossible — so this branch was
+                # dead code and defensive AI lines self-dismantled through
+                # stagnation-forced unfortify on a ~3-turn cycle.)
                 marshal_obj = next((m for m in world.get_marshals_by_nation(nation) if m.name == m_name), None)
                 if marshal_obj and world.is_enemy_nearby(marshal_obj.location, nation, max_distance=2):
-                    meaningful_actions.add(m_name)  # First fortify near enemy is meaningful
+                    meaningful_actions.add(m_name)  # Fortify near enemy is meaningful
                 else:
                     print(f"  [STAGNATION] {m_name} fortified but no enemy within 2 regions - not meaningful")
 
@@ -1330,10 +1345,26 @@ class EnemyAI:
             intent_target = intent.get("target")
 
             if intent_type == "capture" and intent_target:
+                # July 2026 AI audit: a still-FORTIFIED marshal cannot
+                # execute the capture (the executor rejects attack-while-
+                # fortified, which then banned the marshal from attacking
+                # for 2 turns via _record_failed_action). Unfortify first
+                # and re-store the intent for the follow-through.
+                if getattr(marshal, 'fortified', False):
+                    self._pending_intents[marshal.name] = intent
+                    ai_debug(f"  INTENT: {marshal.name} still fortified - unfortifying before capture of {intent_target}")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "unfortify"
+                    }, 1)
                 # Validate intent is still valid (region still undefended and enemy-controlled)
                 region = world.get_region(intent_target)
                 if (region and region.controller != nation
-                        and world.is_at_war(nation, region.controller)):
+                        and world.is_at_war(nation, region.controller)
+                        # July 2026 AI audit: garrisoned regions need P4.25's
+                        # ratio-gated assault, never a blind intent attack
+                        and getattr(region, 'garrison_strength', 0) < 5000
+                        and not getattr(region, 'garrison_detachment', None)):
                     defenders = world.get_live_visible_enemies_in_region(intent_target, nation)
                     if not defenders:
                         # Still undefended - execute the capture!
@@ -2614,9 +2645,15 @@ class EnemyAI:
         if not lost_regions:
             return None
 
-        # Filter out regions already claimed by another marshal this turn
+        # Filter out regions already claimed by another marshal this turn.
+        # July 2026 AI audit: a marshal's OWN claim must not lock him out —
+        # candidate evaluation runs for every marshal each selection
+        # iteration, so the claimant's re-evaluation previously returned
+        # None and the nation's recapture never executed that turn.
         claimed = getattr(self, '_recapture_targets_claimed', set())
-        unclaimed_lost = [r for r in lost_regions if r not in claimed]
+        own_claim = getattr(self, '_recapture_marshal_assignments', {}).get(marshal.name)
+        unclaimed_lost = [r for r in lost_regions
+                          if r not in claimed or r == own_claim]
         if not unclaimed_lost:
             return None
 
@@ -2706,8 +2743,11 @@ class EnemyAI:
             else:
                 # Defended — evaluate attack if ratio favorable
                 total_enemy = sum(d.strength for d in defenders)
-                personality = getattr(marshal, 'personality_type', None)
-                personality_name = personality.value if personality else 'balanced'
+                # July 2026 AI audit: Marshal stores `personality` (a plain
+                # string) — `personality_type` never existed, so every
+                # marshal read 'balanced' and aggressive marshals never got
+                # their 0.8 recapture threshold
+                personality_name = getattr(marshal, 'personality', None) or 'balanced'
                 threshold = 0.8 if personality_name == 'aggressive' else 1.2
                 ratio = marshal.strength / total_enemy if total_enemy > 0 else 999
                 if ratio >= threshold:
@@ -2916,7 +2956,12 @@ class EnemyAI:
             if is_safe:
                 # Calculate value (capitals worth more)
                 is_capital = self._is_enemy_capital(adj_name, nation, world)
-                value = 100 if is_capital else (adj_region.income if hasattr(adj_region, 'income') else 10)
+                # July 2026 AI audit: the Region attribute is income_value —
+                # `income` never existed, so every non-capital collapsed to
+                # the flat fallback 10 and income prioritization was dead
+                # (the exact attribute trap CLAUDE.md's troubleshooting
+                # table warns about)
+                value = 100 if is_capital else getattr(adj_region, 'income_value', 10)
                 ai_debug(f"        -> Safe to capture (value={value}): {reason}")
                 capture_candidates.append((adj_name, value, reason))
             else:
@@ -4392,6 +4437,20 @@ class EnemyAI:
 
             # Skip if already ours or neutral
             if adj_region.controller == nation or adj_region.controller == "Neutral":
+                continue
+
+            # July 2026 AI audit: mirror P4.5's filters. On the 20-nation
+            # 1805 map most neighbors are AT PEACE — without this check the
+            # AI perpetually unfortified to "capture" peaceful regions
+            # (phantom intents, wasted AP, permanent fortify/unfortify
+            # oscillation on peace-heavy fronts).
+            if not world.is_at_war(nation, adj_region.controller):
+                continue
+
+            # Garrisoned regions are P4.25's job (personality ratio gate) —
+            # the intent path has no ratio check, so never target them here
+            if (getattr(adj_region, 'garrison_strength', 0) >= 5000
+                    or getattr(adj_region, 'garrison_detachment', None)):
                 continue
 
             # Check if undefended

@@ -205,8 +205,10 @@ def validate_parse_result(
             result.strategic_type = None
             print(f"[VALIDATION] Invalid strategic_type '{st}', falling back to tactical")
 
-    # Validate action is known
-    if result.action and result.action not in VALID_ACTIONS:
+    # Validate action is known. July 2026 AI audit: a live LLM returning
+    # "action": null yielded action=None, which the old truthy guard let
+    # through as matched=True — the anti-hallucination layer's one job.
+    if not result.action or result.action not in VALID_ACTIONS:
         result.matched = False
         result.suggestion = f"Unknown action: {result.action}. Try: attack, move, defend, scout, fortify, drill"
         return result

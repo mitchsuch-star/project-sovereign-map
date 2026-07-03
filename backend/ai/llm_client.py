@@ -399,12 +399,21 @@ class LLMClient:
         return list(map_data.keys())
 
     def _extract_valid_targets(self, game_state: Optional[Dict]) -> List[str]:
-        """Extract list of valid targets (regions + enemy marshals)."""
+        """Extract list of valid targets (regions + enemy marshals +
+        friendly marshals + the 'generic' sentinel).
+
+        July 2026 AI audit: the prompt itself instructs the LLM to return
+        friendly-marshal targets for SUPPORT ('Davout, support Ney' →
+        target 'Ney') and target='generic' for vague orders — the old
+        regions+enemies set silently cleared those correct targets, and
+        downstream fuzzy extraction could then fabricate a wrong one from
+        leftover words."""
         if not game_state:
             return []
         regions = self._extract_valid_regions(game_state)
         enemies = list(game_state.get("enemies", {}).keys())
-        return regions + enemies
+        friendly = self._extract_valid_marshals(game_state)
+        return regions + enemies + friendly + ["generic"]
 
     # =================================================================
     # BERTHIER PARSE RECOVERY (in-character "Unknown action" replacement)

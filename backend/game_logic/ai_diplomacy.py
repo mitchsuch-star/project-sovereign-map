@@ -1330,13 +1330,15 @@ def _try_add_desired_clauses(
         if gold_only and dtype not in ("gold_lump", "gold_per_turn"):
             continue
 
-        # Add as a sweetener from the AI nation to France
-        if dtype in ("gold_lump", "gold_per_turn", "territory"):
-            # Fix 6: Only apply max(5,...) for gold types; territory uses max(1,...)
-            if dtype in ("gold_lump", "gold_per_turn"):
-                sweetener_value = max(5, int(desire.get("value", 0)))
-            else:
-                sweetener_value = max(1, int(desire.get("value", 0)))
+        # Add as a sweetener from the AI nation to France.
+        # July 2026 AI audit: "territory" REMOVED from the offerable set —
+        # it carried only a numeric value (no region identity), scored +8
+        # acceptance, and was inert at ratification: the player accepted a
+        # promise that never executed. Re-adding it requires real region
+        # selection + ratification wiring (routed to the 8.EVAL diplomacy
+        # triage in ROADMAP.md).
+        if dtype in ("gold_lump", "gold_per_turn"):
+            sweetener_value = max(5, int(desire.get("value", 0)))
             # R113: Validate gold sweetener against the PAYER's treasury
             # (prevent negative gold)
             if dtype == "gold_lump":
@@ -1695,10 +1697,15 @@ def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
 
     Uses the same calculate_acceptance formula but with AI nations.
     """
-    # Build a proposal dict compatible with calculate_acceptance
+    # Build a proposal dict compatible with calculate_acceptance.
+    # July 2026 AI audit: the proposer must be the COUNTERPARTY from the
+    # evaluator's perspective. The old proposal.get("proposer", other)
+    # made the initiator-side check evaluate a SELF-PAIR (initiator vs
+    # itself), which never scored >= 50 — the entire AI-AI treaty phase
+    # was dead (zero AI-AI treaties ever ratified).
     acceptance_proposal = {
         "type": proposal["type"],
-        "proposer_nation": proposal.get("proposer", other),
+        "proposer_nation": other,
         "target_nation": evaluator,
         "sweeteners": [],
         "demands": [],

@@ -129,7 +129,10 @@ def build_llm_game_state(world) -> Dict:
             "marshals": visible_marshals,
         }
     return {"turn": int(world.current_turn), "gold": int(world.gold),
-            "marshals": marshals, "enemies": enemies, "map_data": map_data}
+            "marshals": marshals, "enemies": enemies, "map_data": map_data,
+            # Mirrors production: providers read game_state["world"] for
+            # the command-history repetition guardrail
+            "world": world}
 
 
 def worlds_for_entry(entry: Dict) -> List[str]:
