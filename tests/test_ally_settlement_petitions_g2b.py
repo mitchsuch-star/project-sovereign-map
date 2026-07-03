@@ -423,9 +423,35 @@ def test_ally_petitions_do_not_fire_on_pure_cooldown_without_player_trigger():
     assert _ally_petitions(world) == []
 
 
-def test_petition_request_reward_or_restoration_absent_until_slice_h_lands():
-    assert "request_reward_or_restoration" not in _player_facing_source_text()
+def test_petition_request_reward_or_restoration_live_after_slice_h():
+    """Slice H (approved July 3, 2026) INVERTED the G2b absence pin: the
+    petition type is now a shipped player-facing surface. Deep behavior
+    coverage lives in tests/test_settlement_slice_h_ally_petitions.py."""
+    from backend.game_logic.settlement_preview import (
+        ALLY_SETTLEMENT_PETITION_REWARD,
+        ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES,
+    )
+
+    assert ALLY_SETTLEMENT_PETITION_REWARD == "request_reward_or_restoration"
+    assert (
+        ALLY_SETTLEMENT_PETITION_REWARD
+        in ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES
+    )
+    assert "request_reward_or_restoration" in _player_facing_source_text()
 
 
-def test_petition_demand_bargain_honor_absent_until_slice_h_lands():
-    assert "demand_bargain_honor" not in _player_facing_source_text()
+def test_petition_demand_bargain_honor_live_after_slice_h():
+    """Slice H (approved July 3, 2026) INVERTED the G2b absence pin: the
+    petition type is now a shipped player-facing surface. Deep behavior
+    coverage lives in tests/test_settlement_slice_h_ally_petitions.py."""
+    from backend.game_logic.settlement_preview import (
+        ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR,
+        ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES,
+    )
+
+    assert ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR == "demand_bargain_honor"
+    assert (
+        ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR
+        in ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES
+    )
+    assert "demand_bargain_honor" in _player_facing_source_text()

@@ -163,6 +163,10 @@ CAMPAIGN_LOG_TYPES = {
     "settlement_terms_requested",
     "settlement_terms_request_granted",
     "settlement_terms_request_refused",
+    # Slice H (approved July 3, 2026): full-agency ally petitions
+    "settlement_ally_petition_granted",
+    "settlement_ally_petition_declined",
+    "settlement_bargain_honored",
 }
 
 # ============================================================================
@@ -276,6 +280,9 @@ CATEGORY_MAP = {
     "settlement_terms_requested": "diplomacy",
     "settlement_terms_request_granted": "diplomacy",
     "settlement_terms_request_refused": "diplomacy",
+    "settlement_ally_petition_granted": "diplomacy",
+    "settlement_ally_petition_declined": "diplomacy",
+    "settlement_bargain_honored": "diplomacy",
 }
 
 
@@ -954,6 +961,28 @@ def format_event_oneliner(event: dict) -> str:
         return (
             f"{event.get('answering_leader', 'The enemy court')} refused to name "
             f"terms for {event.get('war_label', 'the war')}."
+        )
+
+    # Slice H: full-agency ally petition beats.
+    if event_type == "settlement_ally_petition_granted":
+        return (
+            f"Granted {event.get('ally_nation', 'an ally')}'s settlement "
+            f"petition over {event.get('claim_region', 'its claim')} on "
+            f"{event.get('war_label', 'the war')}."
+        )
+
+    if event_type == "settlement_ally_petition_declined":
+        return (
+            f"Declined {event.get('ally_nation', 'an ally')}'s settlement "
+            f"petition over {event.get('claim_region', 'its claim')} on "
+            f"{event.get('war_label', 'the war')}."
+        )
+
+    if event_type == "settlement_bargain_honored":
+        return (
+            f"Honored the pledge on {event.get('claim_region', 'the claim')} "
+            f"to {event.get('ally_nation', 'an ally')} in the settlement "
+            f"draft of {event.get('war_label', 'the war')}."
         )
 
     if event_type == "settlement_recurring_gold_paid":

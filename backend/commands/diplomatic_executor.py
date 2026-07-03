@@ -3092,7 +3092,17 @@ class DiplomaticExecutor:
                 world, action=action, dialogue=dialogue,
             )
 
-        elif action == "acknowledge_ally_settlement_petition":
+        elif action in (
+            "acknowledge_ally_settlement_petition",
+            # Slice H (approved July 3, 2026) full-agency petition verbs:
+            # Grant injects the carried clause through the demand-add /
+            # restage seam; Decline records the light D-H2 memory; Honor
+            # auto-adjusts the draft so a pledged war-bargain claim
+            # survives ratification (D-H5).
+            "grant_ally_petition_clause",
+            "decline_ally_petition",
+            "honor_bargain_in_settlement",
+        ):
             from backend.game_logic.settlement_offers import (
                 handle_ally_settlement_petition_action,
             )

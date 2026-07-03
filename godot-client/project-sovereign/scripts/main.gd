@@ -112,6 +112,13 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"reject_settlement_offer",
 	"request_settlement_revision",
 	"acknowledge_ally_settlement_petition",
+	# Slice H (approved July 3, 2026) full-agency ally petition verbs.
+	# Grant adds the petitioned clause to the mounted PROPOSE draft;
+	# Decline / Proceed Regardless records the refusal; Honor adjusts
+	# the draft so a pledged war-bargain claim survives ratification.
+	"grant_ally_petition_clause",
+	"decline_ally_petition",
+	"honor_bargain_in_settlement",
 ]
 
 # UI References - Header Status

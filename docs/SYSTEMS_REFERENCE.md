@@ -3657,3 +3657,18 @@ map_camera.position = _clamp_camera_position(target_position)
 | `map.gd` | Post-Slice-7: the Europe game map, on the chain `map_renderer_base.gd` → `europe_map.gd` → `map.gd` — adds only game glue (backend `/map_topology` handoff, shared color scheme). Smoke logic lives in `europe_map_smoke.gd` |
 | `map_connection_layer.gd` | Connection line drawing |
 | `map_tooltip_layer.gd` | Screen-space tooltip rendering (outside SubViewport) |
+
+---
+
+## 25. Imperial Settlement — Slice H Ally Petition Constants (landed July 3, 2026)
+
+Named per the approved D-H4 gate decision (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` v1.0). All live in `backend/game_logic/settlement_offers.py`; the dial-protection set lives in `settlement_baseline.py`.
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| `ALLY_PETITION_COOLDOWN_TURNS` | 5 | Per-(war, ally) absolute cooldown after ANY petition resolution (matches `REQUEST_TERMS_COOLDOWN_TURNS`) |
+| `ALLY_PETITION_MAX_LIVE` | 2 | At most 2 live ally-petition dialogues, salience-ordered (bargain honor > restoration > reward; ties by material contribution share) |
+| `ALLY_PETITION_DECLINE_RELATION_DELTA` | -3 | The D-H2 advisory-tier decline dip — the ratify-time shut-out / bargain-breach pipelines own the real teeth (never a double penalty) |
+| `ALLY_PETITION_DECLINED_MEMORY_TURNS` | 10 | Expiry of the `petition_declined` settlement memory (the sold-out presentation window) |
+| `ALLY_PETITION_GOLD_REWARD_AMOUNT` | 200 | Gold fallback for a reward petition when no region candidate survives validation (clamped to the payer's budget headroom) |
+| `SETTLEMENT_DIAL_PROTECTED_AUTHORS` | `{"player", "ally_petition"}` | D-H1: clause provenances the dial sweep never silently drops — per-row Remove is the deliberate revocation verb |

@@ -245,9 +245,10 @@ def test_deferred_petition_types_have_slice_h_landing_row():
     the 2 deferred ally petition types (`request_reward_or_restoration`
     + `demand_bargain_honor`) pointing at Slice H.
 
-    The row names both deferred types, names Slice H as the landing
-    slice, and pins absence-guard tests authored in G2-Slice-G2b. This
-    test fails if the row is removed without an explicit cut amendment.
+    Slice H LANDED July 3, 2026: the row must now record the landing
+    (still naming both types and Slice H) and point at the INVERTED
+    G2b pins plus the Slice H behavior suite. This test fails if the
+    row is removed or regresses to the pre-landing deferred wording.
     """
     spec_text = _read_spec()
     parent_rows = _extract_table_rows(spec_text, PARENT_LEDGER_HEADER)
@@ -257,23 +258,30 @@ def test_deferred_petition_types_have_slice_h_landing_row():
         and "demand_bargain_honor" in row[0]
     ]
     assert len(slice_h_rows) == 1, (
-        f"Expected exactly one parent DWL row naming both deferred "
-        f"petition types; got {len(slice_h_rows)}. The v0.32 Slice H "
-        f"deferred-petition row was added by Tier 4 and must remain "
-        f"until Slice H lands or an explicit CUT amendment supersedes it."
+        f"Expected exactly one parent DWL row naming both Slice H "
+        f"petition types; got {len(slice_h_rows)}. The row records the "
+        f"July 3, 2026 landing and must remain as the ledger's record."
     )
     row = slice_h_rows[0]
     landing_slice = row[3]
     assert "Slice H" in landing_slice, (
-        f"Deferred-petition DWL row must name Slice H as the landing "
+        f"Slice H petition DWL row must name Slice H as the landing "
         f"slice. Got: {landing_slice!r}"
     )
-    required_tests = row[5]
-    assert "test_petition_request_reward_or_restoration_absent_until_slice_h_lands" in required_tests, (
-        "Deferred-petition DWL row must name the request_reward_or_restoration "
-        "absence-guard test for G2-Slice-G2b."
+    work_to_land = row[4]
+    assert "LANDED" in work_to_land, (
+        "The Slice H petition DWL row must record the July 3, 2026 "
+        "landing in its completion column."
     )
-    assert "test_petition_demand_bargain_honor_absent_until_slice_h_lands" in required_tests, (
-        "Deferred-petition DWL row must name the demand_bargain_honor "
-        "absence-guard test for G2-Slice-G2b."
+    required_tests = row[5]
+    assert "test_petition_request_reward_or_restoration_live_after_slice_h" in required_tests, (
+        "Slice H DWL row must name the INVERTED request_reward_or_restoration "
+        "pin (the pre-landing absence pin flipped at landing)."
+    )
+    assert "test_petition_demand_bargain_honor_live_after_slice_h" in required_tests, (
+        "Slice H DWL row must name the INVERTED demand_bargain_honor "
+        "pin (the pre-landing absence pin flipped at landing)."
+    )
+    assert "test_settlement_slice_h_ally_petitions" in required_tests, (
+        "Slice H DWL row must name the Slice H behavior suite."
     )

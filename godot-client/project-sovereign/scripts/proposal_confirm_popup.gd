@@ -1491,6 +1491,20 @@ func _build_ally_settlement_petition_content(data: Dictionary) -> String:
 		bbcode += " against " + Utils.display_nation_name(target_enemy)
 	bbcode += "\n\n"
 
+	# Slice H: the full-agency petition types carry the named basis, the
+	# exact clause Grant would inject (the incoming-offer bullet pattern),
+	# and — for bargain honor — the landed consequence ladder.
+	var basis_display = str(data.get("basis_display", ""))
+	if basis_display != "":
+		bbcode += "[b]Basis:[/b] %s\n\n" % basis_display
+	var clause_display = str(data.get("candidate_clause_display", ""))
+	if clause_display != "":
+		bbcode += "[b]The petitioned clause:[/b]\n"
+		bbcode += "  [color=#e0c070]•[/color] %s\n\n" % clause_display
+	var consequence = str(data.get("consequence_display", ""))
+	if consequence != "":
+		bbcode += "[color=#e09040]%s[/color]\n\n" % consequence
+
 	var talleyrand = str(data.get("talleyrand_text", ""))
 	if talleyrand != "":
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % talleyrand

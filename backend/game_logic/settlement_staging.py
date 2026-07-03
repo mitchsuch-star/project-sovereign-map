@@ -53,6 +53,7 @@ from backend.game_logic.settlement_baseline import (
     CONCESSION_BASELINE_GOLD_HARD_CAP,
     CONCESSION_BASELINE_TREASURY_RESERVE,
     SETTLEMENT_DIAL_GOLD_STEP,
+    SETTLEMENT_DIAL_PROTECTED_AUTHORS,
     _compute_recurring_gold_preset,
     _compute_surrender_preset,
     _concession_baseline_payer_balance,
@@ -947,7 +948,12 @@ def _redial_settlement_terms(
             # no per-visit consumption (it would double-count).
             continue
         is_demand = frm == court  # the court pays/cedes => a demand on it
-        player_authored = str(clause.get("authored_by") or "") == "player"
+        # Slice H D-H1 (approved July 3, 2026): granted ally-petition clauses
+        # join the player's protected set — a dial sweep can never silently
+        # un-reward an ally; per-row Remove stays the deliberate verb.
+        clause_author = str(clause.get("authored_by") or "")
+        player_authored = clause_author in SETTLEMENT_DIAL_PROTECTED_AUTHORS
+        petition_authored = clause_author == "ally_petition"
         if ttype in ("gold_indemnity", "gold_lump", "gold_per_turn"):
             amount = int(clause.get("amount", 0) or 0)
             original_amount = amount
@@ -983,12 +989,17 @@ def _redial_settlement_terms(
             else:
                 amount -= SETTLEMENT_DIAL_GOLD_STEP
             if amount < SETTLEMENT_DIAL_GOLD_STEP and player_authored:
-                # §3.5: a player-authored gold line shrinks toward (never
-                # past) the dial-step floor instead of dropping.
+                # §3.5: a protected gold line (player- or petition-authored)
+                # shrinks toward (never past) the dial-step floor instead of
+                # dropping.
                 clipped = max(int(clause.get("amount", 0) or 0), 0)
                 amount = min(SETTLEMENT_DIAL_GOLD_STEP, clipped) or SETTLEMENT_DIAL_GOLD_STEP
                 noted.add(court)
-                if is_demand:
+                if petition_authored:
+                    notes.append(
+                        f"The pledge of {amount} gold to {to} stands, Sire."
+                    )
+                elif is_demand:
                     notes.append(
                         f"Your demand of {amount} gold from {court} stands, Sire."
                     )
@@ -1015,11 +1026,19 @@ def _redial_settlement_terms(
             drop = (not is_demand) if direction == "harsher" else is_demand
             if drop:
                 if player_authored:
-                    # §3.5: the sweep skips player-authored territory lines —
-                    # per-line Remove is the player's deletion verb.
+                    # §3.5: the sweep skips protected territory lines
+                    # (player- or petition-authored) — per-line Remove is
+                    # the deletion verb.
                     noted.add(court)
-                    region = str(clause.get("region") or "")
-                    if is_demand:
+                    region = str(
+                        clause.get("region")
+                        or next(iter(clause.get("regions") or []), "")
+                    )
+                    if petition_authored:
+                        notes.append(
+                            f"The pledge of {region} to {to} stands, Sire."
+                        )
+                    elif is_demand:
                         notes.append(f"Your demand for {region} stands, Sire.")
                     else:
                         notes.append(f"Your offer of {region} stands, Sire.")

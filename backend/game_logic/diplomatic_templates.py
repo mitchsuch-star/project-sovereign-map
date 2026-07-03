@@ -1355,6 +1355,124 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{claim_region} against {target_enemy} is absent from "
         "{war_label}."
     ),
+    # Slice H (approved July 3, 2026) — request_reward_or_restoration:
+    # a formal claim with the basis always named (§13.4 rule).
+    "settlement_ally_petition_request_reward_or_restoration_castlereagh": (
+        "London presses its claim to {claim_region} at this table. "
+        "{basis_display} His Majesty's Government expects the settlement "
+        "of {war_label} to reflect it."
+    ),
+    "settlement_ally_petition_request_reward_or_restoration_hardenberg": (
+        "Hardenberg lays Prussia's claim to {claim_region} before France. "
+        "{basis_display} A settlement that rewards its authors should "
+        "remember its allies."
+    ),
+    "settlement_ally_petition_request_reward_or_restoration_metternich": (
+        "Metternich enters Vienna's claim to {claim_region} in the "
+        "protocol. {basis_display} Austria's arms have earned a line in "
+        "this settlement."
+    ),
+    "settlement_ally_petition_request_reward_or_restoration_einsiedel": (
+        "Einsiedel begs leave to name Saxony's claim to {claim_region}. "
+        "{basis_display} Small courts ask plainly, Sire, or not at all."
+    ),
+    "settlement_ally_petition_request_reward_or_restoration_chancery": (
+        "The chancery of {ally_nation} petitions for {claim_region} in "
+        "the settlement of {war_label}. {basis_display}"
+    ),
+    # Slice H — demand_bargain_honor: wounded honor, the promise quoted.
+    "settlement_ally_petition_demand_bargain_honor_castlereagh": (
+        "At {created_turn_label}, France pledged its claim on "
+        "{claim_region} to secure our arms. London asks whether that "
+        "pledge survives this draft of {war_label}."
+    ),
+    "settlement_ally_petition_demand_bargain_honor_hardenberg": (
+        "At {created_turn_label}, Sire, France pledged its claim on "
+        "{claim_region} to secure our arms. Hardenberg asks France to "
+        "read this draft beside that pledge."
+    ),
+    "settlement_ally_petition_demand_bargain_honor_metternich": (
+        "Metternich recalls, with precision, the pledge of "
+        "{created_turn_label}: France's claim on {claim_region}. The "
+        "draft before us unmakes it."
+    ),
+    "settlement_ally_petition_demand_bargain_honor_einsiedel": (
+        "Einsiedel must speak of the pledge of {created_turn_label} — "
+        "{claim_region}, promised while Saxony marched. This draft "
+        "forgets it."
+    ),
+    "settlement_ally_petition_demand_bargain_honor_chancery": (
+        "The chancery of {ally_nation} recalls France's pledge of "
+        "{created_turn_label} on {claim_region}; the staged terms put "
+        "it at risk."
+    ),
+    # Slice H — grant / decline / honor acknowledgments per family (§7).
+    "settlement_ally_petition_granted_castlereagh": (
+        "London takes note, and will remember which ally France chose to "
+        "be. The claim on {claim_region} stands in the treaty."
+    ),
+    "settlement_ally_petition_granted_hardenberg": (
+        "Hardenberg thanks France plainly: {claim_region} is written in. "
+        "Prussia marches easier beside a patron who pays."
+    ),
+    "settlement_ally_petition_granted_metternich": (
+        "Vienna acknowledges the grant of {claim_region}. Metternich "
+        "will say so where it matters."
+    ),
+    "settlement_ally_petition_granted_einsiedel": (
+        "Einsiedel conveys Saxony's gratitude for {claim_region} — a "
+        "small court does not forget."
+    ),
+    "settlement_ally_petition_granted_chancery": (
+        "The chancery of {ally_nation} acknowledges the grant of "
+        "{claim_region} with gratitude."
+    ),
+    "settlement_ally_petition_declined_castlereagh": (
+        "London notes the refusal without surprise, and files it where "
+        "such answers are kept."
+    ),
+    "settlement_ally_petition_declined_hardenberg": (
+        "Hardenberg withdraws the petition. Prussia has asked once "
+        "already, Sire; it will not ask twice this season."
+    ),
+    "settlement_ally_petition_declined_metternich": (
+        "Metternich records the refusal in Vienna's ledger — "
+        "courteously, and permanently."
+    ),
+    "settlement_ally_petition_declined_einsiedel": (
+        "Einsiedel bows and withdraws; Saxony hears the answer clearly "
+        "enough."
+    ),
+    "settlement_ally_petition_declined_chancery": (
+        "The chancery of {ally_nation} records France's refusal in cool "
+        "terms."
+    ),
+    "settlement_ally_petition_honored_castlereagh": (
+        "London withdraws the protest: the pledge on {claim_region} "
+        "stands, and so does British confidence in it."
+    ),
+    "settlement_ally_petition_honored_hardenberg": (
+        "Hardenberg is satisfied: the pledge on {claim_region} survives "
+        "the draft, and Prussia's arms stay warm."
+    ),
+    "settlement_ally_petition_honored_metternich": (
+        "Metternich amends the protocol: the pledge on {claim_region} is "
+        "kept. Vienna prefers a France that keeps its word."
+    ),
+    "settlement_ally_petition_honored_einsiedel": (
+        "Einsiedel thanks France: the pledge on {claim_region} stands, "
+        "and Saxony with it."
+    ),
+    "settlement_ally_petition_honored_chancery": (
+        "The chancery of {ally_nation} acknowledges that France's pledge "
+        "on {claim_region} stands."
+    ),
+    # Slice H — the click-time lapse notice (G1 re-run pattern).
+    "settlement_ally_petition_lapsed_talleyrand": (
+        "Sire, the table has moved since {ally_nation} petitioned — the "
+        "ask can no longer be granted as it was made. If they still "
+        "hunger, they will ask again."
+    ),
     "settlement_ally_petition_talleyrand": (
         "Sire, {ally_nation}'s petition is advisory. It records the claim "
         "to {claim_region} without blocking ratification."

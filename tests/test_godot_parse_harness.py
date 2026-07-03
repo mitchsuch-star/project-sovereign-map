@@ -234,16 +234,20 @@ def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
 
 
 def _extract_executor_ally_petition_dispatch_actions(source: str) -> List[str]:
+    # Slice H widened the arm from `elif action == "..."` to the
+    # `elif action in (...)` tuple form (same shape as the settlement and
+    # incoming-offer arms above).
     handler_anchor = (
         "from backend.game_logic.settlement_offers import (\n"
         "                handle_ally_settlement_petition_action,\n"
         "            )"
     )
     pre_handler = source.split(handler_anchor, 1)[0]
-    elif_open = pre_handler.rfind("elif action == ")
+    elif_open = pre_handler.rfind("elif action in (")
     assert elif_open != -1
-    branch_block = pre_handler[elif_open:]
-    return re.findall(r'"([A-Za-z0-9_]+)"', branch_block.split(":", 1)[0])
+    tuple_block = pre_handler[elif_open:]
+    tuple_body = tuple_block.split("):", 1)[0]
+    return re.findall(r'"([A-Za-z0-9_]+)"', tuple_body)
 
 
 def _simulate_main_gd_command_result_route(response: dict, source: str) -> str:
@@ -458,6 +462,10 @@ INCOMING_SETTLEMENT_OFFER_DISPATCH_ACTION_IDS = [
 
 ALLY_SETTLEMENT_PETITION_DISPATCH_ACTION_IDS = [
     "acknowledge_ally_settlement_petition",
+    # Slice H (approved July 3, 2026) full-agency petition verbs.
+    "grant_ally_petition_clause",
+    "decline_ally_petition",
+    "honor_bargain_in_settlement",
 ]
 
 

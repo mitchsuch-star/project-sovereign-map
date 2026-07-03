@@ -88,7 +88,9 @@ class TestTypeWhitelist:
         completed / cancelled now persist into the log history).
         """
         # Slice G1 (July 2, 2026): +3 request-terms lifecycle types.
-        assert len(CAMPAIGN_LOG_TYPES) == 90
+        # Slice H (July 3, 2026): +3 ally-petition beats (granted /
+        # declined / bargain honored).
+        assert len(CAMPAIGN_LOG_TYPES) == 93
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

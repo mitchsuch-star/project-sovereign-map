@@ -365,6 +365,21 @@ These ride the restaged PROPOSE dialogue as one-shot `authoring_voice_beats` (ki
 
 **Copy boundary (cleanup SC-32 D5 — normative).** This is a *settlement table*, not a Congress. **No committed multi-court copy may contain "conference", "congress", or "veto"** — use "settlement", "the table", "these courts", "<court> holds out / signs". The word "conference" is internal design shorthand only. The boundary covers the GT-Slice-V families above (guided reasons, authoring reactions, the DC-4 caution, and the budget-bound recommendation). Enforced by `test_committed_multi_court_copy_avoids_conference_congress_veto_terms` and its GT-Slice-V extension.
 
+#### Slice H full-agency ally petitions (landed July 3, 2026)
+
+The two full-agency petition types extend the G2b `settlement_ally_petition_*` key scheme — same resolver rule (named diplomat suffix map: Castlereagh / Hardenberg / Metternich / Einsiedel + chancery fallback; Talleyrand relays the advisory framing via the existing `settlement_ally_petition_talleyrand`). Registers per the Slice H spec §7: the **reward petition** is a formal claim with its basis always named (`{basis_display}` slot — "Bavaria fought at Ulm" / "occupied homeland"); **bargain honor** is wounded honor with the promise quoted verbatim (`{created_turn_label}` slot). Six families, five suffixes each (plus the lapse notice):
+
+| Family | Speaker | Trigger |
+|---|---|---|
+| `settlement_ally_petition_request_reward_or_restoration_{suffix}` | Ally's named diplomat / chancery | the reward/restoration petition fires at open/stage |
+| `settlement_ally_petition_demand_bargain_honor_{suffix}` | Ally's named diplomat / chancery | staged terms put a live France-pledged war bargain at risk |
+| `settlement_ally_petition_granted_{suffix}` | Ally's named diplomat / chancery | Grant lands the petitioned clause (gratitude register) |
+| `settlement_ally_petition_declined_{suffix}` | Ally's named diplomat / chancery | Decline / Proceed Regardless (cool register — "We asked once already, Sire") |
+| `settlement_ally_petition_honored_{suffix}` | Ally's named diplomat / chancery | Honor adjusts the draft so the pledge survives |
+| `settlement_ally_petition_lapsed_talleyrand` | Talleyrand | the click-time re-check finds the ask no longer possible (G1 re-run pattern) |
+
+The D5 boundary above covers the whole `settlement_ally_petition_*` prefix — enforced by `test_voice_families_committed_and_d5_clean` in `tests/test_settlement_slice_h_ally_petitions.py`.
+
 ---
 
 ## Minimum cast coverage (C3-lite required + deferred WB-D)

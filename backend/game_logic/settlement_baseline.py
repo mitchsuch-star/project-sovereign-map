@@ -125,6 +125,15 @@ DIRECT_SCORE_DIRECTION_MARGIN = 10
 SETTLEMENT_DIAL_GOLD_STEP = 100
 
 
+# Slice H D-H1 (approved July 3, 2026): clause provenances the dial sweep
+# treats as protected — never silently dropped, gold shrinks only to the
+# step floor. `player` = hand-authored guided verbs; `ally_petition` =
+# clauses granted from a Slice H ally petition (un-rewarding an ally must
+# take a deliberate per-row Remove, which re-opens the petition surface
+# after its cooldown).
+SETTLEMENT_DIAL_PROTECTED_AUTHORS = frozenset({"player", "ally_petition"})
+
+
 def _concession_baseline_payer_balance(world: Any, nation: str) -> int:
     """Return the payer nation's available gold balance (int)."""
     gold_map = getattr(world, "nation_gold", None)

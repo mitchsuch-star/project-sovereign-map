@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import copy
 
-from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
+from backend.game_logic.diplomatic_templates import (
+    resolve_named_diplomat,
+    resolve_settlement_voice_line,
+)
 from backend.game_logic.settlement_presentation import _term_display
 from typing import (
     Any,
@@ -20,7 +23,9 @@ from typing import (
     Mapping,
     Optional,
     Set,
+    Tuple,
 )
+from backend.game_logic.settlement_scoring import MAX_SETTLEMENT_CLAUSE_COUNT
 from backend.game_logic.settlement_routes import (
     _error_display,
     _no_reopen_target_payload,
@@ -34,6 +39,7 @@ from backend.game_logic.settlement_validation import (
     VALID_SIDES,
     _pair_nations,
     _side_for_nation,
+    get_coverable_enemy_participants,
 )
 
 
@@ -46,9 +52,28 @@ ALLY_SETTLEMENT_PETITION_REQUEST_OPEN = "request_open_settlement"
 ALLY_SETTLEMENT_PETITION_WARN_SELLOUT = "warn_against_sellout"
 
 
+# Slice H (approved July 3, 2026): the two full-agency petition types
+# deferred by SC-32 / G2-Slice-G2b. `request_reward_or_restoration` asks
+# for a concrete stake (occupied-homeland restoration, or a contribution-
+# earned reward); `demand_bargain_honor` warns when the staged terms put a
+# live war bargain at risk BEFORE ratification makes the breach real.
+ALLY_SETTLEMENT_PETITION_REWARD = "request_reward_or_restoration"
+
+
+ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR = "demand_bargain_honor"
+
+
+ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES = frozenset({
+    ALLY_SETTLEMENT_PETITION_REWARD,
+    ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR,
+})
+
+
 ALLY_SETTLEMENT_PETITION_SHIPPED_TYPES = frozenset({
     ALLY_SETTLEMENT_PETITION_REQUEST_OPEN,
     ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
+    ALLY_SETTLEMENT_PETITION_REWARD,
+    ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR,
 })
 
 
@@ -60,6 +85,29 @@ ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS = frozenset({
 
 
 ALLY_SETTLEMENT_PETITION_ACK_ACTION = "acknowledge_ally_settlement_petition"
+
+
+# Slice H action ids (W1 three-place sync: this module's dispatch arm in
+# `diplomatic_executor._process_dialogue_choice`, Godot main.gd
+# SETTLEMENT_DIALOGUE_ACTIONS, tests/test_godot_parse_harness.py).
+ALLY_SETTLEMENT_PETITION_GRANT_ACTION = "grant_ally_petition_clause"
+ALLY_SETTLEMENT_PETITION_DECLINE_ACTION = "decline_ally_petition"
+ALLY_SETTLEMENT_PETITION_HONOR_ACTION = "honor_bargain_in_settlement"
+
+
+# Slice H constants (D-H4, named in SYSTEMS_REFERENCE.md): per-(war, ally)
+# cooldown after ANY petition resolution (matches REQUEST_TERMS_COOLDOWN_TURNS);
+# at most 2 live ally-petition dialogues; the advisory-tier decline dip
+# (§16.6 of the ally-participation spec authorizes the light touch — the
+# ratify-time shut-out / breach pipelines own the real teeth, D-H2).
+ALLY_PETITION_COOLDOWN_TURNS = 5
+ALLY_PETITION_MAX_LIVE = 2
+ALLY_PETITION_DECLINE_RELATION_DELTA = -3
+# Decline memories expire on the sold-out presentation window.
+ALLY_PETITION_DECLINED_MEMORY_TURNS = 10
+# Gold fallback for a reward petition when no region candidate survives
+# validation — clamped to the payer's remaining budget headroom.
+ALLY_PETITION_GOLD_REWARD_AMOUNT = 200
 
 
 # SC-5 reversal (May 15, 2026 / Slice G1 commit 1): incoming settlement
@@ -379,14 +427,35 @@ def _find_warn_sellout_petition_context(
     return None
 
 
-def _ally_petition_voice_family(petition_type: str, ally_nation: str) -> str:
-    suffix = {
+def _ally_petition_voice_suffix(ally_nation: str) -> str:
+    return {
         "Britain": "castlereagh",
         "Prussia": "hardenberg",
         "Austria": "metternich",
         "Saxony": "einsiedel",
     }.get(str(ally_nation or ""), "chancery")
-    return f"settlement_ally_petition_{petition_type}_{suffix}"
+
+
+def _ally_petition_voice_family(petition_type: str, ally_nation: str) -> str:
+    return (
+        f"settlement_ally_petition_{petition_type}_"
+        f"{_ally_petition_voice_suffix(ally_nation)}"
+    )
+
+
+def _ally_petition_resolution_voice(ally: str, kind: str, **slots: Any) -> str:
+    """Grant/decline/honor acknowledgment line, spoken by the ally's named
+    diplomat register with chancery fallback (§7)."""
+    line = resolve_settlement_voice_line(
+        f"settlement_ally_petition_{kind}_{_ally_petition_voice_suffix(ally)}",
+        **slots,
+    )
+    if not line:
+        line = resolve_settlement_voice_line(
+            f"settlement_ally_petition_{kind}_chancery",
+            **slots,
+        )
+    return line
 
 
 def _ally_petition_summary_text(petition: Mapping[str, Any]) -> str:
@@ -398,7 +467,549 @@ def _ally_petition_summary_text(petition: Mapping[str, Any]) -> str:
         return f"{ally} asks to be heard before {claim_region} is left outside peace."
     if ptype == ALLY_SETTLEMENT_PETITION_WARN_SELLOUT:
         return f"{ally} warns that {claim_region} against {target_enemy} is omitted."
+    if ptype == ALLY_SETTLEMENT_PETITION_REWARD:
+        if str(petition.get("basis") or "") == "restoration":
+            return f"{ally} petitions for the return of {claim_region}."
+        return f"{ally} petitions for {claim_region} as reward for its arms."
+    if ptype == ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR:
+        return f"{ally} demands France honor its pledge on {claim_region}."
     return f"{ally} petitions over settlement scope."
+
+
+# ---------------------------------------------------------------------------
+# Slice H — full-agency ally petition substrate (approved July 3, 2026)
+# ---------------------------------------------------------------------------
+
+
+def _ally_petition_state_store(world: Any) -> Dict[str, Dict[str, Any]]:
+    store = getattr(world, "ally_petition_state", None)
+    if not isinstance(store, dict):
+        store = {}
+        world.ally_petition_state = store
+    return store
+
+
+def _ally_petition_state_key(war_id: str, ally: str) -> str:
+    return f"{war_id}|{ally}"
+
+
+def _ally_petition_on_cooldown(world: Any, war_id: str, ally: str) -> bool:
+    entry = _ally_petition_state_store(world).get(
+        _ally_petition_state_key(str(war_id or ""), str(ally or ""))
+    )
+    if not isinstance(entry, Mapping):
+        return False
+    current_turn = int(getattr(world, "current_turn", 0) or 0)
+    return current_turn < int(entry.get("cooldown_until_turn", 0) or 0)
+
+
+def _record_ally_petition_resolution(
+    world: Any,
+    *,
+    war_id: str,
+    ally: str,
+    petition_type: str,
+    resolution: str,
+) -> None:
+    """Stamp the §5/§6 per-(war, ally) resolution state: the 5-turn absolute
+    cooldown plus the granted/declined type memory feeding voice."""
+    store = _ally_petition_state_store(world)
+    key = _ally_petition_state_key(str(war_id or ""), str(ally or ""))
+    entry = store.get(key)
+    if not isinstance(entry, dict):
+        entry = {
+            "last_petition_turn": 0,
+            "cooldown_until_turn": 0,
+            "declined_types": [],
+            "granted_types": [],
+        }
+        store[key] = entry
+    current_turn = int(getattr(world, "current_turn", 0) or 0)
+    entry["last_petition_turn"] = current_turn
+    entry["cooldown_until_turn"] = current_turn + ALLY_PETITION_COOLDOWN_TURNS
+    bucket = "granted_types" if resolution == "granted" else "declined_types"
+    types = list(entry.get(bucket) or [])
+    if petition_type not in types:
+        types.append(str(petition_type))
+    entry[bucket] = types
+
+
+def _count_live_ally_petitions(world: Any) -> int:
+    """Live ally-petition dialogues across the active slot, the queue, and
+    the pending store (§6 salience cap input)."""
+    count = 0
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is not None:
+        current = dm.peek() if hasattr(dm, "peek") else getattr(dm, "_current", None)
+        if (
+            isinstance(current, Mapping)
+            and current.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+        ):
+            count += 1
+        queued = (
+            dm.iter_queue()
+            if hasattr(dm, "iter_queue")
+            else (getattr(dm, "_queue", None) or [])
+        )
+        for queued_dialogue in queued:
+            if (
+                isinstance(queued_dialogue, Mapping)
+                and queued_dialogue.get("type")
+                == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+            ):
+                count += 1
+    for entry in getattr(world, "pending_settlement_dialogues", []) or []:
+        if (
+            isinstance(entry, Mapping)
+            and entry.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+        ):
+            count += 1
+    return count
+
+
+def _territory_clause_regions(term: Mapping[str, Any]) -> List[str]:
+    """Normalize the `region` / `regions` clause-shape variants (the same
+    tolerance the ratify path applies via `_territory_term_regions`)."""
+    regions = [str(r) for r in (term.get("regions") or []) if r]
+    single = str(term.get("region") or "")
+    if single and single not in regions:
+        regions.append(single)
+    return regions
+
+
+def _petition_clause_prevalidates(
+    world: Any,
+    clause: Mapping[str, Any],
+    *,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    covered_enemy_participants: Iterable[str],
+) -> bool:
+    """§3.2 pre-checks at queue time AND at Grant click time: the petition
+    never asks for something the draft cannot legally hold (no-false-
+    affordance — the G4F-16 / G1 pattern). V1 double-promise, clause cap,
+    V3 side partition (payer must be a covered enemy), payer still holds
+    the region / can fund the gold."""
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    if len(terms) >= MAX_SETTLEMENT_CLAUSE_COUNT:
+        return False
+    payer = str(clause.get("from") or "")
+    if payer not in covered:
+        return False
+    ctype = str(clause.get("type") or "")
+    if ctype == "territory_cede":
+        regions = _territory_clause_regions(clause)
+        if not regions:
+            return False
+        from backend.game_logic.settlement_baseline import (
+            _promised_regions_in_terms,
+        )
+
+        promised = _promised_regions_in_terms(terms)
+        for region in regions:
+            if region in promised:
+                return False
+            region_obj = (getattr(world, "regions", {}) or {}).get(region)
+            if region_obj is None or str(
+                getattr(region_obj, "controller", "") or ""
+            ) != payer:
+                return False
+        return True
+    if ctype == "gold_indemnity":
+        amount = int(clause.get("amount", 0) or 0)
+        if amount <= 0:
+            return False
+        from backend.game_logic.settlement_actions import (
+            _gold_headroom_for_payer,
+        )
+
+        candidate_terms = [dict(t) for t in terms] + [dict(clause)]
+        headroom = _gold_headroom_for_payer(
+            world,
+            candidate_terms,
+            payer=payer,
+            exclude_index=len(candidate_terms) - 1,
+        )
+        return amount <= headroom
+    return False
+
+
+def _ally_material_share(world: Any, war_id: str, ally: str, side: str) -> float:
+    from backend.game_logic.war_contribution import material_contribution_share
+
+    try:
+        return float(material_contribution_share(world, war_id, ally, side))
+    except Exception:
+        return 0.0
+
+
+def _ally_has_reward_standing(
+    world: Any, war_id: str, ally: str, side: str
+) -> bool:
+    """D-H3: contribution-based asks need `seat` or `consult` standing.
+    Restoration basis is exempt (checked by the caller)."""
+    from backend.game_logic.war_contribution import standing_for_participant
+
+    try:
+        standing = standing_for_participant(world, war_id, ally, side=side)
+    except Exception:
+        return False
+    return standing in ("seat", "consult")
+
+
+def _restoration_region_for_ally(
+    world: Any,
+    ally: str,
+    *,
+    covered_enemy_participants: Iterable[str],
+) -> Tuple[str, str]:
+    """Strongest basis (§3.1): a region with `starting_controller == ally`
+    currently controlled by a covered enemy court. Returns
+    ``(region, holder)`` or ``("", "")``."""
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    starting = (getattr(world, "nation_starting_regions", {}) or {}).get(ally, [])
+    regions = getattr(world, "regions", {}) or {}
+    for region in sorted(str(r) for r in starting):
+        region_obj = regions.get(region)
+        if region_obj is None:
+            continue
+        holder = str(getattr(region_obj, "controller", "") or "")
+        if holder in covered and holder != ally:
+            return region, holder
+    return "", ""
+
+
+def _reward_region_for_ally(
+    world: Any,
+    ally: str,
+    *,
+    war_id: str,
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> Tuple[str, str]:
+    """Contribution basis region: an unsatisfied objective claim from
+    `_active_objective_claims_for_ally`, else a coveted region
+    (`NATION_DESIRE_PROFILES.covets_regions`) held by a covered enemy."""
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    regions = getattr(world, "regions", {}) or {}
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    for claim in _active_objective_claims_for_ally(
+        world, ally, required_war_id=str(war_id or "")
+    ):
+        if _settlement_terms_satisfy_ally_claim(terms, claim):
+            continue
+        claim_region = str(claim.get("claim_region") or "")
+        region_obj = regions.get(claim_region)
+        if region_obj is None:
+            continue
+        holder = str(getattr(region_obj, "controller", "") or "")
+        if holder in covered and holder != ally:
+            return claim_region, holder
+    from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
+
+    profile = NATION_DESIRE_PROFILES.get(ally) or {}
+    for region in [str(r) for r in (profile.get("covets_regions") or [])]:
+        region_obj = regions.get(region)
+        if region_obj is None:
+            continue
+        holder = str(getattr(region_obj, "controller", "") or "")
+        if holder in covered and holder != ally:
+            return region, holder
+    return "", ""
+
+
+def _find_reward_or_restoration_petition_contexts(
+    world: Any,
+    *,
+    war_id: str,
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Slice H §3.1 — ranked `request_reward_or_restoration` candidates.
+
+    Restoration basis first (always eligible — an occupied homeland may
+    always ask), then contribution basis (D-H3: seat/consult standing).
+    Every candidate carries the exact valid-by-construction clause Grant
+    would inject (§3.2) — a candidate whose clause fails pre-validation is
+    dropped (gold fallback tried first for contribution asks)."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping) or war.get("ended_turn") is not None:
+        return []
+    player_side = _side_for_nation(war, player)
+    if player_side not in VALID_SIDES:
+        return []
+    covered = [str(n) for n in (covered_enemy_participants or []) if n]
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    war_label = _war_label_for_id(world, str(war_id or ""))
+    candidates: List[Dict[str, Any]] = []
+    same_side = [
+        str(nation)
+        for nation in (war.get(player_side) or [])
+        if str(nation) and str(nation) != player
+    ]
+    for ally in sorted(same_side):
+        if _ally_petition_on_cooldown(world, str(war_id or ""), ally):
+            continue
+        share = _ally_material_share(world, str(war_id or ""), ally, player_side)
+        basis = ""
+        clause: Optional[Dict[str, Any]] = None
+        region, holder = _restoration_region_for_ally(
+            world, ally, covered_enemy_participants=covered
+        )
+        if region:
+            basis = "restoration"
+            # `region` singular — the guided authoring surface's clause
+            # shape (settlement_demand_add); the validator + ratify
+            # normalize both variants.
+            clause = {
+                "type": "territory_cede",
+                "from": holder,
+                "to": ally,
+                "region": region,
+            }
+            if not _petition_clause_prevalidates(
+                world,
+                clause,
+                settlement_terms=terms,
+                covered_enemy_participants=covered,
+            ):
+                clause = None
+        if clause is None and _ally_has_reward_standing(
+            world, str(war_id or ""), ally, player_side
+        ):
+            region, holder = _reward_region_for_ally(
+                world,
+                ally,
+                war_id=str(war_id or ""),
+                covered_enemy_participants=covered,
+                settlement_terms=terms,
+            )
+            if region:
+                basis = "contribution"
+                clause = {
+                    "type": "territory_cede",
+                    "from": holder,
+                    "to": ally,
+                    "region": region,
+                }
+                if not _petition_clause_prevalidates(
+                    world,
+                    clause,
+                    settlement_terms=terms,
+                    covered_enemy_participants=covered,
+                ):
+                    # §3.2 gold fallback: a modest indemnity to the ally
+                    # inside the payer's remaining budget headroom.
+                    clause = {
+                        "type": "gold_indemnity",
+                        "from": holder,
+                        "to": ally,
+                        "amount": int(ALLY_PETITION_GOLD_REWARD_AMOUNT),
+                    }
+                    if not _petition_clause_prevalidates(
+                        world,
+                        clause,
+                        settlement_terms=terms,
+                        covered_enemy_participants=covered,
+                    ):
+                        clause = None
+        if clause is None or not basis:
+            continue
+        target_enemy = str(clause.get("from") or "")
+        claim_region = (
+            _territory_clause_regions(clause)[0]
+            if clause.get("type") == "territory_cede"
+            else str(region or "")
+        )
+        if basis == "restoration":
+            basis_display = (
+                f"{target_enemy} occupies {claim_region} — "
+                f"{ally}'s own soil."
+            )
+        else:
+            basis_display = (
+                f"{ally} fought for this coalition and presses its claim."
+            )
+        candidates.append({
+            "war_id": str(war_id or ""),
+            "war_label": war_label,
+            "ally_nation": ally,
+            "petition_type": ALLY_SETTLEMENT_PETITION_REWARD,
+            "basis": basis,
+            "basis_display": basis_display,
+            "claim_region": claim_region,
+            "target_enemy": target_enemy,
+            "candidate_clause": dict(clause),
+            "material_share": share,
+        })
+    # Restoration outranks reward; ties by material contribution share (§6).
+    candidates.sort(
+        key=lambda c: (
+            0 if c.get("basis") == "restoration" else 1,
+            -float(c.get("material_share") or 0.0),
+            str(c.get("ally_nation") or ""),
+        )
+    )
+    return candidates
+
+
+def _bargain_at_risk_case(
+    world: Any,
+    bargain: Mapping[str, Any],
+    *,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    covered_enemy_participants: Iterable[str],
+) -> str:
+    """Dry-run the ALREADY-LANDED ratify-time predicates against the STAGED
+    terms (§4.1): `imminent_breach` when the claim region is awarded to a
+    third party; `abandonment` when the settlement makes peace with the
+    bargain's target enemy while France neither holds nor gains the claim
+    region. Returns "" when the staged terms leave the bargain safe."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    promiser = str(bargain.get("promiser") or "")
+    beneficiary = str(bargain.get("beneficiary") or "")
+    claim_region = str(
+        (bargain.get("claim_term") or {}).get("claim_region") or ""
+    )
+    if not claim_region:
+        return ""
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    for term in terms:
+        if str(term.get("type") or "") != "territory_cede":
+            continue
+        if claim_region not in _territory_clause_regions(term):
+            continue
+        recipient = str(term.get("beneficiary") or term.get("to") or "")
+        if recipient and recipient not in (promiser, beneficiary):
+            return "imminent_breach"
+    target_enemy = str(bargain.get("target_enemy") or "")
+    if target_enemy and target_enemy in covered:
+        region_obj = (getattr(world, "regions", {}) or {}).get(claim_region)
+        france_holds = (
+            region_obj is not None
+            and str(getattr(region_obj, "controller", "") or "") == player
+        )
+        france_gains = any(
+            str(term.get("type") or "") == "territory_cede"
+            and str(term.get("to") or "") == player
+            and claim_region in _territory_clause_regions(term)
+            for term in terms
+        )
+        if not france_holds and not france_gains:
+            return "abandonment"
+    return ""
+
+
+def _find_bargain_honor_petition_contexts(
+    world: Any,
+    *,
+    war_id: str,
+    covered_enemy_participants: Iterable[str],
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Slice H §4.1 — ranked `demand_bargain_honor` candidates: a live war
+    bargain promised by France whose beneficiary fights on France's side in
+    this war, put at risk by the staged terms."""
+    from backend.game_logic.diplomacy import (
+        BARGAIN_BREACH_COOLDOWN_TURNS,
+        BARGAIN_BREACH_RELATION_DELTA,
+        BARGAIN_BREACH_RELIABILITY_DELTA,
+        _get_live_bargains_by_promiser,
+    )
+
+    player = str(getattr(world, "player_nation", "France") or "France")
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping) or war.get("ended_turn") is not None:
+        return []
+    player_side = _side_for_nation(war, player)
+    if player_side not in VALID_SIDES:
+        return []
+    same_side = {
+        str(nation)
+        for nation in (war.get(player_side) or [])
+        if str(nation) and str(nation) != player
+    }
+    covered = [str(n) for n in (covered_enemy_participants or []) if n]
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    war_label = _war_label_for_id(world, str(war_id or ""))
+    candidates: List[Dict[str, Any]] = []
+    for bargain in _get_live_bargains_by_promiser(world, player):
+        beneficiary = str(bargain.get("beneficiary") or "")
+        if beneficiary not in same_side:
+            continue
+        if _ally_petition_on_cooldown(world, str(war_id or ""), beneficiary):
+            continue
+        case = _bargain_at_risk_case(
+            world,
+            bargain,
+            settlement_terms=terms,
+            covered_enemy_participants=covered,
+        )
+        if not case:
+            continue
+        claim_region = str(
+            (bargain.get("claim_term") or {}).get("claim_region") or ""
+        )
+        candidate_clause: Optional[Dict[str, Any]] = None
+        if case == "abandonment":
+            # Honoring an abandonment means France TAKES the claim region at
+            # this table (WB v1: the bargain promises France's claim
+            # priority). No-false-affordance: skip when no covered enemy
+            # holds it.
+            region_obj = (getattr(world, "regions", {}) or {}).get(claim_region)
+            holder = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
+            candidate_clause = {
+                "type": "territory_cede",
+                "from": holder,
+                "to": player,
+                "region": claim_region,
+            }
+            if not _petition_clause_prevalidates(
+                world,
+                candidate_clause,
+                settlement_terms=terms,
+                covered_enemy_participants=covered,
+            ):
+                continue
+        created_turn = int(bargain.get("created_turn", 0) or 0)
+        consequence_display = (
+            f"Proceeding to ratification breaches the pledge: "
+            f"{BARGAIN_BREACH_RELIABILITY_DELTA} reliability, "
+            f"{BARGAIN_BREACH_RELATION_DELTA} relation with {beneficiary}, "
+            f"a betrayal strike, and a {BARGAIN_BREACH_COOLDOWN_TURNS}-turn "
+            f"bargain cooldown."
+        )
+        candidates.append({
+            "war_id": str(war_id or ""),
+            "war_label": war_label,
+            "ally_nation": beneficiary,
+            "petition_type": ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR,
+            "basis": case,
+            "basis_display": (
+                f"France pledged its claim on {claim_region} to secure "
+                f"{beneficiary}'s arms (turn {created_turn})."
+            ),
+            "claim_region": claim_region,
+            "target_enemy": str(bargain.get("target_enemy") or ""),
+            "bargain_id": str(bargain.get("id") or ""),
+            "bargain_created_turn": created_turn,
+            "consequence_display": consequence_display,
+            "candidate_clause": (
+                dict(candidate_clause) if candidate_clause else None
+            ),
+            "material_share": _ally_material_share(
+                world, str(war_id or ""), beneficiary, player_side
+            ),
+        })
+    candidates.sort(
+        key=lambda c: (
+            -float(c.get("material_share") or 0.0),
+            str(c.get("ally_nation") or ""),
+        )
+    )
+    return candidates
 
 
 def build_ally_settlement_petition_dialogue(
@@ -425,6 +1036,11 @@ def build_ally_settlement_petition_dialogue(
         ),
         "target_enemy": target_enemy or "the enemy",
         "claim_region": claim_region,
+        # Slice H slots (leniently resolved — absent for the G2b types).
+        "basis_display": str(context.get("basis_display") or ""),
+        "created_turn_label": (
+            f"turn {int(context.get('bargain_created_turn', 0) or 0)}"
+        ),
     }
     ally_voice = resolve_settlement_voice_line(
         _ally_petition_voice_family(petition_type, ally_nation),
@@ -439,12 +1055,60 @@ def build_ally_settlement_petition_dialogue(
         "settlement_ally_petition_talleyrand",
         **voice_slots,
     )
-    options = [{
-        "label": "Acknowledge",
-        "description": "Record the allied petition without changing the settlement draft.",
-        "action": ALLY_SETTLEMENT_PETITION_ACK_ACTION,
-        "available": True,
-    }]
+    candidate_clause = context.get("candidate_clause")
+    if isinstance(candidate_clause, Mapping):
+        candidate_clause = dict(candidate_clause)
+    else:
+        candidate_clause = None
+    if petition_type == ALLY_SETTLEMENT_PETITION_REWARD:
+        options = [
+            {
+                "label": "Grant the Claim",
+                "description": (
+                    "Add the petitioned clause to the settlement draft and "
+                    "re-score every court."
+                ),
+                "action": ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
+                "available": True,
+            },
+            {
+                "label": "Decline",
+                "description": (
+                    "Refuse the petition. The ally remembers the answer; "
+                    "concluding the peace without them carries its own cost."
+                ),
+                "action": ALLY_SETTLEMENT_PETITION_DECLINE_ACTION,
+                "available": True,
+            },
+        ]
+    elif petition_type == ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR:
+        options = [
+            {
+                "label": "Honor the Bargain",
+                "description": (
+                    "Adjust the settlement draft so France's pledged claim "
+                    "survives ratification."
+                ),
+                "action": ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+                "available": True,
+            },
+            {
+                "label": "Proceed Regardless",
+                "description": (
+                    "Keep the draft as it stands. Ratifying it breaches the "
+                    "pledge with the full landed penalty."
+                ),
+                "action": ALLY_SETTLEMENT_PETITION_DECLINE_ACTION,
+                "available": True,
+            },
+        ]
+    else:
+        options = [{
+            "label": "Acknowledge",
+            "description": "Record the allied petition without changing the settlement draft.",
+            "action": ALLY_SETTLEMENT_PETITION_ACK_ACTION,
+            "available": True,
+        }]
     dialogue: Dict[str, Any] = {
         "type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
         "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
@@ -466,8 +1130,29 @@ def build_ally_settlement_petition_dialogue(
         "talleyrand_text": talleyrand_text or "",
         "summary_text": "",
         "options": options,
-        "available_action_ids": [ALLY_SETTLEMENT_PETITION_ACK_ACTION],
+        "available_action_ids": [
+            str(opt.get("action") or "") for opt in options
+        ],
     }
+    if petition_type in ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES:
+        # Slice H payload: the concrete valid-by-construction candidate
+        # clause (§3.2), the named basis (§13.4 rule), and — for bargain
+        # honor — the exact landed consequence ladder (§4.2, no invented
+        # numbers).
+        dialogue["basis"] = str(context.get("basis") or "")
+        dialogue["basis_display"] = str(context.get("basis_display") or "")
+        dialogue["candidate_clause"] = candidate_clause
+        dialogue["candidate_clause_display"] = (
+            _term_display(candidate_clause) if candidate_clause else ""
+        )
+        if petition_type == ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR:
+            dialogue["bargain_id"] = str(context.get("bargain_id") or "")
+            dialogue["bargain_created_turn"] = int(
+                context.get("bargain_created_turn", 0) or 0
+            )
+            dialogue["consequence_display"] = str(
+                context.get("consequence_display") or ""
+            )
     dialogue["summary_text"] = _ally_petition_summary_text(dialogue)
     dialogue["popup_payload"] = build_ally_settlement_petition_popup(dialogue)
     return dialogue
@@ -488,7 +1173,7 @@ def build_ally_settlement_petition_popup(
             "action": ALLY_SETTLEMENT_PETITION_ACK_ACTION,
             "available": True,
         }]
-    return {
+    payload = {
         "type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
         "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
         "petition_type": str(dialogue.get("petition_type") or ""),
@@ -510,6 +1195,25 @@ def build_ally_settlement_petition_popup(
         "options": options,
         "available_action_ids": [str(opt.get("action") or "") for opt in options],
     }
+    if str(dialogue.get("petition_type") or "") in (
+        ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES
+    ):
+        candidate_clause = dialogue.get("candidate_clause")
+        payload["basis"] = str(dialogue.get("basis") or "")
+        payload["basis_display"] = str(dialogue.get("basis_display") or "")
+        payload["candidate_clause"] = (
+            dict(candidate_clause)
+            if isinstance(candidate_clause, Mapping)
+            else None
+        )
+        payload["candidate_clause_display"] = str(
+            dialogue.get("candidate_clause_display") or ""
+        )
+        payload["bargain_id"] = str(dialogue.get("bargain_id") or "")
+        payload["consequence_display"] = str(
+            dialogue.get("consequence_display") or ""
+        )
+    return payload
 
 
 def _is_ally_petition_known_to_dialogue_manager(
@@ -594,6 +1298,12 @@ def _queue_ally_settlement_petition(
         return None
     if not isinstance(context, Mapping):
         return None
+    if (
+        petition_type in ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES
+        and _count_live_ally_petitions(world) >= ALLY_PETITION_MAX_LIVE
+    ):
+        # §6 salience cap: at most 2 live ally-petition dialogues.
+        return None
     dialogue = build_ally_settlement_petition_dialogue(
         world,
         petition_type=petition_type,
@@ -610,6 +1320,25 @@ def _queue_ally_settlement_petition(
     if dm is None or not hasattr(dm, "push"):
         return None
     dm.push(dialogue)
+    if petition_type in ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES:
+        # §5: stamp the ask turn (the cooldown stamps at RESOLUTION).
+        store = _ally_petition_state_store(world)
+        key = _ally_petition_state_key(
+            str(dialogue.get("war_id") or ""),
+            str(dialogue.get("ally_nation") or ""),
+        )
+        entry = store.get(key)
+        if not isinstance(entry, dict):
+            entry = {
+                "last_petition_turn": 0,
+                "cooldown_until_turn": 0,
+                "declined_types": [],
+                "granted_types": [],
+            }
+            store[key] = entry
+        entry["last_petition_turn"] = int(
+            getattr(world, "current_turn", 0) or 0
+        )
     _emit_ally_settlement_petition_notification(world, dialogue)
     return dialogue
 
@@ -624,6 +1353,31 @@ def queue_ally_settlement_petitions_for_player_action(
 ) -> List[Dict[str, Any]]:
     if trigger_action not in ALLY_SETTLEMENT_PETITION_SOLICITED_TRIGGERS:
         return []
+    queued: List[Dict[str, Any]] = []
+
+    def _queue_full_agency_candidates(
+        candidates: List[Dict[str, Any]],
+    ) -> None:
+        """Slice H §6: queue in salience order, one petition per (war,
+        ally) per trigger, `_queue_ally_settlement_petition` enforcing the
+        2-live cap and the petition_key dedupe."""
+        allies_this_trigger = {
+            str(p.get("ally_nation") or "") for p in queued
+        }
+        for candidate in candidates:
+            ally = str(candidate.get("ally_nation") or "")
+            if not ally or ally in allies_this_trigger:
+                continue
+            petition = _queue_ally_settlement_petition(
+                world,
+                petition_type=str(candidate.get("petition_type") or ""),
+                context=candidate,
+                trigger_action=trigger_action,
+            )
+            if petition is not None:
+                queued.append(petition)
+                allies_this_trigger.add(ally)
+
     if trigger_action == "open_settlement":
         context = _find_request_open_settlement_petition_context(
             world,
@@ -635,7 +1389,19 @@ def queue_ally_settlement_petitions_for_player_action(
             context=context,
             trigger_action=trigger_action,
         )
-        return [petition] if petition is not None else []
+        if petition is not None:
+            queued.append(petition)
+        # Slice H: reward/restoration asks fire from the same solicited
+        # sites (§3.1) — never unsolicited (the D7 lock holds).
+        _queue_full_agency_candidates(
+            _find_reward_or_restoration_petition_contexts(
+                world,
+                war_id=str(war_id or ""),
+                covered_enemy_participants=covered_enemy_participants or [],
+                settlement_terms=settlement_terms or [],
+            )
+        )
+        return queued
     if trigger_action in {"stage_settlement", "reject_settlement_offer"}:
         context = _find_warn_sellout_petition_context(
             world,
@@ -649,8 +1415,578 @@ def queue_ally_settlement_petitions_for_player_action(
             context=context,
             trigger_action=trigger_action,
         )
-        return [petition] if petition is not None else []
+        if petition is not None:
+            queued.append(petition)
+        if trigger_action == "stage_settlement":
+            # Slice H §6 salience: a promise at risk beats a new ask —
+            # bargain-honor candidates queue before reward/restoration.
+            _queue_full_agency_candidates(
+                _find_bargain_honor_petition_contexts(
+                    world,
+                    war_id=str(war_id or ""),
+                    covered_enemy_participants=(
+                        covered_enemy_participants or []
+                    ),
+                    settlement_terms=settlement_terms or [],
+                )
+            )
+            _queue_full_agency_candidates(
+                _find_reward_or_restoration_petition_contexts(
+                    world,
+                    war_id=str(war_id or ""),
+                    covered_enemy_participants=(
+                        covered_enemy_participants or []
+                    ),
+                    settlement_terms=settlement_terms or [],
+                )
+            )
+        return queued
     return []
+
+
+def _remove_ally_petition_dialogue(world: Any, petition_key: str) -> int:
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not hasattr(dm, "remove_matching"):
+        return 0
+    return dm.remove_matching(
+        lambda item: (
+            isinstance(item, Mapping)
+            and item.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+            and (
+                not petition_key
+                or str(item.get("petition_key") or "") == petition_key
+            )
+        )
+    )
+
+
+def _pending_envoy_count(world: Any) -> int:
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is not None and hasattr(dm, "get_mailbox_count"):
+        return int(dm.get_mailbox_count())
+    return 0
+
+
+def _mounted_propose_settlement_dialogue(
+    world: Any, war_id: str
+) -> Optional[Mapping[str, Any]]:
+    """The mounted PROPOSE settlement_confirm for `war_id`, or None. Grant /
+    Honor inject through the SAME restage seam every guided demand verb
+    rides (Building Blocks) — that seam replaces the ACTIVE dialogue slot,
+    so the settlement surface must be mounted and in PROPOSE (REVIEW is a
+    frozen staged-decision surface — UX-2)."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return None
+    current = dm.peek() if hasattr(dm, "peek") else getattr(dm, "_current", None)
+    if not isinstance(current, Mapping):
+        return None
+    dtype = str(current.get("type") or current.get("dialogue_type") or "")
+    if dtype != "settlement_confirm":
+        return None
+    if str(current.get("war_id") or "") != str(war_id or ""):
+        return None
+    if str(current.get("dialogue_mode") or "PROPOSE") != "PROPOSE":
+        return None
+    return current
+
+
+def _petition_table_not_mounted_response(
+    action: str, war_id: str
+) -> Dict[str, Any]:
+    return {
+        "success": False,
+        "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "action": action,
+        "war_id": str(war_id or ""),
+        "error": "petition_table_not_mounted",
+        "error_display": (
+            "The settlement table for this war is not open in authoring, "
+            "Sire. Open the settlement (Return to Terms if under review), "
+            "then answer the petition."
+        ),
+        "mutated": False,
+        "petition_retained": True,
+        "suppress_proposal_result_popup": True,
+    }
+
+
+def _suspended_draft_for_war(
+    world: Any, war_id: str
+) -> Optional[List[Dict[str, Any]]]:
+    """The suspended PROPOSE draft for `war_id` from the scoped store
+    (PF-2 war-prefix fallback). The REAL Godot answer path reaches Grant /
+    Honor with the settlement table SUSPENDED — mailbox activation is
+    blocked while a settlement_confirm hard-stop is mounted, so the player
+    suspends (draft kept), activates the petition, and answers. The draft
+    IS the authoring surface then; staging it back with the granted clause
+    is the same promise `suspend → reopen` already makes."""
+    from backend.game_logic.settlement_staging import (
+        load_scoped_settlement_draft,
+    )
+
+    return load_scoped_settlement_draft(
+        world,
+        war_id=str(war_id or ""),
+        selected_target_nation=None,
+        covered_enemy_participants=None,
+    )
+
+
+def _default_coverage_for_war(world: Any, war_id: str) -> List[str]:
+    player = str(getattr(world, "player_nation", "France") or "France")
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
+    if not isinstance(war, Mapping):
+        return []
+    player_side = _side_for_nation(war, player)
+    if player_side not in VALID_SIDES:
+        return []
+    return [
+        str(n)
+        for n in get_coverable_enemy_participants(war, player_side)
+        if n
+    ]
+
+
+def _stage_granted_terms_from_draft(
+    world: Any,
+    *,
+    action: str,
+    war_id: str,
+    new_terms: List[Dict[str, Any]],
+    message: str,
+) -> Dict[str, Any]:
+    """Mount the suspended draft WITH the granted adjustment as a fresh
+    PROPOSE surface (stage_settlement_confirm re-validates, re-scores, and
+    handles same-war replace per LEGB-F2) and persist the scoped draft so
+    an immediate re-suspend keeps the grant."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    result = stage_settlement_confirm(
+        world,
+        war_id=str(war_id or ""),
+        actor_nation=player,
+        settlement_terms=new_terms,
+        dialogue_mode="PROPOSE",
+    )
+    if not result.get("success"):
+        result.setdefault("action", action)
+        result["suppress_proposal_result_popup"] = True
+        return result
+    staged = result.get("diplomatic_dialogue") or {}
+    from backend.game_logic.settlement_staging import (
+        save_scoped_settlement_draft,
+    )
+
+    save_scoped_settlement_draft(
+        world,
+        war_id=str(war_id or ""),
+        selected_target_nation=str(
+            staged.get("selected_target_nation") or ""
+        ) or None,
+        covered_enemy_participants=list(
+            staged.get("covered_enemy_participants") or []
+        ),
+        settlement_terms=[
+            dict(t)
+            for t in (staged.get("settlement_terms") or new_terms)
+            if isinstance(t, Mapping)
+        ],
+    )
+    result["action"] = action
+    result["message"] = message
+    result["suppress_proposal_result_popup"] = True
+    return result
+
+
+def _petition_lapsed_response(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    message: str,
+) -> Dict[str, Any]:
+    """G1 click-time re-run pattern: the draft changed since queue time and
+    the petitioned adjustment is no longer possible/needed — remove the
+    stale dialogue with a voiced notice, never a validator bounce. No
+    cooldown stamps: the ally may re-petition on the next staging."""
+    removed = _remove_ally_petition_dialogue(
+        world, str(dialogue.get("petition_key") or "")
+    )
+    return {
+        "success": True,
+        "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "action": action,
+        "war_id": str(dialogue.get("war_id") or ""),
+        "message": message,
+        "mutated": False,
+        "petition_lapsed": True,
+        "removed_dialogues": int(removed),
+        "pending_envoy_count": _pending_envoy_count(world),
+        "suppress_proposal_result_popup": True,
+    }
+
+
+def _log_ally_petition_event(
+    world: Any, event_type: str, dialogue: Mapping[str, Any]
+) -> None:
+    if not hasattr(world, "log_event"):
+        return
+    world.log_event({
+        "type": str(event_type),
+        "nation": str(getattr(world, "player_nation", "France") or "France"),
+        "ally_nation": str(dialogue.get("ally_nation") or ""),
+        "petition_type": str(dialogue.get("petition_type") or ""),
+        "war_id": str(dialogue.get("war_id") or ""),
+        "war_label": str(dialogue.get("war_label") or ""),
+        "claim_region": str(dialogue.get("claim_region") or ""),
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    })
+
+
+def _handle_grant_ally_petition(
+    world: Any, dialogue: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Slice H §3.3 Grant: inject the carried clause into the mounted
+    PROPOSE draft through the demand-add/restage seam. The PLAYER clicks
+    Grant, so the Slice-G player-only mutation boundary is preserved."""
+    war_id = str(dialogue.get("war_id") or "")
+    ally = str(dialogue.get("ally_nation") or "")
+    settlement_dialogue = _mounted_propose_settlement_dialogue(world, war_id)
+    draft_terms: Optional[List[Dict[str, Any]]] = None
+    if settlement_dialogue is not None:
+        terms = [
+            dict(t)
+            for t in (settlement_dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        covered = [
+            str(n)
+            for n in (
+                settlement_dialogue.get("covered_enemy_participants") or []
+            )
+            if n
+        ]
+    else:
+        # The REAL Godot flow: the petition is answered with the table
+        # SUSPENDED (mailbox activation is blocked by the mounted
+        # hard-stop) — the suspended scoped draft is the authoring
+        # surface then.
+        draft_terms = _suspended_draft_for_war(world, war_id)
+        if draft_terms is None:
+            return _petition_table_not_mounted_response(
+                ALLY_SETTLEMENT_PETITION_GRANT_ACTION, war_id
+            )
+        terms = draft_terms
+        covered = _default_coverage_for_war(world, war_id)
+    clause = dialogue.get("candidate_clause")
+    if not isinstance(clause, Mapping) or not _petition_clause_prevalidates(
+        world,
+        clause,
+        settlement_terms=terms,
+        covered_enemy_participants=covered,
+    ):
+        return _petition_lapsed_response(
+            world,
+            action=ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
+            dialogue=dialogue,
+            message=resolve_settlement_voice_line(
+                "settlement_ally_petition_lapsed_talleyrand",
+                ally_nation=ally,
+            ) or (
+                f"Sire, the draft has moved on — {ally}'s ask can no "
+                "longer be granted as petitioned."
+            ),
+        )
+    granted_clause = dict(clause)
+    # D-H1 (approved): granted clauses carry `ally_petition` provenance and
+    # join the dial sweep's protected set — a More-Generous sweep can never
+    # silently un-reward the ally; per-row Remove is the deliberate verb.
+    granted_clause["authored_by"] = "ally_petition"
+    new_terms = [dict(t) for t in terms] + [granted_clause]
+    _remove_ally_petition_dialogue(world, str(dialogue.get("petition_key") or ""))
+    _record_ally_petition_resolution(
+        world,
+        war_id=war_id,
+        ally=ally,
+        petition_type=str(dialogue.get("petition_type") or ""),
+        resolution="granted",
+    )
+    _log_ally_petition_event(
+        world, "settlement_ally_petition_granted", dialogue
+    )
+    clause_label = _term_display(granted_clause)
+    grant_line = _ally_petition_resolution_voice(
+        ally,
+        "granted",
+        ally_nation=ally,
+        claim_region=str(dialogue.get("claim_region") or ""),
+    )
+    if settlement_dialogue is None:
+        result = _stage_granted_terms_from_draft(
+            world,
+            action=ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
+            war_id=war_id,
+            new_terms=new_terms,
+            message=f"Granted {ally}'s petition — {clause_label}. {grant_line}",
+        )
+    else:
+        voice_beats = [{
+            "kind": "ally_petition_granted",
+            "speaker": resolve_named_diplomat("envoy", ally, world),
+            "nation": ally,
+            "line": grant_line,
+        }]
+        from backend.game_logic.settlement_staging import (
+            _restage_settlement_after_redraw,
+        )
+
+        result = _restage_settlement_after_redraw(
+            world,
+            settlement_dialogue,
+            action=ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
+            new_terms=new_terms,
+            new_covered=covered,
+            message=f"Granted {ally}'s petition — {clause_label}.",
+            extra={"authoring_voice_beats": voice_beats},
+        )
+    result["petition_granted"] = {
+        "ally_nation": ally,
+        "petition_type": str(dialogue.get("petition_type") or ""),
+        "clause_display": clause_label,
+    }
+    return result
+
+
+def _handle_decline_ally_petition(
+    world: Any, dialogue: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Slice H §3.3/§4.3 Decline / Proceed Regardless (D-H2: light memory —
+    the −3 advisory dip plus the decline record; the ratify-time shut-out /
+    breach pipelines own the real teeth, never a second penalty here)."""
+    war_id = str(dialogue.get("war_id") or "")
+    ally = str(dialogue.get("ally_nation") or "")
+    player = str(getattr(world, "player_nation", "France") or "France")
+    if ally and hasattr(world, "modify_nation_relation"):
+        world.modify_nation_relation(
+            player, ally, ALLY_PETITION_DECLINE_RELATION_DELTA
+        )
+    episode_id = f"petition:{war_id}:{ally}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    try:
+        from backend.game_logic.diplomacy import _allocate_episode_id
+
+        episode_id = _allocate_episode_id(world, prefix="petition")
+    except Exception:
+        pass
+    from backend.game_logic.settlement_reactions import _add_settlement_memory
+
+    _add_settlement_memory(
+        world,
+        actor=player,
+        subject=ally,
+        memory_type="petition_declined",
+        episode_id=episode_id,
+        payload={
+            "war_id": war_id,
+            "petition_type": str(dialogue.get("petition_type") or ""),
+            "claim_region": str(dialogue.get("claim_region") or ""),
+            "relation_delta": ALLY_PETITION_DECLINE_RELATION_DELTA,
+        },
+        expires_in=ALLY_PETITION_DECLINED_MEMORY_TURNS,
+    )
+    _record_ally_petition_resolution(
+        world,
+        war_id=war_id,
+        ally=ally,
+        petition_type=str(dialogue.get("petition_type") or ""),
+        resolution="declined",
+    )
+    removed = _remove_ally_petition_dialogue(
+        world, str(dialogue.get("petition_key") or "")
+    )
+    _log_ally_petition_event(
+        world, "settlement_ally_petition_declined", dialogue
+    )
+    line = _ally_petition_resolution_voice(
+        ally,
+        "declined",
+        ally_nation=ally,
+        claim_region=str(dialogue.get("claim_region") or ""),
+    )
+    return {
+        "success": True,
+        "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
+        "action": ALLY_SETTLEMENT_PETITION_DECLINE_ACTION,
+        "war_id": war_id,
+        "message": line or f"{ally}'s petition is declined, Sire.",
+        "mutated": False,
+        "petition_declined": {
+            "ally_nation": ally,
+            "petition_type": str(dialogue.get("petition_type") or ""),
+            "relation_delta": ALLY_PETITION_DECLINE_RELATION_DELTA,
+        },
+        "removed_dialogues": int(removed),
+        "pending_envoy_count": _pending_envoy_count(world),
+        "suppress_proposal_result_popup": True,
+    }
+
+
+def _handle_honor_bargain_in_settlement(
+    world: Any, dialogue: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Slice H §4.3 Honor (D-H5: auto-adjust via restage, voiced). WB v1
+    semantics: the bargain promises FRANCE's claim priority — honoring
+    retargets the conflicting third-party award to France (imminent
+    breach), or injects the France-takes-claim cession (abandonment)."""
+    war_id = str(dialogue.get("war_id") or "")
+    ally = str(dialogue.get("ally_nation") or "")
+    player = str(getattr(world, "player_nation", "France") or "France")
+    claim_region = str(dialogue.get("claim_region") or "")
+    settlement_dialogue = _mounted_propose_settlement_dialogue(world, war_id)
+    if settlement_dialogue is not None:
+        terms = [
+            dict(t)
+            for t in (settlement_dialogue.get("settlement_terms") or [])
+            if isinstance(t, Mapping)
+        ]
+        covered = [
+            str(n)
+            for n in (
+                settlement_dialogue.get("covered_enemy_participants") or []
+            )
+            if n
+        ]
+    else:
+        # Suspended-table flow (same rationale as Grant): honor the pledge
+        # inside the suspended scoped draft, then re-mount it.
+        draft_terms = _suspended_draft_for_war(world, war_id)
+        if draft_terms is None:
+            return _petition_table_not_mounted_response(
+                ALLY_SETTLEMENT_PETITION_HONOR_ACTION, war_id
+            )
+        terms = draft_terms
+        covered = _default_coverage_for_war(world, war_id)
+    from backend.game_logic.diplomacy import _get_live_bargains_by_promiser
+
+    bargain = None
+    bargain_id = str(dialogue.get("bargain_id") or "")
+    for candidate in _get_live_bargains_by_promiser(world, player):
+        if str(candidate.get("id") or "") == bargain_id:
+            bargain = candidate
+            break
+    lapse_message = resolve_settlement_voice_line(
+        "settlement_ally_petition_lapsed_talleyrand",
+        ally_nation=ally,
+    ) or (
+        f"Sire, the pledge to {ally} no longer stands in the draft's way."
+    )
+    if bargain is None:
+        return _petition_lapsed_response(
+            world,
+            action=ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+            dialogue=dialogue,
+            message=lapse_message,
+        )
+    case = _bargain_at_risk_case(
+        world,
+        bargain,
+        settlement_terms=terms,
+        covered_enemy_participants=covered,
+    )
+    if not case:
+        return _petition_lapsed_response(
+            world,
+            action=ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+            dialogue=dialogue,
+            message=lapse_message,
+        )
+    if case == "imminent_breach":
+        new_terms: List[Dict[str, Any]] = []
+        for term in terms:
+            if (
+                str(term.get("type") or "") == "territory_cede"
+                and claim_region in _territory_clause_regions(term)
+                and str(term.get("beneficiary") or term.get("to") or "")
+                not in (player, ally)
+            ):
+                retargeted = dict(term)
+                retargeted["to"] = player
+                retargeted.pop("beneficiary", None)
+                retargeted["authored_by"] = "ally_petition"
+                new_terms.append(retargeted)
+            else:
+                new_terms.append(dict(term))
+    else:
+        clause = dialogue.get("candidate_clause")
+        if not isinstance(clause, Mapping) or not _petition_clause_prevalidates(
+            world,
+            clause,
+            settlement_terms=terms,
+            covered_enemy_participants=covered,
+        ):
+            return _petition_lapsed_response(
+                world,
+                action=ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+                dialogue=dialogue,
+                message=lapse_message,
+            )
+        honored_clause = dict(clause)
+        honored_clause["authored_by"] = "ally_petition"
+        new_terms = terms + [honored_clause]
+    _remove_ally_petition_dialogue(world, str(dialogue.get("petition_key") or ""))
+    _record_ally_petition_resolution(
+        world,
+        war_id=war_id,
+        ally=ally,
+        petition_type=ALLY_SETTLEMENT_PETITION_BARGAIN_HONOR,
+        resolution="granted",
+    )
+    _log_ally_petition_event(world, "settlement_bargain_honored", dialogue)
+    honored_line = _ally_petition_resolution_voice(
+        ally,
+        "honored",
+        ally_nation=ally,
+        claim_region=claim_region,
+    )
+    if settlement_dialogue is None:
+        result = _stage_granted_terms_from_draft(
+            world,
+            action=ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+            war_id=war_id,
+            new_terms=new_terms,
+            message=(
+                f"The pledge on {claim_region} stands in the draft, Sire. "
+                f"{honored_line}"
+            ),
+        )
+    else:
+        voice_beats = [{
+            "kind": "ally_petition_honored",
+            "speaker": resolve_named_diplomat("envoy", ally, world),
+            "nation": ally,
+            "line": honored_line,
+        }]
+        from backend.game_logic.settlement_staging import (
+            _restage_settlement_after_redraw,
+        )
+
+        result = _restage_settlement_after_redraw(
+            world,
+            settlement_dialogue,
+            action=ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+            new_terms=new_terms,
+            new_covered=covered,
+            message=(
+                f"The pledge on {claim_region} stands in the draft, Sire."
+            ),
+            extra={"authoring_voice_beats": voice_beats},
+        )
+    result["bargain_honored"] = {
+        "ally_nation": ally,
+        "bargain_id": bargain_id,
+        "claim_region": claim_region,
+        "case": case,
+    }
+    return result
 
 
 def handle_ally_settlement_petition_action(
@@ -659,35 +1995,25 @@ def handle_ally_settlement_petition_action(
     action: str,
     dialogue: Mapping[str, Any],
 ) -> Dict[str, Any]:
+    if action == ALLY_SETTLEMENT_PETITION_GRANT_ACTION:
+        return _handle_grant_ally_petition(world, dialogue)
+    if action == ALLY_SETTLEMENT_PETITION_DECLINE_ACTION:
+        return _handle_decline_ally_petition(world, dialogue)
+    if action == ALLY_SETTLEMENT_PETITION_HONOR_ACTION:
+        return _handle_honor_bargain_in_settlement(world, dialogue)
     if action != ALLY_SETTLEMENT_PETITION_ACK_ACTION:
         return {
             "success": False,
             "message": f"Unknown ally petition action: {action}",
         }
     petition_key = str(dialogue.get("petition_key") or "")
-    dm = getattr(world, "dialogue_manager", None)
-    removed = 0
-    if dm is not None and hasattr(dm, "remove_matching"):
-        removed = dm.remove_matching(
-            lambda item: (
-                isinstance(item, Mapping)
-                and item.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
-                and (
-                    not petition_key
-                    or str(item.get("petition_key") or "") == petition_key
-                )
-            )
-        )
+    removed = _remove_ally_petition_dialogue(world, petition_key)
     return {
         "success": True,
         "message": "The allied petition has been recorded.",
         "mutated": False,
         "removed_dialogues": int(removed),
-        "pending_envoy_count": int(
-            dm.get_mailbox_count()
-            if dm is not None and hasattr(dm, "get_mailbox_count")
-            else 0
-        ),
+        "pending_envoy_count": _pending_envoy_count(world),
         "suppress_proposal_result_popup": True,
     }
 

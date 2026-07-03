@@ -759,6 +759,13 @@ class WorldState:
         #  "cooldown_until_turn": int, "answering_leader": str}. Resolved by
         # `ai_diplomacy._resolve_settlement_terms_requests` each AI phase.
         self.settlement_terms_requests: Dict[str, Dict[str, Any]] = {}
+        # Slice H (July 3, 2026): ally petition resolution state, keyed by
+        # f"{war_id}|{ally}". {"last_petition_turn": int,
+        #  "cooldown_until_turn": int, "declined_types": [str],
+        #  "granted_types": [str]}. Written by the settlement_offers Slice H
+        # grant/decline/honor handlers; read by the petition finders'
+        # cooldown gate.
+        self.ally_petition_state: Dict[str, Dict[str, Any]] = {}
         # SC-5R-1 scoped settlement draft store keyed by
         # `compute_settlement_draft_key(war_id, selected_target_nation,
         # covered_enemy_participants)`. Same-war drafts with different
@@ -4303,6 +4310,12 @@ class WorldState:
                 for war_id, entry in self.settlement_terms_requests.items()
                 if isinstance(entry, dict)
             },
+            # Slice H: ally petition resolution state.
+            "ally_petition_state": {
+                str(key): copy.deepcopy(entry)
+                for key, entry in self.ally_petition_state.items()
+                if isinstance(entry, dict)
+            },
             "pending_settlement_drafts_by_key": {
                 str(key): [copy.deepcopy(c) for c in clauses]
                 for key, clauses in self.pending_settlement_drafts_by_key.items()
@@ -4830,6 +4843,12 @@ class WorldState:
             for war_id, entry in (
                 data.get("settlement_terms_requests") or {}
             ).items()
+            if isinstance(entry, dict)
+        }
+        # Slice H: pre-H saves default to no petition state.
+        world.ally_petition_state = {
+            str(key): copy.deepcopy(entry)
+            for key, entry in (data.get("ally_petition_state") or {}).items()
             if isinstance(entry, dict)
         }
         # SC-5R-1 scoped store: old saves without this key default to an
