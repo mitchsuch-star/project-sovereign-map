@@ -173,10 +173,15 @@ class TestPhantomPersonalityCleanup:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestParserMarshalList:
-    """Parser's valid marshal list must match create_starting_marshals()."""
+    """CR-0 re-scope: parser rosters are now LIVE-world derived
+    (`_get_player_marshals(world)`); `parser.valid_marshals` survives only
+    as the no-world FALLBACK seed and must keep matching the legacy
+    create_starting_marshals() factory so cold parses behave unchanged.
+    The live-roster counterparts live in
+    test_command_robustness_cr0_parser_rosters.py."""
 
     def test_valid_marshals_match_starting_marshals(self):
-        """Parser.valid_marshals should exactly match French starting marshals."""
+        """Fallback seed should exactly match legacy French starting marshals."""
         from backend.commands.parser import CommandParser
         with _suppress_output():
             parser = CommandParser(use_real_llm=False)
@@ -190,7 +195,9 @@ class TestParserMarshalList:
             f"Parser marshals {parser_marshals} != starting marshals {french_marshals}"
 
     def test_no_phantom_marshals_in_parser(self):
-        """Parser must not include marshals that don't exist in the game."""
+        """Fallback seed must not include marshals absent from the LEGACY
+        world (Murat/Soult/Lannes/Bernadotte are real 1805-roster marshals —
+        they parse when a live world is passed, but never from the seed)."""
         from backend.commands.parser import CommandParser
         with _suppress_output():
             parser = CommandParser(use_real_llm=False)
@@ -201,11 +208,12 @@ class TestParserMarshalList:
                 f"Phantom marshal {name} should not be in parser.valid_marshals"
 
     def test_no_phantom_marshals_in_mock_parser(self):
-        """Mock LLM parser must not include non-existent marshal keywords."""
+        """Mock parser without a live game_state must keep the legacy
+        fallback roster (cold parses must not invent marshals)."""
         from backend.ai.llm_client import LLMClient
         client = LLMClient(use_real_api=False)
 
-        # Parse a command mentioning a phantom marshal
+        # Parse a command mentioning a marshal absent from the LEGACY roster
         result = client.parse_command("Murat, attack Wellington", {})
         # Should NOT resolve to "Murat" as marshal
         if result and result.get("marshal"):

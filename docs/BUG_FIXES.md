@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: July 2, 2026 (re-staging audit: three open defects recorded below with owners — parser roster pinning P0 → `COMMAND_ROBUSTNESS_SPEC.md` CR-0; advance-turn AP reset → `ECONOMY_REVISIT_SPEC.md` EC-0; marshal-overview ability display → `MARSHAL_CONTENT_PASS_SPEC.md` MC-0. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+> Last Updated: July 3, 2026 (CR-0 parser roster pinning FIXED — see the entry below. Two open defects remain with owners: advance-turn AP reset → `ECONOMY_REVISIT_SPEC.md` EC-0; marshal-overview ability display → `MARSHAL_CONTENT_PASS_SPEC.md` MC-0. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -46,7 +46,7 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. The three July-2 open defects below route to their phase owners (CR-0 / EC-0 / MC-0); overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
+**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. Of the three July-2 open defects, CR-0 is FIXED (July 3, 2026); EC-0 and MC-0 remain with their phase owners; overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
 
@@ -1161,9 +1161,29 @@ The player still has no clean restart path from the running build. Starting fres
 
 ---
 
-## Open (P0 — UPGRADED July 2, 2026): Parser roster pinning — 5 of 7 French marshals uncommandable by typed text on the shipped 1805 boot (ALL LLM modes)
+## FIXED (July 3, 2026 — CR-0): Parser roster pinning — 5 of 7 French marshals uncommandable by typed text on the shipped 1805 boot (ALL LLM modes)
 
-**Owner: `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0** (behavior tests over both worlds land with the fix).
+**Owner: `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0 — LANDED July 3, 2026.**
+Parser rosters now derive from the live world: `parser.py`
+`_get_player_marshals(world)` / `_get_known_regions(world)` (hardcoded
+legacy lists survive only as the no-world cold-parse fallback);
+`llm_client.py` `_parse_with_mock` takes `game_state` and derives marshal
+extraction, the target ladder (enemies → regions, camelCase-split aliases
+so "archduke charles" finds `ArchdukeCharles`), and nation-keyed vassal
+keywords. Also fixed while there: the `Marshal [Name]` regex was
+case-sensitive on "marshal" (so "Marshal Soult" never matched); exact
+enemy names were fuzzy-rewritten into regions on the 126-province map
+("Mack" → "La Mancha"); trailing punctuation broke the word-scan skip
+list ("Bernadotte," fuzzy-drifted into region "Bern"); and typed vassal
+commands ("invest in saxony") died at the marshal word-scan in EVERY
+world — probe-verified pre-existing, now parsing in both. The landing ran
+a 4-lens adversarial review (24 confirmed findings, all fixed or pinned —
+see the STATUS.md July 3 third entry for the full list incl. the
+"Attack Marshal Mack" / "Hold Bern!" / "invest in austria"→Asturias
+regressions caught pre-commit). Behavior tests over both worlds:
+`tests/test_command_robustness_cr0_parser_rosters.py` (66 tests). The
+meta-action silent-marshal-drop class ("Murat, charge") and
+unknown-extra-word hard errors remain CR-2 scope.
 
 Originally recorded (Map Slice 8 smoke, July 2, 2026) as the low-severity
 mock-only bare-command gap below. The July 2 re-staging audit probe

@@ -3,10 +3,46 @@ Command Parser for Project Sovereign
 Converts natural language commands into validated, executable orders
 """
 
+import re
 from typing import Dict, List, Optional
 from backend.ai.llm_client import LLMClient
 from backend.ai.strategic_parser import detect_strategic_command
 from backend.utils.fuzzy_matcher import FuzzyMatcher
+
+# CR-0: split camelCase scenario keys ("ArchdukeCharles") into their typed
+# word forms when building skip-word sets (mirrors llm_client)
+_CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
+
+
+def _edit_distance_at_most(a: str, b: str, limit: int) -> bool:
+    """True if Levenshtein(a, b) <= limit. Band-limited DP — strings here
+    are short name candidates."""
+    if abs(len(a) - len(b)) > limit:
+        return False
+    previous = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        current = [i]
+        row_min = i
+        for j, cb in enumerate(b, 1):
+            cost = min(previous[j] + 1,
+                       current[j - 1] + 1,
+                       previous[j - 1] + (ca != cb))
+            current.append(cost)
+            row_min = min(row_min, cost)
+        if row_min > limit:
+            return False
+        previous = current
+    return previous[-1] <= limit
+
+
+def _closest_by_edit_distance(word: str, names, limit: int = 1):
+    """The unique name within `limit` edits of `word` (case-insensitive),
+    or None when zero or multiple qualify. Used to keep an edit-distance-1
+    enemy-name typo ('Mach') from fuzzy-drifting into a region whose
+    partial-ratio score happens to be higher ('La Mancha')."""
+    word_lower = word.lower()
+    hits = [n for n in names if _edit_distance_at_most(word_lower, n.lower(), limit)]
+    return hits[0] if len(hits) == 1 else None
 
 
 def _build_fallback_known_enemies() -> List[str]:
@@ -34,6 +70,17 @@ def _extract_enemy_marshal_names(world, player_nation: Optional[str]) -> List[st
     return names
 
 
+def _extract_player_marshal_names(world, player_nation: Optional[str]) -> List[str]:
+    """Return all marshal names in `world` that DO belong to player_nation."""
+    marshals = getattr(world, "marshals", None) or {}
+    names: List[str] = []
+    for name, marshal in marshals.items():
+        if player_nation and getattr(marshal, "nation", None) != player_nation:
+            continue
+        names.append(name)
+    return names
+
+
 class CommandParser:
     """
     Parses player commands and validates them against game state.
@@ -52,7 +99,10 @@ class CommandParser:
         self.llm = LLMClient(use_real_api=use_real_llm)
         self.fuzzy_matcher = FuzzyMatcher()
 
-        # Valid marshals — must match create_starting_marshals() in world_state.py
+        # Fallback player-marshal roster (CR-0) — matches the legacy
+        # create_starting_marshals() factory. Only used when no live world
+        # is passed to parse() (cold command parsing in unit tests); normal
+        # gameplay reads live names via `_get_player_marshals(world)`.
         self.valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot"]
 
         # Valid actions
@@ -135,7 +185,9 @@ class CommandParser:
         # Valid stances for stance_change command (Phase 2.7)
         self.valid_stances = ["neutral", "defensive", "aggressive"]
 
-        # Known regions for fuzzy matching — derived from region.py (single source of truth)
+        # Fallback region roster (CR-0) — legacy REGIONS_DATA fixture names.
+        # Only used when no live world is passed; normal gameplay reads the
+        # live 126-province names via `_get_known_regions(world)`.
         from backend.models.region import REGIONS_DATA
         self.known_regions = list(REGIONS_DATA.keys())
 
@@ -166,7 +218,44 @@ class CommandParser:
                 return names
         return list(self._fallback_known_enemies)
 
-    def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str, world=None) -> tuple:
+    def _get_player_marshals(self, world=None, game_state=None) -> List[str]:
+        """
+        Return the current PLAYER marshal roster for fuzzy matching (CR-0).
+
+        Prefers live world state so scenario rosters (e.g. the 7-marshal
+        1805 campaign) are commandable without editing this file. Second
+        choice: the LLM game_state's player-only "marshals" dict — so a
+        parse called with game_state but no world validates against the
+        SAME roster the mock extracted from. Falls back to the legacy
+        4-name seed roster otherwise (cold parses in unit tests keep
+        their historical behavior).
+        """
+        if world is not None:
+            player_nation = getattr(world, "player_nation", None)
+            names = _extract_player_marshal_names(world, player_nation)
+            if names:
+                return names
+        if isinstance(game_state, dict):
+            marshals = game_state.get("marshals")
+            if isinstance(marshals, dict) and marshals:
+                return list(marshals)
+        return list(self.valid_marshals)
+
+    def _get_known_regions(self, world=None) -> List[str]:
+        """
+        Return the current region roster for fuzzy matching (CR-0).
+
+        Prefers live world state (126 provinces on the shipped 1805 boot);
+        falls back to the legacy REGIONS_DATA seed when no world is
+        available. Runs once per typed command — not a hot path.
+        """
+        regions = getattr(world, "regions", None) if world is not None else None
+        if regions:
+            return list(regions.keys())
+        return list(self.known_regions)
+
+    def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str, world=None,
+                              game_state=None) -> tuple:
         """
         Apply fuzzy matching to correct typos in marshal and target names.
 
@@ -175,17 +264,24 @@ class CommandParser:
             command_text: Original command text
             world: Optional live WorldState — used to derive the current
                 enemy marshal roster instead of the factory fallback.
+            game_state: Optional LLM game_state dict — roster fallback when
+                world is absent (keeps fuzzy validation consistent with
+                what the mock parser extracted).
 
         Returns:
             Tuple of (updated llm_result, error_dict or None)
             error_dict is set if an invalid marshal name was detected
         """
         known_enemies = self._get_known_enemies(world)
+        # CR-0: rosters come from the live world when available — the
+        # hardcoded legacy lists are only the no-world/no-game_state fallback.
+        valid_marshals = self._get_player_marshals(world, game_state)
+        known_regions = self._get_known_regions(world)
         # Fuzzy match marshal name if LLM extracted one
         if llm_result.get("marshal"):
             marshal_result = self.fuzzy_matcher.match_with_context(
                 llm_result["marshal"],
-                self.valid_marshals
+                valid_marshals
             )
             if marshal_result["action"] in ["exact", "auto_correct"]:
                 llm_result["marshal"] = marshal_result["match"]
@@ -193,11 +289,11 @@ class CommandParser:
                 # Medium confidence match - suggest to user
                 return (llm_result, {
                     "error": f"Did you mean '{marshal_result['match']}'? ('{llm_result['marshal']}' not found)",
-                    "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(self.valid_marshals)}"
+                    "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}"
                 })
             else:  # action == "error"
                 # No good match - return error with suggestions
-                suggestions = marshal_result.get("suggestions", self.valid_marshals[:3])
+                suggestions = marshal_result.get("suggestions", valid_marshals[:3])
                 return (llm_result, {
                     "error": f"Marshal '{llm_result['marshal']}' not found",
                     "suggestion": f"Available marshals: {', '.join(suggestions)}"
@@ -212,11 +308,30 @@ class CommandParser:
 
             # Skip fuzzy marshal matching if target already identified
             existing_target = (llm_result.get("target") or "").lower()
+            # CR-0: multiword/camelCase targets must skip word-by-word —
+            # "attack East Prussia" scans "East" and "Prussia" separately
+            existing_target_words = set(existing_target.split())
+            existing_target_words.update(
+                _CAMEL_SPLIT_RE.sub(' ', llm_result.get("target") or "")
+                .lower().replace('-', ' ').split())
+            # CR-0: words that exactly name a known region/enemy are targets,
+            # never marshal-name candidates ("Hold Bern!" must not hijack
+            # Bernadotte via fuzzy auto-correct)
+            known_target_words = {n.lower() for n in known_regions}
+            known_target_words.update(n.lower() for n in known_enemies)
 
             words = command_text.split()
             for word in words:
+                # CR-0: strip punctuation FIRST — "Mack!" must be recognized
+                # as the already-parsed target / a known name before any
+                # marshal fuzzy-matching sees it
+                word = word.strip(",.!?;:")
+                word_lower = word.lower()
                 # Skip words that match the already-parsed target (e.g., "Rhineland" in "bombard Rhineland")
-                if existing_target and word.lower() == existing_target:
+                if existing_target and (word_lower == existing_target
+                                        or word_lower in existing_target_words):
+                    continue
+                if word_lower in known_target_words:
                     continue
 
                 # Skip very short words, common words, and action keywords
@@ -239,13 +354,17 @@ class CommandParser:
                     # Troop type keywords — not marshal names (M2 parse fix)
                     "infantry", "cavalry", "artillery", "troops", "soldiers",
                     "horsemen", "riders", "foot", "guns",
+                    # Vassal command verbs — not marshal names (CR-0; typed
+                    # "invest in saxony" died here in every world)
+                    "invest", "release", "vassal", "vassalize", "subjugate",
+                    "autonomy", "puppet", "satellite", "make",
                 ]
-                if len(word) < 2 or word.lower() in skip_words:
+                if len(word) < 2 or word_lower in skip_words:
                     continue
 
                 marshal_result = self.fuzzy_matcher.match_with_context(
                     word,
-                    self.valid_marshals
+                    valid_marshals
                 )
                 if marshal_result["action"] in ["exact", "auto_correct"]:
                     llm_result["marshal"] = marshal_result["match"]
@@ -255,17 +374,17 @@ class CommandParser:
                     # Suggest to user instead of auto-assigning
                     return (llm_result, {
                         "error": f"Did you mean '{marshal_result['match']}'? ('{word}' not found)",
-                        "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(self.valid_marshals)}"
+                        "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}"
                     })
                 elif marshal_result["action"] == "error":
                     # Word doesn't match any marshal well. Check if it's a valid target.
                     # If it's not a target either, it's probably a bad marshal name.
-                    all_targets = self.known_regions + known_enemies
+                    all_targets = known_regions + known_enemies
                     target_check = self.fuzzy_matcher.match_with_context(word, all_targets)
 
                     # If this word also doesn't match any target, it's likely a bad marshal attempt
                     if target_check["action"] == "error":
-                        suggestions = marshal_result.get("suggestions", self.valid_marshals[:3])
+                        suggestions = marshal_result.get("suggestions", valid_marshals[:3])
                         return (llm_result, {
                             "error": f"Marshal '{word}' not found",
                             "suggestion": f"Available marshals: {', '.join(suggestions)}"
@@ -273,23 +392,41 @@ class CommandParser:
                     # Otherwise, skip this word - it might be a target, not a marshal
 
         # Fuzzy match target name
-        if llm_result.get("target"):
-            # Try matching against regions first
-            target_result = self.fuzzy_matcher.match_with_context(
+        # CR-0: vassal-family targets are NATION names — never rewrite them
+        # to regions/enemies ("invest in Austria" must not become the
+        # Spanish region Asturias)
+        _VASSAL_ACTIONS = ("invest_vassal", "release_vassal",
+                           "make_vassal", "change_autonomy")
+        if llm_result.get("target") and llm_result.get("action") not in _VASSAL_ACTIONS:
+            # CR-0 precedence ladder: exact enemy > exact region >
+            # enemy auto-correct > region auto-correct. With 126 live
+            # provinces, region fuzzy rewrote exact/typo'd enemy names
+            # ("Mack" → "La Mancha", "Mach" → "La Mancha").
+            enemy_result = self.fuzzy_matcher.match_with_context(
                 llm_result["target"],
-                self.known_regions
+                known_enemies
             )
-
-            # If no good region match, try enemies
-            if target_result["action"] == "error":
-                target_result = self.fuzzy_matcher.match_with_context(
-                    llm_result["target"],
-                    known_enemies
-                )
-
-            # Apply correction if found
-            if target_result["action"] in ["exact", "auto_correct"]:
-                llm_result["target"] = target_result["match"]
+            region_result = self.fuzzy_matcher.match_with_context(
+                llm_result["target"],
+                known_regions
+            )
+            near_enemy = (_closest_by_edit_distance(llm_result["target"], known_enemies)
+                          if len(llm_result["target"]) >= 3 else None)
+            if enemy_result["action"] == "exact":
+                llm_result["target"] = enemy_result["match"]
+            elif region_result["action"] == "exact":
+                llm_result["target"] = region_result["match"]
+            elif near_enemy is not None:
+                # An edit-distance-1 enemy typo beats any region fuzz —
+                # partial-ratio scoring rewards long containing names
+                # ("Mach" scored higher against "La Mancha" than "Mack")
+                llm_result["target"] = near_enemy
+            elif enemy_result["action"] == "auto_correct":
+                llm_result["target"] = enemy_result["match"]
+            elif region_result["action"] == "auto_correct":
+                llm_result["target"] = region_result["match"]
+            # suggest/error on both sides: leave the typed target unchanged
+            # (pre-CR-0 behavior — the executor reports it helpfully)
 
         # If target is still None, try to extract it from command text
         elif not llm_result.get("target"):
@@ -309,6 +446,10 @@ class CommandParser:
             # Extract potential target words from command (words after action)
             words = command_text.split()
             for word in words:
+                # CR-0: strip trailing punctuation so "Bernadotte," is
+                # recognized as the (skipped) marshal name, not fuzzy-matched
+                # into a region ("Bern")
+                word = word.strip(",.!?;:")
                 # Skip common/action words and marshal name
                 if word.lower() in skip_words:
                     continue
@@ -316,8 +457,17 @@ class CommandParser:
                 if len(word) < 3:
                     continue
 
+                # CR-0: an exact or edit-distance-1 enemy name wins before
+                # the combined fuzzy pass (partial-ratio scoring rewarded
+                # "La Mancha" over "Mack" for the typo "Mach")
+                near_enemy = (_closest_by_edit_distance(word, known_enemies)
+                              if len(word) >= 3 else None)
+                if near_enemy is not None:
+                    llm_result["target"] = near_enemy
+                    break
+
                 # Try matching against all targets
-                all_targets = self.known_regions + known_enemies
+                all_targets = known_regions + known_enemies
                 target_result = self.fuzzy_matcher.match_with_context(
                     word,
                     all_targets
@@ -419,7 +569,8 @@ class CommandParser:
                 }
 
             # Step 2: Apply fuzzy matching to correct typos
-            llm_result, fuzzy_error = self._apply_fuzzy_matching(llm_result, command_text, world=world)
+            llm_result, fuzzy_error = self._apply_fuzzy_matching(
+                llm_result, command_text, world=world, game_state=game_state)
 
             # If fuzzy matching found an invalid marshal/target, return error immediately
             if fuzzy_error:
@@ -431,7 +582,9 @@ class CommandParser:
                 }
 
             # Step 3: Validate the parsed command
-            validation_result = self._validate_command(llm_result, game_state)
+            validation_result = self._validate_command(
+                llm_result, game_state,
+                player_roster=self._get_player_marshals(world, game_state))
 
             # Step 4: Return complete result
             if validation_result.get("valid"):
@@ -493,11 +646,11 @@ class CommandParser:
                         # only does exact match — typos like "bordeuex" slip through)
                         if strategic.get("target_type") == "region":
                             fuzzy_result = self.fuzzy_matcher.match_with_context(
-                                strategic_target, self.known_regions)
+                                strategic_target, self._get_known_regions(world))
                             if fuzzy_result["action"] in ("exact", "auto_correct"):
                                 strategic_target = fuzzy_result["match"]
                         elif strategic.get("target_type") == "marshal":
-                            all_marshals = self.valid_marshals + self._get_known_enemies(world)
+                            all_marshals = self._get_player_marshals(world) + self._get_known_enemies(world)
                             fuzzy_result = self.fuzzy_matcher.match_with_context(
                                 strategic_target, all_marshals)
                             if fuzzy_result["action"] in ("exact", "auto_correct"):
@@ -523,13 +676,18 @@ class CommandParser:
                 "raw_input": command_text
             }
 
-    def _validate_command(self, parsed_command: Dict, game_state: Optional[Dict]) -> Dict:
+    def _validate_command(self, parsed_command: Dict, game_state: Optional[Dict],
+                          player_roster: Optional[List[str]] = None) -> Dict:
         """
         Validate that the parsed command makes sense.
         Now handles None marshal (for general orders).
+
+        player_roster: live player-marshal names (CR-0); defaults to the
+        legacy fallback seed when not supplied (direct/cold callers).
         """
         marshal = parsed_command.get("marshal")
         action = parsed_command.get("action")
+        roster = player_roster if player_roster else self.valid_marshals
 
         # Meta commands (save/load) and cheat commands bypass all validation
         if action in ("meta_command", "cheat"):
@@ -546,8 +704,8 @@ class CommandParser:
         # Validation 2: Marshal can be None for general orders - that's OK!
         # Only validate if a marshal was specified
         warning = None
-        if marshal is not None and marshal not in self.valid_marshals:
-            warning = f"Note: '{marshal}' is not a standard marshal. Standard marshals: {', '.join(self.valid_marshals)}"
+        if marshal is not None and marshal not in roster:
+            warning = f"Note: '{marshal}' is not a standard marshal. Standard marshals: {', '.join(roster)}"
 
         # Validation 3: Attack with no marshal and no target is ambiguous
         # (Let this through - executor will handle "find nearest enemy")
@@ -620,7 +778,7 @@ class CommandParser:
 
         # V2-61: Only split on " and " when it appears between marshal names,
         # not mid-phrase (e.g. "defend and hold" should NOT split).
-        all_marshal_names = set(n.lower() for n in (self.valid_marshals + self._get_known_enemies(world)))
+        all_marshal_names = set(n.lower() for n in (self._get_player_marshals(world) + self._get_known_enemies(world)))
 
         if " and " in command_text.lower():
             # Find all " and " positions and check if both sides have marshal names

@@ -47,6 +47,80 @@ load_dotenv()
 # - <0.7 = "Fast parser is guessing, LLM might do better"
 LLM_FALLBACK_CONFIDENCE_THRESHOLD = 0.7
 
+# CR-0: split camelCase scenario keys ("ArchdukeCharles") into typed forms
+# ("archduke charles") for fast-parser name matching.
+_CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
+
+
+def _name_match_patterns(name: str) -> List[str]:
+    """Lowercase match patterns for a roster name: a space-split alias for
+    camelCase keys ('attack archduke charles' finds ArchdukeCharles) and a
+    space-for-hyphen alias ('move to franche comte' finds Franche-Comte)."""
+    patterns = [name.lower()]
+    spaced = _CAMEL_SPLIT_RE.sub(' ', name).lower()
+    if spaced != patterns[0]:
+        patterns.append(spaced)
+    dehyphenated = patterns[0].replace('-', ' ')
+    if dehyphenated != patterns[0]:
+        patterns.append(dehyphenated)
+    return patterns
+
+
+def _match_known_name(command_lower: str, names) -> Optional[str]:
+    """Find the best roster-name match in the command (word-boundary).
+
+    Position-aware: a match right after a movement preposition ("to X")
+    wins, then the EARLIEST match, then the longest at the same position —
+    so "move to Paris via Champagne" targets Paris, not the longest name
+    in the sentence. Returns the canonical roster key, or None."""
+    best_key = None
+    best_name = None
+    for name in names:
+        for pattern in _name_match_patterns(name):
+            for m in re.finditer(r'\b' + re.escape(pattern) + r'\b', command_lower):
+                after_to = bool(re.search(r'\b(?:to|at|toward|towards)\s+$',
+                                          command_lower[:m.start()]))
+                key = (0 if after_to else 1, m.start(), -len(pattern))
+                if best_key is None or key < best_key:
+                    best_key = key
+                    best_name = name
+    return best_name
+
+
+def _game_state_dict(game_state: Optional[Dict], key: str) -> Dict:
+    """Defensive accessor: game_state shapes vary across callers/tests —
+    only ever treat a real dict as roster data."""
+    if not isinstance(game_state, dict):
+        return {}
+    value = game_state.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _extract_known_nations(game_state: Optional[Dict]) -> Dict[str, str]:
+    """Map of lowercase typed forms -> canonical nation key, from the LLM
+    game_state (enemy marshal nations + region controllers). Includes
+    camelCase-split aliases ("papal states" -> PapalStates). Used for
+    nation-keyed keyword forms ('invest in bavaria') without the false
+    positives bare prefixes caused (P8-1). Empty for cold parses."""
+    nations: Dict[str, str] = {}
+
+    def _add(nation) -> None:
+        if not nation:
+            return
+        canonical = str(nation)
+        for pattern in _name_match_patterns(canonical):
+            nations[pattern] = canonical
+
+    for info in _game_state_dict(game_state, "enemies").values():
+        if isinstance(info, dict):
+            _add(info.get("nation"))
+    for info in _game_state_dict(game_state, "map_data").values():
+        if isinstance(info, dict):
+            controller = info.get("controller")
+            if controller and controller != "Neutral":
+                _add(controller)
+    return nations
+
 
 class LLMClient:
     """
@@ -164,7 +238,7 @@ class LLMClient:
             Dict with parsed command structure (backward compatible format)
         """
         # Step 1: ALWAYS run fast parser first - it's our baseline and safety net
-        fast_result = self._parse_with_mock(command_text)
+        fast_result = self._parse_with_mock(command_text, game_state)
 
         # Step 2: Decide if we should try LLM
         # Skip LLM if: mock mode, high confidence, no game_state, or meta command
@@ -239,7 +313,7 @@ class LLMClient:
             ParseResult dataclass with full schema
         """
         # Step 1: Fast parser always runs first
-        fast_result = self._parse_with_mock(command_text)
+        fast_result = self._parse_with_mock(command_text, game_state)
 
         # Step 2: Decide if we should try LLM
         if not self._should_fallback_to_llm(fast_result, game_state):
@@ -439,15 +513,22 @@ class LLMClient:
 
         return random.choice(templates)
 
-    def _parse_with_mock(self, command_text: str) -> ParseResult:
+    def _parse_with_mock(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
         """
         Mock parser using simple keyword matching.
         Fast, free, deterministic - perfect for development!
 
-        ALL existing keyword matching logic is preserved exactly as-is.
+        CR-0: when game_state (the main.py get_llm_game_state() dict) is
+        provided, marshal/target/nation extraction uses the LIVE rosters;
+        the hardcoded legacy names below survive only as the cold-parse
+        fallback (unit tests, no-world calls).
         """
         command_lower = command_text.lower()
         requested_type = None  # Phase 6: player-requested recruit type (for soft correction)
+        # CR-0: live nation forms (lower typed form -> canonical key) for
+        # the nation-keyed keyword forms below
+        known_nations = _extract_known_nations(game_state)
+        known_nations_lower = sorted(known_nations)
 
         # ════════════════════════════════════════════════════════════
         # CHEAT/DEBUG COMMANDS: Check FIRST before any keyword routing
@@ -607,12 +688,22 @@ class LLMClient:
         # 6D-1: Split into player vs enemy marshals.
         # Only player marshals can be the executing marshal.
         # Enemy names are targets only.
-        player_marshals = [
-            ("ney", "Ney"),
-            ("davout", "Davout"),
-            ("grouchy", "Grouchy"),
-            ("drouot", "Drouot"),
-        ]
+        # CR-0: live player roster from game_state (get_llm_game_state()
+        # builds "marshals" player-only); legacy 4 only for cold parses.
+        live_roster = list(_game_state_dict(game_state, "marshals"))
+        if live_roster:
+            player_marshals = [
+                (pattern, name)
+                for name in live_roster
+                for pattern in _name_match_patterns(name)
+            ]
+        else:
+            player_marshals = [
+                ("ney", "Ney"),
+                ("davout", "Davout"),
+                ("grouchy", "Grouchy"),
+                ("drouot", "Drouot"),
+            ]
         # Find which PLAYER marshal appears FIRST in the command
         # V2-55: Use word-boundary regex to prevent substring matches
         # (e.g. "ney" matching inside "journey", "money")
@@ -624,11 +715,32 @@ class LLMClient:
                 marshal = name
 
         # Also check for "Marshal [Name]" pattern
-        match = re.search(r'marshal\s+([A-Z][a-z]+)', command_text)
+        # CR-0: accept both "Marshal Soult" and "marshal Soult" — the old
+        # lowercase-only literal never matched the standard typed form.
+        # The capture must NOT be a known ENEMY commander: "Attack Marshal
+        # Mack" names a target, not the executing marshal (enemy roster
+        # from game_state when live; the legacy six for cold parses).
+        match = re.search(r'[Mm]arshal\s+([A-Z][a-zA-Z-]+)', command_text)
         if match:
-            match_pos = command_lower.find("marshal")
-            if match_pos != -1 and match_pos < first_position:
-                marshal = match.group(1)
+            captured = match.group(1)
+            enemy_names = list(_game_state_dict(game_state, "enemies")) or [
+                "Wellington", "Blucher", "Gneisenau",
+                "ArchdukeCharles", "Schwarzenberg", "Uxbridge",
+            ]
+            enemy_patterns = {
+                pattern
+                for enemy in enemy_names
+                for pattern in _name_match_patterns(enemy)
+            }
+            is_enemy_name = any(
+                re.fullmatch(re.escape(pattern), captured.lower())
+                or re.search(r'\b' + re.escape(captured.lower()) + r'\b', pattern)
+                for pattern in enemy_patterns
+            )
+            if not is_enemy_name:
+                match_pos = command_lower.find("marshal")
+                if match_pos != -1 and match_pos < first_position:
+                    marshal = captured
 
         # If still None, that's OK - means general order
 
@@ -815,10 +927,15 @@ class LLMClient:
         # Vassal System (Phase 8 Session 5)
         # P8-1 FIX: Nation-specific keywords instead of bare "invest in " / "release "
         # which falsely matched "invest in defenses", "release prisoners", etc.
-        elif any(kw in command_lower for kw in [
-            "invest in vassal", "invest vassal",
-            "invest in saxony", "invest in prussia", "invest in austria", "invest in britain",
-        ]):
+        # CR-0: live nation names extend the legacy literals so 1805 nations
+        # ("invest in bavaria") parse; precision-by-nation-name is preserved.
+        elif any(kw in command_lower for kw in (
+            [
+                "invest in vassal", "invest vassal",
+                "invest in saxony", "invest in prussia", "invest in austria", "invest in britain",
+            ]
+            + [f"invest in {n}" for n in known_nations_lower]
+        )):
             action = "invest_vassal"
         elif any(kw in command_lower for kw in [
             "change autonomy", "set autonomy", "make puppet",
@@ -826,10 +943,13 @@ class LLMClient:
             "increase autonomy", "decrease autonomy",
         ]):
             action = "change_autonomy"
-        elif any(kw in command_lower for kw in [
-            "release vassal",
-            "release saxony", "release prussia", "release austria", "release britain",
-        ]):
+        elif any(kw in command_lower for kw in (
+            [
+                "release vassal",
+                "release saxony", "release prussia", "release austria", "release britain",
+            ]
+            + [f"release {n}" for n in known_nations_lower]
+        )):
             action = "release_vassal"
         elif any(kw in command_lower for kw in [
             "make vassal", "vassalize", "subjugate",
@@ -853,62 +973,87 @@ class LLMClient:
             elif any(kw in command_lower for kw in ["neutral", "stand down"]):
                 target_stance = "neutral"
 
-        # Enemy commanders
-        if "wellington" in command_lower:
-            target = "Wellington"
-        elif "blucher" in command_lower or "blücher" in command_lower:
-            target = "Blucher"
-        elif "gneisenau" in command_lower:
-            target = "Gneisenau"
-        elif "archduke charles" in command_lower or "archdukecharles" in command_lower or "archduke" in command_lower:
-            target = "ArchdukeCharles"
-        elif "schwarzenberg" in command_lower:
-            target = "Schwarzenberg"
-        elif "uxbridge" in command_lower:
-            target = "Uxbridge"
-        # P8-7 FIX: Nationality words ("Prussians", "British") deliberately omitted.
-        # They produced targets like "Prussians" that fuzzy matching couldn't resolve
-        # to a valid region/enemy. Leaving target=None lets executor auto-target correctly.
+        # CR-0: vassal-family actions target a NATION — resolve it from the
+        # live nation forms so "invest in austria" carries target=Austria
+        # (generic region/enemy extraction would fuzzy-drift nation names,
+        # e.g. Austria → the Spanish region Asturias).
+        if action in ("invest_vassal", "release_vassal", "make_vassal",
+                      "change_autonomy") and known_nations:
+            matched_form = _match_known_name(
+                command_lower, known_nations.keys())
+            if matched_form:
+                target = known_nations[matched_form]
 
-        # Regions
-        elif "belgium" in command_lower:
-            target = "Belgium"
-        elif "waterloo" in command_lower:
-            target = "Waterloo"
-        elif "paris" in command_lower:
-            target = "Paris"
-        elif "lyon" in command_lower:
-            target = "Lyon"
-        elif "brittany" in command_lower:
-            target = "Brittany"
-        elif "bordeaux" in command_lower:
-            target = "Bordeaux"
-        elif "rhineland" in command_lower or "rhine" in command_lower:
-            target = "Rhineland"
-        elif "bavaria" in command_lower:
-            target = "Bavaria"
-        elif "vienna" in command_lower:
-            target = "Vienna"
-        elif "milan" in command_lower:
-            target = "Milan"
-        elif "marseille" in command_lower:
-            target = "Marseille"
-        elif "normandy" in command_lower:
-            target = "Normandy"
-        elif "hanover" in command_lower:
-            target = "Hanover"
-        elif "berlin" in command_lower:
-            target = "Berlin"
-        elif "saxony" in command_lower:
-            target = "Saxony"
-        elif "dresden" in command_lower:
-            target = "Dresden"
-        elif "bohemia" in command_lower:
-            target = "Bohemia"
-        elif "tyrol" in command_lower:
-            target = "Tyrol"
-        elif "netherlands" in command_lower:
-            target = "Netherlands"
+        # CR-0: dynamic target extraction from the live game_state — enemy
+        # commanders first (mirrors the legacy ladder's precedence), then
+        # regions. game_state["enemies"] is already fog-filtered (R5);
+        # undiscovered enemies fall through to parser.py's world-side pass.
+        if target is None and game_state:
+            target = _match_known_name(
+                command_lower, _game_state_dict(game_state, "enemies").keys())
+            if target is None:
+                target = _match_known_name(
+                    command_lower, _game_state_dict(game_state, "map_data").keys())
+
+        # Legacy hardcoded ladder — cold-parse fallback + alias forms the
+        # dynamic pass can't derive ("rhine" → Rhineland, bare "archduke").
+        if target is None:
+            # Enemy commanders
+            if "wellington" in command_lower:
+                target = "Wellington"
+            elif "blucher" in command_lower or "blücher" in command_lower:
+                target = "Blucher"
+            elif "gneisenau" in command_lower:
+                target = "Gneisenau"
+            elif "archduke charles" in command_lower or "archdukecharles" in command_lower or "archduke" in command_lower:
+                target = "ArchdukeCharles"
+            elif "schwarzenberg" in command_lower:
+                target = "Schwarzenberg"
+            elif "uxbridge" in command_lower:
+                target = "Uxbridge"
+            # P8-7 FIX: Nationality words ("Prussians", "British") deliberately omitted.
+            # They produced targets like "Prussians" that fuzzy matching couldn't resolve
+            # to a valid region/enemy. Leaving target=None lets executor auto-target correctly.
+
+            # Regions
+            elif "belgium" in command_lower:
+                target = "Belgium"
+            elif "waterloo" in command_lower:
+                target = "Waterloo"
+            elif "paris" in command_lower:
+                target = "Paris"
+            elif "lyon" in command_lower:
+                target = "Lyon"
+            elif "brittany" in command_lower:
+                target = "Brittany"
+            elif "bordeaux" in command_lower:
+                target = "Bordeaux"
+            elif "rhineland" in command_lower or "rhine" in command_lower:
+                target = "Rhineland"
+            elif "bavaria" in command_lower:
+                target = "Bavaria"
+            elif "vienna" in command_lower:
+                target = "Vienna"
+            elif "milan" in command_lower:
+                target = "Milan"
+            elif "marseille" in command_lower:
+                target = "Marseille"
+            elif "normandy" in command_lower:
+                target = "Normandy"
+            elif "hanover" in command_lower:
+                target = "Hanover"
+            elif "berlin" in command_lower:
+                target = "Berlin"
+            elif "saxony" in command_lower:
+                target = "Saxony"
+            elif "dresden" in command_lower:
+                target = "Dresden"
+            elif "bohemia" in command_lower:
+                target = "Bohemia"
+            elif "tyrol" in command_lower:
+                target = "Tyrol"
+            elif "netherlands" in command_lower:
+                target = "Netherlands"
 
         # Build interpretation string
         if marshal and action != "unknown":

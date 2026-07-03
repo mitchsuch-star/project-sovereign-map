@@ -56,6 +56,51 @@ RELATIVE_KEYWORDS = [
 
 DIRECTION_WORDS = set(DIRECTION_VECTORS.keys()) | set(RELATIVE_KEYWORDS)
 
+# CR-0: irregular demonyms for live-nation generic-target classification
+# ("pursue the austrians" is a generic order, not a region named
+# "The Austrians"). Regular nations derive below (-a → +"n", else +"ian").
+_NATION_DEMONYM_OVERRIDES = {
+    "britain": "british",
+    "france": "french",
+    "spain": "spanish",
+    "sweden": "swedish",
+    "denmark": "danish",
+    "naples": "neapolitan",
+    "netherlands": "dutch",
+    "holland": "dutch",
+    "ottoman": "ottoman",
+    "portugal": "portuguese",
+    "switzerland": "swiss",
+    "saxony": "saxon",
+    "piedmont": "piedmontese",
+    "hesse": "hessian",
+    "papalstates": "papal",
+    "kingdomofitaly": "italian",
+}
+
+
+def _nation_demonyms(world) -> list:
+    """Demonym forms ("austrian", "austrians") for the live nation roster.
+
+    Uses the per-turn-cached get_active_nations() (Golden Rule 8). A missed
+    irregular just means that phrasing stays unrecognized — same as before.
+    """
+    get_nations = getattr(world, "get_active_nations", None)
+    if not callable(get_nations):
+        return []
+    try:
+        nations = get_nations() or []
+    except Exception:
+        return []
+    forms = []
+    for nation in nations:
+        base = str(nation).lower()
+        demonym = _NATION_DEMONYM_OVERRIDES.get(base)
+        if demonym is None:
+            demonym = base + "n" if base.endswith("a") else base + "ian"
+        forms.extend([demonym, demonym + "s"])
+    return forms
+
 
 def resolve_direction(from_region: str, direction: str, world, marshal_name: Optional[str] = None) -> Optional[str]:
     """
@@ -498,6 +543,19 @@ def _classify_target(
         "marshal", "general", "commander", "someone", "somebody",
         "anyone", "whoever", "nearest", "closest",
     ]
+    target_lower_full = target_text.lower()
+    # CR-0: live-nation demonyms ("austrians", "russians") classify as
+    # generic too — previously only the two legacy literals above did.
+    # WORD-boundary matched, never substring: "saxon" must not fire inside
+    # the place name "Saxony" ("march to Saxony" is not a generic order).
+    for demonym in _nation_demonyms(world):
+        if re.search(r'\b' + re.escape(demonym) + r'\b', target_lower_full):
+            return {
+                "target": target_text,
+                "target_type": "generic",
+                "target_snapshot_location": None,
+                "convert_to_pursue": False,
+            }
     if any(ind in target_text.lower() for ind in generic_indicators):
         return {
             "target": target_text,

@@ -240,17 +240,24 @@ class TestBerthierIntegration:
         assert not should_fire
 
     def test_marshal_typo_still_gets_fuzzy_match(self):
-        """Marshal typo gets fuzzy match suggestion, NOT Berthier recovery."""
+        """Marshal typo gets fuzzy-matched, NOT Berthier recovery.
+
+        CR-0 update: punctuation stripping means "Naey," now fuzzy
+        AUTO-corrects to Ney (parse succeeds) instead of stopping at a
+        suggest-level error. Either outcome honors the contract under
+        test — a marshal typo must never fall through to Berthier."""
         llm_gs = self._get_llm_game_state()
         parsed = self.parser.parse("Naey, attack Wellington", llm_gs, world=self.world)
 
-        # Should fail but with a fuzzy match suggestion, not "Unknown action"
-        assert not parsed["success"]
-        # The error should be about a marshal typo, not Unknown action
-        is_berthier_trigger = (parsed.get("error") or "").startswith("Unknown action")
-        assert not is_berthier_trigger, (
-            f"Marshal typo should NOT trigger Berthier; got error: {parsed.get('error')}"
-        )
+        if parsed["success"]:
+            # Auto-corrected — the typo resolved to the real marshal
+            assert parsed["command"]["marshal"] == "Ney"
+        else:
+            # Suggest-level — must be a typo suggestion, not Unknown action
+            is_berthier_trigger = (parsed.get("error") or "").startswith("Unknown action")
+            assert not is_berthier_trigger, (
+                f"Marshal typo should NOT trigger Berthier; got error: {parsed.get('error')}"
+            )
 
     def test_response_dict_has_correct_format(self):
         """Berthier response dict matches the shape main.py returns."""
