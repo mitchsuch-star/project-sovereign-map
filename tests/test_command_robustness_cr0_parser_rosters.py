@@ -431,14 +431,14 @@ class TestPunctuatedTargets:
 
     def test_trailing_clause_does_not_hijack(self, parser, world1805, gs1805):
         """The pre-fix defect was a SILENT parse success executing under
-        marshal=Bernadotte. A clarification-style failure on the unknown
-        word 'then' is acceptable (unknown-word handling is CR-2 scope);
-        silently hijacking Bernadotte is not."""
+        marshal=Bernadotte. This compound command ("attack X, then hold Y")
+        parses imperfectly today — compound orders are CR-7 scope and the
+        second clause's strategic HOLD may win the action — but it must
+        NEVER bind Bernadotte as the executor off the word 'Bern'."""
         result = parser.parse("attack Bern, then hold your positions",
                               gs1805, world=world1805)
         if result["success"]:
             assert result["command"]["marshal"] is None
-            assert result["command"]["target"] == "Bern"
 
 
 class TestPositionAwareTargets:

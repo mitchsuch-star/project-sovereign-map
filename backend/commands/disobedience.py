@@ -1476,7 +1476,7 @@ class DisobedienceSystem:
             'description': f"Relieve {marshal.name} of command permanently. Troops transfer to nearby ally (≤3 regions) or disband. +10 authority.",
             'effect': 'remove_marshal_transfer_troops_authority_bonus',
         })
-        print("  [REDEMPTION OPTIONS] Dismiss available (≥2 field marshals)")
+        print("  [REDEMPTION OPTIONS] Dismiss available (>=2 field marshals)")
 
         return options
 

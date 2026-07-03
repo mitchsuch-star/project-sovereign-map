@@ -61,7 +61,7 @@ def _resolve_sovereign_map() -> str:
     """
     value = os.getenv("SOVEREIGN_MAP", "europe").strip().lower()
     if value not in ("europe", "legacy"):
-        print(f"[WARN] Unknown SOVEREIGN_MAP={value!r} — falling back to 'europe'")
+        print(f"[WARN] Unknown SOVEREIGN_MAP={value!r} -- falling back to 'europe'")
         return "europe"
     return value
 
@@ -98,7 +98,7 @@ def _resolve_scenario_path() -> str:
     if _resolve_sovereign_map() == "legacy":
         return ""
     if os.getenv("SOVEREIGN_SMOKE_START", "").strip():
-        print("[WARN] SOVEREIGN_SMOKE_START set — skipping the default 1805 scenario boot")
+        print("[WARN] SOVEREIGN_SMOKE_START set -- skipping the default 1805 scenario boot")
         return ""
     return str(_DEFAULT_SCENARIO_PATH)
 

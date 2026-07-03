@@ -1,0 +1,2923 @@
+{
+  "version": 1,
+  "description": "CR-1 golden parse corpus (COMMAND_ROBUSTNESS_SPEC.md). Utterance -> expected parse fields, evaluated over both scenario worlds via backend.ai.parser_eval. Seeded July 3, 2026 from the existing parser test files; entries pin CURRENT behavior.",
+  "live_phrasing_backlog": {
+    "description": "Marshal-less strategic phrasings the keyword-seam tests cover but the MOCK action chain cannot parse — live-LLM-only capabilities today. NOT evaluated by the harness; input data for CR-3 verb-coverage broadening (owner: COMMAND_ROBUSTNESS_SPEC.md CR-3).",
+    "utterances": [
+      "hunt down blucher",
+      "link up with davout",
+      "press on to bavaria",
+      "make your way to rhine",
+      "track down the prussians",
+      "run down blucher",
+      "follow and destroy wellington",
+      "drive against blucher",
+      "stand fast at belgium",
+      "maintain position at rhine",
+      "hold your ground",
+      "don't give ground",
+      "rally to ney",
+      "come to the aid of davout",
+      "bolster ney's position",
+      "shore up the defense",
+      "combine with davout",
+      "hunt down wellington until destroyed"
+    ]
+  },
+  "entries": [
+    {
+      "id": "declare-war-on-prussia",
+      "utterance": "declare war on Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "target": "Prussia",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestWarDeclaration::test_declare_war_parses",
+      "notes": "Target asserted at diplomatic_data.target_nation == 'Prussia' (test_declare_war_extracts_nation). Re-pinned in TestParserCollisions::test_declare_war_is_diplomatic. Prussia is a nation in both worlds."
+    },
+    {
+      "id": "declare-war-against-austria",
+      "utterance": "declare war against Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestWarDeclaration::test_declare_war_against_parses",
+      "notes": "'war against' phrasing family."
+    },
+    {
+      "id": "go-to-war-with-britain",
+      "utterance": "go to war with Britain",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestWarDeclaration::test_go_to_war_parses",
+      "notes": "Trivial variant 'go to war with Austria' also pinned (TestParserCollisions::test_go_to_war_with_nation) - deduplicated."
+    },
+    {
+      "id": "open-hostilities-with-prussia",
+      "utterance": "open hostilities with Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestWarDeclaration::test_open_hostilities_parses"
+    },
+    {
+      "id": "declare-hostilities-against-britain",
+      "utterance": "declare hostilities against Britain",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_declare_hostilities"
+    },
+    {
+      "id": "ultimatum-to-britain",
+      "utterance": "ultimatum to Britain",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_ultimatum",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestUltimatum::test_ultimatum_parses",
+      "notes": "Also re-pinned in TestParserCollisions::test_ultimatum_to_britain."
+    },
+    {
+      "id": "issue-ultimatum-to-prussia",
+      "utterance": "issue ultimatum to Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_ultimatum",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestUltimatum::test_issue_ultimatum_parses"
+    },
+    {
+      "id": "final-offer-to-austria",
+      "utterance": "final offer to Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_ultimatum",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestUltimatum::test_final_offer_parses",
+      "notes": "'final offer' synonym keyword for ultimatum."
+    },
+    {
+      "id": "give-ultimatum-to-prussia",
+      "utterance": "give ultimatum to Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_ultimatum",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_give_ultimatum"
+    },
+    {
+      "id": "submit-or-face-war-austria",
+      "utterance": "submit or face war, Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_ultimatum",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "vassalage",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_submit_or_face_war",
+      "notes": "Coercive natural-language phrasing routes to ultimatum even without the word 'ultimatum'."
+    },
+    {
+      "id": "talleyrand-demand-peace-from-prussia",
+      "utterance": "Talleyrand, demand peace from Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_proposal",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "demand",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestUltimatum::test_demand_without_ultimatum_is_proposal",
+      "notes": "'demand' alone = proposal NOT ultimatum. TestParserCollisions::test_demand_peace_is_proposal_not_ultimatum additionally asserts diplomatic_data.tone == 'demand'."
+    },
+    {
+      "id": "talleyrand-insist-on-alliance-with-austria",
+      "utterance": "Talleyrand, insist on alliance with Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_proposal",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "demand",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_insist_is_proposal_demand_not_ultimatum",
+      "notes": "'insist' = demand-tone proposal, must NOT route to ultimatum."
+    },
+    {
+      "id": "talleyrand-require-peace-from-prussia",
+      "utterance": "Talleyrand, require peace from Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_proposal",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "demand",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_require_is_proposal_demand_not_ultimatum",
+      "notes": "'require' = demand-tone proposal, must NOT route to ultimatum."
+    },
+    {
+      "id": "ney-attack-the-prussians",
+      "utterance": "Ney, attack the Prussians",
+      "world": "legacy",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_ney_attack_prussians_is_military",
+      "notes": "Collision guard: marshal-addressed attack must be MILITARY, never diplomatic_declare_war despite nation-adjective target. Test accepts marshal via result['marshal'] OR result['marshals'] list. WORLD-SENSITIVE: Ney IS also on the 1805 roster (europe_1805.json), so this should parse on both worlds; tagged legacy per convention. Target 'the Prussians' not asserted."
+    },
+    {
+      "id": "how-is-the-war-going",
+      "utterance": "how is the war going",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_how_is_war_going_not_diplomatic",
+      "notes": "NEGATIVE assertion only: action != diplomatic_declare_war (bare 'war' in a question must not trigger war declaration). No positive expectation pinned."
+    },
+    {
+      "id": "break-treaty-with-austria",
+      "utterance": "break treaty with Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_break",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_break_treaty_is_diplomatic"
+    },
+    {
+      "id": "break-through-enemy-lines",
+      "utterance": "break through enemy lines",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_break_through_enemy_lines_is_military",
+      "notes": "NEGATIVE assertion only: action != diplomatic_break ('break' keyword must require treaty context)."
+    },
+    {
+      "id": "talleyrand-attack-prussia",
+      "utterance": "Talleyrand, attack Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_error",
+        "type": "diplomatic"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_talleyrand_attack_is_error",
+      "notes": "Military verb addressed to the diplomat = hard diplomatic_error. Sibling variant 'Talleyrand, attack Belgium' (test_session_3_commands.py::TestParserRouting::test_talleyrand_attack_returns_diplomat_error) asserts the same at diplomatic_data.action and that the message contains 'diplomat' - deduplicated; the error fires regardless of target so 'any' world."
+    },
+    {
+      "id": "the-warden-watches",
+      "utterance": "the warden watches",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_war_on_with_space_prevents_warden",
+      "notes": "NEGATIVE assertion only: action != diplomatic_declare_war. Pins the 'war on ' keyword trailing-space guard ('warden' must not substring-match)."
+    },
+    {
+      "id": "warning-about-the-front",
+      "utterance": "warning about the front",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_war_against_with_space_prevents_warning",
+      "notes": "NEGATIVE assertion only: action != diplomatic_declare_war. Pins the 'war against ' trailing-space guard vs 'warning'."
+    },
+    {
+      "id": "talleyrand-propose-peace-with-prussia",
+      "utterance": "Talleyrand, propose peace with Prussia",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_proposal",
+        "target": "Prussia",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_propose_peace_routes_to_diplomatic",
+      "notes": "Asserted at diplomatic_data: action == diplomatic_proposal, target_nation == Prussia, proposal_type == 'peace'. Also asserts diplomatic_data is not None (routing seam)."
+    },
+    {
+      "id": "ney-attack-belgium",
+      "utterance": "Ney, attack Belgium",
+      "world": "legacy",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney"
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_ney_attack_routes_to_military",
+      "notes": "Also asserts diplomatic_data is None (military never carries diplomatic payload). WORLD-SENSITIVE: Belgium is legacy-only (absent from the 126-province europe.json - Flanders covers that area); Ney exists on both rosters."
+    },
+    {
+      "id": "talleyrand-propose-alliance-with-austria",
+      "utterance": "Talleyrand, propose alliance with Austria",
+      "world": "any",
+      "expected": {
+        "target": "Austria",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_propose_alliance",
+      "notes": "Asserts diplomatic_data.proposal_type == 'alliance' and target_nation == 'Austria'; top-level action NOT asserted by this test."
+    },
+    {
+      "id": "talleyrand-demand-vassalage-from-saxony",
+      "utterance": "Talleyrand, demand vassalage from Saxony",
+      "world": "any",
+      "expected": {
+        "target": "Saxony",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "vassalage",
+          "tone": "demand"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_demand_vassalage",
+      "notes": "Asserts diplomatic_data.tone == 'demand' and target_nation == 'Saxony'. Saxony is a nation in BOTH worlds (also present in europe_1805.json); note Saxony doubles as a legacy region name."
+    },
+    {
+      "id": "talleyrand-what-would-it-take-to-get-peace-with-prussia",
+      "utterance": "Talleyrand, what would it take to get peace with Prussia?",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_feasibility",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_feasibility_question",
+      "notes": "Asserts diplomatic_data.is_question is True. Question form routes to zero-DP feasibility, not a proposal."
+    },
+    {
+      "id": "talleyrand-improve-relations-with-austria",
+      "utterance": "Talleyrand, improve relations with Austria",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_mission",
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "IMPROVE_RELATIONS",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_improve_relations_mission",
+      "notes": "Asserts diplomatic_data.mission_type == 'IMPROVE_RELATIONS'."
+    },
+    {
+      "id": "talleyrand-cancel-mission",
+      "utterance": "Talleyrand, cancel mission",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "CANCEL",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestParserRouting::test_talleyrand_cancel_mission",
+      "notes": "Asserts only diplomatic_data.mission_type == 'CANCEL'; action not asserted."
+    },
+    {
+      "id": "talleyrand-deal-with-england",
+      "utterance": "Talleyrand, deal with England",
+      "world": "any",
+      "expected": {
+        "target": "Britain",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestNationExtraction::test_england_maps_to_britain",
+      "notes": "Nation-alias family: 'England' -> 'Britain'."
+    },
+    {
+      "id": "talleyrand-propose-peace-with-the-uk",
+      "utterance": "Talleyrand, propose peace with the UK",
+      "world": "any",
+      "expected": {
+        "target": "Britain",
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestNationExtraction::test_uk_maps_to_britain",
+      "notes": "Nation-alias family: 'the UK' -> 'Britain'."
+    },
+    {
+      "id": "talleyrand-deal-with-the-austrian-court",
+      "utterance": "Talleyrand, deal with the Austrian court",
+      "world": "any",
+      "expected": {
+        "target": "Austria",
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "COURT_NATION",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_session_3_commands.py::TestNationExtraction::test_austrian_maps_to_austria",
+      "notes": "Nation-adjective family: 'Austrian' -> 'Austria' extraction from embedded phrase."
+    },
+    {
+      "id": "davout-march-to-bordeuex",
+      "utterance": "davout march to bordeuex",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "target": "Bordeaux"
+      },
+      "source": "tests/test_typo_correction.py::TestParserTypoCorrection::test_bordeuex_through_parser",
+      "notes": "Full CommandParser.parse pipeline (mock LLM, real world+game_state). Region typo 'bordeuex' -> 'Bordeaux' auto-corrected; per test docstring the strategic parser produces the target and parser.py applies fuzzy correction to it (strategic route, but strategic_type not asserted). Lowercase marshal + no comma/honorific. WORLD-SENSITIVE: Bordeaux is legacy-only (absent from europe.json registry); Davout exists on both rosters."
+    },
+    {
+      "id": "nay-attack-wellinton",
+      "utterance": "nay attack wellinton",
+      "world": "legacy",
+      "expected": {
+        "success": false
+      },
+      "source": "tests/test_typo_correction.py::TestParserTypoCorrection::test_nay_attack_wellinton_suggest_not_autocorrect",
+      "notes": "Short-name threshold family: 'nay' (3 chars, fuzzy score ~67 < 70 auto-correct floor) gets SUGGEST not auto-correct; parse fails and result['error'] must contain 'Ney' (Did-you-mean). Documented known mock-parser gap - LLM mode would resolve; this pins CURRENT correct mock behavior. Wellington is legacy-only."
+    },
+    {
+      "id": "davout-move-to-viena",
+      "utterance": "davout move to viena",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "target": "Vienna"
+      },
+      "source": "tests/test_typo_correction.py::TestParserTypoCorrection::test_davout_move_to_viena",
+      "notes": "Region typo 'viena' -> 'Vienna' auto-corrected through parser.parse. WORLD-SENSITIVE: Vienna exists on BOTH maps (legacy fixture and 126-province europe.json); Davout on both rosters - candidate for a 1805-world twin in the harness."
+    },
+    {
+      "id": "march-to-vienna",
+      "utterance": "march to vienna",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_strategic_parser.py::test_march_to_is_move_to",
+      "notes": "Keyword seam (_detect_strategic_type, no world/marshal). Same phrase also pins the no-condition path: _parse_condition('march to vienna','Vienna') returns None (both test files). Vienna exists on both maps."
+    },
+    {
+      "id": "advance-to-belgium",
+      "utterance": "advance to belgium",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_strategic_parser.py::test_advance_to_is_move_to",
+      "notes": "Keyword seam; assertion itself is world-independent, but Belgium is a legacy-fixture region name (1805 map uses Flanders)."
+    },
+    {
+      "id": "fall-back-to-paris",
+      "utterance": "fall back to paris",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_strategic_parser.py::test_fall_back_to_is_move_to",
+      "notes": "Keyword seam. 'fall back to' = retreat-flavored MOVE_TO family. Paris exists on both maps."
+    },
+    {
+      "id": "pursue-wellington",
+      "utterance": "pursue wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_strategic_parser.py::test_pursue_detected",
+      "notes": "Keyword seam. Wellington is legacy-only."
+    },
+    {
+      "id": "chase-the-enemy",
+      "utterance": "chase the enemy",
+      "world": "any",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_strategic_parser.py::test_chase_detected",
+      "notes": "Keyword seam; generic target family."
+    },
+    {
+      "id": "hold-belgium",
+      "utterance": "hold belgium",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_strategic_parser.py::test_hold_detected",
+      "notes": "Keyword seam; Belgium legacy-only region name."
+    },
+    {
+      "id": "hold-position-at-belgium",
+      "utterance": "hold position at belgium",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_strategic_parser.py::test_hold_position_detected",
+      "notes": "Keyword seam; 'hold position at X' family."
+    },
+    {
+      "id": "guard-paris",
+      "utterance": "guard paris",
+      "world": "any",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_strategic_parser.py::test_guard_detected",
+      "notes": "Keyword seam; 'guard' keyword family."
+    },
+    {
+      "id": "support-ney",
+      "utterance": "support ney",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "target": "Ney"
+      },
+      "source": "tests/test_strategic_parser.py::test_support_detected",
+      "notes": "SELF-SUPPORT: the addressee word-scan binds the intended TARGET as the executor. CR-2 clarification candidate."
+    },
+    {
+      "id": "attack-wellington",
+      "utterance": "attack wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": null
+      },
+      "source": "tests/test_strategic_parser.py::test_attack_is_not_strategic",
+      "notes": "Negative pin: tactical 'attack' must NOT be detected as strategic (_detect_strategic_type returns None)."
+    },
+    {
+      "id": "move-to-belgium",
+      "utterance": "move to belgium",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": null
+      },
+      "source": "tests/test_berthier_recovery.py::TestBerthierIntegration::test_move_no_marshal_gets_berthier",
+      "notes": "Negative pin: 'move to' is intentionally tactical; 'march to' is the strategic form. Load-bearing keyword contrast."
+    },
+    {
+      "id": "defend",
+      "utterance": "defend",
+      "world": "any",
+      "expected": {
+        "strategic_type": null
+      },
+      "source": "tests/test_strategic_parser.py::test_plain_defend_is_not_strategic",
+      "notes": "Negative pin at keyword seam; bare 'defend' stays tactical. Duplicated in test_llm_strategic.py::test_bare_defend_is_not_strategic."
+    },
+    {
+      "id": "defend-my-position",
+      "utterance": "defend my position",
+      "world": "any",
+      "expected": {
+        "strategic_type": null
+      },
+      "source": "tests/test_llm_strategic.py::test_defend_position_is_not_strategic",
+      "notes": "Negative pin: 'defend my position' without HOLD keywords stays tactical (contrast 'defend and hold belgium' which IS strategic HOLD)."
+    },
+    {
+      "id": "grouchy-march-to-vienna",
+      "utterance": "Grouchy, march to Vienna",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "strategic_type": "MOVE_TO",
+        "target": "Vienna"
+      },
+      "source": "tests/test_strategic_parser.py::test_march_to_region",
+      "notes": "Tested at BOTH seams: detect_strategic_command (actor 'Grouchy' passed as separate arg; asserts is_strategic, MOVE_TO, target Vienna, target_type region) AND CommandParser.parse(world=world) (asserts success + is_strategic + MOVE_TO). test_parser_no_strategic_without_world pins that the SAME utterance parsed WITHOUT world= succeeds but is_strategic is not True — strategic detection requires world."
+    },
+    {
+      "id": "grouchy-march-to-ney",
+      "utterance": "Grouchy, march to Ney",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "MOVE_TO",
+        "target": "Ney"
+      },
+      "source": "tests/test_strategic_parser.py::test_march_to_friendly_marshal",
+      "notes": "Friendly-marshal target: target_type='marshal', target_snapshot_location = Ney's current location (dynamic — not pinned as a literal). Does NOT convert to PURSUE."
+    },
+    {
+      "id": "grouchy-march-to-wellington",
+      "utterance": "Grouchy, march to Wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE",
+        "target": "Wellington"
+      },
+      "source": "tests/test_strategic_parser.py::test_march_to_enemy_becomes_pursue",
+      "notes": "Auto-conversion pin: MOVE_TO with enemy-marshal target converts to PURSUE; target_type='marshal', target_snapshot_location None."
+    },
+    {
+      "id": "grouchy-pursue-wellington",
+      "utterance": "Grouchy, pursue Wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE",
+        "target": "Wellington"
+      },
+      "source": "tests/test_strategic_parser.py::test_pursue_enemy",
+      "notes": "detect_strategic_command seam. Same raw string also appears in test_strategic_bugfixes.py::TestGrouchyPursueBuff as a handcrafted parsed dict fed to the executor (pins Grouchy precision_execution buff — internal mechanic, not a parser expectation)."
+    },
+    {
+      "id": "grouchy-hold-belgium-until-ney-arrives",
+      "utterance": "Grouchy, hold Belgium until Ney arrives",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "HOLD",
+        "target": "Belgium"
+      },
+      "source": "tests/test_strategic_parser.py::test_hold_region_with_condition",
+      "notes": "Condition asserted: {until_marshal_arrives: 'Ney'}; target_type region. Also mirrored as a handcrafted LLM-JSON mapping test ('Hold Belgium until Ney arrives') in test_llm_strategic.py."
+    },
+    {
+      "id": "grouchy-hold-position",
+      "utterance": "Grouchy, hold position",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_strategic_parser.py::test_hold_no_target_uses_current_location",
+      "notes": "HOLD with no explicit target resolves target to the actor marshal's CURRENT location (dynamic value — asserted equal to grouchy.location, not a literal)."
+    },
+    {
+      "id": "grouchy-support-ney-until-battle-won",
+      "utterance": "Grouchy, support Ney until battle won",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "tests/test_strategic_parser.py::test_support_friendly",
+      "notes": "Condition asserted: {until_battle_won: true}. Fragment variant 'support ney until battle won' also pinned at _parse_condition seam."
+    },
+    {
+      "id": "grouchy-attack-wellington",
+      "utterance": "Grouchy, attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": null
+      },
+      "source": "tests/test_strategic_parser.py::test_attack_not_strategic",
+      "notes": "Negative pin at detect_strategic_command seam: returns None (tactical attack, never strategic)."
+    },
+    {
+      "id": "grouchy-pursue-wellington-until-destroyed",
+      "utterance": "Grouchy, pursue Wellington until destroyed",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_strategic_parser.py::test_pursue_until_destroyed",
+      "notes": "Condition asserted: {until_marshal_destroyed: 'Wellington'}. Fragment 'pursue until destroyed' also pinned at _parse_condition seam in both files."
+    },
+    {
+      "id": "grouchy-pursue-the-enemy",
+      "utterance": "Grouchy, pursue the enemy",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_strategic_parser.py::test_generic_target",
+      "notes": "Generic target: target_type='generic'. Related executor-seam test (test_strategic_bugfixes.py::test_clarification_no_internal_terms) pins that the resulting clarification message leaks NO internal terms ('(nearest enemy)', 'target_type', 'MOVE_TO', etc.). _add_interpretation picks nearest enemy with interpretation_reason='nearest' (internal)."
+    },
+    {
+      "id": "ney-attack-wellington",
+      "utterance": "Ney, attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "action": "attack",
+        "marshal": "Ney",
+        "success": true
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMilitaryNotAffected::test_ney_attack_is_military",
+      "notes": "CommandParser.parse(world=world): tactical attack stays tactical (is_strategic is not True) even with world provided."
+    },
+    {
+      "id": "grouchy-march-to-belgium",
+      "utterance": "Grouchy, march to Belgium",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "target": "Belgium"
+      },
+      "source": "tests/test_strategic_parser.py::test_parser_strategic_overrides_target",
+      "notes": "CommandParser.parse(world=world): strategic parser provides canonical title-cased target name in command['target']; is_strategic=True also asserted."
+    },
+    {
+      "id": "cancel",
+      "utterance": "cancel",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "cancel"
+      },
+      "source": "tests/test_strategic_bugfixes.py::test_cancel_popup_graceful",
+      "notes": "EXECUTOR seam (handcrafted {marshal: Ney, action: cancel}): cancel with NO active strategic order succeeds gracefully, is free (no_action_cost=True), message contains 'awaits'. Cancel keywords per spec: cancel/halt/stop/abort."
+    },
+    {
+      "id": "campaign-toward-vienna",
+      "utterance": "campaign toward vienna",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "Expanded keyword family 'campaign toward'. Also e2e via detect_strategic_command (actor Ney) in test_full_detect_strategic_command: is_strategic=True + MOVE_TO."
+    },
+    {
+      "id": "push-toward-the-rhine",
+      "utterance": "push toward the rhine",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "move",
+        "marshal": null
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'push toward' family; 'the rhine' is a loose geographic reference, keyword-level only."
+    },
+    {
+      "id": "sweep-toward-belgium",
+      "utterance": "sweep toward belgium",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'sweep toward' family; keyword-level assertion is world-independent, Belgium name is legacy-only."
+    },
+    {
+      "id": "press-toward-bavaria",
+      "utterance": "press toward bavaria",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'press toward' family; Bavaria exists in both worlds."
+    },
+    {
+      "id": "drive-toward-lyon",
+      "utterance": "drive toward lyon",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'drive toward' family; Lyon exists on legacy map, verify presence on 1805 map if replayed past keyword seam."
+    },
+    {
+      "id": "advance-toward-marseille",
+      "utterance": "advance toward marseille",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'advance toward' family; keyword-level only (Marseille may not exist on legacy map)."
+    },
+    {
+      "id": "march-toward-milan",
+      "utterance": "march toward milan",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'march toward' (vs 'march to') family; keyword-level only."
+    },
+    {
+      "id": "head-toward-geneva",
+      "utterance": "head toward geneva",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'head toward' family; keyword-level only."
+    },
+    {
+      "id": "deploy-to-vienna",
+      "utterance": "deploy to vienna",
+      "world": "any",
+      "expected": {
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_llm_strategic.py::test_move_to_new_keywords",
+      "notes": "'deploy to' family."
+    },
+    {
+      "id": "harry-the-enemy",
+      "utterance": "harry the enemy",
+      "world": "any",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_llm_strategic.py::test_pursue_new_keywords",
+      "notes": "'harry' family, generic target."
+    },
+    {
+      "id": "hound-the-retreating-forces",
+      "utterance": "hound the retreating forces",
+      "world": "any",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_llm_strategic.py::test_pursue_new_keywords",
+      "notes": "'hound' family, descriptive generic target."
+    },
+    {
+      "id": "shadow-wellington",
+      "utterance": "shadow wellington",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_llm_strategic.py::test_pursue_new_keywords",
+      "notes": "'shadow' family."
+    },
+    {
+      "id": "hold-at-all-costs",
+      "utterance": "hold at all costs",
+      "world": "any",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_llm_strategic.py::test_hold_new_keywords",
+      "notes": "No-target HOLD family; target would resolve to current location downstream."
+    },
+    {
+      "id": "stand-firm",
+      "utterance": "stand firm",
+      "world": "any",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_llm_strategic.py::test_hold_new_keywords",
+      "notes": "Bare 'stand firm' family, no target."
+    },
+    {
+      "id": "anchor-at-lyon",
+      "utterance": "anchor at lyon",
+      "world": "any",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_llm_strategic.py::test_hold_new_keywords",
+      "notes": "'anchor at' family."
+    },
+    {
+      "id": "secure-and-hold-vienna",
+      "utterance": "secure and hold vienna",
+      "world": "any",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_llm_strategic.py::test_hold_new_keywords",
+      "notes": "'secure and hold' compound family."
+    },
+    {
+      "id": "defend-and-hold-belgium",
+      "utterance": "defend and hold belgium",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "HOLD"
+      },
+      "source": "tests/test_llm_strategic.py::test_defend_and_hold_is_strategic",
+      "notes": "'defend and hold' IS strategic HOLD — the load-bearing contrast with bare 'defend' and 'defend my position' (both tactical). Also in the parametrized HOLD list."
+    },
+    {
+      "id": "move-to-reinforce-ney",
+      "utterance": "move to reinforce ney",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Ney"
+      },
+      "source": "tests/test_llm_strategic.py::test_support_new_keywords",
+      "notes": "SELF-SUPPORT family. CR-2 clarification candidate."
+    },
+    {
+      "id": "stand-firm-at-belgium-until-ney-arrives",
+      "utterance": "stand firm at belgium until ney arrives",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Ney"
+      },
+      "source": "tests/test_llm_strategic.py::test_full_detect_hold_with_condition",
+      "notes": "Condition-marshal hijack: 'until Ney arrives' binds Ney as executor. CR-2 clarification candidate."
+    },
+    {
+      "id": "diplomat-propose-peace-with-prussia",
+      "utterance": "diplomat, propose peace with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestDiplomatNameAlternatives::test_diplomat_keyword",
+      "notes": "Asserts diplomatic_data is not None AND diplomatic_data.proposal_type=='peace'. Honorific address family: 'diplomat,' prefix instead of 'Talleyrand'. Prussia exists in both worlds."
+    },
+    {
+      "id": "envoy-propose-alliance-with-austria",
+      "utterance": "envoy, propose alliance with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestDiplomatNameAlternatives::test_envoy_keyword",
+      "notes": "Asserts diplomatic_data is not None. Honorific 'envoy' address form."
+    },
+    {
+      "id": "minister-assess-prussia",
+      "utterance": "minister, assess Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestDiplomatNameAlternatives::test_minister_keyword",
+      "notes": "Asserts diplomatic_data is not None. Honorific 'minister' + advisory verb 'assess'."
+    },
+    {
+      "id": "foreign-minister-improve-relations-with-saxony",
+      "utterance": "foreign minister, improve relations with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "IMPROVE_RELATIONS",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestDiplomatNameAlternatives::test_foreign_minister_keyword",
+      "notes": "Asserts diplomatic_data is not None. Two-word honorific. Saxony is a nation in BOTH worlds (legacy fixture + 1805 minor, capital Dresden)."
+    },
+    {
+      "id": "ambassador-gather-intel-on-austria",
+      "utterance": "ambassador, gather intel on Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "GATHER_INTEL",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestDiplomatNameAlternatives::test_ambassador_keyword",
+      "notes": "Asserts diplomatic_data is not None. Honorific 'ambassador'."
+    },
+    {
+      "id": "invade-prussia",
+      "utterance": "invade Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_declare_war",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestWarDeclarationExpanded::test_invade_parses_as_war",
+      "notes": "Asserts action=='diplomatic_declare_war'. War-declaration keyword 'invade' with no diplomat prefix."
+    },
+    {
+      "id": "launch-war-against-austria",
+      "utterance": "launch war against Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_declare_war",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestWarDeclarationExpanded::test_launch_war_parses",
+      "notes": "Asserts action=='diplomatic_declare_war'. 'against' preposition variant."
+    },
+    {
+      "id": "dissolve-treaty-with-austria",
+      "utterance": "dissolve treaty with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestBreakTreatyExpanded::test_dissolve_treaty_parses",
+      "notes": "Asserts action=='diplomatic_break'."
+    },
+    {
+      "id": "terminate-treaty-with-prussia",
+      "utterance": "terminate treaty with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestBreakTreatyExpanded::test_terminate_treaty_parses",
+      "notes": "Distinct break-treaty verb keyword."
+    },
+    {
+      "id": "void-treaty-with-britain",
+      "utterance": "void treaty with Britain",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestBreakTreatyExpanded::test_void_treaty_parses",
+      "notes": "Distinct break-treaty verb keyword."
+    },
+    {
+      "id": "revoke-treaty-with-saxony",
+      "utterance": "revoke treaty with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestBreakTreatyExpanded::test_revoke_treaty_parses",
+      "notes": "Distinct break-treaty verb keyword."
+    },
+    {
+      "id": "cancel-agreement-with-prussia",
+      "utterance": "cancel agreement with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_break",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestBreakTreatyExpanded::test_cancel_agreement_parses",
+      "notes": "'agreement' noun variant; also pins that 'cancel' here routes diplomatic, not to the strategic-order cancel path."
+    },
+    {
+      "id": "send-ultimatum-to-prussia",
+      "utterance": "send ultimatum to Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_ultimatum",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestUltimatumExpanded::test_send_ultimatum_parses",
+      "notes": "Asserts action=='diplomatic_ultimatum'."
+    },
+    {
+      "id": "deliver-ultimatum-to-austria",
+      "utterance": "deliver ultimatum to Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_ultimatum",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestUltimatumExpanded::test_deliver_ultimatum_parses",
+      "notes": "Verb variant of ultimatum family."
+    },
+    {
+      "id": "surrender-or-face-destruction-prussia",
+      "utterance": "surrender or face destruction, Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "action": "diplomatic_ultimatum",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestUltimatumExpanded::test_surrender_or_parses",
+      "notes": "Threat-phrasing family ('surrender or ...') with trailing nation after comma — no 'ultimatum' keyword at all."
+    },
+    {
+      "id": "form-an-alliance-with-austria",
+      "utterance": "form an alliance with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestAllianceExpanded::test_form_an_alliance_parses",
+      "notes": "Asserts diplomatic_data is not None. Article 'an' between verb and noun."
+    },
+    {
+      "id": "join-forces-with-saxony",
+      "utterance": "join forces with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestAllianceExpanded::test_join_forces_parses",
+      "notes": "Asserts diplomatic_data is not None. Idiom family for alliance."
+    },
+    {
+      "id": "unite-with-prussia",
+      "utterance": "unite with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestAllianceExpanded::test_unite_with_parses",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "unite-against-britain",
+      "utterance": "unite against Britain",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestAllianceExpanded::test_unite_against_parses",
+      "notes": "Asserts diplomatic_data is not None. 'against' — target is the common enemy, phrasing family distinct from 'unite with'."
+    },
+    {
+      "id": "make-alliance-with-austria",
+      "utterance": "make alliance with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestAllianceExpanded::test_make_alliance_parses",
+      "notes": "Asserts diplomatic_data is not None. Bare 'make alliance' without article."
+    },
+    {
+      "id": "propose-peace-with-prussia",
+      "utterance": "propose peace with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_propose_peace_routes",
+      "notes": "No-diplomat-prefix proposal family. Asserts diplomatic_data is not None AND proposal_type=='peace'."
+    },
+    {
+      "id": "offer-alliance-to-austria",
+      "utterance": "offer alliance to Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_offer_alliance_routes",
+      "notes": "Asserts diplomatic_data is not None. 'offer ... to' preposition variant."
+    },
+    {
+      "id": "negotiate-peace-with-britain",
+      "utterance": "negotiate peace with Britain",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_negotiate_peace_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "sue-for-peace-with-austria",
+      "utterance": "sue for peace with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_sue_for_peace_routes",
+      "notes": "Asserts diplomatic_data is not None. Period idiom 'sue for peace'."
+    },
+    {
+      "id": "make-peace-with-prussia",
+      "utterance": "make peace with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_make_peace_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "sign-treaty-with-saxony",
+      "utterance": "sign treaty with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_sign_treaty_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "peace-with-austria",
+      "utterance": "peace with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_peace_with_routes",
+      "notes": "Asserts diplomatic_data is not None. Bare noun-phrase, no verb at all."
+    },
+    {
+      "id": "open-borders-with-saxony",
+      "utterance": "open borders with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "open_borders",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_open_borders_with_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "non-aggression-with-prussia",
+      "utterance": "non-aggression with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "non_aggression",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_non_aggression_with_routes",
+      "notes": "Asserts diplomatic_data is not None. Hyphenated term — punctuation-sensitive family."
+    },
+    {
+      "id": "pact-with-austria",
+      "utterance": "pact with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "non_aggression",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalWithoutTalleyrand::test_pact_with_routes",
+      "notes": "Asserts diplomatic_data is not None. Single bare noun 'pact'."
+    },
+    {
+      "id": "improve-relations-with-austria",
+      "utterance": "improve relations with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "IMPROVE_RELATIONS",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_improve_relations_with_routes",
+      "notes": "Asserts diplomatic_data is not None AND mission_type=='IMPROVE_RELATIONS'. Mission family without diplomat prefix."
+    },
+    {
+      "id": "spy-on-prussia",
+      "utterance": "spy on Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "GATHER_INTEL",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_spy_on_routes",
+      "notes": "Asserts diplomatic_data is not None AND mission_type=='GATHER_INTEL'."
+    },
+    {
+      "id": "gather-intel-on-austria",
+      "utterance": "gather intel on Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "GATHER_INTEL",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_gather_intel_on_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "undermine-prussia-s-alliance",
+      "utterance": "undermine Prussia's alliance",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "mission_type": "UNDERMINE_ALLIANCE",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_undermine_routes",
+      "notes": "Asserts diplomatic_data is not None. Apostrophe possessive on nation name."
+    },
+    {
+      "id": "reassure-saxony",
+      "utterance": "reassure Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "REASSURE_ALLY",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_reassure_routes",
+      "notes": "Asserts diplomatic_data is not None. Single-verb + nation."
+    },
+    {
+      "id": "send-envoy-to-austria",
+      "utterance": "send envoy to Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_send_envoy_to_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "send-diplomat-to-prussia",
+      "utterance": "send diplomat to Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionWithoutTalleyrand::test_send_diplomat_to_routes",
+      "notes": "Asserts diplomatic_data is not None."
+    },
+    {
+      "id": "talleyrand-propose-a-peace-deal-with-austria",
+      "utterance": "Talleyrand, propose a peace deal with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_peace_deal",
+      "notes": "Asserts proposal_type=='peace'. 'peace deal' keyword expansion."
+    },
+    {
+      "id": "talleyrand-negotiate-a-ceasefire-with-prussia",
+      "utterance": "Talleyrand, negotiate a ceasefire with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_ceasefire",
+      "notes": "Asserts proposal_type=='peace' — 'ceasefire' maps to peace, not armistice."
+    },
+    {
+      "id": "talleyrand-stop-the-war-with-britain",
+      "utterance": "Talleyrand, stop the war with Britain",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_stop_the_war",
+      "notes": "Asserts proposal_type=='peace'. Casual imperative phrasing; contains the word 'war' but must NOT route to declare-war."
+    },
+    {
+      "id": "talleyrand-propose-a-truce-with-austria",
+      "utterance": "Talleyrand, propose a truce with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "armistice",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_temporary_ceasefire_as_armistice",
+      "notes": "Asserts proposal_type=='armistice' — 'truce' maps to armistice, DISTINCT from 'ceasefire'→peace."
+    },
+    {
+      "id": "talleyrand-request-right-of-passage-through-saxony",
+      "utterance": "Talleyrand, request right of passage through Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "open_borders",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_right_of_passage",
+      "notes": "Asserts proposal_type=='open_borders'. Preposition is 'through', not 'with'."
+    },
+    {
+      "id": "talleyrand-arrange-transit-rights-with-prussia",
+      "utterance": "Talleyrand, arrange transit rights with Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "open_borders",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_transit_rights",
+      "notes": "Asserts proposal_type=='open_borders'."
+    },
+    {
+      "id": "talleyrand-propose-a-neutrality-pact-with-britain",
+      "utterance": "Talleyrand, propose a neutrality pact with Britain",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "non_aggression",
+          "tone": "propose",
+          "target_nation": "Britain"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_neutrality_pact",
+      "notes": "Asserts proposal_type=='non_aggression'."
+    },
+    {
+      "id": "talleyrand-make-saxony-a-client-state",
+      "utterance": "Talleyrand, make Saxony a client state",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "vassalage",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_client_state",
+      "notes": "Asserts proposal_type=='vassalage'. Nation appears mid-sentence before the type keyword."
+    },
+    {
+      "id": "talleyrand-make-saxony-a-protectorate",
+      "utterance": "Talleyrand, make Saxony a protectorate",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "vassalage",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_protectorate",
+      "notes": "Asserts proposal_type=='vassalage'."
+    },
+    {
+      "id": "talleyrand-propose-a-full-alliance-with-austria",
+      "utterance": "Talleyrand, propose a full alliance with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_full_alliance",
+      "notes": "Asserts proposal_type=='alliance'."
+    },
+    {
+      "id": "talleyrand-let-us-join-forces-with-saxony",
+      "utterance": "Talleyrand, let us join forces with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestProposalTypeExpansion::test_join_forces",
+      "notes": "Asserts proposal_type=='alliance'. Conversational 'let us' framing."
+    },
+    {
+      "id": "talleyrand-better-relations-with-austria",
+      "utterance": "Talleyrand, better relations with Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "IMPROVE_RELATIONS",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_better_relations",
+      "notes": "Asserts mission_type=='IMPROVE_RELATIONS'. Verbless 'better relations'."
+    },
+    {
+      "id": "talleyrand-build-rapport-with-saxony",
+      "utterance": "Talleyrand, build rapport with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "IMPROVE_RELATIONS",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_build_rapport",
+      "notes": "Asserts mission_type=='IMPROVE_RELATIONS'. Contains 'build' — must not collide with the economy build action."
+    },
+    {
+      "id": "talleyrand-convince-austria-to-join-us",
+      "utterance": "Talleyrand, convince Austria to join us",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "COURT_NATION",
+          "tone": "propose",
+          "target_nation": "Austria"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_convince",
+      "notes": "Asserts mission_type=='COURT_NATION'."
+    },
+    {
+      "id": "talleyrand-persuade-saxony",
+      "utterance": "Talleyrand, persuade Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "COURT_NATION",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_persuade",
+      "notes": "Asserts mission_type=='COURT_NATION'."
+    },
+    {
+      "id": "talleyrand-investigate-prussia",
+      "utterance": "Talleyrand, investigate Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "GATHER_INTEL",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_investigate",
+      "notes": "Asserts mission_type=='GATHER_INTEL'."
+    },
+    {
+      "id": "talleyrand-sow-discord-between-prussia-and-austria",
+      "utterance": "Talleyrand, sow discord between Prussia and Austria",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "UNDERMINE_ALLIANCE",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_sow_discord",
+      "notes": "Asserts mission_type=='UNDERMINE_ALLIANCE'. Two nations joined by ' and ' — must survive without parse_multiple splitting."
+    },
+    {
+      "id": "talleyrand-shore-up-our-alliance-with-saxony",
+      "utterance": "Talleyrand, shore up our alliance with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "mission_type": "REASSURE_ALLY",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_shore_up_alliance",
+      "notes": "Asserts mission_type=='REASSURE_ALLY'. Contains 'alliance' but must NOT parse as alliance proposal."
+    },
+    {
+      "id": "talleyrand-reaffirm-our-alliance-with-saxony",
+      "utterance": "Talleyrand, reaffirm our alliance with Saxony",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "proposal_type": "alliance",
+          "mission_type": "REASSURE_ALLY",
+          "tone": "propose",
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMissionTypeExpansion::test_reaffirm",
+      "notes": "Asserts mission_type=='REASSURE_ALLY'."
+    },
+    {
+      "id": "talleyrand-propose-peace-with-prusia",
+      "utterance": "Talleyrand, propose peace with Prusia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Prussia",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_prusia_typo",
+      "notes": "Nation typo family: 'Prusia' → target_nation 'Prussia'."
+    },
+    {
+      "id": "talleyrand-assess-britian",
+      "utterance": "Talleyrand, assess Britian",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Britain",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_britian_typo",
+      "notes": "Nation typo: 'Britian' → target_nation 'Britain'."
+    },
+    {
+      "id": "declare-war-on-the-prussians",
+      "utterance": "declare war on the Prussians",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Prussia",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_the_prussians",
+      "notes": "Demonym family: 'the Prussians' → target_nation 'Prussia'. Only target_nation asserted here (declare-war action pinned separately by 'invade Prussia')."
+    },
+    {
+      "id": "talleyrand-propose-peace-with-the-austrians",
+      "utterance": "Talleyrand, propose peace with the Austrians",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Austria",
+        "diplo": {
+          "proposal_type": "peace",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_the_austrians",
+      "notes": "Demonym: 'the Austrians' → 'Austria'."
+    },
+    {
+      "id": "declare-war-on-the-british",
+      "utterance": "declare war on the British",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Britain",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_the_british",
+      "notes": "Demonym adjective: 'the British' → 'Britain'."
+    },
+    {
+      "id": "talleyrand-court-the-saxons",
+      "utterance": "Talleyrand, court the Saxons",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "target": "Saxony",
+        "diplo": {
+          "mission_type": "COURT_NATION",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestNationTypoTolerance::test_the_saxons",
+      "notes": "Demonym: 'the Saxons' → 'Saxony'. Also exercises the 'court ' diplomatic keyword."
+    },
+    {
+      "id": "davout-move-to-belgium",
+      "utterance": "Davout, move to Belgium",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "action": "move"
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMilitaryNotAffected::test_davout_move_is_military",
+      "notes": "Asserts diplomatic_data is None AND action=='move'. Belgium is a legacy-only region (1805 map uses Flanders); Davout exists in both rosters."
+    },
+    {
+      "id": "end-turn",
+      "utterance": "end turn",
+      "world": "any",
+      "expected": {
+        "action": "end_turn"
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMilitaryNotAffected::test_end_turn_is_meta",
+      "notes": "Asserts diplomatic_data is None AND action=='end_turn'. Meta command."
+    },
+    {
+      "id": "ney-scout",
+      "utterance": "Ney, scout",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "action": "scout"
+      },
+      "source": "tests/test_diplo_parsing_expansion.py::TestMilitaryNotAffected::test_scout_is_military",
+      "notes": "Asserts diplomatic_data is None AND action=='scout'. Ney exists in both rosters."
+    },
+    {
+      "id": "cheat-set-threat-65",
+      "utterance": "cheat set_threat 65",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "cheat"
+      },
+      "source": "tests/test_audit_playtest.py::TestCheatParsing::test_cheat_parses_successfully",
+      "notes": "Also asserted in sibling tests: cheat_type=='set_threat', cheat_args==['65'], marshal is None ('cheat' must not be treated as a marshal name). CommandParser.parse path."
+    },
+    {
+      "id": "cheat-set-relation-austria-50",
+      "utterance": "cheat set_relation Austria -50",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "cheat"
+      },
+      "source": "tests/test_audit_playtest.py::TestCheatParsing::test_cheat_multi_args",
+      "notes": "Asserts cheat_type=='set_relation' and cheat_args==['Austria','-50'] — multi-arg preservation incl. negative number (no schema slot for cheat_type/cheat_args)."
+    },
+    {
+      "id": "cheat-give-dp-5",
+      "utterance": "cheat give_dp 5",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "cheat"
+      },
+      "source": "tests/test_audit_playtest.py::TestCheatParsing::test_cheat_validation_bypassed",
+      "notes": "Pins that cheat bypasses action validation (cheat_type not in valid_actions list)."
+    },
+    {
+      "id": "ney-attack-gneisenau",
+      "utterance": "Ney attack Gneisenau",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "Gneisenau"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_gneisenau_as_target",
+      "notes": "Enemy-marshal-as-target family, no comma after marshal. Gneisenau is legacy-only (Prussian enemy)."
+    },
+    {
+      "id": "grouchy-attack-archduke-charles",
+      "utterance": "Grouchy attack Archduke Charles",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "ArchdukeCharles"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_archduke_charles_as_target",
+      "notes": "MULTI-WORD enemy target normalizes to concatenated internal key 'ArchdukeCharles' (no space). Grouchy + Archduke Charles both legacy-only."
+    },
+    {
+      "id": "davout-attack-schwarzenberg",
+      "utterance": "Davout attack Schwarzenberg",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "Schwarzenberg"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_schwarzenberg_as_target",
+      "notes": "Schwarzenberg is a legacy-fixture Austrian enemy (not in the 1805 enemy roster — 1805 enemies are Mack/Kutuzov etc.)."
+    },
+    {
+      "id": "ney-attack-uxbridge",
+      "utterance": "Ney attack Uxbridge",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "Uxbridge"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_uxbridge_as_target",
+      "notes": "Uxbridge legacy-only British enemy."
+    },
+    {
+      "id": "ney-attack-reynier",
+      "utterance": "Ney attack Reynier",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "Reynier"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_reynier_as_target",
+      "notes": "Reynier is enemy-side since 6D-1 (target, never executing marshal). Comma variant 'Ney, attack Reynier' additionally pins marshal=='Ney' (test_systems_audit_v2_session5.py::TestReynierInMockParser::test_reynier_recognized_as_target)."
+    },
+    {
+      "id": "ney-attack-wellington-2",
+      "utterance": "Ney attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "success": true,
+        "target": "Wellington"
+      },
+      "source": "tests/test_audit_playtest.py::TestEnemyTargetParsing::test_wellington_still_works",
+      "notes": "No-comma punctuation variant of 'Ney, attack Wellington'; asserts target resolution regression check."
+    },
+    {
+      "id": "journey-to-paris",
+      "utterance": "journey to Paris",
+      "world": "any",
+      "expected": {
+        "marshal": null
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestMarshalWordBoundary::test_ney_not_matched_in_journey",
+      "notes": "V2-55 word-boundary: 'ney' substring inside 'journey' must NOT match Marshal Ney. Source assert is loose (marshal is None OR != 'Ney'); current behavior is None. Paris exists in both worlds."
+    },
+    {
+      "id": "money-for-the-troops",
+      "utterance": "money for the troops",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestMarshalWordBoundary::test_ney_not_matched_in_money",
+      "notes": "V2-55: 'ney' inside 'money' must not match. Loose assert (None OR != 'Ney')."
+    },
+    {
+      "id": "predavoutly-move-to-paris",
+      "utterance": "predavoutly move to Paris",
+      "world": "any",
+      "expected": {
+        "marshal": null
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestMarshalWordBoundary::test_davout_not_matched_in_substring",
+      "notes": "Contrived substring: 'davout' inside 'predavoutly' must not match. Loose assert (None OR != 'Davout')."
+    },
+    {
+      "id": "grouchy-scout",
+      "utterance": "Grouchy, scout",
+      "world": "legacy",
+      "expected": {
+        "marshal": "Grouchy"
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestMarshalWordBoundary::test_grouchy_matched_standalone",
+      "notes": "Grouchy is legacy-only (not in the 1805 roster)."
+    },
+    {
+      "id": "commands",
+      "utterance": "commands",
+      "world": "any",
+      "expected": {
+        "action": "help"
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestCommandsSubstring::test_exact_commands_is_help",
+      "notes": "V2-59: exact bare word 'commands' triggers help."
+    },
+    {
+      "id": "court-prussia",
+      "utterance": "court Prussia",
+      "world": "any",
+      "expected": {
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "COURT_NATION",
+          "tone": "propose",
+          "target_nation": "Prussia"
+        }
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestCourtMartial::test_court_prussia_is_diplomatic",
+      "notes": "Positive counterpart of V2-62: 'court <nation>' DOES route diplomatic (diplomatic_data non-null; mission type not asserted here)."
+    },
+    {
+      "id": "ney-dig-in",
+      "utterance": "Ney, dig in",
+      "world": "legacy",
+      "expected": {
+        "type": "specific",
+        "action": "fortify"
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestDigInNotHold::test_dig_in_parses_as_fortify",
+      "notes": "V2-56: 'dig in' maps to tactical fortify, NOT strategic HOLD (companion asserts: 'dig in' absent from STRATEGIC_KEYWORDS['HOLD'] and _detect_strategic_type('dig in') != 'HOLD'). Ney in both rosters."
+    },
+    {
+      "id": "ney-and-davout-attack-wellington",
+      "utterance": "Ney and Davout, attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "action": "attack",
+        "success": true
+      },
+      "source": "tests/test_systems_audit_v2_session5.py::TestParseMultipleSplitting::test_marshal_and_marshal_splits",
+      "notes": "parse_multiple path (V2-61): splits into EXACTLY 2 commands; both succeed with action=='attack'; resolved marshals are Ney AND Davout (shared action propagated to the bare marshal — test_shared_action_propagated). Wellington legacy-only."
+    },
+    {
+      "id": "dance-with-the-moon",
+      "utterance": "dance with the moon",
+      "world": "any",
+      "expected": {
+        "success": false
+      },
+      "source": "tests/test_berthier_recovery.py::TestBerthierIntegration::test_gibberish_gets_berthier_not_unknown_action",
+      "notes": "Gibberish → parse fails with error starting 'Unknown action' → main.py routes to Berthier recovery (recovery text contains 'Berthier', never the raw 'Unknown action' string). Parsed on legacy WorldState in-test but content is world-independent."
+    },
+    {
+      "id": "naey-attack-wellington",
+      "utterance": "Naey, attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Ney"
+      },
+      "source": "tests/test_berthier_recovery.py::TestBerthierIntegration::test_marshal_typo_still_gets_fuzzy_match",
+      "notes": "Marshal typo family. CR-0 current behavior: punctuation stripping lets 'Naey,' fuzzy AUTO-correct to Ney (parse succeeds). Test also tolerates a suggest-level typo error as passing — the hard contract is that a marshal typo must NEVER fall through to Berthier/'Unknown action'. Wellington legacy-only."
+    },
+    {
+      "id": "ney-xyzzy",
+      "utterance": "Ney xyzzy",
+      "world": "legacy",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_berthier_recovery.py::TestBerthierIntegration::test_partial_marshal_forwarded_to_recovery",
+      "notes": "Recognized marshal + unknown action: fails with 'Unknown action...' error AND parsed['partial_marshal']=='Ney' is forwarded to Berthier recovery (recovery text mentions Ney). 'marshal' here encodes the partial_marshal assert, not command.marshal. Ney in both rosters."
+    },
+    {
+      "id": "scout",
+      "utterance": "scout",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "scout",
+        "marshal": null
+      },
+      "source": "tests/test_berthier_recovery.py::TestBerthierIntegration::test_marshal_none_executor_error_gets_berthier",
+      "notes": "Bare action with no marshal: parse SUCCEEDS with command.marshal None; the EXECUTOR then fails with \"Marshal 'None' not found\" and main.py's second Berthier check converts it. Parse-level pin: success true + marshal null."
+    },
+    {
+      "id": "soult-defend",
+      "utterance": "Soult, defend",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Soult",
+        "action": "defend"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_every_french_marshal_parses",
+      "notes": "Parametrized over all 7 French 1805 marshals (Ney, Davout, Soult, Lannes, Murat, Bernadotte, Massena) as '{name}, defend'. Ney/Davout also exist in legacy; the broken five (Soult/Lannes/Murat/Bernadotte/Massena) are 1805-only."
+    },
+    {
+      "id": "soult-attack-mack",
+      "utterance": "Soult, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Soult",
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_soult_attack_mack",
+      "notes": "The exact BUG_FIXES.md probe command. Also re-asserted with the LLM game_state but world=None (TestGameStateShapeHardening::test_game_state_without_world_uses_same_roster) — roster must derive from game_state alone."
+    },
+    {
+      "id": "marshal-soult-attack-mack",
+      "utterance": "Marshal Soult, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Soult"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_marshal_title_form",
+      "notes": "Honorific family: capital-M 'Marshal <Name>' — the old regex was case-sensitive and never matched this standard typed form."
+    },
+    {
+      "id": "lannes-move-to-swabia",
+      "utterance": "Lannes, move to Swabia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Lannes",
+        "target": "Swabia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_lannes_move_to_swabia",
+      "notes": "Swabia is 1805-only."
+    },
+    {
+      "id": "massena-hold-milan",
+      "utterance": "Massena, hold Milan",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Massena",
+        "target": "Milan"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_massena_hold_milan",
+      "notes": "Massena is 1805-only; Milan exists in BOTH worlds (legacy REGIONS_DATA and the 126-province registry)."
+    },
+    {
+      "id": "soutl-attack-mack",
+      "utterance": "Soutl, attack Mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_marshal_typo_autocorrects_to_1805_name",
+      "notes": "Marshal-typo family. Conditional assertion: if parse succeeds marshal must be Soult; a suggest-level failure is also accepted provided the error/suggestion text names Soult (live roster, not legacy)."
+    },
+    {
+      "id": "wittgenstein-attack-mack",
+      "utterance": "Wittgenstein, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": false
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805MarshalRoster::test_error_suggestions_list_live_roster",
+      "notes": "Unknown-marshal hard error. Error/suggestion text must list 1805 roster names and must NOT contain 'Grouchy' or 'Drouot' (the shipped-boot failure mode)."
+    },
+    {
+      "id": "ney-scout-franconia",
+      "utterance": "Ney, scout Franconia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Franconia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805Regions::test_europe_region_parses_as_target",
+      "notes": "Franconia is 1805-only; Ney exists in both worlds."
+    },
+    {
+      "id": "ney-move-to-swabbia",
+      "utterance": "Ney, move to Swabbia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Swabia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805Regions::test_europe_region_typo_corrects",
+      "notes": "Region-typo family: fuzzy correction must run against the live 126-province roster."
+    },
+    {
+      "id": "ney-march-to-vienna",
+      "utterance": "Ney, march to Vienna",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "target": "Vienna",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::Test1805Regions::test_strategic_order_to_europe_region",
+      "notes": "Test asserts is_strategic=True + target only; MOVE_TO inferred from the 'march to' keyword. Asserted on the 1805 world, but Ney and Vienna exist in both worlds."
+    },
+    {
+      "id": "attack-mack",
+      "utterance": "attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "Mack",
+        "type": "auto_assign_attack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_live_enemy_extracted",
+      "notes": "Marshal-less general order: live enemy extracted from game_state (previously target=None on 1805)."
+    },
+    {
+      "id": "attack-archduke-john",
+      "utterance": "attack archduke john",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "ArchdukeJohn"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_camelcase_enemy_alias",
+      "notes": "Spaced form of a camelCase scenario key, resolved via the fog-visible enemies dict."
+    },
+    {
+      "id": "attack-archduke-charles",
+      "utterance": "attack archduke charles",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "ArchdukeCharles"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_fogged_enemy_rescued_by_world_pass",
+      "notes": "ArchdukeCharles is FOGGED at 1805 boot (absent from R5-filtered enemies dict); resolution goes through the legacy alias ladder + parser.py's omniscient world-side pass. 'archduke'/'archduke charles' are also legacy cold-fallback aliases, so the utterance also resolves in legacy."
+    },
+    {
+      "id": "scout-franconia",
+      "utterance": "scout Franconia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "type": "auto_assign_scout",
+        "target": "Franconia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_bare_command_europe_region",
+      "notes": "The original BUG_FIXES entry: bare 'scout <Europe region>' used to fall to Berthier recovery instead of auto_assign_scout."
+    },
+    {
+      "id": "davout-attack-mack",
+      "utterance": "Davout, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Mack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_exact_enemy_not_rewritten_to_region",
+      "notes": "Exact enemy name must not be fuzzy-rewritten into a region ('Mack' became 'La Mancha' pre-fix)."
+    },
+    {
+      "id": "bernadotte-defend",
+      "utterance": "Bernadotte, defend",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Bernadotte",
+        "target": null
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMockTargetLadder::test_marshal_name_punctuation_not_fuzzy_drifted",
+      "notes": "'Bernadotte,' (with comma) must not fuzzy-drift into the 1805 region 'Bern' during target extraction — target must stay None."
+    },
+    {
+      "id": "invest-in-bavaria",
+      "utterance": "invest in bavaria",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "invest_vassal"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationKeywords::test_invest_in_live_nation",
+      "notes": "Nation-keyed vassal keyword via live nations. Bavaria is also a legacy region name, but the legacy cold literals only cover saxony/prussia/austria/britain — so this parse requires the live 1805 nation list."
+    },
+    {
+      "id": "release-naples",
+      "utterance": "release naples",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "release_vassal",
+        "target": "Naples"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationKeywords::test_release_live_nation + TestVassalNationTargets::test_release_naples_targets_naples",
+      "notes": "Merged: one test asserts the action, the second additionally pins target=Naples (nation as target, no fuzzy-drift into a region)."
+    },
+    {
+      "id": "invest-in-saxony",
+      "utterance": "invest in saxony",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "invest_vassal",
+        "target": "Saxony"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationKeywords::test_legacy_invest_form_now_parses + TestVassalNationTargets::test_cold_invest_in_saxony_keeps_target",
+      "notes": "COLD parse (no world/game_state). Saxony exists as a legacy region AND legacy invest literal AND an 1805 nation, so world-independent. Pre-CR-0 the marshal word-scan choked on 'invest' entirely."
+    },
+    {
+      "id": "release-saxony",
+      "utterance": "release saxony",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "release_vassal"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationKeywords::test_legacy_release_form_now_parses",
+      "notes": "Cold parse; legacy literal 'release saxony' also in the 1805 nation-keyed form set."
+    },
+    {
+      "id": "murat-attack-wellington",
+      "utterance": "Murat, attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "success": false
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestColdParseFallback::test_1805_marshal_rejected_cold + TestLegacyWorldUnchanged::test_1805_marshal_rejected_on_legacy_world",
+      "notes": "WORLD-SENSITIVE: 1805-only marshal must be REJECTED on cold fallback and on the legacy world; on the 1805 world the same name parses fine. Mock-parser twin: LLMClient.parse_command('Soult, attack Wellington') cold must yield marshal != 'Soult'."
+    },
+    {
+      "id": "ney-move-to-bordeuex",
+      "utterance": "Ney, move to bordeuex",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "target": "Bordeaux"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestLegacyWorldUnchanged::test_legacy_region_typo_still_corrects + TestEnemyTypoPrecedence::test_legacy_region_typo_precedence_unchanged",
+      "notes": "Legacy-world region typo. Bordeaux is legacy-only (NOT on the 126-province registry). Second test pins that region-correct still wins when no enemy name is close."
+    },
+    {
+      "id": "lannes-pursue-the-austrians",
+      "utterance": "Lannes, pursue the austrians",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestStrategicNationalities::test_pursue_the_austrians_is_generic",
+      "notes": "Asserted via detect_strategic_command() directly (not parser.parse): result non-None with target_type=='generic' — demonym must not title-case into a fake region 'The Austrians'. PURSUE inferred from the pursue keyword."
+    },
+    {
+      "id": "ney-pursue-the-prussians",
+      "utterance": "Ney, pursue the prussians",
+      "world": "legacy",
+      "expected": {
+        "strategic_type": "PURSUE"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestStrategicNationalities::test_legacy_nationality_literals_survive",
+      "notes": "detect_strategic_command() on the legacy world: target_type=='generic' (legacy nationality literal survives the CR-0 dynamic demonym derivation)."
+    },
+    {
+      "id": "attack-marshal-mack",
+      "utterance": "Attack Marshal Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "Mack",
+        "type": "auto_assign_attack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMarshalHonorificGuard::test_attack_marshal_mack_targets_mack",
+      "notes": "Honorific guard: the case-tolerant '[Mm]arshal <Name>' regex must never capture an ENEMY commander as the executing marshal."
+    },
+    {
+      "id": "attack-marshal-blucher",
+      "utterance": "Attack Marshal Blucher",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "Blucher"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMarshalHonorificGuard::test_cold_attack_marshal_blucher",
+      "notes": "Cold-parse invariant: Blucher resolves as target via the legacy enemy fallback set (Wellington/Blucher/Gneisenau/ArchdukeCharles/Schwarzenberg/Uxbridge)."
+    },
+    {
+      "id": "marshal-bernadotte-hold",
+      "utterance": "Marshal Bernadotte, hold",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Bernadotte"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMarshalHonorificGuard::test_player_honorific_still_binds",
+      "notes": "Player honorific must still bind after the enemy-name guard."
+    },
+    {
+      "id": "attack-mack-2",
+      "utterance": "Attack Mack!",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Mack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestPunctuatedTargets::test_punctuated_enemy_target",
+      "notes": "Punctuation family — parametrized over 'Attack Mack!' and 'Attack Mack.'; punctuation stripped BEFORE existing-target/known-name skip checks."
+    },
+    {
+      "id": "hold-bern",
+      "utterance": "Hold Bern!",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "Bern"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestPunctuatedTargets::test_hold_bern_does_not_hijack_bernadotte",
+      "notes": "'Bern' scores partial_ratio 100 against 'Bernadotte' — the known-region guard must keep it a target, not an executing marshal. Bern is 1805-only."
+    },
+    {
+      "id": "ney-move-to-paris-via-champagne",
+      "utterance": "Ney, move to Paris via Champagne",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Paris"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestPositionAwareTargets::test_move_to_paris_via_champagne",
+      "notes": "_match_known_name is position-aware: 'to X' wins over later matches. Champagne is 1805-only; Paris in both worlds."
+    },
+    {
+      "id": "ney-move-from-burgundy-to-paris",
+      "utterance": "Ney, move from Burgundy to Paris",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Paris"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestPositionAwareTargets::test_move_from_burgundy_to_paris",
+      "notes": "'to X' beats the earlier-positioned 'from Burgundy'. Burgundy is 1805-only."
+    },
+    {
+      "id": "davout-attack-mach",
+      "utterance": "Davout, attack Mach",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Mack"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestEnemyTypoPrecedence::test_mach_corrects_to_mack_not_la_mancha",
+      "notes": "Enemy auto-correct must beat region auto-correct: edit-distance-1 typo of an enemy must not become the far-away region 'La Mancha'."
+    },
+    {
+      "id": "attack-east-prussia",
+      "utterance": "attack East Prussia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "East Prussia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMultiwordRegionTargets::test_attack_east_prussia",
+      "notes": "Multiword region target: individual words of an extracted target must be skipped by the marshal word-scan."
+    },
+    {
+      "id": "scout-white-russia",
+      "utterance": "scout White Russia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "White Russia"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMultiwordRegionTargets::test_scout_white_russia",
+      "notes": "Multiword region as bare scout target."
+    },
+    {
+      "id": "lannes-move-to-franche-comte",
+      "utterance": "Lannes, move to Franche-Comte",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Franche-Comte"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMultiwordRegionTargets::test_hyphenated_region_parses",
+      "notes": "Hyphenated region key parses as typed."
+    },
+    {
+      "id": "lannes-move-to-franche-comte-2",
+      "utterance": "Lannes, move to franche comte",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "target": "Franche-Comte"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMultiwordRegionTargets::test_hyphenated_region_spaced_form",
+      "notes": "Spaced/lowercased form resolves to the canonical hyphenated key."
+    },
+    {
+      "id": "invest-in-austria",
+      "utterance": "invest in austria",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "invest_vassal",
+        "target": "Austria"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationTargets::test_invest_in_austria_targets_austria",
+      "notes": "Nation carried as TARGET — must never fuzzy-drift to the Spanish region 'Asturias'. 'invest in austria' is also a legacy cold literal (action parses cold, but nation-target resolution needs the live world)."
+    },
+    {
+      "id": "invest-in-papal-states",
+      "utterance": "invest in papal states",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "invest_vassal",
+        "target": "PapalStates"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestVassalNationTargets::test_camelcase_nation_spaced_form",
+      "notes": "Spaced form resolves the camelCase nation key PapalStates."
+    },
+    {
+      "id": "soult-pursue-kutuzov",
+      "utterance": "Soult, pursue Kutuzov",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "strategic_type": "PURSUE",
+        "target": "Kutuzov"
+      },
+      "source": "tests/test_command_robustness_cr0_parser_rosters.py::TestMultiMarshalAndStrategicRosters::test_strategic_pursue_1805_enemy",
+      "notes": "Asserts is_strategic=True, strategic_type=='PURSUE', target Kutuzov — strategic marshal-target fuzzy path uses live rosters."
+    },
+    {
+      "id": "status",
+      "utterance": "status",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "status",
+        "marshal": null
+      },
+      "source": "tests/test_bugfix_session3.py::TestPT2StatusParse::test_status_mock_parse_recognized",
+      "notes": "Mock-parse level (LLMClient._parse_with_mock). Case/whitespace variants 'Status', 'STATUS', ' status ', '  status' all assert action=='status' (exact strip match)."
+    },
+    {
+      "id": "check-the-status-of-davout",
+      "utterance": "check the status of Davout",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "tests/test_bugfix_session3.py::TestPT2StatusParse::test_status_no_substring_match",
+      "notes": "NEGATIVE expectation: asserts action != 'status' (substring must not trigger the exact-match status command). Actual parsed action not pinned by the test."
+    },
+    {
+      "id": "recruit-infantry-at-paris",
+      "utterance": "recruit infantry at Paris",
+      "world": "any",
+      "expected": {
+        "action": "recruit",
+        "marshal": null,
+        "target": "Paris"
+      },
+      "source": "tests/test_bugfix_session3.py::TestM2RecruitNoMarshal::test_recruit_no_marshal_parses + test_recruit_parser_bypasses_fuzzy_marshal",
+      "notes": "Mock parse asserts action+target; parser.parse asserts action=='recruit' and marshal is None (recruit is in meta_actions, bypassing fuzzy marshal matching). Paris exists in both worlds."
+    },
+    {
+      "id": "davout-recruit",
+      "utterance": "Davout recruit",
+      "world": "any",
+      "expected": {
+        "action": "recruit"
+      },
+      "source": "tests/test_bugfix_session3.py::TestM2RecruitNoMarshal::test_recruit_with_marshal_still_works",
+      "notes": "Marshal-prefixed recruit regression (no comma). Davout exists in both rosters."
+    },
+    {
+      "id": "recruit-cavalry-at-lyon",
+      "utterance": "recruit cavalry at Lyon",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "action": "recruit",
+        "requested_type": "cavalry"
+      },
+      "source": "tests/test_bugfix_session3.py::TestM2RecruitNoMarshal::test_recruit_requested_type_propagated",
+      "notes": "requested_type pinned (recruit family). Lyon resolves via the legacy/cold ladder."
+    },
+    {
+      "id": "xyzzy-foobar",
+      "utterance": "xyzzy foobar",
+      "world": "any",
+      "expected": {
+        "success": false
+      },
+      "source": "tests/test_endpoint_wiring.py::test_invalid_command_returns_error",
+      "notes": "Gibberish → mock action 'unknown' → parser/endpoint returns success=False with an error message (still HTTP 200)."
+    },
+    {
+      "id": "debug-counter-punch-davout",
+      "utterance": "/debug counter_punch Davout",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "debug"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "save-mygame",
+      "utterance": "save mygame",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "meta_command"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-cancel-orders",
+      "utterance": "Ney, cancel orders",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "murat-glorious-charge",
+      "utterance": "Murat, glorious charge!",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "charge"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "charge-the-enemy",
+      "utterance": "charge the enemy",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "charge"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-wait",
+      "utterance": "Ney, wait",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "wait",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-hold-position",
+      "utterance": "Ney, hold position",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "hold",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-retreat",
+      "utterance": "Ney, retreat",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "retreat",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-abandon-fortifications",
+      "utterance": "Ney, abandon fortifications",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "unfortify",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "build-market-in-paris",
+      "utterance": "build market in Paris",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "build",
+        "target": "Paris"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "restrain-murat",
+      "utterance": "restrain Murat",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "restrain"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-drill-the-troops",
+      "utterance": "Ney, drill the troops",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "drill",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-go-aggressive",
+      "utterance": "Ney, go aggressive",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "stance_change",
+        "target_stance": "aggressive"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "repair-the-fort",
+      "utterance": "repair the fort",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "repair"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "show-me-the-treasury",
+      "utterance": "show me the treasury",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "economy"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "garrison-paris",
+      "utterance": "garrison Paris",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "garrison",
+        "target": "Paris"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-form-square",
+      "utterance": "Ney, form square",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "form_square",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "ney-break-square",
+      "utterance": "Ney, break square",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "break_square",
+        "marshal": "Ney"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "increase-autonomy",
+      "utterance": "increase autonomy",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "change_autonomy"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "vassalize-saxony",
+      "utterance": "vassalize Saxony",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "make_vassal"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "make-amends-with-prussia",
+      "utterance": "make amends with Prussia",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "make_amends",
+        "target": "Prussia",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "request-terms-from-austria",
+      "utterance": "request terms from Austria",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "request_terms",
+        "target": "Austria",
+        "type": "diplomatic",
+        "diplo": {
+          "tone": "propose"
+        }
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "set-war-purpose-against-austria",
+      "utterance": "set war purpose against Austria",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "set_war_purpose",
+        "target": "Austria",
+        "type": "diplomatic"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "repudiate-the-bargain-with-austria",
+      "utterance": "repudiate the bargain with Austria",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "repudiate_bargain",
+        "target": "Austria",
+        "type": "diplomatic"
+      },
+      "source": "CR-1 authored (action coverage gate)"
+    }
+  ]
+}

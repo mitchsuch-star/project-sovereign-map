@@ -723,6 +723,11 @@ class LLMClient:
         match = re.search(r'[Mm]arshal\s+([A-Z][a-zA-Z-]+)', command_text)
         if match:
             captured = match.group(1)
+            # Fog-visible enemies when live; the legacy six only for cold
+            # parses. Deliberately NOT a union — grafting the retired
+            # Waterloo names into every world let phantom commanders parse
+            # on the 1805 campaign. Fogged enemies are covered downstream
+            # by parser.py's omniscient world-side demotion.
             enemy_names = list(_game_state_dict(game_state, "enemies")) or [
                 "Wellington", "Blucher", "Gneisenau",
                 "ArchdukeCharles", "Schwarzenberg", "Uxbridge",

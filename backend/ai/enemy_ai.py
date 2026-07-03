@@ -1087,7 +1087,7 @@ class EnemyAI:
                             world.ai_attack_futility[key] = world.ai_attack_futility.get(key, 0) + 1
                             count = world.ai_attack_futility[key]
                             if count >= 3:
-                                print(f"  [FUTILITY] {m_name} has failed {count}x against {defender_name} — will avoid if fortified")
+                                print(f"  [FUTILITY] {m_name} has failed {count}x against {defender_name} -- will avoid if fortified")
 
         # Fix #1: Update stagnation counters per marshal
         # A marshal is "idle" if they only waited, defended-while-fortified, or changed stance

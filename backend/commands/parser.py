@@ -119,6 +119,11 @@ class CommandParser:
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
             "recruit", "help", "end_turn",
+            # CR-1: typed "status" was the ONLY leg missing — VALID_ACTIONS
+            # (validation.py:92), the mock parser, and the executor
+            # (free_actions + _execute_status) all already supported it,
+            # but this list's omission sent it to Berthier recovery.
+            "status",
             # Tactical state actions (Phase 2.6)
             "drill", "fortify", "unfortify",
             # Stance system (Phase 2.7)
@@ -279,6 +284,21 @@ class CommandParser:
         known_regions = self._get_known_regions(world)
         # Fuzzy match marshal name if LLM extracted one
         if llm_result.get("marshal"):
+            # CR-1: an extracted "marshal" that IS a known enemy commander
+            # is a target reference, not an executing marshal — the fogged
+            # honorific form ("Attack Marshal Kutuzov" while Kutuzov is
+            # outside the fog-filtered game_state) reaches here.
+            extracted = llm_result["marshal"]
+            enemy_match = next(
+                (e for e in known_enemies if e.lower() == extracted.lower()),
+                None)
+            if enemy_match is None and len(extracted) >= 3:
+                enemy_match = _closest_by_edit_distance(extracted, known_enemies)
+            if enemy_match is not None:
+                llm_result["marshal"] = None
+                if not llm_result.get("target"):
+                    llm_result["target"] = enemy_match
+        if llm_result.get("marshal"):
             marshal_result = self.fuzzy_matcher.match_with_context(
                 llm_result["marshal"],
                 valid_marshals
@@ -321,7 +341,11 @@ class CommandParser:
             known_target_words.update(n.lower() for n in known_enemies)
 
             words = command_text.split()
-            for word in words:
+            for word_index, word in enumerate(words):
+                # Address syntax ("Wittgenstein, attack") — a trailing comma
+                # marks an explicitly-addressed name; such words keep the
+                # helpful not-found error even in first position (CR-1)
+                was_addressed = word.rstrip(".!?;:").endswith(",")
                 # CR-0: strip punctuation FIRST — "Mack!" must be recognized
                 # as the already-parsed target / a known name before any
                 # marshal fuzzy-matching sees it
@@ -358,6 +382,14 @@ class CommandParser:
                     # "invest in saxony" died here in every world)
                     "invest", "release", "vassal", "vassalize", "subjugate",
                     "autonomy", "puppet", "satellite", "make",
+                    # Strategic-order verbs/phrasing words — not marshal
+                    # names (CR-1; "march to vienna" hard-errored with
+                    # "Marshal 'march' not found" on the legacy world)
+                    "march", "advance", "head", "deploy", "campaign",
+                    "press", "push", "sweep", "drive", "guard", "protect",
+                    "secure", "maintain", "rally", "link", "combine",
+                    "bolster", "shore", "track", "follow", "shadow",
+                    "harry", "hound", "assist", "aid", "stand", "withdraw",
                 ]
                 if len(word) < 2 or word_lower in skip_words:
                     continue
@@ -366,6 +398,17 @@ class CommandParser:
                     word,
                     valid_marshals
                 )
+                # CR-1: partial-ratio scoring rewards substrings — 'journey'
+                # scored a perfect auto-correct against 'Ney' and 'rhine'
+                # scored 80 against it too. A real marshal typo stays within
+                # a couple of characters of the name AND keeps its first
+                # letter; anything else is a sentence word, not a name.
+                _match = marshal_result.get("match") or ""
+                if (marshal_result["action"] in ("auto_correct", "suggest")
+                        and (abs(len(word) - len(_match)) > 2
+                             or word_lower[:1] != _match[:1].lower())):
+                    marshal_result = dict(marshal_result)
+                    marshal_result["action"] = "error"
                 if marshal_result["action"] in ["exact", "auto_correct"]:
                     llm_result["marshal"] = marshal_result["match"]
                     break
@@ -384,6 +427,17 @@ class CommandParser:
 
                     # If this word also doesn't match any target, it's likely a bad marshal attempt
                     if target_check["action"] == "error":
+                        # CR-1: only a CAPITALIZED unknown word reads as a
+                        # name attempt worth a hard error — lowercase
+                        # sentence words ("costs", "positions", "all") were
+                        # hard-failing whole commands. The FIRST token is
+                        # exempt too (English sentence case capitalizes it —
+                        # "Withdraw to Vienna" is not a name attempt) UNLESS
+                        # it carries address syntax ("Wittgenstein, attack"
+                        # must keep its helpful suggestions error).
+                        if not word[:1].isupper() or (word_index == 0
+                                                      and not was_addressed):
+                            continue
                         suggestions = marshal_result.get("suggestions", valid_marshals[:3])
                         return (llm_result, {
                             "error": f"Marshal '{word}' not found",

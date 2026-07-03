@@ -3986,7 +3986,7 @@ class CombatExecutor:
         charge_region = world.get_region(target_marshal.location)
         if charge_region and charge_region.terrain in CHARGE_BLOCKED_TERRAIN:
             terrain_name = charge_region.terrain.replace("_", " ").title()
-            print(f"  [CHARGE BLOCKED] {terrain_name} terrain blocks charge — falling through to normal attack")
+            print(f"  [CHARGE BLOCKED] {terrain_name} terrain blocks charge -- falling through to normal attack")
             result = self._execute_attack(marshal, target, world, game_state, skip_reckless_popup=True)
             result["charge_blocked_by_terrain"] = True
             result["terrain"] = charge_region.terrain

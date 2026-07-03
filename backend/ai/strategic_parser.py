@@ -330,7 +330,10 @@ def detect_strategic_command(
     # Step 4: Auto-convert enemy marshal MOVE_TO → PURSUE
     if strategic_type == "MOVE_TO" and target_info["convert_to_pursue"]:
         strategic_type = "PURSUE"
-        print("[PARSER] Converted MOVE_TO → PURSUE (enemy marshal target)")
+        # ASCII only — a non-cp1252 char here crashed the whole parse on
+        # Windows consoles (caught by the safety net as "Parser error:
+        # 'charmap' codec...", killing 'march to <enemy>' commands)
+        print("[PARSER] Converted MOVE_TO -> PURSUE (enemy marshal target)")
 
     # Step 5: Parse conditions
     condition = _parse_condition(cleaned, target_info["target"])
@@ -539,6 +542,10 @@ def _classify_target(
         "the british", "hostile forces", "prussians", "british",
         "whoever needs it", "whoever needs it most", "left flank",
         "right flank", "the flank",
+        # CR-1: "hound the retreating forces" title-cased into a phantom
+        # region "Retreating Forces" — retreating-enemy phrasings are
+        # generic pursuit targets
+        "retreating",
         # Bare forms (after _clean_target_text strips "the")
         "marshal", "general", "commander", "someone", "somebody",
         "anyone", "whoever", "nearest", "closest",
