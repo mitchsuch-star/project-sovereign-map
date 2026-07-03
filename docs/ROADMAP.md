@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** July 2, 2026 — **the post-map / post-diplo RE-STAGING.** The real-map cutover is COMPLETE (the running game is the 126-province 1805 campaign) and the Phase 8 Peace Deals arc is functionally complete (Slice G1 landed at `1a9da53`; Gate 4 smoke ran — visual half pending user confirmation). The forward queue is re-staged below as **§Current Phase Queue** — new phases CR (Command Robustness), EC (Economy Revisit), and MC (Marshal Content Pass) join the surviving 8.EVAL → 8.5 → Steam → 9/10/11 → Pre-EA → EA spine. See `docs/STATUS.md` for live state.
+> **Last Updated:** July 3, 2026 — **Gate 4 PASSED in full** (visual half user-confirmed July 3; machine half July 2). Queue re-staged July 2 (post-map / post-diplo). The real-map cutover is COMPLETE (the running game is the 126-province 1805 campaign) and the Phase 8 Peace Deals arc is functionally complete (Slice G1 landed at `1a9da53`). The forward queue is re-staged below as **§Current Phase Queue** — new phases CR (Command Robustness), EC (Economy Revisit), and MC (Marshal Content Pass) join the surviving 8.EVAL → 8.5 → Steam → 9/10/11 → Pre-EA → EA spine. See `docs/STATUS.md` for live state.
 
 ---
 
@@ -12,7 +12,7 @@ Ordering below is the recommended sequence; A-items are small and interleave fre
 
 | # | Phase | Contents | Gate | Spec |
 |---|-------|----------|------|------|
-| **A** | **Loose-Ends Closeout** | Gate 4 visual-half confirmation (USER — checklist in STATUS.md July 2 entry) → record gate passage; ~~G2 closure bookkeeping~~ (DONE July 2, this re-staging); **Slice H design gate** (spec drafted, awaiting user) → H-1/H-2; R19 modding validator (~3h); Jealousy stays gated (sequenced after MC per its prerequisite note). | Slice H + Jealousy need user gates | `SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` |
+| **A** | **Loose-Ends Closeout** | ~~Gate 4 visual-half confirmation~~ (✅ **PASSED July 3, 2026** — passage recorded in STATUS.md + the cleanup spec masthead); ~~G2 closure bookkeeping~~ (DONE July 2, this re-staging); **Slice H design gate** (spec drafted, awaiting user) → H-1/H-2; R19 modding validator (~3h); Jealousy stays gated (sequenced after MC per its prerequisite note). | Slice H + Jealousy need user gates | `SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` |
 | **CR** | **Command Robustness** ("Talk to Your Marshals") | Promotes the Post-Diplomacy Command Layer Queue (below) to a numbered phase. CR-0 fixes the **P0 parser roster gap** (5 of 7 French marshals uncommandable by text on the shipped boot — BUG_FIXES.md); then eval harness, clarification dialogue, LLM modernization, context carryover, personality-biased disambiguation. | Scope blessing; CR-6 needs its own design gate | `COMMAND_ROBUSTNESS_SPEC.md` |
 | **EC** | **Economy Revisit** (1805-scale economy + campaign feel) | EC-0 fixes the **AP-reset defect** (Austria's approved 4 AP silently squashed; treaty AP penalties compound); DEF-3 authored income; gold sinks at 3.4k/turn scale (Province Development anchor); manpower/garrison retunes; enemy AP; Continental System decision; **DG-5 victory-condition decision**; DG-3 campaign-feel evaluation. | EC-2 design gate; EC-5/6/7 user decisions | `ECONOMY_REVISIT_SPEC.md` |
 | **MC** | **Marshal Content Pass** | Previously UNOWNED gap: all 21 shipped marshals boot with ability "None", flat skills, zero relationships. Ability set (~10-12 wired), skills/trust, relationship web, balanced/loyal personality decision. Prerequisite for the Jealousy gate. MC-0 (ability display bug) may land as an independent fix. | **USER DESIGN GATE** (ability set) | `MARSHAL_CONTENT_PASS_SPEC.md` |
@@ -36,12 +36,12 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 | **6.5** | **Information & UI Systems** | **COMPLETE** (map renderer shipped with the July 2, 2026 real-map cutover — 126-province 1805 campaign is the running game) |
 | **7 Core** | **Multi-Marshal Coordination** | **COMPLETE.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | **7b** | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b | **COMPLETE.** Residuals re-homed July 2, 2026: Jealousy = standing design gate (after the Marshal Content Pass); Gneisenau Staff Work → 8.EVAL triage (its 1805 landing condition arrived with no owner slice); cross-nation coordination → 8.EVAL triage. |
-| **8** | **Diplomacy & Peace** | **FUNCTIONALLY COMPLETE July 2, 2026.** Cleanup spec v0.32; all settlement slices + Guided Terms + Slice G1 landed (`1a9da53`); SC-32 formally closed. Remaining tail: Gate 4 visual-half confirmation (USER) + the Slice H design gate (`SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`). See `docs/STATUS.md`. |
+| **8** | **Diplomacy & Peace** | **FUNCTIONALLY COMPLETE July 2, 2026.** Cleanup spec v0.32; all settlement slices + Guided Terms + Slice G1 landed (`1a9da53`); SC-32 formally closed; **Gate 4 PASSED in full July 3, 2026**. Remaining tail: the Slice H design gate (`SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`). See `docs/STATUS.md`. |
 | **8.EVAL** | **Pre-8.5 War LLM + Diplomacy Refinement Evaluation** | **Planned after Imperial Settlement final gate, before 8.5.** Audit buried war-LLM improvement items, battle/war narration toggle scope, creative-command war uses, `DESIGN_REFINEMENT.md` diplomacy queue items, AI ultimatums/trade/agenda/motive/Talleyrand Desk candidates, and decide what ships before 8.5 vs moves to Pre-EA/Post-EA. |
 | **CR** | **Command Robustness** (NEW July 2, 2026) | Next major phase after A-items — `COMMAND_ROBUSTNESS_SPEC.md` (user priority) |
 | **EC** | **Economy Revisit** (NEW July 2, 2026) | `ECONOMY_REVISIT_SPEC.md` (user priority) |
 | **MC** | **Marshal Content Pass** (NEW July 2, 2026) | `MARSHAL_CONTENT_PASS_SPEC.md` — NEEDS DESIGN GATE |
-| 8.EVAL | Pre-8.5 Evaluation Gate | Trigger arrives with Gate 4 passage; see §Current Phase Queue |
+| 8.EVAL | Pre-8.5 Evaluation Gate | **Trigger LIVE (Gate 4 passed July 3, 2026)**; sequenced after CR/EC/MC — see §Current Phase Queue |
 | 8.5 | Events, Goals & National Identity | Planned, blocked on 8.EVAL |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
@@ -50,7 +50,7 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign | TBD 2026 — the 126-province map shipped FULLY WIRED July 2, 2026 (Option C partial wiring is superseded) |
 
-**Phase 8 settlement closure record (July 2, 2026):** cleanup spec v0.32 GO with all five slice families + SC-5R + SC-32/G2 + SC-31 landed; Guided Terms complete (June 10); CH-1..5 landed; the ONE end-of-queue Gate 4 smoke RAN July 2 (16 findings, 11 fixed at `7635229`; machine half green; visual half pending user confirmation); Slice G1 landed July 2 at `1a9da53` (SC-30 closed; SC-32 formally closed). The only live settlement successors are the Gate 4 visual half and Slice H (design-gated).
+**Phase 8 settlement closure record (July 2, 2026):** cleanup spec v0.32 GO with all five slice families + SC-5R + SC-32/G2 + SC-31 landed; Guided Terms complete (June 10); CH-1..5 landed; the ONE end-of-queue Gate 4 smoke RAN July 2 (16 findings, 11 fixed at `7635229`; machine half green) and **the visual half was user-confirmed July 3, 2026 — GATE 4 PASSED**; Slice G1 landed July 2 at `1a9da53` (SC-30 closed; SC-32 formally closed). The only live settlement successor is Slice H (design-gated).
 
 **Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 

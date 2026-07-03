@@ -30,7 +30,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### The queue in one line
 
-Gate 4 visual-half confirmation (USER) → Slice H design gate (USER) → **Command Robustness** (`docs/COMMAND_ROBUSTNESS_SPEC.md`) → **Economy Revisit** (`docs/ECONOMY_REVISIT_SPEC.md`) → **Marshal Content Pass** gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`) → DEF-1 voices + DEF-13 UI scale → 8.EVAL → Phase 8.5.
+~~Gate 4 visual-half confirmation~~ (✅ PASSED July 3, 2026) → Slice H design gate (USER) → **Command Robustness** (`docs/COMMAND_ROBUSTNESS_SPEC.md`) → **Economy Revisit** (`docs/ECONOMY_REVISIT_SPEC.md`) → **Marshal Content Pass** gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`) → DEF-1 voices + DEF-13 UI scale → 8.EVAL → Phase 8.5.
 
 ### Load-bearing operational facts (1805 boot — keep verbatim)
 
@@ -42,7 +42,7 @@ Gate 4 visual-half confirmation (USER) → Slice H design gate (USER) → **Comm
 
 ### Active work items
 
-- **Gate 4 visual half (USER):** the smoke's machine half ran July 2, 2026 (11 findings fixed at `7635229`); passage recordable on user confirmation of the 5-item eyes-only checklist in `docs/STATUS.md`'s July 2 Gate-4 entry.
+- ~~Gate 4 visual half~~ **✅ PASSED July 3, 2026** (user confirmed the 5-item eyes-only checklist; passage recorded in STATUS.md + the cleanup spec masthead; the DWL-DIP-E7 / DWL-DIP-METTERNICH 8.EVAL triggers are LIVE).
 - **Slice H (design-gated):** the two deferred ally petition types (`request_reward_or_restoration` + `demand_bargain_honor`), pinned by absence tests. Spec drafted at `docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` (v0.1, July 2, 2026) — **user design gate BEFORE any code** (decisions D-H1..D-H5). SC-32 is formally CLOSED (July 2); do NOT rebuild G2 sub-slices.
 - **Command Robustness (`COMMAND_ROBUSTNESS_SPEC.md`, drafted):** CR-0 is a **P0 defect** — 5 of 7 French marshals cannot be commanded by typed text on the shipped boot (parser rosters legacy-pinned; see BUG_FIXES.md). CR-6 (conversational objection negotiation) needs its own design gate.
 - **Economy Revisit (`ECONOMY_REVISIT_SPEC.md`, drafted):** EC-0 is a confirmed defect — the advance-turn AP reset uses the legacy builder (Austria 4→3; treaty AP penalties compound on Europe-only nations). EC-2 sinks / EC-5 Continental System / EC-6 victory conditions (DG-5 contradiction) carry user gates.
