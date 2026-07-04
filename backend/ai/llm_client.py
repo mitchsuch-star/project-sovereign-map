@@ -423,6 +423,11 @@ class LLMClient:
             return None
         if not isinstance(game_state, dict):
             return None
+        # CR-3(c): the parse-stage LLM call for this request already failed
+        # at the API layer — the forced retry would stack another blocking
+        # ~5s timeout and almost certainly fail the same way.
+        if (fast_result_dict or {}).get("llm_error"):
+            return None
         fast_result = ParseResult.from_dict(fast_result_dict or {})
         retried = self._parse_with_live_provider(command_text, game_state, fast_result)
         if retried is fast_result or retried.mode == "mock":
@@ -459,6 +464,12 @@ class LLMClient:
             # Provider returned but couldn't parse
             if not llm_result.matched:
                 print("LLM couldn't parse command, using fast parser result")
+                # CR-3(c): carry the API-failure signal onto the fallback —
+                # downstream recovery (Berthier, CR-2 forced retry) must not
+                # stack a second blocking LLM call on a request whose first
+                # LLM call already timed out or errored.
+                if llm_result.llm_error:
+                    fast_result.llm_error = True
                 return fast_result
 
             # Validate LLM result against game rules
@@ -480,7 +491,11 @@ class LLMClient:
                 print("Falling back to fast parser result")
                 return fast_result
 
-            # Success! Return validated LLM result
+            # Success! Return validated LLM result.
+            # CR-3 review fix: providers build ParseResults without client
+            # key state, so live results carried key_source="none" — wrong
+            # provenance on exactly the path the cheat gate reads it from.
+            validated.key_source = self.key_source
             print(f"LLM parse successful: {validated.action} by {validated.marshals}")
             return validated
 
@@ -489,6 +504,7 @@ class LLMClient:
             # Log and return fast result - never crash
             print(f"LLM provider error: {e}")
             print("Falling back to fast parser result")
+            fast_result.llm_error = True  # CR-3(c): see matched=False branch
             return fast_result
 
     def _extract_valid_marshals(self, game_state: Optional[Dict]) -> List[str]:
@@ -531,6 +547,7 @@ class LLMClient:
         raw_command: str,
         game_state: Optional[Dict] = None,
         partial_parse: Optional[Dict] = None,
+        skip_llm: bool = False,
     ) -> str:
         """
         Generate an in-character Berthier response for unparseable commands.
@@ -538,13 +555,18 @@ class LLMClient:
         Mock mode: template response using real game-state names.
         Live mode: LLM call (Haiku-class), falling back to mock on failure.
 
+        skip_llm (CR-3, audit item c): the parse-stage LLM call for THIS
+        request already failed at the API layer — a second blocking call
+        would stack another ~5s timeout on top (measured ~10s worst case)
+        and most likely fail the same way. Use the mock template directly.
+
         Always returns a string, never raises.
         """
         game_state = game_state or {}
         partial_parse = partial_parse or {}
 
-        # Mock mode — use template
-        if self.provider_name == "mock":
+        # Mock mode (or a live mode whose LLM already errored) — use template
+        if self.provider_name == "mock" or skip_llm:
             return self._berthier_mock_response(raw_command, game_state, partial_parse)
 
         # Live mode — try LLM, fall back to mock

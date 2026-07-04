@@ -787,6 +787,11 @@ class CommandParser:
                     # clarification builder cost the would-be reissue
                     "partial_action": llm_result.get("action"),
                 }
+                # CR-3(c): main.py's Berthier recovery must not fire a second
+                # blocking LLM call when this request's parse call already
+                # failed at the API layer.
+                if llm_result.get("llm_error"):
+                    failure["llm_error"] = True
                 # CR-2: structured candidate fields (when present) let
                 # main.py raise a clarification question with reissue
                 # options instead of a dead-end error string
@@ -812,6 +817,11 @@ class CommandParser:
                     "confidence": llm_result.get("confidence", 0.9),
                     "type": command_type,
                     "raw_command": llm_result.get("raw_command", command_text),
+                    # CR-3(d): actual client state for this parse — the cheat
+                    # gate keys off key_source ("none" = no live key armed)
+                    # instead of the LLM_MODE env var, which BYOK bypasses.
+                    "mode": llm_result.get("mode", "mock"),
+                    "key_source": llm_result.get("key_source", "none"),
                 }
 
                 # BUG-005 FIX: Preserve target_stance for stance_change action
@@ -836,6 +846,8 @@ class CommandParser:
                     "ambiguity": llm_result.get("ambiguity", 5),
                     "mode": llm_result.get("mode", "mock"),
                 }
+                if llm_result.get("llm_error"):
+                    result["llm_error"] = True  # CR-3(c)
 
                 # Add warning if present
                 if validation_result.get("warning"):
@@ -894,7 +906,7 @@ class CommandParser:
 
                 return result
             else:
-                return {
+                failure = {
                     "success": False,
                     "error": validation_result.get("error", "Unknown validation error"),
                     "suggestion": validation_result.get("suggestion"),
@@ -902,6 +914,9 @@ class CommandParser:
                     "partial_marshal": llm_result.get("marshal"),
                     "partial_target": llm_result.get("target"),
                 }
+                if llm_result.get("llm_error"):
+                    failure["llm_error"] = True  # CR-3(c)
+                return failure
         except Exception as e:
             # Safety net - should never happen but prevents crashes
             return {

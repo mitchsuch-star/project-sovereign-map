@@ -133,6 +133,53 @@ VALID_STANCES: Set[str] = {
     "neutral",
 }
 
+# CR-3(d): the only actions a diplomatic_data payload may carry into the
+# executor's dialogue dispatch. parser.py trusts diplomatic_data["action"]
+# over the top-level action, so an unvalidated live-LLM payload could
+# smuggle an arbitrary dispatch key past the anti-hallucination layer
+# (latent until BYOK arms live parsing for players). Mirrors the full set
+# the mock parser's diplomatic router can emit.
+DIPLOMATIC_ACTION_ALLOWLIST: Set[str] = {
+    "diplomatic_proposal",
+    "diplomatic_mission",
+    "diplomatic_feasibility",
+    "diplomatic_advisory",
+    "diplomatic_error",
+    "diplomatic_break",
+    "diplomatic_downgrade",
+    "diplomatic_declare_war",
+    "diplomatic_ultimatum",
+    "make_amends",
+    "set_war_purpose",
+    "repudiate_bargain",
+    "propose_common_peace",
+    "propose_white_peace",
+    "request_terms",
+}
+
+# CR-3(d) review fix: the fields a PARSE may legitimately mint on
+# diplomatic_data — exactly the mock diplomatic router's output contract.
+# Everything else is stripped at the seam: the executor's dialogue dispatch
+# trusts flags like confirmed_objection / _treaty_warning_resolved /
+# ally_entry_decisions, which are added by DIALOGUE RESPONSES downstream and
+# must never arrive pre-set from an LLM parse (confirmation-gate bypass).
+DIPLOMATIC_DATA_ALLOWED_FIELDS: Set[str] = {
+    "action",
+    "diplomat",
+    "target_nation",
+    "proposal_type",
+    "clauses",
+    "mission_type",
+    "is_question",
+    "has_diplomatic_keywords",
+    "tone",
+    "raw_text",
+    "amends_variant",
+    "objective_type",
+    "error",
+    "message",
+}
+
 
 # =============================================================================
 # VALIDATION FUNCTIONS
@@ -166,6 +213,38 @@ def validate_parse_result(
     Returns:
         Validated/corrected ParseResult (mutated in place)
     """
+    # CR-3(d): diplomatic_data["action"] is the key parser.py actually
+    # dispatches on for diplomatic commands — validate it BEFORE the
+    # META_ACTIONS bypass below (which would wave the whole result through
+    # on the strength of the top-level action alone).
+    if result.diplomatic_data is not None:
+        if not result.diplomatic_data:
+            # Empty-payload hallucination ({} / "" / []): the dispatch seam
+            # (parser.py) keys on truthiness and would ignore it anyway —
+            # normalize instead of killing an otherwise-valid parse.
+            result.diplomatic_data = None
+        elif not isinstance(result.diplomatic_data, dict) or (
+                result.diplomatic_data.get("action")
+                not in DIPLOMATIC_ACTION_ALLOWLIST):
+            diplo_action = (result.diplomatic_data.get("action")
+                            if isinstance(result.diplomatic_data, dict)
+                            else result.diplomatic_data)
+            result.matched = False
+            result.diplomatic_data = None
+            result.suggestion = (
+                f"Unknown diplomatic action: {diplo_action}. "
+                "Try: propose peace with <nation>, declare war on <nation>, "
+                "or address Talleyrand directly."
+            )
+            return result
+        else:
+            # Allowlisted action: strip every field a parse may not mint
+            # (confirmation-gate flags etc. — see DIPLOMATIC_DATA_ALLOWED_FIELDS)
+            result.diplomatic_data = {
+                k: v for k, v in result.diplomatic_data.items()
+                if k in DIPLOMATIC_DATA_ALLOWED_FIELDS
+            }
+
     # Meta actions bypass validation
     if result.action in META_ACTIONS:
         return result

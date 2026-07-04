@@ -1361,7 +1361,7 @@ When a player issues a tactical command to a marshal with an active strategic or
 
 ## 5. LLM Integration
 
-> The known 1805 roster-pinning parser defect and the parser/LLM hardening phase plan (slices CR-0..CR-7) live in `docs/COMMAND_ROBUSTNESS_SPEC.md` (CR-0 owns the roster-pinning defect).
+> The parser/LLM hardening phase plan (slices CR-0..CR-7) lives in `docs/COMMAND_ROBUSTNESS_SPEC.md`. CR-3 (July 4, 2026) modernized the live provider: model pin `claude-haiku-4-5`, forced tool-use structured output (no free-text JSON extraction on the primary path), LLM strategic verbs remapped to executor-dispatchable base actions at the provider seam, the dead `dialogue` output field cut, an `llm_error` signal that guarantees at most ONE blocking LLM call per request, a `diplomatic_data["action"]` allowlist at the validation seam, and the cheat gate keyed off the parse result's `key_source` instead of the LLM_MODE env var.
 
 ### Command Parsing Pipeline
 
@@ -1404,13 +1404,24 @@ User Input: "Ney, attack Wellington"
      Return fast result   +-----------------------------------+
                           |   AnthropicProvider.parse()       |
                           |        (providers.py)             |
+                          |   claude-haiku-4-5, forced tool   |
+                          |   call (PARSE_TOOL + tool_choice) |
+                          |   -> structured input, no brace   |
+                          |   extraction on the primary path  |
+                          |   API failure sets llm_error      |
+                          |   (suppresses 2nd LLM call:       |
+                          |   Berthier + CR-2 forced retry)   |
                           +-----------------------------------+
                                         |
-                                        | HTTP POST to Anthropic
+                                        | strategic verb remap:
+                                        | pursue->attack,
+                                        | march/support/reinforce->move
                                         v
                           +-----------------------------------+
                           |   validation.validate_parse_result|
-                          |   (catches hallucinations)        |
+                          |   (catches hallucinations +       |
+                          |   CR-3 diplomatic_data["action"]  |
+                          |   allowlist)                      |
                           +-----------------------------------+
                                         |
                               Return validated result
@@ -1434,10 +1445,10 @@ LLM_MODE=mock          # mock | anthropic | groq (groq not yet implemented)
 ANTHROPIC_API_KEY=sk-ant-api03-...   # Required if LLM_MODE=anthropic
 ```
 
-### Cost Estimation (Anthropic Haiku)
-- Per request: ~500 input + ~200 output tokens = **~$0.0004**
-- 1,000 ambiguous commands = **~$0.40**
-- Fast parser catches most commands (unmeasured; a parser eval harness is owned by `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-1), so real cost is much lower
+### Cost Estimation (claude-haiku-4-5, CR-3 measured on the 1805 boot)
+- Per request: ~5K input + ~300 output tokens = **~$0.0065**
+- 1,000 ambiguous commands = **~$6.50**
+- Fast parser catches most commands (only sub-0.7-confidence parses reach the LLM), so real cost is much lower
 
 ### Strategic Score & Ambiguity
 
@@ -1469,6 +1480,8 @@ When a command can't be parsed (Unknown action, Marshal 'None' not found), Berth
 **Mock mode:** Template responses from `_berthier_mock_response()` in `llm_client.py`. Three categories (marshal recognised, target recognised, nothing recognised), 2-3 variants each, uses real game-state names.
 
 **Live mode:** One LLM call via `build_berthier_recovery_prompt()` in `prompt_builder.py`. Berthier character: nervous, meticulous, reacts to the Emperor's tone (insults, absurdity, rudeness). Falls back to mock templates on API failure.
+
+**CR-3 latency guard:** when the parse-stage LLM call for the same request already failed at the API layer (`llm_error` on the parse dict), both intercept points pass `skip_llm=True` and Berthier answers from the mock templates immediately — the old behavior stacked a second ~5s timeout on top of the first (~10s worst case).
 
 **Files:**
 - `prompt_builder.py`: `build_berthier_recovery_prompt()` — system + user prompt

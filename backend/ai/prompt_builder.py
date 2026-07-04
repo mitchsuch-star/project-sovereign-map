@@ -19,14 +19,17 @@ User Input
 +---------------------------------------------+
 |  build_parse_prompt() <-- THIS FILE         |
 |  - Builds context-aware prompt              |
-|  - ~300 tokens input budget                 |
+|  - ~5K tokens input on the shipped          |
+|    126-province 1805 boot (CR-3, measured   |
+|    via live usage; the old "~300 tokens"    |
+|    note predated the real-map cutover)      |
 +---------------------------------------------+
     |
     v
 +---------------------------------------------+
-|  LLM Provider (Anthropic/Groq)              |
-|  - Returns JSON matching ParseResult schema |
-|  - ~100-200 tokens output                   |
+|  LLM Provider (Anthropic)                   |
+|  - Forced tool call -> structured parse     |
+|  - ~150-250 tokens output                   |
 +---------------------------------------------+
     |
     v
@@ -47,8 +50,9 @@ User Input
 EXTENSION POINTS FOR FUTURE PHASES
 ===============================================================================
 
-Phase 5 - Strategic Commands: ✅ DONE
-    - STRATEGIC_COMMAND_EXAMPLES added with MOVE_TO, PURSUE, HOLD, SUPPORT
+Phase 5 - Strategic Commands: ✅ DONE (CR-3: examples now live in
+    FEW_SHOT_TEMPLATES, rendered against the live rosters)
+    - Strategic examples cover MOVE_TO, PURSUE, HOLD, SUPPORT
     - Output schema includes is_strategic, strategic_type, strategic_condition
     - Prompt explains strategic keywords and conditions to LLM
 
@@ -79,6 +83,7 @@ New Marshals/Regions:
 """
 
 import json
+import math
 from typing import Dict, List, Optional, Any
 
 from .validation import VALID_ACTIONS, VALID_STANCES
@@ -89,9 +94,13 @@ from .validation import VALID_ACTIONS, VALID_STANCES
 # =============================================================================
 
 SYSTEM_CONTEXT = """You are a military command parser for a Napoleonic Wars strategy game (1805-1815).
-Parse player commands into structured JSON. Be concise. Military formal tone."""
+Parse the player's command by calling the submit_parsed_command tool exactly once. Be precise."""
 
-# Output format the LLM should return
+# Annotated example of the parse the tool call should carry (CR-3: the
+# actual contract is PARSE_TOOL's input_schema in providers.py — this
+# example documents field semantics for the model. No "dialogue" field:
+# it had no consumer and its revival is the Flavor Echoing candidate
+# parked at the CR-5 gate review, see COMMAND_ROBUSTNESS_SPEC.md §4).
 OUTPUT_SCHEMA = """{
     "matched": true,
     "command_type": "tactical",
@@ -99,196 +108,185 @@ OUTPUT_SCHEMA = """{
     "action": "attack",
     "target": "Waterloo",
     "target_stance": null,
-    "standing_order": null,
-    "condition": null,
     "is_strategic": false,
     "strategic_type": null,
     "strategic_condition": null,
     "ambiguity": 15,
     "strategic_score": 45,
     "interpretation": "Marshal Ney to attack enemy position at Waterloo",
-    "dialogue": "For glory, Sire! The enemy shall feel our steel!",
-    "suggestion": null
+    "suggestion": null,
+    "diplomatic_data": null
 }"""
 
-# Example outputs for few-shot learning
-EXAMPLE_COMMANDS = [
+# Few-shot templates (CR-3): rendered against the LIVE rosters by
+# _format_examples(game_state) — the retired Waterloo names (Ney,
+# Wellington, Rhineland...) survive only as cold-parse fallbacks in
+# _example_names(). Placeholders: {m1}/{m2} player marshals, {enemy}
+# enemy commander, {region}/{region2} live regions, {nation} enemy nation.
+#
+# Coverage deliberately spans the verb families that had ZERO few-shots
+# before CR-3 (recruit / garrison / form_square / vassal / diplomacy /
+# request_terms — spec §1) plus the corpus live_phrasing_backlog
+# strategic phrasings ("hunt down", "stand fast at").
+#
+# Strategic examples teach the EXECUTOR-dispatchable base action
+# ("attack" for pursue, "move" for march/support) with the strategic
+# fields carrying the multi-turn intent — mirroring the mock parser.
+# The raw verbs (pursue/march/support) are still accepted and remapped
+# at the provider seam (LLM_STRATEGIC_ACTION_REMAP, providers.py).
+FEW_SHOT_TEMPLATES = [
+    # Tactical
     {
-        "input": "Ney, attack Wellington",
+        "input": "{m1}, attack {enemy}",
         "output": {
             "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Ney"],
+            "marshals": ["{m1}"],
             "action": "attack",
-            "target": "Wellington",
+            "target": "{enemy_target}",
+            "is_strategic": False,
             "ambiguity": 5,
-            "strategic_score": 40,
-            "interpretation": "Marshal Ney to attack Wellington's forces",
-            "dialogue": "At once, Sire! Wellington will regret this day!",
-        }
+        },
     },
     {
-        "input": "Drouot, bombard Wellington's position",
+        "input": "Have {m2} fortify his position",
         "output": {
             "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Drouot"],
-            "action": "attack",
-            "target": "Wellington",
-            "ambiguity": 5,
-            "strategic_score": 50,
-            "interpretation": "Marshal Drouot to bombard Wellington's forces with artillery",
-            "dialogue": "The guns are loaded, Sire. We shall reduce their position to rubble.",
-        }
-    },
-    {
-        "input": "Have Davout fortify his position",
-        "output": {
-            "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Davout"],
+            "marshals": ["{m2}"],
             "action": "fortify",
             "target": None,
+            "is_strategic": False,
             "ambiguity": 10,
-            "strategic_score": 25,
-            "interpretation": "Marshal Davout to fortify current position",
-            "dialogue": "Prudent, Sire. The defenses will be impregnable.",
-        }
+        },
     },
     {
-        "input": "Attack the Prussians",
+        "input": "{m1}, raise fresh infantry",
         "output": {
             "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Ney"],  # Nearest/most suitable marshal
-            "action": "attack",
-            "target": "Blucher",
-            "ambiguity": 35,  # No marshal specified
-            "strategic_score": 50,
-            "interpretation": "Attack Prussian forces under Blucher",
-            "dialogue": None,  # Ambiguous, no personality response
-            "suggestion": "Which marshal should lead the attack?",
-        }
+            "marshals": ["{m1}"],
+            "action": "recruit",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 10,
+        },
     },
     {
-        "input": "Build a fortification in Lyon",
+        "input": "{m2}, leave a garrison at {region2}",
         "output": {
             "matched": True,
-            "command_type": "tactical",
-            "marshals": [],
-            "action": "build",
-            "target": "Lyon",
-            "ambiguity": 5,
-            "strategic_score": 20,
-            "interpretation": "Construct fortification building in Lyon",
-        }
-    },
-    {
-        "input": "Build market at Paris",
-        "output": {
-            "matched": True,
-            "command_type": "tactical",
-            "marshals": [],
-            "action": "build",
-            "target": "Paris",
-            "ambiguity": 5,
-            "strategic_score": 15,
-            "interpretation": "Construct market building in Paris",
-        }
-    },
-    {
-        "input": "Davout, garrison Bavaria",
-        "output": {
-            "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Davout"],
+            "marshals": ["{m2}"],
             "action": "garrison",
-            "target": "Bavaria",
+            "target": "{region2}",
+            "is_strategic": False,
             "ambiguity": 5,
-            "strategic_score": 20,
-            "interpretation": "Marshal Davout detaches troops to garrison Bavaria",
-        }
+        },
     },
     {
-        "input": "Ney, occupy the Netherlands",
+        "input": "{m1}, form square",
         "output": {
             "matched": True,
-            "command_type": "tactical",
-            "marshals": ["Ney"],
-            "action": "attack",
-            "target": "Netherlands",
-            "ambiguity": 10,
-            "strategic_score": 45,
-            "interpretation": "Marshal Ney to attack and occupy the Netherlands",
-        }
+            "marshals": ["{m1}"],
+            "action": "form_square",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
     },
-]
-
-# Phase 5.2: Strategic command examples (active)
-STRATEGIC_COMMAND_EXAMPLES = [
     {
-        "input": "Ney, pursue Wellington until he's destroyed",
+        "input": "invest in {nation}",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "invest_vassal",
+            "target": "{nation}",
+            "is_strategic": False,
+            "ambiguity": 10,
+        },
+    },
+    # Strategic (multi-turn) — incl. live_phrasing_backlog forms
+    {
+        "input": "hunt down {enemy}",
         "output": {
             "matched": True,
             "command_type": "strategic",
-            "marshals": ["Ney"],
-            "action": "pursue",
-            "target": "Wellington",
+            "marshals": [],
+            "action": "attack",
+            "target": "{enemy_target}",
             "is_strategic": True,
             "strategic_type": "PURSUE",
-            "strategic_condition": {"until_marshal_destroyed": "Wellington"},
-            "ambiguity": 10,
-            "strategic_score": 75,
-            "interpretation": "Standing order: Ney pursues Wellington until destroyed",
-        }
+            "strategic_condition": None,
+            "ambiguity": 35,
+        },
     },
     {
-        "input": "Grouchy, march to Rhineland",
+        "input": "{m1}, march to {region}",
         "output": {
             "matched": True,
             "command_type": "strategic",
-            "marshals": ["Grouchy"],
+            "marshals": ["{m1}"],
             "action": "move",
-            "target": "Rhineland",
+            "target": "{region}",
             "is_strategic": True,
             "strategic_type": "MOVE_TO",
             "strategic_condition": None,
             "ambiguity": 5,
-            "strategic_score": 60,
-            "interpretation": "Standing order: Grouchy marches to Rhineland",
-        }
+        },
     },
     {
-        "input": "Hold Belgium until Ney arrives",
+        "input": "stand fast at {region2} until {m1} arrives",
         "output": {
             "matched": True,
             "command_type": "strategic",
-            "marshals": ["Davout"],
+            "marshals": [],
             "action": "hold",
-            "target": "Belgium",
+            "target": "{region2}",
             "is_strategic": True,
             "strategic_type": "HOLD",
-            "strategic_condition": {"until_marshal_arrives": "Ney"},
-            "ambiguity": 15,
-            "strategic_score": 70,
-            "interpretation": "Standing order: Davout holds Belgium until Ney arrives",
-        }
+            "strategic_condition": {"until_marshal_arrives": "{m1}"},
+            "ambiguity": 30,
+        },
     },
     {
-        "input": "Davout, support Ney",
+        "input": "{m2}, link up with {m1}",
         "output": {
             "matched": True,
             "command_type": "strategic",
-            "marshals": ["Davout"],
-            "action": "reinforce",
-            "target": "Ney",
+            "marshals": ["{m2}"],
+            "action": "move",
+            "target": "{m1}",
             "is_strategic": True,
             "strategic_type": "SUPPORT",
             "strategic_condition": None,
             "ambiguity": 10,
-            "strategic_score": 65,
-            "interpretation": "Standing order: Davout moves to support Ney",
-        }
+        },
+    },
+    # Diplomatic — diplomatic_data carries the dispatch key + nation
+    {
+        "input": "declare war on {nation}",
+        "output": {
+            "matched": True,
+            "command_type": "diplomatic",
+            "marshals": [],
+            "action": "diplomatic_declare_war",
+            "target": "{nation}",
+            "is_strategic": False,
+            "ambiguity": 5,
+            "diplomatic_data": {"action": "diplomatic_declare_war",
+                                "target_nation": "{nation}"},
+        },
+    },
+    {
+        "input": "Talleyrand, ask {nation} to name their terms",
+        "output": {
+            "matched": True,
+            "command_type": "diplomatic",
+            "marshals": [],
+            "action": "request_terms",
+            "target": "{nation}",
+            "is_strategic": False,
+            "ambiguity": 10,
+            "diplomatic_data": {"action": "request_terms",
+                                "target_nation": "{nation}"},
+        },
     },
 ]
 
@@ -324,7 +322,9 @@ def build_parse_prompt(
         Complete prompt string ready to send to LLM
 
     Token Budget:
-        ~300 tokens input, targeting ~150 tokens output
+        ~5K tokens input on the shipped 126-province 1805 boot (CR-3,
+        measured via live API usage; scales with roster + region count),
+        targeting ~150-300 tokens output via the forced tool call
 
     EXTENSION POINTS:
         - Phase 5: Add strategic command examples and standing_order docs
@@ -337,6 +337,12 @@ def build_parse_prompt(
     regions_list = _get_regions_list(game_state)
     actions_list = ", ".join(sorted(VALID_ACTIONS))
     stances_list = ", ".join(sorted(VALID_STANCES))
+    # CR-3: per-marshal compass lines from the live world's grid positions —
+    # the old hardcoded block described the retired 19-region map and was
+    # actively misleading the LLM on the 126-province boot.
+    geography_info = _format_geography(game_state) or (
+        "  (no map orientation data — resolve a direction only when the "
+        "target region is obvious; otherwise set target to \"generic\")")
 
     # Build the prompt with Markdown headers (cross-provider compatible)
     prompt = f"""# Command Parser - Napoleonic Wars
@@ -366,11 +372,14 @@ Commands that imply ongoing, multi-turn execution are STRATEGIC, not tactical.
 Set is_strategic=true and strategic_type to one of: MOVE_TO, PURSUE, HOLD, SUPPORT.
 
 Strategic keywords:
-- MOVE_TO: "march to", "advance to", "proceed to", "head to", "travel to", "withdraw to", "fall back to"
-- PURSUE: "pursue", "chase", "hunt down", "hunt", "go after", "intercept", "track"
-- HOLD: "hold position", "hold the line", "hold", "guard", "protect"
+- MOVE_TO: "march to", "advance to", "proceed to", "head to", "travel to", "withdraw to", "fall back to", "press on to", "make your way to"
+- PURSUE: "pursue", "chase", "hunt down", "hunt", "go after", "intercept", "track down", "run down", "follow and destroy", "drive against"
+- HOLD: "hold position", "hold the line", "hold", "guard", "protect", "stand fast", "stand firm", "maintain position", "hold your ground", "don't give ground"
 Note: "dig in" is tactical fortify, NOT strategic HOLD.
-- SUPPORT: "link up with", "support", "reinforce", "assist", "aid", "join", "back up"
+- SUPPORT: "link up with", "support", "reinforce", "assist", "aid", "join", "back up", "rally to", "come to the aid of", "bolster", "shore up", "combine with"
+
+Return the executor's base action with the strategic intent in the strategic fields:
+PURSUE -> action "attack"; MOVE_TO and SUPPORT -> action "move"; HOLD -> action "hold".
 
 Conditions (set in strategic_condition dict):
 - "until_marshal_arrives": marshal name (e.g. "until Ney arrives")
@@ -390,10 +399,8 @@ Players may use directions instead of region names. Resolve to the actual region
 - "support whoever needs it" → target the most threatened ally (set target to generic)
 - "pursue the enemy" → target the nearest enemy marshal (set target to generic)
 
-Geographic layout (approximate):
-  North: Netherlands, Hanover, Berlin  |  Northeast: Saxony, Bohemia
-  Central-West: Normandy, Paris, Belgium, Waterloo  |  Central-East: Rhineland, Dresden
-  South-West: Brittany, Bordeaux, Lyon, Marseille  |  South-East: Bavaria, Vienna, Tyrol, Milan
+Map orientation (compass directions of each marshal's adjacent regions):
+{geography_info}
 
 If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
 If you cannot determine the specific region, set target to "generic" and ambiguity to 60+.
@@ -414,6 +421,14 @@ Diplomatic action types:
 - diplomatic_break: Break an existing treaty
 - diplomatic_downgrade: Voluntarily reduce diplomatic state
 - diplomatic_mission: Send Talleyrand on a long-term mission
+- make_amends: Offer reparations to repair relations
+- request_terms: Ask an enemy war leader to name settlement terms
+- propose_common_peace: Open a multi-party war settlement
+
+For every diplomatic command, ALSO fill diplomatic_data with at least
+{{"action": <the diplomatic action>, "target_nation": <nation or null>}} —
+the game dispatches diplomatic commands on diplomatic_data.action.
+Leave diplomatic_data null for all military commands.
 
 Examples:
 - "Declare war on Prussia" → diplomatic_declare_war, target: Prussia
@@ -448,16 +463,19 @@ No marshal specified = +20 ambiguity
 ## Command to Parse
 "{raw_input}"
 
-## Output Format
-Return ONLY valid JSON matching this structure:
+## Output
+Call the submit_parsed_command tool exactly once. Field semantics follow
+this annotated example:
 ```json
 {OUTPUT_SCHEMA}
 ```
 
 ## Examples
-{_format_examples()}
+{_format_examples(game_state)}
+(Examples are abridged — your tool call must include every required field,
+including interpretation and strategic_score.)
 
-Return JSON only. No explanation."""
+Respond only with the tool call — no prose."""
 
     # Add repetition context if history exists
     if command_history and len(command_history) > 0:
@@ -577,104 +595,143 @@ def _get_regions_list(game_state: Dict[str, Any]) -> str:
     return ", ".join(sorted(REGIONS_DATA.keys()))
 
 
-def _format_examples() -> str:
+def _example_names(game_state: Dict[str, Any]) -> Dict[str, str]:
     """
-    Format example commands for few-shot learning.
+    Resolve few-shot placeholder names from the LIVE game state (CR-3).
 
-    Includes both tactical and strategic examples.
+    The retired Waterloo roster (Ney/Davout/Wellington/...) survives only
+    as the cold-parse fallback — a live prompt teaching retired names was
+    actively worse than no examples on the 1805 boot.
     """
+    marshals = list(game_state.get("marshals", {}) or {})
+    enemies_d = game_state.get("enemies", {}) or {}
+    enemies = list(enemies_d)
+    map_data = game_state.get("map_data", {}) or {}
+    regions = sorted(map_data)
+
+    # CR-3 review fix: never graft a retired name into a LIVE prompt — a
+    # thin roster slice (single marshal, fully-fogged enemies) previously
+    # pulled Davout/Wellington back in, reteaching the exact stale names
+    # this rework cut. Retired names appear ONLY on fully-cold states.
+    if marshals:
+        m1 = marshals[0]
+        m2 = marshals[1] if len(marshals) > 1 else m1
+    else:
+        m1, m2 = "Ney", "Davout"
+
+    if enemies:
+        enemy = enemies[0]
+        enemy_target = enemy
+    elif marshals or regions:
+        # Live world, no visible enemies — teach the generic-target rule
+        # instead of a name that doesn't exist in this world.
+        enemy, enemy_target = "the enemy", "generic"
+    else:
+        enemy, enemy_target = "Wellington", "Wellington"
+    enemy_info = enemies_d.get(enemy) or {}
+    nation = enemy_info.get("nation") or "Austria"
+
+    # A plausible movement/garrison target: prefer the first enemy's
+    # location (a real region the player might act on), else any region.
+    region = enemy_info.get("location")
+    if not region or region not in map_data:
+        region = regions[0] if regions else "Paris"
+    region2 = next((r for r in regions if r != region), "Lyon")
+
+    return {"m1": m1, "m2": m2, "enemy": enemy, "enemy_target": enemy_target,
+            "region": region, "region2": region2, "nation": nation}
+
+
+def _fill_placeholders(value: Any, names: Dict[str, str]) -> Any:
+    """Recursively substitute {m1}/{enemy}/... placeholders in a template."""
+    if isinstance(value, str):
+        return value.format(**names)
+    if isinstance(value, list):
+        return [_fill_placeholders(v, names) for v in value]
+    if isinstance(value, dict):
+        return {k: _fill_placeholders(v, names) for k, v in value.items()}
+    return value
+
+
+def _format_examples(game_state: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Format few-shot examples rendered against the live rosters (CR-3).
+
+    Covers tactical, strategic (incl. live_phrasing_backlog forms), and
+    diplomatic commands — one compact line each.
+    """
+    names = _example_names(game_state or {})
     lines = []
-    # 2 tactical examples
-    for i, example in enumerate(EXAMPLE_COMMANDS[:2], 1):
-        input_text = example["input"]
-        output = example["output"]
-        output_json = (
-            f'{{"matched": {str(output.get("matched", True)).lower()}, '
-            f'"marshals": {output.get("marshals", [])}, '
-            f'"action": "{output.get("action", "")}", '
-            f'"target": {_json_value(output.get("target"))}, '
-            f'"is_strategic": false, '
-            f'"ambiguity": {output.get("ambiguity", 0)}}}'
-        )
-        lines.append(f'{i}. "{input_text}" -> {output_json}')
-
-    # 2 strategic examples
-    for j, example in enumerate(STRATEGIC_COMMAND_EXAMPLES[:2], len(lines) + 1):
-        input_text = example["input"]
-        output = example["output"]
-        cond = output.get("strategic_condition")
-        cond_str = json.dumps(cond) if cond else "null"
-        output_json = (
-            f'{{"matched": true, '
-            f'"command_type": "strategic", '
-            f'"marshals": {output.get("marshals", [])}, '
-            f'"action": "{output.get("action", "")}", '
-            f'"target": {_json_value(output.get("target"))}, '
-            f'"is_strategic": true, '
-            f'"strategic_type": "{output.get("strategic_type", "")}", '
-            f'"strategic_condition": {cond_str}, '
-            f'"ambiguity": {output.get("ambiguity", 0)}}}'
-        )
-        lines.append(f'{j}. "{input_text}" -> {output_json}')
-
+    for template in FEW_SHOT_TEMPLATES:
+        # Single-marshal worlds: skip pair examples ("X, link up with X"
+        # would teach a self-support order the executor rejects).
+        if (names["m1"] == names["m2"]
+                and "{m1}" in template["input"]
+                and "{m2}" in template["input"]):
+            continue
+        input_text = _fill_placeholders(template["input"], names)
+        output = _fill_placeholders(template["output"], names)
+        lines.append(f'{len(lines) + 1}. "{input_text}" -> {json.dumps(output)}')
     return "\n".join(lines)
 
 
-def _json_value(val: Any) -> str:
-    """Format a value for JSON output."""
-    if val is None:
-        return "null"
-    if isinstance(val, str):
-        return f'"{val}"'
-    if isinstance(val, bool):
-        return str(val).lower()
-    return str(val)
+# =============================================================================
+# GEOGRAPHY (CR-3): per-marshal compass orientation from live grid positions
+# =============================================================================
+
+_COMPASS_LABELS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+
+
+def _compass_label(dr: int, dc: int) -> str:
+    """8-way compass label for a grid delta (row grows south, col east)."""
+    angle = math.degrees(math.atan2(dc, -dr))  # 0 = north, 90 = east
+    return _COMPASS_LABELS[int((angle % 360 + 22.5) // 45) % 8]
+
+
+def _format_geography(game_state: Dict[str, Any]) -> Optional[str]:
+    """
+    Per-marshal compass lines for the prompt's direction-resolution block.
+
+    Derived from the live world's region grid_position data — the same
+    source strategic_parser.resolve_direction uses, so what the prompt
+    tells the LLM matches what the deterministic layer would resolve.
+    Scale-safe: iterates player marshals' adjacencies only, never the
+    full region table (Golden Rule 8). Returns None when no world or no
+    positioned regions are available (cold parses, minimal test states).
+    """
+    world = game_state.get("world")
+    marshals = game_state.get("marshals", {}) or {}
+    if world is None or not marshals:
+        return None
+
+    lines = []
+    for name, info in marshals.items():
+        location = (info or {}).get("location")
+        region = world.get_region(location) if location else None
+        pos = getattr(region, "grid_position", None) if region else None
+        if not pos:
+            continue
+        neighbors = []
+        for adj in getattr(region, "adjacent_regions", []):
+            adj_region = world.get_region(adj)
+            adj_pos = getattr(adj_region, "grid_position", None) if adj_region else None
+            if not adj_pos or tuple(adj_pos) == tuple(pos):
+                continue
+            dr, dc = adj_pos[0] - pos[0], adj_pos[1] - pos[1]
+            neighbors.append(f"{_compass_label(dr, dc)}:{adj}")
+        if neighbors:
+            lines.append(f"  - {name} at {location} — {', '.join(neighbors)}")
+
+    return "\n".join(lines) if lines else None
 
 
 # =============================================================================
-# PROMPT VARIANTS FOR SPECIAL CASES
+# (CR-3) build_clarification_prompt REMOVED — designed pre-CR-2, never wired.
+# The shipped clarification dialogue (backend/commands/clarification.py) is
+# fully deterministic; an LLM-phrased question would add a blocking API call
+# for no mechanical gain. Disposition recorded in COMMAND_ROBUSTNESS_SPEC.md
+# §3 (the CR-2 entry deferred the cut-or-wire decision to CR-3: CUT).
 # =============================================================================
-
-def build_clarification_prompt(
-    raw_input: str,
-    ambiguity_reason: str,
-    game_state: Dict[str, Any],
-) -> str:
-    """
-    Build prompt for clarifying ambiguous commands.
-
-    Called when ambiguity score > 75 (unparseable).
-
-    Args:
-        raw_input: Original command
-        ambiguity_reason: Why it's ambiguous
-        game_state: Current game state
-
-    Returns:
-        Prompt asking LLM to generate clarification question
-
-    # PHASE 5: Extend for strategic command clarification
-    """
-    marshals_info = _format_marshals(game_state)
-
-    return f"""# Command Clarification
-
-The player's command is ambiguous and needs clarification.
-
-## Command
-"{raw_input}"
-
-## Why Ambiguous
-{ambiguity_reason}
-
-## Available Marshals
-{marshals_info}
-
-## Task
-Generate a brief, formal military question to clarify the command.
-One sentence only. Example: "Which marshal should execute this order, Sire?"
-
-Return only the question text."""
 
 
 # =============================================================================
@@ -778,15 +835,6 @@ if __name__ == "__main__":
     # Estimate tokens (rough: ~4 chars per token)
     token_estimate = len(prompt) // 4
     print(f"\n--- Estimated tokens: ~{token_estimate} ---")
-
-    # Test clarification prompt
-    print("\n--- Clarification Prompt ---\n")
-    clarify = build_clarification_prompt(
-        "Attack!",
-        "No marshal specified, no target specified",
-        test_game_state
-    )
-    print(clarify)
 
     print("\n" + "=" * 60)
     print("TEST COMPLETE!")

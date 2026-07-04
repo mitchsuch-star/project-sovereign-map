@@ -1920,10 +1920,20 @@ RETREAT RECOVERY (3 turns):
         if not world:
             return {"success": False, "message": "No active game."}
 
-        # Guard: only available in mock/debug mode
-        llm_mode = os.getenv("LLM_MODE", "mock")
+        # Guard: only available in mock/debug mode.
+        # CR-3(d): key off the parse result's key_source ("none" = no live
+        # key armed) rather than the LLM_MODE env var — a BYOK player runs
+        # live parsing while the server env still says "mock", which the
+        # old gate would have waved through. Hand-built command dicts
+        # (tests, direct executor calls) carry no key_source and keep the
+        # historical env-var behavior.
         debug_mode = game_state.get("debug_mode", False)
-        if llm_mode != "mock" and not debug_mode:
+        key_source = command.get("key_source")
+        if key_source is not None:
+            live_client_armed = key_source != "none"
+        else:
+            live_client_armed = os.getenv("LLM_MODE", "mock") != "mock"
+        if live_client_armed and not debug_mode:
             return {
                 "success": False,
                 "message": "Cheat commands only available in mock/debug mode.",

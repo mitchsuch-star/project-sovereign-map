@@ -53,22 +53,30 @@ User Input: "Ney, attack Wellington"
                           |   prompt_builder.py               |
                           |   - build_system_prompt()         |
                           |   - build_parse_prompt()          |
-                          |   - ~450 tokens input             |
+                          |   - ~5K tokens input on the 1805  |
+                          |     boot (CR-3 measured)          |
                           +-----------------------------------+
                                         |
-                                        | HTTP POST to Anthropic
+                                        | HTTP POST (forced tool call)
                                         v
                           +-----------------------------------+
                           |   Anthropic Messages API          |
-                          |   claude-3-haiku-20240307         |
+                          |   claude-haiku-4-5 (CR-3 pin)     |
+                          |   tools=[PARSE_TOOL] +            |
+                          |   tool_choice forced              |
                           |   5 second timeout                |
                           +-----------------------------------+
                                         |
-                                        | Parse JSON response
+                                        | Read tool_use input (already
+                                        | parsed JSON; text fallback via
+                                        | parse_llm_json_response only)
                                         v
                           +-----------------------------------+
-                          |   parse_llm_json_response()       |
+                          |   _make_parse_request()           |
                           |   json_to_parse_result()          |
+                          |   (strategic verbs remapped:      |
+                          |    pursue->attack, march/support/ |
+                          |    reinforce->move)               |
                           +-----------------------------------+
                                         |
                                         | STEP 3: Validate result
@@ -128,7 +136,7 @@ GROQ_API_KEY=gsk_...
 | Mode | Description | Cost | Speed |
 |------|-------------|------|-------|
 | `mock` | Keyword matching only | Free | Instant |
-| `anthropic` | Fast parser + Claude fallback | ~$0.0004/request | 1-3s |
+| `anthropic` | Fast parser + Claude fallback | ~$0.0065/request (CR-3 measured: ~5K in + ~300 out on claude-haiku-4-5) | 1-3s |
 | `groq` | Fast parser + Groq fallback (future) | ~$0.0001/request | 0.5-1s |
 
 ## Data Flow
@@ -151,7 +159,9 @@ class ParseResult:
 
     # LLM response fields
     interpretation: str     # Human-readable interpretation
-    dialogue: Optional[str] # Marshal's personality response
+    dialogue: Optional[str] # LEGACY (CR-3): no longer requested from the
+                            # LLM — the field had no consumer. Revival is
+                            # the Flavor Echoing candidate at the CR-5 gate.
     suggestion: Optional[str]  # Alternative suggestion if unclear
 
     # Metadata
@@ -159,6 +169,9 @@ class ParseResult:
     mode: str              # "mock" or "anthropic"
     key_source: str        # "none", "inhouse", or "byok"
     raw_command: str       # Original command text
+    llm_error: bool        # CR-3: True when a live API call failed this
+                           # request — suppresses second blocking LLM calls
+                           # (Berthier recovery, CR-2 forced retry)
 ```
 
 ### Confidence Threshold
@@ -307,7 +320,9 @@ Cost = (500 * $0.25 + 200 * $1.25) / 1,000,000
 
 ### Improving LLM Accuracy
 
-1. Add examples to `EXAMPLE_COMMANDS` in `prompt_builder.py`
+1. Add a template to `FEW_SHOT_TEMPLATES` in `prompt_builder.py`
+   (placeholders {m1}/{m2}/{enemy}/{enemy_target}/{region}/{region2}/{nation}
+   render against the live rosters — never hardcode roster names)
 2. Adjust scoring guide in prompt
 3. Consider fine-tuning for production (Phase 6+)
 

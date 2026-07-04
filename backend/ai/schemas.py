@@ -69,6 +69,11 @@ class ParseResult:
     confidence: float = 0.9
     mode: str = "mock"
     key_source: str = "none"  # "none", "inhouse", or "byok"
+    # CR-3: True when a live-provider call was attempted and FAILED at the
+    # API layer (timeout/HTTP error/connection). Downstream recovery layers
+    # must not fire a second blocking LLM call in the same request (the
+    # Berthier recovery call stacked ~5s on top of the ~5s parse timeout).
+    llm_error: bool = False
     target_stance: Optional[str] = None
     raw_command: str = ""
     type: Optional[str] = None  # Special type marker (e.g., "debug")
@@ -140,6 +145,11 @@ class ParseResult:
             result["cheat_type"] = self.cheat_type
             result["cheat_args"] = self.cheat_args
 
+        # CR-3: only emitted when a live API call actually failed — keeps
+        # the dict shape unchanged for the overwhelmingly common case.
+        if self.llm_error:
+            result["llm_error"] = True
+
         return result
 
     @classmethod
@@ -178,6 +188,7 @@ class ParseResult:
             interpreted_target=data.get("interpreted_target"),
             interpretation_reason=data.get("interpretation_reason"),
             alternatives=data.get("alternatives", []),
+            llm_error=data.get("llm_error", False),
         )
 
 

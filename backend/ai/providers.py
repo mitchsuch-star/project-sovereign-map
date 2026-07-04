@@ -90,14 +90,130 @@ ANTHROPIC_API_ENDPOINT = "https://api.anthropic.com/v1/messages"
 # API version header required by Anthropic
 ANTHROPIC_API_VERSION = "2023-06-01"
 
-# Request timeout in seconds
-# 5 seconds is reasonable for parsing requests (~500 tokens)
-# Longer timeouts would block the game too long
+# Request timeout in seconds.
+# CR-3 measured on claude-haiku-4-5 with the ~5K-token 1805 prompt:
+# live parse calls complete in 1-3s, so 5s keeps comfortable headroom
+# while still bounding how long a parse can block the game loop.
 REQUEST_TIMEOUT_SECONDS = 5.0
 
 
 # =============================================================================
-# JSON PARSING HELPER
+# PARSE TOOL (CR-3): forced tool-use structured output
+# =============================================================================
+# The parse request forces the model to call this tool
+# (tool_choice={"type": "tool"}), so the parse arrives as an already-parsed
+# JSON object in the tool_use block's "input" — the old 3-way brace
+# extraction over free text survives only as a defensive fallback. The
+# schema is deliberately NOT strict-mode: validate_parse_result() remains
+# the deterministic enforcement seam (Golden Rule 6), and every consumer
+# reads fields with .get() defaults.
+#
+# NOTE: no "dialogue" property — the field had no consumer (July 2026 AI
+# audit item b) and burned output tokens on every live parse. A marshal
+# reply echoing the player's words is the Flavor Echoing candidate parked
+# at the CR-5 gate review (COMMAND_ROBUSTNESS_SPEC.md §4); do not re-add
+# it here ahead of that decision.
+
+PARSE_TOOL_NAME = "submit_parsed_command"
+
+PARSE_TOOL = {
+    "name": PARSE_TOOL_NAME,
+    "description": (
+        "Submit the structured interpretation of the player's command. "
+        "Always call this tool exactly once with your best parse."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "matched": {
+                "type": "boolean",
+                "description": "False only when the command cannot be "
+                               "interpreted as any game order.",
+            },
+            "command_type": {
+                "type": "string",
+                "description": "tactical | strategic | diplomatic",
+            },
+            "marshals": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Executing marshal(s) from Your Marshals; "
+                               "empty when no marshal can be determined.",
+            },
+            "action": {
+                "type": "string",
+                "description": "One of the Valid Actions listed in the prompt.",
+            },
+            "target": {
+                "type": ["string", "null"],
+                "description": "Enemy commander, region name, or 'generic'.",
+            },
+            "target_stance": {
+                "type": ["string", "null"],
+                "description": "Only for stance_change: aggressive | "
+                               "defensive | neutral.",
+            },
+            "is_strategic": {"type": "boolean"},
+            "strategic_type": {
+                "type": ["string", "null"],
+                "description": "MOVE_TO | PURSUE | HOLD | SUPPORT",
+            },
+            "strategic_condition": {
+                "type": ["object", "null"],
+                "description": "e.g. {\"until_marshal_arrives\": \"Ney\"} — "
+                               "keys per the prompt's Conditions list.",
+            },
+            "ambiguity": {
+                "type": "integer",
+                "description": "0-100 per the prompt's Ambiguity Scoring rubric.",
+            },
+            "strategic_score": {
+                "type": "integer",
+                "description": "0-100 per the prompt's Strategic Score rubric.",
+            },
+            "interpretation": {
+                "type": "string",
+                "description": "One-line human-readable reading of the order.",
+            },
+            "suggestion": {
+                "type": ["string", "null"],
+                "description": "Optional clarification question or "
+                               "rephrasing hint for ambiguous commands.",
+            },
+            "diplomatic_data": {
+                "type": ["object", "null"],
+                "description": "Only for diplomatic commands.",
+                "properties": {
+                    "action": {"type": "string"},
+                    "target_nation": {"type": ["string", "null"]},
+                    "proposal_type": {"type": ["string", "null"]},
+                    "mission_type": {"type": ["string", "null"]},
+                    "is_question": {"type": "boolean"},
+                    "tone": {"type": "string"},
+                },
+            },
+        },
+        "required": ["matched", "marshals", "action", "ambiguity",
+                     "strategic_score", "interpretation"],
+    },
+}
+
+# CR-3(a): strategic verbs the LLM may legitimately return (VALID_ACTIONS
+# accepts them) but the executor has no dispatch for — they dead-ended as
+# raw "Unknown action" (July 2026 AI audit). Remap to the tactical base
+# action the mock parser emits for the same phrasing; the deterministic
+# strategic detector (detect_strategic_command, parser.py step 4) still
+# decides the actual multi-turn upgrade from the raw text (Golden Rule 6).
+LLM_STRATEGIC_ACTION_REMAP = {
+    "pursue": "attack",
+    "march": "move",
+    "support": "move",
+    "reinforce": "move",
+}
+
+
+# =============================================================================
+# JSON PARSING HELPER (fallback path only, post-CR-3)
 # =============================================================================
 
 def parse_llm_json_response(response_text: str) -> Optional[Dict]:
@@ -107,6 +223,10 @@ def parse_llm_json_response(response_text: str) -> Optional[Dict]:
     LLMs sometimes return JSON wrapped in markdown code blocks,
     or with explanatory text before/after. This function handles
     all those cases.
+
+    CR-3: the primary parse path now forces a tool call and reads the
+    already-parsed tool input; this survives as the defensive fallback for
+    a response that somehow carries text instead of the forced tool_use.
 
     Args:
         response_text: Raw text response from LLM
@@ -163,11 +283,16 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
         # Handle case where LLM returns string instead of list
         marshals = [marshals] if marshals else []
 
+    # CR-3(a): normalize LLM strategic verbs to their executor-dispatchable
+    # tactical base actions ("pursue" → "attack"); see LLM_STRATEGIC_ACTION_REMAP.
+    action = json_data.get("action", "unknown")
+    action = LLM_STRATEGIC_ACTION_REMAP.get(action, action)
+
     return ParseResult(
         matched=json_data.get("matched", False),
         command_type=json_data.get("command_type", "tactical"),
         marshals=marshals,
-        action=json_data.get("action", "unknown"),
+        action=action,
         target=json_data.get("target"),
         target_stance=json_data.get("target_stance"),
         standing_order=json_data.get("standing_order"),
@@ -268,23 +393,34 @@ class AnthropicProvider(BaseProvider):
     Anthropic Claude API provider.
 
     Makes HTTP calls to the Anthropic Messages API to parse natural language
-    commands into structured game actions.
+    commands into structured game actions. The parse request forces a
+    tool call (CR-3) so the result arrives as structured JSON — no free-text
+    JSON extraction on the primary path.
 
     API Documentation: https://docs.anthropic.com/en/api/messages
 
-    Cost Estimation (claude-3-haiku):
-        - Input: ~$0.25 / 1M tokens
-        - Output: ~$1.25 / 1M tokens
-        - Per request: ~500 input + ~200 output = ~$0.0004 per parse
-        - 1000 commands ≈ $0.40
+    Cost Estimation (claude-haiku-4-5):
+        - Input: ~$1.00 / 1M tokens
+        - Output: ~$5.00 / 1M tokens
+        - Per parse: ~5K input + ~300 output ≈ $0.0065 (measured on the
+          126-province 1805 boot, CR-3 live probe)
+        - 1000 commands ≈ $6.50 — and only low-confidence fast parses
+          ever reach the LLM at all (the 0.7 gate in llm_client.py).
     """
 
     def __init__(self):
         super().__init__(ProviderConfig(
             name="anthropic",
             api_key_env="ANTHROPIC_API_KEY",
-            model="claude-3-haiku-20240307",  # Fast, cheap model for parsing
-            max_tokens=500,
+            # CR-3 pin refresh: claude-3-haiku-20240307 is deprecated
+            # (retires Apr 19, 2026); claude-haiku-4-5 is its documented
+            # drop-in replacement — same fast/cheap tier this parser needs.
+            model="claude-haiku-4-5",
+            # 1000, not 500 (CR-3 review fix): measured tool-call outputs
+            # already reach ~300 tokens; a verbose interpretation +
+            # suggestion could truncate the forced tool call mid-input at
+            # 500, which surfaces as an undetectable no-parse.
+            max_tokens=1000,
             temperature=0.3,
         ))
 
@@ -377,12 +513,14 @@ class AnthropicProvider(BaseProvider):
         print(f"AnthropicProvider: Calling API for '{command_text[:50]}...'")
 
         # =================================================================
-        # STEP 3: Make API request
+        # STEP 3: Make API request — forced tool call (CR-3)
         # =================================================================
-        response_text, error = self._make_api_request(system_prompt, user_prompt)
+        json_data, error = self._make_parse_request(system_prompt, user_prompt)
 
         if error:
-            # Error already logged in _make_api_request
+            # Error already logged in _post_messages. llm_error=True tells
+            # downstream recovery layers (Berthier, CR-2 retry) not to fire
+            # a SECOND blocking LLM call in the same request (audit item c).
             return ParseResult(
                 matched=False,
                 action="unknown",
@@ -390,21 +528,20 @@ class AnthropicProvider(BaseProvider):
                 mode="anthropic",
                 interpretation=f"API error: {error}",
                 confidence=0.0,
+                llm_error=True,
             )
 
-        # =================================================================
-        # STEP 4: Parse JSON from response
-        # =================================================================
-        json_data = parse_llm_json_response(response_text)
-
         if json_data is None:
-            print("AnthropicProvider: Failed to parse JSON from response")
+            # Model responded but produced no usable parse (should be
+            # impossible with forced tool_choice; text fallback also failed).
+            # NOT an API error — the provider is reachable.
+            print("AnthropicProvider: No structured parse in response")
             return ParseResult(
                 matched=False,
                 action="unknown",
                 raw_command=command_text,
                 mode="anthropic",
-                interpretation="LLM response was not valid JSON",
+                interpretation="LLM response carried no structured parse",
                 confidence=0.0,
             )
 
@@ -419,49 +556,35 @@ class AnthropicProvider(BaseProvider):
 
         return result
 
-    def _make_api_request(
+    def _post_messages(
         self,
-        system_prompt: str,
-        user_prompt: str
-    ) -> Tuple[Optional[str], Optional[str]]:
+        body: Dict,
+    ) -> Tuple[Optional[Dict], Optional[str]]:
         """
-        Make HTTP request to Anthropic Messages API.
+        POST a Messages API request body and return the parsed response JSON.
 
-        This method handles all HTTP communication and error handling.
-        It NEVER raises exceptions - all errors are returned as (None, error_msg).
-
-        Args:
-            system_prompt: System message for Claude
-            user_prompt: User message with command and context
+        Shared HTTP + error layer for both request shapes (text-mode Berthier
+        recovery, tool-mode parse). NEVER raises — all errors are returned
+        as (None, error_msg).
 
         Returns:
-            Tuple of (response_text, error_message):
-                - Success: (response_text, None)
+            Tuple of (response_json, error_message):
+                - Success: (response_json, None)
                 - Failure: (None, error_description)
         """
         api_key = self.get_api_key()
 
-        # Build request
         headers = {
             "x-api-key": api_key,
             "content-type": "application/json",
             "anthropic-version": ANTHROPIC_API_VERSION,
         }
 
-        body = {
-            "model": self.config.model,
-            "max_tokens": self.config.max_tokens,
-            "system": system_prompt,
-            "messages": [
-                {"role": "user", "content": user_prompt}
-            ]
-        }
-
         # Log request (without API key!)
         print(f"AnthropicProvider: POST {ANTHROPIC_API_ENDPOINT}")
-        print(f"AnthropicProvider: model={self.config.model}, "
-              f"max_tokens={self.config.max_tokens}, "
-              f"prompt_len={len(user_prompt)}")
+        print(f"AnthropicProvider: model={body.get('model')}, "
+              f"max_tokens={body.get('max_tokens')}, "
+              f"tool_mode={'tools' in body}")
 
         try:
             # Make request with timeout
@@ -499,18 +622,6 @@ class AnthropicProvider(BaseProvider):
                 print(f"AnthropicProvider: Failed to parse response JSON: {e}")
                 return None, "Invalid JSON in response"
 
-            # Extract text content
-            # Response format: {"content": [{"type": "text", "text": "..."}], ...}
-            content = response_json.get("content", [])
-            if not content or not isinstance(content, list):
-                print("AnthropicProvider: No content in response")
-                return None, "No content in response"
-
-            text_content = content[0].get("text", "")
-            if not text_content:
-                print("AnthropicProvider: Empty text in response")
-                return None, "Empty text in response"
-
             # Log token usage if available
             usage = response_json.get("usage", {})
             if usage:
@@ -518,7 +629,7 @@ class AnthropicProvider(BaseProvider):
                 output_tokens = usage.get("output_tokens", 0)
                 print(f"AnthropicProvider: Tokens used - input={input_tokens}, output={output_tokens}")
 
-            return text_content, None
+            return response_json, None
 
         except httpx.TimeoutException:
             print(f"AnthropicProvider: ERROR - Request timed out after {REQUEST_TIMEOUT_SECONDS}s")
@@ -532,6 +643,112 @@ class AnthropicProvider(BaseProvider):
             # Catch-all for unexpected errors
             print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
             return None, f"Unexpected error: {type(e).__name__}"
+
+    def _make_api_request(
+        self,
+        system_prompt: str,
+        user_prompt: str
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Text-mode Messages API request (Berthier recovery path).
+
+        Kept with its original (text, error) contract —
+        llm_client.generate_berthier_recovery calls this directly.
+
+        Returns:
+            Tuple of (response_text, error_message):
+                - Success: (response_text, None)
+                - Failure: (None, error_description)
+        """
+        body = {
+            "model": self.config.model,
+            "max_tokens": self.config.max_tokens,
+            "system": system_prompt,
+            "messages": [
+                {"role": "user", "content": user_prompt}
+            ]
+        }
+
+        response_json, error = self._post_messages(body)
+        if error:
+            return None, error
+
+        # Extract text content
+        # Response format: {"content": [{"type": "text", "text": "..."}], ...}
+        content = response_json.get("content", [])
+        if not content or not isinstance(content, list):
+            print("AnthropicProvider: No content in response")
+            return None, "No content in response"
+
+        text_content = ""
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text_content = block.get("text", "")
+                break
+        if not text_content:
+            print("AnthropicProvider: Empty text in response")
+            return None, "Empty text in response"
+
+        return text_content, None
+
+    def _make_parse_request(
+        self,
+        system_prompt: str,
+        user_prompt: str
+    ) -> Tuple[Optional[Dict], Optional[str]]:
+        """
+        Tool-mode Messages API request (CR-3 structured parse path).
+
+        Forces the model to call PARSE_TOOL — the parse arrives as an
+        already-parsed JSON object in the tool_use block's "input", so
+        malformed-JSON failures are structurally impossible on this path.
+
+        Returns:
+            Tuple of (parse_dict, error_message):
+                - Success: (tool input dict, None)
+                - Model returned no usable parse: (None, None)
+                - API failure: (None, error_description)
+        """
+        body = {
+            "model": self.config.model,
+            "max_tokens": self.config.max_tokens,
+            "system": system_prompt,
+            "messages": [
+                {"role": "user", "content": user_prompt}
+            ],
+            "tools": [PARSE_TOOL],
+            "tool_choice": {"type": "tool", "name": PARSE_TOOL_NAME},
+        }
+
+        response_json, error = self._post_messages(body)
+        if error:
+            return None, error
+
+        content = response_json.get("content", [])
+        if not isinstance(content, list):
+            return None, None
+
+        # Primary: the forced tool call
+        for block in content:
+            if (isinstance(block, dict)
+                    and block.get("type") == "tool_use"
+                    and block.get("name") == PARSE_TOOL_NAME
+                    and isinstance(block.get("input"), dict)):
+                return block["input"], None
+
+        # Defensive fallback: a text block carrying JSON (should not happen
+        # with forced tool_choice, but never crash the pipeline over it)
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                json_data = parse_llm_json_response(block.get("text", ""))
+                if json_data is not None:
+                    # ASCII-only print (CR-1: non-cp1252 chars in live-path
+                    # prints crashed parses on Windows consoles)
+                    print("AnthropicProvider: tool_use missing; parsed JSON "
+                          "from text fallback")
+                    return json_data, None
+
+        return None, None
 
 
 class GroqProvider(BaseProvider):

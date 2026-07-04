@@ -1268,6 +1268,9 @@ def execute_command(request: CommandRequest):
                         "recognized_target": parsed.get("partial_target"),
                         "raw_input": parsed.get("raw_input", command_text),
                     },
+                    # CR-3(c): the parse-stage LLM call already failed —
+                    # don't stack a second blocking call on this request
+                    skip_llm=bool(parsed.get("llm_error")),
                 )
                 return build_base_response(
                     world, success=False, message=berthier_msg,
@@ -1322,6 +1325,7 @@ def execute_command(request: CommandRequest):
                     "recognized_target": parsed.get("command", {}).get("target"),
                     "raw_input": command_text,
                 },
+                skip_llm=bool(parsed.get("llm_error")),  # CR-3(c)
             )
             return build_base_response(
                 world, success=False, message=berthier_msg,
