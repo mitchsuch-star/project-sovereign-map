@@ -5532,13 +5532,17 @@ class WorldState:
         """
         Add command to history (sliding window of 50).
 
-        Only called in LLM mode (not mock mode) for repetition detection.
+        Recorded in BOTH mock and live modes (CR-4): the live LLM prompt
+        reads it for repetition detection, and CR-4 context carryover
+        ("again"/"same target"/"him"/"there"/"not you, X") resolves
+        references against it — carryover must work in mock mode too.
 
         Args:
             command: {
-                "raw_input": str,      # Original player text
-                "marshal": str,        # Marshal name or None
+                "raw_input": str,      # Original (resolved) player text
+                "marshal": str,        # Parsed marshal name or None
                 "action": str,         # Parsed action
+                "target": str,         # Parsed target or None (CR-4)
                 "turn": int,           # Current turn number
             }
         """
@@ -5551,7 +5555,7 @@ class WorldState:
         return self.command_history[-n:]
 
     def get_command_history_for_prompt(self) -> List[str]:
-        """Get raw_input strings for LLM prompt (last 5)."""
+        """Get raw_input strings for the live LLM prompt (last 5)."""
         return [cmd["raw_input"] for cmd in self.command_history[-5:]]
 
     # ========================================

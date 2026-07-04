@@ -1112,6 +1112,40 @@ def execute_command(request: CommandRequest):
                         m.name, interrupt_type, choice, world, game_state)
                     return _build_result_response(result, world)
 
+        # ════════════════════════════════════════════════════════════
+        # CR-4: CONTEXT CARRYOVER — resolve shorthand references ("again",
+        # "same target", "him"/"there", "not you, Davout") against the
+        # command history BEFORE the parser sees them (Golden Rule 6: the
+        # rewrite is fully deterministic). A reference with nothing to
+        # resolve against gets a helpful in-character reply rather than a
+        # confusing parse failure. Runs after the clarification-answer and
+        # interrupt steps so those terse answers are never treated as
+        # references.
+        # ════════════════════════════════════════════════════════════
+        from backend.commands.context_carryover import (
+            resolve_context_references,
+            try_focus_reissue,
+        )
+        # Safe during a pending diplomatic dialogue too: a terse decline
+        # ("no"/"nope"/"not you") with no resolvable marshal falls through as
+        # a pass, so it still reaches the dialogue routing; only an explicit
+        # reference ("again", "not you, Davout") rewrites — and the resolved
+        # military command is then blocked by any hard-stop just as the raw
+        # input would be. (Objection answers use /respond_to_objection.)
+        carryover = resolve_context_references(command_text, world)
+        if carryover["kind"] == "error":
+            return build_base_response(
+                world, success=False, message=carryover["message"],
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
+        if carryover["kind"] == "rewrite":
+            print(f"[CARRYOVER] '{command_text}' -> '{carryover['command']}'")
+            command_text = carryover["command"]
+
         # Parse command
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
@@ -1126,14 +1160,24 @@ def execute_command(request: CommandRequest):
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════
-        # COMMAND HISTORY (Phase 5): Track commands for LLM repetition detection
-        # Only in LLM mode (not mock) and only for successfully parsed commands
+        # COMMAND HISTORY: Track parsed commands for LLM repetition detection
+        # (live-mode prompt) AND CR-4 context carryover ("again"/"same
+        # target"/"him"/"there"/"not you, X"). CR-4 decision: record in BOTH
+        # mock and live modes — carryover must resolve with the fast/mock
+        # parser too, and the live-only repetition prompt is unaffected.
+        # ``target`` is recorded (CR-4) so "same target"/"him"/"there" and
+        # "not you, X" reconstruction have an objective to reference. Skipped
+        # while a diplomatic dialogue awaits an answer — a dialogue response
+        # that happens to parse as a valid action ("garrison", "continue")
+        # must not be recorded as a phantom field order.
         # ════════════════════════════════════════════════════════════
-        if parsed.get("mode") != "mock" and parsed.get("success"):
+        if parsed.get("success") and world.pending_diplomatic_dialogue is None:
+            _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
                 "raw_input": command_text,
-                "marshal": parsed.get("command", {}).get("marshal"),
-                "action": parsed.get("command", {}).get("action"),
+                "marshal": _parsed_command.get("marshal"),
+                "action": _parsed_command.get("action"),
+                "target": _parsed_command.get("target"),
                 "turn": int(world.current_turn),
             })
 
@@ -1308,33 +1352,51 @@ def execute_command(request: CommandRequest):
         # options; Berthier prose remains the no-candidate fallback.
         # ════════════════════════════════════════════════════════════
         if not result.get("success") and "Marshal 'None' not found" in (result.get("message") or ""):
+            # CR-4: PERSISTENT COMMAND FOCUS — a bare specific order ("hold",
+            # "move to Vienna") defaults to the marshal the player is already
+            # commanding instead of re-asking. Only fires at this seam (the
+            # missing-executor case), so it never overrides an explicitly-
+            # addressed marshal or a general/auto-assign order; falls through
+            # to the CR-2 clarification when no eligible focus exists.
+            focus_handled = False
             if parsed.get("success"):
-                marshal_clarification = build_marshal_choice_clarification(
-                    world, parsed, command_text)
-                if marshal_clarification is not None:
-                    marshal_clarification["clarification_registered"] = (
-                        register_pending_clarification(
-                            world, marshal_clarification, command_text))
-                    print("[CLARIFICATION] Marshal-choice question -> frontend")
-                    return _build_result_response(marshal_clarification, world)
-            berthier_msg = parser.llm.generate_berthier_recovery(
-                raw_command=command_text,
-                game_state=llm_game_state,
-                partial_parse={
-                    "recognized_marshal": None,
-                    "recognized_target": parsed.get("command", {}).get("target"),
-                    "raw_input": command_text,
-                },
-                skip_llm=bool(parsed.get("llm_error")),  # CR-3(c)
-            )
-            return build_base_response(
-                world, success=False, message=berthier_msg,
-                action_info={
-                    "cost": 0,
-                    "remaining": int(world.actions_remaining),
-                    "turn_advanced": False,
-                    "new_turn": None,
-                })
+                focus_outcome = try_focus_reissue(
+                    world, parser, executor, parsed, command_text,
+                    game_state, llm_game_state)
+                if focus_outcome is not None:
+                    parsed, command_text, result = focus_outcome
+                    print(f"[FOCUS] Reissued bare order to "
+                          f"{parsed.get('command', {}).get('marshal')}")
+                    focus_handled = True
+
+            if not focus_handled:
+                if parsed.get("success"):
+                    marshal_clarification = build_marshal_choice_clarification(
+                        world, parsed, command_text)
+                    if marshal_clarification is not None:
+                        marshal_clarification["clarification_registered"] = (
+                            register_pending_clarification(
+                                world, marshal_clarification, command_text))
+                        print("[CLARIFICATION] Marshal-choice question -> frontend")
+                        return _build_result_response(marshal_clarification, world)
+                berthier_msg = parser.llm.generate_berthier_recovery(
+                    raw_command=command_text,
+                    game_state=llm_game_state,
+                    partial_parse={
+                        "recognized_marshal": None,
+                        "recognized_target": parsed.get("command", {}).get("target"),
+                        "raw_input": command_text,
+                    },
+                    skip_llm=bool(parsed.get("llm_error")),  # CR-3(c)
+                )
+                return build_base_response(
+                    world, success=False, message=berthier_msg,
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result
