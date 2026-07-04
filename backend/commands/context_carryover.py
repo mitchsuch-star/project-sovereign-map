@@ -107,14 +107,45 @@ _SAME_PLACE_NOUNS = frozenset({"place", "position", "province", "city", "town", 
 _PERSON_PRONOUN_RE = re.compile(r'\b(?:him|her|them)\b', re.IGNORECASE)
 _PLACE_DEIXIS_RE = re.compile(r'\bthere\b', re.IGNORECASE)
 
+# A person pronoun / "there" is only a REFERENCE when it sits in object /
+# destination position — immediately after a targeting or movement verb (or
+# an object/destination preposition). Anchoring on the preceding word blocks
+# the expletive/partitive/phrasal false positives the substitution would
+# otherwise mangle ("is there time" -> "is <region> time"; "all of them" ->
+# "all of <enemy>"; "hold them off" -> "hold <enemy> off").
+_TARGETING_ANCHORS = frozenset({
+    "attack", "charge", "engage", "assault", "storm", "pursue", "hunt",
+    "chase", "hound", "intercept", "bombard", "shell", "cannonade", "scout",
+    "hit", "strike", "rout", "ambush", "flank", "harry", "smash", "crush",
+    "destroy", "defeat", "against", "at", "on", "upon", "toward", "towards",
+})
+_MOVEMENT_ANCHORS = frozenset({
+    "move", "march", "go", "head", "advance", "retreat", "deploy", "sail",
+    "ride", "redeploy", "reinforce", "station", "hold", "defend", "garrison",
+    "fortify", "attack", "scout", "pursue", "regroup", "rally", "to",
+    "toward", "towards", "at", "into",
+})
+
 # Multi-marshal / collective addressees — focus must NOT silently collapse
 # these to a single marshal (finding-3). Bare "all" is deliberately excluded
 # ("hold at all costs" is a single-position order, not a collective).
 _COLLECTIVE_RE = re.compile(
-    r'\b(?:everyone|everybody|every\s+marshal|each\s+marshal'
-    r'|all\s+(?:marshals?|forces|units|of\s+them|of\s+you)'
-    r'|the\s+(?:whole|entire)\s+army)\b',
+    r'\b(?:'
+    r'everyone|everybody'
+    r'|every\s+marshal|each\s+marshal'
+    r'|both(?:\s+marshals?)?'
+    r'|all\s+(?:marshals?|forces|units|corps|troops|of\s+(?:them|you|our|the))'
+    r'|(?:the|our)\s+(?:whole\s+|entire\s+)?(?:army|corps|host|forces|men|troops)'
+    r'|(?:whole|entire)\s+army'
+    r')\b',
     re.IGNORECASE)
+
+
+def _preceding_word(text: str, index: int) -> Optional[str]:
+    """The alphabetic word immediately before ``index`` (lowercased), skipping
+    intervening whitespace/punctuation — or None at the start of the string."""
+    match = re.search(r"([A-Za-z']+)[\s,;:.!?]*$", text[:index])
+    return match.group(1).lower() if match else None
 
 
 # ── history accessors ────────────────────────────────────────────────────
@@ -311,20 +342,29 @@ def resolve_context_references(command_text: str, world) -> Dict:
                     "message": 'Berthier: "There is no previous objective to '
                                'reuse, Sire — name the target."'}
 
-    if _PERSON_PRONOUN_RE.search(working):
-        # Person pronouns resolve ONLY to the last enemy — never to a stray
-        # region (finding-5). No enemy on record -> leave the pronoun for the
-        # parser rather than substituting a province.
-        enemy = _last_enemy_target(world)
-        if enemy:
-            working = _PERSON_PRONOUN_RE.sub(enemy, working, count=1)
-            changed = True
+    # Person pronouns resolve ONLY to the last enemy (never a stray region —
+    # finding-5) and only in object position after a targeting verb/preposition
+    # (finding-2: not "all of them", "hold them off", "get them all").
+    for person_match in _PERSON_PRONOUN_RE.finditer(working):
+        if _preceding_word(working, person_match.start()) in _TARGETING_ANCHORS:
+            enemy = _last_enemy_target(world)
+            if enemy:
+                working = (working[:person_match.start()] + enemy
+                           + working[person_match.end():])
+                changed = True
+            break
 
-    if _PLACE_DEIXIS_RE.search(working):
-        referent = _resolve_there(world)
-        if referent:
-            working = _PLACE_DEIXIS_RE.sub(referent, working, count=1)
-            changed = True
+    # "there" resolves only in destination position after a movement/positional
+    # verb or "to"/"at"/"into" (finding-1: not the expletive "is there time" or
+    # filler "stop right there").
+    for there_match in _PLACE_DEIXIS_RE.finditer(working):
+        if _preceding_word(working, there_match.start()) in _MOVEMENT_ANCHORS:
+            referent = _resolve_there(world)
+            if referent:
+                working = (working[:there_match.start()] + referent
+                           + working[there_match.end():])
+                changed = True
+            break
 
     if changed:
         return {"kind": "rewrite", "command": working.strip()}

@@ -1166,12 +1166,28 @@ def execute_command(request: CommandRequest):
         # mock and live modes — carryover must resolve with the fast/mock
         # parser too, and the live-only repetition prompt is unaffected.
         # ``target`` is recorded (CR-4) so "same target"/"him"/"there" and
-        # "not you, X" reconstruction have an objective to reference. Skipped
-        # while a diplomatic dialogue awaits an answer — a dialogue response
-        # that happens to parse as a valid action ("garrison", "continue")
-        # must not be recorded as a phantom field order.
+        # "not you, X" reconstruction have an objective to reference. Recorded
+        # only when the command will execute as a REAL field order — NOT when
+        # it is consumed as a dialogue answer (a response that happens to
+        # parse as a valid action must not be recorded as a phantom order).
+        # A soft-stop mailbox dialogue (incoming proposal / settlement offer)
+        # does not block ordinary orders, so an order typed while one is
+        # pending still executes (soft-stop pass-through) and MUST be recorded;
+        # only inputs matching the dialogue's own options are answers.
         # ════════════════════════════════════════════════════════════
-        if parsed.get("success") and world.pending_diplomatic_dialogue is None:
+        _consumed_as_dialogue_answer = False
+        if world.pending_diplomatic_dialogue is not None:
+            if world.dialogue_manager.is_hard_stop():
+                _consumed_as_dialogue_answer = True
+            else:
+                _raw_lower = command_text.lower()
+                for _opt in world.pending_diplomatic_dialogue.get("options", []):
+                    _lbl = (_opt.get("label") or "").lower().strip()
+                    _act = (_opt.get("action") or "").lower().strip()
+                    if (_lbl and _lbl in _raw_lower) or (_act and _act in _raw_lower):
+                        _consumed_as_dialogue_answer = True
+                        break
+        if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
                 "raw_input": command_text,
@@ -1368,6 +1384,16 @@ def execute_command(request: CommandRequest):
                     print(f"[FOCUS] Reissued bare order to "
                           f"{parsed.get('command', {}).get('marshal')}")
                     focus_handled = True
+                    # CR-4 (audit): the parser-warning surfacing block ran
+                    # above on the OLD (failed) result, so the reissued
+                    # command's own warning (e.g. the sequential-clause drop
+                    # note) would be lost — re-surface it here so a focus
+                    # reissue matches an explicitly-addressed order.
+                    if result.get("success") and parsed.get("warning"):
+                        result["message"] = (
+                            f"{result.get('message') or ''}\n\n"
+                            f"Berthier: \"{parsed['warning']}\""
+                        ).strip()
 
             if not focus_handled:
                 if parsed.get("success"):

@@ -248,6 +248,32 @@ class TestPronouns:
         out = resolve_context_references("Davout, attack him", world)
         assert out["kind"] == "pass"
 
+    @pytest.mark.parametrize("cmd", [
+        "attack all of them", "hold them off", "get them all",
+        "cut them down", "all of them fortify",
+    ])
+    def test_partitive_phrasal_pronoun_not_mangled(self, world, cmd):
+        # Audit finding-2: a pronoun NOT in object position after a targeting
+        # verb must not be substituted (would mangle the command).
+        seed(world, _order("Ney, attack Wellington", "Ney", "attack", "Wellington"))
+        assert resolve_context_references(cmd, world)["kind"] == "pass"
+
+    def test_object_preposition_anchors_pronoun(self, world):
+        seed(world, _order("Ney, attack Wellington", "Ney", "attack", "Wellington"))
+        out = resolve_context_references("defend against them", world)
+        assert out["kind"] == "rewrite"
+        assert out["command"] == "defend against Wellington"
+
+    @pytest.mark.parametrize("cmd", [
+        "is there time to attack", "there is no time, attack",
+        "stop right there", "wait there for orders",
+    ])
+    def test_expletive_filler_there_not_substituted(self, world, cmd):
+        # Audit finding-1: "there" as an expletive/filler must not be rewritten
+        # into a province (fabricated-target regression).
+        seed(world, _order("Ney, move to Belgium", "Ney", "move", "Belgium"))
+        assert resolve_context_references(cmd, world)["kind"] == "pass"
+
 
 # ════════════════════════════════════════════════════════════════════════
 # Pass-through — plain commands are untouched
@@ -429,12 +455,55 @@ class TestFocusEndpoint:
         assert data["success"] is True
         assert m.world.command_history[-1]["marshal"] == "Grouchy"
 
-    def test_collective_order_not_hijacked_by_focus(self, endpoint):
-        # "all marshals fortify" is a multi-marshal intent — focus must NOT
-        # collapse it to the single focus marshal (finding-3); it falls
-        # through to the CR-2 clarification instead.
+    @pytest.mark.parametrize("collective", [
+        "all marshals fortify", "both marshals fortify", "the army fortify",
+        "everyone fortify",
+    ])
+    def test_collective_order_not_hijacked_by_focus(self, endpoint, collective):
+        # A multi-marshal intent — focus must NOT collapse it to the single
+        # focus marshal (finding-3 + audit fix); it falls through to the CR-2
+        # clarification instead.
         client, m = endpoint
         client.post("/command", json={"command": "Ney, scout Belgium"})
-        data = client.post("/command", json={"command": "all marshals fortify"}).json()
+        data = client.post("/command", json={"command": collective}).json()
         assert data.get("state") == "awaiting_clarification"
-        assert m.world.command_history[-1]["raw_input"] != "Ney, all marshals fortify"
+        assert m.world.command_history[-1]["raw_input"] != f"Ney, {collective}"
+
+    def test_focus_reissue_surfaces_dropped_sequel_warning(self, endpoint):
+        # Audit finding-3: a focus-reissued sequential order must still report
+        # its dropped tail, matching an explicitly-addressed order.
+        client, m = endpoint
+        client.post("/command", json={"command": "Grouchy, hold"})
+        data = client.post(
+            "/command", json={"command": "fortify then scout Paris"}).json()
+        assert data["success"] is True
+        assert "scout Paris" in data["message"]
+
+
+class TestSoftStopRecording:
+    def test_real_order_recorded_during_soft_stop_dialogue(self, endpoint):
+        # Audit finding-4: a soft-stop mailbox dialogue does not block orders,
+        # so an order typed while one is pending MUST still be recorded.
+        client, m = endpoint
+        m.world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "options": [{"label": "Accept", "action": "accept"},
+                        {"label": "Reject", "action": "reject"}],
+        })
+        assert not m.world.dialogue_manager.is_hard_stop()
+        before = len(m.world.command_history)
+        client.post("/command", json={"command": "Ney, attack Wellington"})
+        assert len(m.world.command_history) == before + 1
+        assert m.world.command_history[-1]["marshal"] == "Ney"
+
+    def test_dialogue_answer_not_recorded_as_phantom(self, endpoint):
+        # The complement: an input that IS a dialogue answer is not recorded.
+        client, m = endpoint
+        m.world.dialogue_manager.push({
+            "type": "incoming_proposal",
+            "options": [{"label": "Accept", "action": "accept"},
+                        {"label": "Reject", "action": "reject"}],
+        })
+        before = len(m.world.command_history)
+        client.post("/command", json={"command": "accept"})
+        assert len(m.world.command_history) == before
