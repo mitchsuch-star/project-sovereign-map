@@ -102,6 +102,11 @@ class DialogueManager:
         "feasibility",
         "ultimatum_confirm",
         "conflict_alert",
+        # CR-2: one-question command clarification ("Which marshal, Sire?").
+        # Registered ONLY from main.py's player-command path (never for AI
+        # commands); any next typed input consumes it, and clear_stale
+        # dismisses a lingering one at the next turn boundary.
+        "command_clarification",
     })
 
     # Single source of truth for dialogue priority (lower = higher priority).

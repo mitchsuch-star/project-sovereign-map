@@ -1227,21 +1227,35 @@ class CommandExecutor:
                     alternatives = parsed_command.get("alternatives", [])
                     strategic_type = parsed_command.get("strategic_type", "unknown")
 
+                    # CR-2: options carry the full reissue command so the
+                    # popup and typed answers resolve identically
+                    from backend.commands.clarification import strategic_reissue_command
+
                     options = []
                     if interpreted:
                         options.append({
                             "label": f"Yes, {interpreted}",
                             "value": "confirm",
-                            "target": interpreted
+                            "target": interpreted,
+                            "command": strategic_reissue_command(
+                                cl_marshal.name, strategic_type, interpreted),
                         })
                     for alt in alternatives[:2]:
                         options.append({
                             "label": f"No, {alt}",
                             "value": "specify",
-                            "target": alt
+                            "target": alt,
+                            "command": strategic_reissue_command(
+                                cl_marshal.name, strategic_type, alt),
                         })
                     if interpreted:
-                        options.append({"label": "Proceed as ordered", "value": "confirm", "target": interpreted})
+                        options.append({
+                            "label": "Proceed as ordered",
+                            "value": "confirm",
+                            "target": interpreted,
+                            "command": strategic_reissue_command(
+                                cl_marshal.name, strategic_type, interpreted),
+                        })
                     # Note: popup adds its own "Cancel Order" button — don't duplicate
 
                     if strategic_type == "PURSUE":

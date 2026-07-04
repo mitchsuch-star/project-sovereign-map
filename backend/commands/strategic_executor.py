@@ -228,16 +228,24 @@ class StrategicExecutor:
     def _build_clarification(self, marshal, strategic_type: str, interpreted: str,
                              reason: str, alternatives: list, world, message: str) -> dict:
         """Build a clarification response for literal marshals."""
+        # CR-2: options carry the full reissue command so the popup and
+        # typed answers resolve identically
+        from backend.commands.clarification import strategic_reissue_command
+
         options = [{
             "label": f"Yes, {interpreted}",
             "value": "confirm",
-            "target": interpreted
+            "target": interpreted,
+            "command": strategic_reissue_command(
+                marshal.name, strategic_type, interpreted),
         }]
         for alt in alternatives:
             options.append({
                 "label": f"No, {alt}",
                 "value": "specify",
-                "target": alt
+                "target": alt,
+                "command": strategic_reissue_command(
+                    marshal.name, strategic_type, alt),
             })
         options.append({"label": "Cancel", "value": "cancel"})
 

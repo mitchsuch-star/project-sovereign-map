@@ -1017,6 +1017,49 @@ def execute_command(request: CommandRequest):
                 action_info={"remaining": int(world.actions_remaining)})
 
         # ════════════════════════════════════════════════════════════
+        # CR-2: PENDING COMMAND CLARIFICATION — one question, one answer.
+        # Typed answers ("Davout", "2", "yes", "cancel") resolve against
+        # the stored options into a full deterministic reissue command;
+        # anything else clears the question and parses normally
+        # (LOCAL_PLANNING never blocks). Consumed either way — the player
+        # gets exactly one question per command, never a dialogue loop.
+        # Adversarial-review fix: this MUST run before the strategic
+        # interrupt loop — the clarification is the most recent question
+        # asked, and the interrupt keyword matcher would otherwise hijack
+        # answers like "cancel" and leave the dialogue lingering.
+        # ════════════════════════════════════════════════════════════
+        from backend.commands.clarification import (
+            CLARIFICATION_DIALOGUE_TYPE,
+            build_marshal_choice_clarification,
+            build_unknown_name_clarification,
+            interpret_clarification_answer,
+            register_pending_clarification,
+        )
+
+        command_text = request.command
+        pending_clarification = world.dialogue_manager.peek()
+        if (pending_clarification is not None
+                and pending_clarification.get("type") == CLARIFICATION_DIALOGUE_TYPE
+                and not command_text.lower().strip().startswith("cheat ")):
+            resolution = interpret_clarification_answer(
+                pending_clarification, command_text)
+            world.dialogue_manager.pop()
+            if resolution["kind"] == "cancel":
+                return build_base_response(
+                    world, success=True,
+                    message="Berthier nods. \"Very well, Sire — the order is withdrawn.\"",
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
+            if resolution["kind"] == "command":
+                print(f"[CLARIFICATION] Resolved answer '{request.command}' "
+                      f"-> '{resolution['command']}'")
+                command_text = resolution["command"]
+
+        # ════════════════════════════════════════════════════════════
         # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
         # If a marshal has a pending interrupt (cannon fire, blocked path),
         # try to map the player's text input to a response choice.
@@ -1025,7 +1068,7 @@ def execute_command(request: CommandRequest):
         for m in world.get_player_marshals():
             pending = getattr(m, 'pending_interrupt', None)
             if pending:
-                cmd_lower = request.command.strip().lower()
+                cmd_lower = command_text.strip().lower()
 
                 # ── Guard: if command addresses a DIFFERENT marshal, skip ──
                 # "grouchy march to brittany" should NOT be routed as
@@ -1072,7 +1115,7 @@ def execute_command(request: CommandRequest):
         # Parse command
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
-        parsed = parser.parse(request.command, llm_game_state, world=world)
+        parsed = parser.parse(command_text, llm_game_state, world=world)
         if parsed.get("success") and isinstance(parsed.get("command"), dict):
             if request.action:
                 parsed["command"]["action"] = request.action
@@ -1088,7 +1131,7 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         if parsed.get("mode") != "mock" and parsed.get("success"):
             world.add_to_command_history({
-                "raw_input": request.command,
+                "raw_input": command_text,
                 "marshal": parsed.get("command", {}).get("marshal"),
                 "action": parsed.get("command", {}).get("action"),
                 "turn": int(world.current_turn),
@@ -1104,7 +1147,7 @@ def execute_command(request: CommandRequest):
         is_cheat = parsed.get("success") and parsed.get("command", {}).get("action") == "cheat"
 
         if world.pending_diplomatic_dialogue is not None and not is_cheat:
-            raw_lower = request.command.lower()
+            raw_lower = command_text.lower()
             is_hard_stop = world.dialogue_manager.is_hard_stop()
 
             _DIALOGUE_RESPONSE_KEYWORDS = [
@@ -1151,7 +1194,7 @@ def execute_command(request: CommandRequest):
                 # Hard-stop: label matching fallback, then executor (which blocks)
                 print(f"[DIPLOMATIC] Hard-stop fallback label-match: {raw_lower}")
                 result = executor.handle_diplomatic_dialogue_response(
-                    request.command, game_state)
+                    command_text, game_state)
                 msg = (result or {}).get("message", "")
                 if "Please choose an option" in msg:
                     result = executor.execute(parsed, game_state)
@@ -1161,7 +1204,7 @@ def execute_command(request: CommandRequest):
                 result = executor.execute(parsed, game_state)
         else:
             # m1: Dialogue keywords typed with no active dialogue — clear message
-            raw_lower_check = request.command.lower().strip()
+            raw_lower_check = command_text.lower().strip()
             # Only keywords that are NEVER valid game commands.
             # Excludes: cancel (strategic order cancel), garrison, more, execute, start, yes, no
             _DIALOGUE_ONLY_KEYWORDS = [
@@ -1187,6 +1230,30 @@ def execute_command(request: CommandRequest):
                     })
 
             # ════════════════════════════════════════════════════════════
+            # CR-2: UNKNOWN-NAME CLARIFICATION — a parse failure that
+            # carries structured candidates ("Murat, charge" on a world
+            # without Murat; "Davut, attack") becomes a one-question
+            # did-you-mean instead of a dead-end error. Before CR-2 these
+            # errors fell through the executor into the generic Berthier
+            # shrug and the computed suggestions were dropped entirely.
+            # ════════════════════════════════════════════════════════════
+            if not parsed.get("success") and parsed.get("candidates"):
+                name_clarification = build_unknown_name_clarification(
+                    world,
+                    parsed.get("unknown_name") or "",
+                    parsed["candidates"],
+                    command_text,
+                    parsed.get("kind") or "marshal_not_found",
+                    partial_action=parsed.get("partial_action"),
+                )
+                if name_clarification is not None:
+                    name_clarification["clarification_registered"] = (
+                        register_pending_clarification(
+                            world, name_clarification, command_text))
+                    print("[CLARIFICATION] Unknown-name question -> frontend")
+                    return _build_result_response(name_clarification, world)
+
+            # ════════════════════════════════════════════════════════════
             # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
             # with in-character Berthier clarification. Only fires for
             # type-1 parse failures; marshal typos & validation errors
@@ -1194,12 +1261,12 @@ def execute_command(request: CommandRequest):
             # ════════════════════════════════════════════════════════════
             if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
                 berthier_msg = parser.llm.generate_berthier_recovery(
-                    raw_command=request.command,
+                    raw_command=command_text,
                     game_state=llm_game_state,
                     partial_parse={
                         "recognized_marshal": parsed.get("partial_marshal"),
                         "recognized_target": parsed.get("partial_target"),
-                        "raw_input": parsed.get("raw_input", request.command),
+                        "raw_input": parsed.get("raw_input", command_text),
                     },
                 )
                 return build_base_response(
@@ -1215,18 +1282,45 @@ def execute_command(request: CommandRequest):
             result = executor.execute(parsed, game_state)
 
         # ════════════════════════════════════════════════════════════
+        # CR-2: parser warnings (sequential-order drop note, non-standard
+        # marshal note) were computed and then never surfaced — append them
+        # to the player-visible message ("every input gets a response").
+        # Sits BEFORE the early-return checks so diplomatic dialogues and
+        # popup paths carry the note too; objection popups (success=False)
+        # deliberately skip it — the objection dominates, and the sequel
+        # note re-surfaces if the reissued/proceeded command re-parses.
+        # ════════════════════════════════════════════════════════════
+        if result.get("success") and parsed.get("warning"):
+            result["message"] = (
+                f"{result.get('message') or ''}\n\n"
+                f"Berthier: \"{parsed['warning']}\""
+            ).strip()
+
+        # ════════════════════════════════════════════════════════════
         # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"
         # This happens when a valid action is parsed but no marshal was
         # identified (e.g., "move to Belgium" without naming a marshal).
+        # CR-2: upgraded to the one-question marshal-choice clarification
+        # ("Which marshal shall march to Belgium, Sire?") with reissue
+        # options; Berthier prose remains the no-candidate fallback.
         # ════════════════════════════════════════════════════════════
         if not result.get("success") and "Marshal 'None' not found" in (result.get("message") or ""):
+            if parsed.get("success"):
+                marshal_clarification = build_marshal_choice_clarification(
+                    world, parsed, command_text)
+                if marshal_clarification is not None:
+                    marshal_clarification["clarification_registered"] = (
+                        register_pending_clarification(
+                            world, marshal_clarification, command_text))
+                    print("[CLARIFICATION] Marshal-choice question -> frontend")
+                    return _build_result_response(marshal_clarification, world)
             berthier_msg = parser.llm.generate_berthier_recovery(
-                raw_command=request.command,
+                raw_command=command_text,
                 game_state=llm_game_state,
                 partial_parse={
                     "recognized_marshal": None,
                     "recognized_target": parsed.get("command", {}).get("target"),
-                    "raw_input": request.command,
+                    "raw_input": command_text,
                 },
             )
             return build_base_response(
@@ -1253,8 +1347,13 @@ def execute_command(request: CommandRequest):
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
+        # CR-2: also register the question on the DialogueManager so the
+        # player's next typed input can answer it (player path only — AI
+        # commands never flow through this endpoint).
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_clarification":
+            result["clarification_registered"] = (
+                register_pending_clarification(world, result, command_text))
             print("[CLARIFICATION] Returning clarification popup to frontend")
             return _build_result_response(result, world)
 
@@ -1325,6 +1424,7 @@ def execute_command(request: CommandRequest):
                         feedback["strategic"] = strategic_text
                     if ambiguity_text:
                         feedback["ambiguity"] = ambiguity_text
+
         response = _build_command_response(result, world, feedback)
         _apply_command_result_layers(response, result, world)
         return response

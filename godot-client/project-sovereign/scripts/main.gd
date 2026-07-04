@@ -182,6 +182,8 @@ var load_dialog = null
 var strategic_report_popup = null
 var interrupt_popup = null
 var clarification_popup = null
+# CR-2: true while the backend holds a pending command_clarification dialogue
+var _clarification_backend_pending := false
 var pending_strategic_response = null  # Store response for post-report flow
 var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
 
@@ -300,6 +302,7 @@ func _ready():
 	clarification_popup = dialog_manager.register("clarification", "res://scenes/clarification_popup.tscn")
 	if clarification_popup:
 		clarification_popup.clarification_choice.connect(_on_clarification_choice_made)
+		clarification_popup.clarification_command.connect(_on_clarification_command)
 		clarification_popup.cancelled.connect(_on_clarification_cancelled)
 
 	# Diplomatic popups
@@ -3155,6 +3158,10 @@ func _show_clarification_popup(response):
 	"""Show clarification popup for literal marshals."""
 	set_input_enabled(false)
 
+	# CR-2: whether the backend registered a pending dialogue for this
+	# question (drives the cancel round-trip that clears it)
+	_clarification_backend_pending = bool(response.get("clarification_registered", false))
+
 	var data = response.get("clarification_data", response)
 
 	if clarification_popup == null:
@@ -3171,6 +3178,7 @@ func _show_clarification_popup(response):
 
 func _on_clarification_choice_made(marshal_name: String, chosen_target: String, strategic_type: String):
 	"""Handle player selecting a clarification target."""
+	_clarification_backend_pending = false
 	if DEBUG_VERBOSE:
 		print("Clarification choice: marshal=%s, target=%s, type=%s" % [marshal_name, chosen_target, strategic_type])
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
@@ -3188,11 +3196,28 @@ func _on_clarification_choice_made(marshal_name: String, chosen_target: String, 
 	api_client.send_command(clarified_command, _on_command_result)
 
 
+func _on_clarification_command(command: String):
+	"""CR-2: reissue a clarification option's full command verbatim.
+	The backend built the exact command ('Davout, support Ney'), so the
+	popup and typed answers resolve through the same deterministic parse."""
+	_clarification_backend_pending = false
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + command + "[/color]")
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
+
 func _on_clarification_cancelled():
 	"""Handle player cancelling a clarification."""
 	add_output("[color=#" + Utils.COLOR_INFO + "]Order cancelled.[/color]")
-	set_input_enabled(true)
-	command_input.grab_focus()
+	if _clarification_backend_pending:
+		# CR-2: clear the backend's pending clarification question so it
+		# cannot linger in the dialogue slot (it would block mailbox
+		# activation until the next typed command consumed it)
+		_clarification_backend_pending = false
+		api_client.send_command("never mind", _on_command_result)
+	else:
+		set_input_enabled(true)
+		command_input.grab_focus()
 
 
 # ════════════════════════════════════════════════════════════════════════════

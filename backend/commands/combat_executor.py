@@ -2159,13 +2159,25 @@ class CombatExecutor:
                             enemies = [e for e in world.get_visible_enemies(marshal.nation) if e.strength > 0]
                         else:
                             enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
+                        # CR-2: options carry the full reissue command so the
+                        # popup and typed answers resolve identically.
+                        # Adversarial-review fix: sort by distance so the
+                        # FIRST option is the nearest enemy the question
+                        # names — dict-insertion order let a typed "yes"
+                        # pursue a different enemy than the one asked about.
+                        from backend.commands.clarification import strategic_reissue_command
+
+                        enemies.sort(
+                            key=lambda e: world.get_distance(marshal.location, e.location))
                         options = []
                         for e in enemies[:3]:
                             e_dist = world.get_distance(marshal.location, e.location)
                             options.append({
                                 "label": f"Pursue {e.name} ({e.location}, {e_dist} away)",
                                 "value": "specify",
-                                "target": e.name
+                                "target": e.name,
+                                "command": strategic_reissue_command(
+                                    marshal.name, "PURSUE", e.name),
                             })
                         # Note: popup adds its own "Cancel Order" button — don't duplicate
                         return {

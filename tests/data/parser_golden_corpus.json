@@ -562,14 +562,15 @@
     {
       "id": "support-ney",
       "utterance": "support ney",
-      "world": "legacy",
+      "world": "any",
       "expected": {
         "success": true,
-        "marshal": "Ney",
-        "target": "Ney"
+        "marshal": null,
+        "target": "Ney",
+        "strategic_type": "SUPPORT"
       },
       "source": "tests/test_strategic_parser.py::test_support_detected",
-      "notes": "SELF-SUPPORT: the addressee word-scan binds the intended TARGET as the executor. CR-2 clarification candidate."
+      "notes": "CR-2 BEHAVIOR CHANGE (was: marshal=Ney supporting himself): a name in support-object position is the supportee, never the executor. marshal=null routes the endpoint to the 'Which marshal shall support Ney, Sire?' clarification (test_command_robustness_cr2_clarification.py)."
     },
     {
       "id": "attack-wellington",
@@ -929,13 +930,15 @@
     {
       "id": "move-to-reinforce-ney",
       "utterance": "move to reinforce ney",
-      "world": "legacy",
+      "world": "any",
       "expected": {
         "success": true,
-        "marshal": "Ney"
+        "marshal": null,
+        "target": "Ney",
+        "strategic_type": "SUPPORT"
       },
       "source": "tests/test_llm_strategic.py::test_support_new_keywords",
-      "notes": "SELF-SUPPORT family. CR-2 clarification candidate."
+      "notes": "CR-2 BEHAVIOR CHANGE (was: marshal=Ney): 'move to reinforce <name>' puts the name in support-object position — supportee, not executor. Endpoint raises the marshal-choice clarification."
     },
     {
       "id": "stand-firm-at-belgium-until-ney-arrives",
@@ -943,10 +946,12 @@
       "world": "legacy",
       "expected": {
         "success": true,
-        "marshal": "Ney"
+        "marshal": null,
+        "target": "Belgium",
+        "strategic_type": "HOLD"
       },
       "source": "tests/test_llm_strategic.py::test_full_detect_hold_with_condition",
-      "notes": "Condition-marshal hijack: 'until Ney arrives' binds Ney as executor. CR-2 clarification candidate."
+      "notes": "CR-2 BEHAVIOR CHANGE (was: marshal=Ney, the condition marshal hijacked as executor): a name inside the 'until ...' clause is the condition marshal only. marshal=null routes to the marshal-choice clarification; the condition still parses ({until_marshal_arrives: Ney})."
     },
     {
       "id": "diplomat-propose-peace-with-prussia",
@@ -2918,6 +2923,164 @@
         "type": "diplomatic"
       },
       "source": "CR-1 authored (action coverage gate)"
+    },
+    {
+      "id": "cr2-murat-charge-legacy-addressed-unknown",
+      "utterance": "Murat, charge",
+      "world": "legacy",
+      "expected": {
+        "success": false,
+        "error_contains": "Murat"
+      },
+      "source": "CR-2 authored (silent-marshal-drop fix)",
+      "notes": "CR-2 BEHAVIOR CHANGE (was: success with marshal=None — the addressee silently dropped because 'charge' is a meta action that skipped marshal matching). An explicitly-addressed unknown name must error with candidates; the endpoint upgrades this to the unknown-name clarification."
+    },
+    {
+      "id": "cr2-grouchy-charge-1805-addressed-unknown",
+      "utterance": "Grouchy, charge",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "Grouchy"
+      },
+      "source": "CR-2 authored (silent-marshal-drop fix)",
+      "notes": "Grouchy is not on the 1805 roster — before CR-2 the addressee was silently dropped and the error blamed a different marshal ('Charge requires a marshal. Try: Ney...')."
+    },
+    {
+      "id": "cr2-bare-charge-keeps-marshalless-path",
+      "utterance": "charge",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "action": "charge"
+      },
+      "source": "CR-2 authored (silent-marshal-drop fix regression pin)",
+      "notes": "The addressed-token guard fires ONLY on the leading comma-address form — bare meta commands (pending glorious-charge responses) keep their marshal-less fast path."
+    },
+    {
+      "id": "cr2-no-comma-charge-interjection-not-a-name",
+      "utterance": "No, charge",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "action": "charge"
+      },
+      "source": "CR-2 authored (silent-marshal-drop fix regression pin)",
+      "notes": "Leading interjections with a comma ('No, charge!') are not name attempts — ADDRESS_NON_NAME_WORDS guard."
+    },
+    {
+      "id": "cr2-attack-bern-then-hold-sequential",
+      "utterance": "attack Bern, then hold your positions",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "target": "Bern",
+        "strategic_type": null
+      },
+      "source": "CR-2 authored (sequential compound orders)",
+      "notes": "CR-2 BEHAVIOR CHANGE (was: auto_assign_attack on phantom region 'Your Positions' + a stray strategic HOLD upgrade from the second clause). The first clause executes; the parse result carries dropped_sequel + a Berthier warning naming the unrelayed tail."
+    },
+    {
+      "id": "cr2-march-to-vienna-then-attack-not-split",
+      "utterance": "Ney, march to Vienna then attack",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "CR-2 authored (sequential-split guard)",
+      "notes": "A bare attack verb after 'then' is the long-standing attack-on-arrival hint — the sequential split must not fire (the MOVE_TO order keeps attack_on_arrival=true)."
+    },
+    {
+      "id": "cr2-march-then-attack-named-object-not-split",
+      "utterance": "Ney, march to Vienna then attack Wellington",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "target": "Vienna",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "CR-2 adversarial-review fix (named-object attack-on-arrival tails)",
+      "notes": "Pre-CR-2, 'then attack <name>' fired attack_on_arrival on the substring match with ANY suffix — the split guard must exempt tails STARTING with an attack verb, not just bare verbs (the review's 3x-confirmed regression). attack_on_arrival=true asserted in test_command_robustness_cr2_clarification.py."
+    },
+    {
+      "id": "cr2-cavalry-charge-collective-addressee",
+      "utterance": "Cavalry, charge",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "action": "charge"
+      },
+      "source": "CR-2 adversarial-review fix (collective addressees)",
+      "notes": "Troop-type and rank addressees ('Cavalry,' / 'Marshal,') are not name attempts — they keep the marshal-less meta fast path (the live answer channel for a pending glorious-charge popup). ADDRESS_NON_NAME_WORDS mirrors the word-scan skip list."
+    },
+    {
+      "id": "cr2-marshal-charge-rank-addressee",
+      "utterance": "Marshal, charge",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "action": "charge"
+      },
+      "source": "CR-2 adversarial-review fix (collective addressees)",
+      "notes": "Rank-only address form — see cr2-cavalry-charge-collective-addressee."
+    },
+    {
+      "id": "cr2-when-ready-then-retreat-not-split",
+      "utterance": "when ready then retreat",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "retreat"
+      },
+      "source": "CR-2 authored (sequential-split guard)",
+      "notes": "When the first clause alone is unparseable ('when ready'), the full text keeps its historical parse (action=retreat) — the split only commits when the first clause stands alone. ('if attacked then retreat' is NOT a usable guard pin: 'attacked' contains the attack keyword in both the historical and split parses; true conditionals are CR-7 scope.)"
+    },
+    {
+      "id": "cr2-stand-firm-munich-until-ney-arrives-1805",
+      "utterance": "stand firm at Munich until ney arrives",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "target": "Munich",
+        "strategic_type": "HOLD"
+      },
+      "source": "CR-2 authored (condition-marshal hijack fix, 1805 twin of stand-firm-at-belgium-until-ney-arrives)",
+      "notes": "The condition marshal must not bind as executor on the shipped 1805 boot either."
+    },
+    {
+      "id": "cr2-ney-support-davout-executor-binds",
+      "utterance": "Ney, support Davout",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "CR-2 authored (support-object demotion regression pin)",
+      "notes": "An explicit addressee BEFORE the support verb stays the executor — only names in support-object position are demoted."
+    },
+    {
+      "id": "cr2-grouchy-hold-until-ney-arrives-executor-kept",
+      "utterance": "Grouchy, hold Belgium until Ney arrives",
+      "world": "legacy",
+      "expected": {
+        "success": true,
+        "marshal": "Grouchy",
+        "target": "Belgium",
+        "strategic_type": "HOLD"
+      },
+      "source": "CR-2 authored (condition-demotion regression pin; twin of grouchy-hold-belgium-until-ney-arrives)",
+      "notes": "A name BEFORE the 'until' clause binds as executor exactly as before; only names inside the condition clause are demoted."
     }
   ]
 }

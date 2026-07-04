@@ -5,13 +5,61 @@ Converts natural language commands into validated, executable orders
 
 import re
 from typing import Dict, List, Optional
-from backend.ai.llm_client import LLMClient
+from backend.ai.llm_client import (
+    LLMClient,
+    ADDRESS_TOKEN_RE,
+    ADDRESS_NON_NAME_WORDS,
+    SUPPORT_OBJECT_PREFIX_RE,
+    CONDITION_CLAUSE_RE,
+)
 from backend.ai.strategic_parser import detect_strategic_command
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 # CR-0: split camelCase scenario keys ("ArchdukeCharles") into their typed
 # word forms when building skip-word sets (mirrors llm_client)
 _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
+
+# CR-2: sequential compound orders — "attack Bern, then hold your positions".
+# The second clause used to leak into target extraction and strategic
+# detection (phantom region "Your Positions" + a stray HOLD upgrade).
+_SEQUEL_SPLIT_RE = re.compile(r'[,;]?\s+then\b\s+', re.IGNORECASE)
+# A tail that STARTS with an attack verb is the long-standing
+# attack-on-arrival hint ("march to Vienna then attack" / "... then attack
+# Mack" / "... then engage the Austrians") — never split those.
+# Adversarial-review fix: the first cut only exempted BARE verbs, which
+# silently downgraded every named-object form to a plain MOVE_TO
+# (strategic_parser._detect_attack_on_arrival matches "then attack" with
+# ANY suffix, and _extract_target_text already strips the tail cleanly).
+_ATTACK_ON_ARRIVAL_TAIL_RE = re.compile(
+    r'^(?:attack|engage|assault)\b', re.IGNORECASE)
+
+
+def _split_sequential_orders(command_text: str):
+    """Split "<first order>, then <second order>" into (first, tail), or
+    None when the command is not a sequential compound."""
+    match = _SEQUEL_SPLIT_RE.search(command_text)
+    if not match:
+        return None
+    first = command_text[:match.start()].strip().rstrip(',;')
+    tail = command_text[match.end():].strip()
+    if not first or not tail:
+        return None
+    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail):
+        return None
+    return (first, tail)
+
+
+def _leading_addressed_token(command_text: str) -> Optional[str]:
+    """The leading comma-addressed token ("Murat, charge" → "Murat"), or
+    None when the command has no address prefix or it is an interjection /
+    bare order verb ("No, charge!")."""
+    match = ADDRESS_TOKEN_RE.match(command_text)
+    if not match:
+        return None
+    token = match.group(1)
+    if len(token) < 3 or token.lower() in ADDRESS_NON_NAME_WORDS:
+        return None
+    return token
 
 
 def _edit_distance_at_most(a: str, b: str, limit: int) -> bool:
@@ -307,25 +355,27 @@ class CommandParser:
                 llm_result["marshal"] = marshal_result["match"]
             elif marshal_result["action"] == "suggest":
                 # Medium confidence match - suggest to user
+                # CR-2: structured fields let main.py raise a clarification
+                # question instead of dropping the suggestion text
                 return (llm_result, {
                     "error": f"Did you mean '{marshal_result['match']}'? ('{llm_result['marshal']}' not found)",
-                    "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}"
+                    "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}",
+                    "kind": "marshal_suggest",
+                    "unknown_name": llm_result["marshal"],
+                    "candidates": [marshal_result["match"]],
                 })
             else:  # action == "error"
                 # No good match - return error with suggestions
                 suggestions = marshal_result.get("suggestions", valid_marshals[:3])
                 return (llm_result, {
                     "error": f"Marshal '{llm_result['marshal']}' not found",
-                    "suggestion": f"Available marshals: {', '.join(suggestions)}"
+                    "suggestion": f"Available marshals: {', '.join(suggestions)}",
+                    "kind": "marshal_not_found",
+                    "unknown_name": llm_result["marshal"],
+                    "candidates": list(suggestions[:3]),
                 })
         # If marshal is None, try to extract from command text with fuzzy matching
         elif not llm_result.get("marshal"):
-            # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
-            # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat", "recruit"]
-            if llm_result.get("action") in meta_actions:
-                return (llm_result, None)  # Don't try to find a marshal
-
             # Skip fuzzy marshal matching if target already identified
             existing_target = (llm_result.get("target") or "").lower()
             # CR-0: multiword/camelCase targets must skip word-by-word —
@@ -340,8 +390,60 @@ class CommandParser:
             known_target_words = {n.lower() for n in known_regions}
             known_target_words.update(n.lower() for n in known_enemies)
 
-            words = command_text.split()
-            for word_index, word in enumerate(words):
+            # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
+            # Actions that don't require a marshal (meta commands + pending charge responses)
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat", "recruit"]
+            if llm_result.get("action") in meta_actions:
+                # CR-2 (silent-marshal-drop fix): an EXPLICITLY-addressed name
+                # must bind or clarify, never drop — "Murat, charge" used to
+                # execute with marshal=None, silently discarding the
+                # addressee. Only the leading comma-address form is checked;
+                # bare meta commands ("charge", "recruit infantry") keep
+                # their marshal-less fast path.
+                addressed = _leading_addressed_token(command_text)
+                if (addressed
+                        and addressed.lower() not in known_target_words
+                        and addressed.lower() != existing_target
+                        and addressed.lower() not in existing_target_words):
+                    marshal_result = self.fuzzy_matcher.match_with_context(
+                        addressed, valid_marshals)
+                    if marshal_result["action"] in ("exact", "auto_correct"):
+                        llm_result["marshal"] = marshal_result["match"]
+                    elif marshal_result["action"] == "suggest":
+                        return (llm_result, {
+                            "error": f"Did you mean '{marshal_result['match']}'? ('{addressed}' not found)",
+                            "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}",
+                            "kind": "marshal_suggest",
+                            "unknown_name": addressed,
+                            "candidates": [marshal_result["match"]],
+                        })
+                    else:
+                        suggestions = marshal_result.get("suggestions", valid_marshals[:3])
+                        return (llm_result, {
+                            "error": f"Marshal '{addressed}' not found",
+                            "suggestion": f"Available marshals: {', '.join(suggestions)}",
+                            "kind": "marshal_not_found",
+                            "unknown_name": addressed,
+                            "candidates": list(suggestions[:3]),
+                        })
+                return (llm_result, None)  # Don't try to find a marshal
+
+            # CR-2: same executor-eligibility rules as the mock extraction —
+            # a name inside a condition clause ("until Ney arrives") or in
+            # support-object position ("support Ney") must not be re-bound
+            # as the executor here (this scan used to undo the mock layer's
+            # demotion and make marshals support themselves).
+            condition_match = CONDITION_CLAUSE_RE.search(command_text)
+            condition_start = (condition_match.start() if condition_match
+                               else len(command_text) + 1)
+
+            words = [(w.group(0), w.start())
+                     for w in re.finditer(r'\S+', command_text)]
+            for word_index, (word, word_pos) in enumerate(words):
+                if word_pos >= condition_start:
+                    continue
+                if SUPPORT_OBJECT_PREFIX_RE.search(command_text[:word_pos]):
+                    continue
                 # Address syntax ("Wittgenstein, attack") — a trailing comma
                 # marks an explicitly-addressed name; such words keep the
                 # helpful not-found error even in first position (CR-1)
@@ -417,7 +519,10 @@ class CommandParser:
                     # Suggest to user instead of auto-assigning
                     return (llm_result, {
                         "error": f"Did you mean '{marshal_result['match']}'? ('{word}' not found)",
-                        "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}"
+                        "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(valid_marshals)}",
+                        "kind": "marshal_suggest",
+                        "unknown_name": word,
+                        "candidates": [marshal_result["match"]],
                     })
                 elif marshal_result["action"] == "error":
                     # Word doesn't match any marshal well. Check if it's a valid target.
@@ -441,7 +546,10 @@ class CommandParser:
                         suggestions = marshal_result.get("suggestions", valid_marshals[:3])
                         return (llm_result, {
                             "error": f"Marshal '{word}' not found",
-                            "suggestion": f"Available marshals: {', '.join(suggestions)}"
+                            "suggestion": f"Available marshals: {', '.join(suggestions)}",
+                            "kind": "marshal_not_found",
+                            "unknown_name": word,
+                            "candidates": list(suggestions[:3]),
                         })
                     # Otherwise, skip this word - it might be a target, not a marshal
 
@@ -574,8 +682,25 @@ class CommandParser:
         fields are missing, feedback will silently fail to generate.
         """
         try:
+            # CR-2: sequential compound orders — parse the FIRST clause and
+            # report the dropped tail instead of letting the second clause
+            # leak into target extraction / strategic detection ("attack
+            # Bern, then hold your positions" fabricated a phantom region
+            # "Your Positions" with a stray HOLD upgrade). The trial parse
+            # is the deterministic fast layer only; when the first clause
+            # alone is unparseable ("if attacked, then retreat"), the full
+            # text keeps its historical behavior.
+            effective_text = command_text
+            dropped_sequel = None
+            sequel_split = _split_sequential_orders(command_text)
+            if sequel_split is not None:
+                first_clause, sequel_tail = sequel_split
+                if self.llm.fast_parse(first_clause, game_state).action != "unknown":
+                    effective_text = first_clause
+                    dropped_sequel = sequel_tail
+
             # Step 1: Use LLM to parse natural language
-            llm_result = self.llm.parse_command(command_text, game_state)
+            llm_result = self.llm.parse_command(effective_text, game_state)
 
             # ════════════════════════════════════════════════════════════
             # DIPLOMATIC COMMAND ROUTING (Phase 8 Session 3)
@@ -588,7 +713,7 @@ class CommandParser:
 
                 # Error case: military command to Talleyrand
                 if action == "diplomatic_error":
-                    return {
+                    diplomatic_result = {
                         "success": True,
                         "command": {
                             "marshal": None,
@@ -604,36 +729,71 @@ class CommandParser:
                         "ambiguity": 0,
                         "mode": llm_result.get("mode", "mock"),
                     }
-
-                return {
-                    "success": True,
-                    "command": {
-                        "marshal": None,
-                        "action": action,
-                        "target": diplomatic_data.get("target_nation"),
-                        "confidence": llm_result.get("confidence", 0.95),
-                        "type": "diplomatic",
-                        "raw_command": command_text,
-                        "diplomatic_data": diplomatic_data,
-                    },
-                    "raw_input": command_text,
-                    "strategic_score": 0,
-                    "ambiguity": 5,
-                    "mode": llm_result.get("mode", "mock"),
-                }
+                else:
+                    diplomatic_result = {
+                        "success": True,
+                        "command": {
+                            "marshal": None,
+                            "action": action,
+                            "target": diplomatic_data.get("target_nation"),
+                            "confidence": llm_result.get("confidence", 0.95),
+                            "type": "diplomatic",
+                            "raw_command": command_text,
+                            "diplomatic_data": diplomatic_data,
+                        },
+                        "raw_input": command_text,
+                        "strategic_score": 0,
+                        "ambiguity": 5,
+                        "mode": llm_result.get("mode", "mock"),
+                    }
+                # Adversarial-review fix: a diplomatic FIRST clause must
+                # report a dropped sequel exactly like the military path —
+                # "Talleyrand, propose peace with Austria, then attack
+                # Bern" silently discarded the second order.
+                if dropped_sequel:
+                    diplomatic_result["warning"] = (
+                        f'One order at a time, Sire — I have relayed the '
+                        f'first. "{dropped_sequel}" must follow as its own '
+                        f'command.')
+                    diplomatic_result["dropped_sequel"] = dropped_sequel
+                return diplomatic_result
 
             # Step 2: Apply fuzzy matching to correct typos
             llm_result, fuzzy_error = self._apply_fuzzy_matching(
-                llm_result, command_text, world=world, game_state=game_state)
+                llm_result, effective_text, world=world, game_state=game_state)
+
+            # CR-2: the fast parser cleared the 0.7 confidence gate, so the
+            # live LLM never saw this command — and the fuzzy pass just
+            # proved the fast parse wrong. One deliberate LLM retry before
+            # surfacing the error (no-op in mock mode).
+            if fuzzy_error and llm_result.get("mode", "mock") == "mock":
+                retried = self.llm.reparse_with_llm(
+                    effective_text, game_state, llm_result)
+                if retried is not None:
+                    retried, retry_error = self._apply_fuzzy_matching(
+                        retried, effective_text, world=world,
+                        game_state=game_state)
+                    if retry_error is None:
+                        llm_result, fuzzy_error = retried, None
 
             # If fuzzy matching found an invalid marshal/target, return error immediately
             if fuzzy_error:
-                return {
+                failure = {
                     "success": False,
                     "error": fuzzy_error["error"],
                     "suggestion": fuzzy_error.get("suggestion"),
-                    "raw_input": command_text
+                    "raw_input": command_text,
+                    # The action the fast layer recognized — lets the
+                    # clarification builder cost the would-be reissue
+                    "partial_action": llm_result.get("action"),
                 }
+                # CR-2: structured candidate fields (when present) let
+                # main.py raise a clarification question with reissue
+                # options instead of a dead-end error string
+                for key in ("kind", "unknown_name", "candidates"):
+                    if fuzzy_error.get(key) is not None:
+                        failure[key] = fuzzy_error[key]
+                return failure
 
             # Step 3: Validate the parsed command
             validation_result = self._validate_command(
@@ -687,7 +847,7 @@ class CommandParser:
                 # ════════════════════════════════════════════════════════════
                 if world is not None:
                     marshal_name = command_dict.get("marshal")
-                    strategic = detect_strategic_command(command_text, marshal_name, world)
+                    strategic = detect_strategic_command(effective_text, marshal_name, world)
                     if strategic:
                         result["is_strategic"] = True
                         result["strategic_type"] = strategic["strategic_type"]
@@ -711,6 +871,26 @@ class CommandParser:
                                 strategic_target = fuzzy_result["match"]
                         result["command"]["target"] = strategic_target
                         result["command"]["target_type"] = strategic["target_type"]
+                        # CR-2: an order can never target its own executor —
+                        # "support Ney" means SOMEONE supports Ney. The mock
+                        # layer demotes these, but a live-LLM parse can still
+                        # return marshal == target; unbinding here lets the
+                        # marshal-choice clarification fire instead of the
+                        # executor rejecting a self-targeted order.
+                        if (strategic["target_type"] == "marshal"
+                                and result["command"].get("marshal") == strategic_target):
+                            result["command"]["marshal"] = None
+
+                # CR-2: tell the player the sequel clause was not relayed —
+                # design pillar: every input gets a response, nothing is
+                # silently dropped.
+                if dropped_sequel:
+                    sequel_note = (
+                        f'One order at a time, Sire — I have relayed the first. '
+                        f'"{dropped_sequel}" must follow as its own command.')
+                    result["warning"] = (f"{result['warning']} {sequel_note}"
+                                         if result.get("warning") else sequel_note)
+                    result["dropped_sequel"] = dropped_sequel
 
                 return result
             else:

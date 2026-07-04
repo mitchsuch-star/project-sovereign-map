@@ -47,9 +47,57 @@ load_dotenv()
 # - <0.7 = "Fast parser is guessing, LLM might do better"
 LLM_FALLBACK_CONFIDENCE_THRESHOLD = 0.7
 
+# CR-2: an explicitly-addressed leading name that resolves to NOTHING we
+# know drops the fast parse below the LLM-fallback threshold — the fast
+# parser's 0.8 action-verb confidence otherwise cleared the 0.7 gate on
+# "confidently wrong" parses and the LLM was never consulted (spec §1).
+UNRESOLVED_ADDRESS_CONFIDENCE = 0.55
+
 # CR-0: split camelCase scenario keys ("ArchdukeCharles") into typed forms
 # ("archduke charles") for fast-parser name matching.
 _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
+
+# CR-2: leading comma-addressed token ("Murat, charge" / "Marshal Soult,
+# hold") — shared with parser.py's addressed-token guard.
+ADDRESS_TOKEN_RE = re.compile(
+    r"^\s*(?:marshal\s+)?([a-zA-Z][a-zA-Z'’-]*)\s*,", re.IGNORECASE)
+
+# CR-2: leading comma-separated words that are NOT name attempts —
+# interjections ("No, charge!"), collective addressees ("Cavalry,
+# charge!"), and bare order verbs ("Attack, Ney!"). Kept consistent with
+# the word-scan skip_words in parser.py — the two extraction layers must
+# agree on what is not a name (adversarial-review fix: 'Cavalry, charge'
+# and 'Marshal, charge' hard-errored while the word-scan skipped them).
+ADDRESS_NON_NAME_WORDS = frozenset({
+    # interjections / sentence lead-ins
+    "no", "yes", "now", "well", "so", "ah", "oh", "sir", "sire", "men",
+    "onward", "forward", "quick", "quickly", "hurry", "steady", "good",
+    "excellent", "very", "again", "everyone", "everybody", "all",
+    "anyone", "someone", "somebody", "alright", "ok",
+    "okay", "right", "please", "soldiers", "troops", "army", "gentlemen",
+    # collective / generic addressees — troop types and ranks, not names
+    "cavalry", "infantry", "artillery", "horsemen", "riders", "foot",
+    "guns", "guard", "guards", "marshal", "marshals", "general",
+    "generals", "commander", "commanders",
+    # bare verbs that read as their own clause
+    "attack", "move", "hold", "defend", "retreat", "scout", "charge",
+    "halt", "stop", "cancel", "wait", "fire", "advance", "march",
+    "fortify", "withdraw", "go", "run", "ride", "stand", "rally",
+})
+
+# CR-2: text immediately before a name that marks it as the OBJECT of a
+# support-family verb ("support Ney", "move to reinforce Ney") — such a
+# name is the supportee, never the executing marshal. Shared with
+# parser.py's word-scan so the two extraction layers agree.
+SUPPORT_OBJECT_PREFIX_RE = re.compile(
+    r'\b(?:support|reinforce|assist|aid|bolster|join'
+    r'|back\s+up|shore\s+up|rally\s+to|link\s+up\s+with|combine\s+with'
+    r'|come\s+to\s+the\s+aid\s+of)\s+(?:the\s+)?(?:marshals?\s+)?$',
+    re.IGNORECASE)
+
+# CR-2: start of a strategic condition clause — a name inside it is the
+# condition marshal ("hold until Ney arrives"), never the executor.
+CONDITION_CLAUSE_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
 
 def _name_match_patterns(name: str) -> List[str]:
@@ -120,6 +168,36 @@ def _extract_known_nations(game_state: Optional[Dict]) -> Dict[str, str]:
             if controller and controller != "Neutral":
                 _add(controller)
     return nations
+
+
+def _unresolved_address_token(command_text: str,
+                              game_state: Optional[Dict]) -> Optional[str]:
+    """Return the leading comma-addressed token when it resolves to NOTHING
+    we know (player marshal, visible enemy, region, nation) and is not an
+    interjection/order verb. This is the strongest "confidently wrong
+    parse" signal the fast parser can emit (CR-2)."""
+    match = ADDRESS_TOKEN_RE.match(command_text)
+    if not match:
+        return None
+    token = match.group(1)
+    token_lower = token.lower()
+    if len(token_lower) < 3 or token_lower in ADDRESS_NON_NAME_WORDS:
+        return None
+    known_forms = set()
+    for key in ("marshals", "enemies", "map_data"):
+        for name in _game_state_dict(game_state, key):
+            known_forms.update(_name_match_patterns(name))
+    known_forms.update(_extract_known_nations(game_state))
+    if not _game_state_dict(game_state, "marshals"):
+        # Cold parses keep the legacy seed roster resolvable
+        known_forms.update(("ney", "davout", "grouchy", "drouot"))
+    if token_lower in known_forms:
+        return None
+    # A single addressed token matching the FIRST word of a multi-word
+    # roster form still resolves ("Archduke, attack" → ArchdukeCharles)
+    if any(form.split()[0] == token_lower for form in known_forms if " " in form):
+        return None
+    return token
 
 
 class LLMClient:
@@ -321,6 +399,35 @@ class LLMClient:
 
         # Step 3: Try LLM
         return self._parse_with_live_provider(command_text, game_state, fast_result)
+
+    def fast_parse(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
+        """Deterministic keyword-parser pass only — never calls the LLM.
+
+        Used for cheap trial parses (CR-2 sequential-clause split decides
+        whether the first clause stands alone before committing to it).
+        """
+        return self._parse_with_mock(command_text, game_state)
+
+    def reparse_with_llm(self, command_text: str, game_state: Optional[Dict],
+                         fast_result_dict: Optional[Dict]) -> Optional[Dict]:
+        """CR-2: one forced LLM re-parse after a confident fast parse
+        hard-failed downstream (fuzzy-pass error).
+
+        The normal gate short-circuits at confidence >= 0.7, so the LLM
+        never saw the "confidently wrong" parse — this is the deliberate
+        second consultation. Returns a validated parse dict, or None when
+        live parsing is unavailable or returned nothing better. Mock mode
+        always returns None (mock stays fully playable without an LLM).
+        """
+        if self.provider_name == "mock" or not self.api_key:
+            return None
+        if not isinstance(game_state, dict):
+            return None
+        fast_result = ParseResult.from_dict(fast_result_dict or {})
+        retried = self._parse_with_live_provider(command_text, game_state, fast_result)
+        if retried is fast_result or retried.mode == "mock":
+            return None
+        return retried.to_dict()
 
     def _parse_with_live_provider(
         self,
@@ -713,15 +820,34 @@ class LLMClient:
                 ("grouchy", "Grouchy"),
                 ("drouot", "Drouot"),
             ]
+        # CR-2: executor binding is position-aware. A name that only appears
+        # (a) inside a condition clause ("hold until Ney arrives" — Ney is
+        # the condition marshal) or (b) as the object of a support-family
+        # verb ("support Ney" — Ney is the supportee) must NOT bind as the
+        # executing marshal: binding it made marshals support themselves and
+        # condition marshals hijack the order (spec §2 CR-2 pinned cases).
+        condition_match = CONDITION_CLAUSE_RE.search(command_lower)
+        condition_start = (condition_match.start() if condition_match
+                           else len(command_lower) + 1)
+
+        def _executor_eligible(match_start: int) -> bool:
+            if match_start >= condition_start:
+                return False
+            return not SUPPORT_OBJECT_PREFIX_RE.search(command_lower[:match_start])
+
         # Find which PLAYER marshal appears FIRST in the command
         # V2-55: Use word-boundary regex to prevent substring matches
         # (e.g. "ney" matching inside "journey", "money")
         first_position = len(command_lower) + 1
         for pattern, name in player_marshals:
-            match = re.search(r'\b' + re.escape(pattern) + r'\b', command_lower)
-            if match and match.start() < first_position:
-                first_position = match.start()
-                marshal = name
+            for name_match in re.finditer(r'\b' + re.escape(pattern) + r'\b',
+                                          command_lower):
+                if not _executor_eligible(name_match.start()):
+                    continue
+                if name_match.start() < first_position:
+                    first_position = name_match.start()
+                    marshal = name
+                break  # earliest eligible occurrence of this name decides
 
         # Also check for "Marshal [Name]" pattern
         # CR-0: accept both "Marshal Soult" and "marshal Soult" — the old
@@ -752,8 +878,11 @@ class LLMClient:
                 for pattern in enemy_patterns
             )
             if not is_enemy_name:
-                match_pos = command_lower.find("marshal")
-                if match_pos != -1 and match_pos < first_position:
+                # CR-2: same position-aware eligibility as the roster scan —
+                # "hold until Marshal Ney arrives" / "support Marshal Ney"
+                # name a condition/target marshal, not the executor.
+                match_pos = match.start()
+                if match_pos < first_position and _executor_eligible(match_pos):
                     marshal = captured
 
         # If still None, that's OK - means general order
@@ -1098,6 +1227,15 @@ class LLMClient:
                 confidence = 0.8   # Moderate: action only, no context
         else:
             confidence = 0.5  # Low: couldn't parse, LLM might help
+
+        # CR-2: marshal-aware confidence — an explicitly-addressed leading
+        # name that resolved to NOTHING means the parse is likely wrong no
+        # matter how confident the action-verb match was. Dropping below
+        # the 0.7 gate lets live mode consult the LLM BEFORE the fuzzy pass
+        # hard-errors. Mock behavior is unchanged (nothing in mock mode
+        # branches on confidence).
+        if matched and _unresolved_address_token(command_text, game_state):
+            confidence = min(confidence, UNRESOLVED_ADDRESS_CONFIDENCE)
 
         # Return ParseResult
         return ParseResult(
