@@ -135,13 +135,22 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
 
 def _build_ability(marshal: Marshal) -> Dict[str, Any]:
     """Signature ability section. Only includes ability data for wired abilities."""
-    is_active = marshal.name in _WIRED_ABILITY_MARSHALS
+    ability = marshal.ability or {}
+    ability_name = ability.get("name") or ""
+    # MC-0: gate on a REAL ability, not just the marshal's name. Scenario
+    # marshals boot with ability {"name": "None"} (create_marshal_from_data),
+    # so 1805 Ney/Davout are in _WIRED_ABILITY_MARSHALS but carry no ability —
+    # they must NOT report an active ability literally named "None". (The
+    # underlying combat wiring keys off the ability name too, so False here
+    # matches the mechanics: no name -> no effect.)
+    is_active = (marshal.name in _WIRED_ABILITY_MARSHALS
+                 and ability_name not in ("", "None"))
     if is_active:
         return {
-            "ability_name": marshal.ability.get("name", "None"),
-            "ability_description": marshal.ability.get("description", ""),
-            "ability_trigger": marshal.ability.get("trigger", ""),
-            "ability_effect": marshal.ability.get("effect", ""),
+            "ability_name": ability_name,
+            "ability_description": ability.get("description", ""),
+            "ability_trigger": ability.get("trigger", ""),
+            "ability_effect": ability.get("effect", ""),
             "ability_active": True,
         }
     # No active ability — omit ability fields entirely

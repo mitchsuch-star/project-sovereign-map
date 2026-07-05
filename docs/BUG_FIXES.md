@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: July 3, 2026 (CR-0 parser roster pinning FIXED — see the entry below. Two open defects remain with owners: advance-turn AP reset → `ECONOMY_REVISIT_SPEC.md` EC-0; marshal-overview ability display → `MARSHAL_CONTENT_PASS_SPEC.md` MC-0. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+> Last Updated: July 4, 2026 (CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED — see the entries below. No open defects remain in this doc. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -46,7 +46,7 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. Of the three July-2 open defects, CR-0 is FIXED (July 3, 2026); EC-0 and MC-0 remain with their phase owners; overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
+**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. All three July-2 open defects are now FIXED: CR-0 (July 3), EC-0 + MC-0 (July 4, 2026). Overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
 
@@ -1218,35 +1218,44 @@ from `world.regions`, mock ladder from game_state.
 
 ---
 
-## Open (High — July 2, 2026 re-staging audit): advance-turn AP reset uses the legacy nation builder
+## FIXED (July 4, 2026 — EC-0): advance-turn AP reset uses the legacy nation builder
 
-**Owner: `docs/ECONOMY_REVISIT_SPEC.md` EC-0** (fix BEFORE any AP/economy balance work).
+**Owner: `docs/ECONOMY_REVISIT_SPEC.md` EC-0.** ✅ LANDED.
 
-`world_state.py:5925-5928` resets `nation_actions` from
-`build_default_nation_actions` (legacy `BASE_NATION_ACTIONS`) on every
-`advance_turn` regardless of `sovereign_map`. On the shipped Europe world
-(init from `build_europe_nation_actions`; `EUROPE_BASE_ACTIONS` Austria=4)
-this squashes **Austria 4 → 3 after turn 1** (silently nullifying the
-approved 1805 pre-slice item-8 tuning) and never resets Europe-only
-nations, so `ap_per_turn` treaty penalties **compound permanently** for
-Russia/Spain/Ottoman/etc. Every AI-pressure measurement since the cutover
-ran Austria at the un-tuned value — Slice-8 balance verdicts touching
-Austrian tempo must be re-baselined after the fix. (Also spawned as a
-background task chip during the audit.)
+`world_state.py`'s `advance_turn` reset `nation_actions` from
+`build_default_nation_actions` (legacy 4-nation builder) regardless of
+`sovereign_map`. On the shipped Europe world this squashed **Austria 4 → 3
+after turn 1** (nullifying the approved 1805 pre-slice item-8 tuning) and
+never reset the 15 Europe-only nations (Naples/Bavaria/Ottoman/…), so their
+`ap_per_turn` treaty penalties **compounded permanently**. **Fix:** the
+constructor snapshots the world's OWN base AP into `base_nation_actions`
+(world-scoped by construction, like `_starting_controllers`; serialized;
+from_dict defaults to the loaded `nation_actions` for fresh scenarios +
+pre-fix saves), and `advance_turn` resets from that snapshot. Now Europe
+Austria holds 4 across turns and every Europe-only nation's penalty
+applies-then-releases each turn. Legacy Austria stays 3 (unchanged). No
+Slice-8 balance pin moved in the suite; the *prose* verdicts touching
+Austrian tempo were measured at 3 AP and now run at the intended 4 — a note
+for the next balance pass, not a test fix. Tests:
+`tests/test_economy_ec0_ap_reset.py`.
 
 ---
 
-## Open (Medium — July 2, 2026 re-staging audit): marshal-overview ability display shows "None" as an active ability
+## FIXED (July 4, 2026 — MC-0): marshal-overview ability display shows "None" as an active ability
 
-**Owner: `docs/MARSHAL_CONTENT_PASS_SPEC.md` MC-0** (independent quick fix allowed).
+**Owner: `docs/MARSHAL_CONTENT_PASS_SPEC.md` MC-0.** ✅ LANDED.
 
-`marshal_overview._build_ability` gates on marshal NAME
-(`marshal_overview.py:28/:138`), so scenario-authored 1805 Ney/Davout —
-who boot with `ability={"name": "None"}` via `create_marshal_from_data` —
-report `ability_active=True` with ability name "None" in the management
-screen. Root context: the entire 21-marshal 1805 roster ships without
-authored abilities/skills/relationships (the Marshal Content Pass owns the
-content half; MC-0 owns this display defect).
+`marshal_overview._build_ability` gated on marshal NAME only, so
+scenario-authored 1805 Ney/Davout — who boot with `ability={"name":
+"None"}` via `create_marshal_from_data` — reported `ability_active=True`
+with ability name "None" in the management screen. **Fix:** the gate now
+also requires a real ability name (`name not in ("", "None")`), so 1805
+marshals correctly report no active ability — matching the mechanics (the
+combat wiring keys off the ability name too, so no name = no effect). Legacy
+marshals with genuine wired abilities (Ney's Bravest of the Brave, Davout's
+Counter-Punch Mastery, Drouot's Sage of the Grand Army) still display. The
+content half (authoring abilities for the 1805 roster) remains the gated
+MC-1. Tests: `tests/test_marshal_content_mc0_ability_display.py`.
 
 ---
 

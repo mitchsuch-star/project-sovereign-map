@@ -348,6 +348,12 @@ class WorldState:
             if europe
             else build_default_nation_actions(self.player_nation)
         )
+        # EC-0: the per-turn AP reset must restore the WORLD'S OWN base (not
+        # the legacy builder) — snapshot it here (world-scoped by
+        # construction, like _starting_controllers), so Europe nations keep
+        # their tuned base (Austria 4, not 3) and ap_per_turn treaty penalties
+        # on Europe-only nations release each turn instead of compounding.
+        self.base_nation_actions: Dict[str, int] = dict(self.nation_actions)
 
         # AI Stagnation Counter (persists across turns, read/written by EnemyAI)
         # Tracks consecutive turns where each marshal took no meaningful action
@@ -4106,6 +4112,7 @@ class WorldState:
             "ai_attack_futility": self.ai_attack_futility.copy(),
             "enemy_nations": self.enemy_nations.copy(),
             "nation_actions": self.nation_actions.copy(),
+            "base_nation_actions": self.base_nation_actions.copy(),  # EC-0
             "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
             "battle_history": [b.copy() for b in self.battle_history],
 
@@ -4519,6 +4526,12 @@ class WorldState:
         # Item 3: world-scoped fallbacks (constructor values, not legacy builders)
         world.enemy_nations = data.get("enemy_nations", world.enemy_nations).copy()
         world.nation_actions = data.get("nation_actions", world.nation_actions).copy()
+        # EC-0: base AP snapshot. New saves carry it; for a fresh scenario or a
+        # pre-fix save it defaults to the loaded nation_actions — correct at a
+        # turn boundary (a fresh scenario's nation_actions IS its base, incl.
+        # a modded custom-AP scenario the legacy builder could never rebuild).
+        world.base_nation_actions = data.get(
+            "base_nation_actions", world.nation_actions).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
         world.battle_history = [b.copy() for b in data.get("battle_history", [])]
 
@@ -5936,17 +5949,14 @@ class WorldState:
         apply_continental_system(self)
 
         # ════════════════════════════════════════════════════════════
-        # RESET AI NATION ACTIONS (Deep Audit Session 4 Fix 1)
-        # Must happen BEFORE treaty clauses so AP clauses reduce from
-        # base, not from last turn's already-reduced value
-        # ════════════════════════════════════════════════════════════
-        # ════════════════════════════════════════════════════════════
         # RESET ALL NATION ACTIONS (Deep Audit Session 4 Fix 1)
         # Must happen BEFORE treaty clauses so AP clauses reduce from
-        # base, not from last turn's already-reduced value
+        # base, not from last turn's already-reduced value.
+        # EC-0: reset from the world's OWN base snapshot (was the legacy
+        # 4-nation builder — squashed Austria 4→3 and never restored the 15
+        # Europe-only nations, so their ap_per_turn penalties compounded).
         # ════════════════════════════════════════════════════════════
-        _base_nation_actions = build_default_nation_actions(self.player_nation)
-        for nation, base in _base_nation_actions.items():
+        for nation, base in self.base_nation_actions.items():
             if nation in self.nation_actions:
                 self.nation_actions[nation] = base
 
