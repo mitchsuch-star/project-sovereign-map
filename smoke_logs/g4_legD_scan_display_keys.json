@@ -1,0 +1,32 @@
+{
+  "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason": {
+    "n": 10,
+    "example": {
+      "file": "g4_legD_mount_d2_nowar_Austria.json",
+      "value": "blocked_settlement_recovery",
+      "tokens": [
+        "blocked_settlement_recovery"
+      ]
+    }
+  },
+  "$.active_wars.wars[1].war_detail_actionability.recovery_route.reason": {
+    "n": 10,
+    "example": {
+      "file": "g4_legD_mount_d2_nowar_Austria.json",
+      "value": "blocked_settlement_recovery",
+      "tokens": [
+        "blocked_settlement_recovery"
+      ]
+    }
+  },
+  "$.active_wars.wars[2].war_detail_actionability.recovery_route.reason": {
+    "n": 10,
+    "example": {
+      "file": "g4_legD_mount_d2_nowar_Austria.json",
+      "value": "blocked_settlement_recovery",
+      "tokens": [
+        "blocked_settlement_recovery"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1775 @@
+{
+ "ease_ladder": {
+  "type": "settlement_confirm",
+  "dialogue_type": "settlement_confirm",
+  "dialogue_mode": "PROPOSE",
+  "per_court_acceptance": [
+   {
+    "nation": "Austria",
+    "band": "near_acceptable",
+    "band_display": "Holding out (close)",
+    "total": 37,
+    "threshold": 50,
+    "verdict": "near_acceptable",
+    "direction": "peace",
+    "direct_score": 0,
+    "top_blocker_display": "Settlement legitimacy",
+    "direction_summary": "Conceded: 400g",
+    "previous_band": "reject",
+    "delta_display": "Austria Holding out \u2192 Holding out (close)",
+    "component_breakdown": [
+     {
+      "component": "concession_credit",
+      "value": 32,
+      "component_display": "Concession credit",
+      "value_display": "+32"
+     },
+     {
+      "component": "settlement_tier_legitimacy",
+      "value": -20,
+      "component_display": "Settlement legitimacy",
+      "value_display": "-20"
+     },
+     {
+      "component": "war_exhaustion",
+      "value": 20,
+      "component_display": "War exhaustion",
+      "value_display": "+20"
+     },
+     {
+      "component": "leader_own_losses",
+      "value": 5,
+      "component_display": "Leader's own losses",
+      "value_display": "+5"
+     },
+     {
+      "component": "abandoned_by_ally_acceptance_mod",
+      "value": 0,
+      "component_display": "Abandoned ally grievance",
+      "value_display": "+0"
+     },
+     {
+      "component": "base_side_pressure",
+      "value": 0,
+      "component_display": "Base side pressure",
+      "value_display": "+0"
+     },
+     {
+      "component": "burdened_participant_penalty",
+      "value": 0,
+      "component_display": "Ally burden",
+      "value_display": "+0"
+     },
+     {
+      "component": "projected_hegemony_mod",
+      "value": 0,
+      "component_display": "Balance of Europe pressure",
+      "value_display": "+0"
+     },
+     {
+      "component": "term_harshness_penalty",
+      "value": 0,
+      "component_display": "Term harshness",
+      "value_display": "+0"
+     },
+     {
+      "component": "war_objective_alignment",
+      "value": 0,
+      "component_display": "War objective alignment",
+      "value_display": "+0"
+     }
+    ],
+    "hard_stops": [],
+    "voice_line": "Metternich says Austria leans toward terms, though Settlement legitimacy still gives the court pause.",
+    "speaker_display": "Metternich",
+    "is_holdout": true,
+    "holdout_actions": [
+     {
+      "label": "Ease Austria",
+      "action": "settlement_dial_generous",
+      "scope": "Austria",
+      "nation": "Austria",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Soften terms toward Austria to bring them to the table."
+     },
+     {
+      "label": "Drop Austria",
+      "action": "settlement_cover_drop",
+      "nation": "Austria",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Drop Austria from the settlement; they remain at war."
+     }
+    ],
+    "dial_actions": [
+     {
+      "label": "Press Austria",
+      "action": "settlement_dial_harsher",
+      "scope": "Austria",
+      "nation": "Austria",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Press Austria harder \u2014 applies to this court only."
+     }
+    ],
+    "lead_group": "",
+    "current_demands": [
+     {
+      "clause_index": 1,
+      "clause_type": "gold_indemnity",
+      "direction_tag": "Conceded",
+      "line_display": "France pays 400 gold",
+      "authored_by": "",
+      "magnitude": {
+       "amount": 400,
+       "amount_min": 1
+      },
+      "remove_action": {
+       "action": "settlement_demand_remove",
+       "war_id": "war_1",
+       "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+       "action_params": {
+        "clause_index": 1,
+        "expected_type": "gold_indemnity"
+       }
+      },
+      "set_magnitude_action": {
+       "action": "settlement_demand_set_magnitude",
+       "war_id": "war_1",
+       "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+       "action_params": {
+        "clause_index": 1,
+        "expected_type": "gold_indemnity"
+       }
+      }
+     }
+    ],
+    "can_author": true,
+    "authoring_disabled_reason_display": "",
+    "demand_suggestions": [
+     {
+      "label": "Take Carniola from Austria",
+      "group": "demand",
+      "clause_type": "territory_cede",
+      "reason_display": "Carniola sits beside what we already hold; Austria would keep it only on paper.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "territory_cede",
+       "region": "Carniola"
+      },
+      "region_options": [
+       "Carniola",
+       "Hungary"
+      ]
+     },
+     {
+      "label": "Demand 200 gold from Austria",
+      "group": "demand",
+      "clause_type": "gold_indemnity",
+      "reason_display": "Austria's treasury can bear 200 gold \u2014 priced to wound the purse, not the pride.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "gold_indemnity",
+       "amount": 200
+      },
+      "magnitude": {
+       "amount": 200,
+       "amount_min": 1
+      }
+     },
+     {
+      "label": "Demand 100 gold a turn from Austria for 3 turns",
+      "group": "demand",
+      "clause_type": "gold_per_turn",
+      "reason_display": "A tribute of 100 gold a turn for 3 turns \u2014 collected quietly, resented slowly, and well within Austria's means.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "gold_per_turn",
+       "amount": 100,
+       "turns": 3
+      },
+      "magnitude": {
+       "amount": 100,
+       "amount_min": 10,
+       "turns": 3,
+       "turns_min": 1,
+       "turns_max": 20
+      }
+     },
+     {
+      "label": "Vassalize Austria",
+      "group": "demand",
+      "clause_type": "vassalage",
+      "reason_display": "At 18% of our strength, Austria is better acquired than argued with.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "vassalage"
+      }
+     },
+     {
+      "label": "Subjugate Austria",
+      "group": "demand",
+      "clause_type": "subjugation",
+      "reason_display": "At 18% of our strength, Austria cannot decline a master; subjugation merely sets it down in ink.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "subjugation"
+      }
+     },
+     {
+      "label": "Force Austria into alliance",
+      "group": "demand",
+      "clause_type": "forced_alliance",
+      "reason_display": "An alliance signed under necessity still signs, Sire \u2014 Austria's weight moves to our side of the ledger.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "demand",
+       "clause_type": "forced_alliance"
+      },
+      "supports_continental_system": true
+     },
+     {
+      "label": "Offer Bohemia to Austria",
+      "group": "offer",
+      "clause_type": "territory_cede",
+      "reason_display": "Ceding Bohemia purchases Austria's signature; a province spent at the right table buys more than it earns.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Austria",
+       "group": "offer",
+       "clause_type": "territory_cede",
+       "region": "Bohemia"
+      },
+      "region_options": [
+       "Bohemia",
+       "Tyrol",
+       "Volhynia",
+       "Wessex"
+      ]
+     }
+    ]
+   },
+   {
+    "nation": "Britain",
+    "band": "near_acceptable",
+    "band_display": "Holding out (close)",
+    "total": 37,
+    "threshold": 50,
+    "verdict": "near_acceptable",
+    "direction": "peace",
+    "direct_score": 0,
+    "top_blocker_display": "Settlement legitimacy",
+    "direction_summary": "Conceded: 400g",
+    "previous_band": "reject",
+    "delta_display": "Britain Holding out \u2192 Holding out (close)",
+    "component_breakdown": [
+     {
+      "component": "concession_credit",
+      "value": 32,
+      "component_display": "Concession credit",
+      "value_display": "+32"
+     },
+     {
+      "component": "settlement_tier_legitimacy",
+      "value": -20,
+      "component_display": "Settlement legitimacy",
+      "value_display": "-20"
+     },
+     {
+      "component": "war_exhaustion",
+      "value": 20,
+      "component_display": "War exhaustion",
+      "value_display": "+20"
+     },
+     {
+      "component": "leader_own_losses",
+      "value": 5,
+      "component_display": "Leader's own losses",
+      "value_display": "+5"
+     },
+     {
+      "component": "abandoned_by_ally_acceptance_mod",
+      "value": 0,
+      "component_display": "Abandoned ally grievance",
+      "value_display": "+0"
+     },
+     {
+      "component": "base_side_pressure",
+      "value": 0,
+      "component_display": "Base side pressure",
+      "value_display": "+0"
+     },
+     {
+      "component": "burdened_participant_penalty",
+      "value": 0,
+      "component_display": "Ally burden",
+      "value_display": "+0"
+     },
+     {
+      "component": "projected_hegemony_mod",
+      "value": 0,
+      "component_display": "Balance of Europe pressure",
+      "value_display": "+0"
+     },
+     {
+      "component": "term_harshness_penalty",
+      "value": 0,
+      "component_display": "Term harshness",
+      "value_display": "+0"
+     },
+     {
+      "component": "war_objective_alignment",
+      "value": 0,
+      "component_display": "War objective alignment",
+      "value_display": "+0"
+     }
+    ],
+    "hard_stops": [],
+    "voice_line": "Castlereagh says Britain leans toward terms, though Settlement legitimacy still gives the court pause.",
+    "speaker_display": "Castlereagh",
+    "is_holdout": true,
+    "holdout_actions": [
+     {
+      "label": "Ease Britain",
+      "action": "settlement_dial_generous",
+      "scope": "Britain",
+      "nation": "Britain",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Soften terms toward Britain to bring them to the table."
+     },
+     {
+      "label": "Drop Britain",
+      "action": "settlement_cover_drop",
+      "nation": "Britain",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Drop Britain from the settlement; they remain at war."
+     }
+    ],
+    "dial_actions": [
+     {
+      "label": "Press Britain",
+      "action": "settlement_dial_harsher",
+      "scope": "Britain",
+      "nation": "Britain",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "description": "Press Britain harder \u2014 applies to this court only."
+     }
+    ],
+    "lead_group": "",
+    "current_demands": [
+     {
+      "clause_index": 2,
+      "clause_type": "gold_indemnity",
+      "direction_tag": "Conceded",
+      "line_display": "France pays 400 gold",
+      "authored_by": "",
+      "magnitude": {
+       "amount": 400,
+       "amount_min": 1
+      },
+      "remove_action": {
+       "action": "settlement_demand_remove",
+       "war_id": "war_1",
+       "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+       "action_params": {
+        "clause_index": 2,
+        "expected_type": "gold_indemnity"
+       }
+      },
+      "set_magnitude_action": {
+       "action": "settlement_demand_set_magnitude",
+       "war_id": "war_1",
+       "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+       "action_params": {
+        "clause_index": 2,
+        "expected_type": "gold_indemnity"
+       }
+      }
+     }
+    ],
+    "can_author": true,
+    "authoring_disabled_reason_display": "",
+    "demand_suggestions": [
+     {
+      "label": "Take Cornwall from Britain",
+      "group": "demand",
+      "clause_type": "territory_cede",
+      "reason_display": "Cornwall sits beside what we already hold; Britain would keep it only on paper.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "territory_cede",
+       "region": "Cornwall"
+      },
+      "region_options": [
+       "Cornwall",
+       "Midlands",
+       "East Anglia"
+      ]
+     },
+     {
+      "label": "Demand 300 gold from Britain",
+      "group": "demand",
+      "clause_type": "gold_indemnity",
+      "reason_display": "Britain's treasury can bear 300 gold \u2014 priced to wound the purse, not the pride.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "gold_indemnity",
+       "amount": 300
+      },
+      "magnitude": {
+       "amount": 300,
+       "amount_min": 1
+      }
+     },
+     {
+      "label": "Demand 100 gold a turn from Britain for 3 turns",
+      "group": "demand",
+      "clause_type": "gold_per_turn",
+      "reason_display": "A tribute of 100 gold a turn for 3 turns \u2014 collected quietly, resented slowly, and well within Britain's means.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "gold_per_turn",
+       "amount": 100,
+       "turns": 3
+      },
+      "magnitude": {
+       "amount": 100,
+       "amount_min": 10,
+       "turns": 3,
+       "turns_min": 1,
+       "turns_max": 20
+      }
+     },
+     {
+      "label": "Vassalize Britain",
+      "group": "demand",
+      "clause_type": "vassalage",
+      "reason_display": "At 35% of our strength, Britain is better acquired than argued with.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "vassalage"
+      }
+     },
+     {
+      "label": "Subjugate Britain",
+      "group": "demand",
+      "clause_type": "subjugation",
+      "reason_display": "At 35% of our strength, Britain cannot decline a master; subjugation merely sets it down in ink.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "subjugation"
+      }
+     },
+     {
+      "label": "Force Britain into alliance",
+      "group": "demand",
+      "clause_type": "forced_alliance",
+      "reason_display": "An alliance signed under necessity still signs, Sire \u2014 Britain's weight moves to our side of the ledger.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "demand",
+       "clause_type": "forced_alliance"
+      },
+      "supports_continental_system": true
+     },
+     {
+      "label": "Offer Wessex to Britain",
+      "group": "offer",
+      "clause_type": "territory_cede",
+      "reason_display": "Ceding Wessex purchases Britain's signature; a province spent at the right table buys more than it earns.",
+      "action": "settlement_demand_add",
+      "war_id": "war_1",
+      "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+      "action_params": {
+       "nation": "Britain",
+       "group": "offer",
+       "clause_type": "territory_cede",
+       "region": "Wessex"
+      },
+      "region_options": [
+       "Wessex",
+       "Tyrol",
+       "Bohemia",
+       "Volhynia"
+      ]
+     }
+    ]
+   }
+  ],
+  "overall_acceptance": {
+   "carries": false,
+   "holdout_courts": [
+    "Austria",
+    "Britain"
+   ],
+   "summary_display": "2 courts hold out.",
+   "carry_verdict_display": "Will NOT carry as drafted \u2014 every court must reach 50. Holding out: Austria 37/50, Britain 37/50."
+  },
+  "multi_court_table_narration": "Sire, this settlement of France vs Britain seats 2 courts at the table. Sire, Austria will not sign; the settlement of France vs Britain cannot be ratified until that court is eased toward terms or dropped to fight on.",
+  "targeted_posture_advisory": "I'd ease Austria, Britain, Sire \u2014 the table is yours to shape.",
+  "propose_carry_hint": "Austria and Britain won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+  "coverage_add_suggestions": [
+   {
+    "label": "Bring Russia to the table",
+    "action": "settlement_cover_add",
+    "nation": "Russia",
+    "war_id": "war_1",
+    "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+    "description": "Add Russia to this settlement and re-draft for the new set."
+   }
+  ],
+  "treasury_line": {
+   "treasury": 800,
+   "committed": 800,
+   "reserve": 0,
+   "remaining": 0
+  },
+  "budget_bound_recommendation": {},
+  "war_id": "war_1",
+  "war_label": "France vs Austria + Britain",
+  "route_id": "settlement:war_1:1:6",
+  "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+  "route": {
+   "surface": "ledger_settlements",
+   "review_target": "ledger_settlements",
+   "route_id": "settlement:war_1:1:6",
+   "war_id": "war_1"
+  },
+  "proposer_side": "attackers",
+  "accepting_side": "defenders",
+  "staged_leaders": {
+   "attackers": "France",
+   "defenders": "Britain"
+  },
+  "staged_turn": 1,
+  "settlement_terms": [
+   {
+    "type": "peace"
+   },
+   {
+    "type": "gold_indemnity",
+    "from": "France",
+    "to": "Austria",
+    "amount": 400
+   },
+   {
+    "type": "gold_indemnity",
+    "from": "France",
+    "to": "Britain",
+    "amount": 400
+   }
+  ],
+  "covered_enemy_participants": [
+   "Austria",
+   "Britain"
+  ],
+  "selected_target_nation": "Britain",
+  "settlement_preview": {
+   "war_instance": {
+    "war_id": "war_1",
+    "created_turn": 1,
+    "created_sequence": 1,
+    "originator": "France",
+    "origin_target": "Britain",
+    "origin_diplo_key": "Britain|France",
+    "origin_episode_id": "scenario_start_Britain_France",
+    "origin_entry_path": "scenario_start",
+    "objective_keys": [
+     "Britain|France"
+    ],
+    "active_diplo_keys": [
+     "Britain|France",
+     "Austria|France",
+     "France|Russia",
+     "Britain|Spain",
+     "Britain|Holland",
+     "Austria|Bavaria",
+     "Austria|KingdomOfItaly"
+    ],
+    "resolved_diplo_keys": [],
+    "diplo_key_meta": {
+     "Britain|France": {
+      "attacker": "France",
+      "defender": "Britain",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Austria|France": {
+      "attacker": "France",
+      "defender": "Austria",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "France|Russia": {
+      "attacker": "France",
+      "defender": "Russia",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Britain|Spain": {
+      "attacker": "Spain",
+      "defender": "Britain",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Britain|Holland": {
+      "attacker": "Holland",
+      "defender": "Britain",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Austria|Bavaria": {
+      "attacker": "Bavaria",
+      "defender": "Austria",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Austria|KingdomOfItaly": {
+      "attacker": "KingdomOfItaly",
+      "defender": "Austria",
+      "joined_turn": 1,
+      "pair_status": "war",
+      "resolved_turn": null,
+      "entry_path": "scenario_start"
+     }
+    },
+    "attacker_leader": "France",
+    "defender_leader": "Britain",
+    "leader_source_by_side": {
+     "attackers": "originator",
+     "defenders": "origin_target"
+    },
+    "attackers": [
+     "France",
+     "Spain",
+     "Holland",
+     "Bavaria",
+     "KingdomOfItaly"
+    ],
+    "defenders": [
+     "Britain",
+     "Austria",
+     "Russia"
+    ],
+    "side_by_nation": {
+     "France": "attackers",
+     "Britain": "defenders",
+     "Austria": "defenders",
+     "Russia": "defenders",
+     "Spain": "attackers",
+     "Holland": "attackers",
+     "Bavaria": "attackers",
+     "KingdomOfItaly": "attackers"
+    },
+    "active_participants": [
+     "France",
+     "Britain",
+     "Austria",
+     "Russia",
+     "Spain",
+     "Holland",
+     "Bavaria",
+     "KingdomOfItaly"
+    ],
+    "participant_meta": {
+     "France": {
+      "side": "attackers",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Britain": {
+      "side": "defenders",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Austria": {
+      "side": "defenders",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Russia": {
+      "side": "defenders",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Spain": {
+      "side": "attackers",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Holland": {
+      "side": "attackers",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "Bavaria": {
+      "side": "attackers",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     },
+     "KingdomOfItaly": {
+      "side": "attackers",
+      "joined_turn": 1,
+      "exited_turn": null,
+      "entry_path": "scenario_start"
+     }
+    },
+    "separate_peaced": [],
+    "war_bargains": [],
+    "ended_turn": null,
+    "end_reason": null
+   },
+   "war_label": "France vs Britain",
+   "covered_enemy_participants": [
+    "Austria",
+    "Britain"
+   ],
+   "proposer_side": "attackers",
+   "accepting_side": "defenders",
+   "proposer_side_participants": [
+    "France",
+    "Spain",
+    "Holland",
+    "Bavaria",
+    "KingdomOfItaly"
+   ],
+   "accepting_side_participants": [
+    "Britain",
+    "Austria",
+    "Russia"
+   ],
+   "standing": {},
+   "settlement_terms": [
+    {
+     "type": "peace"
+    },
+    {
+     "type": "gold_indemnity",
+     "from": "France",
+     "to": "Austria",
+     "amount": 400
+    },
+    {
+     "type": "gold_indemnity",
+     "from": "France",
+     "to": "Britain",
+     "amount": 400
+    }
+   ],
+   "acceptance": {
+    "score": 37,
+    "verdict": "near_acceptable",
+    "components": {
+     "base_side_pressure": 0,
+     "settlement_tier_legitimacy": -20,
+     "term_harshness_penalty": 0,
+     "leader_own_losses": 5,
+     "burdened_participant_penalty": 0,
+     "projected_hegemony_mod": 0,
+     "war_objective_alignment": 0,
+     "concession_credit": 32,
+     "war_exhaustion": 20,
+     "abandoned_by_ally_acceptance_mod": 0
+    },
+    "component_debug": {
+     "base_side_pressure": {
+      "score": 0,
+      "raw_score": 0,
+      "side_pressure_score": 0,
+      "scale": 0.65
+     },
+     "settlement_tier_legitimacy": {
+      "score": -20,
+      "raw_score": -20,
+      "tier": "white_peace",
+      "tier_base": -10,
+      "ceiling": 0.1,
+      "exceeded_ceiling": true,
+      "mismatch_penalty": -10,
+      "raw_total_harshness": 0.0
+     },
+     "term_harshness_penalty": {
+      "score": 0,
+      "raw_total_harshness": 0.0,
+      "capped_at_ceiling": 0.0,
+      "normalized": 0.0,
+      "magnitude": 0,
+      "ceiling": 1.5
+     },
+     "leader_own_losses": {
+      "score": 5,
+      "raw_score": 5,
+      "regions_ceded_count": 0,
+      "ceded_regions": [],
+      "capital_lost": false,
+      "home_capital": "London",
+      "kept_all_with_holdings": true,
+      "has_regions_at_evaluation": true,
+      "lost_mapped_holdings_count": 0,
+      "lost_mapped_holdings_subtotal": 0,
+      "forced_aligned_against_leader": false,
+      "components": {
+       "regions_ceded": 0,
+       "capital_loss": 0,
+       "kept_all_bonus": 5,
+       "lost_mapped_holdings": 0
+      },
+      "clamp": [
+       -25,
+       5
+      ]
+     },
+     "burdened_participant_penalty": {
+      "score": 0,
+      "raw_penalty": 0,
+      "burdened_count": 0,
+      "per_burden": [],
+      "aggregate_cap": 0,
+      "applied_floor": -60
+     },
+     "projected_hegemony": {
+      "pre_hegemon": "France",
+      "post_hegemon": "France",
+      "pre_share": 0.4471830985915493,
+      "post_share": 0.4471830985915493,
+      "crossed_band": null,
+      "deepened_band": null,
+      "hegemon_swap": false,
+      "modifier": 0
+     },
+     "projected_forced_alliance_threat_delta": 0,
+     "crossed_coalition_thresholds": [],
+     "forced_alliance_threat_preview": {
+      "forced_alliance_clauses": 0,
+      "continental_system_clauses": 0,
+      "projected_threat_delta": 0,
+      "current_threat": 85,
+      "projected_threat": 85,
+      "crossed_thresholds": []
+     },
+     "war_objective_alignment": {
+      "score": 0,
+      "selected_objective": null,
+      "alignment_label": "no_objective",
+      "war_id": "war_1"
+     },
+     "concession_credit": {
+      "score": 32,
+      "raw_score": 32,
+      "credited_terms": [
+       {
+        "index": 1,
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Austria",
+        "score": 16
+       },
+       {
+        "index": 2,
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "score": 16
+       }
+      ],
+      "clamp": [
+       0,
+       120
+      ]
+     },
+     "war_exhaustion": {
+      "score": 20,
+      "raw_per_nation_exhaustion": 90,
+      "relevant_exhaustion": 0,
+      "unrelated_exhaustion": 90,
+      "applied_relevance_cap": false
+     },
+     "abandoned_by_ally": {
+      "score": 0,
+      "raw_score": 0,
+      "recent_defectors": [],
+      "applied_cap": false,
+      "lookback_turns": 3
+     }
+    },
+    "side_pressure_score": 0,
+    "side_pressure_result": {
+     "score": 0,
+     "hard_stops": [],
+     "direct_scores": {
+      "Austria": {
+       "France": 0,
+       "Bavaria": 0,
+       "KingdomOfItaly": 0
+      },
+      "Britain": {
+       "France": 0,
+       "Spain": 0,
+       "Holland": 0
+      }
+     },
+     "direct_score_sources": {
+      "Austria": {
+       "score": 0,
+       "source": "Bavaria",
+       "weight": 3
+      },
+      "Britain": {
+       "score": 0,
+       "source": "France",
+       "weight": 3
+      }
+     },
+     "pressure_terms": [
+      [
+       0,
+       3
+      ],
+      [
+       0,
+       3
+      ]
+     ]
+    },
+    "direct_scores": {
+     "Austria": {
+      "France": 0,
+      "Bavaria": 0,
+      "KingdomOfItaly": 0
+     },
+     "Britain": {
+      "France": 0,
+      "Spain": 0,
+      "Holland": 0
+     }
+    },
+    "direct_score_sources": {
+     "Austria": {
+      "score": 0,
+      "source": "Bavaria",
+      "weight": 3
+     },
+     "Britain": {
+      "score": 0,
+      "source": "France",
+      "weight": 3
+     }
+    },
+    "hard_stops": [],
+    "feedback": [
+     {
+      "component": "settlement_tier_legitimacy",
+      "value": -20,
+      "magnitude": 20
+     }
+    ],
+    "raw_total": 37,
+    "raw_total_harshness": 0.0,
+    "near_acceptable_threshold": 35,
+    "accept_threshold": 50,
+    "proposer_side": "attackers",
+    "accepting_side": "defenders",
+    "accepting_leader": "Britain",
+    "proposer_side_participants": [
+     "France",
+     "Spain",
+     "Holland",
+     "Bavaria",
+     "KingdomOfItaly"
+    ],
+    "accepting_side_participants": [
+     "Britain",
+     "Austria",
+     "Russia"
+    ],
+    "covered_enemy_participants": [
+     "Austria",
+     "Britain"
+    ],
+    "current_turn": 1,
+    "band": "near_acceptable",
+    "band_display": "Holding out (close)",
+    "band_phrase": "Close, but not yet acceptable",
+    "top_components": [
+     {
+      "component": "settlement_tier_legitimacy",
+      "value": -20,
+      "magnitude": 20,
+      "component_display": "Settlement legitimacy",
+      "value_display": "-20"
+     }
+    ],
+    "top_blocker_display": "Settlement legitimacy",
+    "top_blocker_value_display": "-20",
+    "total": 37,
+    "threshold": 50
+   },
+   "acceptance_components": {
+    "base_side_pressure": 0,
+    "settlement_tier_legitimacy": -20,
+    "term_harshness_penalty": 0,
+    "leader_own_losses": 5,
+    "burdened_participant_penalty": 0,
+    "projected_hegemony_mod": 0,
+    "war_objective_alignment": 0,
+    "concession_credit": 32,
+    "war_exhaustion": 20,
+    "abandoned_by_ally_acceptance_mod": 0
+   },
+   "per_court_acceptance": [
+    {
+     "nation": "Austria",
+     "band": "near_acceptable",
+     "band_display": "Holding out (close)",
+     "total": 37,
+     "threshold": 50,
+     "verdict": "near_acceptable",
+     "direction": "peace",
+     "direct_score": 0,
+     "top_blocker_display": "Settlement legitimacy",
+     "direction_summary": "Conceded: 400g",
+     "previous_band": "reject",
+     "delta_display": "Austria Holding out \u2192 Holding out (close)",
+     "component_breakdown": [
+      {
+       "component": "concession_credit",
+       "value": 32,
+       "component_display": "Concession credit",
+       "value_display": "+32"
+      },
+      {
+       "component": "settlement_tier_legitimacy",
+       "value": -20,
+       "component_display": "Settlement legitimacy",
+       "value_display": "-20"
+      },
+      {
+       "component": "war_exhaustion",
+       "value": 20,
+       "component_display": "War exhaustion",
+       "value_display": "+20"
+      },
+      {
+       "component": "leader_own_losses",
+       "value": 5,
+       "component_display": "Leader's own losses",
+       "value_display": "+5"
+      },
+      {
+       "component": "abandoned_by_ally_acceptance_mod",
+       "value": 0,
+       "component_display": "Abandoned ally grievance",
+       "value_display": "+0"
+      },
+      {
+       "component": "base_side_pressure",
+       "value": 0,
+       "component_display": "Base side pressure",
+       "value_display": "+0"
+      },
+      {
+       "component": "burdened_participant_penalty",
+       "value": 0,
+       "component_display": "Ally burden",
+       "value_display": "+0"
+      },
+      {
+       "component": "projected_hegemony_mod",
+       "value": 0,
+       "component_display": "Balance of Europe pressure",
+       "value_display": "+0"
+      },
+      {
+       "component": "term_harshness_penalty",
+       "value": 0,
+       "component_display": "Term harshness",
+       "value_display": "+0"
+      },
+      {
+       "component": "war_objective_alignment",
+       "value": 0,
+       "component_display": "War objective alignment",
+       "value_display": "+0"
+      }
+     ],
+     "hard_stops": []
+    },
+    {
+     "nation": "Britain",
+     "band": "near_acceptable",
+     "band_display": "Holding out (close)",
+     "total": 37,
+     "threshold": 50,
+     "verdict": "near_acceptable",
+     "direction": "peace",
+     "direct_score": 0,
+     "top_blocker_display": "Settlement legitimacy",
+     "direction_summary": "Conceded: 400g",
+     "previous_band": "reject",
+     "delta_display": "Britain Holding out \u2192 Holding out (close)",
+     "component_breakdown": [
+      {
+       "component": "concession_credit",
+       "value": 32,
+       "component_display": "Concession credit",
+       "value_display": "+32"
+      },
+      {
+       "component": "settlement_tier_legitimacy",
+       "value": -20,
+       "component_display": "Settlement legitimacy",
+       "value_display": "-20"
+      },
+      {
+       "component": "war_exhaustion",
+       "value": 20,
+       "component_display": "War exhaustion",
+       "value_display": "+20"
+      },
+      {
+       "component": "leader_own_losses",
+       "value": 5,
+       "component_display": "Leader's own losses",
+       "value_display": "+5"
+      },
+      {
+       "component": "abandoned_by_ally_acceptance_mod",
+       "value": 0,
+       "component_display": "Abandoned ally grievance",
+       "value_display": "+0"
+      },
+      {
+       "component": "base_side_pressure",
+       "value": 0,
+       "component_display": "Base side pressure",
+       "value_display": "+0"
+      },
+      {
+       "component": "burdened_participant_penalty",
+       "value": 0,
+       "component_display": "Ally burden",
+       "value_display": "+0"
+      },
+      {
+       "component": "projected_hegemony_mod",
+       "value": 0,
+       "component_display": "Balance of Europe pressure",
+       "value_display": "+0"
+      },
+      {
+       "component": "term_harshness_penalty",
+       "value": 0,
+       "component_display": "Term harshness",
+       "value_display": "+0"
+      },
+      {
+       "component": "war_objective_alignment",
+       "value": 0,
+       "component_display": "War objective alignment",
+       "value_display": "+0"
+      }
+     ],
+     "hard_stops": []
+    }
+   ],
+   "overall_acceptance": {
+    "carries": false,
+    "holdout_courts": [
+     "Austria",
+     "Britain"
+    ],
+    "summary_display": "2 courts hold out.",
+    "carry_verdict_display": "Will NOT carry as drafted \u2014 every court must reach 50. Holding out: Austria 37/50, Britain 37/50."
+   },
+   "baseline_generated": false,
+   "baseline_per_court": {},
+   "warnings": [
+    {
+     "severity": "WARNING",
+     "category": "acceptance_component",
+     "component": "settlement_tier_legitimacy",
+     "value": -20
+    }
+   ],
+   "density": "medium",
+   "review_sections": {
+    "war_id": "war_1",
+    "war_label": "France vs Britain",
+    "proposer_side": "attackers",
+    "accepting_side": "defenders",
+    "covered_enemy_participants": [
+     "Austria"
+    ],
+    "covered_enemy_display_chips": [
+     "Austria"
+    ],
+    "uncovered_enemy_display_chips": [],
+    "coverage_scope_display": "Separate settlement",
+    "war_scope_display": "Bilateral war",
+    "density": "medium",
+    "sections": {
+     "terms": {
+      "rows": [
+       {
+        "type": "peace",
+        "type_display": "Peace",
+        "display_label": "End hostilities (no material change)"
+       },
+       {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Austria",
+        "amount": 400,
+        "type_display": "Gold indemnity",
+        "display_label": "Gold indemnity: 400 gold from France to Austria"
+       },
+       {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 400,
+        "type_display": "Gold indemnity",
+        "display_label": "Gold indemnity: 400 gold from France to Britain"
+       }
+      ],
+      "overflow_count": 0
+     },
+     "allies": {
+      "rows": [
+       {
+        "nation": "Austria",
+        "side": "defenders",
+        "side_label": "Defenders",
+        "standing": "seat",
+        "standing_display": "Seat at settlement",
+        "material_share": 0.0,
+        "support_share": 0.0,
+        "is_leader": false,
+        "is_beneficiary": false,
+        "standing_phrase": "Seat at settlement; 0% material share"
+       },
+       {
+        "nation": "Bavaria",
+        "side": "attackers",
+        "side_label": "Attackers",
+        "standing": "no_standing",
+        "standing_display": "No settlement standing",
+        "material_share": 0.0,
+        "support_share": 0.0,
+        "is_leader": false,
+        "is_beneficiary": false,
+        "standing_phrase": "No settlement standing; 0% material share"
+       },
+       {
+        "nation": "France",
+        "side": "attackers",
+        "side_label": "Attackers",
+        "standing": "seat",
+        "standing_display": "Seat at settlement",
+        "material_share": 0.0,
+        "support_share": 0.0,
+        "is_leader": true,
+        "is_beneficiary": false,
+        "standing_phrase": "Seat at settlement; 0% material share"
+       },
+       {
+        "nation": "Holland",
+        "side": "attackers",
+        "side_label": "Attackers",
+        "standing": "no_standing",
+        "standing_display": "No settlement standing",
+        "material_share": 0.0,
+        "support_share": 0.0,
+        "is_leader": false,
+        "is_beneficiary": false,
+        "standing_phrase": "No settlement standing; 0% material share"
+       }
+      ],
+      "overflow_count": 0
+     },
+     "warnings": {
+      "inline": [
+       {
+        "severity": "WARNING",
+        "category": "acceptance_component",
+        "component": "settlement_tier_legitimacy",
+        "value": -20,
+        "code": "acceptance_component",
+        "code_display": "Acceptance concern",
+        "detail": "Settlement Tier Legitimacy"
+       }
+      ],
+      "overflow": []
+     },
+     "acceptance": {
+      "total": 37,
+      "threshold": 50,
+      "band": "near_acceptable",
+      "top_components": [
+       {
+        "component": "settlement_tier_legitimacy",
+        "value": -20,
+        "magnitude": 20,
+        "component_display": "Settlement legitimacy",
+        "value_display": "-20"
+       }
+      ],
+      "band_display": "Near acceptable"
+     }
+    },
+    "awe_tags": [],
+    "awe_tag_displays": [],
+    "applied_clauses_preview": [
+     {
+      "type": "peace",
+      "type_display": "Peace",
+      "display_label": "End hostilities (no material change)",
+      "pair_state_transition": "WAR -> PEACE"
+     },
+     {
+      "type": "gold_indemnity",
+      "type_display": "Gold indemnity",
+      "display_label": "Gold indemnity: 400 gold from France to Austria",
+      "from": "France",
+      "to": "Austria",
+      "amount": 400
+     },
+     {
+      "type": "gold_indemnity",
+      "type_display": "Gold indemnity",
+      "display_label": "Gold indemnity: 400 gold from France to Britain",
+      "from": "France",
+      "to": "Britain",
+      "amount": 400
+     }
+    ],
+    "beneficiaries_preview": [
+     {
+      "nation": "Austria",
+      "reasons": [
+       "Receives gold"
+      ]
+     },
+     {
+      "nation": "Britain",
+      "reasons": [
+       "Receives gold"
+      ]
+     }
+    ],
+    "shut_out_allies_preview": [],
+    "third_party_reaction_preview": [],
+    "forced_alliance_threat_preview": {
+     "forced_alliance_clauses": 0,
+     "current_threat": 85,
+     "projected_threat": 85,
+     "projected_threat_delta": 0,
+     "crossed_thresholds": [],
+     "crossed_threshold_displays": [],
+     "display": ""
+    }
+   },
+   "losing_for_concession_baseline": false,
+   "concession_baseline_visible": false,
+   "concession_baseline": null,
+   "concession_baseline_reason": "not_losing_side",
+   "losing_for_surrender_preset": false,
+   "surrender_preset_visible": false,
+   "surrender_preset": null,
+   "surrender_preset_reason": "not_losing_side",
+   "losing_for_recurring_gold_preset": false,
+   "recurring_gold_preset_visible": false,
+   "recurring_gold_preset": null,
+   "recurring_gold_preset_reason": "not_losing_side",
+   "forced_alliance_continental_toggle_differential": []
+  },
+  "acceptance_components": {
+   "base_side_pressure": 0,
+   "settlement_tier_legitimacy": -20,
+   "term_harshness_penalty": 0,
+   "leader_own_losses": 5,
+   "burdened_participant_penalty": 0,
+   "projected_hegemony_mod": 0,
+   "war_objective_alignment": 0,
+   "concession_credit": 32,
+   "war_exhaustion": 20,
+   "abandoned_by_ally_acceptance_mod": 0
+  },
+  "warnings": [
+   {
+    "severity": "WARNING",
+    "category": "acceptance_component",
+    "component": "settlement_tier_legitimacy",
+    "value": -20
+   }
+  ],
+  "hard_stops": [],
+  "review_sections": {
+   "war_id": "war_1",
+   "war_label": "France vs Britain",
+   "proposer_side": "attackers",
+   "accepting_side": "defenders",
+   "covered_enemy_participants": [
+    "Austria"
+   ],
+   "covered_enemy_display_chips": [
+    "Austria"
+   ],
+   "uncovered_enemy_display_chips": [],
+   "coverage_scope_display": "Separate settlement",
+   "war_scope_display": "Bilateral war",
+   "density": "medium",
+   "sections": {
+    "terms": {
+     "rows": [
+      {
+       "type": "peace",
+       "type_display": "Peace",
+       "display_label": "End hostilities (no material change)"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "France",
+       "to": "Austria",
+       "amount": 400,
+       "type_display": "Gold indemnity",
+       "display_label": "Gold indemnity: 400 gold from France to Austria"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "France",
+       "to": "Britain",
+       "amount": 400,
+       "type_display": "Gold indemnity",
+       "display_label": "Gold indemnity: 400 gold from France to Britain"
+      }
+     ],
+     "overflow_count": 0
+    },
+    "allies": {
+     "rows": [
+      {
+       "nation": "Austria",
+       "side": "defenders",
+       "side_label": "Defenders",
+       "standing": "seat",
+       "standing_display": "Seat at settlement",
+       "material_share": 0.0,
+       "support_share": 0.0,
+       "is_leader": false,
+       "is_beneficiary": false,
+       "standing_phrase": "Seat at settlement; 0% material share"
+      },
+      {
+       "nation": "Bavaria",
+       "side": "attackers",
+       "side_label": "Attackers",
+       "standing": "no_standing",
+       "standing_display": "No settlement standing",
+       "material_share": 0.0,
+       "support_share": 0.0,
+       "is_leader": false,
+       "is_beneficiary": false,
+       "standing_phrase": "No settlement standing; 0% material share"
+      },
+      {
+       "nation": "France",
+       "side": "attackers",
+       "side_label": "Attackers",
+       "standing": "seat",
+       "standing_display": "Seat at settlement",
+       "material_share": 0.0,
+       "support_share": 0.0,
+       "is_leader": true,
+       "is_beneficiary": false,
+       "standing_phrase": "Seat at settlement; 0% material share"
+      },
+      {
+       "nation": "Holland",
+       "side": "attackers",
+       "side_label": "Attackers",
+       "standing": "no_standing",
+       "standing_display": "No settlement standing",
+       "material_share": 0.0,
+       "support_share": 0.0,
+       "is_leader": false,
+       "is_beneficiary": false,
+       "standing_phrase": "No settlement standing; 0% material share"
+      }
+     ],
+     "overflow_count": 0
+    },
+    "warnings": {
+     "inline": [
+      {
+       "severity": "WARNING",
+       "category": "acceptance_component",
+       "component": "settlement_tier_legitimacy",
+       "value": -20,
+       "code": "acceptance_component",
+       "code_display": "Acceptance concern",
+       "detail": "Settlement Tier Legitimacy"
+      }
+     ],
+     "overflow": []
+    },
+    "acceptance": {
+     "total": 37,
+     "threshold": 50,
+     "band": "near_acceptable",
+     "top_components": [
+      {
+       "component": "settlement_tier_legitimacy",
+       "value": -20,
+       "magnitude": 20,
+       "component_display": "Settlement legitimacy",
+       "value_display": "-20"
+      }
+     ],
+     "band_display": "Near acceptable"
+    }
+   },
+   "awe_tags": [],
+   "awe_tag_displays": [],
+   "applied_clauses_preview": [
+    {
+     "type": "peace",
+     "type_display": "Peace",
+     "display_label": "End hostilities (no material change)",
+     "pair_state_transition": "WAR -> PEACE"
+    },
+    {
+     "type": "gold_indemnity",
+     "type_display": "Gold indemnity",
+     "display_label": "Gold indemnity: 400 gold from France to Austria",
+     "from": "France",
+     "to": "Austria",
+     "amount": 400
+    },
+    {
+     "type": "gold_indemnity",
+     "type_display": "Gold indemnity",
+     "display_label": "Gold indemnity: 400 gold from France to Britain",
+     "from": "France",
+     "to": "Britain",
+     "amount": 400
+    }
+   ],
+   "beneficiaries_preview": [
+    {
+     "nation": "Austria",
+     "reasons": [
+      "Receives gold"
+     ]
+    },
+    {
+     "nation": "Britain",
+     "reasons": [
+      "Receives gold"
+     ]
+    }
+   ],
+   "shut_out_allies_preview": [],
+   "third_party_reaction_preview": [],
+   "forced_alliance_threat_preview": {
+    "forced_alliance_clauses": 0,
+    "current_threat": 85,
+    "projected_threat": 85,
+    "projected_threat_delta": 0,
+    "crossed_thresholds": [],
+    "crossed_threshold_displays": [],
+    "display": ""
+   }
+  },
+  "coverage_scope_display": "Separate settlement",
+  "war_scope_display": "Bilateral war",
+  "covered_enemy_display_chips": [
+   "Austria"
+  ],
+  "uncovered_enemy_display_chips": [],
+  "acceptance_display": {
+   "total": 37,
+   "threshold": 50,
+   "band": "near_acceptable",
+   "top_components": [
+    {
+     "component": "settlement_tier_legitimacy",
+     "value": -20,
+     "magnitude": 20,
+     "component_display": "Settlement legitimacy",
+     "value_display": "-20"
+    }
+   ],
+   "band_display": "Near acceptable"
+  },
+  "available_action_ids": [
+   "settlement_dial_harsher",
+   "settlement_dial_generous",
+   "submit_settlement_for_review",
+   "suspend_settlement_editor"
+  ],
+  "can_ratify": false,
+  "ratify_blocked_reason": "Settlement legitimacy",
+  "options": [
+   {
+    "label": "Harsher terms",
+    "action": "settlement_dial_harsher",
+    "scope": "table",
+    "war_id": "war_1",
+    "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+    "description": "Press every court harder and watch each react live."
+   },
+   {
+    "label": "More generous",
+    "action": "settlement_dial_generous",
+    "scope": "table",
+    "war_id": "war_1",
+    "draft_key": "settlement_draft:war_1:Britain:cf29de2356689752",
+    "description": "Ease every court and watch each react live."
+   },
+   {
+    "label": "Submit for Review",
+    "action": "submit_settlement_for_review",
+    "description": "Lock in this package and review it for ratification."
+   },
+   {
+    "label": "Back Out",
+    "action": "suspend_settlement_editor"
+   }
+  ],
+  "war_detail_actionability": {
+   "actionable": true,
+   "war_id": "war_1",
+   "selected_target_nation": "Britain",
+   "covered_enemy_participants": [
+    "Austria",
+    "Britain"
+   ],
+   "refusal_code": "",
+   "refusal_code_display": "",
+   "peace_seeking_controls": [
+    "negotiate_peace"
+   ],
+   "recovery_route": {
+    "surface": "war_detail",
+    "target": "war_detail",
+    "war_id": "war_1",
+    "selected_target_nation": "Britain",
+    "target_nation": "Britain",
+    "nation": "Britain",
+    "covered_enemy_participants": [
+     "Austria",
+     "Britain"
+    ],
+    "source_route_id": "settlement:war_1:1:6",
+    "reason": "blocked_settlement_recovery"
+   }
+  },
+  "recovery_route": {
+   "surface": "war_detail",
+   "target": "war_detail",
+   "war_id": "war_1",
+   "selected_target_nation": "Britain",
+   "target_nation": "Britain",
+   "nation": "Britain",
+   "covered_enemy_participants": [
+    "Austria",
+    "Britain"
+   ],
+   "source_route_id": "settlement:war_1:1:6",
+   "reason": "blocked_settlement_recovery"
+  },
+  "terminal_recovery_copy": "",
+  "message": "Sire, the settlement of France vs Austria + Britain cannot be ratified now: Settlement legitimacy. Revise terms or stand down before pressing further.",
+  "talleyrand_text": "Sire, the settlement of France vs Austria + Britain cannot be ratified now: Settlement legitimacy. Revise terms or stand down before pressing further.",
+  "turn_created": 1,
+  "blocking": false,
+  "caller_kind": "player_editor",
+  "white_peace": false,
+  "losing_for_concession_baseline": false,
+  "concession_baseline_visible": false,
+  "concession_baseline": null,
+  "losing_side_pressure_voice": "",
+  "surrender_preset": false,
+  "losing_for_surrender_preset": false,
+  "surrender_preset_visible": false,
+  "surrender_preset_payload": null,
+  "surrender_preset_reason": "not_losing_side",
+  "losing_for_recurring_gold_preset": false,
+  "recurring_gold_preset_visible": false,
+  "recurring_gold_preset_payload": null,
+  "recurring_gold_preset_reason": "not_losing_side",
+  "forced_alliance_continental_toggle_differential": []
+ }
+}

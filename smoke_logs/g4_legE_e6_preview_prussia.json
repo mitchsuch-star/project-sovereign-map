@@ -1,0 +1,106 @@
+{
+  "success": true,
+  "dialogue_pending": false,
+  "pending_envoy_count": 0,
+  "nation": "Prussia",
+  "state": "PEACE",
+  "current_state": "PEACE",
+  "current_state_display": "Peace",
+  "relation": -10,
+  "relation_descriptor": "Wary",
+  "dp_available": 4,
+  "has_deferred_result": false,
+  "talleyrand_in_transit": false,
+  "is_vassal": false,
+  "section": "foreign_affairs",
+  "assessment": "Prussia maintains a cautious distance. Their diplomats watch our moves with calculating eyes. Open borders would test their appetite.",
+  "actions": [
+    {
+      "action": "propose_open_borders",
+      "display_name": "Propose Open Borders",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "likelihood": "Unlikely",
+      "likelihood_score": 28
+    },
+    {
+      "action": "declare_war",
+      "display_name": "Declare War",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": ""
+    },
+    {
+      "action": "send_ultimatum",
+      "display_name": "Send Ultimatum",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": ""
+    },
+    {
+      "action": "mission_improve_relations",
+      "display_name": "Improve Relations",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "+5 relation/turn"
+    },
+    {
+      "action": "mission_court",
+      "display_name": "Court Nation",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "+5 relation/turn, 20% blowback"
+    },
+    {
+      "action": "mission_gather_intel",
+      "display_name": "Gather Intel",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "3-turn full intel"
+    },
+    {
+      "action": "mission_undermine",
+      "display_name": "Undermine Alliances",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "-3 relation between targets/turn"
+    }
+  ],
+  "recommendation": "No proposal would find purchase now. Talleyrand recommends: Improve Relations mission to warm the diplomatic climate.",
+  "acceptance_preview": {
+    "positive": [
+      {
+        "key": "base_disposition",
+        "label": "Base willingness",
+        "value": 35
+      },
+      {
+        "key": "diplomat_skill_bonus",
+        "label": "Diplomatic skill advantage",
+        "value": 8
+      }
+    ],
+    "negative": [
+      {
+        "key": "relation_modifier",
+        "label": "Current relations",
+        "value": -5
+      },
+      {
+        "key": "hegemony_target_mod",
+        "label": "Hegemon bloc pressure",
+        "value": -5
+      },
+      {
+        "key": "personality_modifier",
+        "label": "Diplomat personality",
+        "value": -5
+      }
+    ]
+  }
+}

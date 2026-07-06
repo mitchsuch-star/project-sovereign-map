@@ -1,0 +1,3572 @@
+{
+  "success": true,
+  "message": "Sire, the settlement of France vs Britain + Prussia cannot be ratified now: Base side pressure. Revise terms or stand down before pressing further.",
+  "events": [],
+  "game_state": {
+    "turn": 1,
+    "max_turns": 40,
+    "gold": 1500,
+    "manpower_pools": {
+      "infantry": 80000,
+      "cavalry": 15000,
+      "artillery": 10000
+    },
+    "player_nation": "France",
+    "regions_controlled": 9,
+    "total_regions": 19,
+    "map_data": {
+      "Paris": {
+        "controller": "France",
+        "terrain": "urban",
+        "region_type": "capital",
+        "visibility_status": "full",
+        "marshals": [
+          {
+            "name": "Davout",
+            "nation": "France",
+            "strength": 48000,
+            "morale": 100,
+            "movement_range": 1,
+            "personality": "cautious",
+            "trust": 85,
+            "trust_label": "Loyal",
+            "vindication": 0,
+            "has_pending_vindication": false,
+            "skills": {
+              "shock": 7,
+              "defense": 8,
+              "tactical": 9
+            },
+            "tactical_state": {
+              "stance": "neutral",
+              "drilling": false,
+              "drilling_locked": false,
+              "shock_bonus": 0,
+              "drill_complete_turn": -1,
+              "fortified": false,
+              "defense_bonus": 0,
+              "fortify_state": {
+                "direction": "none",
+                "floor": 0,
+                "turns_until_decay": -1,
+                "turns_fortified": 0
+              },
+              "retreating": false,
+              "retreat_recovery": 0,
+              "cavalry": false,
+              "turns_in_defensive_stance": 0,
+              "counter_punch_available": false,
+              "counter_punch_turns": 0,
+              "counter_punch_ready": false,
+              "holding_position": false,
+              "hold_region": "",
+              "broken": false,
+              "broken_recovery": 0,
+              "recklessness": 0,
+              "is_reckless_cavalry": false,
+              "pending_glorious_charge": false,
+              "pending_charge_target": "",
+              "in_strategic_mode": false,
+              "strategic_command_type": "",
+              "strategic_target": "",
+              "occupation_region": "",
+              "occupation_turns_held": 0,
+              "occupation_turns_required": 0,
+              "artillery": false,
+              "bombardments_this_turn": 0,
+              "square_formation": false
+            },
+            "relationships": {
+              "Ney": {
+                "value": -1,
+                "label": "Rival"
+              },
+              "Grouchy": {
+                "value": 0,
+                "label": "Professional"
+              },
+              "Drouot": {
+                "value": 1,
+                "label": "Friendly"
+              }
+            },
+            "co_location_turns": {}
+          },
+          {
+            "name": "Drouot",
+            "nation": "France",
+            "strength": 25000,
+            "morale": 100,
+            "movement_range": 1,
+            "personality": "cautious",
+            "trust": 80,
+            "trust_label": "Reliable",
+            "vindication": 0,
+            "has_pending_vindication": false,
+            "skills": {
+              "shock": 7,
+              "defense": 6,
+              "tactical": 8
+            },
+            "tactical_state": {
+              "stance": "neutral",
+              "drilling": false,
+              "drilling_locked": false,
+              "shock_bonus": 0,
+              "drill_complete_turn": -1,
+              "fortified": false,
+              "defense_bonus": 0,
+              "fortify_state": {
+                "direction": "none",
+                "floor": 0,
+                "turns_until_decay": -1,
+                "turns_fortified": 0
+              },
+              "retreating": false,
+              "retreat_recovery": 0,
+              "cavalry": false,
+              "turns_in_defensive_stance": 0,
+              "counter_punch_available": false,
+              "counter_punch_turns": 0,
+              "counter_punch_ready": false,
+              "holding_position": false,
+              "hold_region": "",
+              "broken": false,
+              "broken_recovery": 0,
+              "recklessness": 0,
+              "is_reckless_cavalry": false,
+              "pending_glorious_charge": false,
+              "pending_charge_target": "",
+              "in_strategic_mode": false,
+              "strategic_command_type": "",
+              "strategic_target": "",
+              "occupation_region": "",
+              "occupation_turns_held": 0,
+              "occupation_turns_required": 0,
+              "artillery": true,
+              "bombardments_this_turn": 0,
+              "square_formation": false
+            },
+            "relationships": {
+              "Ney": {
+                "value": 0,
+                "label": "Professional"
+              },
+              "Davout": {
+                "value": 1,
+                "label": "Friendly"
+              },
+              "Grouchy": {
+                "value": 0,
+                "label": "Professional"
+              }
+            },
+            "co_location_turns": {}
+          }
+        ],
+        "fogged_forces": [],
+        "income_value": 300,
+        "effective_income": 300,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 60000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 2,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 15000,
+        "garrison_detachment": false
+      },
+      "Belgium": {
+        "controller": "France",
+        "terrain": "plains",
+        "region_type": "town",
+        "visibility_status": "full",
+        "marshals": [
+          {
+            "name": "Ney",
+            "nation": "France",
+            "strength": 72000,
+            "morale": 100,
+            "movement_range": 2,
+            "personality": "aggressive",
+            "trust": 75,
+            "trust_label": "Reliable",
+            "vindication": 0,
+            "has_pending_vindication": false,
+            "skills": {
+              "shock": 9,
+              "defense": 4,
+              "tactical": 7
+            },
+            "tactical_state": {
+              "stance": "neutral",
+              "drilling": false,
+              "drilling_locked": false,
+              "shock_bonus": 0,
+              "drill_complete_turn": -1,
+              "fortified": false,
+              "defense_bonus": 0,
+              "fortify_state": {
+                "direction": "none",
+                "floor": 0,
+                "turns_until_decay": -1,
+                "turns_fortified": 0
+              },
+              "retreating": false,
+              "retreat_recovery": 0,
+              "cavalry": true,
+              "turns_in_defensive_stance": 0,
+              "counter_punch_available": false,
+              "counter_punch_turns": 0,
+              "counter_punch_ready": false,
+              "holding_position": false,
+              "hold_region": "",
+              "broken": false,
+              "broken_recovery": 0,
+              "recklessness": 0,
+              "is_reckless_cavalry": true,
+              "pending_glorious_charge": false,
+              "pending_charge_target": "",
+              "in_strategic_mode": false,
+              "strategic_command_type": "",
+              "strategic_target": "",
+              "occupation_region": "",
+              "occupation_turns_held": 0,
+              "occupation_turns_required": 0,
+              "artillery": false,
+              "bombardments_this_turn": 0,
+              "square_formation": false
+            },
+            "relationships": {
+              "Davout": {
+                "value": -2,
+                "label": "Hostile"
+              },
+              "Grouchy": {
+                "value": 0,
+                "label": "Professional"
+              },
+              "Drouot": {
+                "value": 0,
+                "label": "Professional"
+              }
+            },
+            "co_location_turns": {}
+          }
+        ],
+        "fogged_forces": [],
+        "income_value": 100,
+        "effective_income": 100,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 35000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Netherlands": {
+        "controller": "Britain",
+        "terrain": "plains",
+        "region_type": "capital",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": -1,
+        "garrison_strength_band": "substantial force",
+        "garrison_detachment": false
+      },
+      "Waterloo": {
+        "controller": "France",
+        "terrain": "hills",
+        "region_type": "rural",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [
+          {
+            "name": "Wellington",
+            "nation": "Britain",
+            "strength_band": "large force",
+            "fog_level": "partial"
+          }
+        ],
+        "income_value": 50,
+        "effective_income": 50,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 13500,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Rhineland": {
+        "controller": "Prussia",
+        "terrain": "river_crossing",
+        "region_type": "town",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [
+          {
+            "name": "Gneisenau",
+            "nation": "Prussia",
+            "strength_band": "substantial force",
+            "fog_level": "partial"
+          }
+        ],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Bavaria": {
+        "controller": "Austria",
+        "terrain": "hills",
+        "region_type": "town",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Vienna": {
+        "controller": "Austria",
+        "terrain": "urban",
+        "region_type": "capital",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Lyon": {
+        "controller": "France",
+        "terrain": "hills",
+        "region_type": "major_city",
+        "visibility_status": "full",
+        "marshals": [
+          {
+            "name": "Grouchy",
+            "nation": "France",
+            "strength": 28000,
+            "morale": 100,
+            "movement_range": 1,
+            "personality": "literal",
+            "trust": 65,
+            "trust_label": "Reliable",
+            "vindication": 0,
+            "has_pending_vindication": false,
+            "skills": {
+              "shock": 5,
+              "defense": 5,
+              "tactical": 5
+            },
+            "tactical_state": {
+              "stance": "neutral",
+              "drilling": false,
+              "drilling_locked": false,
+              "shock_bonus": 0,
+              "drill_complete_turn": -1,
+              "fortified": false,
+              "defense_bonus": 0,
+              "fortify_state": {
+                "direction": "none",
+                "floor": 0,
+                "turns_until_decay": -1,
+                "turns_fortified": 0
+              },
+              "retreating": false,
+              "retreat_recovery": 0,
+              "cavalry": false,
+              "turns_in_defensive_stance": 0,
+              "counter_punch_available": false,
+              "counter_punch_turns": 0,
+              "counter_punch_ready": false,
+              "holding_position": false,
+              "hold_region": "",
+              "broken": false,
+              "broken_recovery": 0,
+              "recklessness": 0,
+              "is_reckless_cavalry": false,
+              "pending_glorious_charge": false,
+              "pending_charge_target": "",
+              "in_strategic_mode": false,
+              "strategic_command_type": "",
+              "strategic_target": "",
+              "occupation_region": "",
+              "occupation_turns_held": 0,
+              "occupation_turns_required": 0,
+              "artillery": false,
+              "bombardments_this_turn": 0,
+              "square_formation": false
+            },
+            "relationships": {
+              "Ney": {
+                "value": 0,
+                "label": "Professional"
+              },
+              "Davout": {
+                "value": 0,
+                "label": "Professional"
+              },
+              "Drouot": {
+                "value": 0,
+                "label": "Professional"
+              }
+            },
+            "co_location_turns": {}
+          }
+        ],
+        "fogged_forces": [],
+        "income_value": 200,
+        "effective_income": 200,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 36000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 1,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Milan": {
+        "controller": "France",
+        "terrain": "urban",
+        "region_type": "city",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 150,
+        "effective_income": 150,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 48000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 1,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Marseille": {
+        "controller": "France",
+        "terrain": "plains",
+        "region_type": "city",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 150,
+        "effective_income": 150,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 40000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 1,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Brittany": {
+        "controller": "France",
+        "terrain": "forest",
+        "region_type": "rural",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 50,
+        "effective_income": 50,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 12000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Bordeaux": {
+        "controller": "France",
+        "terrain": "plains",
+        "region_type": "rural",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 50,
+        "effective_income": 50,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 15000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Normandy": {
+        "controller": "France",
+        "terrain": "plains",
+        "region_type": "town",
+        "visibility_status": "partial",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 100,
+        "effective_income": 100,
+        "stability": 100,
+        "stability_label": "Stable",
+        "war_damage": 0,
+        "supply_capacity": 35000,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Hanover": {
+        "controller": "Britain",
+        "terrain": "plains",
+        "region_type": "town",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Berlin": {
+        "controller": "Prussia",
+        "terrain": "urban",
+        "region_type": "capital",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Saxony": {
+        "controller": "Saxony",
+        "terrain": "plains",
+        "region_type": "city",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Dresden": {
+        "controller": "Saxony",
+        "terrain": "hills",
+        "region_type": "capital",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Bohemia": {
+        "controller": "Austria",
+        "terrain": "forest",
+        "region_type": "city",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      },
+      "Tyrol": {
+        "controller": "Austria",
+        "terrain": "mountains",
+        "region_type": "town",
+        "visibility_status": "unknown",
+        "marshals": [],
+        "fogged_forces": [],
+        "income_value": 0,
+        "effective_income": 0,
+        "stability": 0,
+        "stability_label": "Unknown",
+        "war_damage": 0,
+        "supply_capacity": 0,
+        "buildings": [],
+        "building_under_construction": null,
+        "max_building_slots": 0,
+        "watchtower": "none",
+        "watchtower_turns_remaining": 0,
+        "garrison_strength": 0,
+        "garrison_detachment": false
+      }
+    },
+    "marshals": {
+      "Ney": {
+        "location": "Belgium",
+        "strength": 72000,
+        "morale": 100
+      },
+      "Davout": {
+        "location": "Paris",
+        "strength": 48000,
+        "morale": 100
+      },
+      "Grouchy": {
+        "location": "Lyon",
+        "strength": 28000,
+        "morale": 100
+      },
+      "Drouot": {
+        "location": "Paris",
+        "strength": 25000,
+        "morale": 100
+      }
+    },
+    "enemies": {
+      "Wellington": {
+        "location": "Waterloo",
+        "strength": 0,
+        "nation": "Britain",
+        "strength_band": "large force",
+        "fog_level": "partial"
+      },
+      "Gneisenau": {
+        "location": "Rhineland",
+        "strength": 0,
+        "nation": "Prussia",
+        "strength_band": "substantial force",
+        "fog_level": "partial"
+      }
+    },
+    "game_over": false,
+    "victory": null
+  },
+  "action_summary": {
+    "actions_remaining": 4,
+    "max_actions": 4,
+    "admin_actions_remaining": 2,
+    "max_admin_actions": 2,
+    "turn": 1,
+    "max_turns": 40
+  },
+  "active_wars": {
+    "wars": [
+      {
+        "opponent": "Britain",
+        "war_score": -39,
+        "breakdown": {
+          "territory": 5,
+          "battles": -24,
+          "decisive": -20,
+          "capital": 0,
+          "ticking": 0
+        },
+        "duration": 0,
+        "started_turn": 1,
+        "trend": "rising",
+        "battles_fought": 8,
+        "decisive_won": 0,
+        "recent_battles": [
+          {
+            "turn": 1,
+            "location": "Waterloo",
+            "won": false,
+            "decisive": true
+          },
+          {
+            "turn": 1,
+            "location": "Waterloo",
+            "won": false,
+            "decisive": true
+          },
+          {
+            "turn": 1,
+            "location": "Waterloo",
+            "won": false,
+            "decisive": true
+          },
+          {
+            "turn": 1,
+            "location": "Waterloo",
+            "won": false,
+            "decisive": true
+          },
+          {
+            "turn": 1,
+            "location": "Waterloo",
+            "won": false,
+            "decisive": true
+          }
+        ],
+        "war_exhaustion": 0,
+        "army_strength": "~75,000 men",
+        "status": "war",
+        "in_coalition": false,
+        "is_coalition_leader": false,
+        "objective": null,
+        "enemy_objective": null,
+        "settlement_tier": "favorable_terms",
+        "settlement_tier_display": "Favorable Terms",
+        "contribution_share": [
+          {
+            "nation": "Britain",
+            "side": "defenders",
+            "side_label": "Defenders",
+            "standing": "seat",
+            "standing_display": "Seat at settlement",
+            "material_share": 0.0,
+            "support_share": 0.0,
+            "is_leader": true,
+            "is_beneficiary": false
+          },
+          {
+            "nation": "France",
+            "side": "attackers",
+            "side_label": "Attackers",
+            "standing": "seat",
+            "standing_display": "Seat at settlement",
+            "material_share": 0.0,
+            "support_share": 0.0,
+            "is_leader": true,
+            "is_beneficiary": false
+          },
+          {
+            "nation": "Prussia",
+            "side": "defenders",
+            "side_label": "Defenders",
+            "standing": "seat",
+            "standing_display": "Seat at settlement",
+            "material_share": 0.0,
+            "support_share": 0.0,
+            "is_leader": false,
+            "is_beneficiary": false
+          }
+        ],
+        "contribution_overflow_count": 0,
+        "standing_status": "available",
+        "standing_status_display": "Standing available.",
+        "war_instance_id": "war_1",
+        "settlement_available": true,
+        "settlement_draft_kept": true,
+        "settlement_eligibility": {
+          "available": true,
+          "war_id": "war_1",
+          "proposer_side": "attackers",
+          "accepting_side": "defenders",
+          "proposer_leader": "France",
+          "accepting_leader": "Britain",
+          "active_diplo_keys": [
+            "Britain|France",
+            "France|Prussia"
+          ],
+          "coverable_enemy_participants": [
+            "Britain",
+            "Prussia"
+          ]
+        },
+        "war_detail_actionability": {
+          "actionable": true,
+          "war_id": "war_1",
+          "selected_target_nation": "Britain",
+          "covered_enemy_participants": [
+            "Britain",
+            "Prussia"
+          ],
+          "refusal_code": "",
+          "refusal_code_display": "",
+          "peace_seeking_controls": [
+            "negotiate_peace"
+          ],
+          "recovery_route": {
+            "surface": "war_detail",
+            "target": "war_detail",
+            "war_id": "war_1",
+            "selected_target_nation": "Britain",
+            "target_nation": "Britain",
+            "nation": "Britain",
+            "covered_enemy_participants": [
+              "Britain",
+              "Prussia"
+            ],
+            "source_route_id": "",
+            "reason": "blocked_settlement_recovery"
+          }
+        },
+        "settlement_disabled_reason": "",
+        "settlement_disabled_reason_display": "",
+        "opponents": [
+          "Britain",
+          "Prussia"
+        ],
+        "opponent_display": "Britain + Prussia",
+        "is_multi_participant_war": true
+      }
+    ],
+    "coalition": null
+  },
+  "diplomatic_points": 5,
+  "max_diplomatic_points": 5,
+  "talleyrand_state": "Divine Right",
+  "talleyrand_mission_summary": "None",
+  "threat_level": 0,
+  "coalition_brewing": false,
+  "coalition_brewing_turns": null,
+  "pending_envoy_count": 0,
+  "dialogue_type": "settlement_confirm",
+  "war_id": "war_1",
+  "diplomatic_dialogue": {
+    "type": "settlement_confirm",
+    "dialogue_type": "settlement_confirm",
+    "dialogue_mode": "PROPOSE",
+    "per_court_acceptance": [
+      {
+        "nation": "Britain",
+        "band": "near_acceptable",
+        "band_display": "Holding out (close)",
+        "total": 45,
+        "threshold": 50,
+        "verdict": "near_acceptable",
+        "direction": "concede",
+        "direct_score": -85,
+        "top_blocker_display": "Base side pressure",
+        "direction_summary": "Conceded: Waterloo + 500g",
+        "previous_band": null,
+        "delta_display": null,
+        "component_breakdown": [
+          {
+            "component": "concession_credit",
+            "value": 75,
+            "component_display": "Concession credit",
+            "value_display": "+75"
+          },
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "component_display": "Base side pressure",
+            "value_display": "-50"
+          },
+          {
+            "component": "settlement_tier_legitimacy",
+            "value": 15,
+            "component_display": "Settlement legitimacy",
+            "value_display": "+15"
+          },
+          {
+            "component": "leader_own_losses",
+            "value": 5,
+            "component_display": "Leader's own losses",
+            "value_display": "+5"
+          },
+          {
+            "component": "abandoned_by_ally_acceptance_mod",
+            "value": 0,
+            "component_display": "Abandoned ally grievance",
+            "value_display": "+0"
+          },
+          {
+            "component": "burdened_participant_penalty",
+            "value": 0,
+            "component_display": "Ally burden",
+            "value_display": "+0"
+          },
+          {
+            "component": "projected_hegemony_mod",
+            "value": 0,
+            "component_display": "Balance of Europe pressure",
+            "value_display": "+0"
+          },
+          {
+            "component": "term_harshness_penalty",
+            "value": 0,
+            "component_display": "Term harshness",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_exhaustion",
+            "value": 0,
+            "component_display": "War exhaustion",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_objective_alignment",
+            "value": 0,
+            "component_display": "War objective alignment",
+            "value_display": "+0"
+          }
+        ],
+        "hard_stops": [],
+        "voice_line": "Castlereagh says Britain leans toward terms, though Base side pressure still gives the court pause.",
+        "speaker_display": "Castlereagh",
+        "is_holdout": true,
+        "holdout_actions": [
+          {
+            "label": "Ease Britain",
+            "action": "settlement_dial_generous",
+            "scope": "Britain",
+            "nation": "Britain",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Soften terms toward Britain to bring them to the table."
+          },
+          {
+            "label": "Drop Britain",
+            "action": "settlement_cover_drop",
+            "nation": "Britain",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Drop Britain from the settlement; they remain at war."
+          }
+        ],
+        "dial_actions": [
+          {
+            "label": "Press Britain",
+            "action": "settlement_dial_harsher",
+            "scope": "Britain",
+            "nation": "Britain",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Press Britain harder — applies to this court only."
+          }
+        ],
+        "lead_group": "offer",
+        "current_demands": [
+          {
+            "clause_index": 1,
+            "clause_type": "gold_indemnity",
+            "direction_tag": "Conceded",
+            "line_display": "France pays 500 gold",
+            "authored_by": "",
+            "magnitude": {
+              "amount": 500,
+              "amount_min": 1
+            },
+            "remove_action": {
+              "action": "settlement_demand_remove",
+              "war_id": "war_1",
+              "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+              "action_params": {
+                "clause_index": 1,
+                "expected_type": "gold_indemnity"
+              }
+            },
+            "set_magnitude_action": {
+              "action": "settlement_demand_set_magnitude",
+              "war_id": "war_1",
+              "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+              "action_params": {
+                "clause_index": 1,
+                "expected_type": "gold_indemnity"
+              }
+            }
+          },
+          {
+            "clause_index": 2,
+            "clause_type": "territory_cede",
+            "direction_tag": "Conceded",
+            "line_display": "France cedes Waterloo",
+            "authored_by": "",
+            "magnitude": null,
+            "remove_action": {
+              "action": "settlement_demand_remove",
+              "war_id": "war_1",
+              "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+              "action_params": {
+                "clause_index": 2,
+                "expected_type": "territory_cede"
+              }
+            },
+            "set_magnitude_action": null
+          }
+        ],
+        "can_author": true,
+        "authoring_disabled_reason_display": "",
+        "demand_suggestions": [
+          {
+            "label": "Take Hanover from Britain",
+            "group": "demand",
+            "clause_type": "territory_cede",
+            "reason_display": "Hanover sits beside what we already hold; Britain would keep it only on paper.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "territory_cede",
+              "region": "Hanover"
+            },
+            "region_options": [
+              "Hanover"
+            ]
+          },
+          {
+            "label": "Demand 300 gold from Britain",
+            "group": "demand",
+            "clause_type": "gold_indemnity",
+            "reason_display": "Britain's treasury can bear 300 gold — priced to wound the purse, not the pride.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "gold_indemnity",
+              "amount": 300
+            },
+            "magnitude": {
+              "amount": 300,
+              "amount_min": 1
+            }
+          },
+          {
+            "label": "Demand 100 gold a turn from Britain for 3 turns",
+            "group": "demand",
+            "clause_type": "gold_per_turn",
+            "reason_display": "A tribute of 100 gold a turn for 3 turns — collected quietly, resented slowly, and well within Britain's means.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "gold_per_turn",
+              "amount": 100,
+              "turns": 3
+            },
+            "magnitude": {
+              "amount": 100,
+              "amount_min": 10,
+              "turns": 3,
+              "turns_min": 1,
+              "turns_max": 20
+            }
+          },
+          {
+            "label": "Vassalize Britain",
+            "group": "demand",
+            "clause_type": "vassalage",
+            "reason_display": "At 30% of our strength, Britain is better acquired than argued with.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "vassalage"
+            }
+          },
+          {
+            "label": "Subjugate Britain",
+            "group": "demand",
+            "clause_type": "subjugation",
+            "reason_display": "At 30% of our strength, Britain cannot decline a master; subjugation merely sets it down in ink.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "subjugation"
+            }
+          },
+          {
+            "label": "Force Britain into alliance",
+            "group": "demand",
+            "clause_type": "forced_alliance",
+            "reason_display": "An alliance signed under necessity still signs, Sire — Britain's weight moves to our side of the ledger.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Britain",
+              "group": "demand",
+              "clause_type": "forced_alliance"
+            },
+            "supports_continental_system": true
+          }
+        ]
+      },
+      {
+        "nation": "Prussia",
+        "band": "near_acceptable",
+        "band_display": "Holding out (close)",
+        "total": 45,
+        "threshold": 50,
+        "verdict": "near_acceptable",
+        "direction": "concede",
+        "direct_score": -85,
+        "top_blocker_display": "Base side pressure",
+        "direction_summary": "Conceded: 500g",
+        "previous_band": null,
+        "delta_display": null,
+        "component_breakdown": [
+          {
+            "component": "concession_credit",
+            "value": 75,
+            "component_display": "Concession credit",
+            "value_display": "+75"
+          },
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "component_display": "Base side pressure",
+            "value_display": "-50"
+          },
+          {
+            "component": "settlement_tier_legitimacy",
+            "value": 15,
+            "component_display": "Settlement legitimacy",
+            "value_display": "+15"
+          },
+          {
+            "component": "leader_own_losses",
+            "value": 5,
+            "component_display": "Leader's own losses",
+            "value_display": "+5"
+          },
+          {
+            "component": "abandoned_by_ally_acceptance_mod",
+            "value": 0,
+            "component_display": "Abandoned ally grievance",
+            "value_display": "+0"
+          },
+          {
+            "component": "burdened_participant_penalty",
+            "value": 0,
+            "component_display": "Ally burden",
+            "value_display": "+0"
+          },
+          {
+            "component": "projected_hegemony_mod",
+            "value": 0,
+            "component_display": "Balance of Europe pressure",
+            "value_display": "+0"
+          },
+          {
+            "component": "term_harshness_penalty",
+            "value": 0,
+            "component_display": "Term harshness",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_exhaustion",
+            "value": 0,
+            "component_display": "War exhaustion",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_objective_alignment",
+            "value": 0,
+            "component_display": "War objective alignment",
+            "value_display": "+0"
+          }
+        ],
+        "hard_stops": [],
+        "voice_line": "Hardenberg says Prussia leans toward terms, though Base side pressure still gives the court pause.",
+        "speaker_display": "Hardenberg",
+        "is_holdout": true,
+        "holdout_actions": [
+          {
+            "label": "Ease Prussia",
+            "action": "settlement_dial_generous",
+            "scope": "Prussia",
+            "nation": "Prussia",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Soften terms toward Prussia to bring them to the table."
+          },
+          {
+            "label": "Drop Prussia",
+            "action": "settlement_cover_drop",
+            "nation": "Prussia",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Drop Prussia from the settlement; they remain at war."
+          }
+        ],
+        "dial_actions": [
+          {
+            "label": "Press Prussia",
+            "action": "settlement_dial_harsher",
+            "scope": "Prussia",
+            "nation": "Prussia",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "description": "Press Prussia harder — applies to this court only."
+          }
+        ],
+        "lead_group": "offer",
+        "current_demands": [
+          {
+            "clause_index": 3,
+            "clause_type": "gold_indemnity",
+            "direction_tag": "Conceded",
+            "line_display": "France pays 500 gold",
+            "authored_by": "",
+            "magnitude": {
+              "amount": 500,
+              "amount_min": 1
+            },
+            "remove_action": {
+              "action": "settlement_demand_remove",
+              "war_id": "war_1",
+              "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+              "action_params": {
+                "clause_index": 3,
+                "expected_type": "gold_indemnity"
+              }
+            },
+            "set_magnitude_action": {
+              "action": "settlement_demand_set_magnitude",
+              "war_id": "war_1",
+              "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+              "action_params": {
+                "clause_index": 3,
+                "expected_type": "gold_indemnity"
+              }
+            }
+          }
+        ],
+        "can_author": true,
+        "authoring_disabled_reason_display": "",
+        "demand_suggestions": [
+          {
+            "label": "Take Rhineland from Prussia",
+            "group": "demand",
+            "clause_type": "territory_cede",
+            "reason_display": "Rhineland sits beside what we already hold; Prussia would keep it only on paper.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "territory_cede",
+              "region": "Rhineland"
+            },
+            "region_options": [
+              "Rhineland"
+            ]
+          },
+          {
+            "label": "Demand 300 gold from Prussia",
+            "group": "demand",
+            "clause_type": "gold_indemnity",
+            "reason_display": "Prussia's treasury can bear 300 gold — priced to wound the purse, not the pride.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "gold_indemnity",
+              "amount": 300
+            },
+            "magnitude": {
+              "amount": 300,
+              "amount_min": 1
+            }
+          },
+          {
+            "label": "Demand 100 gold a turn from Prussia for 3 turns",
+            "group": "demand",
+            "clause_type": "gold_per_turn",
+            "reason_display": "A tribute of 100 gold a turn for 3 turns — collected quietly, resented slowly, and well within Prussia's means.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "gold_per_turn",
+              "amount": 100,
+              "turns": 3
+            },
+            "magnitude": {
+              "amount": 100,
+              "amount_min": 10,
+              "turns": 3,
+              "turns_min": 1,
+              "turns_max": 20
+            }
+          },
+          {
+            "label": "Vassalize Prussia",
+            "group": "demand",
+            "clause_type": "vassalage",
+            "reason_display": "At 34% of our strength, Prussia is better acquired than argued with.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "vassalage"
+            }
+          },
+          {
+            "label": "Subjugate Prussia",
+            "group": "demand",
+            "clause_type": "subjugation",
+            "reason_display": "At 34% of our strength, Prussia cannot decline a master; subjugation merely sets it down in ink.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "subjugation"
+            }
+          },
+          {
+            "label": "Force Prussia into alliance",
+            "group": "demand",
+            "clause_type": "forced_alliance",
+            "reason_display": "An alliance signed under necessity still signs, Sire — Prussia's weight moves to our side of the ledger.",
+            "action": "settlement_demand_add",
+            "war_id": "war_1",
+            "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+            "action_params": {
+              "nation": "Prussia",
+              "group": "demand",
+              "clause_type": "forced_alliance"
+            },
+            "supports_continental_system": true
+          }
+        ]
+      }
+    ],
+    "overall_acceptance": {
+      "carries": false,
+      "holdout_courts": [
+        "Britain",
+        "Prussia"
+      ],
+      "summary_display": "2 courts hold out.",
+      "carry_verdict_display": "Will NOT carry as drafted — every court must reach 50. Holding out: Britain 45/50, Prussia 45/50."
+    },
+    "multi_court_table_narration": "Sire, this settlement of France vs Britain seats 2 courts at the table. Sire, Britain will not sign; the settlement of France vs Britain cannot be ratified until that court is eased toward terms or dropped to fight on.",
+    "targeted_posture_advisory": "I'd ease Britain, Prussia, Sire — the table is yours to shape.",
+    "propose_carry_hint": "Britain and Prussia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+    "coverage_add_suggestions": [],
+    "treasury_line": {
+      "treasury": 1500,
+      "committed": 1000,
+      "reserve": 500,
+      "remaining": 0
+    },
+    "budget_bound_recommendation": {},
+    "war_id": "war_1",
+    "war_label": "France vs Britain + Prussia",
+    "route_id": "settlement:war_1:1:1",
+    "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+    "route": {
+      "surface": "ledger_settlements",
+      "review_target": "ledger_settlements",
+      "route_id": "settlement:war_1:1:1",
+      "war_id": "war_1"
+    },
+    "proposer_side": "attackers",
+    "accepting_side": "defenders",
+    "staged_leaders": {
+      "attackers": "France",
+      "defenders": "Britain"
+    },
+    "staged_turn": 1,
+    "settlement_terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 500
+      },
+      {
+        "type": "territory_cede",
+        "from": "France",
+        "to": "Britain",
+        "region": "Waterloo"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 500
+      }
+    ],
+    "covered_enemy_participants": [
+      "Britain",
+      "Prussia"
+    ],
+    "selected_target_nation": "Britain",
+    "settlement_preview": {
+      "war_instance": {
+        "war_id": "war_1",
+        "created_turn": 1,
+        "created_sequence": 1,
+        "originator": "France",
+        "origin_target": "Britain",
+        "origin_diplo_key": "Britain|France",
+        "origin_episode_id": "smoke_start_settlement_multilateral_Britain_France",
+        "origin_entry_path": "smoke_start_settlement_multilateral",
+        "objective_keys": [
+          "Britain|France"
+        ],
+        "active_diplo_keys": [
+          "Britain|France",
+          "France|Prussia"
+        ],
+        "resolved_diplo_keys": [],
+        "diplo_key_meta": {
+          "Britain|France": {
+            "attacker": "France",
+            "defender": "Britain",
+            "joined_turn": 1,
+            "pair_status": "war",
+            "resolved_turn": null,
+            "entry_path": "smoke_start_settlement_multilateral"
+          },
+          "France|Prussia": {
+            "attacker": "France",
+            "defender": "Prussia",
+            "joined_turn": 1,
+            "pair_status": "war",
+            "resolved_turn": null,
+            "entry_path": "smoke_start_settlement_multilateral"
+          }
+        },
+        "attacker_leader": "France",
+        "defender_leader": "Britain",
+        "leader_source_by_side": {
+          "attackers": "originator",
+          "defenders": "origin_target"
+        },
+        "attackers": [
+          "France"
+        ],
+        "defenders": [
+          "Britain",
+          "Prussia"
+        ],
+        "side_by_nation": {
+          "France": "attackers",
+          "Britain": "defenders",
+          "Prussia": "defenders"
+        },
+        "active_participants": [
+          "France",
+          "Britain",
+          "Prussia"
+        ],
+        "participant_meta": {
+          "France": {
+            "side": "attackers",
+            "joined_turn": 1,
+            "exited_turn": null,
+            "entry_path": "smoke_start_settlement_multilateral"
+          },
+          "Britain": {
+            "side": "defenders",
+            "joined_turn": 1,
+            "exited_turn": null,
+            "entry_path": "smoke_start_settlement_multilateral"
+          },
+          "Prussia": {
+            "side": "defenders",
+            "joined_turn": 1,
+            "exited_turn": null,
+            "entry_path": "smoke_start_settlement_multilateral"
+          }
+        },
+        "separate_peaced": [],
+        "war_bargains": [],
+        "ended_turn": null,
+        "end_reason": null
+      },
+      "war_label": "France vs Britain",
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "proposer_side": "attackers",
+      "accepting_side": "defenders",
+      "proposer_side_participants": [
+        "France"
+      ],
+      "accepting_side_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "standing": {},
+      "settlement_terms": [
+        {
+          "type": "peace"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Britain",
+          "amount": 500
+        },
+        {
+          "type": "territory_cede",
+          "from": "France",
+          "to": "Britain",
+          "region": "Waterloo"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Prussia",
+          "amount": 500
+        }
+      ],
+      "acceptance": {
+        "score": 45,
+        "verdict": "near_acceptable",
+        "components": {
+          "base_side_pressure": -50,
+          "settlement_tier_legitimacy": 15,
+          "term_harshness_penalty": 0,
+          "leader_own_losses": 5,
+          "burdened_participant_penalty": 0,
+          "projected_hegemony_mod": 0,
+          "war_objective_alignment": 0,
+          "concession_credit": 75,
+          "war_exhaustion": 0,
+          "abandoned_by_ally_acceptance_mod": 0
+        },
+        "component_debug": {
+          "base_side_pressure": {
+            "score": -50,
+            "raw_score": -55,
+            "side_pressure_score": -85,
+            "scale": 0.65
+          },
+          "settlement_tier_legitimacy": {
+            "score": 15,
+            "raw_score": 15,
+            "tier": "total_victory",
+            "tier_base": 15,
+            "ceiling": 1.0,
+            "exceeded_ceiling": false,
+            "mismatch_penalty": 0,
+            "raw_total_harshness": 0.0
+          },
+          "term_harshness_penalty": {
+            "score": 0,
+            "raw_total_harshness": 0.0,
+            "capped_at_ceiling": 0.0,
+            "normalized": 0.0,
+            "magnitude": 0,
+            "ceiling": 1.5
+          },
+          "leader_own_losses": {
+            "score": 5,
+            "raw_score": 5,
+            "regions_ceded_count": 0,
+            "ceded_regions": [],
+            "capital_lost": false,
+            "home_capital": "Netherlands",
+            "kept_all_with_holdings": true,
+            "has_regions_at_evaluation": true,
+            "lost_mapped_holdings_count": 0,
+            "lost_mapped_holdings_subtotal": 0,
+            "forced_aligned_against_leader": false,
+            "components": {
+              "regions_ceded": 0,
+              "capital_loss": 0,
+              "kept_all_bonus": 5,
+              "lost_mapped_holdings": 0
+            },
+            "clamp": [
+              -25,
+              5
+            ]
+          },
+          "burdened_participant_penalty": {
+            "score": 0,
+            "raw_penalty": 0,
+            "burdened_count": 0,
+            "per_burden": [],
+            "aggregate_cap": 0,
+            "applied_floor": -60
+          },
+          "projected_hegemony": {
+            "pre_hegemon": "France",
+            "post_hegemon": "Prussia",
+            "pre_share": 0.5094339622641509,
+            "post_share": 0.5094339622641509,
+            "crossed_band": null,
+            "deepened_band": null,
+            "hegemon_swap": true,
+            "modifier": 0
+          },
+          "projected_forced_alliance_threat_delta": 0,
+          "crossed_coalition_thresholds": [],
+          "forced_alliance_threat_preview": {
+            "forced_alliance_clauses": 0,
+            "continental_system_clauses": 0,
+            "projected_threat_delta": 0,
+            "current_threat": 0,
+            "projected_threat": 0,
+            "crossed_thresholds": []
+          },
+          "war_objective_alignment": {
+            "score": 0,
+            "selected_objective": null,
+            "alignment_label": "no_objective",
+            "war_id": "war_1"
+          },
+          "concession_credit": {
+            "score": 75,
+            "raw_score": 75,
+            "credited_terms": [
+              {
+                "index": 1,
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Britain",
+                "score": 20
+              },
+              {
+                "index": 2,
+                "type": "territory_cede",
+                "from": "France",
+                "to": "Britain",
+                "score": 35
+              },
+              {
+                "index": 3,
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Prussia",
+                "score": 20
+              }
+            ],
+            "clamp": [
+              0,
+              120
+            ]
+          },
+          "war_exhaustion": {
+            "score": 0,
+            "raw_per_nation_exhaustion": 0,
+            "relevant_exhaustion": 0,
+            "unrelated_exhaustion": 0,
+            "applied_relevance_cap": false
+          },
+          "abandoned_by_ally": {
+            "score": 0,
+            "raw_score": 0,
+            "recent_defectors": [],
+            "applied_cap": false,
+            "lookback_turns": 3
+          }
+        },
+        "side_pressure_score": -85,
+        "side_pressure_result": {
+          "score": -85,
+          "hard_stops": [],
+          "direct_scores": {
+            "Britain": {
+              "France": -85
+            },
+            "Prussia": {
+              "France": -85
+            }
+          },
+          "direct_score_sources": {
+            "Britain": {
+              "score": -85,
+              "source": "France",
+              "weight": 3
+            },
+            "Prussia": {
+              "score": -85,
+              "source": "France",
+              "weight": 3
+            }
+          },
+          "pressure_terms": [
+            [
+              -85,
+              3
+            ],
+            [
+              -85,
+              3
+            ]
+          ]
+        },
+        "direct_scores": {
+          "Britain": {
+            "France": -85
+          },
+          "Prussia": {
+            "France": -85
+          }
+        },
+        "direct_score_sources": {
+          "Britain": {
+            "score": -85,
+            "source": "France",
+            "weight": 3
+          },
+          "Prussia": {
+            "score": -85,
+            "source": "France",
+            "weight": 3
+          }
+        },
+        "hard_stops": [],
+        "feedback": [
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "magnitude": 50
+          }
+        ],
+        "raw_total": 45,
+        "raw_total_harshness": 0.0,
+        "near_acceptable_threshold": 35,
+        "accept_threshold": 50,
+        "proposer_side": "attackers",
+        "accepting_side": "defenders",
+        "accepting_leader": "Britain",
+        "proposer_side_participants": [
+          "France"
+        ],
+        "accepting_side_participants": [
+          "Britain",
+          "Prussia"
+        ],
+        "covered_enemy_participants": [
+          "Britain",
+          "Prussia"
+        ],
+        "current_turn": 1,
+        "band": "near_acceptable",
+        "band_display": "Holding out (close)",
+        "band_phrase": "Close, but not yet acceptable",
+        "top_components": [
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "magnitude": 50,
+            "component_display": "Base side pressure",
+            "value_display": "-50"
+          }
+        ],
+        "top_blocker_display": "Base side pressure",
+        "top_blocker_value_display": "-50",
+        "total": 45,
+        "threshold": 50
+      },
+      "acceptance_components": {
+        "base_side_pressure": -50,
+        "settlement_tier_legitimacy": 15,
+        "term_harshness_penalty": 0,
+        "leader_own_losses": 5,
+        "burdened_participant_penalty": 0,
+        "projected_hegemony_mod": 0,
+        "war_objective_alignment": 0,
+        "concession_credit": 75,
+        "war_exhaustion": 0,
+        "abandoned_by_ally_acceptance_mod": 0
+      },
+      "per_court_acceptance": [
+        {
+          "nation": "Britain",
+          "band": "near_acceptable",
+          "band_display": "Holding out (close)",
+          "total": 45,
+          "threshold": 50,
+          "verdict": "near_acceptable",
+          "direction": "concede",
+          "direct_score": -85,
+          "top_blocker_display": "Base side pressure",
+          "direction_summary": "Conceded: Waterloo + 500g",
+          "previous_band": null,
+          "delta_display": null,
+          "component_breakdown": [
+            {
+              "component": "concession_credit",
+              "value": 75,
+              "component_display": "Concession credit",
+              "value_display": "+75"
+            },
+            {
+              "component": "base_side_pressure",
+              "value": -50,
+              "component_display": "Base side pressure",
+              "value_display": "-50"
+            },
+            {
+              "component": "settlement_tier_legitimacy",
+              "value": 15,
+              "component_display": "Settlement legitimacy",
+              "value_display": "+15"
+            },
+            {
+              "component": "leader_own_losses",
+              "value": 5,
+              "component_display": "Leader's own losses",
+              "value_display": "+5"
+            },
+            {
+              "component": "abandoned_by_ally_acceptance_mod",
+              "value": 0,
+              "component_display": "Abandoned ally grievance",
+              "value_display": "+0"
+            },
+            {
+              "component": "burdened_participant_penalty",
+              "value": 0,
+              "component_display": "Ally burden",
+              "value_display": "+0"
+            },
+            {
+              "component": "projected_hegemony_mod",
+              "value": 0,
+              "component_display": "Balance of Europe pressure",
+              "value_display": "+0"
+            },
+            {
+              "component": "term_harshness_penalty",
+              "value": 0,
+              "component_display": "Term harshness",
+              "value_display": "+0"
+            },
+            {
+              "component": "war_exhaustion",
+              "value": 0,
+              "component_display": "War exhaustion",
+              "value_display": "+0"
+            },
+            {
+              "component": "war_objective_alignment",
+              "value": 0,
+              "component_display": "War objective alignment",
+              "value_display": "+0"
+            }
+          ],
+          "hard_stops": []
+        },
+        {
+          "nation": "Prussia",
+          "band": "near_acceptable",
+          "band_display": "Holding out (close)",
+          "total": 45,
+          "threshold": 50,
+          "verdict": "near_acceptable",
+          "direction": "concede",
+          "direct_score": -85,
+          "top_blocker_display": "Base side pressure",
+          "direction_summary": "Conceded: 500g",
+          "previous_band": null,
+          "delta_display": null,
+          "component_breakdown": [
+            {
+              "component": "concession_credit",
+              "value": 75,
+              "component_display": "Concession credit",
+              "value_display": "+75"
+            },
+            {
+              "component": "base_side_pressure",
+              "value": -50,
+              "component_display": "Base side pressure",
+              "value_display": "-50"
+            },
+            {
+              "component": "settlement_tier_legitimacy",
+              "value": 15,
+              "component_display": "Settlement legitimacy",
+              "value_display": "+15"
+            },
+            {
+              "component": "leader_own_losses",
+              "value": 5,
+              "component_display": "Leader's own losses",
+              "value_display": "+5"
+            },
+            {
+              "component": "abandoned_by_ally_acceptance_mod",
+              "value": 0,
+              "component_display": "Abandoned ally grievance",
+              "value_display": "+0"
+            },
+            {
+              "component": "burdened_participant_penalty",
+              "value": 0,
+              "component_display": "Ally burden",
+              "value_display": "+0"
+            },
+            {
+              "component": "projected_hegemony_mod",
+              "value": 0,
+              "component_display": "Balance of Europe pressure",
+              "value_display": "+0"
+            },
+            {
+              "component": "term_harshness_penalty",
+              "value": 0,
+              "component_display": "Term harshness",
+              "value_display": "+0"
+            },
+            {
+              "component": "war_exhaustion",
+              "value": 0,
+              "component_display": "War exhaustion",
+              "value_display": "+0"
+            },
+            {
+              "component": "war_objective_alignment",
+              "value": 0,
+              "component_display": "War objective alignment",
+              "value_display": "+0"
+            }
+          ],
+          "hard_stops": []
+        }
+      ],
+      "overall_acceptance": {
+        "carries": false,
+        "holdout_courts": [
+          "Britain",
+          "Prussia"
+        ],
+        "summary_display": "2 courts hold out.",
+        "carry_verdict_display": "Will NOT carry as drafted — every court must reach 50. Holding out: Britain 45/50, Prussia 45/50."
+      },
+      "baseline_generated": true,
+      "baseline_per_court": {
+        "Britain": {
+          "direction": "concede",
+          "direct_score": -85,
+          "terms": [
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Britain",
+              "amount": 500
+            },
+            {
+              "type": "territory_cede",
+              "from": "France",
+              "to": "Britain",
+              "region": "Waterloo"
+            }
+          ],
+          "reason": "concede"
+        },
+        "Prussia": {
+          "direction": "concede",
+          "direct_score": -85,
+          "terms": [
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Prussia",
+              "amount": 500
+            }
+          ],
+          "reason": "concede"
+        }
+      },
+      "warnings": [
+        {
+          "severity": "WARNING",
+          "category": "acceptance_component",
+          "component": "base_side_pressure",
+          "value": -50
+        }
+      ],
+      "density": "medium",
+      "review_sections": {
+        "war_id": "war_1",
+        "war_label": "France vs Britain",
+        "proposer_side": "attackers",
+        "accepting_side": "defenders",
+        "covered_enemy_participants": [
+          "Britain",
+          "Prussia"
+        ],
+        "covered_enemy_display_chips": [
+          "Britain",
+          "Prussia"
+        ],
+        "uncovered_enemy_display_chips": [],
+        "coverage_scope_display": "Whole-war settlement",
+        "war_scope_display": "Whole war",
+        "density": "medium",
+        "sections": {
+          "terms": {
+            "rows": [
+              {
+                "type": "peace",
+                "type_display": "Peace",
+                "display_label": "End hostilities (no material change)"
+              },
+              {
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Britain",
+                "amount": 500,
+                "type_display": "Gold indemnity",
+                "display_label": "Gold indemnity: 500 gold from France to Britain"
+              },
+              {
+                "type": "territory_cede",
+                "from": "France",
+                "to": "Britain",
+                "region": "Waterloo",
+                "type_display": "Territory cession",
+                "display_label": "Territory cession: Waterloo from France to Britain"
+              },
+              {
+                "type": "gold_indemnity",
+                "from": "France",
+                "to": "Prussia",
+                "amount": 500,
+                "type_display": "Gold indemnity",
+                "display_label": "Gold indemnity: 500 gold from France to Prussia"
+              }
+            ],
+            "overflow_count": 0
+          },
+          "allies": {
+            "rows": [
+              {
+                "nation": "Britain",
+                "side": "defenders",
+                "side_label": "Defenders",
+                "standing": "seat",
+                "standing_display": "Seat at settlement",
+                "material_share": 0.0,
+                "support_share": 0.0,
+                "is_leader": true,
+                "is_beneficiary": true,
+                "standing_phrase": "Seat at settlement; 0% material share"
+              },
+              {
+                "nation": "France",
+                "side": "attackers",
+                "side_label": "Attackers",
+                "standing": "seat",
+                "standing_display": "Seat at settlement",
+                "material_share": 0.0,
+                "support_share": 0.0,
+                "is_leader": true,
+                "is_beneficiary": false,
+                "standing_phrase": "Seat at settlement; 0% material share"
+              },
+              {
+                "nation": "Prussia",
+                "side": "defenders",
+                "side_label": "Defenders",
+                "standing": "seat",
+                "standing_display": "Seat at settlement",
+                "material_share": 0.0,
+                "support_share": 0.0,
+                "is_leader": false,
+                "is_beneficiary": false,
+                "standing_phrase": "Seat at settlement; 0% material share"
+              }
+            ],
+            "overflow_count": 0
+          },
+          "warnings": {
+            "inline": [
+              {
+                "severity": "WARNING",
+                "category": "acceptance_component",
+                "component": "base_side_pressure",
+                "value": -50,
+                "code": "acceptance_component",
+                "code_display": "Acceptance concern",
+                "detail": "Base Side Pressure"
+              }
+            ],
+            "overflow": []
+          },
+          "acceptance": {
+            "total": 45,
+            "threshold": 50,
+            "band": "near_acceptable",
+            "top_components": [
+              {
+                "component": "base_side_pressure",
+                "value": -50,
+                "magnitude": 50,
+                "component_display": "Base side pressure",
+                "value_display": "-50"
+              }
+            ],
+            "band_display": "Near acceptable"
+          }
+        },
+        "awe_tags": [],
+        "awe_tag_displays": [],
+        "applied_clauses_preview": [
+          {
+            "type": "peace",
+            "type_display": "Peace",
+            "display_label": "End hostilities (no material change)",
+            "pair_state_transition": "WAR -> PEACE"
+          },
+          {
+            "type": "gold_indemnity",
+            "type_display": "Gold indemnity",
+            "display_label": "Gold indemnity: 500 gold from France to Britain",
+            "from": "France",
+            "to": "Britain",
+            "amount": 500
+          },
+          {
+            "type": "territory_cede",
+            "type_display": "Territory cession",
+            "display_label": "Territory cession: Waterloo from France to Britain",
+            "from": "France",
+            "to": "Britain",
+            "regions": [
+              "Waterloo"
+            ],
+            "region": "Waterloo"
+          },
+          {
+            "type": "gold_indemnity",
+            "type_display": "Gold indemnity",
+            "display_label": "Gold indemnity: 500 gold from France to Prussia",
+            "from": "France",
+            "to": "Prussia",
+            "amount": 500
+          }
+        ],
+        "beneficiaries_preview": [
+          {
+            "nation": "Britain",
+            "reasons": [
+              "Rewarded (seat)",
+              "Receives gold",
+              "Receives ceded territory"
+            ]
+          },
+          {
+            "nation": "Prussia",
+            "reasons": [
+              "Receives gold"
+            ]
+          }
+        ],
+        "shut_out_allies_preview": [],
+        "third_party_reaction_preview": [],
+        "forced_alliance_threat_preview": {
+          "forced_alliance_clauses": 0,
+          "current_threat": 0,
+          "projected_threat": 0,
+          "projected_threat_delta": 0,
+          "crossed_thresholds": [],
+          "crossed_threshold_displays": [],
+          "display": ""
+        }
+      },
+      "losing_for_concession_baseline": true,
+      "concession_baseline_visible": true,
+      "concession_baseline": {
+        "terms": [
+          {
+            "type": "peace"
+          },
+          {
+            "type": "gold_indemnity",
+            "from": "France",
+            "to": "Britain",
+            "amount": 500
+          },
+          {
+            "type": "territory_cede",
+            "from": "France",
+            "to": "Britain",
+            "region": "Waterloo"
+          },
+          {
+            "type": "gold_indemnity",
+            "from": "France",
+            "to": "Prussia",
+            "amount": 500
+          }
+        ],
+        "reasoning": "Sire, the concession draft — France would pay Britain 500 gold, cede Waterloo to Britain, and pay Prussia 500 gold — would lift acceptance toward Britain and Prussia. It is what the field asks of us."
+      },
+      "concession_baseline_reason": "material_concession_available",
+      "losing_for_surrender_preset": true,
+      "surrender_preset_visible": false,
+      "surrender_preset": null,
+      "surrender_preset_reason": "no_legal_dependency_clause",
+      "losing_for_recurring_gold_preset": true,
+      "recurring_gold_preset_visible": true,
+      "recurring_gold_preset": {
+        "terms": [
+          {
+            "type": "peace"
+          },
+          {
+            "type": "gold_per_turn",
+            "from": "France",
+            "to": "Britain",
+            "amount": 10,
+            "turns": 3
+          }
+        ],
+        "reasoning": "Sire, the draft commits France to 10 gold per turn to Britain for 3 turns (30 gold in total). Recurring payments steady the peace; they also tie the treasury for years.",
+        "amount": 10,
+        "turns": 3,
+        "payer": "France",
+        "recipient": "Britain"
+      },
+      "recurring_gold_preset_reason": "finite_recurring_gold_available",
+      "forced_alliance_continental_toggle_differential": []
+    },
+    "acceptance_components": {
+      "base_side_pressure": -50,
+      "settlement_tier_legitimacy": 15,
+      "term_harshness_penalty": 0,
+      "leader_own_losses": 5,
+      "burdened_participant_penalty": 0,
+      "projected_hegemony_mod": 0,
+      "war_objective_alignment": 0,
+      "concession_credit": 75,
+      "war_exhaustion": 0,
+      "abandoned_by_ally_acceptance_mod": 0
+    },
+    "warnings": [
+      {
+        "severity": "WARNING",
+        "category": "acceptance_component",
+        "component": "base_side_pressure",
+        "value": -50
+      }
+    ],
+    "hard_stops": [],
+    "review_sections": {
+      "war_id": "war_1",
+      "war_label": "France vs Britain",
+      "proposer_side": "attackers",
+      "accepting_side": "defenders",
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "covered_enemy_display_chips": [
+        "Britain",
+        "Prussia"
+      ],
+      "uncovered_enemy_display_chips": [],
+      "coverage_scope_display": "Whole-war settlement",
+      "war_scope_display": "Whole war",
+      "density": "medium",
+      "sections": {
+        "terms": {
+          "rows": [
+            {
+              "type": "peace",
+              "type_display": "Peace",
+              "display_label": "End hostilities (no material change)"
+            },
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Britain",
+              "amount": 500,
+              "type_display": "Gold indemnity",
+              "display_label": "Gold indemnity: 500 gold from France to Britain"
+            },
+            {
+              "type": "territory_cede",
+              "from": "France",
+              "to": "Britain",
+              "region": "Waterloo",
+              "type_display": "Territory cession",
+              "display_label": "Territory cession: Waterloo from France to Britain"
+            },
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Prussia",
+              "amount": 500,
+              "type_display": "Gold indemnity",
+              "display_label": "Gold indemnity: 500 gold from France to Prussia"
+            }
+          ],
+          "overflow_count": 0
+        },
+        "allies": {
+          "rows": [
+            {
+              "nation": "Britain",
+              "side": "defenders",
+              "side_label": "Defenders",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": true,
+              "is_beneficiary": true,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            },
+            {
+              "nation": "France",
+              "side": "attackers",
+              "side_label": "Attackers",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": true,
+              "is_beneficiary": false,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            },
+            {
+              "nation": "Prussia",
+              "side": "defenders",
+              "side_label": "Defenders",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": false,
+              "is_beneficiary": false,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            }
+          ],
+          "overflow_count": 0
+        },
+        "warnings": {
+          "inline": [
+            {
+              "severity": "WARNING",
+              "category": "acceptance_component",
+              "component": "base_side_pressure",
+              "value": -50,
+              "code": "acceptance_component",
+              "code_display": "Acceptance concern",
+              "detail": "Base Side Pressure"
+            }
+          ],
+          "overflow": []
+        },
+        "acceptance": {
+          "total": 45,
+          "threshold": 50,
+          "band": "near_acceptable",
+          "top_components": [
+            {
+              "component": "base_side_pressure",
+              "value": -50,
+              "magnitude": 50,
+              "component_display": "Base side pressure",
+              "value_display": "-50"
+            }
+          ],
+          "band_display": "Near acceptable"
+        }
+      },
+      "awe_tags": [],
+      "awe_tag_displays": [],
+      "applied_clauses_preview": [
+        {
+          "type": "peace",
+          "type_display": "Peace",
+          "display_label": "End hostilities (no material change)",
+          "pair_state_transition": "WAR -> PEACE"
+        },
+        {
+          "type": "gold_indemnity",
+          "type_display": "Gold indemnity",
+          "display_label": "Gold indemnity: 500 gold from France to Britain",
+          "from": "France",
+          "to": "Britain",
+          "amount": 500
+        },
+        {
+          "type": "territory_cede",
+          "type_display": "Territory cession",
+          "display_label": "Territory cession: Waterloo from France to Britain",
+          "from": "France",
+          "to": "Britain",
+          "regions": [
+            "Waterloo"
+          ],
+          "region": "Waterloo"
+        },
+        {
+          "type": "gold_indemnity",
+          "type_display": "Gold indemnity",
+          "display_label": "Gold indemnity: 500 gold from France to Prussia",
+          "from": "France",
+          "to": "Prussia",
+          "amount": 500
+        }
+      ],
+      "beneficiaries_preview": [
+        {
+          "nation": "Britain",
+          "reasons": [
+            "Rewarded (seat)",
+            "Receives gold",
+            "Receives ceded territory"
+          ]
+        },
+        {
+          "nation": "Prussia",
+          "reasons": [
+            "Receives gold"
+          ]
+        }
+      ],
+      "shut_out_allies_preview": [],
+      "third_party_reaction_preview": [],
+      "forced_alliance_threat_preview": {
+        "forced_alliance_clauses": 0,
+        "current_threat": 0,
+        "projected_threat": 0,
+        "projected_threat_delta": 0,
+        "crossed_thresholds": [],
+        "crossed_threshold_displays": [],
+        "display": ""
+      }
+    },
+    "coverage_scope_display": "Whole-war settlement",
+    "war_scope_display": "Whole war",
+    "covered_enemy_display_chips": [
+      "Britain",
+      "Prussia"
+    ],
+    "uncovered_enemy_display_chips": [],
+    "acceptance_display": {
+      "total": 45,
+      "threshold": 50,
+      "band": "near_acceptable",
+      "top_components": [
+        {
+          "component": "base_side_pressure",
+          "value": -50,
+          "magnitude": 50,
+          "component_display": "Base side pressure",
+          "value_display": "-50"
+        }
+      ],
+      "band_display": "Near acceptable"
+    },
+    "available_action_ids": [
+      "settlement_dial_harsher",
+      "settlement_dial_generous",
+      "submit_settlement_for_review",
+      "suspend_settlement_editor"
+    ],
+    "can_ratify": false,
+    "ratify_blocked_reason": "Base side pressure",
+    "options": [
+      {
+        "label": "Harsher terms",
+        "action": "settlement_dial_harsher",
+        "scope": "table",
+        "war_id": "war_1",
+        "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+        "description": "Press every court harder and watch each react live."
+      },
+      {
+        "label": "More generous",
+        "action": "settlement_dial_generous",
+        "scope": "table",
+        "war_id": "war_1",
+        "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+        "description": "Ease every court and watch each react live."
+      },
+      {
+        "label": "Submit for Review",
+        "action": "submit_settlement_for_review",
+        "description": "Lock in this package and review it for ratification."
+      },
+      {
+        "label": "Back Out",
+        "action": "suspend_settlement_editor"
+      }
+    ],
+    "war_detail_actionability": {
+      "actionable": true,
+      "war_id": "war_1",
+      "selected_target_nation": "Britain",
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "refusal_code": "",
+      "refusal_code_display": "",
+      "peace_seeking_controls": [
+        "negotiate_peace"
+      ],
+      "recovery_route": {
+        "surface": "war_detail",
+        "target": "war_detail",
+        "war_id": "war_1",
+        "selected_target_nation": "Britain",
+        "target_nation": "Britain",
+        "nation": "Britain",
+        "covered_enemy_participants": [
+          "Britain",
+          "Prussia"
+        ],
+        "source_route_id": "settlement:war_1:1:1",
+        "reason": "blocked_settlement_recovery"
+      }
+    },
+    "recovery_route": {
+      "surface": "war_detail",
+      "target": "war_detail",
+      "war_id": "war_1",
+      "selected_target_nation": "Britain",
+      "target_nation": "Britain",
+      "nation": "Britain",
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "source_route_id": "settlement:war_1:1:1",
+      "reason": "blocked_settlement_recovery"
+    },
+    "terminal_recovery_copy": "",
+    "message": "Sire, the settlement of France vs Britain + Prussia cannot be ratified now: Base side pressure. Revise terms or stand down before pressing further.",
+    "talleyrand_text": "Sire, the settlement of France vs Britain + Prussia cannot be ratified now: Base side pressure. Revise terms or stand down before pressing further.",
+    "turn_created": 1,
+    "blocking": false,
+    "caller_kind": "player_editor",
+    "white_peace": false,
+    "losing_for_concession_baseline": true,
+    "concession_baseline_visible": true,
+    "concession_baseline": {
+      "terms": [
+        {
+          "type": "peace"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Britain",
+          "amount": 500
+        },
+        {
+          "type": "territory_cede",
+          "from": "France",
+          "to": "Britain",
+          "region": "Waterloo"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Prussia",
+          "amount": 500
+        }
+      ],
+      "reasoning": "Sire, the concession draft — France would pay Britain 500 gold, cede Waterloo to Britain, and pay Prussia 500 gold — would lift acceptance toward Britain and Prussia. It is what the field asks of us."
+    },
+    "losing_side_pressure_voice": "Sire, the pressure on France vs Britain + Prussia reads against us — Base side pressure is the loudest blocker, and Britain is the court whose acceptance must shift before terms move.",
+    "surrender_preset": false,
+    "losing_for_surrender_preset": true,
+    "surrender_preset_visible": false,
+    "surrender_preset_payload": null,
+    "surrender_preset_reason": "no_legal_dependency_clause",
+    "losing_for_recurring_gold_preset": true,
+    "recurring_gold_preset_visible": true,
+    "recurring_gold_preset_payload": {
+      "terms": [
+        {
+          "type": "peace"
+        },
+        {
+          "type": "gold_per_turn",
+          "from": "France",
+          "to": "Britain",
+          "amount": 10,
+          "turns": 3
+        }
+      ],
+      "reasoning": "Sire, the draft commits France to 10 gold per turn to Britain for 3 turns (30 gold in total). Recurring payments steady the peace; they also tie the treasury for years.",
+      "amount": 10,
+      "turns": 3,
+      "payer": "France",
+      "recipient": "Britain"
+    },
+    "recurring_gold_preset_reason": "finite_recurring_gold_available",
+    "forced_alliance_continental_toggle_differential": []
+  },
+  "settlement_preview": {
+    "war_instance": {
+      "war_id": "war_1",
+      "created_turn": 1,
+      "created_sequence": 1,
+      "originator": "France",
+      "origin_target": "Britain",
+      "origin_diplo_key": "Britain|France",
+      "origin_episode_id": "smoke_start_settlement_multilateral_Britain_France",
+      "origin_entry_path": "smoke_start_settlement_multilateral",
+      "objective_keys": [
+        "Britain|France"
+      ],
+      "active_diplo_keys": [
+        "Britain|France",
+        "France|Prussia"
+      ],
+      "resolved_diplo_keys": [],
+      "diplo_key_meta": {
+        "Britain|France": {
+          "attacker": "France",
+          "defender": "Britain",
+          "joined_turn": 1,
+          "pair_status": "war",
+          "resolved_turn": null,
+          "entry_path": "smoke_start_settlement_multilateral"
+        },
+        "France|Prussia": {
+          "attacker": "France",
+          "defender": "Prussia",
+          "joined_turn": 1,
+          "pair_status": "war",
+          "resolved_turn": null,
+          "entry_path": "smoke_start_settlement_multilateral"
+        }
+      },
+      "attacker_leader": "France",
+      "defender_leader": "Britain",
+      "leader_source_by_side": {
+        "attackers": "originator",
+        "defenders": "origin_target"
+      },
+      "attackers": [
+        "France"
+      ],
+      "defenders": [
+        "Britain",
+        "Prussia"
+      ],
+      "side_by_nation": {
+        "France": "attackers",
+        "Britain": "defenders",
+        "Prussia": "defenders"
+      },
+      "active_participants": [
+        "France",
+        "Britain",
+        "Prussia"
+      ],
+      "participant_meta": {
+        "France": {
+          "side": "attackers",
+          "joined_turn": 1,
+          "exited_turn": null,
+          "entry_path": "smoke_start_settlement_multilateral"
+        },
+        "Britain": {
+          "side": "defenders",
+          "joined_turn": 1,
+          "exited_turn": null,
+          "entry_path": "smoke_start_settlement_multilateral"
+        },
+        "Prussia": {
+          "side": "defenders",
+          "joined_turn": 1,
+          "exited_turn": null,
+          "entry_path": "smoke_start_settlement_multilateral"
+        }
+      },
+      "separate_peaced": [],
+      "war_bargains": [],
+      "ended_turn": null,
+      "end_reason": null
+    },
+    "war_label": "France vs Britain",
+    "covered_enemy_participants": [
+      "Britain",
+      "Prussia"
+    ],
+    "proposer_side": "attackers",
+    "accepting_side": "defenders",
+    "proposer_side_participants": [
+      "France"
+    ],
+    "accepting_side_participants": [
+      "Britain",
+      "Prussia"
+    ],
+    "standing": {},
+    "settlement_terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 500
+      },
+      {
+        "type": "territory_cede",
+        "from": "France",
+        "to": "Britain",
+        "region": "Waterloo"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 500
+      }
+    ],
+    "acceptance": {
+      "score": 45,
+      "verdict": "near_acceptable",
+      "components": {
+        "base_side_pressure": -50,
+        "settlement_tier_legitimacy": 15,
+        "term_harshness_penalty": 0,
+        "leader_own_losses": 5,
+        "burdened_participant_penalty": 0,
+        "projected_hegemony_mod": 0,
+        "war_objective_alignment": 0,
+        "concession_credit": 75,
+        "war_exhaustion": 0,
+        "abandoned_by_ally_acceptance_mod": 0
+      },
+      "component_debug": {
+        "base_side_pressure": {
+          "score": -50,
+          "raw_score": -55,
+          "side_pressure_score": -85,
+          "scale": 0.65
+        },
+        "settlement_tier_legitimacy": {
+          "score": 15,
+          "raw_score": 15,
+          "tier": "total_victory",
+          "tier_base": 15,
+          "ceiling": 1.0,
+          "exceeded_ceiling": false,
+          "mismatch_penalty": 0,
+          "raw_total_harshness": 0.0
+        },
+        "term_harshness_penalty": {
+          "score": 0,
+          "raw_total_harshness": 0.0,
+          "capped_at_ceiling": 0.0,
+          "normalized": 0.0,
+          "magnitude": 0,
+          "ceiling": 1.5
+        },
+        "leader_own_losses": {
+          "score": 5,
+          "raw_score": 5,
+          "regions_ceded_count": 0,
+          "ceded_regions": [],
+          "capital_lost": false,
+          "home_capital": "Netherlands",
+          "kept_all_with_holdings": true,
+          "has_regions_at_evaluation": true,
+          "lost_mapped_holdings_count": 0,
+          "lost_mapped_holdings_subtotal": 0,
+          "forced_aligned_against_leader": false,
+          "components": {
+            "regions_ceded": 0,
+            "capital_loss": 0,
+            "kept_all_bonus": 5,
+            "lost_mapped_holdings": 0
+          },
+          "clamp": [
+            -25,
+            5
+          ]
+        },
+        "burdened_participant_penalty": {
+          "score": 0,
+          "raw_penalty": 0,
+          "burdened_count": 0,
+          "per_burden": [],
+          "aggregate_cap": 0,
+          "applied_floor": -60
+        },
+        "projected_hegemony": {
+          "pre_hegemon": "France",
+          "post_hegemon": "Prussia",
+          "pre_share": 0.5094339622641509,
+          "post_share": 0.5094339622641509,
+          "crossed_band": null,
+          "deepened_band": null,
+          "hegemon_swap": true,
+          "modifier": 0
+        },
+        "projected_forced_alliance_threat_delta": 0,
+        "crossed_coalition_thresholds": [],
+        "forced_alliance_threat_preview": {
+          "forced_alliance_clauses": 0,
+          "continental_system_clauses": 0,
+          "projected_threat_delta": 0,
+          "current_threat": 0,
+          "projected_threat": 0,
+          "crossed_thresholds": []
+        },
+        "war_objective_alignment": {
+          "score": 0,
+          "selected_objective": null,
+          "alignment_label": "no_objective",
+          "war_id": "war_1"
+        },
+        "concession_credit": {
+          "score": 75,
+          "raw_score": 75,
+          "credited_terms": [
+            {
+              "index": 1,
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Britain",
+              "score": 20
+            },
+            {
+              "index": 2,
+              "type": "territory_cede",
+              "from": "France",
+              "to": "Britain",
+              "score": 35
+            },
+            {
+              "index": 3,
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Prussia",
+              "score": 20
+            }
+          ],
+          "clamp": [
+            0,
+            120
+          ]
+        },
+        "war_exhaustion": {
+          "score": 0,
+          "raw_per_nation_exhaustion": 0,
+          "relevant_exhaustion": 0,
+          "unrelated_exhaustion": 0,
+          "applied_relevance_cap": false
+        },
+        "abandoned_by_ally": {
+          "score": 0,
+          "raw_score": 0,
+          "recent_defectors": [],
+          "applied_cap": false,
+          "lookback_turns": 3
+        }
+      },
+      "side_pressure_score": -85,
+      "side_pressure_result": {
+        "score": -85,
+        "hard_stops": [],
+        "direct_scores": {
+          "Britain": {
+            "France": -85
+          },
+          "Prussia": {
+            "France": -85
+          }
+        },
+        "direct_score_sources": {
+          "Britain": {
+            "score": -85,
+            "source": "France",
+            "weight": 3
+          },
+          "Prussia": {
+            "score": -85,
+            "source": "France",
+            "weight": 3
+          }
+        },
+        "pressure_terms": [
+          [
+            -85,
+            3
+          ],
+          [
+            -85,
+            3
+          ]
+        ]
+      },
+      "direct_scores": {
+        "Britain": {
+          "France": -85
+        },
+        "Prussia": {
+          "France": -85
+        }
+      },
+      "direct_score_sources": {
+        "Britain": {
+          "score": -85,
+          "source": "France",
+          "weight": 3
+        },
+        "Prussia": {
+          "score": -85,
+          "source": "France",
+          "weight": 3
+        }
+      },
+      "hard_stops": [],
+      "feedback": [
+        {
+          "component": "base_side_pressure",
+          "value": -50,
+          "magnitude": 50
+        }
+      ],
+      "raw_total": 45,
+      "raw_total_harshness": 0.0,
+      "near_acceptable_threshold": 35,
+      "accept_threshold": 50,
+      "proposer_side": "attackers",
+      "accepting_side": "defenders",
+      "accepting_leader": "Britain",
+      "proposer_side_participants": [
+        "France"
+      ],
+      "accepting_side_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "current_turn": 1,
+      "band": "near_acceptable",
+      "band_display": "Holding out (close)",
+      "band_phrase": "Close, but not yet acceptable",
+      "top_components": [
+        {
+          "component": "base_side_pressure",
+          "value": -50,
+          "magnitude": 50,
+          "component_display": "Base side pressure",
+          "value_display": "-50"
+        }
+      ],
+      "top_blocker_display": "Base side pressure",
+      "top_blocker_value_display": "-50",
+      "total": 45,
+      "threshold": 50
+    },
+    "acceptance_components": {
+      "base_side_pressure": -50,
+      "settlement_tier_legitimacy": 15,
+      "term_harshness_penalty": 0,
+      "leader_own_losses": 5,
+      "burdened_participant_penalty": 0,
+      "projected_hegemony_mod": 0,
+      "war_objective_alignment": 0,
+      "concession_credit": 75,
+      "war_exhaustion": 0,
+      "abandoned_by_ally_acceptance_mod": 0
+    },
+    "per_court_acceptance": [
+      {
+        "nation": "Britain",
+        "band": "near_acceptable",
+        "band_display": "Holding out (close)",
+        "total": 45,
+        "threshold": 50,
+        "verdict": "near_acceptable",
+        "direction": "concede",
+        "direct_score": -85,
+        "top_blocker_display": "Base side pressure",
+        "direction_summary": "Conceded: Waterloo + 500g",
+        "previous_band": null,
+        "delta_display": null,
+        "component_breakdown": [
+          {
+            "component": "concession_credit",
+            "value": 75,
+            "component_display": "Concession credit",
+            "value_display": "+75"
+          },
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "component_display": "Base side pressure",
+            "value_display": "-50"
+          },
+          {
+            "component": "settlement_tier_legitimacy",
+            "value": 15,
+            "component_display": "Settlement legitimacy",
+            "value_display": "+15"
+          },
+          {
+            "component": "leader_own_losses",
+            "value": 5,
+            "component_display": "Leader's own losses",
+            "value_display": "+5"
+          },
+          {
+            "component": "abandoned_by_ally_acceptance_mod",
+            "value": 0,
+            "component_display": "Abandoned ally grievance",
+            "value_display": "+0"
+          },
+          {
+            "component": "burdened_participant_penalty",
+            "value": 0,
+            "component_display": "Ally burden",
+            "value_display": "+0"
+          },
+          {
+            "component": "projected_hegemony_mod",
+            "value": 0,
+            "component_display": "Balance of Europe pressure",
+            "value_display": "+0"
+          },
+          {
+            "component": "term_harshness_penalty",
+            "value": 0,
+            "component_display": "Term harshness",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_exhaustion",
+            "value": 0,
+            "component_display": "War exhaustion",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_objective_alignment",
+            "value": 0,
+            "component_display": "War objective alignment",
+            "value_display": "+0"
+          }
+        ],
+        "hard_stops": []
+      },
+      {
+        "nation": "Prussia",
+        "band": "near_acceptable",
+        "band_display": "Holding out (close)",
+        "total": 45,
+        "threshold": 50,
+        "verdict": "near_acceptable",
+        "direction": "concede",
+        "direct_score": -85,
+        "top_blocker_display": "Base side pressure",
+        "direction_summary": "Conceded: 500g",
+        "previous_band": null,
+        "delta_display": null,
+        "component_breakdown": [
+          {
+            "component": "concession_credit",
+            "value": 75,
+            "component_display": "Concession credit",
+            "value_display": "+75"
+          },
+          {
+            "component": "base_side_pressure",
+            "value": -50,
+            "component_display": "Base side pressure",
+            "value_display": "-50"
+          },
+          {
+            "component": "settlement_tier_legitimacy",
+            "value": 15,
+            "component_display": "Settlement legitimacy",
+            "value_display": "+15"
+          },
+          {
+            "component": "leader_own_losses",
+            "value": 5,
+            "component_display": "Leader's own losses",
+            "value_display": "+5"
+          },
+          {
+            "component": "abandoned_by_ally_acceptance_mod",
+            "value": 0,
+            "component_display": "Abandoned ally grievance",
+            "value_display": "+0"
+          },
+          {
+            "component": "burdened_participant_penalty",
+            "value": 0,
+            "component_display": "Ally burden",
+            "value_display": "+0"
+          },
+          {
+            "component": "projected_hegemony_mod",
+            "value": 0,
+            "component_display": "Balance of Europe pressure",
+            "value_display": "+0"
+          },
+          {
+            "component": "term_harshness_penalty",
+            "value": 0,
+            "component_display": "Term harshness",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_exhaustion",
+            "value": 0,
+            "component_display": "War exhaustion",
+            "value_display": "+0"
+          },
+          {
+            "component": "war_objective_alignment",
+            "value": 0,
+            "component_display": "War objective alignment",
+            "value_display": "+0"
+          }
+        ],
+        "hard_stops": []
+      }
+    ],
+    "overall_acceptance": {
+      "carries": false,
+      "holdout_courts": [
+        "Britain",
+        "Prussia"
+      ],
+      "summary_display": "2 courts hold out.",
+      "carry_verdict_display": "Will NOT carry as drafted — every court must reach 50. Holding out: Britain 45/50, Prussia 45/50."
+    },
+    "baseline_generated": true,
+    "baseline_per_court": {
+      "Britain": {
+        "direction": "concede",
+        "direct_score": -85,
+        "terms": [
+          {
+            "type": "gold_indemnity",
+            "from": "France",
+            "to": "Britain",
+            "amount": 500
+          },
+          {
+            "type": "territory_cede",
+            "from": "France",
+            "to": "Britain",
+            "region": "Waterloo"
+          }
+        ],
+        "reason": "concede"
+      },
+      "Prussia": {
+        "direction": "concede",
+        "direct_score": -85,
+        "terms": [
+          {
+            "type": "gold_indemnity",
+            "from": "France",
+            "to": "Prussia",
+            "amount": 500
+          }
+        ],
+        "reason": "concede"
+      }
+    },
+    "warnings": [
+      {
+        "severity": "WARNING",
+        "category": "acceptance_component",
+        "component": "base_side_pressure",
+        "value": -50
+      }
+    ],
+    "density": "medium",
+    "review_sections": {
+      "war_id": "war_1",
+      "war_label": "France vs Britain",
+      "proposer_side": "attackers",
+      "accepting_side": "defenders",
+      "covered_enemy_participants": [
+        "Britain",
+        "Prussia"
+      ],
+      "covered_enemy_display_chips": [
+        "Britain",
+        "Prussia"
+      ],
+      "uncovered_enemy_display_chips": [],
+      "coverage_scope_display": "Whole-war settlement",
+      "war_scope_display": "Whole war",
+      "density": "medium",
+      "sections": {
+        "terms": {
+          "rows": [
+            {
+              "type": "peace",
+              "type_display": "Peace",
+              "display_label": "End hostilities (no material change)"
+            },
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Britain",
+              "amount": 500,
+              "type_display": "Gold indemnity",
+              "display_label": "Gold indemnity: 500 gold from France to Britain"
+            },
+            {
+              "type": "territory_cede",
+              "from": "France",
+              "to": "Britain",
+              "region": "Waterloo",
+              "type_display": "Territory cession",
+              "display_label": "Territory cession: Waterloo from France to Britain"
+            },
+            {
+              "type": "gold_indemnity",
+              "from": "France",
+              "to": "Prussia",
+              "amount": 500,
+              "type_display": "Gold indemnity",
+              "display_label": "Gold indemnity: 500 gold from France to Prussia"
+            }
+          ],
+          "overflow_count": 0
+        },
+        "allies": {
+          "rows": [
+            {
+              "nation": "Britain",
+              "side": "defenders",
+              "side_label": "Defenders",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": true,
+              "is_beneficiary": true,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            },
+            {
+              "nation": "France",
+              "side": "attackers",
+              "side_label": "Attackers",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": true,
+              "is_beneficiary": false,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            },
+            {
+              "nation": "Prussia",
+              "side": "defenders",
+              "side_label": "Defenders",
+              "standing": "seat",
+              "standing_display": "Seat at settlement",
+              "material_share": 0.0,
+              "support_share": 0.0,
+              "is_leader": false,
+              "is_beneficiary": false,
+              "standing_phrase": "Seat at settlement; 0% material share"
+            }
+          ],
+          "overflow_count": 0
+        },
+        "warnings": {
+          "inline": [
+            {
+              "severity": "WARNING",
+              "category": "acceptance_component",
+              "component": "base_side_pressure",
+              "value": -50,
+              "code": "acceptance_component",
+              "code_display": "Acceptance concern",
+              "detail": "Base Side Pressure"
+            }
+          ],
+          "overflow": []
+        },
+        "acceptance": {
+          "total": 45,
+          "threshold": 50,
+          "band": "near_acceptable",
+          "top_components": [
+            {
+              "component": "base_side_pressure",
+              "value": -50,
+              "magnitude": 50,
+              "component_display": "Base side pressure",
+              "value_display": "-50"
+            }
+          ],
+          "band_display": "Near acceptable"
+        }
+      },
+      "awe_tags": [],
+      "awe_tag_displays": [],
+      "applied_clauses_preview": [
+        {
+          "type": "peace",
+          "type_display": "Peace",
+          "display_label": "End hostilities (no material change)",
+          "pair_state_transition": "WAR -> PEACE"
+        },
+        {
+          "type": "gold_indemnity",
+          "type_display": "Gold indemnity",
+          "display_label": "Gold indemnity: 500 gold from France to Britain",
+          "from": "France",
+          "to": "Britain",
+          "amount": 500
+        },
+        {
+          "type": "territory_cede",
+          "type_display": "Territory cession",
+          "display_label": "Territory cession: Waterloo from France to Britain",
+          "from": "France",
+          "to": "Britain",
+          "regions": [
+            "Waterloo"
+          ],
+          "region": "Waterloo"
+        },
+        {
+          "type": "gold_indemnity",
+          "type_display": "Gold indemnity",
+          "display_label": "Gold indemnity: 500 gold from France to Prussia",
+          "from": "France",
+          "to": "Prussia",
+          "amount": 500
+        }
+      ],
+      "beneficiaries_preview": [
+        {
+          "nation": "Britain",
+          "reasons": [
+            "Rewarded (seat)",
+            "Receives gold",
+            "Receives ceded territory"
+          ]
+        },
+        {
+          "nation": "Prussia",
+          "reasons": [
+            "Receives gold"
+          ]
+        }
+      ],
+      "shut_out_allies_preview": [],
+      "third_party_reaction_preview": [],
+      "forced_alliance_threat_preview": {
+        "forced_alliance_clauses": 0,
+        "current_threat": 0,
+        "projected_threat": 0,
+        "projected_threat_delta": 0,
+        "crossed_thresholds": [],
+        "crossed_threshold_displays": [],
+        "display": ""
+      }
+    },
+    "losing_for_concession_baseline": true,
+    "concession_baseline_visible": true,
+    "concession_baseline": {
+      "terms": [
+        {
+          "type": "peace"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Britain",
+          "amount": 500
+        },
+        {
+          "type": "territory_cede",
+          "from": "France",
+          "to": "Britain",
+          "region": "Waterloo"
+        },
+        {
+          "type": "gold_indemnity",
+          "from": "France",
+          "to": "Prussia",
+          "amount": 500
+        }
+      ],
+      "reasoning": "Sire, the concession draft — France would pay Britain 500 gold, cede Waterloo to Britain, and pay Prussia 500 gold — would lift acceptance toward Britain and Prussia. It is what the field asks of us."
+    },
+    "concession_baseline_reason": "material_concession_available",
+    "losing_for_surrender_preset": true,
+    "surrender_preset_visible": false,
+    "surrender_preset": null,
+    "surrender_preset_reason": "no_legal_dependency_clause",
+    "losing_for_recurring_gold_preset": true,
+    "recurring_gold_preset_visible": true,
+    "recurring_gold_preset": {
+      "terms": [
+        {
+          "type": "peace"
+        },
+        {
+          "type": "gold_per_turn",
+          "from": "France",
+          "to": "Britain",
+          "amount": 10,
+          "turns": 3
+        }
+      ],
+      "reasoning": "Sire, the draft commits France to 10 gold per turn to Britain for 3 turns (30 gold in total). Recurring payments steady the peace; they also tie the treasury for years.",
+      "amount": 10,
+      "turns": 3,
+      "payer": "France",
+      "recipient": "Britain"
+    },
+    "recurring_gold_preset_reason": "finite_recurring_gold_available",
+    "forced_alliance_continental_toggle_differential": []
+  },
+  "ally_settlement_petitions": [],
+  "awaiting_diplomatic_response": true,
+  "mutated": false,
+  "propose_on_mount": true,
+  "action_info": {
+    "cost": 0,
+    "remaining": 4,
+    "turn_advanced": false,
+    "new_turn": null
+  },
+  "coalition_popup": null,
+  "diplomatic_sabotage": null,
+  "vassal_rebellion_imminent": null,
+  "diplomatic_objection": null,
+  "incoming_proposal": null,
+  "incoming_settlement_offer": null,
+  "proposal_result": null,
+  "commitment_paradox_popup": null
+}

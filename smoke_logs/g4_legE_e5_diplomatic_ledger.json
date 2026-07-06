@@ -1,0 +1,735 @@
+{
+  "success": true,
+  "ledger": {
+    "current_turn": 1,
+    "nations": [
+      {
+        "name": "Britain",
+        "diplomatic_state": "WAR",
+        "relation": -90,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Castlereagh",
+          "personality": "hawk",
+          "skill": 7
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 11,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Russia",
+            "state": "ALLIANCE",
+            "relation": 70,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Austria",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Spain",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          },
+          {
+            "nation": "Holland",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Coalition Member",
+          "kind": "coalition",
+          "priority": 100
+        }
+      },
+      {
+        "name": "Russia",
+        "diplomatic_state": "WAR",
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Czartoryski",
+          "personality": "schemer",
+          "skill": 7
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 10,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "ALLIANCE",
+            "relation": 70,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Austria",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Coalition Member",
+          "kind": "coalition",
+          "priority": 100
+        }
+      },
+      {
+        "name": "Austria",
+        "diplomatic_state": "WAR",
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Metternich",
+          "personality": "schemer",
+          "skill": 9
+        },
+        "army_strength": "~125,000 men",
+        "regions_controlled": 7,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Russia",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Bavaria",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          },
+          {
+            "nation": "KingdomOfItaly",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Coalition Member",
+          "kind": "coalition",
+          "priority": 100
+        }
+      },
+      {
+        "name": "Prussia",
+        "diplomatic_state": "PEACE",
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Hardenberg",
+          "personality": "hawk",
+          "skill": 6
+        },
+        "army_strength": "~80,000 men",
+        "regions_controlled": 6,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "major",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Spain",
+        "diplomatic_state": "ALLIANCE",
+        "relation": 40,
+        "relation_descriptor": "Friendly",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Cevallos",
+          "personality": "loyalist",
+          "skill": 5
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 9,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "non_minor_power",
+        "power_tier": "secondary",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 200,
+        "bloc_stamp": {
+          "label": "French-led alignment",
+          "kind": "descriptive_bloc",
+          "priority": 70
+        }
+      },
+      {
+        "name": "Ottoman",
+        "diplomatic_state": "PEACE",
+        "relation": -20,
+        "relation_descriptor": "Wary",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Reis Efendi",
+          "personality": "dove",
+          "skill": 5
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 12,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "secondary",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Sweden",
+        "diplomatic_state": "PEACE",
+        "relation": -60,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Ehrenheim",
+          "personality": "loyalist",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 9,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "secondary",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Naples",
+        "diplomatic_state": "PEACE",
+        "relation": -30,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Medici",
+          "personality": "dove",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 2,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "secondary",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Portugal",
+        "diplomatic_state": "PEACE",
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Araujo",
+          "personality": "dove",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 5,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Denmark",
+        "diplomatic_state": "PEACE",
+        "relation": 10,
+        "relation_descriptor": "Neutral",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Bernstorff",
+          "personality": "loyalist",
+          "skill": 5
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 6,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Bavaria",
+        "diplomatic_state": "ALLIANCE",
+        "relation": 60,
+        "relation_descriptor": "Loyal",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Montgelas",
+          "personality": "schemer",
+          "skill": 7
+        },
+        "army_strength": "22,000 men",
+        "regions_controlled": 3,
+        "active_treaties": [],
+        "vassal_eligible": true,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [
+          {
+            "nation": "Austria",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 200,
+        "bloc_stamp": {
+          "label": "French-led alignment",
+          "kind": "descriptive_bloc",
+          "priority": 70
+        }
+      },
+      {
+        "name": "Saxony",
+        "diplomatic_state": "PEACE",
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Einsiedel",
+          "personality": "dove",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 1,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Hanover",
+        "diplomatic_state": "PEACE",
+        "relation": -50,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Chancery of Hanover",
+          "personality": "dove",
+          "skill": 3
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 6,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Hesse",
+        "diplomatic_state": "PEACE",
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Chancery of Hesse",
+          "personality": "dove",
+          "skill": 3
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 2,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "PapalStates",
+        "diplomatic_state": "PEACE",
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Consalvi",
+          "personality": "dove",
+          "skill": 6
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 1,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Sardinia",
+        "diplomatic_state": "PEACE",
+        "relation": -70,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Chancery of Sardinia",
+          "personality": "loyalist",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 1,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 50,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      },
+      {
+        "name": "Holland",
+        "diplomatic_state": "VASSAL",
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Schimmelpenninck",
+          "personality": "loyalist",
+          "skill": 5
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 4,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "French-led alignment",
+          "kind": "descriptive_bloc",
+          "priority": 70
+        }
+      },
+      {
+        "name": "KingdomOfItaly",
+        "diplomatic_state": "VASSAL",
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Marescalchi",
+          "personality": "loyalist",
+          "skill": 5
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 2,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [
+          {
+            "nation": "Austria",
+            "state": "WAR",
+            "relation": -80,
+            "relation_descriptor": "Hostile"
+          }
+        ],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "French-led alignment",
+          "kind": "descriptive_bloc",
+          "priority": 70
+        }
+      },
+      {
+        "name": "Switzerland",
+        "diplomatic_state": "VASSAL",
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Chancery of Helvetia",
+          "personality": "dove",
+          "skill": 3
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 1,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "French-led alignment",
+          "kind": "descriptive_bloc",
+          "priority": 70
+        }
+      }
+    ],
+    "treaties": [],
+    "recent_peace_ratifications": [],
+    "recent_settlements": [],
+    "peace_settlement_history": [],
+    "balance_of_europe": {
+      "headline_case": "ACTIVE_COALITION",
+      "hegemon": "France",
+      "hegemon_share": 0.4,
+      "hegemon_power": 112,
+      "total_power": 282,
+      "hegemony_band": 1,
+      "bloc_label": null,
+      "descriptive_label": "French-led alignment",
+      "is_proper_bloc_name": false,
+      "bloc_members": [
+        "Bavaria",
+        "France",
+        "Holland",
+        "KingdomOfItaly",
+        "Spain",
+        "Switzerland"
+      ],
+      "power_basis": "Bloc share is a weighted score: the leader plus direct allies and vassal-bloc members, divided by all active European courts. It is not a partition; alliance networks can overlap.",
+      "coalition_state": "DECLARED",
+      "coalition_leader": "Britain",
+      "coalition_members": [
+        "Austria",
+        "Britain",
+        "Russia"
+      ],
+      "coalition_name": "Third Coalition",
+      "coalition_posture": "aggressive",
+      "active_coalition": {
+        "name": "Third Coalition",
+        "leader": "Britain",
+        "posture": "aggressive",
+        "members": [
+          {
+            "nation": "Austria",
+            "strength_display": "~125,000 men",
+            "war_exhaustion": 0,
+            "war_exhaustion_trend": "stable"
+          },
+          {
+            "nation": "Britain",
+            "strength_display": "Unknown",
+            "war_exhaustion": 0,
+            "war_exhaustion_trend": "stable"
+          },
+          {
+            "nation": "Russia",
+            "strength_display": "Unknown",
+            "war_exhaustion": 0,
+            "war_exhaustion_trend": "stable"
+          }
+        ],
+        "combined_strength_display": "~225,000 men"
+      },
+      "brewing_turns_remaining": null,
+      "cooldown_turns_remaining": null,
+      "coalition_cooldown": 0,
+      "threat_level": 85,
+      "threat_tier": "CRITICAL",
+      "threat_sources_this_turn": [],
+      "qualifying_nations": [
+        "Ottoman",
+        "Sweden",
+        "Naples",
+        "Hanover",
+        "Sardinia"
+      ],
+      "threat_projection": {
+        "current": 85,
+        "after_next_war": 100,
+        "brewing_threshold": 60,
+        "instant_threshold": 80,
+        "wars_until_brewing": 0,
+        "wars_until_instant": 0
+      },
+      "dissolution_threat_threshold": 20,
+      "dissolution_war_exhaustion_limit": 80
+    },
+    "talleyrand": {
+      "authority": 100,
+      "authority_label": "Divine Right",
+      "skill": 10,
+      "dp_remaining": 4,
+      "dp_max": 5,
+      "dp_breakdown": {
+        "base": 3,
+        "skill_bonus": 1,
+        "authority_bonus": 1,
+        "capital_penalty": 0
+      },
+      "active_mission": null,
+      "proposal_in_transit": null,
+      "pending_envoy_count": 0,
+      "sabotage_warnings": [],
+      "diplomatic_history": [],
+      "diplomatic_reliability": 0
+    },
+    "war_bargains": []
+  }
+}

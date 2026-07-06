@@ -1,0 +1,100 @@
+[
+  {
+    "step": "mailbox before reset (stack-leak probe)",
+    "entries": [],
+    "raw_keys": [
+      "count",
+      "items",
+      "success"
+    ]
+  },
+  {
+    "step": "new_game",
+    "http": 200
+  },
+  {
+    "step": "mount",
+    "http": 200,
+    "mode": "PROPOSE",
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 150
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 150
+      }
+    ]
+  },
+  {
+    "step": "dial_harsher",
+    "http": 200,
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 50
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 50
+      }
+    ],
+    "changed": true
+  },
+  {
+    "step": "submit_review",
+    "http": 200,
+    "mode": "REVIEW"
+  },
+  {
+    "step": "back_out_settlement",
+    "http": 200,
+    "success": true,
+    "message": "Settlement review cancelled.",
+    "settlement_draft_kept_after": false,
+    "dialogue_after": false
+  },
+  {
+    "step": "mailbox after back_out",
+    "payload_head": "{\"success\": true, \"items\": [], \"count\": 0}"
+  },
+  {
+    "step": "remount after discard",
+    "http": 200,
+    "mode": "PROPOSE",
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 150
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 150
+      }
+    ],
+    "fresh_equals_baseline": true,
+    "modified_discarded": true
+  }
+]

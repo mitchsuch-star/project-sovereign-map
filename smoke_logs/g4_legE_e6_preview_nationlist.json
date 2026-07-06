@@ -1,0 +1,189 @@
+{
+  "success": true,
+  "mode": "nations",
+  "dp_available": 4,
+  "dialogue_pending": false,
+  "pending_envoy_count": 0,
+  "has_deferred_result": false,
+  "categories": {
+    "at_war": [
+      {
+        "name": "Britain",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -90,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Russia",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Austria",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      }
+    ],
+    "treaties": [
+      {
+        "name": "Spain",
+        "state": "ALLIANCE",
+        "state_display": "Alliance",
+        "is_vassal": false,
+        "relation": 40,
+        "relation_descriptor": "Friendly",
+        "has_active_mission": false
+      },
+      {
+        "name": "Bavaria",
+        "state": "ALLIANCE",
+        "state_display": "Alliance",
+        "is_vassal": false,
+        "relation": 60,
+        "relation_descriptor": "Loyal",
+        "has_active_mission": false
+      }
+    ],
+    "vassals": [
+      {
+        "name": "Holland",
+        "state": "VASSAL",
+        "state_display": "Vassal",
+        "is_vassal": true,
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "has_active_mission": false
+      },
+      {
+        "name": "KingdomOfItaly",
+        "state": "VASSAL",
+        "state_display": "Vassal",
+        "is_vassal": true,
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "has_active_mission": false
+      },
+      {
+        "name": "Switzerland",
+        "state": "VASSAL",
+        "state_display": "Vassal",
+        "is_vassal": true,
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "has_active_mission": false
+      }
+    ],
+    "neutral": [
+      {
+        "name": "Prussia",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "has_active_mission": false
+      },
+      {
+        "name": "Ottoman",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -20,
+        "relation_descriptor": "Wary",
+        "has_active_mission": false
+      },
+      {
+        "name": "Sweden",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -60,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Naples",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -30,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Portugal",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "has_active_mission": false
+      },
+      {
+        "name": "Denmark",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": 10,
+        "relation_descriptor": "Neutral",
+        "has_active_mission": false
+      },
+      {
+        "name": "Saxony",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "has_active_mission": false
+      },
+      {
+        "name": "Hanover",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -50,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Hesse",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": 0,
+        "relation_descriptor": "Neutral",
+        "has_active_mission": false
+      },
+      {
+        "name": "PapalStates",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -10,
+        "relation_descriptor": "Wary",
+        "has_active_mission": false
+      },
+      {
+        "name": "Sardinia",
+        "state": "PEACE",
+        "state_display": "Peace",
+        "is_vassal": false,
+        "relation": -70,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      }
+    ]
+  }
+}

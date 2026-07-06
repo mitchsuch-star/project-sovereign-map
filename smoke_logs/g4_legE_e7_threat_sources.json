@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "threat_sources_this_turn": [
+    {
+      "source": "hegemony_passive",
+      "amount": 1
+    },
+    {
+      "source": "decay",
+      "amount": -3
+    }
+  ]
+}

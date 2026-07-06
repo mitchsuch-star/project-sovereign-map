@@ -1,0 +1,54 @@
+{
+  "steps": [
+    [
+      "mount1",
+      "[150, 150]"
+    ],
+    [
+      "dial",
+      "[50, 50]"
+    ],
+    [
+      "mount2 (refresh while mounted)",
+      "[50, 50]",
+      "PROPOSE"
+    ],
+    [
+      "submit",
+      "REVIEW"
+    ],
+    [
+      "back_out",
+      "True",
+      "Settlement review cancelled.",
+      "draft_kept_after:",
+      "False",
+      "dialogue_after:",
+      "False"
+    ],
+    [
+      "remount after discard",
+      "[50, 50]",
+      "PROPOSE",
+      "draft_kept:",
+      "True"
+    ]
+  ],
+  "remount_payload_dialogue_terms": [
+    {
+      "type": "peace"
+    },
+    {
+      "type": "gold_indemnity",
+      "from": "France",
+      "to": "Britain",
+      "amount": 50
+    },
+    {
+      "type": "gold_indemnity",
+      "from": "France",
+      "to": "Prussia",
+      "amount": 50
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$.active_wars.wars[].contribution_share[].material_share": {
+    "n": 60,
+    "example": {
+      "file": "g4_legD_mount_d2_nowar_Austria.json",
+      "value": 0.0
+    }
+  },
+  "$.active_wars.wars[].contribution_share[].support_share": {
+    "n": 60,
+    "example": {
+      "file": "g4_legD_mount_d2_nowar_Austria.json",
+      "value": 0.0
+    }
+  },
+  "$.ledger.balance_of_europe.hegemon_share": {
+    "n": 1,
+    "example": {
+      "file": "g4_legD_diplomatic_ledger.json",
+      "value": 0.51
+    }
+  },
+  "$.war_context_snapshots.propose_armistice.harshness": {
+    "n": 3,
+    "example": {
+      "file": "g4_legD_d4_preview_Austria.json",
+      "value": 0.0
+    }
+  }
+}

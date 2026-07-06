@@ -1,0 +1,13 @@
+{
+  "notifications": [
+    {
+      "id": "b359803d-1d8b-4227-810a-5eec5bc57a70",
+      "type": "dp_insufficient",
+      "priority": 0,
+      "title": "Insufficient DP",
+      "message": "Insufficient diplomatic points. 6 DP required, 4 available.",
+      "turn_created": 1,
+      "details": {}
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "has_pending": true,
+  "pending_envoy_count": 7,
+  "dialogue_type": "incoming_proposal",
+  "incoming_proposal": {
+    "from_nation": "Prussia",
+    "diplomat_name": "Hardenberg",
+    "diplomat_personality": "hawk",
+    "proposal_type": "open_borders",
+    "proposal_type_display": "Open Borders Agreement",
+    "clauses": [
+      "Proposal: Open Borders Agreement",
+      "Clause: Open borders"
+    ],
+    "talleyrand_assessment": "An unexpected overture. There may be hidden motives worth examining.",
+    "acceptance_hint": "natural willingness to negotiate",
+    "rejection_hint": "their diplomat outmaneuvered us",
+    "is_counter_offer": false,
+    "decision_reason": "hegemony_pressure",
+    "decision_reason_display": "hegemony pressure"
+  }
+}

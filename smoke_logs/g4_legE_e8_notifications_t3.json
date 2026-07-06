@@ -1,0 +1,28 @@
+{
+  "notifications": [
+    {
+      "id": "2ef2ca60-c9ac-4441-9c25-2770ae1f26f8",
+      "type": "incoming_settlement_offer",
+      "priority": 1,
+      "title": "Settlement offer from Britain",
+      "message": "Britain has offered terms to settle France vs Britain. Asking 600 gold.",
+      "turn_created": 3,
+      "details": {
+        "war_id": "war_1",
+        "offer_id": "settlement_offer:war_1:3:1",
+        "proposer_nation": "Britain",
+        "amount": 600,
+        "review_target": "incoming_settlement_offer_popup"
+      }
+    },
+    {
+      "id": "b359803d-1d8b-4227-810a-5eec5bc57a70",
+      "type": "dp_insufficient",
+      "priority": 0,
+      "title": "Insufficient DP",
+      "message": "Insufficient diplomatic points. 6 DP required, 4 available.",
+      "turn_created": 1,
+      "details": {}
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "success": true,
+  "war_scores": [
+    {
+      "nation_a": "Britain",
+      "nation_b": "France",
+      "components": {
+        "total": 5,
+        "territory": 5,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 5
+    },
+    {
+      "nation_a": "Austria",
+      "nation_b": "France",
+      "components": {
+        "total": 15,
+        "territory": 0,
+        "battles": 15,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 15
+    },
+    {
+      "nation_a": "France",
+      "nation_b": "Russia",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    },
+    {
+      "nation_a": "Britain",
+      "nation_b": "Spain",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    },
+    {
+      "nation_a": "Britain",
+      "nation_b": "Holland",
+      "components": {
+        "total": 30,
+        "territory": 10,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 20,
+        "ticking": 0
+      },
+      "total": 30
+    },
+    {
+      "nation_a": "Austria",
+      "nation_b": "Bavaria",
+      "components": {
+        "total": 10,
+        "territory": 10,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 10
+    },
+    {
+      "nation_a": "Austria",
+      "nation_b": "KingdomOfItaly",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    }
+  ]
+}

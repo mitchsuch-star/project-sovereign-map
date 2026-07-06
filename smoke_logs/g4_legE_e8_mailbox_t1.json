@@ -1,0 +1,76 @@
+{
+  "success": true,
+  "items": [
+    {
+      "mailbox_id": 1,
+      "state": "ACTIVE",
+      "source_nation": "Prussia",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Prussia — Open Borders"
+    },
+    {
+      "mailbox_id": 2,
+      "state": "WAITING",
+      "source_nation": "Ottoman",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Ottoman — Open Borders"
+    },
+    {
+      "mailbox_id": 3,
+      "state": "WAITING",
+      "source_nation": "Portugal",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Portugal — Open Borders"
+    },
+    {
+      "mailbox_id": 4,
+      "state": "WAITING",
+      "source_nation": "Denmark",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Denmark — Open Borders"
+    },
+    {
+      "mailbox_id": 5,
+      "state": "WAITING",
+      "source_nation": "Saxony",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Saxony — Open Borders"
+    },
+    {
+      "mailbox_id": 6,
+      "state": "WAITING",
+      "source_nation": "Hesse",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "Hesse — Open Borders"
+    },
+    {
+      "mailbox_id": 7,
+      "state": "WAITING",
+      "source_nation": "PapalStates",
+      "item_type": "incoming_proposal",
+      "proposal_type": "open_borders",
+      "arrival_turn": 1,
+      "summary_text": "Incoming proposal: Open Borders",
+      "summary": "PapalStates — Open Borders"
+    }
+  ],
+  "count": 7
+}

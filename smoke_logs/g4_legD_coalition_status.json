@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "threat_level": 0,
+  "threat_tier": "LOW",
+  "brewing": false,
+  "brewing_turns": null,
+  "qualifying_nations": [],
+  "active_coalition": null
+}

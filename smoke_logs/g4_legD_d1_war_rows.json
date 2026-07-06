@@ -1,0 +1,26 @@
+[
+  {
+    "war_instance_id": "war_2",
+    "opponent": "Austria",
+    "settlement_available": false,
+    "settlement_disabled_reason": "Use bilateral peace or armistice for a one-on-one war.",
+    "eligibility_error": "one_to_one_war",
+    "eligibility_available_wars": null
+  },
+  {
+    "war_instance_id": "war_1",
+    "opponent": "Britain",
+    "settlement_available": false,
+    "settlement_disabled_reason": "Use bilateral peace or armistice for a one-on-one war.",
+    "eligibility_error": "one_to_one_war",
+    "eligibility_available_wars": null
+  },
+  {
+    "war_instance_id": "war_3",
+    "opponent": "Prussia",
+    "settlement_available": false,
+    "settlement_disabled_reason": "Use bilateral peace or armistice for a one-on-one war.",
+    "eligibility_error": "one_to_one_war",
+    "eligibility_available_wars": null
+  }
+]

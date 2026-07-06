@@ -1,0 +1,50 @@
+{
+  "success": true,
+  "diplomatic_states": {
+    "Austria|Britain": "NON_AGGRESSION",
+    "Austria|France": "WAR",
+    "Austria|Prussia": "DEFENSIVE_ALLIANCE",
+    "Austria|Saxony": "PEACE",
+    "Britain|France": "WAR",
+    "Britain|Prussia": "ALLIANCE",
+    "Britain|Saxony": "PEACE",
+    "France|Prussia": "WAR",
+    "France|Saxony": "OPEN_BORDERS",
+    "Prussia|Saxony": "PEACE"
+  },
+  "diplomatic_states_display": {
+    "Austria|Britain": "Non-Aggression",
+    "Austria|France": "At War",
+    "Austria|Prussia": "Defensive Alliance",
+    "Austria|Saxony": "Peace",
+    "Britain|France": "At War",
+    "Britain|Prussia": "Alliance",
+    "Britain|Saxony": "Peace",
+    "France|Prussia": "At War",
+    "France|Saxony": "Open Borders",
+    "Prussia|Saxony": "Peace"
+  },
+  "nation_relations": {
+    "Austria|Britain": 40,
+    "Austria|France": -30,
+    "Austria|Prussia": 30,
+    "Austria|Saxony": 10,
+    "Britain|France": -80,
+    "Britain|Prussia": 60,
+    "Britain|Saxony": 0,
+    "France|Prussia": -40,
+    "France|Saxony": 40,
+    "Prussia|Saxony": -10
+  },
+  "active_treaties": {},
+  "vassals": {},
+  "diplomatic_points": 5,
+  "max_diplomatic_points": 5,
+  "talleyrand": {
+    "name": "Talleyrand",
+    "nation": "France",
+    "personality": "schemer",
+    "skill": 10,
+    "biography": "The devil's diplomat. Serves France — or rather, serves what he believes France should be."
+  }
+}

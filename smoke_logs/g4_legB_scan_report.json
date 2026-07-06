@@ -1,0 +1,217 @@
+{
+  "float_fields": {
+    "active_wars.wars[].contribution_share[].material_share": {
+      "count": 36,
+      "example_path": "new_game.active_wars.wars[0].contribution_share[0].material_share",
+      "example_value": 0.0
+    },
+    "active_wars.wars[].contribution_share[].support_share": {
+      "count": 36,
+      "example_path": "new_game.active_wars.wars[0].contribution_share[0].support_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale",
+      "example_value": 0.65
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling",
+      "example_value": 0.7
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling",
+      "example_value": 1.5
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share",
+      "example_value": 0.5094339622641509
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share",
+      "example_value": 0.5094339622641509
+    },
+    "diplomatic_dialogue.settlement_preview.acceptance.raw_total_harshness": {
+      "count": 6,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.acceptance.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.review_sections.sections.allies.rows[].material_share": {
+      "count": 18,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.review_sections.sections.allies.rows[0].material_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.settlement_preview.review_sections.sections.allies.rows[].support_share": {
+      "count": 18,
+      "example_path": "mount.diplomatic_dialogue.settlement_preview.review_sections.sections.allies.rows[0].support_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.review_sections.sections.allies.rows[].material_share": {
+      "count": 18,
+      "example_path": "mount.diplomatic_dialogue.review_sections.sections.allies.rows[0].material_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.review_sections.sections.allies.rows[].support_share": {
+      "count": 18,
+      "example_path": "mount.diplomatic_dialogue.review_sections.sections.allies.rows[0].support_share",
+      "example_value": 0.0
+    },
+    "settlement_preview.acceptance.component_debug.base_side_pressure.scale": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.base_side_pressure.scale",
+      "example_value": 0.65
+    },
+    "settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling",
+      "example_value": 0.7
+    },
+    "settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling",
+      "example_value": 0.0
+    },
+    "settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized",
+      "example_value": 0.0
+    },
+    "settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling",
+      "example_value": 1.5
+    },
+    "settlement_preview.acceptance.component_debug.projected_hegemony.pre_share": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share",
+      "example_value": 0.5094339622641509
+    },
+    "settlement_preview.acceptance.component_debug.projected_hegemony.post_share": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.component_debug.projected_hegemony.post_share",
+      "example_value": 0.5094339622641509
+    },
+    "settlement_preview.acceptance.raw_total_harshness": {
+      "count": 3,
+      "example_path": "mount.settlement_preview.acceptance.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "settlement_preview.review_sections.sections.allies.rows[].material_share": {
+      "count": 9,
+      "example_path": "mount.settlement_preview.review_sections.sections.allies.rows[0].material_share",
+      "example_value": 0.0
+    },
+    "settlement_preview.review_sections.sections.allies.rows[].support_share": {
+      "count": 9,
+      "example_path": "mount.settlement_preview.review_sections.sections.allies.rows[0].support_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale",
+      "example_value": 0.65
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling",
+      "example_value": 0.7
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling",
+      "example_value": 1.5
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share",
+      "example_value": 0.5094339622641509
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share",
+      "example_value": 0.5094339622641509
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.raw_total_harshness": {
+      "count": 1,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.raw_total_harshness",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.review_sections.sections.allies.rows[].material_share": {
+      "count": 3,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.review_sections.sections.allies.rows[0].material_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.settlement_preview.review_sections.sections.allies.rows[].support_share": {
+      "count": 3,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.settlement_preview.review_sections.sections.allies.rows[0].support_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.review_sections.sections.allies.rows[].material_share": {
+      "count": 3,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.review_sections.sections.allies.rows[0].material_share",
+      "example_value": 0.0
+    },
+    "diplomatic_dialogue.prior_dialogue.review_sections.sections.allies.rows[].support_share": {
+      "count": 3,
+      "example_path": "chooser.diplomatic_dialogue.prior_dialogue.review_sections.sections.allies.rows[0].support_share",
+      "example_value": 0.0
+    }
+  },
+  "display_raw_key_hits": [],
+  "conference_or_veto_hits": [],
+  "raw_war_id_in_display_hits": []
+}

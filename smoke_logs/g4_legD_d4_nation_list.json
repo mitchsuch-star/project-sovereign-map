@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "mode": "nations",
+  "dp_available": 5,
+  "dialogue_pending": false,
+  "pending_envoy_count": 0,
+  "has_deferred_result": false,
+  "categories": {
+    "at_war": [
+      {
+        "name": "Britain",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Prussia",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -40,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      },
+      {
+        "name": "Austria",
+        "state": "WAR",
+        "state_display": "At War",
+        "is_vassal": false,
+        "relation": -30,
+        "relation_descriptor": "Hostile",
+        "has_active_mission": false
+      }
+    ],
+    "treaties": [
+      {
+        "name": "Saxony",
+        "state": "OPEN_BORDERS",
+        "state_display": "Open Borders",
+        "is_vassal": false,
+        "relation": 40,
+        "relation_descriptor": "Friendly",
+        "has_active_mission": false
+      }
+    ],
+    "vassals": [],
+    "neutral": []
+  }
+}

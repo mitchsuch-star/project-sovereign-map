@@ -1,0 +1,26 @@
+{
+  "war_2:Austria": {
+    "http": 200,
+    "success": false,
+    "message": "",
+    "error": "one_to_one_war",
+    "error_display": "Use bilateral peace or armistice for a one-on-one war.",
+    "dialogue": null
+  },
+  "war_1:Britain": {
+    "http": 200,
+    "success": false,
+    "message": "",
+    "error": "one_to_one_war",
+    "error_display": "Use bilateral peace or armistice for a one-on-one war.",
+    "dialogue": null
+  },
+  "war_3:Prussia": {
+    "http": 200,
+    "success": false,
+    "message": "",
+    "error": "one_to_one_war",
+    "error_display": "Use bilateral peace or armistice for a one-on-one war.",
+    "dialogue": null
+  }
+}

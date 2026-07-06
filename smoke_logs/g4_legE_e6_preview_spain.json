@@ -1,0 +1,73 @@
+{
+  "success": true,
+  "dialogue_pending": false,
+  "pending_envoy_count": 0,
+  "nation": "Spain",
+  "state": "ALLIANCE",
+  "current_state": "ALLIANCE",
+  "current_state_display": "Alliance",
+  "relation": 40,
+  "relation_descriptor": "Friendly",
+  "dp_available": 4,
+  "has_deferred_result": false,
+  "talleyrand_in_transit": false,
+  "is_vassal": false,
+  "section": "foreign_affairs",
+  "assessment": "Our alliance with Spain holds, but the bond frays. Tread carefully — a break now would cost us dearly.",
+  "actions": [
+    {
+      "action": "declare_war",
+      "display_name": "Declare War",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": ""
+    },
+    {
+      "action": "break_treaty",
+      "display_name": "Break Treaty",
+      "dp_cost": 1,
+      "available": false,
+      "disabled_reason": "No active treaty"
+    },
+    {
+      "action": "downgrade",
+      "display_name": "Downgrade",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": ""
+    },
+    {
+      "action": "mission_reassure",
+      "display_name": "Reassure Ally",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "+3 relation/turn"
+    },
+    {
+      "action": "mission_gather_intel",
+      "display_name": "Gather Intel",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "3-turn full intel"
+    },
+    {
+      "action": "mission_undermine",
+      "display_name": "Undermine Alliances",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "-3 relation between targets/turn"
+    },
+    {
+      "action": "send_ultimatum",
+      "display_name": "Send Ultimatum",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": ""
+    }
+  ],
+  "recommendation": "Relations must improve before proposals will find purchase. A battlefield victory would change their calculus.",
+  "acceptance_preview": null
+}

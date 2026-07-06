@@ -1,0 +1,44 @@
+{
+  "propose peace with Russia": {
+    "status": 200,
+    "success": false,
+    "mounted": false,
+    "target_nation": null,
+    "message": "\"Sire, which nation should I direct this proposal to? Please specify a nation.\""
+  },
+  "propose armistice with Russia": {
+    "status": 200,
+    "success": false,
+    "mounted": false,
+    "target_nation": null,
+    "message": "\"Sire, which nation should I direct this proposal to? Please specify a nation.\""
+  },
+  "propose open borders with Denmark": {
+    "status": 200,
+    "success": false,
+    "mounted": false,
+    "target_nation": null,
+    "message": "\"Sire, which nation should I direct this proposal to? Please specify a nation.\""
+  },
+  "propose alliance with Bavaria": {
+    "status": 200,
+    "success": false,
+    "mounted": false,
+    "target_nation": null,
+    "message": "\"Sire, which nation should I direct this proposal to? Please specify a nation.\""
+  },
+  "propose open borders with Sweden": {
+    "status": 200,
+    "success": false,
+    "mounted": false,
+    "target_nation": null,
+    "message": "\"Sire, which nation should I direct this proposal to? Please specify a nation.\""
+  },
+  "propose peace with Austria": {
+    "status": 200,
+    "success": true,
+    "mounted": true,
+    "target_nation": "Austria",
+    "message": "\"Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.\""
+  }
+}

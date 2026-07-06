@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "threat_level": 86,
+  "threat_tier": "CRITICAL",
+  "brewing": false,
+  "brewing_turns": null,
+  "qualifying_nations": [
+    "Ottoman",
+    "Sweden",
+    "Naples",
+    "Hanover",
+    "Sardinia"
+  ],
+  "active_coalition": {
+    "id": "coalition_1",
+    "name": "Third Coalition",
+    "target_nation": "France",
+    "leader": "Britain",
+    "members": [
+      "Austria",
+      "Britain",
+      "Russia"
+    ],
+    "formed_turn": 1,
+    "strategic_posture": "defensive",
+    "posture_last_updated": 2
+  }
+}

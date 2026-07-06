@@ -1,0 +1,145 @@
+[
+  {
+    "step": "remount",
+    "http": 200,
+    "mode": "PROPOSE",
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 50
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 50
+      }
+    ],
+    "restored_modified": true
+  },
+  {
+    "step": "propose_options_verbatim",
+    "options": [
+      {
+        "label": "Harsher terms",
+        "action": "settlement_dial_harsher",
+        "scope": "table",
+        "war_id": "war_1",
+        "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+        "description": "Press every court harder and watch each react live."
+      },
+      {
+        "label": "More generous",
+        "action": "settlement_dial_generous",
+        "scope": "table",
+        "war_id": "war_1",
+        "draft_key": "settlement_draft:war_1:Britain:138ee66d6fdf131b",
+        "description": "Ease every court and watch each react live."
+      },
+      {
+        "label": "Submit for Review",
+        "action": "submit_settlement_for_review",
+        "description": "Lock in this package and review it for ratification."
+      },
+      {
+        "label": "Back Out",
+        "action": "suspend_settlement_editor"
+      }
+    ],
+    "available_action_ids": [
+      "settlement_dial_harsher",
+      "settlement_dial_generous",
+      "submit_settlement_for_review",
+      "suspend_settlement_editor"
+    ]
+  },
+  {
+    "step": "submit_review",
+    "http": 200,
+    "mode": "REVIEW",
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 50
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 50
+      }
+    ]
+  },
+  {
+    "step": "B9 return_to_settlement_terms",
+    "http": 200,
+    "mode": "PROPOSE",
+    "terms_match_review": true,
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 50
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 50
+      }
+    ],
+    "message": "Sire, the settlement of France vs Britain + Prussia cannot be ratified now: Base side pressure. Revise terms or stand down before pressing further.",
+    "error_display": null
+  },
+  {
+    "step": "resubmit_review",
+    "http": 200,
+    "mode": "REVIEW"
+  },
+  {
+    "step": "back_out_settlement (from REVIEW)",
+    "http": 200,
+    "success": true,
+    "message": "Settlement review cancelled.",
+    "error_display": null,
+    "dialogue_after": false
+  },
+  {
+    "step": "B10 remount after discard",
+    "http": 200,
+    "mode": "PROPOSE",
+    "terms": [
+      {
+        "type": "peace"
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Britain",
+        "amount": 50
+      },
+      {
+        "type": "gold_indemnity",
+        "from": "France",
+        "to": "Prussia",
+        "amount": 50
+      }
+    ],
+    "fresh_equals_baseline": false,
+    "modified_discarded": false
+  }
+]

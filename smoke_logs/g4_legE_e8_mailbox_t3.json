@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "items": [
+    {
+      "mailbox_id": 8,
+      "state": "ACTIVE",
+      "source_nation": "Britain",
+      "item_type": "incoming_settlement_offer",
+      "proposal_type": "settlement_offer",
+      "arrival_turn": 3,
+      "summary_text": "Settlement offer: war_1",
+      "summary": "Britain — Settlement Offer"
+    }
+  ],
+  "count": 1
+}

@@ -1,0 +1,240 @@
+{
+  "success": true,
+  "ledger": {
+    "current_turn": 1,
+    "nations": [
+      {
+        "name": "Britain",
+        "diplomatic_state": "WAR",
+        "relation": -80,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Castlereagh",
+          "personality": "hawk",
+          "skill": 7
+        },
+        "army_strength": "~75,000 men",
+        "regions_controlled": 3,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Prussia",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Austria",
+            "state": "NON_AGGRESSION",
+            "relation": 40,
+            "relation_descriptor": "Friendly"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Berlin Alignment",
+          "kind": "proper_bloc",
+          "priority": 80
+        }
+      },
+      {
+        "name": "Prussia",
+        "diplomatic_state": "WAR",
+        "relation": -40,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Hardenberg",
+          "personality": "hawk",
+          "skill": 6
+        },
+        "army_strength": "~70,000 men",
+        "regions_controlled": 2,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "ALLIANCE",
+            "relation": 60,
+            "relation_descriptor": "Loyal"
+          },
+          {
+            "nation": "Austria",
+            "state": "DEFENSIVE_ALLIANCE",
+            "relation": 30,
+            "relation_descriptor": "Friendly"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Berlin Alignment",
+          "kind": "proper_bloc",
+          "priority": 80
+        }
+      },
+      {
+        "name": "Austria",
+        "diplomatic_state": "WAR",
+        "relation": -30,
+        "relation_descriptor": "Hostile",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Metternich",
+          "personality": "schemer",
+          "skill": 9
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 4,
+        "active_treaties": [],
+        "vassal_eligible": false,
+        "vassal_block_reason": "major_power",
+        "power_tier": "major",
+        "ai_relations": [
+          {
+            "nation": "Britain",
+            "state": "NON_AGGRESSION",
+            "relation": 40,
+            "relation_descriptor": "Friendly"
+          },
+          {
+            "nation": "Prussia",
+            "state": "DEFENSIVE_ALLIANCE",
+            "relation": 30,
+            "relation_descriptor": "Friendly"
+          }
+        ],
+        "war_score_breakdown": {
+          "total": 0,
+          "territory": 0,
+          "battles": 0,
+          "decisive": 0,
+          "capital": 0,
+          "ticking": 0
+        },
+        "proposal_cooldowns": null,
+        "trade_income": 0,
+        "bloc_stamp": {
+          "label": "Berlin Alignment",
+          "kind": "proper_bloc",
+          "priority": 80
+        }
+      },
+      {
+        "name": "Saxony",
+        "diplomatic_state": "OPEN_BORDERS",
+        "relation": 40,
+        "relation_descriptor": "Friendly",
+        "relation_trend": "stable",
+        "diplomat": {
+          "name": "Einsiedel",
+          "personality": "dove",
+          "skill": 4
+        },
+        "army_strength": "Unknown",
+        "regions_controlled": 2,
+        "active_treaties": [],
+        "vassal_eligible": true,
+        "vassal_block_reason": null,
+        "power_tier": "minor",
+        "ai_relations": [],
+        "war_score_breakdown": null,
+        "proposal_cooldowns": null,
+        "trade_income": 100,
+        "bloc_stamp": {
+          "label": "Neutral",
+          "kind": "neutral",
+          "priority": 10
+        }
+      }
+    ],
+    "treaties": [],
+    "recent_peace_ratifications": [],
+    "recent_settlements": [],
+    "peace_settlement_history": [],
+    "balance_of_europe": {
+      "headline_case": "HEGEMON_NO_COALITION",
+      "hegemon": "Prussia",
+      "hegemon_share": 0.51,
+      "hegemon_power": 27,
+      "total_power": 53,
+      "hegemony_band": 2,
+      "bloc_label": "Berlin Alignment",
+      "descriptive_label": "Prussian-led alignment",
+      "is_proper_bloc_name": true,
+      "bloc_members": [
+        "Austria",
+        "Britain",
+        "Prussia"
+      ],
+      "power_basis": "Bloc share is a weighted score: the leader plus direct allies and vassal-bloc members, divided by all active European courts. It is not a partition; alliance networks can overlap.",
+      "coalition_state": "NO_COALITION",
+      "coalition_leader": "",
+      "coalition_members": [],
+      "coalition_name": "",
+      "coalition_posture": "defensive",
+      "active_coalition": null,
+      "brewing_turns_remaining": null,
+      "cooldown_turns_remaining": null,
+      "coalition_cooldown": 0,
+      "threat_level": 0,
+      "threat_tier": "LOW",
+      "threat_sources_this_turn": [],
+      "qualifying_nations": [],
+      "threat_projection": {
+        "current": 0,
+        "after_next_war": 20,
+        "brewing_threshold": 60,
+        "instant_threshold": 80,
+        "wars_until_brewing": 3,
+        "wars_until_instant": 4
+      },
+      "dissolution_threat_threshold": 20,
+      "dissolution_war_exhaustion_limit": 80
+    },
+    "talleyrand": {
+      "authority": 100,
+      "authority_label": "Divine Right",
+      "skill": 10,
+      "dp_remaining": 5,
+      "dp_max": 5,
+      "dp_breakdown": {
+        "base": 3,
+        "skill_bonus": 1,
+        "authority_bonus": 1,
+        "capital_penalty": 0
+      },
+      "active_mission": null,
+      "proposal_in_transit": null,
+      "pending_envoy_count": 0,
+      "sabotage_warnings": [],
+      "diplomatic_history": [],
+      "diplomatic_reliability": 0
+    },
+    "war_bargains": []
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "war_scores": [
+    {
+      "nation_a": "Austria",
+      "nation_b": "France",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    },
+    {
+      "nation_a": "Britain",
+      "nation_b": "France",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    },
+    {
+      "nation_a": "France",
+      "nation_b": "Prussia",
+      "components": {
+        "total": 0,
+        "territory": 0,
+        "battles": 0,
+        "decisive": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "total": 0
+    }
+  ]
+}

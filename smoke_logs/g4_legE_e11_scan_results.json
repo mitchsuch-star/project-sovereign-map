@@ -1,0 +1,532 @@
+{
+ "float_hits": {
+  "smoke_logs\\g4_legE_diplomatic_status_t1.json": [
+   [
+    "$.vassals.Holland.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.KingdomOfItaly.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.Switzerland.tribute_rate",
+    0.75
+   ]
+  ],
+  "smoke_logs\\g4_legE_e2_peace_mount2.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.4
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_e2_peace_send.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.4
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_e2_post_send_diplostatus.json": [
+   [
+    "$.vassals.Holland.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.KingdomOfItaly.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.Switzerland.tribute_rate",
+    0.75
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_armistice_mount.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.4
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_armistice_send.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.4
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_post_send_diplostatus.json": [
+   [
+    "$.vassals.Holland.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.KingdomOfItaly.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.Switzerland.tribute_rate",
+    0.75
+   ]
+  ],
+  "smoke_logs\\g4_legE_e6_preview_britain.json": [
+   [
+    "$.war_context_snapshots.propose_armistice.harshness",
+    0.0
+   ],
+   [
+    "$.war_context_snapshots.propose_armistice.commitment_conflicts[1].detail.bloc_share",
+    0.4
+   ]
+  ],
+  "smoke_logs\\g4_legE_e7_diplostatus_after3turns.json": [
+   [
+    "$.vassals.Holland.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.KingdomOfItaly.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.Switzerland.tribute_rate",
+    0.75
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_confirm.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.36
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_post_diplostatus.json": [
+   [
+    "$.vassals.Holland.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.KingdomOfItaly.tribute_rate",
+    0.75
+   ],
+   [
+    "$.vassals.Switzerland.tribute_rate",
+    0.75
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_replace.json": [
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale",
+    0.65
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling",
+    0.1
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling",
+    1.5
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share",
+    0.3620689655172414
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share",
+    0.3620689655172414
+   ],
+   [
+    "$.diplomatic_dialogue.settlement_preview.acceptance.raw_total_harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_seek_armistice2.json": [
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.base_side_pressure.scale",
+    0.65
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.ceiling",
+    0.1
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.settlement_tier_legitimacy.raw_total_harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.raw_total_harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.capped_at_ceiling",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.normalized",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.term_harshness_penalty.ceiling",
+    1.5
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.pre_share",
+    0.3620689655172414
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.component_debug.projected_hegemony.post_share",
+    0.3620689655172414
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.settlement_preview.acceptance.raw_total_harshness",
+    0.0
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_send.json": [
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.harshness",
+    0.0
+   ],
+   [
+    "$.diplomatic_dialogue.war_context_snapshot.commitment_conflicts[1].detail.bloc_share",
+    0.36
+   ],
+   [
+    "$.diplomatic_dialogue.harshness",
+    0.0
+   ]
+  ]
+ },
+ "display_hits": {
+  "smoke_logs\\g4_legE_e2_peace_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e2_peace_mount2.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e2_peace_send.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_armistice_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_armistice_send.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e3_reconsider.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e4_alliance_prussia_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e4_openborders_denmark_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e4_trade_denmark_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e5_diplomatic_ledger.json": [
+   [
+    "$.ledger.nations[14].name",
+    "PapalStates",
+    "PapalStates"
+   ],
+   [
+    "$.ledger.nations[17].name",
+    "KingdomOfItaly",
+    "KingdomOfItaly"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e6_preview_nationlist.json": [
+   [
+    "$.categories.vassals[1].name",
+    "KingdomOfItaly",
+    "KingdomOfItaly"
+   ],
+   [
+    "$.categories.neutral[9].name",
+    "PapalStates",
+    "PapalStates"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e7_endturn_1.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.notifications[6].title",
+    "PapalStates",
+    "Envoy from PapalStates"
+   ],
+   [
+    "$.notifications[6].message",
+    "PapalStates",
+    "An envoy from PapalStates has arrived with a proposal."
+   ]
+  ],
+  "smoke_logs\\g4_legE_e7_endturn_2.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e7_endturn_3.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_choice_int1.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_mailbox_t1.json": [
+   [
+    "$.items[6].summary",
+    "PapalStates",
+    "PapalStates — Open Borders"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_notifications_t1.json": [
+   [
+    "$.notifications[6].title",
+    "PapalStates",
+    "Envoy from PapalStates"
+   ],
+   [
+    "$.notifications[6].message",
+    "PapalStates",
+    "An envoy from PapalStates has arrived with a proposal."
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_reject_offer.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_reject_offer_choice3.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_reject_offer_params.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e8_reject_raw.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_e9_status.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_new_game.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_confirm.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_mount.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_replace.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.options[2].voice_family",
+    "settlement_",
+    "settlement_seek_bilateral_peace_instead_talleyrand"
+   ],
+   [
+    "$.diplomatic_dialogue.options[3].voice_family",
+    "settlement_",
+    "settlement_seek_armistice_instead_talleyrand"
+   ],
+   [
+    "$.diplomatic_dialogue.options[4].recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_seek_armistice.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_seek_armistice2.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.options[2].voice_family",
+    "settlement_",
+    "settlement_seek_bilateral_peace_instead_talleyrand"
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.options[3].voice_family",
+    "settlement_",
+    "settlement_seek_armistice_instead_talleyrand"
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.options[4].recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ],
+   [
+    "$.diplomatic_dialogue.prior_dialogue.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ],
+  "smoke_logs\\g4_legE_pairsub_send.json": [
+   [
+    "$.active_wars.wars[0].war_detail_actionability.recovery_route.reason",
+    "settlement_",
+    "blocked_settlement_recovery"
+   ]
+  ]
+ }
+}

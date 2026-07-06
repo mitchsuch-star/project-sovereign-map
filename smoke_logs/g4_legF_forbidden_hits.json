@@ -1,0 +1,1507 @@
+[
+ {
+  "context": "end_turn_3",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[0].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_3",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[0].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_4",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_4",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_5",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_5",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_6",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_6",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_7",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_7",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_8",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_8",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_9",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_9",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[2].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/mailbox@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[0].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@10",
+  "string": "incoming_settlement_offer",
+  "kind": "key_with_non_null_value",
+  "path": "incoming_settlement_offer",
+  "value_preview": "{\"type\": \"incoming_settlement_offer\", \"dialogue_type\": \"incoming_settlement_offer\", \"offer_id\": \"settlement_offer:war_1:3:1\", \"war_id\": \"war_1\", \"war_label\": \"France vs Britain\", \"proposer_nation\": \"Britain\", \"accepting_side\": \"attackers\", \"covered_enemy_participants\": [\"Britain\", \"Austria\", \"Russia\"], \"settlement_terms\": [{\"type\": \"peace\"}, {\"type\": \"gold_indemnity\", \"from\": \"France\", \"to\": \"Britain\", \"amount\": 600}], \"terms_summary\": [\"Peace\", \"600 gold (France \\u2192 Britain)\"], \"amount\": 600"
+ },
+ {
+  "context": "/pending_envoy@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@10",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_11",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[3].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_11",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[3].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_12",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_12",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_13",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_13",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_14",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_14",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_15",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[3].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_15",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[3].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_15",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[9].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_15",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[9].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_16",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_16",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[7].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_16",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_16",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_17",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_17",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_17",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_17",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_18",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_18",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_18",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_18",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_19",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_19",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_19",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_19",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/mailbox@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[0].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/mailbox@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[1].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@20",
+  "string": "incoming_settlement_offer",
+  "kind": "key_with_non_null_value",
+  "path": "incoming_settlement_offer",
+  "value_preview": "{\"type\": \"incoming_settlement_offer\", \"dialogue_type\": \"incoming_settlement_offer\", \"offer_id\": \"settlement_offer:war_1:3:1\", \"war_id\": \"war_1\", \"war_label\": \"France vs Britain\", \"proposer_nation\": \"Britain\", \"accepting_side\": \"attackers\", \"covered_enemy_participants\": [\"Britain\", \"Austria\", \"Russia\"], \"settlement_terms\": [{\"type\": \"peace\"}, {\"type\": \"gold_indemnity\", \"from\": \"France\", \"to\": \"Britain\", \"amount\": 600}], \"terms_summary\": [\"Peace\", \"600 gold (France \\u2192 Britain)\"], \"amount\": 600"
+ },
+ {
+  "context": "/pending_envoy@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/notifications@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@20",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_21",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_21",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[5].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_21",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_21",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[11].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_22",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_22",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_22",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_22",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_23",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_23",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_23",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_23",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_24",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_24",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[8].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_24",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_24",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_25",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_25",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_25",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_25",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_26",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[9].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_26",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[9].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_26",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_26",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_27",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[10].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_27",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[10].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_27",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[16].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_27",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[16].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_28",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_28",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_28",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_28",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_29",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_29",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_29",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_29",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/mailbox@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[0].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/mailbox@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[1].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@30",
+  "string": "incoming_settlement_offer",
+  "kind": "key_with_non_null_value",
+  "path": "incoming_settlement_offer",
+  "value_preview": "{\"type\": \"incoming_settlement_offer\", \"dialogue_type\": \"incoming_settlement_offer\", \"offer_id\": \"settlement_offer:war_1:3:1\", \"war_id\": \"war_1\", \"war_label\": \"France vs Britain\", \"proposer_nation\": \"Britain\", \"accepting_side\": \"attackers\", \"covered_enemy_participants\": [\"Britain\", \"Austria\", \"Russia\"], \"settlement_terms\": [{\"type\": \"peace\"}, {\"type\": \"gold_indemnity\", \"from\": \"France\", \"to\": \"Britain\", \"amount\": 600}], \"terms_summary\": [\"Peace\", \"600 gold (France \\u2192 Britain)\"], \"amount\": 600"
+ },
+ {
+  "context": "/pending_envoy@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/notifications@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@30",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_31",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_31",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_31",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_31",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_32",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_32",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_32",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_32",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_33",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_33",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_33",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_33",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_34",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_34",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_34",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_34",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_35",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_35",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_35",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_35",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_36",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_36",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[12].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_36",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_36",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[18].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_37",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_37",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[15].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_37",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_37",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[21].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_38",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_38",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[13].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_38",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_38",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[19].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_39",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_39",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_39",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_39",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/mailbox@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[0].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/mailbox@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[1].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@40",
+  "string": "incoming_settlement_offer",
+  "kind": "key_with_non_null_value",
+  "path": "incoming_settlement_offer",
+  "value_preview": "{\"type\": \"incoming_settlement_offer\", \"dialogue_type\": \"incoming_settlement_offer\", \"offer_id\": \"settlement_offer:war_1:3:1\", \"war_id\": \"war_1\", \"war_label\": \"France vs Britain\", \"proposer_nation\": \"Britain\", \"accepting_side\": \"attackers\", \"covered_enemy_participants\": [\"Britain\", \"Austria\", \"Russia\"], \"settlement_terms\": [{\"type\": \"peace\"}, {\"type\": \"gold_indemnity\", \"from\": \"France\", \"to\": \"Britain\", \"amount\": 600}], \"terms_summary\": [\"Peace\", \"600 gold (France \\u2192 Britain)\"], \"amount\": 600"
+ },
+ {
+  "context": "/pending_envoy@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/notifications@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@40",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_41",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_41",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_41",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_41",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_42",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_42",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_42",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_42",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_43",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_43",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_43",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_43",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_44",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_44",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_44",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_44",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_45",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_45",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_45",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_45",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_46",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_46",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_46",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_46",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_47",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_47",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_47",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_47",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_48",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_48",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_48",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_48",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_49",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_49",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[17].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_49",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_49",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[23].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "end_turn_50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "end_turn_50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/mailbox@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[0].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/mailbox@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "items[1].item_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@50",
+  "string": "incoming_settlement_offer",
+  "kind": "key_with_non_null_value",
+  "path": "incoming_settlement_offer",
+  "value_preview": "{\"type\": \"incoming_settlement_offer\", \"dialogue_type\": \"incoming_settlement_offer\", \"offer_id\": \"settlement_offer:war_1:3:1\", \"war_id\": \"war_1\", \"war_label\": \"France vs Britain\", \"proposer_nation\": \"Britain\", \"accepting_side\": \"attackers\", \"covered_enemy_participants\": [\"Britain\", \"Austria\", \"Russia\"], \"settlement_terms\": [{\"type\": \"peace\"}, {\"type\": \"gold_indemnity\", \"from\": \"France\", \"to\": \"Britain\", \"amount\": 600}], \"terms_summary\": [\"Peace\", \"600 gold (France \\u2192 Britain)\"], \"amount\": 600"
+ },
+ {
+  "context": "/pending_envoy@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/pending_envoy@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "incoming_settlement_offer.dialogue_type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[14].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ },
+ {
+  "context": "/notifications@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].type",
+  "value": "incoming_settlement_offer"
+ },
+ {
+  "context": "/notifications@50",
+  "string": "incoming_settlement_offer",
+  "kind": "string_value",
+  "path": "notifications[20].details.review_target",
+  "value": "incoming_settlement_offer_popup"
+ }
+]

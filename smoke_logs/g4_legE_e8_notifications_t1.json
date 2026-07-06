@@ -1,0 +1,76 @@
+{
+  "notifications": [
+    {
+      "id": "e352288f-1b83-4aac-8044-2ab55228e920",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Prussia",
+      "message": "An envoy from Prussia has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "c0151f28-1dcf-403c-aa6b-c9484f04ad57",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Ottoman",
+      "message": "An envoy from Ottoman has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "3ba4cf61-f107-49e6-8af3-907fdb8e0240",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Portugal",
+      "message": "An envoy from Portugal has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "4843392c-f2ae-437d-a365-f5d1eed058ba",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Denmark",
+      "message": "An envoy from Denmark has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "2ac531d0-f9c9-475b-ba02-1bca4f9217f3",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Saxony",
+      "message": "An envoy from Saxony has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "06b3d1cd-522c-4a9d-9372-c8660e118d59",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from Hesse",
+      "message": "An envoy from Hesse has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "a36d68ff-bdc5-471e-bbff-5c0600dd739e",
+      "type": "diplomatic_proposal",
+      "priority": 1,
+      "title": "Envoy from PapalStates",
+      "message": "An envoy from PapalStates has arrived with a proposal.",
+      "turn_created": 1,
+      "details": {}
+    },
+    {
+      "id": "b359803d-1d8b-4227-810a-5eec5bc57a70",
+      "type": "dp_insufficient",
+      "priority": 0,
+      "title": "Insufficient DP",
+      "message": "Insufficient diplomatic points. 6 DP required, 4 available.",
+      "turn_created": 1,
+      "details": {}
+    }
+  ]
+}

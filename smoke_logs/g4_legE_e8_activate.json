@@ -1,0 +1,17 @@
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": [
+        "body",
+        "mailbox_id"
+      ],
+      "msg": "Field required",
+      "input": {
+        "id": null,
+        "item_id": null,
+        "envoy_id": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,771 @@
+{
+ "/mailbox": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "items": [
+    {
+     "mailbox_id": 8,
+     "state": "ACTIVE",
+     "source_nation": "Britain",
+     "item_type": "incoming_settlement_offer",
+     "proposal_type": "settlement_offer",
+     "arrival_turn": 3,
+     "summary_text": "Settlement offer: war_1",
+     "summary": "Britain \u2014 Settlement Offer"
+    },
+    {
+     "mailbox_id": 35,
+     "state": "WAITING",
+     "source_nation": "Switzerland",
+     "item_type": "incoming_settlement_offer",
+     "proposal_type": "settlement_offer",
+     "arrival_turn": 15,
+     "summary_text": "Settlement offer: war_2",
+     "summary": "Switzerland \u2014 Settlement Offer"
+    }
+   ],
+   "count": 2
+  }
+ },
+ "/pending_envoy": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "has_pending": true,
+   "pending_envoy_count": 2,
+   "dialogue_type": "incoming_settlement_offer",
+   "incoming_settlement_offer": {
+    "type": "incoming_settlement_offer",
+    "dialogue_type": "incoming_settlement_offer",
+    "offer_id": "settlement_offer:war_1:3:1",
+    "war_id": "war_1",
+    "war_label": "France vs Britain",
+    "proposer_nation": "Britain",
+    "accepting_side": "attackers",
+    "covered_enemy_participants": [
+     "Britain",
+     "Austria",
+     "Russia"
+    ],
+    "settlement_terms": [
+     {
+      "type": "peace"
+     },
+     {
+      "type": "gold_indemnity",
+      "from": "France",
+      "to": "Britain",
+      "amount": 600
+     }
+    ],
+    "terms_summary": [
+     "Peace",
+     "600 gold (France \u2192 Britain)"
+    ],
+    "amount": 600,
+    "talleyrand_text": "Sire, Britain has dispatched a settlement of France vs Britain. They ask 600 gold to close the war; the table is theirs to set, the signature is ours to give or withhold.",
+    "proposer_voice": "His Majesty's Government offers terms for France vs Britain. London asks 600 gold and a return to peace; the price is set, and London is not in the habit of revising figures lightly.",
+    "options": [
+     {
+      "label": "Review Settlement Offer",
+      "description": "Open the offered terms for ratification review. Ratification still requires a final confirm.",
+      "action": "accept_settlement_offer",
+      "available": true
+     },
+     {
+      "label": "Request Revision",
+      "description": "Open the offered terms in the editor and answer with a counter draft.",
+      "action": "request_settlement_revision",
+      "available": true
+     },
+     {
+      "label": "Reject Offer",
+      "description": "Decline the offer without further negotiation.",
+      "action": "reject_settlement_offer",
+      "available": true
+     }
+    ],
+    "available_action_ids": [
+     "accept_settlement_offer",
+     "request_settlement_revision",
+     "reject_settlement_offer"
+    ]
+   }
+  }
+ },
+ "/notifications": {
+  "status": 200,
+  "body": {
+   "notifications": [
+    {
+     "id": "8be516d2-d228-475c-98b8-050966040340",
+     "type": "balance_of_europe_shifted",
+     "priority": 2,
+     "title": "Balance of Europe Shifts",
+     "message": "British Interest leads the current largest alignment at 62% of active European bloc power.",
+     "turn_created": 29,
+     "details": {
+      "event_type": "balance_of_europe_shifted",
+      "template_key": "commitments_notice_balance_of_europe_shifted",
+      "icon": "icon_balance_of_europe",
+      "label": "British Interest",
+      "speaker": "envoy_then_talleyrand_then_foreign_office",
+      "review_target": "ledger_commitments",
+      "review_label": "Open Ledger",
+      "band": 3,
+      "hegemon": "Britain",
+      "share": 0.63,
+      "share_pct": 62,
+      "hegemon_power": 189,
+      "total_power": 302,
+      "bloc_members": [
+       "Austria",
+       "Britain",
+       "Russia"
+      ],
+      "power_basis": "Bloc share is a weighted score: the leader plus direct allies and vassal-bloc members, divided by all active European courts. It is not a partition; alliance networks can overlap.",
+      "bloc_label": "British Interest",
+      "descriptive_label": "British-led alignment",
+      "counterplay_hint": "",
+      "speaker_nation": "Prussia",
+      "caller_seam": "set_diplomatic_state:auto_downgrade",
+      "cooldown_turns_remaining": 1
+     }
+    },
+    {
+     "id": "5c52a4de-c4f1-4ca4-a83d-9686590896f3",
+     "type": "balance_of_europe_shifted",
+     "priority": 2,
+     "title": "Balance of Europe Shifts",
+     "message": "Vienna System leads the current largest alignment at 62% of active European bloc power.",
+     "turn_created": 28,
+     "details": {
+      "event_type": "balance_of_europe_shifted",
+      "template_key": "commitments_notice_balance_of_europe_shifted",
+      "icon": "icon_balance_of_europe",
+      "label": "Vienna System",
+      "speaker": "envoy_then_talleyrand_then_foreign_office",
+      "review_target": "ledger_commitments",
+      "review_label": "Open Ledger",
+      "band": 3,
+      "hegemon": "Austria",
+      "share": 0.62,
+      "share_pct": 62,
+      "hegemon_power": 186,
+      "total_power": 300,
+      "bloc_members": [
+       "Austria",
+       "Britain",
+       "Russia"
+      ],
+      "power_basis": "Bloc share is a weighted score: the leader plus direct allies and vassal-bloc members, divided by all active European courts. It is not a partition; alliance networks can overlap.",
+      "bloc_label": "Vienna System",
+      "descriptive_label": "Austrian-led alignment",
+      "counterplay_hint": "",
+      "speaker_nation": "Prussia",
+      "caller_seam": "process_coalition_turn:end",
+      "cooldown_turns_remaining": 1
+     }
+    },
+    {
+     "id": "ee6b6943-e11a-4bd8-adbf-b17457067632",
+     "type": "balance_of_europe_shifted",
+     "priority": 2,
+     "title": "Balance of Europe Shifts",
+     "message": "Vienna System leads the current largest alignment at 52% of active European bloc power.",
+     "turn_created": 22,
+     "details": {
+      "event_type": "balance_of_europe_shifted",
+      "template_key": "commitments_notice_balance_of_europe_shifted",
+      "icon": "icon_balance_of_europe",
+      "label": "Vienna System",
+      "speaker": "envoy_then_talleyrand_then_foreign_office",
+      "review_target": "ledger_commitments",
+      "review_label": "Open Ledger",
+      "band": 2,
+      "hegemon": "Austria",
+      "share": 0.52,
+      "share_pct": 52,
+      "hegemon_power": 156,
+      "total_power": 298,
+      "bloc_members": [
+       "Austria",
+       "Britain",
+       "Russia"
+      ],
+      "power_basis": "Bloc share is a weighted score: the leader plus direct allies and vassal-bloc members, divided by all active European courts. It is not a partition; alliance networks can overlap.",
+      "bloc_label": "Vienna System",
+      "descriptive_label": "Austrian-led alignment",
+      "counterplay_hint": "",
+      "speaker_nation": "France",
+      "caller_seam": "declare_war",
+      "cooldown_turns_remaining": null
+     }
+    },
+    {
+     "id": "5b724b9a-4c8e-4d14-bf0d-f2476568658d",
+     "type": "vassal_rebellion",
+     "priority": 2,
+     "title": "Switzerland REBELLED!",
+     "message": "Switzerland has rebelled against France! War declared.",
+     "turn_created": 13,
+     "details": {}
+    },
+    {
+     "id": "fbe95bb5-bb18-486f-a187-fc391c9ea420",
+     "type": "defeat_imminent_warning",
+     "priority": 1,
+     "title": "One Army Remains",
+     "message": "France has only one surviving army left under Massena. If it is destroyed, the campaign ends.",
+     "turn_created": 51,
+     "details": {
+      "living_marshal_count": 1,
+      "living_marshals": [
+       "Massena"
+      ],
+      "controlled_region_count": 4,
+      "controlled_regions": [
+       "Bearn",
+       "Bordelais",
+       "Paris",
+       "Corsica"
+      ]
+     }
+    },
+    {
+     "id": "f30e1d6b-b34e-4651-a433-5c9f0ca461c7",
+     "type": "alliance_cascade_war",
+     "priority": 1,
+     "title": "Britain Enters War!",
+     "message": "Britain enters the war via alliance with Austria.",
+     "turn_created": 39,
+     "details": {}
+    },
+    {
+     "id": "a3ff5539-bba6-4608-8dc1-d756cd71a364",
+     "type": "war_declared",
+     "priority": 1,
+     "title": "Prussia Declares War!",
+     "message": "Prussia has declared war on Austria.",
+     "turn_created": 39,
+     "details": {}
+    },
+    {
+     "id": "373fa5dc-32fe-4339-8474-d0f92e977f13",
+     "type": "nation_eliminated",
+     "priority": 1,
+     "title": "Bavaria Eliminated!",
+     "message": "Bavaria has been eliminated from the war.",
+     "turn_created": 29,
+     "details": {}
+    },
+    {
+     "id": "84349239-7dcc-4b3c-a0cc-760915def218",
+     "type": "alliance_cascade_war",
+     "priority": 1,
+     "title": "Britain Enters War!",
+     "message": "Britain enters the war via alliance with Russia.",
+     "turn_created": 22,
+     "details": {}
+    },
+    {
+     "id": "abaeea8c-d68d-4cab-a75e-8da81a68bbbc",
+     "type": "war_declared",
+     "priority": 1,
+     "title": "Bavaria Declares War!",
+     "message": "Bavaria has declared war on Russia.",
+     "turn_created": 22,
+     "details": {}
+    },
+    {
+     "id": "cda3de99-0ccc-4bd8-bf2f-e1218730a86d",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "KingdomOfItaly Critical!",
+     "message": "KingdomOfItaly loyalty critical (0) \u2014 rebellion imminent.",
+     "turn_created": 18,
+     "details": {}
+    },
+    {
+     "id": "29a28106-051f-4f64-9fa7-c219180ec301",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "KingdomOfItaly Critical!",
+     "message": "KingdomOfItaly loyalty critical (5) \u2014 rebellion imminent.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "8c7015e8-d2a5-4202-a37d-07a94a2311e0",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "KingdomOfItaly Critical!",
+     "message": "KingdomOfItaly loyalty critical (2) \u2014 rebellion imminent.",
+     "turn_created": 16,
+     "details": {}
+    },
+    {
+     "id": "bd96c94b-4c64-4709-9449-52bda0c0d21a",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "KingdomOfItaly Critical!",
+     "message": "KingdomOfItaly loyalty critical (2) \u2014 rebellion imminent.",
+     "turn_created": 15,
+     "details": {}
+    },
+    {
+     "id": "1fb0faae-8beb-4c76-b5cd-a0704e7edb32",
+     "type": "incoming_settlement_offer",
+     "priority": 1,
+     "title": "Settlement offer from Switzerland",
+     "message": "Switzerland has offered terms to settle Switzerland vs France. Asking 600 gold.",
+     "turn_created": 15,
+     "details": {
+      "war_id": "war_2",
+      "offer_id": "settlement_offer:war_2:15:1",
+      "proposer_nation": "Switzerland",
+      "amount": 600,
+      "review_target": "incoming_settlement_offer_popup"
+     }
+    },
+    {
+     "id": "8a7a87af-bc7d-40ba-aa84-696bdb5fba0a",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "Holland Critical!",
+     "message": "Holland loyalty critical (0) \u2014 rebellion imminent.",
+     "turn_created": 14,
+     "details": {}
+    },
+    {
+     "id": "6be08a53-1ef3-4c9b-87a9-c1115d38837c",
+     "type": "vassal_rebellion_imminent",
+     "priority": 1,
+     "title": "Switzerland Critical!",
+     "message": "Switzerland loyalty critical (0) \u2014 rebellion imminent.",
+     "turn_created": 13,
+     "details": {}
+    },
+    {
+     "id": "daa3c65a-a389-4afe-ba61-a0bc9a5b3ddf",
+     "type": "alliance_cascade_war",
+     "priority": 1,
+     "title": "Spain Enters War!",
+     "message": "Spain enters the war via alliance with France.",
+     "turn_created": 13,
+     "details": {}
+    },
+    {
+     "id": "8c2fff61-f6a8-46eb-97e1-880e72b5f4e5",
+     "type": "alliance_cascade_war",
+     "priority": 1,
+     "title": "Bavaria Enters War!",
+     "message": "Bavaria enters the war via alliance with France.",
+     "turn_created": 13,
+     "details": {}
+    },
+    {
+     "id": "9b0d21d4-ac69-431c-bfb8-72b505980dcd",
+     "type": "nation_eliminated",
+     "priority": 1,
+     "title": "Saxony Eliminated!",
+     "message": "Saxony has been eliminated from the war.",
+     "turn_created": 4,
+     "details": {}
+    },
+    {
+     "id": "93e0f472-8bae-4cf5-897a-e7ed7c57d9eb",
+     "type": "incoming_settlement_offer",
+     "priority": 1,
+     "title": "Settlement offer from Britain",
+     "message": "Britain has offered terms to settle France vs Britain. Asking 600 gold.",
+     "turn_created": 3,
+     "details": {
+      "war_id": "war_1",
+      "offer_id": "settlement_offer:war_1:3:1",
+      "proposer_nation": "Britain",
+      "amount": 600,
+      "review_target": "incoming_settlement_offer_popup"
+     }
+    },
+    {
+     "id": "645e7c11-c820-4545-81d7-b99562af8db0",
+     "type": "diplo_auto_downgrade",
+     "priority": 0,
+     "title": "Relations Deteriorated",
+     "message": "France-Spain: Alliance \u2192 Defensive Alliance.",
+     "turn_created": 35,
+     "details": {}
+    },
+    {
+     "id": "b8e85e2e-2c3e-4035-ae2d-fa0f29f951d6",
+     "type": "diplo_auto_downgrade",
+     "priority": 0,
+     "title": "Relations Deteriorated",
+     "message": "Austria-Russia: Defensive Alliance \u2192 Non-Aggression.",
+     "turn_created": 29,
+     "details": {}
+    },
+    {
+     "id": "074fd935-e7c2-45c1-acef-a8d588c5b8f4",
+     "type": "coalition_cooldown_ended",
+     "priority": 0,
+     "title": "Coalition Cooldown Ended",
+     "message": "A new coalition may form if threat remains high.",
+     "turn_created": 29,
+     "details": {}
+    },
+    {
+     "id": "8464d256-8eac-4a76-aec9-537d16a1f9d1",
+     "type": "nation_eliminated",
+     "priority": 0,
+     "title": "Bavaria eliminated",
+     "message": "Bavaria has no marshals remaining. Their forces are spent.",
+     "turn_created": 29,
+     "details": {
+      "nation": "Bavaria"
+     }
+    },
+    {
+     "id": "32173b28-9f9b-404f-949e-4cfb4911e346",
+     "type": "coalition_dissolved",
+     "priority": 0,
+     "title": "Coalition Dissolved",
+     "message": "Third Coalition has dissolved. Low Threat.",
+     "turn_created": 24,
+     "details": {}
+    },
+    {
+     "id": "8ca37a41-3447-42df-8dba-e79142a3dd8c",
+     "type": "diplo_auto_downgrade",
+     "priority": 0,
+     "title": "Relations Deteriorated",
+     "message": "Austria-Russia: Alliance \u2192 Defensive Alliance.",
+     "turn_created": 23,
+     "details": {}
+    },
+    {
+     "id": "60dbed23-8980-43dc-9146-c07b2dcd3f37",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Britain Courts KingdomOfItaly",
+     "message": "Enemy agents from Britain detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "0b330acb-d5cc-46fc-8e12-4c9f99deeeeb",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Russia Courts KingdomOfItaly",
+     "message": "Enemy agents from Russia detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "7d76a77b-61e1-48b9-ab0a-ff7cb4f3f17d",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Austria Courts KingdomOfItaly",
+     "message": "Enemy agents from Austria detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "2b389605-046a-4302-93e2-2515cf69e220",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Prussia Courts KingdomOfItaly",
+     "message": "Enemy agents from Prussia detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "2ffbadd8-c5d3-4f0b-9400-d9dfa7f11037",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Spain Courts KingdomOfItaly",
+     "message": "Enemy agents from Spain detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "09a5a076-adc7-4aba-93f0-71932620b7e4",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Ottoman Courts KingdomOfItaly",
+     "message": "Enemy agents from Ottoman detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "75d8a9df-c8b2-4c47-919d-ba95dfed216a",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Sweden Courts KingdomOfItaly",
+     "message": "Enemy agents from Sweden detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "7afd5648-cc14-4296-afa4-972e0c46e9b7",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Naples Courts KingdomOfItaly",
+     "message": "Enemy agents from Naples detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "72c18f6b-2173-4575-a0e0-a3c66faf4b3e",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Portugal Courts KingdomOfItaly",
+     "message": "Enemy agents from Portugal detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "5ae5960a-f4c6-46eb-a7c8-762a8bf503c1",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Denmark Courts KingdomOfItaly",
+     "message": "Enemy agents from Denmark detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "8ea8bd9b-f694-4e14-8217-01434eba6453",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Bavaria Courts KingdomOfItaly",
+     "message": "Enemy agents from Bavaria detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "9d33ac51-2566-4c78-9e26-df82ad4f3959",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Hanover Courts KingdomOfItaly",
+     "message": "Enemy agents from Hanover detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "e80f205f-8f13-48d3-8576-59b6ce394d68",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Hesse Courts KingdomOfItaly",
+     "message": "Enemy agents from Hesse detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "1930c216-93b8-437e-97c6-ed3e1643fec0",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "PapalStates Courts KingdomOfItaly",
+     "message": "Enemy agents from PapalStates detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "c6441ace-6883-494f-8f3d-4ef17c705cfb",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Sardinia Courts KingdomOfItaly",
+     "message": "Enemy agents from Sardinia detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "9a0ceac6-57d7-49e0-8eb9-07cc08319ed0",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Holland Courts KingdomOfItaly",
+     "message": "Enemy agents from Holland detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "fe4c2602-13b2-4fbf-9a52-0739b73410aa",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "KingdomOfItaly Courts KingdomOfItaly",
+     "message": "Enemy agents from KingdomOfItaly detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "0468c168-bf87-4413-8faa-269116a88ede",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Switzerland Courts KingdomOfItaly",
+     "message": "Enemy agents from Switzerland detected courting KingdomOfItaly.",
+     "turn_created": 17,
+     "details": {}
+    },
+    {
+     "id": "b37247dc-826b-47d5-82a3-9c92a9e91e62",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "KingdomOfItaly Courts KingdomOfItaly",
+     "message": "Enemy agents from KingdomOfItaly detected courting KingdomOfItaly.",
+     "turn_created": 14,
+     "details": {}
+    },
+    {
+     "id": "aaf1dbc4-1ca6-4f92-8a89-1f5317a6fc12",
+     "type": "vassal_courting_detected",
+     "priority": 0,
+     "title": "Switzerland Courts KingdomOfItaly",
+     "message": "Enemy agents from Switzerland detected courting KingdomOfItaly.",
+     "turn_created": 14,
+     "details": {}
+    }
+   ]
+  }
+ },
+ "/dispatch": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "dispatch": {
+    "turn": 51,
+    "situation": {
+     "player_regions": 4,
+     "enemy_regions": 122,
+     "treasury": 91855,
+     "treasury_delta": 887,
+     "trade_income": 187,
+     "bankrupt": false,
+     "strength_ratio_pct": 197082,
+     "authority": 50,
+     "authority_label": "Normal"
+    },
+    "marshals": [
+     {
+      "name": "Massena",
+      "location": "Volhynia",
+      "strength": 88,
+      "status": "idle_restless",
+      "status_note": "50 turns idle.",
+      "trust": 70,
+      "trust_notable": false,
+      "morale": 0,
+      "morale_warning": true
+     }
+    ],
+    "intelligence": [
+     {
+      "name": "Brunswick",
+      "location": "Silesia",
+      "strength_display": "47,721",
+      "visibility": "full",
+      "intel_turn": 50
+     },
+     {
+      "name": "Hohenlohe",
+      "location": "Silesia",
+      "strength_display": "23,211",
+      "visibility": "full",
+      "intel_turn": 50
+     },
+     {
+      "name": "ArchdukeJohn",
+      "location": "Dresden",
+      "strength_display": "small force",
+      "visibility": "last_known",
+      "intel_turn": 39
+     },
+     {
+      "name": "ArchdukeCharles",
+      "location": "Samogitia",
+      "strength_display": "small force",
+      "visibility": "last_known",
+      "intel_turn": 40
+     },
+     {
+      "name": "Mack",
+      "location": "Swabia",
+      "strength_display": "substantial force",
+      "visibility": "last_known",
+      "intel_turn": 21
+     },
+     {
+      "name": "Moore",
+      "location": "Lorraine",
+      "strength_display": "substantial force",
+      "visibility": "last_known",
+      "intel_turn": 20
+     },
+     {
+      "name": "Frederick",
+      "location": "Jutland",
+      "strength_display": "substantial force",
+      "visibility": "last_known",
+      "intel_turn": 25
+     }
+    ],
+    "turn_events": [],
+    "berthier_note": "Massena grows impatient, Sire. He will require action soon.",
+    "defeat_imminent_warning": {
+     "message": "France has only one surviving army left under Massena. If it is destroyed, the campaign ends.",
+     "severity": "warning",
+     "living_marshal_count": 1,
+     "living_marshals": [
+      "Massena"
+     ],
+     "controlled_region_count": 4,
+     "controlled_regions": [
+      "Bearn",
+      "Bordelais",
+      "Paris",
+      "Corsica"
+     ]
+    },
+    "talleyrand_report": [],
+    "talleyrand_discovery": null,
+    "talleyrand_override_note": null,
+    "talleyrand_redemption": null,
+    "coalition_status": null,
+    "diplomatic_events": [
+     {
+      "type": "diplomatic_dp_regen",
+      "text": "Talleyrand reports: 4 diplomatic points available (base 3, +1 skill).",
+      "priority": "LOW"
+     }
+    ],
+    "lapsed_offers": [
+     {
+      "nation": "Denmark",
+      "proposal_type": "non aggression"
+     },
+     {
+      "nation": "Hesse",
+      "proposal_type": "non aggression"
+     },
+     {
+      "nation": "Switzerland",
+      "proposal_type": "armistice losing"
+     }
+    ],
+    "pending_envoy_count": 2,
+    "pending_envoys": [
+     {
+      "nation": "Britain",
+      "proposal_type": "settlement offer",
+      "state": "ACTIVE"
+     },
+     {
+      "nation": "Switzerland",
+      "proposal_type": "settlement offer",
+      "state": "WAITING"
+     }
+    ]
+   }
+  }
+ }
+}

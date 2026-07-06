@@ -1,0 +1,186 @@
+{
+  "success": true,
+  "dialogue_pending": false,
+  "pending_envoy_count": 0,
+  "nation": "Britain",
+  "state": "WAR",
+  "current_state": "WAR",
+  "current_state_display": "At War",
+  "relation": -80,
+  "relation_descriptor": "Hostile",
+  "dp_available": 5,
+  "has_deferred_result": false,
+  "talleyrand_in_transit": false,
+  "is_vassal": false,
+  "section": "foreign_affairs",
+  "assessment": "The war with Britain grinds on without decisive result. Both sides bleed. An armistice may find receptive ears.",
+  "actions": [
+    {
+      "action": "propose_armistice",
+      "display_name": "Propose Armistice",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "likelihood": "Doubtful — may counter",
+      "likelihood_score": 31
+    },
+    {
+      "action": "open_settlement",
+      "display_name": "Open Settlement",
+      "dp_cost": 0,
+      "available": false,
+      "disabled_reason": "Use bilateral peace or armistice for a one-on-one war.",
+      "disabled_reason_display": "Use bilateral peace or armistice for a one-on-one war.",
+      "war_id": "war_1",
+      "eligibility": {
+        "available": false,
+        "error": "one_to_one_war",
+        "error_display": "Use bilateral peace or armistice for a one-on-one war.",
+        "disabled_reason_display": "Use bilateral peace or armistice for a one-on-one war.",
+        "display_reason": "Use bilateral peace or armistice for a one-on-one war.",
+        "war_id": "war_1"
+      }
+    },
+    {
+      "action": "propose_white_peace",
+      "display_name": "Propose White Peace",
+      "dp_cost": 0,
+      "available": false,
+      "disabled_reason": "Use bilateral peace or armistice for a one-on-one war.",
+      "disabled_reason_display": "Use bilateral peace or armistice for a one-on-one war.",
+      "war_id": "war_1",
+      "eligibility": {
+        "available": false,
+        "error": "one_to_one_war",
+        "error_display": "Use bilateral peace or armistice for a one-on-one war.",
+        "disabled_reason_display": "Use bilateral peace or armistice for a one-on-one war.",
+        "display_reason": "Use bilateral peace or armistice for a one-on-one war.",
+        "war_id": "war_1"
+      },
+      "white_peace": true
+    },
+    {
+      "action": "mission_gather_intel",
+      "display_name": "Gather Intel",
+      "dp_cost": 1,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "3-turn full intel"
+    },
+    {
+      "action": "mission_undermine",
+      "display_name": "Undermine Alliances",
+      "dp_cost": 2,
+      "available": true,
+      "disabled_reason": "",
+      "effect_text": "-3 relation between targets/turn"
+    }
+  ],
+  "recommendation": "Relations must improve before proposals will find purchase. A battlefield victory would change their calculus.",
+  "acceptance_preview": {
+    "positive": [
+      {
+        "key": "base_disposition",
+        "label": "Base willingness",
+        "value": 40
+      },
+      {
+        "key": "diplomat_skill_bonus",
+        "label": "Diplomatic skill advantage",
+        "value": 6
+      }
+    ],
+    "negative": [
+      {
+        "key": "relation_modifier",
+        "label": "Current relations",
+        "value": -10
+      },
+      {
+        "key": "personality_modifier",
+        "label": "Diplomat personality",
+        "value": -5
+      }
+    ]
+  },
+  "war_context_snapshots": {
+    "propose_armistice": {
+      "target_nation": "Britain",
+      "current_state": "WAR",
+      "proposed_state": "ARMISTICE",
+      "war_score": 0,
+      "war_score_components": {
+        "territory": 0,
+        "battle": 0,
+        "decisive_battle": 0,
+        "capital": 0,
+        "ticking": 0
+      },
+      "war_score_trend": "stagnant",
+      "war_duration_turns": 0,
+      "battles_fought": 0,
+      "battles_won": 0,
+      "battles_lost": 0,
+      "decisive_victories": 0,
+      "decisive_defeats": 0,
+      "french_casualties_total": 0,
+      "enemy_casualties_total": 0,
+      "regions_held_by_france": [],
+      "regions_held_by_enemy": [],
+      "france_relation": -80,
+      "acceptance_preview": {
+        "score": 13,
+        "outcome": "REJECT",
+        "outcome_display": "",
+        "largest_positive": "Base Disposition",
+        "largest_negative": "Relation Modifier"
+      },
+      "harshness": 0.0,
+      "harshness_label": "generous",
+      "proposal_terms": {
+        "type": "armistice_winning",
+        "proposal_type": "armistice_losing",
+        "proposer_nation": "France",
+        "target_nation": "Britain",
+        "sweeteners": [
+          {
+            "type": "gold_lump",
+            "value": 200
+          }
+        ],
+        "demands": [],
+        "clauses": [],
+        "suggestion_eased_to_estimate": true,
+        "talleyrand_commentary": "An island nation with continental ambitions. This arrangement serves both parties' interests."
+      },
+      "annotated_terms": [
+        {
+          "clause_type": "gold_lump",
+          "from_nation": "France",
+          "to_nation": "Britain",
+          "regions": [],
+          "term_direction": "concession",
+          "sweetener_value": 200,
+          "display_label": "France pays 200 gold to Britain"
+        }
+      ],
+      "fallout_warnings": [],
+      "commitment_conflicts": [],
+      "war_objective": null,
+      "settlement_tier": "white_peace",
+      "settlement_tier_display": "White Peace",
+      "tier_mismatch_warnings": [],
+      "armistice_mechanics": {
+        "duration_turns": 5,
+        "auto_peace_relation_threshold": -60,
+        "current_relation": -80,
+        "projected_outcome": "war",
+        "display_lines": [
+          "A 5-turn ceasefire: fighting stops and the war score freezes. No territory or gold changes hands at its end.",
+          "When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.",
+          "Relations stand at -80 — unless they heal to -60 or better, the war resumes when the truce expires."
+        ]
+      }
+    }
+  }
+}
