@@ -443,10 +443,20 @@ def _strip_conditions(text: str) -> str:
 
 
 def _clean_target_text(text: str) -> Optional[str]:
-    """Clean extracted target text — remove articles, trim."""
+    """Clean extracted target text — remove articles, directional lead-ins, trim."""
     text = text.strip()
     # Remove leading articles
     text = re.sub(r'^(the|a|an)\s+', '', text)
+    # Strip a leading directional lead-in so the region resolves:
+    # "north to Tyrol" → "Tyrol", "south toward Vienna" → "Vienna". A BARE
+    # direction ("north") has no connector+region after it and is preserved
+    # for resolve_direction(). Region names that merely BEGIN with a cardinal
+    # word ("East Prussia", "Northumbria") are untouched — the strip requires
+    # a following connector (to/toward/into/for/on).
+    text = re.sub(
+        r'^(?:' + '|'.join(re.escape(d) for d in DIRECTION_VECTORS) + r')\s+'
+        r'(?:to|toward|towards|into|for|on|onto)\s+',
+        '', text, flags=re.IGNORECASE)
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)

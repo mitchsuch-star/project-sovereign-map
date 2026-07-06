@@ -117,6 +117,19 @@ User direction (July 3): the text system is the pillar, not a gimmick — surfac
 1. **The "march to the sound of the guns → literal continues standing order" row is CUT.** (a) *Unimplementable at the parse seam:* the parser has no read access to a marshal's active `StrategicOrder`, and `VALID_ACTIONS` has no continue/noop verb — the nearest, `hold`, means **stop**, the opposite of continuing. (b) *Category error:* the autonomous Grouchy Moment is an event/AI feature (§4 re-homed row), not a parse feature. The literal arm is **ASK**, full stop.
 2. **"cover / watch / keep an eye on [X]" — CUT for CR-5** (fork resolved). Left out to keep the blessed scope crisp; re-add post-playtest ONLY as a named row with its own table entry + test (aggressive → scout-and-ready, cautious → scout+fortify, literal → ask). Do not half-implement.
 
+### 6.2a Playtest evidence — the gap is real and measured (July 5, 2026)
+
+A live feel-test playthrough (`LLM_MODE=anthropic`, 1805 opening, before any CR-5 work) empirically confirmed the gap this table closes. Same delegation verb + same target (`deal with Mack`), the three arms **all collapse to `attack`** today — personality has zero influence on the resolution:
+
+| Command | Marshal (personality) | Observed today (pre-CR-5) | §6.2 target |
+|---------|-----------------------|---------------------------|-------------|
+| `Ney, deal with Mack` | Ney (Aggressive) | `attack` (+15%) | attack ✓ — *but by LLM luck, not personality logic* |
+| `Davout, deal with Mack` | Davout (Cautious) | `attack` at **−10%** ("notes the risks but prepares the attack") — a frontal assault at bad odds | **scout** ✗ |
+| `Soult, deal with Mack` | Soult (Literal) | `attack` (AP-blocked, but parsed to attack, **no ask**) | **ASK** ✗ |
+| `Soult, deal with the situation as you see fit` | Soult (Literal) | live-LLM **drifted to `restrain`** → nonsense reply *"No pending Glorious Charge to restrain."* | **ASK** ✗ |
+
+**Verification (CONFIRMED_IN_CODE):** mock has no personality-biased resolution — `deal with` is wired only as a *diplomatic* keyword (`llm_client.py:1375`, dead code for marshal-addressed commands, unreachable without "talleyrand" present) so mock → `unknown` → CR-2 clarification; live → the LLM guesses with no delegation-verb table, producing the drift above. This is exactly what §6.3's **temp-0 pin + action-only output + the §6.2 verb table** exist to eliminate. These four rows are the natural **before-state assertions** for the §6.5 acceptance tests. (Playtest write-up + the four *separate*, now-fixed, out-of-scope bugs it also surfaced: session of July 5, 2026; the fixes landed with `test_playtest_fixes_2026_07_05.py`.)
+
 ### 6.3 Guardrails (all blocking)
 
 - **(a) Action-only output.** Personality may set only `action` (+ inherent `strategic_type`); never `strategic_score`, `ambiguity`, trust, or any outcome. Enforce at `validate_parse_result` (`validation.py:290`, the confirmed sole seam) + a test asserting a personality-biased parse leaves all non-action fields at their pre-bias values.

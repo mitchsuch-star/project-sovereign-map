@@ -4,10 +4,35 @@ Handles all combat-related execution: attack, charge, bombardment, garrison.
 
 Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
-from typing import Dict
+from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
+
+
+def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
+    """A blocked-attack result when the target is our OWN nation, an ally, or a
+    vassal — else None (the target is a valid enemy / attackable neutral, so the
+    caller proceeds, declaring war on a neutral as before).
+
+    Closes the friendly-fire hole (playtest finding): ordering an attack on an
+    allied marshal used to reach the war-declaration seam and stage a war
+    against our own ally. Shared by the executor pre-validation (before the
+    marshal's objection can fire) and the combat war-declaration backstop.
+    """
+    if world.can_attack_nation(marshal.nation, target_nation):
+        return None
+    if marshal.nation == target_nation:
+        message = f"{marshal.name} cannot attack our own forces, Sire."
+    else:
+        relation = ("vassal"
+                    if world.get_diplomatic_state(marshal.nation, target_nation) == "VASSAL"
+                    else "ally")
+        message = (f"{marshal.name} cannot attack {target_nation} — they are our "
+                   f"{relation}, Sire, and we are not at war with them.")
+    return {"success": False, "message": message}
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -2447,6 +2472,11 @@ class CombatExecutor:
         # before proceeding. Costs 1 DP, applies relation penalties.
         # ════════════════════════════════════════════════════════════
         if enemy_marshal and not world.is_at_war(marshal.nation, enemy_marshal.nation):
+            # Never turn an attack into a war declaration against our own ally
+            # or vassal (friendly-fire backstop).
+            _refusal = friendly_fire_refusal(world, marshal, enemy_marshal.nation)
+            if _refusal is not None:
+                return _refusal
             if marshal.nation == world.player_nation:
                 return _stage_war_purpose_for_attack(enemy_marshal.nation)
             from backend.game_logic.diplomacy import declare_war
@@ -2492,6 +2522,10 @@ class CombatExecutor:
 
                 # Auto-war-declaration for undefended territory (Phase 8 Session 2)
                 if target_region.controller and not world.is_at_war(marshal.nation, target_region.controller):
+                    # Don't declare war on our own ally/vassal to seize their land.
+                    _refusal = friendly_fire_refusal(world, marshal, target_region.controller)
+                    if _refusal is not None:
+                        return _refusal
                     from backend.game_logic.diplomacy import declare_war, can_enter_territory
                     if not can_enter_territory(world, marshal.nation, target_region.controller):
                         if marshal.nation == world.player_nation:

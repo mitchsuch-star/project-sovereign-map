@@ -1355,6 +1355,20 @@ class WorldState:
         """Check ALLIANCE or DEFENSIVE_ALLIANCE between nations."""
         return self.get_diplomatic_state(nation_a, nation_b) in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
 
+    def can_attack_nation(self, attacker_nation: str, target_nation: str) -> bool:
+        """Whether ``attacker_nation`` may direct an attack at ``target_nation``.
+
+        False for the attacker's OWN nation, an ally, or a vassal (either
+        direction) — such a marshal/territory must never be a combat target
+        (ordering it would otherwise stage a war declaration against our own
+        ally). A NEUTRAL (PEACE) target stays attackable: attacking a neutral
+        is the intended auto-war-declaration path, so this never blocks it.
+        """
+        if not target_nation or attacker_nation == target_nation:
+            return False
+        state = self.get_diplomatic_state(attacker_nation, target_nation)
+        return state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL")
+
     def can_interact_diplomatically(self, nation_a: str, nation_b: str) -> bool:
         """Check if diplomatic proposals are permitted (blocked during WAR)."""
         return self.get_diplomatic_state(nation_a, nation_b) != "WAR"

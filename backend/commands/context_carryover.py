@@ -66,16 +66,35 @@ _ACTION_TO_VERB = {
     "march": "march to",
 }
 
-# Whole-input "repeat the last order" family.
-_REPEAT_RE = re.compile(
-    r'^\s*(?:'
-    r'do\s+(?:it|that|so|the\s+same)\s+again'
-    r'|(?:the\s+)?same\s+(?:order|command|again)'
+# The "repeat the last order" phrase alternation, shared by the whole-input
+# matcher and the "<Marshal>, <repeat>" addressed form. The trailing "again"
+# is OPTIONAL for the "do the same" / "same" branches — a bare "do the same"
+# (or "the same" / "same thing") is the same repeat intent as "do the same
+# again", and a player who typed it was silently dropping through to the LLM,
+# which parsed the vague phrase as a default attack (playtest finding).
+_REPEAT_PHRASE = (
+    r'do\s+(?:it|that|so)\s+again'
+    r'|do\s+the\s+same(?:\s+again)?'
+    r'|(?:the\s+)?same(?:\s+(?:order|command|thing|again))?'
     r'|again'
     r'|once\s+more'
     r'|repeat(?:\s+(?:that|it|the\s+order|the\s+last\s+order))?'
     r'|as\s+before'
-    r')\s*[.!]*\s*$',
+)
+
+# Whole-input "repeat the last order" family ("again", "do the same").
+_REPEAT_RE = re.compile(
+    r'^\s*(?:' + _REPEAT_PHRASE + r')\s*[.!]*\s*$',
+    re.IGNORECASE)
+
+# Addressed form: "<Marshal>, do the same" / "Davout, again" — repeat the last
+# order's action+target, re-addressed to the named marshal ("Ney, scout Swabia"
+# then "Davout, do the same" -> "Davout, scout Swabia"). Without this the
+# marshal prefix blocks the whole-input _REPEAT_RE and the vague tail dropped to
+# the LLM, which parsed it as a default attack (playtest finding).
+_ADDRESSED_REPEAT_RE = re.compile(
+    r'^\s*(?:marshal\s+)?(?P<marshal>[A-Za-z]+)\s*[,:]\s*(?:'
+    + _REPEAT_PHRASE + r')\s*[.!]*\s*$',
     re.IGNORECASE)
 
 # Leading "no / not you / wrong" re-address cue.
@@ -296,6 +315,22 @@ def resolve_context_references(command_text: str, world) -> Dict:
         command = raw if raw else _reconstruct_order(
             entry.get("marshal") or "", entry)
         return {"kind": "rewrite", "command": command.strip()}
+
+    # 1b. "<Marshal>, do the same / again" — re-address the last order to the
+    # named marshal. The whole-input _REPEAT_RE only fires on a bare phrase; the
+    # marshal prefix would otherwise drop the vague tail to the LLM. Requires a
+    # real roster name (a non-marshal leading word falls through untouched).
+    addressed = _ADDRESSED_REPEAT_RE.match(text)
+    if addressed:
+        name = _match_roster_name(world, addressed.group("marshal"))
+        if name is not None:
+            entry = _last_order_entry(world)
+            if entry is None:
+                return {"kind": "error",
+                        "message": 'Berthier: "There is no previous order to '
+                                   'repeat, Sire."'}
+            return {"kind": "rewrite",
+                    "command": _readdress_command(name, entry)}
 
     # 2. "not you, X" — re-address the last order to another marshal. A cue
     # with no resolvable marshal is NOT a re-address (bare "no"/"not you" is a

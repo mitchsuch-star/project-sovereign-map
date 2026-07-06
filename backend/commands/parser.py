@@ -12,7 +12,7 @@ from backend.ai.llm_client import (
     SUPPORT_OBJECT_PREFIX_RE,
     CONDITION_CLAUSE_RE,
 )
-from backend.ai.strategic_parser import detect_strategic_command
+from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 # CR-0: split camelCase scenario keys ("ArchdukeCharles") into their typed
@@ -91,6 +91,27 @@ def _closest_by_edit_distance(word: str, names, limit: int = 1):
     word_lower = word.lower()
     hits = [n for n in names if _edit_distance_at_most(word_lower, n.lower(), limit)]
     return hits[0] if len(hits) == 1 else None
+
+
+def _is_nation_demonym(target: Optional[str], world) -> bool:
+    """True if `target` names a NATION's army by demonym ("the Austrians",
+    "Prussians", "Austrian") rather than a province.
+
+    Demonyms must NEVER be fuzzy-rewritten into a region: "Austrians" fuzz-
+    matched the Spanish province "Asturias" (playtest finding). Word-boundary
+    matched against the live roster's demonyms, so a place name that merely
+    contains a demonym substring is not caught. Returns False with no world
+    (tests) — same as the pre-fix behavior."""
+    if not target or world is None:
+        return False
+    try:
+        demonyms = set(_nation_demonyms(world))
+    except Exception:
+        return False
+    if not demonyms:
+        return False
+    tokens = re.findall(r"[A-Za-z]+", target.lower())
+    return any(tok in demonyms for tok in tokens)
 
 
 def _build_fallback_known_enemies() -> List[str]:
@@ -559,6 +580,16 @@ class CommandParser:
         # Spanish region Asturias)
         _VASSAL_ACTIONS = ("invest_vassal", "release_vassal",
                            "make_vassal", "change_autonomy")
+        # A nation demonym ("the Austrians", "Prussians") names an ARMY, not a
+        # province — drop it to None so neither the fuzzy ladder below nor the
+        # command-text fallback rewrites it into a region ("the Austrians" →
+        # the Spanish province "Asturias", playtest finding). None lets the
+        # executor auto-target the nearest enemy, mirroring the mock parser's
+        # deliberate demonym omission.
+        if (llm_result.get("target")
+                and llm_result.get("action") not in _VASSAL_ACTIONS
+                and _is_nation_demonym(llm_result["target"], world)):
+            llm_result["target"] = None
         if llm_result.get("target") and llm_result.get("action") not in _VASSAL_ACTIONS:
             # CR-0 precedence ladder: exact enemy > exact region >
             # enemy auto-correct > region auto-correct. With 126 live
@@ -617,6 +648,11 @@ class CommandParser:
                     continue
                 # Skip very short words (likely not valid targets)
                 if len(word) < 3:
+                    continue
+                # A nation demonym ("Austrians") is a generic army reference,
+                # not a province — never fuzzy-match it into a region here
+                # (it drifted to "Asturias"). Leave target None → auto-target.
+                if _is_nation_demonym(word, world):
                     continue
 
                 # CR-0: an exact or edit-distance-1 enemy name wins before

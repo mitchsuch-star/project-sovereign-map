@@ -27,7 +27,7 @@ from backend.commands.objection_v2 import (
 )
 
 
-from backend.commands.combat_executor import CombatExecutor
+from backend.commands.combat_executor import CombatExecutor, friendly_fire_refusal
 from backend.commands.strategic_executor import StrategicExecutor
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.commands.vassal_executor import VassalExecutor
@@ -952,6 +952,24 @@ class CommandExecutor:
                             "success": False,
                             "message": f"{marshal.name}'s artillery cannot form an infantry square!"
                         }
+
+                # ═══════════════════════════════════════════════════════════
+                # FRIENDLY-TARGET CHECK — Validation BEFORE objection
+                # An order to attack a named marshal of our OWN nation, an ally,
+                # or a vassal must never reach the objection / war-declaration
+                # machinery (it would stage a war against our own ally). Only
+                # marshal-name targets are resolved here — region-name targets
+                # (which may host both friend and foe) are validated deeper in
+                # combat_executor's war-declaration backstop.
+                # ═══════════════════════════════════════════════════════════
+                if action in ('attack', 'charge', 'bombard'):
+                    _target = command.get('target')
+                    _target_marshal = world.get_marshal(_target) if _target else None
+                    if _target_marshal is not None:
+                        _refusal = friendly_fire_refusal(
+                            world, marshal, _target_marshal.nation)
+                        if _refusal is not None:
+                            return _refusal
 
                 # ═══════════════════════════════════════════════════════════
                 # RECKLESSNESS STANCE CHECK — Validation BEFORE objection
