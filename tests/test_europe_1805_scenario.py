@@ -177,6 +177,22 @@ def test_cr5_literal_arm_player_reachable(world1805):
     )
 
 
+def test_cr5_signoff_massena_cautious_not_aggressive(world1805):
+    """Guardrail (d) sign-off (July 5, 2026 CR-5 gate, `COMMAND_ROBUSTNESS_SPEC.md`
+    §6.8): the 4-lens panel found aggressive-Massena the roster's weakest link —
+    his bio holds the second front against a fortified, stronger Charles (54k),
+    yet `aggressive` would make "Massena, deal with Charles" resolve to an
+    irreversible attack of 42k into that fortified 54k with no undo. Recast to
+    `cautious` so the delegation default is a REVERSIBLE scout/hold matching his
+    holding role (an explicit "attack Charles" still works, with a cautious
+    objection). If this regresses, a vague order commits the second-front army to
+    a losing assault. The commandable aggressive arm is exactly Ney/Lannes/Murat."""
+    french = [m for m in world1805.marshals.values() if m.nation == "France"]
+    assert str(world1805.marshals["Massena"].personality) == "cautious"
+    aggressive = sorted(m.name for m in french if str(m.personality) == "aggressive")
+    assert aggressive == ["Lannes", "Murat", "Ney"], aggressive
+
+
 def test_marshal_statlines_match_blessed_roster(world1805):
     murat = world1805.marshals["Murat"]
     assert murat.cavalry is True
