@@ -94,8 +94,8 @@
             "nation": "France",
             "location": "Lorraine",
             "strength": 40000,
-            "personality": "cautious",
-            "biography": "IV Corps, the largest in the army - marching for the Speyer crossing from its Lorraine camps."
+            "personality": "literal",
+            "biography": "IV Corps, the largest in the army - marching for the Speyer crossing from its Lorraine camps. A superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour."
         },
         "Lannes": {
             "name": "Lannes",

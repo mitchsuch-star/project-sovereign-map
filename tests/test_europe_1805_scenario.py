@@ -162,6 +162,21 @@ def test_flanders_channel_depot_authored(world1805):
     assert world1805.regions["Flanders"].controller == "France"
 
 
+def test_cr5_literal_arm_player_reachable(world1805):
+    """CR-5 (Personality-Biased Disambiguation) needs a commandable LITERAL
+    marshal so the "asks for clarification" arm is player-reachable (all three
+    enemy literals — Mack/Deroy/Buxhowden — are unaddressable by the player).
+    Soult was reassigned cautious->literal at the July 5, 2026 CR-5 gate (an
+    MC-4 personality-coverage assignment pulled forward, `COMMAND_ROBUSTNESS_SPEC.md`
+    §6.1). If this regresses, the signature feature's third arm goes dark for
+    the player."""
+    french = [m for m in world1805.marshals.values() if m.nation == "France"]
+    literals = sorted(m.name for m in french if str(m.personality) == "literal")
+    assert literals == ["Soult"], (
+        f"expected exactly one literal French marshal (Soult), got {literals}"
+    )
+
+
 def test_marshal_statlines_match_blessed_roster(world1805):
     murat = world1805.marshals["Murat"]
     assert murat.cavalry is True
