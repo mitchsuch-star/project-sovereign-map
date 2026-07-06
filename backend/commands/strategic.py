@@ -31,6 +31,31 @@ def _strategic_command_flavor(cmd_type: str) -> str:
     }.get(cmd_type, "his orders")
 
 
+# F1b fix: the strategic "attack anyway" interrupt handler rebuilds a fresh result
+# dict and previously surfaced only `message`, silently dropping the top-level combat
+# fields the direct /command attack path preserves. Carry the player-facing extras
+# (reinforcement narration, battle report, capture prompt) onto the returned dict so
+# the interrupt path is as legible as a direct attack.
+_COMBAT_PASSTHROUGH_FIELDS = (
+    "reinforcement_messages",
+    "reinforcement_results",
+    "coordination_tutorial",
+    "battle_report",
+    "bombardment_advisory",
+    "pending_capture_choice",
+    "capture_data",
+)
+
+
+def _carry_combat_fields(out: dict, inner: dict) -> dict:
+    """Copy allowlisted top-level combat fields from an inner attack result."""
+    if isinstance(inner, dict):
+        for key in _COMBAT_PASSTHROUGH_FIELDS:
+            if inner.get(key) is not None:
+                out[key] = inner[key]
+    return out
+
+
 class StrategicOrderProcessor:
     """
     Executes strategic orders during turn processing.
@@ -382,14 +407,14 @@ class StrategicOrderProcessor:
             if combat_success and battle_victor == marshal.name:
                 # Victory — reset attempts, continue order
                 order.combat_attempts = 0
-                return {
+                return _carry_combat_fields({
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name} and wins! "
                                f"Continuing {_strategic_command_flavor(order.command_type)}. {combat_msg}",
                     "order_cleared": False,
                     "trust_change": 0,
                     "action_taken": "attack"
-                }
+                }, result)
             else:
                 # Loss or stalemate — increment attempts, break order
                 order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
@@ -399,14 +424,14 @@ class StrategicOrderProcessor:
                 # [7A-2] Clear holding state
                 marshal.holding_position = False
                 marshal.hold_region = ""
-                return {
+                return _carry_combat_fields({
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
                                f"Assault failed — orders cancelled, marshal awaits new instructions.",
                     "order_cleared": True,
                     "trust_change": 0,
                     "action_taken": "attack"
-                }
+                }, result)
 
         elif choice == "go_around":
             # Recalculate path avoiding ALL enemy regions (not just the one)

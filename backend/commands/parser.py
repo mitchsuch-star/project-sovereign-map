@@ -631,6 +631,15 @@ class CommandParser:
                 "reinforce", "help", "wait", "hold", "fortify", "drill",
                 "unfortify", "stance", "aggressive", "defensive", "neutral",
                 "charge", "restrain", "glorious",  # Cavalry recklessness commands
+                # Pronouns / deixis / collective references — never fuzzy-match
+                # these into a province. Unresolved by carryover, they otherwise
+                # short-name auto-correct to a random region ("them" -> "Bohemia",
+                # "here" -> "Bergen"). Leaving target None routes to auto-target /
+                # the "which enemy?" clarification instead of a silent mis-order.
+                "them", "they", "him", "her", "it", "us", "me", "you",
+                "here", "there", "this", "that", "those", "these",
+                "someone", "somebody", "anyone", "anybody", "whoever",
+                "enemy", "enemies", "foe", "foes", "target", "yourself",
             ]
             # Also skip the marshal name if identified
             if llm_result.get("marshal"):

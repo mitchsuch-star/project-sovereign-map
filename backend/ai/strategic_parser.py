@@ -56,6 +56,20 @@ RELATIVE_KEYWORDS = [
 
 DIRECTION_WORDS = set(DIRECTION_VECTORS.keys()) | set(RELATIVE_KEYWORDS)
 
+# F2 / deixis fix: figurative, collective, and self-location phrasings that must
+# never be title-cased into a phantom region ("our lines" -> "Our Lines",
+# "here"/"there" -> "Here"/"There", "the ranks" -> "The Ranks"). These are routed
+# to a generic target so the executor resolves sensibly or asks for clarification
+# instead of fabricating a Norwegian province the player never named.
+NON_REGION_TARGET_WORDS = frozenset({
+    "here", "there", "hither", "thither",
+    "lines", "line", "position", "positions", "ranks",
+})
+NON_REGION_TARGET_PHRASES = (
+    "our lines", "the line", "the lines", "our position", "our positions",
+    "the ranks", "current position", "present position", "my position",
+)
+
 # CR-0: irregular demonyms for live-nation generic-target classification
 # ("pursue the austrians" is a generic order, not a region named
 # "The Austrians"). Regular nations derive below (-a → +"n", else +"ian").
@@ -460,6 +474,10 @@ def _clean_target_text(text: str) -> Optional[str]:
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)
+    # F3 fix: cut a trailing prepositional/qualifier clause so a support/move
+    # target resolves to the marshal or region name rather than the whole phrase:
+    # "Soult with fresh troops" → "Soult", "Davout using the cavalry" → "Davout".
+    text = re.sub(r'\s+(with|using)\s+.*$', '', text, flags=re.IGNORECASE)
     return text.strip() if text.strip() else None
 
 
@@ -574,6 +592,17 @@ def _classify_target(
                 "convert_to_pursue": False,
             }
     if any(ind in target_text.lower() for ind in generic_indicators):
+        return {
+            "target": target_text,
+            "target_type": "generic",
+            "target_snapshot_location": None,
+            "convert_to_pursue": False,
+        }
+
+    # F2 / deixis fix: don't title-case figurative / self-location phrasings into
+    # a phantom region — classify them generic so the executor asks or resolves.
+    if target_lower in NON_REGION_TARGET_WORDS or any(
+            phrase in target_lower for phrase in NON_REGION_TARGET_PHRASES):
         return {
             "target": target_text,
             "target_type": "generic",

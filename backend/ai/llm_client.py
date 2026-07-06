@@ -1018,8 +1018,10 @@ class LLMClient:
             action = "move"
         elif "scout" in command_lower or "reconnaissance" in command_lower or "recon" in command_lower or "acout" in command_lower or "scou" in command_lower:
             action = "scout"
-        elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
-            action = "move"  # Strategic parser upgrades to SUPPORT
+        # F4 fix: recruit MUST be checked before reinforce/support — the noun
+        # "reinforcements" contains the substring "reinforce", so "recruit
+        # reinforcements" (and "raise conscripts to reinforce our lines") would
+        # otherwise misroute to a destination-less move/SUPPORT order.
         elif "recruit" in command_lower or re.search(r'\braise\b', command_lower) or "conscript" in command_lower:
             action = "recruit"
             # Optional: extract what the player ASKED for (for soft correction message)
@@ -1029,6 +1031,8 @@ class LLMClient:
                 requested_type = "infantry"
             else:
                 requested_type = None
+        elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
+            action = "move"  # Strategic parser upgrades to SUPPORT
         # Tactical state actions (Phase 2.6)
         elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
             action = "unfortify"  # Must check before fortify to avoid false positives

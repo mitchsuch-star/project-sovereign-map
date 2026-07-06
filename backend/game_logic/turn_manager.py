@@ -374,8 +374,13 @@ class TurnManager:
         """Process AI diplomatic proposals for all enemy nations.
 
         Phase 8 Session 4: Each AI nation evaluates P1-P7 triggers.
-        Session 2 follow-up: All proposals delivered immediately through
-        dialogue_manager.push() — no one-per-turn throttle.
+
+        F8 fix: hegemony-pressure bandwagon proposals fire on a GLOBAL condition
+        (the player crossing a bloc-share band), so every eligible minor would
+        deliver an identical open-borders proposal in the same turn (7 at once
+        observed). Those bandwagon proposals are capped per turn; the remainder
+        simply re-evaluate on later turns. War/peace/armistice proposals (P1-P8)
+        are uncapped — only the shared-trigger bandwagon flood is throttled.
 
         Returns the last delivered dialogue dict if any were created, None otherwise.
         """
@@ -393,13 +398,21 @@ class TurnManager:
 
         # Evaluate each AI nation — all proposals go through deliver_ai_proposal
         # which calls dialogue_manager.push() (auto-queues when slot is occupied)
+        MAX_BANDWAGON_PER_TURN = 2
+        bandwagon_delivered = 0
         for nation in enemy_nations:
             proposal = process_diplomatic_phase(nation, world)
-            if proposal:
-                result = deliver_ai_proposal(proposal, world)
-                if delivered is None:
-                    delivered = result
-                debug_print(f"[DIPLOMACY] {nation} delivered proposal: {proposal.get('proposal_type')}")
+            if not proposal:
+                continue
+            if proposal.get("decision_reason") == "hegemony_pressure":
+                if bandwagon_delivered >= MAX_BANDWAGON_PER_TURN:
+                    debug_print(f"[DIPLOMACY] {nation} bandwagon proposal deferred (per-turn cap)")
+                    continue
+                bandwagon_delivered += 1
+            result = deliver_ai_proposal(proposal, world)
+            if delivered is None:
+                delivered = result
+            debug_print(f"[DIPLOMACY] {nation} delivered proposal: {proposal.get('proposal_type')}")
 
         # ════════════════════════════════════════════════════════════
         # VASSAL COURTING (Phase 8 Session 5)

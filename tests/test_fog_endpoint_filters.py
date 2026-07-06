@@ -324,18 +324,24 @@ class TestFilterTacticalEvents:
         result = _filter_tactical_events(events, world)
         assert len(result) == 0
 
-    def test_enemy_event_no_location_kept(self):
-        """Enemy events without a location are kept (can't fog-filter without location)."""
+    def test_enemy_event_no_location_dropped(self):
+        """Location-less enemy events are DROPPED, not kept.
+
+        Fog fix (July 2026 audit): the old 'no location -> keep' fallback leaked
+        enemy fortify/drill/retreat state (exact defense bonus, drill status) for
+        fogged provinces. A location-less event owned by a non-player marshal/
+        nation is now dropped; only genuinely player-neutral system events survive.
+        """
         world = WorldState()
 
         events = [{
             "type": "unknown",
             "nation": "Britain",
             "marshal": "Wellington"
-            # No location or region key — kept as safe default
+            # No location or region key — an enemy-owned event, so fog-dropped.
         }]
         result = _filter_tactical_events(events, world)
-        assert len(result) == 1
+        assert len(result) == 0
 
     def test_non_dict_events_passthrough(self):
         """Non-dict events (strings, etc.) should pass through."""

@@ -684,6 +684,31 @@ class CombatExecutor:
 
         return shares
 
+    @staticmethod
+    def _rewrite_primary_casualties(description, atk_name, atk_raw, atk_share,
+                                    def_name, def_raw, def_share):
+        """Rewrite a coordinated-battle description's casualty numbers from the
+        whole-corps raw total to each primary marshal's actual distributed share.
+
+        resolve_battle formats the casualty line before the caller distributes
+        casualties across participants, so it names the primary marshal with the
+        entire corps' losses. This corrects the printed line for both the
+        "Casualties: <name> <n>" (tactical/stalemate) and "suffered <n> casualties"
+        (decisive-victory) templates. Reinforcers' losses are surfaced separately
+        via reinforcement_messages, so no figure is double-counted.
+        """
+        if not description:
+            return description
+        for name, raw, share in ((atk_name, atk_raw, atk_share),
+                                 (def_name, def_raw, def_share)):
+            if raw == share:
+                continue
+            description = description.replace(
+                f"{name} {raw:,}", f"{name} {share:,}")
+            description = description.replace(
+                f"suffered {raw:,} casualties", f"suffered {share:,} casualties")
+        return description
+
     def _apply_battle_effects_to_region(
         self,
         region_name: str,
@@ -1149,6 +1174,11 @@ class CombatExecutor:
         fort_bonus = 0.25 if target_region.has_building("fortification") else 0.0
         garrison_effective = int(target_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus))
 
+        # Recompute coordination for the attacker's current region before reading
+        # the modifier — unlike the marshal-vs-marshal paths, garrison assault has
+        # no coordination recompute, so a stale bonus left on an ally (e.g. by a
+        # glorious charge out of a shared region) would otherwise be applied here.
+        self._calculate_coordination_context(marshal, world)
         # Attacker effective strength (uses single-source modifier from marshal.py)
         attacker_modifier = marshal.get_attack_modifier()
         attacker_effective = int(marshal.strength * attacker_modifier)
@@ -1426,7 +1456,10 @@ class CombatExecutor:
 
             # Calculate survivors (3-10% of current strength)
             survival_rate = random.uniform(0.03, 0.10)
-            survivors = max(1000, int(old_strength * survival_rate))  # Minimum 1000 survivors
+            # Minimum 1000 survivors, but a rout can never leave MORE troops than
+            # the army had when it broke: for a sub-1000 army the flat floor would
+            # otherwise be a net gain (an 800-man corps "shatters" to 1000).
+            survivors = min(old_strength, max(1000, int(old_strength * survival_rate)))
 
             # V2-65: Find safe spawn (capital may be enemy-occupied)
             # V2-93: Exclude battle location so broken marshal doesn't stay in place
@@ -3081,6 +3114,21 @@ class CombatExecutor:
             def_distribution = self._distribute_casualties(
                 battle_result["defender_raw_casualties"], def_participants)
 
+            # F1a fix: resolve_battle builds the outcome description BEFORE the
+            # caller distributes casualties, so it bakes the WHOLE-CORPS raw total
+            # in under the primary marshal's name ("Casualties: Ney 8,141" when Ney
+            # personally lost 2,171 and reinforcers took the rest). Rewrite the line
+            # to the primary's ACTUAL distributed share; the reinforcers' share is
+            # reported separately via reinforcement_messages ("supporting allies lost
+            # N combined") so there is no double-count.
+            battle_result["description"] = self._rewrite_primary_casualties(
+                battle_result.get("description", ""),
+                marshal.name, battle_result["attacker_raw_casualties"],
+                atk_distribution.get(marshal.name, battle_result["attacker_raw_casualties"]),
+                enemy_marshal.name, battle_result["defender_raw_casualties"],
+                def_distribution.get(enemy_marshal.name, battle_result["defender_raw_casualties"]),
+            )
+
             outcome = battle_result["raw_outcome"]
             atk_won = outcome in ("attacker_victory", "attacker_tactical_victory")
             atk_lost = outcome in ("defender_victory", "defender_tactical_victory", "mutual_destruction")
@@ -4099,6 +4147,8 @@ class CombatExecutor:
         pre_battle_atk = marshal.strength
         pre_battle_def = target_marshal.strength
         charge_battle_region = target_marshal.location
+        # Origin region BEFORE the charge advances — see coordination-clear below.
+        charge_origin_region = marshal.location
 
         # [5D-3] Calculate coordination bonuses for both sides (fairness per spec)
         self._calculate_coordination_context(marshal, world)
@@ -4198,6 +4248,15 @@ class CombatExecutor:
             'conquered': conquered,
             'is_glorious_charge': True,
         }, world)
+
+        # Clear the CHARGE ORIGIN's coordination too. The charge computed
+        # coordination while the marshal was still in origin (stamping transient
+        # bonuses on co-located allies), then advanced away — so the pipeline's
+        # {attacker.location, battle_region} clear (attacker.location is now the
+        # destination) would leave origin allies holding a stale bonus that a later
+        # garrison assault reads without recomputing.
+        if charge_origin_region not in (charge_battle_region, target_marshal.location):
+            self._clear_coordination_fields({charge_origin_region}, world)
 
         vindication_msg = pipeline_out.get('vindication_msg', '')
 

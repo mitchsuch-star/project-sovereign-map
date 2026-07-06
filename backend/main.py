@@ -1985,6 +1985,10 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             trust_change=result.get("trust_change", 0),
             action_taken=result.get("action_taken"),
         )
+        # F1b: surface the same combat extras the direct /command attack path shows
+        # (reinforcement narration, battle report, etc.) so the "attack anyway"
+        # interrupt path is as legible as a direct attack.
+        _copy_truthy_result_fields(response, result, _COMMAND_RESULT_SIMPLE_FIELDS)
         # Redemption event from strategic trust penalty
         if result.get("redemption_event"):
             response["state"] = "awaiting_redemption_choice"

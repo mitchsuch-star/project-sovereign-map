@@ -80,7 +80,14 @@ def _filter_tactical_events_by_fog(events: list, world) -> list:
         location = (event.get("location") or event.get("region")
                     or event.get("from", ""))
         if not location:
-            # No location info — keep (e.g. system events)
+            # No location info. A genuine player-neutral system event (no owning
+            # marshal, no foreign nation) is shown. But a location-less event
+            # owned by a non-player marshal/nation — enemy fortify_strengthened /
+            # drill_complete / retreat_recovery — is fogged tactical state: keeping
+            # it leaked exact enemy defense bonuses and drill status for provinces
+            # the player never scouted (R5 fog leak). Drop those.
+            if event_marshal or event_nation:
+                continue
             filtered.append(event)
             continue
 
@@ -147,6 +154,13 @@ class MetaExecutor:
 
         # Capture gold spending BEFORE advance_turn clears it
         saved_gold_spent = world.gold_spent_this_turn.copy()
+
+        # F6 fix: snapshot the treasury BEFORE turn processing so the turn-end
+        # "Net" is the TRUE change (region income - upkeep + admin bonus + trade +
+        # vassal tribute + treaty/settlement clauses), not just income - upkeep.
+        # Previously three surfaces each showed a different partial net and none
+        # reconciled to the actual 800 -> 4,252 style jump.
+        treasury_before_turn = world.nation_gold.get(world.player_nation, 0)
 
         # Use TurnManager to process everything including ENEMY AI
         from backend.game_logic.turn_manager import TurnManager
@@ -221,10 +235,18 @@ class MetaExecutor:
         income_val = income_data["income"]
         upkeep_val = upkeep_data["total"]
         spent_val = saved_gold_spent.get(nation, 0)
-        net_val = income_val - upkeep_val
+        # F6 fix: Net is the ACTUAL treasury change from turn processing (income
+        # phase already applied all sources). "Other" surfaces the reconciling
+        # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
+        # so Income - Upkeep + Other == Net == the real treasury delta.
+        net_val = treasury - treasury_before_turn
+        other_val = net_val - (income_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
-        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        other_str = ""
+        if other_val != 0:
+            other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
+        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -238,12 +260,20 @@ class MetaExecutor:
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
             "upkeep": int(upkeep_val),
+            "other": int(other_val),
             "spent": int(spent_val),
             "net": int(net_val),
             "treasury": int(treasury),
             "bankruptcy_turns": bk_turns,
         }
-        events = [turn_end_event] + turn_result.get("events", [])
+        # Fog-filter the response `events` array too — it was rebuilt from the RAW
+        # turn result, so it shipped enemy fortify/drill/retreat state for fogged
+        # provinces even though the sibling `tactical_events` key was filtered.
+        # The filter keeps player events, player-neutral alerts (capital proximity),
+        # and player-marshal strategic/cannon entries, dropping only fogged enemy
+        # tactical state. (R5 — same single-source filter used at line 182.)
+        events = [turn_end_event] + _filter_tactical_events_by_fog(
+            turn_result.get("events", []), world)
 
         # Hoist battle_report from tactical events (e.g. auto-charge) to result level
         # so Godot's _display_berthier_report() can find it at response.battle_report

@@ -5522,7 +5522,11 @@ class DiplomaticExecutor:
         context = dialogue.get("context", {})
         terms = context.get("proposal", {})
         source_nation = context.get("source_nation", "")
-        proposal_type = terms.get("type", "unknown")
+        # Key the cooldown on the STABLE P-rule label (matches what the P8/P2
+        # generate checks read), falling back to terms["type"] only for legacy
+        # dialogues that predate the context field. terms["type"] alone set a
+        # cooldown key the harsh_peace/armistice checks never read.
+        proposal_type = context.get("proposal_type") or terms.get("type", "unknown")
 
         if source_nation:
             apply_rejection_cooldowns(source_nation, proposal_type, world)

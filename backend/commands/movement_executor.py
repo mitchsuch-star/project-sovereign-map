@@ -306,15 +306,30 @@ class MovementExecutor:
 
         # For 2-tile moves (cavalry), verify there's a valid path through adjacent region
         if distance == 2:
-            # Find path through an intermediate region
+            # Find path through an intermediate region — prefer an enemy-FREE
+            # connector. A 2-tile cavalry hop must not slip straight through an
+            # enemy army (zone of control): the strategic per-hop path blocks on
+            # get_enemies_in_region, so the tactical path is made consistent here.
             intermediate = None
+            blocked_intermediate = None
             for adj_name in current_region.adjacent_regions:
                 adj_region = world.get_region(adj_name)
                 if adj_region and target_name in adj_region.adjacent_regions:
+                    if world.get_enemies_in_region(adj_name, marshal.nation):
+                        blocked_intermediate = adj_name
+                        continue
                     intermediate = adj_name
                     break
 
             if not intermediate:
+                if blocked_intermediate:
+                    return {
+                        "success": False,
+                        "message": (f"Enemy forces in {blocked_intermediate} block the route "
+                                    f"from {marshal.location} to {target_name}. "
+                                    f"Attack them or route around."),
+                        "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
+                    }
                 return {
                     "success": False,
                     "message": f"No valid path from {marshal.location} to {target_name}",

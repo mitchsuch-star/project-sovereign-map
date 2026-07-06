@@ -311,6 +311,25 @@ class StrategicExecutor:
         target_type = command.get("target_type", "region")
         snapshot = parsed_command.get("target_snapshot_location")
 
+        # F10: re-issuing an IDENTICAL standing order should not re-charge AP or
+        # log a duplicate event — the marshal is already carrying it out. Detect a
+        # matching active order (same type + target, no new condition) and no-op.
+        existing_order = getattr(marshal, 'strategic_order', None)
+        has_new_condition = bool(
+            parsed_command.get("strategic_condition")
+            or parsed_command.get("condition")
+            or command.get("strategic_condition"))
+        if (existing_order is not None and not has_new_condition
+                and not getattr(existing_order, 'condition', None)
+                and getattr(existing_order, 'command_type', None) == strategic_type
+                and str(getattr(existing_order, 'target', '') or '').lower()
+                == str(target or '').lower()):
+            return {
+                "success": True,
+                "message": f"{marshal.name} is already carrying out that order. No change.",
+                "variable_action_cost": 0,
+            }
+
         # Auto-break square formation (Session 67: "any strategic command breaks square")
         self._executor._auto_break_square(marshal, strategic_type or "strategic order")
 
@@ -1393,6 +1412,24 @@ class StrategicExecutor:
                 target_marshal = world.get_marshal(destination)
                 if target_marshal:
                     destination = target_marshal.location
+            # F5 fix: if the blocked region IS the destination, the marshal has
+            # reached the contested objective — rerouting to "avoid" the very place
+            # it was ordered to march to is self-contradictory ("march to Swabia ...
+            # Adjusting route to avoid Swabia") and left the marshal stuck in place.
+            # A literal marshal stops at contact and reports instead of improvising.
+            if blocked_region == destination:
+                marshal.strategic_order = None
+                marshal.holding_position = False
+                marshal.hold_region = ""
+                return {
+                    "success": True,
+                    "message": (f"{marshal.name} reaches the approach to {destination}, "
+                                f"but {enemy.name}'s forces hold it. Orders complete — "
+                                f"awaiting instructions to attack or hold."),
+                    "order_cleared": True,
+                    "first_step_blocked": True,
+                    "variable_action_cost": 1,
+                }
             # [7A-5] Note: literal reroute is REACTIVE (marshal already encountered
             # enemy on their path). Rerouting around known contacts is legitimate
             # even without fog visibility. The fog-aware fix applies to proactive

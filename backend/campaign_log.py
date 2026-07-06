@@ -742,12 +742,24 @@ def format_event_oneliner(event: dict) -> str:
         outcome = event.get("outcome", "")
         atk_cas = event.get("attacker_casualties", 0)
         def_cas = event.get("defender_casualties", 0)
-        if outcome == "attacker_wins":
-            result = f"{attacker} victory"
-        elif outcome == "defender_wins":
-            result = f"{defender} victory"
+        # F9 fix: combat.py emits attacker_victory / defender_victory /
+        # attacker_tactical_victory / defender_tactical_victory / stalemate /
+        # mutual_destruction — never the "*_wins" forms this branch used to test,
+        # so every real battle rendered as "draw". Map the actual vocabulary.
+        if outcome == "attacker_victory":
+            result = f"{attacker} decisive victory"
+        elif outcome == "attacker_tactical_victory":
+            result = f"{attacker} tactical victory"
+        elif outcome == "defender_victory":
+            result = f"{defender} decisive victory"
+        elif outcome == "defender_tactical_victory":
+            result = f"{defender} holds the field"
+        elif outcome == "mutual_destruction":
+            result = "mutual destruction"
+        elif outcome in ("stalemate", ""):
+            result = "stalemate"
         else:
-            result = "draw"
+            result = outcome.replace("_", " ")
         return (f"{_name_tag(attacker, atk_nation)} attacked "
                 f"{_name_tag(defender, def_nation)} at {location} — "
                 f"{result} ({atk_cas:,} / {def_cas:,} casualties)")

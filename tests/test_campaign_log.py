@@ -372,25 +372,29 @@ class TestOneLinerFormatting:
     """Test format_event_oneliner for all 14 event types."""
 
     def test_battle_attacker_wins(self):
+        # F9 fix: combat emits "attacker_victory", never "attacker_wins".
         event = {
             "type": "battle", "attacker": "Ney", "defender": "Wellington",
             "attacker_nation": "France", "defender_nation": "Britain",
-            "location": "Waterloo", "outcome": "attacker_wins",
+            "location": "Waterloo", "outcome": "attacker_victory",
             "attacker_casualties": 8000, "defender_casualties": 5000,
         }
         result = format_event_oneliner(event)
         assert "Ney (France) attacked Wellington (Britain) at Waterloo" in result
-        assert "Ney victory" in result
+        assert "Ney decisive victory" in result
+        assert "draw" not in result.lower()
         assert "8,000 / 5,000 casualties" in result
 
     def test_battle_defender_wins(self):
+        # F9 fix: combat emits "defender_victory", never "defender_wins".
         event = {
             "type": "battle", "attacker": "Ney", "defender": "Wellington",
-            "location": "Waterloo", "outcome": "defender_wins",
+            "location": "Waterloo", "outcome": "defender_victory",
             "attacker_casualties": 12000,
         }
         result = format_event_oneliner(event)
-        assert "Wellington victory" in result
+        assert "Wellington decisive victory" in result
+        assert "draw" not in result.lower()
 
     def test_battle_draw(self):
         event = {

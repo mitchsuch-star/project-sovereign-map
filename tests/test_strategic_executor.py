@@ -2426,7 +2426,10 @@ class TestBugFixes:
         assert grouchy.holding_position is True
         assert grouchy.hold_region == "Belgium"
 
-        # Now issue a new strategic order that replaces HOLD
+        # Now issue a new strategic order that replaces HOLD. Target a clear
+        # 2-hop destination (Belgium -> Paris -> Lyon) so the march persists
+        # mid-order — an enemy-held adjacent destination now completes+clears the
+        # order (F5 fix), which is a different code path than this test's intent.
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
         result = executor.execute(
@@ -2436,7 +2439,7 @@ class TestBugFixes:
                 "command": {
                     "marshal": "Grouchy",
                     "action": "move",
-                    "target": "Rhineland",
+                    "target": "Lyon",
                 },
             },
             game_state,

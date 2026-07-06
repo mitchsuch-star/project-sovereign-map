@@ -957,6 +957,12 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             "source_nation": nation,
             "acceptance_score": int(acceptance["score"]),
             "decision_reason": decision_reason,
+            # Stable P-rule label ("harsh_peace", "armistice", "peace", ...). The
+            # rejection cooldown MUST key on this, not terms["type"] — the latter is
+            # rewritten by _build_proposal_terms (harsh_peace -> "peace"), so keying
+            # on it set a cooldown the P8/P2 checks never read, letting an urgent
+            # re-proposal bypass anti-spam.
+            "proposal_type": proposal.get("proposal_type", ""),
         },
         "turn_created": int(world.current_turn),
         "blocking": False,
