@@ -214,6 +214,9 @@ class TestDelegationClarification:
         assert clar["clarification_kind"] == "delegation"
         # Acc #7 / §6.3c legibility: the surface NAMES the acting marshal.
         assert "Soult" in clar["message"]
+        # §6.1 headline: the literal marshal asks in HIS OWN voice, so the
+        # Godot popup titles "SOULT ASKS:" (not "BERTHIER ASKS:").
+        assert clar["marshal"] == "Soult"
         # The player's verbatim delegation clause is echoed in the question.
         assert "deal with Mack" in clar["message"]
         labels = {o["label"] for o in clar["options"]}
@@ -223,6 +226,17 @@ class TestDelegationClarification:
         # (the scout executor reaches a place, not a man).
         assert cmds == {"Soult attack Mack", "Soult scout Swabia"}
         assert clar["interpreted_target"] == "Mack"
+
+    def test_neutral_interim_ask_stays_berthier_voiced(self, world1805):
+        # An aggressive delegation degrades to ASK in the safe half (interim).
+        # It has no literal character declining, so the chief of staff relays
+        # it ("BERTHIER ASKS:"), not the eager marshal.
+        m = detect_delegation(world1805, "Ney, deal with Mack",
+                              {"marshal": "Ney"})
+        assert m.personality == "aggressive"
+        clar = build_delegation_clarification(
+            world1805, m, "Ney, deal with Mack")
+        assert clar["marshal"] == "Berthier"
 
     def test_no_internal_keys_or_personality_string_leak(self, world1805):
         m = detect_delegation(world1805, "Soult, deal with Mack",

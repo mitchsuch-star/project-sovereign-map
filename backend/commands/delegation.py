@@ -318,6 +318,13 @@ def build_delegation_clarification(world, match: DelegationMatch,
         strategic_type=None,
         raw_input=raw_command,
     )
+    # The Godot popup titles from ``marshal`` ("<NAME> ASKS:"). A LITERAL
+    # marshal declines to presume in HIS OWN voice, so the title reads
+    # "SOULT ASKS:" — the spec §6.1 headline. A neutral / interim fallback has
+    # no character to read, so it stays the chief of staff's question
+    # ("BERTHIER ASKS:", the _clarification_response default).
+    if match.personality == "literal":
+        response["marshal"] = match.marshal
     # The ASK names a concrete target — a bare "yes" resolves to Attack (the
     # first option), which the CR-2 answer-interpreter already does.
     response["interpreted_target"] = match.target
