@@ -814,6 +814,79 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
         return 1.0
 
 
+# Legacy first-step "favorable odds" bar the strategic executor uses on a raw
+# strength ratio. inferred_attack_favorable() reduces EXACTLY to this when there
+# is no fortification/terrain, so it is a pure superset (CR-5 Phase 3).
+INFERRED_ATTACK_FAVORABLE_RATIO = 0.7
+
+# Region fortification BUILDING bonus — the exact value combat_executor folds
+# into the defender's effective strength: `fort_bonus = 0.25 if
+# region.has_building("fortification")`, then combat.resolve_battle does
+# `defender_effective *= (1 + terrain + fort_bonus)` (combat_executor.py ~2827 /
+# combat.py:194). Read here so the gate matches real battle math (Golden Rule 1).
+REGION_FORTIFICATION_DEFENSE_BONUS = 0.25
+
+
+def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
+    """CR-5 Phase 3 (COMMAND_ROBUSTNESS_SPEC §6.3c(iii)): fortification/terrain-
+    aware favorability for a delegation-INFERRED aggressive auto-attack.
+
+    An aggressive marshal never self-objects to an attack, so the legacy
+    fortification-BLIND strength ratio (~0.7 on raw strength) would silently
+    commit a delegated marshal to a suicidal assault on a dug-in superior force
+    (42k vs a fortified 54k reads as 0.78 "favorable"). This folds the defender's
+    deterministic defensive advantages into effective strength, read from the
+    SAME sources combat.py uses (Golden Rule 1 — never re-invented):
+
+      - **region terrain** (``TERRAIN_DEFENSE_BONUS``) and the **region
+        fortification building** (0.25) — combat.py multiplies the defender's
+        effective strength by exactly ``(1 + terrain + fortification)``
+        (combat.py:194);
+      - the marshal's **personal fortify earthworks** (``defense_bonus``) — combat
+        applies this through the CASUALTY channel, reducing defender losses by
+        ~``1/(1 + defense_bonus)`` via ``get_defense_modifier`` (combat.py:452/488),
+        so a ``(1 + defense_bonus)`` effective-strength boost faithfully
+        approximates how much harder the assault is. It is also what makes the
+        spec's canonical example (42k vs a *fortified* 54k) read as bad odds.
+
+    Returns True when favorable (attacker / effective-defender >= 0.7) and the
+    attack may auto-commit; False routes it to the one-modal bad-odds confirm.
+    With no fortification/terrain it reduces exactly to the legacy raw ratio, so
+    it is a pure superset — explicitly-typed orders (never passed here) are
+    untouched.
+
+    Fort/terrain are read directly (not fog-gated): an attack-ON-arrival means
+    the marshal is in physical contact and can see the works, and this is a
+    safety gate on the player's OWN marshal — not enemy intel surfaced to the
+    player — so under-protecting in fog would be the wrong failure direction.
+    """
+    attacker = max(0, getattr(marshal, "strength", 0) or 0)
+    defender = max(1, getattr(enemy, "strength", 0) or 0)
+
+    bonus = 0.0
+    # (1) Personal fortify earthworks (casualty-channel; see docstring).
+    if getattr(enemy, "fortified", False):
+        bonus += max(0.0, getattr(enemy, "defense_bonus", 0.0) or 0.0)
+
+    # (2) Region terrain + fortification building — the deterministic strength
+    #     boost combat folds into defender effective strength.
+    world = _get_world(game_state) if game_state is not None else None
+    if world is not None and hasattr(world, "get_region"):
+        loc = getattr(enemy, "location", None)
+        region = world.get_region(loc) if loc else None
+        if region is not None:
+            terrain = getattr(region, "terrain", None)
+            if terrain:
+                from backend.models.region import TERRAIN_DEFENSE_BONUS
+                bonus += TERRAIN_DEFENSE_BONUS.get(terrain, 0.0)
+            if (hasattr(region, "has_building")
+                    and region.has_building("fortification")):
+                bonus += REGION_FORTIFICATION_DEFENSE_BONUS
+
+    effective_defender = defender * (1.0 + bonus)
+    return (attacker / effective_defender) >= INFERRED_ATTACK_FAVORABLE_RATIO
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # TACTICAL TRIGGER EVALUATORS
 # ════════════════════════════════════════════════════════════════════════════

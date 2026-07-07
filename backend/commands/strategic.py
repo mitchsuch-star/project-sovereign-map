@@ -859,6 +859,61 @@ class StrategicOrderProcessor:
             "message": f"{marshal.name} could not advance toward {destination}."
         }
 
+    def _inferred_attack_gate(self, marshal, target, game_state,
+                              allow_reroute=False):
+        """CR-5 Phase 3 (COMMAND_ROBUSTNESS_SPEC §6.3c, "TWO SEAMS, not one"):
+        for a DELEGATION-INFERRED order, block a fortification-blind auto-attack
+        on a dug-in superior force behind the SAME one-modal bad-odds confirm the
+        adjacent first-step case uses. Returns an interrupt result dict (and
+        latches ``marshal.pending_interrupt`` so the per-turn processor surfaces
+        it) when the gate fires; None otherwise.
+
+        ``allow_reroute``: whether "go_around" is offered. At a co-located /
+        attack-ON-arrival seam the marshal is ALREADY at the target's location,
+        so rerouting "around" it is nonsensical (an empty reroute that loops back
+        into this very gate) — those callers leave it False; only the mid-path
+        blocked seam (marshal still en route) passes True.
+
+        Explicitly-typed orders are NEVER gated — the player named the attack.
+        Single source for every attack-on-arrival seam in this processor."""
+        order = marshal.strategic_order
+        if order is None or not getattr(order, "delegation_inferred", False):
+            return None
+        from backend.commands.objection_v2 import inferred_attack_favorable
+        if inferred_attack_favorable(marshal, target, game_state):
+            return None
+        from backend.commands.delegation import describe_inferred_bad_odds
+        # Track contact so _handle_blocked_path's top-level same-enemy suppression
+        # (which prevents an infinite interrupt loop when a persistent enemy
+        # blocks the path) also covers a gate-produced interrupt.
+        world = game_state.get("world") if isinstance(game_state, dict) else None
+        if world is not None:
+            order.last_contact_enemy = target.name
+            order.last_contact_turn = world.current_turn
+        if allow_reroute:
+            options = ["attack_anyway", "go_around", "hold_position",
+                       "cancel_order"]
+        else:
+            options = ["attack_anyway", "hold_position", "cancel_order"]
+        marshal.pending_interrupt = {
+            "interrupt_type": "contact_bad_odds",
+            "enemy": target.name,
+            "location": marshal.location,
+            "is_first_step": False,
+            "options": options,
+        }
+        return {
+            "marshal": marshal.name,
+            "command": order.command_type,
+            "order_status": "awaiting_response",
+            "requires_input": True,
+            "interrupt_type": "contact_bad_odds",
+            "enemy": target.name,
+            "location": marshal.location,
+            "message": describe_inferred_bad_odds(marshal.name, target.name),
+            "options": options,
+        }
+
     def _handle_move_to_arrival(self, marshal, world, game_state) -> Dict:
         """Handle arrival at MOVE_TO destination."""
         order = marshal.strategic_order
@@ -868,6 +923,12 @@ class StrategicOrderProcessor:
             enemies = world.get_enemies_in_region(marshal.location, marshal.nation)
             if enemies:
                 target = enemies[0]
+                # CR-5 Phase 3: an inferred attack-on-arrival into a fortified
+                # superior force routes through the one-modal confirm before it
+                # commits (§6.3c). Explicit orders fall straight through.
+                gate = self._inferred_attack_gate(marshal, target, game_state)
+                if gate is not None:
+                    return gate
                 result = self.executor.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -985,6 +1046,12 @@ class StrategicOrderProcessor:
                 return self._complete_order(marshal, world,
                     f"{marshal.name} engaged {target.name} — pursuit complete")
 
+            # CR-5 Phase 3: gate an inferred assault on a fortified superior
+            # force behind the one-modal confirm (§6.3c).
+            gate = self._inferred_attack_gate(marshal, target, game_state)
+            if gate is not None:
+                return gate
+
             result = self.executor.execute(
                 {"command": {
                     "marshal": marshal.name,
@@ -1069,6 +1136,11 @@ class StrategicOrderProcessor:
                 personality = getattr(marshal, 'personality', 'balanced')
                 attack_on_arrival = getattr(order, 'attack_on_arrival', False)
                 if personality == "aggressive" or attack_on_arrival:
+                    # CR-5 Phase 3: gate an inferred assault on a fortified
+                    # superior force behind the one-modal confirm (§6.3c).
+                    gate = self._inferred_attack_gate(marshal, target, game_state)
+                    if gate is not None:
+                        return gate
                     attack_result = self.executor.execute(
                         {"command": {
                             "marshal": marshal.name,
@@ -1102,6 +1174,10 @@ class StrategicOrderProcessor:
                 # Did we catch up? Physical encounter — real data.
                 if marshal.location == target.location:
                     if self._should_auto_attack(marshal, target, world):
+                        # CR-5 Phase 3: gate an inferred assault (§6.3c).
+                        gate = self._inferred_attack_gate(marshal, target, game_state)
+                        if gate is not None:
+                            return gate
                         attack_result = self.executor.execute(
                             {"command": {
                                 "marshal": marshal.name,
@@ -1123,6 +1199,10 @@ class StrategicOrderProcessor:
                     attack_on_arrival = getattr(order, 'attack_on_arrival', False)
                     if personality == "aggressive" or attack_on_arrival:
                         if self._should_auto_attack(marshal, target, world):
+                            # CR-5 Phase 3: gate an inferred assault (§6.3c).
+                            gate = self._inferred_attack_gate(marshal, target, game_state)
+                            if gate is not None:
+                                return gate
                             attack_result = self.executor.execute(
                                 {"command": {
                                     "marshal": marshal.name,
@@ -2243,8 +2323,18 @@ class StrategicOrderProcessor:
             # Session 37: If enemy is AT the destination, auto-attack or
             # ask player without go_around (can't reroute around destination)
             if blocked_region == destination:
-                ratio = marshal.strength / max(1, enemy.strength)
-                if ratio >= 0.7 and self._should_auto_attack(marshal, enemy, world):
+                # CR-5 Phase 3: an INFERRED order uses fortification/terrain-
+                # aware odds so it cannot silently assault a dug-in superior
+                # force at the destination; explicit orders keep the raw ratio.
+                # go_around is not valid at a destination, so this keeps the
+                # destination_blocked interrupt rather than the generic gate.
+                inferred = getattr(order, "delegation_inferred", False)
+                if inferred:
+                    from backend.commands.objection_v2 import inferred_attack_favorable
+                    favorable = inferred_attack_favorable(marshal, enemy, game_state)
+                else:
+                    favorable = (marshal.strength / max(1, enemy.strength)) >= 0.7
+                if favorable and self._should_auto_attack(marshal, enemy, world):
                     result = self.executor.execute(
                         {"command": {
                             "marshal": marshal.name,
@@ -2256,10 +2346,14 @@ class StrategicOrderProcessor:
                     )
                     return self._handle_combat_result(
                         marshal, enemy, result, world, game_state)
-                # Bad odds at destination — ask without go_around
+                # Bad odds at destination — ask without go_around. An inferred
+                # order names the marshal's reading (§6.3c legibility, Acc #7).
                 order.last_contact_enemy = enemy.name
                 order.last_contact_turn = world.current_turn
-                if is_fog_discovery:
+                if inferred:
+                    from backend.commands.delegation import describe_inferred_bad_odds
+                    msg = describe_inferred_bad_odds(marshal.name, enemy.name)
+                elif is_fog_discovery:
                     msg = (f"{marshal.name}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held by {enemy.name}. "
                            f"Odds unfavorable — awaiting orders.'")
@@ -2280,6 +2374,15 @@ class StrategicOrderProcessor:
                                 "cancel_order"]
                 }
 
+            # CR-5 Phase 3: an inferred order's assault on a fortified superior
+            # force routes through the one-modal confirm (§6.3c) before the
+            # fortification-blind raw ratio below can auto-commit it. Explicit
+            # orders keep the raw-ratio path. The marshal is still en route here
+            # (blocked mid-path, not at the destination), so go_around is valid.
+            gate = self._inferred_attack_gate(marshal, enemy, game_state,
+                                              allow_reroute=True)
+            if gate is not None:
+                return gate
             ratio = marshal.strength / max(1, enemy.strength)
             if ratio >= 0.7 and self._should_auto_attack(marshal, enemy, world):
                 # Auto-attack — favorable enough odds

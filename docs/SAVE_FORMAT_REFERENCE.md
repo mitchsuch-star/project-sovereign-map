@@ -641,6 +641,7 @@ Reserved future `event_log` payloads:
   "join_combat": true,
   "target_snapshot_location": null,
   "attack_on_arrival": false,
+  "delegation_inferred": false,
   "condition": null,
   "last_combat_enemy": null,
   "last_combat_turn": null,
@@ -664,6 +665,7 @@ Reserved future `event_log` payloads:
 | `join_combat` | bool | (SUPPORT) Join ally's combat |
 | `target_snapshot_location` | string\|null | For "Move to Ney" - where Ney was |
 | `attack_on_arrival` | bool | (MOVE_TO) Attack on reaching destination |
+| `delegation_inferred` | bool | CR-5: action inferred from personality off a delegation verb (not explicitly typed); gates attack-on-arrival on fortification-aware bad odds |
 | `condition` | dict\|null | StrategicCondition if set |
 | `last_combat_enemy` | string\|null | Combat loop prevention |
 | `last_combat_turn` | int\|null | Combat loop prevention |

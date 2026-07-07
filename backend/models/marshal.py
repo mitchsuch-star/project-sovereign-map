@@ -108,6 +108,14 @@ class StrategicOrder:
     # MOVE_TO-specific
     attack_on_arrival: bool = False
 
+    # CR-5 Phase 3: this order's action was INFERRED from the marshal's
+    # personality off a delegation verb ("Ney, deal with Mack"), not explicitly
+    # typed by the player. ONLY inferred orders get the fortification/terrain-
+    # aware bad-odds gate on attack-on-arrival (COMMAND_ROBUSTNESS_SPEC §6.3c);
+    # an explicitly-typed strategic order stays gate-free — the player named the
+    # attack. Set by the CR-5 router (Phase 4); read by the strategic executors.
+    delegation_inferred: bool = False
+
     # Condition (optional)
     condition: Optional[StrategicCondition] = None
 
@@ -148,6 +156,7 @@ class StrategicOrder:
             "join_combat": self.join_combat,
             "target_snapshot_location": self.target_snapshot_location,
             "attack_on_arrival": self.attack_on_arrival,
+            "delegation_inferred": self.delegation_inferred,
             "condition": self.condition.to_dict() if self.condition else None,
             "issued_turn": self.issued_turn,
             "last_combat_enemy": self.last_combat_enemy,
@@ -178,6 +187,7 @@ class StrategicOrder:
             join_combat=data.get("join_combat", True),
             target_snapshot_location=data.get("target_snapshot_location"),
             attack_on_arrival=data.get("attack_on_arrival", False),
+            delegation_inferred=data.get("delegation_inferred", False),
             condition=condition,
             issued_turn=data.get("issued_turn"),
             last_combat_enemy=data.get("last_combat_enemy"),

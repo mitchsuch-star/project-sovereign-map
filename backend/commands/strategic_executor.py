@@ -1462,21 +1462,25 @@ class StrategicExecutor:
                 }
 
         elif personality == "aggressive":
-            # ⚠ CR-5 Phase 3 LETHAL SEAM (docs/CR5_IMPLEMENTATION_BRIEF.md §3 +
-            # Appendix B). This raw strength ratio is FORTIFICATION-BLIND: 42k
-            # vs a FORTIFIED 54k reads as "favorable" (0.78 >= 0.7) and auto-
-            # attacks below via _strategic_execution (which bypasses the
-            # objection/evaluate_situation gate AND AP cost). A delegation-
-            # inferred aggressive order must NOT ride this ungated path.
-            # BEFORE flipping delegation.AGGRESSIVE_ATTACK_ARM_ENABLED to True,
-            # make this odds read fortification-aware for delegation_inferred
-            # orders (reuse objection_v2 _check_attack_target_fortified) and
-            # route them through the existing bad-odds interrupt below. Explicit
-            # typed orders keep this raw-ratio behavior. The RED tripwire
-            # test_aggressive_degrades_to_ask_until_gate_lands guards the flag.
-            ratio = marshal.strength / max(1, enemy.strength)
-            if ratio >= 0.7:
-                # Auto-attack — favorable odds (raw ratio; see CR-5 warning above)
+            # CR-5 Phase 3 LETHAL SEAM (COMMAND_ROBUSTNESS_SPEC §6.3c;
+            # CR5_IMPLEMENTATION_BRIEF Appendix B). An aggressive marshal never
+            # self-objects to an attack, so for a DELEGATION-INFERRED order the
+            # raw strength ratio is FORTIFICATION-BLIND — 42k vs a FORTIFIED 54k
+            # reads as "favorable" (0.78 >= 0.7) and would auto-attack below via
+            # _strategic_execution (which bypasses the objection/AP gate). For an
+            # inferred order the odds read is fortification/terrain-aware and a
+            # bad read routes through the one-modal bad-odds confirm below.
+            # Explicitly-TYPED orders keep the legacy raw-ratio behavior — the
+            # player named the attack (gate-free).
+            inferred = getattr(order, "delegation_inferred", False)
+            if inferred:
+                from backend.commands.objection_v2 import inferred_attack_favorable
+                favorable = inferred_attack_favorable(marshal, enemy, game_state)
+            else:
+                favorable = (marshal.strength / max(1, enemy.strength)) >= 0.7
+
+            if favorable:
+                # Auto-attack — favorable odds
                 result = self._executor.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -1499,7 +1503,9 @@ class StrategicExecutor:
                     }
                 return result
 
-            # Bad odds — ask player
+            # Bad odds — ask player (one modal). An INFERRED order names the
+            # marshal's reading (§6.3c legibility, Acc #7); an explicit order
+            # keeps the generic contact message.
             marshal.pending_interrupt = {
                 "interrupt_type": "contact_bad_odds",
                 "enemy": enemy.name,
@@ -1507,12 +1513,17 @@ class StrategicExecutor:
                 "is_first_step": True,
                 "options": ["attack_anyway", "go_around", "hold_position", "cancel_order"]
             }
+            if inferred:
+                from backend.commands.delegation import describe_inferred_bad_odds
+                bad_odds_msg = describe_inferred_bad_odds(marshal.name, enemy.name)
+            else:
+                bad_odds_msg = (f"{marshal.name}: '{enemy.name} blocks the path at "
+                                f"{blocked_region}. Odds unfavorable. Your orders?'")
             return {
                 "success": True,
                 "requires_input": True,
                 "pending_interrupt": marshal.pending_interrupt,
-                "message": f"{marshal.name}: '{enemy.name} blocks the path at {blocked_region}. "
-                           f"Odds unfavorable. Your orders?'",
+                "message": bad_odds_msg,
                 "strategic_order": True,
                 "strategic_type": order.command_type,
                 "first_step_interrupt": True,

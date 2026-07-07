@@ -275,6 +275,18 @@ def describe_cautious_delegation(match: DelegationMatch,
             f'assault instead.')
 
 
+def describe_inferred_bad_odds(marshal_name: str, enemy_name: str) -> str:
+    """One-modal bad-odds confirm copy for a delegation-INFERRED aggressive
+    assault into a fortified / superior force (§6.3c legibility — the surface
+    NAMES the acting marshal's reading; Acc #7). Used ONLY for delegation-
+    inferred orders; an explicitly-typed order keeps the generic contact message
+    and never triggers this modal. Deterministic template (mock-safe, Golden-
+    Rule-6-safe — no LLM echo; word-echoing is CR-5b)."""
+    return (f"{marshal_name} reads this as a call to give battle, Sire — but "
+            f"{enemy_name} stands dug in and in greater strength. He will charge "
+            f"on your word. Confirm the assault, or hold him back?")
+
+
 def _ask_question(match: DelegationMatch) -> str:
     """The personality-named ASK copy (§6.3c legibility — the surface NAMES
     the marshal's character). Literal Soult declines to presume; a neutral /

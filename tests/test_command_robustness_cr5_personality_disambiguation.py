@@ -45,11 +45,17 @@ from backend.commands.delegation import (
     build_delegation_clarification,
     classify_arm,
     describe_cautious_delegation,
+    describe_inferred_bad_odds,
     detect_delegation,
     parse_resolved_to_action,
     route_arm,
 )
+from backend.commands.executor import CommandExecutor
+from backend.commands.objection_v2 import inferred_attack_favorable
+from backend.commands.strategic import StrategicOrderProcessor
+from backend.commands.strategic_executor import StrategicExecutor
 from backend.ai.prompt_builder import build_parse_prompt
+from backend.models.marshal import StrategicOrder
 from backend.models.world_state import WorldState
 
 SCENARIO_PATH = (
@@ -488,3 +494,363 @@ class TestCautiousClampEndpoint:
         # When the scout resolves, the character-naming soft note appears.
         if data.get("success"):
             assert "cautious as ever" in msg
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Phase 3 — the lethal attack-on-arrival gate (§6.3c "TWO SEAMS")
+#
+# An aggressive marshal never self-objects to an attack, so a delegation-
+# INFERRED aggressive order that resolves to an attack-on-arrival would, on the
+# fortification-BLIND raw strength ratio, silently commit him to a suicidal
+# assault on a dug-in superior force. Phase 3 tags such orders and routes them
+# through ONE fortification/terrain-aware bad-odds confirm before they commit.
+# Explicitly-TYPED strategic orders stay gate-free — the player named the attack.
+# NOTE: nothing PRODUCES a tagged order until Phase 4 (the aggressive arm +
+# flag flip); these tests construct tagged orders directly to prove the gate.
+# ═══════════════════════════════════════════════════════════════════
+
+def _suppress_output():
+    """Silence the executors' print() chatter during combat/interrupt paths."""
+    import contextlib
+    import io
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _legacy_world():
+    """Fresh mutable 19-region test world (Ney=aggressive, Wellington enemy).
+
+    The Phase-3 tests mutate strengths / fortification / orders, so they need a
+    fresh world each — never the shared read-only ``world1805`` fixture."""
+    return WorldState(player_nation="France")
+
+
+class _Unit:
+    """Minimal attacker/defender stand-in for the pure odds helper."""
+
+    def __init__(self, strength, fortified=False, defense_bonus=0.0,
+                 location=None, name="X"):
+        self.strength = strength
+        self.fortified = fortified
+        self.defense_bonus = defense_bonus
+        self.location = location
+        self.name = name
+
+
+class _FakeRegion:
+    def __init__(self, terrain="plains", has_fort=False):
+        self.terrain = terrain
+        self._has_fort = has_fort
+
+    def has_building(self, name):
+        return name == "fortification" and self._has_fort
+
+
+class _FakeWorld:
+    def __init__(self, region):
+        self._region = region
+
+    def get_region(self, loc):
+        return self._region
+
+
+class TestInferredAttackFavorable:
+    """The single-source fortification/terrain-aware odds helper (§6.3c(iii))."""
+
+    def test_reduces_to_raw_ratio_without_fort_or_terrain(self):
+        # No fortification, no game_state -> exactly the legacy raw >=0.7 rule.
+        assert inferred_attack_favorable(_Unit(42000), _Unit(54000)) is True   # 0.78
+        assert inferred_attack_favorable(_Unit(30000), _Unit(80000)) is False  # 0.375
+        # Boundary: exactly 0.7 is favorable.
+        assert inferred_attack_favorable(_Unit(7000), _Unit(10000)) is True
+
+    def test_fortified_superior_force_reads_as_bad_odds(self):
+        # The spec's named lethal case: 42k vs a FORTIFIED 54k. Raw 0.78 looks
+        # "favorable"; folding the earthwork bonus (0.16) flips it to bad odds.
+        enemy = _Unit(54000, fortified=True, defense_bonus=0.16)
+        assert inferred_attack_favorable(_Unit(42000), enemy) is False
+
+    def test_fortified_but_attacker_clearly_superior_is_favorable(self):
+        # A dug-in but weaker force is still a takeable objective.
+        enemy = _Unit(40000, fortified=True, defense_bonus=0.16)
+        assert inferred_attack_favorable(_Unit(60000), enemy) is True
+
+    def test_fortification_flag_off_ignores_defense_bonus(self):
+        # defense_bonus only folds in when actually fortified.
+        enemy = _Unit(54000, fortified=False, defense_bonus=0.9)
+        assert inferred_attack_favorable(_Unit(42000), enemy) is True  # raw 0.78
+
+    def test_region_fortification_building_folded(self):
+        # The region fortification BUILDING (+0.25) is the exact value combat
+        # folds into defender effective strength — it must count in the odds.
+        enemy = _Unit(50000, location="Belgium")
+        gs_fort = {"world": _FakeWorld(_FakeRegion("plains", has_fort=True))}
+        # 42 / (50 * 1.25) = 0.672 -> bad odds.
+        assert inferred_attack_favorable(_Unit(42000), enemy, gs_fort) is False
+        gs_plain = {"world": _FakeWorld(_FakeRegion("plains", has_fort=False))}
+        # 42 / 50 = 0.84 -> favorable.
+        assert inferred_attack_favorable(_Unit(42000), enemy, gs_plain) is True
+
+    def test_terrain_is_folded_via_world(self):
+        # Terrain defense (TERRAIN_DEFENSE_BONUS) is read from the enemy's region
+        # exactly as combat.py folds it — proving the "terrain-aware" half.
+        world = _legacy_world()
+        game_state = {"world": world}
+        wellington = world.get_marshal("Wellington")
+        ney = world.get_marshal("Ney")
+        ney.strength = 42000
+        wellington.strength = 50000
+        wellington.fortified = False
+        region = world.get_region(wellington.location)
+        assert region is not None
+
+        region.terrain = "plains"   # +0% -> 42/50 = 0.84 favorable
+        assert inferred_attack_favorable(ney, wellington, game_state) is True
+
+        region.terrain = "mountains"  # +25% -> 42 / 62.5 = 0.672 bad odds
+        assert inferred_attack_favorable(ney, wellington, game_state) is False
+
+
+class TestFirstStepLethalGate:
+    """strategic_executor `_handle_first_step_blocked` — the adjacent seam."""
+
+    def _setup(self, *, inferred, attacker=42000, defender=54000,
+               fortified=True, defense_bonus=0.16):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        assert ney.personality == "aggressive"
+        ney.location = "Paris"
+        ney.strength = attacker
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        wellington.strength = defender
+        wellington.fortified = fortified
+        wellington.defense_bonus = defense_bonus
+        order = StrategicOrder(
+            command_type="MOVE_TO", target="Rhineland", target_type="region",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            path=["Belgium", "Rhineland"], delegation_inferred=inferred,
+        )
+        ney.strategic_order = order
+        se = StrategicExecutor(CommandExecutor())
+        return se, ney, wellington, world, game_state
+
+    def test_inferred_into_fortified_superior_shows_one_modal_not_silent_commit(self):
+        se, ney, wellington, world, game_state = self._setup(inferred=True)
+        before = wellington.strength
+        with _suppress_output():
+            result = se._handle_first_step_blocked(
+                ney, [wellington], "Belgium", world, game_state)
+        # The one modal fired — a bad-odds confirm, not a silent assault.
+        assert result.get("requires_input") is True
+        assert ney.pending_interrupt is not None
+        assert ney.pending_interrupt.get("interrupt_type") == "contact_bad_odds"
+        # §6.3c legibility (Acc #7): the surface NAMES the marshal's reading.
+        assert "Ney" in result["message"]
+        assert "reads this" in result["message"].lower()
+        # No assault was launched (the danger the gate prevents).
+        assert wellington.strength == before
+
+    def test_explicit_typed_order_stays_gate_free_and_attacks(self):
+        # Regression: the SAME fortified superior force, but the order is not
+        # inferred -> the raw 0.78 ratio is favorable and Ney auto-attacks.
+        se, ney, wellington, world, game_state = self._setup(inferred=False)
+        with _suppress_output():
+            result = se._handle_first_step_blocked(
+                ney, [wellington], "Belgium", world, game_state)
+        assert result.get("requires_input") is not True
+
+    def test_inferred_into_weak_force_auto_attacks(self):
+        se, ney, wellington, world, game_state = self._setup(
+            inferred=True, attacker=60000, defender=30000)
+        with _suppress_output():
+            result = se._handle_first_step_blocked(
+                ney, [wellington], "Belgium", world, game_state)
+        assert result.get("requires_input") is not True
+
+    def test_exactly_one_modal_no_stacked_objection(self):
+        # Aggressive marshals don't self-object to attacks, so the bad-odds
+        # confirm is the ONLY modal — no objection stacked on top.
+        se, ney, wellington, world, game_state = self._setup(inferred=True)
+        with _suppress_output():
+            result = se._handle_first_step_blocked(
+                ney, [wellington], "Belgium", world, game_state)
+        assert result.get("objection") is None
+        assert result.get("requires_input") is True
+
+
+class TestAttackOnArrivalLethalGate:
+    """strategic.py `_handle_move_to_arrival` — the on-arrival seam."""
+
+    def _setup(self, *, inferred, attacker=42000, defender=54000):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        ney.location = "Belgium"
+        ney.strength = attacker
+        wellington.location = "Belgium"          # co-located: arrival
+        wellington.strength = defender
+        wellington.fortified = True
+        wellington.defense_bonus = 0.16
+        order = StrategicOrder(
+            command_type="MOVE_TO", target="Belgium", target_type="region",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            attack_on_arrival=True, delegation_inferred=inferred,
+        )
+        ney.strategic_order = order
+        proc = StrategicOrderProcessor(CommandExecutor())
+        return proc, ney, wellington, world, game_state
+
+    def test_inferred_attack_on_arrival_into_fortified_superior_gates(self):
+        proc, ney, wellington, world, game_state = self._setup(inferred=True)
+        before = wellington.strength
+        with _suppress_output():
+            result = proc._handle_move_to_arrival(ney, world, game_state)
+        assert result.get("requires_input") is True
+        assert result.get("interrupt_type") == "contact_bad_odds"
+        assert ney.pending_interrupt is not None
+        assert "Ney" in result["message"] and "reads this" in result["message"].lower()
+        assert wellington.strength == before          # no silent commit
+
+    def test_explicit_attack_on_arrival_stays_gate_free(self):
+        proc, ney, wellington, world, game_state = self._setup(inferred=False)
+        with _suppress_output():
+            result = proc._handle_move_to_arrival(ney, world, game_state)
+        # Explicit typed order: attacks on arrival, no confirm.
+        assert result.get("requires_input") is not True
+        assert result.get("action") == "attack_on_arrival"
+
+    def test_inferred_attack_on_arrival_into_weak_force_attacks(self):
+        proc, ney, wellington, world, game_state = self._setup(
+            inferred=True, attacker=60000, defender=25000)
+        with _suppress_output():
+            result = proc._handle_move_to_arrival(ney, world, game_state)
+        assert result.get("requires_input") is not True
+        assert result.get("action") == "attack_on_arrival"
+
+    def test_arrival_gate_omits_go_around_and_tracks_contact(self):
+        # At a co-located / attack-on-arrival seam the marshal is already AT the
+        # destination, so "go_around" is nonsensical (it would empty-reroute and
+        # loop back into this gate). And the gate must record last_contact so the
+        # per-turn suppression covers it (audit findings 2/3/5).
+        proc, ney, wellington, world, game_state = self._setup(inferred=True)
+        order = ney.strategic_order
+        with _suppress_output():
+            result = proc._handle_move_to_arrival(ney, world, game_state)
+        assert "go_around" not in result["options"]
+        assert set(result["options"]) == {"attack_anyway", "hold_position",
+                                           "cancel_order"}
+        assert order.last_contact_enemy == "Wellington"
+        assert order.last_contact_turn == world.current_turn
+
+
+class TestInferredAttackGateOptions:
+    """The single-source gate: reroute affordance + tag/favorability guards."""
+
+    def _proc(self, *, inferred=True, fortified=True, attacker=42000,
+              defender=54000):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+        ney.strength = attacker
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        wellington.strength = defender
+        wellington.fortified = fortified
+        wellington.defense_bonus = 0.16
+        order = StrategicOrder(
+            command_type="MOVE_TO", target="Belgium", target_type="region",
+            started_turn=1, original_command="x", delegation_inferred=inferred)
+        ney.strategic_order = order
+        return StrategicOrderProcessor(CommandExecutor()), ney, wellington, game_state
+
+    def test_co_located_default_omits_go_around(self):
+        proc, ney, wellington, gs = self._proc()
+        gate = proc._inferred_attack_gate(ney, wellington, gs)  # default False
+        assert gate is not None
+        assert "go_around" not in gate["options"]
+
+    def test_mid_path_offers_go_around(self):
+        proc, ney, wellington, gs = self._proc()
+        gate = proc._inferred_attack_gate(ney, wellington, gs, allow_reroute=True)
+        assert gate is not None
+        assert "go_around" in gate["options"]
+
+    def test_untagged_order_never_gates(self):
+        proc, ney, wellington, gs = self._proc(inferred=False)
+        assert proc._inferred_attack_gate(ney, wellington, gs) is None
+
+    def test_favorable_odds_never_gate(self):
+        proc, ney, wellington, gs = self._proc(fortified=False, attacker=90000)
+        assert proc._inferred_attack_gate(ney, wellington, gs) is None
+
+
+class TestPursueLethalGate:
+    """strategic.py `_execute_pursue` co-location seam (audit finding 4)."""
+
+    def test_inferred_pursue_co_location_into_fortified_superior_gates(self):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        loc = "Belgium"
+        ney.location = loc
+        ney.strength = 42000
+        wellington.location = loc                 # co-located: PURSUE engages
+        wellington.strength = 54000
+        wellington.fortified = True
+        wellington.defense_bonus = 0.16
+        # Ensure hostilities + seed the intel store so PURSUE resolves a
+        # last-known location instead of breaking on "no intelligence".
+        world.diplomatic_states[
+            world._make_diplo_key(ney.nation, wellington.nation)] = "WAR"
+        world.update_intel_from_scout(loc, world.current_turn)
+        order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            delegation_inferred=True)
+        ney.strategic_order = order
+        proc = StrategicOrderProcessor(CommandExecutor())
+        before = wellington.strength
+        with _suppress_output():
+            result = proc._execute_pursue(ney, world, game_state)
+        assert result.get("requires_input") is True
+        assert result.get("interrupt_type") == "contact_bad_odds"
+        assert "Ney" in result["message"]
+        assert wellington.strength == before          # no silent commit
+
+
+class TestDelegationInferredSerialization:
+    """The order tag round-trips (Serialization Enforcement)."""
+
+    def test_delegation_inferred_round_trips(self):
+        order = StrategicOrder(
+            command_type="MOVE_TO", target="Belgium", target_type="region",
+            started_turn=3, original_command="Ney, deal with Wellington",
+            delegation_inferred=True)
+        data = order.to_dict()
+        assert data["delegation_inferred"] is True
+        assert StrategicOrder.from_dict(data).delegation_inferred is True
+
+    def test_missing_field_defaults_false(self):
+        order = StrategicOrder(
+            command_type="MOVE_TO", target="Belgium", target_type="region",
+            started_turn=1, original_command="x")
+        assert order.delegation_inferred is False
+        data = order.to_dict()
+        data.pop("delegation_inferred")
+        assert StrategicOrder.from_dict(data).delegation_inferred is False
+
+
+class TestInferredBadOddsCopy:
+    """The one-modal confirm copy (§6.3c legibility, Acc #7)."""
+
+    def test_names_marshal_and_reading_no_internal_leak(self):
+        msg = describe_inferred_bad_odds("Ney", "Wellington")
+        assert "Ney" in msg and "Wellington" in msg
+        assert "reads this" in msg.lower()          # legibility phrase
+        for leak in ("MOVE_TO", "delegation_inferred", "aggressive",
+                     "personality", "contact_bad_odds"):
+            assert leak not in msg
