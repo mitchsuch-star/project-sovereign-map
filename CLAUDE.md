@@ -30,7 +30,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### The queue in one line
 
-~~Gate 4 visual-half confirmation~~ (✅ PASSED July 3, 2026) → ~~Slice H gate + landing~~ (✅ LANDED July 3, 2026) → **Command Robustness** (`docs/COMMAND_ROBUSTNESS_SPEC.md`) → **Economy Revisit** (`docs/ECONOMY_REVISIT_SPEC.md`) → **Marshal Content Pass** gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`) → DEF-1 voices + DEF-13 UI scale → 8.EVAL → Phase 8.5.
+~~Gate 4 visual-half confirmation~~ (✅ PASSED July 3, 2026) → ~~Slice H gate + landing~~ (✅ LANDED July 3, 2026) → ~~**Command Robustness** CR-0..CR-5~~ (✅ COMPLETE July 3-7, 2026; `docs/COMMAND_ROBUSTNESS_SPEC.md`) → **▶ CR-5b (Flavor Echoing)** — NEXT; entry gate = non-parroting mock design (§6.4) → **Economy Revisit** (`docs/ECONOMY_REVISIT_SPEC.md`; EC-0 landed, EC-2/5/6 user-gated) → **Marshal Content Pass** gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`; needs USER design gate) → DEF-1 voices + DEF-13 UI scale → 8.EVAL → Phase 8.5.
 
 ### Load-bearing operational facts (1805 boot — keep verbatim)
 
