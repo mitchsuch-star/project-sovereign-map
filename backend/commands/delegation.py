@@ -209,13 +209,17 @@ def detect_delegation(world, raw_command: str,
 # scout. Deterministic safety net, not a personality change.
 BATTLE_ACTIONS = frozenset({"attack", "charge", "bombard"})
 
-# The aggressive -> attack arm resolves an inferred, AP-committing, undo-less
-# battle start that rides the fortification-BLIND attack-on-arrival seam
-# (strategic_executor.py, `_strategic_execution: True`). It CANNOT ship until
-# the Phase-3 legibility gate covers that seam (CR5_IMPLEMENTATION_BRIEF §3).
-# Until Phase 4 flips this True, an aggressive delegation degrades to the ASK —
-# the same safe default as a neutral marshal (never an ungated battle start).
-AGGRESSIVE_ATTACK_ARM_ENABLED = False
+# The aggressive -> engage arm resolves an inferred, AP-committing, undo-less
+# battle start. It rides a delegation-INFERRED strategic PURSUE order whose every
+# auto-attack seam is now covered by the CR-5 Phase-3 fortification/terrain-aware
+# bad-odds gate (strategic.py `_inferred_attack_gate` + the first-step gates in
+# strategic_executor.py). Phase 4 (July 7, 2026) flipped this True after the
+# guardrail-(d) personality freeze sign-off (§6.8) and after closing the two
+# first-step PURSUE seams the per-turn gate did not cover (co-located creation +
+# move-failed-at-target). An aggressive delegation now produces a tagged PURSUE
+# that engages on contact, with the one-modal confirm protecting a dug-in
+# superior force. Setting this back to False re-degrades the arm to the safe ASK.
+AGGRESSIVE_ATTACK_ARM_ENABLED = True
 
 
 def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
@@ -248,9 +252,20 @@ def route_arm(personality: str, parse_resolved: bool) -> str:
 
 
 def parse_resolved_to_action(parsed: Dict) -> bool:
-    """True when the upstream parse produced a real, executable action (the
-    live path) rather than unknown/failed (the mock path)."""
+    """True when the upstream parse produced a real, executable action via the
+    LIVE LLM — never a mock / fast-parser result.
+
+    Guardrail (e) is a MODE gate, not merely a validity gate: the personality
+    bias is a live-LLM feature (§6.7 live-only exposure). The mock/fast parser
+    can incidentally resolve a delegation to a real action when the remainder
+    carries an action keyword ("deal with the *attack* on Wellington" -> attack),
+    and confidence >= 0.7 short-circuits the live call even in anthropic mode. In
+    BOTH cases the LLM never applied the §6.2 table, so there is no bias to act
+    on — the delegation must degrade to the ASK clarification. Only the live
+    providers stamp mode anthropic/groq; the fast parser stamps "mock"."""
     if not parsed or not parsed.get("success"):
+        return False
+    if (parsed.get("mode") or "").lower() == "mock":
         return False
     action = (parsed.get("command") or {}).get("action")
     return bool(action) and action in VALID_ACTIONS and action != "unknown"

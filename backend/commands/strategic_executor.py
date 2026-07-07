@@ -770,11 +770,19 @@ class StrategicExecutor:
             target=target or "generic",
             target_type=target_type,
             started_turn=world.current_turn,
-            original_command=parsed_command.get("raw_input", ""),
+            # CR-5 Phase 4: for a delegation-inferred order the RECORD is the
+            # player's verbatim phrase ("Ney, deal with Mack"), not the synthetic
+            # reissue the router re-parsed — rider (d) "words become the record"
+            # (§6.4). Falls back to raw_input for every explicit order.
+            original_command=(parsed_command.get("delegation_phrase")
+                              or parsed_command.get("raw_input", "")),
             path=path,
             condition=condition,
             target_snapshot_location=snapshot,
             attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+            # CR-5 Phase 4: tag orders the CR-5 router inferred from a delegation
+            # verb so ONLY they get the fortification-aware bad-odds gate.
+            delegation_inferred=parsed_command.get("delegation_inferred", False),
             issued_turn=world.current_turn,
         )
 
@@ -812,6 +820,14 @@ class StrategicExecutor:
                 pursue_handled = True
                 personality = getattr(marshal, 'personality', 'balanced')
                 if personality == "aggressive" or order.attack_on_arrival:
+                    # CR-5 Phase 4: a delegation-inferred assault on a dug-in
+                    # superior force routes through the one-modal confirm before
+                    # it commits (§6.3c). Explicit/typed orders fall straight
+                    # through (gate returns None) — the player named the attack.
+                    _gate = self._inferred_first_step_gate(
+                        marshal, enemy_m, game_state)
+                    if _gate is not None:
+                        return _gate
                     attack_result = self._executor.execute(
                         {"command": {"marshal": marshal.name, "action": "attack",
                                      "target": target, "_strategic_execution": True}},
@@ -976,6 +992,12 @@ class StrategicExecutor:
                         personality = getattr(marshal, 'personality', 'balanced')
                         attack_on_arrival = getattr(order, 'attack_on_arrival', False)
                         if personality == "aggressive" or attack_on_arrival:
+                            # CR-5 Phase 4: gate an inferred assault on a dug-in
+                            # superior force (§6.3c); explicit orders fall through.
+                            _gate = self._inferred_first_step_gate(
+                                marshal, enemy_m, game_state)
+                            if _gate is not None:
+                                return _gate
                             attack_result = self._executor.execute(
                                 {"command": {"marshal": marshal.name, "action": "attack",
                                              "target": target, "_strategic_execution": True}},
@@ -1281,11 +1303,15 @@ class StrategicExecutor:
                 target=target or "generic",
                 target_type=command.get("target_type", "region"),
                 started_turn=world.current_turn,
-                original_command=parsed_command.get("raw_input", ""),
+                # CR-5 Phase 4 rider (d): preserve the verbatim delegation phrase
+                # as the record (§6.4); raw_input for explicit orders.
+                original_command=(parsed_command.get("delegation_phrase")
+                                  or parsed_command.get("raw_input", "")),
                 path=path,
                 condition=condition,
                 target_snapshot_location=parsed_command.get("target_snapshot_location"),
                 attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+                delegation_inferred=parsed_command.get("delegation_inferred", False),
                 issued_turn=world.current_turn,
                 objection_resolved=True,
             )
@@ -1385,6 +1411,57 @@ class StrategicExecutor:
             "success": False,
             "message": f"Unknown objection response: {response}",
             "variable_action_cost": 0,
+        }
+
+    def _inferred_first_step_gate(self, marshal, enemy, game_state) -> Optional[Dict]:
+        """CR-5 Phase 4 (COMMAND_ROBUSTNESS_SPEC §6.3c): the fortification-aware
+        bad-odds gate for the two first-step PURSUE auto-attack seams that
+        ``_handle_first_step_blocked`` does NOT cover — the enemy CO-LOCATED at
+        order creation, and the move-failed-at-target case. Phase 3 gated the
+        per-turn processor + the first-step-BLOCKED path; these two creation-turn
+        seams produced an ungated assault the moment a tagged order became
+        reachable (Phase 4). Mirrors ``_handle_first_step_blocked``'s aggressive
+        branch and the per-turn ``_inferred_attack_gate``: single-source odds via
+        ``inferred_attack_favorable``, single-source copy via
+        ``describe_inferred_bad_odds``.
+
+        Returns a one-modal ``contact_bad_odds`` interrupt when a
+        delegation-inferred order would give battle to a dug-in superior force,
+        else None (favorable odds, OR an explicit/untagged order — the player
+        named the attack, so it stays gate-free)."""
+        order = getattr(marshal, "strategic_order", None)
+        if order is None or not getattr(order, "delegation_inferred", False):
+            return None
+        from backend.commands.objection_v2 import inferred_attack_favorable
+        if inferred_attack_favorable(marshal, enemy, game_state):
+            return None
+        from backend.commands.delegation import describe_inferred_bad_odds
+        world = game_state.get("world") if isinstance(game_state, dict) else None
+        if world is not None:
+            # Track contact so the per-turn same-enemy suppression also covers a
+            # gate-produced interrupt (mirrors _inferred_attack_gate).
+            order.last_contact_enemy = enemy.name
+            order.last_contact_turn = world.current_turn
+        # The marshal is AT the enemy (co-located / move-failed), so "go_around"
+        # is nonsensical — it would empty-reroute and loop back into this gate.
+        marshal.pending_interrupt = {
+            "interrupt_type": "contact_bad_odds",
+            "enemy": enemy.name,
+            "location": marshal.location,
+            "is_first_step": True,
+            "options": ["attack_anyway", "hold_position", "cancel_order"],
+        }
+        return {
+            "success": True,
+            "requires_input": True,
+            "pending_interrupt": marshal.pending_interrupt,
+            "message": describe_inferred_bad_odds(marshal.name, enemy.name),
+            "strategic_order": True,
+            "strategic_type": order.command_type,
+            "first_step_interrupt": True,
+            # Match the sibling first-step interrupts (order issued, 1 AP charged
+            # explicitly — never rely on the reissued base action's cost mapping).
+            "variable_action_cost": 1,
         }
 
     def _handle_first_step_blocked(self, marshal, enemies, blocked_region,

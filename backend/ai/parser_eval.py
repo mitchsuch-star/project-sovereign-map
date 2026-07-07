@@ -216,10 +216,17 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
         world = build_world(world_key)
         contexts[world_key] = (world, build_llm_game_state(world))
 
-    total = passed = 0
+    total = passed = skipped_live_only = 0
     failures = []
     for entry in corpus["entries"]:
         if only_ids and entry["id"] not in only_ids:
+            continue
+        # live_only entries assert a LIVE-LLM behavior (e.g. the CR-5 delegation
+        # personality bias — under mock a delegation verb degrades to ASK, so the
+        # biased action is unobservable). Evaluate them ONLY with the live
+        # provider armed; skip (counted, never silent) under mock.
+        if entry.get("live_only") and not use_real_llm:
+            skipped_live_only += 1
             continue
         for world_key in worlds_for_entry(entry):
             if world_key not in contexts:
@@ -241,7 +248,7 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
                 if verbose:
                     print(f"ok   [{world_key}] {entry['id']}")
     return {"total": total, "passed": passed, "failed": len(failures),
-            "failures": failures}
+            "skipped_live_only": skipped_live_only, "failures": failures}
 
 
 def main(argv=None) -> int:
@@ -269,6 +276,10 @@ def main(argv=None) -> int:
         return 2
     print(f"\nParser eval: {summary['passed']}/{summary['total']} passed "
           f"({'LIVE' if args.live else 'mock'} mode)")
+    if summary.get("skipped_live_only"):
+        print(f"  ({summary['skipped_live_only']} live_only entr"
+              f"{'y' if summary['skipped_live_only'] == 1 else 'ies'} skipped -- "
+              f"run with --live to evaluate)")
     for failure in summary["failures"]:
         print(f"  FAIL [{failure['world']}] {failure['id']}: {failure['utterance']!r}")
         for m in failure["mismatches"]:

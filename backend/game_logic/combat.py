@@ -838,6 +838,32 @@ class CombatResolver:
         result_dict["battle_report"] = generate_battle_report(result_dict)
 
         # ════════════════════════════════════════════════════════════
+        # CR-5 Phase 4 rider (d) "words become the record" (§6.4): when THIS
+        # battle was the result of a delegation the marshal INTERPRETED (not an
+        # order the player typed), the player's verbatim words are the record —
+        # quote them in the after-action report + the campaign-log one-liner.
+        # Scoped to inferred/delegation orders only (delegation_inferred); an
+        # explicitly-typed attack is never quoted back. Enemy attackers never
+        # carry the flag (only the player CR-5 router sets it). Read-only display
+        # metadata — no effect on combat mechanics (Golden Rule 1).
+        # ════════════════════════════════════════════════════════════
+        _deleg_order = getattr(attacker, "strategic_order", None)
+        _deleg_phrase = (getattr(_deleg_order, "original_command", None)
+                         if (_deleg_order is not None
+                             and getattr(_deleg_order, "delegation_inferred", False)
+                             # Quote ONLY a battle against the delegation's actual
+                             # quarry (order.target is the PURSUE'd enemy name) —
+                             # never a stale inferred order INHERITED by an explicit
+                             # charge/attack at a DIFFERENT enemy (audit: the charge
+                             # false-quote). A blocker fought en route is not "the
+                             # delegated action" either.
+                             and getattr(_deleg_order, "target", None) == defender.name)
+                         else None)
+        if _deleg_phrase and isinstance(result_dict.get("battle_report"), dict):
+            result_dict["battle_report"]["delegation_attribution"] = (
+                f'{attacker.name} acted on your word: "{_deleg_phrase}"')
+
+        # ════════════════════════════════════════════════════════════
         # EVENT LOG: Pre-build battle event dict for the caller to log.
         # combat.py doesn't have WorldState access, so we return the event
         # in the result dict. The caller (executor.py) fills in location
@@ -846,6 +872,9 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════
         result_dict["log_battle_event"] = {
             "type": "battle",
+            # CR-5 Phase 4 rider (d): the verbatim delegation phrase (None for
+            # every explicit order); the one-liner quotes it only when present.
+            "delegation_phrase": _deleg_phrase,
             "attacker": attacker.name,
             "attacker_nation": getattr(attacker, "nation", ""),
             "defender": defender.name,
@@ -1199,8 +1228,32 @@ class CombatResolver:
             "raw_outcome": outcome,
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
+
+        # CR-5 Phase 4 rider (d) "words become the record" (§6.4) — the
+        # apply_casualties=False path (production: combat_executor distributes
+        # casualties). Same single-source stamp as the apply_casualties=True
+        # branch above: quote the verbatim delegation phrase iff THIS battle came
+        # from a delegation the marshal INTERPRETED. Read-only display metadata.
+        _deleg_order = getattr(attacker, "strategic_order", None)
+        _deleg_phrase = (getattr(_deleg_order, "original_command", None)
+                         if (_deleg_order is not None
+                             and getattr(_deleg_order, "delegation_inferred", False)
+                             # Quote ONLY a battle against the delegation's actual
+                             # quarry (order.target is the PURSUE'd enemy name) —
+                             # never a stale inferred order INHERITED by an explicit
+                             # charge/attack at a DIFFERENT enemy (audit: the charge
+                             # false-quote). A blocker fought en route is not "the
+                             # delegated action" either.
+                             and getattr(_deleg_order, "target", None) == defender.name)
+                         else None)
+        if _deleg_phrase and isinstance(result_dict.get("battle_report"), dict):
+            result_dict["battle_report"]["delegation_attribution"] = (
+                f'{attacker.name} acted on your word: "{_deleg_phrase}"')
+
         result_dict["log_battle_event"] = {
             "type": "battle",
+            # CR-5 Phase 4 rider (d): verbatim phrase (None for explicit orders).
+            "delegation_phrase": _deleg_phrase,
             "attacker": attacker.name,
             "attacker_nation": getattr(attacker, "nation", ""),
             "defender": defender.name,

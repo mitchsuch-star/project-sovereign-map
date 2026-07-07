@@ -3081,6 +3081,45 @@
       },
       "source": "CR-2 authored (condition-demotion regression pin; twin of grouchy-hold-belgium-until-ney-arrives)",
       "notes": "A name BEFORE the 'until' clause binds as executor exactly as before; only names inside the condition clause are demoted."
+    },
+    {
+      "id": "cr5-deleg-aggressive-ney-attacks",
+      "utterance": "Ney, deal with Mack",
+      "world": "1805",
+      "live_only": true,
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "attack"
+      },
+      "source": "CR-5 AC-2 (COMMAND_ROBUSTNESS_SPEC §6.5) — the LIVE-tier same-utterance x personality triple.",
+      "notes": "LIVE-ONLY: the §6.2 prompt table biases an AGGRESSIVE marshal's delegation verb to `attack`. Under mock the delegation verb degrades to the CR-2 ASK clarification (guardrail e), so this is unobservable in CI — evaluated on demand via `python -m backend.ai.parser_eval --live`. Ney is aggressive on the 1805 roster (world1805 fixture). Target not pinned (live phrasing varies)."
+    },
+    {
+      "id": "cr5-deleg-cautious-davout-scouts",
+      "utterance": "Davout, deal with Mack",
+      "world": "1805",
+      "live_only": true,
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "action": "scout"
+      },
+      "source": "CR-5 AC-2 (COMMAND_ROBUSTNESS_SPEC §6.5) — the LIVE-tier same-utterance x personality triple.",
+      "notes": "LIVE-ONLY (see cr5-deleg-aggressive-ney-attacks): a CAUTIOUS marshal's delegation verb biases to `scout`. Davout is cautious on the 1805 roster. The deterministic router additionally CLAMPS a live battle resolution back to scout (test_command_robustness_cr5_personality_disambiguation.py::TestDelegationEndpoint1805)."
+    },
+    {
+      "id": "cr5-deleg-literal-soult-does-not-attack",
+      "utterance": "Soult, deal with Mack",
+      "world": "1805",
+      "live_only": true,
+      "expected": {
+        "success": true,
+        "marshal": "Soult",
+        "not_action": "attack"
+      },
+      "source": "CR-5 AC-2 (COMMAND_ROBUSTNESS_SPEC §6.5) — the LIVE-tier same-utterance x personality triple.",
+      "notes": "LIVE-ONLY. A LITERAL marshal refuses to guess — the §6.2 table says `ask`, which is NOT a parse-level action (no `ask` in VALID_ACTIONS); it is a DETERMINISTIC ROUTER decision (main.py). At the parse tier the meaningful, assertable distinction from the aggressive arm is that a literal delegation does NOT resolve to `attack`. The definitive literal->ASK behavior is asserted at the endpoint tier in test_command_robustness_cr5_personality_disambiguation.py::TestDelegationEndpoint1805::test_literal_delegation_asks_not_attacks. Soult was reassigned cautious->literal at the gate so the ASK arm is player-reachable."
     }
   ]
 }

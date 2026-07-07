@@ -1216,20 +1216,21 @@ def execute_command(request: CommandRequest):
         #   - cautious                  -> observe first; a battle action the
         #     live LLM produced is CLAMPED to scout (he never assaults on a
         #     vague order, §6.3c) + a soft note that names his character.
-        #   - aggressive                -> NOT YET ENABLED (rides the ungated
-        #     lethal attack-on-arrival seam) — degrades to ASK until Phase 3's
-        #     gate + Phase 4 flip. route_arm() applies that phase gate.
+        #   - aggressive                -> ENABLED (Phase 4). Re-issue a
+        #     delegation-INFERRED strategic PURSUE; every auto-attack seam it can
+        #     reach is covered by the Phase-3/4 fortification-aware bad-odds gate,
+        #     so a dug-in superior force still routes through the one-modal
+        #     confirm. Only reached on a genuine LIVE resolution (guardrail e —
+        #     a mock/unresolved parse degrades to ASK via route_arm).
         # Guarded by _consumed_as_dialogue_answer so a hard-stop dialogue answer
         # is never hijacked; runs AFTER CR-4 carryover + history recording.
         # ════════════════════════════════════════════════════════════
         _cautious_note = None
-        _delegation_hint = None
+        _delegation_arm_ran = False
         if not _consumed_as_dialogue_answer:
             _deleg = detect_delegation(world, command_text,
                                        parsed.get("command"))
             if _deleg is not None:
-                # §6.7: once-per-campaign discoverability hint on first delegation
-                _delegation_hint = maybe_delegation_hint(world)
                 _arm = route_arm(_deleg.personality,
                                  parse_resolved_to_action(parsed))
                 if _arm == "cautious":
@@ -1244,14 +1245,42 @@ def execute_command(request: CommandRequest):
                     command_text = _reissue
                     _cautious_note = describe_cautious_delegation(
                         _deleg, "scout")
+                    _delegation_arm_ran = True
                     print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
                           f"-> scout {_deleg.scout_target}")
+                elif _arm == "aggressive":
+                    # Deterministic (Golden Rule 6 — the live LLM proved too
+                    # flaky for delegation, so mirror the cautious re-parse
+                    # pattern): an aggressive marshal gives battle. Re-issue a
+                    # strategic PURSUE ("pursue <enemy>" — the strategic parser
+                    # upgrades it to a tracking order that engages on contact)
+                    # and TAG it delegation_inferred so the Phase-3 fortification-
+                    # aware bad-odds gate fires at every auto-attack seam: the
+                    # marshal never NAMED the attack, his CHARACTER inferred it.
+                    # A bare one-shot "attack" would be ungated AND could not
+                    # march him to a non-adjacent enemy. The player's verbatim
+                    # words become the order record (rider d, §6.4). Only reached
+                    # in live mode — a mock/unresolved parse degrades to ASK
+                    # above via route_arm (guardrail e).
+                    _delegation_phrase = command_text
+                    _reissue = f"{_deleg.marshal} pursue {_deleg.target}"
+                    parsed = parser.parse(_reissue, llm_game_state, world=world)
+                    parsed["delegation_inferred"] = True
+                    parsed["delegation_phrase"] = _delegation_phrase
+                    command_text = _reissue
+                    _delegation_arm_ran = True
+                    print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
+                          f"-> pursue {_deleg.target} (inferred, gated)")
                 elif _arm == "ask":
                     _deleg_clar = build_delegation_clarification(
                         world, _deleg, command_text)
-                    if _delegation_hint:
+                    # §6.7 first-use hint — the ASK always surfaces, so latch it
+                    # here (maybe_delegation_hint sets the flag only when it hands
+                    # back the copy, once per campaign).
+                    _ask_hint = maybe_delegation_hint(world)
+                    if _ask_hint:
                         _deleg_clar["message"] = (
-                            f"{_deleg_clar['message']}\n\n{_delegation_hint}")
+                            f"{_deleg_clar['message']}\n\n{_ask_hint}")
                     _deleg_clar["clarification_registered"] = (
                         register_pending_clarification(
                             world, _deleg_clar, command_text))
@@ -1424,15 +1453,28 @@ def execute_command(request: CommandRequest):
 
         # CR-5: a cautious delegation executed as an observe-first order —
         # append the character-naming soft note (§6.3c legibility) so the
-        # player sees WHY the marshal scouted and can press the assault. The
-        # once-per-campaign discoverability hint (§6.7) rides the same message.
+        # player sees WHY the marshal scouted and can press the assault. Note
+        # only on a SUCCESSFUL scout (a failed reissue makes "will reconnoiter"
+        # false).
         if _cautious_note and isinstance(result, dict) and result.get("success"):
-            _tail = _cautious_note
-            if _delegation_hint:
-                _tail = f"{_cautious_note}\n\n{_delegation_hint}"
             result["message"] = (
-                f"{(result.get('message') or '').strip()}\n\n{_tail}"
+                f"{(result.get('message') or '').strip()}\n\n{_cautious_note}"
             ).strip()
+
+        # CR-5 §6.7 first-use hint — surfaced (and latched) at the point it
+        # actually rides a response, for BOTH the cautious and aggressive arms,
+        # on success OR failure. LATCH-ON-SURFACE (audit fix): maybe_delegation_
+        # hint() sets the once-per-campaign flag only here where it hands back the
+        # copy, so a first-ever delegation whose reissued order is REJECTED (not
+        # at war / no AP / marshal broken) still teaches the affordance instead of
+        # silently consuming the flag. The ASK arm surfaced its own hint and
+        # returned early, so it never reaches here.
+        if _delegation_arm_ran and isinstance(result, dict):
+            _tail_hint = maybe_delegation_hint(world)
+            if _tail_hint:
+                result["message"] = (
+                    f"{(result.get('message') or '').strip()}\n\n{_tail_hint}"
+                ).strip()
 
         # ════════════════════════════════════════════════════════════
         # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"

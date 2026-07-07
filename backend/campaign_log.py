@@ -760,9 +760,17 @@ def format_event_oneliner(event: dict) -> str:
             result = "stalemate"
         else:
             result = outcome.replace("_", " ")
-        return (f"{_name_tag(attacker, atk_nation)} attacked "
+        line = (f"{_name_tag(attacker, atk_nation)} attacked "
                 f"{_name_tag(defender, def_nation)} at {location} — "
                 f"{result} ({atk_cas:,} / {def_cas:,} casualties)")
+        # CR-5 Phase 4 rider (d) "words become the record" (§6.4): quote the
+        # player's verbatim phrase when this battle came from a delegation the
+        # marshal INTERPRETED. Present only on inferred/delegation orders — an
+        # explicitly-typed attack carries no phrase, so it is never quoted back.
+        deleg_phrase = event.get("delegation_phrase")
+        if deleg_phrase:
+            line += f' — on your word: "{deleg_phrase}"'
+        return line
 
     if event_type == "bombardment":
         attacker = event.get("attacker", "Unknown")

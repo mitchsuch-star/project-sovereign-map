@@ -339,13 +339,18 @@ class TestAskArmEndpoint:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestRouteArmPhaseGate:
-    def test_aggressive_degrades_to_ask_until_gate_lands(self):
-        # SAFE HALF: the aggressive->attack arm rides the ungated lethal
-        # attack-on-arrival seam, so it degrades to ASK until Phase 3's gate +
-        # Phase 4's flip. This test flips RED (must be updated) when the gate
-        # lands and AGGRESSIVE_ATTACK_ARM_ENABLED becomes True.
-        assert AGGRESSIVE_ATTACK_ARM_ENABLED is False
-        assert route_arm("aggressive", True) == "ask"
+    def test_aggressive_arm_enabled_routes_to_aggressive(self):
+        # PHASE 4 (July 7, 2026): the aggressive->engage arm is LIVE. Every
+        # auto-attack seam it can reach is covered by the Phase-3 bad-odds gate
+        # (per-turn processor + the two first-step PURSUE seams closed in Phase
+        # 4), so a resolved aggressive delegation routes to the aggressive arm
+        # (a tagged PURSUE), NOT the safe ASK. If this test is RED because the
+        # flag was set back to False, the arm was intentionally re-disabled —
+        # update this assertion to match.
+        assert AGGRESSIVE_ATTACK_ARM_ENABLED is True
+        assert route_arm("aggressive", True) == "aggressive"
+        # A mock/unresolved parse still degrades to ASK (guardrail e).
+        assert route_arm("aggressive", False) == "ask"
 
     def test_cautious_routes_to_cautious_when_resolved(self):
         assert route_arm("cautious", True) == "cautious"
@@ -854,3 +859,341 @@ class TestInferredBadOddsCopy:
         for leak in ("MOVE_TO", "delegation_inferred", "aggressive",
                      "personality", "contact_bad_odds"):
             assert leak not in msg
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PHASE 4 — the aggressive->engage arm is LIVE (July 7, 2026)
+# ═══════════════════════════════════════════════════════════════════
+
+class TestInferredFirstStepGate:
+    """CR-5 Phase 4 closes the two FIRST-STEP PURSUE auto-attack seams the
+    per-turn gate did not cover: the enemy CO-LOCATED at order creation and the
+    move-failed-at-target case (strategic_executor `_inferred_first_step_gate`)."""
+
+    def _setup(self, *, inferred=True, fortified=True, attacker=42000,
+               defender=54000):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        assert ney.personality == "aggressive"
+        wellington = world.get_marshal("Wellington")
+        ney.location = "Belgium"
+        ney.strength = attacker
+        wellington.location = "Belgium"          # co-located
+        wellington.strength = defender
+        wellington.fortified = fortified
+        wellington.defense_bonus = 0.16
+        order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            delegation_inferred=inferred)
+        ney.strategic_order = order
+        return StrategicExecutor(CommandExecutor()), ney, wellington, world, game_state
+
+    def test_inferred_co_located_into_fortified_superior_gates(self):
+        se, ney, wellington, world, gs = self._setup(inferred=True)
+        before = wellington.strength
+        gate = se._inferred_first_step_gate(ney, wellington, gs)
+        assert gate is not None
+        assert gate.get("requires_input") is True
+        assert gate["pending_interrupt"]["interrupt_type"] == "contact_bad_odds"
+        # §6.3c legibility (Acc #7): names the marshal's reading.
+        assert "Ney" in gate["message"] and "reads this" in gate["message"].lower()
+        # Co-located: "go_around" is nonsensical and must be omitted.
+        assert "go_around" not in gate["pending_interrupt"]["options"]
+        assert wellington.strength == before          # no silent commit
+        # Contact tracked so the per-turn same-enemy suppression covers it.
+        assert ney.strategic_order.last_contact_enemy == "Wellington"
+        assert ney.strategic_order.last_contact_turn == world.current_turn
+        # AP is charged explicitly (1), like the sibling first-step interrupts —
+        # never left to the reissued base action's cost mapping (audit finding).
+        assert gate["variable_action_cost"] == 1
+
+    def test_explicit_untagged_order_never_gates(self):
+        se, ney, wellington, world, gs = self._setup(inferred=False)
+        assert se._inferred_first_step_gate(ney, wellington, gs) is None
+
+    def test_favorable_odds_never_gate(self):
+        se, ney, wellington, world, gs = self._setup(
+            inferred=True, fortified=False, attacker=90000, defender=30000)
+        assert se._inferred_first_step_gate(ney, wellington, gs) is None
+
+
+class TestAggressiveArmTagsInferredPursue:
+    """CR-5 Phase 4 — the key integration point: the aggressive arm re-issues a
+    strategic PURSUE and TAGS it delegation_inferred so the Phase-3 gate engages.
+    (The full endpoint path is live-only — a mock parse of a delegation verb
+    degrades to ASK per guardrail e — so these drive the reissue mechanics the
+    live router hands to the executor.)"""
+
+    def _world_at_war(self, *, defender_strength, co_located=True):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        if co_located:
+            wellington.location = ney.location
+        wellington.strength = defender_strength
+        world.diplomatic_states[
+            world._make_diplo_key(ney.nation, wellington.nation)] = "WAR"
+        world.update_intel_from_scout(ney.location, world.current_turn)
+        return world, game_state, ney, wellington
+
+    def _parse(self, world, game_state, ney, wellington):
+        from backend.commands.parser import CommandParser
+        parser = CommandParser(use_real_llm=False)
+        return parser.parse(f"{ney.name} pursue {wellington.name}",
+                            game_state, world=world)
+
+    def test_reissue_parses_to_strategic_pursue_targeting_enemy(self):
+        # DEVIATION-FROM-BRIEF GUARD: the arm re-issues "pursue <enemy>", NOT
+        # "attack <enemy>" — "attack" is not a strategic keyword and would never
+        # become a tagged strategic order. Mock parser maps pursue->attack base
+        # action; the strategic parser upgrades it to PURSUE.
+        world, gs, ney, wellington = self._world_at_war(defender_strength=5000)
+        parsed = self._parse(world, gs, ney, wellington)
+        assert parsed.get("is_strategic") is True
+        assert parsed.get("strategic_type") == "PURSUE"
+        assert parsed["command"]["target"] == "Wellington"
+
+    def test_executed_reissue_tags_order_and_records_verbatim_phrase(self):
+        world, gs, ney, wellington = self._world_at_war(defender_strength=5000)
+        parsed = self._parse(world, gs, ney, wellington)
+        # What the main.py aggressive branch threads onto the parse:
+        parsed["delegation_inferred"] = True
+        parsed["delegation_phrase"] = "Ney, deal with Wellington"
+        with _suppress_output():
+            CommandExecutor().execute(parsed, gs)
+        order = ney.strategic_order
+        assert order is not None
+        assert order.delegation_inferred is True
+        # Rider (d): the RECORD is the verbatim phrase, not the reissue string.
+        assert order.original_command == "Ney, deal with Wellington"
+
+    def test_executed_reissue_gates_co_located_fortified_superior(self):
+        # End-to-end through the executor: a tagged PURSUE into a co-located
+        # fortified SUPERIOR force fires the one-modal, not a silent assault.
+        world, gs, ney, wellington = self._world_at_war(defender_strength=54000)
+        ney.strength = 42000
+        wellington.fortified = True
+        wellington.defense_bonus = 0.16
+        parsed = self._parse(world, gs, ney, wellington)
+        parsed["delegation_inferred"] = True
+        parsed["delegation_phrase"] = "Ney, deal with Wellington"
+        before = wellington.strength
+        with _suppress_output():
+            result = CommandExecutor().execute(parsed, gs)
+        assert result.get("requires_input") is True
+        assert wellington.strength == before          # no silent commit
+
+    def test_explicit_typed_pursue_is_not_tagged(self):
+        # Regression: an explicitly-typed "pursue" (no delegation) never carries
+        # the tag, so it keeps today's gate-free raw-ratio behavior.
+        world, gs, ney, wellington = self._world_at_war(defender_strength=5000)
+        parsed = self._parse(world, gs, ney, wellington)
+        # No delegation_inferred threaded — this is the explicit path.
+        with _suppress_output():
+            CommandExecutor().execute(parsed, gs)
+        assert ney.strategic_order is not None
+        assert ney.strategic_order.delegation_inferred is False
+
+
+class TestRiderDWordsBecomeRecord:
+    """CR-5 Phase 4 rider (d) §6.4 — the player's verbatim delegation phrase
+    becomes the record: quoted in the campaign-log one-liner + battle-report
+    attribution, and ONLY for inferred/delegation orders (mock-safe, no LLM)."""
+
+    def _battle_event(self, **overrides):
+        event = {
+            "type": "battle", "attacker": "Ney", "attacker_nation": "France",
+            "defender": "Mack", "defender_nation": "Austria",
+            "location": "Swabia", "outcome": "attacker_victory",
+            "attacker_casualties": 3000, "defender_casualties": 12000,
+        }
+        event.update(overrides)
+        return event
+
+    def test_oneliner_quotes_delegation_phrase(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner(
+            self._battle_event(delegation_phrase="Ney, deal with Mack"))
+        assert "Ney, deal with Mack" in line
+        assert "on your word" in line.lower()
+
+    def test_oneliner_no_quote_for_explicit_battle(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner(self._battle_event())   # no phrase
+        assert "on your word" not in line.lower()
+
+    def test_resolve_battle_stamps_both_surfaces_for_inferred_order(self):
+        from backend.game_logic.combat import CombatResolver
+        world = _legacy_world()
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        ney.strength = 60000
+        wellington.strength = 20000
+        ney.strategic_order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            delegation_inferred=True)
+        with _suppress_output():
+            result = CombatResolver().resolve_battle(
+                ney, wellington, apply_casualties=False)
+        assert result["log_battle_event"]["delegation_phrase"] == \
+            "Ney, deal with Wellington"
+        assert "Ney, deal with Wellington" in \
+            result["battle_report"]["delegation_attribution"]
+
+    def test_resolve_battle_no_quote_without_order(self):
+        # Explicit one-shot attack (no strategic order) → no phrase, no attrib.
+        from backend.game_logic.combat import CombatResolver
+        world = _legacy_world()
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        with _suppress_output():
+            result = CombatResolver().resolve_battle(
+                ney, wellington, apply_casualties=False)
+        assert result["log_battle_event"]["delegation_phrase"] is None
+        assert "delegation_attribution" not in result["battle_report"]
+
+    def test_resolve_battle_no_quote_for_explicit_typed_strategic_order(self):
+        # An EXPLICIT strategic order (delegation_inferred=False) is not quoted:
+        # the negative case the spec §6.4 requires.
+        from backend.game_logic.combat import CombatResolver
+        world = _legacy_world()
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        ney.strategic_order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney pursue Wellington",
+            delegation_inferred=False)
+        with _suppress_output():
+            result = CombatResolver().resolve_battle(
+                ney, wellington, apply_casualties=False)
+        assert result["log_battle_event"]["delegation_phrase"] is None
+        assert "delegation_attribution" not in result["battle_report"]
+
+    def test_no_quote_when_battle_is_not_against_the_delegation_target(self):
+        # AUDIT FINDING (charge false-quote): a LINGERING inferred PURSUE order
+        # (target=Wellington) must NOT be quoted onto an explicit charge/attack
+        # at a DIFFERENT enemy (Blucher). The quote is scoped to the quarry.
+        from backend.game_logic.combat import CombatResolver
+        world = _legacy_world()
+        ney = world.get_marshal("Ney")
+        blucher = world.get_marshal("Blucher")
+        ney.strength = 60000
+        blucher.strength = 20000
+        ney.strategic_order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            delegation_inferred=True)                 # order targets Wellington
+        with _suppress_output():
+            result = CombatResolver().resolve_battle(     # ...but Ney fights Blucher
+                ney, blucher, apply_casualties=False)
+        assert result["log_battle_event"]["delegation_phrase"] is None
+        assert "delegation_attribution" not in result["battle_report"]
+
+
+class TestGuardrailEModeGate:
+    """AUDIT FIX (high, golden-rule-6): guardrail (e) is a MODE gate. A mock /
+    fast-parser resolution must never count as a live bias, so the aggressive
+    arm cannot fire under mock even when the delegation remainder carries an
+    action keyword — it degrades to ASK (the design's live-only exposure)."""
+
+    def test_mock_mode_parse_is_never_resolved(self):
+        assert parse_resolved_to_action(
+            {"success": True, "mode": "mock",
+             "command": {"action": "attack"}}) is False
+
+    def test_live_mode_parse_is_resolved(self):
+        assert parse_resolved_to_action(
+            {"success": True, "mode": "anthropic",
+             "command": {"action": "attack"}}) is True
+
+    def test_failed_parse_is_never_resolved(self):
+        assert parse_resolved_to_action(
+            {"success": False, "mode": "anthropic",
+             "command": {"action": "attack"}}) is False
+
+    def test_keyword_bearing_delegation_still_degrades_to_ask_in_mock(
+            self, endpoint1805):
+        # The exact gap the audit flagged: the mock parser resolves
+        # "...the attack on Mack" -> action=attack (mode=mock). Ney is
+        # aggressive and the flag is now ON, but guardrail (e) must STILL
+        # degrade to the ASK — never a silent mock battle.
+        client, m = endpoint1805
+        data = client.post(
+            "/command",
+            json={"command": "Ney, deal with the attack on Mack"}).json()
+        assert data.get("clarification_kind") == "delegation"
+
+
+class TestAggressiveArmFirstUseHint:
+    """AUDIT FIX (low): the once-per-campaign first-use hint (§6.7) must ride
+    the AGGRESSIVE arm too — otherwise a player whose first-ever delegation goes
+    to an aggressive marshal never sees it (latched-but-silently-dropped)."""
+
+    def test_hint_rides_first_aggressive_delegation(
+            self, endpoint1805, monkeypatch):
+        client, m = endpoint1805
+        world = m.world
+        ney = world.get_marshal("Ney")
+        mack = world.get_marshal("Mack")
+        # Co-locate a weak Mack so the aggressive PURSUE engages favorably (gate
+        # stays silent, the order issues, result.success is True).
+        mack.location = ney.location
+        mack.strength = 2000
+        ney.strength = 60000
+        world.diplomatic_states[
+            world._make_diplo_key(ney.nation, mack.nation)] = "WAR"
+        world.update_intel_from_scout(ney.location, world.current_turn)
+        world.delegation_hint_shown = False
+        # Force a LIVE-resolved parse so the aggressive arm engages (a real mock
+        # parse degrades to ASK per guardrail e — TestGuardrailEModeGate).
+        monkeypatch.setattr(
+            "backend.commands.delegation.parse_resolved_to_action",
+            lambda parsed: True)
+        data = client.post(
+            "/command", json={"command": "Ney, deal with Mack"}).json()
+        assert "hand a marshal a task" in (data.get("message") or "")
+        # Latched: a second delegation does not repeat the hint.
+        data2 = client.post(
+            "/command", json={"command": "Davout, deal with Mack"}).json()
+        assert "hand a marshal a task" not in (data2.get("message") or "")
+
+    def test_hint_still_shows_when_first_aggressive_reissue_is_rejected(
+            self, endpoint1805, monkeypatch):
+        # LATCH-ON-SURFACE (audit fix): a first-ever aggressive delegation whose
+        # reissued PURSUE is REJECTED (here: no action points) must STILL teach
+        # the affordance — the hint is latched only when it actually rides a
+        # response, never silently consumed at detection.
+        client, m = endpoint1805
+        world = m.world
+        world.delegation_hint_shown = False
+        world.actions_remaining = 0                # the reissue will be rejected
+        monkeypatch.setattr(
+            "backend.commands.delegation.parse_resolved_to_action",
+            lambda parsed: True)
+        data = client.post(
+            "/command", json={"command": "Ney, deal with Mack"}).json()
+        # The order failed (no AP) but the hint still rode the response.
+        assert "hand a marshal a task" in (data.get("message") or "")
+
+
+class TestGrouchyMomentScopeBoundary:
+    """SCOPE BOUNDARY (audit finding + COMMAND_ROBUSTNESS_SPEC §6.3 re-homing):
+    the cannon-fire redirect (autonomous Grouchy Moment) NULLS the delegation
+    order before rushing a DIFFERENT nearby battle, so the Phase-3/4 inferred
+    gate cannot and must not fire on it — the redirect is a re-homed AI-event
+    feature (its own gate owns it), not a delegation-parse seam, and behaves
+    identically for explicit and inferred PURSUE. Pinned so a future change is
+    an intentional edit, not a silent one."""
+
+    def test_inferred_gate_noops_once_order_is_abandoned(self):
+        world = _legacy_world()
+        game_state = {"world": world}
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        ney.strategic_order = None      # the redirect nulls it before attacking
+        proc = StrategicOrderProcessor(CommandExecutor())
+        assert proc._inferred_attack_gate(ney, wellington, game_state) is None

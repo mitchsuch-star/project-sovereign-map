@@ -665,7 +665,7 @@ Reserved future `event_log` payloads:
 | `join_combat` | bool | (SUPPORT) Join ally's combat |
 | `target_snapshot_location` | string\|null | For "Move to Ney" - where Ney was |
 | `attack_on_arrival` | bool | (MOVE_TO) Attack on reaching destination |
-| `delegation_inferred` | bool | CR-5: action inferred from personality off a delegation verb (not explicitly typed); gates attack-on-arrival on fortification-aware bad odds |
+| `delegation_inferred` | bool | CR-5: action inferred from an aggressive marshal's personality off a delegation verb (not explicitly typed). Gates EVERY auto-attack seam this order can reach (per-turn MOVE_TO arrival + all PURSUE sites + both first-step PURSUE seams) on fortification-aware bad odds; explicit typed orders stay gate-free. When set, `original_command` holds the player's VERBATIM delegation phrase (rider d "words become the record") rather than the synthetic reissue |
 | `condition` | dict\|null | StrategicCondition if set |
 | `last_combat_enemy` | string\|null | Combat loop prevention |
 | `last_combat_turn` | int\|null | Combat loop prevention |

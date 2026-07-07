@@ -70,6 +70,11 @@ def contexts():
 def _corpus_params():
     params = []
     for entry in CORPUS["entries"]:
+        # live_only entries assert a LIVE-LLM behavior (CR-5 delegation bias) —
+        # under mock they degrade to ASK, so they are unobservable here. They are
+        # exercised on demand via `python -m backend.ai.parser_eval --live`.
+        if entry.get("live_only"):
+            continue
         for world_key in worlds_for_entry(entry):
             params.append(pytest.param(entry, world_key,
                                        id=f"{entry['id']}[{world_key}]"))
