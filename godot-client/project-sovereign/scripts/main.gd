@@ -1380,6 +1380,14 @@ func _display_berthier_report(report: Dictionary):
 
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
 
+	# CR-5 rider (d) "words become the record": when this battle came from a
+	# delegation the marshal INTERPRETED (not an order the player typed), quote
+	# the player's verbatim words. Backend sets this only on delegation-inferred
+	# battles against the delegation's own quarry (game_logic/combat.py).
+	var deleg_attr = str(report.get("delegation_attribution", ""))
+	if deleg_attr != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + deleg_attr + "[/color]")
+
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
 
