@@ -1462,9 +1462,21 @@ class StrategicExecutor:
                 }
 
         elif personality == "aggressive":
+            # ⚠ CR-5 Phase 3 LETHAL SEAM (docs/CR5_IMPLEMENTATION_BRIEF.md §3 +
+            # Appendix B). This raw strength ratio is FORTIFICATION-BLIND: 42k
+            # vs a FORTIFIED 54k reads as "favorable" (0.78 >= 0.7) and auto-
+            # attacks below via _strategic_execution (which bypasses the
+            # objection/evaluate_situation gate AND AP cost). A delegation-
+            # inferred aggressive order must NOT ride this ungated path.
+            # BEFORE flipping delegation.AGGRESSIVE_ATTACK_ARM_ENABLED to True,
+            # make this odds read fortification-aware for delegation_inferred
+            # orders (reuse objection_v2 _check_attack_target_fortified) and
+            # route them through the existing bad-odds interrupt below. Explicit
+            # typed orders keep this raw-ratio behavior. The RED tripwire
+            # test_aggressive_degrades_to_ask_until_gate_lands guards the flag.
             ratio = marshal.strength / max(1, enemy.strength)
             if ratio >= 0.7:
-                # Auto-attack — favorable odds
+                # Auto-attack — favorable odds (raw ratio; see CR-5 warning above)
                 result = self._executor.execute(
                     {"command": {
                         "marshal": marshal.name,

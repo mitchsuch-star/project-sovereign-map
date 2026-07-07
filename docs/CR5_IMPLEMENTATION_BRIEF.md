@@ -1,5 +1,7 @@
 # CR-5 Implementation Brief — Personality-Biased Disambiguation
 
+> **⏩ SAFE HALF LANDED July 6, 2026** (master `f999329`→`a438614`): Phase 0 + the entire non-battle half of CR-5 ship + are playtested. The **lethal attack-on-arrival seam (Phase 3) + the aggressive arm (Phase 4) are the next session's work** — the failsafe state + a linear checklist are in **Appendix B** (read it first). The aggressive→attack arm is gated OFF (`delegation.AGGRESSIVE_ATTACK_ARM_ENABLED = False`) so no delegation verb can trigger an ungated battle today.
+>
 > **Status:** Pre-implementation methodology + voice-craft bar. Drafted July 6, 2026.
 > **Normative authority:** `docs/COMMAND_ROBUSTNESS_SPEC.md` §6 is the *what* (blessed scope, July 5, 2026). **This brief is the *how*** — the recommended top-code-quality implementation methodology, the verified seam map, and the marshal-voice register baseline. Where this brief and §6 disagree, §6 wins; fix the drift.
 > **Scope:** CR-5 only. CR-5b (Flavor Echoing) is a separate owned slice; its boundary is defined in §7 below.
@@ -205,3 +207,51 @@ The command-parse pipeline has ONE parse entry both paths flow through, but the 
 Verified ✅ against live code: the 0.7/0.8 mock-confidence gate and CR-2 confidence lever; `deal with` as a diplomatic keyword; `marshal.personality` as a plain `str`; the 8 `_strategic_execution:True` sites; `validate_parse_result` at [validation.py:188](../backend/ai/validation.py); the CR-4-before/CR-2-after ordering in `main.py`; both CR-5 pins; Soult=`literal` in `europe_1805.json`; the `## Personality Rules` block + `FEW_SHOT_TEMPLATES` + personality-format path in `prompt_builder.py`.
 
 Needs Phase-0 re-confirmation ⚠: which `temperature=0.3` reference actually reaches the API request body (`providers.py:424` vs `:767`, with a commented send at `:825`); the exact `executor.py` `evaluate_situation` gate the strategic path bypasses; the §6 acceptance-criteria numbering (this brief mirrors the pre-build audit's read of §6 — reconcile against the spec's own numbering in Phase 0).
+
+---
+
+## Appendix B — Phase 3/4 handoff (July 6, 2026 — the SAFE HALF is landed)
+
+**Read this first if you are the session picking up the lethal seam.**
+
+### What already shipped (master `f999329` → `a438614`)
+
+Phase 0 (frozen seam map) + the entire **non-battle half** of CR-5, landed and live-playtested:
+
+| Landed | Behavior |
+|---|---|
+| temp-0 parse pin (guardrail b) | `providers.py` `_make_parse_request` body carries `temperature: 0` |
+| Deterministic **ASK arm** | literal / neutral / mock → a two-option ASK (`Attack` / `Scout`) on the shipped CR-2 `command_clarification` popup; overrides any live-LLM guess for a literal marshal. Literal titles "SOULT ASKS:"; neutral/interim stays "BERTHIER ASKS:" |
+| Deterministic **cautious arm** | a cautious delegation is re-issued as `scout <enemy LOCATION>` (the LLM proved too flaky + mis-resolves targets) + a character-naming soft note with a typed reissue |
+| §6.2 **prompt table** (AC-1) | `prompt_builder.py` `## Personality Rules` (advisory — routing is deterministic) |
+| §6.7 **first-use hint** (AC-8) | once-per-campaign, serialized `WorldState.delegation_hint_shown` |
+
+Phase-0 anchor corrections already applied/known: `evaluate_situation` lives in **`objection_v2.py:1075`** (not `executor.py`); the fortification-aware helpers are `objection_v2.py` `evaluate_cautious` / `_check_attack_target_fortified` (`:936-999`); the 8 `_strategic_execution:True` sites are confirmed; temp-0 drift D-3 fixed.
+
+### THE FAILSAFE — why the lethal hole cannot ship by accident
+
+`delegation.AGGRESSIVE_ATTACK_ARM_ENABLED = False`. While False, `route_arm()` sends **every** aggressive delegation to ASK (no ungated battle). The RED tripwire `test_aggressive_degrades_to_ask_until_gate_lands` asserts BOTH that the flag is `False` AND `route_arm("aggressive", True) == "ask"` — so **flipping the flag turns that test RED and the pre-commit hook BLOCKS the commit.** You cannot enable the aggressive arm without consciously updating that test, which is the built-in reminder to do the gate work first. A defensive comment also sits at the seam itself (`strategic_executor.py`, the `personality == "aggressive"` branch).
+
+### Phase 3 — linear checklist (do IN ORDER; do NOT flip the flag until all green)
+
+1. **Add `StrategicOrder.delegation_inferred: bool = False`** (`marshal.py`): dataclass field + `to_dict` + `from_dict(.get(..., False))`; run `test_serialization_enforcement.py`. This tag is what distinguishes a personality-inferred order from an explicitly-typed one — **only tagged orders get the stricter gate; explicit orders keep today's behavior.**
+2. **Make the aggressive first-step odds fortification-aware.** At `strategic_executor.py` `_handle_first_step_blocked` (the `personality == "aggressive"` branch, marked with the ⚠ comment): the raw `ratio = strength / enemy.strength >= 0.7` is fortification-blind. For a `delegation_inferred` order, read the SAME fortification/terrain modifiers `objection_v2._check_attack_target_fortified` uses so a fortified superior defender reads as BAD ODDS. The bad-odds path **already exists** (the `pending_interrupt` "contact_bad_odds" a few lines below) — route tagged orders into it.
+3. **Cover the per-turn attack-on-arrival too**, not just first-step. The later-turn auto-engage runs through the strategic order processor (`strategic.py` / the per-turn executor) via `_strategic_execution:True`, which bypasses the objection gate + AP. A tagged order must hit the same fortification-aware bad-odds gate there. (Two seams — §6.3c "TWO SEAMS, not one".)
+4. **One modal, never two.** If the marshal self-objects, the objection IS the gate; the CR-2 confirm fires ONLY for the aggressive-suicidal no-self-objection case.
+5. **Write the lethal test** (deferred from the brief's Phase 1, write it RED first): a delegated aggressive marshal whose attack-on-arrival lands on a fortified superior force shows the one-modal confirm, NOT a silent commit.
+
+### Phase 4 — only AFTER Phase 3 is green
+
+6. Flip `AGGRESSIVE_ATTACK_ARM_ENABLED = True`; **rewrite** `test_aggressive_degrades_to_ask_until_gate_lands` (it goes RED by design) to assert `route_arm("aggressive", True) == "aggressive"`.
+7. Wire `route_arm == "aggressive"` in the `main.py` CR-5 router block → an attack tagged `delegation_inferred=True`, routed through the Phase-3 gate. Keep it deterministic (consistent with the cautious arm) rather than trusting the flaky LLM.
+8. **Rider (d) "words become the record"** (re-homed here — a delegation→battle path now exists): stamp the raw phrase on the inferred order; quote it verbatim in `battle_report` attribution + `campaign_log.format_event_oneliner` battle one-liner; **NEGATIVE test:** an explicit `attack Mack` produces NO quote-back. Own STATUS row + own test (spec §6.4).
+9. LIVE-tier corpus rows (Ney→attack / Davout→scout / Soult→ask). Adversarial self-review (grep the diff for any Golden-Rule-6 leak setting `strategic_score/ambiguity/trust`; two-modals; mock/live parity; scope-boundary). Live-API probe of the four §6.2a before-state commands. Then Phase 5 (docs + Codex audit by SHA).
+
+### Design calls the safe half MADE (honor or revisit — also in STATUS.md)
+
+- **Routing is DETERMINISTIC**, the prompt table advisory (a live probe showed the LLM mis-resolves both the action AND the target for delegation verbs — "take care of Kutuzov" → attack for cautious Davout, mis-scouted to Algarve). If you'd rather trust the LLM per the spec's literal "prompt-copy" mechanism, that's the call to revisit — but you'd reintroduce the flakiness the clamp removed.
+- The **cautious/scout target is the enemy's LOCATION**, not his name (the scout executor reaches a place). A pre-existing `scout <marshal>` mis-resolution bug is filed as a separate task.
+- The **literal ASK is marshal-voiced** ("SOULT ASKS:").
+
+### Files the next session will touch
+`marshal.py` (StrategicOrder tag) · `strategic_executor.py` (first-step odds gate — ⚠ comment marks it) · `strategic.py` (per-turn attack-on-arrival) · `objection_v2.py` (reuse fortification helpers) · `main.py` (tag inferred orders in the CR-5 router; flip the aggressive branch) · `delegation.py` (flip the flag) · `battle_report.py` + `campaign_log.py` (rider d) · `test_command_robustness_cr5_personality_disambiguation.py` + `tests/data/parser_golden_corpus.json`.
