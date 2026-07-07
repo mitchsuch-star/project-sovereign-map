@@ -712,6 +712,13 @@ class AnthropicProvider(BaseProvider):
         body = {
             "model": self.config.model,
             "max_tokens": self.config.max_tokens,
+            # CR-5 guardrail (b): pin the command-PARSE call to temperature 0
+            # for run-to-run determinism on identical input. CR-3's forced
+            # tool_choice removed the JSON-robustness reason for temp > 0, so
+            # 0 is strictly better here. Scoped to the parse body ONLY — the
+            # Berthier recovery call (_make_api_request) is a narrative call
+            # and keeps its own (unset → server-default) temperature.
+            "temperature": 0,
             "system": system_prompt,
             "messages": [
                 {"role": "user", "content": user_prompt}

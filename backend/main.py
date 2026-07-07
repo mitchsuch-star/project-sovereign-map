@@ -1035,6 +1035,12 @@ def execute_command(request: CommandRequest):
             interpret_clarification_answer,
             register_pending_clarification,
         )
+        from backend.commands.delegation import (
+            build_delegation_clarification,
+            classify_arm,
+            detect_delegation,
+            parse_resolved_to_action,
+        )
 
         command_text = request.command
         pending_clarification = world.dialogue_manager.peek()
@@ -1196,6 +1202,35 @@ def execute_command(request: CommandRequest):
                 "target": _parsed_command.get("target"),
                 "turn": int(world.current_turn),
             })
+
+        # ════════════════════════════════════════════════════════════
+        # CR-5: PERSONALITY-BIASED DISAMBIGUATION — the ASK arm
+        # (COMMAND_ROBUSTNESS_SPEC §6). A delegation verb ("Soult, deal
+        # with Mack") cedes the method to the marshal; the concrete action
+        # is inferred from character. The literal / neutral / mock arms
+        # DETERMINISTICALLY refuse to guess and ask the Emperor (attack or
+        # observe?), overriding whatever the live LLM may have guessed for a
+        # literal marshal (Golden Rule 6 — the executor is never LLM-driven).
+        # The aggressive / cautious arms fall through to the LLM-resolved
+        # action (prompt table, §6.2). Guarded by _consumed_as_dialogue_answer
+        # so a hard-stop dialogue answer is never hijacked; runs AFTER CR-4
+        # carryover (line ~1135) and command-history recording.
+        # ════════════════════════════════════════════════════════════
+        if not _consumed_as_dialogue_answer:
+            _deleg = detect_delegation(world, command_text,
+                                       parsed.get("command"))
+            if _deleg is not None and classify_arm(
+                    _deleg.personality,
+                    parse_resolved_to_action(parsed)) == "ask":
+                _deleg_clar = build_delegation_clarification(
+                    world, _deleg, command_text)
+                _deleg_clar["clarification_registered"] = (
+                    register_pending_clarification(
+                        world, _deleg_clar, command_text))
+                print(f"[CR-5] Delegation ASK "
+                      f"({_deleg.marshal}/{_deleg.personality or 'unset'}) "
+                      f"-> frontend")
+                return _build_result_response(_deleg_clar, world)
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
