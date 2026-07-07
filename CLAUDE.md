@@ -382,6 +382,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Adding content / modding | `docs/ADDING_CONTENT.md`, `MODDING_FORMAT.md` |
 | Vision, future design, manual tests | `docs/VISION.md`, `FUTURE_DESIGN.md`, `MANUAL_TEST_PLAN.md`, `TUTORIAL_SCRIPT.md` |
 | Architecture (audit + refactoring) | `docs/ARCHITECTURE_AUDIT_REPORT.md`, `ARCHITECTURE_AUDIT_SPEC.md`, `ARCHITECTURE_REFACTORING_PLAN.md` |
+| **Component-by-component audit playbook (fix-as-you-find)** | **`docs/AUDIT_GUIDELINE.md`** |
 | Archived specs & session history | `docs/archive/` |
 
 ## Documentation Rules

@@ -1,0 +1,312 @@
+# Codebase Audit Guideline
+
+> **What this is.** A reusable, component-by-component audit playbook. Sweep the codebase one component at a time, **fix safe defects as you find them**, and **escalate only the judgment calls you truly cannot make.** It is a *guideline*, not a line-by-line checklist — it tells you where to look, what must hold, and where the fix/escalate line sits, then trusts you to read the real code.
+>
+> **Who runs it.** Staged for the Fable audit pass, but model-agnostic and reusable for any future audit. Not a one-shot prompt like the historical `docs/*_AUDIT_PROMPT.md` files — this is the standing process.
+>
+> **Grounding.** Every component section below was derived from a read of the actual code (not from memory). Seams and function names are load-bearing; line numbers were deliberately omitted because they drift — grep by name.
+
+---
+
+## 1. The two operating rules
+
+### Rule 1 — Fix as you find (this is the default)
+
+When you find a defect, **fix it in place, add or extend a test that pins the correct behavior, and keep going.** Do not batch fixes into a report for later. A finding is a **safe fix** when *all* of these hold:
+
+- It is a **correctness or hygiene bug**, not a design or balance choice.
+- The fix is **mechanical** — it restores an invariant the codebase already documents (serialization parity, `int()` to Godot, a display-name mapping, a `None`-guard, a cache-invalidation call).
+- It does **not change a blessed number** (threshold, cap, cost, tier, honor bias) and does **not touch a spec's blessed scope** (Command Robustness §6, the Imperial Settlement arc, EC user-gates, Marshal Content / Jealousy gates).
+- It is **test-backable** — you can write an assertion that fails before and passes after.
+
+After every fix, run that component's **verify** step (§4). Before committing, the **pre-commit gate is the sign-off** (§4).
+
+### Rule 2 — Escalate when you truly cannot judge
+
+Stop and flag — do **not** guess — when the finding is a genuine judgment call:
+
+- Changing a **balance number** or a **documented invariant**.
+- A **cross-cutting refactor** (merging two code paths, unifying duplicated logic) — architecturally reasonable but high blast-radius.
+- A suspected **sign / min-max inversion** whose corrected direction would **change observable behavior** — surface the analysis, name the intended direction per the spec, and let the user confirm *before* flipping.
+- Anything that would **reopen a closed arc** or **touch blessed spec scope**.
+- A `FORMAT_VERSION` bump, or declaring a field intentionally non-serialized (`KNOWN_EXCLUSIONS`).
+
+Escalating does **not** stall the audit: log the finding (§9), then continue sweeping the rest of the component. One judgment call never blocks the others.
+
+### The tie-breaker
+
+**If you are unsure whether a finding is a safe fix or a judgment call, treat it as a judgment call and escalate.** A wrongly-escalated safe fix costs one review comment; a wrongly-applied balance change corrupts a playtest baseline silently.
+
+---
+
+## 2. The universal audit loop
+
+Apply this same loop to **every** component in §6–§7. This is the "step by step."
+
+1. **Orient.** Read the component's *entry points* and its *invariants* (below). Skim the linked spec only if a judgment call needs it. Large files (`diplomacy.py` ~8.8k lines, `enemy_ai.py` ~6k, `combat_executor.py` ~4.7k) exceed the read limit — **grep by function name**, never read whole.
+2. **Carry the cross-cutting traps.** Hold §5 in mind for the whole sweep — those defects appear in every component regardless of its own list.
+3. **Hunt.** Walk the component's *"Hunt for"* defect classes against the real code. For each candidate, confirm it is real (reproduce the logic, don't pattern-match).
+4. **Classify.** Safe fix (Rule 1) or escalate (Rule 2)? Consult the boundary table (§3) when it's close.
+5. **Act.**
+   - *Safe fix* → apply it, add/extend a pinning test, run the component **verify**.
+   - *Escalate* → write it to the audit log (§9) with evidence + options + your recommendation, and move on.
+6. **Log.** One line per fix (component, defect, fix, test, eventual commit SHA) and one block per escalation.
+7. **Commit per component.** Once a component is swept and green, commit directly to `master` (project workflow — no feature branch). The pre-commit hook runs `ruff check backend/` + the full suite; **never bypass with `--no-verify`** — fix the underlying failure. Record the SHA against that component's findings (audits are tracked by master SHA).
+
+---
+
+## 3. The fix-vs-escalate boundary (quick table)
+
+| Finding | Default |
+|---|---|
+| Missing `to_dict`/`from_dict` entry for a new field | **FIX** + `test_serialization_enforcement.py` |
+| Number bound for Godot not wrapped in `int()` (GR2) | **FIX** |
+| Raw internal / camelCase key shown to a player (R7) | **FIX** via `display_names.py` |
+| `.get(k, default)` where the stored value can be `None` | **FIX** → `(d.get(k) or default)` |
+| Missing display-map / `main.gd` dtype-whitelist / golden-corpus entry | **FIX** |
+| Hot-path `world.regions.values()` scan regression (GR8) | **FIX** → cached helper |
+| Controller-mutating seam missing `invalidate_active_nations_cache()` | **FIX** |
+| POST handler hand-building its dict instead of `build_base_response()` | **FIX** |
+| Doc drift (test count / current phase) across STATUS/ROADMAP/CLAUDE.md | **FIX** to verified value |
+| Changing any **balance number** (threshold, cap, cost, garrison tier, honor bias, AP allotment) | **ESCALATE** |
+| Altering a **documented invariant** or **blessed spec scope** | **ESCALATE** |
+| Cross-cutting refactor (merge battle paths, unify eligibility filters) | **ESCALATE** |
+| Sign / min-max bug whose fix **changes behavior** | **ESCALATE** (confirm direction first) |
+| Reopening a closed arc (settlement editor, enemy-offer WAITING, SC-32) | **ESCALATE** |
+| `FORMAT_VERSION` bump / new `KNOWN_EXCLUSIONS` entry | **ESCALATE** |
+| **Unsure which side of the line** | **ESCALATE** |
+
+**Two sharp edges the boundary hides** (correcting the mechanism is safe; touching the number beside it is not):
+- **Fog strength-bands:** fixing an inverted `<=`/`<` comparison is a FIX; changing a band *cutoff* (5000/15000/40000/70000) is ESCALATE.
+- **AP arithmetic:** fixing a `+1`/`+2` off-by-one in `variable_action_cost` signalling is a FIX; changing *which* transition costs *what* is ESCALATE.
+- **Diplomacy sign bugs:** a min/max inversion is the codebase's canonical prior offender (the coalition loyalty penalty), but its own escalate rule wins — **confirm the intended direction against the spec before flipping**, because the "fix" changes AI behavior.
+
+---
+
+## 4. Global setup & sign-off
+
+**Windows / venv (mandatory — Unix `python -m pytest` silently fails on this setup):**
+```
+cd "C:\Users\User\PycharmProjects\project-sovereign-map"
+".venv\Scripts\python.exe" -m pytest tests/ -q --tb=no      # full suite (the pre-commit pytest half)
+ruff check backend/                                          # lint half
+".venv\Scripts\python.exe" -m backend.main                  # backend on port 8005 (MUST be -m module form)
+```
+
+- **Verify commands below use `-k` keyword filters** rather than exact filenames wherever possible — filenames drift, `-k` doesn't. Glob-confirm a specific file before trusting it. Always finish a component with the **full suite** (the pre-commit gate re-runs it anyway).
+- **Curl before blaming Godot.** A response-shape bug (missing key, wrong name, stray float, un-stripped `new_state`) reads as a silent Godot no-op. `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command":"end turn"}' | python -m json.tool` first.
+- **Sign-off = green pre-commit** (ruff clean + full suite). A fix is not done until that passes.
+
+---
+
+## 5. Cross-cutting defect classes (carry these into *every* component)
+
+These recur project-wide. They are first-class — check for them in every module, not just where they're re-listed.
+
+1. **The `.get()` None-trap (the single most recurring bug).** `d.get('key', default)` returns `None` when the key *exists* with a `None` value — the default only fires for *missing* keys. Any later `.lower()/.strip()/int()/arithmetic` then crashes. **Fix:** `(d.get('key') or default)`. Suspect it on every optional parse field, serialized field, and response field.
+2. **Serialization parity (GR: "if it exists on the object, it must serialize").** Every instance attribute on a serializable class (`Marshal`, `StrategicOrder`, `StrategicCondition`, `WorldState`, `Region`, `RegionIntel`, `Trust`, `AuthorityTracker`, `VindicationTracker`, `DiplomaticRepresentative`) must be in **both** `to_dict()` and `from_dict()` — or in `KNOWN_EXCLUSIONS` with a reason. Vassal state is a **plain dict** (escapes the enforcement test) — seed new keys in *both* `create_vassal_treaty` and `create_vassal_conquest`. Gate: `test_serialization_enforcement.py`.
+3. **`int()` to Godot (GR2).** Every number crossing the API seam is `int()`-wrapped; Godot crashes on floats (and its `format_number(n:int)` is typed).
+4. **Raw internal keys to players (R7).** No raw action/state/personality/nation/clause/reason/camelCase key ever reaches the player. Backend humanizes via `display_names.py` (`humanize_entity_name` for camelCase entities); Godot `utils.gd` humanizes *nations only* at render time. **camelCase marshal names must be humanized backend-side** — Godot won't. The two nation maps (`display_names` ↔ `utils.gd`) must stay in sync.
+5. **State-clear timing (GR4).** Read a consumable/per-turn value **before** clearing it: one-shot combat bonuses are consumed inside `get_*_modifier` then zeroed; per-turn lists (e.g. `mild_concerns`) must be saved **before** `advance_turn` reads them.
+6. **Pre-validate BEFORE objection; AP-check BEFORE objection.** The bypass hierarchy: validate the action and check AP *first*, so a player never sees an objection followed by an "impossible action" / "not enough AP" failure. A new action path that evaluates objection before validation reopens this.
+7. **Popup passthrough.** Every POST handler routes through `build_base_response()` / `_build_result_response()` — that structurally guarantees popup passthroughs, `active_wars`, notifications, and the `None`-defaulting of sibling popup keys. A hand-rolled dict or early return drops them silently.
+8. **New dialogue type is inert until wired.** A new `diplomatic_dialogue` dtype needs its string in `main.gd`'s `PROPOSAL_CONFIRM_DIALOGUE_TYPES` (and a settlement action id in `SETTLEMENT_DIALOGUE_ACTIONS`); a concluded dialogue must set `world.proposal_result_popup`. Otherwise it shows as a bare terminal line. (Repeat offender.)
+9. **`new_state` stripping.** Executor results carry a `WorldState` (circular refs) — strip `new_state` before embedding in any response or strategic report, or the whole payload silently fails to serialize.
+10. **`game_state` shape.** AI/executor calls take the dict `{"world": WorldState}`, never a bare `WorldState`. Wrong shape → `AttributeError` deep in execution.
+11. **Hot-path region scans (GR8).** No `world.regions.values()/.items()` in anything called more than once per turn/response — route through `get_nation_regions()` / `get_active_nations()` (per-turn cached). One-shot builders (save/load, a single ledger render) may scan. A controller mutation must call `invalidate_active_nations_cache()`.
+12. **Substring / keyword-order shadowing.** More-specific keys must precede generic substrings (mock parser `build ` before `train`; `unfortify` before `fortify`). The same hazard hits display-map lookups and refusal-code matching.
+13. **Wrong-seam test patching.** Tests must patch at the *consuming* namespace — e.g. `settlement_scoring.calculate_common_peace_acceptance`, not the import site. A test that patches the wrong seam silently exercises the real function.
+14. **Golden Rule 9 — no unowned deferrals.** Any hidden/cut/deferred/v2/later/polish item must name an owner row, landing slice, completion definition, STATUS tracking line, and behavior test — or be removed. No "future work" labels or disabled placeholder copy.
+
+---
+
+## 6. Core-mechanics components
+
+Each block: **Scope · Start at · Invariants · Hunt for · Fix on sight · Escalate · Verify.** Invariants are tagged with the relevant Golden Rule (GR#).
+
+### 6.1 Combat & Multi-Marshal
+- **Scope.** Battle resolution, attack/defense modifiers, coordination/reinforcement/overwatch, casualty distribution, Berthier battle reports.
+- **Start at.** `marshal.py: get_attack_modifier / get_defense_modifier` (the single source); `combat.py: resolve_battle`; `combat_executor.py: _execute_attack, _calculate_coordination_context, _calculate_reinforcements, _calculate_overwatch, _distribute_casualties, _clear_coordination_fields`; `battle_report.py: _pick_observation`. Spec: `MULTI_MARSHAL_SPEC.md`.
+- **Invariants.** (GR1) All modifiers computed **only** in the two `get_*_modifier` methods; `combat.py` reads and never recalculates. One-shot bonuses (`strategic_combat_bonus`, `counter_punch_ready`, `strategic_defense_bonus`) are consumed inside the modifier call — the battle-report **snapshot must be taken before** consumption. Coordination transient fields are cleared by `_clear_coordination_fields` after every battle (else they leak into the next) and are **never serialized**. The normal path and the `apply_casualties=False` (coordinated) path must keep **identical** outcome thresholds (the 1.5 casualty ratio) and morale formula. *Documented GR1 exceptions — do not "purify":* drill-state clearing lives in `combat.py` for an atomic 4-field reset.
+- **Hunt for.** One-shot bonus consumed twice or snapshotted after consumption (reports 0); a message/preview block **hardcoding a percentage** that drifts from the real math; the two battle paths diverging after an edit to one; a new transient field missing from `_COORDINATION_FIELDS`; eligibility-filter drift across the 4 duplicated filter sites; a Berthier template picked for the wrong side.
+- **Fix on sight.** Serialization gap on a new order/marshal field; a new transient field absent from the cleanup list; missing `int()`; `None`-unguarded optional field; a display string whose percentage no longer matches the single-source math (correct the *string*, not the mechanic); restoring exact numeric parity between the two paths when one was clearly edited and the other missed.
+- **Escalate.** Any balance number (the +25%/+20% cap, 1.75× defense cap, cavalry/square interactions, terrain bonuses, recklessness ladder, `FORCED_RETREAT_THRESHOLD`, the win/loss relationship formula); moving the documented drill-clear exception; changing outcome/morale/casualty logic in a way that shifts results; reworking the Grouchy Rule or reinforcement threshold; **anything touching CR-5 rider-(d) `delegation_attribution` — the `order.target == defender.name` scoping is READ-ONLY, do not "tidy" it.**
+- **Verify.** `pytest tests/ -k "combat or coordination or reinforcement or casualty or square or battle_report"` + `test_serialization_enforcement.py` + full suite (combat ripples widely).
+
+### 6.2 Strategic Orders
+- **Scope.** MOVE_TO / PURSUE / HOLD / SUPPORT: parse, create, per-turn process, strategic objections, interrupts, and the CR-5 delegation-inferred bad-odds gates.
+- **Start at.** `strategic.py` (per-turn processing + per-turn `_inferred_attack_gate`); `strategic_executor.py` (order creation, objection wiring, `_inferred_first_step_gate`); `strategic_parser.py: detect_strategic_command, _classify_target`; `delegation.py: parse_resolved_to_action` (the mode gate). Spec: `COMMAND_ROBUSTNESS_SPEC.md §6`.
+- **Invariants.** Strategic objections use `world.pending_strategic_objection`; tactical use `world.pending_objection` — **never cross them.** (GR5) Strategic movement/attack always routes through `self.executor.execute({... '_strategic_execution': True})` — never mutate `marshal.location/strength` directly. (GR6) Personality bias is **live-LLM-only**: `parse_resolved_to_action` returns `False` for `mode=="mock"`, so mock/fast-parser always degrades to ASK. PURSUE/SUPPORT `order.target` is a **marshal name** — resolve to `target_marshal.location` before pathfinding. Every order-clear must also clear `holding_position=False` + `hold_region=''` together. Every `pending_interrupt` dict **must carry `'marshal': marshal.name`** (else the Godot `/strategic_response` popup 404s). Every auto-attack seam (6+ sites across the two files) passes through a fortification/terrain-aware gate.
+- **Hunt for.** Marshal-name target fed to a pathfinder unresolved; order cleared but hold-state left set (corrupts the literal-hold defense modifier); `new_state` not stripped from a report; a mock resolution slipping past the live-only guardrail; an inferred attack seam **not** routed through the gate; a `pending_interrupt` missing `'marshal'`; the parser title-casing a figurative phrase ("the austrians", "our lines") into a phantom region.
+- **Fix on sight.** Missing `int()` / `new_state` strip / `'marshal'` key / paired hold-clear; a new `StrategicOrder` field not serialized; a raw key in interrupt copy; a `.get(k, default)` on a `None`-able field; a figurative phrase to add to the non-region word lists. *(The phantom-region fix edits parser classification — cross-check it against CR's frozen fast-parser contract; if it touches `DELEGATION_VERBS` / keyword ownership, escalate.)*
+- **Escalate.** The 0.7 favorability threshold or the fortification math; the AP cost (2 strategic / 1 literal); which personality maps to which CR-5 arm or the `AGGRESSIVE_ATTACK_ARM_ENABLED` flag; weakening the mock mode gate; re-homing the autonomous Grouchy Moment into the gate; a new interrupt type or `STRATEGIC_KEYWORDS` change; trust-penalty values.
+- **Verify.** `pytest tests/ -k "strategic or cr5 or command_robustness"` + `test_serialization_enforcement.py` + the live interrupt probe (`"Ney, deal with Mack"` → `pending_interrupt` with a `'marshal'` key).
+
+### 6.3 Command Parsing & LLM Robustness
+- **Scope.** Fast/mock keyword parser → single live-LLM fallback → fuzzy matching → validation → deterministic carryover / clarification / delegation.
+- **Start at.** `parser.py: CommandParser.parse`; `llm_client.py: _parse_with_mock` (order-sensitive), the 0.7 gate, the one-blocking-call guards; `providers.py` (forced tool-use, `LLM_STRATEGIC_ACTION_REMAP`); `validation.py: validate_parse_result` (the anti-hallucination seam); `delegation.py`; `parser_eval.py` + `tests/data/parser_golden_corpus.json`. Spec: `COMMAND_ROBUSTNESS_SPEC.md`, `CR5_IMPLEMENTATION_BRIEF.md`.
+- **Invariants.** (GR6) The LLM only **parses**; carryover, clarification answers, and the literal/neutral/ASK arm are all LLM-free; `flavor` is display-only. **At most one blocking LLM call per request** (`ParseResult.llm_error` must be honored by every recovery path). Mock mode **never** produces a personality bias. Every mock-reachable action has ≥1 golden-corpus entry (the coverage gate fails CI otherwise). `VALID_ACTIONS` is the single source of truth; `validate_parse_result` runs even for `diplomatic_data`. Keyword ordering is load-bearing (specific before generic; `\b` word boundaries). The confidence gate is **0.7**.
+- **Hunt for.** A mock keyword-order regression (a generic `elif` shadowing a specific one); a `None`-unguarded parse field; fuzzy mis-drift on the 126-province map ("Mack"→"La Mancha", "Austrians"→"Asturias"); a second blocking LLM call slipping past `llm_error`; a `diplomatic_data` payload carrying an unlisted action/flag past the allowlist; a carryover false-positive resolving a pronoun in non-object position; a CR-5b flavor line that parrots/names an action/leaks a key.
+- **Fix on sight.** `None`-guard a parse field; add a missing golden-corpus entry for a new action; route a leaking key through `humanize_entity_name`; reorder a shadowed keyword / add `\b` when a corpus entry pins the correct routing; add a missing allowlist entry or thread `llm_error` into a new recovery path; thread a new `ParseResult` field through the `to_dict`/`from_dict`/`parser.py` lift.
+- **Escalate.** The 0.7 / 0.55 gate values; `AGGRESSIVE_ATTACK_ARM_ENABLED` or `classify_arm`/`route_arm` semantics; making mock produce a bias (a GR6 violation — stop); the `DELEGATION_VERBS` allowlist or `LLM_STRATEGIC_ACTION_REMAP` boundary; the model pin (`claude-haiku-4-5`), timeout, or `max_tokens` *(load the `claude-api` skill before advising on Anthropic model/pricing)*; widening what carryover/clarification/delegation resolves autonomously.
+- **Verify.** `pytest tests/ -k command_robustness` + `".venv\Scripts\python.exe" -m backend.ai.parser_eval` (mock corpus gate, expect 0 failures; `--live` with `LLM_MODE=anthropic` for the `live_only` rows) + a delegation ASK probe (`"Soult, deal with Mack"`).
+
+### 6.4 Objection, Defiance, Trust, Authority & Vindication
+- **Scope.** The disobedience stack: V1 objection + V2a (`ConcernLevel` triggers) + V2b defiance, trust values, authority erosion, vindication, and the win/loss relationship formula.
+- **Start at.** `disobedience.py`; `objection_v2.py`; `defiance.py` (chance calc + fallback table + outcomes); `severity.py`; `models/trust.py`; `models/authority.py`; `commands/vindication.py`; `relationship.py`. Specs: `V2B_DEFIANCE_SPEC.md`, `OBJECTION_V2.md`.
+- **Invariants.** Objection is evaluated **only after** action validation and AP check (cross-cutting trap #6). Severity thresholds and the `MAX_OBJECTION_POPUPS_PER_TURN` cascade-breaker are the tuned dials. `Trust`, `AuthorityTracker`, `VindicationTracker` are all serializable classes — full round-trip required. Strategic-order objections use `pending_strategic_objection`; tactical use `pending_objection`. Personality drives objection, not situation (a marshal's `personality_type` is his real character — see the personality-is-character memory).
+- **Hunt for.** Objection fired before validation/AP (the classic "objection then failure" sequence); a serialization gap on trust/authority/vindication; a defiance-chance or authority-erosion **sign** bug; an objection routed to the wrong pending field; a raw objection/defiance reason key reaching the player (needs `_OBJECTION_DISPLAY`/`_DEFIANCE_DISPLAY` in `campaign_log.py`); the `post_objection` handler not covering a new action or strategic routing.
+- **Fix on sight.** Reorder validation/AP before objection when a test pins it; serialization gap; missing display mapping; `None`-guard; a raw reason key leaking to player copy.
+- **Escalate.** Any severity/chance/threshold number, the cascade-breaker count, trust/authority penalty magnitudes, the erosion tiers, or the relationship formula (severity, ordered pairs, cooldown); changing *which* personality objects to *what*; re-deriving a personality fixture pinned at a specific value.
+- **Verify.** `pytest tests/ -k "objection or defiance or disobedience or trust or authority or vindication or relationship"` + `test_serialization_enforcement.py`.
+
+### 6.5 Economy, Vassal, Tactical, Movement & Turn/Action Economy
+- **Scope.** Money/recruit/build/repair, vassal lifecycle & loyalty, stance/drill/fortify, move/scout/retreat, and the per-turn AP economy.
+- **Start at.** `world_state.py: _advance_turn_internal` (AP reset), `_action_costs`, `base_nation_actions`, `consume_action`; `economy_executor.py`; `vassal.py: process_vassal_loyalty`; `tactical_executor.py`; `movement_executor.py`. Spec: `ECONOMY_REVISIT_SPEC.md`.
+- **Invariants.** **EC-0 is LANDED — protect it:** the per-turn AP reset restores each nation from `self.base_nation_actions` (a serialized snapshot), **not** `build_default_nation_actions`; Austria holds 4 AP; treaty `ap_per_turn` penalties apply-then-release each turn and never compound. `world._action_costs` is the only cost table (a missing entry silently defaults to 1 AP; free/variable costs signal via `variable_action_cost` and the main `execute()` applies it — executors don't consume AP themselves). (GR5) build/repair/recruit/garrison charge and validate against the **acting** nation (`command._acting_nation` → `marshal.nation` → `player_nation`), never unconditionally `player_nation`. Region attributes are `income_value` (not `income`) and `adjacent_regions` (not `connections`) — a typo returns a silent default.
+- **Hunt for.** An AP-reset refactor reverting to the legacy builder (re-breaks EC-0); a missing `_action_costs` entry or a double-charged variable cost; acting-nation drift (the 3× copy-pasted resolution block diverging); a region-attribute typo; a vassal-dict key seeded in only one of the two creators; a `None`-unguarded optional field; fortify/stance AP double-accounting.
+- **Fix on sight.** Add a missing `_action_costs`/`variable_action_cost` entry; fix a region-attribute typo; `None`-guard; missing `int()`; vassal-dict serialization gap (seed both creators, `.get` in loyalty reads); raw action/stance string to the player.
+- **Escalate.** Any balance number (`GARRISON_MAX_PER_NATION=3`, upkeep, recruit/building costs, regen rates, loyalty seeds 60/20 + deltas, Austria's 4 AP); the EC-0 mechanism beyond a straight bug-fix; the vassal loyalty formula weights; Continental System (EC-5) or victory/pacing constants (EC-6, the DG-5 contradiction) — user-gated; a new gold sink/income stream (must go through the EC gate **and** appear in `ledger._build_economy` the same slice).
+- **Verify.** `pytest tests/ -k "economy or recruit or garrison or vassal or movement or supply"` (confirm Austria holds 4 AP and penalties release) + `test_serialization_enforcement.py` + `ruff check backend/`.
+
+---
+
+## 7. State, surface & hygiene components
+
+### 7.1 World State, Serialization & Save/Load
+- **Scope.** Game-state model, turn processing, JSON save/load, and the round-trip contract.
+- **Start at.** `world_state.py: to_dict / from_dict / from_scenario`; `test_serialization_enforcement.py` (the gate + `KNOWN_EXCLUSIONS`); `save_manager.py` (`FORMAT_VERSION`, atomic write, post-load transient clear + `calculate_visibility`); `region.py`, `marshal.py` serializers. Doc: `SAVE_FORMAT_REFERENCE.md`.
+- **Invariants.** Cross-cutting traps #1, #2, #3, #9 land hardest here. Fog is computed in `from_scenario` and `save_manager.load_game`, **not** `from_dict` (pinned by `test_fog_of_war` backward-compat). `sovereign_map` is the single source for map-derived state (`nation_capitals` is rebuilt by `__init__`, legitimately **not** serialized — do not "fix" it into `to_dict`). Transient per-turn state (`battles_this_turn`, `gold_spent_this_turn`, …) is cleared on load. Renamed save keys need a load-side alias. `Region.__init__` defensively copies `adjacent_regions`.
+- **Hunt for.** A new field in only one of `to_dict`/`from_dict`; the `.get` None-trap in a `from_dict` body; a float in a serialized numeric bound for Godot; the fog refresh misplaced into `from_dict`; a renamed key with no migration alias; transient state persisted or not cleared; shared mutable data referenced instead of copied.
+- **Fix on sight.** Add the missing serialization entry (+ `SAVE_FORMAT_REFERENCE.md` row); `None`-safe restore; missing `int()`; a `.copy()`/`deepcopy` on a nested field; strip `new_state` in a new POST handler.
+- **Escalate.** `FORMAT_VERSION` bump; adding a `KNOWN_EXCLUSIONS` entry (a transient-vs-durable design call); moving where fog is computed or the boot precedence; altering a documented default (gold 800/1200, honor bias, garrison tiers, manpower pools); changing legacy-save migration behavior.
+- **Verify.** `pytest tests/ -k "serialization or save or fog_of_war"` + the round-trip smoke (`WorldState.from_dict(w.to_dict()).to_dict() == w.to_dict()`) + full suite.
+
+### 7.2 Fog of War & Intel
+- **Scope.** The `RegionIntel` visibility model, Berthier intel report, and the player-facing-vs-omniscient query seam.
+- **Start at.** `intel.py` (the 5-tier ladder, `refresh` only-upgrades, `decay` never queries live data, `STRENGTH_BANDS`); `world_state.py: calculate_visibility, get_visible_enemies` vs `get_enemies_of_nation`; `intel_report.py`. Spec: `FOG_OF_WAR_SPEC.md`.
+- **Invariants.** (GR6) Fog filters **display only** — combat/interrupts/pathfinding-into-a-region use omniscient queries; the only sanctioned mechanic exceptions are cautious-pathfinding avoidance and PURSUE/SUPPORT last-known. **Player-facing queries must use `get_visible_enemies()` / `get_visible_enemies_in_region()` (PARTIAL+); `get_enemies_of_nation()` is omniscient and leaks** — permitted only for AI/combat/serialization, behind a `nation == player_nation` branch. Exact numbers only at FULL; PARTIAL/STALE → band only; LAST_KNOWN → age only; UNKNOWN → controller/terrain (public). `refresh` only upgrades; `decay` only downgrades and never reads live data. Own marshals always fully visible.
+- **Hunt for.** A player-facing path calling the omniscient query (the #1 fog bug); `refresh`/`decay` confusion (decay reading live data, or a transit refresh clobbering a scout FULL); a strength-band `<=`/`<` off-by-one; ephemeral `marshal_present` FULL not downgraded when the marshal leaves; a `RegionIntel` serialization gap (note `exact_strength/morale/stance` are legitimately `None` — use plain `.get()` there).
+- **Fix on sight.** Swap an omniscient player-facing call to the fog-safe one behind the `player_nation` branch; a band-boundary **direction** error (mechanical); strip exact numbers from a PARTIAL/STALE/LAST_KNOWN report branch; a `RegionIntel` serialization gap; a raw visibility/band/source key to the player.
+- **Escalate.** Any threshold/timeline (`FRESH_TURNS=2`, `STALE_TURN_START=3`, `LAST_KNOWN_TURN_START=5`) or a **band cutoff number**; making the AI fog-aware (deferred design call); extending fog to a new mechanic; reworking the refresh/decay split or `intel_grants` contract; relocating `calculate_visibility`/`decay_intel` in the turn pipeline.
+- **Verify.** `pytest tests/ -k "fog or intel or watchtower"` + `test_serialization_enforcement.py::TestRegionIntelSerializationEnforcement` + a `status` curl (recent reports carry `strength_band`+`turns_ago`, never raw strength/morale).
+
+### 7.3 Enemy AI
+- **Scope.** The P0–P8 decision tree, the enemy/autonomous end-turn phase, and the shared-executor / AP-isolation / fog boundaries.
+- **Start at.** `enemy_ai.py: process_nation_turn, _get_enemy_contacts, _execute_action` + the indexed helpers; `turn_manager.py: _process_enemy_turns, _process_autonomous_marshals, _check_enemy_victory`; `executor.py: is_ai_command / is_player_action_check`. Doc: `ENEMY_AI_REFERENCE.md`.
+- **Invariants.** (GR5) Every enemy/autonomous action runs through `executor.execute()` — no separate enemy combat/movement code. **AP isolation:** an enemy/admin/autonomous action must never consume the player's pool (`is_ai_command` + `is_player_action_check`, duplicated in two executor sites, must stay in sync). `game_state` is `{'world': WorldState}` (trap #10). (GR8) No raw region scans in the loop — indexed/cached helpers, memoized per `(nation, turn)`. Whatever the AI knows internally, enemy-phase events surfaced to the player pass the `campaign_log` PARTIAL+ filter. The phase is resilient (a per-nation crash is caught, not fatal); cooldowns decrement once per turn.
+- **Hunt for.** An AP-isolation break (turn "advances too fast"); a fog leak (omniscient result becoming player-visible, or an event bypassing the campaign-log filter); a bare-`WorldState` `game_state`; oscillation loops (fortify↔unfortify, advance↔retreat, attack-on-impregnable-fort) from a new handler ignoring the stagnation/cooldown/futility guards; a new AI action leaking its raw name; a GR8 scan regression; double-advance / stale end-turn.
+- **Fix on sight.** Add a missing `action_display_names` entry (+ `display_names.py`); missing `int()`; the same mechanical `is_ai_command` guard on a new cost path when a test pins it; a free-action/cost-list consistency fix; swap a stray scan for the cached helper; `None`-guard a handler that crashes the per-nation loop.
+- **Escalate.** Any `ATTACK_THRESHOLD`/`SURVIVAL_THRESHOLD`/priority number; adding/reordering a priority handler; flipping the fog seam; victory/defeat thresholds; the admin-phase economy priority chain; anything cross-cutting the `_acting_nation`/`is_ai_command` contract.
+- **Verify.** `pytest tests/ -k "enemy_ai or ai_scoring or ai_garrison or ai_admin or ai_bombardment or ai_coordination"` + `test_scale_readiness_phase2.py` (the GR8 tripwire) + an `end turn` curl (human-readable action names, no floats). *Note: the autonomous-marshal path runs the same tree aligned to `player_nation` — a fix must not break it.*
+
+### 7.4 Diplomacy, Coalition & Memory/Pressure
+- **Scope.** The diplomacy engine, AI proposals + counter-offers, coalitions/hegemony, vassals-as-diplomacy, commitments/betrayal memory, named-diplomat voice.
+- **Start at.** `diplomacy.py: calculate_acceptance, get_war_score_for, validate_transition, declare_war` (grep — ~8.8k lines); `ai_diplomacy.py: process_diplomatic_phase, generate_counter_offer`; `coalition.py: get_coalition_loyalty_penalty, add_threat`; `diplomatic_templates.py: NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, resolve_named_diplomat`; `diplomatic_dialogue.py: get_known_nations`. Specs: `COALITION_SPEC.md`, `RELIABILITY_COMMITMENTS_SPEC.md`, `DIPLOMAT_VOICE_BIBLE.md`.
+- **Invariants.** **Diplomacy has NO fog** — never add `get_visible_enemies`/intel gating to a diplo path. `calculate_acceptance()` is the single source of the acceptance score (AI + settlement **call** it, never re-derive; tests patch the scorer at `settlement_scoring.calculate_common_peace_acceptance`). (GR5) AI-AI and AI-player run the same validation. Nation loops **exclude the player nation** from adversarial math. Nation sets are **dynamic** (`get_active_nations()` / `get_known_nations(world)`, never the static `KNOWN_NATIONS` constant — the live roster is 20 nations). Adding a nation is a **data contract** (`_DIPLOMAT_DEFINITIONS` + `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY`). Every critical-beat foreign-diplomat line resolves through `resolve_named_diplomat()` (named voice or "The Chancery of X" fallback — never anonymous). Rejection cooldown keys on `proposal['proposal_type']`, not the rewritten `terms['type']` (`harsh_peace`→`peace`).
+- **Hunt for.** A **sign / min-max inversion** (the canonical prior offender); a static-vs-dynamic nation set silently skipping the 15 Europe nations; a nation with a diplomat but no desire/commentary row (empty proposals, lost voice); a cooldown keyed on the rewritten `terms['type']`; an acceptance-formula divergence between preview and send; a float/`None` leaking to Godot; an anonymous-voice regression.
+- **Fix on sight.** A raw nation key in player copy; a serialization gap; a **missing** `NATION_DESIRE_PROFILES` / `('_default', tag)` commentary entry for a nation that already has a diplomat (additive data); missing `int()`; a `None`-unguarded diplomat lookup; an `envoy`/`foreign_office` template skipping the resolver; a static-set read where the dynamic helper is correct.
+- **Escalate.** Any balance number (acceptance formula, threat table, loyalty base, war-exhaustion caps, proposal/counter thresholds); a documented invariant (P-rule order, the score≥20 gate, the `harsh_peace`→`peace` remap, the cooldown key); adding fog to a diplo path; the scorer-seam signature; **a suspected sign bug whose corrected direction changes AI behavior — confirm against the spec first**; the DG-4 Russia honor bias (1.1), hegemony bands (33/50/60), or bloc-naming reveal gate. *(The 15 Europe nations run on chancery-fallback voice by design — a generic chancery voice is NOT a bug.)*
+- **Verify.** `pytest tests/ -k "diplomacy or diplo or coalition or ai_diplomacy"` + `test_serialization_enforcement.py` + `ruff check backend/game_logic/` + an `end turn` curl (incoming proposal has int scores + a resolved diplomat name).
+
+### 7.5 Settlement / Peace package
+- **Scope.** The strictly-layered Imperial Settlement package (routes→validation→baseline→staging→ratify→actions→offers) + the `settlement_preview.py` re-export door.
+- **Start at.** `settlement_preview.py` (**read first** — the layer contract + scorer seam are in its docstring); `settlement_actions.py: handle_settlement_dialogue_action, _enforce_settlement_response_shape`; `settlement_ratify.py: ratify_settlement_confirm`; `settlement_validation.py: validate_settlement_terms`; `settlement_baseline.py: compute_settlement_baseline, compute_per_court_acceptance`. Specs: `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`, `SETTLEMENT_GUIDED_TERMS_SPEC.md`.
+- **Invariants.** **Strict layering** — each module imports only *lower* layers; the only upward edges are two documented *lazy* (function-level) imports of `settlement_offers`. `settlement_preview.py` holds **no logic** (pure re-export). **Scorer seam:** every call resolves `settlement_scoring.calculate_common_peace_acceptance` *late* via the module attribute — never a bare imported name (so test patches land). (GR8) No per-region scans in the per-court loops (use cached `get_nation_regions()`). **Valid-by-construction** at the draft store — a system-authored baseline can never stage a package the validator would bounce. **Per-court ratification gate:** ratifies only when every covered court's total ≥ threshold with no hard-stops. **Player surface = F1 wizard / war detail** — typed `propose common peace` is debug-only. **The arc is COMPLETE** (SC-32 closed, freeform editor retired, enemy-offer WAITING removed).
+- **Hunt for.** A scorer call by bare name instead of the late-bound attribute; a top-level import reaching a higher layer (circular import); a blocked/failed dialogue arm returning bare `success=False` with no `diplomatic_dialogue` re-attach (orphaned popup); a raw refusal/error code with no display map; cross-court budget double-spend or a region promised twice; staged terms outliving the state they were validated against; a dial/seed producing a silent dead-click.
+- **Fix on sight.** Missing `int()`; a refusal/error code with no display entry or a raw key to the player; `None`-unguarded clause field; a failed arm missing re-attach/`error_display` (route through `_enforce_settlement_response_shape`); a bare-name scorer call → the attribute form; a mechanically wrong import direction (repoint to the true home). *(Do not let a re-attach fix drift into re-opening retired editor/enemy-offer affordances.)*
+- **Escalate.** Any threshold/constant (`LOSING_SIDE_PRESSURE_THRESHOLD`, `CONCESSION_BASELINE_*`, dial gold step, gold-per-turn bounds, reopen max, cooldowns); the per-court gate semantics or acceptance-band logic; re-introducing the freeform editor / enemy-offer WAITING / any closed-arc surface; the refusal-code taxonomy or disabled-vs-hidden policy; adding/removing a clause type or the V1–V5 cross-court rules; relaxing a defense-in-depth gate (ratify-time revalidation, the 90-war-score cede guard); the two lazy upward-import edges.
+- **Verify.** `pytest tests/ -k settlement` (~40 files) + `".venv\Scripts\python.exe" -c "import backend.game_logic.settlement_preview"` (import smoke catches layer/circular regressions).
+
+### 7.6 Godot Frontend & Backend↔Godot Wiring
+- **Scope.** FastAPI response formatting → `api_client.gd` transport → `main.gd` routing → popups, and internal→display translation.
+- **Start at.** `main.py: build_base_response, _build_result_response, _include_popup_passthroughs`; `main.gd: _on_command_result, _route_proposal_confirm_response` + the dtype-whitelist consts; `display_names.py`; `utils.gd: display_nation_name, humanize_nation_keys_in_text, format_number`; `dialog_manager.gd`. Doc: `TOP_BAR_SPEC.md`, the add-a-popup pattern in `CLAUDE.md`.
+- **Invariants.** Cross-cutting traps #3, #4, #7, #8, #9 are the spine here. (GR7) Port **8005** in both `main.py` and `api_client.gd`. Every POST handler funnels through `build_base_response()` (structural popup/notification/`active_wars` guarantee). Every `@onready` node path in a `*_popup.gd` matches its `.tscn` exactly. camelCase marshal names are humanized **backend-side** (Godot humanizes nations only). The two nation maps stay in sync.
+- **Hunt for.** A popup not showing because an endpoint bypassed `build_base_response`; a new dialogue type rendering as a bare line (missing dtype whitelist / `proposal_result_popup`); a raw camelCase/enum key to the player; a float reaching Godot; an `@onready` null crash or a popup missing from `dialog_manager.register()`; the `.get` None-trap at the seam; an endpoint assumed broken when the response shape is wrong (curl it).
+- **Fix on sight.** Add a missing display entry (mirror nation keys into `utils.gd`); wrap a numeric field in `int()`; convert a hand-built dict to `build_base_response`; add a missing dtype / settlement-action string; fix an `@onready` path / add a `dialog_manager` registration; `(d.get(k) or default)`; strip `new_state`.
+- **Escalate.** Changing a player-facing **display string** (voice/copy is spec-owned); adding a genuinely new popup/dialogue/response contract (full checklist + likely design gate); altering `PopupQueue` priority or the `RESPONSE_KEYS` set; a balance value that flows through the seam; the fog redaction filter; any blessed-scope spec surface even if it looks like a display tweak.
+- **Verify.** `pytest tests/ -k "display_contract or response or endpoint or popup or wiring or response_shape"` + `test_serialization_enforcement.py` + an `end turn` curl (ints, no raw keys, popup keys present/None, no `new_state`).
+
+### 7.7 Shared substrate, read-models, modding & config
+> Several subsystems are depended on by many components but owned by none. Audit them as one pass, applying the cross-cutting traps.
+- **Managers.** `cooldown_manager.py` (5 auto-decrement cooldowns — decrement **once per turn**; `PopupQueue` 7-priority, pop-highest clears from world), `dialogue_manager.py` (PL-27 taxonomy — **only HARD_STOP dialogues block commands**; `clear_stale` timeout; round-trip serialization). *Hunt:* a cooldown decremented per-nation instead of per-turn; a non-hard-stop dialogue wrongly blocking; a dialogue-state serialization gap.
+- **Notifications & Campaign Log.** `notifications.py` (priority order, collector/dismiss lifecycle, passthrough), `campaign_log.py` (the **PARTIAL+ fog redaction** of the event log, the `CAMPAIGN_LOG_TYPES` whitelist, `format_event_oneliner`, and the `_OBJECTION_DISPLAY`/`_DEFIANCE_DISPLAY` maps). *Hunt:* a new event type not in the whitelist/formatter; a fog leak in the log filter; a raw reason key in a one-liner; a dismiss-state serialization gap.
+- **Read-model builders.** `dispatch.py`, `ledger.py`, `marshal_overview.py`, `intel_report.py`, `diplomatic_advisory.py` — each is a **fog-filtered** turn-start/briefing view. *Hunt:* an omniscient query in a player-facing builder (fog leak); a missing `int()`; a raw key not humanized. *(These share the fog + display traps but have no scoring/mechanics of their own — mostly fix-on-sight territory.)*
+- **Save lifecycle.** `save_manager.py` autosave trigger, atomic temp-rename write, save-slot management, the post-load `calculate_visibility` call. *Escalate:* atomic-write/slot lifecycle changes.
+- **Modding & config.** `modding/validator.py` (the mod-input trust boundary — `validate_scenario/marshal/region`, `region_overrides`, custom-AP `base_nation_actions` safety, clear-error contract), and the boot precedence / `SOVEREIGN_SCENARIO` env parsing; `.env` `LLM_MODE=mock|anthropic|groq` (`groq` is an unimplemented stub that degrades to fast-parser). *Hunt:* a malformed mod accepted silently or crashing instead of a clear message; a `groq` path assumed live. *Escalate:* the boot-precedence contract (pinned by CLAUDE.md load-bearing facts).
+- **LLM provider seam.** `providers.py` forced tool-use (`PARSE_TOOL` + `tool_choice`, brace-extraction fallback), the never-raise error contract, `LLM_MODE` routing. *(Behavior is owned by §6.3; audit here only the dispatch/degrade plumbing.)*
+- **Verify.** `pytest tests/ -k "cooldown or dialogue_manager or notification or campaign_log or dispatch or ledger or marshal_overview or advisory or modding or validator"` + `test_serialization_enforcement.py`.
+
+### 7.8 Scale-Readiness, Performance & Repo Hygiene
+- **Scope.** Guards GR8 (no hot-path region scans) and GR9 (no unowned deferrals), and keeps STATUS/ROADMAP/CLAUDE.md truthful.
+- **Start at.** `test_scale_readiness_phase2.py` (the source-pin on 7 hot paths + the 2×/15× tripwires + the cross-world memo-leak pin); `world_state.py: get_active_nations, get_nation_regions, invalidate_active_nations_cache`; `enemy_ai.py: _get_strategic_enemy_regions, _reset_enemy_query_cache`; `scripts/git-hooks/pre-commit`; STATUS/ROADMAP/CLAUDE.md.
+- **Invariants.** `get_nation_regions()` is the only sanctioned full-region scan (per-turn cached). Every controller mutation calls `invalidate_active_nations_cache()`. Per-`(nation, turn)` memos must reset with **world scope**, not just turn-number match (two worlds collide at the same turn). Tripwires are **relative** (bare-Europe ≤ 2× legacy, campaign ≤ 15×), never absolute ms. (GR9) Every deferral has an owner row + landing + completion + STATUS line + test. STATUS/ROADMAP/CLAUDE.md agree on test count and current phase. **The pre-commit gate is the sole sign-off.**
+- **Hunt for.** A new per-turn scan bypassing the cached helper; a controller-mutation seam missing the invalidation call; a memo keyed without world identity; the distance cache invalidated on a controller flip (it's adjacency-topology-only) or not invalidated on a real adjacency edit; doc drift (the audit found `STATUS.md` pinning `11538` while CLAUDE.md/CR-5 entries cite `11710`); a GR9 placeholder without an owner.
+- **Fix on sight.** Rewrite a regressed scan through the cached helper; add the missing `invalidate_active_nations_cache()` call; hook a new memo into the scope reset; reconcile doc-count/phase drift to the **verified** current value (re-run the suite first); wire a GR9 placeholder to its existing owner row or delete dead placeholder copy; add a missing checklist-required pin test.
+- **Escalate.** Loosening a tripwire threshold to make a slow change pass; deleting a source-pin (weakens GR8); a new global cache or a changed invalidation contract; deferring player-facing work where **no** owner row exists yet (the owner contract must be authored by the user); any balance value or user-gated spec item; bypassing/altering the pre-commit gate.
+- **Verify.** `pytest tests/test_scale_readiness_phase2.py -v` + `ruff check backend/` + the **full suite** (this is the number STATUS/CLAUDE.md must match).
+
+### 7.9 Map & Rendering
+- **Scope.** The 126-province 1805 Europe map: the `europe.json` registry, `create_europe_regions()`, the `/map_topology` backend↔Godot handoff, and the Godot renderer chain (bitmap art, owner-fill/fog palette, labels, sea-link connection lines, hover/click hit-testing).
+- **Start at.** `region.py: create_europe_regions` (lru-cached; builds the live world from the registry); `main.py: /map_topology`; the registry `godot-client/project-sovereign/assets/maps/europe.json`; the renderer chain `map_renderer_base.gd → europe_map.gd → map.gd` (+ `map_label_layer.gd`, `map_connection_layer.gd`, `map_tooltip_layer.gd`); `utils.gd: NATION_COLORS`. Docs: `MAP_IMPLEMENTATION_PLAN.md`, `MODDING_FORMAT.md` (`region_overrides`).
+- **Invariants.** The registry `europe.json` is the **single source** for BOTH the renderer and `create_europe_regions()` — it is `lru_cached`, so **restart the server after editing it.** `adjacent` = walkability (~250 edges, *includes* the 18 sea links); `sea_links` = the drawn dashed routes only — **distinct keys, distinct meaning.** `/map_topology` is the single source of adjacency shared backend↔Godot; the renderer **must not re-hardcode adjacency or positions** (positions come from registry anchors). Per-turn state (controller, marshals, fog) rides `game_state.map_data`, **not** `/map_topology` (which serves only authored scenario data). (GR2) `grid_position` and every topology number are `int()`-wrapped at the endpoint. Nation colors come from `Utils.NATION_COLORS` only — never defined locally in `map.gd`. `Region.__init__` defensively copies adjacency (no shared-`REGIONS_DATA` pollution). Fog renders through the owner-fill palette; unwired provinces (§4.4) render flat grey ("not yet in play"). Region keys are humanized (`Region_NNN`→name re-key; R7).
+- **Hunt for.** The renderer re-hardcoding adjacency/positions instead of consuming `/map_topology` (backend graph and render drift apart); `adjacent` vs `sea_links` conflated (walkability drawn as a dashed route, or a sea link treated as impassable); a registry province with no grid anchor (renders at `(0,0)`) or no display-name mapping (raw `Region_NNN` / stuck grey-unwired); a topology numeric not `int()`-wrapped; a nation color defined locally in `map.gd`; a stale `lru_cache` after a registry edit with no server restart (the "my change didn't take" symptom).
+- **Fix on sight.** Missing `int()` on a topology field; a raw `Region_NNN`/camelCase key reaching the renderer or a tooltip instead of the display name; a nation color defined locally → route to `Utils.NATION_COLORS`; the renderer reading a hard-coded adjacency where the `/map_topology` payload is the contract (repoint it) when a test/contract pins it; a registry province missing its grid anchor or display mapping.
+- **Escalate.** Editing the registry adjacency / `sea_links` / DEF-7 cuts (hand-authored — **never** regenerate via `build_region_key_from_psd.py --adjacency-only`, which clobbers the sea-link folds; a graph change is a scenario-design decision); adding/removing a province or nation (touches `create_europe_regions` + roster + colors + capitals + modding); the boot precedence or default scenario; camera/letterbox/zoom-LOD constants (playtested visual tuning — DEF-9); the deferred map-modes work (DEF-12, gate-owned) or the UI-scale mini-pass (DEF-13).
+- **Verify.** Backend: `curl http://127.0.0.1:8005/map_topology | python -m json.tool` (126 regions, adjacency present, `grid_position` ints, `nation_capitals` populated); `".venv\Scripts\python.exe" -c "from backend.models.region import create_europe_regions as f; print(len(f()))"` (registry loads → 126); `pytest tests/ -k "map or topology or region_key or adjacency or terrain_path or color_map"`. Renderer correctness is an **eyes-only visual pass** — launch the Godot client (`Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`) and confirm owner fills, fog, labels, and sea-link lines render without drift (the Gate-4 visual-half style check).
+
+---
+
+## 8. Creative / systems & fun-factor audit (a different mode)
+
+> **This pass works differently from §5–§7.** Those find correctness defects and fix them in place. This one judges whether the game is actually *good* — fun, coherent, legible — and its output is a **scored assessment + prioritized recommendations, not autonomous edits.** Almost everything here is an **escalation by definition**: fun, balance, pacing, and voice are user- and spec-owned. You fix inline **only** (a) a trivial legibility slip (a typo, a raw internal key in prose) and (b) a confirmed *silent failure* (a violation of "every input gets a response" — that is a correctness bug; route it to the owning §5–§7 component). Everything else becomes a written finding.
+
+**Judge against the north star** (`VISION.md`): talk-to-your-generals; disobedience-as-negotiation; personality-driven drama (the Grouchy Moment); the three layers of agency (advisors / marshals / nations); "LLMs explain, react, color — they never cause"; Building Blocks (player and AI share systems); personality over randomness; "every input gets a response, no silent failures."
+
+**Take the outsider's seat.** Play as a player who does **not** know the internals. Run the real loops **live** (`LLM_MODE=anthropic` if a key is present, else `mock` — **note which**, since mock flattens the personality/flavor layer and mutes CR-5/5b): issue orders; provoke an objection; delegate (`"Ney, deal with Mack"`); fight a battle and read the Berthier report; open the F1 diplomacy wizard; run a proposal and a settlement; end several turns. Record friction, delight, and confusion as you go — don't reconstruct from memory.
+
+- **Fun & strategic quality.** Does command→response feel satisfying and always talk back? Do marshal personalities create *interesting decisions* vs. friction-for-its-own-sake (personality = character, not situation)? Do war / diplomacy / economy / objections produce real tradeoffs, or is one dominant (known live smell: parser attack-bias + defender-favoring combat funnels play into a meat-grinder)? Are losses fair-and-legible or arbitrary/opaque? Does the game generate *memorable* situations (the Grouchy Moment, character clashes) vs. repetitive chores?
+- **Coherence & legibility.** Do the mechanics reinforce the Napoleonic command fantasy? Are there dominant strategies that flatten choice? Can a player form a plan from what the UI exposes, at the right time? Is voice consistent with the Voice Bible register — does the game feel like *people, not calculators*?
+- **Systems pulling their weight.** Flag anything present-but-inert: the 21-marshal roster ships with no abilities/skills/relationships (Marshal Content Pass — user-gated); coalition posture historically calculated-but-unused; the MC-0 ability-display bug. **Naming these is this pass's highest-value output.**
+
+**Triage every finding into exactly one bucket:** (a) trivial legibility → fix inline; (b) confirmed correctness / silent-failure bug → route to the owning §5–§7 component's fix-as-you-find; (c) design / balance / pacing / voice → **escalate** (a written recommendation, no code change).
+
+**Output.** A scored creative memo — score each pillar/system and name the single highest-impact improvement per area (prior art: the GPT audit scored diplomacy 6.5/10) — written to a dated `docs/audits/CREATIVE_AUDIT_<YYYY_MM_DD>.md` and cross-linked from the findings log (§9), with the design items also filed into `docs/DESIGN_REFINEMENT.md`. Do **not** apply design changes; they need the user's design gate.
+
+**Deeper reading.** `VISION.md`, `GPT_AUDIT_PLAN.md`, `DESIGN_REFINEMENT.md`, `DIPLOMAT_VOICE_BIBLE.md`, `MANUAL_TEST_PLAN.md`, `TUTORIAL_SCRIPT.md`.
+
+---
+
+## 9. Recording findings
+
+Keep a running log at `docs/audits/AUDIT_<YYYY_MM_DD>.md`. Two sections:
+
+**Fixes applied** — one row each:
+`Component · defect (one line) · fix (one line) · test added/extended · commit SHA`
+
+**Escalations** — one block each:
+```
+### [Component] <one-line finding>
+- Evidence: file:function + what the code does vs. what should hold
+- Why escalated: (balance number / invariant / cross-cutting / behavior-changing sign bug / closed scope)
+- Options: A … / B …
+- Recommendation: <your pick + why>
+```
+
+**Final report** (end of the audit): components swept; total fixes by category; open escalations awaiting a decision; the final full-suite count + ruff status; and any component you could not fully sweep (with why — "no silent caps": say what was left).
+
+---
+
+## 10. Suggested order of passes
+
+Foundation first (a bug here corrupts everything downstream), surface next, hygiene as the closing gate, then the creative pass on a known-green build:
+
+1. **World State / Serialization** (§7.1) — the round-trip contract underpins every other component.
+2. **Combat** (§6.1) → **Strategic Orders** (§6.2) → **Parsing** (§6.3) → **Objection stack** (§6.4) — the core command→resolution loop.
+3. **Economy/AP** (§6.5) → **Enemy AI** (§7.3) → **Fog** (§7.2) — the turn engine.
+4. **Diplomacy** (§7.4) → **Settlement** (§7.5) — the largest, most spec-gated systems (most escalations will land here).
+5. **Godot wiring** (§7.6) → **Shared substrate / read-models** (§7.7) → **Map & rendering** (§7.9) — the player-facing surface.
+6. **Scale & hygiene** (§7.8) — the closing sweep: hot-path check, doc reconciliation, and a clean full-suite sign-off.
+7. **Creative / fun-factor audit** (§8) — the capstone assessment pass, run on a **known-green build** so play-feel isn't muddied by live bugs. Output is a scored memo + escalations, not fixes.
+
+Fastest early wins across all of them: the cross-cutting traps in §5 — a single grep for `.get(` on `None`-able fields, un-`int()`'d response numbers, raw camelCase in prose, and new fields missing from `to_dict`/`from_dict` will surface most of the safe fixes before you even open a component's own defect list.
