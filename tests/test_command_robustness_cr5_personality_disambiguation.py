@@ -60,6 +60,7 @@ from backend.commands.objection_v2 import inferred_attack_favorable
 from backend.commands.strategic import StrategicOrderProcessor
 from backend.commands.strategic_executor import StrategicExecutor
 from backend.ai.prompt_builder import build_parse_prompt
+from backend.display_names import humanize_entity_name
 from backend.models.marshal import StrategicOrder
 from backend.models.world_state import WorldState
 
@@ -680,13 +681,26 @@ class TestFirstStepLethalGate:
 
     def test_exactly_one_modal_no_stacked_objection(self):
         # Aggressive marshals don't self-object to attacks, so the bad-odds
-        # confirm is the ONLY modal — no objection stacked on top.
+        # confirm is the ONLY modal — no objection stacked on top. Assert across
+        # the REAL modal channels (the world objection fields an objection would
+        # actually be raised on), not just an "objection" key this helper can
+        # never set (audit F5 — the prior assertion was vacuous).
         se, ney, wellington, world, game_state = self._setup(inferred=True)
+        # Pre-state: no objection pending on any channel.
+        assert getattr(world, "pending_objection", None) is None
+        assert getattr(world, "pending_strategic_objection", None) is None
         with _suppress_output():
             result = se._handle_first_step_blocked(
                 ney, [wellington], "Belgium", world, game_state)
-        assert result.get("objection") is None
+        # The ONE modal: the bad-odds confirm interrupt.
         assert result.get("requires_input") is True
+        assert ney.pending_interrupt is not None
+        assert ney.pending_interrupt.get("interrupt_type") == "contact_bad_odds"
+        # No SECOND modal was raised on ANY real channel.
+        assert result.get("objection") is None
+        assert result.get("diplomatic_dialogue") is None
+        assert getattr(world, "pending_objection", None) is None
+        assert getattr(world, "pending_strategic_objection", None) is None
 
 
 class TestAttackOnArrivalLethalGate:
@@ -1202,3 +1216,253 @@ class TestGrouchyMomentScopeBoundary:
         ney.strategic_order = None      # the redirect nulls it before attacking
         proc = StrategicOrderProcessor(CommandExecutor())
         assert proc._inferred_attack_gate(ney, wellington, game_state) is None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# AUDIT FIXES (July 7, 2026 whole-slice audit — L1 live + F1–F6)
+# ═══════════════════════════════════════════════════════════════════
+
+class TestInterruptCarriesMarshalName:
+    """AUDIT (live, high): the CR-5 first-step bad-odds gate surfaces the STORED
+    interrupt dict to the Godot popup on the SYNCHRONOUS response.pending_interrupt
+    path. The popup answers via /strategic_response, reading the marshal from
+    ``interrupt_data.get("marshal")``. If the stored dict omits that key the popup
+    sends the literal "Marshal" and handle_response 404s ("Marshal 'Marshal' not
+    found") — Confirm/Hold/Cancel is DEAD on the signature Phase-4 surface. Assert
+    every gate builder stamps the acting marshal, and that the name it stores lets
+    handle_response FIND the marshal end-to-end."""
+
+    def _fortified_superior(self):
+        world = _legacy_world()
+        gs = {"world": world}
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+        ney.location = wellington.location = "Belgium"
+        ney.strength = 42000
+        wellington.strength = 54000
+        wellington.fortified = True
+        wellington.defense_bonus = 0.16
+        world.diplomatic_states[
+            world._make_diplo_key(ney.nation, wellington.nation)] = "WAR"
+        order = StrategicOrder(
+            command_type="PURSUE", target="Wellington", target_type="marshal",
+            started_turn=1, original_command="Ney, deal with Wellington",
+            delegation_inferred=True)
+        ney.strategic_order = order
+        return world, gs, ney, wellington
+
+    def test_first_step_gate_stores_marshal_name(self):
+        world, gs, ney, wellington = self._fortified_superior()
+        se = StrategicExecutor(CommandExecutor())
+        gate = se._inferred_first_step_gate(ney, wellington, gs)
+        assert gate is not None
+        # The stored dict (what response.pending_interrupt carries) names Ney.
+        assert ney.pending_interrupt["marshal"] == "Ney"
+
+    def test_per_turn_gate_stores_marshal_name(self):
+        world, gs, ney, wellington = self._fortified_superior()
+        proc = StrategicOrderProcessor(CommandExecutor())
+        gate = proc._inferred_attack_gate(ney, wellington, gs)
+        assert gate is not None
+        assert ney.pending_interrupt["marshal"] == "Ney"
+
+    def test_blocked_path_gate_stores_marshal_name(self):
+        world, gs, ney, wellington = self._fortified_superior()
+        # Mid-path block (marshal still en route): the aggressive bad-odds branch.
+        ney.location = "Paris"
+        ney.strategic_order.path = ["Belgium", "Rhineland"]
+        se = StrategicExecutor(CommandExecutor())
+        with _suppress_output():
+            result = se._handle_first_step_blocked(
+                ney, [wellington], "Belgium", world, gs)
+        assert result.get("requires_input") is True
+        assert ney.pending_interrupt["marshal"] == "Ney"
+
+    def test_stored_marshal_name_resolves_in_handle_response(self):
+        # The exact round-trip the live bug broke: the marshal name the popup
+        # reads from the stored dict must let handle_response FIND the marshal
+        # (never "Marshal 'Marshal' not found").
+        world, gs, ney, wellington = self._fortified_superior()
+        proc = StrategicOrderProcessor(CommandExecutor())
+        gate = proc._inferred_attack_gate(ney, wellington, gs)
+        assert gate is not None
+        answer_marshal = ney.pending_interrupt["marshal"]   # what the popup sends
+        with _suppress_output():
+            res = proc.handle_response(
+                answer_marshal, "contact_bad_odds", "hold_position", world, gs)
+        assert "not found" not in (res.get("message") or "").lower()
+        assert res.get("success") is True
+
+
+class TestDelegationAddressCommaOptional:
+    """AUDIT F1: "Marshal Soult deal with Mack" (no comma — the most natural
+    English phrasing of the exact affordance CR-5 exists to honor) must resolve
+    the SAME as the comma form. ``get_marshal`` validates the captured word, so
+    the relaxed comma cannot manufacture a false delegation."""
+
+    @pytest.mark.parametrize("raw", [
+        "Marshal Soult, deal with Mack",
+        "Marshal Soult deal with Mack",
+        "Soult, deal with Mack",
+        "Soult deal with Mack",
+    ])
+    def test_address_forms_all_detect(self, world1805, raw):
+        m = detect_delegation(world1805, raw, None)
+        assert m is not None, f"{raw!r} should resolve a delegation to Soult"
+        assert m.marshal == "Soult"
+        assert m.target == "Mack"
+
+    def test_non_marshal_first_word_is_not_a_false_delegation(self, world1805):
+        # "handle the situation" — a delegation verb but NO marshal addressed and
+        # no resolvable target -> None (falls through, no phantom order).
+        assert detect_delegation(world1805, "handle the situation", None) is None
+
+
+class TestDelegationCopyHumanizesEnemyKeys:
+    """AUDIT F3: a camelCase enemy KEY (ArchdukeCharles) must never reach player
+    copy (R7 chokepoint), and the natural spaced form the UI shows must resolve
+    too — the winner is still keyed by the raw name for the executor."""
+
+    def _camel_enemy(self, world):
+        for m in world.get_enemy_marshals():
+            if getattr(m, "strength", 0) > 0 and " " not in m.name and \
+                    any(c.isupper() for c in m.name[1:]):
+                return m.name
+        return None
+
+    def test_camelcase_key_never_leaks_into_any_surface(self, world1805):
+        key = self._camel_enemy(world1805)
+        assert key is not None, "expected a camelCase enemy in the 1805 roster"
+        human = humanize_entity_name(key)
+        assert human != key and " " in human       # sanity: it really splits
+
+        m = detect_delegation(world1805, f"Soult, deal with {key}", None)
+        assert m is not None
+        assert m.target == key                      # RAW key for the executor
+        assert m.scout_target and key not in m.target_display  # display is clean
+        assert m.target_display == human
+        assert key not in m.clause                  # no camelCase in the clause
+
+        # Every player-facing surface renders the humanized name, never the key.
+        q = build_delegation_clarification(world1805, m, f"Soult, deal with {key}")
+        assert key not in q["message"] and human in q["message"]
+        note = describe_cautious_delegation(m, "scout")
+        assert key not in note and human in note
+        odds = describe_inferred_bad_odds("Ney", key)
+        assert key not in odds and human in odds
+
+    def test_natural_spaced_enemy_name_resolves(self, world1805):
+        key = self._camel_enemy(world1805)
+        human = humanize_entity_name(key)
+        # Previously the spaced form returned None (leak-or-nothing); now it
+        # resolves to the raw key so the delegation fires AND displays cleanly.
+        m = detect_delegation(world1805, f"Soult, deal with {human}", None)
+        assert m is not None
+        assert m.target == key
+
+
+class TestGuardrailAActionOnly:
+    """Guardrail (a) §6.3a — a personality bias may set ONLY the action. CR-5
+    enforces this at the DETERMINISTIC router: route_arm/classify_arm key on the
+    marshal's personality (+ a resolved bool), NEVER on an LLM outcome field, and
+    the delegation module never writes strategic_score/ambiguity/trust. (Audit
+    F4 — this guardrail was advertised as tested but had no test; enforcement is
+    router-side, not a validation strip.)"""
+
+    def test_router_signatures_cannot_read_outcome_fields(self):
+        import inspect
+        # Two args only: personality + a resolved bool. The router STRUCTURALLY
+        # cannot be swayed by an LLM strategic_score / ambiguity / trust.
+        assert list(inspect.signature(route_arm).parameters) == \
+            ["personality", "parse_resolved"]
+        assert list(inspect.signature(classify_arm).parameters) == \
+            ["personality", "parse_resolved_to_action"]
+
+    def test_arm_depends_only_on_personality_and_resolved(self):
+        assert route_arm("aggressive", True) == "aggressive"
+        assert route_arm("cautious", True) == "cautious"
+        assert route_arm("literal", True) == "ask"
+
+    def test_delegation_module_writes_no_outcome_fields(self):
+        import backend.commands.delegation as d
+        src = Path(d.__file__).read_text(encoding="utf-8")
+        for outcome in ("strategic_score", "ambiguity", "trust"):
+            assert f'"{outcome}"' not in src and f"'{outcome}'" not in src, (
+                f"the delegation router must never set outcome field {outcome}")
+
+
+class TestRegionObjectiveDelegation:
+    """AUDIT F6: the §6.2 region/objective table (Ney, see to <region>) is live
+    code (attack_target == scout_target == region) but had zero coverage."""
+
+    REGION = "Swabia"      # a real 1805 province, no enemy substring collision
+
+    def test_region_delegation_resolves_attack_equals_scout(self, world1805):
+        m = detect_delegation(
+            world1805, f"Ney, see to {self.REGION}", {"marshal": "Ney"})
+        assert m is not None
+        assert m.target == self.REGION
+        assert m.scout_target == self.REGION        # coincide for a region
+        assert m.personality == "aggressive"
+
+    def test_region_clarification_offers_attack_and_scout_of_region(
+            self, world1805):
+        m = detect_delegation(
+            world1805, f"Soult, see to {self.REGION}", {"marshal": "Soult"})
+        clar = build_delegation_clarification(
+            world1805, m, f"Soult, see to {self.REGION}")
+        cmds = {o["command"] for o in clar["options"]}
+        assert f"Soult attack {self.REGION}" in cmds
+        assert f"Soult scout {self.REGION}" in cmds
+
+
+class _StubWrongTargetParser:
+    """Simulates the (unreliable) live LLM resolving 'Davout, deal with Mack' to
+    a WRONG target (Algarve), so the F2 carryover-correction is exercised."""
+
+    def __init__(self, real):
+        self._real = real
+        self.llm = real.llm
+
+    def parse(self, text, game_state, world=None):
+        if text.lower().strip() == "davout, deal with mack":
+            return {"success": True, "mode": "anthropic",
+                    "command": {"marshal": "Davout", "action": "scout",
+                                "target": "Algarve"},
+                    "target": "Algarve"}
+        return self._real.parse(text, game_state, world=world)
+
+
+@pytest.fixture()
+def endpoint_wrong_target():
+    import backend.main as main_module
+    from backend.commands.parser import CommandParser as _CP
+
+    orig = (main_module.parser, main_module.world, main_module.game_state)
+    main_module.parser = _StubWrongTargetParser(_CP(use_real_llm=False))
+    main_module.world = WorldState.from_scenario(str(SCENARIO_PATH))
+    main_module.game_state = {"world": main_module.world}
+    try:
+        yield TestClient(main_module.app), main_module
+    finally:
+        (main_module.parser, main_module.world,
+         main_module.game_state) = orig
+
+
+class TestDelegationCarryoverCorrection:
+    """AUDIT F2: in LIVE mode the delegation is recorded to command_history with
+    the LLM's DISTRUSTED target; the arm re-parses against the authoritative
+    deterministic target but the history entry was left poisoned, so a later
+    "same target"/"him"/"again" carryover reissued against the wrong place. The
+    router now overwrites that entry with the marshal's authoritative target."""
+
+    def test_history_records_authoritative_target_not_llm_target(
+            self, endpoint_wrong_target):
+        client, m = endpoint_wrong_target
+        client.post("/command", json={"command": "Davout, deal with Mack"})
+        last = m.world.command_history[-1]
+        assert last["raw_input"] == "Davout, deal with Mack"
+        assert last["marshal"] == "Davout"
+        # The poisoned LLM target (Algarve) was corrected to the marshal's
+        # authoritative delegation target (Mack).
+        assert last["target"] == "Mack"

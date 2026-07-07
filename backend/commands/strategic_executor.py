@@ -1445,6 +1445,11 @@ class StrategicExecutor:
         # The marshal is AT the enemy (co-located / move-failed), so "go_around"
         # is nonsensical — it would empty-reroute and loop back into this gate.
         marshal.pending_interrupt = {
+            # The frontend answers the interrupt via /strategic_response and reads
+            # the marshal from response.pending_interrupt (this stored dict) on the
+            # synchronous first-step path; without it the popup sends "Marshal" and
+            # handle_response 404s. (CR-5 audit fix, July 7 2026.)
+            "marshal": marshal.name,
             "interrupt_type": "contact_bad_odds",
             "enemy": enemy.name,
             "location": marshal.location,
@@ -1584,6 +1589,9 @@ class StrategicExecutor:
             # marshal's reading (§6.3c legibility, Acc #7); an explicit order
             # keeps the generic contact message.
             marshal.pending_interrupt = {
+                # Marshal name for the /strategic_response answer path (see the
+                # co-located builder above). CR-5 audit fix.
+                "marshal": marshal.name,
                 "interrupt_type": "contact_bad_odds",
                 "enemy": enemy.name,
                 "location": blocked_region,
@@ -1609,6 +1617,9 @@ class StrategicExecutor:
 
         else:  # cautious, balanced, loyal — always ask
             marshal.pending_interrupt = {
+                # Marshal name for the /strategic_response answer path (see the
+                # co-located builder above). CR-5 audit fix.
+                "marshal": marshal.name,
                 "interrupt_type": "contact",
                 "enemy": enemy.name,
                 "location": blocked_region,

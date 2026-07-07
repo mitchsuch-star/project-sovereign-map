@@ -6,6 +6,8 @@ Never return raw internal names to the frontend.
 R7 — Architecture Refactoring Session 6.
 """
 
+import re
+
 # ============================================================================
 # ACTION DISPLAY — player-facing verb form (3rd person present)
 # Source: executor.py _ACTION_DISPLAY_NAMES
@@ -797,6 +799,22 @@ def _fallback_display_name(raw: str, default: str = "Unknown") -> str:
     if not raw:
         return default
     return raw.replace("_", " ").title()
+
+
+# Splits a camelCase / underscore entity KEY into its display form without
+# re-casing the words (so "ArchdukeCharles" -> "Archduke Charles",
+# "White_Russia" -> "White Russia", already-spaced "Mack" / "Archduke Charles"
+# pass through unchanged). Backend-side chokepoint for player-facing prose that
+# embeds a raw marshal/region key (R7): Godot's render-time humanizer only
+# splits a short list of NATION keys, never camelCase MARSHAL names, so any
+# terminal/popup message composed backend-side must humanize here.
+_CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z])(?=[A-Z])")
+
+
+def humanize_entity_name(name: str) -> str:
+    if not name:
+        return name
+    return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
 
 
 def proposal_display_name(proposal_type: str) -> str:

@@ -1231,6 +1231,23 @@ def execute_command(request: CommandRequest):
             _deleg = detect_delegation(world, command_text,
                                        parsed.get("command"))
             if _deleg is not None:
+                # CR-5 audit fix (F2): in LIVE mode the delegation was already
+                # recorded to command_history (main.py above) with the LLM's
+                # DISTRUSTED target. The arms below re-parse against the
+                # authoritative deterministic target, so after they run we
+                # overwrite that history entry's marshal/target with the values
+                # the marshal actually acted on — otherwise a later "same
+                # target"/"him"/"again" carryover reissues against the wrong
+                # place. No-op in mock mode (no entry was recorded there); the
+                # raw_input guard prevents clobbering a prior command's entry.
+                _orig_delegation_text = command_text
+
+                def _correct_delegation_carryover_target():
+                    hist = getattr(world, "command_history", None)
+                    if hist and hist[-1].get("raw_input") == _orig_delegation_text:
+                        hist[-1]["marshal"] = _deleg.marshal
+                        hist[-1]["target"] = _deleg.target
+
                 _arm = route_arm(_deleg.personality,
                                  parse_resolved_to_action(parsed))
                 if _arm == "cautious":
@@ -1246,6 +1263,7 @@ def execute_command(request: CommandRequest):
                     _cautious_note = describe_cautious_delegation(
                         _deleg, "scout")
                     _delegation_arm_ran = True
+                    _correct_delegation_carryover_target()
                     print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
                           f"-> scout {_deleg.scout_target}")
                 elif _arm == "aggressive":
@@ -1269,6 +1287,7 @@ def execute_command(request: CommandRequest):
                     parsed["delegation_phrase"] = _delegation_phrase
                     command_text = _reissue
                     _delegation_arm_ran = True
+                    _correct_delegation_carryover_target()
                     print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
                           f"-> pursue {_deleg.target} (inferred, gated)")
                 elif _arm == "ask":

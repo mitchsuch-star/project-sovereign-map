@@ -896,6 +896,13 @@ class StrategicOrderProcessor:
         else:
             options = ["attack_anyway", "hold_position", "cancel_order"]
         marshal.pending_interrupt = {
+            # The frontend interrupt popup answers via /strategic_response, which
+            # needs the marshal name; the SYNCHRONOUS response.pending_interrupt
+            # path (main.gd) reads it from this stored dict (the enemy-phase
+            # report list carries it at top level). Without it the popup sends
+            # the literal "Marshal" and handle_response 404s. Serialized with the
+            # dict, so a save/load mid-interrupt keeps it.
+            "marshal": marshal.name,
             "interrupt_type": "contact_bad_odds",
             "enemy": target.name,
             "location": marshal.location,
@@ -2552,6 +2559,9 @@ class StrategicOrderProcessor:
         else:  # stalemate / unknown
             marshal.last_combat_result = "stalemate"
             marshal.pending_interrupt = {
+                # See the contact_bad_odds builder above — the popup needs the
+                # marshal name to answer via /strategic_response.
+                "marshal": marshal.name,
                 "interrupt_type": "combat_stalemate",
                 "enemy": enemy.name,
                 "location": marshal.location,

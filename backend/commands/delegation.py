@@ -36,6 +36,7 @@ from typing import Dict, List, Optional
 
 from backend.ai.validation import VALID_ACTIONS
 from backend.commands.clarification import _clarification_response
+from backend.display_names import humanize_entity_name
 
 # ── Frozen delegation-verb allowlist (COMMAND_ROBUSTNESS_SPEC §6.2) ──────────
 # Method-free "hand it to the marshal" phrasings with NO fast-parser owner.
@@ -57,10 +58,16 @@ _DELEGATION_RE = re.compile(
     re.IGNORECASE,
 )
 
-# A leading "Marshal Ney, ..." / "Ney, ..." address token (mirrors the parser's
-# ADDRESS_TOKEN_RE contract) — used to recover the addressed marshal when the
-# upstream parse dropped it (mock "deal with X" leaves marshal unset).
-_ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([A-Za-z][A-Za-z'\-]+)\s*,",
+# A leading "Marshal Ney, ..." / "Ney, ..." / "Marshal Ney ..." address token
+# (mirrors the parser's ADDRESS_TOKEN_RE contract) — used to recover the
+# addressed marshal when the upstream parse dropped it (mock "deal with X" leaves
+# marshal unset). The trailing comma is OPTIONAL: "Marshal Soult deal with Mack"
+# (no comma — the most natural English phrasing of the exact affordance CR-5
+# exists to honor) must resolve the same as "Soult, deal with Mack". The captured
+# word is always validated against the live roster via ``get_marshal`` below, so a
+# non-marshal first word (e.g. the verb in a bare "handle Mack") is rejected — the
+# relaxed comma cannot manufacture a false delegation.
+_ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([A-Za-z][A-Za-z'\-]+)\s*,?",
                          re.IGNORECASE)
 
 _NEUTRAL_PERSONALITIES = frozenset({"balanced", "loyal"})
@@ -123,16 +130,19 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
         return None
     hay = remainder.lower()
 
-    best = None  # (length, name, scout_target)
+    best = None  # (length, raw_name, scout_target)
 
     def _consider(name: str, scout_target: str):
         nonlocal best
         if not name:
             return
-        needle = name.lower()
-        # word-ish containment: the entity name appears as a run in the text
-        if needle in hay and (best is None or len(needle) > best[0]):
-            best = (len(needle), name, scout_target)
+        # Match the raw KEY ("ArchdukeCharles") OR its humanized spaced form
+        # ("Archduke Charles"), so a player who types the natural spaced name the
+        # UI shows resolves too (not just the exact camelCase token). The winner
+        # is still keyed by the RAW name — display humanization happens on return.
+        for needle in {name.lower(), humanize_entity_name(name).lower()}:
+            if needle in hay and (best is None or len(needle) > best[0]):
+                best = (len(needle), name, scout_target)
 
     for m in world.get_enemy_marshals():
         if getattr(m, "strength", 0) > 0:
@@ -140,13 +150,15 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
             # marshal himself.
             _consider(m.name, getattr(m, "location", m.name) or m.name)
     if best is not None:
-        return best[1], best[2], best[1]
+        # target/scout_target stay RAW (executor + reissue keys); the display is
+        # humanized so no camelCase key ever reaches player copy (R7).
+        return best[1], best[2], humanize_entity_name(best[1])
 
     # No enemy matched — try a region objective (attack == scout == region).
     for region_name in getattr(world, "regions", {}):
         _consider(region_name, region_name)
     if best is not None:
-        return best[1], best[2], best[1]
+        return best[1], best[2], humanize_entity_name(best[1])
     return None
 
 
@@ -285,8 +297,11 @@ def describe_cautious_delegation(match: DelegationMatch,
         deed = "will dig in rather than rush forward"
     else:
         deed = f"will observe {match.target_display} first"
+    # Reissue hint uses the humanized DISPLAY (never the raw camelCase key) —
+    # _resolve_target now resolves the spaced form too, so the suggested typed
+    # command parses (R7 — no internal key in player copy).
     return (f'{match.marshal}, cautious as ever, {deed} — it costs a turn. '
-            f'Say "{match.marshal}, attack {match.target}" to press the '
+            f'Say "{match.marshal}, attack {match.target_display}" to press the '
             f'assault instead.')
 
 
@@ -297,9 +312,12 @@ def describe_inferred_bad_odds(marshal_name: str, enemy_name: str) -> str:
     inferred orders; an explicitly-typed order keeps the generic contact message
     and never triggers this modal. Deterministic template (mock-safe, Golden-
     Rule-6-safe — no LLM echo; word-echoing is CR-5b)."""
+    # Humanize the enemy KEY so a camelCase name (ArchdukeCharles) never reaches
+    # this modal (R7). The acting marshal is always an authored-clean player name.
+    enemy_display = humanize_entity_name(enemy_name)
     return (f"{marshal_name} reads this as a call to give battle, Sire — but "
-            f"{enemy_name} stands dug in and in greater strength. He will charge "
-            f"on your word. Confirm the assault, or hold him back?")
+            f"{enemy_display} stands dug in and in greater strength. He will "
+            f"charge on your word. Confirm the assault, or hold him back?")
 
 
 def _ask_question(match: DelegationMatch) -> str:
