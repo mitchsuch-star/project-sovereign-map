@@ -39,12 +39,17 @@ from backend.ai.providers import (
     AnthropicProvider,
 )
 from backend.commands.delegation import (
+    AGGRESSIVE_ATTACK_ARM_ENABLED,
+    BATTLE_ACTIONS,
     DELEGATION_VERBS,
     build_delegation_clarification,
     classify_arm,
+    describe_cautious_delegation,
     detect_delegation,
     parse_resolved_to_action,
+    route_arm,
 )
+from backend.ai.prompt_builder import build_parse_prompt
 from backend.models.world_state import WorldState
 
 SCENARIO_PATH = (
@@ -304,3 +309,165 @@ class TestAskArmEndpoint:
         data = client.post(
             "/command", json={"command": "Soult, scout Mack"}).json()
         assert data.get("clarification_kind") != "delegation"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Arm routing + the aggressive phase gate (route_arm)
+# ═══════════════════════════════════════════════════════════════════
+
+class TestRouteArmPhaseGate:
+    def test_aggressive_degrades_to_ask_until_gate_lands(self):
+        # SAFE HALF: the aggressive->attack arm rides the ungated lethal
+        # attack-on-arrival seam, so it degrades to ASK until Phase 3's gate +
+        # Phase 4's flip. This test flips RED (must be updated) when the gate
+        # lands and AGGRESSIVE_ATTACK_ARM_ENABLED becomes True.
+        assert AGGRESSIVE_ATTACK_ARM_ENABLED is False
+        assert route_arm("aggressive", True) == "ask"
+
+    def test_cautious_routes_to_cautious_when_resolved(self):
+        assert route_arm("cautious", True) == "cautious"
+        assert route_arm("cautious", False) == "ask"  # mock degrade
+
+    @pytest.mark.parametrize("pers", ["literal", "balanced", "loyal", ""])
+    def test_literal_and_neutral_route_to_ask(self, pers):
+        assert route_arm(pers, True) == "ask"
+
+
+class TestCautiousSoftNote:
+    def test_note_names_marshal_character_and_offers_typed_reissue(
+            self, world1805):
+        m = detect_delegation(world1805, "Davout, deal with Kutuzov",
+                              {"marshal": "Davout"})
+        note = describe_cautious_delegation(m, "scout")
+        assert "Davout" in note
+        assert "cautious" in note.lower()          # names his character (Acc #7)
+        assert "reconnoiter" in note.lower()
+        assert "Davout, attack Kutuzov" in note    # typed one-tap reissue
+        assert "costs a turn" in note              # honest: scout is not free
+
+    def test_note_has_no_raw_action_enum_leak(self, world1805):
+        m = detect_delegation(world1805, "Davout, deal with Kutuzov",
+                              {"marshal": "Davout"})
+        note = describe_cautious_delegation(m, "scout")
+        for leak in ("MOVE_TO", "PURSUE", "action=", "'scout'"):
+            assert leak not in note
+
+
+class TestBattleActions:
+    def test_battle_actions_frozen(self):
+        # The clamp only fires for battle-STARTING actions.
+        assert "attack" in BATTLE_ACTIONS
+        assert "charge" in BATTLE_ACTIONS
+        assert "bombard" in BATTLE_ACTIONS
+        assert "scout" not in BATTLE_ACTIONS
+        assert "hold" not in BATTLE_ACTIONS
+
+
+# ═══════════════════════════════════════════════════════════════════
+# LIVE prompt table (AC-1) — §6.2 delegation guidance encoded as copy
+# ═══════════════════════════════════════════════════════════════════
+
+class TestPromptTable:
+    def _rules_block(self):
+        prompt = build_parse_prompt("Ney, deal with Mack", COLD_STATE)
+        assert "## Personality Rules" in prompt
+        start = prompt.index("## Personality Rules")
+        end = prompt.index("##", start + 5)
+        return prompt[start:end]
+
+    def test_delegation_verbs_present_in_rules(self):
+        block = self._rules_block()
+        for verb in ("deal with", "handle", "see to", "take care of",
+                     "sort out"):
+            assert verb in block
+
+    def test_cautious_and_literal_guidance_present(self):
+        block = self._rules_block().lower()
+        assert "cautious" in block and "scout" in block
+        assert "literal" in block and "ask" in block
+
+    def test_explicit_verb_precedence_stated(self):
+        # Personality never overrides a named action.
+        block = self._rules_block().lower()
+        assert "explicit" in block
+
+    def test_denylist_verbs_absent_from_rules(self):
+        # §6.2 double-ownership: the delegation table must not claim the fast
+        # parser's strategic verbs.
+        block = self._rules_block().lower()
+        for banned in ("pursue", "reinforce", "link up"):
+            assert banned not in block
+
+
+class _StubResolvingParser:
+    """Wraps the mock parser but forces the cautious delegation
+    "Davout, deal with Mack" to RESOLVE to a battle action, simulating the
+    (unreliable) live LLM so the deterministic clamp is exercised offline."""
+
+    def __init__(self, real):
+        self._real = real
+        self.llm = real.llm
+
+    def parse(self, text, game_state, world=None):
+        if text.lower().strip() == "davout, deal with mack":
+            return {"success": True,
+                    "command": {"marshal": "Davout", "action": "attack",
+                                "target": "Mack"}}
+        return self._real.parse(text, game_state, world=world)
+
+
+@pytest.fixture()
+def endpoint_stub_resolving():
+    import backend.main as main_module
+    from backend.commands.parser import CommandParser as _CP
+
+    orig = (main_module.parser, main_module.world, main_module.game_state)
+    main_module.parser = _StubResolvingParser(_CP(use_real_llm=False))
+    main_module.world = WorldState.from_scenario(str(SCENARIO_PATH))
+    main_module.game_state = {"world": main_module.world}
+    try:
+        yield TestClient(main_module.app), main_module
+    finally:
+        (main_module.parser, main_module.world,
+         main_module.game_state) = orig
+
+
+class TestFirstUseHint:
+    def test_hint_fires_once_per_campaign(self, endpoint1805):
+        client, m = endpoint1805
+        first = client.post(
+            "/command", json={"command": "Soult, deal with Mack"}).json()
+        assert "acts to his character" in first["message"]
+        assert m.world.delegation_hint_shown is True
+        # A second delegation does NOT repeat the hint.
+        second = client.post(
+            "/command", json={"command": "Ney, deal with Mack"}).json()
+        assert "acts to his character" not in (second.get("message") or "")
+
+    def test_hint_never_fires_on_explicit_verb(self, endpoint1805):
+        client, m = endpoint1805
+        data = client.post(
+            "/command", json={"command": "Soult, attack Mack"}).json()
+        assert "acts to his character" not in (data.get("message") or "")
+        assert m.world.delegation_hint_shown is False
+
+    def test_hint_flag_is_serialized(self, world1805):
+        assert "delegation_hint_shown" in world1805.to_dict()
+
+
+class TestCautiousClampEndpoint:
+    def test_cautious_battle_resolution_is_clamped_never_attacks(
+            self, endpoint_stub_resolving):
+        # The stubbed "live" parse resolved Davout's delegation to ATTACK; the
+        # deterministic clamp must turn it into a scout — a cautious marshal
+        # never assaults on a vague order (§6.3c), and it must NOT ask.
+        client, m = endpoint_stub_resolving
+        data = client.post(
+            "/command", json={"command": "Davout, deal with Mack"}).json()
+        assert data.get("clarification_kind") != "delegation"  # not an ask
+        msg = (data.get("message") or "")
+        # No assault was launched at Mack (the danger the clamp prevents).
+        assert "attacked Mack" not in msg and "attacks Mack" not in msg
+        # When the scout resolves, the character-naming soft note appears.
+        if data.get("success"):
+            assert "cautious as ever" in msg

@@ -1036,10 +1036,13 @@ def execute_command(request: CommandRequest):
             register_pending_clarification,
         )
         from backend.commands.delegation import (
+            BATTLE_ACTIONS,
             build_delegation_clarification,
-            classify_arm,
+            describe_cautious_delegation,
             detect_delegation,
+            maybe_delegation_hint,
             parse_resolved_to_action,
+            route_arm,
         )
 
         command_text = request.command
@@ -1204,33 +1207,59 @@ def execute_command(request: CommandRequest):
             })
 
         # ════════════════════════════════════════════════════════════
-        # CR-5: PERSONALITY-BIASED DISAMBIGUATION — the ASK arm
-        # (COMMAND_ROBUSTNESS_SPEC §6). A delegation verb ("Soult, deal
-        # with Mack") cedes the method to the marshal; the concrete action
-        # is inferred from character. The literal / neutral / mock arms
-        # DETERMINISTICALLY refuse to guess and ask the Emperor (attack or
-        # observe?), overriding whatever the live LLM may have guessed for a
-        # literal marshal (Golden Rule 6 — the executor is never LLM-driven).
-        # The aggressive / cautious arms fall through to the LLM-resolved
-        # action (prompt table, §6.2). Guarded by _consumed_as_dialogue_answer
-        # so a hard-stop dialogue answer is never hijacked; runs AFTER CR-4
-        # carryover (line ~1135) and command-history recording.
+        # CR-5: PERSONALITY-BIASED DISAMBIGUATION (COMMAND_ROBUSTNESS_SPEC §6).
+        # A delegation verb ("Soult, deal with Mack") cedes the method to the
+        # marshal; the concrete action is inferred from his CHARACTER, and the
+        # routing here is DETERMINISTIC (Golden Rule 6 — the executor is never
+        # LLM-driven):
+        #   - literal / neutral / mock  -> ASK the Emperor (attack or observe?),
+        #     overriding whatever the live LLM guessed for a literal marshal.
+        #   - cautious                  -> observe first; a battle action the
+        #     live LLM produced is CLAMPED to scout (he never assaults on a
+        #     vague order, §6.3c) + a soft note that names his character.
+        #   - aggressive                -> NOT YET ENABLED (rides the ungated
+        #     lethal attack-on-arrival seam) — degrades to ASK until Phase 3's
+        #     gate + Phase 4 flip. route_arm() applies that phase gate.
+        # Guarded by _consumed_as_dialogue_answer so a hard-stop dialogue answer
+        # is never hijacked; runs AFTER CR-4 carryover + history recording.
         # ════════════════════════════════════════════════════════════
+        _cautious_note = None
+        _delegation_hint = None
         if not _consumed_as_dialogue_answer:
             _deleg = detect_delegation(world, command_text,
                                        parsed.get("command"))
-            if _deleg is not None and classify_arm(
-                    _deleg.personality,
-                    parse_resolved_to_action(parsed)) == "ask":
-                _deleg_clar = build_delegation_clarification(
-                    world, _deleg, command_text)
-                _deleg_clar["clarification_registered"] = (
-                    register_pending_clarification(
-                        world, _deleg_clar, command_text))
-                print(f"[CR-5] Delegation ASK "
-                      f"({_deleg.marshal}/{_deleg.personality or 'unset'}) "
-                      f"-> frontend")
-                return _build_result_response(_deleg_clar, world)
+            if _deleg is not None:
+                # §6.7: once-per-campaign discoverability hint on first delegation
+                _delegation_hint = maybe_delegation_hint(world)
+                _arm = route_arm(_deleg.personality,
+                                 parse_resolved_to_action(parsed))
+                if _arm == "cautious":
+                    _c_action = (parsed.get("command") or {}).get("action")
+                    if _c_action in BATTLE_ACTIONS:
+                        # Deterministic safety clamp: re-issue as an explicit
+                        # scout (a plain re-parse, no LLM — Golden Rule 6).
+                        _reissue = f"{_deleg.marshal} scout {_deleg.target}"
+                        parsed = parser.parse(_reissue, llm_game_state,
+                                              world=world)
+                        command_text = _reissue
+                        _c_action = (parsed.get("command") or {}).get("action")
+                    _cautious_note = describe_cautious_delegation(
+                        _deleg, _c_action)
+                    print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
+                          f"-> {_c_action}")
+                elif _arm == "ask":
+                    _deleg_clar = build_delegation_clarification(
+                        world, _deleg, command_text)
+                    if _delegation_hint:
+                        _deleg_clar["message"] = (
+                            f"{_deleg_clar['message']}\n\n{_delegation_hint}")
+                    _deleg_clar["clarification_registered"] = (
+                        register_pending_clarification(
+                            world, _deleg_clar, command_text))
+                    print(f"[CR-5] Delegation ASK "
+                          f"({_deleg.marshal}/{_deleg.personality or 'unset'}) "
+                          f"-> frontend")
+                    return _build_result_response(_deleg_clar, world)
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
@@ -1392,6 +1421,18 @@ def execute_command(request: CommandRequest):
             result["message"] = (
                 f"{result.get('message') or ''}\n\n"
                 f"Berthier: \"{parsed['warning']}\""
+            ).strip()
+
+        # CR-5: a cautious delegation executed as an observe-first order —
+        # append the character-naming soft note (§6.3c legibility) so the
+        # player sees WHY the marshal scouted and can press the assault. The
+        # once-per-campaign discoverability hint (§6.7) rides the same message.
+        if _cautious_note and isinstance(result, dict) and result.get("success"):
+            _tail = _cautious_note
+            if _delegation_hint:
+                _tail = f"{_cautious_note}\n\n{_delegation_hint}"
+            result["message"] = (
+                f"{(result.get('message') or '').strip()}\n\n{_tail}"
             ).strip()
 
         # ════════════════════════════════════════════════════════════

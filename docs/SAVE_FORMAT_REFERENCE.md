@@ -141,6 +141,7 @@ A future save/load system should use this as the specification.
   "eliminated_nations_notified": [],
 
   "coordination_tutorial_shown": false,
+  "delegation_hint_shown": false,
 
   "nation_starting_regions": {
     "France": ["Paris", "Belgium", "Normandy", "Lyon", "Brittany", "Bordeaux", "Marseille", "Milan"],
@@ -289,6 +290,7 @@ A future save/load system should use this as the specification.
 | `last_morning_dispatch` | dict | {} | Last morning dispatch dict for dispatch re-read screen (Session A). Stored by `build_morning_dispatch()`. Contains turn, situation, marshals, intelligence, turn_events, berthier_note, diplomatic_events. All primitives, no circular refs. |
 | `pending_dispatch_events` | list | [] | **Session 8D.** Queue of diplomatic dispatch events awaiting delivery. Each entry: `{type, template_vars, fog_rule}`. Cleared at start of `advance_turn()`, consumed by `build_morning_dispatch()`. DG-4 witness rows retain individual `episode_id` entries in this substrate; presentation collapses same-episode witness rows when building dispatch output. |
 | `coordination_tutorial_shown` | bool | false | Whether the first-time coordination tutorial has been shown (Session 66). Set to true after first player combined arms attack. |
+| `delegation_hint_shown` | bool | false | CR-5 (§6.7): whether the once-per-campaign delegation discoverability hint has fired. Set true the first time the player issues a delegation verb ("deal with X"). |
 | `nation_starting_regions` | Dict[str, list] | {} | Starting regions per nation at game start, used by AI homeland defense. Key: nation name, Value: list of region names. Empty dict for legacy saves. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 

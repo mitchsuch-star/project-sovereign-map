@@ -362,10 +362,26 @@ def build_parse_prompt(
 ## Valid Stances (for stance_change)
 {stances_list}
 
-## Personality Rules
-- AGGRESSIVE: biases toward attack, eager for battle
-- CAUTIOUS: biases toward defense, wants intel first
-- LITERAL: interprets exactly as stated, picks nearest for ambiguity
+## Personality Rules (CR-5 delegation-verb resolution)
+An EXPLICIT verb (attack, scout, move, hold, defend, fortify, ...) is ALWAYS
+obeyed exactly. Personality NEVER overrides a named action and never changes the
+target the player gave.
+
+Personality ONLY resolves a DELEGATED task — one that hands a marshal a problem
+without naming the method. ALL of these phrasings are equivalent delegations and
+must be treated the SAME way: "deal with", "handle", "see to", "take care of",
+"sort out", "attend to", "do something about" (+ their obvious variants). Read
+the addressed marshal's personality (shown beside his name under "Your Marshals"
+above) and pick ONE intent action:
+- CAUTIOUS marshal -> he looks before he leaps. For EVERY delegated phrasing
+  above, resolve to action "scout". A cautious marshal never launches an assault
+  on a vague order — if in doubt, he scouts.
+- LITERAL marshal -> he will not presume your intent; the game asks the Emperor
+  directly, so do not force a guess for him.
+- AGGRESSIVE marshal -> he is eager for battle.
+Resolve to the INTENT action only — the game decides the rest (an immediate blow
+vs. an advance to contact) from the live map. Never invent a target the order
+did not name.
 
 ## Strategic Commands (Multi-Turn Orders)
 Commands that imply ongoing, multi-turn execution are STRATEGIC, not tactical.

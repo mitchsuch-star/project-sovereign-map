@@ -65,6 +65,23 @@ _ADDRESS_RE = re.compile(r"^\s*(?:marshal\s+)?([A-Za-z][A-Za-z'\-]+)\s*,",
 
 _NEUTRAL_PERSONALITIES = frozenset({"balanced", "loyal"})
 
+# §6.7 discoverability hint — shown ONCE per campaign the first time the player
+# delegates, teaching that the affordance exists. Static copy (mock-safe).
+DELEGATION_FIRST_USE_HINT = (
+    'Berthier: "You may hand a marshal a task and let him solve it his own '
+    'way, Sire — each acts to his character."')
+
+
+def maybe_delegation_hint(world) -> Optional[str]:
+    """Return the once-per-campaign delegation discoverability hint (§6.7) the
+    first time it is called for a real delegation, latching the flag; None
+    thereafter. Never fires on explicit verbs (the caller only invokes it once
+    a delegation has been detected)."""
+    if getattr(world, "delegation_hint_shown", False):
+        return None
+    world.delegation_hint_shown = True
+    return DELEGATION_FIRST_USE_HINT
+
 
 class DelegationMatch:
     """A resolved delegation command: a known marshal, a real target, and the
@@ -174,6 +191,22 @@ def detect_delegation(world, raw_command: str,
                            verb, clause)
 
 
+# Battle-STARTING actions. A cautious marshal must never be handed one of these
+# off a vague order (§6.2 cautious row / §6.3c "never launches an assault on a
+# vague order") — the live LLM is not reliable enough to guarantee it, so the
+# router clamps a cautious delegation that resolved to a battle action back to
+# scout. Deterministic safety net, not a personality change.
+BATTLE_ACTIONS = frozenset({"attack", "charge", "bombard"})
+
+# The aggressive -> attack arm resolves an inferred, AP-committing, undo-less
+# battle start that rides the fortification-BLIND attack-on-arrival seam
+# (strategic_executor.py, `_strategic_execution: True`). It CANNOT ship until
+# the Phase-3 legibility gate covers that seam (CR5_IMPLEMENTATION_BRIEF §3).
+# Until Phase 4 flips this True, an aggressive delegation degrades to the ASK —
+# the same safe default as a neutral marshal (never an ungated battle start).
+AGGRESSIVE_ATTACK_ARM_ENABLED = False
+
+
 def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
     """Which interpretation arm applies.
 
@@ -193,6 +226,16 @@ def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
     return "ask"
 
 
+def route_arm(personality: str, parse_resolved: bool) -> str:
+    """The arm the router acts on, applying the phase gate: an aggressive
+    delegation degrades to ASK until the Phase-3 lethal-seam gate lands and
+    Phase 4 flips AGGRESSIVE_ATTACK_ARM_ENABLED."""
+    arm = classify_arm(personality, parse_resolved)
+    if arm == "aggressive" and not AGGRESSIVE_ATTACK_ARM_ENABLED:
+        return "ask"
+    return arm
+
+
 def parse_resolved_to_action(parsed: Dict) -> bool:
     """True when the upstream parse produced a real, executable action (the
     live path) rather than unknown/failed (the mock path)."""
@@ -200,6 +243,25 @@ def parse_resolved_to_action(parsed: Dict) -> bool:
         return False
     action = (parsed.get("command") or {}).get("action")
     return bool(action) and action in VALID_ACTIONS and action != "unknown"
+
+
+def describe_cautious_delegation(match: DelegationMatch,
+                                 action: Optional[str]) -> str:
+    """Soft-note attribution for a cautious delegation (§6.3c legibility — the
+    surface NAMES the marshal's character) with a typed one-tap reissue. Honest
+    copy: the scout still burns a turn (§6.3c "battle-starting vs not, NOT
+    reversible vs irreversible")."""
+    if action == "scout":
+        deed = f"will reconnoiter {match.target_display} before he commits"
+    elif action == "hold":
+        deed = "will hold his ground and stay poised"
+    elif action == "fortify":
+        deed = "will dig in rather than rush forward"
+    else:
+        deed = f"will observe {match.target_display} first"
+    return (f'{match.marshal}, cautious as ever, {deed} — it costs a turn. '
+            f'Say "{match.marshal}, attack {match.target}" to press the '
+            f'assault instead.')
 
 
 def _ask_question(match: DelegationMatch) -> str:
