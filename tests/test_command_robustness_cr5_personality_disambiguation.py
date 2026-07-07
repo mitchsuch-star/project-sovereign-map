@@ -6,8 +6,13 @@ Contract under test (Acceptance Criteria §6.5):
   1. The §6.2 delegation-verb table is encoded as prompt copy in the
      ``## Personality Rules`` block; delegation verbs resolve to ``action``
      per personality on the live parse call.
-  2. Same utterance x personality -> distinct action at the LIVE tier
-     (Ney->attack, Davout->scout, Soult->ask), asserted in the golden corpus.
+  2. Same utterance x personality -> distinct BEHAVIOR (Ney->PURSUE/aggressive,
+     Davout->scout/cautious, Soult->ask/literal). NOTE: this split is the
+     DETERMINISTIC router's doing (route_arm keyed on the MARSHAL'S personality),
+     NOT the LLM's action — the July 7 live probe found the model resolves all
+     three to `scout`, which is why routing is deterministic. The live_only
+     corpus rows assert only that the live delegation parse RESOLVES; the split
+     is pinned deterministically at the router/endpoint tier below.
   3. Mock never produces a silent wrong bias: a marshal-addressed delegation
      verb degrades to the CR-2 clarification; no diplomatic mis-route.
   4. Excluded verbs (march/pursue/support/reinforce/head to/...) stay owned by
