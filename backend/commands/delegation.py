@@ -85,16 +85,25 @@ def maybe_delegation_hint(world) -> Optional[str]:
 
 class DelegationMatch:
     """A resolved delegation command: a known marshal, a real target, and the
-    verbatim clause the player used."""
+    verbatim clause the player used.
 
-    __slots__ = ("marshal", "personality", "target", "target_display",
-                 "verb", "clause")
+    ``target`` is the ATTACK target (an enemy marshal to give battle, or a
+    region to assault). ``scout_target`` is the OBSERVE target — you attack an
+    army but you scout a *place*, so for an enemy marshal this is his LOCATION
+    (region), which the scout executor can actually reach; for a region
+    objective the two coincide.
+    """
+
+    __slots__ = ("marshal", "personality", "target", "scout_target",
+                 "target_display", "verb", "clause")
 
     def __init__(self, marshal: str, personality: str, target: str,
-                 target_display: str, verb: str, clause: str):
+                 scout_target: str, target_display: str, verb: str,
+                 clause: str):
         self.marshal = marshal
         self.personality = personality
-        self.target = target                # resolvable name (reissue command)
+        self.target = target                # ATTACK target (marshal or region)
+        self.scout_target = scout_target    # OBSERVE target (a region)
         self.target_display = target_display  # player-facing label
         self.verb = verb                    # matched delegation verb
         self.clause = clause                # e.g. 'deal with Mack' (verbatim-ish)
@@ -104,38 +113,40 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
     """Resolve the text after the delegation verb to a concrete target.
 
     Prefers an enemy marshal (the §6.2 "target = enemy" table), then a region
-    (the "target = objective" table). Returns (name, display) or None. Matches
-    the LONGEST known entity name that appears in the remainder so "Archduke
-    Charles" beats a stray "Charles" fragment.
+    (the "target = objective" table). Returns (attack_target, scout_target,
+    display) or None. For an enemy marshal, scout_target is his LOCATION (you
+    scout a place); for a region they coincide. Matches the LONGEST known
+    entity name in the remainder so "ArchdukeCharles" beats a "Charles"
+    fragment. Backend uses raw names; Godot humanizes camelCase at render.
     """
     if not remainder:
         return None
     hay = remainder.lower()
 
-    best = None  # (length, name)
+    best = None  # (length, name, scout_target)
 
-    def _consider(name: str):
+    def _consider(name: str, scout_target: str):
         nonlocal best
         if not name:
             return
         needle = name.lower()
         # word-ish containment: the entity name appears as a run in the text
         if needle in hay and (best is None or len(needle) > best[0]):
-            best = (len(needle), name)
+            best = (len(needle), name, scout_target)
 
     for m in world.get_enemy_marshals():
         if getattr(m, "strength", 0) > 0:
-            _consider(m.name)
+            # Scout the marshal's LOCATION (a reachable region); attack the
+            # marshal himself.
+            _consider(m.name, getattr(m, "location", m.name) or m.name)
     if best is not None:
-        # Backend uses raw names; Godot humanizes camelCase at render time.
-        return best[1], best[1]
+        return best[1], best[2], best[1]
 
-    # No enemy matched — try a region objective.
+    # No enemy matched — try a region objective (attack == scout == region).
     for region_name in getattr(world, "regions", {}):
-        _consider(region_name)
+        _consider(region_name, region_name)
     if best is not None:
-        # Backend uses raw names; Godot humanizes camelCase at render time.
-        return best[1], best[1]
+        return best[1], best[2], best[1]
     return None
 
 
@@ -183,12 +194,12 @@ def detect_delegation(world, raw_command: str,
         # No concrete target ("handle the situation") — fall through to the
         # existing pipeline (CR-4 carryover already ran; Berthier recovers).
         return None
-    target, target_display = resolved
+    target, scout_target, target_display = resolved
 
     personality = (getattr(marshal, "personality", "") or "").lower()
     clause = f"{verb} {target_display}".strip()
-    return DelegationMatch(marshal.name, personality, target, target_display,
-                           verb, clause)
+    return DelegationMatch(marshal.name, personality, target, scout_target,
+                           target_display, verb, clause)
 
 
 # Battle-STARTING actions. A cautious marshal must never be handed one of these
@@ -295,8 +306,8 @@ def build_delegation_clarification(world, match: DelegationMatch,
         {
             "label": "Scout",
             "value": "delegation_choice",
-            "target": match.target,
-            "command": f"{match.marshal} scout {match.target}",
+            "target": match.scout_target,
+            "command": f"{match.marshal} scout {match.scout_target}",
         },
     ]
     response = _clarification_response(

@@ -1036,7 +1036,6 @@ def execute_command(request: CommandRequest):
             register_pending_clarification,
         )
         from backend.commands.delegation import (
-            BATTLE_ACTIONS,
             build_delegation_clarification,
             describe_cautious_delegation,
             detect_delegation,
@@ -1234,19 +1233,19 @@ def execute_command(request: CommandRequest):
                 _arm = route_arm(_deleg.personality,
                                  parse_resolved_to_action(parsed))
                 if _arm == "cautious":
-                    _c_action = (parsed.get("command") or {}).get("action")
-                    if _c_action in BATTLE_ACTIONS:
-                        # Deterministic safety clamp: re-issue as an explicit
-                        # scout (a plain re-parse, no LLM — Golden Rule 6).
-                        _reissue = f"{_deleg.marshal} scout {_deleg.target}"
-                        parsed = parser.parse(_reissue, llm_game_state,
-                                              world=world)
-                        command_text = _reissue
-                        _c_action = (parsed.get("command") or {}).get("action")
+                    # Deterministic: a cautious marshal observes first (§6.2).
+                    # Re-issue an explicit scout at the OBSERVE target (the
+                    # enemy's location) — a plain re-parse, no LLM (Golden Rule
+                    # 6). This also corrects the live LLM's unreliable target
+                    # resolution (playtest: "deal with Kutuzov" mis-scouted
+                    # Algarve); the detector's target is authoritative.
+                    _reissue = f"{_deleg.marshal} scout {_deleg.scout_target}"
+                    parsed = parser.parse(_reissue, llm_game_state, world=world)
+                    command_text = _reissue
                     _cautious_note = describe_cautious_delegation(
-                        _deleg, _c_action)
+                        _deleg, "scout")
                     print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
-                          f"-> {_c_action}")
+                          f"-> scout {_deleg.scout_target}")
                 elif _arm == "ask":
                     _deleg_clar = build_delegation_clarification(
                         world, _deleg, command_text)

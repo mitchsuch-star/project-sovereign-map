@@ -134,7 +134,8 @@ class TestDelegationDetector:
         assert m is not None
         assert m.marshal == "Soult"
         assert m.personality == "literal"
-        assert m.target == "Mack"
+        assert m.target == "Mack"                 # attack the marshal
+        assert m.scout_target == "Swabia"         # scout his LOCATION (a place)
         assert m.verb == "deal with"
         assert m.clause == "deal with Mack"
 
@@ -218,7 +219,9 @@ class TestDelegationClarification:
         labels = {o["label"] for o in clar["options"]}
         assert labels == {"Attack", "Scout"}
         cmds = {o["command"] for o in clar["options"]}
-        assert cmds == {"Soult attack Mack", "Soult scout Mack"}
+        # Attack the marshal; scout his LOCATION (Swabia), not the marshal name
+        # (the scout executor reaches a place, not a man).
+        assert cmds == {"Soult attack Mack", "Soult scout Swabia"}
         assert clar["interpreted_target"] == "Mack"
 
     def test_no_internal_keys_or_personality_string_leak(self, world1805):
