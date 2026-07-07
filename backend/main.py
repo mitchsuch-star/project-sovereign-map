@@ -1041,6 +1041,8 @@ def execute_command(request: CommandRequest):
             detect_delegation,
             maybe_delegation_hint,
             parse_resolved_to_action,
+            resolve_delegation_flavor,
+            resolve_live_cautious_prefix,
             route_arm,
         )
 
@@ -1227,6 +1229,11 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         _cautious_note = None
         _delegation_arm_ran = False
+        # CR-5b Flavor Echoing (§6.4): the marshal's spoken reaction at the
+        # RESPONSE seam. _aggressive_flavor rides the pursue-order response;
+        # _cautious_flavor_prefix rides IN FRONT of the cautious deed-note.
+        _aggressive_flavor = None
+        _cautious_flavor_prefix = None
         if not _consumed_as_dialogue_answer:
             _deleg = detect_delegation(world, command_text,
                                        parsed.get("command"))
@@ -1241,6 +1248,11 @@ def execute_command(request: CommandRequest):
                 # place. No-op in mock mode (no entry was recorded there); the
                 # raw_input guard prevents clobbering a prior command's entry.
                 _orig_delegation_text = command_text
+                # CR-5b: capture the LIVE flavor line NOW — both executed arms
+                # re-parse the explicit reissue below, which returns flavor=null
+                # and CLOBBERS `parsed`. Read it off the ORIGINAL delegation
+                # parse (the only parse the player's raw words rode on).
+                _delegation_flavor = (parsed.get("command") or {}).get("flavor")
 
                 def _correct_delegation_carryover_target():
                     hist = getattr(world, "command_history", None)
@@ -1262,6 +1274,11 @@ def execute_command(request: CommandRequest):
                     command_text = _reissue
                     _cautious_note = describe_cautious_delegation(
                         _deleg, "scout")
+                    # CR-5b: a live-only, register-gated spoken PREFIX in front
+                    # of the note (None when the live line is absent/violating —
+                    # then only the shipped note shows, no double-narration).
+                    _cautious_flavor_prefix = resolve_live_cautious_prefix(
+                        _deleg, _delegation_flavor)
                     _delegation_arm_ran = True
                     _correct_delegation_carryover_target()
                     print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
@@ -1286,6 +1303,11 @@ def execute_command(request: CommandRequest):
                     parsed["delegation_inferred"] = True
                     parsed["delegation_phrase"] = _delegation_phrase
                     command_text = _reissue
+                    # CR-5b: the register-passing live line, else the
+                    # deterministic aggressive floor (attached only on the
+                    # non-modal success path in the attach block below).
+                    _aggressive_flavor = resolve_delegation_flavor(
+                        _deleg, "aggressive", _delegation_flavor)
                     _delegation_arm_ran = True
                     _correct_delegation_carryover_target()
                     print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
@@ -1476,8 +1498,35 @@ def execute_command(request: CommandRequest):
         # only on a SUCCESSFUL scout (a failed reissue makes "will reconnoiter"
         # false).
         if _cautious_note and isinstance(result, dict) and result.get("success"):
+            # CR-5b: a live-only, register-passed spoken flavor PREFIX leads the
+            # deed-note ("the game heard me" -> then WHY he scouted). When the
+            # prefix is None (mock / absent / register-dropped) only the shipped
+            # note shows — no double-narration (delegation.resolve_live_cautious_
+            # prefix owns that decision; there is no deterministic cautious floor).
+            _cautious_tail = (
+                f"{_cautious_flavor_prefix}\n\n{_cautious_note}"
+                if _cautious_flavor_prefix else _cautious_note)
             result["message"] = (
-                f"{(result.get('message') or '').strip()}\n\n{_cautious_note}"
+                f"{(result.get('message') or '').strip()}\n\n{_cautious_tail}"
+            ).strip()
+
+        # CR-5b: the AGGRESSIVE arm's spoken flavor (register-passed live line
+        # or the deterministic floor) rides the pursue-order response. Attach
+        # ONLY on the non-modal success path: SKIP every modal shape the reissued
+        # PURSUE can raise — the bad-odds confirm (requires_input /
+        # pending_interrupt) AND a strategic/tactical objection (pending_objection
+        # / awaiting_response, e.g. a fog-driven MILD->MODERATE on the PURSUE) —
+        # so guardrail (c)'s ONE-modal legibility surface stays uncluttered
+        # (§6.3), and skip failures. Purely cosmetic — never touches the resolved
+        # order (Golden Rule 6).
+        if (_aggressive_flavor and isinstance(result, dict)
+                and result.get("success")
+                and not result.get("requires_input")
+                and not result.get("pending_interrupt")
+                and not result.get("pending_objection")
+                and not result.get("awaiting_response")):
+            result["message"] = (
+                f"{(result.get('message') or '').strip()}\n\n{_aggressive_flavor}"
             ).strip()
 
         # CR-5 §6.7 first-use hint — surfaced (and latched) at the point it

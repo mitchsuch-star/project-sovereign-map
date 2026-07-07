@@ -63,6 +63,15 @@ class ParseResult:
     # LLM response fields (populated in live mode)
     interpretation: str = ""
     dialogue: Optional[str] = None
+    # CR-5b Flavor Echoing: a short in-character marshal reaction the LIVE LLM
+    # composes for a DELEGATION order ("Ney, deal with Mack"), echoing the
+    # player's tone at the RESPONSE seam ("the game heard me"). Null on every
+    # non-delegation parse (prompt-gated — keeps token cost ~unchanged, the
+    # CR-3 reason `dialogue` was cut). Cosmetic ONLY — never read by CR-5
+    # routing (Golden Rule 6); dropped to a deterministic floor by the register
+    # gate on any parroting/action/register violation. Response-transient (rides
+    # result["message"]); intentionally NOT serialized onto any model class.
+    flavor: Optional[str] = None
     suggestion: Optional[str] = None
 
     # Metadata
@@ -112,6 +121,10 @@ class ParseResult:
         # Add LLM response fields if present
         if self.dialogue:
             result["dialogue"] = self.dialogue
+        # CR-5b: only emitted when the LLM actually composed a flavor line for a
+        # delegation — keeps the dict shape unchanged for every other parse.
+        if self.flavor:
+            result["flavor"] = self.flavor
         if self.suggestion:
             result["suggestion"] = self.suggestion
         if self.standing_order:
@@ -174,6 +187,7 @@ class ParseResult:
             strategic_score=data.get("strategic_score", 10),
             interpretation=data.get("interpretation", ""),
             dialogue=data.get("dialogue"),
+            flavor=data.get("flavor"),
             suggestion=data.get("suggestion"),
             confidence=data.get("confidence", 0.9),
             mode=data.get("mode", "mock"),

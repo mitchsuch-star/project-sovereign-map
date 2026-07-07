@@ -877,6 +877,14 @@ class CommandParser:
                 if llm_result.get("requested_type"):
                     command_dict["requested_type"] = llm_result["requested_type"]
 
+                # CR-5b Flavor Echoing: carry the LLM's delegation flavor line to
+                # the RESPONSE seam. command_dict is hand-built from named .get()s,
+                # so without this lift the field is silently dropped end-to-end.
+                # COSMETIC ONLY — read at main.py's delegation attach seam, never
+                # consulted by CR-5 routing (Golden Rule 6).
+                if llm_result.get("flavor"):
+                    command_dict["flavor"] = llm_result["flavor"]
+
                 # Phase 8 Session 8A: Preserve cheat data
                 if llm_result["action"] == "cheat":
                     command_dict["cheat_type"] = llm_result.get("cheat_type")

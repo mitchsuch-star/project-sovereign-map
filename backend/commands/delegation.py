@@ -320,6 +320,194 @@ def describe_inferred_bad_odds(marshal_name: str, enemy_name: str) -> str:
             f"charge on your word. Confirm the assault, or hold him back?")
 
 
+# ── CR-5b Flavor Echoing (COMMAND_ROBUSTNESS_SPEC §6.4 rider (a)) ────────────
+# "The game heard me": on a delegation, the marshal's IMMEDIATE reply (the
+# RESPONSE seam) echoes the player's tone. LIVE mode composes it (the `flavor`
+# field on the parse call — zero extra LLM call); this module owns the
+# deterministic FLOOR (used when the live line is empty/errored/register-
+# violating) and the REGISTER GATE that drops a bad live line to that floor.
+#
+# The non-parroting contract (the CR-5b entry gate): the reply is keyed to the
+# marshal's CHARACTER + the RESOLVED deed's ATTITUDE, and NEVER splices the raw
+# delegation verb or names a mechanical action. The deterministic router owns
+# the deed (the pursue-order confirmation / cautious note); the flavor is pure
+# character color layered on top, so it can never contradict the action the
+# marshal actually took (the live LLM is unreliable for delegation-shaped input
+# — July 7 probe — so it must not be trusted to name the deed).
+
+# Deed/action words a flavor line must NOT contain — the deterministic router,
+# not the LLM, owns the deed. Superset of the mechanically-meaningful VALID_
+# ACTIONS verbs (+ inflections), the strategic enums, and the plain-English
+# deed synonyms (reconnoiter/observe/watch — so a cautious prefix cannot restate
+# the "scout" its note already owns). Matched WORD-BOUNDED (never as a substring)
+# so an enemy/region name is never a false positive.
+_FLAVOR_ACTION_WORDS = frozenset({
+    "attack", "attacks", "attacking", "assault", "assaults", "assaulting",
+    "scout", "scouts", "scouting", "reconnoiter", "reconnoitre", "recon",
+    "observe", "observes", "observing", "watch", "watches", "watching",
+    "move", "moves", "moving", "march", "marches", "marching",
+    "pursue", "pursues", "pursuing", "chase", "chases", "chasing",
+    "hold", "holds", "holding", "defend", "defends", "defending",
+    "fortify", "fortifies", "fortifying", "entrench", "entrenches",
+    "charge", "charges", "charging", "bombard", "bombards", "bombarding",
+    "retreat", "retreats", "garrison", "recruit", "engage", "engages",
+    "support", "reinforce", "reinforces",
+    # strategic enums (lowercased below before matching)
+    "move_to",
+})
+
+# Personality/temperament adjectives a flavor line must NOT contain — the
+# describe_cautious_delegation note already says "cautious as ever", so a live
+# line restating the character word double-narrates (§4: personality is *what*,
+# not a label to echo). Word-bounded like the action set.
+_FLAVOR_PERSONALITY_WORDS = frozenset({
+    "cautious", "prudent", "prudence", "aggressive", "eager",
+    "literal", "measured", "impetuous", "reckless",
+})
+
+_FLAVOR_FIRST_PERSON = frozenset({
+    "i", "me", "my", "mine", "we", "us", "our", "ours",
+})
+
+# The raw delegation verbs, matched WORD-BOUNDED (an incidental substring like
+# "mishandled" / "handles" must NOT trip the parroting guard — only a genuine
+# spliced verb does). Mirrors _DELEGATION_RE's word-boundary contract.
+_FLAVOR_VERB_RE = re.compile(
+    r"\b(" + "|".join(re.escape(v) for v in DELEGATION_VERBS) + r")\b",
+    re.IGNORECASE,
+)
+_FLAVOR_WORD_RE = re.compile(r"[a-z_]+")
+
+
+def _strip_quoted_spans(line: str) -> str:
+    """Blank out quoted spans (the marshal's own speech) so the first-person
+    guard only inspects the NARRATOR's words — first person is legitimate inside
+    a quoted line, forbidden outside it (§4 register).
+
+    A speech-delimiter apostrophe is one NOT flanked by letters on BOTH sides;
+    a CONTRACTION apostrophe (letter'letter, as in "they'll"/"won't") is not a
+    delimiter, so a contraction inside quoted speech no longer corrupts the span
+    (the review's high finding). Double-quoted spans strip whole via regex."""
+    line = re.sub(r'"[^"]*"', " ", line)
+    delims = [
+        i for i, ch in enumerate(line)
+        if ch == "'" and not (0 < i < len(line) - 1
+                              and line[i - 1].isalpha()
+                              and line[i + 1].isalpha())
+    ]
+    chars = list(line)
+    for k in range(0, len(delims) - 1, 2):
+        for j in range(delims[k], delims[k + 1] + 1):
+            chars[j] = " "
+    return "".join(chars)
+
+
+def flavor_passes_register(line: Optional[str],
+                           match: Optional[DelegationMatch]) -> bool:
+    """The register gate: True iff a LIVE flavor line is safe to show the
+    player; False drops it to the deterministic floor. Enforces the CR-5b
+    non-parroting contract + the §4 voice register. Pure predicate, no state."""
+    if not line or not isinstance(line, str) or not line.strip():
+        return False
+    low = line.lower()
+    words = set(_FLAVOR_WORD_RE.findall(low))
+
+    # (i) Parroting guard — the raw delegation verb must never be spliced back
+    # (the exact §6.4 failure mode this gate exists to forbid). Word-bounded so
+    # an incidental substring ("mishandled") is not a false positive.
+    if _FLAVOR_VERB_RE.search(low):
+        return False
+    # (ii) Double-parrot-with-rider-(d) guard — the RECORD seam already quotes
+    # the verbatim clause; the RESPONSE seam must not repeat it.
+    if match is not None:
+        if match.clause and match.clause.lower() in low:
+            return False
+        if match.verb and match.verb.lower() in low:
+            return False
+    # (iii) Action-contradiction guard — the router owns the deed; a flavor line
+    # that names an action risks contradicting the deterministic resolution.
+    if words & _FLAVOR_ACTION_WORDS:
+        return False
+    # (iii-b) Personality-label guard — the note already names his character;
+    # echoing "cautious"/"eager" double-narrates (§4 personality is not a label).
+    if words & _FLAVOR_PERSONALITY_WORDS:
+        return False
+    # (iv) Internal-key / camelCase leak guard (R7) — no raw entity key.
+    if "_" in line or re.search(r"[a-z][A-Z]", line):
+        return False
+    # (v) Length guard — one to two short clauses, not a paragraph.
+    if line.count(".") + line.count("!") + line.count("?") > 2:
+        return False
+    if line.count(",") > 2:
+        return False
+    # (vi) Voice-register guard — first person only INSIDE a quoted span (the
+    # marshal speaking); a narrator in first person breaks §4 voice.
+    outside = set(_FLAVOR_WORD_RE.findall(_strip_quoted_spans(low)))
+    if outside & _FLAVOR_FIRST_PERSON:
+        return False
+    return True
+
+
+# A small set of interchangeable aggressive-floor templates (all target-anchored
+# ATTITUDE, all register-clean). Picking DETERMINISTICALLY across (marshal,
+# target) means different quarries read differently, so the floor is not a single
+# memorizable sentence — while staying a pure function (testable, no RNG). The
+# LIVE ceiling still carries the per-command variance; this only blunts the
+# fixed-floor memorization edge on the fallback path (review DESIGN_INTENT note).
+_AGGRESSIVE_FLOORS = (
+    "{marshal} needs no second word, Sire — {target} is his.",
+    "{marshal} asks no further order, Sire — {target} will not slip him.",
+    "{marshal} takes {target} for his own, Sire, and asks no more.",
+)
+
+
+def describe_aggressive_delegation(match: DelegationMatch) -> str:
+    """The AGGRESSIVE arm's deterministic FLOOR — the live-mode fallback shown
+    when the LLM flavor line is empty/errored/register-dropped (mock never
+    reaches this arm; guardrail e routes it to ASK). Target-anchored ATTITUDE
+    only: the pursue-order confirmation / bad-odds modal owns the deed, so this
+    NEVER names a mechanical action or echoes the raw delegation verb (§6.4
+    non-parroting contract). Deterministic + mock-safe (no LLM echo — that is
+    the live ceiling). target_display is humanized upstream (R7)."""
+    idx = (len(match.marshal) + len(match.target_display)) % len(_AGGRESSIVE_FLOORS)
+    return _AGGRESSIVE_FLOORS[idx].format(
+        marshal=match.marshal, target=match.target_display)
+
+
+def resolve_delegation_flavor(match: DelegationMatch, arm: str,
+                              live_flavor: Optional[str]) -> Optional[str]:
+    """Ceiling -> floor resolver for the AGGRESSIVE executed arm: the register-
+    passing live line when present, else the deterministic floor. Mirrors the
+    generate_berthier_recovery ceiling/fallback shape but with NO extra LLM call
+    (the flavor already rode the parse). Returns None for any other arm — the
+    cautious arm uses resolve_live_cautious_prefix, and the ASK arm is out of
+    CR-5b scope (its clause-quote is already the echo)."""
+    if arm != "aggressive":
+        return None
+    if flavor_passes_register(live_flavor, match):
+        return live_flavor.strip()
+    return describe_aggressive_delegation(match)
+
+
+def resolve_live_cautious_prefix(match: DelegationMatch,
+                                 live_flavor: Optional[str]) -> Optional[str]:
+    """A LIVE-ONLY, register-gated spoken PREFIX for the cautious arm. The
+    existing describe_cautious_delegation note keeps sole ownership of the deed
+    ("reconnoiter ... costs a turn ... press the assault"); this adds one short
+    clause of character color IN FRONT of it, carrying NO deed word (the gate's
+    action guard drops any line that restates "scout"/"observe"). Returns None
+    when the live line is absent or register-violating — so nothing is prefixed
+    and ONLY the existing note shows. There is deliberately NO deterministic
+    cautious floor sentence: that would double-narrate the shipped note.
+
+    A cautious marshal's register is *measured* (§4), so an exclamatory line is
+    dropped too — an eager "!" would read as a tonal contradiction with the
+    reconnoiter-first deed the note then states."""
+    if flavor_passes_register(live_flavor, match) and "!" not in (live_flavor or ""):
+        return live_flavor.strip()
+    return None
+
+
 def _ask_question(match: DelegationMatch) -> str:
     """The personality-named ASK copy (§6.3c legibility — the surface NAMES
     the marshal's character). Literal Soult declines to presume; a neutral /

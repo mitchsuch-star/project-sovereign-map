@@ -108,11 +108,14 @@ REQUEST_TIMEOUT_SECONDS = 5.0
 # the deterministic enforcement seam (Golden Rule 6), and every consumer
 # reads fields with .get() defaults.
 #
-# NOTE: no "dialogue" property — the field had no consumer (July 2026 AI
-# audit item b) and burned output tokens on every live parse. A marshal
-# reply echoing the player's words is the Flavor Echoing candidate parked
-# at the CR-5 gate review (COMMAND_ROBUSTNESS_SPEC.md §4); do not re-add
-# it here ahead of that decision.
+# NOTE: the dead "dialogue" property (cut July 2026 AI audit item b — no
+# consumer, burned tokens) is SUCCEEDED by "flavor" below (CR-5b Flavor
+# Echoing, COMMAND_ROBUSTNESS_SPEC.md §6.4). Unlike the old field, "flavor"
+# is prompt-GATED to delegation orders only (null on every other parse — see
+# build_parse_prompt), so it preserves the CR-3 token-economy posture, and it
+# is COSMETIC ONLY: it is read at the response seam and never by CR-5 routing
+# (Golden Rule 6), and a register/parroting/action violation drops it to a
+# deterministic floor (delegation.flavor_passes_register).
 
 PARSE_TOOL_NAME = "submit_parsed_command"
 
@@ -174,6 +177,19 @@ PARSE_TOOL = {
             "interpretation": {
                 "type": "string",
                 "description": "One-line human-readable reading of the order.",
+            },
+            "flavor": {
+                "type": ["string", "null"],
+                "description": (
+                    "ONLY for a method-free DELEGATION order (deal with / "
+                    "handle / see to / take care of / sort out / attend to / "
+                    "do something about — the player cedes HOW). Null for every "
+                    "explicit or non-delegation order. One short in-character "
+                    "line: the addressed marshal's immediate reaction, naming "
+                    "the TARGET and echoing the player's TONE — never a game "
+                    "action word (attack/scout/move/hold/...) and never the "
+                    "player's delegation verb. See the prompt's Flavor Line rules."
+                ),
             },
             "suggestion": {
                 "type": ["string", "null"],
@@ -305,6 +321,7 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
         strategic_score=json_data.get("strategic_score", 50),
         interpretation=json_data.get("interpretation", ""),
         dialogue=json_data.get("dialogue"),
+        flavor=json_data.get("flavor"),  # CR-5b Flavor Echoing (delegation-only)
         suggestion=json_data.get("suggestion"),
         confidence=0.85,  # LLM results get moderate confidence
         mode=mode,

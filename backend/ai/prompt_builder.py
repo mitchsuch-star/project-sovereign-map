@@ -98,9 +98,10 @@ Parse the player's command by calling the submit_parsed_command tool exactly onc
 
 # Annotated example of the parse the tool call should carry (CR-3: the
 # actual contract is PARSE_TOOL's input_schema in providers.py — this
-# example documents field semantics for the model. No "dialogue" field:
-# it had no consumer and its revival is the Flavor Echoing candidate
-# parked at the CR-5 gate review, see COMMAND_ROBUSTNESS_SPEC.md §4).
+# example documents field semantics for the model. The "flavor" field is
+# null here because this is an EXPLICIT order; it is filled only for
+# method-free DELEGATION orders per the "Flavor Line" prompt rules —
+# CR-5b Flavor Echoing, COMMAND_ROBUSTNESS_SPEC.md §6.4).
 OUTPUT_SCHEMA = """{
     "matched": true,
     "command_type": "tactical",
@@ -114,6 +115,7 @@ OUTPUT_SCHEMA = """{
     "ambiguity": 15,
     "strategic_score": 45,
     "interpretation": "Marshal Ney to attack enemy position at Waterloo",
+    "flavor": null,
     "suggestion": null,
     "diplomatic_data": null
 }"""
@@ -382,6 +384,33 @@ above) and pick ONE intent action:
 Resolve to the INTENT action only — the game decides the rest (an immediate blow
 vs. an advance to contact) from the live map. Never invent a target the order
 did not name.
+
+## Flavor Line (CR-5b — the `flavor` field)
+Fill the `flavor` field ONLY for a method-free DELEGATION order (one of the
+delegation phrasings above, where the player cedes HOW to solve the problem).
+For ANY explicit order (attack, move to, scout, hold, charge, defend named
+outright) and for EVERY non-delegation command (diplomacy, end turn, ...), set
+`flavor` to null.
+When you do fill it, write ONE short in-character line — the addressed marshal's
+immediate reaction to being handed this task. Rules:
+1. Echo the player's TONE and name the TARGET; do NOT name a game action — never
+   write attack, scout, observe, hold, fortify, march, pursue, engage, or any
+   order word. The staff report states the deed elsewhere; your line is the
+   man's attitude toward the quarry.
+2. NEVER quote the player's delegation verb back ("deal with", "handle", "sort
+   out"). Echo their FEELING, not their phrase.
+3. Voice: narrate the marshal in third person, present tense; first person ONLY
+   inside single quotes of the marshal's own speech; "Sire" addresses the
+   Emperor. Display names only — never an internal key or a personality word.
+4. Register by character — aggressive marshals: eager, imperative, at most one
+   exclamation mark, period-military diction; cautious marshals: measured,
+   hedged, a note of prudence.
+5. One to two short clauses, period diction only.
+GOOD (aggressive, "Ney, deal with Mack"): 'At last, Sire — leave Mack to me.'
+GOOD (cautious, "Davout, take care of Mack"): 'Mack, Sire? Then let me see the ground first.'
+BAD (parrots the verb): 'Ney will deal with Mack!'
+BAD (names the action): 'Ney will attack Mack.'
+BAD (modern register): "Ney's got this one, Sire!"
 
 ## Strategic Commands (Multi-Turn Orders)
 Commands that imply ongoing, multi-turn execution are STRATEGIC, not tactical.
