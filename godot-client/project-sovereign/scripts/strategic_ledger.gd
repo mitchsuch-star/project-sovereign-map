@@ -336,6 +336,23 @@ func _render_economy():
 	bbcode += "  Income:   +" + str(income) + "g\n"
 	if trade > 0:
 		bbcode += "  Trade:    +" + str(trade) + "g\n"
+	# PRE-EC ledger floor (ECONOMY_REVISIT_SPEC.md §0): admin_bonus, treaty_gold
+	# and vassal_tribute are folded into `net` by ledger.py _build_economy but
+	# were never rendered here, so the visible lines did not sum to Net whenever
+	# France held a vassal (tribute) or a gold-per-turn treaty clause (the SC-33
+	# "invisible tribute" bug class). Render every component that feeds Net.
+	var admin_bonus = int(econ.get("admin_bonus", 0))
+	if admin_bonus != 0:
+		var ab_sign = "+" if admin_bonus > 0 else ""
+		bbcode += "  Admin:    " + ab_sign + str(admin_bonus) + "g\n"
+	var treaty_gold = int(econ.get("treaty_gold", 0))
+	if treaty_gold != 0:
+		var tg_sign = "+" if treaty_gold > 0 else ""
+		bbcode += "  Treaty:   " + tg_sign + str(treaty_gold) + "g\n"
+	var vassal_tribute = int(econ.get("vassal_tribute", 0))
+	if vassal_tribute != 0:
+		var vt_sign = "+" if vassal_tribute > 0 else ""
+		bbcode += "  Tribute:  " + vt_sign + str(vassal_tribute) + "g\n"
 	# SC-33 recurring settlement streams (G4F smoke follow-up): the ratified
 	# gold-per-turn tribute is real per-turn cash — show its net line and the
 	# per-stream detail instead of leaving it dispatch-only.
