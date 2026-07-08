@@ -1,6 +1,7 @@
 # Economy Revisit Phase (1805-Scale Economy & Campaign Feel)
 
 > **Status:** DRAFT v0.2 — audited + playtest-verified July 7, 2026 (see §0). **EC-0 LANDED July 4; PRE-EC ledger floor LANDED July 7; EC-6 DECIDED July 7 = sandbox (impl pending).** **Needs user scope blessing for EC-2 (gold sinks); EC-5/EC-7 carry design decisions.** Gate-free track ready to start: EC-1 / EC-3 / EC-4.
+> **Suggestion pool (July 7, 2026):** a research-backed candidate menu (ES-1…ES-10, scored) feeding the EC-2/EC-3/EC-5/EC-7 rows is captured in **§Appendix A** — SUGGESTIONS only, no new owner rows; the user picks from it at the EC-2 gate (open questions in §A.4).
 > **Origin:** July 2, 2026 re-staging. Consolidates the scattered economy rows into ONE owner (each source row now points here): **DEF-3 Economy Pass** (`MAP_IMPLEMENTATION_PLAN.md:293` + the nation_config.py:414/:445 balance-ownership notes), **B4 Gold Sink Options** (`DESIGN_REFINEMENT.md:287-307`), **R161 One-Time Trade / Economic Diplomacy queue item 7** (`DESIGN_REFINEMENT.md:249, :57-58`), **R26 Continental System Buff** (`DESIGN_REFINEMENT.md:242`), **Enemy AP Rebalancing** (`DESIGN_REFINEMENT.md:311-315` — its "after full map" trigger fired July 2), **DW-3 economic-diplomacy note** (`SETTLEMENT_GATE4_PREFLIGHT_AUDIT.md:155`), the **DG-3 supply/overextension re-evaluation** (trigger fired — `SCALE_READINESS_PLAN.md:152-171`), the **DG-5 victory-condition contradiction**, and the previously-unowned scale imbalances (garrison cap, manpower regen density).
 > **Vision constraint:** "Territory as Command Dilemma" — territory problems have faces, not numbers. Depth here means meaningful *choices* (what to build, whom to pay, what a truce is worth), never spreadsheet management.
 
@@ -74,3 +75,71 @@ Any new stream or sink MUST appear in the **rendered** strategic ledger economy 
 - No new transfer channels (the war-economy layer is complete).
 - No per-province micromanagement UI — depth lands as decisions and events, not spreadsheets (vision constraint).
 - Naval/blockade economics belong to DEF-5's future naval spec, not here.
+
+---
+
+## Appendix A — Research suggestion pool (July 7, 2026)
+
+> **STATUS: SUGGESTIONS ONLY — candidate ideas, not owned rows, not scheduled work.** These are the output of a 42-agent research workflow (4 grounding tracks — Napoleonic war-finance history, strategy-genre economy design, an anti-snowball study, and a line-by-line audit of current master — → 4 ideation lenses → 33 candidates adversarially scored against the Golden Rules → synthesis). They are recorded here as an **input to the existing EC owner rows** (§2): each maps to EC-2 / EC-3 / EC-5 / EC-7, which still own the landing, completion definition, and behavior test. **No new owner row or landing is created by this appendix, and nothing behind the EC-2 design gate should be coded before the user answers the open questions in §A.4.** Golden Rule 9 note: this is not deferred player-facing work — it is a scored candidate menu the user picks from at the EC-2 gate. Full design-memo form (with per-item history/precedent/risk): the "The Empire's Purse" artifact (session July 7, 2026).
+
+### A.0 Diagnosis (why the economy is flat)
+
+The economy has **sources but no proportional sinks, and neither currency is scarce.** France nets **+3,792 g/turn** and balloons 800 → 28,228 g in 8 turns because the only recurring drain — army upkeep at a flat `(strength//1000)×5` — covers just **28%** of income and scales strictly linearly, so a snowballing army never self-taxes. Conquest adds full net income the turn after capture with **zero digestion cost**, so winning makes you richer with no friction (the classic runaway-leader failure). The second currency meant to be the brake — **manpower** — is also running away (cavalry `+12,250/turn`, dead urban-artillery regen), so a rich player just re-recruits. Net effect: **gold has no opportunity cost**, so there are no interesting decisions, and the marshal-loyalty core has no economic interface at all.
+
+**Ordering principle (do not reorder):** ① make manpower scarce again → ② add recurring drains that scale super-linearly with empire/army size → ③ give the flush player a sink they *want* (marshal rewards) so drains read as ambition, not punishment.
+
+### A.1 Quick number fixes (gate-free; feed EC-3)
+
+| ID | Suggestion | Type | Score | Effort | Maps to | One-line |
+|----|-----------|------|-------|--------|---------|----------|
+| **ES-1** | Fix the manpower runaways | number-fix | 8/10 | S | EC-3 | Cavalry: `PLAINS_CAVALRY_REGEN` 500→150 **and** cap the summed plains bonus (`cav = BASE + min(plains×150, ~1500)`, hard cap so it survives full-Europe growth). Artillery: re-key `terrain=='urban'` → `region_type in {city,major_city,capital}` **but** retune rate down (~80, cap ~600) — 77 provinces qualify, a naïve swap at 200 creates a new +4,000/turn runaway. Split the artillery re-key (strict bugfix) from the balance retune; two-sided band test for France **and** an AI nation (Golden Rule 5). |
+
+### A.2 High-impact systems (the play-feel changers)
+
+| ID | Suggestion | Type | Score | Effort | Maps to | One-line |
+|----|-----------|------|-------|--------|---------|----------|
+| **ES-2** | Occupation upkeep + integration ramp | novel-mechanic | 9/10 | L | **EC-2 (gate)** | Serialized `Region.occupation_turns` (reset on recapture); fresh conquests yield income × an autonomy factor ramping ~0.35→1.0 over the window (inside the existing `int()` wrap), plus a recurring garrison cost as a fraction of that region's *own reduced* income (never a flat map-wide tax). A stationed marshal pacifies faster. Rides the existing `calculate_turn_income` loop (no new scan). "Occupation & Administration" ledger line reconciling to Net. **Kills "conquest = free money"** (EU4 local-autonomy pattern). Tune so a won war still pays; unify with ES-6 so a hop isn't double-charged. |
+| **ES-3** | Per-corps upkeep, super-linear above a force limit | number-fix | 8/10 | M | EC-2 / EC-3 | Rewrite `calculate_turn_upkeep` (`world_state.py:3536`). Base rate 5→~8-9; per-nation force limit `= base + k×regions`; strength over the limit pays a rising multiplier (1.5×, then 2× above 150%). Compute total strength + limit once/turn in the existing marshal loop. Single "Over-limit surcharge" ledger line; `int()`-floor after surcharge and after bankruptcy-halving. AI-solvency behavior test + a golden band test (starting army absorbs 55-70% of net; doubled army → break-even). |
+| **ES-4** | Province Development (anchor active sink) | novel-mechanic | 8/10 | L | **EC-2 (gate)** | Serialized `Region.development` (cap ~5). `develop <region>` action: +1 for 1 AP + rising gold (~500/900/1500/2400/3600) further scaled by a per-turn-cached map-wide development total (invalidate on develop **and** capture). Folds into `base` before modifiers. **Drop** any per-turn maintenance (paying to make a region worse inverts the fantasy). A *want*, not a tax. Non-goal: keep it a few chunky spends (spec §4); AI won't use it (name as slice-1 non-goal). This is the existing EC-2 Province Development anchor, re-costed. |
+| **ES-5** | Continental System with teeth (safe half) | tuning | 8/10 | M | EC-5 | Retarget `apply_continental_system` from the dead trade channel to actual income: reduce Britain naval/region income ~40g/member (cap ~400) + symmetric self-cost ~30g/coastal region (signed ledger line). Membership already reachable via puppet auto-join + settlement term. Show Britain's denied income as an intel estimate in the player ledger. Split EC-5 into **5a** (toggle + asymmetric bite + Britain severance — land first) and **5b** (smuggling leakage + defection flags — needs a cached coastal set); don't leave 5b a vague "later." |
+| **ES-6** | Distance-from-capital supply attrition (manpower) | tuning | 7/10 | M | EC-7 | Extend `process_supply_attrition` (`world_state.py:3746`) with a distance term inside its existing per-marshal loop — **reuse** the cached `get_distance(location, capital)`, don't greenfield. Escalate beyond a threshold in non-friendly territory; wealth/terrain-gate it (rich enemy land reduces it; scorched worsens it). `supply_depot` cancels a fixed number of hops. **Owns the manpower half**; let ES-2 own the gold drain (no double-charge). Harden the AI clause into a real guardrail + a test that the AI still launches deep offensives. |
+
+### A.3 Novel & creative (distinctive to this game)
+
+| ID | Suggestion | Type | Score | Effort | Maps to | One-line |
+|----|-----------|------|-------|--------|---------|----------|
+| **ES-7** | Dotations — reward a marshal with conquered-province income (the solvency trap) | novel-mechanic | 8/10 | L | **EC-2 (gate)** | `grant dotation` action (AP + lump gold) awards a controlled conquered province to a named marshal; each turn he skims ~30% of its income (subtracted from national income via the existing loop). Grant gives a one-time `+15 trust` step (not a per-turn floor). **The bind:** a prune step at the top of the income phase drops any lost dotation region and fires a trust penalty proportional to the loss — peace/defeat *starves* loyalty the same turn. Cap total dotations; guard vs vassal-tribute double-count; prune **before** skim. The one sink coupling the treasury to the marshal/trust/jealousy core. ⚠ collides with the un-approved Marshal Content Pass / Jealousy specs (get owner sign-off). |
+| **ES-8** | Battle-named victory titles | novel-mechanic | 7/10 | M | EC-2 | At the attack-victory seam, record region → a new serialized `Marshal.victories_by_region` (this per-(marshal,region) source must be **built** — only a bare `battles_won` exists today; that's the real effort). `confer title` action (large one-shot gold, +1 AP) offered only when the marshal won at R and holds no title there; grants a permanent honorific (flavor-only, Golden Rule 6) + a pinned small bonus (e.g. +1 trust, +1 to one named stat). Rising cost `int(1500 × 1.5^titles)`. Surface on marshal cards + campaign-log. Coordinate with the Marshal Content Pass. |
+| **ES-9** | Emergency levies — burn gold to rush manpower | novel-mechanic | 7/10 | M | EC-2 | `raise levy` action pays ~3× a normal recruit to add troops to a marshal **without** drawing the national pool; rising marginal cost via serialized `levies_this_turn` (+50% each, reset/turn). Green quality via the **existing** green-conscript morale dilution (no new field). Over-levying → small trust penalty. The payoff of ES-1: once the pool is dry, this is the only way to rush an army. **Dependent on ES-1 landing first** (with full pools it's just an overpriced recruit). Cap AI levies with a no-spiral test. |
+| **ES-10** | Marshal corruption skim + scandal choice | novel-mechanic | 5/10 | M | EC-2 | (Rebuilt — the original idea targeted a non-existent currency.) Reduce enemy-soil region income where a marshal is stationed by a per-personality integer fraction (aggressive/ambitious skim more; deterministic constant, no LLM), crediting a small trust bump + accumulating a skim total. Scandal event at a threshold: **Confront** (−skim, −trust) vs **Ignore** (keep loyalty, leak + stability hit persist), reusing the existing popup wiring. **Only a dilemma once gold actually bites** (land after real drains). Ledger line must reconcile to Net (SC-33 invariant). Land the scandal in-scope with an owner row + test, or cut it (Golden Rule 9). Weakest of the pool. |
+
+**Two ideation candidates were rejected on code-check and are recorded for provenance:** (a) "British subsidies fund coalition enemies" — already exists as a landed, tested mechanic (`_process_british_subsidy`, `coalition.py:975`); (b) the original corruption-skim targeting "political standing points" — that currency does not exist (rebuilt as ES-10).
+
+### A.4 Open questions for the user (the actual gates)
+
+1. **EC-2 sink set** — which of ES-2 / ES-4 / ES-7 / ES-9 / ES-10 ship in the first pass? *(Memo recommendation: land ES-2 Occupation Upkeep + ES-7 Dotations together; defer the rest.)*
+2. **How punishing** should the anti-snowball drains be? The sandbox has no lose condition, so a stuck-at-zero-gold player is a real un-fun risk. Set the target band explicitly (e.g. starting-army France absorbs 55-70% of net; a doubled empire trends to break-even vs. goes net-negative).
+3. **EC-5 scope** — upgrade to the real embargo (5a income bite + 5b smuggling/defection) or land only the safe income-bite half? Is the member self-cost (gutting your own ports) in scope, given it can zero a minor AI treasury?
+4. **EC-7 timing** — open the supply/distance pass (ES-6) now, or re-defer with a dated trigger? It shares a distance term with ES-2 — decide which owns gold vs manpower.
+5. **Marshal-loyalty economy sequencing** — ES-7 / ES-8 / ES-10 all touch trust, which the un-approved Marshal Content Pass + Jealousy specs also claim. Land a minimal gold→trust interface now under EC-2 that those specs later extend, or hold all marshal-economy coupling until those gates clear?
+6. **A soft long-game goal?** — now that EC-6 removed hard win/lose, add a soft sandbox pressure (e.g. a British-subsidy "bleed the paymaster" objective) now, or keep it pure open-ended until the Pre-Ship Victory & Objectives Pass?
+
+### A.5 Top three bets (if only three land)
+
+1. **ES-1** — fix the manpower runaway first (enabling substrate; nothing else bites while re-recruiting is free).
+2. **ES-2** — Occupation upkeep + integration ramp (highest-leverage structural drain; kills the core snowball driver with a legible digest-before-you-bite rhythm).
+3. **ES-7** — Dotations (the aspirational sink the winning player *wants*, and the only one coupling the dead treasury to the marshal emotional core).
+
+### A.6 Grounding sources
+
+- Pierre Branda, *"Did the war pay for the war?"* — the empire was **not** self-financing (~1.8B francs extracted, ~579M-franc deficit by 1814). <https://www.cairn.info/revue-napoleonica-la-revue-2008-3-page-2.htm>
+- Domaine Extraordinaire (30 Jan 1810) — war chest of seized land/revenue; Austerlitz ~100M, Jena ~120M contributions. <https://en.wikipedia.org/wiki/Economic_and_logistical_aspects_of_the_Napoleonic_Wars>
+- Dotations — revenue grants making marshals dynastic (Marmont 50,000 fr/yr from Dalmatia; battle-named titles). <https://en.wikipedia.org/wiki/Dotation>
+- Continental System / Berlin Decree (1806) — British exports fell 25-55% but French/Dutch ports gutted; heavy smuggling. <https://en.wikipedia.org/wiki/Continental_System>
+- Loi Jourdan-Delbrel (1798/99) — annual conscription; >200k *réfractaires*; manpower, not gold, the binding constraint. <https://en.wikipedia.org/wiki/Conscription_in_France>
+- Pitt's Gold — British subsidies to ~30 allies topped £65M, funding ~450k coalition troops in 1813. <https://militaryhistorynow.com/2023/06/07/of-blood-and-treasure-how-british-money-manufacturing-and-military-might-forged-the-coalition-that-defeated-napoleon/>
+- Napoleon: Total War — "upkeep costs are the major drain"; region wealth + town-watch occupation cost. <https://totalwar.fandom.com/wiki/User_blog:Brainwasher5/Musings_on_economy_in_Napoleon:_Total_War>
+- EU4 Local Autonomy — conquests yield `base×(1−autonomy)` until integrated (the "conquest ≠ free money" pattern). <https://eu4.paradoxwikis.com/Local_autonomy>
+- EU4 Overextension — un-cored land accrues unrest with no cap (the "digest before you bite" rhythm). <https://eu4.paradoxwikis.com/Overextension>
+- Sid Meier, GDC 2012 — a game is a series of interesting decisions; every sink must be a real opportunity cost. <https://www.gamedeveloper.com/design/gdc-2012-sid-meier-on-how-to-see-games-as-sets-of-interesting-decisions>
+- Anti-snowball design consensus — size penalties must scale super-linearly or income outpaces them by mid-game. <https://waywardstrategy.com/2020/07/06/anti-snowball-design/>
