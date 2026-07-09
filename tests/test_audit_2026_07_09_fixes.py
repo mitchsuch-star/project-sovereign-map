@@ -144,3 +144,60 @@ class TestBerthierCoordinationObservationsArePerspectiveAware:
         assert any(p in obs.lower() for p in self.TRIANGLE_PHRASES), (
             f"Legacy attacker-side type_count must still fire for player attacks: {obs}"
         )
+
+
+class TestOrderBreakClearsHoldState:
+    """Audit fix 2.3 — the no-alternate-route order break in
+    strategic_executor._handle_first_step_blocked must pair the hold-state
+    clear with the order clear (its sibling reached-objective arm already
+    does), per the §6.2 invariant: every order-clear also clears
+    holding_position + hold_region together."""
+
+    def test_no_alternate_route_break_clears_hold_state(self):
+        import contextlib
+        import io
+
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.strategic_executor import StrategicExecutor
+        from backend.models.marshal import StrategicOrder
+        from backend.models.world_state import WorldState
+
+        world = WorldState(player_nation="France")
+        game_state = {"world": world}
+
+        grouchy = world.get_marshal("Grouchy")
+        assert grouchy.personality == "literal"  # the silently-reroute branch
+        grouchy.location = "Paris"
+
+        # Block every first hop out of Paris with an at-war enemy so the
+        # reroute pathfind (avoiding all enemy regions) finds NO route.
+        blockers = ["Wellington", "Uxbridge", "Blucher", "Gneisenau"]
+        paris_exits = world.regions["Paris"].adjacent_regions
+        assert len(paris_exits) >= len(blockers) - 1
+        for name, region in zip(blockers, paris_exits):
+            world.get_marshal(name).location = region
+
+        # Leftover hold state from a prior HOLD (the +15% literal-hold defense
+        # modifier keys off holding_position — a leak corrupts it).
+        grouchy.holding_position = True
+        grouchy.hold_region = "Paris"
+        grouchy.strategic_order = StrategicOrder(
+            command_type="MOVE_TO", target="Rhineland", target_type="region",
+            started_turn=1, original_command="Grouchy, march to Rhineland",
+            path=[paris_exits[0], "Rhineland"],
+        )
+
+        se = StrategicExecutor(CommandExecutor())
+        blocked_region = paris_exits[0]
+        enemies = [m for m in world.marshals.values()
+                   if m.location == blocked_region and m.nation != "France"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = se._handle_first_step_blocked(
+                grouchy, enemies, blocked_region, world, game_state)
+
+        assert result is not None and result.get("order_cleared") is True
+        assert grouchy.strategic_order is None
+        assert grouchy.holding_position is False, (
+            "order break must clear holding_position with the order"
+        )
+        assert grouchy.hold_region == ""

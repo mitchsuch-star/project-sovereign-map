@@ -1532,8 +1532,11 @@ class StrategicExecutor:
                 # Return None — handled automatically, continue with normal flow
                 return None  # Caller will set first_step_msg for reroute
             else:
-                # No alternate route — break order
+                # No alternate route — break order (paired hold-clear, same as
+                # the reached-objective arm above; audit 2026-07-09 fix 2.3)
                 marshal.strategic_order = None
+                marshal.holding_position = False
+                marshal.hold_region = ""
                 return {
                     "success": False,
                     "message": f"Path blocked at {blocked_region}, no alternate route. "
