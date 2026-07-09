@@ -557,8 +557,25 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     our_reinforcements = reinforcement_data.get(
         "attacker" if we_are_attacker else "defender", [])
 
+    # Perspective-correct coordination data (audit 2026-07-09 fix 2.2): the
+    # legacy keys carry the ATTACKER side; defender-side copies are tagged.
+    # Pre-fix, an enemy attacker's combined-arms triangle (or its internal
+    # hostile/devoted politics) was narrated as "our side" when the player
+    # was the defender.
+    if we_are_attacker:
+        our_type_count = coordination.get(
+            "attacker_type_count", coordination.get("type_count", 0))
+        our_hostile_forced = coordination.get("hostile_forced_participants", [])
+        our_hostile_refused = coordination.get("hostile_refused", [])
+        our_devoted_allies = coordination.get("devoted_allies", [])
+    else:
+        our_type_count = coordination.get("defender_type_count", 0)
+        our_hostile_forced = coordination.get("defender_hostile_forced_participants", [])
+        our_hostile_refused = coordination.get("defender_hostile_refused", [])
+        our_devoted_allies = coordination.get("defender_devoted_allies", [])
+
     # Priority 0.5: Full combined arms triangle (3/3 unit types) — our side
-    if coordination.get("type_count", 0) >= 3:
+    if our_type_count >= 3:
         return _fill(random.choice(_OBSERVATIONS["coordination_full_triangle"]))
 
     # Priority 0.7: Reinforcement results (our side)
@@ -633,10 +650,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
 
     # Priority 5.5 (coordination): Hostile marshal forced to fight via SUPPORT (D3/A-M4)
-    hostile_forced = coordination.get("hostile_forced_participants", [])
-    if hostile_forced:
+    if our_hostile_forced:
         return _fill(random.choice(_OBSERVATIONS["coordination_hostile_forced"]),
-                     ally=hostile_forced[0])
+                     ally=our_hostile_forced[0])
 
     # Priority 6: We won + fortifications were involved
     # 6a: We attacked and broke through enemy fort
@@ -737,10 +753,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
             return _fill(random.choice(_OBSERVATIONS["won_decisively"]))
 
     # Priority 9.5 (coordination): Devoted ally synergy — more interesting than generic stalemate
-    devoted_allies = coordination.get("devoted_allies", [])
-    if devoted_allies:
+    if our_devoted_allies:
         return _fill(random.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
-                     ally=devoted_allies[0])
+                     ally=our_devoted_allies[0])
 
     # Priority 9.6 (coordination): Rival→Professional relationship improvement (A-I3)
     player_rel_improvements = [
@@ -757,10 +772,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         return _fill(random.choice(_OBSERVATIONS["stalemate"]))
 
     # Priority 12 (coordination): Hostile ally in region with 0% coordination (no SUPPORT)
-    hostile_refused = coordination.get("hostile_refused", [])
-    if hostile_refused:
+    if our_hostile_refused:
         return _fill(random.choice(_OBSERVATIONS["coordination_hostile_refused"]),
-                     ally=hostile_refused[0])
+                     ally=our_hostile_refused[0])
 
     # Priority 16: Default
     return _fill(random.choice(_OBSERVATIONS["default"]))

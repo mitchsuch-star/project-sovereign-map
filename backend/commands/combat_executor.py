@@ -2893,7 +2893,7 @@ class CombatExecutor:
             marshal, world,
             reinforcement_results=attacker_reinforcements,
             exclude_from_adjacent=arrived_names)
-        self._calculate_coordination_context(
+        defender_coord = self._calculate_coordination_context(
             enemy_marshal, world,
             reinforcement_results=defender_reinforcements,
             exclude_from_adjacent=arrived_names)
@@ -3257,31 +3257,50 @@ class CombatExecutor:
         # _pick_observation() can use coordination-specific priorities.
         # ════════════════════════════════════════════════════════════
         coord_context = {
+            # Legacy keys carry the ATTACKER side (existing readers + test
+            # fixtures depend on this shape).
             "type_count": attacker_coord.get("type_count", 0),
             "hostile_forced_participants": [],
             "hostile_refused": [],
             "devoted_allies": [],
+            # Side-tagged copies so _pick_observation can read the PLAYER'S
+            # side when the player is the defender — the legacy attacker-only
+            # data credited an enemy combined-arms triangle to "our side"
+            # (audit 2026-07-09 fix 2.2).
+            "attacker_type_count": attacker_coord.get("type_count", 0),
+            "defender_type_count": defender_coord.get("type_count", 0),
+            "defender_hostile_forced_participants": [],
+            "defender_hostile_refused": [],
+            "defender_devoted_allies": [],
         }
-        # Classify our (attacker-side) participants by relationship
+        # Classify each side's participants by relationship toward that
+        # side's primary combatant.
         if is_coordinated_battle:
-            for p in atk_participants:
-                if p.name == marshal.name:
-                    continue
-                rel = p.get_relationship(marshal.name)
-                if rel == -2:
-                    # Hostile — check for SUPPORT order
-                    order = getattr(p, 'strategic_order', None)
-                    has_support = (
-                        order is not None
-                        and order.command_type == "SUPPORT"
-                        and order.target == marshal.name
-                    )
-                    if has_support:
-                        coord_context["hostile_forced_participants"].append(p.name)
-                    else:
-                        coord_context["hostile_refused"].append(p.name)
-                elif rel == 2:
-                    coord_context["devoted_allies"].append(p.name)
+            for side_primary, participants, forced_key, refused_key, devoted_key in (
+                (marshal, atk_participants,
+                 "hostile_forced_participants", "hostile_refused", "devoted_allies"),
+                (enemy_marshal, def_participants,
+                 "defender_hostile_forced_participants", "defender_hostile_refused",
+                 "defender_devoted_allies"),
+            ):
+                for p in participants:
+                    if p.name == side_primary.name:
+                        continue
+                    rel = p.get_relationship(side_primary.name)
+                    if rel == -2:
+                        # Hostile — check for SUPPORT order
+                        order = getattr(p, 'strategic_order', None)
+                        has_support = (
+                            order is not None
+                            and order.command_type == "SUPPORT"
+                            and order.target == side_primary.name
+                        )
+                        if has_support:
+                            coord_context[forced_key].append(p.name)
+                        else:
+                            coord_context[refused_key].append(p.name)
+                    elif rel == 2:
+                        coord_context[devoted_key].append(p.name)
         battle_result["coordination_context"] = coord_context
         battle_result["reinforcement_results_for_report"] = {
             "attacker": attacker_reinforcements,
@@ -3346,9 +3365,13 @@ class CombatExecutor:
                 r.get("bombardment_result", {}) for r in auto_bombardment_results
             ]
         if (coord_context.get("type_count", 0) >= 3
+                or coord_context.get("defender_type_count", 0) >= 3
                 or coord_context.get("hostile_forced_participants")
                 or coord_context.get("hostile_refused")
                 or coord_context.get("devoted_allies")
+                or coord_context.get("defender_hostile_forced_participants")
+                or coord_context.get("defender_hostile_refused")
+                or coord_context.get("defender_devoted_allies")
                 or attacker_reinforcements or defender_reinforcements
                 or relationship_changes
                 or support_bombardment_total_damage > 0

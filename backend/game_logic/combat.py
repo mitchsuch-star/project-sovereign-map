@@ -326,7 +326,10 @@ class CombatResolver:
                     if attacker_drill_bonus > 0:  # Use saved value
                         base_bonus += 5  # +5% drill synergy
                     if base_bonus > 15:
-                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Bravest of the Brave: +{base_bonus}% total)"
+                        # Label with the personality, not Ney's signature ability —
+                        # the 1805 roster has 4 aggressive marshals and this message
+                        # fires for all of them (audit 2026-07-09 fix 2.1).
+                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Aggressive: +{base_bonus}% total)"
                     else:
                         attacker_personality_message = f"{attacker.name} leads the charge! (Aggressive: +15% attack)"
 
@@ -470,7 +473,9 @@ class CombatResolver:
 
                 elif personality == "cautious":
                     if current_stance == Stance.DEFENSIVE:
-                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Iron Marshal: +20% total)"
+                        # Label with the personality, not Davout's epithet — the 1805
+                        # roster has 13 cautious marshals (audit 2026-07-09 fix 2.1).
+                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Cautious: +20% total)"
                     if is_outnumbered:
                         if not defender_personality_message:
                             defender_personality_message = f"{defender.name} stands firm against superior numbers! (Cautious: +10% outnumbered)"
