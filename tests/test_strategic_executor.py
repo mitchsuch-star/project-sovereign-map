@@ -1673,6 +1673,14 @@ class TestMovementEnforcement:
     def test_movement_stops_before_enemy_region(self, world, game_state,
                                                  strategic_executor):
         """Marshal stops at region BEFORE enemy, not inside it."""
+        import random
+
+        # Audit 2026-07-09 (§4 known fix): the aggressive contact handling
+        # rolls combat dice — on a hot roll Wellington force-retreats and
+        # Belgium opens up, so the stop-before assertion was RNG-flaky.
+        # Seed pins the battle to a non-rout outcome.
+        random.seed(20260709)
+
         ney = world.get_marshal("Ney")
         ney.personality = "aggressive"
         ney.location = "Paris"

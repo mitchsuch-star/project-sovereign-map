@@ -125,7 +125,7 @@ def create_vassal_treaty(
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_carved_vassal_created",
-                        {"carved_name": vassal}, "always")
+                        {"carved_name": vassal, "protector": lord}, "always")
 
     return {
         "success": True,
@@ -206,7 +206,7 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_carved_vassal_created",
-                        {"carved_name": vassal}, "always")
+                        {"carved_name": vassal, "protector": lord}, "always")
 
     return {
         "success": True,

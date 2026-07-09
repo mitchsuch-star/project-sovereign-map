@@ -201,3 +201,33 @@ class TestOrderBreakClearsHoldState:
             "order break must clear holding_position with the order"
         )
         assert grouchy.hold_region == ""
+
+
+class TestVassalCreatedDispatchNamesActualLord:
+    """Audit fix 3.1 — the vassal-created dispatch line hardcoded "French
+    protection", but both creators are reachable with an AI lord (treaty
+    ratification passes `proposer`; settlement clauses pass `vassal_lord`),
+    so a Prussian vassalization announced French protection."""
+
+    def test_dispatch_line_names_the_lord_not_france(self):
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        from backend.game_logic.vassal import create_vassal_treaty
+        from backend.models.world_state import WorldState
+
+        world = WorldState(player_nation="France")
+        world.diplomatic_states["Prussia|Saxony"] = "OPEN_BORDERS"
+        # Inflate Prussia's power so Saxony falls under the WPS-B power cap
+        # (the cap is not under test here — the dispatch attribution is).
+        for region in world.regions.values():
+            if region.controller in ("Britain", "Austria"):
+                region.controller = "Prussia"
+        world.invalidate_active_nations_cache()
+
+        result = create_vassal_treaty(world, "Prussia", "Saxony")
+        assert result.get("success"), result.get("message")
+
+        event = world.pending_dispatch_events[-1]
+        assert event["type"] == "diplomatic_carved_vassal_created"
+        text = _format_dispatch_event_text(event["type"], event["template_vars"])
+        assert "Prussia" in text
+        assert "French" not in text

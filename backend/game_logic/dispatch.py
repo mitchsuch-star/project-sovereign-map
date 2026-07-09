@@ -1179,7 +1179,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_offensive_cascade": "{nation} has joined {aggressor}'s war against {target}, honoring their alliance.",
     "diplomatic_vassal_courting": "Talleyrand reports {enemy} agents in {vassal_capital}.",
     "diplomatic_continental_system": "{nation} has {action} the Continental System.",
-    "diplomatic_carved_vassal_created": "The {carved_name} has been established under French protection.",
+    # Audit 2026-07-09 fix 3.1: name the actual lord — this event also fires
+    # for AI-lord vassalizations (treaty ratification / settlement clauses),
+    # where "French protection" misattributed the act.
+    "diplomatic_carved_vassal_created": "{carved_name} has been established under the protection of {protector}.",
     "diplomatic_carved_vassal_dissolved": "The {carved_name} has ceased to exist.",
     "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
     "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed a {treaty_type}.",

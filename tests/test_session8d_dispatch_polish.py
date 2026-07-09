@@ -390,12 +390,15 @@ class TestDispatchDiplomaticEvents:
 
     def test_carved_vassal_created_appears_in_dispatch(self):
         world = _make_world()
+        # Audit 2026-07-09 fix 3.1: emitters now always pass the lord as
+        # "protector" (the template no longer hardcodes French protection).
         queue_dispatch_event(world, "diplomatic_carved_vassal_created",
-                            {"carved_name": "Westphalia"}, "always")
+                            {"carved_name": "Westphalia", "protector": "France"}, "always")
         dispatch = build_morning_dispatch(world)
         events = dispatch["diplomatic_events"]
         assert len(events) == 1
         assert "Westphalia" in events[0]["text"]
+        assert "France" in events[0]["text"]
 
     def test_defection_cascade_appears_in_dispatch(self):
         world = _make_world()
