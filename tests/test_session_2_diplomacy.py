@@ -877,7 +877,9 @@ class TestSerialization:
         del data["diplomatic_points"]
 
         restored = WorldState.from_dict(data)
-        assert restored.diplomatic_points == 4  # Default
+        # Audit 2026-07-09 fix 1.1: missing key falls back to the world's
+        # construction-time value (5), matching calculate_dp for France.
+        assert restored.diplomatic_points == 5
 
 
 # ═══════════════════════════════════════════════════════

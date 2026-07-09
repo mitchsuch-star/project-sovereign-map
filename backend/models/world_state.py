@@ -4602,7 +4602,10 @@ class WorldState:
             world.diplomats = {k: DiplomaticRepresentative.from_dict(v) for k, v in diplomats_data.items()}
         # else: keep the constructor's world-scoped cast (legacy five or the
         # 20-diplomat Europe roster) — item 3, no legacy clobber.
-        world.diplomatic_points = int(data.get("diplomatic_points", 4))
+        # Item 3: omitted-key fallback reads the world's construction-time
+        # value (5 for France — matches calculate_dp: base 3 + skill + authority),
+        # not the stale pre-skill-bonus 4 that shorted scenario boots on turn 1.
+        world.diplomatic_points = int(data.get("diplomatic_points", world.diplomatic_points))
         world.max_diplomatic_points = int(data.get("max_diplomatic_points", 5))
         world.nation_authority = {
             k: int(v)

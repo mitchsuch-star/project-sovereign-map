@@ -292,6 +292,18 @@ def test_france_treasury_keeps_europe_constructor_value(world1805):
     assert world1805.nation_gold["Russia"] == 1500
 
 
+def test_turn_one_dp_matches_constructor_and_regen_formula(world1805):
+    """Audit 2026-07-09 fix 1.1: the scenario omits `diplomatic_points`, so the
+    from_dict fallback must read the world's construction-time value (5 —
+    matching calculate_dp for France: base 3 + Talleyrand skill 10 + authority
+    60, holding Paris), not the stale pre-skill-bonus 4 that gave turn 1 one
+    less DP than every regenerated turn after it."""
+    from backend.models.world_state import WorldState
+
+    constructor_world = WorldState(player_nation="France", sovereign_map="europe")
+    assert world1805.diplomatic_points == constructor_world.diplomatic_points == 5
+
+
 def test_relations_match_researched_matrix(world1805):
     assert world1805.nation_relations == EXPECTED_RELATIONS
 

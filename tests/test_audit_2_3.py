@@ -2626,7 +2626,9 @@ class TestBackwardCompatibility:
 
         loaded = WorldState.from_dict(data)
 
-        assert loaded.diplomatic_points == 4
+        # Audit 2026-07-09 fix 1.1: omitted diplomatic_points falls back to the
+        # world's construction-time value (5), per the item-3 convention.
+        assert loaded.diplomatic_points == 5
         assert loaded.max_diplomatic_points == 5
         assert isinstance(loaded.war_scores, dict)
         assert isinstance(loaded.battle_records, dict)
@@ -2660,7 +2662,7 @@ class TestBackwardCompatibility:
 
         loaded = WorldState.from_dict(data)
 
-        assert loaded.diplomatic_points == data.get("diplomatic_points", 4)
+        assert loaded.diplomatic_points == data.get("diplomatic_points", 5)
         assert isinstance(loaded.war_scores, dict)
         assert len(loaded.war_scores) == 0
         assert isinstance(loaded.active_treaties, dict)
