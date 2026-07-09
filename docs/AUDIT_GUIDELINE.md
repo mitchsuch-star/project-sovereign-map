@@ -54,7 +54,7 @@ Apply this same loop to **every** component in §6–§7. This is the "step by s
 5. **Act.**
    - *Safe fix* → apply it, add/extend a pinning test, run the component **verify**.
    - *Escalate* → write it to the audit log (§9) with evidence + options + your recommendation, and move on.
-6. **Log.** One line per fix (component, defect, fix, test, eventual commit SHA) and one block per escalation.
+6. **Log.** One line per fix (component, defect, fix, test, eventual commit SHA) and one block per escalation. **Also proactively capture *architectural* observations** the cross-component read surfaces — duplication across files, an over-long seam, a merge candidate, a layering smell — as escalations feeding `ARCHITECTURE_REFACTORING_PLAN.md`. This whole-codebase sweep is the *one* pass positioned to see them (no single-feature session reads across `diplomacy.py` ~8.8k / `enemy_ai.py` ~6k / `combat_executor.py` ~4.7k at once); log them even when nothing is broken. Do **not** act on them — refactor is Rule-2 ESCALATE.
 7. **Commit per component.** Once a component is swept and green, commit directly to `master` (project workflow — no feature branch). The pre-commit hook runs `ruff check backend/` + the full suite; **never bypass with `--no-verify`** — fix the underlying failure. Record the SHA against that component's findings (audits are tracked by master SHA).
 
 ---
@@ -100,6 +100,11 @@ ruff check backend/                                          # lint half
 - **Verify commands below use `-k` keyword filters** rather than exact filenames wherever possible — filenames drift, `-k` doesn't. Glob-confirm a specific file before trusting it. Always finish a component with the **full suite** (the pre-commit gate re-runs it anyway).
 - **Curl before blaming Godot.** A response-shape bug (missing key, wrong name, stray float, un-stripped `new_state`) reads as a silent Godot no-op. `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command":"end turn"}' | python -m json.tool` first.
 - **Sign-off = green pre-commit** (ruff clean + full suite). A fix is not done until that passes.
+
+**Known safe fixes waiting to be folded in (land them during the relevant chunk — they are all Rule-1 safe):**
+- **`MC-0` — the marshal-ability display bug:** the roster boots showing `"None"` as an active ability. The gate must require a real ability name before display; ability *authoring* stays the gated MC-1 (do **not** author abilities). Verify under §7.6 / §7.7. (Exempt from the MC design gate — recorded as an independent fix.)
+- **The RNG-flaky `test_movement_stops_before_enemy_region`:** a pre-existing intermittent failure — seed its combat RNG so it's deterministic. Land it during §6.5 (Movement) or the §7.8 hygiene close.
+- **Test-suite health:** while sweeping, note thin coverage and wrong-seam patches (cross-cutting trap #13) as you go; summarize them in the §9 final report (see §9).
 
 ---
 
@@ -245,7 +250,7 @@ Each block: **Scope · Start at · Invariants · Hunt for · Fix on sight · Esc
 - **Scope.** Guards GR8 (no hot-path region scans) and GR9 (no unowned deferrals), and keeps STATUS/ROADMAP/CLAUDE.md truthful.
 - **Start at.** `test_scale_readiness_phase2.py` (the source-pin on 7 hot paths + the 2×/15× tripwires + the cross-world memo-leak pin); `world_state.py: get_active_nations, get_nation_regions, invalidate_active_nations_cache`; `enemy_ai.py: _get_strategic_enemy_regions, _reset_enemy_query_cache`; `scripts/git-hooks/pre-commit`; STATUS/ROADMAP/CLAUDE.md.
 - **Invariants.** `get_nation_regions()` is the only sanctioned full-region scan (per-turn cached). Every controller mutation calls `invalidate_active_nations_cache()`. Per-`(nation, turn)` memos must reset with **world scope**, not just turn-number match (two worlds collide at the same turn). Tripwires are **relative** (bare-Europe ≤ 2× legacy, campaign ≤ 15×), never absolute ms. (GR9) Every deferral has an owner row + landing + completion + STATUS line + test. STATUS/ROADMAP/CLAUDE.md agree on test count and current phase. **The pre-commit gate is the sole sign-off.**
-- **Hunt for.** A new per-turn scan bypassing the cached helper; a controller-mutation seam missing the invalidation call; a memo keyed without world identity; the distance cache invalidated on a controller flip (it's adjacency-topology-only) or not invalidated on a real adjacency edit; doc drift (the audit found `STATUS.md` pinning `11538` while CLAUDE.md/CR-5 entries cite `11710`); a GR9 placeholder without an owner.
+- **Hunt for.** A new per-turn scan bypassing the cached helper; a controller-mutation seam missing the invalidation call; a memo keyed without world identity; the distance cache invalidated on a controller flip (it's adjacency-topology-only) or not invalidated on a real adjacency edit; doc drift (STATUS/CLAUDE.md/CR-5 entries variously cite `11538` / `11710` / `11770` while the suite actually reports **11,780 passed / 1 skipped** as of July 9, 2026 — reconcile to the verified count); a GR9 placeholder without an owner.
 - **Fix on sight.** Rewrite a regressed scan through the cached helper; add the missing `invalidate_active_nations_cache()` call; hook a new memo into the scope reset; reconcile doc-count/phase drift to the **verified** current value (re-run the suite first); wire a GR9 placeholder to its existing owner row or delete dead placeholder copy; add a missing checklist-required pin test.
 - **Escalate.** Loosening a tripwire threshold to make a slow change pass; deleting a source-pin (weakens GR8); a new global cache or a changed invalidation contract; deferring player-facing work where **no** owner row exists yet (the owner contract must be authored by the user); any balance value or user-gated spec item; bypassing/altering the pre-commit gate.
 - **Verify.** `pytest tests/test_scale_readiness_phase2.py -v` + `ruff check backend/` + the **full suite** (this is the number STATUS/CLAUDE.md must match).
@@ -294,12 +299,14 @@ Keep a running log at `docs/audits/AUDIT_<YYYY_MM_DD>.md`. Two sections:
 ```
 ### [Component] <one-line finding>
 - Evidence: file:function + what the code does vs. what should hold
-- Why escalated: (balance number / invariant / cross-cutting / behavior-changing sign bug / closed scope)
+- Why escalated: (balance number / invariant / cross-cutting / behavior-changing sign bug / closed scope / **architecture-refactor**)
 - Options: A … / B …
 - Recommendation: <your pick + why>
 ```
 
-**Final report** (end of the audit): components swept; total fixes by category; open escalations awaiting a decision; the final full-suite count + ruff status; and any component you could not fully sweep (with why — "no silent caps": say what was left).
+**Architecture / refactor escalations** use the same block, tagged `architecture-refactor`, and are **also** appended to `ARCHITECTURE_REFACTORING_PLAN.md` (duplication, over-long seams, merge candidates, layering smells — see §2 step 6).
+
+**Final report** (end of the audit): components swept; total fixes by category; open escalations awaiting a decision (incl. the architecture list); a **test-suite health** summary (thin-coverage areas, wrong-seam patches per trap #13, and confirmation the RNG-flaky `test_movement_stops_before_enemy_region` is now deterministic); the final full-suite count + ruff status **reconciled into STATUS/ROADMAP/CLAUDE.md** (as of July 9, 2026 the verified count is **11,780 passed / 1 skipped** — reconcile to whatever the suite reports when you finish, since it drifts); and any component you could not fully sweep (with why — "no silent caps": say what was left).
 
 ---
 
