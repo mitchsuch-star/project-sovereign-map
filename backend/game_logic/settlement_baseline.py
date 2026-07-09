@@ -30,7 +30,9 @@ from backend.game_logic.settlement_scoring import (
     MAX_SETTLEMENT_CLAUSE_COUNT,
     NEAR_ACCEPTANCE_FLOOR,
     SETTLEMENT_LIVE_CLAUSE_TYPES,
-    calculate_common_peace_acceptance,
+    # NOTE: calculate_common_peace_acceptance is deliberately NOT imported by
+    # name — every call must resolve late via the settlement_scoring module
+    # attribute so test patches at the scorer seam land (audit 2026-07-09).
     compute_direct_scores_by_enemy,
     compute_settlement_package_raw_harshness,
     compute_side_pressure_score,
