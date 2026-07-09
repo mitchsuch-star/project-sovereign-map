@@ -1,6 +1,7 @@
 # Economy Revisit Phase (1805-Scale Economy & Campaign Feel)
 
 > **Status:** DRAFT v0.4 — audited + planned July 8, 2026 (see §0 + §0.5 + **§0.6 gate-ready pass-1 spec**). **EC-0 LANDED July 4; PRE-EC ledger floor LANDED July 7; EC-6 DECIDED July 7 = sandbox (impl pending).** **EC-2 gate decisions RECORDED July 8 (§0.5); the gate-ready ES-7 "Cost of Success" mechanic design + the ordered implementation plan + the cut/consolidate/add item reconciliation are recorded in §0.6 (July 8 continuation — PLANNING + DOCS ONLY, NO code).** Pass-1 = ES-2 Occupation Upkeep + ES-7 (reframed) + ES-1 prereq; band = middle ~55–70% measured against the *whole* economy incl. the diplomatic layer; marshal coupling reframed from bribe-for-trust to "success makes a marshal more expensive — **paying only stops the bleed, never buys trust**," surfaced as **"endow the marshal with an estate + a province-derived title"** (§0.6.2 — the historically faithful *Domaine Extraordinaire* framing that resolves the "dotations aren't realistic" concern). **The build session executes §0.6.3: gate-free Track 1 (ES-1 / EC-6a / ledger-GR8) first, then the EC-2 pair (ES-2 + ES-7) behind the USER DESIGN GATE.** **EC-5 self-cost (Option B) / EC-7 timing (dated post-pass-1) / soft-goal (keep open-ended) all RESOLVED July 8 cont. (§0.6.6);** only the blessed numbers (§0.6.5 E1–E6) remain for the gate.
+> **▶ SEQUENCING (July 9, 2026): the Comprehensive Codebase Audit runs BEFORE this build, and Fable carries its whole-codebase context straight into an independent pre-build evaluation of these recs — see the new §0.7.** Order: **audit → econ eval (§0.7) → EC-2 gate → EC build (§0.6.3).** The econ eval is Fable's own perspective on everything in §0/§0.6/Appendix A (concur / dissent / simplify), landing as a memo that feeds — does not replace — the EC-2 user design gate. No economy code lands until the audit is green, the eval is written, and the gate blesses the numbers.
 > **Suggestion pool (July 7, 2026):** a research-backed candidate menu (ES-1…ES-10, scored) feeding the EC-2/EC-3/EC-5/EC-7 rows is captured in **§Appendix A** — SUGGESTIONS only, no new owner rows; the user picks from it at the EC-2 gate (open questions in §A.4).
 > **Origin:** July 2, 2026 re-staging. Consolidates the scattered economy rows into ONE owner (each source row now points here): **DEF-3 Economy Pass** (`MAP_IMPLEMENTATION_PLAN.md:293` + the nation_config.py:414/:445 balance-ownership notes), **B4 Gold Sink Options** (`DESIGN_REFINEMENT.md:287-307`), **R161 One-Time Trade / Economic Diplomacy queue item 7** (`DESIGN_REFINEMENT.md:249, :57-58`), **R26 Continental System Buff** (`DESIGN_REFINEMENT.md:242`), **Enemy AP Rebalancing** (`DESIGN_REFINEMENT.md:311-315` — its "after full map" trigger fired July 2), **DW-3 economic-diplomacy note** (`SETTLEMENT_GATE4_PREFLIGHT_AUDIT.md:155`), the **DG-3 supply/overextension re-evaluation** (trigger fired — `SCALE_READINESS_PLAN.md:152-171`), the **DG-5 victory-condition contradiction**, and the previously-unowned scale imbalances (garrison cap, manpower regen density).
 > **Vision constraint:** "Territory as Command Dilemma" — territory problems have faces, not numbers. Depth here means meaningful *choices* (what to build, whom to pay, what a truce is worth), never spreadsheet management.
@@ -200,6 +201,41 @@ Everything else in §0/§0.5 (the ±0 ground-truth drift, the ES-1 15,400/turn n
 
 ---
 
+## 0.7 Econ eval — Fable's independent pre-build evaluation (runs AFTER the audit, BEFORE any economy code)
+
+> **What this is and where it sits.** The **Comprehensive Codebase Audit** (`AUDIT_GUIDELINE.md`) runs first and is Fable-led. The moment it closes green, Fable — now the person on the project who has most recently read *every* component — carries that context straight into **one independent evaluation of this entire spec** before a single line of the EC build is written. **Sequence: audit → econ eval (this section) → EC build (§0.6.3).** This is the "have your own perspective on the economy recs before coding them" step. It is a Fable-authored **memo**, not code.
+>
+> **Everything below in §0.5/§0.6 is INPUT to this eval, not a settled verdict Fable must ratify.** The recorded July-8 gate decisions stand as the user's current calls, but they were produced by multi-agent workflows; the point of this pass is a fresh single-mind read that can *disagree*. You are expected to have opinions.
+
+### 0.7.1 Your mandate (decision authority)
+
+You are trusted to **form and argue your own position** on the economy, not to rubber-stamp §0.6. Concretely, you may — and should, where the code warrants — do any of:
+
+- **Concur** with a recorded decision, but say *why* in your own words (a reasoned concurrence is worth more than silence).
+- **Dissent** from any recorded pick — the ES-2 + ES-7 pass-1 pair, the anti-snowball band (E1), the reframe, the cut of ES-10, the sequencing in §0.6.3 — with a concrete alternative and the trade-off.
+- **Simplify** — if a mechanic (especially ES-7's expectation/erosion/grace machinery) is heavier than the beat it buys, propose the smaller version that still lands the beat.
+- **Surface hidden interactions** the workflows missed — you just audited combat, trust, vassals, diplomacy, the ledger, save/load. Flag any place a proposed economy mechanic collides with a system you read (e.g. the ES-7 `modify_trust` seam vs. the objection/defiance stack, the vassal-tribute vs. dotation double-count, save-compat, GR8 hot-path risk).
+- **Re-cost / re-order** — recommend a different pass-1 set, a different landing order, or a different effort estimate.
+
+**What you do NOT own:** committing the blessed numbers (band E1 + constants E2–E6) — those remain the user's call at the EC-2 gate. Your job is to give the user the sharpest possible *recommendation* on them (concur with the §0.6.5 starting values, or propose different ones with reasoning), so the gate is a fast yes/adjust, not a cold start. You recommend; the user blesses; then code.
+
+### 0.7.2 Scope — read all of it as one body
+
+Evaluate the whole economy picture, not just the pass-1 pair: §0 (audit + live baseline), §0.5 (14-agent audit + gate decisions), **§0.6 (the gate-ready pass-1 spec — ES-7 "Cost of Success" mechanic, ES-2 Occupation Upkeep, the ordered plan §0.6.3, the reconciliation §0.6.4, the escalations E1–E6)**, §1–§4 (ground truth, slice plan, presentation invariant, non-goals), and **Appendix A** (the full ES-1…ES-10 scored candidate pool + the top-three bets). Fold in any economy **escalations your own audit produced** (§6.5 / §7.8 findings) — this eval is their venue.
+
+### 0.7.3 Output & completion (Golden Rule 9)
+
+- **Owner / landing:** Fable, EC phase — a dated memo `docs/audits/ECONOMY_ECON_EVAL_<YYYY_MM_DD>.md`, cross-linked from this section and the STATUS Next-Steps queue.
+- **Completion definition:** every recorded pass-1 decision (sink set, band, ES-7 reframe, ES-2 shape, §0.6.3 order, E1–E6 starting values, the ES-10 cut) receives an explicit Fable verdict — **concur / dissent+alternative / simplify** — with reasoning; plus a single "if I could change one thing" headline and a crisp recommendation on the blessed numbers for the gate. Any economy escalation from the audit is triaged into the memo.
+- **Feeds, does not replace, the EC-2 gate:** the memo lands in the user's lap at the gate; the user then blesses (or adjusts) and only *then* does §0.6.3 coding begin. If the eval recommends a change the user accepts, update §0.6 to match **before** the build session.
+- **"Test":** the memo exists and no recorded decision is left without a verdict (the eval's own no-silent-caps rule).
+
+### 0.7.4 Why this ordering pays off
+
+The audit gives Fable whole-codebase familiarity; spending it on an independent economy read is the cheapest place to catch an over-engineered mechanic, a cross-system collision, or a simpler design **before** it is coded. It also means the EC-2 gate is informed by *two* independent lenses — the multi-agent workflows that produced §0.6, and one deep single-mind pass — instead of one.
+
+---
+
 ## 1. Ground truth (audited July 2, 2026 — code wins over older docs)
 
 **The money loop is complete but thin, and sinks did not scale with the map.** Income: typed region income (300/200/150/100/50 by region_type, modified by stability/war damage/buildings) + trade + tribute + treaty clauses + settlement streams + British subsidy. Sinks: upkeep 5g/1000 troops, recruit 150–600g, five buildings 250–400g (slot-capped), watchtower 250g, repair 150g, vassal invest 200g.
@@ -214,7 +250,7 @@ Everything else in §0/§0.5 (the ±0 ground-truth drift, the ES-1 15,400/turn n
 
 ## 2. Slice plan
 
-**Recommended sequence (post-audit):** PRE-EC ledger floor → **EC-1 / EC-3 / EC-4** (gate-free, parallelizable) → **[EC-6 decision — ordering blocker]** → **EC-2** → EC-5 / EC-7 → EC-8 (optional). EC-6 precedes EC-2 because a hard 60-turn conquest race would kill any long-horizon sink's payback.
+**Recommended sequence (post-audit):** ~~PRE-EC ledger floor~~ (LANDED) → **[Comprehensive Codebase Audit — `AUDIT_GUIDELINE.md`, runs first]** → **[Econ eval — §0.7, Fable's independent pre-build read]** → **EC-1 / EC-3 / EC-4** (gate-free, parallelizable) → **[EC-6 decision — ordering blocker]** (✅ decided = sandbox) → **EC-2** (behind its gate) → EC-5 / EC-7 → EC-8 (optional). The audit + econ eval front the build so play-feel isn't muddied by economy churn and the recs get one independent whole-codebase read before coding; EC-6 precedes EC-2 because a hard 60-turn conquest race would kill any long-horizon sink's payback.
 
 | Slice | Scope | Gate |
 |-------|-------|------|
