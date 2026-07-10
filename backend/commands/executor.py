@@ -448,9 +448,10 @@ class CommandExecutor:
         # ============================================================
 
         if world.pending_objection is not None and not is_ai_command:
+            objecting = world.pending_objection.get("marshal", "A marshal")
             return {
                 "success": False,
-                "message": "A marshal is awaiting your response! Use /respond_to_objection to continue.",
+                "message": f"{objecting} awaits your answer, Sire — settle the objection before issuing new orders.",
                 "awaiting_response": True,
                 "objection": world.pending_objection,
                 "choices": ["trust", "insist", "compromise"] if world.pending_objection.get("alternative") else ["trust", "insist"]

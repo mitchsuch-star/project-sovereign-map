@@ -9,6 +9,7 @@ Fog-filtered: enemy intel uses RegionIntel visibility, never raw marshal data.
 
 from typing import Dict, List, Optional, Any
 
+from backend.display_names import humanize_entity_name
 from backend.nation_config import get_player_nation
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
@@ -449,7 +450,7 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
                 strength_display = intel.strength_band
 
             sightings[name] = {
-                "name": name,
+                "name": humanize_entity_name(name),
                 "location": region_name,
                 "strength_display": strength_display,
                 "visibility": vis,
@@ -1211,7 +1212,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_proposal_sent": "Talleyrand has departed for the {nation} court.",
     "diplomatic_proposal_returned": "Talleyrand returns from {nation} with a response.",
     "diplomatic_sabotage_discovered": "Talleyrand altered your proposal to {nation}. He {change_description}.",
-    "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed a {treaty_type}.",
+    "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed the {treaty_type}.",
     "diplomatic_treaty_broken": "{nation} has broken the {treaty_type}.",
     "diplomatic_war_declared": "{nation} has declared war on {target}.",
     "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
@@ -1233,7 +1234,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_carved_vassal_created": "{carved_name} has been established under the protection of {protector}.",
     "diplomatic_carved_vassal_dissolved": "The {carved_name} has ceased to exist.",
     "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
-    "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed a {treaty_type}.",
+    "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed the {treaty_type}.",
     "diplomatic_treaty_payment_failed": "{from_nation} cannot meet treaty obligations to {to_nation} ({amount_paid}/{amount_due} gold paid).",
     "diplomatic_auto_downgrade": "Relations between {nation_a} and {nation_b} have collapsed: {from_state} → {to_state}.",
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",

@@ -820,6 +820,14 @@ def humanize_entity_name(name: str) -> str:
     return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
 
 
+def with_indefinite_article(phrase: str) -> str:
+    """Prefix "a"/"an" by leading letter ("an Open Borders Agreement")."""
+    if not phrase:
+        return phrase
+    article = "an" if phrase[0].lower() in "aeiou" else "a"
+    return f"{article} {phrase}"
+
+
 def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
     result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)

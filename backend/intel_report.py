@@ -12,6 +12,7 @@ Usage:
 """
 
 from typing import Dict, Any
+from backend.display_names import humanize_entity_name
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
 )
@@ -141,7 +142,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
         lines.append("CONFIRMED INTELLIGENCE:")
         for r in confirmed:
             for e in r.get("enemies", []):
-                lines.append(f"  {e['name']} ({e['nation']}): {e['strength']:,} troops at {r['region']}, "
+                lines.append(f"  {humanize_entity_name(e['name'])} ({e['nation']}): {e['strength']:,} troops at {r['region']}, "
                              f"{e['stance']} stance, morale {e['morale']}")
         lines.append("")
 
@@ -149,7 +150,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
     if recent_reports:
         lines.append("RECENT REPORTS:")
         for r in recent_reports:
-            names = [m.get("name", "Unknown") for m in r.get("known_marshals", [])]
+            names = [humanize_entity_name(m.get("name", "Unknown")) for m in r.get("known_marshals", [])]
             names_str = ", ".join(names)
             stale_marker = f" [{r['turns_ago']} turns ago]" if r.get("stale") else ""
             lines.append(f"  {names_str}: {r['strength_band']} near {r['region']}{stale_marker}")
@@ -159,7 +160,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
     if last_known:
         lines.append("LAST KNOWN:")
         for r in last_known:
-            names = [m.get("name", "Unknown") for m in r.get("known_marshals", [])]
+            names = [humanize_entity_name(m.get("name", "Unknown")) for m in r.get("known_marshals", [])]
             names_str = ", ".join(names)
             lines.append(f"  {names_str}: last seen near {r['region']}, {r['turns_ago']} turns ago")
         lines.append("")

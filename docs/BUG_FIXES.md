@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: July 4, 2026 (CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED — see the entries below. No open defects remain in this doc. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+> Last Updated: July 10, 2026 (**Creative-Audit Findings section added — 10 OPEN correctness defects** routed from the §8 creative capstone's live playtest, each with an owning audit component; see the new section below. Prior state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -46,7 +46,26 @@
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** none from this doc — the PL bug queue is closed and the renderer cutover COMPLETED July 2, 2026. All three July-2 open defects are now FIXED: CR-0 (July 3), EC-0 + MC-0 (July 4, 2026). Overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
+**Current routed next step:** the **Creative-Audit Findings** below are the open defect queue (July 10, 2026). BUG-CA-7 (dialogue-stack misroute) is the priority item. Overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
+
+---
+
+## Creative-Audit Findings (July 10, 2026) — OPEN
+
+> Routed from `docs/audits/CREATIVE_AUDIT_2026_07_10.md` (the §8 fun-factor capstone). All were **confirmed live** on the shipped 1805 campaign (turns 1–5, LLM_MODE=anthropic). Per §8 discipline they were routed, not fixed (only trivial legibility slips were fixed inline — commit-tracked, tests in `tests/test_creative_audit_legibility_fixes_2026_07_10.py`). Owning component = `AUDIT_GUIDELINE.md` section.
+
+| ID | Pri | Owning component | Finding (evidence in the memo) |
+|----|-----|------------------|--------------------------------|
+| BUG-CA-7 | **P1** | §7.4 / R12 dialogue manager | Dialogue response lands on a different dialogue than the one presented: answering the just-attached Britain settlement offer rejected **Saxony's never-seen proposal** (top-of-stack changed between presentation and response; Saxony took a relations hit sight-unseen; campaign log then recorded a reversed line "Saxony rejected our open borders proposal"). Response routing must bind to the presented dialogue's identity (offer_id / dialogue id), not the current stack top. |
+| BUG-CA-2 | P2 | §6.5 movement (`movement_executor`) | Retreat ignores a stated destination silently ("retreat to Rhineland" → Dresden) and auto-retreat direction has no friendly-territory doctrine: a broken corps retreated Dresden → Silesia → Lithuania → **White Russia**, each hop deeper into at-war-Russia's soil. Mechanical half: destination validation + never retreat into an at-war nation when an alternative exists. Design half escalated (memo E-CA-2). |
+| BUG-CA-1 | P2 | §6.3/§6.4 parsing + objection | With `pending_objection` set, the typed choices the payload itself offers ("trust"/"insist"/"compromise") do not resolve the objection — "trust" falls through to the LLM parser, "insist" hits the diplomatic-response handler. The pre-parse pending-question router should claim these tokens while an objection is pending. (Guard copy fixed inline July 10; the routing gap is this item.) |
+| BUG-CA-6 | P2 | §7.7 read-models (`dispatch.py`) | Morning-dispatch intel table can be stale vs status/events — it placed Mack at Swabia while the same turn's events and `status` placed him in Franche-Comte (two first-class surfaces disagreed about the main enemy army). Dispatch must read post-enemy-phase intel. |
+| BUG-CA-4 | P2 | §6.1 combat (`battle_report.py`) | Battle-report `casualty_summary.attacker_remaining` / `defender_remaining` echo the original strengths (confirmed twice: 40,000→"remaining 40,000" after 6,501 casualties); the battle event carries the correct values. |
+| BUG-CA-5 | P3 | §6.1 combat (`battle_report.py`) | Berthier observation misattribution: reinforcement observation claimed "swung the battle in our favor" on a **stalemate**; modifier label "Strategic orders +15" is unmappable to any player action (arrival-bonus labeling). Same family as the July-9 audit's caption fixes. |
+| BUG-CA-3 | P3 | §6.5/§6.3 (`economy_executor` + parser) | `grant_dotation` with no region named resolves the missing target to the first region in the world dict — "Endow Ney with an estate" refused with "We do not hold **White Russia**." Missing-target should ask ("Which province, Sire?") or list eligible estates, never default-scan. |
+| BUG-CA-8 | P3 | §7.6 wiring (proposal re-mount) | Failed-response re-mount of an incoming proposal degrades the resolved diplomat to "Unknown diplomat"/"Unknown" while the assessment prose still names him (Hardenberg, Araujo) — the error path rebuilds the payload through an impoverished builder. |
+| BUG-CA-9 | P3 | §6.1/§7.7 (stat trackers) | `battles_won/lost` and `idle_turns` ignore reinforcement participation: a marshal who reinforced two battles shows 0W/0L and "3 turns idle" (and morale-collapse causes are never itemized on any surface). |
+| BUG-CA-10 | P3 | §7.4 dialogue prompts | Typed-surface dialogue prompt "Please choose an option (1-3), Sire." never enumerates the options (they exist only as popup buttons); the typed path needs the numbered list appended. |
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
 

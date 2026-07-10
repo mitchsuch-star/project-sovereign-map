@@ -216,13 +216,14 @@ class DiplomaticExecutor:
 
         if not target_nation:
             # No target — ask which nation
+            from backend.display_names import display_nation
             known_nations = sorted(get_known_nations(world))
             player_nation = get_player_nation(world)
             target_options = []
             for known_nation in known_nations:
                 state_label = world.get_diplomatic_state(player_nation, known_nation).replace("_", " ").title()
                 target_options.append({
-                    "label": known_nation,
+                    "label": display_nation(known_nation),
                     "description": f"Current state: {state_label}.",
                     "action": "expand_options",
                     "terms": {"target_nation": known_nation},
@@ -233,7 +234,7 @@ class DiplomaticExecutor:
                 "target_nation": "",
                 "talleyrand_text": (
                     "Sire, which nation shall I approach? Our diplomatic landscape includes "
-                    + ", ".join(known_nations)
+                    + ", ".join(display_nation(n) for n in known_nations)
                     + "."
                 ),
                 "options": target_options,

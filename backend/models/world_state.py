@@ -7332,7 +7332,7 @@ class WorldState:
                 "state_transition": f"{current_state}_TO_{target_state}",
             })
 
-            from backend.display_names import proposal_display_name
+            from backend.display_names import proposal_display_name, with_indefinite_article
             from backend.notifications import (
                 create_notification, NotificationPriority, TREATY_SIGNED,
             )
@@ -7340,7 +7340,7 @@ class WorldState:
                 TREATY_SIGNED,
                 NotificationPriority.NORMAL,
                 f"Treaty with {player_counterpart or target_nation}",
-                f"{proposer} and {target_nation} have signed a {proposal_display_name(proposal_type)}.",
+                f"{proposer} and {target_nation} have signed {with_indefinite_article(proposal_display_name(proposal_type))}.",
                 int(self.current_turn),
             ))
 
@@ -7501,12 +7501,13 @@ class WorldState:
         cooldowns[f"ai_ai|{diplo_key}"] = 5
         _set_cooldowns(self, cooldowns)
 
+        from backend.display_names import with_indefinite_article
         result = {
             "type": "ai_ai_treaty",
             "nation_a": proposer,
             "nation_b": target_nation,
             "treaty_type": treaty_type_display,
-            "message": f"{proposer} and {target_nation} have signed a {treaty_type_display}.",
+            "message": f"{proposer} and {target_nation} have signed {with_indefinite_article(treaty_type_display)}.",
         }
         if bargain_breach_events:
             result["bargain_breach_events"] = bargain_breach_events

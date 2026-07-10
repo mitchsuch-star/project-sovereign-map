@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** This is the design-refinement backlog; execution routes through `docs/ROADMAP.md`'s current phase queue. (The old "work begins after `BUG_FIXES.md` is clear" gate cleared April 2026.)
 >
-> **Last Updated:** July 2, 2026 (present-tense pass: landed work marked landed; every open row re-pointed at its current owner — `docs/ECONOMY_REVISIT_SPEC.md`, `docs/COMMAND_ROBUSTNESS_SPEC.md`, `docs/MARSHAL_CONTENT_PASS_SPEC.md`, or the ROADMAP 8.EVAL evaluation gate. April 16, 2026 rescope context preserved below as history.)
+> **Last Updated:** July 10, 2026 (**Wave 6 added — Creative Capstone expansions EXP-N1..EXP-D1 + escalations E-CA-1..E-CA-6**, from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153, R129/R131/R132, R155/R156. Prior: July 2, 2026 present-tense pass — every open row re-pointed at its current owner. April 16, 2026 rescope context preserved below as history.)
 
 ---
 
@@ -19,7 +19,8 @@
 | Wave 4 — New Features | 19 | Needs per-item approval (8.EVAL); R26 → EC-5, R161 → EC-8, R162 gated behind queue items 5-6 |
 | Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
 | Jealousy System | 1 | Separate design gate; Marshal Content Pass MC-3 now an effective prerequisite |
-| **Total** | **45** | |
+| **Wave 6 — Creative Capstone (July 10, 2026)** | 12 | 6 ranked expansions (EXP-*) + 6 escalations (E-CA-*) from the §8 fun-factor audit; per-item design gates |
+| **Total** | **57** | |
 
 ---
 
@@ -362,6 +363,42 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | R157 | Talleyrand Voice Depth | Partially absorbed into PL-25 (situational flavor, personality pen nudge). Remaining: deep commentary integration |
 | R158 | NL Parser Confidence Feedback | Show parse confidence to player |
 | R159 | Information Screen Teaching | Screens don't teach mechanics |
+
+---
+
+## Wave 6 — Creative Capstone (July 10, 2026; Design Gate per item)
+
+> Source: `docs/audits/CREATIVE_AUDIT_2026_07_10.md` (the AUDIT_GUIDELINE §8 fun-factor capstone — live 5-turn 1805 playtest under `LLM_MODE=anthropic` + two code-evidence sweeps). The user opened the aperture for this wave: **new items welcome, past items revisable** — revisions to prior R-items are recorded at the end of this section. Everything here is propose-don't-build; each item needs its own gate (or rides the named owner).
+
+### Ranked expansions (by depth-per-unit-complexity — full designs in the memo §4)
+
+| ID | Item | One-line mechanic | Owner / gate | Est. |
+|----|------|-------------------|--------------|------|
+| EXP-N1 | **The Dispatch Rewrite — "Berthier tells the story"** | Deterministic narrative-priority layer over existing events: headline selection, per-marshal danger flags, arc memory ("Bernadotte, hunted across three frontiers…"). No LLM, no new mechanics. | Standalone slice; **top-ranked item of the audit** | 1–2 sessions |
+| EXP-M1 | **Marshal Fates: capture, parole, last stand** | Forced-retreat fate roll (escape/capture/personality-gated last stand); captured marshals become ransom/exchange clauses in existing settlement machinery; Building Blocks — Mack at Ulm becomes capturable. | Own design gate (thresholds, AI prisoner valuation) | 2–3 sessions |
+| EXP-C1 | **March to the Guns, surfaced: muster preview + standing order** | Pre-battle muster block naming WILL JOIN / WILL NOT per marshal *with the personality reason*; cheap `"Soult, support Ney"` standing order; substrate the re-homed **Grouchy Moment** lands on. | Own gate; foundation for the Grouchy Moment gate | 1–2 sessions |
+| EXP-E1 | **The Spoils of War: estate confiscation** | Conquering an enemy marshal's estate opens confiscate (windfall + grudge + own-cautious-marshal trust cost) vs respect (court acceptance bonus); confiscated estates become grantable (rides ES-7 as landed). Resolves the live "Swabia already sustains Marshal Mack's household" dead end. | EC pass 2 gate (numbers) | ~1 session |
+| EXP-M2 | **Enemy marshals speak** | Deterministic one-liner bank keyed to (enemy personality × outcome × situation) at the battle-report seam; complements DEF-1 (diplomat voices), which does not own enemy marshals. | Content slice; MC-adjacent | <1 session |
+| EXP-D1 | **"What does Europe intend?" — strategic assessment verb** | `assess our situation` (dead-ends live today) returns per-war trajectory, **coalition posture** (computed, never shown), top threat sources, vassal trend + cause, one executable recommendation (absorbs R117's shape). | **Recommended first slice of queue item 6 (Talleyrand Desk)** | ~1 session |
+
+### Escalations (gate-owned; no code)
+
+| ID | Finding | Owner |
+|----|---------|-------|
+| E-CA-1 | Attacker morale-grind asymmetry (defender morale ~static through 15k casualties while attackers/reinforcers bleed to 47) — the live shape of the meat-grinder, post-EC. | Combat balance gate (user) |
+| E-CA-2 | Retreat agency + direction doctrine (honor stated destination or narrate substitution; homeward bias; never into an at-war nation with alternatives). Mechanical half = BUG-CA-2. | Combat/movement gate |
+| E-CA-3 | War-priced recruitment: 10,000 men for 200g keeps gold free mid-war; scale per-soldier gold cost by force-limit ratio + war status. | EC pass 2 (blessed numbers) |
+| E-CA-4 | Explicit bad-odds `attack` gets no warning while vague delegation gets a lethal-odds interrupt — decide whether direct orders deserve a one-line odds note. | CR-6 gate |
+| E-CA-5 | Settlement offers must state territorial consequences ("Britain retains Flanders") — "Peace" is illegible while home soil is occupied. | Settlement presentation (narrow, post-arc) |
+| E-CA-6 | Incoming-proposal voice + AI proposal variety (5 identical open-borders/"hegemony pressure" offers in 5 turns; named diplomat never speaks). | Queue items 5–6 (8.EVAL), with R155/R156 |
+
+### Revisions to prior items (live-evidence pass, July 10, 2026)
+
+- **R154 (Combat Morale Spiral) — REVISED:** the claimed missing circuit breaker **exists and works** (`combat.py` FORCED_RETREAT_THRESHOLD=25 floor; +5/+10 victory recovery). The real, live-confirmed issue is the attacker/defender morale **asymmetry** — re-scoped as E-CA-1; do not build a second breaker.
+- **R59 / R153 (Literal Personality Triggers) — CONFIRMED INERT:** all three literal triggers in `personality.py:PERSONALITY_TRIGGERS` remain TODO; literal marshals never object (they clarify via CR-2/CR-5 instead, which now covers part of the original intent). Remaining scope: decide at the MC gate whether literal *objections* are still wanted or the CR clarification arm owns the niche.
+- **R129 / R131 / R132 — LIVE EVIDENCE ADDED:** R132 is the strongest of the three — three vassals bleeding −4/−6/−8 loyalty per turn with no cause attached anywhere was a top-5 confusion of the playtest. Recommend R132 rides EXP-D1/queue-item-6 rather than waiting for a standalone slice.
+- **R155 / R156 — CONFIRMED, EVIDENCE UPGRADED:** proposal monotony measured live (5 nations, identical proposal+reason, 5 turns); the *outgoing* surface (terms prep, acceptance estimate, ratification gate, motive commentary) is the register benchmark the incoming surface should be held to. Folded into E-CA-6.
+- **R117 (Advisory Actionability) — ABSORBED into EXP-D1** (the strategic-assessment verb ends with an executable option).
 
 ---
 

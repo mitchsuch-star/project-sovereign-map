@@ -552,7 +552,9 @@ class TestExecutorIntegration:
         )
 
         assert result["success"] == False
-        assert "awaiting your response" in result["message"]
+        # Guard copy names the objecting marshal, never a raw API endpoint.
+        assert "Ney awaits your answer" in result["message"]
+        assert "/respond_to_objection" not in result["message"]
 
     def test_handle_objection_response_clears_pending(self):
         """Handle objection response clears pending objection."""

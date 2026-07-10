@@ -1222,9 +1222,11 @@ def format_event_oneliner(event: dict) -> str:
 
     # PL-27/PL-34: Proposal queue visibility events
     if event_type == "proposal_arrived":
+        from backend.display_names import with_indefinite_article
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"An envoy from {source} has arrived with a {proposal_type} proposal{_decision_reason_suffix(event)}"
+        return (f"An envoy from {source} has arrived with "
+                f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(event)}")
 
     if event_type == "amends_offered":
         # B-B7 (spec §8.6.1) + B-B4 (spec §8.6.1a grievance variant) —
