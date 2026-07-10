@@ -798,6 +798,11 @@ def format_event_oneliner(event: dict) -> str:
         deleg_phrase = event.get("delegation_phrase")
         if deleg_phrase:
             line += f' — on your word: "{deleg_phrase}"'
+        # W6-6: the enemy commander's one-line register rides as a flavor
+        # suffix (already humanized + quoted at composition).
+        enemy_voice = event.get("enemy_voice")
+        if enemy_voice:
+            line += f" — {enemy_voice}"
         return line
 
     if event_type == "bombardment":

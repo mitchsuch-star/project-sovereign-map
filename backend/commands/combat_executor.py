@@ -3585,6 +3585,37 @@ class CombatExecutor:
         if isinstance(battle_result.get("log_battle_event"), dict):
             battle_result["log_battle_event"]["battle_name"] = battle_name
 
+        # ════════════════════════════════════════════════════════════
+        # W6-6 ENEMY VOICE (EXP-M2): after a battle that involves the
+        # player, the enemy commander gets one line in his register —
+        # display-only (GR6), deterministic rotation via battle_counts.
+        # ════════════════════════════════════════════════════════════
+        _player_nation = world.player_nation
+        _enemy_side = None
+        if marshal.nation != _player_nation and enemy_marshal.nation == _player_nation:
+            _enemy_side = (marshal, True)   # the enemy attacked us
+        elif marshal.nation == _player_nation and enemy_marshal.nation != _player_nation:
+            _enemy_side = (enemy_marshal, False)  # we attacked the enemy
+        if _enemy_side is not None:
+            from backend.game_logic.enemy_voice import (
+                derive_enemy_situation, pick_enemy_voice,
+            )
+            _enemy_m, _enemy_attacked = _enemy_side
+            _side_key = "attacker" if _enemy_attacked else "defender"
+            _situation = derive_enemy_situation(
+                battle_result.get("outcome", ""), _enemy_attacked,
+                bool(battle_result.get(_side_key, {}).get("forced_retreat")))
+            if _situation and _enemy_m.strength > 0:
+                _voice = pick_enemy_voice(
+                    _enemy_m.name,
+                    getattr(_enemy_m, "personality", "cautious"),
+                    _situation,
+                    int(world.battle_counts.get(target_location, 0)))
+                if _voice:
+                    battle_result["enemy_voice"] = _voice
+                    if isinstance(battle_result.get("log_battle_event"), dict):
+                        battle_result["log_battle_event"]["enemy_voice"] = _voice
+
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
         if enemy_marshal.strength > 0:
@@ -3982,6 +4013,9 @@ class CombatExecutor:
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):
             result["battle_report"] = battle_result["battle_report"]
+            # W6-6: the enemy commander's line rides the report.
+            if battle_result.get("enemy_voice"):
+                result["battle_report"]["enemy_voice"] = battle_result["enemy_voice"]
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if auto_bombardment_results:
