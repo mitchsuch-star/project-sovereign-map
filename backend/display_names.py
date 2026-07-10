@@ -504,6 +504,26 @@ STANCE_DISPLAY = {
     "aggressive": "Aggressive",
 }
 
+# W6-4 muster preview (EXP-C1): reason codes -> the player-facing line that
+# explains why a nearby friendly WILL or WILL NOT join the battle. Derived
+# from the EXISTING reinforcement eligibility + Grouchy Rule — codes only,
+# the mechanics are untouched.
+MUSTER_REASON_DISPLAY = {
+    "shares_the_field": "stands on the field and will fight beside him",
+    "has_support_order": "marches under your written support order",
+    "aggressive_marches": "will march to the sound of the guns",
+    "answers_the_guns": "is willing to march if the roads allow",
+    "literal_awaits_orders": "awaits explicit orders and will NOT march",
+    "fortified_static": "is dug in and will not abandon his works",
+    "holding_position": "holds his position under standing orders",
+    "drilling": "is drilling and cannot break formation in time",
+    "broken_recovering": "is in no condition to fight",
+    "hostile_refuses": "will not lift a finger for this marshal",
+    "cooldown_spent": "has already marched this turn",
+    "engaged": "is pinned by enemies before his own front",
+    "square_formation": "stands in square and cannot march",
+}
+
 TRUST_TIER_DISPLAY = {
     "HOSTILE": "Hostile",
     "WARY": "Wary",

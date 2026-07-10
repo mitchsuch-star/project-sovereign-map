@@ -451,6 +451,9 @@ class WorldState:
         # Fires ONCE per campaign: blocks the naive Ney-vs-Wellington opener
         # long enough to surface the intended first-hour preparation line.
         self.opening_attack_guidance_shown: bool = False
+        # W6-4: the muster preview's first-use standing-orders tutorial line
+        # (latch-on-surface — set the first time a muster block renders).
+        self.muster_hint_shown: bool = False
         # CR-5 (§6.7): fires ONCE per campaign the first time the player hands a
         # marshal a delegation verb ("deal with X") — teaches that delegation
         # exists and that each marshal acts to his character.
@@ -4470,6 +4473,7 @@ class WorldState:
             "coordination_tutorial_shown": self.coordination_tutorial_shown,
             "opening_attack_guidance_shown": self.opening_attack_guidance_shown,
             "delegation_hint_shown": self.delegation_hint_shown,
+            "muster_hint_shown": self.muster_hint_shown,
 
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
@@ -4894,6 +4898,7 @@ class WorldState:
         world.coordination_tutorial_shown = data.get("coordination_tutorial_shown", False)
         world.opening_attack_guidance_shown = data.get("opening_attack_guidance_shown", False)
         world.delegation_hint_shown = data.get("delegation_hint_shown", False)
+        world.muster_hint_shown = data.get("muster_hint_shown", False)
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict

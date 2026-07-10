@@ -362,6 +362,170 @@ class CombatExecutor:
 
         return True
 
+    # ════════════════════════════════════════════════════════════════════
+    # W6-4 MUSTER PREVIEW (EXP-C1 + E-CA-4)
+    # ════════════════════════════════════════════════════════════════════
+
+    def _muster_reason(self, candidate, primary, battle_region, nation, world):
+        """W6-4: derive (will_join, reason_code) for a nearby friendly.
+
+        Mirrors _is_reinforcement_eligible + the Grouchy Rule as a REASON
+        ladder — display only, the mechanics stay in their own functions.
+        """
+        # Co-located friendlies share the field (and the casualties).
+        if candidate.location == battle_region:
+            return True, "shares_the_field"
+        if getattr(candidate, 'broken', False) \
+                or getattr(candidate, 'retreat_recovery', 0) != 0 \
+                or getattr(candidate, 'retreated_this_turn', False):
+            return False, "broken_recovering"
+        if getattr(candidate, 'fortified', False):
+            return False, "fortified_static"
+        if getattr(candidate, 'holding_position', False):
+            return False, "holding_position"
+        if getattr(candidate, 'drilling', False) \
+                or getattr(candidate, 'drilling_locked', False):
+            return False, "drilling"
+        if getattr(candidate, 'square_formation', False):
+            return False, "square_formation"
+        if getattr(candidate, 'reinforced_this_turn', False) \
+                or getattr(candidate, 'moved_this_turn', False):
+            return False, "cooldown_spent"
+        # Engaged: enemies stand in the candidate's own region.
+        engaged = any(
+            m.location == candidate.location and m.nation != nation
+            and m.strength > 0 and world.is_at_war(nation, m.nation)
+            for m in world.marshals.values()
+        )
+        if engaged:
+            return False, "engaged"
+        # Relevant standing order (SUPPORT for the primary / PURSUE into
+        # the battle region) authorizes anyone — including a literal.
+        order = getattr(candidate, 'strategic_order', None)
+        has_relevant_order = False
+        if order is not None:
+            if order.command_type == "SUPPORT" and order.target == primary.name:
+                has_relevant_order = True
+            elif order.command_type == "PURSUE":
+                pursue_target = world.marshals.get(order.target)
+                if pursue_target and pursue_target.location == battle_region:
+                    has_relevant_order = True
+        if has_relevant_order:
+            return True, "has_support_order"
+        # The Grouchy Rule: a literal marshal without the written word
+        # does not march to the sound of the guns.
+        if getattr(candidate, 'personality', '') == "literal":
+            return False, "literal_awaits_orders"
+        # Hostile without SUPPORT refuses (A-D4).
+        if candidate.get_relationship(primary.name) == -2:
+            return False, "hostile_refuses"
+        if getattr(candidate, 'personality', '') == "aggressive":
+            return True, "aggressive_marches"
+        return True, "answers_the_guns"
+
+    def _build_muster_preview(self, marshal, enemy_marshal, world, game_state):
+        """W6-4 §6.1: who will fight, who won't, and why — before the shot.
+
+        Fog-legal target strength (exact only at FULL visibility, else the
+        band — R5); odds band via the CR-5 single source (GR1 spirit); one
+        row per adjacent/co-located friendly with a display reason.
+        """
+        from backend.commands.objection_v2 import inferred_attack_odds_band
+        from backend.display_names import MUSTER_REASON_DISPLAY
+        from backend.models.intel import FULL
+
+        battle_region = enemy_marshal.location
+        nation = marshal.nation
+
+        # Fog-banded target strength (player's own intel of that region).
+        intel = world.intel.get(battle_region)
+        target_strength_display = "strength unknown"
+        if intel is not None:
+            if intel.visibility == FULL:
+                target_strength_display = f"{int(enemy_marshal.strength):,} men"
+            else:
+                for km in intel.known_marshals:
+                    if km.get("name") == enemy_marshal.name and km.get("band"):
+                        target_strength_display = km["band"]
+                        break
+                else:
+                    if intel.strength_band and intel.strength_band != "no forces":
+                        target_strength_display = intel.strength_band
+
+        rows = []
+        shared_casualty_note = ""
+        region = world.get_region(battle_region)
+        adjacent = set(region.adjacent_regions) if region else set()
+        for m in world.marshals.values():
+            if m.nation != nation or m.name == marshal.name or m.strength <= 0:
+                continue
+            if m.location != battle_region and m.location not in adjacent:
+                continue
+            will_join, code = self._muster_reason(
+                m, marshal, battle_region, nation, world)
+            row = {
+                "marshal": m.name,
+                "location": m.location,
+                "will_join": bool(will_join),
+                "reason": code,
+                "reason_display": MUSTER_REASON_DISPLAY.get(code, code),
+            }
+            if code == "literal_awaits_orders":
+                # §6.3: surface the standing order that already exists.
+                row["standing_order_hint"] = (
+                    f"— order '{m.name}, support {marshal.name}' and he will march"
+                )
+            if code == "shares_the_field":
+                shared_casualty_note = (
+                    f"{m.name} shares the field at {battle_region} — his men "
+                    f"will absorb part of any losses."
+                )
+            rows.append(row)
+
+        odds_band = inferred_attack_odds_band(marshal, enemy_marshal, game_state)
+
+        preview = {
+            "attacker": {"name": marshal.name,
+                         "strength": int(marshal.strength)},
+            "target": {"name": enemy_marshal.name,
+                       "location": battle_region,
+                       "strength_display": target_strength_display},
+            "odds_band": odds_band,
+            "rows": rows,
+            "shared_casualty_note": shared_casualty_note,
+        }
+
+        # First-use tutorial line about standing orders — latch-on-surface
+        # (shown once per campaign, even if this attack is then cancelled).
+        if not getattr(world, 'muster_hint_shown', False):
+            world.muster_hint_shown = True
+            preview["hint"] = (
+                "Standing orders decide who marches: 'Soult, support Ney' "
+                "authorizes even a literal marshal to move to his guns."
+            )
+        return preview
+
+    def _format_muster_lines(self, preview) -> str:
+        """Compact text render of the muster block (1 line per marshal)."""
+        lines = [
+            f"MUSTER — {preview['attacker']['name']} "
+            f"({preview['attacker']['strength']:,}) vs "
+            f"{preview['target']['name']} "
+            f"({preview['target']['strength_display']}) at "
+            f"{preview['target']['location']} — odds {preview['odds_band']}."
+        ]
+        for row in preview["rows"]:
+            verdict = "WILL JOIN" if row["will_join"] else "WILL NOT"
+            line = f"  {verdict} — {row['marshal']}: {row['reason_display']}"
+            if row.get("standing_order_hint"):
+                line += f" {row['standing_order_hint']}"
+            lines.append(line)
+        if preview.get("shared_casualty_note"):
+            lines.append(f"  {preview['shared_casualty_note']}")
+        if preview.get("hint"):
+            lines.append(f"  ({preview['hint']})")
+        return "\n".join(lines)
+
     def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant, world):
         """Calculate deterministic base + components + random variance.
 
@@ -1948,7 +2112,9 @@ class CombatExecutor:
         )
         return not has_setup_support
 
-    def _execute_attack(self, marshal, target, world: WorldState, game_state, skip_reckless_popup: bool = False) -> Dict:
+    def _execute_attack(self, marshal, target, world: WorldState, game_state,
+                        skip_reckless_popup: bool = False,
+                        command: Dict = None) -> Dict:
         """
         Execute an attack order with combat and region conquest.
 
@@ -1958,6 +2124,11 @@ class CombatExecutor:
         Args:
             skip_reckless_popup: If True, skip the recklessness popup check.
                                  Used when called from respond_to_glorious_charge.
+            command: W6-4 — the parsed command dict, passed ONLY by the
+                direct player dispatch. Its presence (minus the AI /
+                strategic / muster-confirmed flags) arms the muster-preview
+                gate; every other caller (strategic execution, auto-dispatch,
+                defiance, post-objection) leaves it None and bypasses.
         """
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
@@ -2724,6 +2895,51 @@ class CombatExecutor:
                 bombard_result["free_action"] = True
                 bombard_result["counter_punch_used"] = True
             return bombard_result
+
+        # ════════════════════════════════════════════════════════════
+        # W6-4 MUSTER PREVIEW + GATE (EXP-C1 + E-CA-4). Player-issued
+        # field attacks only: the direct dispatch passes `command`; AI /
+        # strategic-execution / auto-dispatch / post-objection callers pass
+        # None and bypass entirely (GR5 — the AI has its own scoring; this
+        # is a player legibility surface). Counter-punch attacks skip the
+        # gate too (the free attack was already earned and consumed).
+        # ════════════════════════════════════════════════════════════
+        muster_preview = None
+        if (command is not None
+                and not command.get("_strategic_execution")
+                and not command.get("_autonomous_execution")
+                and marshal.nation == world.player_nation):
+            muster_preview = self._build_muster_preview(
+                marshal, enemy_marshal, world, game_state)
+            gate_armed = (not command.get("_muster_confirmed")
+                          and not is_counter_punch)
+            if gate_armed and muster_preview["odds_band"] != "favorable":
+                # E-CA-4: the attack does NOT resolve on the first call —
+                # the muster block IS the odds warning. The interrupt
+                # carries `marshal` (the July-7 L1 lesson) and resolves
+                # via /strategic_response.
+                muster_text = self._format_muster_lines(muster_preview)
+                interrupt = {
+                    "interrupt_type": "muster_confirm",
+                    "marshal": marshal.name,
+                    "target": enemy_marshal.name,
+                    "options": ["attack_anyway", "cancel_order"],
+                    "message": (
+                        f"The odds read {muster_preview['odds_band']}, Sire "
+                        f"— review the muster before committing "
+                        f"{marshal.name}.\n{muster_text}"
+                    ),
+                    "muster_preview": muster_preview,
+                }
+                marshal.pending_interrupt = interrupt
+                return {
+                    "success": True,
+                    "requires_input": True,
+                    "no_action_cost": True,
+                    "pending_interrupt": interrupt,
+                    "muster_preview": muster_preview,
+                    "message": interrupt["message"],
+                }
 
         # ============================================================
         # ALLY COVERS RETREAT SYSTEM: If target retreated this turn,
@@ -3715,6 +3931,12 @@ class CombatExecutor:
         battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
+        # W6-4: the muster block rides every resolved player attack —
+        # prepended compact (favorable odds resolve straight through; a
+        # confirmed re-issue still shows who mustered and why).
+        if muster_preview is not None:
+            battle_message = (self._format_muster_lines(muster_preview)
+                              + "\n\n" + battle_message)
 
         # W6-2 Dynamic Battle Naming: battle_name was composed once above
         # (right before the diplo record) — reused here for the result/event.
@@ -3751,6 +3973,10 @@ class CombatExecutor:
         # so Godot can display it in structured UI (not just embedded in description text)
         if battle_result.get("cavalry_terrain_message"):
             result["cavalry_terrain_message"] = battle_result["cavalry_terrain_message"]
+
+        # W6-4: structured muster block rides the result for UI rendering.
+        if muster_preview is not None:
+            result["muster_preview"] = muster_preview
 
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):

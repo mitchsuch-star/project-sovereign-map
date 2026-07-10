@@ -1095,6 +1095,12 @@ class StrategicExecutor:
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"
             msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
+            # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
+            # order authorizes even a literal marshal to march to the guns.
+            msg += (
+                f" {marshal.name} will march to {target}'s guns — "
+                f"he holds your written order."
+            )
             # A-M3: Berthier advisory — fortified/square marshal cannot reinforce
             if getattr(marshal, 'fortified', False):
                 msg += (

@@ -88,7 +88,11 @@ def _make_world_for_overwatch():
 
 
 def _execute_attack(world, attacker_name, target_name):
-    """Helper to execute an attack command."""
+    """Helper to execute an attack command.
+
+    W6-4: `_muster_confirmed` bypasses the muster-preview odds gate — these
+    tests exercise the bombardment/overwatch mechanics, not the confirm.
+    """
     executor = CommandExecutor()
     game_state = {"world": world}
     command = {
@@ -96,6 +100,7 @@ def _execute_attack(world, attacker_name, target_name):
             "marshal": attacker_name,
             "action": "attack",
             "target": target_name,
+            "_muster_confirmed": True,
         }
     }
     return executor.execute(command, game_state)

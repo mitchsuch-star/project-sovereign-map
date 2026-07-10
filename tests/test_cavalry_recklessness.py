@@ -174,7 +174,11 @@ class TestRecklessnessReset:
         wellington.location = "Belgium"
 
         executor = CommandExecutor()
-        result = executor.execute(make_command("attack", "Ney", "Wellington"), {"world": world})
+        # W6-4: _muster_confirmed bypasses the muster odds gate — this test
+        # needs the hopeless attack to actually RESOLVE (and be lost).
+        cmd = make_command("attack", "Ney", "Wellington")
+        cmd["command"]["_muster_confirmed"] = True
+        result = executor.execute(cmd, {"world": world})
 
         # Ney lost, recklessness should reset
         assert ney.recklessness == 0

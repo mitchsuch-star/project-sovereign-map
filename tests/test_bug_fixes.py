@@ -110,10 +110,13 @@ class TestActionConsumption:
         # Record initial actions
         initial_actions = world.actions_remaining
 
-        # Attack Wellington directly (by name)
+        # Attack Wellington directly (by name). W6-4: _muster_confirmed
+        # bypasses the muster-preview odds gate — this test pins the AP
+        # charge on a RESOLVED attack, not the confirm flow.
         game_state = {"world": world}
         command = {
-            "command": {"marshal": "Davout", "action": "attack", "target": "Wellington"},
+            "command": {"marshal": "Davout", "action": "attack",
+                        "target": "Wellington", "_muster_confirmed": True},
             "type": "specific"
         }
 

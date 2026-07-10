@@ -209,6 +209,37 @@ class StrategicOrderProcessor:
             return {"success": False,
                     "message": f"{marshal_name} has no pending interrupt."}
 
+        # ════════════════════════════════════════════════════════════
+        # W6-4 MUSTER CONFIRM (EXP-C1 + E-CA-4): a gated DIRECT attack —
+        # no strategic order exists, so this branch runs BEFORE the
+        # order requirement below. attack_anyway re-issues the same
+        # attack with the confirmed flag (normal AP charge applies on
+        # the resolved attack); cancel stands the marshal down free.
+        # ════════════════════════════════════════════════════════════
+        if pending.get("interrupt_type") == "muster_confirm":
+            valid = pending.get("options", [])
+            if choice not in valid:
+                return {"success": False,
+                        "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid)}"}
+            marshal.pending_interrupt = None
+            attack_target = pending.get("target", "")
+            if choice == "cancel_order":
+                return {
+                    "success": True,
+                    "no_action_cost": True,
+                    "message": (
+                        f"{marshal.name} stands down, Sire — the attack on "
+                        f"{attack_target} is called off."
+                    ),
+                }
+            # attack_anyway — the player has seen the muster and commits.
+            return self.executor.execute(
+                {"success": True,
+                 "command": {"marshal": marshal.name, "action": "attack",
+                             "target": attack_target,
+                             "_muster_confirmed": True}},
+                game_state)
+
         order = marshal.strategic_order
         if not order:
             marshal.pending_interrupt = None

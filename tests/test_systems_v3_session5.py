@@ -74,13 +74,18 @@ def place_marshals(world, *marshals):
 
 
 def execute_attack(world, attacker_name, target_name):
-    """Helper to execute an attack command."""
+    """Helper to execute an attack command.
+
+    W6-4: `_muster_confirmed` bypasses the muster-preview odds gate — these
+    tests exercise combat-result mechanics, not the confirm flow.
+    """
     executor = CommandExecutor()
     game_state = {"world": world}
     command = {"command": {
         "marshal": attacker_name,
         "action": "attack",
         "target": target_name,
+        "_muster_confirmed": True,
     }}
     return executor.execute(command, game_state)
 

@@ -1697,7 +1697,11 @@ class CommandExecutor:
 
         # Handle different actions
         if action == "attack":
-            return self._combat._execute_attack(marshal, target, world, game_state)
+            # W6-4: the command dict rides along so the muster-preview gate
+            # can distinguish a direct player attack from AI/strategic/
+            # confirmed re-issues (every other caller passes command=None).
+            return self._combat._execute_attack(
+                marshal, target, world, game_state, command=command)
         elif action == "defend":
             return self._tactical._execute_defend(marshal, world, game_state)
         elif action == "hold":

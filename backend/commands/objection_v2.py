@@ -860,6 +860,15 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
     safety gate on the player's OWN marshal — not enemy intel surfaced to the
     player — so under-protecting in fog would be the wrong failure direction.
     """
+    return (inferred_attack_effective_ratio(marshal, enemy, game_state)
+            >= INFERRED_ATTACK_FAVORABLE_RATIO)
+
+
+def inferred_attack_effective_ratio(marshal, enemy, game_state=None) -> float:
+    """The fortification/terrain-aware attacker/effective-defender ratio —
+    the SINGLE odds formula (see inferred_attack_favorable's docstring).
+    W6-4 extracts it so the muster preview's odds band reads the same
+    number the CR-5 gate does (no second formula, GR1 spirit)."""
     attacker = max(0, getattr(marshal, "strength", 0) or 0)
     defender = max(1, getattr(enemy, "strength", 0) or 0)
 
@@ -884,7 +893,20 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
                 bonus += REGION_FORTIFICATION_DEFENSE_BONUS
 
     effective_defender = defender * (1.0 + bonus)
-    return (attacker / effective_defender) >= INFERRED_ATTACK_FAVORABLE_RATIO
+    return attacker / effective_defender
+
+
+def inferred_attack_odds_band(marshal, enemy, game_state=None) -> str:
+    """W6-4 muster preview: three-way display band over the single odds
+    formula. `favorable` (ratio >= 1.0) resolves immediately; `even`
+    (the CR-5 0.7 floor up to parity) and `unfavorable` (< 0.7) route
+    the player attack through the one-modal muster confirm."""
+    ratio = inferred_attack_effective_ratio(marshal, enemy, game_state)
+    if ratio >= 1.0:
+        return "favorable"
+    if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:
+        return "even"
+    return "unfavorable"
 
 
 # ════════════════════════════════════════════════════════════════════════════
