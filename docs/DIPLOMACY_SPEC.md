@@ -2503,6 +2503,8 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - Question detection in mock parser
 - Morning Dispatch integration (Talleyrand's Report section)
 
+> **W6-9 addendum (LANDED July 10, 2026 — `WAVE6_FUN_FACTOR_SPEC.md` §11):** the advisory desk gained the **war-room arm** `assess_situation` ("Talleyrand, assess our situation" / "state of Europe" / "where do we stand" — mock-parser keyword branch + `ADVISORY_KEYWORDS` rows + golden-corpus coverage). It composes per-war trajectory prose from `build_active_wars`, surfaces the **coalition posture** (`get_coalition_posture` — consumed by the AI, shown to the player for the first time), the top-3 itemized `threat_sources_this_turn`, vassal loyalty trend + cause (rides the W6-3 `reason` field), and ONE deterministic recommendation (losing-war→seek-terms > aggressive-coalition→shore-weakest-ally > vassal<40→invest > best diplomatic opening) ending in an **executable option** (R117): `expand_options` for openings, the new `execute_suggestion` dialogue arm for `request_terms`/`invest_vassal` (same executors and costs as the typed route). A named target downgrades to the existing nation assessment. Composition only — no new formulas, 0 DP/AP, fog-safe builders. `tests/test_w6_assessment_verb.py` (25).
+
 **Risk:** HIGH — AI proposal logic + popup flow in enemy_ai.py and main.py. Counter-offer algorithm is new deterministic logic. Advisory conversations add depth.
 **Estimated tests:** ~40
 **Gate:** AI sends armistice when losing. Counter-offer generates correctly. "What about Austria?" returns advisory dialogue. Proactive suggestions appear in Morning Dispatch.

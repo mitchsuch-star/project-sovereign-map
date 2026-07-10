@@ -1522,6 +1522,16 @@ class LLMClient:
             "request terms", "request their terms", "ask them to name terms",
         ]):
             action = "request_terms"
+        # W6-9 (EXP-D1) — the strategic assessment verb. "Talleyrand,
+        # assess our situation" dead-ended in the proposal nation-picker
+        # (live audit); these phrasings route to the advisory desk, whose
+        # keyword map decides the arm (war room vs nation assessment).
+        elif any(kw in command_lower for kw in [
+            "assess", "our situation", "state of europe",
+            "where do we stand", "how do we stand", "situation report",
+            "what does europe intend",
+        ]):
+            action = "diplomatic_advisory"
         elif any(kw in command_lower for kw in ["demand", "insist", "require"]):
             action = "diplomatic_proposal"
             tone = "demand"

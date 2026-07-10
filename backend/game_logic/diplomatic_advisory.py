@@ -34,6 +34,19 @@ ADVISORY_KEYWORDS = {
     "focus on": "recommend_priority",
     "can we": "feasibility",
     "how do we": "recommend_action",
+    # W6-9 (EXP-D1): the strategic assessment verb — the war room.
+    # Longest-first sorting lets the specific phrases beat bare "assess";
+    # "how do we stand" outranks "how do we" the same way.
+    "what does europe intend": "assess_situation",
+    "assess our situation": "assess_situation",
+    "assess the situation": "assess_situation",
+    "strategic assessment": "assess_situation",
+    "where do we stand": "assess_situation",
+    "how do we stand": "assess_situation",
+    "situation report": "assess_situation",
+    "state of europe": "assess_situation",
+    "our situation": "assess_situation",
+    "assess": "assess_situation",
 }
 
 # Sorted by key length descending so longer phrases match first
@@ -86,7 +99,13 @@ def generate_advisory(
     Returns:
         Dict suitable for world.pending_diplomatic_dialogue (type="advisory").
     """
-    if advisory_type == "compare_threats":
+    if advisory_type == "assess_situation":
+        # W6-9: "assess Austria" is a nation question, not the war room —
+        # a named target downgrades to the nation assessment.
+        if target_nation:
+            return _assess_nation(target_nation, world)
+        return _assess_situation(world)
+    elif advisory_type == "compare_threats":
         return _compare_threats(world)
     elif advisory_type == "assess_nation" and target_nation:
         return _assess_nation(target_nation, world)
@@ -101,6 +120,325 @@ def generate_advisory(
     else:
         # Fallback: general overview
         return _diplomatic_overview(world)
+
+
+# ═══════════════════════════════════════════════════════
+# W6-9 (EXP-D1) — THE WAR ROOM: "assess our situation"
+# ═══════════════════════════════════════════════════════
+
+def _war_trajectory_phrase(score: int, trend: str) -> str:
+    """Deterministic prose for a war score + trend (composition only)."""
+    if score >= 20:
+        base = "goes well"
+    elif score >= 5:
+        base = "favors us"
+    elif score > -5:
+        base = "hangs in the balance"
+    elif score > -20:
+        base = "turns against us"
+    else:
+        base = "goes badly"
+    suffix = {"rising": ", and improving", "falling": ", and worsening"}
+    return base + suffix.get(trend, "")
+
+
+def _weakest_ally(world, player: str) -> Optional[str]:
+    """The player's lowest-relation alliance partner (None if unallied)."""
+    best = None
+    for key, state in world.diplomatic_states.items():
+        if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            continue
+        a, b = key.split("|", 1)
+        if player not in (a, b):
+            continue
+        other = b if a == player else a
+        rel = int(world.nation_relations.get(key, 0))
+        if best is None or rel < best[1]:
+            best = (other, rel)
+    return best[0] if best else None
+
+
+def _recent_vassal_reason(world, vassal_name: str) -> str:
+    """The most recent vassal_loyalty event's cause line (W6-3 `reason`),
+    from the bounded recent event-log window (GR8-safe, W6-3 precedent)."""
+    window_start = world.current_turn - 5
+    reason = ""
+    for event in world.event_log:
+        if event.get("turn", 0) < window_start:
+            continue
+        if (event.get("type") == "vassal_loyalty"
+                and event.get("vassal") == vassal_name
+                and event.get("reason")):
+            reason = event["reason"]
+    return reason
+
+
+def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
+                                    coalition_info: Optional[Dict],
+                                    posture: str) -> Optional[Dict]:
+    """The deterministic recommendation table (spec §11, priority order) —
+    ONE suggestion, never a list. `kind` decides the executable option:
+    open_proposal rides the existing expand_options arm; request_terms and
+    invest_vassal ride the W6-9 execute_suggestion arm."""
+    # 1. Losing war + a settlement route exists → seek terms.
+    losing = sorted((w for w in war_rows if int(w.get("war_score", 0)) < 0),
+                    key=lambda w: int(w.get("war_score", 0)))
+    for row in losing:
+        opponent = row.get("opponent", "")
+        terms_state = (row.get("request_terms_state") or {}).get("state", "")
+        if terms_state == "available":
+            return {
+                "kind": "request_terms",
+                "target_nation": opponent,
+                "label": f"Seek terms with {opponent}",
+                "description": ("Ask their court to name settlement terms "
+                                "(1 DP)."),
+                "text": (f"the war with {opponent} turns against us and "
+                         f"their court would name terms — ask, Sire, while "
+                         f"asking is still a choice."),
+            }
+        if row.get("settlement_available"):
+            return {
+                "kind": "open_proposal",
+                "target_nation": opponent,
+                "label": f"Open talks with {opponent}",
+                "description": "Open a proposal toward a settlement.",
+                "text": (f"the war with {opponent} turns against us — "
+                         f"open talks before the price of peace rises."),
+            }
+    # 2. An aggressive coalition bearing down → shore the weakest friend.
+    if posture == "aggressive" and int(getattr(world, "threat_level", 0)) > 60:
+        ally = _weakest_ally(world, player)
+        if ally:
+            return {
+                "kind": "open_proposal",
+                "target_nation": ally,
+                "label": f"Shore up {ally}",
+                "description": "Open a proposal to steady our weakest ally.",
+                "text": (f"the coalition means to fight — steady {ally}, "
+                         f"our least certain friend, before they test him."),
+            }
+        weak = (coalition_info or {}).get("weak_link")
+        if weak:
+            return {
+                "kind": "open_proposal",
+                "target_nation": weak,
+                "label": f"Court {weak}",
+                "description": "Open a proposal to the coalition's weak link.",
+                "text": (f"the coalition means to fight — {weak} is its "
+                         f"weakest link, and links can be… loosened."),
+            }
+    # 3. A vassal near revolt → invest.
+    vassals = getattr(world, "vassals", {}) or {}
+    for name, record in sorted(vassals.items(),
+                               key=lambda kv: int(kv[1].get("loyalty", 100))):
+        if record.get("lord") != player:
+            continue
+        if int(record.get("loyalty", 100)) < 40:
+            return {
+                "kind": "invest_vassal",
+                "target": name,
+                "label": f"Invest in {name}",
+                "description": "1 DP + 200 gold; +10 loyalty.",
+                "text": (f"{name} drifts toward revolt — a little gold now "
+                         f"is cheaper than a garrison later."),
+            }
+    # 4. The highest-value diplomatic opening (relation −10..40, no war,
+    #    open proposal cooldown).
+    cooldowns = world.player_proposal_cooldowns
+    best = None
+    for nation in world.get_active_nations():
+        if nation == player or nation in vassals:
+            continue
+        if world.is_at_war(player, nation):
+            continue
+        rel = int(world.nation_relations.get(
+            world._make_diplo_key(player, nation), 0))
+        if not (-10 <= rel <= 40):
+            continue
+        if int(cooldowns.get(nation, 0)) > 0:
+            continue
+        if best is None or rel > best[1]:
+            best = (nation, rel)
+    if best:
+        return {
+            "kind": "open_proposal",
+            "target_nation": best[0],
+            "label": f"Approach {best[0]}",
+            "description": "Open a proposal — the ripest diplomatic opening.",
+            "text": (f"{best[0]} is neither friend nor enemy (relations "
+                     f"{best[1]:+d}) — the ripest court in Europe for an "
+                     f"approach."),
+        }
+    return None
+
+
+def _assess_situation(world) -> Dict:
+    """The war room (W6-9 / EXP-D1): per-war trajectory in prose, the
+    coalition's POSTURE (computed for the AI six times over, shown to the
+    player for the first time here), this turn's itemized threat sources,
+    vassal loyalty trend + cause, and ONE recommendation ending in an
+    executable option (R117).
+
+    Composition ONLY — every number comes from the same fog-safe builders
+    the ledgers use (build_active_wars, threat_sources_this_turn); no new
+    formulas, no LLM (GR6). Diplomacy itself has no fog (project rule).
+    """
+    from backend.game_logic.coalition import (
+        get_coalition_posture, get_threat_tier,
+    )
+    from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
+    from backend.game_logic.war_status import build_active_wars
+
+    player = get_player_nation(world)
+    wars_data = build_active_wars(world)
+    all_rows = wars_data.get("wars", []) or []
+    war_rows = [w for w in all_rows if w.get("status") == "war"]
+    armistice_rows = [w for w in all_rows if w.get("status") == "armistice"]
+    coalition_info = wars_data.get("coalition")
+
+    lines: List[str] = ["Sire — the state of Europe, plainly told.", ""]
+
+    # ── The wars ──
+    wars_context: List[Dict] = []
+    if war_rows:
+        for row in war_rows:
+            opponent = row.get("opponent_display") or row.get("opponent", "?")
+            score = int(row.get("war_score", 0))
+            trend = str(row.get("trend", "stable"))
+            phrase = _war_trajectory_phrase(score, trend)
+            battles = int(row.get("battles_fought", 0))
+            duration = int(row.get("duration", 0))
+            lines.append(
+                f"  Against {opponent}: the war {phrase} ({score:+d}) — "
+                f"{battles} battle{'s' if battles != 1 else ''} across "
+                f"{duration} turn{'s' if duration != 1 else ''}.")
+            wars_context.append({"opponent": row.get("opponent", ""),
+                                 "war_score": score, "trend": trend})
+    else:
+        lines.append("  France wages no war — a rare and precious quiet.")
+    for row in armistice_rows:
+        opponent = row.get("opponent", "?")
+        remaining = int(row.get("armistice_remaining", 0))
+        projected = str(row.get("armistice_projected_outcome", "peace"))
+        lines.append(
+            f"  Armistice with {opponent}: {remaining} "
+            f"turn{'s' if remaining != 1 else ''} remain — the truce "
+            f"points toward {projected}.")
+
+    # ── The coalition's intent (the posture, surfaced at last) ──
+    threat = int(getattr(world, "threat_level", 0))
+    tier = str(get_threat_tier(threat))
+    active_coalition = getattr(world, "active_coalition", None)
+    if active_coalition:
+        posture = str(active_coalition.get("strategic_posture")
+                      or get_coalition_posture(world))
+        leader = active_coalition.get("leader", "")
+        name = active_coalition.get("name", "the Coalition")
+        lines.append("")
+        lines.append(
+            f"  {name} stands against us, led by {leader} — its posture "
+            f"is {posture.upper()}. (Threat {threat}, {tier}.)")
+    else:
+        posture = str(get_coalition_posture(world))
+        lines.append("")
+        lines.append(
+            f"  No coalition stands against us. Europe's alarm reads "
+            f"{threat} ({tier}).")
+
+    # ── What alarmed Europe this turn (top 3, already itemized) ──
+    sources = sorted(
+        (s for s in (getattr(world, "threat_sources_this_turn", []) or [])
+         if isinstance(s, dict)),
+        key=lambda s: -abs(int(s.get("amount", 0))))[:3]
+    sources_context: List[Dict] = []
+    if sources:
+        rendered = []
+        for s in sources:
+            key = str(s.get("source", ""))
+            amount = int(s.get("amount", 0))
+            label = _THREAT_SOURCE_LABELS.get(
+                key, key.replace("_", " ").title())
+            sign = "+" if amount >= 0 else ""
+            rendered.append(f"{label} ({sign}{amount})")
+            sources_context.append(
+                {"source": key, "label": label, "amount": amount})
+        lines.append(f"  What stirred Europe this turn: "
+                     f"{'; '.join(rendered)}.")
+
+    # ── The vassals (loyalty, drift, cause) ──
+    vassal_context: List[Dict] = []
+    own_vassals = sorted(
+        ((n, v) for n, v in (getattr(world, "vassals", {}) or {}).items()
+         if v.get("lord") == player),
+        key=lambda kv: int(kv[1].get("loyalty", 100)))
+    if own_vassals:
+        lines.append("")
+        from backend.game_logic.vassal import AUTONOMY_DRIFT
+        for name, record in own_vassals[:4]:
+            loyalty = int(record.get("loyalty", 0))
+            drift = AUTONOMY_DRIFT.get(record.get("autonomy", 1), 0)
+            trend = ("rising" if drift > 0
+                     else "falling" if drift < 0 else "steady")
+            reason = _recent_vassal_reason(world, name)
+            line = f"  {name}: loyalty {loyalty}, {trend}"
+            if reason:
+                line += f" — {reason}"
+            lines.append(line + ".")
+            vassal_context.append({"vassal": name, "loyalty": loyalty,
+                                   "trend": trend, "reason": reason})
+
+    # ── The one recommendation ──
+    recommendation = _build_situation_recommendation(
+        world, player, war_rows, coalition_info, posture)
+    options: List[Dict] = []
+    if recommendation:
+        lines.append("")
+        lines.append(f"My counsel, Sire: {recommendation['text']}")
+        if recommendation["kind"] == "open_proposal":
+            options.append({
+                "label": recommendation["label"],
+                "description": recommendation["description"],
+                "action": "expand_options",
+                "terms": {"target_nation": recommendation["target_nation"]},
+            })
+        else:
+            options.append({
+                "label": recommendation["label"],
+                "description": recommendation["description"],
+                "action": "execute_suggestion",
+                "terms": {"suggestion": dict(recommendation)},
+            })
+    else:
+        lines.append("")
+        lines.append("My counsel, Sire: hold our course — Europe offers "
+                     "no opening worth the ink today.")
+    options.append({"label": "Thank you", "description": "Dismiss.",
+                    "action": "dismiss"})
+
+    return {
+        "type": "advisory",
+        "target_nation": "",
+        "talleyrand_text": "\n".join(lines),
+        "options": options,
+        "context": {
+            "advisory_type": "assess_situation",
+            "situation_summary": "The war room assessment.",
+            "wars": wars_context,
+            "posture": posture,
+            "threat_level": threat,
+            "threat_tier": tier,
+            "threat_sources": sources_context,
+            "vassals": vassal_context,
+            "recommendation": (dict(recommendation)
+                               if recommendation else None),
+            "confidence_level": "high",
+            "action_hints": ([recommendation["label"]]
+                             if recommendation else []),
+        },
+        "turn_created": int(world.current_turn),
+        "blocking": False,
+    }
 
 
 # ═══════════════════════════════════════════════════════

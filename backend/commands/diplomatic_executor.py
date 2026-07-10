@@ -2959,8 +2959,12 @@ class DiplomaticExecutor:
                         "send": ["send_override", "send", "execute_proposal"],
                         "confirm": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
                         "ratify": ["confirm_settlement"],
-                        "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
-                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "force_declare_war"],
+                        # W6-9: execute_suggestion rides LAST in each list —
+                        # it only wins on the advisory dialogue, whose only
+                        # other option is dismiss.
+                        "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war", "execute_suggestion"],
+                        "do it": ["execute_suggestion"],
+                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "force_declare_war", "execute_suggestion"],
                         "reconsider": ["back_out_settlement", "reconsider"], "no": ["back_out_settlement", "reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
                         "adjust": ["adjust_terms", "expand_options"],
@@ -3997,6 +4001,31 @@ class DiplomaticExecutor:
                 "message": new_dialogue.get("talleyrand_text", ""),
                 "diplomatic_dialogue": new_dialogue,
             }
+
+        elif action == "execute_suggestion":
+            # W6-9: the war-room assessment's ONE recommendation ends in an
+            # executable option (R117). The advisory arm composed the ready
+            # suggestion — deterministic, same executors as the typed route
+            # (GR5/GR6); each target executor charges its own costs exactly
+            # as the typed command would.
+            terms = selected.get("terms", {}) or {}
+            suggestion = terms.get("suggestion") or {}
+            kind = suggestion.get("kind", "")
+            world.dialogue_manager.pop()
+            if kind == "request_terms":
+                result = self._execute_request_terms(
+                    {"target_nation": suggestion.get("target_nation", "")},
+                    {"world": world})
+                result.pop("new_state", None)  # circular refs (R4 warning)
+                return result
+            if kind == "invest_vassal":
+                result = self._executor._vassal._execute_invest_vassal(
+                    {"target": suggestion.get("target", "")},
+                    {"world": world})
+                result.pop("new_state", None)
+                return result
+            return {"success": False,
+                    "message": "Sire, that recommendation has lapsed."}
 
         elif action == "adjust_terms":
             # Entry point for conversational terms guidance

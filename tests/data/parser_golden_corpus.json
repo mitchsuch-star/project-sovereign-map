@@ -3140,6 +3140,51 @@
       },
       "source": "ES-7 Estate Endowment (S7) — the 'grant ... estate' keyword family (bare 'grant' is deliberately unmatched: 'grant autonomy' collision).",
       "notes": "No target pinned — the executor lists eligible estates when the province is omitted. Parses on both worlds; on the legacy fixture the executor refuses (ES-7 is Europe-scoped, N1)."
+    },
+    {
+      "id": "w69-assess-our-situation",
+      "utterance": "Talleyrand, assess our situation",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "diplomatic_advisory",
+        "type": "diplomatic",
+        "diplo": {
+          "action": "diplomatic_advisory"
+        }
+      },
+      "source": "W6-9 (EXP-D1) strategic assessment verb - the exact phrase that dead-ended in the live creative audit (CREATIVE_AUDIT_2026_07_10).",
+      "notes": "Must route to the advisory desk, never the proposal nation-picker; the advisory keyword map sends it to the assess_situation war-room arm."
+    },
+    {
+      "id": "w69-state-of-europe",
+      "utterance": "Talleyrand, what is the state of Europe?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "diplomatic_advisory",
+        "type": "diplomatic",
+        "diplo": {
+          "action": "diplomatic_advisory"
+        }
+      },
+      "source": "W6-9 (EXP-D1) - question-form phrasing.",
+      "notes": "Routes via the question path AND the state-of-europe keyword; assess_situation arm."
+    },
+    {
+      "id": "w69-where-do-we-stand",
+      "utterance": "Talleyrand, where do we stand",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "diplomatic_advisory",
+        "type": "diplomatic",
+        "diplo": {
+          "action": "diplomatic_advisory"
+        }
+      },
+      "source": "W6-9 (EXP-D1) - bare statement phrasing (no question mark).",
+      "notes": "The keyword branch must catch it before the diplomatic_proposal fallback."
     }
   ]
 }

@@ -104,11 +104,11 @@ These refine existing systems and are still implementation-ready later, but they
 - **Details:** Track in `world.sabotage_history`. Dispatch note next turn. Trust +3 if Talleyrand was correct.
 - **Files:** `diplomatic_defiance.py`, `dispatch.py`
 
-### R132: Vassal Loyalty Transparency
+### R132: Vassal Loyalty Transparency — **80/20 LANDED July 10, 2026 (W6-3 `reason` field + W6-9 war-room trend/cause block)**
 - **Category:** Player Feedback
 - **Summary:** Real-time vassal loyalty deltas and trend tracking.
-- **Details:** Lower warning threshold to 30. Show delta when |change| >= 2. Store `prev_loyalty`. Trend arrow in ledger.
-- **Files:** `dispatch.py`, `vassal.py`, `diplomatic_ledger.py`
+- **Details:** Lower warning threshold to 30. Show delta when |change| >= 2. Store `prev_loyalty`. Trend arrow in ledger. **Landed shape:** `vassal_loyalty` events carry the dominant-cause `reason` at emission (W6-3 §5.4); the W6-9 assessment renders loyalty + drift trend + the most recent cause per vassal. The residual (ledger trend arrow, threshold tune) stays queue-item-6 (8.EVAL).
+- **Files:** `dispatch.py`, `vassal.py`, `diplomatic_ledger.py`, `diplomatic_advisory.py`
 
 ### R17d: DP Breakdown Display
 - **Category:** QoL
@@ -251,7 +251,7 @@ These are new feature designs. Each needs individual approval before implementat
 |----|------|---------|
 | R22 | Marriage Alliances | Dynastic bonds: +20 rel, block war 5 turns, 3 DP |
 | R32 | Peace Conferences | Multi-nation negotiations, 3 DP, +15 acceptance |
-| R117 | Advisory Actionability | Advisory ends with executable options |
+| R117 | Advisory Actionability — **✅ LANDED July 10, 2026 via W6-9** (the war-room assessment's ONE recommendation ends in an executable option: `execute_suggestion` / `expand_options`) | Advisory ends with executable options |
 | R123 | Economic Strategy AI (P9) | Gold > 600 triggers subsidy offers, trade pressure |
 | R124 | Diplomatic Isolation AI (P10) | Split enemy alliances with generous terms |
 | R133 | Point of No Return Event | One-time Talleyrand popup at threat 40 |
@@ -386,7 +386,7 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | EXP-C1 | **March to the Guns, surfaced: muster preview + standing order** | Pre-battle muster block naming WILL JOIN / WILL NOT per marshal *with the personality reason*; cheap `"Soult, support Ney"` standing order; substrate the re-homed **Grouchy Moment** lands on. | Own gate; foundation for the Grouchy Moment gate | 1–2 sessions |
 | EXP-E1 | **The Spoils of War: estate confiscation** — **✅ LANDED July 10, 2026 via W6-8** (`WAVE6_FUN_FACTOR_SPEC.md` §10; `test_w6_estate_confiscation.py`) | Conquering an enemy marshal's estate opens confiscate (windfall + grudge + own-cautious-marshal trust cost) vs respect (court acceptance bonus); confiscated estates become grantable (rides ES-7 as landed). Resolves the live "Swabia already sustains Marshal Mack's household" dead end. | ~~EC pass 2 gate (numbers)~~ numbers blessed at the July-10 Wave-6 gate (in-band tunable) | ~1 session |
 | EXP-M2 | **Enemy marshals speak** | Deterministic one-liner bank keyed to (enemy personality × outcome × situation) at the battle-report seam; complements DEF-1 (diplomat voices), which does not own enemy marshals. | Content slice; MC-adjacent | <1 session |
-| EXP-D1 | **"What does Europe intend?" — strategic assessment verb** | `assess our situation` (dead-ends live today) returns per-war trajectory, **coalition posture** (computed, never shown), top threat sources, vassal trend + cause, one executable recommendation (absorbs R117's shape). | **Recommended first slice of queue item 6 (Talleyrand Desk)** | ~1 session |
+| EXP-D1 | **"What does Europe intend?" — strategic assessment verb** — **✅ LANDED July 10, 2026 via W6-9** (`WAVE6_FUN_FACTOR_SPEC.md` §11; `test_w6_assessment_verb.py`) | `assess our situation` (dead-ends live today) returns per-war trajectory, **coalition posture** (computed, never shown), top threat sources, vassal trend + cause, one executable recommendation (absorbs R117's shape). | ~~Recommended first slice of queue item 6 (Talleyrand Desk)~~ landed via W6-9; queue item 6 owns the residual desk items | ~1 session |
 
 ### Escalations (gate-owned; no code)
 
