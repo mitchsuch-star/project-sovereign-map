@@ -3310,6 +3310,41 @@ class CombatExecutor:
         battle_result["support_bombardment_total_damage"] = support_bombardment_total_damage
         battle_result["overwatch_count"] = overwatch_count
 
+        # ════════════════════════════════════════════════════════════
+        # W6-1 (BUG-CA-9): PARTICIPATION COUNTS. Every ARRIVED
+        # reinforcement participant records the battle like the primary
+        # pair does (the blessed ES-7 model already assumes "every
+        # coordination participant increments battles_won"); anyone who
+        # fought is no longer idle; last_battle_turn feeds W6-3 arc memory.
+        # Stalemates count for no one — mirroring the primary pair.
+        # ════════════════════════════════════════════════════════════
+        _w6_outcome = battle_result.get("outcome", "")
+        _atk_won = _w6_outcome in ("attacker_victory", "attacker_tactical_victory")
+        _def_won = _w6_outcome in ("defender_victory", "defender_tactical_victory")
+        _w6_turn = int(world.current_turn)
+        marshal.last_battle_turn = _w6_turn
+        marshal.idle_turns = 0
+        enemy_marshal.last_battle_turn = _w6_turn
+        enemy_marshal.idle_turns = 0
+        for _side_results, _side_won, _side_lost in (
+            (attacker_reinforcements, _atk_won,
+             _def_won or _w6_outcome == "mutual_destruction"),
+            (defender_reinforcements, _def_won,
+             _atk_won or _w6_outcome == "mutual_destruction"),
+        ):
+            for _r in _side_results:
+                if not _r.get("arrived"):
+                    continue
+                _fighter = world.get_marshal(_r.get("marshal", ""))
+                if _fighter is None:
+                    continue
+                if _side_won:
+                    _fighter.battles_won += 1
+                elif _side_lost:
+                    _fighter.battles_lost += 1
+                _fighter.idle_turns = 0
+                _fighter.last_battle_turn = _w6_turn
+
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
         if enemy_marshal.strength > 0:

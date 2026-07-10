@@ -95,12 +95,15 @@ class TestSnapshotAttackerModifiers:
         assert m["value"] == 20
 
     def test_strategic_combat_bonus(self):
-        """Strategic combat bonus should appear and NOT be consumed."""
+        """Strategic combat bonus should appear and NOT be consumed.
+
+        W6-1 (BUG-CA-5): the label is now the player-mappable
+        "Forced march momentum (order completed)"."""
         atk = _make_marshal()
         atk.strategic_combat_bonus = 10
         defn = _make_marshal(name="Def")
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
-        m = _find_mod(mods, "strategic", "bonus")
+        m = _find_mod(mods, "forced march", "bonus")
         assert m is not None
         assert m["value"] == 10
         # Verify NOT consumed
@@ -202,12 +205,15 @@ class TestSnapshotDefenderModifiers:
         assert m["value"] == 16
 
     def test_strategic_defense_bonus_not_consumed(self):
-        """Strategic defense bonus should appear and NOT be consumed."""
+        """Strategic defense bonus should appear and NOT be consumed.
+
+        W6-1 (BUG-CA-5): the label is now the player-mappable
+        "Forced march momentum (order completed)"."""
         defn = _make_marshal()
         defn.strategic_defense_bonus = 15
         atk = _make_marshal(name="Atk")
         mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
-        m = _find_mod(mods, "strategic", "bonus")
+        m = _find_mod(mods, "forced march", "bonus")
         assert m is not None
         assert m["value"] == 15
         # Verify NOT consumed
@@ -467,9 +473,9 @@ class TestBattleReportIntegration:
         atk.strategic_combat_bonus = 10
         defn = _make_marshal(name="Wellington", personality="cautious", strength=68000, nation="Britain")
 
-        # Verify snapshot sees the bonus
+        # Verify snapshot sees the bonus (W6-1 label: forced march momentum)
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
-        assert _find_mod(mods, "strategic", "bonus") is not None
+        assert _find_mod(mods, "forced march", "bonus") is not None
         # Bonus still present after snapshot
         assert atk.strategic_combat_bonus == 10
 

@@ -504,6 +504,9 @@ class Marshal:
         # Reset to 0 when marshal executes attack or move.
         # V2b: idle objection triggers consume this field (see ROADMAP Phase V2b)
         self.idle_turns: int = 0
+        # W6-1 (BUG-CA-9): the turn this marshal last fought a field battle
+        # (primary or arrived reinforcer). -1 = never. Feeds W6-3 arc memory.
+        self.last_battle_turn: int = -1
 
         # ════════════════════════════════════════════════════════════
         # CONTESTED CAPTURE OCCUPATION (Phase 6.2.F)
@@ -1212,6 +1215,7 @@ class Marshal:
 
             # ═══════ IDLE TRACKING (V2a) ═══════
             "idle_turns": int(self.idle_turns),
+            "last_battle_turn": int(self.last_battle_turn),
 
             # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
             "occupation_region": self.occupation_region,
@@ -1364,6 +1368,7 @@ class Marshal:
 
         # ═══════ IDLE TRACKING (V2a) ═══════
         marshal.idle_turns = data.get("idle_turns", 0)
+        marshal.last_battle_turn = data.get("last_battle_turn", -1)
 
         # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
         marshal.occupation_region = data.get("occupation_region", None)

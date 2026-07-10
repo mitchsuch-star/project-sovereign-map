@@ -415,8 +415,12 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
     Build fog-filtered INTELLIGENCE section.
 
     Iterates over all RegionIntel, extracts enemy marshals from
-    known_marshals at PARTIAL+ visibility. Deduplicates by marshal name
-    (keep the best-visibility sighting).
+    known_marshals at PARTIAL+ visibility. Deduplicates by marshal name.
+
+    W6-1 (BUG-CA-6): the dedup prefers RECENCY first, visibility rank as
+    the tiebreak — a stale FULL snapshot must never beat this turn's
+    PARTIAL truth (live audit: the intel table placed Mack at Swabia while
+    the same turn's events and `status` had him in Franche-Comte).
     """
     # Collect sightings: marshal_name -> best sighting dict
     sightings: Dict[str, Dict[str, Any]] = {}
@@ -433,10 +437,15 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
             name = km.get("name", "Unknown")
             vis = intel.visibility
             rank = visibility_rank.get(vis, 0)
+            updated = int(intel.last_updated_turn)
 
             existing = sightings.get(name)
-            if existing and visibility_rank.get(existing["visibility"], 0) >= rank:
-                continue  # Already have better intel
+            if existing and (
+                (existing["intel_turn"],
+                 visibility_rank.get(existing["visibility"], 0))
+                >= (updated, rank)
+            ):
+                continue  # Already have fresher (or same-turn better) intel
 
             # Build strength display
             if vis == FULL and "strength" in km:

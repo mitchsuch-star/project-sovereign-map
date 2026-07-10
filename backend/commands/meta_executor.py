@@ -1871,7 +1871,10 @@ RETREAT RECOVERY (3 turns):
         elif action == "retreat":
             marshal = world.get_marshal(marshal_name)
             if marshal:
-                result = self._executor._movement._execute_retreat_action(marshal, world, game_state)
+                # W6-1 (BUG-CA-2): the stated destination survives the
+                # objection round-trip.
+                result = self._executor._movement._execute_retreat_action(
+                    marshal, world, game_state, target=command.get("target"))
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "stance_change":

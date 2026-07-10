@@ -1357,7 +1357,11 @@ class CommandExecutor:
         elif action == "garrison":
             result = self._economy._execute_garrison(command, game_state)
         elif action == "grant_dotation":
-            result = self._economy._execute_grant_dotation(command, game_state)
+            # W6-1 (BUG-CA-3): the raw text rides along so the executor can
+            # detect a live-LLM-guessed region the player never named.
+            result = self._economy._execute_grant_dotation(
+                command, game_state,
+                raw_text=parsed_command.get("raw_input") or "")
         elif action == "end_turn":
             result = self._meta._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -1708,7 +1712,10 @@ class CommandExecutor:
         elif action == "scout":
             return self._movement._execute_scout(marshal, target, world, game_state)
         elif action == "retreat":
-            return self._movement._execute_retreat_action(marshal, world, game_state)
+            # W6-1 (BUG-CA-2): a stated destination ("retreat to Rhineland")
+            # rides through — honored when legal, named when substituted.
+            return self._movement._execute_retreat_action(
+                marshal, world, game_state, target=target)
         elif action == "drill":
             return self._tactical._execute_drill(command, game_state)
         elif action == "fortify":

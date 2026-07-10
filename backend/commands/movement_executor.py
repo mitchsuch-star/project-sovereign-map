@@ -662,7 +662,8 @@ class MovementExecutor:
         routed_command["type"] = "specific"
         return self._executor._execute_specific(routed_command, game_state)
 
-    def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict) -> Dict:
+    def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict,
+                                target: str = None) -> Dict:
         """
         Execute retreat order - FREE ACTION, initiates recovery from combat penalty.
 
@@ -670,6 +671,10 @@ class MovementExecutor:
         - Moves marshal 1 region toward friendly territory (Paris)
         - Initiates recovery state (recovery from penalty to 0%)
         - Costs 0 actions (free to order retreat)
+        - W6-1 (BUG-CA-2): honors an explicitly stated destination ("retreat
+          to Rhineland") when it is adjacent and legal; an illegal stated
+          destination is SUBSTITUTED with the doctrine's choice and the
+          message names the substitution — never silently discarded.
 
         STANCE-BASED PENALTIES:
         - AGGRESSIVE: -55% initial, PLUS 5% troop loss (caught overextended!)
@@ -726,6 +731,47 @@ class MovementExecutor:
                 "success": False,
                 "message": f"{marshal.name} is surrounded! No safe retreat route. Threatening enemies: {threat_names}"
             }
+
+        # ════════════════════════════════════════════════════════════
+        # W6-1 (BUG-CA-2): honor an explicitly stated destination.
+        # Legal = adjacent, no enemy marshals standing there, and not soil
+        # of a nation we are at war with (doctrine tier 5). An illegal
+        # destination is substituted and NAMED — the audit's "retreat to
+        # Rhineland" → Dresden happened silently.
+        # ════════════════════════════════════════════════════════════
+        substitution_note = ""
+        if target:
+            stated_region, _match_error = self._executor._fuzzy_match_region(target, world)
+            stated_name = (stated_region.name
+                           if stated_region is not None and hasattr(stated_region, "name")
+                           else None)
+            stated_display = stated_name or str(target)
+            reason = ""
+            if stated_name is None:
+                reason = "no such province is known to the staff"
+            elif stated_name == marshal.location:
+                reason = f"{marshal.name} already stands there"
+            elif stated_name not in current_region.adjacent_regions:
+                reason = "it is not adjacent"
+            else:
+                controller = getattr(world.get_region(stated_name), "controller", None)
+                enemies_there = [
+                    m for m in world.get_marshals_in_region(stated_name)
+                    if m.nation != marshal.nation and m.strength > 0
+                    and world.is_at_war(marshal.nation, m.nation)
+                ]
+                if enemies_there:
+                    reason = f"enemy forces under {enemies_there[0].name} hold it"
+                elif (controller is not None and controller != marshal.nation
+                        and world.is_at_war(marshal.nation, controller)):
+                    reason = f"it is {controller}-held soil and we are at war"
+                else:
+                    best_region = stated_name
+            if reason:
+                substitution_note = (
+                    f" {stated_display} cannot be reached, Sire — {reason}; "
+                    f"{marshal.name} falls back to {best_region} instead."
+                )
 
         # ════════════════════════════════════════════════════════════
         # STANCE-BASED RETREAT PENALTIES
@@ -842,6 +888,8 @@ class MovementExecutor:
         # Build message with optional drill cancellation note
         retreat_message = fighting_retreat_message  # Start with fighting retreat message if any
         retreat_message += f"{marshal.name} retreats from {old_location} to {best_region}.{troop_loss_msg} "
+        if substitution_note:
+            retreat_message += substitution_note.strip() + " "
         if drill_was_active:
             retreat_message += "Drill cancelled. "
         if retreat_attrition["total_losses"] > 0:

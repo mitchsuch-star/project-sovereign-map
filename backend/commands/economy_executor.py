@@ -580,7 +580,8 @@ class EconomyExecutor:
     # ES-7 ESTATE ENDOWMENT (Economy Revisit S7): grant_dotation
     # ════════════════════════════════════════════════════════════════════════════
 
-    def _execute_grant_dotation(self, command: Dict, game_state: Dict) -> Dict:
+    def _execute_grant_dotation(self, command: Dict, game_state: Dict,
+                                raw_text: str = "") -> Dict:
         """Endow a marshal with an estate in a conquered province (ES-7).
 
         Player-facing surface: "Endow {marshal} with the Duchy of {province}".
@@ -637,6 +638,19 @@ class EconomyExecutor:
             }
 
         region_name = command.get("target")
+        # W6-1 (BUG-CA-3): a target the player never NAMED is a parser guess
+        # (live audit: "Endow Ney with an estate" arrived with the first
+        # region of the world dict as target and refused with "We do not
+        # hold White Russia"). When the raw text is available and does not
+        # mention the region (raw or humanized form), treat the target as
+        # missing — ask with the eligible list, never default-scan.
+        if region_name and raw_text:
+            from backend.display_names import humanize_entity_name
+            raw_lower = raw_text.lower()
+            if (str(region_name).lower() not in raw_lower
+                    and humanize_entity_name(str(region_name)).lower()
+                    not in raw_lower):
+                region_name = None
         if not region_name:
             eligible = list_eligible_estates(world, acting_nation)
             if eligible:

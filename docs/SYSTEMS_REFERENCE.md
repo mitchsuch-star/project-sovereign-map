@@ -3079,6 +3079,30 @@ Reinforcers who relocated to the battle region return to their pre-arrival locat
 | `tests/test_reinforcement.py` | 49 tests across 12 classes |
 | `tests/test_reinforcement_edge_cases.py` | 22 tests: rules 12-13, PURSUE region-match, Berthier advisory, SUPPORT objection triggers |
 
+## 13b. Retreat Doctrine (W6-1, July 10 2026 — BUG-CA-2/E-CA-2)
+
+`world_state.get_safe_retreat_destination` owns ALL retreat destination
+selection (player-ordered, forced, and — via a GR5 mirror of its tier-5
+rule — the enemy AI fallback in `enemy_ai._find_retreat_destination`).
+
+**Priority tiers** (adjacent regions only): 1. friendly with ally cover ·
+2. friendly/neutral empty · 3. foreign (NOT at-war) with ally · 4. foreign
+(NOT at-war) empty · **5. at-war soil (desperation-only — chosen only vs
+encirclement)** · None = encircled. Regions holding enemy marshals are
+never candidates.
+
+**Homeward bias inside each tier:** homeland (`nation_starting_regions`)
+first, then lower `get_distance` to the nation's capital, THEN further
+from the attacker, then ally strength. "Away from the attacker" no longer
+dominates direction — this is what marched the audit's Bernadotte
+17,000→316 across four at-war provinces.
+
+**Explicit destinations** ("retreat to Rhineland",
+`movement_executor._execute_retreat_action(target=...)`): honored when
+adjacent + not enemy-held + not at-war soil; otherwise substituted with
+the doctrine's choice and the message NAMES the substitution and the
+reason. Never silently discarded. Tests: `test_w6_retreat_doctrine.py`.
+
 ## 14. Win/Loss Relationship Formula
 
 After a shared battle with 2+ same-nation participants, each ordered pair (A, B) rolls independently to check if A's opinion of B changes. Fires after `resolve_battle()` in `_execute_attack()`, before destruction/retreat processing. Casualties are read from `battle_result["attacker"]["casualties"]` (nested dict — both normal and deferred paths). SUPPORT orders are preserved through relationship processing so Hostile+SUPPORT marshals are correctly detected as Participating.

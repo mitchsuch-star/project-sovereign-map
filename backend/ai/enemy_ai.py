@@ -4154,13 +4154,30 @@ class EnemyAI:
                 safe_regions.sort(key=lambda r: world.get_weighted_distance(r, capital))
             return safe_regions[0]
 
-        # No safe friendly region - try any adjacent region without enemies
+        # No safe friendly region - try any adjacent region without enemies.
+        # W6-1 retreat doctrine (GR5 mirror of get_safe_retreat_destination's
+        # tier 5): soil of a nation we are AT WAR with is desperation-only —
+        # chosen when the alternative is encirclement, never over a neutral
+        # option (the live audit's Bernadotte chain marched hop after hop
+        # deeper into at-war territory).
+        desperation_at_war = None
         for adj_name in marshal_region.adjacent_regions:
             enemies_there = self._get_hostile_marshals_in_region(adj_name, nation, world)
-            if not enemies_there:
-                if not self._can_ai_move_to(world, nation, adj_name):
-                    continue  # DLF-12
-                return adj_name
+            if enemies_there:
+                continue
+            if not self._can_ai_move_to(world, nation, adj_name):
+                continue  # DLF-12
+            adj_region = world.get_region(adj_name)
+            controller = getattr(adj_region, "controller", None) if adj_region else None
+            if (controller and controller != nation
+                    and world.is_at_war(nation, controller)):
+                if desperation_at_war is None:
+                    desperation_at_war = adj_name
+                continue
+            return adj_name
+
+        if desperation_at_war:
+            return desperation_at_war
 
         # Surrounded - no retreat possible
         # TODO-1805: Handle encirclement (surrender/last stand). Not needed for 13-region map.

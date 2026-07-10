@@ -457,6 +457,8 @@ Reserved future `event_log` payloads:
 
   "idle_turns": 0,
 
+  "last_battle_turn": -1,
+
   "square_formation": false,
 
   "occupation_region": null,
@@ -621,6 +623,7 @@ Reserved future `event_log` payloads:
 | Field | Type | Description |
 |-------|------|-------------|
 | `idle_turns` | int | Consecutive turns without attack or move (V2b: triggers idle objections) |
+| `last_battle_turn` | int | **W6-1 (BUG-CA-9).** Turn this marshal last fought a field battle (primary or arrived reinforcer); -1 = never. Feeds W6-3 dispatch arc memory. |
 
 #### Contested Capture (Phase 6.2.F)
 | Field | Type | Description |

@@ -2933,16 +2933,22 @@ class WorldState:
         Find a safe retreat destination for a marshal.
 
         Uses ADJACENT regions only (distance 1) for retreat.
-        Prioritizes retreating AWAY from the attacker when attacker_location is provided.
 
-        Priority order:
+        Priority order (W6-1 retreat doctrine, BUG-CA-2/E-CA-2):
         1. Adjacent friendly WITH allied marshal (COVERED on home turf - best)
         2. Adjacent friendly WITHOUT marshal (EXPOSED but safe territory)
-        3. Adjacent enemy WITH allied marshal (at least you have cover)
-        4. Adjacent enemy WITHOUT marshal (desperation - alone in enemy land)
-        5. None = ENCIRCLED (army breaks)
+        3. Adjacent foreign (NOT at-war) WITH allied marshal
+        4. Adjacent foreign (NOT at-war) WITHOUT marshal
+        5. Adjacent AT-WAR soil (desperation-into-enemy — chosen only when the
+           alternative is encirclement; the live audit's Bernadotte chain
+           marched 17,000 men into at-war Russia because at-war regions used
+           to sit in tiers 3-4)
+        6. None = ENCIRCLED (army breaks)
 
-        Within each priority, prefers regions FURTHEST from the attacker.
+        Within each priority tier the HOMEWARD bias decides: (a) regions in
+        the nation's own starting homeland first, then (b) nearer the
+        nation's capital, THEN (c) further from the attacker — "away from
+        the attacker" no longer dominates direction.
 
         Args:
             marshal_name: Name of the marshal retreating
@@ -2966,11 +2972,16 @@ class WorldState:
         if attacker_location:
             debug_print(f"  [RETREAT DEBUG] Attacker at {attacker_location} - prioritizing retreat AWAY")
 
-        # Categories for retreat destinations (4 priorities)
+        # Categories for retreat destinations (5 priorities — W6-1 doctrine)
         friendly_with_ally = []    # Priority 1: Friendly region WITH allied marshal
         friendly_empty = []        # Priority 2: Friendly region, no marshal
-        enemy_with_ally = []       # Priority 3: Enemy region WITH allied marshal
-        enemy_unoccupied = []      # Priority 4: Enemy region, no one there
+        enemy_with_ally = []       # Priority 3: Foreign (not at-war) WITH allied marshal
+        enemy_unoccupied = []      # Priority 4: Foreign (not at-war), no one there
+        at_war_soil = []           # Priority 5: At-war controller (desperation only)
+
+        # Homeward bias substrate (bounded: adjacent candidates only, GR8-safe)
+        home_regions = set(self.nation_starting_regions.get(marshal_nation, []) or [])
+        home_capital = self.get_nation_capital(marshal_nation)
 
         # Check ADJACENT regions only (distance 1)
         for candidate_name in current_region.adjacent_regions:
@@ -2993,6 +3004,16 @@ class WorldState:
             if attacker_location:
                 dist_from_attacker = self.get_distance(candidate_name, attacker_location)
 
+            entry = {
+                "name": candidate_name,
+                "dist_from_attacker": dist_from_attacker,
+                # Homeward bias: homeland first, then nearer the capital
+                "is_home": candidate_name in home_regions,
+                "dist_to_capital": (self.get_distance(candidate_name, home_capital)
+                                    if home_capital else 0),
+                "ally_strength": 0,
+            }
+
             debug_print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}, dist_from_attacker={dist_from_attacker}")
 
             # Skip regions with enemy marshals (can't retreat INTO enemies!)
@@ -3000,81 +3021,62 @@ class WorldState:
                 debug_print("      -> Skip: enemy marshals present")
                 continue
 
+            # W6-1 exclusion tier: soil controlled by a nation we are AT WAR
+            # with ranks below everything — chosen only vs encirclement.
+            if (controller is not None and controller != marshal_nation
+                    and self.is_at_war(marshal_nation, controller)):
+                at_war_soil.append(entry)
+                debug_print("      -> PRIORITY 5: At-war soil (desperation only)")
+                continue
+
             # Friendly region (controlled by our nation)
             if controller == marshal_nation:
                 if allied_marshals:
                     # Priority 1: Ally to cover us!
-                    friendly_with_ally.append({
-                        "name": candidate_name,
-                        "ally": allied_marshals[0].name,
-                        "ally_strength": allied_marshals[0].strength,
-                        "dist_from_attacker": dist_from_attacker
-                    })
+                    entry["ally"] = allied_marshals[0].name
+                    entry["ally_strength"] = allied_marshals[0].strength
+                    friendly_with_ally.append(entry)
                     debug_print(f"      -> PRIORITY 1: Friendly with ally {allied_marshals[0].name}")
                 else:
                     # Priority 2: Empty friendly
-                    friendly_empty.append({
-                        "name": candidate_name,
-                        "dist_from_attacker": dist_from_attacker
-                    })
+                    friendly_empty.append(entry)
                     debug_print("      -> PRIORITY 2: Friendly, empty")
 
-            # Enemy-controlled territory (no enemy marshals - they were skipped above)
+            # Foreign-controlled territory we are NOT at war with
             elif controller is not None and controller != marshal_nation:
                 if allied_marshals:
-                    # Priority 3: Enemy territory but we have an ally there for cover
-                    enemy_with_ally.append({
-                        "name": candidate_name,
-                        "ally": allied_marshals[0].name,
-                        "ally_strength": allied_marshals[0].strength,
-                        "dist_from_attacker": dist_from_attacker
-                    })
-                    debug_print(f"      -> PRIORITY 3: Enemy territory with ally {allied_marshals[0].name}")
+                    # Priority 3: Foreign territory but we have an ally there
+                    entry["ally"] = allied_marshals[0].name
+                    entry["ally_strength"] = allied_marshals[0].strength
+                    enemy_with_ally.append(entry)
+                    debug_print(f"      -> PRIORITY 3: Foreign territory with ally {allied_marshals[0].name}")
                 else:
-                    # Priority 4: Enemy territory, completely unoccupied (desperation)
-                    enemy_unoccupied.append({
-                        "name": candidate_name,
-                        "dist_from_attacker": dist_from_attacker
-                    })
-                    debug_print("      -> PRIORITY 4: Enemy territory, unoccupied")
+                    # Priority 4: Foreign territory, completely unoccupied
+                    enemy_unoccupied.append(entry)
+                    debug_print("      -> PRIORITY 4: Foreign territory, unoccupied")
 
             # Neutral (no controller) - treat like friendly empty
             elif controller is None:
-                friendly_empty.append({
-                    "name": candidate_name,
-                    "dist_from_attacker": dist_from_attacker
-                })
+                friendly_empty.append(entry)
                 debug_print("      -> PRIORITY 2: Neutral, empty")
 
-        # Return best option by priority
-        # Within each priority, sort by: distance from attacker (furthest first), then ally strength
-        if friendly_with_ally:
-            # Sort by distance from attacker (furthest first), then ally strength
-            friendly_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
-            result = friendly_with_ally[0]["name"]
-            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']}, dist={friendly_with_ally[0]['dist_from_attacker']})")
-            return result
+        # W6-1 homeward tiebreak within each tier: homeland regions first,
+        # then nearer the capital, THEN further from the attacker, with ally
+        # strength as the final tiebreak on the covered tiers.
+        def _homeward_key(r):
+            return (not r["is_home"], r["dist_to_capital"],
+                    -r["dist_from_attacker"], -r["ally_strength"])
 
-        if friendly_empty:
-            # Sort by distance from attacker (furthest first)
-            friendly_empty.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
-            result = friendly_empty[0]["name"]
-            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, dist={friendly_empty[0]['dist_from_attacker']})")
-            return result
-
-        if enemy_with_ally:
-            # Sort by distance from attacker (furthest first), then ally strength
-            enemy_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
-            result = enemy_with_ally[0]["name"]
-            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (enemy territory, covered by {enemy_with_ally[0]['ally']}, dist={enemy_with_ally[0]['dist_from_attacker']})")
-            return result
-
-        if enemy_unoccupied:
-            # Sort by distance from attacker (furthest first)
-            enemy_unoccupied.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
-            result = enemy_unoccupied[0]["name"]
-            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation, dist={enemy_unoccupied[0]['dist_from_attacker']})")
-            return result
+        for tier, label in ((friendly_with_ally, "covered"),
+                            (friendly_empty, "exposed"),
+                            (enemy_with_ally, "foreign, covered"),
+                            (enemy_unoccupied, "foreign, unoccupied"),
+                            (at_war_soil, "DESPERATION into at-war soil")):
+            if tier:
+                tier.sort(key=_homeward_key)
+                result = tier[0]["name"]
+                debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} ({label}, home={tier[0]['is_home']}, dist_to_capital={tier[0]['dist_to_capital']})")
+                return result
 
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks

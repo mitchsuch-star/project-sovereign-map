@@ -49,9 +49,12 @@ def snapshot_attacker_modifiers(
         mods.append({"label": "Drill training", "value": int(shock * 10), "type": "bonus"})
 
     # --- Strategic combat bonus (peek only, do NOT zero) ---
+    # W6-1 (BUG-CA-5): "Strategic orders" was unmappable to any player
+    # action — name what actually earned it. Label only, GR1 math untouched.
     strat_bonus = getattr(attacker, "strategic_combat_bonus", 0)
     if strat_bonus > 0:
-        mods.append({"label": "Strategic orders", "value": int(strat_bonus), "type": "bonus"})
+        mods.append({"label": "Forced march momentum (order completed)",
+                     "value": int(strat_bonus), "type": "bonus"})
 
     # --- Personality attack modifier (stateless function) ---
     strength_ratio = attacker.strength / defender.strength if defender.strength > 0 else float("inf")
@@ -169,9 +172,12 @@ def snapshot_defender_modifiers(
         mods.append({"label": "Fortified position", "value": int(round(fort_bonus * 100)), "type": "bonus"})
 
     # --- Strategic defense bonus (peek only, do NOT zero) ---
+    # W6-1 (BUG-CA-5): named for the player action that earned it (see
+    # the attacker-side label note). Label only, GR1 math untouched.
     strat_def = getattr(defender, "strategic_defense_bonus", 0)
     if strat_def > 0:
-        mods.append({"label": "Strategic orders", "value": int(strat_def), "type": "bonus"})
+        mods.append({"label": "Forced march momentum (order completed)",
+                     "value": int(strat_def), "type": "bonus"})
 
     # --- Drilling penalty ---
     is_drilling = getattr(defender, "drilling", False) or getattr(defender, "drilling_locked", False)
@@ -191,7 +197,12 @@ def snapshot_defender_modifiers(
     )
     if pers_mod > 1.001:
         pct = int(round((pers_mod - 1.0) * 100))
-        mods.append({"label": f"Personality ({personality})", "value": pct, "type": "bonus"})
+        # W6-1 (BUG-CA-5): a literal marshal's hold bonus gets its doctrine
+        # name instead of the opaque personality caption. Label only.
+        if personality == "literal" and is_holding:
+            mods.append({"label": "Immovable (literal hold)", "value": pct, "type": "bonus"})
+        else:
+            mods.append({"label": f"Personality ({personality})", "value": pct, "type": "bonus"})
     elif pers_mod < 0.999:
         pct = int(round((1.0 - pers_mod) * 100))
         mods.append({"label": f"Personality ({personality})", "value": pct, "type": "penalty"})
@@ -400,6 +411,18 @@ _OBSERVATIONS = {
         "Reinforcements! {ally} marched onto the field beside {marshal}. The enemy's advantage melted away.",
         "{ally}'s timely arrival bolstered {marshal}'s position. Well-coordinated, Sire.",
     ],
+    # W6-1 (BUG-CA-5): the observation must not claim victory the battle
+    # didn't deliver — outcome-aware variants for stalemates and losses.
+    "coordination_reinforcement_arrival_held": [
+        "{ally} reached the field beside {marshal}, Sire — it saved the line, no more.",
+        "{ally} arrived in time to steady {marshal}'s position. The field was held, nothing further.",
+        "Reinforcement from {ally} kept {marshal} standing, Sire — but neither side yielded the ground.",
+    ],
+    "coordination_reinforcement_arrival_lost": [
+        "{ally} reached {marshal} in time, Sire — but even together, the field could not be held.",
+        "{ally} marched to {marshal}'s guns as ordered. It was not enough.",
+        "The reinforcement arrived, Sire. The verdict of the field went against us regardless.",
+    ],
     "coordination_reinforcement_mixed": [
         "{ally} arrived to reinforce {marshal}, but {failed_ally} failed to reach the field in time.",
         "Reinforcements from {ally} bolstered {marshal}'s position — though {failed_ally} never arrived, Sire.",
@@ -591,8 +614,23 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     if arrived:
         ally_names = " and ".join(r.get("marshal", "") for r in arrived)
-        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_arrival"]),
-                     ally=ally_names)
+        # W6-1 (BUG-CA-5): branch on the OUTCOME — the arrival bank claims
+        # "swung the battle in our favor", which the live audit caught being
+        # said about a stalemate. Stalemate → held; loss → not enough.
+        outcome = str(battle_result.get("outcome", ""))
+        we_won = (
+            (we_are_attacker and outcome in
+             ("attacker_victory", "attacker_tactical_victory"))
+            or (not we_are_attacker and outcome in
+                ("defender_victory", "defender_tactical_victory"))
+        )
+        if outcome == "stalemate":
+            bank = "coordination_reinforcement_arrival_held"
+        elif we_won:
+            bank = "coordination_reinforcement_arrival"
+        else:
+            bank = "coordination_reinforcement_arrival_lost"
+        return _fill(random.choice(_OBSERVATIONS[bank]), ally=ally_names)
 
     # Priority 0.8: All reinforcements failed (our side)
     if failed:
@@ -804,8 +842,12 @@ def generate_battle_report(battle_result: Dict, player_nation: str = "France") -
 
     attacker_casualties = int(attacker_data.get("casualties", 0))
     defender_casualties = int(defender_data.get("casualties", 0))
-    attacker_remaining = int(attacker_data.get("remaining", 0))
-    defender_remaining = int(defender_data.get("remaining", 0))
+    # W6-1 (BUG-CA-4): derive remaining from the same values the battle
+    # event carries (original − casualties). The passed-through "remaining"
+    # echoed the ORIGINAL strength on the report surface (live audit:
+    # 40,000 → "remaining 40,000" after 6,501 casualties).
+    attacker_remaining = max(0, attacker_original - attacker_casualties)
+    defender_remaining = max(0, defender_original - defender_casualties)
 
     observation = _pick_observation(battle_result, player_nation)
 
