@@ -201,3 +201,5 @@ Four raw-key/typo-class fixes, pinned by `tests/test_creative_audit_legibility_f
 Narration ≥7 **measured** (7.5) and combat legibility ≥7 **measured** (7) — the wave's two required pillars pass. Incoming (7 ≥ 6.5) and drama (7.5 ≥ 7.5) also meet target. **W6-11 (balance duo) remains to land after this measurement by design**; its E-CA-1 defender-morale symmetry is the one item this addendum flags for a spot-recheck once landed (our-side morale collapse remains steeper than the defender's, consistent with §2.3).
 
 *Playtest artifacts: live backend session July 10, 2026 (second session), turns 1–6, France, default 1805 boot, post-`485ce18` build.*
+
+**Post-addendum note (same day):** the one flagged spot-recheck — the E-CA-1 defender-morale asymmetry — is CLOSED: W6-11 landed the symmetric casualty-scaled morale table (winner delta = bonus − the same curve the loser pays; the battle-2 replay's holding defender moves +5 → −5) plus E-CA-3 war-priced recruitment, deliberately after this measurement so the legibility scores above are unconfounded by balance tuning. `tests/test_w6_balance_duo.py`.

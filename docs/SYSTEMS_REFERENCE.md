@@ -451,6 +451,30 @@ When 2+ same-nation marshals are in the battle region, casualties are distribute
 
 **Solo battles (1v1):** `apply_casualties=True` (default) — zero behavior change.
 
+### Battle Morale Deltas (W6-11 E-CA-1 — symmetric since July 10, 2026)
+
+Casualty-scaled morale loss applies to **both sides in every outcome** — a
+winner's delta = outcome bonus − the same `_scaled_morale_loss(rate, base)`
+curve the loser pays in that arm (before W6-11 a winning/holding defender
+took zero casualty loss — live audit: Mack at morale 95 through 15k+
+losses). Both copies (normal path + `_build_deferred_result`) share the
+table; `DEFENDER_MORALE_CURVE_FACTOR = 1.0` (blessed; band floor 0.75)
+dampens only the defender's curve if playtests over-shift.
+
+| Outcome | Attacker delta | Defender delta |
+|---|---|---|
+| mutual_destruction | −scaled(rate, 20) | −scaled(rate, 20) |
+| defender_victory | −scaled(rate, 20) | **+10 − scaled(rate, 20)** |
+| attacker_victory | **+10 − scaled(rate, 20)** | −scaled(rate, 20) |
+| defender_tactical_victory (holds the line) | −scaled(rate, 10) | **+5 − scaled(rate, 10)** |
+| attacker_tactical_victory | **+5 − scaled(rate, 10)** | −scaled(rate, 10) |
+| stalemate | −scaled(rate, 5) | −scaled(rate, 5) |
+
+`_scaled_morale_loss` is unchanged: `max(base, int(base × min(rate/0.15, 2.5)))`.
+Counter-punch grants, battles_won/lost increments, and the forced-retreat
+threshold (25) are untouched. Pinned by `tests/test_w6_balance_duo.py`
+(incl. the audit battle-2 replay: the 50k holder's delta moves +5 → −5).
+
 **Key code:** `combat.py::_build_deferred_result()`, `executor.py::_distribute_casualties()`, `executor.py::_get_casualty_participants()`, `executor.py::_execute_attack()` coordination branch.
 
 ---
@@ -2184,7 +2208,7 @@ Two new methods on `WorldState` alongside existing BFS:
 | `move` | Movement | 1 | Move to adjacent region |
 | `retreat` | Movement | 1 | Withdraw from combat |
 | `scout` | Intel | 1 | Gather intelligence |
-| `recruit` | Economic | 1 Admin AP | Raise troops (uses admin AP, not CP). Cost: base 200/300/400 gold (infantry/cavalry/artillery, `world_state.py:90-92`) with capital ×0.75 / settling-stability ×1.5 (`economy_executor.py:140-154`) → true range 150-600. Morale dilution. |
+| `recruit` | Economic | 1 Admin AP | Raise troops (uses admin AP, not CP). Cost: base 200/300/400 gold (infantry/cavalry/artillery, `world_state.py:90-92`) with capital ×0.75 / settling-stability ×1.5, **then (W6-11 E-CA-3, Europe-scoped) ×3 while the recruiting nation is at war (blessed; band 2–4) composed with ×(1 + over-limit overage ratio) above the ES-3 force limit** (`economy_executor._calculate_recruit_cost`; the AI pays the same price through the same helper and its admin pre-checks price through it too — GR5). Legacy fixture world unaffected (N1 — it boots at war). Morale dilution. |
 | `reinforce` | Movement | 1 | Move to ally marshal |
 | `fortify` | Tactical | 1 | Dig in for defense bonus |
 | `unfortify` | Tactical | 1 | Abandon fortifications |

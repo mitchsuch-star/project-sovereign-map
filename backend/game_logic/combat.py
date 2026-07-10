@@ -73,6 +73,18 @@ import random
 # Morale % at which armies are forced to retreat
 FORCED_RETREAT_THRESHOLD = 25
 
+# W6-11 (E-CA-1) morale symmetry: casualty-scaled morale loss applies to
+# BOTH sides in every outcome — a WINNER's delta is (outcome bonus − the
+# same _scaled_morale_loss curve the loser pays in that arm). Before this,
+# a winning/holding defender took ZERO casualty loss (live audit: Mack at
+# morale 95 after 15k+ losses across three battles) while attackers and
+# reinforcers bled. Outcome bonuses stay: +10 victory / +5 narrow /
+# +5 stalemate-holder (= defender_tactical_victory, "holds the line").
+# Blessed defender curve factor 1.0; band floor 0.75 — the defender's
+# scaled loss may be dampened to 75% of the attacker's curve if playtests
+# over-shift, never below (spec §13 / §14 blessed-numbers ledger).
+DEFENDER_MORALE_CURVE_FACTOR = 1.0
+
 
 class CombatResolver:
     """
@@ -566,18 +578,28 @@ class CombatResolver:
             severity = min(casualty_rate / 0.15, 2.5)  # 15% = 1.0x, 37.5% = 2.5x cap
             return max(base_loss, int(base_loss * severity))
 
-        # Determine victor (AFTER applying casualties)
+        def _defender_scaled(casualty_rate: float, base_loss: int) -> int:
+            """W6-11: the defender pays the SAME curve, dampenable inside
+            the blessed band (factor 1.0, floor 0.75)."""
+            return int(round(_scaled_morale_loss(casualty_rate, base_loss)
+                             * DEFENDER_MORALE_CURVE_FACTOR))
+
+        # Determine victor (AFTER applying casualties).
+        # W6-11 (E-CA-1): a WINNER's morale delta = outcome bonus MINUS the
+        # same casualty-scaled loss the loser pays in that arm — blood costs
+        # morale on both sides of a victory (Mack no longer sits at 95
+        # through 15k casualties).
         if attacker.strength <= 0 and defender.strength <= 0:
             victor = None
             outcome = "mutual_destruction"
             attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20))
-            defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 20))
+            defender.adjust_morale(-_defender_scaled(def_casualty_rate, 20))
             attacker.battles_lost += 1
             defender.battles_lost += 1
         elif attacker.strength <= 0:
             victor = defender
             outcome = "defender_victory"
-            defender.adjust_morale(10)
+            defender.adjust_morale(10 - _defender_scaled(def_casualty_rate, 20))
             attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20))
             defender.battles_won += 1
             attacker.battles_lost += 1
@@ -589,8 +611,8 @@ class CombatResolver:
         elif defender.strength <= 0:
             victor = attacker
             outcome = "attacker_victory"
-            attacker.adjust_morale(10)
-            defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 20))
+            attacker.adjust_morale(10 - _scaled_morale_loss(atk_casualty_rate, 20))
+            defender.adjust_morale(-_defender_scaled(def_casualty_rate, 20))
             attacker.battles_won += 1
             defender.battles_lost += 1
         else:
@@ -598,7 +620,7 @@ class CombatResolver:
             if attacker_casualties > defender_casualties * 1.5:
                 victor = defender
                 outcome = "defender_tactical_victory"
-                defender.adjust_morale(5)
+                defender.adjust_morale(5 - _defender_scaled(def_casualty_rate, 10))
                 attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 10))
                 # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
                 if getattr(defender, 'personality', '') == 'cautious':
@@ -608,13 +630,13 @@ class CombatResolver:
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
-                attacker.adjust_morale(5)
-                defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 10))
+                attacker.adjust_morale(5 - _scaled_morale_loss(atk_casualty_rate, 10))
+                defender.adjust_morale(-_defender_scaled(def_casualty_rate, 10))
             else:
                 victor = None
                 outcome = "stalemate"
                 attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 5))
-                defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 5))
+                defender.adjust_morale(-_defender_scaled(def_casualty_rate, 5))
                 # COUNTER-PUNCH: Cautious defenders held the line - still get counter-punch
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
@@ -1086,44 +1108,52 @@ class CombatResolver:
             severity = min(casualty_rate / 0.15, 2.5)
             return max(base_loss, int(base_loss * severity))
 
+        def _defender_scaled(casualty_rate: float, base_loss: int) -> int:
+            # W6-11: MUST mirror the normal path's defender curve exactly
+            return int(round(_scaled_morale_loss(casualty_rate, base_loss)
+                             * DEFENDER_MORALE_CURVE_FACTOR))
+
         # C2: Victor from PROJECTED strength (never modify .strength)
         projected_atk = attacker.strength - attacker_casualties
         projected_def = defender.strength - defender_casualties
 
+        # W6-11 (E-CA-1): winner delta = outcome bonus − casualty-scaled
+        # loss — MUST mirror the normal path's table exactly (the caller
+        # applies these deltas uniformly to every participant).
         if projected_atk <= 0 and projected_def <= 0:
             victor = None
             outcome = "mutual_destruction"
             # [5D-1] Apply morale penalty for mutual destruction (matches normal combat path)
             atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20)
-            def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 20)
+            def_morale_delta = -_defender_scaled(def_casualty_rate, 20)
         elif projected_atk <= 0:
             victor = defender
             outcome = "defender_victory"
-            def_morale_delta = 10
+            def_morale_delta = 10 - _defender_scaled(def_casualty_rate, 20)
             atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20)
         elif projected_def <= 0:
             victor = attacker
             outcome = "attacker_victory"
-            atk_morale_delta = 10
-            def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 20)
+            atk_morale_delta = 10 - _scaled_morale_loss(atk_casualty_rate, 20)
+            def_morale_delta = -_defender_scaled(def_casualty_rate, 20)
         else:
             # Both survive — tactical result
             # CRITICAL: 1.5 threshold MUST match line ~477 in normal path
             if attacker_casualties > defender_casualties * 1.5:
                 victor = defender
                 outcome = "defender_tactical_victory"
-                def_morale_delta = 5
+                def_morale_delta = 5 - _defender_scaled(def_casualty_rate, 10)
                 atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 10)
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
-                atk_morale_delta = 5
-                def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 10)
+                atk_morale_delta = 5 - _scaled_morale_loss(atk_casualty_rate, 10)
+                def_morale_delta = -_defender_scaled(def_casualty_rate, 10)
             else:
                 victor = None
                 outcome = "stalemate"
                 atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 5)
-                def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 5)
+                def_morale_delta = -_defender_scaled(def_casualty_rate, 5)
 
         # Fortification degradation — KEEP inside (battle-triggered per C1)
         fortification_degraded = False

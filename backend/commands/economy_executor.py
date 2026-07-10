@@ -174,21 +174,47 @@ class EconomyExecutor:
             "new_state": game_state
         }
 
-    def _calculate_recruit_cost(self, region, world, base_cost: int = 200) -> int:
+    # W6-11 (E-CA-3) blessed defaults: recruiting mid-war costs 3x (band
+    # 2-4x), and recruiting above the ES-3 force limit costs a further
+    # (1 + overage ratio) — rebuilding a mauled army mid-war becomes a
+    # treasury event instead of a rounding error; peacetime rebuilding
+    # stays cheap. Europe-scoped (N1: the legacy fixture world BOOTS at
+    # war with Britain/Prussia — its economy pins must not move).
+    WAR_RECRUIT_COST_MULT = 3
+
+    def _calculate_recruit_cost(self, region, world, base_cost: int = 200,
+                                nation: str = None) -> int:
         """Calculate recruitment gold cost based on region properties.
 
         Priority: Capital discount wins over settling premium.
         Parameterized base_cost: 200 for infantry, 300 for cavalry.
+
+        W6-11: pass `nation` to price the recruit for that nation's
+        situation — x3 at war, x(1 + overage) above the force limit
+        (Europe-scoped; both multipliers compose on the regional price).
+        The AI pays the same price through this same helper (GR5).
         """
         # Capital discount: 25% off (checked first — always wins)
         if region.region_type == "capital":
-            return int(base_cost * 0.75)
-
+            cost = int(base_cost * 0.75)
         # Settling stability premium: 50% more (stability 51-75)
-        if 51 <= region.stability <= 75:
-            return int(base_cost * 1.50)
+        elif 51 <= region.stability <= 75:
+            cost = int(base_cost * 1.50)
+        else:
+            cost = int(base_cost)
 
-        return base_cost
+        if (nation
+                and getattr(world, "sovereign_map", "legacy") == "europe"):
+            if world.get_nations_at_war_with(nation):
+                cost = int(cost * self.WAR_RECRUIT_COST_MULT)
+            force_limit = world.get_force_limit(nation)
+            if force_limit:
+                total_strength = int(
+                    world.calculate_turn_upkeep(nation)["total_strength"])
+                if total_strength > force_limit:
+                    overage = (total_strength - force_limit) / force_limit
+                    cost = int(cost * (1.0 + overage))
+        return int(cost)
 
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
         """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.
@@ -338,7 +364,8 @@ class EconomyExecutor:
             cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE
         else:
             cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
-        gold_cost = self._calculate_recruit_cost(region, world, base_cost=cost_base)
+        gold_cost = self._calculate_recruit_cost(
+            region, world, base_cost=cost_base, nation=acting_nation)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
         if nation_treasury < gold_cost:

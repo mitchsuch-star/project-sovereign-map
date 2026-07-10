@@ -4775,11 +4775,14 @@ class EnemyAI:
                 base_cost = INFANTRY_RECRUIT_GOLD_COST_BASE
 
             region = world.get_region(weakest.location)
-            recruit_cost = base_cost
-            if region and getattr(region, 'is_capital', False):
-                recruit_cost = int(base_cost * 0.75)
-            elif region and 51 <= getattr(region, 'stability', 100) <= 75:
-                recruit_cost = int(base_cost * 1.50)
+            # W6-11: price through the SAME executor helper the recruit
+            # will actually pay (war x3 + over-limit multipliers included)
+            # — an inline copy here goes optimistic the moment the real
+            # price moves, making the AI attempt-and-fail.
+            recruit_cost = (
+                self.executor._calculate_recruit_cost(
+                    region, world, base_cost=base_cost, nation=nation)
+                if region else base_cost)
 
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 return {
@@ -4891,11 +4894,11 @@ class EnemyAI:
                 base_cost = INFANTRY_RECRUIT_GOLD_COST_BASE
 
             region = world.get_region(rebuild_target.location)
-            recruit_cost = base_cost
-            if region and getattr(region, 'is_capital', False):
-                recruit_cost = int(base_cost * 0.75)
-            elif region and 51 <= getattr(region, 'stability', 100) <= 75:
-                recruit_cost = int(base_cost * 1.50)
+            # W6-11: same-helper pricing (see the P1 urgent-recruit note)
+            recruit_cost = (
+                self.executor._calculate_recruit_cost(
+                    region, world, base_cost=base_cost, nation=nation)
+                if region else base_cost)
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 return {
                     "action": "recruit",
