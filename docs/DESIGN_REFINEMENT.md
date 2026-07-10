@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** This is the design-refinement backlog; execution routes through `docs/ROADMAP.md`'s current phase queue. (The old "work begins after `BUG_FIXES.md` is clear" gate cleared April 2026.)
 >
-> **Last Updated:** July 10, 2026 (**Wave 6 added — Creative Capstone expansions EXP-N1..EXP-D1 + escalations E-CA-1..E-CA-6**, from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153, R129/R131/R132, R155/R156. Prior: July 2, 2026 present-tense pass — every open row re-pointed at its current owner. April 16, 2026 rescope context preserved below as history.)
+> **Last Updated:** July 10, 2026 — **Wave 6 APPROVED IN FULL same day it was filed** (+2 gate additions: Dynamic Battle Naming, Literal Doctrine); the build-ready owner is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (12 slices, blessed default numbers recorded there). Wave 6 items came from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153 (now SUPERSEDED by W6-5), R129/R131/R132, R155/R156, R117 (absorbed into W6-9). Prior: July 2, 2026 present-tense pass. April 16, 2026 rescope context preserved below as history.
 
 ---
 
@@ -19,8 +19,8 @@
 | Wave 4 — New Features | 19 | Needs per-item approval (8.EVAL); R26 → EC-5, R161 → EC-8, R162 gated behind queue items 5-6 |
 | Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
 | Jealousy System | 1 | Separate design gate; Marshal Content Pass MC-3 now an effective prerequisite |
-| **Wave 6 — Creative Capstone (July 10, 2026)** | 12 | 6 ranked expansions (EXP-*) + 6 escalations (E-CA-*) from the §8 fun-factor audit; per-item design gates |
-| **Total** | **57** | |
+| **Wave 6 — Creative Capstone (July 10, 2026)** | 14 | **✅ APPROVED IN FULL July 10** (6 expansions + 6 escalations + 2 gate additions: Dynamic Battle Naming, Literal Doctrine); owner = `WAVE6_FUN_FACTOR_SPEC.md` (12 build slices W6-0..W6-11) |
+| **Total** | **59** | |
 
 ---
 
@@ -366,11 +366,18 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 
 ---
 
-## Wave 6 — Creative Capstone (July 10, 2026; Design Gate per item)
+## Wave 6 — Creative Capstone (July 10, 2026) — **✅ APPROVED IN FULL; owner = `docs/WAVE6_FUN_FACTOR_SPEC.md`**
 
-> Source: `docs/audits/CREATIVE_AUDIT_2026_07_10.md` (the AUDIT_GUIDELINE §8 fun-factor capstone — live 5-turn 1805 playtest under `LLM_MODE=anthropic` + two code-evidence sweeps). The user opened the aperture for this wave: **new items welcome, past items revisable** — revisions to prior R-items are recorded at the end of this section. Everything here is propose-don't-build; each item needs its own gate (or rides the named owner).
+> Source: `docs/audits/CREATIVE_AUDIT_2026_07_10.md` (the AUDIT_GUIDELINE §8 fun-factor capstone — live 5-turn 1805 playtest under `LLM_MODE=anthropic` + two code-evidence sweeps). **GATE (July 10, 2026, same day): the user approved EVERY item below in full — plus two additions scoped at the gate: Dynamic Battle Naming (→ spec slice W6-2) and the Literal Doctrine hone (→ W6-5; user steer: literal marshals need not object — the fantasy is "generals who do what they're ordered").** The build-ready plan — slice order, seams, blessed default numbers, tests — is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (authoritative over the sketches below where they differ). Rows below map: EXP-N1→W6-3 · EXP-M1→W6-7 · EXP-C1→W6-4 · EXP-E1→W6-8 · EXP-M2→W6-6 · EXP-D1→W6-9 · E-CA-1/3→W6-11 · E-CA-2→W6-1 · E-CA-4→W6-4 · E-CA-5/6→W6-10.
 
-### Ranked expansions (by depth-per-unit-complexity — full designs in the memo §4)
+### Gate additions (scoped at the July-10 approval; full designs in the spec)
+
+| ID | Item | One-line mechanic | Spec slice |
+|----|------|-------------------|------------|
+| W6-ADD-1 | **Dynamic Battle Naming** | Serialized per-region battle counts → "Second Battle of Swabia", "The Great Battle of X" at ≥80k engaged; one naming site (`combat_executor` battle_name), consumed everywhere `battle_name` already flows. | W6-2 |
+| W6-ADD-2 | **The Literal Doctrine** | Literal = "generals who do exactly what they're ordered": never objects **by design** (supersedes R59/R153's literal-objection TODOs), order echo + completion reports quoting the verbatim order, doctrine tells on card/dispatch/muster, per-turn **fidelity beats** ("Soult holds at Lorraine, per your orders — the guns did not move him"), precision rewards captioned. Builds on the existing Grouchy Rule (`combat_executor._calculate_reinforcements`) and SUPPORT standing orders. | W6-5 |
+
+### Ranked expansions (by depth-per-unit-complexity — full designs in the memo §4; build detail in the spec)
 
 | ID | Item | One-line mechanic | Owner / gate | Est. |
 |----|------|-------------------|--------------|------|
