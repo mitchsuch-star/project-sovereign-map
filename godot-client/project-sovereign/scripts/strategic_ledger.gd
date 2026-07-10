@@ -360,7 +360,19 @@ func _render_economy():
 	if settlement_gold != 0:
 		var sg_sign = "+" if settlement_gold > 0 else ""
 		bbcode += "  Settlements: " + sg_sign + str(settlement_gold) + "g\n"
-	bbcode += "  Upkeep:   -" + str(upkeep) + "g\n"
+	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
+	# over-limit surcharge line (backend guarantees base + surcharge == the
+	# folded total, so the visible lines still sum to Net — §3 invariant).
+	var upkeep_surcharge = int(econ.get("upkeep_surcharge", 0))
+	var upkeep_base = int(econ.get("upkeep_base", upkeep))
+	bbcode += "  Upkeep:   -" + str(upkeep_base) + "g\n"
+	if upkeep_surcharge > 0:
+		var force_limit = int(econ.get("force_limit", 0))
+		var army_total = int(econ.get("army_strength_total", 0))
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Over-limit surcharge: -" + str(upkeep_surcharge) + "g"
+		if force_limit > 0:
+			bbcode += "  (" + _format_number(army_total) + " / " + _format_number(force_limit) + " force limit)"
+		bbcode += "[/color]\n"
 
 	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
 	var net_sign = "+" if net >= 0 else ""

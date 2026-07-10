@@ -113,6 +113,20 @@ MAX_CAVALRY_POOL = 30000               # Pool cap
 MAX_ARTILLERY_POOL = 20000             # Pool cap
 VICTORY_REGION_FRACTION = 0.75         # Fraction of regions needed for victory (Session 12)
 
+# ES-3 (Economy Revisit S5, blessed E3): super-linear army upkeep with a
+# per-nation force limit. EUROPE-SCOPED — the legacy 19-region world is a
+# pinned test fixture and keeps the flat legacy rate with no limit (the N1
+# pattern: never perturb the legacy fixture's economy).
+# Over-limit ladder (marginal bands, charged as a surcharge on top of base):
+#   strength within the limit          → rate           (8 g / 1,000)
+#   strength above the limit           → 1.5× rate      (+rate//2 surcharge)
+#   strength above 150% of the limit   → 2.0× rate      (+rate surcharge)
+# All rates even → bankruptcy mercy-halving of base and surcharge is exact.
+LEGACY_UPKEEP_RATE = 5                 # g per 1,000 troops (legacy fixture world)
+EUROPE_UPKEEP_RATE = 8                 # g per 1,000 troops (E3 blessed, was 5)
+FORCE_LIMIT_BASE = 60000               # Per-nation force-limit floor (E3)
+FORCE_LIMIT_PER_REGION = 2500          # Limit growth per controlled region (E3)
+
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
     "France":  {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
@@ -3560,32 +3574,75 @@ class WorldState:
     # UPKEEP CALCULATION (Phase 6.2.B)
     # ========================================
 
+    def get_force_limit(self, nation: str) -> Optional[int]:
+        """ES-3: the nation's force limit, or None on the legacy world.
+
+        limit = FORCE_LIMIT_BASE + FORCE_LIMIT_PER_REGION × controlled regions
+        (E3 blessed). Region count rides the cached get_nation_regions index
+        (GR8 — this is called per nation per income phase).
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return None
+        region_count = len(self.get_nation_regions(nation))
+        return int(FORCE_LIMIT_BASE + FORCE_LIMIT_PER_REGION * region_count)
+
     def calculate_turn_upkeep(self, nation: str = None) -> Dict:
         """Calculate total upkeep for a nation's armies.
 
-        Formula: (marshal.strength // 1000) * 5 per marshal.
-        If nation is bankrupt (bankruptcy_turns >= 1), upkeep is halved (mercy mechanic).
+        Legacy fixture world: flat (marshal.strength // 1000) * 5 per marshal,
+        no force limit (pinned substrate — N1).
+
+        Europe (ES-3, blessed E3): rate 8 per 1,000 plus a super-linear
+        over-limit surcharge on TOTAL nation strength above get_force_limit():
+        the band up to 150% of the limit pays 1.5× (surcharge +rate//2 per
+        1,000), the band above 150% pays 2.0× (surcharge +rate per 1,000).
+
+        Bankruptcy mercy (E6): base AND surcharge are both halved — exact,
+        since both rates are even — and `total == base + surcharge` always
+        holds, so the ledger's split lines reconcile by construction.
         """
         nation = nation or self.player_nation
-        total_upkeep = 0
+        europe = getattr(self, "sovereign_map", "legacy") == "europe"
+        rate = EUROPE_UPKEEP_RATE if europe else LEGACY_UPKEEP_RATE
+        base_upkeep = 0
+        total_strength = 0
         breakdown = []
         for marshal in self.marshals.values():
             if marshal.nation == nation and marshal.strength > 0:
-                cost = (marshal.strength // 1000) * 5
-                total_upkeep += cost
+                cost = (marshal.strength // 1000) * rate
+                base_upkeep += cost
+                total_strength += marshal.strength
                 breakdown.append({
                     "marshal": marshal.name,
                     "strength": marshal.strength,
                     "upkeep": cost
                 })
 
-        # Mercy mechanic: halve upkeep during bankruptcy
+        # ES-3 over-limit surcharge (marginal bands on total nation strength)
+        force_limit = self.get_force_limit(nation)
+        surcharge = 0
+        if force_limit is not None and total_strength > force_limit:
+            severe_threshold = force_limit + force_limit // 2  # 150% of limit
+            band_over = min(total_strength, severe_threshold) - force_limit
+            band_severe = max(0, total_strength - severe_threshold)
+            surcharge = (band_over // 1000) * (rate // 2) \
+                + (band_severe // 1000) * rate
+
+        # Mercy mechanic: halve upkeep during bankruptcy (E6: covers the
+        # surcharge too; halved separately so total == base + surcharge)
         is_bankrupt = self.nation_bankruptcy_turns.get(nation, 0) >= 1
         if is_bankrupt:
-            total_upkeep = total_upkeep // 2
+            base_upkeep = base_upkeep // 2
+            surcharge = surcharge // 2
 
         return {
-            "total": int(total_upkeep),
+            "total": int(base_upkeep + surcharge),
+            "base": int(base_upkeep),
+            "surcharge": int(surcharge),
+            "force_limit": int(force_limit) if force_limit is not None else None,
+            "total_strength": int(total_strength),
+            "over_limit": bool(force_limit is not None
+                               and total_strength > force_limit),
             "breakdown": breakdown,
             "halved": is_bankrupt
         }

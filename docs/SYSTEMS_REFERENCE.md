@@ -2268,9 +2268,11 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 
 **Income application:** `apply_turn_income(nation=None)` wraps `process_income_phase()` which handles income - upkeep + admin bonus.
 
-### Upkeep + Bankruptcy (Phase 6.2.B)
+### Upkeep + Bankruptcy (Phase 6.2.B; ES-3 force limit July 9, 2026)
 
-**Upkeep:** `(marshal.strength // 1000) * 5` per marshal. Halved during bankruptcy (mercy mechanic).
+**Upkeep (Europe worlds — ES-3, blessed E3):** `(marshal.strength // 1000) * 8` per marshal, PLUS a super-linear over-limit surcharge on total nation strength above the force limit `60,000 + 2,500 × controlled regions` (`get_force_limit`, cached region index): the band up to 150% of the limit pays 1.5× (surcharge +4/1,000), above 150% pays 2.0× (surcharge +8/1,000) — marginal bands, not a cliff. `calculate_turn_upkeep` returns `total/base/surcharge/force_limit/total_strength/over_limit` with `total == base + surcharge` guaranteed (the ledger renders base and surcharge as separate lines that sum to Net — §3 invariant). **Legacy fixture world:** flat `* 5`, no limit (pinned substrate, N1).
+
+**Mercy (E6):** bankruptcy halves base AND surcharge (both rates even → exact).
 
 **Income phase:** `process_income_phase(nation)` = income - upkeep + admin bonus. Runs for ALL nations during turn resolution.
 

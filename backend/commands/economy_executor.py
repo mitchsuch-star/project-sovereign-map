@@ -77,6 +77,14 @@ class EconomyExecutor:
             lines.append("    (HALVED - bankruptcy mercy)")
         for ub in upkeep_breakdown:
             lines.append(f"    {ub['marshal']} ({ub['strength']:,} troops): -{ub['upkeep']}g")
+        # ES-3 (S5): over-limit surcharge line — the army exceeds the
+        # nation's force limit, so the excess pays super-linear upkeep
+        if upkeep_data.get("surcharge", 0) > 0:
+            lines.append(
+                f"    Over force limit "
+                f"({upkeep_data['total_strength']:,} / {upkeep_data['force_limit']:,}): "
+                f"-{upkeep_data['surcharge']}g surcharge"
+            )
 
         # Admin bonus
         if admin_bonus > 0:

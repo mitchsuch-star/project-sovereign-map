@@ -209,6 +209,12 @@ def _build_economy(world, player: str) -> dict:
 
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
+    # ES-3 (S5): the over-limit surcharge is split out of Upkeep so the
+    # economy tab can render it as its own line (§3 breakdown-visible).
+    # calculate_turn_upkeep guarantees total == base + surcharge (even
+    # under bankruptcy mercy), so the split lines reconcile to Net.
+    upkeep_surcharge = int(upkeep_data.get("surcharge", 0))
+    upkeep_base = upkeep - upkeep_surcharge
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
@@ -277,7 +283,7 @@ def _build_economy(world, player: str) -> dict:
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold - upkeep
+        + settlement_gold - upkeep_base - upkeep_surcharge
     )
 
     # Construction queue: iterate player regions with active builds
@@ -314,6 +320,12 @@ def _build_economy(world, player: str) -> dict:
         "settlement_gold": settlement_gold,
         "settlement_streams": settlement_streams,
         "upkeep": upkeep,
+        "upkeep_base": upkeep_base,
+        "upkeep_surcharge": upkeep_surcharge,
+        # 0 = no limit (legacy world) — int-safe sentinel for Godot (GR2)
+        "force_limit": int(upkeep_data.get("force_limit") or 0),
+        "over_force_limit": bool(upkeep_data.get("over_limit", False)),
+        "army_strength_total": int(upkeep_data.get("total_strength", 0)),
         "net": net,
         "bankruptcy_turns": int(world.bankruptcy_turns),
         "construction_queue": construction_queue,

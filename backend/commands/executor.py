@@ -1617,7 +1617,10 @@ class CommandExecutor:
             # Append financial summary to message
             net_sign = "+" if net_val >= 0 else ""
             spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
+            surcharge_val = int(upkeep_data.get("surcharge", 0))
+            surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 

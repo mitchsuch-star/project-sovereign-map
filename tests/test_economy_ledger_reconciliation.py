@@ -29,6 +29,10 @@ from backend.models.world_state import WorldState
 
 # The gold-bearing keys in the _build_economy dict that are summed into `net`,
 # with their sign. MUST mirror ledger.py _build_economy's `net` expression.
+# ES-3 (S5): upkeep is split into base + over-limit surcharge so the surcharge
+# renders as its own ledger line — the by-construction guard below then forces
+# both halves to be rendered ("upkeep" total stays in the dict for reference
+# but is no longer a net term).
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -36,7 +40,8 @@ NET_GOLD_COMPONENTS = {
     "treaty_gold": +1,
     "vassal_tribute": +1,
     "settlement_gold": +1,
-    "upkeep": -1,
+    "upkeep_base": -1,
+    "upkeep_surcharge": -1,
 }
 
 _LEDGER_GD = (

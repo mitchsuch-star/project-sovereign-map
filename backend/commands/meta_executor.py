@@ -246,7 +246,10 @@ class MetaExecutor:
         other_str = ""
         if other_val != 0:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
-        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
+        surcharge_val = int(upkeep_data.get("surcharge", 0))
+        surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
+        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]

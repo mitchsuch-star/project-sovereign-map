@@ -212,6 +212,12 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "treasury": treasury,
         "treasury_delta": treasury_delta,
         "trade_income": trade_income,
+        # ES-3 (S5): over-limit breakdown rides the dispatch so the morning
+        # projection can explain a heavy upkeep (treasury_delta above already
+        # includes the surcharge via upkeep_data["total"]).
+        "upkeep_surcharge": int(upkeep_data.get("surcharge", 0)),
+        "force_limit": int(upkeep_data.get("force_limit") or 0),
+        "over_force_limit": bool(upkeep_data.get("over_limit", False)),
         "bankrupt": bankrupt,
         "strength_ratio_pct": strength_ratio_pct,
         "authority": int(authority),
