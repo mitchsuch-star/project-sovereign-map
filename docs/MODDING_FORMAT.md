@@ -158,6 +158,7 @@ Marshals represent commanders on the map.
 | `stance` | string | "neutral" | One of: `neutral`, `defensive`, `aggressive` |
 | `skills` | object | null | Individual skill ratings |
 | `ability` | object | null | Special ability |
+| `trust` | object | `{"value": 70}` | Starting trust in the player, `{"value": 0-100}` (MC-2: the shipped 1805 roster authors this per marshal) |
 
 ### Personality Types
 
@@ -183,6 +184,13 @@ Marshals represent commanders on the map.
 ```
 
 All skills range from 1-10. If not specified, defaults are applied.
+
+Wired seams (what a point buys): `tactical` — combat dice (+1 per 3 pts);
+`shock` — attack damage (+5%/pt); `defense` — damage resistance (−5%/pt);
+`logistics` — reinforcement muster score (+5/pt); `command` — The Rally
+(recovery 2 stages/turn at 8+, retreat penalties 10pp deeper at 3−).
+`administration` is accepted and serialized but currently UNWIRED (reserved
+for the MC-2b slice) — the marshal card hides it until its mechanic lands.
 
 ### Ability Object
 

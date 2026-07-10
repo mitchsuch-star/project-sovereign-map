@@ -78,6 +78,9 @@
             "location": "Rhineland",
             "strength": 24000,
             "personality": "aggressive",
+            "skills": { "tactical": 5, "shock": 9, "defense": 6, "logistics": 4, "administration": 5, "command": 7 },
+            "tactical_skill": 5,
+            "trust": { "value": 75 },
             "movement_range": 1,
             "ability": {
                 "name": "Bravest of the Brave",
@@ -93,6 +96,9 @@
             "location": "Rhineland",
             "strength": 26000,
             "personality": "cautious",
+            "skills": { "tactical": 8, "shock": 6, "defense": 8, "logistics": 7, "administration": 5, "command": 9 },
+            "tactical_skill": 8,
+            "trust": { "value": 85 },
             "ability": {
                 "name": "Iron Resolve",
                 "description": "The iron marshal coils behind his earthworks - patient discipline becomes a hammer-blow when III Corps springs",
@@ -107,6 +113,9 @@
             "location": "Lorraine",
             "strength": 40000,
             "personality": "literal",
+            "skills": { "tactical": 9, "shock": 6, "defense": 7, "logistics": 6, "administration": 5, "command": 6 },
+            "tactical_skill": 9,
+            "trust": { "value": 70 },
             "ability": {
                 "name": "Drillmaster of Boulogne",
                 "description": "Soult drilled the camps of Boulogne to clockwork - his corps sharpens in a single day",
@@ -121,6 +130,9 @@
             "location": "Franche-Comte",
             "strength": 18000,
             "personality": "aggressive",
+            "skills": { "tactical": 7, "shock": 8, "defense": 5, "logistics": 4, "administration": 5, "command": 7 },
+            "tactical_skill": 7,
+            "trust": { "value": 85 },
             "ability": {
                 "name": "Roland of the Army",
                 "description": "Lannes marches to the sound of the guns - the second wave that (almost) always comes",
@@ -135,6 +147,9 @@
             "location": "Franche-Comte",
             "strength": 22000,
             "personality": "aggressive",
+            "skills": { "tactical": 4, "shock": 9, "defense": 2, "logistics": 3, "administration": 5, "command": 5 },
+            "tactical_skill": 4,
+            "trust": { "value": 75 },
             "cavalry": true,
             "movement_range": 2,
             "ability": {
@@ -151,6 +166,9 @@
             "location": "Franconia",
             "strength": 17000,
             "personality": "cautious",
+            "skills": { "tactical": 6, "shock": 4, "defense": 5, "logistics": 6, "administration": 5, "command": 5 },
+            "tactical_skill": 6,
+            "trust": { "value": 40 },
             "ability": {
                 "name": "Eyes on a Crown",
                 "description": "Bernadotte weighs every order against his own ambitions - the I Corps does not always march",
@@ -165,6 +183,9 @@
             "location": "Milan",
             "strength": 42000,
             "personality": "aggressive",
+            "skills": { "tactical": 8, "shock": 7, "defense": 7, "logistics": 8, "administration": 5, "command": 3 },
+            "tactical_skill": 8,
+            "trust": { "value": 60 },
             "ability": {
                 "name": "Child of Victory",
                 "description": "Cornered and outnumbered is where Massena fights best",
@@ -179,6 +200,9 @@
             "location": "Franconia",
             "strength": 22000,
             "personality": "literal",
+            "skills": { "tactical": 5, "shock": 4, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
+            "tactical_skill": 5,
+            "trust": { "value": 70 },
             "biography": "The Bavarian field army - two divisions under Deroy and Wrede, withdrawn to Wuerzburg rather than submit to Austria, now under French operational direction."
         },
         "Mack": {
@@ -187,6 +211,9 @@
             "location": "Swabia",
             "strength": 52000,
             "personality": "literal",
+            "skills": { "tactical": 2, "shock": 3, "defense": 3, "logistics": 4, "administration": 5, "command": 3 },
+            "tactical_skill": 2,
+            "trust": { "value": 75 },
             "biography": "The Army of Germany, camped around Ulm on invaded Bavarian soil - quartermaster's plans and paper certainties, deep in hostile country."
         },
         "ArchdukeCharles": {
@@ -195,6 +222,9 @@
             "location": "Carniola",
             "strength": 54000,
             "personality": "cautious",
+            "skills": { "tactical": 8, "shock": 6, "defense": 8, "logistics": 7, "administration": 5, "command": 8 },
+            "tactical_skill": 8,
+            "trust": { "value": 55 },
             "ability": {
                 "name": "Habsburg Resolve",
                 "description": "Archduke Charles steadies the line with calm under fire",
@@ -209,6 +239,9 @@
             "location": "Tyrol",
             "strength": 20000,
             "personality": "cautious",
+            "skills": { "tactical": 3, "shock": 3, "defense": 4, "logistics": 5, "administration": 5, "command": 4 },
+            "tactical_skill": 3,
+            "trust": { "value": 65 },
             "biography": "The Army of Tyrol at Innsbruck, hinging the German and Italian theaters."
         },
         "Kutuzov": {
@@ -217,6 +250,9 @@
             "location": "Podolia",
             "strength": 38000,
             "personality": "cautious",
+            "skills": { "tactical": 7, "shock": 3, "defense": 7, "logistics": 8, "administration": 5, "command": 7 },
+            "tactical_skill": 7,
+            "trust": { "value": 50 },
             "ability": {
                 "name": "The Old Fox",
                 "description": "Kutuzov's fighting retreat is his art - chasing him is a half-harvest trap",
@@ -231,6 +267,9 @@
             "location": "Volhynia",
             "strength": 32000,
             "personality": "literal",
+            "skills": { "tactical": 3, "shock": 5, "defense": 4, "logistics": 3, "administration": 5, "command": 3 },
+            "tactical_skill": 3,
+            "trust": { "value": 65 },
             "biography": "The Army of Volhynia, the second echelon - weeks behind Kutuzov on its namesake ground."
         },
         "Moore": {
@@ -239,6 +278,9 @@
             "location": "London",
             "strength": 30000,
             "personality": "cautious",
+            "skills": { "tactical": 7, "shock": 5, "defense": 7, "logistics": 6, "administration": 5, "command": 7 },
+            "tactical_skill": 7,
+            "trust": { "value": 65 },
             "ability": {
                 "name": "Shorncliffe System",
                 "description": "Moore's recruits arrive drilled - Britain rebuilds quality, not just numbers",
@@ -253,6 +295,9 @@
             "location": "Berlin",
             "strength": 50000,
             "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 3, "defense": 5, "logistics": 6, "administration": 5, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 70 },
             "biography": "The Duke of Brunswick, Prussia's senior field marshal - the army in home cantonments, armed and neutral."
         },
         "Hohenlohe": {
@@ -261,6 +306,9 @@
             "location": "Silesia",
             "strength": 28000,
             "personality": "cautious",
+            "skills": { "tactical": 3, "shock": 4, "defense": 3, "logistics": 3, "administration": 5, "command": 3 },
+            "tactical_skill": 3,
+            "trust": { "value": 60 },
             "biography": "Prince Hohenlohe's corps in Silesia, watching the Russian marches on the tense northern flank."
         },
         "Armfelt": {
@@ -269,6 +317,9 @@
             "location": "Scania",
             "strength": 12000,
             "personality": "cautious",
+            "skills": { "tactical": 3, "shock": 4, "defense": 4, "logistics": 3, "administration": 5, "command": 4 },
+            "tactical_skill": 3,
+            "trust": { "value": 55 },
             "biography": "Gustav Mauritz Armfelt, commander of Sweden's Pomeranian expedition - the king's sword, not yet drawn."
         },
         "Damas": {
@@ -277,6 +328,9 @@
             "location": "Naples",
             "strength": 18000,
             "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 4, "defense": 4, "logistics": 3, "administration": 5, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 65 },
             "biography": "Roger de Damas, reorganizer of the Bourbon army - Naples plays its double game, a neutrality treaty in one hand and the Coalition's promises in the other."
         },
         "Frederick": {
@@ -285,6 +339,9 @@
             "location": "Jutland",
             "strength": 16000,
             "personality": "cautious",
+            "skills": { "tactical": 3, "shock": 3, "defense": 5, "logistics": 5, "administration": 5, "command": 4 },
+            "tactical_skill": 3,
+            "trust": { "value": 85 },
             "biography": "Crown Prince Frederick, regent of Denmark - the army concentrated in Holstein, guarding an armed neutrality."
         },
         "Castanos": {
@@ -293,6 +350,9 @@
             "location": "Andalusia",
             "strength": 15000,
             "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 3, "defense": 4, "logistics": 5, "administration": 5, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 70 },
             "biography": "Castanos, Commandant-General of the Campo de Gibraltar - Spain's war with Britain is fought at sea; Trafalgar is four weeks out."
         },
         "Abdurrahman": {
@@ -301,6 +361,9 @@
             "location": "Karaman",
             "strength": 24000,
             "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 5, "defense": 4, "logistics": 5, "administration": 5, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 60 },
             "biography": "Kadi Abdurrahman Pasha, governor of Karaman, with the Nizam-i Cedid new-model troops - the Porte's reformed army, far from Europe's quarrel."
         }
     }

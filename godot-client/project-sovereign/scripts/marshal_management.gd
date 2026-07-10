@@ -58,8 +58,10 @@ func _input(event):
 				return
 		if index >= 0 and index < cached_data.size():
 			# Scroll to marshal card — approximate position based on card height
-			# TECH DEBT: 320px/card is hardcoded. Revisit if playtesting shows scroll misalignment.
-			var scroll_target = index * 320
+			# TECH DEBT: 380px/card is hardcoded (bumped from 320 when MC-2's
+			# skill-bar rows grew the card). Revisit if playtesting shows
+			# scroll misalignment.
+			var scroll_target = index * 380
 			scroll_container.scroll_vertical = scroll_target
 			get_viewport().set_input_as_handled()
 
@@ -167,16 +169,22 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += "  Morale: " + _morale_colored(morale)
 	bbcode += "  Range: " + str(move_range) + "\n"
 
-	# Skills
-	var skills = m.get("skills", {})
-	bbcode += "  Skills: "
-	var skill_parts = []
+	# Skills — MC-2 character sheet: one bar row per wired skill (█░ bar idiom
+	# matches the diplomatic ledger's threat/WE bars). Values, hints, and the
+	# Rally note all ship from the backend (shown = applied — Godot renders,
+	# never recomputes thresholds).
 	# MC gate Q3 (July 10, 2026): administration is unwired and hidden until
 	# MC-2b lands its mechanic — do not re-add it here without that slice.
-	for skill_name in ["shock", "defense", "tactical", "logistics", "command"]:
+	var skills = m.get("skills", {})
+	var skill_notes = m.get("skill_notes", {})
+	for skill_name in ["tactical", "shock", "defense", "logistics", "command"]:
 		var val = int(skills.get(skill_name, 5))
-		skill_parts.append(_skill_colored(skill_name.substr(0, 3).to_upper(), val))
-	bbcode += " ".join(skill_parts) + "\n"
+		var note = str(skill_notes.get(skill_name, ""))
+		bbcode += "  " + _skill_bar_row(skill_name.capitalize(), val, note)
+	var rally_note = str(m.get("rally_note", ""))
+	if rally_note != "":
+		var rally_color = Utils.COLOR_SUCCESS if str(m.get("rally_tier", "")) == "fast" else Utils.COLOR_ORANGE
+		bbcode += "  [color=#" + rally_color + "]" + rally_note + "[/color]\n"
 
 	# ═══════ ABILITY (only shown if active/wired) ═══════
 	var ab_name = str(m.get("ability_name", ""))
@@ -341,7 +349,10 @@ func _morale_colored(morale: int) -> String:
 	return "[color=#" + color + "]" + str(morale) + "%[/color]"
 
 
-func _skill_colored(label: String, val: int) -> String:
+func _skill_bar_row(label: String, val: int, note: String) -> String:
+	"""One character-sheet skill row: label, 10-wide █░ bar, value, dim hint.
+	Peak (8+) green, weak (3-) red, middling grey/plain — same thresholds the
+	old compact line used."""
 	var color = Utils.COLOR_INFO
 	if val >= 8:
 		color = Utils.COLOR_SUCCESS
@@ -349,7 +360,13 @@ func _skill_colored(label: String, val: int) -> String:
 		color = Utils.COLOR_ERROR
 	elif val <= 5:
 		color = Utils.COLOR_GREY
-	return label + ":[color=#" + color + "]" + str(val) + "[/color]"
+	var filled = clampi(val, 0, 10)
+	var bar = "[color=#" + color + "]" + "█".repeat(filled) + "[/color]"
+	bar += "[color=#" + COLOR_DIM + "]" + "░".repeat(10 - filled) + "[/color]"
+	var row = label + " " + bar + " [color=#" + color + "]" + str(val) + "[/color]"
+	if note != "":
+		row += "  [color=#" + COLOR_DIM + "]" + note + "[/color]"
+	return row + "\n"
 
 
 func _trust_colored(val: int, label: String) -> String:

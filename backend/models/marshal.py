@@ -1166,10 +1166,11 @@ class Marshal:
         """Recovery stages advanced per turn (retreat AND broken recovery).
 
         Command >= RALLY_FAST_COMMAND marshals rally beaten armies twice as
-        fast (retreat 3 turns -> 2, broken 4 turns -> 2). The 1805 campaign
-        roster is flat-5 (baseline 1) until MC-2 lands authored skills; the
-        legacy fixture/rollback roster's Ney (8) / Davout (9) / Wellington (9)
-        hit the fast tier — deliberate.
+        fast (retreat 3 turns -> 2, broken 4 turns -> 2). MC-2 (July 10,
+        2026) authored the 1805 roster: Davout 9 / ArchdukeCharles 8 hit the
+        fast tier; Mack/Massena/Buxhowden/Hohenlohe (3) hit the poor tier.
+        The legacy fixture/rollback roster's Ney (8) / Davout (9) /
+        Wellington (9) hit the fast tier — deliberate.
         """
         return 2 if self.skills.get("command", 5) >= self.RALLY_FAST_COMMAND else 1
 

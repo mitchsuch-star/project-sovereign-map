@@ -56,6 +56,21 @@ _PERSONALITY_DESCRIPTIONS = {
     ),
 }
 
+# MC-2 (July 10, 2026): what each displayed skill DOES, at its wired seam —
+# shown = applied. Numbers derive from the live formulas: tactical -> combat
+# dice (+1 per 3 pts, combat.py), shock -> damage multiplier 1 + skill/20,
+# defense -> damage reduction skill/20, logistics -> muster score +5/pt
+# (combat_executor._calculate_arrival_score), command -> The Rally tiers
+# (marshal.py RALLY_FAST_COMMAND / RALLY_POOR_COMMAND). Administration is
+# deliberately ABSENT until MC-2b wires it (gate Q3).
+_SKILL_DESCRIPTIONS = {
+    "tactical": "combat dice (+1 per 3 pts)",
+    "shock": "attack damage (+5%/pt)",
+    "defense": "damage resistance (-5%/pt)",
+    "logistics": "answers the guns (+5 muster/pt)",
+    "command": "rally & recovery (fast 8+, poor 3-)",
+}
+
 # Gameplay descriptions for each unit type
 _UNIT_TYPE_DESCRIPTIONS = {
     "Infantry": (
@@ -191,6 +206,27 @@ def _build_ability(marshal: Marshal) -> Dict[str, Any]:
 
 def _build_combat_stats(marshal: Marshal) -> Dict[str, Any]:
     """Combat stats section."""
+    # MC-2: The Rally tier + note, derived from the marshal's OWN methods and
+    # constants (single source marshal.py — the card never re-implements the
+    # thresholds; Godot renders these strings verbatim, Q3 pattern).
+    if marshal.get_rally_stages_per_turn() >= 2:
+        rally_tier = "fast"
+        rally_note = (
+            "The Rally: reforms beaten armies at double pace — "
+            "retreat and broken recovery advance 2 stages/turn."
+        )
+    elif marshal.skills.get("command", 5) <= Marshal.RALLY_POOR_COMMAND:
+        rally_tier = "poor"
+        p = [int(round(marshal.get_retreat_stage_penalty(s) * 100))
+             for s in (0, 1, 2)]
+        rally_note = (
+            f"The Rally: holds beaten armies together poorly — retreat "
+            f"recovery runs -{p[0]}/-{p[1]}/-{p[2]}% effective."
+        )
+    else:
+        rally_tier = "standard"
+        rally_note = ""
+
     return {
         "strength": int(marshal.strength),
         "starting_strength": int(marshal.starting_strength),
@@ -201,6 +237,10 @@ def _build_combat_stats(marshal: Marshal) -> Dict[str, Any]:
         # serialized, and mod-valid; it just doesn't display.
         "skills": {k: int(v) for k, v in marshal.skills.items()
                    if k != "administration"},
+        # MC-2: per-skill mechanic hints for the card (wired seams only).
+        "skill_notes": dict(_SKILL_DESCRIPTIONS),
+        "rally_tier": rally_tier,
+        "rally_note": rally_note,
         "tactical_skill": int(marshal.tactical_skill),
     }
 
