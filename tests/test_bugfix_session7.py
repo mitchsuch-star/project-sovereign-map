@@ -155,7 +155,8 @@ class TestPL7CounterOfferCooldowns:
         assert ai_cooldowns["Saxony|nation"] == 2
 
     def test_reject_counter_offer_cooldown_values(self):
-        """Rejection cooldowns use NATION=3, TYPE=5."""
+        """Rejection cooldowns use NATION=3, TYPE=6 (W6-10 anti-monotony:
+        the type block was raised 5->6, blessed band 4-10)."""
         world = _make_world()
         _push_counter_offer_dialogue(world, "Saxony", "open_borders")
         executor = _make_executor()
@@ -165,7 +166,7 @@ class TestPL7CounterOfferCooldowns:
         )
         ai_cooldowns = world.ai_proposal_cooldowns
         assert ai_cooldowns["Saxony|nation"] == 3
-        assert ai_cooldowns["Saxony|open_borders"] == 5
+        assert ai_cooldowns["Saxony|open_borders"] == 6
 
     def test_reject_counter_offer_also_sets_player_cooldowns(self):
         """Rejection sets player-side cooldowns too (3 nation, 5 type)."""
@@ -239,9 +240,10 @@ class TestPL5BProposalInTransit:
         assert world.player_proposal_cooldowns.get("Austria", 0) == 4
         assert world.player_proposal_cooldowns.get("Austria_non_aggression", 0) == 6
         # Also sets AI rejection cooldowns (+1 deferred compensation)
+        # W6-10: TYPE_REJECTION_COOLDOWN raised 5->6, so deferred = 7
         ai_cd = world.ai_proposal_cooldowns
         assert ai_cd.get("Austria|nation", 0) == 4  # NATION_REJECTION_COOLDOWN + 1
-        assert ai_cd.get("Austria|non_aggression", 0) == 6  # TYPE_REJECTION_COOLDOWN + 1
+        assert ai_cd.get("Austria|non_aggression", 0) == 7  # TYPE_REJECTION_COOLDOWN + 1
 
     def test_stale_reject_clears_pit(self):
         """Stale rejection clears proposal_in_transit."""

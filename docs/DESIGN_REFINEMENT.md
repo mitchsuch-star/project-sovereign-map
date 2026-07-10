@@ -396,8 +396,8 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | E-CA-2 | Retreat agency + direction doctrine (honor stated destination or narrate substitution; homeward bias; never into an at-war nation with alternatives). Mechanical half = BUG-CA-2. | Combat/movement gate |
 | E-CA-3 | War-priced recruitment: 10,000 men for 200g keeps gold free mid-war; scale per-soldier gold cost by force-limit ratio + war status. | EC pass 2 (blessed numbers) |
 | E-CA-4 | Explicit bad-odds `attack` gets no warning while vague delegation gets a lethal-odds interrupt — decide whether direct orders deserve a one-line odds note. | CR-6 gate |
-| E-CA-5 | Settlement offers must state territorial consequences ("Britain retains Flanders") — "Peace" is illegible while home soil is occupied. | Settlement presentation (narrow, post-arc) |
-| E-CA-6 | Incoming-proposal voice + AI proposal variety (5 identical open-borders/"hegemony pressure" offers in 5 turns; named diplomat never speaks). | Queue items 5–6 (8.EVAL), with R155/R156 |
+| E-CA-5 | Settlement offers must state territorial consequences ("Britain retains Flanders") — "Peace" is illegible while home soil is occupied. — **✅ LANDED July 10, 2026 via W6-10** (`terms_summary` status-quo line; `test_w6_incoming_voice.py`) | ~~Settlement presentation (narrow, post-arc)~~ landed |
+| E-CA-6 | Incoming-proposal voice + AI proposal variety (5 identical open-borders/"hegemony pressure" offers in 5 turns; named diplomat never speaks). — **✅ LANDED July 10, 2026 via W6-10** (`diplomat_line` register bank + 6-turn lapse/reject type cooldown + P3 relation-band diversification; `test_w6_incoming_voice.py`). The deeper R155/R156 scope (personality-driven timing/persistence/target choice, strategic optionality) stays with queue items 5–6. | ~~Queue items 5–6 (8.EVAL), with R155/R156~~ voice+variety landed; residual scope stays 8.EVAL |
 
 ### Revisions to prior items (live-evidence pass, July 10, 2026)
 

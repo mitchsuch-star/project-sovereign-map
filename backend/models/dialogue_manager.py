@@ -448,14 +448,21 @@ class DialogueManager:
         return lapsed
 
     def _extract_lapse_info(self, dialogue: dict) -> dict:
-        """Pull structured lapse info from a dialogue dict."""
+        """Pull structured lapse info from a dialogue dict.
+
+        W6-10: `proposal_type` prefers the STABLE P-rule label the dialogue
+        context carries — `terms["type"]` is rewritten by
+        `_build_proposal_terms` (harsh_peace → "peace"), and keying the
+        lapse type-cooldown on the rewritten value is the documented
+        cooldown trap (the P-rule checks would never read it)."""
         ctx = dialogue.get("context", {})
         nation = dialogue.get("target_nation", ctx.get("source", "Unknown"))
         terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
         return {
             "nation": nation,
             "offer_type": dialogue.get("type", "unknown"),
-            "proposal_type": terms.get("type", "unknown"),
+            "proposal_type": (ctx.get("proposal_type")
+                              or terms.get("type", "unknown")),
         }
 
     def activate_mailbox_item(self, mailbox_id: int) -> Optional[Dict]:

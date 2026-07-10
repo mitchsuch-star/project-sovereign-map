@@ -188,6 +188,9 @@ PROPOSAL_TYPE_DISPLAY = {
     "opportunistic": "Non-Aggression Pact",
     "harsh_peace": "Harsh Peace Treaty",  # R18: AI-generated harsh peace proposals
     "ultimatum_demand": "Ultimatum",  # PL-14
+    # W6-10: the P3 relation-band gift ask (stable P-rule label; the terms
+    # type underneath is non_aggression or open_borders)
+    "friendly_gift": "Gift of Friendship",
 }
 
 CLAUSE_TYPE_DISPLAY = {

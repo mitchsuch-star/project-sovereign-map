@@ -43,7 +43,11 @@ from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_t
 
 # Anti-spam cooldown durations (turns)
 NATION_REJECTION_COOLDOWN = 3   # After rejection, nation can't propose for N turns
-TYPE_REJECTION_COOLDOWN = 5     # After rejection of type X, same type can't be proposed for N turns
+# W6-10 anti-monotony (blessed 6, band 4-10): after a proposal of type T
+# from nation N lapses OR is rejected, N may not re-propose T for N turns
+# (live audit: five identical open-borders proposals in five turns).
+TYPE_REJECTION_COOLDOWN = 6     # After rejection of type X, same type can't be proposed for N turns
+TYPE_LAPSE_COOLDOWN = 6         # After type X lapses unanswered, same block applies
 NATION_ACCEPTANCE_COOLDOWN = 2  # After acceptance, nation can't propose for N turns
 QUEUE_MAX_SIZE = 3              # Maximum queued proposals
 QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
@@ -257,6 +261,23 @@ def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *, deferre
     type_key = f"{nation}|{proposal_type}"
     cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN) + offset
     cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN) + offset
+    _set_cooldowns(world, cooldowns)
+
+
+def apply_lapse_type_cooldown(nation: str, proposal_type: str, world) -> None:
+    """W6-10 anti-monotony: an offer that LAPSES unanswered blocks the same
+    type from the same nation for TYPE_LAPSE_COOLDOWN turns — before this,
+    only the 2-turn nation cooldown applied on lapse, so an ignored
+    open-borders ask came back near-identically within two turns (live
+    audit: five in five turns). Key rule: `proposal_type` must be the
+    STABLE P-rule label from the dialogue context, never the rewritten
+    terms["type"] (the documented trap)."""
+    if not nation or proposal_type in ("", "unknown", None):
+        return
+    cooldowns = _get_cooldowns(world)
+    type_key = f"{nation}|{proposal_type}"
+    cooldowns[type_key] = max(
+        int(cooldowns.get(type_key, 0)), int(TYPE_LAPSE_COOLDOWN))
     _set_cooldowns(world, cooldowns)
 
 
@@ -520,6 +541,25 @@ def _build_proposal_terms(
         if nation == "Saxony":
             terms["clauses"].append("protection_promised")
 
+    elif proposal_type == "friendly_gift":
+        # W6-10: a one-time gift softening a low-tier ask — the cool court
+        # that would rather pay than fight. The stable P-rule label stays
+        # "friendly_gift" (the cooldown key, opportunistic precedent);
+        # terms["type"] maps to the highest LEGAL low-tier acceptance type
+        # for the current relation (NON_AGGRESSION needs relation >= 0).
+        diplo_key = world._make_diplo_key(nation, player)
+        relation = world.nation_relations.get(diplo_key, 0)
+        if relation >= 0:
+            terms["type"] = "non_aggression"
+        else:
+            terms["type"] = "open_borders"
+            terms["clauses"].append("open_borders")
+        nation_gold = world.nation_gold.get(nation, 0)
+        gift = min(150, int(nation_gold * 0.10 * gold_mult))
+        if gift >= 25:
+            terms["sweeteners"].append(
+                {"type": "gold_lump", "value": int(gift)})
+
     elif proposal_type == "opportunistic":
         # Favorable terms for the AI: demand concessions
         terms["type"] = "non_aggression"  # Map to acceptance type
@@ -626,6 +666,66 @@ def _determine_upgrade_type(nation: str, world) -> Optional[str]:
         return None
 
     return proposal_type
+
+
+# W6-10: map a low-tier ask type to its target state for legality checks.
+_ASK_TARGET_STATE = {
+    "open_borders": "OPEN_BORDERS",
+    "non_aggression": "NON_AGGRESSION",
+    "defensive_alliance": "DEFENSIVE_ALLIANCE",
+    "alliance": "ALLIANCE",
+}
+
+
+def _hegemony_ask_candidates(nation: str, diplo_state: str, relation: int,
+                             world) -> List[str]:
+    """W6-10 anti-monotony: the P3 hegemony-pressure ask varies by relation
+    band instead of always leading with open_borders (live audit: five
+    identical open-borders proposals in five turns). Candidates are tried
+    in order and the per-type cooldown skips a recently rejected/lapsed
+    ask, so consecutive approaches differ. Every candidate is a legal
+    upward transition whose relation requirement is met — the same rules
+    _determine_upgrade_type enforces (R98 jumps allowed). Strictly UPWARD:
+    validate_transition also allows adjacent downgrades, which a
+    shelter-seeking ask must never propose."""
+    from backend.game_logic.diplomacy import (
+        STATE_RELATION_REQUIREMENTS, _UPGRADE_ORDER,
+    )
+    ladder = _determine_upgrade_type(nation, world)
+    if relation > 30:
+        ordered = ([ladder] if ladder else []) + [
+            "non_aggression", "open_borders"]
+    elif relation >= 0:
+        # The ladder rides LAST as the escalation fallback — a court already
+        # at NON_AGGRESSION has no lower-tier ask left, but can still seek
+        # the next rung (pre-W6-10 behavior preserved for deep states).
+        ordered = ["non_aggression", "friendly_gift", "open_borders"] + (
+            [ladder] if ladder else [])
+    else:
+        ordered = ["friendly_gift", "open_borders"] + (
+            [ladder] if ladder else [])
+
+    result: List[str] = []
+    for ptype in ordered:
+        base = ptype
+        if ptype == "friendly_gift":
+            # The gift softens the highest LEGAL low-tier ask (see
+            # _build_proposal_terms).
+            base = "non_aggression" if relation >= 0 else "open_borders"
+        target_state = _ASK_TARGET_STATE.get(base)
+        if target_state is None:
+            continue
+        if (diplo_state not in _UPGRADE_ORDER
+                or target_state not in _UPGRADE_ORDER
+                or _UPGRADE_ORDER.index(target_state)
+                <= _UPGRADE_ORDER.index(diplo_state)):
+            continue
+        req = STATE_RELATION_REQUIREMENTS.get(target_state)
+        if req is not None and relation < req:
+            continue
+        if ptype not in result:
+            result.append(ptype)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -744,15 +844,22 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
-    # ── P3: Threat > 60 AND not allied → seek alliance (R106, DLF-9) ──
+    # ── P3: Threat > 60 AND not allied → seek shelter (R106, DLF-9) ──
+    # W6-10 anti-monotony: the hegemony-pressure ask varies by relation
+    # band {ladder upgrade / non_aggression / open_borders / friendly_gift}
+    # instead of always leading with open_borders; per-type cooldowns skip
+    # a recently rejected or lapsed ask, so consecutive approaches differ.
     if proposal is None and not is_at_war:
         threat = int(getattr(world, 'threat_level', 0))
         if threat > 60:
             if diplo_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
-                upgrade_type = _determine_upgrade_type(nation, world)
-                if upgrade_type and not _is_on_cooldown(nation, upgrade_type, world, war_score):
-                    terms = _build_proposal_terms(nation, upgrade_type, 0, world, gold_mult=gold_mult)
-                    proposal = _make_proposal(nation, upgrade_type, 3, terms, world)
+                for ask_type in _hegemony_ask_candidates(
+                        nation, diplo_state, relation, world):
+                    if _is_on_cooldown(nation, ask_type, world, war_score):
+                        continue
+                    terms = _build_proposal_terms(nation, ask_type, 0, world, gold_mult=gold_mult)
+                    proposal = _make_proposal(nation, ask_type, 3, terms, world)
+                    break
 
     # ── P4: Relation > +30 AND at peace → propose upgrade ──
     if proposal is None and not is_at_war and relation > 30:
@@ -927,11 +1034,18 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
         decision_reason=decision_reason,
     )
 
+    # W6-10 (E-CA-6): the diplomat's own spoken line rides both surfaces —
+    # the popup carries it as `diplomat_line` (built in the payload
+    # builder), the typed terminal weaves it into the arrival text.
+    diplomat_line = popup_payload.get("diplomat_line", "")
+    spoken = f"\n\n  {diplomat_line}" if diplomat_line else ""
+
     return {
         "type": "incoming_proposal",
         "target_nation": nation,
         "talleyrand_text": (
             f"Sire, {diplomat_name} has arrived with a proposal from {nation}:"
+            f"{spoken}"
             f"\n\n  {proposal_summary}"
             f"\n\n{assessment}"
         ),

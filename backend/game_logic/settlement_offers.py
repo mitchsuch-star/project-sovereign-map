@@ -2038,6 +2038,32 @@ def _incoming_offer_summary_text(offer: Mapping[str, Any]) -> str:
     return " ".join(parts)
 
 
+def _derive_status_quo_lines(world: Any, war: Any) -> List[str]:
+    """W6-10 (E-CA-5): who keeps what, derived from current controller vs
+    `nation_starting_regions` across the war's opposing participants.
+    One clause per occupier holding enemy homeland soil."""
+    if not isinstance(war, Mapping):
+        return []
+    side_by_nation = war.get("side_by_nation") or {}
+    participants = list(side_by_nation)
+    lines: List[str] = []
+    for occupier in participants:
+        occupier_side = side_by_nation.get(occupier)
+        occupier_regions = world.get_nation_regions(occupier)
+        held: List[str] = []
+        for victim in participants:
+            if victim == occupier:
+                continue
+            if side_by_nation.get(victim) == occupier_side:
+                continue
+            victim_home = set(
+                world.nation_starting_regions.get(victim, []) or [])
+            held.extend(r for r in occupier_regions if r in victim_home)
+        if held:
+            lines.append(f"{occupier} retains {', '.join(sorted(held))}")
+    return lines
+
+
 def build_incoming_settlement_offer_popup(
     world: Any, offer: Mapping[str, Any]
 ) -> Dict[str, Any]:
@@ -2145,6 +2171,17 @@ def build_incoming_settlement_offer_popup(
             )
             continue
         terms_summary.append(_term_display(term))
+
+    # W6-10 (E-CA-5) — territorial honesty: a peace that freezes the lines
+    # must say WHO KEEPS WHAT. When any war participant occupies an
+    # opposing participant's homeland soil, the summary appends the
+    # derived status-quo line ("Status quo: Britain retains Flanders,
+    # Amsterdam"). Pure display — the ratification math is untouched.
+    # GR8: cached get_nation_regions x homeland sets, never a region
+    # scan; diplomacy has no fog (project rule).
+    status_quo = _derive_status_quo_lines(world, war)
+    if status_quo:
+        terms_summary.append("Status quo: " + "; ".join(status_quo) + ".")
 
     # SC-5R-2: action labels must match behavior. `accept_settlement_offer`
     # stages a fresh `settlement_confirm` review (not an immediate

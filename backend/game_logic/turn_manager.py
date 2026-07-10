@@ -148,7 +148,9 @@ class TurnManager:
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
+            from backend.game_logic.ai_diplomacy import (
+                apply_acceptance_cooldown, apply_lapse_type_cooldown,
+            )
             self.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             lapsed_nations = set()
             for lapse in lapsed_offers:
@@ -158,6 +160,12 @@ class TurnManager:
                     # nation cannot immediately resend during this end-turn.
                     apply_acceptance_cooldown(nation, self.world)
                     lapsed_nations.add(nation)
+                # W6-10 anti-monotony: an ignored ask of type T also blocks
+                # T itself for 6 turns (stable P-rule label from the
+                # dialogue context — never the rewritten terms type).
+                if nation:
+                    apply_lapse_type_cooldown(
+                        nation, lapse.get("proposal_type", ""), self.world)
                 self.world.log_event({
                     "type": "offer_lapsed",
                     "nation": nation,

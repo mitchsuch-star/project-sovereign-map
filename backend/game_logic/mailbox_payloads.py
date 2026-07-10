@@ -86,6 +86,20 @@ def build_pending_envoy_popup_from_terms(
         acceptance_hint = ""
         rejection_hint = ""
 
+    # W6-10 (E-CA-6): the diplomat SPEAKS the proposal and its motive in
+    # his Voice Bible register — the decision_reason rendered in-character,
+    # not as a tag. Deterministic bank (GR6); resolves through
+    # resolve_named_diplomat per the Voice Bible rule.
+    from backend.game_logic.diplomatic_templates import (
+        compose_incoming_diplomat_line,
+    )
+    diplomat_line = compose_incoming_diplomat_line(
+        world,
+        nation=nation,
+        proposal_type=terms.get("type", "unknown"),
+        decision_reason=decision_reason,
+    )
+
     payload = {
         "from_nation": nation,
         "diplomat_name": diplomat_name,
@@ -101,6 +115,7 @@ def build_pending_envoy_popup_from_terms(
         "is_counter_offer": bool(is_counter_offer),
         "decision_reason": decision_reason,
         "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
+        "diplomat_line": diplomat_line,
     }
 
     proposal_type = terms.get("type", "unknown")

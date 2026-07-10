@@ -5663,8 +5663,14 @@ class DiplomaticExecutor:
         counter_terms = generate_counter_offer(terms, world)
 
         if counter_terms is None:
-            # Counter failed (score < 30) — auto-reject
-            apply_rejection_cooldowns(source_nation, terms.get("type", "unknown"), world)
+            # Counter failed (score < 30) — auto-reject. W6-10: key on the
+            # STABLE P-rule label (the documented cooldown trap — the
+            # rewritten terms["type"] sets a key the P-rule checks never
+            # read), matching _handle_reject_ai_proposal.
+            apply_rejection_cooldowns(
+                source_nation,
+                context.get("proposal_type") or terms.get("type", "unknown"),
+                world)
             world.dialogue_manager.pop()
             # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
             from backend.notifications import DIPLOMATIC_PROPOSAL

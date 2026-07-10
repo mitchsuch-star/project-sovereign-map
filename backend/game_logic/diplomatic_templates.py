@@ -56,6 +56,229 @@ def resolve_named_diplomat(
         return str(speaker)
     return f"The Chancery of {nation_name}" if nation_name else "The Chancery"
 
+# ═══════════════════════════════════════════════════════════════════
+# W6-10 (E-CA-6) — THE DIPLOMAT SPEAKS: incoming-proposal voice lines.
+#
+# A deterministic per-register bank (hawk / schemer / dove / chancery
+# fallback — registers per DIPLOMAT_VOICE_BIBLE.md) that VOICES an
+# incoming proposal and its motive: the decision_reason rendered
+# in-character, never as a tag. Named-cast overrides keep the Bible's
+# register distinctions (Castlereagh = institutional hawk, Hardenberg =
+# personal hawk, Metternich = schemer-at-us, Einsiedel = the dove).
+# The `loyalist` register (6 unnamed-court nations) routes to the
+# chancery fallback per the W6-10 pinned test — DEF-1 owns that register.
+# No LLM (GR6); rotation is deterministic (turn + nation length).
+# ═══════════════════════════════════════════════════════════════════
+
+# Motive clauses per (register, decision_reason) — {nation} slot only.
+_INCOMING_MOTIVE_LINES = {
+    ("hawk", "war_overload"): [
+        "The war has taken from {nation} more than it returns.",
+        "{nation}'s armies are spent, and they know it as well as we do.",
+    ],
+    ("hawk", "shared_enemy_survival"): [
+        "We share an enemy, and {nation} would rather share the fighting.",
+        "{nation} sees the same storm we do, and would stand under one roof.",
+    ],
+    ("hawk", "hegemony_pressure"): [
+        "Europe grows uneasy at France's shadow, and {nation} would rather watch the roads than the frontier.",
+        "{nation} does not love our reach — but they would sooner treat with it than test it.",
+    ],
+    ("hawk", "unknown_baseline"): [
+        "{nation} judges the moment favorable and moves plainly.",
+        "{nation} wastes no words on sentiment; the offer is the argument.",
+    ],
+    ("schemer", "war_overload"): [
+        "{nation} finds the war… no longer economical.",
+        "The ledgers of {nation} have voted for peace, whatever their generals say.",
+    ],
+    ("schemer", "shared_enemy_survival"): [
+        "{nation} observes that our enemies are, conveniently, the same.",
+        "{nation} proposes that we be useful to one another — for as long as that lasts.",
+    ],
+    ("schemer", "hegemony_pressure"): [
+        "{nation} finds France's ascent… instructive, and prefers a seat near the fire to a place in it.",
+        "{nation} is most attentive to our progress — attentive enough to want papers signed.",
+    ],
+    ("schemer", "unknown_baseline"): [
+        "{nation} offers no reason, which is itself a reason.",
+        "{nation} moves quietly; the terms will say what the letter does not.",
+    ],
+    ("dove", "war_overload"): [
+        "{nation} begs an end to the bleeding, for both our peoples.",
+        "{nation} asks most humbly that the guns be given rest.",
+    ],
+    ("dove", "shared_enemy_survival"): [
+        "{nation} fears the same power we do, and asks to fear it beside us.",
+        "{nation} seeks shelter, Sire — and offers friendship as the rent.",
+    ],
+    ("dove", "hegemony_pressure"): [
+        "{nation} asks only to be reassured that France's greatness leaves room for small nations.",
+        "{nation} watches our armies grow and prays a signature will suffice.",
+    ],
+    ("dove", "unknown_baseline"): [
+        "{nation} extends the offer in evident good faith.",
+        "{nation} hopes, most respectfully, that we will hear them out.",
+    ],
+    ("chancery", "war_overload"): [
+        "Their chancery writes that the war serves {nation} no longer.",
+        "The court of {nation} counts its losses and asks for quiet.",
+    ],
+    ("chancery", "shared_enemy_survival"): [
+        "Their chancery notes that {nation} and France look at the same enemy.",
+        "The court of {nation} would make common cause against a common danger.",
+    ],
+    ("chancery", "hegemony_pressure"): [
+        "Their chancery conveys that {nation} would rather have terms with France than reasons to fear her.",
+        "The court of {nation} watches our ascent and asks for ink instead of iron.",
+    ],
+    ("chancery", "unknown_baseline"): [
+        "Their chancery conveys the offer without further comment.",
+        "The court of {nation} lets the terms speak for themselves.",
+    ],
+}
+
+# Named-cast motive overrides — the Voice Bible's register distinctions.
+_NAMED_MOTIVE_LINES = {
+    ("Castlereagh", "war_overload"): [
+        "His Majesty's Government observes that this war profits no one — least of all its authors.",
+        "London finds the present hostilities without further object.",
+    ],
+    ("Castlereagh", "shared_enemy_survival"): [
+        "His Majesty's Government notes a common danger, and proposes a common answer.",
+        "London observes that our interests, for once, run in the same channel.",
+    ],
+    ("Castlereagh", "hegemony_pressure"): [
+        "His Majesty's Government observes the growth of French power with concern, and prefers instruments to incidents.",
+        "London does not negotiate from fear; it negotiates from arithmetic. The arithmetic has changed.",
+    ],
+    ("Castlereagh", "unknown_baseline"): [
+        "His Majesty's Government transmits the following for France's consideration.",
+        "London announces its terms; it does not explain them.",
+    ],
+    ("Hardenberg", "war_overload"): [
+        "Prussia has bled enough for other men's quarrels.",
+        "Prussia counts her dead and finds the ledger unacceptable.",
+    ],
+    ("Hardenberg", "shared_enemy_survival"): [
+        "Prussia knows her enemies. Today, France is not first among them.",
+        "Prussia does not forget — but she can postpone. We face the same foe.",
+    ],
+    ("Hardenberg", "hegemony_pressure"): [
+        "Europe grows uneasy at France's shadow, and Prussia would rather watch the roads than the frontier.",
+        "Prussia does not bow. But Prussia can sign.",
+    ],
+    ("Hardenberg", "unknown_baseline"): [
+        "Prussia says what she means: here is the offer.",
+        "Prussia does not dress her asks in ribbons. Read the terms.",
+    ],
+    ("Metternich", "war_overload"): [
+        "Austria finds the war has outlived its arguments.",
+        "Vienna observes, with some weariness, that the fighting no longer serves even its winners.",
+    ],
+    ("Metternich", "shared_enemy_survival"): [
+        "Austria notes that we are, for the moment, inconvenienced by the same power.",
+        "Vienna finds our interests aligned — a rare weather, best used before it turns.",
+    ],
+    ("Metternich", "hegemony_pressure"): [
+        "Austria is… attentive to France's progress, and would prefer that attention remain cordial.",
+        "Vienna finds France's reach remarkable, and remarkable things are best bound in treaties.",
+    ],
+    ("Metternich", "unknown_baseline"): [
+        "Austria offers terms; Vienna trusts France will find them — considered.",
+        "Vienna sends papers, not explanations. The papers are thorough.",
+    ],
+    ("Einsiedel", "war_overload"): [
+        "His Majesty asks most respectfully that the suffering be brought to an end.",
+        "We beg France's understanding — Saxony cannot carry this war further.",
+    ],
+    ("Einsiedel", "shared_enemy_survival"): [
+        "His Majesty asks most respectfully to stand nearer France in these dangerous days.",
+        "We beg France's protection against a danger we cannot face alone.",
+    ],
+    ("Einsiedel", "hegemony_pressure"): [
+        "His Majesty asks most respectfully for assurance — Europe has grown loud, and Saxony is small.",
+        "We beg France's patience; a small court must have papers where great ones have armies.",
+    ],
+    ("Einsiedel", "unknown_baseline"): [
+        "His Majesty submits the offer most respectfully for France's consideration.",
+        "We hope, most sincerely, that France will find the terms agreeable.",
+    ],
+}
+
+# Attribution prefixes (the "face" of the line).
+_NAMED_ATTRIBUTIONS = {
+    "Castlereagh": "Castlereagh writes, without warmth:",
+    "Hardenberg": "Hardenberg, stiffly:",
+    "Metternich": "Metternich, with perfect politeness:",
+    "Einsiedel": "Einsiedel, anxiously:",
+}
+
+# The ask, in-register, per acceptance type (terms["type"]).
+_INCOMING_ASK_LINES = {
+    "open_borders": "Open the borders.",
+    "non_aggression": "Sign the pact of non-aggression.",
+    "defensive_alliance": "Stand with them if war comes.",
+    "alliance": "Join their cause in full.",
+    "armistice_losing": "Grant the armistice.",
+    "armistice": "Grant the armistice.",
+    "peace": "Let there be peace.",
+    "harsh_peace": "Weigh their terms.",
+    "trade_agreement": "Open the trade.",
+}
+
+# Legacy/response decision reasons collapse to the generic motive.
+_MOTIVE_REASONS = {"war_overload", "shared_enemy_survival",
+                   "hegemony_pressure", "unknown_baseline"}
+
+
+def compose_incoming_diplomat_line(
+    world: Any,
+    *,
+    nation: str,
+    proposal_type: str,
+    decision_reason: str = "",
+) -> str:
+    """One in-register spoken line for an incoming proposal: attribution +
+    motive (the decision_reason, voiced) + the ask. Deterministic (GR6):
+    variant rotation keys on turn + nation, never RNG. Every name resolves
+    through resolve_named_diplomat (Voice Bible rule)."""
+    nation_name = str(nation or "").strip()
+    if not nation_name:
+        return ""
+    name = resolve_named_diplomat("envoy", nation_name, world)
+    reason = str(decision_reason or "").strip()
+    if reason not in _MOTIVE_REASONS:
+        reason = "unknown_baseline"
+
+    variants = _NAMED_MOTIVE_LINES.get((name, reason))
+    if variants:
+        attribution = _NAMED_ATTRIBUTIONS.get(name, f"{name}:")
+    else:
+        # Register from the diplomat record; loyalist and unknown route to
+        # the chancery fallback register (pinned — DEF-1 owns loyalist).
+        diplomats = getattr(world, "diplomats", {}) or {}
+        record = diplomats.get(nation_name)
+        register = ""
+        if record is not None:
+            raw = getattr(record, "personality", "")
+            register = str(getattr(raw, "value", raw) or "").lower()
+        if register not in ("hawk", "schemer", "dove"):
+            register = "chancery"
+        variants = _INCOMING_MOTIVE_LINES[(register, reason)]
+        if register == "chancery" or name.startswith("The Chancery"):
+            attribution = f"{name} conveys:" if name else "Their chancery conveys:"
+        else:
+            attribution = f"{name}:"
+
+    turn = int(getattr(world, "current_turn", 0))
+    motive = variants[(turn + len(nation_name)) % len(variants)]
+    motive = motive.format(nation=nation_name)
+    ask = _INCOMING_ASK_LINES.get(str(proposal_type or ""), "")
+    quote = f"{motive} {ask}".strip()
+    return f"{attribution} \"{quote}\""
+
+
 # ═══════ TEMPLATE LIBRARY ═══════
 # Key: (intent_type, diplo_state, bucket_group)
 # bucket_group: specific bucket name OR "any" for wildcard

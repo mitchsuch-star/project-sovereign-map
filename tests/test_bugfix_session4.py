@@ -201,10 +201,17 @@ class TestDLF9P3UpgradePath:
         return process_diplomatic_phase(nation, world)
 
     def test_p3_proposes_open_borders_from_peace(self):
-        """From PEACE with high threat, P3 should propose OPEN_BORDERS (first step)."""
+        """From PEACE with high threat, a WARM court's P3 still leads with
+        the ladder upgrade (OPEN_BORDERS first step).
+
+        W6-10 re-pin: relation raised 25 -> 40, because the neutral band
+        (0..30) now deliberately leads with non-aggression instead
+        (`_hegemony_ask_candidates` — the anti-monotony diversification);
+        the warm band preserves the original ladder-first behavior this
+        test pins."""
         world = make_world()
         set_state(world, "France", "Prussia", "PEACE")
-        set_relation(world, "France", "Prussia", 25)
+        set_relation(world, "France", "Prussia", 40)
         world.threat_level = 70
 
         proposal = self._run_p3(world, "Prussia")
