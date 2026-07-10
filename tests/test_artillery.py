@@ -26,7 +26,8 @@ from backend.models.marshal import (
 from backend.models.world_state import (
     WorldState,
     ARTILLERY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_GOLD_COST_BASE,
-    ARTILLERY_BASE_REGEN, URBAN_ARTILLERY_REGEN, MAX_ARTILLERY_POOL,
+    ARTILLERY_BASE_REGEN, CITY_ARTILLERY_REGEN, ARTILLERY_REGEN_CAP,
+    MAX_ARTILLERY_POOL,
     DEFAULT_MANPOWER_POOLS,
 )
 from backend.game_logic.combat import CombatResolver
@@ -748,20 +749,23 @@ class TestManpowerPool:
         france_pool_after = world.manpower_pools["France"]["artillery"]
         assert france_pool_after > 5000
 
-    def test_artillery_regen_urban_bonus(self):
-        """Urban regions should give artillery regen bonus."""
+    def test_artillery_regen_arsenal_bonus(self):
+        """Arsenal-type regions (city/major_city/capital) give artillery regen bonus (ES-1a)."""
         world = _make_world()
         rate = world.get_artillery_regen_rate("France")
-        # France controls Paris (urban) → base + urban bonus
-        assert rate >= ARTILLERY_BASE_REGEN + URBAN_ARTILLERY_REGEN
+        # France controls Paris (capital), Lyon (major_city), Milan + Marseille (city)
+        assert rate == ARTILLERY_BASE_REGEN + 4 * CITY_ARTILLERY_REGEN
+        assert rate <= ARTILLERY_REGEN_CAP
 
-    def test_artillery_regen_no_urban(self):
-        """Nation without urban regions gets only base regen."""
+    def test_artillery_regen_keys_off_region_type_not_terrain(self):
+        """ES-1a re-key: urban TERRAIN alone grants no bonus — region_type drives it."""
         world = _make_world()
-        rate = world.get_artillery_regen_rate("Britain")
-        # Britain doesn't start with any urban regions
-        # (Waterloo is hills, not urban)
-        assert rate >= ARTILLERY_BASE_REGEN
+        rate_before = world.get_artillery_regen_rate("Britain")
+        # Britain: Netherlands (capital) is its only arsenal-type region
+        assert rate_before == ARTILLERY_BASE_REGEN + CITY_ARTILLERY_REGEN
+        # Flipping a rural region's terrain to urban must NOT change the rate
+        world.regions["Waterloo"].terrain = "urban"
+        assert world.get_artillery_regen_rate("Britain") == rate_before
 
     def test_artillery_pool_cap(self):
         """Artillery pool should not exceed MAX_ARTILLERY_POOL."""
@@ -789,7 +793,8 @@ class TestManpowerPool:
         assert ARTILLERY_RECRUIT_AMOUNT == 3000
         assert ARTILLERY_RECRUIT_GOLD_COST_BASE == 400
         assert ARTILLERY_BASE_REGEN == 150  # Halved in Session 8 balance
-        assert URBAN_ARTILLERY_REGEN == 200
+        assert CITY_ARTILLERY_REGEN == 80   # ES-1a re-key + rate drop (blessed E2)
+        assert ARTILLERY_REGEN_CAP == 600   # ES-1a hard cap (blessed E2)
         assert MAX_ARTILLERY_POOL == 20000
 
     def test_economy_shows_artillery_pool(self):

@@ -95,7 +95,13 @@ CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow
 ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
 PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
 STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
-URBAN_ARTILLERY_REGEN = 200            # Bonus per urban region controlled (arsenals)
+# ES-1a (Economy Revisit S1, blessed E2): arsenals key off region_type — no
+# province on the real map has terrain 'urban'; urbanness lives in region_type.
+# Total is hard-capped so the 77 qualifying Europe provinces can't compound
+# into a fresh runaway (a straight 200 re-key would be +15,400/turn).
+ARSENAL_REGION_TYPES = frozenset({"city", "major_city", "capital"})
+CITY_ARTILLERY_REGEN = 80              # Bonus per arsenal-type region controlled
+ARTILLERY_REGEN_CAP = 600              # Hard cap on a nation's total artillery regen per turn
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
 MAX_ARTILLERY_POOL = 20000             # Pool cap
@@ -3641,11 +3647,12 @@ class WorldState:
             if region.has_building("stables"):
                 cav_regen += STABLES_CAVALRY_REGEN
 
-        # Artillery: slow base + urban territory bonuses (arsenals)
+        # Artillery: slow base + arsenal territory bonuses, hard-capped (ES-1a)
         art_regen = ARTILLERY_BASE_REGEN
         for region in controlled:
-            if region.terrain == "urban":
-                art_regen += URBAN_ARTILLERY_REGEN
+            if region.region_type in ARSENAL_REGION_TYPES:
+                art_regen += CITY_ARTILLERY_REGEN
+        art_regen = min(art_regen, ARTILLERY_REGEN_CAP)
 
         # War exhaustion penalty on infantry regen (Session 12 QoL)
         # At 100 WE = halved, at 200 WE = zero. Cavalry/artillery not scaled (already bottlenecked).

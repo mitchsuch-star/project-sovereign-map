@@ -10,7 +10,8 @@ import pytest
 from backend.models.world_state import (
     WorldState,
     MAX_INFANTRY_POOL, CAVALRY_BASE_REGEN, ARTILLERY_BASE_REGEN,
-    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, URBAN_ARTILLERY_REGEN,
+    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, CITY_ARTILLERY_REGEN,
+    ARTILLERY_REGEN_CAP, ARSENAL_REGION_TYPES,
 )
 from backend.models.marshal import StrategicOrder
 from backend.models.intel import FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN
@@ -618,13 +619,15 @@ def test_manpower_dynamic_regen_with_plains():
     assert ledger["manpower"]["cavalry"]["regen_rate"] == expected_cav
 
 
-def test_manpower_dynamic_regen_with_urban():
-    """Artillery regen increases with urban regions."""
+def test_manpower_dynamic_regen_with_arsenals():
+    """Artillery regen increases with arsenal-type regions, capped (ES-1a)."""
     world = _make_world()
-    urban_count = sum(1 for r in world.regions.values()
-                      if r.controller == "France" and r.terrain == "urban")
+    arsenal_count = sum(1 for r in world.regions.values()
+                        if r.controller == "France"
+                        and r.region_type in ARSENAL_REGION_TYPES)
     ledger = build_strategic_ledger(world)
-    expected_art = ARTILLERY_BASE_REGEN + URBAN_ARTILLERY_REGEN * urban_count
+    expected_art = min(ARTILLERY_BASE_REGEN + CITY_ARTILLERY_REGEN * arsenal_count,
+                       ARTILLERY_REGEN_CAP)
     assert ledger["manpower"]["artillery"]["regen_rate"] == expected_art
 
 

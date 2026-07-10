@@ -437,14 +437,14 @@ Iterate all regions, skip UNKNOWN, collect enemy marshals from intel.known_marsh
 
 **Regen rate calculation (DYNAMIC -- not a static constant):**
 
-Infantry regen is always `INFANTRY_BASE_REGEN = 5000` (flat, no territory dependency).
+Infantry regen is always `INFANTRY_BASE_REGEN = 2500` (flat, no territory dependency; scaled down by war exhaustion).
 
-Cavalry regen: `CAVALRY_BASE_REGEN (500) + PLAINS_CAVALRY_REGEN (500) * plains_count + STABLES_CAVALRY_REGEN (750) * stables_count` where:
+Cavalry regen: `CAVALRY_BASE_REGEN (250) + PLAINS_CAVALRY_REGEN (500) * plains_count + STABLES_CAVALRY_REGEN (750) * stables_count` where:
 - `plains_count` = number of player-controlled regions with `terrain == "plains"`
 - `stables_count` = number of player-controlled regions with `has_building("stables")`
 
-Artillery regen: `ARTILLERY_BASE_REGEN (300) + URBAN_ARTILLERY_REGEN (200) * urban_count` where:
-- `urban_count` = number of player-controlled regions with `terrain == "urban"`
+Artillery regen: `min(ARTILLERY_BASE_REGEN (150) + CITY_ARTILLERY_REGEN (80) * arsenal_count, ARTILLERY_REGEN_CAP (600))` where:
+- `arsenal_count` = number of player-controlled regions with `region_type ∈ {city, major_city, capital}` (ES-1a re-key, July 9, 2026 — no real-map province has terrain `"urban"`)
 
 **MUST extract into reusable method:** Create `WorldState.get_manpower_regen_rates(nation) -> dict` that returns `{"infantry": int, "cavalry": int, "artillery": int}`. Both `_process_manpower_regen()` and `ledger.py` call this method. Do NOT duplicate the calculation logic.
 
