@@ -6157,6 +6157,15 @@ class WorldState:
         tactical_events.extend(supply_events)
 
         # ════════════════════════════════════════════════════════════
+        # W6-5 §7.2.4 LITERAL FIDELITY BEAT — narration of a literal
+        # marshal holding to his letter while the world shifted (adjacent
+        # battle ignored / quarry moved / destination changed hands).
+        # Not an interrupt, no trust change; campaign log + dispatch only.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.marshal_voice import emit_literal_fidelity_events
+        tactical_events.extend(emit_literal_fidelity_events(self))
+
+        # ════════════════════════════════════════════════════════════
         # CAPITAL GARRISON REGENERATION — +2,000/turn, capped at the
         # holder's tier target (DEF-6: Europe majors 25k / secondary 15k /
         # minors 10k; legacy flat 15k). Only when capital is controlled

@@ -38,8 +38,12 @@ _PERSONALITY_DESCRIPTIONS = {
         "Fortify up to 20%. Hesitant to attack at bad odds."
     ),
     "literal": (
-        "Literal: Follows orders exactly. Strategic commands cost 1 AP instead of 2. "
-        "+15% defense when holding position. Precision execution after completing orders."
+        # W6-5 The Literal Doctrine (§7.1) — the doctrine, stated on the card.
+        "Literal: Executes orders to the letter — no improvisation, no "
+        "initiative, no objection. Cheaper to command (strategic orders "
+        "cost 1 AP, not 2), immovable on the defense (+15% when holding), "
+        "and utterly predictable. He will never march to the sound of the "
+        "guns without your written word ('support X' authorizes him)."
     ),
 }
 

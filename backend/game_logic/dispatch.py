@@ -734,16 +734,20 @@ def _derive_marshal_status(marshal, world) -> tuple:
         order = marshal.strategic_order
         cmd = order.command_type
         target = order.target
+        # W6-5 §7.2.3: a literal marshal's active order carries the doctrine
+        # tell — he is doing exactly this, and only this.
+        letter = (" (to the letter)"
+                  if getattr(marshal, "personality", "") == "literal" else "")
         if cmd == "MOVE_TO":
-            return "en_route", f"Moving to {target}."
+            return "en_route", f"Moving to {target}.{letter}"
         elif cmd == "PURSUE":
-            return "en_route", f"Pursuing {target}."
+            return "en_route", f"Pursuing {target}.{letter}"
         elif cmd == "HOLD":
-            return "en_route", f"Holding at {marshal.location}."
+            return "en_route", f"Holding at {marshal.location}.{letter}"
         elif cmd == "SUPPORT":
-            return "en_route", f"Supporting {target}."
+            return "en_route", f"Supporting {target}.{letter}"
         else:
-            return "en_route", f"{cmd} {target}."
+            return "en_route", f"{cmd} {target}.{letter}"
 
     if marshal.drilling or marshal.drilling_locked:
         return "drilling", "Drilling."
@@ -861,6 +865,9 @@ _DISPATCH_EVENT_TYPES = {
     # W6-3 §5.4: vassal loyalty drift, with its CAUSE named at emission
     # ("Switzerland loyalty 84 (-8): puppet resentment, war weariness").
     "vassal_loyalty",
+    # W6-5 §7.2.4: the literal fidelity beat ("Soult holds at Lorraine,
+    # per your orders — the guns at Franche-Comte did not move him.")
+    "literal_fidelity",
 }
 
 

@@ -74,6 +74,9 @@ CAMPAIGN_LOG_TYPES = {
     "objection",
     "strategic_order",
     "defiance",
+    # W6-5 The Literal Doctrine: fidelity beat (held to his letter while
+    # the world shifted — pure narration, no choice)
+    "literal_fidelity",
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed",
     "diplomatic_war_declared",
@@ -201,6 +204,7 @@ CATEGORY_MAP = {
     "objection": "command",
     "strategic_order": "command",
     "defiance": "command",
+    "literal_fidelity": "command",
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed": "diplomacy",
     "diplomatic_war_declared": "diplomacy",
@@ -894,6 +898,10 @@ def format_event_oneliner(event: dict) -> str:
         if action:
             return f"{marshal} objected to {action}"
         return f"{marshal} objected to order"
+
+    if event_type == "literal_fidelity":
+        # W6-5: the beat's message IS the line (composed in marshal_voice).
+        return event.get("message", "A literal marshal held to his orders.")
 
     if event_type == "strategic_order":
         marshal = event.get("marshal", "Unknown")

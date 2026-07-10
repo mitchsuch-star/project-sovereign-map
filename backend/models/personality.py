@@ -138,11 +138,17 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
         'aggressive_stance_outnumbered': 0.60,  # Strongly objects when outnumbered (fixed from 0.65)
     },
 
-    Personality.LITERAL: {
-        'ambiguous_order': 0.50,              # TODO Phase 3 (see ROADMAP.md): Implement in analyze_order_situation() - LLM will detect unclear commands
-        'contradictory_orders': 0.60,         # TODO Phase 3 (see ROADMAP.md): Requires order history tracking to detect conflicting orders
-        'change_of_plans': 0.35,              # TODO Phase 3 (see ROADMAP.md): Requires order history to detect frequent changes
-    },
+    # W6-5 THE LITERAL DOCTRINE (user gate, July 10 2026 — supersedes the
+    # R59/R153 literal-objection TODOs that lived here): literal marshals
+    # NEVER object, BY DESIGN. The fantasy is "generals who do what they're
+    # ordered" — their engagement comes from visible fidelity (the order
+    # echo + fidelity beat), precision rewards (1-AP strategic orders, the
+    # Immovable hold), and consequences you were warned about (the muster
+    # preview names who won't march). The old ambiguous_order /
+    # contradictory_orders / change_of_plans triggers would never have
+    # fired and never will; the disobedience layer bypasses literal
+    # entirely (pinned by test_w6_literal_doctrine.py).
+    Personality.LITERAL: {},
 
     # BALANCED/LOYAL: Reserved for 1805 expansion. No current marshal uses these.
     # Trigger entries removed in Systems Audit Session 11 — add back when marshals ship.

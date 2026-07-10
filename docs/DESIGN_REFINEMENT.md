@@ -264,7 +264,7 @@ These are new feature designs. Each needs individual approval before implementat
 | R33 | Puppet Rulers | Named rulers with personality, events |
 | R35 | Player Counter-Offer Terms | Player specifies clauses (Godot popup) |
 | R36 | Personal Summits | Face-to-face meetings, +15 acceptance 3 turns |
-| R59 | Literal Personality Triggers | Audit and wire unwired triggers |
+| R59 | ~~Literal Personality Triggers~~ | **SUPERSEDED by W6-5 The Literal Doctrine (user call, July 10, 2026):** literal marshals never object BY DESIGN — the fantasy is "generals who do what they're ordered." Engagement = order echo + fidelity beat + precision captions + muster-preview warnings (`WAVE6_FUN_FACTOR_SPEC.md` §7; triggers converted to a doctrine comment in `personality.py`, pinned by `test_w6_literal_doctrine.py`). |
 | R118 | Enhanced Acceptance Preview | Top 3 positive/negative components + Talleyrand hints |
 | R161 | One-Time Trade | Trade gold, manpower, territory directly without ultimatum or state change |
 | R162 | AI Ultimatums to Player | Building Blocks: AI uses same ultimatum system as player. Needs popup, response flow, AI decision tree |
@@ -356,7 +356,7 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | ID | Item | Summary |
 |----|------|---------|
 | R152 | Authority System UI Visibility | Authority impact not visible enough to players |
-| R153 | Literal Personality Triggers | Personality-specific event triggers |
+| R153 | ~~Literal Personality Triggers~~ | **SUPERSEDED by W6-5 The Literal Doctrine (user call, July 10, 2026)** — see the R59 row; literal never objects by design. |
 | R154 | Combat Morale Spiral | Morale death spiral needs circuit breaker |
 | R155 | AI Proposal Personality Voice | Partially absorbed into PL-25. Remaining: visible motive / personality in timing, terms, persistence, and player-facing explanation |
 | R156 | Diplomacy Strategic Optionality | Diplomacy feels optional vs military path |
@@ -402,7 +402,7 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 ### Revisions to prior items (live-evidence pass, July 10, 2026)
 
 - **R154 (Combat Morale Spiral) — REVISED:** the claimed missing circuit breaker **exists and works** (`combat.py` FORCED_RETREAT_THRESHOLD=25 floor; +5/+10 victory recovery). The real, live-confirmed issue is the attacker/defender morale **asymmetry** — re-scoped as E-CA-1; do not build a second breaker.
-- **R59 / R153 (Literal Personality Triggers) — CONFIRMED INERT:** all three literal triggers in `personality.py:PERSONALITY_TRIGGERS` remain TODO; literal marshals never object (they clarify via CR-2/CR-5 instead, which now covers part of the original intent). Remaining scope: decide at the MC gate whether literal *objections* are still wanted or the CR clarification arm owns the niche.
+- **R59 / R153 (Literal Personality Triggers) — RESOLVED July 10, 2026: SUPERSEDED by W6-5 The Literal Doctrine (user call at the Wave 6 gate).** Literal marshals never object BY DESIGN; the inert triggers were converted to a doctrine comment and the never-objects behavior is pinned (`test_w6_literal_doctrine.py`). The niche the triggers aimed at is owned by the CR-2/CR-5 clarification arms + the W6-5 fidelity surfaces (order echo, fidelity beat, muster warnings). |
 - **R129 / R131 / R132 — LIVE EVIDENCE ADDED:** R132 is the strongest of the three — three vassals bleeding −4/−6/−8 loyalty per turn with no cause attached anywhere was a top-5 confusion of the playtest. Recommend R132 rides EXP-D1/queue-item-6 rather than waiting for a standalone slice.
 - **R155 / R156 — CONFIRMED, EVIDENCE UPGRADED:** proposal monotony measured live (5 nations, identical proposal+reason, 5 turns); the *outgoing* surface (terms prep, acceptance estimate, ratification gate, motive commentary) is the register benchmark the incoming surface should be held to. Folded into E-CA-6.
 - **R117 (Advisory Actionability) — ABSORBED into EXP-D1** (the strategic-assessment verb ends with an executable option).

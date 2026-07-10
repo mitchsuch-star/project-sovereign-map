@@ -270,7 +270,9 @@ class TestPeaceRatifiedCampaignLog:
         # declined / bargain honored).
         # ES-7 S7 (July 9, 2026): +2 estate endowment beats
         # (dotation_granted / estate_lost).
-        assert len(CAMPAIGN_LOG_TYPES) == 95
+        # W6-5 (July 10, 2026): +1 literal_fidelity (the Literal Doctrine's
+        # fidelity beat).
+        assert len(CAMPAIGN_LOG_TYPES) == 96
 
     def test_format_peace_oneliner(self):
         event = {

@@ -1134,6 +1134,20 @@ class StrategicExecutor:
         is_auto_upgrade = parsed_command.get("auto_upgrade", False)
         strategic_cost = 1 if (is_literal or is_auto_upgrade) else 2
 
+        # W6-5 The Literal Doctrine (§7.2.2 + §7.2.5): a literal marshal
+        # acknowledges by quoting the order's own words (the verbatim text
+        # already rides order.original_command — rider-(d) substrate), and
+        # the precision reward is captioned so the discount reads as
+        # doctrine, not accounting.
+        if is_literal:
+            from backend.game_logic.marshal_voice import literal_ack
+            original = getattr(order, "original_command", "") or ""
+            if original:
+                msg += " " + literal_ack(original, int(world.current_turn))
+            if not is_auto_upgrade:
+                msg += (f" (1 AP — {marshal.name} executes precise orders "
+                        f"with fewer couriers.)")
+
         return {
             "success": True,
             "message": msg + cond_str,

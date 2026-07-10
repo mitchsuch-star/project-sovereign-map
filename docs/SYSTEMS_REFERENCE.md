@@ -601,6 +601,28 @@ Random variance is applied based on severity level:
 | Defensive Stance | **Objects** (0.55) | Happy | Obeys |
 | Move | Usually fine | Usually fine | Obeys |
 
+### The Literal Doctrine (W6-5, July 10 2026 — user gate; supersedes R59/R153)
+
+> A literal marshal executes the letter of the order: no improvisation, no
+> initiative, no objection. He is cheaper to command (strategic orders cost
+> 1 AP, not 2), immovable on the defense (+15% literal hold — "Immovable
+> (literal hold)" in the battle report), and utterly predictable. What he
+> will never do is march to the sound of the guns without your written word
+> ("Soult, support Ney" authorizes him — the Grouchy Rule).
+
+Literal marshals **never object, BY DESIGN** (`PERSONALITY_TRIGGERS[LITERAL]`
+is deliberately empty; the disobedience layer bypasses literal entirely —
+pinned by `test_w6_literal_doctrine.py`). Their engagement surfaces instead:
+**order echo** (acknowledgment + completion quote the verbatim
+`original_command` — voice bank `backend/game_logic/marshal_voice.py`,
+deterministic rotation, no RNG); the **fidelity beat** (`literal_fidelity`
+campaign-log/dispatch event when an adjacent own-nation battle didn't move
+him, his PURSUE/SUPPORT quarry shifted, or his MOVE_TO destination changed
+hands — pure narration, no interrupt, no trust change, cap 1/marshal/turn);
+**precision captions** (the 1-AP discount named at order creation); the
+dispatch status note "(to the letter)"; and the W6-4 muster row that names
+who won't march and how to authorize him.
+
 ### Trust Change Values
 
 | Choice | Trust Change | Authority Change |

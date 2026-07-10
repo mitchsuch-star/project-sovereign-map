@@ -609,6 +609,9 @@ class CombatExecutor:
                             has_relevant_order = True
 
                 if not has_relevant_order:
+                    # W6-5: the no-march line lives in the literal voice
+                    # bank so all literal copy shares one register.
+                    from backend.game_logic.marshal_voice import literal_no_march
                     reinforcement_results.append({
                         "marshal": candidate.name,
                         "arrived": False,
@@ -618,10 +621,8 @@ class CombatExecutor:
                         "near_miss": False,
                         "near_miss_reason": "",
                         "has_explicit_order": False,
-                        "message": (
-                            f"{candidate.name} continues to follow standing orders. "
-                            f"The sound of cannon fire grows louder behind him."
-                        ),
+                        "message": literal_no_march(
+                            candidate.name, int(world.current_turn)),
                     })
                     continue
 

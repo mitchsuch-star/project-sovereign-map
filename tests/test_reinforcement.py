@@ -158,8 +158,11 @@ class TestGrouchyRule:
         results = ex._calculate_reinforcements(
             primary, defender, "Waterloo", "France", world)
 
-        assert "continues to follow standing orders" in results[0]["message"]
-        assert "cannon fire" in results[0]["message"]
+        # W6-5: the no-march line now rotates through the literal voice
+        # bank (marshal_voice.LITERAL_NO_MARCH) — any variant qualifies.
+        from backend.game_logic.marshal_voice import LITERAL_NO_MARCH
+        expected = {v.format(name="Grouchy") for v in LITERAL_NO_MARCH}
+        assert results[0]["message"] in expected
 
 
 # ════════════════════════════════════════════════════════════════════════════════

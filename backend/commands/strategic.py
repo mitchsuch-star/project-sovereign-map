@@ -2194,8 +2194,16 @@ class StrategicOrderProcessor:
 
         # Literal gets trust bonus for completing orders precisely
         is_literal = marshal.personality == "literal"
+        completion_msg = reason
         if is_literal:
             marshal.trust.modify(5)
+            # W6-5 §7.2.2: the completion report quotes the order's own
+            # words — "The order was 'march to Swabia'. Swabia is reached."
+            original = getattr(order, "original_command", "") if order else ""
+            if original:
+                from backend.game_logic.marshal_voice import literal_completion
+                completion_msg = literal_completion(
+                    original, reason, marshal.name, int(world.current_turn))
 
         # Notification: strategic order complete (player marshals only)
         if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
@@ -2216,7 +2224,7 @@ class StrategicOrderProcessor:
             "command": cmd_type,
             "order_status": "completed",
             "reason": reason,
-            "message": reason,
+            "message": completion_msg,
             "precision_bonus": is_literal
         }
 

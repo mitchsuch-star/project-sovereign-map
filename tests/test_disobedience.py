@@ -159,9 +159,10 @@ class TestPersonalityTriggers:
         assert severity >= 0.50
 
     def test_literal_ambiguous_trigger(self):
-        """Literal personality triggers on ambiguous orders."""
-        severity = PERSONALITY_TRIGGERS[Personality.LITERAL].get('ambiguous_order')
-        assert severity is not None
+        """W6-5 The Literal Doctrine (user gate, July 10 2026): literal
+        marshals NEVER object BY DESIGN — the R59/R153 trigger TODOs are
+        superseded and the table is deliberately empty."""
+        assert PERSONALITY_TRIGGERS[Personality.LITERAL] == {}
 
     def test_loyal_no_triggers(self):
         """Loyal personality has no triggers (reserved for 1805, removed in Session 11)."""
