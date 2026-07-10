@@ -528,6 +528,11 @@ class WorldState:
         # Decisive battle tracking (max 2 per war)
         self.decisive_battles: Dict[str, List] = {}
 
+        # W6-2 Dynamic Battle Naming: region -> count of NAMED field battles
+        # fought there ("Battle of X" -> "Second Battle of X" -> ...).
+        # Garrison assaults and bombardments are not named battles.
+        self.battle_counts: Dict[str, int] = {}
+
         # Armistice cooldowns: 5-turn cooldown before same pair can re-armistice
         self.armistice_cooldowns: Dict[str, int] = {}
 
@@ -3081,6 +3086,35 @@ class WorldState:
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
 
+    # W6-2 Dynamic Battle Naming — ordinal words for repeat engagements.
+    _BATTLE_ORDINALS = {
+        2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth", 6: "Sixth",
+        7: "Seventh", 8: "Eighth", 9: "Ninth", 10: "Tenth",
+        11: "Eleventh", 12: "Twelfth",
+    }
+    # Blessed default (band 60k-100k): total engaged at or above this reads
+    # as a Great battle.
+    GREAT_BATTLE_THRESHOLD = 80000
+
+    def compose_battle_name(self, region_name: str, total_engaged: int = 0) -> str:
+        """W6-2: name a field battle and record it in battle_counts.
+
+        Battles accumulate history per region: "Battle of X" -> "Second
+        Battle of X" -> ... -> "13th Battle of X". A titanic engagement
+        (total engaged >= GREAT_BATTLE_THRESHOLD, both sides incl. arrived
+        reinforcements) reads "The Great Battle of X" — the Great tier
+        REPLACES the ordinal when both apply. Only resolve_battle results
+        are named (garrison assaults / bombardments never call this).
+        """
+        count = int(self.battle_counts.get(region_name, 0)) + 1
+        self.battle_counts[region_name] = count
+        if int(total_engaged) >= self.GREAT_BATTLE_THRESHOLD:
+            return f"The Great Battle of {region_name}"
+        if count == 1:
+            return f"Battle of {region_name}"
+        ordinal = self._BATTLE_ORDINALS.get(count, f"{count}th")
+        return f"{ordinal} Battle of {region_name}"
+
     def find_safe_spawn(self, marshal, exclude: str = None) -> str:
         """V2-65: Find a safe spawn location for a broken marshal.
 
@@ -4448,6 +4482,7 @@ class WorldState:
             "war_scores": {k: int(v) for k, v in self.war_scores.items()},
             "battle_records": {k: [r.copy() for r in v] for k, v in self.battle_records.items()},
             "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
+            "battle_counts": {k: int(v) for k, v in self.battle_counts.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
             "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
@@ -4885,6 +4920,7 @@ class WorldState:
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
         world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
         world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
+        world.battle_counts = {k: int(v) for k, v in data.get("battle_counts", {}).items()}
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
         world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
         world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}

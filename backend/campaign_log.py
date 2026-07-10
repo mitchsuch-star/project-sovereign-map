@@ -775,9 +775,18 @@ def format_event_oneliner(event: dict) -> str:
             result = "stalemate"
         else:
             result = outcome.replace("_", " ")
-        line = (f"{_name_tag(attacker, atk_nation)} attacked "
-                f"{_name_tag(defender, def_nation)} at {location} — "
-                f"{result} ({atk_cas:,} / {def_cas:,} casualties)")
+        # W6-2 Dynamic Battle Naming: lead with the composed name when the
+        # event carries one ("Second Battle of Swabia: ..."); events without
+        # a name (legacy saves, garrison assaults) keep the classic form.
+        battle_name = event.get("battle_name", "")
+        if battle_name:
+            line = (f"{battle_name}: {_name_tag(attacker, atk_nation)} attacked "
+                    f"{_name_tag(defender, def_nation)} — "
+                    f"{result} ({atk_cas:,} / {def_cas:,} casualties)")
+        else:
+            line = (f"{_name_tag(attacker, atk_nation)} attacked "
+                    f"{_name_tag(defender, def_nation)} at {location} — "
+                    f"{result} ({atk_cas:,} / {def_cas:,} casualties)")
         # CR-5 Phase 4 rider (d) "words become the record" (§6.4): quote the
         # player's verbatim phrase when this battle came from a delegation the
         # marshal INTERPRETED. Present only on inferred/delegation orders — an

@@ -111,6 +111,9 @@ def build_active_wars(world) -> Dict[str, Any]:
             recent_battles.append({
                 "turn": turn,
                 "location": location,
+                # W6-2: the composed dynamic name; legacy records without
+                # one fall back to the classic form.
+                "name": rec.get("battle_name") or f"Battle of {location}",
                 "won": won,
                 "decisive": is_decisive,
             })

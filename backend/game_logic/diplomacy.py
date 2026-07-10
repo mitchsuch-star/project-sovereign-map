@@ -8551,7 +8551,8 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
                   war_id: Optional[str] = None,
                   attacker_participants: Optional[List[str]] = None,
                   defender_participants: Optional[List[str]] = None,
-                  nation_theater_strength: Optional[Mapping[str, int]] = None) -> None:
+                  nation_theater_strength: Optional[Mapping[str, int]] = None,
+                  battle_name: str = "") -> None:
     """Record a battle result for war score calculation.
 
     Also checks for decisive battle (casualty ratio > 2:1 AND total > 10,000).
@@ -8620,6 +8621,9 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         "attacker_casualties": int(attacker_casualties),
         "defender_casualties": int(defender_casualties),
         "location": location,
+        # W6-2: the composed dynamic name ("Second Battle of X") when the
+        # emitter supplied one — the war HUD's recent_battles reads it.
+        "battle_name": battle_name,
     }
     world.battle_records[diplo_key].append(record)
 

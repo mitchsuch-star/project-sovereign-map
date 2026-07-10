@@ -203,6 +203,7 @@ A future save/load system should use this as the specification.
 | `war_scores` | dict | {} | War score per active war. Keys: "NationA\|NationB". Values: -100 to +100 (positive = first nation winning). |
 | `battle_records` | dict | {} | Battle records per war for war score. Keys: diplo_key. Values: list of {turn, winner, attacker, defender, casualties}. |
 | `decisive_battles` | dict | {} | Decisive battle records (max 2 per war). Keys: diplo_key. Values: list of {turn, winner, total_casualties, ratio}. |
+| `battle_counts` | dict | {} | **W6-2 Dynamic Battle Naming.** Region → count of NAMED field battles fought there ("Battle of X" → "Second Battle of X" → …). Garrison assaults/bombardments never increment. `compose_battle_name` is the single writer. |
 | `armistice_cooldowns` | dict | {} | Turns remaining before same pair can re-enter armistice. Keys: diplo_key. Values: int (decrements each turn). |
 | `armistice_turns` | dict | {} | **Phase 2A.** Turns elapsed in current armistice per pair. Keys: diplo_key. Values: int (0-5). After 5 turns, armistice expires to PEACE (or WAR if relation < -60). Cleared on expiration or when pair leaves ARMISTICE state. |
 | `nation_dp` | dict | {} | **Phase 2A.** AI nation diplomatic points per turn. Keys: nation name. Values: int. Stored during DP regeneration. Player DP uses `diplomatic_points` field. |

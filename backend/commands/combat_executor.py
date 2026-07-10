@@ -2883,6 +2883,17 @@ class CombatExecutor:
                         if arriving.strategic_order:
                             arriving.strategic_order.path = []
 
+        # W6-2 Dynamic Battle Naming: total engaged for the Great tier —
+        # both primaries + every arrived reinforcer, PRE-battle strengths
+        # (captured here, before combat consumes anyone).
+        total_engaged_strength = int(pre_battle_attacker_strength) + int(pre_battle_defender_strength)
+        for _side_results in (attacker_reinforcements, defender_reinforcements):
+            for _r in _side_results:
+                if _r.get("arrived"):
+                    _arr = world.marshals.get(_r.get("marshal", ""))
+                    if _arr:
+                        total_engaged_strength += int(_arr.strength)
+
         # ════════════════════════════════════════════════════════════
         # COORDINATION (Phase 7, Session 57): Combined arms detection
         # Calculate for BOTH sides independently (A-C3)
@@ -3345,6 +3356,18 @@ class CombatExecutor:
                 _fighter.idle_turns = 0
                 _fighter.last_battle_turn = _w6_turn
 
+        # ════════════════════════════════════════════════════════════
+        # W6-2 DYNAMIC BATTLE NAMING: composed ONCE per battle (this
+        # increments the region's named-battle count) and stamped BEFORE
+        # the event-log write so the campaign log, the diplo record, the
+        # war HUD, and the result/report all carry the same name.
+        # ════════════════════════════════════════════════════════════
+        battle_name = world.compose_battle_name(
+            target_location, total_engaged_strength)
+        battle_result["battle_name"] = battle_name
+        if isinstance(battle_result.get("log_battle_event"), dict):
+            battle_result["log_battle_event"]["battle_name"] = battle_name
+
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
         if enemy_marshal.strength > 0:
@@ -3481,6 +3504,7 @@ class CombatExecutor:
                 attacker_participants=(theater or {}).get("attacker_participants"),
                 defender_participants=(theater or {}).get("defender_participants"),
                 nation_theater_strength=(theater or {}).get("nation_theater_strength"),
+                battle_name=battle_name,
             )
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
@@ -3692,8 +3716,8 @@ class CombatExecutor:
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
-        # Generate battle name: "Battle of [Region]"
-        battle_name = f"Battle of {target_location}"
+        # W6-2 Dynamic Battle Naming: battle_name was composed once above
+        # (right before the diplo record) — reused here for the result/event.
 
         result = {
             "success": True,
