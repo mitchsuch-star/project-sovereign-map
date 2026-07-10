@@ -3152,6 +3152,42 @@ adjacent + not enemy-held + not at-war soil; otherwise substituted with
 the doctrine's choice and the message NAMES the substitution and the
 reason. Never silently discarded. Tests: `test_w6_retreat_doctrine.py`.
 
+## 13c. Marshal Fates (W6-7, July 10 2026 — EXP-M1)
+
+Broken armies carry a person-shaped stake. At the single forced-retreat
+seam (`combat_executor._apply_forced_retreat_or_break`, fate check FIRST):
+
+- **Trigger:** post-battle strength < **5,000** (band 3k–8k), OR the only
+  retreat is at-war desperation soil (W6-1 tier 5), OR pure encirclement.
+- **Encirclement = captured outright.** Otherwise **escape 60% / captured
+  40%** (combat RNG, seedable). An **aggressive player marshal** gets the
+  last-stand `pending_interrupt` (carries `marshal`; options
+  `fight_to_the_last` — one final defense at **+25%** that bleeds and
+  HALTS the pursuer, survivors captured after — or `attempt_breakout`,
+  the roll at −10%). **Aggressive AI marshals** decide deterministically:
+  fight on homeland/capital-adjacent ground, else break out (GR5 — Mack
+  is capturable by the player, pinned).
+- **Captured state:** serialized `captured_by`/`captured_turn`; held at
+  the captor's capital at strength 0 (attrition elimination guards
+  prisoners); half the remaining men return to the owner's manpower pool
+  by unit type; excluded from dispatch roster (`dispatch["prisoners"]`
+  line), muster, reinforcement and AI scans; marshal card reads
+  "PRISONER of X since Tn"; **ES-7 expectations freeze** while captured.
+- **Release paths (§9.2):** clause `prisoner_return` (a treaty demand
+  naming the marshal — armistices are the live mid-war ransom vehicle;
+  AI values it at **500g** / **800g** for a major's marshal via the
+  acceptance demand walk); and the `set_diplomatic_state` chokepoint
+  auto-returns ALL mutual prisoners on any WAR/ARMISTICE → PEACE
+  transition (bilateral treaties, settlements, armistice expiry alike).
+  Released: own capital, **5,000** strength, morale 50.
+- **Recorded cuts (spec §9.2):** no escape mechanic in pass 1; the AI
+  accepts/values ransom clauses but does not initiate them; no new typed
+  phrasing landed (ransom rides treaty demands + the peace auto-return),
+  so no corpus row was needed — decide-in-session outcome recorded.
+- Events: `marshal_captured` (headline weight 95) / `last_stand` /
+  `marshal_released`, all through the full checklist.
+  Tests: `test_w6_marshal_fates.py`.
+
 ## 14. Win/Loss Relationship Formula
 
 After a shared battle with 2+ same-nation participants, each ordered pair (A, B) rolls independently to check if A's opinion of B changes. Fires after `resolve_battle()` in `_execute_attack()`, before destruction/retreat processing. Casualties are read from `battle_result["attacker"]["casualties"]` (nested dict — both normal and deferred paths). SUPPORT orders are preserved through relationship processing so Hostile+SUPPORT marshals are correctly detected as Participating.

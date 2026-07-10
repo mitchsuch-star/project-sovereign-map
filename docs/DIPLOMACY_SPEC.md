@@ -1290,6 +1290,7 @@ def get_formula_feedback(components, outcome):
 | **Military access** | One-way | Their troops can enter your territory | Stronger than open borders |
 | **Continental System** | France→target | Target closes ports to Britain | See §5d |
 | **Protection guarantee** | One-way | Guarantor enters WAR if target is attacked | |
+| **Prisoner return** (`prisoner_return`) | Either | Names a captured marshal; on ratification he returns to his capital (5,000 strength, morale 50) | **W6-7 Marshal Fates.** AI values the demand at 500g (a major's marshal 800g) via the acceptance walk. Armistices are the live mid-war ransom vehicle; any WAR/ARMISTICE→PEACE transition auto-returns ALL mutual prisoners (single `set_diplomatic_state` chokepoint). AI accepts but never initiates (recorded cut). |
 
 **Vassal territory in treaties:** Ceding vassal territory in a peace treaty depends on autonomy level:
 - **PUPPET/SATELLITE:** Allowed — the lord controls their territory. Loyalty penalty: -20 per region ceded. Morning Dispatch: "Saxony protests the cession of Dresden — loyalty has dropped significantly."

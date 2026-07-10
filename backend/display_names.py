@@ -188,6 +188,7 @@ CLAUSE_TYPE_DISPLAY = {
     "territory_return": "Territory return",
     "territory": "Territory cession",
     "forced_alliance": "Forced alliance",
+    "prisoner_return": "Prisoner return",  # W6-7 Marshal Fates (ransom)
     "vassalage": "Vassalage",
     "subjugation": "Subjugation",
     "liberation": "Liberation",

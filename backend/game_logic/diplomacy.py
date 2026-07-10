@@ -185,6 +185,10 @@ DEMAND_VALUES = {
     "unit_swap": -2,                # -2 per unfavorable trade
     "forced_alliance": -20,         # WPS-C §9.1: significant demand
     "liberation": -15,              # WPS-C §10.5: per vassal liberated
+    # W6-7 Marshal Fates: base handled in the demand walk (500g at the
+    # gold_lump rate = -15; a major's marshal 800g = -24). The entry here
+    # is the registry marker; the per-marshal value lives in the walk.
+    "prisoner_return": -15,
 }
 
 # Commitment-bearing states. Breaking out of one of these should produce a
@@ -2571,6 +2575,13 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
 
     # Set new state
     world.diplomatic_states[key] = new_state
+
+    # W6-7 Marshal Fates §9.2: peace between two nations returns ALL
+    # mutual prisoners. A single chokepoint here covers bilateral peace
+    # treaties, common-peace settlement ratification, and armistice
+    # expiry — every road to PEACE sends the prisoners home.
+    if new_state == "PEACE" and old_state in ("WAR", "ARMISTICE"):
+        world.release_mutual_prisoners(nation_a, nation_b)
 
     # War start tracking
     if new_state == "WAR" and old_state != "WAR":
@@ -6652,6 +6663,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         rate = DEMAND_VALUES.get(dtype, 0)
         if dtype in ("territory_cede", "territory"):
             continue  # Handled by territory_penalty above
+        elif dtype == "prisoner_return":
+            # W6-7: releasing a prisoner ≈ handing back 500g of leverage
+            # (a MAJOR nation's marshal 800g), valued at the gold_lump
+            # rate (-3/100). Blessed defaults, spec §9.2.
+            ransom_worth = 500
+            held = world.get_marshal(d.get("marshal", "") or "")
+            if (held is not None
+                    and world.get_capital_garrison_target(held.nation)
+                    >= 25000):
+                ransom_worth = 800
+            demand_total += -3 * ransom_worth / 100
         elif isinstance(rate, (int, float)) and abs(rate) < 1:
             demand_total += (dvalue * rate) if dvalue is not None else 0
         else:

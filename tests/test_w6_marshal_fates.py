@@ -265,6 +265,85 @@ class TestCapturedState:
         except Exception as exc:  # pragma: no cover
             pytest.fail(f"enemy AI crashed on a captured marshal: {exc}")
 
+    def test_ransom_clause_end_to_end(self):
+        """Commit 2 §9.2: a ratified treaty carrying a prisoner_return
+        clause sends the marshal home — capital, 5,000 strength, morale 50,
+        capture cleared. An ARMISTICE is the live mid-war ransom vehicle
+        (peace treaties auto-return everyone via the chokepoint anyway)."""
+        world, weak = self._captured()
+        _war(world)  # France|Austria at war — armistice is reachable
+        result = world._ratify_treaty({
+            "type": "armistice",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            # The player DEMANDS his marshal back (ransom exchange).
+            "demands": [{"type": "prisoner_return", "marshal": "Weak"}],
+        })
+        assert result is not None
+        assert weak.captured_by == ""
+        assert weak.strength == 5000
+        assert weak.morale == 50
+        assert weak.location == world.get_nation_capital("France")
+        assert any(e.get("type") == "marshal_released"
+                   for e in world.event_log)
+
+    def test_peace_auto_returns_all_mutual_prisoners(self):
+        """Commit 2 §9.2: ANY road to PEACE between the two nations sends
+        every mutual prisoner home (single set_diplomatic_state chokepoint
+        — bilateral treaties, settlements, armistice expiry alike)."""
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        world, weak = self._captured()
+        # A prisoner in the other direction too.
+        austrian = MarshalFactory.enemy(name="Held", location="Belgium",
+                                        nation="Austria", strength=2000)
+        world.marshals["Held"] = austrian
+        CommandExecutor()._combat._capture_marshal(austrian, "France", world)
+        _war(world)
+        set_diplomatic_state(world, "France", "Austria", "PEACE",
+                             "peace_treaty")
+        assert weak.captured_by == ""
+        assert austrian.captured_by == ""
+        released = [e for e in world.event_log
+                    if e.get("type") == "marshal_released"]
+        assert len(released) == 2
+
+    def test_peace_with_a_third_party_frees_no_one(self):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        world, weak = self._captured()
+        _war(world, "France", "Prussia")
+        set_diplomatic_state(world, "France", "Prussia", "PEACE",
+                             "peace_treaty")
+        assert weak.captured_by == "Austria"
+
+    def test_ransom_demand_valued_at_500_gold(self):
+        """The AI values a prisoner at 500g (gold_lump rate: -15) — a
+        ransom offer sweetened with ~500g reads as balanced."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+        world, weak = self._captured()
+        base = calculate_acceptance({
+            "type": "non_aggression",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "demands": [],
+        }, world)
+        with_ransom = calculate_acceptance({
+            "type": "non_aggression",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
+            "demands": [{"type": "prisoner_return", "marshal": "Weak"}],
+        }, world)
+        delta = base["score"] - with_ransom["score"]
+        assert 10 <= delta <= 20  # -15 at the blessed base
+
+    def test_release_helper_is_idempotent(self):
+        world, weak = self._captured()
+        assert world.release_captured_marshal("Weak") is True
+        assert world.release_captured_marshal("Weak") is False
+
+    def test_prisoner_return_display_names(self):
+        from backend.display_names import clause_display_name
+        assert clause_display_name("prisoner_return") == "Prisoner return"
+
     def test_es7_expectations_freeze_while_captured(self):
         """The cheapest rule, pinned: no erosion while he sits in a foreign
         capital — the grace clock resets."""

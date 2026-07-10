@@ -3263,6 +3263,9 @@ _TERM_DISPLAY_LABELS = {
     "continental_system_lifted": "{from_nation} closes ports to Britain",
     "forced_alliance": "{from_nation} enters ALLIANCE with {to_nation} and joins the Continental System",
     "liberation": "{from_nation} is liberated from vassalage",
+    # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
+    # shared label formatter only carries nation/detail/value kwargs.
+    "prisoner_return": "{from_nation} releases a captured marshal to {to_nation}",
 }
 
 

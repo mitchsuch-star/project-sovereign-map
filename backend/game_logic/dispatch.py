@@ -888,6 +888,7 @@ _DISPATCH_EVENT_TYPES = {
     # W6-7 Marshal Fates: capture + last stand reach the morning briefing.
     "marshal_captured",
     "last_stand",
+    "marshal_released",
 }
 
 
@@ -929,7 +930,8 @@ def _build_turn_events(
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete", "retreat_recovery",
-                            "garrison_regen", "broken_recovered"):
+                            "garrison_regen", "broken_recovered",
+                            "marshal_released"):
             severity = "good"
         elif event_type == "vassal_loyalty":
             # W6-3: falling loyalty is a warning; rising is mere info.

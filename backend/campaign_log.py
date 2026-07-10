@@ -64,6 +64,7 @@ CAMPAIGN_LOG_TYPES = {
     # W6-7 Marshal Fates
     "marshal_captured",
     "last_stand",
+    "marshal_released",
     # Territory
     "region_captured",
     # Economy
@@ -210,6 +211,7 @@ CATEGORY_MAP = {
     "literal_fidelity": "command",
     "marshal_captured": "combat",
     "last_stand": "combat",
+    "marshal_released": "diplomacy",
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed": "diplomacy",
     "diplomatic_war_declared": "diplomacy",
@@ -925,6 +927,12 @@ def format_event_oneliner(event: dict) -> str:
         inflicted = int(event.get("casualties_inflicted", 0) or 0)
         return (f"{marshal}'s last stand at {location} — "
                 f"{inflicted:,} enemy casualties before the end")
+
+    if event_type == "marshal_released":
+        marshal = event.get("marshal", "Unknown")
+        captor = event.get("captor", "captivity")
+        reason = (event.get("reason") or "release").replace("_", " ")
+        return f"Marshal {marshal} released by {captor} ({reason})"
 
     if event_type == "strategic_order":
         marshal = event.get("marshal", "Unknown")

@@ -3118,6 +3118,54 @@ class WorldState:
         ordinal = self._BATTLE_ORDINALS.get(count, f"{count}th")
         return f"{ordinal} Battle of {region_name}"
 
+    # W6-7 Marshal Fates: a released prisoner reforms with a cadre.
+    RANSOM_RETURN_STRENGTH = 5000
+
+    def release_captured_marshal(self, marshal_name: str,
+                                 reason: str = "ransom") -> bool:
+        """W6-7 §9.2: return a captured marshal to his own capital at
+        5,000 strength / morale 50, capture state cleared. Returns True
+        when a release actually happened."""
+        marshal = self.marshals.get(marshal_name)
+        if marshal is None or not getattr(marshal, "captured_by", ""):
+            return False
+        captor = marshal.captured_by
+        marshal.captured_by = ""
+        marshal.captured_turn = -1
+        marshal.strength = int(self.RANSOM_RETURN_STRENGTH)
+        marshal.morale = 50
+        home = (self.get_nation_capital(marshal.nation)
+                or getattr(marshal, "spawn_location", None)
+                or marshal.location)
+        marshal.location = home
+        self.log_event({
+            "type": "marshal_released",
+            "marshal": marshal.name,
+            "nation": marshal.nation,
+            "captor": captor,
+            "reason": reason,
+            "message": (
+                f"Marshal {marshal.name} is released by {captor} and "
+                f"returns to {home} ({reason.replace('_', ' ')})."
+            ),
+        })
+        return True
+
+    def release_mutual_prisoners(self, nation_a: str, nation_b: str,
+                                 reason: str = "peace_treaty") -> list:
+        """W6-7 §9.2: peace between two nations returns ALL mutual
+        prisoners. Returns the released marshal names."""
+        released = []
+        for marshal in list(self.marshals.values()):
+            captor = getattr(marshal, "captured_by", "")
+            if not captor:
+                continue
+            pair = {marshal.nation, captor}
+            if pair == {nation_a, nation_b}:
+                if self.release_captured_marshal(marshal.name, reason=reason):
+                    released.append(marshal.name)
+        return released
+
     def find_safe_spawn(self, marshal, exclude: str = None) -> str:
         """V2-65: Find a safe spawn location for a broken marshal.
 
@@ -6886,7 +6934,9 @@ class WorldState:
             }
             if s.get("type") == "territory_cede" and "regions" in s:
                 clause_entry["regions"] = s["regions"]
-            for extra_key in ("named_enemy", "claim_region", "claim_holder"):
+            # W6-7: `marshal` rides prisoner_return clauses.
+            for extra_key in ("named_enemy", "claim_region", "claim_holder",
+                              "marshal"):
                 if extra_key in s:
                     clause_entry[extra_key] = s[extra_key]
             treaty_clauses.append(clause_entry)
@@ -6908,6 +6958,7 @@ class WorldState:
                 "vassal_nation", "lord_nation", "liberator",
                 "includes_continental_system",
                 "named_enemy", "claim_region", "claim_holder",
+                "marshal",  # W6-7: prisoner_return names its prisoner
             ):
                 if extra_key in d:
                     clause_entry[extra_key] = d[extra_key]
@@ -7191,6 +7242,17 @@ class WorldState:
                 fa_to = clause.get("to", "")       # victor imposing alliance
                 if fa_from and fa_to:
                     _forced_alliance_clauses.append(clause.copy())
+                    applied_treaty_clauses.append(clause.copy())
+
+            elif ctype == "prisoner_return":
+                # W6-7 Marshal Fates §9.2: a ratified prisoner_return clause
+                # sends the named marshal home (capital, 5,000 strength,
+                # morale 50). Peace treaties ALSO auto-return all mutual
+                # prisoners at the set_diplomatic_state chokepoint — this
+                # clause covers ransoms inside non-peace treaties.
+                pr_marshal = clause.get("marshal", "")
+                if pr_marshal and self.release_captured_marshal(
+                        pr_marshal, reason="ransom"):
                     applied_treaty_clauses.append(clause.copy())
 
             elif ctype == "liberation":
