@@ -1496,6 +1496,21 @@ class WorldState:
             return int(get_europe_capital_garrison(nation))
         return int(LEGACY_CAPITAL_GARRISON)
 
+    @property
+    def sandbox_mode(self) -> bool:
+        """EC-6a: the Europe campaign ships as an open-ended sandbox.
+
+        True gates every hard win/lose seam (turn_manager victory checks)
+        AND the turn-countdown display readers together — enforcement and
+        display must never disagree. Derived from the persisted
+        ``sovereign_map`` (``max_turns`` itself stays serialized untouched),
+        so existing saves load straight into sandbox with no migration.
+        Real victory conditions are owned by the Pre-Ship Victory &
+        Objectives Pass — do NOT re-enable the disabled victory code
+        (EC-6 gate record, ECONOMY_REVISIT_SPEC.md §2).
+        """
+        return getattr(self, "sovereign_map", "legacy") == "europe"
+
     def invalidate_bloc_members_cache(self):
         """Clear bloc-members cache. Call at every seam that mutates
         vassalage or alliance state (treaty ratification, vassal add/remove,
@@ -8605,6 +8620,10 @@ class WorldState:
         """
         Get action economy summary for UI display.
         ALL values explicitly cast to integers.
+
+        EC-6a: sandbox worlds send max_turns=0 (the "no limit" sentinel —
+        int-safe for Godot, which renders a bare turn number for it). The
+        open-ended campaign must never show a stale "Turn 61/60" clock.
         """
         return {
             "actions_remaining": int(self.actions_remaining),
@@ -8612,7 +8631,7 @@ class WorldState:
             "admin_actions_remaining": int(self.admin_actions_remaining),
             "max_admin_actions": int(self.max_admin_actions),
             "turn": int(self.current_turn),
-            "max_turns": int(self.max_turns),
+            "max_turns": 0 if self.sandbox_mode else int(self.max_turns),
         }
 
     def check_and_execute_retreats(self) -> List[Dict]:

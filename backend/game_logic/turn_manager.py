@@ -30,6 +30,13 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
     if getattr(world, "game_over", False):
         return None
 
+    # EC-6a sandbox: the loss rules this warning is aligned with are
+    # disabled on Europe worlds — "the campaign ends" would be a false
+    # promise. Gated here at the single source so the dispatch reader
+    # and its DEFEAT_IMMINENT_WARNING notification go quiet together.
+    if world.sandbox_mode:
+        return None
+
     player_regions = list(world.get_player_regions())
     living_marshals = [
         marshal for marshal in world.get_player_marshals()
@@ -913,6 +920,12 @@ class TurnManager:
         Returns:
             Dict with victory info, or None if no enemy victory
         """
+        # EC-6a sandbox: no enemy conquest victory on Europe worlds either
+        # (called once per enemy nation inside the enemy phase + a final
+        # sweep — cheap early out, keeps enforcement symmetric).
+        if self.world.sandbox_mode:
+            return None
+
         victory_threshold = max(1, int(len(self.world.regions) * VICTORY_REGION_FRACTION))
         active = set(self.world.get_active_nations())  # DLF-11
         for nation in self.world.enemy_nations:
@@ -977,15 +990,27 @@ class TurnManager:
         """
         Check if game is over and determine result.
 
+        EC-6a: Europe worlds are an open-ended SANDBOX — no hard win/lose
+        at all (the early return below). Legacy-world conditions:
+
         Victory conditions:
         - Control all regions (total victory)
         - All enemy nations have 0 regions (total elimination)
-        - Survive 40 turns (time victory)
+        - Survive max_turns holding VICTORY_REGION_FRACTION (time victory)
 
         Defeat conditions:
         - All marshals destroyed
         - All territory lost (0 regions)
+        - max_turns reached below the victory fraction (time defeat)
         """
+        # EC-6a sandbox guard — MUST stay the first statement: it disables
+        # every victory/defeat branch (incl. the max-turns time defeat) AND
+        # kills the FINAL-11 full region-scan below, which this method would
+        # otherwise run twice per end_turn on the 126-province map (GR8).
+        # Real victory conditions → Pre-Ship Victory & Objectives Pass.
+        if self.world.sandbox_mode:
+            return {"game_over": False, "result": None, "reason": None}
+
         player_regions = self.world.get_player_regions()
         player_marshals = self.world.get_player_marshals()
 
@@ -1051,16 +1076,24 @@ class TurnManager:
         }
 
     def get_turn_summary(self) -> Dict:
-        """Get summary of current turn state."""
-        return {
+        """Get summary of current turn state.
+
+        EC-6a: sandbox worlds OMIT the max_turns / turns_remaining countdown
+        keys entirely — an open-ended campaign has no clock, and a gated
+        enforcement seam with an ungated reader would render a stale
+        "0 turns remaining".
+        """
+        summary = {
             "turn": self.world.current_turn,
-            "max_turns": self.world.max_turns,
-            "turns_remaining": self.world.max_turns - self.world.current_turn,
             "gold": self.world.gold,
             "regions": len(self.world.get_player_regions()),
             "game_over": self.world.game_over,
             "victory": self.world.victory
         }
+        if not self.world.sandbox_mode:
+            summary["max_turns"] = self.world.max_turns
+            summary["turns_remaining"] = self.world.max_turns - self.world.current_turn
+        return summary
 
 
 # Test code

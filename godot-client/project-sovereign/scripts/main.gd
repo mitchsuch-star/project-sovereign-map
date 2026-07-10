@@ -2072,7 +2072,13 @@ func _update_status(action_summary: Dictionary):
 		max_turns = int(action_summary.max_turns)
 
 	# Update displays - force integer conversion in strings
-	turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
+	# EC-6a: max_turns == 0 is the backend's open-ended-sandbox sentinel
+	# (Europe campaign) — show the bare turn number, never "N/0" or a
+	# stale "61/60" countdown. Legacy worlds keep the N/limit clock.
+	if int(max_turns) <= 0:
+		turn_value.text = str(int(current_turn))
+	else:
+		turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
 
 	# Color actions based on remaining
 	if actions_remaining <= 1:

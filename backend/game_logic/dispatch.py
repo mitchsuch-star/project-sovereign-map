@@ -568,7 +568,13 @@ def _build_turn_limit_warning(world, player_nation: str) -> Optional[Dict[str, A
     Also creates a notification for the notification bar.
 
     Returns warning dict or None.
+
+    EC-6a: sandbox worlds get no turn-limit copy and no TURN_LIMIT_WARNING
+    notification — the campaign is open-ended, there is no limit to warn about.
     """
+    if getattr(world, "sandbox_mode", False):
+        return None
+
     from backend.models.world_state import VICTORY_REGION_FRACTION
 
     current = int(world.current_turn)
