@@ -33,6 +33,9 @@ from backend.models.world_state import WorldState
 # renders as its own ledger line — the by-construction guard below then forces
 # both halves to be rendered ("upkeep" total stays in the dict for reference
 # but is no longer a net term).
+# ES-2 (S6): occupation cost on non-homeland provinces is its own signed
+# component (income stays GROSS) — declared here so the guard forces its
+# "Occupation" line in strategic_ledger.gd.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -40,6 +43,7 @@ NET_GOLD_COMPONENTS = {
     "treaty_gold": +1,
     "vassal_tribute": +1,
     "settlement_gold": +1,
+    "occupation": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
 }

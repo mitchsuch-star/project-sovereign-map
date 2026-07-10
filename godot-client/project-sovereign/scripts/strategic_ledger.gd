@@ -360,6 +360,12 @@ func _render_economy():
 	if settlement_gold != 0:
 		var sg_sign = "+" if settlement_gold > 0 else ""
 		bbcode += "  Settlements: " + sg_sign + str(settlement_gold) + "g\n"
+	# ES-2 (Economy Revisit S6): recurring cost of holding non-homeland
+	# soil — a signed Net component of its own (Income stays gross), so it
+	# must render for the visible lines to sum to Net (SC-33 invariant).
+	var occupation = int(econ.get("occupation", 0))
+	if occupation > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Occupation: -" + str(occupation) + "g[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).

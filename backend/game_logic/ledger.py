@@ -215,6 +215,10 @@ def _build_economy(world, player: str) -> dict:
     # under bankruptcy mercy), so the split lines reconcile to Net.
     upkeep_surcharge = int(upkeep_data.get("surcharge", 0))
     upkeep_base = upkeep - upkeep_surcharge
+    # ES-2 (S6): recurring cost of holding non-homeland soil — its own
+    # signed Net component (income stays GROSS), rendered as an
+    # "Occupation" line so the visible lines still sum to Net (SC-33).
+    occupation = int(income_data.get("occupation", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
@@ -283,7 +287,7 @@ def _build_economy(world, player: str) -> dict:
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold - upkeep_base - upkeep_surcharge
+        + settlement_gold - occupation - upkeep_base - upkeep_surcharge
     )
 
     # Construction queue: iterate player regions with active builds
@@ -319,6 +323,7 @@ def _build_economy(world, player: str) -> dict:
         "vassal_tribute": vassal_tribute,
         "settlement_gold": settlement_gold,
         "settlement_streams": settlement_streams,
+        "occupation": occupation,
         "upkeep": upkeep,
         "upkeep_base": upkeep_base,
         "upkeep_surcharge": upkeep_surcharge,

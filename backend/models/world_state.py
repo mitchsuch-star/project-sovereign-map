@@ -3520,25 +3520,49 @@ class WorldState:
         """Calculate income for a nation. Defaults to player_nation.
 
         Uses get_effective_income() which applies stability and war damage modifiers.
+
+        ES-2 (S6, §0.6.7 amendment 2): every controlled province NOT in the
+        nation's nation_starting_regions pays a per-turn occupation cost =
+        stability-tier fraction × the region's BASE income_value (Hostile
+        0.50 / Unrest 0.35 / Settling 0.20 / Stable 0.10 permanent floor).
+        Europe-scoped — the legacy fixture world pays none (N1). Computed
+        inside this existing per-nation loop (GR8 — no extra region scan);
+        `income` stays GROSS, the cost rides the separate `occupation` key
+        so the ledger can render it as its own signed line.
+        E6: bankruptcy mercy halves the occupation total (like upkeep).
         """
         nation = nation or self.player_nation
         nation_regions = self.get_nation_regions(nation)
+        europe = getattr(self, "sovereign_map", "legacy") == "europe"
+        homeland = set(self.nation_starting_regions.get(nation, [])) if europe else None
 
         # Effective income from regions (after stability + war damage modifiers)
         total_income = 0
+        occupation_cost = 0
         region_breakdown = []
         for region_name in nation_regions:
             region = self.regions[region_name]
             effective = region.get_effective_income()
             total_income += effective
+            occ_cost = 0
+            if europe and region_name not in homeland:
+                occ_cost = int(region.income_value * region.get_occupation_fraction())
+                occupation_cost += occ_cost
             region_breakdown.append({
                 "region": region_name,
                 "base_income": region.income_value,
                 "effective_income": effective,
                 "stability": region.stability,
                 "stability_label": region.get_stability_label(),
-                "war_damage": int(region.war_damage * 100)  # int % (0-100) for Godot
+                "war_damage": int(region.war_damage * 100),  # int % (0-100) for Godot
+                "occupation_cost": occ_cost
             })
+
+        # E6: bankruptcy mercy halves the occupation total (per-region
+        # detail keeps full values, mirroring the upkeep breakdown shape)
+        occupation_halved = self.nation_bankruptcy_turns.get(nation, 0) >= 1
+        if occupation_halved:
+            occupation_cost //= 2
 
         # British naval income — abstracted trade dominance / colonial revenue
         # Scales from authored coastal metadata, avoiding per-map hardcoded province names.
@@ -3555,10 +3579,13 @@ class WorldState:
 
         return {
             "income": total_income,
+            "occupation": int(occupation_cost),
+            "occupation_halved": occupation_halved,
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
                 "naval_income": naval_income,
+                "occupation": int(occupation_cost),
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -3766,16 +3793,22 @@ class WorldState:
         # Admin AP bonus (only player for now)
         admin_bonus = self._calculate_admin_bonus(nation)
 
-        net = income_data["income"] - upkeep_data["total"] + admin_bonus
+        # ES-2 (S6): occupation cost on non-homeland provinces — every
+        # nation pays through this same seam (GR5), player and AI alike.
+        occupation = int(income_data.get("occupation", 0))
+
+        net = income_data["income"] - occupation - upkeep_data["total"] + admin_bonus
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
         # NOTE: Bankruptcy check moved to _advance_turn_internal() AFTER all
         # income sources (trade, continental system, treaty clauses, tribute)
         # so nations don't go bankrupt when trade income would cover costs.
 
+        occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
         return {
             "nation": nation,
             "income": income_data["income"],
+            "occupation": occupation,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
             "admin_bonus": int(admin_bonus),
@@ -3784,7 +3817,8 @@ class WorldState:
             "breakdown": income_data["breakdown"],
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
-                       f"+{income_data['income']} income, "
+                       f"+{income_data['income']} income"
+                       f"{occupation_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
                        f" = {'+' if net >= 0 else ''}{net} net")

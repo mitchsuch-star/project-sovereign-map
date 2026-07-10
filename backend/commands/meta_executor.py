@@ -234,22 +234,25 @@ class MetaExecutor:
         # Add financial report to message
         income_val = income_data["income"]
         upkeep_val = upkeep_data["total"]
+        # ES-2 (S6): occupation is its own Net component (income is gross)
+        occupation_val = int(income_data.get("occupation", 0))
         spent_val = saved_gold_spent.get(nation, 0)
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
-        # so Income - Upkeep + Other == Net == the real treasury delta.
+        # so Income - Occupation - Upkeep + Other == Net == the real treasury delta.
         net_val = treasury - treasury_before_turn
-        other_val = net_val - (income_val - upkeep_val)
+        other_val = net_val - (income_val - occupation_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
         if other_val != 0:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
+        occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
         surcharge_val = int(upkeep_data.get("surcharge", 0))
         surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -262,6 +265,7 @@ class MetaExecutor:
             "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
+            "occupation": int(occupation_val),
             "upkeep": int(upkeep_val),
             "other": int(other_val),
             "spent": int(spent_val),

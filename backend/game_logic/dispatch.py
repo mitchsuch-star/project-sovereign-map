@@ -177,13 +177,16 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     upkeep_data = world.calculate_turn_upkeep(player_nation)
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
+    # ES-2 (S6): occupation cost on non-homeland provinces — a separate
+    # Net component (income above is GROSS), so the projection subtracts it
+    occupation = int(income_data.get("occupation", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player_nation, 0))
 
-    treasury_delta = int(income + trade_income - upkeep)
+    treasury_delta = int(income + trade_income - occupation - upkeep)
 
     bankrupt = int(world.nation_bankruptcy_turns.get(player_nation, 0)) > 0
 
@@ -212,6 +215,9 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "treasury": treasury,
         "treasury_delta": treasury_delta,
         "trade_income": trade_income,
+        # ES-2 (S6): occupation detail rides the dispatch like the ES-3
+        # surcharge — the morning projection can explain the drain
+        "occupation": occupation,
         # ES-3 (S5): over-limit breakdown rides the dispatch so the morning
         # projection can explain a heavy upkeep (treasury_delta above already
         # includes the surcharge via upkeep_data["total"]).

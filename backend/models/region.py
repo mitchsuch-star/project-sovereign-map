@@ -57,6 +57,18 @@ TERRAIN_CAVALRY_ATTRITION_BONUS = {
 
 CHARGE_BLOCKED_TERRAIN = {"mountains", "forest", "urban"}
 
+# ============================================================================
+# OCCUPATION COST (ES-2, Economy Revisit S6 — spec §0.6.7 amendment 2)
+# ============================================================================
+# Per-turn cost of holding NON-HOMELAND soil, as a fraction of the region's
+# BASE income_value, keyed by the stability tier (same boundaries as
+# _get_stability_modifier). Constants are OCCUPATION_* by gate mandate —
+# never "garrison", which belongs to the real garrison mechanics.
+OCCUPATION_HOSTILE_FRACTION = 0.50
+OCCUPATION_UNREST_FRACTION = 0.35
+OCCUPATION_SETTLING_FRACTION = 0.20
+OCCUPATION_STABLE_FRACTION = 0.10  # permanent floor on conquered soil
+
 TERRAIN_BOMBARDMENT_MODIFIER = {
     "plains": 1.10,          # +10% damage — open ground, no cover
     "forest": 0.80,          # -20% damage — trees obscure targets
@@ -253,6 +265,23 @@ class Region:
             return 0.75    # Settling: 75%
         else:
             return 1.0     # Stable: 100%
+
+    def get_occupation_fraction(self) -> float:
+        """ES-2: occupation-cost fraction of BASE income_value by stability tier.
+
+        Same boundary rule as _get_stability_modifier (boundary values fall
+        into the LOWER tier) so the two tier readers can never disagree.
+        Stable conquered soil keeps a permanent floor — occupation never
+        reaches zero on non-homeland provinces.
+        """
+        if self.stability <= 25:
+            return OCCUPATION_HOSTILE_FRACTION
+        elif self.stability <= 50:
+            return OCCUPATION_UNREST_FRACTION
+        elif self.stability <= 75:
+            return OCCUPATION_SETTLING_FRACTION
+        else:
+            return OCCUPATION_STABLE_FRACTION
 
     def apply_war_damage(self, amount: float):
         """Add war damage, capped at 0.5."""

@@ -44,7 +44,9 @@ class EconomyExecutor:
         upkeep_data = world.calculate_turn_upkeep(nation)
         admin_bonus = world.admin_actions_remaining * 25  # Potential bonus if saved
 
-        net = income_data["income"] - upkeep_data["total"] + admin_bonus
+        # ES-2 (S6): occupation cost is a separate Net component (income is gross)
+        occupation = int(income_data.get("occupation", 0))
+        net = income_data["income"] - occupation - upkeep_data["total"] + admin_bonus
         treasury = world.nation_gold.get(nation, 0)
 
         # Build detailed report
@@ -69,6 +71,18 @@ class EconomyExecutor:
                 lines.append(f"    {rd['region']}: {effective}g / {base}g base{mod_str}")
             else:
                 lines.append(f"    {rd['region']}: {effective}g")
+
+        # ES-2 (S6): occupation cost on non-homeland provinces
+        if occupation > 0:
+            occupied = [rd for rd in region_details if rd.get("occupation_cost", 0) > 0]
+            lines.append(f"\n  Occupation: -{occupation}g  ({len(occupied)} non-homeland regions)")
+            if income_data.get("occupation_halved"):
+                lines.append("    (HALVED - bankruptcy mercy)")
+            for rd in occupied:
+                lines.append(
+                    f"    {rd['region']}: -{rd['occupation_cost']}g "
+                    f"({rd['stability_label'].lower()})"
+                )
 
         # Upkeep breakdown
         upkeep_breakdown = upkeep_data["breakdown"]
@@ -136,6 +150,7 @@ class EconomyExecutor:
             "events": [{
                 "type": "economy_report",
                 "income": int(income_data["income"]),
+                "occupation": int(occupation),
                 "upkeep": int(upkeep_data["total"]),
                 "admin_bonus": int(admin_bonus),
                 "net": int(net),

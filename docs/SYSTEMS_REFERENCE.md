@@ -2266,7 +2266,7 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 
 **Income calculation:** `calculate_turn_income(nation=None)` works for any nation. Defaults to player_nation. Uses `region.get_effective_income()` (applies stability + war damage modifiers). Income breakdown includes per-region stability, damage, and effective income details.
 
-**Income application:** `apply_turn_income(nation=None)` wraps `process_income_phase()` which handles income - upkeep + admin bonus.
+**Income application:** `apply_turn_income(nation=None)` wraps `process_income_phase()` which handles income - occupation - upkeep + admin bonus.
 
 ### Upkeep + Bankruptcy (Phase 6.2.B; ES-3 force limit July 9, 2026)
 
@@ -2274,7 +2274,11 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 
 **Mercy (E6):** bankruptcy halves base AND surcharge (both rates even → exact).
 
-**Income phase:** `process_income_phase(nation)` = income - upkeep + admin bonus. Runs for ALL nations during turn resolution.
+**Income phase:** `process_income_phase(nation)` = income - occupation - upkeep + admin bonus. Runs for ALL nations during turn resolution.
+
+### Occupation Cost (ES-2, July 9, 2026)
+
+**Europe worlds only (legacy fixture pays none — N1).** Every controlled province NOT in the nation's `nation_starting_regions` pays a per-turn occupation cost = stability-tier fraction × the region's BASE `income_value`: Hostile 0.50 / Unrest 0.35 / Settling 0.20 / Stable 0.10 — a permanent floor, conquered soil never pays zero. Constants `OCCUPATION_*_FRACTION` + `Region.get_occupation_fraction()` live in `region.py` next to the income modifier (same tier boundaries, single source). Computed inside `calculate_turn_income`'s existing per-region loop (GR8 — no extra scan) and returned as a separate signed `occupation` key — `income` stays GROSS everywhere, so the ledger renders an "Occupation" line that reconciles to Net (forced by the `NET_GOLD_COMPONENTS` guard in `test_economy_ledger_reconciliation.py`). Recapture-reset and marshal pacification are free (they ride the existing stability ramp); vassal soil is never lord-charged (`get_nation_regions` keys on controller). Mercy (E6): bankruptcy halves the occupation total. Zero new serialized fields. ES-7 estate provinces become exempt when S7 lands `Marshal.dotation_regions`.
 
 **Bankruptcy:** `nation_bankruptcy_turns` tracks consecutive turns with negative gold. Turn 1-2: warnings + halved upkeep. Turn 3+: desertion (5% strength loss per marshal).
 
@@ -2542,7 +2546,7 @@ AI nations get an admin phase each turn, using the same executor as the player (
 - Wired in parser, validation, mock parser
 
 **Turn summary financial report:**
-- `_execute_end_turn()` appends financial report showing income, upkeep, net gold, and balance for the player's nation
+- `_execute_end_turn()` appends financial report showing income, occupation (when > 0), upkeep, net gold, and balance for the player's nation
 
 **UI wiring:**
 - Occupation fields (`occupation_region`, `occupation_turns_held`, `occupation_turns_required`) added to `tactical_state` dict in `main.py::_get_map_data()` for Godot marshal tooltip display
@@ -2933,7 +2937,7 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 - All values `int()` wrapped — no floats to Godot
 - Forces: status priority chain (broken > retreating > drilling > fortified > strategic modes > idle), special flags, strategic order summary
 - Territories: supply status (OK / Over capacity, no "Strained"), war_damage as `int(war_damage * 100)`, income via `get_effective_income()`, no `fortification_level` field
-- Economy: treasury, income, upkeep, net, bankruptcy, construction queue, income breakdown
+- Economy: treasury, income, occupation, upkeep, net, bankruptcy, construction queue, income breakdown
 - Intel: fog-filtered enemy sightings, BAND_MIDPOINTS for estimated strength, nation summaries, unknown region count
 - Manpower: `get_manpower_regen_rates(nation)` extracted as single source of truth (used by both `_process_manpower_regen()` and ledger), dynamic regen rates, `turns_until_full` calculation
 - `GET /ledger` endpoint

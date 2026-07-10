@@ -1652,12 +1652,18 @@ func _display_turn_change(event: Dictionary):
 	var spent_str = ""
 	if spent > 0:
 		spent_str = " | Spent: " + str(int(spent)) + "g"
+	# ES-2 (S6): occupation is a separate Net component — without it the
+	# banner's Income/Upkeep lines would not visibly sum toward Net
+	var occupation = int(event.get("occupation", 0))
+	var occupation_str = ""
+	if occupation > 0:
+		occupation_str = " | Occupation: -" + str(int(occupation)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

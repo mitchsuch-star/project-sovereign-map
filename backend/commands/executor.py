@@ -1597,14 +1597,17 @@ class CommandExecutor:
             treasury = world.nation_gold.get(nation, 0)
             income_val = income_data["income"]
             upkeep_val = upkeep_data["total"]
+            # ES-2 (S6): occupation is its own Net component (income is gross)
+            occupation_val = int(income_data.get("occupation", 0))
             spent_val = saved_gold_spent.get(nation, 0)
-            net_val = income_val - upkeep_val
+            net_val = income_val - occupation_val - upkeep_val
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
             turn_end_event = {
                 "type": "turn_end",
                 "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
                 "new_turn": int(turn_result.get("next_turn", world.current_turn)),
                 "income": int(income_val),
+                "occupation": int(occupation_val),
                 "upkeep": int(upkeep_val),
                 "spent": int(spent_val),
                 "net": int(net_val),
@@ -1617,10 +1620,11 @@ class CommandExecutor:
             # Append financial summary to message
             net_sign = "+" if net_val >= 0 else ""
             spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
+            occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{occupation_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 
