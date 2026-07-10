@@ -138,6 +138,7 @@ class DialogueManager:
         self._current: Optional[Dict] = None
         self._queue: List[Dict] = []
         self._next_mailbox_id: int = 1  # monotonic ID for mailbox items
+        self._next_dialogue_id: int = 1  # W6-0: monotonic identity for EVERY dialogue
 
     # ── Core API ──────────────────────────────────────────────────────
 
@@ -150,9 +151,27 @@ class DialogueManager:
             dialogue["mailbox_priority"] = self.DIALOGUE_PRIORITY.get(dtype, 99)
             self._next_mailbox_id += 1
 
+    def _assign_dialogue_id(self, dialogue: dict) -> None:
+        """W6-0 (BUG-CA-7): stamp a monotonically increasing identity.
+
+        A dialogue that already carries a ``dialogue_id`` keeps it — enrichment
+        flows carry the same dict (or a copy of it) forward, so "the same
+        matter" keeps the same identity while a freshly-built dict gets a new
+        one. The id is mirrored onto ``popup_payload`` so every popup shape
+        derived from it reaches Godot carrying the identity it must answer
+        with.
+        """
+        if "dialogue_id" not in dialogue:
+            dialogue["dialogue_id"] = self._next_dialogue_id
+            self._next_dialogue_id += 1
+        payload = dialogue.get("popup_payload")
+        if isinstance(payload, dict):
+            payload["dialogue_id"] = dialogue["dialogue_id"]
+
     def push(self, dialogue: dict) -> None:
         """Add dialogue. If current slot is empty, set it; otherwise queue."""
         self._assign_mailbox_metadata(dialogue)
+        self._assign_dialogue_id(dialogue)
         if self._current is None:
             self._current = dialogue
         else:
@@ -186,6 +205,7 @@ class DialogueManager:
         elif new_type in self.SOFT_STOP_MAILBOX_TYPES and "mailbox_id" not in dialogue:
             self._assign_mailbox_metadata(dialogue)
 
+        self._assign_dialogue_id(dialogue)
         self._current = dialogue
 
     def preempt(self, dialogue: dict) -> None:
@@ -197,6 +217,7 @@ class DialogueManager:
         the preempting dialogue is resolved.
         """
         self._assign_mailbox_metadata(dialogue)
+        self._assign_dialogue_id(dialogue)
         previous = self._current
         if previous is not None and len(self._queue) < self.QUEUE_CAP:
             self._queue.append(previous)
@@ -563,6 +584,7 @@ class DialogueManager:
             "current": copy.deepcopy(self._current) if self._current else None,
             "queue": [copy.deepcopy(d) for d in self._queue],
             "next_mailbox_id": self._next_mailbox_id,
+            "next_dialogue_id": self._next_dialogue_id,
         }
 
     @classmethod
@@ -571,6 +593,7 @@ class DialogueManager:
         dm._current = copy.deepcopy(data.get("current")) if data.get("current") else None
         dm._queue = [copy.deepcopy(d) for d in data.get("queue", [])]
         dm._next_mailbox_id = data.get("next_mailbox_id", 1)
+        dm._next_dialogue_id = data.get("next_dialogue_id", 1)
         # Legacy migration: stamp mailbox_id on any mailbox items missing it
         for item in ([dm._current] if dm._current else []) + dm._queue:
             if item and item.get("type", "") in cls.SOFT_STOP_MAILBOX_TYPES and "mailbox_id" not in item:
@@ -578,4 +601,8 @@ class DialogueManager:
                 item["mailbox_order"] = dm._next_mailbox_id
                 item["mailbox_priority"] = cls.DIALOGUE_PRIORITY.get(item.get("type", ""), 99)
                 dm._next_mailbox_id += 1
+        # W6-0 migration: stamp dialogue_id on any pre-identity dialogues
+        for item in ([dm._current] if dm._current else []) + dm._queue:
+            if item and "dialogue_id" not in item:
+                dm._assign_dialogue_id(item)
         return dm

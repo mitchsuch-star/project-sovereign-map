@@ -3270,7 +3270,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	if action in SETTLEMENT_DIALOGUE_ACTIONS and (data.has("scope") or data.has("nation")):
 		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
 		set_input_enabled(false)
-		api_client.send_dialogue_response_with_params(action, data, _on_command_result)
+		api_client.send_dialogue_response_with_params(action, data, _on_command_result, int(data.get("dialogue_id", -1)))
 		return
 	# Send the raw action directly to dialogue endpoint via 1-based option index.
 	# DO NOT construct natural language — keyword routing causes mismatches.
@@ -3283,7 +3283,8 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	if choice_index > 0:
 		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
 		set_input_enabled(false)
-		api_client.send_dialogue_response(choice_index, _on_command_result)
+		# W6-0 (BUG-CA-7): bind the answer to the dialogue this popup rendered.
+		api_client.send_dialogue_response(choice_index, _on_command_result, int(data.get("dialogue_id", -1)))
 	else:
 		if action in SETTLEMENT_DIALOGUE_ACTIONS:
 			add_output("[color=#e04040]Settlement popup action lost its dialogue option: %s[/color]" % action)
@@ -3333,7 +3334,9 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 		return
 	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [from_nation, choice])
 	set_input_enabled(false)
-	api_client.send_dialogue_response(choice, _on_command_result)
+	# W6-0 (BUG-CA-7): answer the proposal this popup RENDERED, not whatever
+	# is on top of the dialogue stack by the time the response arrives.
+	api_client.send_dialogue_response(choice, _on_command_result, int(data.get("dialogue_id", -1)))
 
 func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 	"""Handle player response to Talleyrand's diplomatic objection.

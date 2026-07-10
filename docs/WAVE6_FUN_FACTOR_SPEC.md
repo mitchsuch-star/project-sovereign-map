@@ -26,7 +26,7 @@
 
 | # | Slice | Pillar target | Size | Depends on |
 |---|-------|---------------|------|-----------|
-| W6-0 | Correctness A — dialogue & typed-answer routing (BUG-CA-7/8/10/1) | trust in every later slice | S–M | — |
+| W6-0 | ~~Correctness A — dialogue & typed-answer routing (BUG-CA-7/8/10/1)~~ **✅ LANDED July 10, 2026** — dialogue_id identity + stale guard, pending-question router, option enumeration, re-mount fidelity, log direction; `test_w6_dialogue_identity.py` (27); live-verified (guard + router + log line probed against the running 1805 boot) | trust in every later slice | S–M | — |
 | W6-1 | Correctness B — combat/report/movement/stats (BUG-CA-2+E-CA-2, 3, 4, 5, 6, 9) | combat legibility floor | M | — |
 | W6-2 | Dynamic Battle Naming *(user addition)* | narration | S | — |
 | W6-3 | The Dispatch Rewrite — "Berthier tells the story" (EXP-N1) | **narration 3.5→7** | M–L | W6-1 (stat fixes), W6-2 (names) |

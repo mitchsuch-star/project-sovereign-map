@@ -182,16 +182,26 @@ func dismiss_notification(notification_id: String, callback: Callable):
 	_send_post("/notifications/dismiss", {"id": notification_id}, callback)
 
 
-func send_dialogue_response(choice, callback: Callable):
-	_send_post("/respond_to_diplomatic_dialogue", {"choice": choice}, callback)
+# W6-0 (BUG-CA-7): popups pass the `dialogue_id` they RENDERED so the backend
+# can refuse an answer aimed at a dialogue that is no longer on top of the
+# stack. -1 (the default) omits the field — the typed terminal path and legacy
+# callers always answer the visible top.
+func send_dialogue_response(choice, callback: Callable, dialogue_id: int = -1):
+	var body = {"choice": choice}
+	if dialogue_id >= 0:
+		body["dialogue_id"] = dialogue_id
+	_send_post("/respond_to_diplomatic_dialogue", body, callback)
 
 
 # Re-front Slice 2: settlement Tier-2 affordances (dials / coverage edits /
 # focus) ride on per-court rows + rail buttons and carry structured `scope` /
 # `nation` params the keyword `choice` path cannot express. The backend resolves
 # `action_params` directly against the staged settlement_confirm.
-func send_dialogue_response_with_params(choice, params: Dictionary, callback: Callable):
-	_send_post("/respond_to_diplomatic_dialogue", {"choice": choice, "action_params": params}, callback)
+func send_dialogue_response_with_params(choice, params: Dictionary, callback: Callable, dialogue_id: int = -1):
+	var body = {"choice": choice, "action_params": params}
+	if dialogue_id >= 0:
+		body["dialogue_id"] = dialogue_id
+	_send_post("/respond_to_diplomatic_dialogue", body, callback)
 
 
 func dismiss_all_notifications(callback: Callable):

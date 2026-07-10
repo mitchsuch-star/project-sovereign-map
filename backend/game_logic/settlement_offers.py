@@ -2182,7 +2182,7 @@ def build_incoming_settlement_offer_popup(
         },
     ]
 
-    return {
+    payload = {
         "type": "incoming_settlement_offer",
         "dialogue_type": "incoming_settlement_offer",
         "offer_id": offer_id,
@@ -2199,6 +2199,11 @@ def build_incoming_settlement_offer_popup(
         "options": options,
         "available_action_ids": [opt["action"] for opt in options],
     }
+    # W6-0 (BUG-CA-7): popups regenerated from a mounted dialogue carry the
+    # dialogue's identity so the client answers the offer it actually saw.
+    if offer.get("dialogue_id") is not None:
+        payload["dialogue_id"] = offer["dialogue_id"]
+    return payload
 
 
 def promote_pending_settlement_offers(world: Any) -> List[Dict[str, Any]]:

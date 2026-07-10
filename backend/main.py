@@ -689,32 +689,16 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 # BUGFIX: Safety valve — derive clauses from dialogue context
                 # instead of hardcoding []. Empty clauses cause blank popup
                 # in Godot. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+                # W6-0 (BUG-CA-8): the old inline rebuild here was an
+                # impoverished builder — a failed response re-mounted the
+                # proposal as "Unknown diplomat" while the prose still named
+                # Hardenberg. Route through the same recovery builder the
+                # mailbox activation uses: it prefers the dialogue's own rich
+                # popup_payload and falls back to the full envoy builder
+                # (which resolves the diplomat from world.diplomats).
                 dialogue = world.pending_diplomatic_dialogue
-                context = dialogue.get("context", {})
-                proposal = context.get("proposal", {})
-                sv_proposal_type = proposal.get("type", "unknown")
-                from backend.display_names import (
-                    PERSONALITY_DISPLAY,
-                    diplomatic_decision_reason_display,
-                    proposal_display_name,
-                )
-                from backend.game_logic.mailbox_payloads import build_proposal_popup_clauses
-                decision_reason = str(context.get("decision_reason", ""))
-                response["incoming_proposal"] = {
-                    "from_nation": dialogue.get("target_nation", "Unknown"),
-                    "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
-                    "diplomat_personality": PERSONALITY_DISPLAY.get(
-                        context.get("diplomat_personality", "unknown"), "Unknown"),
-                    "proposal_type": sv_proposal_type,
-                    "proposal_type_display": proposal_display_name(sv_proposal_type),
-                    "clauses": build_proposal_popup_clauses(proposal),
-                    "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
-                    "acceptance_hint": "Review the proposal carefully.",
-                    "rejection_hint": "",
-                    "is_counter_offer": False,
-                    "decision_reason": decision_reason,
-                    "decision_reason_display": diplomatic_decision_reason_display(decision_reason),
-                }
+                response["incoming_proposal"] = (
+                    _build_pending_envoy_popup_from_dialogue(world, dialogue))
             else:
                 response[response_key] = None
 
@@ -1121,6 +1105,56 @@ def execute_command(request: CommandRequest):
                     result = strategic_exec.handle_response(
                         m.name, interrupt_type, choice, world, game_state)
                     return _build_result_response(result, world)
+
+        # ════════════════════════════════════════════════════════════
+        # W6-0 (BUG-CA-1): PENDING-QUESTION ROUTER — when the game itself
+        # just asked a question, the exact answer tokens IT offered must
+        # resolve that question instead of falling into the parser (live
+        # audit: with an objection pending, typed "trust" reached the LLM
+        # parser bewildered and "insist" hit the diplomatic handler).
+        # Deterministic (Golden Rule 6), exact-token only, and each token
+        # reroutes ONLY while its matching state is pending — anything else
+        # falls through to the normal pipeline untouched (no keyword
+        # ownership changes; the fast-parser contract and golden corpus are
+        # unaffected). Runs after the clarification/interrupt steps (the
+        # most recent questions win) and before CR-4 carryover/parsing.
+        # ════════════════════════════════════════════════════════════
+        _pending_answer_token = command_text.strip().lower()
+        if (_pending_answer_token in ("trust", "insist", "compromise")
+                and (world.pending_objection is not None
+                     or getattr(world, "pending_strategic_objection", None)
+                     is not None)):
+            print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+                  f"-> objection response")
+            return _respond_to_objection_sync(_pending_answer_token)
+        if (_pending_answer_token in ("plunder", "secure")
+                and getattr(world, "pending_capture_choice", None)):
+            print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+                  f"-> capture choice")
+            result = executor.handle_capture_choice(
+                _pending_answer_token, game_state)
+            return _build_result_response(result, world)
+        if world.pending_diplomatic_dialogue is not None:
+            _pending_dlg = world.pending_diplomatic_dialogue
+            _dlg_options = _pending_dlg.get("options", []) or []
+            if not _dlg_options and isinstance(
+                    _pending_dlg.get("popup_payload"), dict):
+                _dlg_options = _pending_dlg["popup_payload"].get("options") or []
+            _dlg_action_ids = {
+                str(opt.get("action") or "").strip().lower()
+                for opt in _dlg_options if opt.get("action")
+            }
+            _is_option_digit = (
+                _pending_answer_token.isdigit()
+                and 1 <= int(_pending_answer_token) <= len(_dlg_options))
+            if _is_option_digit or (
+                    _pending_answer_token
+                    and _pending_answer_token in _dlg_action_ids):
+                _dlg_choice = (int(_pending_answer_token) if _is_option_digit
+                               else _pending_answer_token)
+                print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+                      f"-> diplomatic dialogue response")
+                return _respond_to_dialogue_sync(_dlg_choice)
 
         # ════════════════════════════════════════════════════════════
         # CR-4: CONTEXT CARRYOVER — resolve shorthand references ("again",
@@ -1782,8 +1816,22 @@ def respond_to_objection(request: ObjectionResponse):
             return build_base_response(
                 world, success=False, message="The war is over.",
                 game_over=True, victory=world.victory)
+        return _respond_to_objection_sync(request.choice)
+    except Exception as e:
+        print(f"[ERROR] handling objection response: {e}")
+        import traceback
+        traceback.print_exc()
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
+
+
+def _respond_to_objection_sync(choice: str):
+    """Shared objection-response assembly for the endpoint AND the W6-0 typed
+    pending-question router — a typed "trust" must behave byte-identically to
+    the objection popup's Trust button."""
+    try:
         # Handle the objection response through executor
-        result = executor.handle_objection_response(request.choice, game_state)
+        result = executor.handle_objection_response(choice, game_state)
 
         response = build_base_response(
             world,
@@ -1843,21 +1891,41 @@ async def respond_to_diplomatic_dialogue(request: dict):
     """Respond to a diplomatic dialogue from Talleyrand (Phase 8 Session 3).
 
     Args:
-        request: dict with 'choice' field (int 1-based index or str keyword)
+        request: dict with 'choice' field (int 1-based index or str keyword),
+            optional 'action_params' (settlement Tier-2 affordances) and
+            optional 'dialogue_id' (W6-0: the identity of the dialogue the
+            popup rendered — a mismatch with the current top is refused).
     """
     try:
         if world.game_over:
             return build_base_response(
                 world, success=False, message="The war is over.",
                 game_over=True, victory=world.victory)
+        return _respond_to_dialogue_sync(
+            request.get("choice"),
+            action_params=request.get("action_params"),
+            dialogue_id=request.get("dialogue_id"),
+        )
+    except Exception as e:
+        print(f"[ERROR] handling diplomatic dialogue response: {e}")
+        import traceback
+        traceback.print_exc()
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
+
+
+def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None):
+    """Shared dialogue-response assembly for the endpoint AND the W6-0 typed
+    pending-question router — a typed "2" must behave byte-identically to the
+    popup's option-2 button."""
+    try:
         dialogue_before = world.pending_diplomatic_dialogue or {}
-        choice = request.get("choice")
         # Re-front Slice 2: structured settlement Tier-2 affordances (dials /
         # coverage edits / focus) ride on per-court rows + rail buttons and
         # carry `scope` / `nation` params the keyword path cannot express.
-        action_params = request.get("action_params")
         result = executor.handle_diplomatic_dialogue_response(
             choice, game_state, action_params=action_params,
+            dialogue_id=dialogue_id,
         )
 
         # PF-1 / D2: pass the handler's own text through instead of swallowing
@@ -1877,8 +1945,11 @@ async def respond_to_diplomatic_dialogue(request: dict):
         )
         # PF-1 / D3: surface the failure fields so the client can render the
         # reason on a re-mounted dialogue instead of a silent no-op.
+        # W6-0: `stale_dialogue` rides along so the client knows its rendered
+        # dialogue was superseded (the current one is re-attached below).
         for failure_key in ("error", "error_display", "validation_error",
-                            "validation_detail", "validation_error_index"):
+                            "validation_detail", "validation_error_index",
+                            "stale_dialogue"):
             if result.get(failure_key) is not None:
                 response[failure_key] = result[failure_key]
 
@@ -2592,6 +2663,13 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
     """Recover popup payload for an active soft-stop dialogue."""
     from backend.display_names import proposal_display_name
 
+    def _stamp_dialogue_id(popup: dict) -> dict:
+        # W6-0 (BUG-CA-7): every popup shape derived from a dialogue carries
+        # the identity the client must answer with.
+        if dialogue.get("dialogue_id") is not None:
+            popup["dialogue_id"] = dialogue["dialogue_id"]
+        return popup
+
     context = dialogue.get("context", {})
     terms = context.get("counter_terms") or context.get("proposal") or {}
     popup_payload = dialogue.get("popup_payload") or context.get("popup_payload")
@@ -2604,7 +2682,7 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
             proposal_type = popup.get("proposal_type", terms.get("type"))
             if proposal_type is not None:
                 popup["proposal_type_display"] = proposal_display_name(proposal_type)
-        return popup
+        return _stamp_dialogue_id(popup)
 
     existing_popup = getattr(world, "incoming_proposal_popup", None)
     expected_nation = dialogue.get("target_nation", context.get("source_nation", "Unknown"))
@@ -2622,9 +2700,9 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
                 proposal_type = popup.get("proposal_type", expected_type)
                 if proposal_type is not None:
                     popup["proposal_type_display"] = proposal_display_name(proposal_type)
-            return popup
+            return _stamp_dialogue_id(popup)
 
-    return _build_pending_envoy_popup_from_terms(
+    return _stamp_dialogue_id(_build_pending_envoy_popup_from_terms(
         world,
         nation=expected_nation,
         terms=terms,
@@ -2632,7 +2710,7 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
         is_counter_offer=dialogue.get("type", "") in ("counter_offer", "counter_offer_response"),
         acceptance_score=context.get("acceptance_score"),
         decision_reason=context.get("decision_reason", ""),
-    )
+    ))
 
 
 @app.get("/pending_envoy")

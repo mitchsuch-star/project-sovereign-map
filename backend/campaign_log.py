@@ -41,6 +41,12 @@ def _decision_reason_suffix(event: dict) -> str:
     reason = str(event.get("decision_reason", "") or "")
     if not reason:
         return ""
+    # W6-0 (BUG-CA-7 log half): "counterparty_reversal" is a cooldown-
+    # mechanics tag stamped when the PLAYER answers an AI proposal, not a
+    # diplomatic motive — rendering it read as gibberish in the live audit
+    # ("(counterparty reversal)"). Suppress it; real AI motives still render.
+    if reason == "counterparty_reversal":
+        return ""
     return f" ({diplomatic_decision_reason_display(reason)})"
 
 
@@ -1155,15 +1161,19 @@ def format_event_oneliner(event: dict) -> str:
 
     # ── R8 Session 6: format strings for 16 previously-silent types ──
 
+    # W6-0 (BUG-CA-7 log half): these two events fire when the PLAYER answers
+    # an incoming AI proposal — `source` is the nation that PROPOSED, and we
+    # are the side that answered. The old copy reversed the direction
+    # ("Saxony rejected our open borders proposal" when we rejected Saxony's).
     if event_type == "ai_proposal_accepted":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} accepted our {proposal_type} proposal{_decision_reason_suffix(event)}"
+        return f"We accepted {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_rejected":
         source = event.get("source", "Unknown")
         proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
-        return f"{source} rejected our {proposal_type} proposal{_decision_reason_suffix(event)}"
+        return f"We rejected {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_counter_failed":
         source = event.get("source", "Unknown")

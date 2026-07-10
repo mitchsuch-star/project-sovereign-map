@@ -385,7 +385,7 @@ def test_diplomatic_dialogue_endpoint_preserves_must_reopen(monkeypatch):
         proposal_result_popup = None
 
     class FakeExecutor:
-        def handle_diplomatic_dialogue_response(self, choice, game_state, action_params=None):
+        def handle_diplomatic_dialogue_response(self, choice, game_state, action_params=None, dialogue_id=None):
             assert choice == 2
             return {
                 "success": True,

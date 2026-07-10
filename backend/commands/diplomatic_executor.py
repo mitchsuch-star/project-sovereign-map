@@ -2744,6 +2744,7 @@ class DiplomaticExecutor:
 
     def handle_diplomatic_dialogue_response(
         self, choice, game_state: Dict, action_params: Optional[Dict] = None,
+        dialogue_id=None,
     ) -> Dict:
         """Handle player's response to a diplomatic dialogue.
 
@@ -2755,6 +2756,12 @@ class DiplomaticExecutor:
                 Slice 2 settlement Tier-2 dials / coverage edits / focus, which
                 live on per-court rows and rail buttons and carry ``scope`` /
                 ``nation``).
+            dialogue_id: W6-0 (BUG-CA-7) — the identity of the dialogue the
+                client actually RENDERED. When provided and it differs from
+                the current top-of-stack dialogue's id, the choice is NOT
+                applied (the stack shifted between presentation and answer);
+                the current dialogue is re-attached instead. The typed
+                terminal path omits it (it always answers the visible top).
 
         Returns:
             Result dict with success, message, and any new state.
@@ -2767,6 +2774,42 @@ class DiplomaticExecutor:
             return {"success": False, "message": "No diplomatic matter awaits your attention, Sire."}
 
         dialogue = world.pending_diplomatic_dialogue
+
+        # ── W6-0 (BUG-CA-7): bind the response to the PRESENTED dialogue ──
+        # This check runs FIRST, before any choice parsing: an answer aimed at
+        # a dialogue that is no longer on top must never land on whatever
+        # replaced it (live audit: answering Britain's settlement offer
+        # rejected Saxony's never-seen proposal).
+        if dialogue_id is not None:
+            try:
+                requested_id = int(dialogue_id)
+            except (TypeError, ValueError):
+                requested_id = None
+            current_id = dialogue.get("dialogue_id")
+            if (requested_id is not None and requested_id >= 0
+                    and current_id is not None
+                    and requested_id != int(current_id)):
+                from backend.display_names import humanize_entity_name
+                concerns = (
+                    dialogue.get("target_nation")
+                    or dialogue.get("proposer_nation")
+                    or dialogue.get("ally_nation")
+                    or dialogue.get("context", {}).get("source_nation")
+                    or ""
+                )
+                concerns_display = humanize_entity_name(str(concerns)) if concerns \
+                    else "another court"
+                return {
+                    "success": False,
+                    "stale_dialogue": True,
+                    "message": (
+                        f"Sire, another matter has arrived since — this "
+                        f"concerns {concerns_display}. Your earlier answer was "
+                        f"not delivered; the matter before you awaits your "
+                        f"decision."
+                    ),
+                    "diplomatic_dialogue": dialogue,
+                }
         options = dialogue.get("options", [])
         if not options and isinstance(dialogue.get("popup_payload"), dict):
             # Gate-4 1805 smoke (E-3): dialogues promoted before the offer
@@ -2848,12 +2891,23 @@ class DiplomaticExecutor:
                 return _enforce_settlement_response_shape(result, dialogue)
             return result
 
+        def _enumerated_choice_prompt() -> str:
+            """W6-0 (BUG-CA-10): the typed surface has no buttons — the
+            re-prompt must carry the numbered option labels, not just the
+            valid range."""
+            lines = "\n".join(
+                f"  {i + 1}. {opt.get('label', '?')}"
+                for i, opt in enumerate(options)
+            )
+            return (
+                f"Please choose an option (1-{len(options)}), Sire.\n{lines}"
+            )
+
         # Resolve choice to option
         selected = None
         if isinstance(choice, int):
             if choice < 1 or choice > len(options):
-                return _unresolved_choice_failure(
-                    f"Please choose an option (1-{len(options)}), Sire.")
+                return _unresolved_choice_failure(_enumerated_choice_prompt())
             selected = options[choice - 1]
         elif isinstance(choice, str):
             # Try parsing as int
@@ -2943,8 +2997,7 @@ class DiplomaticExecutor:
                             if selected:
                                 break
         else:
-            return _unresolved_choice_failure(
-                f"Please choose an option (1-{len(options)}), Sire.")
+            return _unresolved_choice_failure(_enumerated_choice_prompt())
 
         if not selected:
             labels = [opt.get("label", "?") for opt in options]
