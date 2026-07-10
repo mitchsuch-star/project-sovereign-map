@@ -5734,6 +5734,13 @@ class DiplomaticExecutor:
                 "source_nation": source_nation,
                 "is_counter": True,
                 "decision_reason": context.get("decision_reason", ""),
+                # W6-10 review fix: carry the STABLE P-rule label into the
+                # counter dialogue so a rejected/lapsed counter keys the
+                # type cooldown on the label the P-rule checks read — the
+                # rewritten counter_terms["type"] is the documented trap
+                # (harsh_peace -> "peace") that made the anti-monotony
+                # block silently no-op for counter-offer paths.
+                "proposal_type": context.get("proposal_type", ""),
             },
             "turn_created": int(world.current_turn),
             "blocking": True,

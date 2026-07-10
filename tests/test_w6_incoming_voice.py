@@ -239,6 +239,45 @@ class TestAntiMonotony:
         assert second["proposal_type"] != first_type
 
 
+class TestCounterOfferCarriesStableLabel:
+    def test_counter_dialogue_context_keeps_proposal_type(self, world,
+                                                          monkeypatch):
+        """Review fix: the successful-counter dialogue must carry the
+        STABLE P-rule label so a rejected/lapsed counter keys the type
+        cooldown on the label the P-rule checks read (harsh_peace), never
+        the rewritten terms type (peace) — the documented trap."""
+        import backend.game_logic.ai_diplomacy as aidip
+        from backend.commands.executor import CommandExecutor
+
+        harsh_terms = {"type": "peace", "proposer_nation": "Austria",
+                       "target_nation": "France", "sweeteners": [],
+                       "demands": [{"type": "gold_lump", "value": 500}],
+                       "clauses": []}
+        monkeypatch.setattr(aidip, "generate_counter_offer",
+                            lambda terms, w: dict(terms))
+        dialogue = {
+            "type": "incoming_proposal", "target_nation": "Austria",
+            "talleyrand_text": "x",
+            "options": [],
+            "context": {"proposal": harsh_terms,
+                        "source_nation": "Austria",
+                        "proposal_type": "harsh_peace",
+                        "decision_reason": "war_overload"},
+            "turn_created": int(world.current_turn), "blocking": False,
+        }
+        world.diplomatic_points = 3
+        executor = CommandExecutor()
+        result = executor._diplomatic._handle_counter_ai_proposal(
+            dialogue, world)
+        assert result["success"] is True, result.get("message")
+        counter = world.pending_diplomatic_dialogue
+        assert counter["type"] == "counter_offer"
+        assert counter["context"]["proposal_type"] == "harsh_peace"
+        # And the lapse extractor reads the stable label from it
+        info = world.dialogue_manager._extract_lapse_info(counter)
+        assert info["proposal_type"] == "harsh_peace"
+
+
 # ════════════════════════════════════════════════════════════════════════
 # 3. E-CA-5 — territorial honesty
 # ════════════════════════════════════════════════════════════════════════

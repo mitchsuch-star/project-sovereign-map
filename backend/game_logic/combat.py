@@ -679,14 +679,24 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════════
         # FORCED RETREAT CHECK: Armies with critically low morale must retreat
         # Uses module-level FORCED_RETREAT_THRESHOLD (25%)
+        # W6-11 review guard: the VICTOR of this battle is never routed BY
+        # this battle — the symmetric morale cost (which now bites winners
+        # too) still lands and weakens his NEXT fight, but a marshal cannot
+        # flee the field he just won (nor feed the W6-7 fate machinery with
+        # the army he destroyed as his captor). Losers and stalemate sides
+        # keep the old rule.
         # ════════════════════════════════════════════════════════════════
+        _atk_is_victor = outcome in ("attacker_victory", "attacker_tactical_victory")
+        _def_is_victor = outcome in ("defender_victory", "defender_tactical_victory")
         attacker_forced_retreat = (
             attacker.strength > 0 and
-            attacker.morale <= FORCED_RETREAT_THRESHOLD
+            attacker.morale <= FORCED_RETREAT_THRESHOLD and
+            not _atk_is_victor
         )
         defender_forced_retreat = (
             defender.strength > 0 and
-            defender.morale <= FORCED_RETREAT_THRESHOLD
+            defender.morale <= FORCED_RETREAT_THRESHOLD and
+            not _def_is_victor
         )
 
         # Add forced retreat message to description if applicable

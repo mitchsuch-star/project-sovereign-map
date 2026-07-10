@@ -177,8 +177,17 @@ def list_eligible_estates(world, nation: str) -> List[str]:
 
     Rides the cached get_nation_regions index (GR8) — never a full
     region scan.
+
+    W6-8 review fix: the exclusion covers ANY nation's marshal's rolls
+    (matching check_estate_eligibility's un-dotated rule) — a RESPECTED
+    foreign estate on our occupied soil stays on its holder's rolls
+    indefinitely, and offering it here starved the AI's grant rung (the
+    refusal added grant_dotation to skip_actions) and showed the player
+    a suggestion the executor always refused.
     """
-    dotated = get_nation_dotation_map(world, nation)
+    dotated = set()
+    for marshal in world.marshals.values():
+        dotated.update(getattr(marshal, "dotation_regions", []))
     homeland = set(world.nation_starting_regions.get(nation, []))
     eligible = []
     for region_name in world.get_nation_regions(nation):

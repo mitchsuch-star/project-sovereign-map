@@ -1574,6 +1574,11 @@ class CombatExecutor:
 
         if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
             return None
+        # W6-11 review hardening: an annihilated enemy takes no prisoners —
+        # the fate machinery needs a LIVE captor army (belt-and-braces with
+        # the victor forced-retreat guard in combat.py/the S62 loop).
+        if enemy is None or getattr(enemy, "strength", 0) <= 0:
+            return None
         captor_nation = getattr(enemy, "nation", "") if enemy else ""
         if not captor_nation or captor_nation == marshal.nation:
             return None
@@ -3610,11 +3615,20 @@ class CombatExecutor:
 
             # Set forced_retreat flags per-primary for _handle_forced_retreat
             # Uses module-level FORCED_RETREAT_THRESHOLD from combat.py (Bug 7 fix)
+            # W6-11 review guard (mirrors resolve_battle): the VICTOR of
+            # this battle is never routed BY it — the symmetric morale cost
+            # weakens his next fight instead.
+            _atk_victor = outcome in ("attacker_victory", "attacker_tactical_victory")
+            _def_victor = outcome in ("defender_victory", "defender_tactical_victory")
             battle_result["attacker"]["forced_retreat"] = (
-                marshal.strength > 0 and marshal.morale <= FORCED_RETREAT_THRESHOLD
+                marshal.strength > 0
+                and marshal.morale <= FORCED_RETREAT_THRESHOLD
+                and not _atk_victor
             )
             battle_result["defender"]["forced_retreat"] = (
-                enemy_marshal.strength > 0 and enemy_marshal.morale <= FORCED_RETREAT_THRESHOLD
+                enemy_marshal.strength > 0
+                and enemy_marshal.morale <= FORCED_RETREAT_THRESHOLD
+                and not _def_victor
             )
 
             # Set notification flags for _process_combat_notifications
@@ -3987,17 +4001,21 @@ class CombatExecutor:
         )
 
         # [S62] Handle forced retreat for non-primary participants in coordinated battles
+        # W6-11 review guard: participants on the WINNING side are never
+        # routed by the battle they just won (mirrors resolve_battle).
         if is_coordinated_battle:
-            for p in atk_participants:
-                if p.name != marshal.name and p.strength > 0 and p.morale <= 25:
-                    msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
-                    if msg:
-                        forced_retreat_msg += "\n" + msg
-            for p in def_participants:
-                if p.name != enemy_marshal.name and p.strength > 0 and p.morale <= 25:
-                    msg = self._apply_forced_retreat_or_break(p, marshal, world)
-                    if msg:
-                        forced_retreat_msg += "\n" + msg
+            if not atk_won:
+                for p in atk_participants:
+                    if p.name != marshal.name and p.strength > 0 and p.morale <= 25:
+                        msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
+                        if msg:
+                            forced_retreat_msg += "\n" + msg
+            if not def_won:
+                for p in def_participants:
+                    if p.name != enemy_marshal.name and p.strength > 0 and p.morale <= 25:
+                        msg = self._apply_forced_retreat_or_break(p, marshal, world)
+                        if msg:
+                            forced_retreat_msg += "\n" + msg
 
             # ── Gate 4: Reinforcer retreat on non-win ──
             # Reinforcers who relocated to battle region must return to

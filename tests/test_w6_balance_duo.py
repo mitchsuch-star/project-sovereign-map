@@ -163,6 +163,68 @@ class TestMoraleSymmetry:
 
 
 # ════════════════════════════════════════════════════════════════════════
+# 1b. W6-11 review guards — the victor never routs from his own victory
+# ════════════════════════════════════════════════════════════════════════
+
+
+class TestVictorNeverRoutedByOwnVictory:
+    def test_victor_never_flagged_forced_retreat(self):
+        """Post-review guard: the symmetric morale cost can drop a WINNER
+        below the forced-retreat threshold — but a marshal never flees the
+        field he just won. Invariant across seeds and both sides."""
+        import random as _random
+        resolver = CombatResolver()
+        for seed in range(30):
+            _random.seed(seed)
+            attacker = Marshal("Atk", "Paris", 30000, "aggressive",
+                               nation="France")
+            defender = Marshal("Def", "Vienna", 45000, "cautious",
+                               nation="Austria")
+            attacker.morale = 30
+            defender.morale = 30
+            result = resolver.resolve_battle(attacker, defender)
+            outcome = result["log_battle_event"]["outcome"]
+            if outcome in ("attacker_victory", "attacker_tactical_victory"):
+                assert result["attacker"]["forced_retreat"] is False
+            if outcome in ("defender_victory", "defender_tactical_victory"):
+                assert result["defender"]["forced_retreat"] is False
+
+    def test_loser_still_routs_below_threshold(self):
+        """The guard exempts only the victor — a loser (or stalemate side)
+        under the threshold keeps the old rule."""
+        import random as _random
+        resolver = CombatResolver()
+        seen_loser_rout = False
+        for seed in range(60):
+            _random.seed(seed)
+            attacker = Marshal("Atk", "Paris", 20000, "aggressive",
+                               nation="France")
+            defender = Marshal("Def", "Vienna", 60000, "cautious",
+                               nation="Austria")
+            attacker.morale = 35
+            result = resolver.resolve_battle(attacker, defender)
+            outcome = result["log_battle_event"]["outcome"]
+            if (outcome in ("defender_victory", "defender_tactical_victory")
+                    and attacker.strength > 0 and attacker.morale <= 25):
+                assert result["attacker"]["forced_retreat"] is True
+                seen_loser_rout = True
+        assert seen_loser_rout, "no losing-rout case sampled — widen seeds"
+
+    def test_annihilated_enemy_takes_no_prisoners(self, world):
+        """W6-7 fate hardening: the fate machinery needs a LIVE captor —
+        a destroyed army cannot capture the marshal who destroyed it."""
+        executor = CommandExecutor()
+        marshal = world.marshals["Ney"]
+        marshal.strength = 3000  # under the fate floor
+        enemy = next(m for m in world.marshals.values()
+                     if m.nation == "Austria")
+        enemy.strength = 0  # annihilated
+        outcome = executor._combat._check_marshal_fate(marshal, enemy, world)
+        assert outcome is None
+        assert not getattr(marshal, "captured_by", "")
+
+
+# ════════════════════════════════════════════════════════════════════════
 # 2. E-CA-3 — war-priced recruitment
 # ════════════════════════════════════════════════════════════════════════
 

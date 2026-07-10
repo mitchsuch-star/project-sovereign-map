@@ -323,6 +323,19 @@ class TestRespect:
         assert world.respected_estates == []
         assert respected_estate_mod(world, "France", "Austria") == 0
 
+    def test_respected_foreign_estate_not_listed_endowable(self, world, executor):
+        """Review fix: a respected FOREIGN estate on our occupied soil must
+        not be offered as endowable (the executor would always refuse it,
+        and the AI grant rung starved on the refusal)."""
+        from backend.game_logic.dotation import list_eligible_estates
+        holder, region = self._respected(world, executor)
+        assert region.controller == "France"
+        assert region.name not in list_eligible_estates(world, "France")
+        # And the refusal-consistency invariant holds for everything listed
+        for name in list_eligible_estates(world, "France")[:6]:
+            ok, _ = check_estate_eligibility(world, "France", name)
+            assert ok, f"{name} listed but refused"
+
     def test_entry_pruned_when_estate_returns_home(self, world, executor):
         holder, region = self._respected(world, executor)
         region.controller = "Austria"  # holder nation recaptured
