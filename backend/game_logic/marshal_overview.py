@@ -291,6 +291,13 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
         "retreat_recovery": int(marshal.retreat_recovery),
         "is_broken": bool(marshal.broken),
         "broken_recovery": int(marshal.broken_recovery),
+        # MC-1c Iron Resolve — derived bonus % ships with the count so the
+        # card renders backend numbers (shown = applied; 0 for non-carriers)
+        "iron_resolve_stacks": int(getattr(marshal, 'iron_resolve_stacks', 0)),
+        "iron_resolve_bonus_pct": int(round(
+            getattr(marshal, 'iron_resolve_stacks', 0)
+            * Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100)),
+        "iron_resolve_max_stacks": int(Marshal.IRON_RESOLVE_MAX_STACKS),
         "idle_turns": int(marshal.idle_turns),
         "is_autonomous": bool(marshal.autonomous),
         "autonomy_reason": marshal.autonomy_reason,

@@ -93,6 +93,12 @@
             "location": "Rhineland",
             "strength": 26000,
             "personality": "cautious",
+            "ability": {
+                "name": "Iron Resolve",
+                "description": "The iron marshal coils behind his earthworks - patient discipline becomes a hammer-blow when III Corps springs",
+                "trigger": "when_fortifying",
+                "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
+            },
             "biography": "III Corps - crossed the Rhine at Mannheim on September 26. The iron marshal, exacting and incorruptible."
         },
         "Soult": {

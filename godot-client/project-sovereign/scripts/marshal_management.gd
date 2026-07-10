@@ -246,6 +246,12 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if m.get("is_fortified", false):
 		var def_bonus = int(m.get("defense_bonus", 0))
 		flags.append("[color=#" + Utils.COLOR_BLUE + "]FORTIFIED +" + str(def_bonus) + "%[/color]")
+	# MC-1c Iron Resolve: render the backend's derived numbers (shown = applied)
+	var iron_stacks = int(m.get("iron_resolve_stacks", 0))
+	if iron_stacks > 0:
+		var iron_pct = int(m.get("iron_resolve_bonus_pct", 0))
+		var iron_max = int(m.get("iron_resolve_max_stacks", 3))
+		flags.append("[color=#" + Utils.COLOR_GOLD + "]IRON RESOLVE " + str(iron_stacks) + "/" + str(iron_max) + " (+" + str(iron_pct) + "% next attack)[/color]")
 	if m.get("is_drilling", false):
 		var drill_txt = "DRILLING"
 		if m.get("drilling_locked", false):

@@ -1623,6 +1623,7 @@ class DisobedienceSystem:
             # Clear field presence (troops frozen, not transferred)
             marshal.strength = 0
             marshal.location = None
+            marshal.clear_iron_resolve()  # MC-1c: leaving the field
 
             # Grant bonus action
             world.bonus_actions = getattr(world, 'bonus_actions', 0) + 1

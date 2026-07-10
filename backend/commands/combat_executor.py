@@ -1388,6 +1388,19 @@ class CombatExecutor:
         # no coordination recompute, so a stale bonus left on an ally (e.g. by a
         # glorious charge out of a shared region) would otherwise be applied here.
         self._calculate_coordination_context(marshal, world)
+        # MC-1c: a garrison assault IS an attack — get_attack_modifier below
+        # consumes Iron Resolve stacks (anti-banking rule). Save the count
+        # pre-consumption so the message can name it (shown = applied).
+        iron_stacks_fired = (marshal.iron_resolve_stacks
+                             if (hasattr(marshal, 'has_iron_resolve')
+                                 and marshal.has_iron_resolve()) else 0)
+        iron_note = ""
+        if iron_stacks_fired > 0:
+            _iron_pct = int(round(iron_stacks_fired
+                                  * marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
+            iron_note = (f" (Iron Resolve: {iron_stacks_fired} coiled "
+                         f"stack{'s' if iron_stacks_fired != 1 else ''} released — "
+                         f"+{_iron_pct}% attack)")
         # Attacker effective strength (uses single-source modifier from marshal.py)
         attacker_modifier = marshal.get_attack_modifier()
         attacker_effective = int(marshal.strength * attacker_modifier)
@@ -1480,7 +1493,7 @@ class CombatExecutor:
                 marshal, target_region.name, world, game_state, had_garrison=False)
 
             msg = (
-                f"{marshal.name} assaults the {target_region.name} garrison! "
+                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
                 f"Garrison collapses ({old_garrison:,} -> 0). "
                 f"{marshal.name} loses {attacker_losses:,} troops in the assault. "
                 f"{marshal.name} marches into {target_region.name}!"
@@ -1536,7 +1549,7 @@ class CombatExecutor:
         else:
             # Garrison holds — attacker stays in place
             msg = (
-                f"{marshal.name} assaults the {target_region.name} garrison! "
+                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
                 f"Garrison: {old_garrison:,} -> {target_region.garrison_strength:,} "
                 f"(-{garrison_losses:,}). "
                 f"{marshal.name} loses {attacker_losses:,} troops. "
@@ -1758,6 +1771,7 @@ class CombatExecutor:
         marshal.occupation_turns_required = 0
         marshal.retreating = False
         marshal.broken = False
+        marshal.clear_iron_resolve()  # MC-1c: captured — the coil is gone
         captor_capital = world.get_nation_capital(captor_nation)
         if captor_capital:
             marshal.location = captor_capital
@@ -3345,6 +3359,9 @@ class CombatExecutor:
                             artillery_reinforced_adjacent.append(arriving)
                         else:
                             arriving.location = battle_region_name
+                            # MC-1c: direct assignment bypasses move_to —
+                            # marching to the guns uncoils Iron Resolve.
+                            arriving.clear_iron_resolve()
                             arrived_names.add(arriving.name)
                         arriving.reinforced_this_turn = True
                         # Clear path (now invalid) but DO NOT clear strategic_order yet (A-C2)
@@ -4165,6 +4182,7 @@ class CombatExecutor:
                             and not getattr(p, 'retreated_this_turn', False)
                             and p.location == battle_region_name):
                         p.location = origin
+                        p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
                         forced_retreat_msg += (
                             f"\n{p.name} withdraws to {origin} after the battle.")
             if not def_won:
@@ -4176,6 +4194,7 @@ class CombatExecutor:
                             and not getattr(p, 'retreated_this_turn', False)
                             and p.location == battle_region_name):
                         p.location = origin
+                        p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
                         forced_retreat_msg += (
                             f"\n{p.name} withdraws to {origin} after the battle.")
 

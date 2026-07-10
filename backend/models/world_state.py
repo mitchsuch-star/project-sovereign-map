@@ -3152,6 +3152,9 @@ class WorldState:
                 or getattr(marshal, "spawn_location", None)
                 or marshal.location)
         marshal.location = home
+        # MC-1c review fix (MED): direct location assignment bypasses
+        # move_to — a released prisoner comes home with no coil.
+        marshal.clear_iron_resolve()
         self.log_event({
             "type": "marshal_released",
             "marshal": marshal.name,
@@ -5709,6 +5712,15 @@ class WorldState:
                         "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
                         "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
                         "counter_punch_ready": bool(getattr(m, 'counter_punch_ready', False)),
+                        # Iron Resolve stacks (MC-1c) — derived bonus % ships
+                        # alongside so the tooltip renders backend numbers
+                        # (Q3/Drillmaster pattern: shown = applied, no
+                        # hardcoded table in Godot)
+                        "iron_resolve_stacks": int(getattr(m, 'iron_resolve_stacks', 0)),
+                        "iron_resolve_bonus_pct": int(round(
+                            getattr(m, 'iron_resolve_stacks', 0)
+                            * Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100)),
+                        "iron_resolve_max_stacks": int(Marshal.IRON_RESOLVE_MAX_STACKS),
                         "holding_position": bool(getattr(m, 'holding_position', False)),
                         "hold_region": str(getattr(m, 'hold_region', '')),
                         # Broken army state (surrounded + forced retreat)
@@ -8019,6 +8031,46 @@ class WorldState:
                 # Use cumulative turns for decay — prevents exploit where unfortify resets timer
                 turns_fortified = marshal.cumulative_fortification_turns
 
+                # ════════════════════════════════════════════════════════
+                # IRON RESOLVE (MC-1c): each fortified turn coils +1 resolve
+                # stack, max 3 — further fortified turns add NOTHING (the
+                # anti-banking cap). Accrues during growth AND decay phases
+                # (any turn spent fortified counts); consumed only by his
+                # next attack (marshal.get_attack_modifier). GR5: keyed off
+                # the ability name — this loop runs for BOTH sides.
+                # Shown = applied: the event names the exact bonus carried.
+                # Review fix (HIGH): the coil only holds while he STANDS —
+                # the stale `fortified` flag survives forced retreat and
+                # capture (pre-existing; move_to/_capture_marshal never
+                # clear it), so accrual must independently refuse routed,
+                # imprisoned, and off-field (admin) marshals or a fleeing
+                # carrier re-coils during recovery.
+                # ════════════════════════════════════════════════════════
+                if (marshal.has_iron_resolve()
+                        and not getattr(marshal, 'retreating', False)
+                        and not getattr(marshal, 'broken', False)
+                        and not getattr(marshal, 'captured_by', '')
+                        and marshal.location is not None
+                        and marshal.iron_resolve_stacks < marshal.IRON_RESOLVE_MAX_STACKS):
+                    marshal.iron_resolve_stacks += 1
+                    _ir_stacks = marshal.iron_resolve_stacks
+                    _ir_pct = int(round(_ir_stacks * marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
+                    _ir_max = marshal.IRON_RESOLVE_MAX_STACKS
+                    debug_print(f"  [TACTICAL] IRON RESOLVE: {marshal.name} coils to {_ir_stacks}/{_ir_max} (+{_ir_pct}% next attack)")
+                    events.append({
+                        "type": "iron_resolve_stack",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                        "stacks": int(_ir_stacks),
+                        "max_stacks": int(_ir_max),
+                        "attack_bonus_pct": int(_ir_pct),
+                        "message": (
+                            f"{marshal.name}'s resolve hardens behind his earthworks "
+                            f"({_ir_stacks}/{_ir_max}) — his next assault will strike "
+                            f"+{_ir_pct}% harder. (Iron Resolve)"
+                        )
+                    })
+
                 # Decay thresholds and rates by personality
                 decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
 
@@ -9111,6 +9163,9 @@ class WorldState:
                 if retreat_to:
                     old_location = marshal.location
                     marshal.location = retreat_to
+                    # MC-1c: direct location assignment bypasses move_to —
+                    # a retreat (a move AND a rout) uncoils Iron Resolve.
+                    marshal.clear_iron_resolve()
                     # Enter retreat recovery system (replaces legacy just_retreated flag)
                     marshal.retreating = True
                     marshal.retreat_recovery = 0

@@ -54,10 +54,11 @@ class TestBootAbilities:
         assert charles.ability.get("name") == "Habsburg Resolve"
 
     def test_unauthored_1805_marshals_stay_default(self, world):
-        # Davout's Iron Resolve is the T2 slice (MC-1c); Mack and the other
-        # memo-§2 marshals are NO-ability by design. (The T1 seven are
+        # Mack and the other memo-§2 marshals are NO-ability by design.
+        # (Davout left this list at MC-1c — Iron Resolve is pinned in
+        # test_marshal_content_mc1c_iron_resolve.py; the T1 seven are
         # pinned in test_marshal_content_mc1b_t1_abilities.py.)
-        for name in ("Davout", "Mack", "ArchdukeJohn", "Buxhowden",
+        for name in ("Mack", "ArchdukeJohn", "Buxhowden",
                      "Brunswick", "Hohenlohe", "Deroy"):
             marshal = world.get_marshal(name)
             assert marshal.ability.get("name") == "None", name
@@ -110,14 +111,17 @@ class TestCardDisplay:
         assert ney_card["ability_name"] == "Bravest of the Brave"
         assert ney_card["ability_trigger"] == "when_attacking"
 
-    def test_unauthored_wired_name_stays_inactive(self, world):
-        # Davout is in _WIRED_ABILITY_MARSHALS ahead of his MC-1c slice
-        # (Iron Resolve, T2) — the MC-0 real-name gate must keep his card
-        # inactive until it lands. MC-1c owns flipping this pin.
+    def test_davout_card_active_after_mc1c(self, world):
+        # FLIPPED + RENAMED at MC-1c (as the original pin's comment
+        # promised): Davout's Iron Resolve is now authored in
+        # europe_1805.json, so his card goes ACTIVE through the same MC-0
+        # real-name gate that kept it inactive while the name was wired
+        # but unauthored. (The inactive arm stays independently pinned in
+        # test_marshal_content_mc0_ability_display.py.)
         cards = build_marshal_overview(world)
         davout_card = next(c for c in cards if c["name"] == "Davout")
-        assert davout_card["ability_active"] is False
-        assert davout_card["ability_name"] == ""
+        assert davout_card["ability_active"] is True
+        assert davout_card["ability_name"] == "Iron Resolve"
 
     def test_charles_ability_section_active(self, world):
         # Enemy marshals get no player card; pin the section builder directly.

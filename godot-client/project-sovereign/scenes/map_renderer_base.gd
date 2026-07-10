@@ -1824,6 +1824,18 @@ func _draw_marshal_tooltip():
 		if shock_bonus > 0:
 			_push_tooltip_line(lines, "SHOCK READY: +%s%% attack bonus" % int(shock_bonus * 10), Color(0.3, 0.9, 0.3))
 
+		# MC-1c Iron Resolve: coiled stacks — render the backend's derived
+		# numbers (Q3 pattern: shown = applied, no hardcoded table here)
+		var iron_stacks = int(tactical_state.get("iron_resolve_stacks", 0))
+		if iron_stacks > 0:
+			var iron_pct = int(tactical_state.get("iron_resolve_bonus_pct", 0))
+			var iron_max = int(tactical_state.get("iron_resolve_max_stacks", 3))
+			_push_tooltip_line(
+				lines,
+				"IRON RESOLVE: %s/%s stacks (+%s%% next attack)" % [iron_stacks, iron_max, iron_pct],
+				Color(0.9, 0.8, 0.3)
+			)
+
 		if tactical_state.get("fortified", false):
 			var fort_text = "FORTIFIED: +%s%%" % int(tactical_state.get("defense_bonus", 0))
 			var fort_color = Color(0.5, 0.7, 0.9)

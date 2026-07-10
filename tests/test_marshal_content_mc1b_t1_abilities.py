@@ -113,10 +113,11 @@ class TestBootPins:
         w = build_world("1805")
         assert w.get_marshal(name).ability.get("name") == ability
 
-    def test_davout_stays_unauthored_until_mc1c(self):
-        # Iron Resolve is the T2 slice (MC-1c) — not authored here.
+    def test_davout_boots_with_iron_resolve_after_mc1c(self):
+        # FLIPPED + RENAMED at MC-1c: the T2 slice landed — Davout boots
+        # with Iron Resolve (the tenth and last blessed MC-1 ability).
         w = build_world("1805")
-        assert w.get_marshal("Davout").ability.get("name") == "None"
+        assert w.get_marshal("Davout").ability.get("name") == "Iron Resolve"
 
     def test_murat_is_cavalry(self):
         # First Horseman is cavalry-gated; the roster flag is load-bearing.

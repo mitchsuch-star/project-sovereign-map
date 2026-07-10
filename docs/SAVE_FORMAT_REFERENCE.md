@@ -446,6 +446,7 @@ Reserved future `event_log` payloads:
   "counter_punch_available": false,
   "counter_punch_turns": 0,
   "counter_punch_ready": false,
+  "iron_resolve_stacks": 0,
 
   "holding_position": false,
   "hold_region": "",
@@ -601,6 +602,7 @@ Reserved future `event_log` payloads:
 | `counter_punch_available` | bool | Cautious free attack earned (personality trait) |
 | `counter_punch_turns` | int | Turns to use counter-punch |
 | `counter_punch_ready` | bool | Davout Counter-Punch Mastery: +20% next attack after defending |
+| `iron_resolve_stacks` | int | Iron Resolve (MC-1c): coiled fortify stacks, max 3 — next attack consumes all for +8% each; survive unfortify, clear on move/retreat/broken. Load default 0 |
 | `holding_position` | bool | Grouchy Immovable active |
 | `hold_region` | string | Region where holding |
 

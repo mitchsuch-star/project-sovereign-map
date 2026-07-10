@@ -462,6 +462,18 @@ class Marshal:
         # Clears at turn end if unused. Does NOT stack (stays boolean).
         self.counter_punch_ready: bool = False
 
+        # DAVOUT - Iron Resolve (MC-1c, the MC-1 set's only T2 serialized state)
+        # Keyed off ability name "Iron Resolve" (GR5: any carrier, either side).
+        # +1 stack per fortified turn at the _process_tactical_states fortify
+        # tick, max IRON_RESOLVE_MAX_STACKS. His NEXT attack consumes ALL
+        # stacks for +8% each inside get_attack_modifier() ONLY (GR1/GR4).
+        # Stacks SURVIVE unfortify (a fortified marshal cannot attack, so the
+        # release forfeits the fortify defense bonus — peak +24% never rides
+        # a fortified posture; self-balancing, do not "fix"). Stacks CLEAR on
+        # move (move_to / clear_iron_resolve at the direct-assignment seams)
+        # and on retreat/broken — the coil only holds while he stands.
+        self.iron_resolve_stacks: int = 0
+
         # GROUCHY (Literal) - Immovable tracking
         # Set True when given hold/defend order
         # Provides +15% defense while holding position
@@ -602,6 +614,9 @@ class Marshal:
             if self.holding_position:
                 self.holding_position = False
                 self.hold_region = ""
+
+            # IRON RESOLVE (MC-1c): moving uncoils the spring
+            self.clear_iron_resolve()
 
     # ════════════════════════════════════════════════════════════
     # RELATIONSHIPS SYSTEM (Phase 4)
@@ -877,6 +892,7 @@ class Marshal:
         WARNING: This method has SIDE EFFECTS. It consumes (zeroes out):
         - strategic_combat_bonus (one-time inspiring command bonus)
         - counter_punch_ready (Davout's +20% after defending)
+        - iron_resolve_stacks (Iron Resolve: +8%/stack, all stacks — MC-1c)
         These are read-then-clear by design — call only ONCE per combat.
 
         Args:
@@ -928,6 +944,17 @@ class Marshal:
                 and getattr(self, 'counter_punch_ready', False)):
             modifier *= 1.20  # +20%
             self.counter_punch_ready = False  # Consume after use
+
+        # Iron Resolve (MC-1c): the coiled spring releases — ANY attack
+        # consumes ALL stacks for +8% each (max +24%). Consumed HERE only
+        # (GR1: combat.py reads, never recalculates; GR4: read, use, clear).
+        # No banking: the second attack gets nothing.
+        if (hasattr(self, 'ability')
+                and self.ability.get("name") == "Iron Resolve"):
+            iron_stacks = getattr(self, 'iron_resolve_stacks', 0)
+            if iron_stacks > 0:
+                modifier *= (1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
+                self.iron_resolve_stacks = 0  # Consume after use
 
         # Exhaustion penalty / cavalry momentum (attack spam prevention / B5 Balance)
         # Applied AFTER other modifiers (multiplicative with recklessness)
@@ -1039,6 +1066,26 @@ class Marshal:
     # MC-1 (July 10, 2026 gate): Habsburg Resolve's personal rout threshold —
     # in-band tunable, ~10 morale points of extra staying power vs the global 25.
     HABSBURG_ROUT_THRESHOLD = 15
+
+    # MC-1c (July 10, 2026 gate): Iron Resolve blessed numbers — in-band tunable.
+    # +8% attack per stack, max 3 stacks (+24% peak). Every display surface
+    # (fortify-tick event, battle report, combat description, card, tooltip)
+    # derives its percentage from IRON_RESOLVE_BONUS_PER_STACK: shown = applied.
+    IRON_RESOLVE_MAX_STACKS = 3
+    IRON_RESOLVE_BONUS_PER_STACK = 0.08
+
+    def has_iron_resolve(self) -> bool:
+        """MC-1c: does this marshal carry Iron Resolve? (GR5: name-keyed,
+        any marshal on either side — never keyed to 'Davout')."""
+        return (hasattr(self, 'ability')
+                and self.ability.get("name") == "Iron Resolve")
+
+    def clear_iron_resolve(self) -> None:
+        """MC-1c: the coil only holds while he stands. Called on any real
+        location change (move_to + the direct location-assignment seams)
+        and wherever retreat/broken is applied without a move_to."""
+        if getattr(self, 'iron_resolve_stacks', 0):
+            self.iron_resolve_stacks = 0
 
     def get_rout_threshold(self, base_threshold: int) -> int:
         """Morale at/below which a non-victor is forced to retreat (MC-1).
@@ -1274,6 +1321,9 @@ class Marshal:
             "counter_punch_turns": int(self.counter_punch_turns),
             "counter_punch_ready": self.counter_punch_ready,
 
+            # ═══════ IRON RESOLVE (MC-1c) ═══════
+            "iron_resolve_stacks": int(self.iron_resolve_stacks),
+
             # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
             "holding_position": self.holding_position,
             "hold_region": self.hold_region,
@@ -1430,6 +1480,9 @@ class Marshal:
         marshal.counter_punch_available = data.get("counter_punch_available", False)
         marshal.counter_punch_turns = data.get("counter_punch_turns", 0)
         marshal.counter_punch_ready = data.get("counter_punch_ready", False)
+
+        # ═══════ IRON RESOLVE (MC-1c) ═══════
+        marshal.iron_resolve_stacks = data.get("iron_resolve_stacks", 0)
 
         # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
         marshal.holding_position = data.get("holding_position", False)

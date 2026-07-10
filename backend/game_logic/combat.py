@@ -24,6 +24,7 @@ def _build_tactical_prefix(
     terrain_defense_message="", cavalry_terrain_message="",
     cavalry_counter_message="", square_cavalry_message="",
     square_artillery_message="", glorious_charge_message="",
+    iron_resolve_message="",
 ):
     """Build tactical prefix string from combat modifier messages.
 
@@ -37,6 +38,7 @@ def _build_tactical_prefix(
         (defender_stance_message, "\n[Shield] "),
         (defender_personality_message, "\n[Shield] "),
         (drill_bonus_message, "\n[Combat] "),
+        (iron_resolve_message, "\n[Combat] "),
         (fortify_bonus_message, "\n[Fort] "),
         (drilling_penalty_message, "\n[Warning] "),
         (exhaustion_message, "\n[Alert] "),
@@ -261,6 +263,9 @@ class CombatResolver:
         #   - Lannes "Roland of the Army": +15 reinforcement arrival (combat_executor._calculate_arrival_score)
         #   - Bernadotte "Eyes on a Crown": +10pp defiance after insistence (defiance.py) AND -15 arrival (combat_executor)
         #   - Moore "Shorncliffe System": recruits arrive at morale 60 (economy_executor._execute_recruit)
+        #   - Davout "Iron Resolve" (MC-1c): fortified turns coil +1 stack (world_state fortify tick, max 3);
+        #     his next attack consumes all stacks for +8% each (marshal.py get_attack_modifier);
+        #     stacks survive unfortify, clear on move/retreat/broken (marshal.clear_iron_resolve)
         # Unwired:
         #   - Grouchy "Literal Obedience": order compliance (wired via disobedience.py, not combat)
         #   - Gneisenau "Staff Work": ally bonus (deferred to Phase 7 Session 58 — needs coordination fields)
@@ -296,6 +301,24 @@ class CombatResolver:
         drill_bonus_message = None
         if attacker_drill_bonus > 0:
             drill_bonus_message = f"{attacker.name}'s drilled troops attack with +{attacker_drill_bonus * 10}% effectiveness!"
+
+        # ════════════════════════════════════════════════════════════
+        # IRON RESOLVE (MC-1c): save stacks BEFORE get_attack_modifier()
+        # consumes them (drill-bonus pattern — message from the saved
+        # value; the consume itself lives in marshal.py per GR1/GR4).
+        # ════════════════════════════════════════════════════════════
+        attacker_iron_stacks = (getattr(attacker, 'iron_resolve_stacks', 0)
+                                if (hasattr(attacker, 'has_iron_resolve')
+                                    and attacker.has_iron_resolve()) else 0)
+        iron_resolve_message = None
+        if attacker_iron_stacks > 0:
+            from backend.models.marshal import Marshal as _Marshal
+            _iron_pct = int(round(attacker_iron_stacks * _Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
+            iron_resolve_message = (
+                f"{attacker.name}'s coiled resolve is released — "
+                f"{attacker_iron_stacks} stack{'s' if attacker_iron_stacks != 1 else ''} "
+                f"of patient fortification strike as one! (Iron Resolve: +{_iron_pct}% attack)"
+            )
 
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION MESSAGE (Phase 3 - Attack Spam Prevention)
@@ -580,6 +603,7 @@ class CombatResolver:
                 attacker_modifier_snapshot, defender_modifier_snapshot,
                 is_drilling,
                 square_cavalry_message, square_artillery_message,
+                iron_resolve_message=iron_resolve_message,
             )
 
         # Apply casualties FIRST (this was missing!)
@@ -693,6 +717,7 @@ class CombatResolver:
             square_cavalry_message=square_cavalry_message,
             square_artillery_message=square_artillery_message,
             glorious_charge_message=glorious_charge_message,
+            iron_resolve_message=iron_resolve_message,
         )
 
         # ════════════════════════════════════════════════════════════════
@@ -881,6 +906,7 @@ class CombatResolver:
             "attacker_roll": attacker_roll,
             "ability_triggered": ability_message,  # Phase 2.3: Signature abilities
             "drill_bonus_triggered": drill_bonus_message,  # Phase 2.6: Drill bonus
+            "iron_resolve_triggered": iron_resolve_message,  # MC-1c: Iron Resolve stacks fired
             "fortify_bonus_triggered": fortify_bonus_message,  # Phase 2.6: Fortify bonus
             "drilling_penalty_triggered": drilling_penalty_message,  # Phase 2.6: Drilling penalty
             "attacker_stance_triggered": attacker_stance_message,  # Phase 2.7: Stance system
@@ -1154,6 +1180,7 @@ class CombatResolver:
             attacker_modifier_snapshot, defender_modifier_snapshot,
             is_drilling,
             square_cavalry_message=None, square_artillery_message=None,
+            iron_resolve_message=None,
     ) -> Dict:
         """Build result dict for apply_casualties=False (Session 62).
 
@@ -1259,6 +1286,7 @@ class CombatResolver:
             square_cavalry_message=square_cavalry_message,
             square_artillery_message=square_artillery_message,
             glorious_charge_message=glorious_charge_message,
+            iron_resolve_message=iron_resolve_message,
         )
 
         from backend.game_logic.battle_report import generate_battle_report
@@ -1284,6 +1312,7 @@ class CombatResolver:
             "attacker_roll": attacker_roll,
             "ability_triggered": ability_message,
             "drill_bonus_triggered": drill_bonus_message,
+            "iron_resolve_triggered": iron_resolve_message,  # MC-1c
             "fortify_bonus_triggered": fortify_bonus_message,
             "drilling_penalty_triggered": drilling_penalty_message,
             "attacker_stance_triggered": attacker_stance_message,

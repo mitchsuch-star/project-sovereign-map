@@ -121,6 +121,18 @@ def snapshot_attacker_modifiers(
         if hasattr(attacker, 'ability') and attacker.ability.get("name") == "Counter-Punch Mastery":
             mods.append({"label": "Counter-Punch Mastery", "value": 20, "type": "bonus"})
 
+    # --- Iron Resolve (MC-1c: Davout's coiled-spring assault) ---
+    # Snapshots run BEFORE get_attack_modifier() consumes the stacks
+    # (memo-verified safe) — the report names what the assault carried.
+    _iron_stacks = getattr(attacker, "iron_resolve_stacks", 0)
+    if (_iron_stacks > 0 and hasattr(attacker, 'ability')
+            and attacker.ability.get("name") == "Iron Resolve"):
+        from backend.models.marshal import Marshal as _Marshal
+        _iron_pct = int(round(_iron_stacks * _Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
+        _plural = "s" if _iron_stacks != 1 else ""
+        mods.append({"label": f"Iron Resolve ({_iron_stacks} stack{_plural})",
+                     "value": _iron_pct, "type": "bonus"})
+
     # --- Glorious Charge ---
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})

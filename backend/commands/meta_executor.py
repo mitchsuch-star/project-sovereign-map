@@ -1278,6 +1278,7 @@ RETREAT RECOVERY (3 turns):
 
             old_location = marshal.location
             marshal.location = matched_region
+            marshal.clear_iron_resolve()  # MC-1c: a teleport is still a move
             return {
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name} teleported: {old_location} -> {matched_region}"
@@ -1354,6 +1355,7 @@ RETREAT RECOVERY (3 turns):
                             or world.get_nation_capital(marshal.nation) or 'Paris')
                 marshal.strength = strength
                 marshal.location = location
+                marshal.clear_iron_resolve()  # MC-1c: back on the map, no coil
                 world.bonus_actions = max(0, getattr(world, 'bonus_actions', 0) - 1)
                 return {
                     "success": True,
@@ -1381,6 +1383,7 @@ RETREAT RECOVERY (3 turns):
             marshal.administrative_location = marshal.location
             marshal.strength = 0
             marshal.location = None
+            marshal.clear_iron_resolve()  # MC-1c: leaving the field
             world.bonus_actions = getattr(world, 'bonus_actions', 0) + 1
 
             return {
