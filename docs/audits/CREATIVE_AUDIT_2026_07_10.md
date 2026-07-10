@@ -172,3 +172,32 @@ Four raw-key/typo-class fixes, pinned by `tests/test_creative_audit_legibility_f
 - Expansion items filed in `docs/DESIGN_REFINEMENT.md` §Wave 6 with IDs EXP-N1/M1/C1/E1/M2/D1; revisions to R154, R59/R153, R129/R131/R132 recorded there.
 
 *Cross-linked from `docs/audits/AUDIT_2026_07_09.md` (the correctness-sweep log) per §9. Playtest artifacts: live backend session July 9–10, 2026, turns 1–5, France, default 1805 boot.*
+
+---
+
+## 9. W6 RE-SCORE ADDENDUM (July 10, 2026, second session — post-W6-10 build, per WAVE6_FUN_FACTOR_SPEC §0)
+
+**Method.** The §2 outsider loop re-run LIVE against the running 1805 boot at the post-W6-10 build (W6-0..W6-10 landed; W6-11 balance duo deliberately NOT yet landed so the legibility gains are measured unconfounded): outgoing assessment → live delegation → two gated battles vs Mack (muster + attack_anyway) → standing order → retreat with a stated destination → endow attempt → one incoming proposal answered (typed) → five end-turns reading every dispatch. Transcript beats quoted below verbatim from the run.
+
+### Re-scored pillars
+
+| Pillar | §2 score | Now | Target | Verdict |
+|---|---|---|---|---|
+| **War narration** | 3.5 | **7.5** | ≥7 | **MET** |
+| **Combat legibility** | 4.5 | **7** | ≥7 | **MET** |
+| **Incoming diplomacy** | 4 | **7** | ≥6.5 | **MET** |
+| **Marshal drama** | 6 | **7.5** | ≥7.5 | **MET** |
+
+**War narration 3.5 → 7.5.** Every morning now leads with the story the simulation was already generating. Live: turn-2's headline was *"Sire — Flanders has fallen. Enemy colours fly over French homeland soil."* with sub-beats naming both maulings; by turn 4 the arc memory read *"Bernadotte — Hunted by Archduke Charles across 2 frontiers — stands at Nivernais with 3,312 men"* — §2.4's exact un-narrated death-march, now narrated every turn as it happens. Danger flags replaced the "Awaiting orders" lie (*"IN PERIL — an enemy force of ~49,496 shares the field"*, *"Starving — supply has failed at Rhineland two turns running"*, *"Morale failing (25) — the men waver"*). Battles accumulate names; the W6-5 fidelity beat narrates the cost of literal command (*"Soult holds at Rhineland, per your orders — the guns at Swabia did not move him"*). Short of higher: one headline + ≤2 sub-beats per dispatch is the ceiling by design; the intel table is fresh but still terse; no long-form chronicle.
+
+**Combat legibility 4.5 → 7.** The audit's three worst surprises are now the game's most characterful screen, live: the muster named every non-joiner WITH the reason AND the remedy (*"WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march"*), the odds band gated the unfavorable attack behind one modal, and after `Soult, support Ney` the next muster read *"WILL JOIN — Soult: marches under your written support order"*. Report arithmetic is honest (24,000 − 6,999 = 17,001, verified in-run). The beaten enemy speaks his result (*Mack: "Mack does not leave his ground. He sees no reason to start today."* — second variant on the second battle, deterministic rotation confirmed). Retreat substitutions are named (*"Rhineland cannot be reached, Sire — it is not adjacent; Bernadotte falls back to Munich instead"*). What keeps it at 7: the modifier breakdown is still a dense list; shared reinforcement casualties are noted but not itemized per marshal in the one-liner; and the E-CA-1 morale asymmetry remains visible (our line troops fell 31 → 6 → 0 across three defensive turns while the capstone's Mack sat at 95) — W6-11 lands next and should be re-checked at the wave close.
+
+**Incoming diplomacy 4 → 7.** The envoy has a mouth and a motive, live: *Araujo: "Portugal asks only to be reassured that France's greatness leaves room for small nations. Open the borders."* — `hegemony_pressure` voiced in the dove register, no raw tag. Variety confirmed in the same turn the capstone measured five identical asks: Portugal arrived asking open borders while Denmark asked non-aggression (the P3 relation-band pick), and rejected/lapsed types now stay away for 6 turns. Settlement offers state the territorial status quo (E-CA-5). Held below 8 by the R155/R156 residual (owner: queue items 5–6): the AI still has no multi-turn agenda or persistence personality, and counter-offers keep the older register.
+
+**Marshal drama 6 → 7.5.** One five-turn loop produced: Davout's cautious reconnoiter with Berthier teaching the delegation doctrine; Soult's literal register spoken end-to-end (*"'Soult, support Ney.' No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)"*) plus his fidelity beat; Bernadotte's hunted arc narrated across three dispatches; Mack speaking twice in two distinct lines. Behind the visible run: capture/last-stand/ransom stakes (W6-7) now stand behind every broken army, and conquered estates pose the confiscate-or-respect choice (W6-8). The MC-1 content gap (§3) is still the binding constraint on going higher — abilities/relationships remain flat.
+
+### Definition-of-done check (spec §15)
+
+Narration ≥7 **measured** (7.5) and combat legibility ≥7 **measured** (7) — the wave's two required pillars pass. Incoming (7 ≥ 6.5) and drama (7.5 ≥ 7.5) also meet target. **W6-11 (balance duo) remains to land after this measurement by design**; its E-CA-1 defender-morale symmetry is the one item this addendum flags for a spot-recheck once landed (our-side morale collapse remains steeper than the defender's, consistent with §2.3).
+
+*Playtest artifacts: live backend session July 10, 2026 (second session), turns 1–6, France, default 1805 boot, post-`485ce18` build.*
