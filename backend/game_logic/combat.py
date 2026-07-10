@@ -252,10 +252,18 @@ class CombatResolver:
         #   - Blucher "Vorwärts!": 3k pursuit damage on retreat (pursuit block below)
         #   - Uxbridge "Pursuit Master": 5k pursuit damage on retreat (pursuit block below)
         #   - Davout "Counter-Punch Mastery": +20% attack after defending (outcome block below)
+        # MC-1 set (July 10, 2026 gate — the 1805 roster):
+        #   - Murat "First Horseman of Europe": 5k pursuit damage on retreat (pursuit blocks, both copies)
+        #   - Kutuzov "The Old Fox": pursuit vs him halved (pursuit blocks) + retreat attrition halved (movement_executor)
+        #   - Massena "Child of Victory": +10% defense when outnumbered (marshal.py get_defense_modifier)
+        #   - ArchdukeCharles "Habsburg Resolve": +3% defense (marshal.py) + rout threshold 15 (marshal.get_rout_threshold, both forced-retreat copies)
+        #   - Soult "Drillmaster of Boulogne": 1-turn drill, never locked (tactical_executor + world_state drill tick)
+        #   - Lannes "Roland of the Army": +15 reinforcement arrival (combat_executor._calculate_arrival_score)
+        #   - Bernadotte "Eyes on a Crown": +10pp defiance after insistence (defiance.py) AND -15 arrival (combat_executor)
+        #   - Moore "Shorncliffe System": recruits arrive at morale 60 (economy_executor._execute_recruit)
         # Unwired:
         #   - Grouchy "Literal Obedience": order compliance (wired via disobedience.py, not combat)
         #   - Gneisenau "Staff Work": ally bonus (deferred to Phase 7 Session 58 — needs coordination fields)
-        #   - ArchdukeCharles "Habsburg Resolve": +3% defense (wired below in defending abilities)
         #   - Schwarzenberg "Coalition Coordinator": placeholder (Phase 8)
         #   - Reynier "Saxon Discipline": placeholder
         ability_message = None
@@ -499,6 +507,17 @@ class CombatResolver:
                     if is_holding:
                         defender_personality_message = f"{defender.name} holds the position exactly as ordered! (Immovable: +15% defense)"
 
+                # MC-1: Massena's "Child of Victory" — the report names why
+                # the outnumbered wall held (rides the personality message so
+                # both result-building paths carry it without new plumbing).
+                if (is_outnumbered and hasattr(defender, 'ability')
+                        and defender.ability.get("name") == "Child of Victory"):
+                    cov_line = (f"{defender.name} is at his best with his back to the wall! "
+                                f"(Child of Victory: +10% defense when outnumbered)")
+                    defender_personality_message = (
+                        f"{defender_personality_message} {cov_line}"
+                        if defender_personality_message else cov_line)
+
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
         # Apply stance modifier to defense - note: higher modifier = better defense (reduces casualties MORE)
         # defender_stance_modifier > 1 means better defense (e.g., 1.15 for defensive stance)
@@ -688,14 +707,17 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════════
         _atk_is_victor = outcome in ("attacker_victory", "attacker_tactical_victory")
         _def_is_victor = outcome in ("defender_victory", "defender_tactical_victory")
+        # MC-1: rout thresholds are per-marshal (Habsburg Resolve holds to 15)
+        # — single source in marshal.get_rout_threshold(); the coordinated
+        # copy in combat_executor MUST mirror this call.
         attacker_forced_retreat = (
             attacker.strength > 0 and
-            attacker.morale <= FORCED_RETREAT_THRESHOLD and
+            attacker.morale <= attacker.get_rout_threshold(FORCED_RETREAT_THRESHOLD) and
             not _atk_is_victor
         )
         defender_forced_retreat = (
             defender.strength > 0 and
-            defender.morale <= FORCED_RETREAT_THRESHOLD and
+            defender.morale <= defender.get_rout_threshold(FORCED_RETREAT_THRESHOLD) and
             not _def_is_victor
         )
 
@@ -706,16 +728,31 @@ class CombatResolver:
         if defender_forced_retreat:
             retreat_message += f"\n\n[!] {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
 
+        # MC-1 legibility rider (shown = applied): when Habsburg Resolve is
+        # the ONLY reason a beaten marshal has not routed, the report says so.
+        for combatant, is_victor in ((attacker, _atk_is_victor), (defender, _def_is_victor)):
+            if (combatant.strength > 0 and not is_victor
+                    and combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD) < FORCED_RETREAT_THRESHOLD
+                    and combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD) < combatant.morale <= FORCED_RETREAT_THRESHOLD):
+                retreat_message += (
+                    f"\n\n{combatant.name}'s regiments close ranks — they will not break. "
+                    f"(Habsburg Resolve: holds to {int(combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD))}% morale)"
+                )
+
         # Victory flags (used by pursuit, recklessness, and result dict)
         attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
         attacker_lost = outcome in ["defender_victory", "defender_tactical_victory", "mutual_destruction"]
 
         # ════════════════════════════════════════════════════════════
         # PURSUIT DAMAGE: Attacker abilities that punish retreating enemies
+        # Murat "First Horseman of Europe" — 5k extra casualties on retreat (cavalry, MC-1)
         # Blucher "Vorwärts!" — 3k extra casualties on retreat
         # Uxbridge "Pursuit Master" — 5k extra casualties on retreat (cavalry)
+        # Kutuzov "The Old Fox" (defender-side, MC-1) — ability pursuit damage
+        # against him HALVED, applied AFTER the attacker's bonus (ordering pinned).
         # Only fires when defender is forced to retreat. Floor at 1000 strength.
         # If multiple pursuit abilities somehow apply, use highest only.
+        # The coordinated copy in combat_executor MUST mirror this block.
         # ════════════════════════════════════════════════════════════
         pursuit_damage = 0
         pursuit_message = None
@@ -724,25 +761,39 @@ class CombatResolver:
             if hasattr(attacker, 'ability'):
                 attacker_ability_name = attacker.ability.get("name", "")
 
-            if attacker_ability_name == "Pursuit Master" and getattr(attacker, 'cavalry', False):
+            if attacker_ability_name == "First Horseman of Europe" and getattr(attacker, 'cavalry', False):
                 pursuit_damage = 5000
-                pursuit_message = f"[Cavalry] {attacker.name}'s '{attacker.ability['name']}' — cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+            elif attacker_ability_name == "Pursuit Master" and getattr(attacker, 'cavalry', False):
+                pursuit_damage = 5000
             elif attacker_ability_name == "Vorwärts!":
                 pursuit_damage = 3000
-                pursuit_message = f"[Combat] {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+
+            # The Old Fox: halve AFTER the attacker's bonus (5,000 -> 2,500)
+            old_fox_screens = (pursuit_damage > 0 and hasattr(defender, 'ability')
+                               and defender.ability.get("name") == "The Old Fox")
+            if old_fox_screens:
+                pursuit_damage = int(pursuit_damage * 0.5)
 
             if pursuit_damage > 0 and defender.strength > 1000:
-                old_strength = defender.strength
-                defender.strength = max(1000, defender.strength - pursuit_damage)
-                actual_pursuit = old_strength - defender.strength
-                if actual_pursuit > 0:
-                    defender_casualties += actual_pursuit
-                    retreat_message += f"\n\n{pursuit_message}"
-                else:
-                    # Defender already at or below floor
-                    pursuit_damage = 0
-                    pursuit_message = None
-            elif pursuit_damage > 0:
+                # Clamp to the 1,000-survivor floor BEFORE composing the copy
+                # (shown = applied: the message and every casualty total carry
+                # the ACTUAL figure, never the nominal one — review fix).
+                pursuit_damage = min(pursuit_damage, defender.strength - 1000)
+                defender.strength -= pursuit_damage
+                defender_casualties += pursuit_damage
+                if attacker_ability_name == "First Horseman of Europe":
+                    pursuit_message = f"[Cavalry] {attacker.name}'s '{attacker.ability['name']}' — the cavalry turns the rout into annihilation! (+{pursuit_damage:,} pursuit casualties)"
+                elif attacker_ability_name == "Pursuit Master":
+                    pursuit_message = f"[Cavalry] {attacker.name}'s '{attacker.ability['name']}' — cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+                else:  # Vorwärts!
+                    pursuit_message = f"[Combat] {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+                if old_fox_screens:
+                    pursuit_message += (
+                        f" But {defender.name}'s rearguard screens the retreat — "
+                        f"The Old Fox halves the harvest."
+                    )
+                retreat_message += f"\n\n{pursuit_message}"
+            else:
                 # Defender at/below 1000 — pursuit doesn't fire (P1-5 fix)
                 pursuit_damage = 0
                 pursuit_message = None

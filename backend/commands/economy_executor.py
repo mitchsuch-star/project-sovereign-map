@@ -378,6 +378,19 @@ class EconomyExecutor:
         if region.has_building("training_ground"):
             RECRUIT_MORALE = 70
 
+        # MC-1: Moore's "Shorncliffe System" — his recruits arrive drilled,
+        # morale floor 60. max() keeps the Training Ground's 70 strictly
+        # better. One name-check covers the AI recruit path too (GR5).
+        shorncliffe_note = ""
+        if (recruit_marshal and hasattr(recruit_marshal, 'ability')
+                and recruit_marshal.ability.get("name") == "Shorncliffe System"
+                and RECRUIT_MORALE < 60):
+            RECRUIT_MORALE = 60
+            shorncliffe_note = (
+                f" The recruits arrive drilled — {recruit_marshal.name}'s "
+                f"Shorncliffe System (morale {RECRUIT_MORALE}, not 40)."
+            )
+
         # --- Draw from manpower pool ---
         world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
         pool_after = world.manpower_pools[acting_nation][recruit_type]
@@ -445,7 +458,7 @@ class EconomyExecutor:
 
         return {
             "success": True,
-            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{pool_line}{morale_warning}",
+            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{shorncliffe_note}{pool_line}{morale_warning}",
             "events": [{
                 "type": "recruit",
                 "marshal": recipient,

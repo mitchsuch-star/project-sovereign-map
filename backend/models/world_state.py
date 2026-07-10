@@ -5683,6 +5683,13 @@ class WorldState:
                         "drilling_locked": bool(getattr(m, 'drilling_locked', False)),
                         "shock_bonus": int(getattr(m, 'shock_bonus', 0)),
                         "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
+                        # MC-1 Drillmaster (derived, Q3 pattern — the map
+                        # tooltip renders THIS, never "will lock next turn"
+                        # hardcoded for a drill that completes tonight):
+                        "drill_completes_this_turn": bool(
+                            getattr(m, 'drilling', False)
+                            and not getattr(m, 'drilling_locked', False)
+                            and int(getattr(m, 'drill_complete_turn', -1)) <= int(self.current_turn)),
                         # Fortify state
                         "fortified": bool(getattr(m, 'fortified', False)),
                         "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
@@ -7939,16 +7946,35 @@ class WorldState:
             # Turn N: drilling = True -> Turn N+1: drilling_locked = True
             # Turn N+1: drilling_locked = True -> Turn N+2: shock_bonus ready
             if getattr(marshal, 'drilling', False) and not getattr(marshal, 'drilling_locked', False):
-                # Transition from drilling to drilling_locked
-                marshal.drilling_locked = True
-                debug_print(f"  [TACTICAL] DRILL: {marshal.name} now locked in training")
-                events.append({
-                    "type": "drill_locked",
-                    "marshal": marshal.name,
-                    "nation": marshal.nation,
-                    "message": f"{marshal.name} is now locked in intensive drill. Cannot receive orders until training completes.",
-                    "complete_turn": int(marshal.drill_complete_turn)
-                })
+                # MC-1: Soult's "Drillmaster of Boulogne" — the drill
+                # completes at THIS tick (1 turn, never locked/unorderable).
+                # _execute_drill set drill_complete_turn to the ordering turn.
+                if (hasattr(marshal, 'ability')
+                        and marshal.ability.get("name") == "Drillmaster of Boulogne"):
+                    marshal.drilling = False
+                    marshal.drilling_locked = False
+                    marshal.shock_bonus = 2  # +20% attack bonus (payoff unchanged)
+                    just_completed_drill.add(marshal.name)
+                    debug_print(f"  [TACTICAL] DRILL COMPLETE (Drillmaster): {marshal.name} gains +20% shock bonus!")
+                    events.append({
+                        "type": "drill_complete",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                        "message": f"DRILL COMPLETE: {marshal.name}'s corps sharpens in a single day — "
+                                   f"Drillmaster of Boulogne. +20% attack bonus ready for next battle.",
+                        "shock_bonus": 2
+                    })
+                else:
+                    # Transition from drilling to drilling_locked
+                    marshal.drilling_locked = True
+                    debug_print(f"  [TACTICAL] DRILL: {marshal.name} now locked in training")
+                    events.append({
+                        "type": "drill_locked",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                        "message": f"{marshal.name} is now locked in intensive drill. Cannot receive orders until training completes.",
+                        "complete_turn": int(marshal.drill_complete_turn)
+                    })
 
             elif getattr(marshal, 'drilling_locked', False):
                 # Check if drill is complete

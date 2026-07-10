@@ -51,6 +51,12 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
     else:  # EXTREME
         base = 0.35  # 35%
 
+    # MC-1: Bernadotte's "Eyes on a Crown" — +10pp after insisted objections
+    # (5/15/35 -> 15/25/40-capped; the 0.40 hard cap below still holds).
+    if (hasattr(marshal, 'ability')
+            and marshal.ability.get("name") == "Eyes on a Crown"):
+        base += 0.10
+
     # Vindication modifier: +10% per stack
     vindication_score = getattr(marshal, 'vindication_score', 0)
     vindication_mod = vindication_score * 0.10

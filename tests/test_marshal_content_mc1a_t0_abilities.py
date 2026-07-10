@@ -53,11 +53,12 @@ class TestBootAbilities:
         charles = world.get_marshal("ArchdukeCharles")
         assert charles.ability.get("name") == "Habsburg Resolve"
 
-    def test_other_1805_marshals_still_unauthored(self, world):
-        # MC-1b/1c own the rest — until those land, everyone else boots with
-        # the scenario default (no ability).
-        for name in ("Davout", "Soult", "Lannes", "Murat", "Massena",
-                     "Bernadotte", "Kutuzov", "Moore", "Mack"):
+    def test_unauthored_1805_marshals_stay_default(self, world):
+        # Davout's Iron Resolve is the T2 slice (MC-1c); Mack and the other
+        # memo-§2 marshals are NO-ability by design. (The T1 seven are
+        # pinned in test_marshal_content_mc1b_t1_abilities.py.)
+        for name in ("Davout", "Mack", "ArchdukeJohn", "Buxhowden",
+                     "Brunswick", "Hohenlohe", "Deroy"):
             marshal = world.get_marshal(name)
             assert marshal.ability.get("name") == "None", name
 
@@ -110,12 +111,13 @@ class TestCardDisplay:
         assert ney_card["ability_trigger"] == "when_attacking"
 
     def test_unauthored_wired_name_stays_inactive(self, world):
-        # Soult is in _WIRED_ABILITY_MARSHALS ahead of his MC-1b slice — the
-        # MC-0 real-name gate must keep his card inactive until it lands.
+        # Davout is in _WIRED_ABILITY_MARSHALS ahead of his MC-1c slice
+        # (Iron Resolve, T2) — the MC-0 real-name gate must keep his card
+        # inactive until it lands. MC-1c owns flipping this pin.
         cards = build_marshal_overview(world)
-        soult_card = next(c for c in cards if c["name"] == "Soult")
-        assert soult_card["ability_active"] is False
-        assert soult_card["ability_name"] == ""
+        davout_card = next(c for c in cards if c["name"] == "Davout")
+        assert davout_card["ability_active"] is False
+        assert davout_card["ability_name"] == ""
 
     def test_charles_ability_section_active(self, world):
         # Enemy marshals get no player card; pin the section builder directly.

@@ -1017,6 +1017,13 @@ class Marshal:
                 and self.ability.get("name") == "Habsburg Resolve"):
             modifier *= 1.03
 
+        # Massena's "Child of Victory" (+10% defense when outnumbered — MC-1).
+        # Defender-only by construction (this method is only consulted when
+        # defending), non-consumable, and under the 1.75 hard cap below.
+        if (is_outnumbered and hasattr(self, 'ability')
+                and self.ability.get("name") == "Child of Victory"):
+            modifier *= 1.10
+
         # Square formation: +5% defense (tight formation, mutual support)
         if getattr(self, 'square_formation', False):
             modifier *= 1.05
@@ -1028,6 +1035,31 @@ class Marshal:
         modifier = min(modifier, 1.75)
 
         return modifier
+
+    # MC-1 (July 10, 2026 gate): Habsburg Resolve's personal rout threshold —
+    # in-band tunable, ~10 morale points of extra staying power vs the global 25.
+    HABSBURG_ROUT_THRESHOLD = 15
+
+    def get_rout_threshold(self, base_threshold: int) -> int:
+        """Morale at/below which a non-victor is forced to retreat (MC-1).
+
+        Single source for per-marshal rout thresholds (Golden Rule 1 spirit) —
+        BOTH forced-retreat copies (combat.resolve_battle and the coordinated
+        path in combat_executor) MUST decide routs through this helper.
+
+        Habsburg Resolve: personal threshold 15 (vs the global 25) — Charles's
+        regiments close ranks; beating him yields orderly withdrawals, not
+        routs. No morale regen exists anywhere, so he still eventually breaks.
+
+        Args:
+            base_threshold: the global FORCED_RETREAT_THRESHOLD (owned by
+                combat.py — passed in to keep the constant single-sourced
+                there without a circular import).
+        """
+        if (hasattr(self, 'ability')
+                and self.ability.get("name") == "Habsburg Resolve"):
+            return self.HABSBURG_ROUT_THRESHOLD
+        return base_threshold
 
     def get_effective_skill(self, skill_name: str) -> int:
         """

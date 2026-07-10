@@ -231,17 +231,44 @@ class TacticalExecutor:
                                       f"{enemy.name} is at {adj_name}, just one region away."
                         }
 
-        # Start drilling - will be locked next turn
+        # MC-1: Soult's "Drillmaster of Boulogne" — drill completes in ONE
+        # turn and NEVER enters the drilling_locked unorderable state.
+        # Timeline: Turn N order → End N completes → Turn N+1 ready. He keeps
+        # the -25% defense exposure for exactly one enemy phase (drilling is
+        # True until the end-of-turn tick); the payoff is unchanged (+20%
+        # attack, one charge, consumed). Completion is the Drillmaster branch
+        # of _process_tactical_states.
+        is_drillmaster = (hasattr(marshal, 'ability')
+                          and marshal.ability.get("name") == "Drillmaster of Boulogne")
+
+        # Start drilling - will be locked next turn (Drillmaster: completes instead)
         marshal.drilling = True
         marshal.drilling_locked = False  # Not locked yet (locked on turn advance)
         # Timeline: Turn N order → End N locks → Turn N+1 locked → End N+1 completes → Turn N+2 ready
-        marshal.drill_complete_turn = world.current_turn + 1  # Completes at end of NEXT turn
+        marshal.drill_complete_turn = (
+            world.current_turn if is_drillmaster else world.current_turn + 1
+        )
+
+        if is_drillmaster:
+            # Review fix: the executor's drill guard still refuses
+            # stance_change while drilling (all marshals, the ordering
+            # turn) — the copy must not over-promise past that.
+            message = (
+                f"{marshal.name} drills his corps with Boulogne-camp precision at "
+                f"{marshal.location}. Sharpen today, strike tomorrow — bonus ready "
+                f"turn {world.current_turn + 1}, and he remains at your orders "
+                f"(though he cannot shift stance until the drill ends tonight)."
+            )
+        else:
+            message = (
+                f"{marshal.name} begins intensive drill exercises at {marshal.location}. "
+                f"Troops will be locked in training next turn, "
+                f"bonus ready turn {marshal.drill_complete_turn + 1}."
+            )
 
         return {
             "success": True,
-            "message": f"{marshal.name} begins intensive drill exercises at {marshal.location}. "
-                      f"Troops will be locked in training next turn, "
-                      f"bonus ready turn {marshal.drill_complete_turn + 1}.",
+            "message": message,
             "events": [{
                 "type": "drill_started",
                 "marshal": marshal.name,

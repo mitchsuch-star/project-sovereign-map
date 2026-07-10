@@ -535,6 +535,9 @@ MUSTER_REASON_DISPLAY = {
     "aggressive_marches": "will march to the sound of the guns",
     "answers_the_guns": "is willing to march if the roads allow",
     "literal_awaits_orders": "awaits explicit orders and will NOT march",
+    # MC-1 signature-ability arms (W6-4 honesty)
+    "roland_marches": "marches to the sound of the guns — the Roland of the Army",
+    "eyes_on_a_crown": "hesitates — the I Corps weighs its own ambitions",
     "fortified_static": "is dug in and will not abandon his works",
     "holding_position": "holds his position under standing orders",
     "drilling": "is drilling and cannot break formation in time",

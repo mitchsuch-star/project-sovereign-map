@@ -78,12 +78,20 @@ def generate_intel_report(world) -> Dict[str, Any]:
             for m in world.get_marshals_in_region(region_name):
                 if m.nation != player_nation and m.strength > 0:
                     stance_val = m.stance.value if hasattr(m.stance, 'value') else str(m.stance)
+                    # MC-1 visibility rider: a famed commander's signature
+                    # ability is reputation, not troop intel — at FULL
+                    # visibility Berthier names it (Habsburg Resolve, The
+                    # Old Fox, the Shorncliffe System...), so enemy-side
+                    # abilities are discoverable, never a hidden gotcha.
+                    ability = getattr(m, 'ability', None) or {}
+                    ability_name = ability.get("name", "")
                     enemies.append({
                         "name": m.name,
                         "nation": m.nation,
                         "strength": int(m.strength),
                         "morale": int(m.morale),
                         "stance": stance_val,
+                        "ability": ability_name if ability_name not in ("", "None") else "",
                     })
             if enemies:
                 region_info["enemies"] = enemies
@@ -142,8 +150,9 @@ def generate_intel_report(world) -> Dict[str, Any]:
         lines.append("CONFIRMED INTELLIGENCE:")
         for r in confirmed:
             for e in r.get("enemies", []):
+                famed = f" — famed for '{e['ability']}'" if e.get("ability") else ""
                 lines.append(f"  {humanize_entity_name(e['name'])} ({e['nation']}): {e['strength']:,} troops at {r['region']}, "
-                             f"{e['stance']} stance, morale {e['morale']}")
+                             f"{e['stance']} stance, morale {e['morale']}{famed}")
         lines.append("")
 
     # Recent Reports (PARTIAL/STALE)

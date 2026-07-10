@@ -235,6 +235,10 @@ def snapshot_defender_modifiers(
             mods.append({"label": "Reverse Slope Defense", "value": 5, "type": "bonus"})
         elif ability_name == "Habsburg Resolve":
             mods.append({"label": "Habsburg Resolve", "value": 3, "type": "bonus"})
+        elif ability_name == "Child of Victory" and is_outnumbered:
+            # MC-1: Massena — the report names why the outnumbered wall held.
+            # Mirrors marshal.get_defense_modifier's is_outnumbered gate.
+            mods.append({"label": "Child of Victory (outnumbered)", "value": 10, "type": "bonus"})
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().

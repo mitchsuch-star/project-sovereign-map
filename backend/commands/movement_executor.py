@@ -60,6 +60,15 @@ class MovementExecutor:
         terrain_mult = region.movement_cost if region else 1.0
         rate *= terrain_mult
 
+        # MC-1: Kutuzov's "The Old Fox" — retreat-path attrition halved (the
+        # fighting retreat is his art). Retreats ONLY; normal marches pay
+        # full price. If logistics-based attrition resistance is ever wired,
+        # his combined reduction caps at x0.5 (gate stacking rule — ability
+        # supersedes, no multiplicative stacking).
+        if (is_retreat and hasattr(marshal, 'ability')
+                and marshal.ability.get("name") == "The Old Fox"):
+            rate *= 0.5
+
         # Friendly stable territory: no march attrition (good roads, supply lines)
         is_friendly_stable = (
             region and region.controller == marshal.nation and region.stability >= 76

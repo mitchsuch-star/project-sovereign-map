@@ -1815,6 +1815,9 @@ func _draw_marshal_tooltip():
 			if tactical_state.get("drilling_locked", false):
 				drill_text = "DRILLING (Locked) - Ready turn %s" % int(tactical_state.get("drill_complete_turn", -1))
 				drill_color = Color(0.9, 0.5, 0.3)
+			elif tactical_state.get("drill_completes_this_turn", false):
+				# MC-1 Drillmaster of Boulogne: completes tonight, never locks
+				drill_text = "DRILLING - Completes this turn (remains at your orders)"
 			_push_tooltip_line(lines, drill_text, drill_color)
 
 		var shock_bonus = float(tactical_state.get("shock_bonus", 0))

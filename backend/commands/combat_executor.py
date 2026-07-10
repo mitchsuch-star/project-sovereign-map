@@ -419,6 +419,20 @@ class CombatExecutor:
         # Hostile without SUPPORT refuses (A-D4).
         if candidate.get_relationship(primary.name) == -2:
             return False, "hostile_refuses"
+        # MC-1 honest muster arms (W6-4 — the preview must never lie):
+        # Roland's +15 makes his arrival near-certain; Eyes on a Crown's -15
+        # means Bernadotte usually does NOT come without the written word.
+        # Review fix: the hard "WILL NOT" holds only while his relationship
+        # with the primary is <= 0 (at +1 friendship the arrival roll turns
+        # genuinely winnable, so he falls through to the hedged generic arm
+        # — mirrors how the ladder already consults hostility above).
+        _ability_name = (candidate.ability.get("name", "")
+                         if hasattr(candidate, 'ability') else "")
+        if _ability_name == "Roland of the Army":
+            return True, "roland_marches"
+        if (_ability_name == "Eyes on a Crown"
+                and candidate.get_relationship(primary.name) <= 0):
+            return False, "eyes_on_a_crown"
         if getattr(candidate, 'personality', '') == "aggressive":
             return True, "aggressive_marches"
         return True, "answers_the_guns"
@@ -474,6 +488,13 @@ class CombatExecutor:
                 # §6.3: surface the standing order that already exists.
                 row["standing_order_hint"] = (
                     f"— order '{m.name}, support {marshal.name}' and he will march"
+                )
+            if code == "eyes_on_a_crown":
+                # MC-1: the counter-lever must be discoverable — put the
+                # order in writing and he mostly comes.
+                row["standing_order_hint"] = (
+                    f"— a written order ('{m.name}, support {marshal.name}') "
+                    f"would likely bring him"
                 )
             if code == "shares_the_field":
                 shared_casualty_note = (
@@ -567,9 +588,23 @@ class CombatExecutor:
                 and order.target == primary_combatant.name):
             support_bonus = 10
 
+        # MC-1 signature abilities: the Lannes/Bernadotte arrival mirror.
+        # Roland of the Army +15 ("marches to the sound of the guns");
+        # Eyes on a Crown -15 (the I Corps does not always march — the
+        # SUPPORT +10 above is the built-in counter-lever).
+        ability_mod = 0
+        ability_name = ""
+        if hasattr(reinforcing_marshal, 'ability'):
+            ability_name = reinforcing_marshal.ability.get("name", "")
+        if ability_name == "Roland of the Army":
+            ability_mod = 15
+        elif ability_name == "Eyes on a Crown":
+            ability_mod = -15
+
         variance = random.randint(-8, 8)
 
-        return base + logistics_bonus + rel_mod + terrain_mod + personality_mod + support_bonus + variance
+        return (base + logistics_bonus + rel_mod + terrain_mod + personality_mod
+                + support_bonus + ability_mod + variance)
 
     def _calculate_reinforcements(self, primary, defender, battle_region, nation, world):
         """Check adjacent marshals for reinforcement arrival.
@@ -658,6 +693,15 @@ class CombatExecutor:
                 reason = "fate_intervened"
             else:
                 reason = "low_score"
+                # MC-1 review fix: Bernadotte's ability-driven no-show is
+                # by-design character (like the literal no-march), not a
+                # logistics failure — classify it honestly so the failure
+                # copy and the Session-61a trust seam treat it as such.
+                # A failed arrival UNDER a written SUPPORT order stays
+                # "low_score" (the player ordered him and was stood up).
+                if (not has_explicit_order and hasattr(candidate, 'ability')
+                        and candidate.ability.get("name") == "Eyes on a Crown"):
+                    reason = "eyes_on_a_crown"
 
             reinforcement_results.append({
                 "marshal": candidate.name,
@@ -3624,18 +3668,33 @@ class CombatExecutor:
             # W6-11 review guard (mirrors resolve_battle): the VICTOR of
             # this battle is never routed BY it — the symmetric morale cost
             # weakens his next fight instead.
+            # MC-1: rout thresholds are per-marshal (Habsburg Resolve holds
+            # to 15) — MUST mirror resolve_battle's get_rout_threshold call.
             _atk_victor = outcome in ("attacker_victory", "attacker_tactical_victory")
             _def_victor = outcome in ("defender_victory", "defender_tactical_victory")
             battle_result["attacker"]["forced_retreat"] = (
                 marshal.strength > 0
-                and marshal.morale <= FORCED_RETREAT_THRESHOLD
+                and marshal.morale <= marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                 and not _atk_victor
             )
             battle_result["defender"]["forced_retreat"] = (
                 enemy_marshal.strength > 0
-                and enemy_marshal.morale <= FORCED_RETREAT_THRESHOLD
+                and enemy_marshal.morale <= enemy_marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                 and not _def_victor
             )
+
+            # MC-1 legibility rider (mirrors resolve_battle): when Habsburg
+            # Resolve is the ONLY reason a beaten primary has not routed,
+            # the battle description says so.
+            for combatant, is_victor in ((marshal, _atk_victor), (enemy_marshal, _def_victor)):
+                _personal = combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+                if (combatant.strength > 0 and not is_victor
+                        and _personal < FORCED_RETREAT_THRESHOLD
+                        and _personal < combatant.morale <= FORCED_RETREAT_THRESHOLD):
+                    battle_result["description"] = battle_result.get("description", "") + (
+                        f"\n\n{combatant.name}'s regiments close ranks — they will not break. "
+                        f"(Habsburg Resolve: holds to {int(_personal)}% morale)"
+                    )
 
             # Set notification flags for _process_combat_notifications
             battle_result["counter_punch_earned"] = bool(
@@ -3649,7 +3708,9 @@ class CombatExecutor:
                 and enemy_marshal.ability.get("name") == "Counter-Punch Mastery"
             )
 
-            # Pursuit damage: primary attacker vs primary defender only
+            # Pursuit damage: primary attacker vs primary defender only —
+            # a reinforcing Murat earns nothing; he must LEAD the killing
+            # blow (MC-1, pinned). MUST mirror resolve_battle's pursuit block.
             if battle_result["defender"]["forced_retreat"] and atk_won:
                 attacker_ability_name = ""
                 if hasattr(marshal, 'ability'):
@@ -3657,26 +3718,77 @@ class CombatExecutor:
 
                 pursuit_damage = 0
                 pursuit_message = None
-                if attacker_ability_name == "Pursuit Master" and getattr(marshal, 'cavalry', False):
+                if attacker_ability_name == "First Horseman of Europe" and getattr(marshal, 'cavalry', False):
                     pursuit_damage = 5000
-                    pursuit_message = (
-                        f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
-                        f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
-                    )
+                elif attacker_ability_name == "Pursuit Master" and getattr(marshal, 'cavalry', False):
+                    pursuit_damage = 5000
                 elif attacker_ability_name == "Vorwärts!":
                     pursuit_damage = 3000
-                    pursuit_message = (
-                        f"[Combat] {marshal.name}'s '{marshal.ability['name']}' — "
-                        f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
-                    )
 
-                if pursuit_damage > 0 and enemy_marshal.strength > 0:
-                    old_strength = enemy_marshal.strength
-                    enemy_marshal.strength = max(1000, enemy_marshal.strength - pursuit_damage)
-                    actual_pursuit = old_strength - enemy_marshal.strength
-                    if actual_pursuit > 0:
-                        battle_result["pursuit_damage"] = int(actual_pursuit)
-                        battle_result["pursuit_message"] = pursuit_message
+                # The Old Fox: halve AFTER the attacker's bonus (5,000 -> 2,500)
+                old_fox_screens = (pursuit_damage > 0 and hasattr(enemy_marshal, 'ability')
+                                   and enemy_marshal.ability.get("name") == "The Old Fox")
+                if old_fox_screens:
+                    pursuit_damage = int(pursuit_damage * 0.5)
+
+                # Fire only above the 1,000-survivor floor (mirrors the solo
+                # copy's P1-5 guard — the old `> 0` guard let max() RAISE a
+                # sub-1,000 defender back up to the floor).
+                if pursuit_damage > 0 and enemy_marshal.strength > 1000:
+                    # Clamp BEFORE composing the copy (shown = applied — the
+                    # message and every casualty total carry the ACTUAL figure).
+                    pursuit_damage = min(pursuit_damage, enemy_marshal.strength - 1000)
+                    enemy_marshal.strength -= pursuit_damage
+                    if attacker_ability_name == "First Horseman of Europe":
+                        pursuit_message = (
+                            f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"the cavalry turns the rout into annihilation! (+{pursuit_damage:,} pursuit casualties)"
+                        )
+                    elif attacker_ability_name == "Pursuit Master":
+                        pursuit_message = (
+                            f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+                        )
+                    else:  # Vorwärts!
+                        pursuit_message = (
+                            f"[Combat] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+                        )
+                    if old_fox_screens:
+                        pursuit_message += (
+                            f" But {enemy_marshal.name}'s rearguard screens the retreat — "
+                            f"The Old Fox halves the harvest."
+                        )
+                    battle_result["pursuit_damage"] = int(pursuit_damage)
+                    battle_result["pursuit_message"] = pursuit_message
+                    # MC-1 legibility fix: this message was stored but
+                    # never surfaced (resolve_battle folds its copy into
+                    # the description; the coordinated copy must too).
+                    battle_result["description"] = (
+                        battle_result.get("description", "") + f"\n\n{pursuit_message}"
+                    )
+                    # Review fix (mirror the solo copy's accounting — solo
+                    # folds pursuit into defender_casualties BEFORE its
+                    # result dict/report/log are built; the coordinated copy
+                    # builds them pre-pursuit, so every frozen number surface
+                    # must be patched or the report contradicts the prose):
+                    battle_result["defender"]["remaining"] = int(enemy_marshal.strength)
+                    battle_result["defender"]["casualties"] = (
+                        int(battle_result["defender"].get("casualties", 0)) + int(pursuit_damage))
+                    # Pursuit is primary-defender-only: his distributed share
+                    # carries it (stored below for event logging).
+                    def_distribution[enemy_marshal.name] = (
+                        def_distribution.get(enemy_marshal.name, 0) + int(pursuit_damage))
+                    log_event = battle_result.get("log_battle_event")
+                    if isinstance(log_event, dict):
+                        log_event["defender_casualties"] = (
+                            int(log_event.get("defender_casualties", 0)) + int(pursuit_damage))
+                    report = battle_result.get("battle_report")
+                    if isinstance(report, dict) and isinstance(report.get("casualty_summary"), dict):
+                        cs = report["casualty_summary"]
+                        cs["defender_casualties"] = int(cs.get("defender_casualties", 0)) + int(pursuit_damage)
+                        cs["defender_remaining"] = max(
+                            0, int(cs.get("defender_remaining", 0)) - int(pursuit_damage))
 
             # Store distribution info for event logging
             battle_result["casualty_distribution"] = {
@@ -4009,19 +4121,35 @@ class CombatExecutor:
         # [S62] Handle forced retreat for non-primary participants in coordinated battles
         # W6-11 review guard: participants on the WINNING side are never
         # routed by the battle they just won (mirrors resolve_battle).
+        # MC-1 review fix: this is the THIRD rout-decision copy — it must
+        # consult get_rout_threshold like the two primary copies (Habsburg
+        # Resolve holds a non-primary Charles to 15, and the close-ranks
+        # line names the hold when the ability is the only reason he stands).
         if is_coordinated_battle:
             if not atk_won:
                 for p in atk_participants:
-                    if p.name != marshal.name and p.strength > 0 and p.morale <= 25:
-                        msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
-                        if msg:
-                            forced_retreat_msg += "\n" + msg
+                    if p.name != marshal.name and p.strength > 0:
+                        _p_threshold = p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+                        if p.morale <= _p_threshold:
+                            msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
+                            if msg:
+                                forced_retreat_msg += "\n" + msg
+                        elif p.morale <= FORCED_RETREAT_THRESHOLD:
+                            forced_retreat_msg += (
+                                f"\n{p.name}'s regiments close ranks — they will not break. "
+                                f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
             if not def_won:
                 for p in def_participants:
-                    if p.name != enemy_marshal.name and p.strength > 0 and p.morale <= 25:
-                        msg = self._apply_forced_retreat_or_break(p, marshal, world)
-                        if msg:
-                            forced_retreat_msg += "\n" + msg
+                    if p.name != enemy_marshal.name and p.strength > 0:
+                        _p_threshold = p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+                        if p.morale <= _p_threshold:
+                            msg = self._apply_forced_retreat_or_break(p, marshal, world)
+                            if msg:
+                                forced_retreat_msg += "\n" + msg
+                        elif p.morale <= FORCED_RETREAT_THRESHOLD:
+                            forced_retreat_msg += (
+                                f"\n{p.name}'s regiments close ranks — they will not break. "
+                                f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
 
             # ── Gate 4: Reinforcer retreat on non-win ──
             # Reinforcers who relocated to battle region must return to
@@ -4303,6 +4431,11 @@ class CombatExecutor:
                     friendly_reason = f"{r['marshal']} awaits explicit orders and did not march to the sound of the guns."
                 elif reason == "fate_intervened":
                     friendly_reason = f"{r['marshal']} was nearly in position, but fate intervened at the crucial moment."
+                elif reason == "eyes_on_a_crown":
+                    # MC-1: the post-battle copy must match the muster
+                    # preview's honest arm — ambition, not the roads.
+                    friendly_reason = (f"{r['marshal']} hesitated — the I Corps weighed "
+                                       f"its own ambitions and did not march.")
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
@@ -4335,10 +4468,17 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         # REINFORCEMENT TRUST PENALTIES (Session 61a)
         # Non-Literal, non-Hostile marshals who fail to arrive lose -3 trust.
+        # MC-1 review fix: "eyes_on_a_crown" is exempt like the literal
+        # no-march — a by-design character refusal, not a failure to be
+        # punished (the gate priced the ability as defiance + arrival only;
+        # a silent recurring trust drain was never blessed). A no-show
+        # UNDER a written SUPPORT order keeps reason "low_score" and is
+        # still docked.
         # ════════════════════════════════════════════════════════════
         all_reinforcements = attacker_reinforcements + defender_reinforcements
         for reinf_result in all_reinforcements:
-            if not reinf_result["arrived"] and reinf_result["reason"] not in ("literal_personality", "fate_intervened"):
+            if not reinf_result["arrived"] and reinf_result["reason"] not in (
+                    "literal_personality", "fate_intervened", "eyes_on_a_crown"):
                 failing = world.marshals.get(reinf_result["marshal"])
                 if failing:
                     # Determine which primary this marshal was trying to reinforce
