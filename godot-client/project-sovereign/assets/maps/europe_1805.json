@@ -79,6 +79,12 @@
             "strength": 24000,
             "personality": "aggressive",
             "movement_range": 1,
+            "ability": {
+                "name": "Bravest of the Brave",
+                "description": "Ney's aggressive leadership inspires devastating attacks",
+                "trigger": "when_attacking",
+                "effect": "+2 Shock skill when attacking (not defending)"
+            },
             "biography": "VI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat."
         },
         "Davout": {
@@ -153,6 +159,12 @@
             "location": "Carniola",
             "strength": 54000,
             "personality": "cautious",
+            "ability": {
+                "name": "Habsburg Resolve",
+                "description": "Archduke Charles steadies the line with calm under fire",
+                "trigger": "when_defending",
+                "effect": "+3% flat defense bonus when defending"
+            },
             "biography": "Austria's main army behind the Adige - the Habsburgs' best soldier, husbanding his strength for the Italian front."
         },
         "ArchdukeJohn": {

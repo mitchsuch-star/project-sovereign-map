@@ -25,7 +25,16 @@ _RELATIONSHIP_LABELS = {
 # Marshals whose unique abilities are actively wired (mechanically functional).
 # When adding a new wired ability, add the marshal name here AND follow the full
 # checklist in docs/ADDING_CONTENT.md → "Wiring a Special Ability" section.
-_WIRED_ABILITY_MARSHALS = {"Ney", "Davout", "Drouot", "Wellington", "Blucher", "Uxbridge"}
+# MC-1 (July 10, 2026 gate): the ten blessed 1805-roster abilities. A name here
+# with no authored ability block stays inactive (MC-0 gates on a real name),
+# so entries may land ahead of their JSON/mechanic slice.
+_WIRED_ABILITY_MARSHALS = {
+    # 1805 roster (MC-1)
+    "Ney", "Davout", "Soult", "Lannes", "Murat", "Massena", "Bernadotte",
+    "ArchdukeCharles", "Kutuzov", "Moore",
+    # Legacy Waterloo roster
+    "Drouot", "Wellington", "Blucher", "Uxbridge",
+}
 
 # Gameplay descriptions for each personality type
 _PERSONALITY_DESCRIPTIONS = {

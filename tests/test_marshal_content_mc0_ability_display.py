@@ -31,16 +31,24 @@ def _find(marshal_cards, name):
 
 class TestBuildAbilityUnit:
     def test_none_ability_on_wired_name_not_active(self):
-        w = build_world("1805")
-        ney = w.get_marshal("Ney")
-        assert ney is not None and ney.name in _WIRED_ABILITY_MARSHALS
-        assert ney.ability.get("name") == "None"  # scenario default
+        # MC-1a authored real abilities onto roster marshals, so the MC-0
+        # "wired name, no real ability" case is pinned on a bare-constructed
+        # marshal (ability defaults to {"name": "None"}) — the gate itself,
+        # independent of what the roster currently authors.
+        from backend.models.marshal import Marshal
+        ney = Marshal(name="Ney", location="Paris", strength=10000,
+                      personality="aggressive", nation="France")
+        assert ney.name in _WIRED_ABILITY_MARSHALS
+        assert ney.ability.get("name") == "None"  # constructor default
         out = _build_ability(ney)
         assert out["ability_active"] is False
         assert out["ability_name"] == ""
 
-    @pytest.mark.parametrize("name", ["Ney", "Davout", "Soult", "Murat", "Lannes"])
-    def test_1805_marshals_report_no_active_ability(self, name):
+    @pytest.mark.parametrize("name", ["Mack", "ArchdukeJohn", "Buxhowden",
+                                      "Brunswick", "Hohenlohe"])
+    def test_no_ability_1805_marshals_report_inactive(self, name):
+        # The MC-1 gate blessed these as NO-ability by design (memo §2 —
+        # Mack's nothing IS the Ulm story); they must stay inactive.
         w = build_world("1805")
         marshal = w.get_marshal(name)
         if marshal is None:

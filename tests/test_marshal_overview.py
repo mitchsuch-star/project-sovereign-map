@@ -372,8 +372,19 @@ class TestAbility:
         assert drouot["ability_name"] == "Sage of the Grand Army"
 
     def test_wired_ability_set_correct(self):
-        """Verify the wired ability set matches current documentation."""
-        assert _WIRED_ABILITY_MARSHALS == {"Ney", "Davout", "Drouot", "Wellington", "Blucher", "Uxbridge"}
+        """Verify the wired ability set matches current documentation.
+
+        MC-1 (gate blessed July 10, 2026): the ten 1805-roster abilities
+        joined the legacy four. Mack and the minors stay out by design
+        (memo §2 — "his nothing IS the Ulm story").
+        """
+        assert _WIRED_ABILITY_MARSHALS == {
+            # 1805 roster (MC-1)
+            "Ney", "Davout", "Soult", "Lannes", "Murat", "Massena",
+            "Bernadotte", "ArchdukeCharles", "Kutuzov", "Moore",
+            # Legacy Waterloo roster
+            "Drouot", "Wellington", "Blucher", "Uxbridge",
+        }
 
 
 # ════════════════════════════════════════════════════════════════════════════════
