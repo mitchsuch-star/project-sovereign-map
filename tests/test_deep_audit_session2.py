@@ -553,6 +553,26 @@ class TestFix15TributePreview:
         # Should be > 0 since Saxony controls at least one region
         assert tribute > 0
 
+    def test_tribute_preview_mirrors_actual_collection(self):
+        """S3 value fix: the preview estimate uses effective income × rate —
+        exactly what process_vassal_tribute collects — not a flat 50g/region."""
+        from backend.game_logic.diplomacy import get_diplomatic_preview
+        world = _make_vassal_world(loyalty=50)
+        world.player_nation = "France"
+
+        for region in world.regions.values():
+            if region.name == "Dresden":
+                region.controller = "Saxony"
+                break
+        world.invalidate_active_nations_cache()
+
+        expected = int(sum(
+            world.regions[name].get_effective_income()
+            for name in world.get_nation_regions("Saxony")
+        ) * world.vassals["Saxony"]["tribute_rate"])
+        preview = get_diplomatic_preview(world, "Saxony")
+        assert preview.get("vassal_tribute") == expected
+
 
 # ════════════════════════════════════════════════════════════════
 # FIX 16: Vassal rebellion triggers war cascade

@@ -10227,7 +10227,13 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         response["vassal_autonomy"] = AUTONOMY_NAMES.get(autonomy, "Satellite")
         response["vassal_loyalty_trend"] = trend
         tribute_rate = v.get("tribute_rate", 0.5)
-        vassal_income = sum(50 for r in world.regions.values() if getattr(r, 'controller', '') == target_nation)
+        # Golden Rule 8 + value fix: the estimate must mirror what
+        # process_vassal_tribute actually collects (effective income via the
+        # cached index) — the old flat 50g/region misreported on the real map.
+        vassal_income = sum(
+            world.regions[name].get_effective_income()
+            for name in world.get_nation_regions(target_nation)
+        )
         response["vassal_tribute"] = int(vassal_income * tribute_rate)
         response["section"] = "vassal_management"
     else:

@@ -229,12 +229,16 @@ def _build_economy(world, player: str) -> dict:
     treaty_gold = int(treaty_gold)
 
     # Vassal tribute income
+    # Golden Rule 8: mirror process_vassal_tribute's cached-index derivation —
+    # a per-vassal full region scan here was O(vassals × regions) per request.
     vassal_tribute = 0
     for vassal_name, state in world.vassals.items():
         if state.get("lord") == player:
             tribute_rate = state.get("tribute_rate", 0.5)
-            v_income = sum(r.get_effective_income() for r in world.regions.values()
-                           if getattr(r, 'controller', '') == vassal_name)
+            v_income = sum(
+                world.regions[name].get_effective_income()
+                for name in world.get_nation_regions(vassal_name)
+            )
             vassal_tribute += int(v_income * tribute_rate)
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the

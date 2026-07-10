@@ -941,6 +941,38 @@ def test_slice8_hot_paths_ride_cached_region_index():
     assert "for r in world.regions.values()" not in ws_src
 
 
+def test_s3_ledger_tribute_rides_cached_region_index():
+    """S3 (Economy Revisit §0.6.3): _build_economy derives vassal tribute via
+    the cached get_nation_regions() index — the old derivation nested a full
+    region scan inside the per-vassal loop (O(vassals × regions) per ledger
+    request). The two remaining player-scoped regions.values() passes
+    (construction queue + income breakdown) are accepted; do NOT add a third.
+    Same pin for the diplomatic-preview tribute estimate, which additionally
+    hardcoded 50g/region instead of effective income."""
+    import inspect
+
+    from backend.game_logic import diplomacy, ledger
+
+    ledger_src = inspect.getsource(ledger._build_economy)
+    assert "get_nation_regions(vassal_name)" in ledger_src, (
+        "_build_economy lost its cached-index tribute derivation"
+    )
+    assert ledger_src.count("world.regions.values()") <= 2, (
+        "_build_economy grew a third full region scan"
+    )
+
+    preview_src = inspect.getsource(diplomacy.get_diplomatic_preview)
+    assert "get_nation_regions(target_nation)" in preview_src, (
+        "get_diplomatic_preview lost its cached-index tribute derivation"
+    )
+    assert "regions.values()" not in preview_src, (
+        "get_diplomatic_preview regressed to a raw region scan"
+    )
+    assert "get_effective_income" in preview_src, (
+        "the preview tribute estimate regressed to a flat per-region value"
+    )
+
+
 def test_strategic_enemy_regions_memo_resets_with_evaluation_scope():
     """The Slice 8 (nation, turn) memo on _get_strategic_enemy_regions must
     reset with the enemy-query evaluation scope, or a reused EnemyAI
