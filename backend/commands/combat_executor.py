@@ -1811,7 +1811,10 @@ class CombatExecutor:
                 "from": old_loc,
                 "to": retreat_to,
             })
-            return f"[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for 3 turns)"
+            # Recovery duration is command-aware (MC gate Q3): 3 turns baseline,
+            # 2 for a high-command marshal who rallies 2 stages/turn.
+            recovery_turns = -(-3 // marshal.get_rally_stages_per_turn())
+            return f"[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -1877,10 +1880,13 @@ class CombatExecutor:
                 "nation": getattr(marshal, "nation", ""),
                 "location": old_loc,
             })
+            # Command-aware duration (MC gate Q3): 4 turns baseline, 2 for a
+            # high-command marshal who rallies 2 stages/turn.
+            broken_turns = -(-4 // marshal.get_rally_stages_per_turn())
             return (
                 f"[BROKEN] {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
                 f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}.{strategic_msg} "
-                f"Army is BROKEN - can only recruit for 4 turns!"
+                f"Army is BROKEN - can only recruit for {broken_turns} turns!"
             )
 
     def _execute_bombardment(self, marshal, defender, world: WorldState, game_state) -> Dict:

@@ -171,7 +171,9 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var skills = m.get("skills", {})
 	bbcode += "  Skills: "
 	var skill_parts = []
-	for skill_name in ["shock", "defense", "tactical", "logistics", "administration", "command"]:
+	# MC gate Q3 (July 10, 2026): administration is unwired and hidden until
+	# MC-2b lands its mechanic — do not re-add it here without that slice.
+	for skill_name in ["shock", "defense", "tactical", "logistics", "command"]:
 		var val = int(skills.get(skill_name, 5))
 		skill_parts.append(_skill_colored(skill_name.substr(0, 3).to_upper(), val))
 	bbcode += " ".join(skill_parts) + "\n"

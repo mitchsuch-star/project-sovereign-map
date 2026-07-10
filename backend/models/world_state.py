@@ -5691,6 +5691,11 @@ class WorldState:
                         # Retreat state
                         "retreating": bool(getattr(m, 'retreating', False)),
                         "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                        # Command-aware display values (MC gate Q3) — the map
+                        # tooltip must render THESE, never a hardcoded table
+                        "retreat_penalty": (
+                            f"-{int(round(m.get_retreat_stage_penalty(int(getattr(m, 'retreat_recovery', 0))) * 100))}%"
+                            if int(getattr(m, 'retreat_recovery', 0)) < 3 else "0%"),
                         # Personality ability states (Phase 2.8)
                         "cavalry": bool(getattr(m, 'cavalry', False)),
                         "turns_in_defensive_stance": int(getattr(m, 'turns_in_defensive_stance', 0)),
@@ -5702,6 +5707,9 @@ class WorldState:
                         # Broken army state (surrounded + forced retreat)
                         "broken": bool(getattr(m, 'broken', False)),
                         "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
+                        # Command-aware remaining turns (MC gate Q3, ceil)
+                        "broken_turns_left": int(max(0, -(-(4 - int(getattr(m, 'broken_recovery', 0)))
+                                                          // m.get_rally_stages_per_turn()))),
                         # Cavalry Recklessness (Phase 3)
                         "recklessness": int(getattr(m, 'recklessness', 0)),
                         "is_reckless_cavalry": bool(getattr(m, 'is_reckless_cavalry', False) if hasattr(m, 'is_reckless_cavalry') else False),
@@ -8093,21 +8101,33 @@ class WorldState:
             # RETREAT RECOVERY PROGRESSION
             # ════════════════════════════════════════════════════════════
             # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
+            # Command-aware (MC gate Q3): command >= 8 advances 2 stages/turn;
+            # command <= 3 shows/applies 10pp-deeper penalties (marshal.py owns both).
             if getattr(marshal, 'retreating', False):
                 recovery_stage = getattr(marshal, 'retreat_recovery', 0)
                 if recovery_stage < 3:
                     # Advance recovery
-                    marshal.retreat_recovery = recovery_stage + 1
+                    rally_stages = marshal.get_rally_stages_per_turn()
+                    marshal.retreat_recovery = min(3, recovery_stage + rally_stages)
                     new_stage = marshal.retreat_recovery
-                    penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0% (recovered)"}
+                    if new_stage >= 3:
+                        penalty_str = "0% (recovered)"
+                    else:
+                        penalty_str = f"-{int(round(marshal.get_retreat_stage_penalty(new_stage) * 100))}%"
+                    rally_note = ""
+                    if rally_stages > 1 and new_stage < 3:
+                        rally_note = f" {marshal.name} rallies the survivors — the ranks reform ahead of schedule."
+                    elif (new_stage < 3
+                          and marshal.skills.get("command", 5) <= marshal.RALLY_POOR_COMMAND):
+                        rally_note = " The rout's disorder lingers in the ranks."
                     debug_print(f"  [TACTICAL] RETREAT RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
                     events.append({
                         "type": "retreat_recovery",
                         "marshal": marshal.name,
                         "nation": marshal.nation,
                         "stage": new_stage,
-                        "penalty": penalties.get(new_stage, "0%"),
-                        "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalties.get(new_stage, '0%')}"
+                        "penalty": penalty_str,
+                        "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalty_str}{rally_note}"
                     })
 
                     # Check if fully recovered
@@ -8138,13 +8158,18 @@ class WorldState:
             # ════════════════════════════════════════════════════════════
             # Broken armies take 4 turns to recover (can only recruit during recovery)
             # Stage 0-3: Broken (recruit only), Stage 4: Recovered
+            # Command-aware (MC gate Q3): command >= 8 advances 2 stages/turn.
             if getattr(marshal, 'broken', False):
                 recovery_stage = getattr(marshal, 'broken_recovery', 0)
                 if recovery_stage < 4:
                     # Advance recovery
-                    marshal.broken_recovery = recovery_stage + 1
+                    rally_stages = marshal.get_rally_stages_per_turn()
+                    marshal.broken_recovery = min(4, recovery_stage + rally_stages)
                     new_stage = marshal.broken_recovery
-                    turns_left = 4 - new_stage
+                    turns_left = -(-(4 - new_stage) // rally_stages)  # ceil division
+                    rally_note = ""
+                    if rally_stages > 1 and new_stage < 4:
+                        rally_note = f" {marshal.name} drives the rebuilding forward — ahead of schedule."
                     debug_print(f"  [TACTICAL] BROKEN RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
                     events.append({
                         "type": "broken_recovery",
@@ -8152,7 +8177,7 @@ class WorldState:
                         "nation": marshal.nation,
                         "stage": new_stage,
                         "turns_left": turns_left,
-                        "message": f"[BROKEN] {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready."
+                        "message": f"[BROKEN] {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready.{rally_note}"
                     })
 
                     # Check if fully recovered

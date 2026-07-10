@@ -186,7 +186,12 @@ def _build_combat_stats(marshal: Marshal) -> Dict[str, Any]:
         "strength": int(marshal.strength),
         "starting_strength": int(marshal.starting_strength),
         "morale": int(marshal.morale),
-        "skills": {k: int(v) for k, v in marshal.skills.items()},
+        # MC gate Q3 (July 10, 2026): administration is unwired — hidden from
+        # the card until the owned MC-2b slice lands its mechanic (GR9: no
+        # advertised stat that does nothing). The value stays authored,
+        # serialized, and mod-valid; it just doesn't display.
+        "skills": {k: int(v) for k, v in marshal.skills.items()
+                   if k != "administration"},
         "tactical_skill": int(marshal.tactical_skill),
     }
 

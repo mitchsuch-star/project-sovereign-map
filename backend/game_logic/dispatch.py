@@ -739,12 +739,15 @@ def _derive_marshal_status(marshal, world) -> tuple:
     7. idle_restless (aggressive personality, idle 3+ turns)
     8. awaiting (default)
     """
+    # ETA is command-aware (MC gate Q3): high-command marshals rally 2 stages/turn.
     if marshal.broken:
-        recovery_turn = int(world.current_turn + (4 - marshal.broken_recovery))
+        rally_stages = marshal.get_rally_stages_per_turn()
+        recovery_turn = int(world.current_turn + -(-(4 - marshal.broken_recovery) // rally_stages))
         return "broken", f"Reforms T{recovery_turn}."
 
     if marshal.retreating:
-        recovery_turn = int(world.current_turn + (3 - marshal.retreat_recovery))
+        rally_stages = marshal.get_rally_stages_per_turn()
+        recovery_turn = int(world.current_turn + -(-(3 - marshal.retreat_recovery) // rally_stages))
         return "retreating", f"Recovers T{recovery_turn}."
 
     if marshal.in_strategic_mode:

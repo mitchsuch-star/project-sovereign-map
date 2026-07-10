@@ -800,7 +800,10 @@ class CommandExecutor:
                 # Certain actions blocked, others allowed without objection dialog
                 # ═══════════════════════════════════════════════════════════
                 if getattr(marshal, 'retreating', False) and not is_strategic_execution:
-                    recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
+                    # Command-aware remaining turns (MC gate Q3 — was a phantom
+                    # constant-3 attribute that never counted down)
+                    recovery_turns = -(-(3 - getattr(marshal, 'retreat_recovery', 0))
+                                       // marshal.get_rally_stages_per_turn())
 
                     # Actions allowed during retreat (no objections, just execute)
                     allowed_during_retreat = ['move', 'wait', 'recruit', 'retreat']
@@ -845,7 +848,9 @@ class CommandExecutor:
                 # ═══════════════════════════════════════════════════════════
                 if getattr(marshal, 'broken', False):
                     recovery_stage = getattr(marshal, 'broken_recovery', 0)
-                    turns_remaining = 4 - recovery_stage  # 4 turns total recovery
+                    # Command-aware remaining turns (MC gate Q3)
+                    turns_remaining = -(-(4 - recovery_stage)
+                                        // marshal.get_rally_stages_per_turn())
 
                     # ONLY recruit is allowed when broken
                     if action != 'recruit':

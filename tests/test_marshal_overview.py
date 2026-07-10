@@ -383,13 +383,16 @@ class TestAbility:
 class TestSkills:
     """Skills range and completeness."""
 
-    def test_all_six_skills_present(self):
-        """All 6 skills present per marshal."""
-        expected_skills = {"tactical", "shock", "defense", "logistics", "administration", "command"}
+    def test_displayed_skills_exactly_the_wired_five(self):
+        """The card shows exactly the five wired skills — administration is
+        deliberately HIDDEN until MC-2b lands its mechanic (MC gate Q3,
+        July 10 2026; gate record MARSHAL_CONTENT_PASS_SPEC.md §4). MC-2b
+        restores it to this set when it lands."""
+        expected_skills = {"tactical", "shock", "defense", "logistics", "command"}
         overview = _get_overview()
         for m in overview:
             assert set(m["skills"].keys()) == expected_skills, (
-                f"{m['name']} missing skills"
+                f"{m['name']} skill display mismatch"
             )
 
     def test_skills_in_range(self):

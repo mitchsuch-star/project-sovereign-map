@@ -1068,10 +1068,25 @@ Single choke point for all post-objection execution (trust/insist/compromise). D
 
 When morale drops to 25% in combat, the marshal is "broken":
 - Forced retreat triggers automatically (bypasses objection system)
-- `retreat_recovery = 3` (decrements each turn)
+- `retreating = True`, `retreat_recovery` counts stages 0 → 3 (one per turn baseline; stage 3 = recovered, flags clear). Effectiveness penalty by stage: −45% / −30% / −15% (`marshal.get_retreat_stage_penalty`, consumed by `get_combat_effectiveness`)
+- If surrounded (no safe retreat): army SHATTERS — `broken = True`, 3–10% survivors flee to safe spawn, `broken_recovery` counts 0 → 4 (recruit-only until recovered)
 - Blocked actions during recovery: attack, fortify, drill, scout, aggressive_stance
 - Allowed actions during recovery: move, wait, recruit, defend, defensive_stance, neutral_stance
 - No objections during recovery -- marshals are demoralized and compliant
+
+### Command Skill: The Rally (MC gate Q3, July 10 2026)
+
+The `command` skill is consumed at exactly one mechanic — how fast and how well a beaten army reconstitutes. Single source `marshal.py` (`get_rally_stages_per_turn`, `get_retreat_stage_penalty`; constants `RALLY_FAST_COMMAND=8`, `RALLY_POOR_COMMAND=3`, `RALLY_POOR_EXTRA_PENALTY=0.10` — in-band tunable). Applied at the single `_process_tactical_states` tick → GR5-symmetric (both sides, all marshals).
+
+| Command | Effect |
+|---------|--------|
+| ≥ 8 | Recovery advances 2 stages/turn: retreat recovers in 2 turns (not 3), broken in 2 (not 4). Rally note rides the recovery events |
+| 4–7 | Baseline (byte-identical to pre-wiring behavior — the shipped 1805 roster is flat-5 until MC-2 lands authored values; the LEGACY fixture/rollback roster's Ney 8 / Davout 9 / Wellington 9 hit the fast tier, deliberately) |
+| ≤ 3 | Retreat-recovery penalties run 10pp deeper (−55% / −40% / −25%); recovery TIME unchanged; the tick message shows the deepened number (shown = applied). Broken state has no effectiveness channel — the poor arm is retreat-only by design |
+
+Every player-facing recovery number derives from the marshal helpers (post-landing review swept them all): dispatch ETA (`_derive_marshal_status`), executor retreat/broken action-block messages, voluntary-retreat copy + stage-0 penalty display (`movement_executor.py`), forced-retreat flee + surrounded/shattered messages (`combat_executor.py`), and the map hover tooltip — the backend ships derived `retreat_penalty` / `broken_turns_left` in `tactical_state` and `map_renderer_base.gd` renders those, never a hardcoded table.
+
+Deliberately does NOT touch the W6-11 blessed in-battle morale curve. `administration` remains UNWIRED and is hidden from the marshal card (backend `marshal_overview` filter + `marshal_management.gd` skill row) until the owned MC-2b slice lands its recruit-seam mechanic (`MARSHAL_CONTENT_PASS_SPEC.md` §4). Tests: `tests/test_mc_q3_command_rally.py`.
 
 ### Ally Covers Retreat
 

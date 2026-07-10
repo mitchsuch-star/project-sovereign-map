@@ -1849,15 +1849,23 @@ func _draw_marshal_tooltip():
 
 		if tactical_state.get("retreating", false):
 			var recovery = int(tactical_state.get("retreat_recovery", 0))
-			var retreat_penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0%"}
+			# MC gate Q3: the penalty is command-aware — render the backend's
+			# derived value, never a hardcoded table (fallback for old payloads)
+			var penalty = str(tactical_state.get("retreat_penalty", ""))
+			if penalty == "":
+				var retreat_penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0%"}
+				penalty = str(retreat_penalties.get(recovery, "?"))
 			_push_tooltip_line(
 				lines,
-				"RETREATING: %s effectiveness (stage %s/3)" % [retreat_penalties.get(recovery, "?"), recovery],
+				"RETREATING: %s effectiveness (stage %s/3)" % [penalty, recovery],
 				Color(0.9, 0.5, 0.5)
 			)
 
 		if tactical_state.get("broken", false):
-			var turns_left = max(0, 4 - int(tactical_state.get("broken_recovery", 0)))
+			# MC gate Q3: recovery speed is command-aware — use the backend's
+			# derived turns_left (fallback for old payloads)
+			var turns_left = int(tactical_state.get("broken_turns_left",
+				max(0, 4 - int(tactical_state.get("broken_recovery", 0)))))
 			_push_tooltip_line(lines, "BROKEN: Recruit only (%s turns to recover)" % turns_left, Color(0.8, 0.2, 0.2))
 
 		var turns_defensive = int(tactical_state.get("turns_in_defensive_stance", 0))

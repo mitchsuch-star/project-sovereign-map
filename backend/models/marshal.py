@@ -273,8 +273,8 @@ class Marshal:
             "shock": int(skills.get("shock", 5)),            # Attack damage, pursuit effectiveness
             "defense": int(skills.get("defense", 5)),        # Defender bonus, retreat casualties
             "logistics": int(skills.get("logistics", 5)),    # Supply range (Phase 5), attrition resistance
-            "administration": int(skills.get("administration", 5)),  # Recruitment speed, desertion prevention
-            "command": int(skills.get("command", 5))         # Morale management, discipline, looting prevention
+            "administration": int(skills.get("administration", 5)),  # UNWIRED — reserved for MC-2b; hidden from the marshal card until its mechanic lands (MC gate Q3, July 10 2026)
+            "command": int(skills.get("command", 5))         # The Rally: recovery speed (>=8) + recovery discipline (<=3) — see get_rally_stages_per_turn / get_retreat_stage_penalty
         }
 
         # Signature Ability System (Phase 2.3)
@@ -1074,6 +1074,41 @@ class Marshal:
 
         return actual_change
 
+    # ═══════ COMMAND SKILL: THE RALLY (MC gate Q3 amendment, July 10, 2026) ═══════
+    # The command skill is consumed here and ONLY here: how fast and how well a
+    # beaten army reconstitutes. Deliberately does NOT touch the W6-11 blessed
+    # in-battle morale curve. Constants are in-band tunable; structural changes
+    # escalate to the MC exit review.
+    RALLY_FAST_COMMAND = 8         # command >= 8: recovery advances 2 stages/turn
+    RALLY_POOR_COMMAND = 3         # command <= 3: retreat penalties run 10pp deeper
+    RALLY_POOR_EXTRA_PENALTY = 0.10
+
+    def get_rally_stages_per_turn(self) -> int:
+        """Recovery stages advanced per turn (retreat AND broken recovery).
+
+        Command >= RALLY_FAST_COMMAND marshals rally beaten armies twice as
+        fast (retreat 3 turns -> 2, broken 4 turns -> 2). The 1805 campaign
+        roster is flat-5 (baseline 1) until MC-2 lands authored skills; the
+        legacy fixture/rollback roster's Ney (8) / Davout (9) / Wellington (9)
+        hit the fast tier — deliberate.
+        """
+        return 2 if self.skills.get("command", 5) >= self.RALLY_FAST_COMMAND else 1
+
+    def get_retreat_stage_penalty(self, stage: int) -> float:
+        """Effectiveness penalty for a retreat-recovery stage.
+
+        Single source for BOTH the combat-effectiveness multiplier and the
+        recovery tick's player-facing percentages — the number shown is the
+        number applied. Command <= RALLY_POOR_COMMAND holds a beaten army
+        together poorly: every recovering stage is 10pp deeper
+        (-55%/-40%/-25% instead of -45%/-30%/-15%); recovery TIME is
+        unchanged.
+        """
+        base = {0: 0.45, 1: 0.30, 2: 0.15}.get(stage, 0.0)
+        if base > 0.0 and self.skills.get("command", 5) <= self.RALLY_POOR_COMMAND:
+            base += self.RALLY_POOR_EXTRA_PENALTY
+        return base
+
     def get_combat_effectiveness(self) -> float:
         """
         Calculate combat effectiveness multiplier.
@@ -1085,13 +1120,10 @@ class Marshal:
             - Normal morale: 1.0x effective
             - Low morale: 0.5x effective
         """
-        # PENALTY: Retreat recovery stages
-        # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
+        # PENALTY: Retreat recovery stages (command-aware — see get_retreat_stage_penalty)
         retreat_penalty = 0.0
         if self.retreating:
-            recovery_stage = self.retreat_recovery
-            retreat_penalties = {0: 0.45, 1: 0.30, 2: 0.15, 3: 0.0}
-            retreat_penalty = retreat_penalties.get(recovery_stage, 0.0)
+            retreat_penalty = self.get_retreat_stage_penalty(self.retreat_recovery)
 
         # Normal morale calculation
         # 100 morale = 1.5x, 50 morale = 1.0x, 0 morale = 0.5x

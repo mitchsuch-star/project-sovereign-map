@@ -781,9 +781,13 @@ class MovementExecutor:
         troop_loss_msg = ""
         stance_penalty_msg = ""
 
+        # Stage-0 display base is command-aware (MC gate Q3 — a poor-command
+        # marshal's applied stage-0 penalty is deeper); the ±10pp stance
+        # flavor offsets ride on top of it unchanged.
+        base_stage0 = marshal.get_retreat_stage_penalty(0)
         if current_stance == Stance.AGGRESSIVE:
             # Aggressive retreat is costly - caught overextended!
-            initial_penalty = "-55%"
+            initial_penalty = f"-{int(round((base_stage0 + 0.10) * 100))}%"
             troop_loss_percent = 0.05  # 5% troop loss
             troop_loss = int(marshal.strength * troop_loss_percent)
             marshal.take_casualties(troop_loss)
@@ -791,11 +795,11 @@ class MovementExecutor:
             stance_penalty_msg = " (Aggressive stance made retreat costly)"
         elif current_stance == Stance.DEFENSIVE:
             # Defensive retreat is more orderly
-            initial_penalty = "-35%"
+            initial_penalty = f"-{int(round((base_stage0 - 0.10) * 100))}%"
             stance_penalty_msg = " (Defensive stance enabled orderly withdrawal)"
         else:
             # Neutral - standard retreat
-            initial_penalty = "-45%"
+            initial_penalty = f"-{int(round(base_stage0 * 100))}%"
 
         # ════════════════════════════════════════════════════════════
         # FIGHTING RETREAT (Phase 2.8)
@@ -895,7 +899,9 @@ class MovementExecutor:
         if retreat_attrition["total_losses"] > 0:
             retreat_message += f" ({retreat_attrition['total_losses']:,} lost to march)"
         retreat_message += f" Army begins recovery (currently at {initial_penalty} effectiveness).{stance_penalty_msg} "
-        retreat_message += "Will recover over 3 turns."
+        # Command-aware duration (MC gate Q3): 3 turns baseline, 2 fast-rally
+        recovery_turns = -(-3 // marshal.get_rally_stages_per_turn())
+        retreat_message += f"Will recover over {recovery_turns} turns."
 
         # Add final fighting retreat message
         if fighting_retreat_events:
