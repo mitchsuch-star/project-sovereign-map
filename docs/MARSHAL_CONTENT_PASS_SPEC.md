@@ -1,6 +1,7 @@
 # Marshal Content Pass (1805 Roster Depth)
 
 > **Status:** DRAFT v0.1 — July 2, 2026. **NEEDS USER DESIGN GATE before implementation** (the ability set is a design decision). The MC-0 display-bug fix may land independently as a bug fix.
+> **Gate memo (July 10, 2026):** `docs/audits/MC_GATE_RECOMMENDATIONS_2026_07_10.md` — panel-recommended MC-1 set (10 abilities), full MC-2 skills/trust + MC-3 relationship tables, MC-4 recommendation (defer balanced/loyal; canonize Soult-literal), and the user-added MC-V rider (personality-kit assurance for both sides + enemy-AI-per-personality evaluation, memo §6.7). **Awaiting user blessing — still DO NOT CODE.**
 > **Origin:** July 2, 2026 re-staging audit — this gap was previously UNOWNED (Golden Rule 9). The shipped 21-marshal 1805 roster authors only name/nation/location/strength/personality/movement/biography; everything that makes marshals *people* is defaulted.
 > **Vision anchor:** Marshals ARE the game ("talk to your generals", the Grouchy Moment, personality over randomness). A campaign where Ney has no Bravest of the Brave, every skill is a flat 5, and no marshal has a relationship with any other is mechanically playable but characterally empty — and it silently disables the substrate Jealousy v3.1 needs.
 
