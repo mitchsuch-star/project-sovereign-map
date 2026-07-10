@@ -439,7 +439,7 @@ Iterate all regions, skip UNKNOWN, collect enemy marshals from intel.known_marsh
 
 Infantry regen is always `INFANTRY_BASE_REGEN = 2500` (flat, no territory dependency; scaled down by war exhaustion).
 
-Cavalry regen: `CAVALRY_BASE_REGEN (250) + PLAINS_CAVALRY_REGEN (500) * plains_count + STABLES_CAVALRY_REGEN (750) * stables_count` where:
+Cavalry regen: `CAVALRY_BASE_REGEN (250) + min(PLAINS_CAVALRY_REGEN (150) * plains_count + STABLES_CAVALRY_REGEN (750) * stables_count, CAVALRY_REGEN_BONUS_CAP (1500))` (ES-1b retune, July 9, 2026 — the summed bonus is capped; France's 24 plains were +12,250/turn at rate 500) where:
 - `plains_count` = number of player-controlled regions with `terrain == "plains"`
 - `stables_count` = number of player-controlled regions with `has_building("stables")`
 

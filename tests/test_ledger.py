@@ -10,7 +10,8 @@ import pytest
 from backend.models.world_state import (
     WorldState,
     MAX_INFANTRY_POOL, CAVALRY_BASE_REGEN, ARTILLERY_BASE_REGEN,
-    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, CITY_ARTILLERY_REGEN,
+    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, CAVALRY_REGEN_BONUS_CAP,
+    CITY_ARTILLERY_REGEN,
     ARTILLERY_REGEN_CAP, ARSENAL_REGION_TYPES,
 )
 from backend.models.marshal import StrategicOrder
@@ -611,11 +612,11 @@ def test_manpower_dynamic_regen_with_plains():
     plains_count = sum(1 for r in world.regions.values()
                        if r.controller == "France" and r.terrain == "plains")
     ledger = build_strategic_ledger(world)
-    expected_cav = CAVALRY_BASE_REGEN + PLAINS_CAVALRY_REGEN * plains_count
-    # Also account for stables
+    # Summed plains+stables bonus is capped (ES-1b)
     stables_count = sum(1 for r in world.regions.values()
                         if r.controller == "France" and r.has_building("stables"))
-    expected_cav += STABLES_CAVALRY_REGEN * stables_count
+    bonus = PLAINS_CAVALRY_REGEN * plains_count + STABLES_CAVALRY_REGEN * stables_count
+    expected_cav = CAVALRY_BASE_REGEN + min(bonus, CAVALRY_REGEN_BONUS_CAP)
     assert ledger["manpower"]["cavalry"]["regen_rate"] == expected_cav
 
 

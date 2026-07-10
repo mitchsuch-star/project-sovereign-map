@@ -19,7 +19,7 @@ from backend.models.world_state import (
     WorldState,
     INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
     INFANTRY_BASE_REGEN, CAVALRY_BASE_REGEN,
-    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN,
+    PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, CAVALRY_REGEN_BONUS_CAP,
     MAX_INFANTRY_POOL, MAX_CAVALRY_POOL,
     DEFAULT_MANPOWER_POOLS,
 )
@@ -242,7 +242,7 @@ class TestManpowerRegen:
         assert world.manpower_pools["France"]["cavalry"] == 5000 + CAVALRY_BASE_REGEN
 
     def test_plains_cavalry_bonus(self):
-        """Each plains region adds +500 cavalry regen."""
+        """Each plains region adds PLAINS_CAVALRY_REGEN, summed bonus capped (ES-1b)."""
         world = fresh_world()
         # Count French plains
         french_plains = sum(
@@ -251,7 +251,8 @@ class TestManpowerRegen:
         )
         world.manpower_pools["France"]["cavalry"] = 0
         world._process_manpower_regen()
-        expected = CAVALRY_BASE_REGEN + (french_plains * PLAINS_CAVALRY_REGEN)
+        bonus = min(french_plains * PLAINS_CAVALRY_REGEN, CAVALRY_REGEN_BONUS_CAP)
+        expected = CAVALRY_BASE_REGEN + bonus
         assert world.manpower_pools["France"]["cavalry"] == expected
 
     def test_stables_cavalry_bonus(self):

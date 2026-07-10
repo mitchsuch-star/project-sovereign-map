@@ -93,8 +93,14 @@ ARTILLERY_RECRUIT_GOLD_COST_BASE = 400 # Gold cost for artillery recruit (most e
 INFANTRY_BASE_REGEN = 2500             # Per nation per turn (halved S8 — manpower is precious)
 CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow, this IS the bottleneck)
 ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
-PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
+PLAINS_CAVALRY_REGEN = 150             # Bonus per plains region controlled
 STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
+# ES-1b (Economy Revisit S2, blessed E2): the SUMMED plains+stables cavalry
+# bonus is capped — France's 24 plains regions were +12,250/turn at rate 500,
+# refilling the 30k pool in ~2.5 turns. Cap covers stables too, so building
+# stables can't reopen the runaway. Pool caps deliberately NOT scaled
+# (cut at the July-9 gate — ceilings nobody reaches post-fix).
+CAVALRY_REGEN_BONUS_CAP = 1500         # Hard cap on the summed plains+stables cavalry bonus
 # ES-1a (Economy Revisit S1, blessed E2): arsenals key off region_type — no
 # province on the real map has terrain 'urban'; urbanness lives in region_type.
 # Total is hard-capped so the 77 qualifying Europe provinces can't compound
@@ -3639,13 +3645,14 @@ class WorldState:
         # Infantry: generous base regen (no territory dependency)
         inf_regen = INFANTRY_BASE_REGEN
 
-        # Cavalry: slow base + territory bonuses
-        cav_regen = CAVALRY_BASE_REGEN
+        # Cavalry: slow base + territory bonuses, summed bonus capped (ES-1b)
+        cav_bonus = 0
         for region in controlled:
             if region.terrain == "plains":
-                cav_regen += PLAINS_CAVALRY_REGEN
+                cav_bonus += PLAINS_CAVALRY_REGEN
             if region.has_building("stables"):
-                cav_regen += STABLES_CAVALRY_REGEN
+                cav_bonus += STABLES_CAVALRY_REGEN
+        cav_regen = CAVALRY_BASE_REGEN + min(cav_bonus, CAVALRY_REGEN_BONUS_CAP)
 
         # Artillery: slow base + arsenal territory bonuses, hard-capped (ES-1a)
         art_regen = ARTILLERY_BASE_REGEN

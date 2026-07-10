@@ -2749,12 +2749,12 @@ Legacy fixture values above. The shipped 1805 world seeds pools from `EUROPE_MAN
 
 ### Regen (per turn)
 
-- Infantry: 5,000/turn base (no territory dependency)
-- Cavalry: 500/turn base + 500 per plains region + 750 per stables building
-- Artillery: 300/turn base + 200 per urban region controlled
-- Pool caps: 100,000 infantry, 30,000 cavalry, 20,000 artillery
+- Infantry: 2,500/turn base (no territory dependency; halved S8, scaled down by war exhaustion — deliberately flat, an anti-snowball rubber band per the July-9 EC-2 gate)
+- Cavalry: 250/turn base + min(150 per plains region + 750 per stables building, 1,500 summed-bonus cap `CAVALRY_REGEN_BONUS_CAP`) (ES-1b, July 9, 2026 — France's 24 plains were +12,250/turn at the old rate 500)
+- Artillery: 150/turn base + 80 per arsenal region (`region_type ∈ {city, major_city, capital}`), total hard-capped at 600 `ARTILLERY_REGEN_CAP` (ES-1a, July 9, 2026 — the old urban-terrain keying was dead code on the real map)
+- Pool caps: 100,000 infantry, 30,000 cavalry, 20,000 artillery (NOT nation-size-scaled — cut at the July-9 gate)
 - Damaged/under-construction stables don't contribute
-- Nations with 0 regions still get base regen
+- Eliminated nations (0 regions) get NO regen (DLF-11)
 
 ### Stables Building
 
