@@ -626,6 +626,8 @@ Reserved future `event_log` payloads:
 |-------|------|-------------|
 | `idle_turns` | int | Consecutive turns without attack or move (V2b: triggers idle objections) |
 | `last_battle_turn` | int | **W6-1 (BUG-CA-9).** Turn this marshal last fought a field battle (primary or arrived reinforcer); -1 = never. Feeds W6-3 dispatch arc memory. |
+| `captured_by` | str | **W6-7 Marshal Fates.** Captor nation ("" = free). A captured marshal sits at the captor's capital with strength 0 (never swept by the attrition elimination), excluded from rosters/muster/reinforcement scans; ES-7 expectations freeze. |
+| `captured_turn` | int | **W6-7.** Turn of capture; -1 = never captured. |
 
 #### Contested Capture (Phase 6.2.F)
 | Field | Type | Description |

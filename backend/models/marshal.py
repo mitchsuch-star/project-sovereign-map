@@ -509,6 +509,15 @@ class Marshal:
         self.last_battle_turn: int = -1
 
         # ════════════════════════════════════════════════════════════
+        # W6-7 MARSHAL FATES (EXP-M1): capture state. A captured marshal
+        # leaves the map (location = captor's capital, strength 0,
+        # excluded from rosters/dispatch active lists — shown in a
+        # "Prisoners" line instead) until ransomed or released by peace.
+        # ════════════════════════════════════════════════════════════
+        self.captured_by: str = ""   # captor nation ("" = free)
+        self.captured_turn: int = -1
+
+        # ════════════════════════════════════════════════════════════
         # CONTESTED CAPTURE OCCUPATION (Phase 6.2.F)
         # ════════════════════════════════════════════════════════════
         # When capturing a fortified region, marshal must hold for N turns.
@@ -1217,6 +1226,10 @@ class Marshal:
             "idle_turns": int(self.idle_turns),
             "last_battle_turn": int(self.last_battle_turn),
 
+            # ═══════ W6-7 MARSHAL FATES ═══════
+            "captured_by": self.captured_by,
+            "captured_turn": int(self.captured_turn),
+
             # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
             "occupation_region": self.occupation_region,
             "occupation_turns_held": int(self.occupation_turns_held),
@@ -1369,6 +1382,10 @@ class Marshal:
         # ═══════ IDLE TRACKING (V2a) ═══════
         marshal.idle_turns = data.get("idle_turns", 0)
         marshal.last_battle_turn = data.get("last_battle_turn", -1)
+
+        # ═══════ W6-7 MARSHAL FATES ═══════
+        marshal.captured_by = data.get("captured_by", "")
+        marshal.captured_turn = data.get("captured_turn", -1)
 
         # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
         marshal.occupation_region = data.get("occupation_region", None)

@@ -94,7 +94,9 @@ class TestTypeWhitelist:
         # (dotation_granted / estate_lost).
         # W6-5 (July 10, 2026): +1 literal_fidelity (the Literal Doctrine's
         # fidelity beat).
-        assert len(CAMPAIGN_LOG_TYPES) == 96
+        # W6-7 (July 10, 2026): +2 marshal fates (marshal_captured /
+        # last_stand).
+        assert len(CAMPAIGN_LOG_TYPES) == 98
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

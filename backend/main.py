@@ -1086,7 +1086,17 @@ def execute_command(request: CommandRequest):
 
                 # Map natural language to response choices
                 choice = None
-                if any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join"]):
+                # W6-7: last-stand answers first — "fight" must not fall
+                # into the generic attack mapping below.
+                if "fight_to_the_last" in options and any(
+                        kw in cmd_lower for kw in
+                        ["fight", "last stand", "to the last", "die "]):
+                    choice = "fight_to_the_last"
+                elif "attempt_breakout" in options and any(
+                        kw in cmd_lower for kw in
+                        ["breakout", "break out", "escape", "cut", "flee"]):
+                    choice = "attempt_breakout"
+                elif any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join"]):
                     choice = "investigate" if "investigate" in options else "attack" if "attack" in options else None
                 elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on"]):
                     choice = "continue_order" if "continue_order" in options else None

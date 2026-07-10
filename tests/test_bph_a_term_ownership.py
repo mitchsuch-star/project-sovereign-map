@@ -272,7 +272,9 @@ class TestPeaceRatifiedCampaignLog:
         # (dotation_granted / estate_lost).
         # W6-5 (July 10, 2026): +1 literal_fidelity (the Literal Doctrine's
         # fidelity beat).
-        assert len(CAMPAIGN_LOG_TYPES) == 96
+        # W6-7 (July 10, 2026): +2 marshal fates (marshal_captured /
+        # last_stand).
+        assert len(CAMPAIGN_LOG_TYPES) == 98
 
     def test_format_peace_oneliner(self):
         event = {

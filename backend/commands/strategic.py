@@ -240,6 +240,42 @@ class StrategicOrderProcessor:
                              "_muster_confirmed": True}},
                 game_state)
 
+        # ════════════════════════════════════════════════════════════
+        # W6-7 LAST STAND (EXP-M1): a cornered aggressive marshal awaits
+        # the player's word — fight to the last (one final defense at
+        # +25%, the pursuit halted, survivors captured after) or attempt
+        # a breakout (the escape roll at −10%). No strategic order is
+        # involved, so this branch runs BEFORE the order requirement.
+        # ════════════════════════════════════════════════════════════
+        if pending.get("interrupt_type") == "last_stand":
+            valid = pending.get("options", [])
+            if choice not in valid:
+                return {"success": False,
+                        "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid)}"}
+            marshal.pending_interrupt = None
+            enemy = world.get_marshal(pending.get("enemy", ""))
+            combat = self.executor._combat
+            if choice == "fight_to_the_last":
+                msg = combat._resolve_last_stand_fight(marshal, enemy, world)
+                return {"success": True, "no_action_cost": True,
+                        "message": msg}
+            # attempt_breakout — the escape roll at −10%.
+            import random
+            escape_chance = (combat.MARSHAL_FATE_ESCAPE_CHANCE
+                             - combat.LAST_STAND_BREAKOUT_PENALTY)
+            if random.random() < escape_chance:
+                msg = combat._apply_forced_retreat_or_break(
+                    marshal, enemy, world, skip_fate=True)
+                return {"success": True, "no_action_cost": True,
+                        "message": (f"{marshal.name} cuts his way out! "
+                                    f"{msg}")}
+            msg = combat._capture_marshal(
+                marshal, getattr(enemy, "nation", "") or
+                pending.get("enemy_nation", ""), world,
+                context="failed_breakout")
+            return {"success": True, "no_action_cost": True,
+                    "message": (f"The breakout fails — {msg}")}
+
         order = marshal.strategic_order
         if not order:
             marshal.pending_interrupt = None

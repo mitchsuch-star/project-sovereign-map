@@ -61,6 +61,9 @@ CAMPAIGN_LOG_TYPES = {
     "retreat",
     "marshal_broken",
     "marshal_recovered",
+    # W6-7 Marshal Fates
+    "marshal_captured",
+    "last_stand",
     # Territory
     "region_captured",
     # Economy
@@ -205,6 +208,8 @@ CATEGORY_MAP = {
     "strategic_order": "command",
     "defiance": "command",
     "literal_fidelity": "command",
+    "marshal_captured": "combat",
+    "last_stand": "combat",
     # Diplomacy (Session 8D)
     "diplomatic_treaty_signed": "diplomacy",
     "diplomatic_war_declared": "diplomacy",
@@ -907,6 +912,19 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).
         return event.get("message", "A literal marshal held to his orders.")
+
+    if event_type == "marshal_captured":
+        marshal = event.get("marshal", "Unknown")
+        captor = event.get("captor", "the enemy")
+        location = event.get("location", "the field")
+        return f"Marshal {marshal} CAPTURED by {captor} at {location}"
+
+    if event_type == "last_stand":
+        marshal = event.get("marshal", "Unknown")
+        location = event.get("location", "the field")
+        inflicted = int(event.get("casualties_inflicted", 0) or 0)
+        return (f"{marshal}'s last stand at {location} — "
+                f"{inflicted:,} enemy casualties before the end")
 
     if event_type == "strategic_order":
         marshal = event.get("marshal", "Unknown")

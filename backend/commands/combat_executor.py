@@ -1544,16 +1544,212 @@ class CombatExecutor:
                 }],
             }
 
-    def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState') -> str:
+    # ════════════════════════════════════════════════════════════════════
+    # W6-7 MARSHAL FATES (EXP-M1) — capture, ransom, the last stand.
+    # Blessed defaults (band notes in WAVE6_FUN_FACTOR_SPEC §9/§14).
+    # ════════════════════════════════════════════════════════════════════
+    MARSHAL_FATE_STRENGTH_FLOOR = 5000   # band 3k-8k
+    MARSHAL_FATE_ESCAPE_CHANCE = 0.60    # captured 40%; band ±15
+    LAST_STAND_BONUS = 0.25              # band 15-35%
+    LAST_STAND_BREAKOUT_PENALTY = 0.10   # breakout escape = 60% - 10%
+
+    def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
+        """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
+        the man himself is at stake.
+
+        Trigger: post-battle strength < MARSHAL_FATE_STRENGTH_FLOOR, OR the
+        only retreat is encirclement (None) / at-war desperation soil
+        (the W6-1 tier 5). Then:
+          - pure encirclement = captured outright (replaces the old silent
+            shatter),
+          - an AGGRESSIVE marshal gets the last stand — player-owned as a
+            pending_interrupt choice, AI by deterministic rule (fights when
+            defending home/capital-adjacent ground, else breaks out),
+          - everyone else rolls escape/capture (combat's RNG — seedable).
+
+        Returns a message when the fate machinery consumed the retreat,
+        None when the normal forced-retreat flow should proceed.
+        """
+        import random
+
+        if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
+            return None
+        captor_nation = getattr(enemy, "nation", "") if enemy else ""
+        if not captor_nation or captor_nation == marshal.nation:
+            return None
+
+        attacker_location = getattr(enemy, 'location', None) if enemy else None
+        retreat_to = world.get_safe_retreat_destination(
+            marshal.name, attacker_location)
+        encircled = retreat_to is None
+        desperation_only = False
+        if retreat_to is not None:
+            dest = world.get_region(retreat_to)
+            dest_controller = getattr(dest, "controller", None) if dest else None
+            desperation_only = (
+                dest_controller is not None
+                and dest_controller != marshal.nation
+                and world.is_at_war(marshal.nation, dest_controller)
+            )
+        low_strength = marshal.strength < self.MARSHAL_FATE_STRENGTH_FLOOR
+
+        if not (low_strength or encircled or desperation_only):
+            return None
+
+        # Pure encirclement: nowhere to run — captured outright.
+        if encircled:
+            return self._capture_marshal(marshal, captor_nation, world,
+                                         context="encircled")
+
+        is_aggressive = getattr(marshal, "personality", "") == "aggressive"
+        if is_aggressive and marshal.nation == world.player_nation:
+            # The player chooses: die on his feet or run for it.
+            interrupt = {
+                "interrupt_type": "last_stand",
+                "marshal": marshal.name,
+                "enemy": getattr(enemy, "name", ""),
+                "enemy_nation": captor_nation,
+                "options": ["fight_to_the_last", "attempt_breakout"],
+                "message": (
+                    f"{marshal.name} is cornered at {marshal.location} with "
+                    f"{int(marshal.strength):,} men, Sire — capture looms. "
+                    f"He asks leave to fight to the last, or he can attempt "
+                    f"a breakout."
+                ),
+            }
+            marshal.pending_interrupt = interrupt
+            return (f"[!] {marshal.name} is CORNERED at {marshal.location} "
+                    f"— awaiting your word: fight to the last, or attempt "
+                    f"a breakout.")
+
+        if is_aggressive:
+            # AI rule (GR5, deterministic — no roll for the decision):
+            # fight the last stand when defending homeland or
+            # capital-adjacent ground, else break out.
+            home = set(world.nation_starting_regions.get(marshal.nation, []) or [])
+            capital = world.get_nation_capital(marshal.nation)
+            capital_adjacent = False
+            if capital:
+                cap_region = world.get_region(capital)
+                capital_adjacent = bool(
+                    cap_region and (marshal.location == capital
+                                    or marshal.location in cap_region.adjacent_regions))
+            if marshal.location in home or capital_adjacent:
+                return self._resolve_last_stand_fight(marshal, enemy, world)
+            escape_chance = (self.MARSHAL_FATE_ESCAPE_CHANCE
+                             - self.LAST_STAND_BREAKOUT_PENALTY)
+        else:
+            escape_chance = self.MARSHAL_FATE_ESCAPE_CHANCE
+
+        if random.random() < escape_chance:
+            return None  # He slips the net — the normal retreat proceeds.
+        return self._capture_marshal(marshal, captor_nation, world,
+                                     context="overrun")
+
+    def _resolve_last_stand_fight(self, marshal, enemy, world: 'WorldState') -> str:
+        """One final defense at +LAST_STAND_BONUS: the attacker is bled and
+        halted for the turn; the survivors are captured after."""
+        damage = int(marshal.strength * 0.25 * (1.0 + self.LAST_STAND_BONUS))
+        enemy_name = getattr(enemy, "name", "")
+        if enemy is not None and damage > 0:
+            enemy.take_casualties(damage)
+            enemy.adjust_morale(-5)
+            # Halted this turn: the pursuit stops at the hill he died on.
+            enemy.moved_this_turn = True
+        world.log_event({
+            "type": "last_stand",
+            "marshal": marshal.name,
+            "nation": marshal.nation,
+            "location": marshal.location,
+            "enemy": enemy_name,
+            "casualties_inflicted": int(damage),
+            "message": (
+                f"{marshal.name} makes his last stand at {marshal.location} "
+                f"— {damage:,} of {enemy_name}'s men fall before the end."
+            ),
+        })
+        capture_msg = self._capture_marshal(
+            marshal, getattr(enemy, "nation", ""), world,
+            context="last_stand")
+        return (f"[!] LAST STAND — {marshal.name} turns at bay at "
+                f"{marshal.location}! {damage:,} enemy casualties; the "
+                f"pursuit is halted. {capture_msg}")
+
+    def _capture_marshal(self, marshal, captor_nation: str,
+                         world: 'WorldState', context: str = "") -> str:
+        """W6-7 §9.1: the marshal is taken. He leaves the map (held at the
+        captor's capital, strength 0), his remaining troops disband — half
+        make their way home to the owner's manpower pool."""
+        owner = marshal.nation
+        old_location = marshal.location
+        remaining = int(marshal.strength)
+
+        # 50% of remaining troops filter home to the manpower pool.
+        returned = remaining // 2
+        pools = getattr(world, "manpower_pools", None)
+        if returned > 0 and isinstance(pools, dict) and owner in pools:
+            pool = pools[owner]
+            if getattr(marshal, "cavalry", False):
+                pool["cavalry"] = int(pool.get("cavalry", 0)) + returned
+            elif getattr(marshal, "artillery", False):
+                pool["artillery"] = int(pool.get("artillery", 0)) + returned
+            else:
+                pool["infantry"] = int(pool.get("infantry", 0)) + returned
+
+        # The captured state: off the map, held at the captor's capital.
+        marshal.captured_by = captor_nation
+        marshal.captured_turn = int(world.current_turn)
+        marshal.strength = 0
+        marshal.pending_interrupt = None
+        marshal.strategic_order = None
+        marshal.holding_position = False
+        marshal.hold_region = ""
+        marshal.occupation_region = None
+        marshal.occupation_turns_held = 0
+        marshal.occupation_turns_required = 0
+        marshal.retreating = False
+        marshal.broken = False
+        captor_capital = world.get_nation_capital(captor_nation)
+        if captor_capital:
+            marshal.location = captor_capital
+
+        world.log_event({
+            "type": "marshal_captured",
+            "marshal": marshal.name,
+            "nation": owner,
+            "captor": captor_nation,
+            "location": old_location,
+            "returned_troops": int(returned),
+            "context": context,
+            "message": (
+                f"Marshal {marshal.name} has been CAPTURED by "
+                f"{captor_nation} at {old_location}."
+            ),
+        })
+        return (f"[!] MARSHAL CAPTURED — {marshal.name} is taken by "
+                f"{captor_nation} at {old_location}! "
+                f"{returned:,} of his men escape home to the depots.")
+
+    def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
+                                       skip_fate: bool = False) -> str:
         """
         Apply forced retreat or break the army if surrounded.
 
         Uses get_safe_retreat_destination (BUG-009 fix) which properly checks
         threat zones. If no safe retreat exists, army is BROKEN.
 
+        W6-7: the marshal-fate check runs FIRST — a cornered marshal
+        (strength < 5,000 or desperation-only/encircled retreat) may be
+        captured, offered a last stand, or slip away into the normal flow.
+
         Returns message describing what happened.
         """
         import random
+
+        if not skip_fate:
+            fate_msg = self._check_marshal_fate(marshal, enemy, world)
+            if fate_msg is not None:
+                return fate_msg
 
         # Try to find safe retreat location using threat-aware pathfinding
         # Pass attacker location to prioritize retreating AWAY from the threat
@@ -4009,6 +4205,18 @@ class CombatExecutor:
         # W6-4: structured muster block rides the result for UI rendering.
         if muster_preview is not None:
             result["muster_preview"] = muster_preview
+
+        # W6-7: a cornered PLAYER marshal's last-stand choice surfaces
+        # synchronously on this response (the enemy-phase path reaches the
+        # player via the stored marshal.pending_interrupt + typed answers).
+        for _fate_m in (marshal, enemy_marshal):
+            _fate_pi = getattr(_fate_m, "pending_interrupt", None)
+            if (_fate_pi
+                    and _fate_pi.get("interrupt_type") == "last_stand"
+                    and _fate_m.nation == world.player_nation):
+                result["pending_interrupt"] = _fate_pi
+                result["requires_input"] = True
+                break
 
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):

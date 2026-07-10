@@ -3938,6 +3938,13 @@ class WorldState:
         )
 
         for marshal in self.marshals.values():
+            # W6-7: a captured marshal's expectations are FROZEN — his
+            # estates do not erode his loyalty while he sits in a foreign
+            # capital (grace clock reset; the cheapest rule, pinned by
+            # test_w6_marshal_fates.py).
+            if getattr(marshal, "captured_by", ""):
+                marshal.expectation_grace_turn = -1
+                continue
             # 1) Prune lost estates — state-driven: ANY way a funding
             #    province leaves the nation's hands (peace cede, recapture,
             #    rebellion, vassal grab) lands here, no seam-specific hook.
@@ -4110,8 +4117,11 @@ class WorldState:
                     # per-turn only, so mirror into the event log.
                     self.log_event(dict(event))
 
-        # V2-29: Eliminate marshals reduced to 0 strength by attrition
-        eliminated = [m_name for m_name, m in self.marshals.items() if m.strength <= 0]
+        # V2-29: Eliminate marshals reduced to 0 strength by attrition.
+        # W6-7: captured marshals sit at strength 0 BY DESIGN (held at the
+        # captor's capital awaiting ransom/release) — never sweep them.
+        eliminated = [m_name for m_name, m in self.marshals.items()
+                      if m.strength <= 0 and not getattr(m, "captured_by", "")]
         for m_name in eliminated:
             dead = self.marshals.pop(m_name)
             events.append({

@@ -422,6 +422,19 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     if headline:
         dispatch["headline"] = headline
 
+    # W6-7: captured marshals appear as a Prisoners line, not roster rows.
+    prisoners = [
+        {
+            "name": m.name,
+            "captor": m.captured_by,
+            "captured_turn": int(m.captured_turn),
+        }
+        for m in world.marshals.values()
+        if m.nation == player_nation and getattr(m, "captured_by", "")
+    ]
+    if prisoners:
+        dispatch["prisoners"] = prisoners
+
     # Berthier note depends on marshals + situation (+ the headline, W6-3)
     dispatch["berthier_note"] = _pick_berthier_note(
         world, player_nation, dispatch["marshals"], dispatch["situation"],
@@ -676,6 +689,10 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
     for marshal in world.marshals.values():
         if marshal.nation != player_nation:
             continue
+        # W6-7: captured marshals leave the active roster — they appear in
+        # the dispatch's Prisoners line instead (built in the main build).
+        if getattr(marshal, "captured_by", ""):
+            continue
 
         status, status_note = _derive_marshal_status(marshal, world)
         trust_val = int(marshal.trust.value) if hasattr(marshal.trust, 'value') else int(getattr(marshal, 'trust', 75))
@@ -868,6 +885,9 @@ _DISPATCH_EVENT_TYPES = {
     # W6-5 §7.2.4: the literal fidelity beat ("Soult holds at Lorraine,
     # per your orders — the guns at Franche-Comte did not move him.")
     "literal_fidelity",
+    # W6-7 Marshal Fates: capture + last stand reach the morning briefing.
+    "marshal_captured",
+    "last_stand",
 }
 
 
@@ -904,7 +924,8 @@ def _build_turn_events(
                           "cavalry_fortify_forced", "fortify_decayed",
                           "fortify_collapsed", "counter_punch_expired",
                           "capital_proximity_alert", "auto_glorious_charge",
-                          "reckless_move", "reckless_no_target"):
+                          "reckless_move", "reckless_no_target",
+                          "marshal_captured", "last_stand"):
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete", "retreat_recovery",

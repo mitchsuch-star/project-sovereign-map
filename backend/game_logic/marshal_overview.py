@@ -80,7 +80,17 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
     for marshal in world.marshals.values():
         if marshal.nation != player:
             continue
-        result.append(_build_marshal_card(marshal, world))
+        card = _build_marshal_card(marshal, world)
+        # W6-7: a captured marshal's card names his fate front and center.
+        if getattr(marshal, "captured_by", ""):
+            card["captured"] = True
+            card["captured_by"] = marshal.captured_by
+            card["status"] = "captured"
+            card["status_note"] = (
+                f"PRISONER of {marshal.captured_by} since "
+                f"T{int(marshal.captured_turn)}."
+            )
+        result.append(card)
 
     return result
 
