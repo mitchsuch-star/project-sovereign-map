@@ -94,6 +94,23 @@ func _on_dispatch_received(response):
 	elif authority < 50:
 		auth_color = Utils.COLOR_ERROR
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
+
+	# ES-7 (Economy Revisit S7): Unmet Marshals roll-up — marshals whose
+	# reward expectation exceeds their estate income; eroding = loyalty
+	# actively bleeding (grace window elapsed).
+	var unmet = situation.get("unmet_marshals", [])
+	if unmet is Array and unmet.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_WARNING + "]  UNMET MARSHALS[/color]\n"
+		for u in unmet:
+			if not (u is Dictionary):
+				continue
+			var u_name = str(u.get("marshal", "?"))
+			var u_exp = int(u.get("expectation", 0))
+			var u_sat = int(u.get("satisfaction", 0))
+			var u_eroding = u.get("eroding", false)
+			var u_color = Utils.COLOR_ERROR if u_eroding else Utils.COLOR_WARNING
+			var u_note = " — loyalty eroding" if u_eroding else ""
+			bbcode += "[color=#" + u_color + "]    " + u_name + " expects " + str(u_exp) + "g/turn of estates, holds " + str(u_sat) + "g" + u_note + "[/color]\n"
 	bbcode += "\n"
 
 	# ═══ MARSHAL STATUS ═══

@@ -254,6 +254,8 @@ class CommandParser:
             "propose_white_peace",
             # SC-30 / Slice G1: Request Terms lifecycle
             "request_terms",
+            # ES-7 Estate Endowment (Economy Revisit S7)
+            "grant_dotation",   # "endow Ney with Swabia" — 1 admin AP + fee
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

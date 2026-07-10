@@ -202,6 +202,32 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
 	bbcode += "\n"
 
+	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7) ═══════
+	# Expectation vs estate income in the same g/turn units — the number IS
+	# the explanation (green met / amber unmet / red eroding).
+	var expectation = int(m.get("expectation", 0))
+	var estate_income = int(m.get("estate_income", 0))
+	var shortfall = int(m.get("expectation_shortfall", 0))
+	var estate_title = str(m.get("estate_title", ""))
+	if expectation > 0 or estate_income > 0:
+		if estate_title != "":
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
+		var exp_color = Utils.COLOR_SUCCESS
+		if m.get("is_eroding", false):
+			exp_color = Utils.COLOR_ERROR
+		elif shortfall > 0:
+			exp_color = Utils.COLOR_WARNING
+		bbcode += "  [color=#" + exp_color + "]Expects: " + str(expectation) + "g/turn | Estates: " + str(estate_income) + "g/turn"
+		if shortfall > 0:
+			bbcode += " | Shortfall: " + str(shortfall) + "g"
+			if m.get("is_eroding", false):
+				bbcode += " — loyalty eroding"
+		bbcode += "[/color]\n"
+		var eligible = m.get("eligible_estates", [])
+		if shortfall > 0 and eligible is Array and eligible.size() > 0:
+			var m_name_hint = str(m.get("name", "?"))
+			bbcode += "  [color=#" + COLOR_DIM + "]Endow: 'endow " + m_name_hint + " with " + str(eligible[0]) + "' — eligible: " + ", ".join(PackedStringArray(eligible)) + "[/color]\n"
+
 	# ═══════ CURRENT STATUS ═══════
 	var location = str(m.get("location", "?"))
 	var stance = str(m.get("stance", "neutral"))

@@ -19,7 +19,9 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
 # Single source of truth — imported by executor.py (P3-1 consolidation)
-ADMIN_ACTIONS = {"recruit", "build", "repair"}
+# grant_dotation: ES-7 estate endowment (Economy Revisit S7) — 1 admin AP,
+# investiture fee deducted in the executor.
+ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation"}
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:
@@ -236,23 +238,28 @@ class MetaExecutor:
         upkeep_val = upkeep_data["total"]
         # ES-2 (S6): occupation is its own Net component (income is gross)
         occupation_val = int(income_data.get("occupation", 0))
+        # ES-7 (S7): estate redirect is its own Net component too
+        dotation_val = int(income_data.get("dotation_skim", 0))
         spent_val = saved_gold_spent.get(nation, 0)
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
-        # so Income - Occupation - Upkeep + Other == Net == the real treasury delta.
+        # so Income - Occupation - Dotations - Upkeep + Other == Net == the
+        # real treasury delta.
         net_val = treasury - treasury_before_turn
-        other_val = net_val - (income_val - occupation_val - upkeep_val)
+        other_val = net_val - (income_val - occupation_val - dotation_val
+                               - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
         if other_val != 0:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
         occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
+        dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
         surcharge_val = int(upkeep_data.get("surcharge", 0))
         surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-        message += f"\n\nIncome: {income_val}g{occupation_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -266,6 +273,7 @@ class MetaExecutor:
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
             "occupation": int(occupation_val),
+            "dotation_skim": int(dotation_val),
             "upkeep": int(upkeep_val),
             "other": int(other_val),
             "spent": int(spent_val),

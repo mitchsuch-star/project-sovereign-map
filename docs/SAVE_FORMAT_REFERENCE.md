@@ -394,6 +394,9 @@ Reserved future `event_log` payloads:
   "autonomous_regions_captured": 0,
   "trust_warning_shown": false,
 
+  "dotation_regions": ["Swabia"],
+  "expectation_grace_turn": -1,
+
   "relationships": {"Davout": -2, "Grouchy": 0},
 
   "co_location_turns": {"Davout": 3},
@@ -522,6 +525,12 @@ Reserved future `event_log` payloads:
 | `autonomous_battles_lost` | int | Losses during autonomy |
 | `autonomous_regions_captured` | int | Captures during autonomy |
 | `trust_warning_shown` | bool | Warning shown at trust < 40 |
+
+#### Estate Endowments (ES-7, Economy Revisit S7)
+| Field | Type | Description |
+|-------|------|-------------|
+| `dotation_regions` | list | Provinces endowed to this marshal — their full effective income redirects to his household; pruned when a province leaves the nation's hands. Default `[]`. |
+| `expectation_grace_turn` | int | Turn an unmet reward expectation was first observed (-1 = none). Erosion fires after the 2-turn grace window. Save-compat: absent → -1, so old saves take no retroactive erosion. |
 
 #### Relationships & Co-Location (Phase 4 / Phase 7 S59)
 | Field | Type | Description |

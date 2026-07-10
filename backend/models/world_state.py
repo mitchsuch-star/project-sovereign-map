@@ -310,6 +310,9 @@ class WorldState:
             # SC-30 / Slice G1: asking for terms costs 1 DP (charged in
             # the executor), never AP.
             "request_terms": 0,
+            # ES-7 (Economy Revisit S7): endow a marshal with an estate.
+            # 1 ADMIN AP (ADMIN_ACTIONS) + the investiture fee in-executor.
+            "grant_dotation": 1,
         }
 
         # ============================================================
@@ -3536,16 +3539,32 @@ class WorldState:
         europe = getattr(self, "sovereign_map", "legacy") == "europe"
         homeland = set(self.nation_starting_regions.get(nation, [])) if europe else None
 
+        # ES-7 (S7, §0.6.7 amendment 1): a province endowed to a marshal has
+        # its FULL effective income redirected to his household — `income`
+        # stays GROSS, the redirect rides the separate `dotation_skim` key.
+        # Amendment 4: estate provinces are EXEMPT from the ES-2 occupation
+        # cost (his household administers it). Europe-scoped like ES-2.
+        dotation_map = {}
+        if europe:
+            from backend.game_logic.dotation import get_nation_dotation_map
+            dotation_map = get_nation_dotation_map(self, nation)
+
         # Effective income from regions (after stability + war damage modifiers)
         total_income = 0
         occupation_cost = 0
+        dotation_skim = 0
         region_breakdown = []
         for region_name in nation_regions:
             region = self.regions[region_name]
             effective = region.get_effective_income()
             total_income += effective
+            estate_of = dotation_map.get(region_name)
             occ_cost = 0
-            if europe and region_name not in homeland:
+            dot_cost = 0
+            if estate_of is not None:
+                dot_cost = effective
+                dotation_skim += dot_cost
+            elif europe and region_name not in homeland:
                 occ_cost = int(region.income_value * region.get_occupation_fraction())
                 occupation_cost += occ_cost
             region_breakdown.append({
@@ -3555,7 +3574,9 @@ class WorldState:
                 "stability": region.stability,
                 "stability_label": region.get_stability_label(),
                 "war_damage": int(region.war_damage * 100),  # int % (0-100) for Godot
-                "occupation_cost": occ_cost
+                "occupation_cost": occ_cost,
+                "dotation_cost": dot_cost,
+                "estate_of": estate_of,
             })
 
         # E6: bankruptcy mercy halves the occupation total (per-region
@@ -3581,11 +3602,16 @@ class WorldState:
             "income": total_income,
             "occupation": int(occupation_cost),
             "occupation_halved": occupation_halved,
+            # ES-7: full-income redirect to marshals' estates. No bankruptcy
+            # mercy needed (E6) — it redirects income the nation is earning,
+            # so it structurally floors the estate's net contribution at 0.
+            "dotation_skim": int(dotation_skim),
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
                 "naval_income": naval_income,
                 "occupation": int(occupation_cost),
+                "dotation_skim": int(dotation_skim),
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -3797,7 +3823,12 @@ class WorldState:
         # nation pays through this same seam (GR5), player and AI alike.
         occupation = int(income_data.get("occupation", 0))
 
-        net = income_data["income"] - occupation - upkeep_data["total"] + admin_bonus
+        # ES-7 (S7): full income of endowed provinces is redirected to the
+        # marshals' estates — same seam for player and AI (GR5).
+        dotation_skim = int(income_data.get("dotation_skim", 0))
+
+        net = (income_data["income"] - occupation - dotation_skim
+               - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
         # NOTE: Bankruptcy check moved to _advance_turn_internal() AFTER all
@@ -3805,10 +3836,12 @@ class WorldState:
         # so nations don't go bankrupt when trade income would cover costs.
 
         occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
+        dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
         return {
             "nation": nation,
             "income": income_data["income"],
             "occupation": occupation,
+            "dotation_skim": dotation_skim,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
             "admin_bonus": int(admin_bonus),
@@ -3818,7 +3851,7 @@ class WorldState:
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
                        f"+{income_data['income']} income"
-                       f"{occupation_str}, "
+                       f"{occupation_str}{dotation_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
                        f" = {'+' if net >= 0 else ''}{net} net")
@@ -3835,6 +3868,121 @@ class WorldState:
             return int(getattr(self, 'admin_actions_remaining', 0) * 25)
         # AI nations: bonus applied in enemy_ai.execute_admin_phase()
         return 0
+
+    def _process_dotation_state(self) -> None:
+        """ES-7 per-turn marshal reconciliation (Economy Revisit S7).
+
+        The ONE place expectation meets satisfaction (spec §0.6.2): prune
+        estates that left the nation's hands, then erode the loyalty of any
+        marshal whose reward expectation has gone unmet past the grace
+        window. Loops ALL marshals nation-agnostically (GR5 — AI winners
+        build expectation and erode identically). `modify_trust` ONLY —
+        never `modify_relationship` (Jealousy graph out of bounds).
+
+        Called from _advance_turn_internal AFTER process_income_phase
+        (satisfaction current — the same-turn skim already counted) and
+        BEFORE _update_bankruptcy. Europe-scoped (N1): the legacy fixture
+        world has no dotation economy.
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return
+        # Idempotency pin (§0.6.2): a duplicate same-turn call must not
+        # double-erode. Transient guard — deliberately not serialized (a
+        # loaded save simply reconciles once on its next turn).
+        if getattr(self, "_dotation_processed_turn", None) == self.current_turn:
+            return
+        self._dotation_processed_turn = self.current_turn
+
+        from backend.game_logic.dotation import (
+            EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
+            get_expectation, get_satisfaction,
+        )
+
+        for marshal in self.marshals.values():
+            # 1) Prune lost estates — state-driven: ANY way a funding
+            #    province leaves the nation's hands (peace cede, recapture,
+            #    rebellion, vassal grab) lands here, no seam-specific hook.
+            if marshal.dotation_regions:
+                lost = [
+                    r for r in marshal.dotation_regions
+                    if self.regions.get(r) is None
+                    or self.regions[r].controller != marshal.nation
+                ]
+                for region_name in lost:
+                    marshal.dotation_regions.remove(region_name)
+                    self.log_event({
+                        "type": "estate_lost",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                        "region": region_name,
+                    })
+                    if marshal.nation == self.player_nation:
+                        from backend.notifications import (
+                            ESTATE_LOST, NotificationPriority,
+                            create_notification,
+                        )
+                        self.notifications.add(create_notification(
+                            notification_type=ESTATE_LOST,
+                            priority=NotificationPriority.HIGH,
+                            title=f"Marshal {marshal.name} stripped of his estate",
+                            message=(
+                                f"{region_name}, the estate that funded Marshal "
+                                f"{marshal.name}'s honor, has passed from our hands. "
+                                f"He will not forget, Sire."
+                            ),
+                            turn_created=int(self.current_turn),
+                            details={"marshal": marshal.name,
+                                     "region": region_name},
+                        ))
+
+            # 2) Reconcile expectation vs satisfaction (both in gold/turn —
+            #    directly comparable; that comparability IS the legibility).
+            expectation = get_expectation(marshal)
+            satisfaction = get_satisfaction(marshal, self)
+            shortfall = max(0, expectation - satisfaction)
+            if shortfall <= 0:
+                # Met (or no expectation): the grace clock resets — paying
+                # stops the bleed. It never buys trust (no bump here).
+                marshal.expectation_grace_turn = -1
+                continue
+
+            if marshal.expectation_grace_turn < 0:
+                # First unmet turn: start the grace clock, no erosion yet.
+                marshal.expectation_grace_turn = int(self.current_turn)
+                continue
+
+            elapsed = self.current_turn - marshal.expectation_grace_turn
+            if elapsed < GRACE_TURNS:
+                continue
+
+            # Erosion: self-limiting (magnitude never grows with the gap),
+            # trust's native floor at 0 is the only floor.
+            points = min(EROSION_MAX,
+                         -(-shortfall // SHORTFALL_PER_POINT))  # ceil div
+            marshal.modify_trust(-points)
+
+            # First eroding turn: legibility notification (player only).
+            if elapsed == GRACE_TURNS and marshal.nation == self.player_nation:
+                from backend.notifications import (
+                    DOTATION_EROSION, NotificationPriority,
+                    create_notification,
+                )
+                self.notifications.add(create_notification(
+                    notification_type=DOTATION_EROSION,
+                    priority=NotificationPriority.HIGH,
+                    title=f"Marshal {marshal.name} grows bitter",
+                    message=(
+                        f"Marshal {marshal.name}'s victories remain unrewarded "
+                        f"(expects {expectation}g/turn of estates; holds "
+                        f"{satisfaction}g/turn). His loyalty is fraying — "
+                        f"endow him with an estate to stop the erosion."
+                    ),
+                    turn_created=int(self.current_turn),
+                    details={"marshal": marshal.name,
+                             "expectation": int(expectation),
+                             "satisfaction": int(satisfaction),
+                             "shortfall": int(shortfall)},
+                ))
 
     # ========================================
     # STABILITY GROWTH & WAR DAMAGE RECOVERY (Phase 6.2.C)
@@ -6132,6 +6280,14 @@ class WorldState:
                 process_recurring_settlement_payments,
             )
             process_recurring_settlement_payments(self)
+
+        # ════════════════════════════════════════════════════════════
+        # ES-7 DOTATION RECONCILIATION (Economy Revisit S7) — after the
+        # income phase (the same-turn skim is already counted) and before
+        # the bankruptcy check, per spec §0.6.1 #6. Prunes lost estates,
+        # erodes unmet marshals (player AND AI — GR5).
+        # ════════════════════════════════════════════════════════════
+        self._process_dotation_state()
 
         # ════════════════════════════════════════════════════════════
         # BANKRUPTCY CHECK — AFTER all income sources

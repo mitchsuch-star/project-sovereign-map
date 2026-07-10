@@ -3117,6 +3117,29 @@
       },
       "source": "CR-5 §6.9 — LIVE-tier delegation-resolution smoke.",
       "notes": "LIVE-ONLY. A LITERAL marshal refuses to guess -> the router ALWAYS asks (route_arm returns 'ask' for a literal marshal regardless of the parser action), so the parser action is irrelevant here and is not pinned. The definitive literal->ASK behavior is asserted deterministically at the endpoint tier (test_command_robustness_cr5_personality_disambiguation.py::TestAskArmEndpoint::test_literal_delegation_asks_not_attacks). Soult was reassigned cautious->literal at the gate so the ASK arm is player-reachable."
+    },
+    {
+      "id": "es7-endow-ney-with-swabia",
+      "utterance": "endow Ney with Swabia",
+      "world": "1805",
+      "expected": {
+        "action": "grant_dotation",
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "ES-7 Estate Endowment (ECONOMY_REVISIT_SPEC §0.6.2/§0.6.7, S7) — new-action corpus coverage (checklist step 12).",
+      "notes": "Debug-tier typed form ('endow <marshal> with <region>'); the player-facing surface is the Marshal Management card. Parse-level pin only — the amendment-4 eligibility predicate (non-homeland, non-capital, un-dotated) is the executor's job, tested in test_economy_es7_dotation.py. Swabia is a real 1805 province; Ney is on the French 1805 roster."
+    },
+    {
+      "id": "es7-grant-estate-legacy-world",
+      "utterance": "grant an estate to Davout",
+      "world": "any",
+      "expected": {
+        "action": "grant_dotation",
+        "marshal": "Davout"
+      },
+      "source": "ES-7 Estate Endowment (S7) — the 'grant ... estate' keyword family (bare 'grant' is deliberately unmatched: 'grant autonomy' collision).",
+      "notes": "No target pinned — the executor lists eligible estates when the province is omitted. Parses on both worlds; on the legacy fixture the executor refuses (ES-7 is Europe-scoped, N1)."
     }
   ]
 }

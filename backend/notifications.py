@@ -91,6 +91,12 @@ SETTLEMENT_TERMS_REQUEST_RESULT = "settlement_terms_request_result"
 # It is mailbox-eligible and notification-visible, but never blocks the
 # player's own settlement ratification.
 ALLY_SETTLEMENT_PETITION = "ally_settlement_petition"
+# ES-7 (Economy Revisit S7): dotation legibility beats. DOTATION_EROSION
+# fires on a marshal's FIRST eroding turn (grace window elapsed with the
+# expectation still unmet); ESTATE_LOST fires when an endowed province
+# leaves the nation's hands (peace cede, recapture, rebellion, vassal grab).
+DOTATION_EROSION = "dotation_erosion"                # HIGH: loyalty fraying
+ESTATE_LOST = "estate_lost"                          # HIGH: estate pruned
 
 
 def create_notification(

@@ -268,7 +268,9 @@ class TestPeaceRatifiedCampaignLog:
         # Slice G1 (July 2, 2026): +3 request-terms lifecycle types.
         # Slice H (July 3, 2026): +3 ally-petition beats (granted /
         # declined / bargain honored).
-        assert len(CAMPAIGN_LOG_TYPES) == 93
+        # ES-7 S7 (July 9, 2026): +2 estate endowment beats
+        # (dotation_granted / estate_lost).
+        assert len(CAMPAIGN_LOG_TYPES) == 95
 
     def test_format_peace_oneliner(self):
         event = {

@@ -46,7 +46,10 @@ class EconomyExecutor:
 
         # ES-2 (S6): occupation cost is a separate Net component (income is gross)
         occupation = int(income_data.get("occupation", 0))
-        net = income_data["income"] - occupation - upkeep_data["total"] + admin_bonus
+        # ES-7 (S7): estate redirect is a separate Net component too
+        dotation_skim = int(income_data.get("dotation_skim", 0))
+        net = (income_data["income"] - occupation - dotation_skim
+               - upkeep_data["total"] + admin_bonus)
         treasury = world.nation_gold.get(nation, 0)
 
         # Build detailed report
@@ -82,6 +85,16 @@ class EconomyExecutor:
                 lines.append(
                     f"    {rd['region']}: -{rd['occupation_cost']}g "
                     f"({rd['stability_label'].lower()})"
+                )
+
+        # ES-7 (S7): estate endowments — full income redirected to marshals
+        if dotation_skim > 0:
+            estates = [rd for rd in region_details if rd.get("estate_of")]
+            lines.append(f"\n  Dotations: -{dotation_skim}g  ({len(estates)} endowed estates)")
+            for rd in estates:
+                lines.append(
+                    f"    {rd['region']}: -{rd['dotation_cost']}g "
+                    f"(estate of Marshal {rd['estate_of']})"
                 )
 
         # Upkeep breakdown
@@ -151,6 +164,7 @@ class EconomyExecutor:
                 "type": "economy_report",
                 "income": int(income_data["income"]),
                 "occupation": int(occupation),
+                "dotation_skim": int(dotation_skim),
                 "upkeep": int(upkeep_data["total"]),
                 "admin_bonus": int(admin_bonus),
                 "net": int(net),
@@ -560,6 +574,148 @@ class EconomyExecutor:
             "message": (f"{marshal_name} detaches {self.GARRISON_DETACHMENT_SIZE:,} troops to garrison {region_name}. "
                        f"Army strength: {marshal.strength:,}."),
             "action_info": {"remaining": world.actions_remaining},
+        }
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # ES-7 ESTATE ENDOWMENT (Economy Revisit S7): grant_dotation
+    # ════════════════════════════════════════════════════════════════════════════
+
+    def _execute_grant_dotation(self, command: Dict, game_state: Dict) -> Dict:
+        """Endow a marshal with an estate in a conquered province (ES-7).
+
+        Player-facing surface: "Endow {marshal} with the Duchy of {province}".
+        Internal action id stays grant_dotation. The province's FULL effective
+        income is redirected to the marshal's household each turn (§0.6.7
+        amendment 1) and it is exempt from the ES-2 occupation cost
+        (amendment 4). Eligibility (amendment 4): player-held, non-capital,
+        non-vassal, un-dotated, NON-HOMELAND provinces only.
+
+        Costs 1 ADMIN AP (routing layer) + the investiture fee deducted HERE
+        in-executor (GR5 — the AI grants through this same method and its
+        admin phase applies leftover-AP gold directly, so a bonus-path fee
+        would double-count). NO trust bump on grant — the endowment is a
+        promise, not a purchase (the reframe's falsifiable core).
+
+        Used by both player and AI (Building Blocks): the AI rung lives in
+        enemy_ai._pick_admin_action.
+        """
+        from backend.game_logic.dotation import (
+            check_estate_eligibility, compute_investiture_fee, derive_title,
+            get_expectation, get_satisfaction, is_dotation_world,
+            list_eligible_estates,
+        )
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        if not is_dotation_world(world):
+            return {
+                "success": False,
+                "message": "Estate endowments are not available in this campaign."
+            }
+
+        marshal_name = (command.get("marshal") or "").strip()
+        if not marshal_name:
+            return {
+                "success": False,
+                "message": "Berthier raises an eyebrow. 'Which marshal shall "
+                           "the Emperor honor, Sire? Example: endow Ney with "
+                           "a conquered province.'"
+            }
+
+        marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        acting_nation = command.get("_acting_nation") or marshal.nation
+        if marshal.nation != acting_nation:
+            return {
+                "success": False,
+                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                           f"we cannot endow another crown's marshal."
+            }
+
+        region_name = command.get("target")
+        if not region_name:
+            eligible = list_eligible_estates(world, acting_nation)
+            if eligible:
+                sample = ", ".join(eligible[:4])
+                return {
+                    "success": False,
+                    "message": f"Which province, Sire? Eligible estates: {sample}. "
+                               f"Example: 'endow {marshal.name} with {eligible[0]}'."
+                }
+            return {
+                "success": False,
+                "message": "We hold no eligible province, Sire. An estate must "
+                           "stand on conquered soil — non-capital, outside the "
+                           "homeland, and not already endowed."
+            }
+
+        eligible_ok, reason = check_estate_eligibility(world, acting_nation,
+                                                       region_name)
+        if not eligible_ok:
+            return {"success": False, "message": reason}
+
+        region = world.regions[region_name]
+
+        # Investiture fee — deducted IN-executor (see docstring). Creating
+        # the title (first estate) costs the fee; adding land to an
+        # existing title is 1 AP only.
+        fee = compute_investiture_fee(marshal)
+        treasury = world.nation_gold.get(acting_nation, 0)
+        if treasury < fee:
+            return {
+                "success": False,
+                "message": f"The treasury cannot fund the investiture, Sire. "
+                           f"Need {fee} gold, have {treasury}."
+            }
+        if fee > 0:
+            world.nation_gold[acting_nation] = int(treasury - fee)
+            world.record_gold_spent(acting_nation, fee)
+
+        # The endowment itself. NO trust change — paying stops the bleed,
+        # never buys trust (named negative-assertion test).
+        marshal.dotation_regions.append(region_name)
+        title = derive_title(region_name)
+        estate_income = int(region.get_effective_income())
+        expectation = get_expectation(marshal)
+        satisfaction = get_satisfaction(marshal, world)
+
+        world.log_event({
+            "type": "dotation_granted",
+            "marshal": marshal.name,
+            "nation": acting_nation,
+            "region": region_name,
+            "title": title,
+            "estate_income": estate_income,
+            "fee": int(fee),
+        })
+
+        fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
+        if satisfaction >= expectation:
+            standing = "His expectation is met — his loyalty will bleed no further."
+        else:
+            standing = (f"He expects {expectation}g/turn of estates and now "
+                        f"holds {satisfaction}g/turn — the endowment falls short.")
+        return {
+            "success": True,
+            "message": (f"By Imperial decree, Marshal {marshal.name} is endowed "
+                        f"with {region_name} and styled {title}. Its revenues "
+                        f"({estate_income}g/turn) now sustain his household, "
+                        f"not the treasury.{fee_note} {standing}"),
+            "events": [{
+                "type": "dotation_granted",
+                "marshal": marshal.name,
+                "region": region_name,
+                "title": title,
+                "estate_income": int(estate_income),
+                "fee": int(fee),
+                "expectation": int(expectation),
+                "satisfaction": int(satisfaction),
+            }],
+            "new_state": game_state
         }
 
     def _execute_build(self, command: Dict, game_state: Dict) -> Dict:

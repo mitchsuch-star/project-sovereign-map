@@ -49,6 +49,8 @@ MOCK_REACHABLE_ACTIONS = [
     # Review-round additions — these route through the diplomatic keyword
     # families and ARE mock-reachable (the first hand-built list missed them)
     "make_amends", "request_terms", "set_war_purpose", "repudiate_bargain",
+    # ES-7 Estate Endowment (Economy Revisit S7)
+    "grant_dotation",
 ]
 
 

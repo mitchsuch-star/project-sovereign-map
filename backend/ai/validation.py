@@ -78,6 +78,9 @@ VALID_ACTIONS: Set[str] = {
     # distinct labeled action that stages settlement_confirm with
     # white_peace=true and bypasses the editor empty-Ratify gate.
     "propose_white_peace",
+    # ES-7 Estate Endowment (Economy Revisit S7) — "endow Ney with Swabia";
+    # marshal + region target, validated like other marshal actions.
+    "grant_dotation",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,

@@ -1124,6 +1124,16 @@ class LLMClient:
             "make vassal", "vassalize", "subjugate",
         ]):
             action = "make_vassal"
+        # ES-7 Estate Endowment (Economy Revisit S7): "endow Ney with Swabia" /
+        # "grant Swabia to Ney" (debug-tier typed forms). Bare "grant" is
+        # deliberately NOT matched — too collision-prone ("grant autonomy").
+        elif (re.search(r'\bendow\b', command_lower)
+              or "dotation" in command_lower
+              or ("grant" in command_lower
+                  and any(kw in command_lower for kw in [
+                      "estate", "duchy", "domain",
+                  ]))):
+            action = "grant_dotation"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,

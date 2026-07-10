@@ -366,6 +366,12 @@ func _render_economy():
 	var occupation = int(econ.get("occupation", 0))
 	if occupation > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Occupation: -" + str(occupation) + "g[/color]\n"
+	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
+	# estates — a signed Net component of its own (Income stays gross), so
+	# it must render for the visible lines to sum to Net (SC-33 invariant).
+	var dotation_skim = int(econ.get("dotation_skim", 0))
+	if dotation_skim > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Dotations: -" + str(dotation_skim) + "g[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).

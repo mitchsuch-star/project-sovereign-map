@@ -180,13 +180,39 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # ES-2 (S6): occupation cost on non-homeland provinces — a separate
     # Net component (income above is GROSS), so the projection subtracts it
     occupation = int(income_data.get("occupation", 0))
+    # ES-7 (S7): income redirected to marshals' estates — same treatment
+    dotation_skim = int(income_data.get("dotation_skim", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player_nation, 0))
 
-    treasury_delta = int(income + trade_income - occupation - upkeep)
+    treasury_delta = int(income + trade_income - occupation - dotation_skim
+                         - upkeep)
+
+    # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
+    # expectation exceeds his estate income, with the eroding flag once the
+    # grace window has elapsed (dotation.py — Europe-scoped, empty on the
+    # legacy fixture).
+    unmet_marshals = []
+    from backend.game_logic.dotation import (
+        get_expectation, get_satisfaction, is_dotation_world, is_eroding,
+    )
+    if is_dotation_world(world):
+        for m in world.marshals.values():
+            if m.nation != player_nation or m.strength <= 0:
+                continue
+            expectation = get_expectation(m)
+            satisfaction = get_satisfaction(m, world)
+            if expectation > satisfaction:
+                unmet_marshals.append({
+                    "marshal": m.name,
+                    "expectation": int(expectation),
+                    "satisfaction": int(satisfaction),
+                    "shortfall": int(expectation - satisfaction),
+                    "eroding": bool(is_eroding(m, world)),
+                })
 
     bankrupt = int(world.nation_bankruptcy_turns.get(player_nation, 0)) > 0
 
@@ -218,6 +244,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # ES-2 (S6): occupation detail rides the dispatch like the ES-3
         # surcharge — the morning projection can explain the drain
         "occupation": occupation,
+        # ES-7 (S7): estate redirect + the Unmet Marshals roll-up — the
+        # morning briefing names whose loyalty is at stake, not just a number
+        "dotation_skim": dotation_skim,
+        "unmet_marshals": unmet_marshals,
         # ES-3 (S5): over-limit breakdown rides the dispatch so the morning
         # projection can explain a heavy upkeep (treasury_delta above already
         # includes the surcharge via upkeep_data["total"]).

@@ -330,6 +330,20 @@ class Marshal:
         self.trust_warning_shown: bool = False
 
         # ════════════════════════════════════════════════════════════
+        # ES-7 ESTATE ENDOWMENTS / DOTATIONS (Economy Revisit S7)
+        # ════════════════════════════════════════════════════════════
+        # Provinces endowed to this marshal (their full effective income is
+        # redirected to his household — spec §0.6.7 amendment 1). Pruned by
+        # WorldState._process_dotation_state when a province leaves the
+        # nation's hands. Titles are DERIVED from these names (GR6 flavor).
+        self.dotation_regions: List[str] = []
+        # Turn an unmet expectation was first observed (-1 = none). Erosion
+        # fires only once the shortfall has persisted GRACE_TURNS full turns
+        # (dotation.py) — also the save-compat grace: old saves default to -1,
+        # so no instant retroactive erosion on load.
+        self.expectation_grace_turn: int = -1
+
+        # ════════════════════════════════════════════════════════════
         # RELATIONSHIPS SYSTEM (Phase 4)
         # ════════════════════════════════════════════════════════════
         # How this marshal feels about other marshals (-2 to +2)
@@ -1117,6 +1131,10 @@ class Marshal:
             "autonomous_regions_captured": int(self.autonomous_regions_captured),
             "trust_warning_shown": self.trust_warning_shown,
 
+            # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════
+            "dotation_regions": list(self.dotation_regions),
+            "expectation_grace_turn": int(self.expectation_grace_turn),
+
             # ═══════ RELATIONSHIPS ═══════
             "relationships": self.relationships.copy(),
 
@@ -1259,6 +1277,13 @@ class Marshal:
         marshal.autonomous_battles_lost = data.get("autonomous_battles_lost", 0)
         marshal.autonomous_regions_captured = data.get("autonomous_regions_captured", 0)
         marshal.trust_warning_shown = data.get("trust_warning_shown", False)
+
+        # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════
+        # Save-compat grace: absent fields default to no estates + no active
+        # shortfall (-1) — an old save's first shortfall turn merely STARTS
+        # the grace clock, so no instant retroactive erosion on load.
+        marshal.dotation_regions = list(data.get("dotation_regions") or [])
+        marshal.expectation_grace_turn = data.get("expectation_grace_turn", -1)
 
         # ═══════ RELATIONSHIPS ═══════
         marshal.relationships = data.get("relationships", {}).copy()

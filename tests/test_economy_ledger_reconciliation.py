@@ -36,6 +36,8 @@ from backend.models.world_state import WorldState
 # ES-2 (S6): occupation cost on non-homeland provinces is its own signed
 # component (income stays GROSS) — declared here so the guard forces its
 # "Occupation" line in strategic_ledger.gd.
+# ES-7 (S7): the full-income redirect to marshals' estates is its own signed
+# component — declared here so the guard forces the "Dotations" render line.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -44,6 +46,7 @@ NET_GOLD_COMPONENTS = {
     "vassal_tribute": +1,
     "settlement_gold": +1,
     "occupation": -1,
+    "dotation_skim": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
 }

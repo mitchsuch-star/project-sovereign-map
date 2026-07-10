@@ -96,6 +96,9 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # ═══════ TRUST & STANDING ═══════
         **_build_trust_standing(marshal),
 
+        # ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7) ═══════
+        **_build_estates(marshal, world),
+
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
 
@@ -187,6 +190,52 @@ def _build_trust_standing(marshal: Marshal) -> Dict[str, Any]:
         "orders_overridden": int(marshal.orders_overridden),
         "battles_won": int(marshal.battles_won),
         "battles_lost": int(marshal.battles_lost),
+    }
+
+
+def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
+    """ES-7 estate/expectation section (Economy Revisit S7, spec §0.6.2).
+
+    Expectation and estate income are in the same gold/turn units — the
+    number IS the explanation, no opaque penalty. `eligible_estates` powers
+    the card's Endow affordance (the typed command is the input surface;
+    the card names the exact provinces so the player never guesses).
+    Empty/zero on the legacy fixture world (ES-7 is Europe-scoped).
+    """
+    from backend.game_logic.dotation import (
+        derive_title, get_expectation, get_satisfaction, is_dotation_world,
+        is_eroding, list_eligible_estates,
+    )
+
+    if not is_dotation_world(world):
+        return {
+            "expectation": 0,
+            "estate_income": 0,
+            "expectation_shortfall": 0,
+            "is_eroding": False,
+            "estate_regions": [],
+            "estate_title": "",
+            "eligible_estates": [],
+        }
+
+    expectation = get_expectation(marshal)
+    satisfaction = get_satisfaction(marshal, world)
+    shortfall = max(0, expectation - satisfaction)
+    estates = list(marshal.dotation_regions)
+    # Title derives from the FIRST (founding) estate — flavor only (GR6).
+    title = derive_title(estates[0]) if estates else ""
+    eligible = []
+    if shortfall > 0:
+        eligible = list_eligible_estates(world, marshal.nation)[:4]
+
+    return {
+        "expectation": int(expectation),
+        "estate_income": int(satisfaction),
+        "expectation_shortfall": int(shortfall),
+        "is_eroding": bool(is_eroding(marshal, world)),
+        "estate_regions": estates,
+        "estate_title": title,
+        "eligible_estates": eligible,
     }
 
 

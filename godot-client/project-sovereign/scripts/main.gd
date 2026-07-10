@@ -1658,12 +1658,17 @@ func _display_turn_change(event: Dictionary):
 	var occupation_str = ""
 	if occupation > 0:
 		occupation_str = " | Occupation: -" + str(int(occupation)) + "g"
+	# ES-7 (S7): the estate redirect is a separate Net component too
+	var dotation_skim = int(event.get("dotation_skim", 0))
+	var dotation_str = ""
+	if dotation_skim > 0:
+		dotation_str = " | Dotations: -" + str(int(dotation_skim)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + dotation_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

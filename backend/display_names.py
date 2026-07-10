@@ -43,6 +43,7 @@ ACTION_DISPLAY = {
     "propose_common_peace": "opens settlement with",  # Imperial Settlement
     "open_settlement": "opens settlement with",       # Godot wizard action
     "request_terms": "requests terms from",           # SC-30 / Slice G1
+    "grant_dotation": "is endowed with",              # ES-7 (Economy S7)
 }
 
 # ============================================================================
@@ -98,6 +99,7 @@ OBJECTION_DISPLAY = {
     "propose_common_peace": "opening settlement",  # Imperial Settlement
     "open_settlement": "opening settlement",       # Godot wizard action
     "request_terms": "requesting terms",            # SC-30 / Slice G1
+    "grant_dotation": "receiving an estate",        # ES-7 (no objections in v1)
 }
 
 # ============================================================================
@@ -135,6 +137,7 @@ DEFIANCE_DISPLAY = {
     "propose_common_peace": "opened settlement",  # Imperial Settlement
     "open_settlement": "opened settlement",       # Godot wizard action
     "request_terms": "requested terms",            # SC-30 / Slice G1
+    "grant_dotation": "received an estate",        # ES-7 (no defiance in v1)
 }
 
 # ============================================================================
