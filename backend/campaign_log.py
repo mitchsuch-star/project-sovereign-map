@@ -183,6 +183,9 @@ CAMPAIGN_LOG_TYPES = {
     # ES-7 Estate Endowments (Economy Revisit S7)
     "dotation_granted",
     "estate_lost",
+    # W6-8 The Spoils of War — conquered-estate resolution
+    "estate_confiscated",
+    "estate_respected",
 }
 
 # ============================================================================
@@ -205,6 +208,9 @@ CATEGORY_MAP = {
     # ES-7 Estate Endowments (Economy Revisit S7)
     "dotation_granted": "economy",
     "estate_lost": "economy",
+    # W6-8 The Spoils of War
+    "estate_confiscated": "economy",
+    "estate_respected": "economy",
     "objection": "command",
     "strategic_order": "command",
     "defiance": "command",
@@ -528,7 +534,9 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "building_damaged", "desertion",
                           # ES-7: an enemy court's endowments are visible only
                           # where our intel reaches (region PARTIAL+)
-                          "dotation_granted", "estate_lost"):
+                          "dotation_granted", "estate_lost",
+                          # W6-8: same rule for conquered-estate resolutions
+                          "estate_confiscated", "estate_respected"):
             # Try to get a region for the event
             econ_region = event.get("region") or event.get("location") or ""
             if econ_region:
@@ -900,6 +908,22 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation", "")
         region = event.get("region", "his estate")
         return f"{_name_tag(marshal, nation)} stripped of his estate at {region}"
+
+    if event_type == "estate_confiscated":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        region = event.get("region", "the estate")
+        captor = event.get("confiscated_by", "the conqueror")
+        return (f"{captor} confiscated {_name_tag(marshal, nation)}'s "
+                f"estate at {region}")
+
+    if event_type == "estate_respected":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        region = event.get("region", "the estate")
+        respecter = event.get("respected_by", "the conqueror")
+        return (f"{respecter} honored {_name_tag(marshal, nation)}'s "
+                f"title at {region}")
 
     if event_type == "objection":
         marshal = event.get("marshal", "Unknown")

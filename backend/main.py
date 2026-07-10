@@ -6,6 +6,7 @@ Connects Godot frontend to Python game logic
 import os
 import threading  # noqa: E402 - 3A-1: needed for state_lock
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -880,8 +881,14 @@ class GloriousChargeResponse(BaseModel):
 
 
 class CaptureChoiceResponse(BaseModel):
-    """Request model for responding to plunder/secure choice (Phase 6.2.E)."""
-    choice: str  # 'plunder' or 'secure'
+    """Request model for responding to plunder/secure choice (Phase 6.2.E).
+
+    W6-8: also answers the estate stage ('confiscate'/'respect');
+    dialogue_id is the optional W6-0 identity of the question the popup
+    rendered — a mismatched id is refused instead of misapplied.
+    """
+    choice: str  # 'plunder' or 'secure' — or 'confiscate' or 'respect'
+    dialogue_id: Optional[int] = None
 
 
 class StrategicInterruptResponse(BaseModel):
@@ -1137,8 +1144,12 @@ def execute_command(request: CommandRequest):
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> objection response")
             return _respond_to_objection_sync(_pending_answer_token)
-        if (_pending_answer_token in ("plunder", "secure")
+        if (_pending_answer_token in ("plunder", "secure",
+                                      "confiscate", "respect")
                 and getattr(world, "pending_capture_choice", None)):
+            # W6-8: all four capture-pipeline tokens route here; the handler
+            # itself is stage-aware (a wrong-stage token is refused with the
+            # question restated, never misapplied).
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> capture choice")
             result = executor.handle_capture_choice(
@@ -2067,14 +2078,24 @@ def capture_choice(request: CaptureChoiceResponse):
             return build_base_response(
                 world, success=False, message="The war is over.",
                 game_over=True, victory=world.victory)
-        result = executor.handle_capture_choice(request.choice, game_state)
+        result = executor.handle_capture_choice(
+            request.choice, game_state, dialogue_id=request.dialogue_id)
 
+        extra = {}
+        # W6-8: the estate stage (or a refused answer) re-attaches the
+        # pending question so Godot can chain the second popup.
+        if result.get("pending_capture_choice"):
+            extra["pending_capture_choice"] = True
+            extra["capture_data"] = result.get("capture_data")
+        if result.get("stale_dialogue"):
+            extra["stale_dialogue"] = True
         return build_base_response(
             world,
             success=result.get("success", False),
             message=result.get("message", "Choice processed"),
             events=result.get("events", []),
             capture_choice=result.get("capture_choice"),
+            **extra,
         )
     except Exception as e:
         print(f"ERROR handling capture choice: {e}")

@@ -168,6 +168,15 @@ class DialogueManager:
         if isinstance(payload, dict):
             payload["dialogue_id"] = dialogue["dialogue_id"]
 
+    def mint_dialogue_id(self) -> int:
+        """W6-8: identity for question surfaces that do NOT route through the
+        manager (the estate capture choice rides the bespoke capture_choice
+        pipeline) — drawn from the same monotonic counter so ids stay
+        globally unique and serialize with it."""
+        did = self._next_dialogue_id
+        self._next_dialogue_id += 1
+        return int(did)
+
     def push(self, dialogue: dict) -> None:
         """Add dialogue. If current slot is empty, set it; otherwise queue."""
         self._assign_mailbox_metadata(dialogue)

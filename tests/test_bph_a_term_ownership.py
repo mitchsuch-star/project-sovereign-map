@@ -274,7 +274,9 @@ class TestPeaceRatifiedCampaignLog:
         # fidelity beat).
         # W6-7 (July 10, 2026): +3 marshal fates (marshal_captured /
         # last_stand / marshal_released).
-        assert len(CAMPAIGN_LOG_TYPES) == 99
+        # W6-8 (July 10, 2026): +2 conquered-estate beats
+        # (estate_confiscated / estate_respected).
+        assert len(CAMPAIGN_LOG_TYPES) == 101
 
     def test_format_peace_oneliner(self):
         event = {

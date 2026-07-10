@@ -694,6 +694,13 @@ class WorldState:
         # tail. `prune_expired_settlement_memories()` runs at turn advance
         # and at deserialize.
         self.settlement_memories: Dict[str, List[Dict[str, Any]]] = {}
+        # W6-8 (Spoils of War): titles the conqueror chose to HONOR on
+        # occupied estate soil. Entries {region, marshal, nation, respecter};
+        # live entries keep the estate on the marshal's rolls (prune skip +
+        # satisfaction) and grant the respecter a +5 acceptance term with
+        # the holder's nation (dotation.respected_estate_mod, cap 1/nation).
+        # Pruned by dotation.prune_respected_estates at turn advance.
+        self.respected_estates: List[Dict[str, Any]] = []
         # RELIABILITY_COMMITMENTS_SPEC §8.8.7 / B-B4 — anti-renewal cooldown
         # after a `call_to_arms_refused_defensive` episode. Key = diplo_key;
         # value = turn on which new ALLIANCE / DEFENSIVE_ALLIANCE
@@ -2848,6 +2855,10 @@ class WorldState:
                     "captured_from": old_controller,
                     "method": "plunder",
                 })
+                # W6-8 (GR5): the AI conqueror resolves an enemy estate on
+                # this soil by rule — confiscate at war, respect otherwise.
+                from backend.game_logic.dotation import apply_ai_estate_rule
+                apply_ai_estate_rule(self, region, marshal.nation)
                 return f" {region_name} captured and plundered by {marshal.nation}! (+{gold_gained} gold)"
             else:
                 # Secure: stability 25, damage buildings, cancel construction
@@ -2869,6 +2880,9 @@ class WorldState:
                     "captured_from": old_controller,
                     "method": "secure",
                 })
+                # W6-8 (GR5): same estate rule as the plunder branch.
+                from backend.game_logic.dotation import apply_ai_estate_rule
+                apply_ai_estate_rule(self, region, marshal.nation)
                 return f" {region_name} captured and secured by {marshal.nation}."
 
     # ========================================
@@ -3982,8 +3996,13 @@ class WorldState:
 
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
-            get_expectation, get_satisfaction,
+            get_expectation, get_satisfaction, is_estate_respected,
+            prune_respected_estates,
         )
+
+        # W6-8: drop dead respect entries FIRST so the estate prune below
+        # sees an accurate honored-titles set.
+        prune_respected_estates(self)
 
         for marshal in self.marshals.values():
             # W6-7: a captured marshal's expectations are FROZEN — his
@@ -3997,10 +4016,14 @@ class WorldState:
             #    province leaves the nation's hands (peace cede, recapture,
             #    rebellion, vassal grab) lands here, no seam-specific hook.
             if marshal.dotation_regions:
+                # W6-8: an occupied estate whose title the occupier chose to
+                # RESPECT stays on the marshal's rolls — the courtesy is the
+                # whole point of the choice.
                 lost = [
                     r for r in marshal.dotation_regions
                     if self.regions.get(r) is None
-                    or self.regions[r].controller != marshal.nation
+                    or (self.regions[r].controller != marshal.nation
+                        and not is_estate_respected(self, marshal.name, r))
                 ]
                 for region_name in lost:
                     marshal.dotation_regions.remove(region_name)
@@ -4746,6 +4769,10 @@ class WorldState:
                 str(key): [copy.deepcopy(entry) for entry in (records or [])]
                 for key, records in self.settlement_memories.items()
             },
+            # W6-8: honored titles on occupied estate soil.
+            "respected_estates": [
+                dict(entry) for entry in (self.respected_estates or [])
+            ],
             "anti_renewal_cooldown": {k: int(v) for k, v in self.anti_renewal_cooldown.items()},
             "oathbreaker_posture": {
                 str(nation): {
@@ -5330,6 +5357,11 @@ class WorldState:
             ]
             for key, records in (data.get("settlement_memories") or {}).items()
         }
+        # W6-8 — honored titles; absent on pre-W6-8 saves = no respects.
+        world.respected_estates = [
+            dict(entry) for entry in (data.get("respected_estates") or [])
+            if isinstance(entry, dict)
+        ]
         # B-B4 §8.8.7 — anti_renewal_cooldown defaults to {} for pre-B-B4
         # saves so the round-trip stays compatible with fixtures that
         # predate the field.

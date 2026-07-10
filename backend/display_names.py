@@ -141,6 +141,17 @@ DEFIANCE_DISPLAY = {
 }
 
 # ============================================================================
+# W6-8 ESTATE CHOICE DISPLAY — player-facing labels for the conquered-estate
+# resolution (the second capture choice). Choice tokens, not parser actions.
+# ============================================================================
+
+ESTATE_CHOICE_DISPLAY = {
+    "confiscate": "Confiscate the estate",
+    "respect": "Respect the title",
+}
+
+
+# ============================================================================
 # STRATEGIC ORDER DISPLAY — player-facing names for strategic order types
 # Source: ledger.py _ORDER_DISPLAY_NAMES (R15 centralization)
 # ============================================================================
@@ -313,6 +324,12 @@ FEEDBACK_STRINGS = {
     "settlement_gratitude_mod": {
         "negative": "no recent settlement reward from us",
         "positive": "the recent settlement reward they remember",
+    },
+    # W6-8 (Spoils of War) — the conqueror honored one of their marshals'
+    # titles on occupied estate soil.
+    "respected_estate_mod": {
+        "negative": "no honored titles between our courts",
+        "positive": "the marshal's title we chose to respect",
     },
     "bargain_conflict_penalty": {
         "negative": "existing bargain conflicts with this nation",

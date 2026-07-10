@@ -5002,6 +5002,10 @@ class CombatExecutor:
             "captured_from": old_controller,
             "method": choice,
         })
+        # W6-8 (GR5): an enemy estate on the captured soil is resolved by
+        # rule, mirroring the player's confiscate/respect choice.
+        from backend.game_logic.dotation import apply_ai_estate_rule
+        apply_ai_estate_rule(world, region, marshal.nation)
         return choice
 
     def _attempt_region_capture(self, marshal, region_name, world, game_state, had_garrison=False) -> dict:

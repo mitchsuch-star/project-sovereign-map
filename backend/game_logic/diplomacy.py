@@ -6819,6 +6819,21 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     except Exception:
         settlement_gratitude_value = 0
 
+    # ── Respected estates (W6-8 The Spoils of War) ──
+    # +5 when the proposer honors at least one of the target's marshals'
+    # titles on occupied estate soil (cap one per nation — the helper
+    # returns at most RESPECT_ACCEPTANCE_BONUS). Same additive shape as
+    # settlement gratitude above.
+    try:
+        from backend.game_logic.dotation import (
+            respected_estate_mod as _respected_estate_mod,
+        )
+        respected_estate_value = int(
+            _respected_estate_mod(world, proposer, target)
+        )
+    except Exception:
+        respected_estate_value = 0
+
     # ── Sum ──
     raw_score = (
         base
@@ -6828,6 +6843,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + stalemate_duration_mod
         + political_subtotal_clamped
         + settlement_gratitude_value
+        + respected_estate_value
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -6908,6 +6924,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "composite_floor_applied": bool(composite_floor_applied),
         "composite_floor_adjustment": int(composite_floor_adjustment),
         "settlement_gratitude_mod": int(settlement_gratitude_value),
+        "respected_estate_mod": int(respected_estate_value),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -6956,6 +6973,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "hegemony_target_mod", "bilateral_betrayal_mod",
         "grievance_modifier",
         "settlement_gratitude_mod",
+        "respected_estate_mod",
         "bargain_value_mod", "bargain_conflict_penalty",
         "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",

@@ -53,6 +53,15 @@ GRACE_TURNS = 2
 # once the shortfall clears this threshold (2 wins' worth of expectation).
 AI_GRANT_SHORTFALL_THRESHOLD = 80
 
+# ═══════════ W6-8 "THE SPOILS OF WAR" BLESSED CONSTANTS (spec §10) ═════════
+# Conquering the province that sustains an ENEMY marshal's estate poses a
+# choice: confiscate (windfall + grudge) or respect the title (goodwill).
+
+CONFISCATION_INCOME_MULT = 2          # windfall = 2x effective income (band 1.5-3x)
+CONFISCATION_RELATIONS_PENALTY = -10  # with the estate-holder's nation (band -5..-15)
+CONFISCATION_CAUTIOUS_TRUST = -1      # one-time; property is sacred
+RESPECT_ACCEPTANCE_BONUS = 5          # additive acceptance term, cap one per nation
+
 
 # ═══════════════════════════ DERIVED FLAVOR ═══════════════════════════════
 
@@ -85,11 +94,18 @@ def get_satisfaction(marshal, world) -> int:
     State-driven: recomputed from currently-held regions, so ANY way a
     funding province leaves the nation's hands (cede, recapture, rebellion,
     vassal grab) drops satisfaction next turn with no seam-specific hook.
+
+    W6-8: an occupied estate whose TITLE the occupier chose to respect still
+    sustains the marshal's household — the courtesy is precisely that his
+    revenues keep flowing, so no shortfall opens and no erosion begins.
     """
     total = 0
     for region_name in getattr(marshal, "dotation_regions", []):
         region = world.regions.get(region_name)
-        if region is not None and region.controller == marshal.nation:
+        if region is None:
+            continue
+        if (region.controller == marshal.nation
+                or is_estate_respected(world, marshal.name, region_name)):
             total += region.get_effective_income()
     return int(total)
 
@@ -181,3 +197,180 @@ def compute_investiture_fee(marshal) -> int:
     """200g creates the title (first estate); adding land to an existing
     title is free of ceremony (1 AP only)."""
     return 0 if getattr(marshal, "dotation_regions", []) else INVESTITURE_FEE
+
+
+# ═══════════════ W6-8 — THE SPOILS OF WAR (estate capture) ════════════════
+#
+# world.respected_estates: List[{region, marshal, nation, respecter}] — the
+# serialized record of titles the conqueror chose to honor. An entry is LIVE
+# only while the respecter still controls the region AND the marshal still
+# lists it; prune_respected_estates() drops the rest each turn. `respecter`
+# is recorded (not derived) so a region changing hands OUTSIDE the capture
+# pipeline (settlement cede to a third party) can never credit a nation
+# that made no such choice.
+
+
+def find_enemy_estate_holder(world, region_name: str, capturer_nation: str):
+    """The captured province funds another nation's marshal? Marshal-count
+    loop (GR8-safe); one estate per region is a check_estate_eligibility
+    invariant, so first match is the only match."""
+    if not is_dotation_world(world):
+        return None
+    for marshal in world.marshals.values():
+        if (marshal.nation != capturer_nation
+                and region_name in getattr(marshal, "dotation_regions", [])):
+            return marshal
+    return None
+
+
+def is_estate_respected(world, marshal_name: str, region_name: str) -> bool:
+    """LIVE respect check: entry exists AND the respecter still holds the
+    region (a stale entry confers nothing even before the prune runs)."""
+    region = world.regions.get(region_name)
+    if region is None:
+        return False
+    for entry in getattr(world, "respected_estates", None) or []:
+        if (entry.get("region") == region_name
+                and entry.get("marshal") == marshal_name
+                and region.controller == entry.get("respecter")):
+            return True
+    return False
+
+
+def _drop_respected_entries(world, region_name: str) -> None:
+    entries = getattr(world, "respected_estates", None) or []
+    world.respected_estates = [
+        e for e in entries if e.get("region") != region_name
+    ]
+
+
+def prune_respected_estates(world) -> None:
+    """Drop dead respect entries: region/marshal gone, estate no longer on
+    the marshal's rolls (confiscated elsewhere), the respecter lost the
+    region, or the estate returned to its own nation's hands."""
+    entries = getattr(world, "respected_estates", None) or []
+    if not entries:
+        return
+    live = []
+    for entry in entries:
+        region = world.regions.get(entry.get("region"))
+        holder = world.marshals.get(entry.get("marshal"))
+        if region is None or holder is None:
+            continue
+        if entry.get("region") not in getattr(holder, "dotation_regions", []):
+            continue
+        if region.controller != entry.get("respecter"):
+            continue
+        live.append(entry)
+    world.respected_estates = live
+
+
+def apply_estate_confiscation(world, region, holder, capturer_nation: str,
+                              windfall: Optional[int] = None) -> Dict:
+    """Strip the estate for a windfall. The holder's satisfaction drops and
+    the EXISTING erosion machinery does the rest — no new erosion code.
+    Symmetric (GR5): the AI confiscating a player marshal's estate runs this
+    exact function.
+
+    windfall: the player pipeline passes the number the popup SHOWED so the
+    charge always equals the promise; the AI path computes it here."""
+    if windfall is None:
+        windfall = int(CONFISCATION_INCOME_MULT * region.get_effective_income())
+    windfall = int(windfall)
+    world.nation_gold[capturer_nation] = (
+        world.nation_gold.get(capturer_nation, 0) + windfall)
+    if region.name in getattr(holder, "dotation_regions", []):
+        holder.dotation_regions.remove(region.name)
+    _drop_respected_entries(world, region.name)
+    world.modify_nation_relation(
+        capturer_nation, holder.nation, CONFISCATION_RELATIONS_PENALTY)
+    # Property is sacred: the CAPTURER's own cautious marshals disapprove
+    # (one-time, capped at 1 point each).
+    disapproving = []
+    for marshal in world.marshals.values():
+        if (marshal.nation == capturer_nation
+                and marshal.personality == "cautious"):
+            marshal.modify_trust(CONFISCATION_CAUTIOUS_TRUST)
+            disapproving.append(marshal.name)
+    world.log_event({
+        "type": "estate_confiscated",
+        "region": region.name,
+        "marshal": holder.name,
+        "nation": holder.nation,
+        "confiscated_by": capturer_nation,
+        "windfall": int(windfall),
+        "turn": int(world.current_turn),
+    })
+    # The victim's court learns at once (the prune's estate_lost notification
+    # never fires — the region is already off his rolls).
+    if holder.nation == world.player_nation:
+        from backend.notifications import (
+            ESTATE_CONFISCATED, NotificationPriority, create_notification,
+        )
+        world.notifications.add(create_notification(
+            notification_type=ESTATE_CONFISCATED,
+            priority=NotificationPriority.HIGH,
+            title=f"Marshal {holder.name}'s estate confiscated",
+            message=(
+                f"{capturer_nation} has seized {region.name}, the estate "
+                f"that funded Marshal {holder.name}'s honor. He will not "
+                f"forget it, Sire."
+            ),
+            turn_created=int(world.current_turn),
+            details={"marshal": holder.name, "region": region.name,
+                     "confiscated_by": capturer_nation},
+        ))
+    return {"choice": "confiscate", "windfall": int(windfall),
+            "holder": holder.name, "holder_nation": holder.nation,
+            "disapproving": disapproving}
+
+
+def apply_estate_respect(world, region, holder, capturer_nation: str) -> Dict:
+    """Honor the title: the estate stays on the marshal's rolls (the prune
+    skips it, his satisfaction keeps counting it) and the holder's nation
+    remembers the courtesy as a +5 acceptance term (cap one per nation)."""
+    _drop_respected_entries(world, region.name)
+    entries = getattr(world, "respected_estates", None) or []
+    entries.append({
+        "region": region.name,
+        "marshal": holder.name,
+        "nation": holder.nation,
+        "respecter": capturer_nation,
+    })
+    world.respected_estates = entries
+    world.log_event({
+        "type": "estate_respected",
+        "region": region.name,
+        "marshal": holder.name,
+        "nation": holder.nation,
+        "respected_by": capturer_nation,
+        "turn": int(world.current_turn),
+    })
+    return {"choice": "respect", "holder": holder.name,
+            "holder_nation": holder.nation,
+            "title": derive_title(region.name)}
+
+
+def apply_ai_estate_rule(world, region, capturer_nation: str) -> Optional[Dict]:
+    """GR5 — the AI conqueror decides without a popup: confiscate when at
+    war with the estate-holder's nation, respect otherwise. Returns the
+    applied result dict, or None when the region funds no enemy estate."""
+    holder = find_enemy_estate_holder(world, region.name, capturer_nation)
+    if holder is None:
+        return None
+    if world.is_at_war(capturer_nation, holder.nation):
+        return apply_estate_confiscation(world, region, holder, capturer_nation)
+    return apply_estate_respect(world, region, holder, capturer_nation)
+
+
+def respected_estate_mod(world, proposer: str, target: str) -> int:
+    """The single additive acceptance term (settlement-memories pattern):
+    +5 when the proposer honors at least one of the target nation's
+    marshals' titles on occupied soil — capped at one bonus per nation."""
+    for entry in getattr(world, "respected_estates", None) or []:
+        if (entry.get("respecter") == proposer
+                and entry.get("nation") == target
+                and is_estate_respected(
+                    world, entry.get("marshal"), entry.get("region"))):
+            return int(RESPECT_ACCEPTANCE_BONUS)
+    return 0

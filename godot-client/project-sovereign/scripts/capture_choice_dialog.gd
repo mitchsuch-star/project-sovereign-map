@@ -5,6 +5,8 @@ extends CanvasLayer
 # =============================================================================
 # Displays when player captures an enemy region.
 # Player chooses: Plunder (gold + destroy buildings) or Secure (higher stability)
+# W6-8 (Spoils of War): the same dialog also serves the second, estate stage
+# (stage == "estate") — Confiscate the estate vs Respect the title.
 # =============================================================================
 
 signal choice_made(choice: String)
@@ -19,6 +21,8 @@ signal choice_made(choice: String)
 
 var current_region: String = ""
 var current_capturer: String = ""
+var current_stage: String = "capture"  # "capture" or "estate" (W6-8)
+var current_dialogue_id: int = -1      # W6-0 identity on the estate stage
 
 func _ready():
 	# Connect button signals
@@ -42,19 +46,33 @@ func show_capture_choice(data: Dictionary):
 
 	current_region = region_val if region_val != null else "Unknown"
 	current_capturer = capturer_val if capturer_val != null else "Marshal"
+	current_stage = str(data.get("stage", "capture"))
+	current_dialogue_id = int(data.get("dialogue_id", -1))
 
-	# Set title
-	title_label.text = "REGION CAPTURED!"
+	if current_stage == "estate":
+		# W6-8: the second question — the conquered province funds an
+		# enemy marshal's estate.
+		var holder = str(data.get("estate_holder", "the enemy marshal"))
+		var holder_nation = str(data.get("estate_holder_nation", "their nation"))
+		var windfall = int(data.get("windfall", 0))
+		title_label.text = "AN ESTATE IN YOUR HANDS"
+		region_label.text = "%s sustains Marshal %s's household" % [current_region, holder]
+		description_label.text = "How shall the conqueror treat his title?"
+		plunder_button.text = "CONFISCATE (+%d gold, %s will not forgive it)" % [windfall, holder_nation]
+		secure_button.text = "RESPECT THE TITLE (%s will remember the courtesy)" % holder_nation
+	else:
+		# Set title
+		title_label.text = "REGION CAPTURED!"
 
-	# Set region info
-	region_label.text = "%s has taken %s" % [current_capturer, current_region]
+		# Set region info
+		region_label.text = "%s has taken %s" % [current_capturer, current_region]
 
-	# Set description
-	description_label.text = "How shall your forces treat the conquered territory?"
+		# Set description
+		description_label.text = "How shall your forces treat the conquered territory?"
 
-	# Set button text with consequences
-	plunder_button.text = "PLUNDER (Loot gold, destroy buildings, stability 10)"
-	secure_button.text = "SECURE (Preserve order, stability 25, buildings damaged)"
+		# Set button text with consequences
+		plunder_button.text = "PLUNDER (Loot gold, destroy buildings, stability 10)"
+		secure_button.text = "SECURE (Preserve order, stability 25, buildings damaged)"
 
 	# Ensure all children are visible first
 	if panel_container:
@@ -69,11 +87,11 @@ func show_capture_choice(data: Dictionary):
 	visible = true
 
 func _on_plunder_pressed():
-	"""Player chooses to plunder the region."""
+	"""Player chooses the first option (plunder / confiscate)."""
 	hide()
-	choice_made.emit("plunder")
+	choice_made.emit("confiscate" if current_stage == "estate" else "plunder")
 
 func _on_secure_pressed():
-	"""Player chooses to secure the region."""
+	"""Player chooses the second option (secure / respect)."""
 	hide()
-	choice_made.emit("secure")
+	choice_made.emit("respect" if current_stage == "estate" else "secure")

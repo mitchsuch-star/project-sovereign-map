@@ -461,11 +461,22 @@ class CommandExecutor:
         # CAPTURE CHOICE CHECK (Phase 6.2.E): Plunder or Secure?
         # ============================================================
         if world.pending_capture_choice is not None and not is_ai_command:
+            _pending = world.pending_capture_choice
+            if _pending.get("stage") == "estate":
+                # W6-8: the estate stage blocks with its own question.
+                _block_msg = (
+                    f"You must decide the fate of Marshal "
+                    f"{_pending.get('estate_holder', '?')}'s estate at "
+                    f"{_pending.get('region', '?')} first! "
+                    f"Choose 'confiscate' or 'respect'.")
+            else:
+                _block_msg = ("You must decide how to handle the captured "
+                              "region first! Choose 'plunder' or 'secure'.")
             return {
                 "success": False,
-                "message": "You must decide how to handle the captured region first! Choose 'plunder' or 'secure'.",
+                "message": _block_msg,
                 "pending_capture_choice": True,
-                "capture_data": world.pending_capture_choice
+                "capture_data": _pending
             }
 
         # ============================================================

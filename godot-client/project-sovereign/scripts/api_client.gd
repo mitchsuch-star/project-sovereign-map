@@ -151,8 +151,12 @@ func send_redemption_response(choice: String, callback: Callable):
 	_send_post("/respond_to_redemption", {"choice": choice}, callback)
 
 
-func send_capture_choice_response(choice: String, callback: Callable):
-	_send_post("/capture_choice", {"choice": choice}, callback)
+func send_capture_choice_response(choice: String, callback: Callable, dialogue_id: int = -1):
+	var body = {"choice": choice}
+	if dialogue_id >= 0:
+		# W6-0/W6-8: identity of the question this answer targets
+		body["dialogue_id"] = dialogue_id
+	_send_post("/capture_choice", body, callback)
 
 
 func send_glorious_charge_response(choice: String, callback: Callable):

@@ -2734,7 +2734,11 @@ func _show_capture_choice_dialog(response):
 		map_area.update_all_regions(response.game_state.map_data)
 
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]Your forces await orders: Plunder or Secure?[/color]")
+	if capture_data is Dictionary and str(capture_data.get("stage", "capture")) == "estate":
+		# W6-8: the second, estate question
+		add_output("[color=#" + Utils.COLOR_GOLD + "]An estate in your hands: Confiscate or Respect the title?[/color]")
+	else:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Your forces await orders: Plunder or Secure?[/color]")
 	add_output("")
 
 	if capture_choice_dialog == null:
@@ -2747,24 +2751,43 @@ func _show_capture_choice_dialog(response):
 
 
 func _on_capture_choice_made(choice: String):
-	"""Handle player's plunder/secure choice."""
+	"""Handle player's capture-pipeline choice (plunder/secure or the W6-8
+	estate stage's confiscate/respect)."""
 	set_input_enabled(false)
 
 	var choice_text = ""
 	if choice == "plunder":
 		choice_text = "You order your troops to plunder the region!"
 		add_output("[color=#" + Utils.COLOR_BATTLE + "]" + choice_text + "[/color]")
+	elif choice == "confiscate":
+		choice_text = "You order the estate confiscated for the treasury!"
+		add_output("[color=#" + Utils.COLOR_BATTLE + "]" + choice_text + "[/color]")
+	elif choice == "respect":
+		choice_text = "You order the marshal's title respected."
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + choice_text + "[/color]")
 	else:
 		choice_text = "You order your troops to secure the region."
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + choice_text + "[/color]")
 	add_output("")
 
-	api_client.send_capture_choice_response(choice, _on_capture_choice_response)
+	# W6-0/W6-8: answer with the identity of the question we rendered so a
+	# superseded popup can never resolve the wrong matter.
+	var dialogue_id: int = -1
+	if capture_choice_dialog != null:
+		dialogue_id = capture_choice_dialog.current_dialogue_id
+	api_client.send_capture_choice_response(choice, _on_capture_choice_response, dialogue_id)
 
 
 func _on_capture_choice_response(response):
 	"""Handle backend response after player makes plunder/secure choice."""
 	set_input_enabled(true)
+
+	# W6-8: the answer may mount a SECOND question (the estate stage), or a
+	# stale/wrong-token answer re-attaches the current one — chain straight
+	# into the same dialog (it prints the message and refreshes state).
+	if _response_has_capture_choice_route(response):
+		_show_capture_choice_dialog(response)
+		return
 
 	if response.success:
 		if response.has("action_summary"):

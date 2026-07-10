@@ -2,8 +2,16 @@
 Capture Executor — Region capture choice handling (R13A)
 
 Extracted from executor.py: handle_capture_choice (plunder/secure).
+
+W6-8 (The Spoils of War): when the captured province funds an ENEMY
+marshal's estate, a SECOND choice follows plunder/secure on the same
+capture_choice pipeline — confiscate the estate (windfall + grudge) or
+respect the title (goodwill). The second stage rides the same
+world.pending_capture_choice field with stage="estate" and carries a
+dialogue_id minted from the W6-0 counter, so a stale popup answer can
+never resolve the wrong question.
 """
-from typing import Dict
+from typing import Dict, Optional
 
 
 class CaptureExecutor:
@@ -12,12 +20,18 @@ class CaptureExecutor:
     def __init__(self, parent_executor):
         self._executor = parent_executor
 
-    def handle_capture_choice(self, choice: str, game_state: Dict) -> Dict:
-        """Handle player's plunder/secure choice after capturing a region.
+    def handle_capture_choice(self, choice: str, game_state: Dict,
+                              dialogue_id: Optional[int] = None) -> Dict:
+        """Handle player's capture choices: plunder/secure, then (when the
+        province sustains an enemy marshal's estate) confiscate/respect.
 
         Args:
-            choice: 'plunder' or 'secure'
+            choice: 'plunder' or 'secure' (stage 1);
+                    'confiscate' or 'respect' (stage 2, estate)
             game_state: Current game state dict with 'world' key
+            dialogue_id: optional W6-0 identity check — if provided and it
+                    does not match the pending question's id, the choice is
+                    refused and the current question re-attached.
 
         Returns:
             Result dict with effects applied
@@ -30,6 +44,23 @@ class CaptureExecutor:
         pending = world.pending_capture_choice
         if not pending:
             return {"success": False, "message": "No pending capture choice."}
+
+        # W6-0 discipline: an answer aimed at a superseded question is
+        # refused; the CURRENT question is re-attached for the player.
+        if (dialogue_id is not None
+                and pending.get("dialogue_id") is not None
+                and int(dialogue_id) != int(pending["dialogue_id"])):
+            return {
+                "success": False,
+                "stale_dialogue": True,
+                "message": ("Sire, another matter has arisen since — "
+                            + self._pending_prompt(pending)),
+                "pending_capture_choice": True,
+                "capture_data": pending,
+            }
+
+        if pending.get("stage") == "estate":
+            return self._handle_estate_choice(choice, pending, world)
 
         region_name = pending["region"]
         capturer_name = pending["capturer"]
@@ -50,7 +81,7 @@ class CaptureExecutor:
                 "captured_from": pending.get("previous_controller", ""),
                 "method": "plunder",
             })
-            return {
+            response = {
                 "success": True,
                 "message": (f"{capturer_name}'s troops plunder {region_name}! "
                             f"Gained {result['gold_gained']} gold. "
@@ -63,6 +94,9 @@ class CaptureExecutor:
                 }],
                 "capture_choice": "plunder",
             }
+            self._maybe_mount_estate_choice(world, region, capturer_name,
+                                            pending, response)
+            return response
         elif choice == "secure":
             self._executor._combat._apply_secure(region)
             world.pending_capture_choice = None
@@ -75,7 +109,7 @@ class CaptureExecutor:
                 "captured_from": pending.get("previous_controller", ""),
                 "method": "secure",
             })
-            return {
+            response = {
                 "success": True,
                 "message": (f"{capturer_name} secures {region_name}. "
                             f"Stability set to 25. Order is maintained."
@@ -87,8 +121,127 @@ class CaptureExecutor:
                 }],
                 "capture_choice": "secure",
             }
+            self._maybe_mount_estate_choice(world, region, capturer_name,
+                                            pending, response)
+            return response
         else:
             return {
                 "success": False,
-                "message": f"Invalid choice: '{choice}'. Choose 'plunder' or 'secure'."
+                "message": (f"Invalid choice: '{choice}'. "
+                            "Choose 'plunder' or 'secure'.")
+            }
+
+    # ── W6-8: the estate stage ────────────────────────────────────────
+
+    @staticmethod
+    def _pending_prompt(pending: Dict) -> str:
+        """The current question, restated (BUG-CA-10 discipline: always
+        enumerate the answers the game will accept)."""
+        if pending.get("stage") == "estate":
+            return (f"the fate of Marshal {pending.get('estate_holder', '?')}'s "
+                    f"estate at {pending.get('region', '?')} awaits your word: "
+                    f"'confiscate' or 'respect'.")
+        return (f"{pending.get('region', 'the captured region')} awaits your "
+                f"word: 'plunder' or 'secure'.")
+
+    def _maybe_mount_estate_choice(self, world, region, capturer_name: str,
+                                   pending: Dict, response: Dict) -> None:
+        """After plunder/secure resolves: if the province sustains an enemy
+        marshal's estate, mount the second question on the same pipeline.
+
+        The windfall is computed NOW — after plunder/secure applied — so a
+        plundered estate is worth confiscating less than one kept whole
+        (deterministic and order-honest)."""
+        from backend.game_logic.dotation import (
+            CONFISCATION_INCOME_MULT, derive_title, find_enemy_estate_holder,
+        )
+        holder = find_enemy_estate_holder(world, region.name,
+                                          world.player_nation)
+        if holder is None:
+            return
+        title = derive_title(region.name)
+        estate_pending = {
+            "stage": "estate",
+            "region": region.name,
+            "capturer": capturer_name,
+            "previous_controller": pending.get("previous_controller", ""),
+            "estate_holder": holder.name,
+            "estate_holder_nation": holder.nation,
+            "windfall": int(CONFISCATION_INCOME_MULT
+                            * region.get_effective_income()),
+            "title": title,
+            "options": ["confiscate", "respect"],
+            "dialogue_id": world.dialogue_manager.mint_dialogue_id(),
+        }
+        world.pending_capture_choice = estate_pending
+        response["pending_capture_choice"] = True
+        response["capture_data"] = estate_pending
+        response["message"] += (
+            f"\n\nSire — {region.name} sustains Marshal {holder.name}'s "
+            f"household (the {title.replace('Duke of', 'Duchy of')}). "
+            f"Confiscate the estate (+{estate_pending['windfall']} gold; "
+            f"{holder.nation} will not forgive it) or respect the title "
+            f"({holder.nation} will remember the courtesy)?")
+
+    def _handle_estate_choice(self, choice: str, pending: Dict, world) -> Dict:
+        """Resolve the confiscate/respect question (stage 2)."""
+        from backend.game_logic.dotation import (
+            apply_estate_confiscation, apply_estate_respect,
+        )
+        region = world.get_region(pending.get("region", ""))
+        holder = world.marshals.get(pending.get("estate_holder", ""))
+        if region is None or holder is None:
+            world.pending_capture_choice = None
+            return {"success": False,
+                    "message": "The estate question has lapsed."}
+
+        if choice == "confiscate":
+            outcome = apply_estate_confiscation(
+                world, region, holder, world.player_nation,
+                windfall=pending.get("windfall"))
+            world.pending_capture_choice = None
+            message = (f"The estate at {region.name} is confiscated! "
+                       f"{outcome['windfall']} gold seized for the treasury. "
+                       f"Marshal {holder.name}'s title is extinguished — "
+                       f"{holder.nation} will not forgive it.")
+            if outcome["disapproving"]:
+                names = ", ".join(outcome["disapproving"])
+                message += (f" Your cautious marshals disapprove — property "
+                            f"is sacred ({names}: -1 trust).")
+            return {
+                "success": True,
+                "message": message,
+                "events": [{
+                    "type": "estate_confiscated",
+                    "region": region.name,
+                    "marshal": holder.name,
+                    "windfall": int(outcome["windfall"]),
+                }],
+                "capture_choice": "confiscate",
+            }
+        elif choice == "respect":
+            outcome = apply_estate_respect(world, region, holder,
+                                           world.player_nation)
+            world.pending_capture_choice = None
+            return {
+                "success": True,
+                "message": (f"Marshal {holder.name}'s title stands — the "
+                            f"{outcome['title'].replace('Duke of', 'Duchy of')} "
+                            f"keeps its revenues under our occupation. "
+                            f"{holder.nation} will remember the courtesy."),
+                "events": [{
+                    "type": "estate_respected",
+                    "region": region.name,
+                    "marshal": holder.name,
+                }],
+                "capture_choice": "respect",
+            }
+        else:
+            # Wrong token (incl. a late 'plunder'/'secure') — refuse without
+            # clearing, and restate the question with its answers.
+            return {
+                "success": False,
+                "message": ("Sire, " + self._pending_prompt(pending)),
+                "pending_capture_choice": True,
+                "capture_data": pending,
             }
