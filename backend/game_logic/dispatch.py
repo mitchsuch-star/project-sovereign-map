@@ -45,6 +45,345 @@ BAND_MIDPOINTS: Dict[str, int] = {
 }
 
 
+# ============================================================================
+# W6-3 THE DISPATCH REWRITE — "Berthier tells the story" (EXP-N1)
+# ============================================================================
+# Headline weights (blessed defaults — display only, tunable freely).
+# The dispatch opens with the top-scored fog-visible event of the turn
+# rendered as one prose sentence, plus up to 2 sub-beats.
+HEADLINE_WEIGHTS: Dict[str, int] = {
+    "home_captured": 100,       # own homeland region captured by enemy
+    "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
+    "own_broken": 90,           # own marshal broken / force-retreated
+    "own_mauled": 85,           # own marshal lost >=25% strength
+    "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
+    "region_lost": 75,          # any own/vassal region captured
+    "war_touches_us": 70,       # coalition tier change / war decl. vs us
+    "ally_broken": 60,          # ally suffered a major defeat
+    "estate_eroding": 55,       # ES-7 erosion began
+}
+
+# One prose template per headline class, in Berthier's register.
+_HEADLINE_TEMPLATES: Dict[str, str] = {
+    "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
+    "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
+    "own_broken": "Sire — {marshal}'s corps has been broken at {region}. He must reform before he fights again.",
+    "own_mauled": "Sire — {marshal} was mauled at {region}: {casualties} men lost in a single action.",
+    "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
+    "region_lost": "Sire — {region} has been taken by {captor}.",
+    "war_touches_us": "Sire — {line}",
+    "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
+    "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
+}
+
+# Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
+_HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
+    "home_captured": "France herself is under the enemy's boot, Sire. Every other matter is secondary.",
+    "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
+    "own_broken": "I have ordered the remnants collected, Sire. Do not commit them until they reform.",
+    "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
+    "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
+    "region_lost": "Ground lost can be retaken, Sire — but the longer they hold it, the harder the taking.",
+    "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
+    "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
+    "estate_eroding": "A marshal who feels forgotten fights like one, Sire. The estate rolls want attention.",
+}
+
+
+def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
+    """W6-3 §5.1: score the turn's fog-visible events; return the headline.
+
+    Returns {"class", "weight", "text", "sub_beats": [str, ...]} or None
+    when nothing scored above the noise floor. Deterministic templates over
+    existing events — no LLM (GR6). Bounded work: one pass over the recent
+    event-log window + the player's own intel entries (GR8-safe).
+    """
+    window = [e for e in world.event_log
+              if e.get("turn", 0) >= world.current_turn - 1]
+    home_regions = set(world.nation_starting_regions.get(player_nation, []) or [])
+    vassals_of_player = {
+        v for v, s in getattr(world, "vassals", {}).items()
+        if s.get("lord") == player_nation
+    }
+    candidates: List[Dict[str, Any]] = []
+
+    def _add(cls: str, **fields):
+        text = _HEADLINE_TEMPLATES[cls].format(**fields)
+        candidates.append({
+            "class": cls,
+            "weight": int(HEADLINE_WEIGHTS[cls]),
+            "text": text,
+        })
+
+    for e in window:
+        etype = e.get("type", "")
+        if etype == "region_captured":
+            captor = e.get("captured_by", "")
+            region = e.get("region", "")
+            prev = e.get("captured_from", "")
+            if captor and captor != player_nation:
+                if region in home_regions:
+                    _add("home_captured", region=region)
+                elif prev == player_nation or prev in vassals_of_player:
+                    _add("region_lost", region=region,
+                         captor=humanize_entity_name(captor))
+        elif etype == "marshal_captured":
+            _add("marshal_captured",
+                 marshal=humanize_entity_name(e.get("marshal", "?")),
+                 captor=humanize_entity_name(e.get("captor", "the enemy")))
+        elif etype == "marshal_broken":
+            m_nation = e.get("nation", "")
+            marshal_disp = humanize_entity_name(e.get("marshal", "?"))
+            region = e.get("region", e.get("location", "the field"))
+            if m_nation == player_nation:
+                _add("own_broken", marshal=marshal_disp, region=region)
+            elif world.get_diplomatic_state(player_nation, m_nation) == "ALLIANCE":
+                _add("ally_broken", marshal=marshal_disp, region=region,
+                     nation=humanize_entity_name(m_nation))
+        elif etype == "battle":
+            # Own marshal mauled: >=25% of pre-battle strength lost.
+            for side, cas_key in (("attacker", "attacker_casualties"),
+                                  ("defender", "defender_casualties")):
+                if e.get(f"{side}_nation") != player_nation:
+                    continue
+                name = e.get(side, "")
+                casualties = int(e.get(cas_key, 0) or 0)
+                m = world.get_marshal(name)
+                if m is None or casualties <= 0:
+                    continue
+                pre = m.strength + casualties
+                if pre > 0 and casualties >= 0.25 * pre:
+                    _add("own_mauled", marshal=humanize_entity_name(name),
+                         region=e.get("location", "the field"),
+                         casualties=f"{casualties:,}")
+        elif etype in ("diplomatic_war_declared", "war_declaration"):
+            aggressor = e.get("aggressor") or e.get("nation", "")
+            target = e.get("target", "")
+            if player_nation in (aggressor, target):
+                other = target if aggressor == player_nation else aggressor
+                _add("war_touches_us",
+                     line=f"{humanize_entity_name(other)} and France are at war.")
+        elif etype in ("coalition_formed", "coalition_brewing_started"):
+            if etype == "coalition_formed":
+                _add("war_touches_us",
+                     line="a Coalition has formed against France.")
+            else:
+                _add("war_touches_us",
+                     line="the courts of Europe are drawing together against us.")
+
+    # Enemy army standing on own-controlled soil — state-based, fog-legal
+    # (the player's own intel entries only, never omniscient reads — R5).
+    for region_name, intel in world.intel.items():
+        if intel.visibility == UNKNOWN:
+            continue
+        if int(intel.last_updated_turn) < world.current_turn - 1:
+            continue
+        region = world.regions.get(region_name)
+        if region is None or region.controller != player_nation:
+            continue
+        enemy_entries = [km for km in intel.known_marshals
+                         if km.get("nation") != player_nation]
+        if not enemy_entries:
+            continue
+        enemy_name = humanize_entity_name(enemy_entries[0].get("name", "an enemy army"))
+        defenders = [m.name for m in world.get_marshals_in_region(region_name)
+                     if m.nation == player_nation and m.strength > 0]
+        if defenders:
+            defenders_line = f"{' and '.join(defenders)} stand in his path."
+        else:
+            defenders_line = "No French corps stands in his path."
+        _add("enemy_on_our_soil", enemy=enemy_name, region=region_name,
+             defenders_line=defenders_line)
+        break  # one such headline candidate is enough
+
+    # ES-7 erosion began (state-based; Europe-scoped).
+    from backend.game_logic.dotation import (
+        get_expectation, get_satisfaction, is_dotation_world, is_eroding,
+    )
+    if is_dotation_world(world):
+        for m in world.marshals.values():
+            if m.nation != player_nation or m.strength <= 0:
+                continue
+            if (get_expectation(m) > get_satisfaction(m, world)
+                    and is_eroding(m, world)):
+                _add("estate_eroding", marshal=m.name)
+                break
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda c: c["weight"], reverse=True)
+    top = candidates[0]
+    seen_texts = {top["text"]}
+    sub_beats = []
+    for c in candidates[1:]:
+        if c["text"] in seen_texts:
+            continue
+        seen_texts.add(c["text"])
+        sub_beats.append(c["text"])
+        if len(sub_beats) >= 2:
+            break
+    return {
+        "class": top["class"],
+        "weight": int(top["weight"]),
+        "text": top["text"],
+        "sub_beats": sub_beats,
+    }
+
+
+def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
+    """W6-3 §5.3: derive per-marshal drama chains from the recent event-log
+    window (last ~5 turns; bounded scan, GR8-safe) — no new serialized state.
+
+    Returns marshal_name -> {consecutive_defeats, hunted_by, fled_across,
+    line} for marshals with an active chain; max 3 lines per dispatch,
+    highest-stakes first.
+    """
+    window_start = world.current_turn - 5
+    defeats: Dict[str, List[int]] = {}          # marshal -> defeat turns
+    attackers: Dict[str, List[tuple]] = {}      # marshal -> [(turn, attacker)]
+    retreats: Dict[str, int] = {}               # marshal -> retreat count
+
+    for e in world.event_log:
+        turn = e.get("turn", 0)
+        if turn < window_start:
+            continue
+        etype = e.get("type", "")
+        if etype == "battle":
+            outcome = e.get("outcome", "")
+            atk, dfn = e.get("attacker", ""), e.get("defender", "")
+            atk_nation = e.get("attacker_nation", "")
+            def_nation = e.get("defender_nation", "")
+            if def_nation == player_nation:
+                attackers.setdefault(dfn, []).append((turn, atk))
+                if "attacker" in outcome and "victory" in outcome:
+                    defeats.setdefault(dfn, []).append(turn)
+            if (atk_nation == player_nation
+                    and "defender" in outcome and "victory" in outcome):
+                defeats.setdefault(atk, []).append(turn)
+        elif etype == "retreat":
+            name = e.get("marshal", "")
+            if name:
+                retreats[name] = retreats.get(name, 0) + 1
+
+    arcs: Dict[str, Dict[str, Any]] = {}
+    for m in world.marshals.values():
+        if m.nation != player_nation or m.strength <= 0:
+            continue
+        d_turns = sorted(set(defeats.get(m.name, [])))
+        consecutive = 0
+        run = 1
+        for i in range(1, len(d_turns)):
+            if d_turns[i] - d_turns[i - 1] == 1:
+                run += 1
+            else:
+                run = 1
+            consecutive = max(consecutive, run)
+        if len(d_turns) == 1:
+            consecutive = 1
+
+        hunted_by = ""
+        by_attacker: Dict[str, List[int]] = {}
+        for turn, atk in attackers.get(m.name, []):
+            by_attacker.setdefault(atk, []).append(turn)
+        for atk, turns in by_attacker.items():
+            ts = sorted(set(turns))
+            for i in range(1, len(ts)):
+                if ts[i] - ts[i - 1] == 1:
+                    hunted_by = atk
+                    break
+            if hunted_by:
+                break
+
+        fled = retreats.get(m.name, 0)
+        stakes = (consecutive >= 2) or hunted_by or (fled >= 2)
+        if not stakes:
+            continue
+
+        if hunted_by:
+            crossings = max(fled, 1)
+            frontier_word = "frontier" if crossings == 1 else "frontiers"
+            line = (f"Hunted by {humanize_entity_name(hunted_by)} across "
+                    f"{crossings} {frontier_word} — stands at {m.location} "
+                    f"with {int(m.strength):,} men.")
+        elif consecutive >= 2:
+            line = (f"{consecutive} defeats in as many turns — "
+                    f"{int(m.strength):,} men remain at {m.location}.")
+        else:
+            line = (f"Has fallen back {fled} times in five turns — "
+                    f"now at {m.location} with {int(m.strength):,} men.")
+
+        arcs[m.name] = {
+            "consecutive_defeats": int(consecutive),
+            "hunted_by": hunted_by,
+            "fled_across": int(fled),
+            "line": line,
+            # Stakes score for the max-3 cap: hunted > defeats > retreats.
+            "_stakes": (2 if hunted_by else 0) + consecutive + fled,
+        }
+
+    # Cap: max 3 arc lines per dispatch, highest-stakes first.
+    if len(arcs) > 3:
+        keep = sorted(arcs.items(), key=lambda kv: kv[1]["_stakes"],
+                      reverse=True)[:3]
+        arcs = dict(keep)
+    for arc in arcs.values():
+        arc.pop("_stakes", None)
+    return arcs
+
+
+def _derive_danger(marshal, world, player_nation: str,
+                   supply_turns: Dict[str, List[int]]) -> str:
+    """W6-3 §5.2: one danger string per marshal row ("" when none).
+
+    Fog-legal: the co-located-enemy check reads the player's own intel of
+    the marshal's region (never omniscient marshal data — R5).
+    """
+    # 1. Co-located with an enemy force >= 1.5x own strength (fog-legal).
+    intel = world.intel.get(marshal.location)
+    if intel is not None and intel.visibility != UNKNOWN and marshal.strength > 0:
+        enemy_total = 0
+        for km in intel.known_marshals:
+            if km.get("nation") == player_nation:
+                continue
+            if "strength" in km:
+                enemy_total += int(km["strength"])
+            elif "band" in km:
+                enemy_total += BAND_MIDPOINTS.get(km["band"], 0)
+        if enemy_total >= 1.5 * marshal.strength:
+            return (f"IN PERIL — an enemy force of ~{enemy_total:,} shares "
+                    f"the field ({marshal.location}).")
+    # 2. Morale failing.
+    if int(marshal.morale) < 40:
+        return f"Morale failing ({int(marshal.morale)}) — the men waver."
+    # 3. Force-retreated last phase.
+    if getattr(marshal, "retreating", False) or getattr(
+            marshal, "retreated_this_turn", False):
+        return "Fell back under fire — the corps is recovering."
+    # 4. Supply attrition 2+ consecutive turns.
+    turns = sorted(set(supply_turns.get(marshal.name, [])))
+    for i in range(1, len(turns)):
+        if (turns[i] - turns[i - 1] == 1
+                and turns[i] >= world.current_turn - 1):
+            return f"Starving — supply has failed at {marshal.location} two turns running."
+    return ""
+
+
+def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
+    """Recent supply_attrition events per marshal (event-log window)."""
+    result: Dict[str, List[int]] = {}
+    window_start = world.current_turn - 5
+    for e in world.event_log:
+        if e.get("type") != "supply_attrition":
+            continue
+        if e.get("turn", 0) < window_start:
+            continue
+        name = e.get("marshal", "")
+        if name:
+            result.setdefault(name, []).append(int(e.get("turn", 0)))
+    return result
+
+
 def build_morning_dispatch(world, tactical_events: Optional[List] = None,
                            lapsed_offers: Optional[List] = None) -> Dict[str, Any]:
     """
@@ -77,9 +416,16 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         "turn_events": _build_turn_events(tactical_events or [], player_nation),
     }
 
-    # Berthier note depends on marshals + situation
+    # W6-3 §5.1: the dispatch opens with the turn's top story — one prose
+    # headline + up to 2 sub-beats, scored from fog-visible events.
+    headline = _build_headline(world, player_nation)
+    if headline:
+        dispatch["headline"] = headline
+
+    # Berthier note depends on marshals + situation (+ the headline, W6-3)
     dispatch["berthier_note"] = _pick_berthier_note(
-        world, player_nation, dispatch["marshals"], dispatch["situation"]
+        world, player_nation, dispatch["marshals"], dispatch["situation"],
+        headline_class=(headline or {}).get("class", ""),
     )
 
     # ════════════════════════════════════════════════════════════
@@ -318,7 +664,14 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
 # ============================================================================
 
 def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
-    """Build the MARSHAL STATUS section — one entry per friendly marshal."""
+    """Build the MARSHAL STATUS section — one entry per friendly marshal.
+
+    W6-3: rows gain a `danger` string (§5.2 — replaces the audit's
+    "Awaiting orders" lie next to a 49k enemy) and an `arc_note` (§5.3 —
+    the hunted-marshal callback) which also upgrades `status_note`.
+    """
+    arcs = _build_marshal_arcs(world, player_nation)
+    supply_turns = _collect_supply_attrition_turns(world)
     result = []
     for marshal in world.marshals.values():
         if marshal.nation != player_nation:
@@ -328,12 +681,20 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
         trust_val = int(marshal.trust.value) if hasattr(marshal.trust, 'value') else int(getattr(marshal, 'trust', 75))
         morale_val = int(marshal.morale)
 
+        arc = arcs.get(marshal.name)
+        arc_note = arc["line"] if arc else ""
+        if arc_note:
+            status_note = arc_note
+
         entry = {
             "name": marshal.name,
             "location": marshal.location,
             "strength": int(marshal.strength),
             "status": status,
             "status_note": status_note,
+            "arc_note": arc_note,
+            "danger": _derive_danger(marshal, world, player_nation,
+                                     supply_turns),
             "trust": trust_val,
             "trust_notable": trust_val < 55 or trust_val > 90,
             "morale": morale_val,
@@ -497,6 +858,9 @@ _DISPATCH_EVENT_TYPES = {
     "occupation_continues", "drill_locked", "drill_started",
     "fortify_strengthened", "fortify_stable",
     "broken_recovery", "reckless_no_target",
+    # W6-3 §5.4: vassal loyalty drift, with its CAUSE named at emission
+    # ("Switzerland loyalty 84 (-8): puppet resentment, war weariness").
+    "vassal_loyalty",
 }
 
 
@@ -539,6 +903,9 @@ def _build_turn_events(
                             "drill_complete", "retreat_recovery",
                             "garrison_regen", "broken_recovered"):
             severity = "good"
+        elif event_type == "vassal_loyalty":
+            # W6-3: falling loyalty is a warning; rising is mere info.
+            severity = "warning" if int(event.get("delta", 0)) < 0 else "info"
 
         result.append({"message": msg, "severity": severity})
 
@@ -554,11 +921,17 @@ def _pick_berthier_note(
     player_nation: str,
     marshals_data: List[Dict],
     situation: Dict,
+    headline_class: str = "",
 ) -> str:
     """
     Pick the highest-priority Berthier closing note.
 
+    W6-3 §5.4: when the dispatch carries a headline, the note answers IT
+    (one template per headline class) — Berthier closes on the story he
+    opened with. Otherwise the existing priority ladder decides.
+
     Priority (highest first):
+    0. Headline-aware note (W6-3)
     1. Marshal broken
     2. Bankrupt
     3. Treasury negative delta
@@ -566,6 +939,8 @@ def _pick_berthier_note(
     5. All marshals at full readiness
     6. Default
     """
+    if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
+        return _HEADLINE_BERTHIER_NOTES[headline_class]
     # 1. Broken marshal — pick strongest broken one
     broken = [m for m in marshals_data if m["status"] == "broken"]
     if broken:

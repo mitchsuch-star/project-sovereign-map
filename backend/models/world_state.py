@@ -4093,14 +4093,19 @@ class WorldState:
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
-                    events.append({
+                    event = {
                         "type": "supply_attrition",
                         "marshal": m.name,
                         "nation": m.nation,
                         "region": region.name,
                         "losses": int(losses),
                         "message": f"Supply shortage at {region.name}: {m.name} loses {losses:,} troops"
-                    })
+                    }
+                    events.append(event)
+                    # W6-3 §5.2: the dispatch danger flag needs attrition
+                    # HISTORY ("2+ consecutive turns") — tactical events are
+                    # per-turn only, so mirror into the event log.
+                    self.log_event(dict(event))
 
         # V2-29: Eliminate marshals reduced to 0 strength by attrition
         eliminated = [m_name for m_name, m in self.marshals.items() if m.strength <= 0]

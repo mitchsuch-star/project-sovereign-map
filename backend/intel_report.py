@@ -165,10 +165,30 @@ def generate_intel_report(world) -> Dict[str, Any]:
             lines.append(f"  {names_str}: last seen near {r['region']}, {r['turns_ago']} turns ago")
         lines.append("")
 
-    # No Intelligence
+    # No Intelligence — W6-3 §5.4: on the 126-province map this listed 85
+    # raw names (a wall). Collapse to a count + the FRONTIER names: unknown
+    # regions adjacent to any known region (≤8), i.e. where the fog begins.
+    no_intel_summary = ""
     if no_intelligence:
-        region_names = [r["region"] for r in no_intelligence]
-        lines.append(f"NO INTELLIGENCE: {', '.join(region_names)}")
+        unknown_names = {r["region"] for r in no_intelligence}
+        frontier = []
+        for r in no_intelligence:
+            region = world.regions.get(r["region"])
+            if region is None:
+                continue
+            if any(adj not in unknown_names for adj in region.adjacent_regions):
+                frontier.append(r["region"])
+                if len(frontier) >= 8:
+                    break
+        count = len(no_intelligence)
+        if frontier:
+            no_intel_summary = (
+                f"No word from {count} provinces beyond the frontiers of "
+                f"{', '.join(frontier)}."
+            )
+        else:
+            no_intel_summary = f"No word from {count} provinces."
+        lines.append(f"NO INTELLIGENCE: {no_intel_summary}")
         lines.append("")
 
     report_text = "\n".join(lines)
@@ -180,5 +200,6 @@ def generate_intel_report(world) -> Dict[str, Any]:
         "recent_reports": recent_reports,
         "last_known": last_known,
         "no_intelligence": no_intelligence,
+        "no_intelligence_summary": no_intel_summary,
         "turn": int(world.current_turn),
     }

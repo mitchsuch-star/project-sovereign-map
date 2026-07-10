@@ -1704,6 +1704,16 @@ func _display_morning_dispatch(data: Dictionary):
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
 	add_output("")
 
+	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
+	var headline = data.get("headline", {})
+	if headline is Dictionary and headline.size() > 0:
+		add_output("[color=#" + Utils.COLOR_WARNING + "]" + str(headline.get("text", "")) + "[/color]")
+		var sub_beats = headline.get("sub_beats", [])
+		if sub_beats is Array:
+			for beat in sub_beats:
+				add_output("[color=#" + Utils.COLOR_INFO + "]  • " + str(beat) + "[/color]")
+		add_output("")
+
 	# ═══ SITUATION ═══
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]")
 	var player_regions = int(situation.get("player_regions", 0))
@@ -1801,6 +1811,11 @@ func _display_morning_dispatch(data: Dictionary):
 				line_color = Utils.COLOR_BATTLE
 
 			add_output("[color=#" + line_color + "]" + line + "[/color]")
+
+			# W6-3 §5.2: danger flag line (fog-legal threat under the row)
+			var m_danger = str(m.get("danger", ""))
+			if m_danger != "":
+				add_output("[color=#" + Utils.COLOR_WARNING + "]      ⚠ " + m_danger + "[/color]")
 		add_output("")
 
 	# ═══ INTELLIGENCE ═══

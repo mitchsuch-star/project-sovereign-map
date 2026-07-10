@@ -67,6 +67,16 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	bbcode += "\n"
 
+	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
+	var headline = data.get("headline", {})
+	if headline is Dictionary and headline.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(headline.get("text", "")) + "[/color]\n"
+		var sub_beats = headline.get("sub_beats", [])
+		if sub_beats is Array:
+			for beat in sub_beats:
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]  • " + str(beat) + "[/color]\n"
+		bbcode += "\n"
+
 	# ═══ SITUATION ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
 	var player_regions = int(situation.get("player_regions", 0))
@@ -178,6 +188,11 @@ func _on_dispatch_received(response):
 				line_color = Utils.COLOR_BATTLE
 
 			bbcode += "[color=#" + line_color + "]" + line + "[/color]\n"
+
+			# W6-3 §5.2: danger flag line (fog-legal threat under the row)
+			var m_danger = str(m.get("danger", ""))
+			if m_danger != "":
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]      ⚠ " + m_danger + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ INTELLIGENCE ═══

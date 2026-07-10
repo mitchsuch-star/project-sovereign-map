@@ -2941,6 +2941,33 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 - Godot `dispatch_view.gd` renders BBCode (duplicated from main.gd — documented tech debt)
 - Empty dispatch shows "No dispatch available yet."
 
+### Dispatch Rewrite (W6-3, July 10 2026 — EXP-N1 "Berthier tells the story")
+
+- **Headline (§5.1):** `dispatch["headline"]` = the turn's top fog-visible
+  event as one prose sentence + ≤2 `sub_beats`, scored by
+  `dispatch.HEADLINE_WEIGHTS` (home-captured 100 · marshal-captured 95 ·
+  own-broken 90 · own-mauled ≥25% 85 · enemy-on-our-soil 80 · region-lost
+  75 · war-touches-us 70 · ally-broken 60 · estate-eroding 55; everything
+  else stays out). Display-only weights — tune freely. Absent on quiet turns.
+- **Danger flags (§5.2):** every marshal row carries `danger` ("" if none):
+  co-located enemy ≥1.5× own strength (fog-legal — the player's own intel
+  entry, never omniscient reads), morale <40, fell back last phase, supply
+  attrition 2 consecutive turns (supply events now mirror into the event
+  log for history).
+- **Arc memory (§5.3):** per-marshal chains derived at build time from the
+  last-5-turn event-log window — `hunted_by` (same attacker 2+ consecutive
+  turns), `consecutive_defeats`, `fled_across`; max 3 arc lines per
+  dispatch, highest stakes first; the arc line replaces `status_note` and
+  also rides `arc_note`. No new serialized state.
+- **Cause lines (§5.4):** `vassal_loyalty` events carry `reason` (top
+  same-sign contributors named at emission, e.g. "puppet resentment, war
+  weariness") + a display `message` rendered in dispatch TURN EVENTS
+  (warning severity when falling); the Berthier closing note answers the
+  headline class when one exists; the intel report's NO INTELLIGENCE wall
+  collapses to "No word from N provinces beyond the frontiers of …" (≤8
+  frontier names = unknown regions adjacent to known ones).
+- Tests: `test_w6_dispatch_rewrite.py`.
+
 ### Strategic Ledger (Session B)
 
 - Backend: `build_strategic_ledger(world)` in `ledger.py` with 5 sections: forces, territories, economy, intel, manpower

@@ -266,11 +266,24 @@ def process_vassal_loyalty(world) -> List[dict]:
         lord = state["lord"]
         old_loyalty = state["loyalty"]
         delta = 0
+        # W6-3 §5.4 (R132's 80/20): track each modifier's contribution so
+        # the event can NAME its dominant causes ("puppet resentment, the
+        # lord's defeats") instead of a bare delta.
+        contributions: dict = {}
+
+        def _contribute(label: str, value: int):
+            nonlocal delta
+            if value:
+                delta += value
+                contributions[label] = contributions.get(label, 0) + value
 
         # 1. Autonomy drift
         autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
         drift = AUTONOMY_DRIFT.get(autonomy, 0)
-        delta += drift
+        drift_label = ("puppet resentment" if autonomy == AUTONOMY_PUPPET
+                       else "satellite drift" if autonomy == AUTONOMY_SATELLITE
+                       else "autonomous confidence")
+        _contribute(drift_label, drift)
 
         # 2. Garrison in vassal capital — world-scoped (1805 pre-slice item 7
         # family): the Europe satellites (Holland/KingdomOfItaly/Switzerland)
@@ -282,7 +295,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 garrison_troops = getattr(region, 'garrison_troops', 0) or 0
                 if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
                     garrison_bonus = min(8, 5 + min(garrison_troops // 5000, 3))
-                    delta += garrison_bonus
+                    _contribute("the garrison's presence", garrison_bonus)
 
         # 3. Gold investment from treaty clauses
         for pair_key, treaty in getattr(world, 'active_treaties', {}).items():
@@ -291,17 +304,19 @@ def process_vassal_loyalty(world) -> List[dict]:
                         and clause.get("from") == lord
                         and clause.get("to") == vassal_name):
                     gold_amount = clause.get("amount", 0)
-                    delta += int(gold_amount) // 100
+                    _contribute("subsidies", int(gold_amount) // 100)
 
         # 4. Shared enemy bonus
         all_nations = world.get_active_nations()  # DLF-11
+        shared_wars = 0
         for other_nation in all_nations:
             if other_nation == lord or other_nation == vassal_name:
                 continue
             lord_state = world.get_diplomatic_state(lord, other_nation)
             vassal_state_diplo = world.get_diplomatic_state(vassal_name, other_nation)
             if lord_state == "WAR" and vassal_state_diplo == "WAR":
-                delta += 2
+                shared_wars += 1
+        _contribute("a common enemy", shared_wars * 2)
 
         # 5. Lord winning/losing battles this turn
         battles = getattr(world, 'battles_this_turn', [])
@@ -329,18 +344,18 @@ def process_vassal_loyalty(world) -> List[dict]:
                 wins += 1
             else:
                 losses += 1
-        delta += min(wins, 3)       # +1 per win, max +3
-        delta -= min(losses, 3) * 2  # -2 per loss, max -6
+        _contribute("the lord's victories", min(wins, 3))       # +1 per win, max +3
+        _contribute("the lord's defeats", -min(losses, 3) * 2)  # -2 per loss, max -6
 
         # 6. Relation modifier
         diplo_key = world._make_diplo_key(vassal_name, lord)
         relation = world.nation_relations.get(diplo_key, 0)
-        delta += relation // 20
+        _contribute("relations with the lord", relation // 20)
 
         # 7. Coalition loyalty penalty
         from backend.game_logic.coalition import get_coalition_loyalty_penalty
         coalition_penalty = get_coalition_loyalty_penalty(vassal_name, world)
-        delta += coalition_penalty
+        _contribute("war weariness", coalition_penalty)
 
         # Apply delta
         new_loyalty = max(LOYALTY_MIN, min(LOYALTY_MAX, old_loyalty + delta))
@@ -348,13 +363,32 @@ def process_vassal_loyalty(world) -> List[dict]:
 
         # Generate event if significant change
         if abs(delta) >= 3 or new_loyalty <= 20:
+            # W6-3 §5.4: name the top same-sign contributors (max 2) so the
+            # dispatch/log line reads "Switzerland 84 (−8): puppet
+            # resentment, war weariness".
+            sign = 1 if delta >= 0 else -1
+            dominant = sorted(
+                ((label, value) for label, value in contributions.items()
+                 if value * sign > 0),
+                key=lambda kv: abs(kv[1]), reverse=True,
+            )[:2]
+            reason = ", ".join(label for label, _ in dominant)
+            delta_str = f"+{delta}" if delta >= 0 else str(delta)
             events.append({
                 "type": "vassal_loyalty",
                 "vassal": vassal_name,
                 "lord": lord,
+                # `nation` keys the dispatch relevance filter: the LORD's
+                # dispatch is the one that cares about this vassal's drift.
+                "nation": lord,
                 "old_loyalty": int(old_loyalty),
                 "new_loyalty": int(new_loyalty),
                 "delta": int(delta),
+                "reason": reason,
+                "message": (
+                    f"{vassal_name} loyalty {int(new_loyalty)} ({delta_str})"
+                    + (f": {reason}" if reason else "")
+                ),
             })
 
         # Dispatch events for vassal unrest (Session 8D)
