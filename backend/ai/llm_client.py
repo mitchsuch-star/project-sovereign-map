@@ -1041,6 +1041,16 @@ class LLMClient:
         # ES-7 second pass review fix: "raise Ney's pension" is the top-up
         # verb, not a levy — the rente family passes through to the pension
         # branches below.
+        # Marshal Recruitment (Jealousy v3.2): "commission Grouchy" /
+        # "recruit (a new) marshal Grouchy" / "appoint Grouchy to the
+        # marshalate". ORDERING RULE: must run BEFORE the troop-recruit
+        # branch ("recruit marshal X" contains "recruit") and never fire
+        # on pension verbs.
+        elif (("commission" in command_lower and not _mentions_pension(command_lower))
+              or re.search(r'\brecruit\b.{0,12}\bmarshal\b', command_lower)
+              or re.search(r'\bappoint\b.*\bmarshal', command_lower)
+              or "marshalate" in command_lower):
+            action = "recruit_marshal"
         elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
             action = "recruit"
             # Optional: extract what the player ASKED for (for soft correction message)
@@ -1189,6 +1199,21 @@ class LLMClient:
                 target_stance = "defensive"
             elif any(kw in command_lower for kw in ["neutral", "stand down"]):
                 target_stance = "neutral"
+
+        # Marshal Recruitment (Jealousy v3.2): the candidate is NOT a live
+        # marshal or region, so the generic ladders below can't find him —
+        # pull the name token directly ("commission Grouchy", "recruit
+        # marshal Grouchy", "appoint Mortier to the marshalate"). A miss
+        # leaves target=None; the executor answers with the candidate list.
+        if action == "recruit_marshal":
+            _rm = re.search(
+                r'\b(?:commission|appoint)\s+(?:marshal\s+)?([a-z][a-z\'-]+)',
+                command_lower)
+            if not _rm:
+                _rm = re.search(r'\bmarshal\s+([a-z][a-z\'-]+)', command_lower)
+            if _rm and _rm.group(1) not in (
+                    "a", "an", "the", "new", "to", "him", "her", "them"):
+                target = _rm.group(1).capitalize()
 
         # CR-0: vassal-family actions target a NATION — resolve it from the
         # live nation forms so "invest in austria" carries target=Austria

@@ -278,7 +278,9 @@ class TestPeaceRatifiedCampaignLog:
         # (estate_confiscated / estate_respected).
         # ES-7 second pass (§0.6.8, July 11, 2026): +2 rente beats
         # (rente_granted / rente_revoked).
-        assert len(CAMPAIGN_LOG_TYPES) == 103
+        # Jealousy v3.2 (July 11, 2026): +10 — grievance arc (7), ESP
+        # riders (2), marshal_commissioned (1).
+        assert len(CAMPAIGN_LOG_TYPES) == 113
 
     def test_format_peace_oneliner(self):
         event = {

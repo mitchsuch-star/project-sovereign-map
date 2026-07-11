@@ -116,6 +116,23 @@ class CombatExecutor:
             rel = marshal.get_relationship(ally.name)
             scale = self._RELATIONSHIP_SCALING.get(rel, 1.0)
 
+            # Jealousy v3.2 (spec §0.2 item 3): while either marshal of the
+            # pair is jealous of the other, the pair's coordination reads
+            # through the WORSE direction (the jealous one withholds his
+            # commitment) — and an AGGRESSIVE grievance is a hard 0.0
+            # ("refuses to cooperate", spec §3). Authored MC-3 values are
+            # symmetric, so nothing changes outside a live grievance.
+            marshal_jealous = getattr(marshal, 'jealous_of', None) == ally.name
+            ally_jealous = getattr(ally, 'jealous_of', None) == marshal.name
+            if marshal_jealous or ally_jealous:
+                jealous_one = marshal if marshal_jealous else ally
+                if jealous_one.personality == "aggressive":
+                    scale = 0.0
+                else:
+                    pair_rel = min(marshal.get_relationship(ally.name),
+                                   ally.get_relationship(marshal.name))
+                    scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
+
             is_fortified_non_artillery = (
                 getattr(ally, 'fortified', False)
                 and not getattr(ally, 'artillery', False)
@@ -724,6 +741,7 @@ class CombatExecutor:
         '_display_dedicated_atk', '_display_dedicated_def',
         '_display_adjacent_atk',
         'overwatch_penalty',  # Session 68: enemy artillery suppression (transient)
+        '_jealousy_solo_attack',  # Jealousy v3.2: +15% solo-attack stamp (transient)
     ]
 
     def _clear_coordination_fields(self, regions: set, world: WorldState) -> None:
@@ -1226,6 +1244,27 @@ class CombatExecutor:
                 if defender and defender.name in world.marshals:
                     defender.last_combat_result = "stalemate"
 
+        # ── 9.5 Jealousy battle resolution (v3.2, EC-F) ──
+        # A grievance this battle satisfies clears BEFORE the Win/Loss
+        # relationship step so the derived -1 restores first. Participant
+        # sets mirror step 10's (relationship.get_battle_participants).
+        jealousy_atk_parts = None
+        jealousy_def_parts = None
+        if (not is_bombardment and not is_auto_kill and battle_result
+                and not ctx.get('skip_jealousy')):
+            from backend.game_logic import jealousy as _jealousy
+            from backend.game_logic.relationship import get_battle_participants
+            jealousy_atk_parts = get_battle_participants(
+                attacker, battle_region, attacker.nation, world)
+            jealousy_def_parts = get_battle_participants(
+                defender, battle_region, defender_nation, world) if defender else []
+            _jealousy.check_battle_resolution(
+                world, attacker, defender, attacker_won, defender_won,
+                int(pre_atk), int(pre_def),
+                attacker_participants=jealousy_atk_parts,
+                defender_participants=jealousy_def_parts,
+                defender_broken=bool(defender and getattr(defender, 'broken', False)))
+
         # ── 10. Win/Loss Relationships ──
         if (not is_bombardment and not is_garrison and battle_result
                 and defender and not ctx.get('skip_relationships')):
@@ -1251,6 +1290,27 @@ class CombatExecutor:
                     "location": battle_region,
                 })
             pipeline_out['relationship_changes'] = relationship_changes
+
+        # ── 10.5 Glory recording + §6b rivalry transitions (v3.2) ──
+        # AFTER relationships (spec §0.2 item 4). Primaries score the full
+        # formula, participants base ±1; ctx['is_garrison'] is the
+        # garrison-stomp discriminator (spec §1). NOTE: the main attack
+        # path runs its relationship processing inline BEFORE this
+        # pipeline call (skip_relationships=True) — glory here is still
+        # strictly after it.
+        if (not is_bombardment and not is_auto_kill and battle_result
+                and not ctx.get('skip_jealousy')):
+            from backend.game_logic import jealousy as _jealousy
+            _jealousy.record_battle_glory(
+                world, attacker, defender, attacker_won, defender_won,
+                int(atk_casualties), int(def_casualties),
+                conquered=bool(conquered), is_garrison=bool(is_garrison),
+                pre_attacker_strength=int(pre_atk),
+                pre_defender_strength=int(pre_def),
+                attacker_participants=jealousy_atk_parts,
+                defender_participants=jealousy_def_parts)
+            _jealousy.check_rivalry_transitions(
+                world, pipeline_out.get('relationship_changes'))
 
         # ── 11. Vindication ──
         if not is_bombardment:
@@ -3471,6 +3531,13 @@ class CombatExecutor:
 
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
+        # Jealousy v3.2 (spec §3): the grievance as fuel — a jealous marshal
+        # attacking ALONE (no same-side participants) fights at +15%.
+        # Transient stamp consumed by get_attack_modifier; cleared with the
+        # other coordination transients (GR4: read, use, clear).
+        if getattr(marshal, 'jealous_of', None) and len(atk_participants) <= 1:
+            marshal._jealousy_solo_attack = True
+
         # NOTE: Strategic order clearing for arrived reinforcements is DEFERRED
         # until after process_battle_relationships() so Hostile+SUPPORT marshals
         # are correctly detected as Participating in relationship checks (W-1 fix).
@@ -4040,6 +4107,23 @@ class CombatExecutor:
         # are still in world.marshals.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic.relationship import process_battle_relationships
+        # Jealousy v3.2 (EC-F): resolution runs BEFORE this inline
+        # relationship pass — a grievance the battle satisfied restores
+        # its derived -1 first. The pipeline's own 9.5 hook no-ops after
+        # this (already cleared). Participants mirror step-10 semantics.
+        from backend.game_logic import jealousy as _jealousy
+        from backend.game_logic.relationship import get_battle_participants
+        _jl_outcome = battle_result.get("outcome", "")
+        _jl_atk_won = "attacker" in _jl_outcome and "victory" in _jl_outcome
+        _jl_def_won = "defender" in _jl_outcome and "victory" in _jl_outcome
+        _jealousy.check_battle_resolution(
+            world, marshal, enemy_marshal, _jl_atk_won, _jl_def_won,
+            int(pre_battle_attacker_strength), int(pre_battle_defender_strength),
+            attacker_participants=get_battle_participants(
+                marshal, battle_region_name, marshal.nation, world),
+            defender_participants=get_battle_participants(
+                enemy_marshal, battle_region_name, enemy_marshal.nation, world),
+            defender_broken=bool(getattr(enemy_marshal, 'broken', False)))
         # [7B-1] Split artillery reinforcements by nation for relationship processing
         atk_artillery = [a for a in artillery_reinforced_adjacent if a.nation == marshal.nation]
         def_artillery = [a for a in artillery_reinforced_adjacent if a.nation == enemy_marshal.nation]
@@ -4485,6 +4569,37 @@ class CombatExecutor:
                             f"{_exp_now}g/turn (holds "
                             f"{get_satisfaction(_exp_winner, world)}g).")
                     break
+
+        # Jealousy v3.2 (spec §11): Berthier notes jealous conduct on the
+        # field — display-only rider on the battle report (GR6), player
+        # marshals only. Mirrors the expectation_note glue above.
+        if isinstance(result.get("battle_report"), dict):
+            _jl_notes = []
+            for _jl_m in (marshal, enemy_marshal):
+                if _jl_m is None or _jl_m.nation != world.player_nation:
+                    continue
+                if getattr(_jl_m, "jealousy_surge_turns", 0) > 0 \
+                        and not getattr(_jl_m, "jealous_of", None):
+                    _jl_notes.append(
+                        f"{_jl_m.name} fought like a man with something to "
+                        f"prove — and proved it. His grievance is settled.")
+                elif getattr(_jl_m, "jealous_of", None):
+                    if _jl_m.personality == "aggressive":
+                        _jl_notes.append(
+                            f"{_jl_m.name} fought with particular ferocity — "
+                            f"though one wonders if it was for France or for "
+                            f"himself.")
+                    elif _jl_m.personality == "cautious":
+                        _jl_notes.append(
+                            f"{_jl_m.name}'s commitment was... measured. His "
+                            f"grievance against {_jl_m.jealous_of} shows in "
+                            f"the field.")
+                    else:
+                        _jl_notes.append(
+                            f"{_jl_m.name} fought with an intensity "
+                            f"suggesting something to prove.")
+            if _jl_notes:
+                result["battle_report"]["jealousy_note"] = " ".join(_jl_notes)
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if auto_bombardment_results:

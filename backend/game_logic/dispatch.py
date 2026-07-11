@@ -924,6 +924,24 @@ _DISPATCH_EVENT_TYPES = {
     "marshal_captured",
     "last_stand",
     "marshal_released",
+    # Jealousy v3.2 (docs/JEALOUSY_SPEC.md §11): the grievance arc — from
+    # Berthier's restlessness warning through fire, autonomous attack,
+    # escalation, resolution, and the glory crown changing heads.
+    "jealousy_restlessness",
+    "jealousy_fired",
+    "jealousy_target_notice",
+    "jealousy_autonomous_warning",
+    "jealousy_autonomous_attack",
+    "jealousy_escalation",
+    "jealousy_resolved",
+    "jealousy_ladder_shift",
+    "jealousy_separation_warning",
+    "glory_crowned",
+    "glory_crown_lost",
+    # ESP-1: the collective petition announcement line.
+    "fontainebleau_petition",
+    # Marshal recruitment: a new commander joins the roster.
+    "marshal_commissioned",
 }
 
 
@@ -961,12 +979,18 @@ def _build_turn_events(
                           "fortify_collapsed", "counter_punch_expired",
                           "capital_proximity_alert", "auto_glorious_charge",
                           "reckless_move", "reckless_no_target",
-                          "marshal_captured", "last_stand"):
+                          "marshal_captured", "last_stand",
+                          "jealousy_fired", "jealousy_autonomous_warning",
+                          "jealousy_autonomous_attack", "jealousy_escalation",
+                          "jealousy_separation_warning", "glory_crown_lost",
+                          "fontainebleau_petition"):
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete", "retreat_recovery",
                             "garrison_regen", "broken_recovered",
-                            "marshal_released"):
+                            "marshal_released",
+                            "jealousy_resolved", "jealousy_ladder_shift",
+                            "glory_crowned", "marshal_commissioned"):
             severity = "good"
         elif event_type == "vassal_loyalty":
             # W6-3: falling loyalty is a warning; rising is mere info.
@@ -1023,6 +1047,23 @@ def _pick_berthier_note(
     delta = situation.get("treasury_delta", 0)
     if delta < 0:
         return f"Our finances strain, Sire. The treasury bleeds {abs(delta)}g this turn."
+
+    # 3.5 Jealousy v3.2 (spec §5 priority: below broken/bankrupt/bleeding,
+    # above idle_restless) — a live grievance among the marshals.
+    try:
+        from backend.game_logic.jealousy import any_player_grievance
+        if any_player_grievance(world):
+            jealous = [
+                m for m in world.marshals.values()
+                if m.nation == player_nation and getattr(m, "jealous_of", None)
+            ]
+            if jealous:
+                names = ", ".join(m.name for m in jealous[:2])
+                return (f"The marshals' rivalries demand attention, Sire — "
+                        f"{names} nurse{'s' if len(jealous) == 1 else ''} a "
+                        f"grievance.")
+    except Exception:
+        pass
 
     # 4. Aggressive marshal idle 4+ turns
     restless = [m for m in marshals_data if m["status"] == "idle_restless"]
@@ -1689,6 +1730,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
+    # Marshal recruitment (Jealousy v3.2 build): word of an enemy commission
+    # reaches the player only with intel on that court (partial_on_nation).
+    "enemy_marshal_commissioned": "Intelligence reports {nation} has raised {marshal} to high command.",
     "balance_of_europe_shifted": "The balance of Europe shifts around {label}.",
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
@@ -1752,6 +1796,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
 _DIPLOMATIC_EVENT_PRIORITY = {
+    "enemy_marshal_commissioned": "MEDIUM",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

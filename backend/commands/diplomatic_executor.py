@@ -1807,6 +1807,37 @@ class DiplomaticExecutor:
                     "diplomatic_objection_popup": world.diplomatic_objection_popup,
                 }
 
+        # ════════════════════════════════════════════════════════════
+        # ESP-2 WAR-WEARY RICH MARSHALS (Jealousy v3.2 build, spec §0.3)
+        # After Talleyrand, before the ally-entry review: a marshal whose
+        # expectation is fully met AND large counsels against the NEW war
+        # ("I have my duchy, Sire — why do we march again?"). Fires once
+        # per (marshal, target) pair; never for AI declarations (this is
+        # the player command path); never blocks — the petition holds the
+        # assembled diplomatic_data and [We march] re-enters right here.
+        # ════════════════════════════════════════════════════════════
+        if not diplomatic_data.get("_war_weary_resolved") \
+                and current_state != "WAR":
+            from backend.game_logic import jealousy as _jealousy
+            objector = _jealousy.find_war_weary_objector(world)
+            if objector is not None:
+                _ww_seen = set(getattr(world, "_war_weary_petitions_seen", set()))
+                _ww_key = f"{objector.name}|{target_nation}"
+                if _ww_key not in _ww_seen:
+                    _ww_seen.add(_ww_key)
+                    world._war_weary_petitions_seen = _ww_seen
+                    resume_data = dict(diplomatic_data)
+                    resume_data["_war_weary_resolved"] = True
+                    petition = _jealousy.queue_war_weary_petition(
+                        world, objector, target_nation,
+                        original_command=resume_data)
+                    return {
+                        "success": True,
+                        "message": petition["body"],
+                        "marshal_petition": petition,
+                        "awaiting_diplomatic_response": False,
+                    }
+
         # WB-C: Ally-entry preview with bargain warnings
         from backend.game_logic.diplomacy import (
             build_declaration_preview,

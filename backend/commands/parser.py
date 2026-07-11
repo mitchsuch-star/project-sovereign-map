@@ -259,6 +259,8 @@ class CommandParser:
             # ES-7 second pass (§0.6.8): the rente
             "grant_pension",    # "grant Ney a rente" — 1 admin AP, no fee
             "revoke_pension",   # "revoke Ney's rente"
+            # Marshal Recruitment (Jealousy v3.2 final phase)
+            "recruit_marshal",  # "commission Grouchy" — 1 admin AP + gold
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -356,6 +358,16 @@ class CommandParser:
         # hardcoded legacy lists are only the no-world/no-game_state fallback.
         valid_marshals = self._get_player_marshals(world, game_state)
         known_regions = self._get_known_regions(world)
+        # Marshal Recruitment (Jealousy v3.2): a recruit_marshal "marshal"
+        # is a POOL CANDIDATE, not a roster marshal — "recruit marshal
+        # Suchet" must not die in the roster validation below. Move the
+        # name into target (the executor resolves it against the pool)
+        # and skip marshal matching entirely.
+        if llm_result.get("action") == "recruit_marshal":
+            if llm_result.get("marshal") and not llm_result.get("target"):
+                llm_result["target"] = llm_result["marshal"]
+            llm_result["marshal"] = None
+            return (llm_result, None)
         # Fuzzy match marshal name if LLM extracted one
         if llm_result.get("marshal"):
             # CR-1: an extracted "marshal" that IS a known enemy commander

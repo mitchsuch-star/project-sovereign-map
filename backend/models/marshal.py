@@ -574,6 +574,38 @@ class Marshal:
         self.last_objection_turn: int = 0
         self.defiance_cooldown_until: int = 0
 
+        # ════════════════════════════════════════════════════════════
+        # JEALOUSY SYSTEM (v3.2, July 11, 2026 — docs/JEALOUSY_SPEC.md §0)
+        # ════════════════════════════════════════════════════════════
+        # jealous_of: grievance target marshal name (None = content). The
+        #   temporary -1 relationship toward the target is DERIVED inside
+        #   get_relationship while this is set — never mutated, never
+        #   serialized, self-restoring on clear.
+        self.jealous_of: Optional[str] = None
+        self.jealousy_turns_remaining: int = 0   # countdown, 2-5 (delta-scaled)
+        # "I showed them" surge: 1-turn +10% attack (aggressive) / defense
+        # (cautious) / lingering intel (literal) after ACTION resolution.
+        self.jealousy_surge_turns: int = 0
+        # Aggressive advance-warning latch: warned this cycle, attack fires
+        # at end-turn unless the player issues the marshal ANY order.
+        self.jealousy_autonomous_warned: bool = False
+        # Rolling glory record: [{"turn": int, "points": int}] — pruned to
+        # the 5-turn window at evaluation (bounded, GR8-safe).
+        self.glory_events: List[Dict] = []
+        # Lifetime jealousy fires per target: {target_name: [turn, ...]} —
+        # escalation derives from len(); ladder churn never erases history.
+        self.jealousy_history: Dict[str, List[int]] = {}
+        # Literal sidelining counter: consecutive turns on HOLD/no-order
+        # while same-nation peers are actively engaged.
+        self.consecutive_hold_turns: int = 0
+        # §6b "Separate Them": {marshal_name: True} — dispatch warns when a
+        # flagged pair shares or adjoins a region. A management tool, not a fix.
+        self.separation_flagged: Dict[str, bool] = {}
+        # Crowned with Glory: #1 on the nation's glory ladder. Recomputed
+        # every evaluation pass (serialized so a mid-turn save keeps the
+        # buff live for battles before the next recompute).
+        self.glory_crowned: bool = False
+
     def clear_combat_transient_state(self):
         """Clear all transient combat state. Single source of truth.
 
@@ -640,7 +672,16 @@ class Marshal:
         Returns:
             Relationship value (-2 to +2), defaults to 0 (professional)
         """
-        return self.relationships.get(other_name, 0)
+        value = self.relationships.get(other_name, 0)
+        # Jealousy (v3.2): the live grievance is a DERIVED -1 toward its
+        # target — never written into the stored dict, so resolution
+        # restores the true value automatically. Every mechanical reader
+        # of this chokepoint (coordination scaling, SUPPORT objections,
+        # reinforcement eligibility/arrival, muster preview, enemy-AI ally
+        # filters, tooltips) inherits the penalty for free.
+        if self.jealous_of == other_name and value > -2:
+            value -= 1
+        return value
 
     def set_relationship(self, other_name: str, value: int) -> None:
         """
@@ -964,6 +1005,17 @@ class Marshal:
                 modifier *= (1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
                 self.iron_resolve_stacks = 0  # Consume after use
 
+        # Jealousy (v3.2): the grievance as fuel. +15% on SOLO attacks while
+        # jealous (the transient _jealousy_solo_attack is stamped by
+        # combat_executor when the attacker fights without same-side
+        # participants — an INTENDED strategy, not an exploit), and +10%
+        # for one turn after an aggressive marshal's grievance resolves
+        # through action ("I showed them").
+        if self.jealous_of and getattr(self, '_jealousy_solo_attack', False):
+            modifier *= (1.0 + self.JEALOUSY_SOLO_ATTACK_BONUS)
+        if self.jealousy_surge_turns > 0 and self.personality == "aggressive":
+            modifier *= (1.0 + self.JEALOUSY_SURGE_BONUS)
+
         # Exhaustion penalty / cavalry momentum (attack spam prevention / B5 Balance)
         # Applied AFTER other modifiers (multiplicative with recklessness)
         # Positive = infantry exhaustion penalty, Negative = cavalry momentum bonus
@@ -1066,6 +1118,11 @@ class Marshal:
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
 
+        # Jealousy surge (v3.2): a cautious marshal's vindication — +10%
+        # defense for the turn after his grievance resolves through action.
+        if self.jealousy_surge_turns > 0 and self.personality == "cautious":
+            modifier *= (1.0 + self.JEALOUSY_SURGE_BONUS)
+
         # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
         modifier = min(modifier, 1.75)
 
@@ -1116,17 +1173,30 @@ class Marshal:
             return self.HABSBURG_ROUT_THRESHOLD
         return base_threshold
 
+    # ═══════ JEALOUSY SYSTEM (v3.2, July 11, 2026) — blessed constants ═══════
+    # In-band tunable; structural changes escalate to the Jealousy gate.
+    # Crowned with Glory: +1 to these skills while #1 on the nation's glory
+    # ladder (the spec's shock/fire/admin remapped to the real 6-skill set —
+    # docs/JEALOUSY_SPEC.md §0.2 item 1).
+    CROWN_SKILLS = ("shock", "defense", "administration")
+    JEALOUSY_SOLO_ATTACK_BONUS = 0.15   # jealous solo attack (spec §3)
+    JEALOUSY_SURGE_BONUS = 0.10         # 1-turn post-resolution surge (spec §4)
+
     def get_effective_skill(self, skill_name: str) -> int:
         """
-        Get skill value with Precision Execution bonus if active.
+        Get skill value with Precision Execution / Crowned-with-Glory bonuses.
 
-        Precision Execution (Grouchy/literal) adds +1 to all skills,
-        capped at 8. The bonus is NOT stored in self.skills — it's
-        applied at calculation time only to prevent add/subtract bugs.
+        Precision Execution (literal) adds +1 to all skills, capped at 8.
+        Crowned with Glory (v3.2) adds +1 to CROWN_SKILLS while the marshal
+        tops his nation's glory ladder — applied AFTER Precision's min-8 cap
+        and clamped at 10, so the crown never reduces a skill. Neither bonus
+        is stored in self.skills — calculation time only, no add/subtract bugs.
         """
         base = self.skills.get(skill_name, 5)
         if self.precision_execution_active:
-            return min(8, base + 1)
+            base = min(8, base + 1)
+        if self.glory_crowned and skill_name in self.CROWN_SKILLS:
+            base = min(10, base + 1)
         return base
 
     def add_troops(self, amount: int) -> None:
@@ -1217,12 +1287,22 @@ class Marshal:
         administration 4-7 is byte-identical baseline. The AI pays the same
         price through the same recruit seam (GR5).
         """
-        admin = self.skills.get("administration", 5)
+        admin = self.get_admin_with_crown()
         if admin >= self.INTENDANCE_THRIFTY_ADMIN:
             return 1.0 - self.INTENDANCE_COST_SWING
         if admin <= self.INTENDANCE_WASTEFUL_ADMIN:
             return 1.0 + self.INTENDANCE_COST_SWING
         return 1.0
+
+    def get_admin_with_crown(self) -> int:
+        """Administration + the Crowned-with-Glory +1 (v3.2), WITHOUT the
+        Precision Execution bonus — Precision is combat-only by design and
+        must not leak into the Intendance/Steward tiers. Single source for
+        both admin consumers and the card's tier derivation (shown=applied)."""
+        admin = self.skills.get("administration", 5)
+        if self.glory_crowned:
+            admin = min(10, admin + 1)
+        return admin
 
     # ═══════ ADMINISTRATION SKILL: THE STEWARD (ES-7 second pass, July 11, 2026) ═══════
     # Estates prosper or rot by their lord's administration: stability growth
@@ -1245,7 +1325,7 @@ class Marshal:
         (GR5). Never applies to respected-occupied soil — the map helper
         only emits entries while the holder's nation controls the region.
         """
-        admin = self.skills.get("administration", 5)
+        admin = self.get_admin_with_crown()
         if admin >= self.STEWARD_FAST_ADMIN:
             return self.STEWARD_FAST_BONUS
         if admin <= self.STEWARD_WASTEFUL_ADMIN:
@@ -1330,6 +1410,22 @@ class Marshal:
             # ═══════ CO-LOCATION & RELATIONSHIP TRACKING (Phase 7, S59) ═══════
             "co_location_turns": self.co_location_turns.copy(),
             "last_relationship_change_turn": self.last_relationship_change_turn.copy(),
+
+            # ═══════ JEALOUSY SYSTEM (v3.2) ═══════
+            "jealous_of": self.jealous_of,
+            "jealousy_turns_remaining": int(self.jealousy_turns_remaining),
+            "jealousy_surge_turns": int(self.jealousy_surge_turns),
+            "jealousy_autonomous_warned": bool(self.jealousy_autonomous_warned),
+            "glory_events": [dict(e) for e in self.glory_events],
+            # jealousy_history holds per-target fire-turn LISTS plus the
+            # "__levels__" escalation DICT — copy each by its true shape.
+            "jealousy_history": {
+                k: (dict(v) if isinstance(v, dict) else list(v))
+                for k, v in self.jealousy_history.items()
+            },
+            "consecutive_hold_turns": int(self.consecutive_hold_turns),
+            "separation_flagged": self.separation_flagged.copy(),
+            "glory_crowned": bool(self.glory_crowned),
 
             # ═══════ TACTICAL STATE - DRILL ═══════
             "drilling": self.drilling,
@@ -1490,6 +1586,20 @@ class Marshal:
         # ═══════ CO-LOCATION & RELATIONSHIP TRACKING (Phase 7, S59) ═══════
         marshal.co_location_turns = data.get("co_location_turns", {}).copy()
         marshal.last_relationship_change_turn = data.get("last_relationship_change_turn", {}).copy()
+
+        # ═══════ JEALOUSY SYSTEM (v3.2) ═══════
+        marshal.jealous_of = data.get("jealous_of")
+        marshal.jealousy_turns_remaining = int(data.get("jealousy_turns_remaining", 0) or 0)
+        marshal.jealousy_surge_turns = int(data.get("jealousy_surge_turns", 0) or 0)
+        marshal.jealousy_autonomous_warned = bool(data.get("jealousy_autonomous_warned", False))
+        marshal.glory_events = [dict(e) for e in (data.get("glory_events") or [])]
+        marshal.jealousy_history = {
+            k: (dict(v) if isinstance(v, dict) else list(v))
+            for k, v in (data.get("jealousy_history") or {}).items()
+        }
+        marshal.consecutive_hold_turns = int(data.get("consecutive_hold_turns", 0) or 0)
+        marshal.separation_flagged = (data.get("separation_flagged") or {}).copy()
+        marshal.glory_crowned = bool(data.get("glory_crowned", False))
 
         # ═══════ TACTICAL STATE - DRILL ═══════
         marshal.drilling = data.get("drilling", False)

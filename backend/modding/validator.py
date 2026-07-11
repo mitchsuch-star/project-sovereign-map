@@ -420,6 +420,91 @@ def validate_scenario(
                             f"References unknown marshal '{other_name}' - the edge will never be read"
                         )
 
+    # Validate marshal_pool (Marshal Recruitment, Jealousy v3.2 final phase)
+    # {nation: [candidate, ...]} — candidates are marshal entries WITHOUT
+    # location/strength (spawn-derived at commission) plus a `cost` price.
+    # The MC-4 personality boot guard extends to the pool: a candidate
+    # authoring a retired/unknown personality HARD-FAILS here, exactly like
+    # a roster marshal would.
+    if "marshal_pool" in data:
+        if not isinstance(data["marshal_pool"], dict):
+            result.add_error(
+                "marshal_pool",
+                f"Must be an object, got {type(data['marshal_pool']).__name__}")
+        else:
+            roster_names = set((data.get("marshals") or {}).keys())
+            # Seeds may reference ROSTER marshals or OTHER POOL candidates
+            # (a pool-to-pool edge activates once both are commissioned).
+            pool_names = set()
+            for candidates in data["marshal_pool"].values():
+                if isinstance(candidates, list):
+                    for candidate in candidates:
+                        if isinstance(candidate, dict) and candidate.get("name"):
+                            pool_names.add(candidate["name"])
+            seed_targets = roster_names | pool_names
+            for nation, candidates in data["marshal_pool"].items():
+                if not isinstance(candidates, list):
+                    result.add_error(
+                        f"marshal_pool.{nation}",
+                        f"Must be a list, got {type(candidates).__name__}")
+                    continue
+                for index, candidate in enumerate(candidates):
+                    path = f"marshal_pool.{nation}[{index}]"
+                    if not isinstance(candidate, dict):
+                        result.add_error(path, "Candidate must be an object")
+                        continue
+                    cand_name = candidate.get("name")
+                    if not cand_name or not isinstance(cand_name, str):
+                        result.add_error(path, "Candidate requires a 'name'")
+                    elif cand_name in roster_names:
+                        result.add_error(
+                            f"{path}.name",
+                            f"'{cand_name}' already exists in the starting "
+                            f"roster — a candidate must be new")
+                    personality = candidate.get("personality")
+                    if personality is not None and personality not in VALID_PERSONALITIES:
+                        result.add_error(
+                            f"{path}.personality",
+                            f"Invalid personality '{personality}'. "
+                            f"Valid: {sorted(VALID_PERSONALITIES)}")
+                    cost = candidate.get("cost")
+                    if not isinstance(cost, int) or cost <= 0:
+                        result.add_error(
+                            f"{path}.cost",
+                            "Candidate requires a positive integer 'cost'")
+                    skills = candidate.get("skills")
+                    if skills is not None:
+                        if not isinstance(skills, dict):
+                            result.add_error(f"{path}.skills",
+                                             "skills must be an object")
+                        else:
+                            for skill_name, value in skills.items():
+                                if skill_name not in VALID_SKILLS:
+                                    result.add_error(
+                                        f"{path}.skills.{skill_name}",
+                                        f"Unknown skill. Valid: {sorted(VALID_SKILLS)}")
+                                elif not isinstance(value, int) or not 1 <= value <= 10:
+                                    result.add_error(
+                                        f"{path}.skills.{skill_name}",
+                                        f"Must be an integer 1-10, got {value!r}")
+                    seeds = candidate.get("relationships")
+                    if seeds is not None:
+                        if not isinstance(seeds, dict):
+                            result.add_error(f"{path}.relationships",
+                                             "relationships must be an object")
+                        else:
+                            for other_name, value in seeds.items():
+                                if not isinstance(value, int) or not -2 <= value <= 2:
+                                    result.add_error(
+                                        f"{path}.relationships.{other_name}",
+                                        f"Must be an integer -2..+2, got {value!r}")
+                                elif other_name not in seed_targets:
+                                    result.add_warning(
+                                        f"{path}.relationships.{other_name}",
+                                        f"References unknown marshal "
+                                        f"'{other_name}' - the seed only "
+                                        f"applies to marshals in service")
+
     # Validate regions
     all_region_names: Set[str] = set()
     adjacency_map: Dict[str, Set[str]] = {}

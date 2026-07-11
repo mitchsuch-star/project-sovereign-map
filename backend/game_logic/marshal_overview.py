@@ -138,6 +138,9 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7) ═══════
         **_build_estates(marshal, world),
 
+        # ═══════ JEALOUSY v3.2 — GLORY & GRIEVANCES (shown = applied) ═══════
+        **_build_glory(marshal, world),
+
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
 
@@ -156,6 +159,14 @@ def _derive_unit_type(marshal: Marshal) -> str:
     if marshal.cavalry:
         return "Cavalry"
     return "Infantry"
+
+
+def _build_glory(marshal: Marshal, world) -> Dict[str, Any]:
+    """Jealousy v3.2 card block — glory score, ladder rank, crown,
+    grievance state, feuds, separations (jealousy.build_glory_card_fields
+    is the single source; shown = applied)."""
+    from backend.game_logic.jealousy import build_glory_card_fields
+    return build_glory_card_fields(marshal, world)
 
 
 def _build_identity(marshal: Marshal) -> Dict[str, Any]:

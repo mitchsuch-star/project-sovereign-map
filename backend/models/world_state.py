@@ -243,6 +243,11 @@ class WorldState:
             else {k: v.copy() for k, v in DEFAULT_MANPOWER_POOLS.items()}
         )
 
+        # Marshal Recruitment (Jealousy v3.2 final phase): the authored
+        # candidate pool per nation — scenario key `marshal_pool`, entries
+        # removed as they are commissioned. Empty = no recruitment.
+        self.marshal_pool: Dict[str, list] = {}
+
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
@@ -318,6 +323,11 @@ class WorldState:
             # fee (the premium is the recurring cost).
             "grant_pension": 1,
             "revoke_pension": 1,
+            # Marshal Recruitment (Jealousy v3.2 final phase): commission a
+            # candidate from the authored pool. 1 ADMIN AP (ADMIN_ACTIONS) +
+            # the authored gold price + the initial corps from the infantry
+            # manpower pool, all charged in-executor.
+            "recruit_marshal": 1,
         }
 
         # ============================================================
@@ -351,6 +361,22 @@ class WorldState:
         # None when no choice pending, Dict when awaiting player choice
         # {"region": str, "capturer": str, "previous_controller": str}
         self.pending_capture_choice: Optional[Dict] = None
+
+        # ════════════════════════════════════════════════════════════
+        # JEALOUSY v3.2 — MARSHAL PETITION CHANNEL (spec §0.2 item 10)
+        # ════════════════════════════════════════════════════════════
+        # ONE popup pipeline for the jealousy confrontation (§6), rivalry
+        # confrontation (§6b), Fontainebleau petition (ESP-1) and war-weary
+        # petition (ESP-2). Kind-discriminated dict; answered via
+        # POST /marshal_petition_response -> jealousy.handle_petition_response.
+        self.pending_marshal_petition: Optional[Dict] = None
+        # First-time confrontation pairs already shown ("A|B" sorted keys).
+        self.jealousy_confrontations_seen: List[str] = []
+        # §6b transitions already fired ("A|B@-1" keys) — once per
+        # transition per pair.
+        self.rivalry_transitions_seen: List[str] = []
+        # ESP-1 cooldown anchor (-999 = never fired).
+        self.fontainebleau_last_turn: int = -999
 
         # ============================================================
         # V2a OBJECTION SYSTEM - Per-turn tracking
@@ -1856,6 +1882,62 @@ class WorldState:
                     "old_visibility": old_visibility,
                     "source": intel.intel_source,
                 })
+
+        # ════════════════════════════════════════════════════════════
+        # JEALOUSY v3.2 — THE VINDICATED GARRISON (spec §3, Literal)
+        # A jealous literal marshal's obsessive patrols map his whole
+        # sector: his region and every adjacent region are lifted one
+        # step (PARTIAL→FULL; worse→PARTIAL). Persists 1 extra turn
+        # after resolution (the surge — patrols don't stop instantly).
+        # Player fog only — enemy literals get no fog model (spec §0.2
+        # item 9). A confrontation Rebuke pauses the patrols one turn.
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation or marshal.strength <= 0:
+                continue
+            if marshal.personality != "literal":
+                continue
+            active = bool(getattr(marshal, "jealous_of", None)) \
+                or getattr(marshal, "jealousy_surge_turns", 0) > 0
+            if not active:
+                continue
+            if getattr(marshal, "_literal_intel_paused_turn", None) == turn:
+                continue
+            home_region = self.regions.get(marshal.location)
+            if home_region is None:
+                continue
+            sector = [marshal.location] + list(
+                getattr(home_region, "adjacent_regions", []) or [])
+            for region_name in sector:
+                intel = self.intel.get(region_name)
+                if intel is None:
+                    continue
+                old_visibility = intel.visibility
+                current_rank = VISIBILITY_PRIORITY.get(intel.visibility, 0)
+                boosted = FULL if current_rank >= VISIBILITY_PRIORITY.get(PARTIAL, 0) \
+                    else PARTIAL
+                enemy_marshals = [
+                    m for m in self._get_marshals_in_region_indexed(region_name)
+                    if m.nation != self.player_nation and m.strength > 0
+                ]
+                intel.refresh(
+                    visibility=boosted,
+                    source="scout",
+                    turn=turn,
+                    marshals=self._build_marshal_snapshot(
+                        enemy_marshals, full=(boosted == FULL)),
+                    total_strength=sum(m.strength for m in enemy_marshals),
+                )
+                refreshed_regions.add(region_name)
+                if VISIBILITY_PRIORITY.get(intel.visibility, 0) > \
+                        VISIBILITY_PRIORITY.get(old_visibility, 0):
+                    intel_events.append({
+                        "type": "intel_updated",
+                        "region": region_name,
+                        "new_visibility": intel.visibility,
+                        "old_visibility": old_visibility,
+                        "source": "obsessive_patrols",
+                    })
 
         # Store refreshed set for decay_intel to use
         self._refreshed_regions_this_turn = refreshed_regions
@@ -4138,6 +4220,56 @@ class WorldState:
                              "shortfall": int(shortfall)},
                 ))
 
+        # ════════════════════════════════════════════════════════════
+        # ESP-4 RENTE DEFAULT (Jealousy v3.2 build, spec §0.3) — GR5
+        # Runs AFTER the income phase charged the rente bill: while a
+        # nation's treasury is NEGATIVE and rentes remain, the largest
+        # face lapses (the payment bounced — this turn's charge refunds),
+        # the marshal holds worthless paper, and the shortfall machinery
+        # reopens naturally. Re-granting after solvency returns is the
+        # recovery path.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.dotation import get_rente_cost
+        for nation in self.get_active_nations():
+            while self.nation_gold.get(nation, 0) < 0:
+                pensioners = [
+                    m for m in self.marshals.values()
+                    if m.nation == nation
+                    and int(getattr(m, "pension", 0)) > 0
+                    and not getattr(m, "captured_by", "")
+                ]
+                if not pensioners:
+                    break
+                defaulter = max(pensioners, key=lambda m: int(m.pension))
+                face = int(defaulter.pension)
+                refund = get_rente_cost(face)
+                defaulter.pension = 0
+                self.nation_gold[nation] = self.nation_gold.get(nation, 0) + refund
+                self.log_event({
+                    "type": "rente_defaulted",
+                    "marshal": defaulter.name,
+                    "nation": nation,
+                    "face": int(face),
+                })
+                if nation == self.player_nation:
+                    from backend.notifications import (
+                        RENTE_DEFAULTED, NotificationPriority,
+                        create_notification,
+                    )
+                    self.notifications.add(create_notification(
+                        notification_type=RENTE_DEFAULTED,
+                        priority=NotificationPriority.HIGH,
+                        title=f"The treasury defaults on {defaulter.name}'s rente",
+                        message=(
+                            f"The treasury cannot cover Marshal "
+                            f"{defaulter.name}'s rente of {face}g/turn — it "
+                            f"lapses unpaid. He holds worthless paper, Sire; "
+                            f"his expectations stand unmet once more."
+                        ),
+                        turn_created=int(self.current_turn),
+                        details={"marshal": defaulter.name, "face": int(face)},
+                    ))
+
     # ========================================
     # STABILITY GROWTH & WAR DAMAGE RECOVERY (Phase 6.2.C)
     # ========================================
@@ -4526,6 +4658,8 @@ class WorldState:
             "gold": int(self.gold),  # Backward compat: player gold
             "nation_gold": {k: int(v) for k, v in self.nation_gold.items()},
             "manpower_pools": {k: v.copy() for k, v in self.manpower_pools.items()},
+            "marshal_pool": {k: [dict(c) for c in v]
+                             for k, v in self.marshal_pool.items()},
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -4552,6 +4686,12 @@ class WorldState:
             "pending_redemption": self.pending_redemption,
             "pending_strategic_objection": self.pending_strategic_objection,
             "pending_capture_choice": self.pending_capture_choice,
+
+            # ═══════ JEALOUSY v3.2 — PETITION CHANNEL ═══════
+            "pending_marshal_petition": self.pending_marshal_petition,
+            "jealousy_confrontations_seen": list(self.jealousy_confrontations_seen),
+            "rivalry_transitions_seen": list(self.rivalry_transitions_seen),
+            "fontainebleau_last_turn": int(self.fontainebleau_last_turn),
 
             # ═══════ V2a OBJECTION SYSTEM ═══════
             "mild_concerns_this_turn": [c.copy() for c in self.mild_concerns_this_turn],
@@ -4916,6 +5056,12 @@ class WorldState:
         world.game_over = data.get("game_over", False)
         world.victory = data.get("victory")
 
+        # ═══════ MARSHAL RECRUITMENT POOL (Jealousy v3.2 final phase) ═══════
+        world.marshal_pool = {
+            k: [dict(c) for c in (v or [])]
+            for k, v in (data.get("marshal_pool", {}) or {}).items()
+        }
+
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         raw_pools = data.get("manpower_pools", {})
         # World-scoped defaults: the constructor pools (legacy 5-nation table
@@ -4961,6 +5107,15 @@ class WorldState:
         world.pending_redemption = data.get("pending_redemption")
         world.pending_strategic_objection = data.get("pending_strategic_objection")
         world.pending_capture_choice = data.get("pending_capture_choice")
+
+        # ═══════ JEALOUSY v3.2 — PETITION CHANNEL ═══════
+        world.pending_marshal_petition = data.get("pending_marshal_petition")
+        world.jealousy_confrontations_seen = list(
+            data.get("jealousy_confrontations_seen", []) or [])
+        world.rivalry_transitions_seen = list(
+            data.get("rivalry_transitions_seen", []) or [])
+        world.fontainebleau_last_turn = int(
+            data.get("fontainebleau_last_turn", -999) or -999)
 
         # ═══════ V2a OBJECTION SYSTEM ═══════
         world.mild_concerns_this_turn = [c.copy() for c in data.get("mild_concerns_this_turn", [])]
@@ -6596,6 +6751,14 @@ class WorldState:
         if reckless_events:
             debug_print(f"  [DEBUG] Adding {len(reckless_events)} reckless cavalry events to tactical_events")
             tactical_events.extend(reckless_events)
+
+        # Jealousy v3.2: collect the events the pre-advance jealousy pass
+        # (TurnManager.end_turn -> jealousy.process_turn) and battle-time
+        # hooks stashed for this turn's dispatch.
+        jealousy_events = getattr(self, "_pending_jealousy_turn_events", None)
+        if jealousy_events:
+            tactical_events.extend(jealousy_events)
+        self._pending_jealousy_turn_events = []
 
         # Store ALL tactical events for retrieval (includes cavalry limits + reckless cavalry)
         debug_print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
@@ -8441,14 +8604,13 @@ class WorldState:
                     debug_print(f"  [PRECISION EXPIRED] {marshal.name}'s precision execution has worn off")
 
         # ════════════════════════════════════════════════════════════
-        # IDLE TRACKING (V2a Unit 6)
-        # Increment idle_turns for player marshals who didn't attack or move.
-        # in_combat_this_turn is set by combat resolution (covers attack).
-        # Reset happens in executor when attack/move executes.
-        # V2b: idle objection triggers consume this field.
+        # IDLE TRACKING (V2a Unit 6; extended to ALL nations by Jealousy
+        # v3.2 §0.2 item 6 — the hostile-threshold idle gate and idle
+        # acceleration need enemy idle counts too. V2b idle-objection
+        # consumers only ever read player marshals (pinned).
         # ════════════════════════════════════════════════════════════
         for marshal in self.marshals.values():
-            if marshal.nation != self.player_nation:
+            if marshal.strength <= 0 or getattr(marshal, "captured_by", ""):
                 continue
             # A marshal is "not idle" if they were in combat this turn
             # (attack actions set in_combat_this_turn = True)
@@ -8893,6 +9055,26 @@ class WorldState:
                                         "nation": getattr(marshal, "nation", ""),
                                         "location": old_atk_loc})
 
+                # Jealousy v3.2: outcome booleans + participant sets shared by
+                # the resolution/glory hooks below (mirrors _post_combat_pipeline).
+                from backend.game_logic import jealousy as _jealousy
+                from backend.game_logic.relationship import get_battle_participants
+                _ac_outcome = combat_result.get("outcome", "")
+                _ac_atk_won = "attacker" in _ac_outcome and "victory" in _ac_outcome
+                _ac_def_won = "defender" in _ac_outcome and "victory" in _ac_outcome
+                _ac_atk_parts = get_battle_participants(
+                    marshal, auto_charge_battle_region, marshal.nation, self)
+                _ac_def_parts = get_battle_participants(
+                    enemy, auto_charge_battle_region, enemy.nation, self)
+                # Resolution BEFORE relationships (EC-F): a grievance the
+                # battle satisfied restores the derived -1 first.
+                _jealousy.check_battle_resolution(
+                    self, marshal, enemy, _ac_atk_won, _ac_def_won,
+                    int(pre_battle_atk), int(pre_battle_def),
+                    attacker_participants=_ac_atk_parts,
+                    defender_participants=_ac_def_parts,
+                    defender_broken=bool(getattr(enemy, "broken", False)))
+
                 # [4B-1] Process battle relationships (must run before destruction removes marshals)
                 from backend.game_logic.relationship import process_battle_relationships
                 ac_relationship_changes = process_battle_relationships(
@@ -8905,6 +9087,20 @@ class WorldState:
                         "direction": rc["direction"], "nation": rc["nation"],
                         "location": auto_charge_battle_region,
                     })
+
+                # Jealousy v3.2: glory AFTER relationships (spec §0.2 item 4;
+                # the reckless path forgoes the territory bonus — capture is
+                # decided further down this block) + §6b transition check.
+                _jealousy.record_battle_glory(
+                    self, marshal, enemy, _ac_atk_won, _ac_def_won,
+                    int(combat_result.get("attacker", {}).get("casualties", 0)),
+                    int(combat_result.get("defender", {}).get("casualties", 0)),
+                    conquered=False, is_garrison=False,
+                    pre_attacker_strength=int(pre_battle_atk),
+                    pre_defender_strength=int(pre_battle_def),
+                    attacker_participants=_ac_atk_parts,
+                    defender_participants=_ac_def_parts)
+                _jealousy.check_rivalry_transitions(self, ac_relationship_changes)
 
                 # [4B-3] Exhaustion tracking
                 marshal.increment_attacks_this_turn()

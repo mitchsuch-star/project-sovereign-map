@@ -875,6 +875,13 @@ class RedemptionResponse(BaseModel):
     choice: str  # 'grant_autonomy', 'dismiss', or 'demand_obedience'
 
 
+class MarshalPetitionResponse(BaseModel):
+    """Request model for the Jealousy v3.2 marshal-petition channel —
+    jealousy confrontations, rivalry confrontations, the Fontainebleau
+    petition, and war-weary counsel all answer through this one shape."""
+    choice: str  # option id from the petition's options list
+
+
 class GloriousChargeResponse(BaseModel):
     """Request model for responding to Glorious Charge popup."""
     choice: str  # 'charge' or 'restrain'
@@ -1825,6 +1832,44 @@ def get_pending_objection():
         "alternative": objection.get("alternative"),
         "original_order": objection.get("original_order")
     }
+
+
+@app.post("/marshal_petition_response")
+def marshal_petition_response(request: MarshalPetitionResponse):
+    """Answer the pending marshal petition (Jealousy v3.2 §0.2 item 10).
+
+    One endpoint for all four petition kinds: jealousy_confrontation,
+    rivalry_confrontation, fontainebleau, war_weary. The petition's
+    options list defines the valid choice ids; effects are applied by
+    jealousy.handle_petition_response (war_weary may re-execute the
+    stored declare-war command through the standard executor).
+    """
+    try:
+        if world.game_over:
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
+        from backend.game_logic.jealousy import handle_petition_response
+        result = handle_petition_response(
+            world, request.choice, executor=executor, game_state=game_state)
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Petition answered."),
+            events=result.get("events", []),
+            action_info=result.get("action_info", {}),
+        )
+        if result.get("battle_report"):
+            response["battle_report"] = result["battle_report"]
+        if result.get("marshal_petition"):
+            response["marshal_petition"] = result["marshal_petition"]
+        return response
+    except Exception as e:
+        print(f"[ERROR] handling marshal petition response: {e}")
+        import traceback
+        traceback.print_exc()
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.post("/respond_to_objection")
@@ -3167,8 +3212,17 @@ def get_marshal_overview():
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     from backend.game_logic.marshal_overview import build_marshal_overview
+    from backend.game_logic.jealousy import build_glory_ladder_payload
+    from backend.game_logic.recruitment import build_recruitment_payload
     overview = build_marshal_overview(world)
-    return {"success": True, "marshals": overview}
+    return {
+        "success": True,
+        "marshals": overview,
+        # Jealousy v3.2: the player's glory ladder (Generals screen header)
+        "glory_ladder": build_glory_ladder_payload(world),
+        # Marshal recruitment: the commissionable candidate pool
+        "recruitment": build_recruitment_payload(world),
+    }
 
 
 # ════════════════════════════════════════════════════════════

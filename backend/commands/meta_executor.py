@@ -23,8 +23,10 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 # investiture fee deducted in the executor.
 # grant_pension / revoke_pension: ES-7 second pass (§0.6.8) rente — 1 admin
 # AP each, no fee (the recurring premium is the cost).
+# recruit_marshal: Marshal Recruitment (Jealousy v3.2 final phase) — an
+# administrative act like recruit/build; the AI admin phase shares it (GR5).
 ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
-                 "grant_pension", "revoke_pension"}
+                 "grant_pension", "revoke_pension", "recruit_marshal"}
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:

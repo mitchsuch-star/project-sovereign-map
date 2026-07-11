@@ -85,6 +85,9 @@ VALID_ACTIONS: Set[str] = {
     # "revoke Ney's rente"; marshal-only, face auto-sized in the executor.
     "grant_pension",
     "revoke_pension",
+    # Marshal Recruitment (Jealousy v3.2 final phase) — "commission Grouchy";
+    # target = candidate name from the nation's authored marshal_pool.
+    "recruit_marshal",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,

@@ -1702,6 +1702,31 @@ class EnemyAI:
             return (liberation_action, 3)
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 3.9: JEALOUSY GLORY ATTACK (v3.2, spec §9b + EC-N re-pin)
+        # A jealous AGGRESSIVE enemy marshal attacks the WEAKEST adjacent
+        # at-war enemy — glory-seeking, not strategic (survival priorities
+        # P1-P3 already ran above; spec §0.2 item 8). Same +15% solo buff
+        # applies through get_attack_modifier (GR5). No advance warning
+        # (the warning is a player-facing courtesy).
+        # ════════════════════════════════════════════════════════════
+        if (getattr(marshal, 'jealous_of', None)
+                and marshal.personality == "aggressive"
+                and not getattr(marshal, 'fortified', False)
+                and not getattr(marshal, 'drilling', False)
+                and not getattr(marshal, 'drilling_locked', False)):
+            from backend.game_logic.jealousy import find_autonomous_attack_target
+            glory_target = find_autonomous_attack_target(world, marshal)
+            if glory_target is not None:
+                glory_enemy, _glory_region = glory_target
+                ai_debug(f"  -> P3.9 Jealousy Glory Attack: {marshal.name} "
+                         f"-> {glory_enemy.name} (weakest adjacent)")
+                return ({
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": glory_enemy.name,
+                }, 4)
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 4: ATTACK OPPORTUNITY
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4: Checking attack opportunities...")
@@ -4802,6 +4827,17 @@ class EnemyAI:
                                               skip_actions)
             if grant:
                 return grant
+
+        # Priority 1.75: COMMISSION A MARSHAL (Jealousy v3.2 final phase,
+        # GR5). An at-war, under-officered, solvent nation reaches for its
+        # authored candidate pool — Austria replaces a lost Mack with
+        # Schwarzenberg; Russia calls up Bagration. Same executor, same
+        # gold price, same manpower draw as the player.
+        if "recruit_marshal" not in skip_actions:
+            from backend.game_logic.recruitment import find_ai_commission
+            commission = find_ai_commission(world, nation, treasury)
+            if commission:
+                return commission
 
         # Priority 2: Build market at highest-income region (Phase 6.2 Audit Fix #8)
         if "build" not in skip_actions and treasury >= 350:

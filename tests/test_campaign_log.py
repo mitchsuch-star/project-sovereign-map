@@ -100,7 +100,13 @@ class TestTypeWhitelist:
         # (estate_confiscated / estate_respected).
         # ES-7 second pass (§0.6.8, July 11, 2026): +2 rente beats
         # (rente_granted / rente_revoked).
-        assert len(CAMPAIGN_LOG_TYPES) == 103
+        # Jealousy v3.2 (July 11, 2026): +10 — the grievance arc
+        # (jealousy_fired / jealousy_resolved / jealousy_escalation /
+        # jealousy_autonomous / jealousy_confrontation /
+        # rivalry_confrontation / glory_crowned), the ESP riders
+        # (fontainebleau_petition / rente_defaulted), and
+        # marshal_commissioned (recruitment).
+        assert len(CAMPAIGN_LOG_TYPES) == 113
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

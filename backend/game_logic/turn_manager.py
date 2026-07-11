@@ -174,6 +174,19 @@ class TurnManager:
                     "turn": int(self.world.current_turn),
                 })
 
+        # ════════════════════════════════════════════════════════════
+        # JEALOUSY v3.2 — AUTONOMOUS GLORY ATTACKS (spec §7, §0.2 item 7)
+        # Warned-and-unrestrained aggressive marshals attack as the turn
+        # closes, BEFORE the enemy phase — the enemy answers after. Any
+        # player order to the marshal this turn already cleared the
+        # warning (executor hook).
+        # ════════════════════════════════════════════════════════════
+        jealousy_attack_results = []
+        if game_state and hasattr(self, 'executor'):
+            from backend.game_logic import jealousy as _jealousy
+            jealousy_attack_results = _jealousy.process_autonomous_attacks(
+                self.world, self.executor, game_state)
+
         # C3 fix: Track whether advance_turn has been called this cycle
         _advanced = False
 
@@ -256,6 +269,17 @@ class TurnManager:
             strategic_exec = StrategicOrderProcessor(self.executor)
             strategic_reports = strategic_exec.process_strategic_orders(
                 self.world, game_state)
+
+        # ════════════════════════════════════════════════════════════
+        # JEALOUSY v3.2 — THE ONCE-PER-TURN PASS (spec §0.2 item 5)
+        # After the enemy phase and strategic orders (every battle of the
+        # cycle has processed its relationships; per-turn action flags are
+        # still live), BEFORE advance_turn (so the Literal intel boost
+        # lands in this advance's calculate_visibility). Covers ALL
+        # nations — Building Blocks, spec §9b.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic import jealousy as _jealousy_pass
+        _jealousy_pass.process_turn(self.world)
 
         # ════════════════════════════════════════════════════════════
         # ADVANCE TURN (includes tactical state processing!)

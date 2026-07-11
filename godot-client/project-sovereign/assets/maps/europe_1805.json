@@ -380,5 +380,189 @@
             "trust": { "value": 60 },
             "biography": "Kadi Abdurrahman Pasha, governor of Karaman, with the Nizam-i Cedid new-model troops - the Porte's reformed army, far from Europe's quarrel."
         }
+    },
+    "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service.",
+    "marshal_pool": {
+        "France": [
+            {
+                "name": "Mortier",
+                "personality": "cautious",
+                "skills": { "tactical": 6, "shock": 5, "defense": 7, "logistics": 6, "administration": 6, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 80 },
+                "cost": 4000,
+                "biography": "Edouard Mortier - steady, imperturbable, universally liked. The only marshal without an enemy in the army.",
+                "relationships": {}
+            },
+            {
+                "name": "Grouchy",
+                "personality": "literal",
+                "skills": { "tactical": 7, "shock": 6, "defense": 6, "logistics": 6, "administration": 5, "command": 5 },
+                "tactical_skill": 7,
+                "trust": { "value": 75 },
+                "cost": 4500,
+                "biography": "Emmanuel de Grouchy - precise, methodical, France's finest cavalry tactician after Murat. Executes his orders to the letter; expect nothing beyond them.",
+                "relationships": { "Murat": -1, "Davout": 1 }
+            },
+            {
+                "name": "Suchet",
+                "personality": "cautious",
+                "skills": { "tactical": 7, "shock": 5, "defense": 7, "logistics": 8, "administration": 9, "command": 7 },
+                "tactical_skill": 7,
+                "trust": { "value": 75 },
+                "cost": 5500,
+                "biography": "Louis-Gabriel Suchet - the best administrator in the army. Provinces prosper under his hand; his troops are always paid, always fed.",
+                "relationships": { "Lannes": 1 }
+            },
+            {
+                "name": "Oudinot",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 8, "defense": 5, "logistics": 4, "administration": 3, "command": 6 },
+                "tactical_skill": 5,
+                "trust": { "value": 85 },
+                "cost": 3500,
+                "biography": "Nicolas Oudinot - the grenadier's grenadier, collector of thirty-four wounds. Leads from the front because he knows no other place.",
+                "relationships": { "Lannes": 1 }
+            },
+            {
+                "name": "Augereau",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 8, "defense": 4, "logistics": 3, "administration": 2, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 65 },
+                "cost": 3500,
+                "biography": "Pierre Augereau - the brawler of Castiglione, a duelist risen from the gutters of Paris. Past his best years, still dangerous in a fight.",
+                "relationships": { "Massena": 1 }
+            },
+            {
+                "name": "Marmont",
+                "personality": "cautious",
+                "skills": { "tactical": 7, "shock": 5, "defense": 6, "logistics": 7, "administration": 7, "command": 5 },
+                "tactical_skill": 7,
+                "trust": { "value": 60 },
+                "cost": 4500,
+                "biography": "Auguste Marmont - artillery savant, companion of the Emperor's youth, and the most nakedly ambitious officer in France.",
+                "relationships": {}
+            }
+        ],
+        "Austria": [
+            {
+                "name": "Schwarzenberg",
+                "personality": "cautious",
+                "skills": { "tactical": 6, "shock": 4, "defense": 7, "logistics": 7, "administration": 7, "command": 8 },
+                "tactical_skill": 6,
+                "trust": { "value": 70 },
+                "cost": 4500,
+                "biography": "Karl Philipp zu Schwarzenberg - the diplomat-soldier. Careful, patient, and impossible to provoke into a battle he has not already won.",
+                "relationships": { "ArchdukeCharles": 1 }
+            },
+            {
+                "name": "Hiller",
+                "personality": "literal",
+                "skills": { "tactical": 6, "shock": 5, "defense": 7, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Johann von Hiller - methodical, quarrelsome, and exact. Holds whatever he is told to hold, and files a protest afterward.",
+                "relationships": { "ArchdukeCharles": -1 }
+            },
+            {
+                "name": "Liechtenstein",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 7, "defense": 4, "logistics": 4, "administration": 5, "command": 6 },
+                "tactical_skill": 5,
+                "trust": { "value": 70 },
+                "cost": 3500,
+                "biography": "Johann von Liechtenstein - the cavalry prince. Charges first, negotiates after.",
+                "relationships": {}
+            }
+        ],
+        "Russia": [
+            {
+                "name": "Bagration",
+                "personality": "aggressive",
+                "skills": { "tactical": 7, "shock": 9, "defense": 6, "logistics": 4, "administration": 3, "command": 7 },
+                "tactical_skill": 7,
+                "trust": { "value": 75 },
+                "cost": 5000,
+                "biography": "Pyotr Bagration - the fiery Georgian, Suvorov's favorite pupil. Give him the rearguard and he becomes a wall; give him the vanguard and he becomes a spear.",
+                "relationships": { "Kutuzov": 1, "Buxhowden": -1 }
+            },
+            {
+                "name": "Bennigsen",
+                "personality": "cautious",
+                "skills": { "tactical": 6, "shock": 4, "defense": 7, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 55 },
+                "cost": 4000,
+                "biography": "Levin von Bennigsen - the stubborn Hanoverian in Russian service. Unlovable, unbreakable, and unforgiving of rivals.",
+                "relationships": { "Kutuzov": -1 }
+            },
+            {
+                "name": "Dokhturov",
+                "personality": "literal",
+                "skills": { "tactical": 6, "shock": 5, "defense": 8, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 85 },
+                "cost": 4000,
+                "biography": "Dmitry Dokhturov - the unshakeable. Small, ill, half-deaf, and utterly immovable from any post entrusted to him.",
+                "relationships": {}
+            }
+        ],
+        "Prussia": [
+            {
+                "name": "Blucher",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 9, "defense": 5, "logistics": 3, "administration": 2, "command": 8 },
+                "tactical_skill": 5,
+                "trust": { "value": 80 },
+                "cost": 5000,
+                "biography": "Gebhard von Blucher - Marshal Forwards. Seventy years of fury on horseback; the only general in Europe who attacks as instinctively as Ney.",
+                "relationships": { "Hohenlohe": -1, "Scharnhorst": 1 }
+            },
+            {
+                "name": "Scharnhorst",
+                "personality": "cautious",
+                "skills": { "tactical": 8, "shock": 4, "defense": 7, "logistics": 8, "administration": 9, "command": 6 },
+                "tactical_skill": 8,
+                "trust": { "value": 75 },
+                "cost": 5000,
+                "biography": "Gerhard von Scharnhorst - the quiet Hanoverian professor who intends to rebuild the Prussian army from its foundations.",
+                "relationships": { "Blucher": 1 }
+            },
+            {
+                "name": "Yorck",
+                "personality": "literal",
+                "skills": { "tactical": 6, "shock": 6, "defense": 7, "logistics": 5, "administration": 6, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 55 },
+                "cost": 4000,
+                "biography": "Ludwig Yorck - dour, exact, and stiff-necked. Obeys the letter of every order and trusts no one, least of all his superiors.",
+                "relationships": {}
+            }
+        ],
+        "Britain": [
+            {
+                "name": "Wellesley",
+                "personality": "cautious",
+                "skills": { "tactical": 9, "shock": 6, "defense": 9, "logistics": 8, "administration": 7, "command": 8 },
+                "tactical_skill": 9,
+                "trust": { "value": 70 },
+                "cost": 6000,
+                "biography": "Arthur Wellesley - the Sepoy General, home from India with a reputation and a plan. Picks his ground, holds it, and never fights the battle his enemy wants.",
+                "relationships": { "Moore": 1 }
+            },
+            {
+                "name": "Paget",
+                "personality": "aggressive",
+                "cavalry": true,
+                "skills": { "tactical": 6, "shock": 8, "defense": 5, "logistics": 4, "administration": 4, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 70 },
+                "cost": 3500,
+                "biography": "Henry Paget - the finest cavalry officer Britain owns, and the boldest. His charges end in glory or in Spain.",
+                "relationships": {}
+            }
+        ]
     }
 }

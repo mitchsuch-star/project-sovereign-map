@@ -1753,8 +1753,13 @@ class TestV2aIdleTurnsIntegration:
 
         assert davout.idle_turns == 0
 
-    def test_idle_turns_not_incremented_for_enemy(self):
-        """Enemy marshals don't get idle_turns incremented."""
+    def test_idle_turns_incremented_for_enemy_too(self):
+        """Jealousy v3.2 §0.2 item 6 CONSCIOUSLY FLIPPED this pin: idle
+        tracking now covers ALL nations (the hostile-threshold idle gate
+        and idle acceleration read enemy idle counts — Building Blocks).
+        V2b idle-objection consumers still only evaluate player marshals,
+        so the guarantee they relied on moved to the consumer, not the
+        counter."""
         from backend.models.world_state import WorldState
         from backend.models.marshal import Marshal
 
@@ -1766,7 +1771,7 @@ class TestV2aIdleTurnsIntegration:
 
         world._process_tactical_states()
 
-        assert blucher.idle_turns == 0
+        assert blucher.idle_turns == 1
 
     def test_idle_turns_acted_flag_prevents_increment(self):
         """Marshal that acted this turn doesn't get idle_turns incremented."""

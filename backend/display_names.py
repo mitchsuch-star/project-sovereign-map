@@ -46,6 +46,7 @@ ACTION_DISPLAY = {
     "grant_dotation": "is endowed with",              # ES-7 (Economy S7)
     "grant_pension": "is granted a rente",            # ES-7 second pass (§0.6.8)
     "revoke_pension": "has his rente withdrawn",      # ES-7 second pass (§0.6.8)
+    "recruit_marshal": "commissions",                 # Marshal Recruitment (v3.2)
 }
 
 # ============================================================================
@@ -104,6 +105,7 @@ OBJECTION_DISPLAY = {
     "grant_dotation": "receiving an estate",        # ES-7 (no objections in v1)
     "grant_pension": "receiving a rente",           # ES-7 second pass (no objections in v1)
     "revoke_pension": "losing his rente",           # ES-7 second pass (no objections in v1)
+    "recruit_marshal": "commissioning a marshal",   # Marshal Recruitment (no objections in v1)
 }
 
 # ============================================================================
@@ -144,6 +146,7 @@ DEFIANCE_DISPLAY = {
     "grant_dotation": "received an estate",        # ES-7 (no defiance in v1)
     "grant_pension": "received a rente",           # ES-7 second pass (no defiance in v1)
     "revoke_pension": "lost his rente",            # ES-7 second pass (no defiance in v1)
+    "recruit_marshal": "commissioned a marshal",   # Marshal Recruitment (no defiance in v1)
 }
 
 # ============================================================================

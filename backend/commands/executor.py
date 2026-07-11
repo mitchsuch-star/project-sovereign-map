@@ -1364,6 +1364,8 @@ class CommandExecutor:
             result = self._meta._execute_help(command, game_state)
         elif action == "recruit":
             result = self._economy._execute_recruit(command, game_state)
+        elif action == "recruit_marshal":
+            result = self._economy._execute_recruit_marshal(command, game_state)
         elif action == "build":
             result = self._economy._execute_build(command, game_state)
         elif action == "repair":
@@ -1556,6 +1558,24 @@ class CommandExecutor:
             result["action_info"]["cost"] = 0
 
         result["action_summary"] = world.get_action_summary()
+
+        # Jealousy v3.2 (spec §7): ANY successful player order to a marshal
+        # warned of an impending autonomous attack calls the attack off for
+        # this cycle (the jealousy itself persists). Skips the autonomous
+        # re-issue itself (_jealousy_autonomous) and objection waits.
+        if (result.get("success") and is_player_action and marshal_name
+                and not command.get("_jealousy_autonomous")
+                and not result.get("pending_objection")):
+            _warned_marshal = world.get_marshal(marshal_name)
+            if _warned_marshal is not None:
+                from backend.game_logic.jealousy import (
+                    cancel_autonomous_warning_on_order,
+                )
+                _stand_down = cancel_autonomous_warning_on_order(
+                    world, _warned_marshal)
+                if _stand_down:
+                    result["message"] = (result.get("message", "")
+                                         + "\n" + _stand_down)
 
         # FIX: Prepend mild objection message if there was one
         if mild_message and result.get("success"):

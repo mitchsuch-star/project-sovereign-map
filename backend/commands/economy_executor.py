@@ -523,6 +523,78 @@ class EconomyExecutor:
         }
 
     # ========================================
+    # MARSHAL RECRUITMENT — "The Marshalate" (Jealousy v3.2 final phase)
+    # docs/MARSHAL_RECRUITMENT_SPEC.md — player and AI share this path (GR5).
+    # ========================================
+
+    def _execute_recruit_marshal(self, command: Dict, game_state) -> Dict:
+        """Commission a new marshal from the nation's authored candidate
+        pool: authored gold price + an initial corps drawn from the
+        infantry manpower pool; arrives at the capital (or the richest
+        held homeland province). AI commissions through the same gate
+        via `_acting_nation` (GR5)."""
+        from backend.game_logic.recruitment import (
+            check_commission, commission_marshal, find_candidate,
+            get_marshal_pool,
+        )
+        world = game_state["world"]
+        acting_nation = command.get("_acting_nation") or world.player_nation
+
+        pool = get_marshal_pool(world, acting_nation)
+        if not pool:
+            return {
+                "success": False,
+                "message": ("No candidates await a commission — the "
+                            "marshalate's bench is empty."),
+            }
+
+        wanted = (command.get("target") or command.get("marshal") or "").strip()
+        if not wanted:
+            names = ", ".join(c.get("name", "?") for c in pool)
+            return {
+                "success": False,
+                "message": (f"Whom shall we raise to the marshalate, Sire? "
+                            f"Candidates: {names}."),
+            }
+        candidate = find_candidate(world, acting_nation, wanted)
+        if candidate is None:
+            names = ", ".join(c.get("name", "?") for c in pool)
+            return {
+                "success": False,
+                "message": (f"No candidate named '{wanted}' awaits a "
+                            f"commission. Candidates: {names}."),
+            }
+
+        refusal = check_commission(world, acting_nation, candidate)
+        if refusal is not None:
+            return {"success": False, "message": refusal}
+
+        summary = commission_marshal(world, acting_nation, candidate)
+        seeds = summary.get("seeds", {})
+        seed_note = ""
+        if seeds and acting_nation == world.player_nation:
+            from backend.models.marshal import Marshal
+            parts = [f"{name} ({Marshal.get_relationship_label(value)})"
+                     for name, value in sorted(seeds.items())]
+            seed_note = " He arrives with a history: " + ", ".join(parts) + "."
+
+        return {
+            "success": True,
+            "message": (f"Marshal {summary['marshal']} accepts his "
+                        f"commission and raises a corps of "
+                        f"{summary['corps']:,} at {summary['location']} — "
+                        f"{summary['cost']}g.{seed_note}"),
+            "events": [{
+                "type": "marshal_commissioned",
+                "marshal": summary["marshal"],
+                "location": summary["location"],
+                "gold_cost": int(summary["cost"]),
+                "corps": int(summary["corps"]),
+            }],
+            "new_state": game_state,
+        }
+
+    # ========================================
     # BUILDING SYSTEM (Phase 6.2.E)
     # ========================================
 

@@ -147,6 +147,10 @@ class PopupQueue:
         "diplomatic_sabotage_popup",
         "vassal_rebellion_imminent_popup",
         "diplomatic_objection_popup",
+        # Jealousy v3.2: the marshal-petition channel (confrontations,
+        # rivalry events, Fontainebleau) — marshal drama outranks routine
+        # diplomatic mail, yields to crises above.
+        "pending_marshal_petition",
         "incoming_proposal_popup",
         "incoming_settlement_offer_popup",
         "proposal_result_popup",
@@ -160,6 +164,7 @@ class PopupQueue:
         "diplomatic_sabotage_popup": "diplomatic_sabotage",
         "vassal_rebellion_imminent_popup": "vassal_rebellion_imminent",
         "diplomatic_objection_popup": "diplomatic_objection",
+        "pending_marshal_petition": "marshal_petition",
         "incoming_proposal_popup": "incoming_proposal",
         "incoming_settlement_offer_popup": "incoming_settlement_offer",
         "proposal_result_popup": "proposal_result",

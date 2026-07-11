@@ -189,6 +189,19 @@ CAMPAIGN_LOG_TYPES = {
     # W6-8 The Spoils of War — conquered-estate resolution
     "estate_confiscated",
     "estate_respected",
+    # Jealousy v3.2 (docs/JEALOUSY_SPEC.md §11)
+    "jealousy_fired",
+    "jealousy_resolved",
+    "jealousy_escalation",
+    "jealousy_autonomous",
+    "jealousy_confrontation",
+    "rivalry_confrontation",
+    "glory_crowned",
+    # ESP riders (Jealousy v3.2 build)
+    "fontainebleau_petition",
+    "rente_defaulted",
+    # Marshal recruitment
+    "marshal_commissioned",
 }
 
 # ============================================================================
@@ -221,6 +234,17 @@ CATEGORY_MAP = {
     "strategic_order": "command",
     "defiance": "command",
     "literal_fidelity": "command",
+    # Jealousy v3.2 — marshal-drama events live under "command"
+    "jealousy_fired": "command",
+    "jealousy_resolved": "command",
+    "jealousy_escalation": "command",
+    "jealousy_autonomous": "command",
+    "jealousy_confrontation": "command",
+    "rivalry_confrontation": "command",
+    "glory_crowned": "command",
+    "fontainebleau_petition": "command",
+    "rente_defaulted": "economy",
+    "marshal_commissioned": "command",
     "marshal_captured": "combat",
     "last_stand": "combat",
     "marshal_released": "diplomacy",
@@ -686,6 +710,18 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # Jealousy v3.2: marshal-drama events are PLAYER-court records —
+        # enemy friction reaches the player through battle reports and
+        # fog-filtered dispatch intel (spec §9b), never the campaign log.
+        if event_type in ("jealousy_fired", "jealousy_resolved",
+                          "jealousy_escalation", "jealousy_autonomous",
+                          "jealousy_confrontation", "rivalry_confrontation",
+                          "glory_crowned", "fontainebleau_petition",
+                          "rente_defaulted", "marshal_commissioned"):
+            if event.get("nation") == world_state.player_nation:
+                filtered.append(event)
+            continue
+
         # Diplomatic downgrade / auto_downgrade: PARTIAL+ on either nation
         if event_type in ("diplomatic_downgrade", "auto_downgrade"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
@@ -900,6 +936,92 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation", "")
         amount = event.get("amount", 0)
         return f"Desertion: {_name_tag(marshal, nation)} lost {amount:,} troops"
+
+    if event_type == "jealousy_fired":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        target = event.get("target", "a rival")
+        personality = event.get("personality", "")
+        if personality == "aggressive":
+            return (f"{_name_tag(marshal, nation)}, envious of {target}'s "
+                    f"victories, grows restless for glory")
+        if personality == "cautious":
+            return (f"{_name_tag(marshal, nation)} has grown distant toward "
+                    f"{target} — staff report reduced cooperation")
+        if personality == "literal":
+            return (f"{_name_tag(marshal, nation)} throws himself into his "
+                    f"post with obsessive diligence")
+        return f"{_name_tag(marshal, nation)} nurses a grievance against {target}"
+
+    if event_type == "jealousy_resolved":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        if event.get("by_action"):
+            return (f"{_name_tag(marshal, nation)}'s grievance is settled — "
+                    f"he fights with renewed vigor")
+        return f"{_name_tag(marshal, nation)}'s resentment cools with time"
+
+    if event_type == "jealousy_escalation":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        target = event.get("target", "a rival")
+        return (f"The rivalry between {_name_tag(marshal, nation)} and "
+                f"{target} has become entrenched")
+
+    if event_type == "jealousy_autonomous":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        target = event.get("target", "the enemy")
+        return (f"{_name_tag(marshal, nation)} attacked {target} on his own "
+                f"initiative, hungry for glory")
+
+    if event_type == "jealousy_confrontation":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        choice = event.get("choice", "acknowledge")
+        choice_str = {"promise": "was promised glory",
+                      "rebuke": "was rebuked",
+                      "acknowledge": "was heard"}.get(choice, "was heard")
+        return f"{_name_tag(marshal, nation)} aired his grievance and {choice_str}"
+
+    if event_type == "rivalry_confrontation":
+        marshal = event.get("marshal", "Unknown")
+        other = event.get("other", "a rival")
+        nation = event.get("nation", "")
+        return (f"Harsh words between {_name_tag(marshal, nation)} and "
+                f"{other} — the Emperor intervened")
+
+    if event_type == "glory_crowned":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        return (f"{_name_tag(marshal, nation)} stands crowned with glory — "
+                f"the army's most celebrated commander")
+
+    if event_type == "fontainebleau_petition":
+        marshals = event.get("marshals", []) or []
+        roll = ", ".join(marshals) if marshals else "The marshals"
+        choice = event.get("choice", "")
+        if choice == "concede":
+            return f"The marshals' petition was answered with rentes: {roll}"
+        if choice == "refuse":
+            return f"The marshals' petition was refused: {roll}"
+        if choice == "promise":
+            return f"The marshals were promised the next conquest: {roll}"
+        return f"The marshals petitioned the Emperor: {roll}"
+
+    if event_type == "rente_defaulted":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        face = int(event.get("face", 0))
+        return (f"The treasury defaulted on {_name_tag(marshal, nation)}'s "
+                f"rente of {face}g/turn")
+
+    if event_type == "marshal_commissioned":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        location = event.get("location", "the capital")
+        return (f"{_name_tag(marshal, nation)} commissioned to the "
+                f"marshalate — raises his corps at {location}")
 
     if event_type == "dotation_granted":
         marshal = event.get("marshal", "Unknown")

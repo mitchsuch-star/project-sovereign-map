@@ -104,6 +104,17 @@ DOTATION_EXPECTATION = "dotation_expectation"        # NORMAL: reward expected
 # estate outright — fired at confiscation time because the region leaves the
 # marshal's rolls immediately, so the prune's ESTATE_LOST never sees it.
 ESTATE_CONFISCATED = "estate_confiscated"            # HIGH: estate seized
+# Jealousy v3.2 (docs/JEALOUSY_SPEC.md §11): the petition popup families —
+# the notification is the mailbox record; the popup itself rides the
+# marshal_petition channel.
+JEALOUSY_CONFRONTATION = "jealousy_confrontation"    # HIGH: grievance aired
+RIVALRY_CONFRONTATION = "rivalry_confrontation"      # HIGH: rivalry event
+# ESP-4 (Jealousy v3.2 build): the treasury could not cover a rente — it
+# lapsed unpaid and the marshal holds worthless paper.
+RENTE_DEFAULTED = "rente_defaulted"                  # HIGH: rente lapsed
+# Marshal recruitment: a new commander joined the roster (both the player's
+# commissions and — fog willing — word of enemy ones).
+MARSHAL_COMMISSIONED = "marshal_commissioned"        # NORMAL: new marshal
 
 
 def create_notification(

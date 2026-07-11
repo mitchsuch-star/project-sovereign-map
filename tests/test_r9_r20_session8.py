@@ -373,5 +373,8 @@ class TestSerializationEnforcement:
         # No key should reference the index
         for key in data:
             assert "marshal" not in key.lower() or key in (
-                "marshals", "marshal_management_data"
+                "marshals", "marshal_management_data",
+                # Jealousy v3.2: the petition channel + recruitment pool
+                # are DELIBERATELY serialized world state, not indexes.
+                "pending_marshal_petition", "marshal_pool",
             ), f"Unexpected marshal-related key in save: {key}"
