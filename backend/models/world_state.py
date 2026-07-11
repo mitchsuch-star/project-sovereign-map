@@ -4166,8 +4166,10 @@ class WorldState:
                         message=(
                             f"Marshal {marshal.name} looks for "
                             f"{expectation}g/turn and holds {satisfaction}g. "
-                            f"His patience holds {GRACE_TURNS} turns — an "
-                            f"estate or a rente will keep his loyalty whole."
+                            f"His patience holds {GRACE_TURNS} turns — open the "
+                            f"Generals screen (press G) and use [ Reward… ] on "
+                            f"his card to endow an estate (a Duchy) or grant a "
+                            f"rente."
                         ),
                         turn_created=int(self.current_turn),
                         details={"marshal": marshal.name,

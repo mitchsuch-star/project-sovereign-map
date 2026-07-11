@@ -22,6 +22,7 @@ var current_response_type: String = ""
 # Human-readable labels for option IDs
 const OPTION_LABELS = {
 	"attack": "Attack!",
+	"attack_anyway": "Commit the Attack",
 	"go_around": "Go Around",
 	"hold_position": "Hold Position",
 	"cancel_order": "Cancel Order",
@@ -31,6 +32,8 @@ const OPTION_LABELS = {
 	"follow": "Follow Ally",
 	"hold_current": "Hold Current Position",
 	"cancel_support": "Cancel Support",
+	"fight_to_the_last": "Fight to the Last",
+	"attempt_breakout": "Attempt a Breakout",
 }
 
 func _ready():

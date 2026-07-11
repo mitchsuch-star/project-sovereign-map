@@ -530,8 +530,10 @@ func _render_treaties():
 				# Bilateral peace row — render in the same merged stream
 				# with a type pill, distinct route id namespace
 				# (`peace:{participants_signature}:{turn}:{seq}`).
-				var p_meta = "peace_ratification:" + str(h_idx) + ":" + s_route
-				bbcode += "  [url=" + p_meta + "][color=#" + Utils.COLOR_GOLD + "]> " + s_headline + "[/color][/url]"
+				# Bilateral peace row — PLAIN text. Unlike a settlement row it
+				# carries no review_sections body, so the old [url] + "> " marker
+				# toggled an expansion that rendered nothing (dead affordance).
+				bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + s_headline + "[/color]"
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "](" + row_type_display + " · T" + str(s_turn) + ")[/color]\n"
 			h_idx += 1
 		bbcode += "\n"

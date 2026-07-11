@@ -498,7 +498,9 @@ ECONOMY (Admin AP - the new imperial economy):
                available anywhere - but it costs the crown HALF
                AGAIN its face each turn, never grows, and buys no
                title. Re-grant after new victories to top it up.
-               (Or press G and use the Reward button on his card.)
+               (On the Generals screen - press G - each marshal's
+               card shows his reward state; the [ Reward... ] button
+               appears there once he has EARNED an unmet expectation.)
 
   THE IMPERIAL BOOKS (press T for the full ledger):
   - Upkeep: 8g per 1,000 troops. Armies over your FORCE LIMIT pay

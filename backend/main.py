@@ -1090,9 +1090,15 @@ def execute_command(request: CommandRequest):
                     if name != m.name.lower()
                 )
                 if addressed_other:
-                    # Command is for a different marshal — clear stale interrupt
-                    # and let it parse normally
-                    m.pending_interrupt = None
+                    # Command is for a different marshal — let it parse
+                    # normally. Clear a STALE informational interrupt, but
+                    # never silently discard a real pending DECISION the player
+                    # hasn't answered: a cornered marshal's last stand or an
+                    # unconfirmed muster. Dropping those would strand the
+                    # marshal (un-retreated forever / attack abandoned).
+                    if pending.get("interrupt_type", "") not in (
+                            "last_stand", "muster_confirm"):
+                        m.pending_interrupt = None
                     continue
 
                 options = pending.get("options", [])
@@ -1852,17 +1858,13 @@ def marshal_petition_response(request: MarshalPetitionResponse):
         from backend.game_logic.jealousy import handle_petition_response
         result = handle_petition_response(
             world, request.choice, executor=executor, game_state=game_state)
-        response = build_base_response(
-            world,
-            success=result.get("success", False),
-            message=result.get("message", "Petition answered."),
-            events=result.get("events", []),
-            action_info=result.get("action_info", {}),
-        )
-        if result.get("battle_report"):
-            response["battle_report"] = result["battle_report"]
-        if result.get("marshal_petition"):
-            response["marshal_petition"] = result["marshal_petition"]
+        # Forward the WHOLE result: a war_weary "we march" re-runs declare-war
+        # through the executor, which can raise a follow-on diplomatic_dialogue
+        # / ally_entry_preview / awaiting_diplomatic_response. The old
+        # hand-forward kept only battle_report + marshal_petition and dropped
+        # those, stranding the ally-entry decision. build_base_response runs
+        # popup passthroughs; marshal_petition + battle_report ride `extra`.
+        response = _build_result_response(result, world)
         return response
     except Exception as e:
         print(f"[ERROR] handling marshal petition response: {e}")
@@ -2317,18 +2319,14 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             request.choice, world, game_state
         )
 
-        response = build_base_response(
-            world,
-            success=result.get("success", False),
-            message=result.get("message", "Response processed"),
-            order_cleared=result.get("order_cleared", False),
-            trust_change=result.get("trust_change", 0),
-            action_taken=result.get("action_taken"),
-        )
-        # F1b: surface the same combat extras the direct /command attack path shows
-        # (reinforcement narration, battle report, etc.) so the "attack anyway"
-        # interrupt path is as legible as a direct attack.
-        _copy_truthy_result_fields(response, result, _COMMAND_RESULT_SIMPLE_FIELDS)
+        # Forward the WHOLE executor result — same builder the typed interrupt
+        # path uses (main.py /command interrupt route) — so a muster-confirmed
+        # "Attack Anyway" that RESOLVES a battle surfaces its follow-on popups
+        # (plunder/secure capture choice, glorious charge, battle report,
+        # reinforcement narration) instead of dropping them and then blocking
+        # the next command with "you must decide how to handle the captured
+        # region first!". build_base_response runs popup passthroughs.
+        response = _build_result_response(result, world)
         # Redemption event from strategic trust penalty
         if result.get("redemption_event"):
             response["state"] = "awaiting_redemption_choice"

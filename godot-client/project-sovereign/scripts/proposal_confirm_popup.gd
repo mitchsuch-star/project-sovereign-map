@@ -152,6 +152,12 @@ func show_dialogue(data: Dictionary):
 		# For proposal_options, bind 1-based index so backend can parse as int
 		if is_options_picker and action_str == "expand_options":
 			action_str = str(idx)
+		# War-purpose objectives ALL share action "select_war_objective", so
+		# the shared string cannot tell the backend which one was clicked —
+		# bind the 1-based index (backend resolves options[choice-1] and reads
+		# that option's objective_type). Was: first-match always picked #1.
+		elif dtype == "war_purpose_selection" and action_str == "select_war_objective":
+			action_str = str(idx)
 		btn.pressed.connect(_on_option_selected.bind(action_str))
 		button_container.add_child(btn)
 		idx += 1

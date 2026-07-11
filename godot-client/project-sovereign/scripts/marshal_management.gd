@@ -140,7 +140,14 @@ func _on_data_received(response):
 	cached_data = response.get("marshals", [])
 	cached_ladder = response.get("glory_ladder", [])
 	cached_recruitment = response.get("recruitment", {})
-	if cached_data.size() == 0 and not _commission_view:
+	# A wiped standing roster must STILL render the glory ladder + Commission
+	# link (the sole UI door to the Marshalate recovery feature) when a bench
+	# exists — otherwise losing every marshal strands the player with no path
+	# to raise a new one. Only truly-empty (no marshals AND no bench) shows the
+	# bare notice.
+	var _bench = cached_recruitment.get("candidates", []) if cached_recruitment is Dictionary else []
+	var _has_bench = _bench is Array and _bench.size() > 0
+	if cached_data.size() == 0 and not _commission_view and not _has_bench:
 		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]"
 		return
 
@@ -412,6 +419,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var pension = int(m.get("pension", 0))
 	var shortfall = int(m.get("expectation_shortfall", 0))
 	var estate_title = str(m.get("estate_title", ""))
+	var is_dotation = bool(m.get("is_dotation_world", false))
 	if expectation > 0 or estate_income > 0 or pension > 0:
 		if estate_title != "":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
@@ -443,6 +451,13 @@ func _render_card(m: Dictionary, index: int) -> String:
 				var m_name_hint = str(m.get("name", "?"))
 				bbcode += "  [color=#" + COLOR_DIM + "]or type: 'endow " + m_name_hint + " with " + str(eligible[0]) + "'[/color]"
 			bbcode += "\n"
+	elif is_dotation and not m.get("captured", false):
+		# The reward portfolio is REACTIVE by design (ES-7 "cost of success"):
+		# there is nothing to grant until he EARNS an expectation by winning
+		# battles (and you hold a conquered province to endow). Surface that
+		# it exists — otherwise the buttons the player is looking for read as
+		# simply missing. (Fix for "where are the reward/duchy buttons?")
+		bbcode += "  [color=#" + COLOR_DIM + "]Reward: victories in the field raise his expectation — then [ Reward… ] appears here to endow a conquered province (a Duchy) or grant a rente (gold per turn).[/color]\n"
 
 	# ═══════ CURRENT STATUS ═══════
 	var location = str(m.get("location", "?"))

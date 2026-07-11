@@ -4,6 +4,7 @@ Handles all combat-related execution: attack, charge, bombardment, garrison.
 
 Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
+import re
 from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
@@ -1740,6 +1741,28 @@ class CombatExecutor:
                 ),
             }
             marshal.pending_interrupt = interrupt
+            # This interrupt is raised DURING the enemy phase, where choice
+            # popups are deferred — so without a persistent notice the player
+            # would have to blind-type the answer. Surface it on the rail so
+            # the decision is visible and actionable after the turn report.
+            try:
+                from backend.notifications import (
+                    NotificationPriority, create_notification,
+                )
+                world.notifications.add(create_notification(
+                    notification_type="marshal_last_stand",
+                    priority=NotificationPriority.CRITICAL,
+                    title=f"{marshal.name} is cornered",
+                    message=(
+                        f"{marshal.name} is surrounded at {marshal.location} "
+                        f"— type 'fight to the last' or 'attempt breakout' to "
+                        f"decide his fate before he is taken."
+                    ),
+                    turn_created=int(getattr(world, "current_turn", 0)),
+                    details={"marshal": marshal.name},
+                ))
+            except Exception:
+                pass
             return (f"[!] {marshal.name} is CORNERED at {marshal.location} "
                     f"— awaiting your word: fight to the last, or attempt "
                     f"a breakout.")
@@ -2686,6 +2709,12 @@ class CombatExecutor:
                             # AI at 3+ or Player at 4+ - auto-charge
                             return self._execute_glorious_charge(marshal, resolved_target, world, game_state)
 
+        # ESP-EV-4 fix (July 12, 2026): remember when the ENGINE chose the
+        # target because the player left it open (bare "Ney, attack"). The
+        # guessed-target guard below must never fire on a delegated target —
+        # only on a SPECIFIC name the player typed that resolution overrode.
+        _target_auto_resolved = False
+
         # Handle None target - find nearest enemy for this marshal
         if not target:
             # Find the nearest enemy to this specific marshal
@@ -2706,6 +2735,7 @@ class CombatExecutor:
                 if distance <= marshal.movement_range:
                     # Auto-target the nearest enemy
                     target = nearest_enemy.name
+                    _target_auto_resolved = True
                 else:
                     # Out of range — literal marshals ask for clarification instead of guessing
                     if getattr(marshal, 'personality', '') == 'literal':
@@ -3011,18 +3041,58 @@ class CombatExecutor:
         # guessed target can never drag France into a war.
         # ════════════════════════════════════════════════════════════
         _raw_attack_text = str((command or {}).get("_raw_input") or "").lower()
-        if _raw_attack_text and target:
+        if _raw_attack_text and target and not _target_auto_resolved:
             from backend.display_names import humanize_entity_name
+
+            # The player's OWN target words: the raw order stripped of the
+            # marshal's name, attack verbs, and generic filler. If nothing
+            # specific remains ("Ney, attack the nearest enemy" / "attack the
+            # enemy"), the player DELEGATED the choice — that is never a guess,
+            # so the guard must stand down. The guard only defends against a
+            # SPECIFIC name the player typed that resolution silently overrode
+            # ("attack Venetia" → Archduke John, the BUG-CA-3 live case).
+            _attack_verbs = {
+                "attack", "attacks", "attacking", "charge", "charges",
+                "assault", "assaults", "engage", "engages", "strike",
+                "strikes", "hit", "take", "storm", "storms", "smash",
+                "crush", "destroy", "fight", "march", "advance", "rout",
+            }
+            _filler_words = {
+                "the", "a", "an", "at", "on", "to", "of", "and", "with", "his",
+                "her", "their", "them", "him", "near", "nearest", "closest",
+                "nearby", "enemy", "enemies", "foe", "foes", "force", "forces",
+                "army", "armies", "troops", "whoever", "whatever", "that",
+                "is", "in", "range", "guns", "sound", "adjacent", "position",
+                "garrison", "defenders", "defender", "corps", "sire", "please",
+                "go", "now", "immediately", "there", "yonder", "them",
+            }
+            _mn = marshal.name.lower()
+            _raw_target_words = [
+                w for w in re.findall(r"[a-z']+", _raw_attack_text)
+                if w not in _attack_verbs and w not in _filler_words
+                and w != _mn and len(w) >= 3
+            ]
 
             def _named_in_raw(token) -> bool:
                 token = str(token or "")
                 if not token:
                     return False
-                return (token.lower() in _raw_attack_text
-                        or humanize_entity_name(token).lower()
-                        in _raw_attack_text)
+                tl = token.lower()
+                hum = humanize_entity_name(token).lower()
+                if tl in _raw_attack_text or hum in _raw_attack_text:
+                    return True
+                # Word-level grounding: a partial name or title the player DID
+                # type stands in for the resolved token ("John" / "the
+                # Archduke" ground "Archduke John") — but a full substitution
+                # ("Venetia") grounds none of Archduke John / Tyrol / Austria.
+                for w in _raw_target_words:
+                    if len(w) >= 4 and (w in tl or w in hum):
+                        return True
+                return False
 
-            if not _named_in_raw(target):
+            # Only fire when the player named SOMETHING specific and none of it
+            # matches the parse. No specific words => delegated => let it fly.
+            if _raw_target_words and not _named_in_raw(target):
                 _resolved_tokens = []
                 if resolved_target and resolved_target != target:
                     _resolved_tokens.append(resolved_target)
@@ -3299,9 +3369,10 @@ class CombatExecutor:
                     "target": enemy_marshal.name,
                     "options": ["attack_anyway", "cancel_order"],
                     "message": (
-                        f"The odds read {muster_preview['odds_band']}, Sire "
-                        f"— review the muster before committing "
-                        f"{marshal.name}.\n{muster_text}"
+                        f"The odds read {muster_preview['odds_band']}, Sire. "
+                        f"Review the muster, then [b]Commit the Attack[/b] to "
+                        f"send {marshal.name} in — or Cancel to hold him "
+                        f"back.\n{muster_text}"
                     ),
                     "muster_preview": muster_preview,
                 }

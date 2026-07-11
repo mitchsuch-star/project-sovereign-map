@@ -482,7 +482,7 @@ func _show_welcome():
 	add_output("[color=#" + Utils.COLOR_GOLD + "][b]        IMPERIAL HEADQUARTERS[/b][/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_INFO + "]June 1815 — The Hundred Days Campaign[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]September 1805 — The War of the Third Coalition[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]You are Napoleon Bonaparte.[/color]")
 	add_output("")
 
@@ -536,6 +536,8 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]")
 		add_output("")
 		_add_separator()
@@ -3215,8 +3217,17 @@ func _on_interrupt_choice_made(marshal_name: String, response_type: String, choi
 func _on_interrupt_response(response):
 	"""Handle backend response to interrupt choice."""
 	if response.success:
-		var msg = response.get("message", "Order acknowledged.")
-		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
+		# A muster "Attack Anyway" RESOLVES a battle — render it with the same
+		# battle / After-Action formatting a direct attack gets, not a flat
+		# one-liner (was: plain text, so the confirmed battle read as a shrug).
+		var events = response.get("events", [])
+		var is_battle = response.has("battle_report") or (
+			events.size() > 0 and str(events[0].get("type", "")) in ["battle", "bombardment", "conquest"])
+		if is_battle:
+			_display_result(response)
+		else:
+			var msg = response.get("message", "Order acknowledged.")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
 
 		# Update UI state
 		if response.has("action_summary"):
@@ -3242,6 +3253,15 @@ func _on_interrupt_response(response):
 		_show_pending_dispatch()
 		_show_redemption_dialog(response.redemption_event)
 		return  # Don't re-enable input until redemption resolved
+
+	# A muster-confirmed attack can resolve into a CAPTURE (plunder/secure),
+	# a glorious charge, or another follow-on popup. Route them through the
+	# shared table so the choice is surfaced instead of silently dropped —
+	# dropping the capture choice used to block the NEXT command with
+	# "you must decide how to handle the captured region first!". If a
+	# follow-on popup takes the flow, stop here (it owns re-enabling input).
+	if _route_response_ui(response, _post_hud_response_routes):
+		return
 
 	# Process next interrupt in queue
 	_process_next_interrupt()
@@ -3361,6 +3381,17 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
 		set_input_enabled(false)
 		api_client.send_dialogue_response_with_params(action, data, _on_command_result, int(data.get("dialogue_id", -1)))
+		return
+	# Index-based pickers (war-purpose objectives; proposal_options) bind a
+	# pure 1-based index as their action because every option shares the same
+	# action string — the index is the ONLY signal of which row was clicked.
+	# The backend resolves options[choice-1] directly. Was: the loop below
+	# first-matched the shared action string and always sent index 1, so the
+	# player's chosen war objective was silently dropped for conquest.
+	if action.is_valid_int():
+		add_output("[color=#d9c08c]Directing Talleyrand…[/color]")
+		set_input_enabled(false)
+		api_client.send_dialogue_response(int(action), _on_command_result, int(data.get("dialogue_id", -1)))
 		return
 	# Send the raw action directly to dialogue endpoint via 1-based option index.
 	# DO NOT construct natural language — keyword routing causes mismatches.

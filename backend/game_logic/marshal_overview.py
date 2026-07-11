@@ -323,6 +323,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
 
     if not is_dotation_world(world):
         return {
+            "is_dotation_world": False,
             "expectation": 0,
             "estate_income": 0,
             "expectation_shortfall": 0,
@@ -386,6 +387,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
                    else build_rente_offer(marshal, world))
 
     return {
+        "is_dotation_world": True,
         "expectation": int(expectation),
         # §0.6.8: estates ONLY — the rente rides its own keys below, so the
         # card can show the portfolio, not a blended number.

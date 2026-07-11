@@ -828,6 +828,55 @@ class TestGuessedTargetGuard:
         })
         assert "will not charge at a guess" not in str(result.get("message", ""))
 
+    # ── False-refusal regressions (July 12, 2026) — the guard must only
+    #    fire on a SPECIFIC name the player typed that resolution overrode,
+    #    never on a delegated / open / partially-named order. ──
+
+    def test_delegated_open_target_passes_the_guard(self):
+        # "attack the nearest enemy" — the player named nothing specific, so
+        # the resolved target being absent from the raw text is NOT a guess.
+        world = WorldState.from_dict(
+            WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack the nearest enemy",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+    def test_bare_attack_verb_passes_the_guard(self):
+        # Bare "Ney, attack" — the engine auto-targets; a delegated target is
+        # never a guess. (THE reported "Ney attack doesn't work" case.)
+        world = WorldState.from_dict(
+            WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        result = _execute(world, {
+            "marshal": "Ney", "action": "attack",
+            "target": "", "type": "specific",
+            "_raw_input": "Ney, attack",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+    def test_partial_name_grounds_the_target(self):
+        # "attack John" grounds "Archduke John" by word overlap — not a guess.
+        world = WorldState.from_dict(
+            WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack John",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+    def test_title_grounds_the_target(self):
+        world = WorldState.from_dict(
+            WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack the Archduke",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
 
 # ═══════════════════ CARD PAYLOAD (Reward dialog data) ═════════════════════
 
@@ -869,6 +918,19 @@ class TestRewardCardPayload:
         assert card["pension"] == 0
         assert card["rente_offer"] == {"face": 0, "cost": 0}
         assert card["steward_note"] == ""
+
+    def test_dotation_world_flag_distinguishes_worlds(self, world, legacy):
+        # The card carries is_dotation_world so the client can show the
+        # "reward exists — win battles to unlock it" explainer on Europe
+        # (where the reward portfolio is real) but stay silent on the legacy
+        # fixture world (no dotation economy). Fix for "where are the buttons?"
+        from backend.game_logic.marshal_overview import _build_estates
+        europe_card = _build_estates(_french_marshal(world), world)
+        legacy_m = next(m for m in legacy.marshals.values()
+                        if m.nation == "France")
+        legacy_card = _build_estates(legacy_m, legacy)
+        assert europe_card["is_dotation_world"] is True
+        assert legacy_card["is_dotation_world"] is False
 
     def test_captured_card_offers_no_reward_options(self, world):
         # Review fix: the executors refuse a prisoner, so the card must
