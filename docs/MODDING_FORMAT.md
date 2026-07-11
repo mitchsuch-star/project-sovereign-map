@@ -159,6 +159,7 @@ Marshals represent commanders on the map.
 | `skills` | object | null | Individual skill ratings |
 | `ability` | object | null | Special ability |
 | `trust` | object | `{"value": 70}` | Starting trust in the player, `{"value": 0-100}` (MC-2: the shipped 1805 roster authors this per marshal) |
+| `relationships` | object | `{}` | Starting relationships with other marshals by name, `{"Name": -2..2}`. −2 Hostile (coordination ×0.0, refuses unordered reinforcement) · −1 Rival (×0.5) · +1 Friendly (×1.25) · +2 Devoted (×1.5); also ±10/step on the reinforcement arrival score. Values outside −2..+2 are a validation ERROR (loaded raw, never clamped); a target not in the roster is a validation warning (the edge is never read). Author both directions if you want a symmetric pair — marshals load independently (MC-3: the shipped 1805 roster authors 13 symmetric pairs) |
 
 ### Personality Types
 

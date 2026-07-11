@@ -80,7 +80,7 @@ MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
 MARSHAL_OPTIONAL_FIELDS = {
     "personality", "nation", "movement_range", "tactical_skill",
     "skills", "ability", "cavalry", "spawn_location", "morale",
-    "trust", "stance"
+    "trust", "stance", "relationships"
 }
 
 REGION_REQUIRED_FIELDS = {"name", "adjacent_regions"}
@@ -207,6 +207,33 @@ def validate_marshal(data: Dict[str, Any], path: str = "marshal") -> ValidationR
     if "stance" in data:
         if data["stance"] not in VALID_STANCES:
             result.add_error(f"{path}.stance", f"Must be one of {sorted(VALID_STANCES)}, got '{data['stance']}'")
+
+    # Validate relationships (MC-3): name -> value in [-2, +2]. Marshal.from_dict
+    # restores the dict RAW (no clamp — pinned forward-compat behavior), so an
+    # out-of-range authored value is a hard scenario error, not a warning.
+    if "relationships" in data:
+        if not isinstance(data["relationships"], dict):
+            result.add_error(
+                f"{path}.relationships",
+                f"Must be an object, got {type(data['relationships']).__name__}"
+            )
+        else:
+            for other_name, value in data["relationships"].items():
+                if isinstance(value, bool) or not isinstance(value, int):
+                    result.add_error(
+                        f"{path}.relationships.{other_name}",
+                        f"Must be an integer, got {type(value).__name__}"
+                    )
+                elif not (-2 <= value <= 2):
+                    result.add_error(
+                        f"{path}.relationships.{other_name}",
+                        f"Must be between -2 (Hostile) and +2 (Devoted), got {value}"
+                    )
+                if other_name == data.get("name"):
+                    result.add_warning(
+                        f"{path}.relationships.{other_name}",
+                        "Marshal has a relationship with themselves - it will never be read"
+                    )
 
     return result
 
@@ -366,6 +393,25 @@ def validate_scenario(
                         result.add_warning(
                             f"marshals.{name}",
                             f"Key '{name}' doesn't match internal name '{marshal_data['name']}'"
+                        )
+
+            # Cross-validation (MC-3): relationship targets should exist in the
+            # roster. WARNING not error — an unknown-name edge is inert at
+            # runtime (get_relationship defaults, the card filters it) and
+            # unknown keys are pinned forward-compat data, but for a shipped
+            # scenario it is almost always a typo silently killing the edge.
+            roster_names = set(data["marshals"].keys())
+            for name, marshal_data in data["marshals"].items():
+                if not isinstance(marshal_data, dict):
+                    continue
+                relationships = marshal_data.get("relationships")
+                if not isinstance(relationships, dict):
+                    continue
+                for other_name in relationships:
+                    if other_name not in roster_names:
+                        result.add_warning(
+                            f"marshals.{name}.relationships.{other_name}",
+                            f"References unknown marshal '{other_name}' - the edge will never be read"
                         )
 
     # Validate regions

@@ -88,7 +88,8 @@
                 "trigger": "when_attacking",
                 "effect": "+2 Shock skill when attacking (not defending)"
             },
-            "biography": "VI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat."
+            "biography": "VI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat.",
+            "relationships": { "Soult": -1, "Lannes": 1, "Murat": -1, "Bernadotte": -1 }
         },
         "Davout": {
             "name": "Davout",
@@ -105,7 +106,8 @@
                 "trigger": "when_fortifying",
                 "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
             },
-            "biography": "III Corps - crossed the Rhine at Mannheim on September 26. The iron marshal, exacting and incorruptible."
+            "biography": "III Corps - crossed the Rhine at Mannheim on September 26. The iron marshal, exacting and incorruptible.",
+            "relationships": { "Murat": -1, "Bernadotte": -2 }
         },
         "Soult": {
             "name": "Soult",
@@ -122,7 +124,8 @@
                 "trigger": "when_drilling",
                 "effect": "Drill completes in 1 turn (not 2) and never locks him out of your orders"
             },
-            "biography": "IV Corps, the largest in the army - marching for the Speyer crossing from its Lorraine camps. A superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour."
+            "biography": "IV Corps, the largest in the army - marching for the Speyer crossing from its Lorraine camps. A superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
+            "relationships": { "Ney": -1, "Massena": 1 }
         },
         "Lannes": {
             "name": "Lannes",
@@ -139,7 +142,8 @@
                 "trigger": "when_reinforcing",
                 "effect": "+15 reinforcement arrival score"
             },
-            "biography": "V Corps - crossed at Kehl on September 25, pressing the Black Forest feint."
+            "biography": "V Corps - crossed at Kehl on September 25, pressing the Black Forest feint.",
+            "relationships": { "Ney": 1, "Murat": -1 }
         },
         "Murat": {
             "name": "Murat",
@@ -158,7 +162,8 @@
                 "trigger": "on_pursuit",
                 "effect": "+5,000 pursuit casualties when an enemy he defeats is forced to retreat (cavalry, leading the attack)"
             },
-            "biography": "The Cavalry Reserve - screening the Black Forest feint while the army wheels north of the Danube."
+            "biography": "The Cavalry Reserve - screening the Black Forest feint while the army wheels north of the Danube.",
+            "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -2 }
         },
         "Bernadotte": {
             "name": "Bernadotte",
@@ -175,7 +180,8 @@
                 "trigger": "when_hesitating",
                 "effect": "+10% defiance after insisted objections; -15 reinforcement arrival score (a written support order mostly cancels it)"
             },
-            "biography": "I Corps at Wuerzburg, marched down from occupied Hanover - standing on allied Bavarian soil across Mack's rear."
+            "biography": "I Corps at Wuerzburg, marched down from occupied Hanover - standing on allied Bavarian soil across Mack's rear.",
+            "relationships": { "Ney": -1, "Davout": -2, "Murat": -2 }
         },
         "Massena": {
             "name": "Massena",
@@ -192,7 +198,8 @@
                 "trigger": "when_outnumbered",
                 "effect": "+10% defense when defending outnumbered"
             },
-            "biography": "The Army of Italy on the Adige, facing Archduke Charles - the dear child of victory, chafing on the defensive: set to hold the second front, but itching to throw his corps across the river at the Austrians."
+            "biography": "The Army of Italy on the Adige, facing Archduke Charles - the dear child of victory, chafing on the defensive: set to hold the second front, but itching to throw his corps across the river at the Austrians.",
+            "relationships": { "Soult": 1 }
         },
         "Deroy": {
             "name": "Deroy",
@@ -214,7 +221,8 @@
             "skills": { "tactical": 2, "shock": 3, "defense": 3, "logistics": 4, "administration": 5, "command": 3 },
             "tactical_skill": 2,
             "trust": { "value": 75 },
-            "biography": "The Army of Germany, camped around Ulm on invaded Bavarian soil - quartermaster's plans and paper certainties, deep in hostile country."
+            "biography": "The Army of Germany, camped around Ulm on invaded Bavarian soil - quartermaster's plans and paper certainties, deep in hostile country.",
+            "relationships": { "ArchdukeCharles": -2 }
         },
         "ArchdukeCharles": {
             "name": "ArchdukeCharles",
@@ -231,7 +239,8 @@
                 "trigger": "when_defending",
                 "effect": "+3% flat defense bonus when defending"
             },
-            "biography": "Austria's main army behind the Adige - the Habsburgs' best soldier, husbanding his strength for the Italian front."
+            "biography": "Austria's main army behind the Adige - the Habsburgs' best soldier, husbanding his strength for the Italian front.",
+            "relationships": { "Mack": -2, "ArchdukeJohn": 1 }
         },
         "ArchdukeJohn": {
             "name": "ArchdukeJohn",
@@ -242,7 +251,8 @@
             "skills": { "tactical": 3, "shock": 3, "defense": 4, "logistics": 5, "administration": 5, "command": 4 },
             "tactical_skill": 3,
             "trust": { "value": 65 },
-            "biography": "The Army of Tyrol at Innsbruck, hinging the German and Italian theaters."
+            "biography": "The Army of Tyrol at Innsbruck, hinging the German and Italian theaters.",
+            "relationships": { "ArchdukeCharles": 1 }
         },
         "Kutuzov": {
             "name": "Kutuzov",
@@ -259,7 +269,8 @@
                 "trigger": "when_retreating",
                 "effect": "Pursuit casualties against him halved; retreat-path attrition halved"
             },
-            "biography": "The Army of Podolia marching west to join Austria - the one-eyed old fox, weeks away still."
+            "biography": "The Army of Podolia marching west to join Austria - the one-eyed old fox, weeks away still.",
+            "relationships": { "Buxhowden": -1 }
         },
         "Buxhowden": {
             "name": "Buxhowden",
@@ -270,7 +281,8 @@
             "skills": { "tactical": 3, "shock": 5, "defense": 4, "logistics": 3, "administration": 5, "command": 3 },
             "tactical_skill": 3,
             "trust": { "value": 65 },
-            "biography": "The Army of Volhynia, the second echelon - weeks behind Kutuzov on its namesake ground."
+            "biography": "The Army of Volhynia, the second echelon - weeks behind Kutuzov on its namesake ground.",
+            "relationships": { "Kutuzov": -1 }
         },
         "Moore": {
             "name": "Moore",
@@ -298,7 +310,8 @@
             "skills": { "tactical": 4, "shock": 3, "defense": 5, "logistics": 6, "administration": 5, "command": 4 },
             "tactical_skill": 4,
             "trust": { "value": 70 },
-            "biography": "The Duke of Brunswick, Prussia's senior field marshal - the army in home cantonments, armed and neutral."
+            "biography": "The Duke of Brunswick, Prussia's senior field marshal - the army in home cantonments, armed and neutral.",
+            "relationships": { "Hohenlohe": -1 }
         },
         "Hohenlohe": {
             "name": "Hohenlohe",
@@ -309,7 +322,8 @@
             "skills": { "tactical": 3, "shock": 4, "defense": 3, "logistics": 3, "administration": 5, "command": 3 },
             "tactical_skill": 3,
             "trust": { "value": 60 },
-            "biography": "Prince Hohenlohe's corps in Silesia, watching the Russian marches on the tense northern flank."
+            "biography": "Prince Hohenlohe's corps in Silesia, watching the Russian marches on the tense northern flank.",
+            "relationships": { "Brunswick": -1 }
         },
         "Armfelt": {
             "name": "Armfelt",

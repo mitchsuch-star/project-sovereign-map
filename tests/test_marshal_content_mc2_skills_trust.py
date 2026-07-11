@@ -188,47 +188,53 @@ class TestReMeasures:
         for name in names:
             world.get_marshal(name).location = plains
 
+    # MC-3 re-anchor: these blessed §6.4 numbers were measured at NEUTRAL
+    # relationship (rel_mod 0). The original primary (Ney) gained authored
+    # MC-3 edges with both mirror marshals (Lannes +1, Bernadotte -1), so the
+    # measurement primary is now Soult — no authored edge with either. The
+    # relationship-STACKED arrival numbers are pinned in the MC-3 file.
+
     def test_lannes_deterministic_base_90(self, world, monkeypatch):
         # 50 base + 20 (authored logistics 4) + 5 aggressive + 15 Roland = 90
-        self._stage_on_plains(world, "Lannes", "Ney")
+        self._stage_on_plains(world, "Lannes", "Soult")
         lannes = world.get_marshal("Lannes")
-        ney = world.get_marshal("Ney")
-        assert self._arrival(world, lannes, ney, monkeypatch) == 90
+        soult = world.get_marshal("Soult")
+        assert self._arrival(world, lannes, soult, monkeypatch) == 90
 
     def test_bernadotte_deterministic_base_60(self, world, monkeypatch):
         # 50 base + 30 (authored logistics 6) - 5 cautious - 15 Eyes = 60
-        self._stage_on_plains(world, "Bernadotte", "Ney")
+        self._stage_on_plains(world, "Bernadotte", "Soult")
         bernadotte = world.get_marshal("Bernadotte")
-        ney = world.get_marshal("Ney")
-        assert self._arrival(world, bernadotte, ney, monkeypatch) == 60
+        soult = world.get_marshal("Soult")
+        assert self._arrival(world, bernadotte, soult, monkeypatch) == 60
 
     def test_bernadotte_75_without_ability(self, world, monkeypatch):
         # The memo's stated baseline: 75 without Eyes on a Crown (his
         # logistics 6 blunts the penalty by +5 vs a flat-5 baseline).
-        self._stage_on_plains(world, "Bernadotte", "Ney")
+        self._stage_on_plains(world, "Bernadotte", "Soult")
         bernadotte = world.get_marshal("Bernadotte")
         bernadotte.ability["name"] = "None"
-        ney = world.get_marshal("Ney")
-        assert self._arrival(world, bernadotte, ney, monkeypatch) == 75
+        soult = world.get_marshal("Soult")
+        assert self._arrival(world, bernadotte, soult, monkeypatch) == 75
 
     def test_bernadotte_70_under_written_support(self, world, monkeypatch):
         # The counter-lever: a written SUPPORT order mostly cancels the -15.
-        self._stage_on_plains(world, "Bernadotte", "Ney")
+        self._stage_on_plains(world, "Bernadotte", "Soult")
         bernadotte = world.get_marshal("Bernadotte")
         bernadotte.strategic_order = StrategicOrder(
-            command_type="SUPPORT", target="Ney", target_type="marshal",
-            started_turn=1, original_command="Support Ney")
-        ney = world.get_marshal("Ney")
-        assert self._arrival(world, bernadotte, ney, monkeypatch) == 70
+            command_type="SUPPORT", target="Soult", target_type="marshal",
+            started_turn=1, original_command="Support Soult")
+        soult = world.get_marshal("Soult")
+        assert self._arrival(world, bernadotte, soult, monkeypatch) == 70
 
     def test_arrival_mirror_gap_is_30(self, world, monkeypatch):
         # The drama centerpiece blessed jointly: 90 vs 60 deterministic base.
-        self._stage_on_plains(world, "Lannes", "Bernadotte", "Ney")
-        ney = world.get_marshal("Ney")
+        self._stage_on_plains(world, "Lannes", "Bernadotte", "Soult")
+        soult = world.get_marshal("Soult")
         lannes_score = self._arrival(
-            world, world.get_marshal("Lannes"), ney, monkeypatch)
+            world, world.get_marshal("Lannes"), soult, monkeypatch)
         bernadotte_score = self._arrival(
-            world, world.get_marshal("Bernadotte"), ney, monkeypatch)
+            world, world.get_marshal("Bernadotte"), soult, monkeypatch)
         assert lannes_score - bernadotte_score == 30
 
 
