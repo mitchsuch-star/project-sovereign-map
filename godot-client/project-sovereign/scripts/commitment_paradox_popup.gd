@@ -5,7 +5,7 @@ extends PopupBase
 # =============================================================================
 # Shown when an attack forces France to choose between competing alliances.
 # The player must either honor the defender or break faith with them.
-# CanvasLayer 100 (modal). Pattern follows coalition_declaration_popup.
+# CanvasLayer 100 (modal). Standard registered-dialog popup pattern.
 # =============================================================================
 
 signal choice_made(choice: String, data: Dictionary)

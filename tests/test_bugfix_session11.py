@@ -109,6 +109,30 @@ class TestPL12HarshnessFix:
         assert result_mild["components"]["personality_modifier"] == 10
         assert result_harsh["components"]["personality_modifier"] == -10
 
+    def test_hawk_harsh_does_not_raise_acceptance(self):
+        """July 12 2026 regression: a harsh proposal must never RAISE a
+        hawk/schemer's acceptance through the personality flip. The dials had
+        inverted for hawks — a trivial 100g demand flipped is_harsh and the
+        +5 harsh_mod overwhelmed the -5 demand cost, so a harsher NAP vs
+        Prussia went 23 -> 28 and 'More generous' lowered the odds."""
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "PEACE"
+        world.nation_relations[diplo_key] = 0
+        assert world.diplomats["Prussia"].personality == "hawk"
+
+        mild = calculate_acceptance(_make_proposal(target="Prussia"), world)
+        harsh = calculate_acceptance(
+            _make_proposal(target="Prussia",
+                           demands=[{"type": "gold_per_turn", "value": 100}]),
+            world)
+        # Personality never becomes a harshness CREDIT: a harsh hawk clamps to
+        # min(peace_mod=-5, harsh_mod=+5) = -5, not +5.
+        assert (harsh["components"]["personality_modifier"]
+                <= mild["components"]["personality_modifier"])
+        # Monotonic: adding a demand never RAISES the score.
+        assert harsh["score"] <= mild["score"]
+
     def test_harshness_bonus_inverted(self):
         """Fix D: Previous harsh treaties give -5, not +5."""
         world = _make_world()

@@ -25,7 +25,6 @@ class_name DialogManager
 #   114: marshal_petition_dialog (Jealousy v3.2 — the petition channel)
 #   115: vassal_rebellion_popup
 #   116: sabotage_discovery_popup
-#   117: coalition_declaration_popup
 #   118: enemy_phase_dialog
 #   120: pause_menu (always on top)
 # =============================================================================

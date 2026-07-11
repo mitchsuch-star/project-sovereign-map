@@ -1767,7 +1767,12 @@ class CommandExecutor:
             # Wait is a free action - marshal passes turn
             return self._tactical._execute_wait(marshal, world, game_state)
         elif action == "move":
-            return self._movement._execute_move(marshal, target, world, game_state)
+            # ESP-EV-4 family: the raw typed order rides through so a
+            # substituted destination is NAMED (never silently honored).
+            return self._movement._execute_move(
+                marshal, target, world, game_state,
+                raw_input=(command.get("_raw_input")
+                           if isinstance(command, dict) else None))
         elif action == "scout":
             return self._movement._execute_scout(marshal, target, world, game_state)
         elif action == "retreat":

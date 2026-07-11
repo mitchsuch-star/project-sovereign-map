@@ -4,6 +4,7 @@ Movement Executor ��� Movement and reconnaissance actions (R13B)
 Extracted from executor.py: _has_depot_supply_bonus, _calculate_movement_attrition,
 _execute_move, _execute_scout, _execute_auto_assign_scout, _execute_retreat_action.
 """
+import re
 from typing import Dict
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
@@ -105,8 +106,17 @@ class MovementExecutor:
             "depot_bonus": depot_bonus,
         }
 
-    def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:
-        """Execute a move order."""
+    def _execute_move(self, marshal, target, world: WorldState, game_state,
+                      raw_input: str = None) -> Dict:
+        """Execute a move order.
+
+        `raw_input` (the player's literal order, when a direct typed command)
+        lets the move NAME its destination when the resolved province is not
+        the one the player's own words point to — a live-LLM / fuzzy
+        substitution ("move to Venetia" → Lombardy). NOTE only: a move is
+        reversible, so it is honored and flagged, never refused (unlike the
+        lethal attack guard). AI / strategic / mock callers pass no raw text.
+        """
         # Auto-break square formation (Session 67)
         self._executor._tactical._auto_break_square(marshal, "move")
 
@@ -141,6 +151,25 @@ class MovementExecutor:
 
         # Get the corrected target name from fuzzy match
         target_name = target_region.name if hasattr(target_region, 'name') else target
+
+        # W6-1 family: when the resolved destination is NOT the province the
+        # player's own words point to (live-LLM / fuzzy substitution), name it
+        # so the marshal never marches somewhere silently. NOTE only — a move
+        # is reversible. Silent on an exact/echoed destination or when no raw
+        # text rides (AI / strategic / mock callers).
+        move_substitution_note = ""
+        _raw_move_text = str(raw_input or "").lower()
+        if _raw_move_text and target_name:
+            _tn = target_name.lower()
+            _grounded = _tn in _raw_move_text or any(
+                len(w) >= 4 and (w in _tn or _tn in w)
+                for w in re.findall(r"[a-z']+", _raw_move_text)
+            )
+            if not _grounded:
+                move_substitution_note = (
+                    f" (Our maps read {target_name} as the province nearest "
+                    f"your order, Sire.)"
+                )
 
         current_region = world.get_region(marshal.location)
 
@@ -299,7 +328,7 @@ class MovementExecutor:
                 moved_str = f" Moved to {' -> '.join(regions_moved)}." if regions_moved else ""
                 return {
                     "success": True,
-                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}).{moved_str} Route: {' -> '.join(order.path)}.",
+                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}).{moved_str} Route: {' -> '.join(order.path)}.{move_substitution_note}",
                     "strategic_upgrade": True,
                     "strategic_type": "MOVE_TO",
                     "path": order.path,
@@ -364,6 +393,8 @@ class MovementExecutor:
         move_message = f"{marshal.name} moves from {old_location} to {target_name}"
         if drill_cancelled_message:
             move_message = drill_cancelled_message + move_message
+        if move_substitution_note:
+            move_message += move_substitution_note
 
         # Fog discovery: marshal walked into region with enemies they couldn't see
         discovered_enemies = world.get_enemies_in_region(target_name, marshal.nation)

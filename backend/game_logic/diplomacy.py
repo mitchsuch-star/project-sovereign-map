@@ -6691,7 +6691,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # Also check if demands outweigh sweeteners significantly
     if demand_total < -3:  # PL-12-C: was -10 (100g demand = -5 now triggers)
         is_harsh = True
-    personality_mod = harsh_mod if is_harsh else peace_mod
+    # A harsh proposal may only make the target LESS willing through
+    # personality, never MORE. For a hawk / schemer (harsh_mod >= peace_mod)
+    # the raw flip RAISED the score, so adding a trivial demand IMPROVED the
+    # odds and "More generous" lowered them — the harsh/generous dials
+    # inverted (user-reported, July 12 2026: harsher NAP vs hawk went 23 → 28).
+    # Term harshness is already priced by deal_balance + harshness_penalty;
+    # personality is a baseline disposition, not a second harshness *credit*.
+    # Clamp to keep the dove penalty (min(+10, -10) = -10) while removing the
+    # hawk/schemer inversion (min(-5, +5) = -5), guaranteeing acceptance is
+    # monotonic non-increasing in harshness.
+    personality_mod = min(peace_mod, harsh_mod) if is_harsh else peace_mod
 
     # ── Military Supremacy (§6b.1) ── (world-scoped — item 7)
     military_supremacy = 0
