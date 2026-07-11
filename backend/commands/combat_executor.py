@@ -3243,6 +3243,16 @@ class CombatExecutor:
                 )
                 print(f"  [EXPOSED] {enemy_marshal.name} retreated and has no cover!")
 
+        # §0.6.8 item 4c: snapshot both principals' battles_won BEFORE any
+        # resolve path runs. The increment seams differ (combat.py bumps on
+        # decisive outcomes only; the coordination caller bumps on tactical
+        # wins too; the destruction sweep can turn a tactical outcome into a
+        # kill) — the DELTA is the single truth the expectation note reads.
+        _exp_wins_before = {
+            m_.name: int(getattr(m_, "battles_won", 0))
+            for m_ in (marshal, enemy_marshal) if m_ is not None
+        }
+
         # ============================================================
         # FLANKING SYSTEM (Phase 2.5): Record attack origin BEFORE combat
         # ============================================================
@@ -4395,25 +4405,30 @@ class CombatExecutor:
             # W6-6: the enemy commander's line rides the report.
             if battle_result.get("enemy_voice"):
                 result["battle_report"]["enemy_voice"] = battle_result["enemy_voice"]
-            # §0.6.8 item 4c: a decisive victory raises the winner's reward
-            # expectation — the report says so at the moment it happens, not
-            # just in tomorrow's dispatch. Player marshals only; display-only
-            # (Golden Rule 6). Decisive outcomes are the battles_won seam
-            # (combat.py); coordination participants surface next dispatch.
-            _exp_outcome = battle_result.get("outcome", "")
-            _exp_winner = (marshal if _exp_outcome == "attacker_victory"
-                           else enemy_marshal if _exp_outcome == "defender_victory"
-                           else None)
-            if (_exp_winner is not None
-                    and _exp_winner.nation == world.player_nation):
-                from backend.game_logic.dotation import (
-                    EXPECTATION_CAP, REP_STEP, get_expectation,
-                    get_satisfaction, is_dotation_world,
-                )
-                if is_dotation_world(world):
+            # §0.6.8 item 4c: a victory that raised the winner's reward
+            # expectation says so in the report at the moment it happens,
+            # not just in tomorrow's dispatch. Read as a battles_won DELTA
+            # against the pre-combat snapshot — decisive outcomes, tactical
+            # coordination wins, and destruction-sweep kills all land here
+            # regardless of which seam did the increment. Player marshals
+            # only; display-only (Golden Rule 6). Reinforcing participants
+            # surface via the next dispatch's expectation_rises instead.
+            from backend.game_logic.dotation import (
+                EXPECTATION_CAP, REP_STEP, get_expectation,
+                get_satisfaction, is_dotation_world,
+            )
+            if is_dotation_world(world):
+                for _exp_winner in (marshal, enemy_marshal):
+                    if (_exp_winner is None
+                            or _exp_winner.nation != world.player_nation):
+                        continue
+                    _exp_before = _exp_wins_before.get(_exp_winner.name)
+                    if (_exp_before is None
+                            or int(getattr(_exp_winner, "battles_won", 0))
+                            <= _exp_before):
+                        continue
                     _exp_now = get_expectation(_exp_winner)
-                    _exp_wins = int(getattr(_exp_winner, "battles_won", 0))
-                    _exp_prev = int(min(REP_STEP * max(0, _exp_wins - 1),
+                    _exp_prev = int(min(REP_STEP * _exp_before,
                                         EXPECTATION_CAP))
                     if _exp_now > _exp_prev:
                         result["battle_report"]["expectation_note"] = (
@@ -4421,6 +4436,7 @@ class CombatExecutor:
                             f"expectation of reward — he now looks for "
                             f"{_exp_now}g/turn (holds "
                             f"{get_satisfaction(_exp_winner, world)}g).")
+                    break
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if auto_bombardment_results:

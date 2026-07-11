@@ -1103,8 +1103,16 @@ def execute_command(request: CommandRequest):
                         kw in cmd_lower for kw in
                         ["breakout", "break out", "escape", "cut", "flee"]):
                     choice = "attempt_breakout"
-                elif any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join"]):
-                    choice = "investigate" if "investigate" in options else "attack" if "attack" in options else None
+                elif any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join", "commit", "proceed"]):
+                    # W6-4 muster gates offer "attack_anyway" (not "attack") —
+                    # without this mapping, typing the popup's own label
+                    # ("attack anyway") fell through to the parser as a FRESH
+                    # ungated attack by a defaulted marshal (found live in the
+                    # ES-7 second-pass integration audit, July 11 2026).
+                    choice = ("investigate" if "investigate" in options
+                              else "attack" if "attack" in options
+                              else "attack_anyway" if "attack_anyway" in options
+                              else None)
                 elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on"]):
                     choice = "continue_order" if "continue_order" in options else None
                 elif any(kw in cmd_lower for kw in ["hold", "stay", "stop", "wait", "halt"]):

@@ -295,3 +295,74 @@ class TestStandingOrders:
                               if r["marshal"] == "Grouchy")
         assert grouchy_result["arrived"] is False
         assert grouchy_result["reason"] == "literal_personality"
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Typed-answer routing at the /command tier (ES-7 second-pass integration
+# audit fix, July 11 2026): the muster interrupt offers "attack_anyway",
+# but main.py's interrupt matcher only mapped attack-words to a choice
+# named "attack" — so typing the popup's OWN label ("attack anyway") fell
+# through to the parser as a FRESH, ungated attack by a defaulted marshal
+# (found live: Massena charged Archduke John into mountain terrain while
+# Soult's muster question was still pending).
+# ════════════════════════════════════════════════════════════════════════
+
+import pytest
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture()
+def muster_endpoint():
+    import backend.main as main_module
+    from backend.commands.parser import CommandParser as _CP
+
+    ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                  strength=20000, personality="aggressive")
+    massena = MarshalFactory.infantry(name="Massena", location="Paris",
+                                      strength=60000,
+                                      personality="aggressive")
+    mack = MarshalFactory.enemy(name="Mack", location="Belgium",
+                                nation="Austria", strength=26000)
+    world = WorldFactory.with_marshals([ney, massena, mack])
+    _war(world)
+    orig = (main_module.parser, main_module.world, main_module.game_state)
+    main_module.parser = _CP(use_real_llm=False)
+    main_module.world = world
+    main_module.game_state = {"world": world}
+    try:
+        yield TestClient(main_module.app), world
+    finally:
+        (main_module.parser, main_module.world,
+         main_module.game_state) = orig
+
+
+class TestMusterTypedAnswerEndpoint:
+    def test_attack_anyway_resolves_the_pending_gate(self, muster_endpoint):
+        client, world = muster_endpoint
+        opening = client.post(
+            "/command", json={"command": "Ney, attack Mack"}).json()
+        pending = opening.get("pending_interrupt") or {}
+        assert pending.get("interrupt_type") == "muster_confirm", opening.get(
+            "message")
+        ney = world.marshals["Ney"]
+        assert getattr(ney, "pending_interrupt", None)
+
+        answer = client.post(
+            "/command", json={"command": "attack anyway"}).json()
+        # The gate resolved for NEY vs MACK — the question was consumed,
+        # no other marshal fought, and the battle actually happened.
+        assert getattr(ney, "pending_interrupt", None) is None
+        msg = str(answer.get("message", ""))
+        assert "Ney leads the charge" in msg
+        assert "Massena leads the charge" not in msg
+        assert world.marshals["Mack"].strength < 26000
+
+    def test_cancel_still_stands_down(self, muster_endpoint):
+        client, world = muster_endpoint
+        client.post("/command", json={"command": "Ney, attack Mack"})
+        answer = client.post(
+            "/command", json={"command": "cancel"}).json()
+        ney = world.marshals["Ney"]
+        assert getattr(ney, "pending_interrupt", None) is None
+        assert world.marshals["Mack"].strength == 26000
+        assert answer.get("success") is not False

@@ -691,6 +691,41 @@ class TestExpectationLegibility:
         assert "estate or grant him a rente" in erosion[0]["message"]
 
 
+# ═══════════════ BATTLE-REPORT NOTE (item 4c, audit fix) ═══════════════════
+
+
+class TestBattleReportExpectationNote:
+    def _decisive_win(self, world):
+        ney = world.marshals["Ney"]
+        mack = world.marshals["Mack"]
+        mack.location = ney.location
+        mack.strength = 900  # dies whatever the rolls — the win is certain
+        mack.fortified = False
+        result = _execute(world, {"marshal": "Ney", "action": "attack",
+                                  "target": "Mack", "type": "specific",
+                                  "_muster_confirmed": True})
+        return ney, result
+
+    def test_note_fires_on_any_battles_won_increment(self, world):
+        # Audit fix (July 11): the increment seams differ by path —
+        # combat.py bumps only on decisive outcomes, the coordination
+        # caller bumps on tactical wins, and the destruction sweep can
+        # kill after a tactical outcome. The note reads the battles_won
+        # DELTA, so it fires in every one of those cases.
+        ney, result = self._decisive_win(world)
+        assert result["success"] is True
+        assert ney.battles_won >= 1
+        note = (result.get("battle_report") or {}).get("expectation_note", "")
+        assert "expectation of reward" in note, result.get("battle_report")
+
+    def test_no_note_at_the_expectation_cap(self, world):
+        world.marshals["Ney"].battles_won = 8  # already at the 300 cap
+        ney, result = self._decisive_win(world)
+        assert ney.battles_won >= 9
+        br = result.get("battle_report") or {}
+        assert "expectation_note" not in br
+
+
 # ═══════════════════ CARD PAYLOAD (Reward dialog data) ═════════════════════
 
 

@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: July 10, 2026 (**MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+> Last Updated: July 11, 2026 (**Estate-Second-Pass Eval Findings section added** — ESP-EV-1 muster typed-answer misroute + ESP-EV-2 expectation-note under-fire FIXED in-session; ESP-EV-3 battles_won seam inconsistency + ESP-EV-4 attack-region silent redirect ROUTED to 8.EVAL. Prior: **MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -84,6 +84,17 @@
 | MC-V-5 | P4 | ✅ **ACCEPTED by design** — recruitment/economy is a nation-level action, not marshal character. (Note: MC-2b now makes the CHOSEN marshal's administration price the levy, which is the character-relevant slice of this space.) |
 
 **Next bug-owned implementation slice (MC-V findings):** none — section CLOSED.
+
+---
+
+## Estate-Second-Pass Eval Findings (July 11, 2026) — 2 FIXED inline, 2 ROUTED
+
+> Source: `docs/audits/ESTATE_SECOND_PASS_EVAL_2026_07_11.md` (balance harness + live 1805 playtest of the §0.6.8 reward portfolio). ESP-EV-1/2 were fixed in the eval session itself; ESP-EV-3/4 are ROUTED, not forced fixes.
+
+- **ESP-EV-1 ✅ FIXED (was HIGH) — muster typed answer misroute.** The W6-4 muster gate offers `attack_anyway`, but the main.py interrupt matcher only mapped attack-words to a choice literally named `attack` — typing the popup's own label ("attack anyway") fell through to the parser as a FRESH ungated attack by a defaulted marshal (live: Masséna charged Archduke John into mountains while Soult's muster question stood). Fixed in the matcher (+ "commit"/"proceed" keywords); 2 endpoint-tier regressions in `test_w6_muster_preview.py`.
+- **ESP-EV-2 ✅ FIXED (was MED) — battle-report expectation note under-fired.** The §0.6.8 item-4c note keyed off outcome strings, but `battles_won` increments differ by path (solo decisive-only; coordination counts tactical wins; the destruction sweep kills after tactical outcomes) — 4/8 seeds missed. Rewritten as a pre-combat `battles_won` snapshot + delta read (8/8 fire; capped marshals stay silent); pins in `test_estate_second_pass.py`.
+- **ESP-EV-3 ROUTED (owner: 8.EVAL triage) — battles_won seam inconsistency + slow expectation on-ramp.** Solo path (`combat.py:647/659`) counts only DECISIVE outcomes; the coordination caller (`combat_executor.py:3629`) counts tactical victories too — same battle, different bookkeeping depending on whether allies marched. Since ES-7 expectation derives from `battles_won`, the Cost-of-Success on-ramp is materially slower in solo defender-grind wars (8 live turns vs Mack/John yielded ZERO French expectation while Mack lost 16k+ men). Also verify: displayed outcome copy ("Brutal stalemate") vs the casualty-ratio classification in coordination battles. Unifying win semantics moves combat-wide pins — do NOT fix ad hoc.
+- **ESP-EV-4 ROUTED (owner: 8.EVAL triage, W6-1 principle) — region-attack silent redirection.** "Massena, attack Venetia" resolved as a battle against Archduke John at Tyrol with no substitution note. The W6-1 rule ("substitutions are named with the reason") holds on the retreat path but not the attack-region path.
 
 ---
 
