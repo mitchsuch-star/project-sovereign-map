@@ -3,7 +3,7 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: July 10, 2026 (**Creative-Audit Findings section added — 10 OPEN correctness defects** routed from the §8 creative capstone's live playtest, each with an owning audit component; see the new section below. Prior state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+> Last Updated: July 10, 2026 (**MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
 
 ---
 
@@ -68,6 +68,22 @@
 | BUG-CA-10 | P3 | §7.4 dialogue prompts | **FIXED July 10, 2026 (W6-0).** Both "Please choose an option (1-N), Sire." re-prompts in `diplomatic_executor` now append the numbered option labels. Test: `test_w6_dialogue_identity.py::TestOptionEnumeration`. |
 
 **Next bug-owned implementation slice:** none - current bug-fix queue closed.
+
+---
+
+## MC-V Enemy-AI Personality Findings (July 10, 2026) — ROUTED, not fixed
+
+> Routed from the Marshal Content Pass slice **MC-V** (personality-kit assurance + enemy-AI-per-personality evaluation). Full eval: `docs/audits/MC_V_PERSONALITY_EVAL_2026_07_10.md`; landing record `docs/MARSHAL_CONTENT_PASS_SPEC.md` §10; pins `tests/test_mc_personality_assurance.py` (30). Per the assurance/eval discipline these are ROUTED, not fixed — none is a forced fix; the headline (MC-V-2) is a **design decision** owned by the MC exit review or the Jealousy v3.1 gate. Nothing here is a crash/correctness regression — the personality COMBAT mechanics are all GR5-clean and pinned; these are decision-layer asymmetries and cleanup.
+
+| ID | Pri | Owning component | Finding |
+|----|-----|------------------|---------|
+| MC-V-2 | P3 (design) | `enemy_ai.py` `_get_effective_personality` (:398) | Enemy literal marshals are aliased to **cautious** for every AI decision, so enemy literals (Mack/Swabia, Buxhowden, the Bavarian/Russian literals) never play as themselves — the `literal` rows in `ATTACK_THRESHOLDS`/`MOOD_VARIANCE`/`BASE_SCORES`/`decay_config` are dead for AI marshals. Documented design (the docstring rationale was written for *autonomous player* marshals), but it sits in tension with MC-4's "personality = character, zero exceptions" on the enemy side. **Decision at the MC exit review / Jealousy v3.1 gate:** give literal a distinct enemy profile (e.g. marches to the nearest objective at even 1.0 odds without the cautious fortify/fall-back reflex), OR formally accept a two-archetype enemy AI and delete the dead rows. Pinned as current behavior: `test_effective_personality_enemy_literal_aliases_to_cautious`, `test_enemy_literal_threshold_equals_cautious`, `test_aggressive_seeks_battle_where_cautious_and_literal_hold`. |
+| MC-V-1 | P4 | `executor.py:1254` / `meta_executor._apply_grouchy_ambiguity_buff` / `strategic_executor.py:1135` | Three literal grants never reach an enemy literal: Precision Execution (+1 all skills), the ambiguity combat buff (+15% atk/def), and the 1-AP strategic-order discount. The buff FUNCTION is GR5-clean but its only caller is player-gated (`is_player_action_check`); the AP discount only ever discounts the player's pool (enemy strategic execution bypasses AP). Accept (enemy literals route through the AI decision path, not the command parser) or wire an AI equivalent — decide together with MC-V-2. Pinned: `test_precision_execution_never_reaches_enemy_literal_via_ai`, `test_literal_order_cost_is_player_economy`. |
+| MC-V-3 | P4 | `enemy_ai.py` constant dicts + `personality_modifiers.py:31-75` | Dead `balanced`/`loyal`/`literal` rows in the 4 AI constant dicts (post-MC-4) + 6 unwired personality trust-bonus constants (zero readers in a full-tree grep). Behavior-neutral cleanup; keep the runtime `balanced` fallback per MC-4 save-compat. |
+| MC-V-4 | P4 | `enemy_ai.py` P4.25/P7 | Cautious enemy AI declines bad *field* odds (1.3 threshold) but does not husband the overall force — it still assaults garrisons and advances after one idle turn. Net-new behavior, not a bug; candidate for a future AI-depth pass. |
+| MC-V-5 | P4 | `enemy_ai._pick_admin_action` / `execute_admin_phase` | Enemy economy/recruitment is personality-blind (chosen purely on treasury + strength shortfall). Likely acceptable — recruitment is a nation-level, not marshal-character, action. |
+
+**Next bug-owned implementation slice (MC-V findings):** none — routed for a gate decision (MC-V-2) and cleanup (MC-V-1/3/4/5); no forced fix.
 
 **Current Session 7 progress:** COMPLETE. Shared nation config now drives world bootstrap/save migration/non-France restart flows, diplomacy and advisory surfaces no longer stamp France into runtime state, enemy AI contact scans now route through cached fog-aware helpers, and scenario validation rejects unsupported nation rosters before `from_scenario()` load.
 
