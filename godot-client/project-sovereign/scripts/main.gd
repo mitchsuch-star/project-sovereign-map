@@ -1878,9 +1878,11 @@ func _display_morning_dispatch(data: Dictionary):
 	if peace_settlements.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]PEACE SETTLEMENTS[/color]")
 		for settlement in peace_settlements:
-			var headline = str(settlement.get("headline", "Peace Settlement"))
+			# Renamed from `headline`: W6-1 added a dispatch-headline local at
+			# the top of this function and GDScript forbids the shadow.
+			var settlement_headline = str(settlement.get("headline", "Peace Settlement"))
 			var detail = str(settlement.get("detail", ""))
-			add_output("[color=#" + Utils.COLOR_GOLD + "]  " + headline + "[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]  " + settlement_headline + "[/color]")
 			if detail != "":
 				add_output("[color=#" + Utils.COLOR_INFO + "]    " + detail + "[/color]")
 		add_output("")

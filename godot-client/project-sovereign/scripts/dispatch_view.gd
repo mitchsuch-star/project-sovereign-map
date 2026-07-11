@@ -283,9 +283,11 @@ func _on_dispatch_received(response):
 	if peace_settlements.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]PEACE SETTLEMENTS[/color]\n"
 		for settlement in peace_settlements:
-			var headline = str(settlement.get("headline", "Peace Settlement"))
+			# Renamed from `headline`: W6-3 added a dispatch-headline local at
+			# the top of this function and GDScript forbids the shadow.
+			var settlement_headline = str(settlement.get("headline", "Peace Settlement"))
 			var detail = str(settlement.get("detail", ""))
-			bbcode += "[color=#" + Utils.COLOR_GOLD + "]  " + headline + "[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]  " + settlement_headline + "[/color]\n"
 			if detail != "":
 				bbcode += "[color=#" + Utils.COLOR_INFO + "]    " + detail + "[/color]\n"
 		bbcode += "\n"
