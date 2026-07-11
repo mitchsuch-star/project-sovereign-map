@@ -33,31 +33,33 @@ def world():
     return build_world("1805")
 
 
-# name: (tactical, shock, defense, logistics, command, trust) — memo §3,
-# blessed July 10, 2026. Values are in-band tunable; a change here must be a
-# deliberate tuning decision recorded in the spec §14-style ledger, not drift.
+# name: (tactical, shock, defense, logistics, administration, command, trust)
+# — memo §3, blessed July 10, 2026; administration values landed live at the
+# MC-2b slice (MC exit review, July 11, 2026). Values are in-band tunable; a
+# change here must be a deliberate tuning decision recorded in the spec
+# §14-style ledger, not drift.
 BLESSED_TABLE = {
-    "Ney":             (5, 9, 6, 4, 7, 75),
-    "Davout":          (8, 6, 8, 7, 9, 85),
-    "Soult":           (9, 6, 7, 6, 6, 70),
-    "Lannes":          (7, 8, 5, 4, 7, 85),
-    "Murat":           (4, 9, 2, 3, 5, 75),
-    "Bernadotte":      (6, 4, 5, 6, 5, 40),
-    "Massena":         (8, 7, 7, 8, 3, 60),
-    "Deroy":           (5, 4, 5, 5, 5, 70),
-    "Mack":            (2, 3, 3, 4, 3, 75),
-    "ArchdukeCharles": (8, 6, 8, 7, 8, 55),
-    "ArchdukeJohn":    (3, 3, 4, 5, 4, 65),
-    "Kutuzov":         (7, 3, 7, 8, 7, 50),
-    "Buxhowden":       (3, 5, 4, 3, 3, 65),
-    "Moore":           (7, 5, 7, 6, 7, 65),
-    "Brunswick":       (4, 3, 5, 6, 4, 70),
-    "Hohenlohe":       (3, 4, 3, 3, 3, 60),
-    "Armfelt":         (3, 4, 4, 3, 4, 55),
-    "Damas":           (4, 4, 4, 3, 4, 65),
-    "Frederick":       (3, 3, 5, 5, 4, 85),
-    "Castanos":        (4, 3, 4, 5, 4, 70),
-    "Abdurrahman":     (4, 5, 4, 5, 4, 60),
+    "Ney":             (5, 9, 6, 4, 3, 7, 75),
+    "Davout":          (8, 6, 8, 7, 8, 9, 85),
+    "Soult":           (9, 6, 7, 6, 7, 6, 70),
+    "Lannes":          (7, 8, 5, 4, 4, 7, 85),
+    "Murat":           (4, 9, 2, 3, 2, 5, 75),
+    "Bernadotte":      (6, 4, 5, 6, 7, 5, 40),
+    "Massena":         (8, 7, 7, 8, 3, 3, 60),
+    "Deroy":           (5, 4, 5, 5, 5, 5, 70),
+    "Mack":            (2, 3, 3, 4, 7, 3, 75),
+    "ArchdukeCharles": (8, 6, 8, 7, 8, 8, 55),
+    "ArchdukeJohn":    (3, 3, 4, 5, 4, 4, 65),
+    "Kutuzov":         (7, 3, 7, 8, 4, 7, 50),
+    "Buxhowden":       (3, 5, 4, 3, 4, 3, 65),
+    "Moore":           (7, 5, 7, 6, 8, 7, 65),
+    "Brunswick":       (4, 3, 5, 6, 5, 4, 70),
+    "Hohenlohe":       (3, 4, 3, 3, 4, 3, 60),
+    "Armfelt":         (3, 4, 4, 3, 5, 4, 55),
+    "Damas":           (4, 4, 4, 3, 4, 4, 65),
+    "Frederick":       (3, 3, 5, 5, 7, 4, 85),
+    "Castanos":        (4, 3, 4, 5, 4, 4, 70),
+    "Abdurrahman":     (4, 5, 4, 5, 4, 4, 60),
 }
 
 FRENCH = ("Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena")
@@ -70,24 +72,27 @@ FRENCH = ("Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena")
 class TestAuthoredSkillsAndTrust:
     @pytest.mark.parametrize("name", sorted(BLESSED_TABLE))
     def test_marshal_boots_with_blessed_skills(self, world, name):
-        tac, shk, dfn, log, cmd, _ = BLESSED_TABLE[name]
+        tac, shk, dfn, log, adm, cmd, _ = BLESSED_TABLE[name]
         m = world.get_marshal(name)
         assert m.skills["tactical"] == tac, name
         assert m.skills["shock"] == shk, name
         assert m.skills["defense"] == dfn, name
         assert m.skills["logistics"] == log, name
+        assert m.skills["administration"] == adm, name
         assert m.skills["command"] == cmd, name
 
     @pytest.mark.parametrize("name", sorted(BLESSED_TABLE))
     def test_marshal_boots_with_blessed_trust(self, world, name):
-        assert world.get_marshal(name).trust.value == BLESSED_TABLE[name][5], name
+        assert world.get_marshal(name).trust.value == BLESSED_TABLE[name][6], name
 
     @pytest.mark.parametrize("name", sorted(BLESSED_TABLE))
-    def test_administration_flat_5_until_mc2b(self, world, name):
-        # Gate Q3: admin ships FLAT — the authored values are reserved data
-        # (memo §3 table) that the owned MC-2b slice lands live. Authoring a
-        # non-5 admin here without MC-2b is a gate violation, not tuning.
-        assert world.get_marshal(name).skills["administration"] == 5, name
+    def test_administration_authored_live_at_mc2b(self, world, name):
+        # MC-2b (MC exit review, July 11, 2026): the memo-§3 reserved admin
+        # values are LIVE — consumed by The Intendance at the recruit seam
+        # (marshal.get_recruit_cost_modifier; seam pins in
+        # test_marshal_content_mc2b_administration.py).
+        assert world.get_marshal(name).skills["administration"] == \
+            BLESSED_TABLE[name][4], name
 
     @pytest.mark.parametrize("name", sorted(BLESSED_TABLE))
     def test_legacy_tactical_skill_field_coheres(self, world, name):
@@ -107,7 +112,7 @@ class TestAuthoredSkillsAndTrust:
 class TestBalanceFrame:
     @pytest.mark.parametrize("skill_index,skill_name", [
         (0, "tactical"), (1, "shock"), (2, "defense"),
-        (3, "logistics"), (4, "command"),
+        (3, "logistics"), (4, "administration"), (5, "command"),
     ])
     def test_per_skill_roster_mean_in_band(self, skill_index, skill_name):
         mean = sum(v[skill_index] for v in BLESSED_TABLE.values()) / len(BLESSED_TABLE)
@@ -115,17 +120,17 @@ class TestBalanceFrame:
 
     def test_french_trust_mean_exactly_70(self):
         # The player objection/defiance economy is net-unchanged (memo §3).
-        mean = sum(BLESSED_TABLE[n][5] for n in FRENCH) / len(FRENCH)
+        mean = sum(BLESSED_TABLE[n][6] for n in FRENCH) / len(FRENCH)
         assert mean == 70.0
 
     def test_roster_trust_mean_66_7(self):
         # Enemy courts historically distrusted their commanders (Q5 blessed).
-        mean = sum(v[5] for v in BLESSED_TABLE.values()) / len(BLESSED_TABLE)
+        mean = sum(v[6] for v in BLESSED_TABLE.values()) / len(BLESSED_TABLE)
         assert mean == pytest.approx(66.7, abs=0.05)
 
     def test_peaks_cap_at_9(self):
         for name, row in BLESSED_TABLE.items():
-            assert max(row[:5]) <= 9, name
+            assert max(row[:6]) <= 9, name
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -246,10 +251,15 @@ class TestCardPayload:
     def _cards(self, world):
         return {c["name"]: c for c in build_marshal_overview(world)}
 
-    def test_card_skills_exclude_administration(self, world):
+    def test_card_skills_include_administration(self, world):
+        # MC-2b (July 11, 2026): the 1805 campaign is a Europe world, so The
+        # Intendance is live and the administration row displays (shown =
+        # applied). The legacy-world hidden state is pinned in
+        # test_mc_q3_command_rally.py.
         for name, card in self._cards(world).items():
             assert set(card["skills"].keys()) == {
-                "tactical", "shock", "defense", "logistics", "command"}, name
+                "tactical", "shock", "defense", "logistics",
+                "administration", "command"}, name
 
     def test_card_pins_authored_values(self, world):
         cards = self._cards(world)
@@ -261,9 +271,9 @@ class TestCardPayload:
         assert cards["Davout"]["trust_value"] == 85
         assert cards["Davout"]["trust_label"] == "Loyal"
 
-    def test_skill_notes_cover_exactly_the_wired_five(self, world):
-        # A hint per displayed skill and none for hidden admin (GR9: the
-        # card explains only what is wired).
+    def test_skill_notes_cover_exactly_the_displayed_skills(self, world):
+        # A hint per displayed skill, none extra (GR9: the card explains
+        # only what is wired — six on Europe since MC-2b).
         for name, card in self._cards(world).items():
             assert set(card["skill_notes"].keys()) == set(card["skills"].keys()), name
             for note in card["skill_notes"].values():

@@ -277,9 +277,12 @@ class TestSurfaces:
         assert status == "broken"
         assert note == f"Reforms T{int(w.current_turn) + 4}."
 
-    def test_card_hides_administration_keeps_command(self):
-        """MC gate Q3 A+C arm: no advertised stat that does nothing.
-        Administration stays authored + serialized, but never displays."""
+    def test_card_hides_administration_where_mechanic_not_live(self):
+        """MC-2b display contract (extends the Q3 hide test): administration
+        is wired Europe-only (The Intendance), so the card shows the row
+        exactly where the mechanic is live. A non-Europe world (the legacy
+        rollback fixture) keeps the pre-MC-2b hidden state — GR9: no
+        advertised stat that does nothing."""
         m = make_marshal()
         w = make_world(m)
         w.player_nation = "France"
@@ -290,6 +293,21 @@ class TestSurfaces:
         assert "command" in skills
         assert set(skills) == {"tactical", "shock", "defense",
                                "logistics", "command"}
+        assert cards[0]["admin_note"] == ""
+        assert "administration" not in cards[0]["skill_notes"]
+
+    def test_card_displays_administration_on_europe(self):
+        """MC-2b: the row is RESTORED where The Intendance prices recruits."""
+        m = make_marshal()
+        w = make_world(m)
+        w.player_nation = "France"
+        w.sovereign_map = "europe"
+        cards = build_marshal_overview(w)
+        assert len(cards) == 1
+        skills = cards[0]["skills"]
+        assert set(skills) == {"tactical", "shock", "defense",
+                               "logistics", "administration", "command"}
+        assert "administration" in cards[0]["skill_notes"]
 
     def test_administration_still_serializes(self):
         """The reserved value survives save/load untouched (MC-2b data)."""

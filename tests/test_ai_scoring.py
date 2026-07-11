@@ -48,23 +48,17 @@ class TestAIStrategicScoreBase:
         assert 20 <= avg <= 40, f"Literal average {avg} not in expected range"
         print(f"Literal base score average: {avg:.1f}")
 
-    def test_balanced_base_score(self):
-        """Balanced marshals should have base score around 45."""
-        marshal = Mock(personality="balanced", strength=1000)
+    @pytest.mark.parametrize("retired", ["balanced", "loyal"])
+    def test_retired_personalities_hit_save_compat_default(self, retired):
+        """MC-V-3 (July 11, 2026): balanced/loyal were retired at MC-4 and
+        their dead BASE_SCORES rows removed — a save-compat marshal of a
+        retired type scores at the .get() default 40, like any unknown."""
+        marshal = Mock(personality=retired, strength=1000)
         scores = [calculate_ai_strategic_score(marshal, "defend", None) for _ in range(20)]
         avg = sum(scores) / 20
 
-        assert 35 <= avg <= 55, f"Balanced average {avg} not in expected range"
-        print(f"Balanced base score average: {avg:.1f}")
-
-    def test_loyal_base_score(self):
-        """Loyal marshals should have base score around 50."""
-        marshal = Mock(personality="loyal", strength=1000)
-        scores = [calculate_ai_strategic_score(marshal, "defend", None) for _ in range(20)]
-        avg = sum(scores) / 20
-
-        assert 40 <= avg <= 60, f"Loyal average {avg} not in expected range"
-        print(f"Loyal base score average: {avg:.1f}")
+        assert 30 <= avg <= 50, f"{retired} average {avg} not in expected range"
+        print(f"{retired} base score average: {avg:.1f}")
 
     def test_unknown_personality_defaults_to_40(self):
         """Unknown personality should default to 40 base."""
@@ -81,14 +75,17 @@ class TestAIStrategicScoreModifiers:
 
     def test_glory_opportunity_bonus(self):
         """Clear advantage (ratio > 1.5) should add +10 to score."""
-        marshal = Mock(personality="balanced", strength=1500)
+        marshal = Mock(personality="balanced", strength=1600)
         target = Mock(strength=1000, drilling=False, drilling_locked=False)
-        # ratio = 1.5, should get +10
+        # ratio = 1.6 > 1.5 strict, so the glory bonus actually fires. (The
+        # old 1500 fixture sat exactly AT the threshold and never earned it —
+        # masked while retired 'balanced' still had its 45-point row;
+        # post-MC-V-3 it uses the save-compat .get default 40.)
 
         scores = [calculate_ai_strategic_score(marshal, "attack", target) for _ in range(50)]
         avg = sum(scores) / 50
 
-        # Base 45 + 10 glory = 55 average, wider margin for random variance
+        # Base 40 (fallback) + 10 glory = 50 average, wide margin for variance
         assert 40 <= avg <= 70, f"Glory opportunity average {avg} not in expected range"
         print(f"Glory opportunity average: {avg:.1f}")
 

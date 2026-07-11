@@ -1,8 +1,11 @@
 """
 Tests for Literal personality AI conversion.
 
-When AI controls a literal marshal (enemy nation or autonomous),
-literal becomes cautious for decision-making purposes.
+MC-V-2 decision (MC exit review, July 11, 2026): enemy-nation literal
+marshals play LITERAL — their authored AI rows are live. The
+literal→cautious conversion applies ONLY to the player's own literal
+marshals gone autonomous (losing literal precision IS the consequence
+of going autonomous).
 
 Run with: pytest tests/test_literal_personality.py -v
 """
@@ -15,20 +18,20 @@ from backend.ai.enemy_ai import EnemyAI
 
 
 class TestLiteralPersonalityConversion:
-    """Test _get_effective_personality() converts literal to cautious for AI."""
+    """_get_effective_personality(): autonomous-player-only conversion."""
 
     def setup_method(self):
         self.world = WorldState()
         self.executor = CommandExecutor()
         self.ai = EnemyAI(self.executor)
 
-    def test_enemy_literal_becomes_cautious(self):
-        """Literal marshal for enemy nation returns 'cautious'."""
-        # Create a literal marshal for Britain (enemy nation)
+    def test_enemy_literal_plays_literal(self):
+        """MC-V-2: a literal marshal of an enemy nation stays 'literal' —
+        personality = character on both sides (MC-4, zero exceptions)."""
         literal_enemy = Marshal("TestMarshal", "SomeRegion", 50000, "literal", nation="Britain")
 
         result = self.ai._get_effective_personality(literal_enemy, self.world)
-        assert result == "cautious", f"Expected 'cautious', got '{result}'"
+        assert result == "literal", f"Expected 'literal', got '{result}'"
 
     def test_player_literal_stays_literal(self):
         """Literal marshal for player nation (not autonomous) returns 'literal'."""

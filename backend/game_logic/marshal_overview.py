@@ -68,6 +68,7 @@ _SKILL_DESCRIPTIONS = {
     "shock": "attack damage (+5%/pt)",
     "defense": "damage resistance (-5%/pt)",
     "logistics": "answers the guns (+5 muster/pt)",
+    "administration": "recruit pricing (thrifty 8+, wasteful 3-)",
     "command": "rally & recovery (fast 8+, poor 3-)",
 }
 
@@ -129,7 +130,7 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         **_build_ability(marshal),
 
         # ═══════ COMBAT STATS ═══════
-        **_build_combat_stats(marshal),
+        **_build_combat_stats(marshal, world),
 
         # ═══════ TRUST & STANDING ═══════
         **_build_trust_standing(marshal),
@@ -204,7 +205,7 @@ def _build_ability(marshal: Marshal) -> Dict[str, Any]:
     }
 
 
-def _build_combat_stats(marshal: Marshal) -> Dict[str, Any]:
+def _build_combat_stats(marshal: Marshal, world=None) -> Dict[str, Any]:
     """Combat stats section."""
     # MC-2: The Rally tier + note, derived from the marshal's OWN methods and
     # constants (single source marshal.py — the card never re-implements the
@@ -227,20 +228,49 @@ def _build_combat_stats(marshal: Marshal) -> Dict[str, Any]:
         rally_tier = "standard"
         rally_note = ""
 
+    # MC-2b (July 11, 2026): administration is wired — The Intendance prices
+    # the recruit seam, Europe-scoped (see marshal.get_recruit_cost_modifier).
+    # The card row and its note display exactly where the mechanic is live
+    # (shown = applied); in the legacy rollback world the row stays hidden,
+    # the pre-MC-2b state (GR9: no advertised stat that does nothing).
+    intendance_live = (
+        getattr(world, "sovereign_map", "legacy") == "europe"
+        if world is not None else False
+    )
+    admin_tier = "standard"
+    admin_note = ""
+    if intendance_live:
+        swing = int(round(Marshal.INTENDANCE_COST_SWING * 100))
+        mod = marshal.get_recruit_cost_modifier()
+        if mod < 1.0:
+            admin_tier = "thrifty"
+            admin_note = (
+                f"The Intendance: raises recruits {swing}% under "
+                f"standard cost."
+            )
+        elif mod > 1.0:
+            admin_tier = "wasteful"
+            admin_note = (
+                f"The Intendance: levies run {swing}% over cost "
+                f"under his hand."
+            )
+
+    skill_notes = dict(_SKILL_DESCRIPTIONS)
+    if not intendance_live:
+        skill_notes.pop("administration", None)
+
     return {
         "strength": int(marshal.strength),
         "starting_strength": int(marshal.starting_strength),
         "morale": int(marshal.morale),
-        # MC gate Q3 (July 10, 2026): administration is unwired — hidden from
-        # the card until the owned MC-2b slice lands its mechanic (GR9: no
-        # advertised stat that does nothing). The value stays authored,
-        # serialized, and mod-valid; it just doesn't display.
         "skills": {k: int(v) for k, v in marshal.skills.items()
-                   if k != "administration"},
+                   if k != "administration" or intendance_live},
         # MC-2: per-skill mechanic hints for the card (wired seams only).
-        "skill_notes": dict(_SKILL_DESCRIPTIONS),
+        "skill_notes": skill_notes,
         "rally_tier": rally_tier,
         "rally_note": rally_note,
+        "admin_tier": admin_tier,
+        "admin_note": admin_note,
         "tactical_skill": int(marshal.tactical_skill),
     }
 

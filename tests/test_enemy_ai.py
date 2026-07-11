@@ -32,11 +32,14 @@ class TestEnemyAISetup:
         print("AI initialized with executor")
 
     def test_attack_thresholds_defined(self):
-        """Attack thresholds should be defined for all personality types."""
+        """Attack thresholds defined for the three shipped personalities.
+        MC-V-3 (July 11, 2026): the dead balanced/loyal rows were removed
+        post-MC-4 — a save-compat marshal hits the .get(_, 1.0) default."""
         assert self.ai.ATTACK_THRESHOLDS["aggressive"] == 0.7
         assert self.ai.ATTACK_THRESHOLDS["cautious"] == 1.3
         assert self.ai.ATTACK_THRESHOLDS["literal"] == 1.0
-        assert self.ai.ATTACK_THRESHOLDS["balanced"] == 1.0
+        assert "balanced" not in self.ai.ATTACK_THRESHOLDS
+        assert self.ai.ATTACK_THRESHOLDS.get("balanced", 1.0) == 1.0
         print("Attack thresholds verified: aggressive=0.7, cautious=1.3")
 
 

@@ -26,11 +26,8 @@ NEY_MODIFIERS = {
 
     # Fortify limitations
     "max_fortify_bonus": 0.08,  # B1: Capped at 8% (was 10%)
-
-    # Trust modifiers (applied in disobedience system)
-    "attack_order_trust_bonus": 1,  # +2 total (instead of +1)
-    "successful_attack_trust_bonus": 2,  # +3 total
-    "defending_trust_penalty_per_turn": -1,  # -1 per turn after 3 turns (handled by restlessness)
+    # (MC-V-3, July 11 2026: three dead trust-bonus constants removed —
+    # zero readers in a full-tree grep; trust flows live in disobedience.py)
 }
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -55,11 +52,8 @@ DAVOUT_MODIFIERS = {
 
     # Scout range bonus
     "scout_range_bonus": 1,  # +1 region
-
-    # Trust modifiers
-    "fortify_defend_trust_bonus": 1,  # +2 total
-    "successful_defense_trust_bonus": 2,  # +3 total
-    "bad_odds_attack_trust_penalty": -1,  # -1 for attacking at bad odds
+    # (MC-V-3, July 11 2026: three dead trust-bonus constants removed —
+    # zero readers in a full-tree grep; trust flows live in disobedience.py)
 }
 
 # ════════════════════════════════════════════════════════════════════════════════

@@ -273,7 +273,7 @@ class Marshal:
             "shock": int(skills.get("shock", 5)),            # Attack damage, pursuit effectiveness
             "defense": int(skills.get("defense", 5)),        # Defender bonus, retreat casualties
             "logistics": int(skills.get("logistics", 5)),    # Supply range (Phase 5), attrition resistance
-            "administration": int(skills.get("administration", 5)),  # UNWIRED — reserved for MC-2b; hidden from the marshal card until its mechanic lands (MC gate Q3, July 10 2026)
+            "administration": int(skills.get("administration", 5)),  # The Intendance: recruit-cost efficiency (>=8 thrifty / <=3 wasteful) — see get_recruit_cost_modifier (MC-2b, July 11 2026)
             "command": int(skills.get("command", 5))         # The Rally: recovery speed (>=8) + recovery discipline (<=3) — see get_rally_stages_per_turn / get_retreat_stage_penalty
         }
 
@@ -1188,6 +1188,31 @@ class Marshal:
         if base > 0.0 and self.skills.get("command", 5) <= self.RALLY_POOR_COMMAND:
             base += self.RALLY_POOR_EXTRA_PENALTY
         return base
+
+    # ═══════ ADMINISTRATION SKILL: THE INTENDANCE (MC-2b, July 11, 2026) ═══════
+    # The administration skill is consumed here and ONLY here: how efficiently
+    # the marshal's staff raises troops. Applied at the recruit-cost seam
+    # (economy_executor._calculate_recruit_cost), Europe-scoped with the rest
+    # of the nation-priced recruit model (N1: legacy fixture economy pins must
+    # not move). Constants are in-band tunable; structural changes escalate.
+    INTENDANCE_THRIFTY_ADMIN = 8    # administration >= 8: recruits cost 15% less
+    INTENDANCE_WASTEFUL_ADMIN = 3   # administration <= 3: recruits cost 15% more
+    INTENDANCE_COST_SWING = 0.15
+
+    def get_recruit_cost_modifier(self) -> float:
+        """Recruit gold-cost multiplier from the administration skill.
+
+        MC-2b authored the 1805 roster: Davout/ArchdukeCharles/Moore (8) hit
+        the thrifty tier; Ney/Massena (3) and Murat (2) hit the wasteful tier;
+        administration 4-7 is byte-identical baseline. The AI pays the same
+        price through the same recruit seam (GR5).
+        """
+        admin = self.skills.get("administration", 5)
+        if admin >= self.INTENDANCE_THRIFTY_ADMIN:
+            return 1.0 - self.INTENDANCE_COST_SWING
+        if admin <= self.INTENDANCE_WASTEFUL_ADMIN:
+            return 1.0 + self.INTENDANCE_COST_SWING
+        return 1.0
 
     def get_combat_effectiveness(self) -> float:
         """

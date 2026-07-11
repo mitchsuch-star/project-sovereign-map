@@ -77,6 +77,32 @@ def ai_debug(msg: str):
             print(f"[AI DEBUG] {msg.encode('ascii', 'replace').decode('ascii')}")
 
 
+def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState"]) -> str:
+    """
+    Personality for AI decision-making — the single source (MC-V-2 fix,
+    MC exit review July 11, 2026).
+
+    Enemy-nation literal marshals play their authored character (MC-4:
+    personality = character, zero exceptions — both sides). Their profile is
+    the authored table rows: attacks at even odds (1.0), low mood variance
+    (±8%), and NONE of the cautious reflexes — no fall-back when threatened,
+    no fortify/defensive-stance initiative, no drill. In P7 they hold their
+    standing disposition until the stagnation breaker represents new orders
+    arriving (Mack sits at Ulm; Buxhowden is always late).
+
+    The literal→cautious alias survives ONLY for the player's own literal
+    marshals gone autonomous — the case the original rationale was written
+    for: losing literal precision IS the consequence of going autonomous.
+    """
+    personality = getattr(marshal, 'personality', 'balanced')
+    if personality != "literal" or world is None:
+        return personality
+    player_nation = getattr(world, 'player_nation', 'France')
+    if marshal.nation == player_nation and getattr(marshal, 'autonomous', False):
+        return "cautious"
+    return personality
+
+
 def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"], world: Optional["WorldState"] = None) -> int:
     """
     Calculate AI strategic score (parallel to player LLM scoring).
@@ -89,27 +115,19 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
         marshal: The AI marshal executing the action
         action: The action being taken (e.g., "attack", "defend")
         target: The target marshal (if applicable)
-        world: Current world state (optional, for literal→cautious conversion)
+        world: Current world state (optional, for the autonomous-literal conversion)
 
     Returns:
         Strategic score 0-100
     """
-    personality = getattr(marshal, 'personality', 'balanced')
+    personality = get_effective_ai_personality(marshal, world)
 
-    # Literal marshals become cautious when AI-controlled
-    if personality == "literal" and world is not None:
-        is_player_controlled = (marshal.nation == getattr(world, 'player_nation', 'France')
-                                and not getattr(marshal, 'autonomous', False))
-        if not is_player_controlled:
-            personality = "cautious"
-
-    # Base score by personality
+    # Base score by personality (MC-V-3: dead balanced/loyal rows removed
+    # post-MC-4 — the .get() default is the save-compat floor)
     BASE_SCORES = {
         "aggressive": 55,  # Blücher's "Vorwärts!" energy
         "cautious": 40,    # Professional, measured
         "literal": 30,     # By-the-book, uninspiring
-        "balanced": 45,    # Competent
-        "loyal": 50,       # Dedicated to the cause
     }
     score = BASE_SCORES.get(personality, 40)
 
@@ -240,14 +258,9 @@ def get_marshal_priority(marshal: Marshal, world: WorldState) -> int:
 
     # --- PERSONALITY (minor factor) ---
 
-    # Aggressive marshals are eager to act
-    # Use effective personality: literal→cautious when AI-controlled
-    personality = getattr(marshal, 'personality', 'balanced')
-    if personality == "literal":
-        is_player_controlled = (marshal.nation == world.player_nation
-                                and not getattr(marshal, 'autonomous', False))
-        if not is_player_controlled:
-            personality = "cautious"
+    # Aggressive marshals are eager to act (single-source effective
+    # personality — MC-V-2)
+    personality = get_effective_ai_personality(marshal, world)
     if personality == "aggressive":
         priority -= 10
 
@@ -278,13 +291,14 @@ class EnemyAI:
     AI evaluates all marshals and picks best action each time.
     """
 
-    # Attack thresholds by personality (normal attacks)
+    # Attack thresholds by personality (normal attacks).
+    # MC-V-3: dead balanced/loyal rows removed post-MC-4; the .get(_, 1.0)
+    # default is the save-compat floor. The literal row went LIVE at the
+    # MC exit review (MC-V-2): enemy literals attack at even odds.
     ATTACK_THRESHOLDS = {
         "aggressive": 0.7,   # Attacks even slightly outnumbered
         "cautious": 1.3,     # Needs clear advantage
-        "literal": 1.0,      # Even odds
-        "balanced": 1.0,     # Even odds
-        "loyal": 1.0,        # Even odds
+        "literal": 1.0,      # Even odds — by the book
     }
 
     # DEPRECATED: No longer used to prevent oscillation
@@ -306,8 +320,6 @@ class EnemyAI:
         "aggressive": 99,    # Only avoids COMPLETE encirclement (checked separately)
         "cautious": 2,       # Won't capture if 3+ enemies adjacent (was 1, too restrictive)
         "literal": 2,        # Won't capture if 3+ enemies adjacent
-        "balanced": 2,       # Won't capture if 3+ enemies adjacent
-        "loyal": 2,          # Won't capture if 3+ enemies adjacent
     }
 
     # AI garrison: minimum marshal strength to detach troops (keeps 17k after 3k detachment)
@@ -328,8 +340,6 @@ class EnemyAI:
         "aggressive": 0.15,  # ±15% (threshold 0.7 becomes 0.595-0.805)
         "cautious": 0.10,    # ±10% (threshold 1.3 becomes 1.17-1.43)
         "literal": 0.08,     # ±8% (more predictable, follows orders)
-        "balanced": 0.12,    # ±12%
-        "loyal": 0.10,       # ±10%
     }
 
     def __init__(self, executor):
@@ -381,23 +391,14 @@ class EnemyAI:
         """
         Get personality for AI decision-making.
 
-        Literal marshals become cautious when AI-controlled because:
-        - Literal needs clear player orders to function well
-        - Without orders, cautious defensive behavior is reasonable
-        - Losing literal buffs IS the consequence of going autonomous
-
-        Applies to:
-        - Enemy nations controlling literal marshals
-        - Player's literal marshals that went autonomous (trust floor)
+        MC-V-2 (MC exit review, July 11, 2026): enemy-nation literals play
+        LITERAL — their authored rows (threshold 1.0, variance ±8%) are live
+        and they inherit none of the cautious reflexes. Only the player's
+        own literal marshals gone autonomous still convert to cautious
+        (losing literal precision IS the consequence of going autonomous).
+        Single source: module-level get_effective_ai_personality.
         """
-        personality = getattr(marshal, 'personality', 'balanced')
-
-        is_player_controlled = (marshal.nation == world.player_nation
-                                and not getattr(marshal, 'autonomous', False))
-
-        if personality == "literal" and not is_player_controlled:
-            return "cautious"
-        return personality
+        return get_effective_ai_personality(marshal, world)
 
     def _get_mood_adjusted_threshold(self, marshal: Marshal, world: WorldState) -> float:
         """
@@ -524,14 +525,7 @@ class EnemyAI:
         if any(marshal.strength / enemy.strength >= 2.0 for enemy in adjacent_enemies):
             priority -= 30
 
-        personality = getattr(marshal, 'personality', 'balanced')
-        if personality == "literal":
-            is_player_controlled = (
-                marshal.nation == world.player_nation
-                and not getattr(marshal, 'autonomous', False)
-            )
-            if not is_player_controlled:
-                personality = "cautious"
+        personality = get_effective_ai_personality(marshal, world)
         if personality == "aggressive":
             priority -= 10
 
@@ -4778,10 +4772,12 @@ class EnemyAI:
             # W6-11: price through the SAME executor helper the recruit
             # will actually pay (war x3 + over-limit multipliers included)
             # — an inline copy here goes optimistic the moment the real
-            # price moves, making the AI attempt-and-fail.
+            # price moves, making the AI attempt-and-fail. MC-2b: including
+            # the marshal's Intendance modifier, for the same reason.
             recruit_cost = (
                 self.executor._calculate_recruit_cost(
-                    region, world, base_cost=base_cost, nation=nation)
+                    region, world, base_cost=base_cost, nation=nation,
+                    marshal=weakest)
                 if region else base_cost)
 
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
@@ -4894,10 +4890,12 @@ class EnemyAI:
                 base_cost = INFANTRY_RECRUIT_GOLD_COST_BASE
 
             region = world.get_region(rebuild_target.location)
-            # W6-11: same-helper pricing (see the P1 urgent-recruit note)
+            # W6-11: same-helper pricing (see the P1 urgent-recruit note);
+            # MC-2b: marshal included so the Intendance price matches too.
             recruit_cost = (
                 self.executor._calculate_recruit_cost(
-                    region, world, base_cost=base_cost, nation=nation)
+                    region, world, base_cost=base_cost, nation=nation,
+                    marshal=rebuild_target)
                 if region else base_cost)
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 return {

@@ -420,138 +420,104 @@ class MetaExecutor:
 
 MILITARY COMMANDS:
   attack     - Engage enemy forces or capture region
-               "Ney, attack Wellington" / "attack" (nearest)
+               "Ney, attack Mack" / "attack" (nearest)
 
   defend     - Take defensive position (+30% bonus)
                "Davout, defend" / "hold" (alias)
 
   move       - Move to adjacent region
-               "Grouchy, move to Belgium"
+               "Soult, move to Bavaria"
 
-  retreat    - Fall back toward Paris (FREE action)
+  retreat    - Fall back toward friendly territory (FREE)
                "Ney, retreat" - Aggressive marshals may object!
 
-  recruit    - Raise 10,000 troops (costs 200 gold)
-               "recruit" / "Ney, recruit"
+  recruit    - Raise troops (1 Admin AP + gold)
+               "recruit" / "recruit for Davout" / "recruit at Paris"
+               Infantry 10k / Cavalry 5k / Artillery 3k, from the
+               manpower pools. PRICING: base 200-400g, capital -25%,
+               x3 AT WAR, dearer above the FORCE LIMIT, and the
+               marshal's administration prices the levy (Davout -15%,
+               Murat +15% - his card explains, press G).
 
   bombardment - Artillery fires on adjacent region (max 2/turn)
-               "Drouot, bombard Rhineland" / "Drouot, attack Rhineland"
-               Cannot attack after moving. Terrain affects damage.
+               "bombard Swabia" - Cannot fire after moving.
 
   garrison   - Leave detachment to defend a region (2 AP)
-               "garrison" - Detaches troops in current region
                Max 3 garrisons per nation. Fights to destruction.
 
 TACTICAL COMMANDS:
-  fortify    - Dig in for +50% defense (2 turns)
-               "Davout, fortify" - Cannot move/attack while fortified
-
+  fortify    - Dig in for growing defense; cannot move/attack
+               "Davout, fortify" (his Iron Resolve coils +8%/turn here)
   unfortify  - Abandon fortifications (immediate)
-               "Davout, unfortify" - Lose defense bonus
-
-  drill      - Train troops for +1 Shock skill (2 turns)
-               "Ney, drill" - Locked on turn 2, cannot receive orders
-
-  scout      - Reconnaissance of nearby regions
-               "scout Rhineland" / "Davout, scout" (area scan)
-
-  form square - Infantry forms anti-cavalry square (1 AP)
-               "Ney, form square" - Cavalry attacks deal -40% damage.
-               WARNING: Artillery deals +50% damage to squares!
-               Breaks automatically when given any other order.
-
-  break square - Return to line formation (FREE action)
-               "Ney, break square"
+  drill      - Train for +20% attack, one charge (2 turns; Soult's
+               Drillmaster finishes in 1) - "Soult, drill"
+  scout      - Reconnaissance: "scout Tyrol" / "Davout, scout"
+  form square - Anti-cavalry square: cavalry -40% damage, but
+               artillery +50%. Breaks on any other order.
+  break square - Return to line (FREE)
 
 STANCE COMMANDS:
-  aggressive - +15% attack, -10% defense
-               "Ney, aggressive" / "Ney, go aggressive"
-
+  aggressive - +15% attack, -10% defense ("Ney, go aggressive")
   defensive  - -10% attack, +15% defense
-               "Davout, defensive" / "Davout, be defensive"
-
   neutral    - Balanced (default, FREE to return)
-               "Ney, neutral" / "Ney, return to neutral"
 
 STRATEGIC COMMANDS (2 AP, multi-turn):
-  march      - Move to distant region over multiple turns
-               "Ney, march to Bavaria" / "move to Bavaria"
-  pursue     - Chase an enemy marshal across the map
-               "Ney, pursue Wellington"
-  support    - March to reinforce an allied marshal
-               "Ney, support Davout" / "Ney, reinforce Davout"
-  hold       - Hold position and auto-bombard (artillery)
-               "Drouot, hold Rhineland"
-  cancel     - Cancel a strategic order (1 AP)
-               "cancel Ney" / "halt Ney" / "stop Ney"
+  march      - "Ney, march to Vienna" - travels over several turns
+  pursue     - "Murat, pursue Kutuzov" - chase across the map
+  support    - "Lannes, support Ney" - march to an ally's battles
+  hold       - "Davout, hold Ulm" - hold ground (artillery auto-fires)
+  cancel     - "cancel Ney" / "halt Ney" (1 AP)
 
-ECONOMY COMMANDS (Admin AP):
-  build      - Build at a city you control (1 Admin AP)
-               "build fortification at Lyon"
-               "build market at Paris"
-               "build stables at Lyon" (cavalry recruitment)
-  repair     - Repair damage or buildings (1 Admin AP, 150 gold)
-               "repair Lyon" / "repair market at Lyon"
-  recruit    - Raise troops (1 Admin AP, 200-400 gold)
-               "recruit" / "recruit for Ney" / "recruit at Paris"
-               Infantry: 10k troops. Cavalry: 5k. Artillery: 3k.
+ECONOMY (Admin AP - the new imperial economy):
+  economy    - Treasury report: income, upkeep, occupation costs,
+               dotations, manpower pools ("economy" / "treasury")
+  build      - "build market at Paris" (1 AP) - also fortification,
+               stables, training ground, supply depot, watchtower
+  repair     - "repair Lyon" (1 AP, 150g)
+  endow      - "Endow Ney with the Duchy of Swabia" (1 AP)
+               Grants a CONQUERED province to a marshal as his
+               ESTATE: its full income becomes his, permanently.
+               First estate = 200g investiture; more are fee-free.
+               Victories raise a marshal's EXPECTATION of reward -
+               leave it unmet and his loyalty erodes each turn.
+               Estates never pay occupation costs.
 
-FREE ACTIONS (cost 0):
-  help       - Display this help text
-  end turn   - Skip remaining actions, advance turn
-  wait       - Marshal passes turn (no action taken)
-  retreat    - Fall back toward friendly territory
-  hold       - Alias for defend (or strategic HOLD with region)
-  economy    - Show treasury, income, upkeep breakdown
-               Also: "treasury" / "finances"
+  THE IMPERIAL BOOKS (press T for the full ledger):
+  - Upkeep: 8g per 1,000 troops. Armies over your FORCE LIMIT pay
+    up to double on the excess; the limit grows with territory.
+  - Occupation: conquered provinces bleed gold by stability tier -
+    secure and stabilize them to cut the bill. Homeland is free.
+  - Capturing a province holding an enemy marshal's estate offers
+    CONFISCATE (gold windfall + his lasting grudge) or RESPECT.
 
-DIPLOMACY (via Talleyrand):
-  propose    - Propose treaty to a nation (2 DP)
-               "Talleyrand, propose peace with Prussia"
-               "Talleyrand, propose alliance with Saxony"
-  assess     - Threat assessment (free, no DP cost)
-               "Talleyrand, assess Austria"
-  improve    - Start relations mission (1 DP/turn)
-               "Talleyrand, improve relations with Austria"
-  declare war - Declare war on a nation (1 DP)
-               "declare war on Prussia"
-  break treaty - Break existing treaty (1 DP)
-               "break treaty with Austria"
-  ultimatum  - Coercive demand (2 DP)
-               "ultimatum to Prussia"
-  ally with  - Propose alliance (2 DP)
-               "ally with Prussia"
+DIPLOMACY (via Talleyrand - or press F1 for the wizard):
+  assess     - "Talleyrand, assess our situation" (the war room -
+               fronts, threats, counsel; free)
+               "Talleyrand, assess Austria" (one nation)
+  propose    - "propose peace with Austria" (2 DP; also alliance,
+               trade, armistice...)
+  improve    - "improve relations with Prussia" (1 DP/turn)
+  declare war / break treaty / ultimatum - the mailed fist (1-2 DP)
 
-  Press D for Diplomatic Ledger.
-  Nations: Britain, Prussia, Austria, Saxony.
+  Press D for the Diplomatic Ledger - all twenty nations of Europe,
+  treaties, wars, and the Balance of Europe.
 
-MARSHAL ABILITIES:
+SCREENS & HOTKEYS:
+  F1 diplomacy wizard | T strategic ledger | G marshals
+  D diplomatic ledger | L campaign log | R morning dispatch
+  E end turn | Tab terminal
 
-  NEY (Aggressive, Cavalry):
-    • +15% attack always, +5% more in aggressive stance
-    • Cavalry Charge: Attack enemies 2 regions away
-    • Fighting Retreat: Attack during retreat (+10% bonus)
-    • Restlessness: Objects after 3+ turns defensive
-    • Fortify capped at 10% (impatient)
+YOUR MARSHALS (press G - each card shows skills, trust, ability):
+  Ney "Bravest of the Brave" - devastating assaults
+  Davout "Iron Resolve" - fortified patience becomes a hammer-blow
+  Soult "Drillmaster of Boulogne" - sharpens his corps in a day
+  Lannes "Roland of the Army" - marches to the sound of the guns
+  Murat "First Horseman of Europe" - turns routs into annihilation
+  Bernadotte "Eyes on a Crown" - may not march for you at all
+  Massena "Child of Victory" - hardest to kill when outnumbered
+  Enemy generals carry famed abilities too - intel will name them.
 
-  DAVOUT (Cautious, Infantry, "Iron Marshal"):
-    • +20% defense in defensive stance
-    • Free Unfortify: Break camp at no action cost
-    • Counter-Punch: Free attack after defending
-    • Fortify: +3%/turn (max 20%), +5% instant
-    • Scout Range: +1 region
-
-  GROUCHY (Literal):
-    • Immovable: +15% defense when holding position
-    • Use "hold" command to activate
-    • Lost when Grouchy moves
-
-  DROUOT (Precise, Artillery):
-    • Cannot attack after moving (must stay put)
-    • Bombardment: Fire on adjacent regions (max 2/turn)
-    • No advance on victory (holds position)
-    • Exempt from exhaustion penalties
-    • 2x fort degradation (siege breaker)
+FREE ACTIONS: help, end turn, wait, retreat, economy
 
 DEBUG COMMANDS (for testing):
   /debug counter_punch <marshal> - Enable free attack
@@ -559,7 +525,7 @@ DEBUG COMMANDS (for testing):
   /debug cavalry <marshal>       - Toggle 2-tile attacks
   /debug hold <marshal>          - Enable Immovable
 
-RETREAT RECOVERY (3 turns):
+RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
   After retreating, marshals are demoralized.
   BLOCKED: attack, fortify, drill, scout
   ALLOWED: move, recruit, defend, wait, change stance

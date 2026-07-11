@@ -183,7 +183,7 @@ class EconomyExecutor:
     WAR_RECRUIT_COST_MULT = 3
 
     def _calculate_recruit_cost(self, region, world, base_cost: int = 200,
-                                nation: str = None) -> int:
+                                nation: str = None, marshal=None) -> int:
         """Calculate recruitment gold cost based on region properties.
 
         Priority: Capital discount wins over settling premium.
@@ -193,6 +193,12 @@ class EconomyExecutor:
         situation — x3 at war, x(1 + overage) above the force limit
         (Europe-scoped; both multipliers compose on the regional price).
         The AI pays the same price through this same helper (GR5).
+
+        MC-2b: pass `marshal` (the recruiting marshal) to apply The
+        Intendance — administration >= 8 prices the levy 15% under, <= 3
+        prices it 15% over (marshal.get_recruit_cost_modifier, single
+        source). Composes LAST, on the full nation-priced cost; scoped
+        inside the same Europe block for the same N1 reason.
         """
         # Capital discount: 25% off (checked first — always wins)
         if region.region_type == "capital":
@@ -214,6 +220,10 @@ class EconomyExecutor:
                 if total_strength > force_limit:
                     overage = (total_strength - force_limit) / force_limit
                     cost = int(cost * (1.0 + overage))
+            if marshal is not None:
+                # round(), not int(): 200 * 1.15 is 229.999... in floats, and
+                # truncation would break shown-=-applied by a gold.
+                cost = int(round(cost * marshal.get_recruit_cost_modifier()))
         return int(cost)
 
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
@@ -365,7 +375,8 @@ class EconomyExecutor:
         else:
             cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
         gold_cost = self._calculate_recruit_cost(
-            region, world, base_cost=cost_base, nation=acting_nation)
+            region, world, base_cost=cost_base, nation=acting_nation,
+            marshal=recruit_marshal)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
         if nation_treasury < gold_cost:
@@ -436,6 +447,20 @@ class EconomyExecutor:
         elif is_stability_premium:
             cost_note = " (unstable region premium)"
 
+        # MC-2b: The Intendance — the note appears exactly when the modifier
+        # priced this levy (shown = applied; Europe-scoped like the seam).
+        intendance_pct = 0
+        if (recruit_marshal is not None
+                and getattr(world, "sovereign_map", "legacy") == "europe"):
+            mod = recruit_marshal.get_recruit_cost_modifier()
+            intendance_pct = int(round((mod - 1.0) * 100))
+        if intendance_pct != 0:
+            sign = "+" if intendance_pct > 0 else ""
+            cost_note += (
+                f" ({recruit_marshal.name}'s intendance: "
+                f"{sign}{intendance_pct}%)"
+            )
+
         # Pool status line
         pool_line = f"\n{recruit_type.title()} pool: {available:,} -> {pool_after:,}"
 
@@ -471,6 +496,7 @@ class EconomyExecutor:
                 "new_strength": int(marshal.strength),
                 "stability_premium": is_stability_premium,
                 "capital_discount": is_capital_discount,
+                "intendance_pct": int(intendance_pct),
                 "pool_before": int(available),
                 "pool_after": int(pool_after),
             }],

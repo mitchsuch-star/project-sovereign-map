@@ -23,11 +23,14 @@ behavior (never left as silent gaps) and routed to
     enemy-side surface. (Routed: MC-V-1.)
 
 **(b) Enemy-AI-per-personality evaluation.** Verify opposing generals PLAY
-their personality rather than merely carrying the label. The headline finding —
-`enemy_ai._get_effective_personality` aliases literal→cautious for every
-AI-controlled marshal, so enemy literals (Mack, Buxhowden) play as cautious
-clones — is pinned as the current documented behavior and routed (MC-V-2).
-Aggressive is well-differentiated; cautious/literal converge.
+their personality rather than merely carrying the label. The eval's headline
+finding (MC-V-2: literal aliased to cautious for every AI marshal) was
+DECIDED at the MC exit review (July 11, 2026): enemy-nation literals now play
+LITERAL — authored rows live (attack at even odds 1.0, ±8% mood), none of the
+cautious reflexes (no fall-back, no fortify/stance initiative), holding their
+standing disposition until the stagnation breaker represents new orders. The
+literal→cautious conversion survives ONLY for the player's own marshals gone
+autonomous. All three archetypes are now behaviorally distinct and pinned.
 
 The exhaustive enemy-side ABILITY seam pins (Charles rout threshold, Kutuzov
 pursuit/attrition halving, Moore recruit floor) live in
@@ -334,12 +337,14 @@ class TestEnemyAIPersonalityDifferentiation:
     def _ai(self):
         return EnemyAI(CommandExecutor())
 
-    def test_effective_personality_enemy_literal_aliases_to_cautious(self):
-        # FINDING MC-V-2: _get_effective_personality converts literal→cautious
-        # for EVERY AI-controlled marshal (Mack, Buxhowden play as cautious).
+    def test_effective_personality_enemy_literal_plays_literal(self):
+        # MC-V-2 DECISION (MC exit review, July 11, 2026): enemy-nation
+        # literals play their authored character — Mack, Buxhowden, and
+        # AI-run Deroy are LITERAL at the decision layer (MC-4: personality
+        # = character, zero exceptions, both sides).
         lit = make_marshal("Mack", nation="Austria", personality="literal")
         w = make_world(lit, wars=(("France", "Austria"),))
-        assert self._ai()._get_effective_personality(lit, w) == "cautious"
+        assert self._ai()._get_effective_personality(lit, w) == "literal"
 
     def test_effective_personality_enemy_aggressive_and_cautious_preserved(self):
         aggr = make_marshal("A", nation="Britain", personality="aggressive")
@@ -370,20 +375,26 @@ class TestEnemyAIPersonalityDifferentiation:
         assert ta < 1.0 < tc
         assert ta < tc
 
-    def test_enemy_literal_threshold_equals_cautious(self, zero_variance):
-        # Consequence of the alias: an enemy literal and an enemy cautious pick
-        # the SAME attack threshold — they do not diverge (routed MC-V-2).
+    def test_enemy_literal_threshold_even_odds_distinct_from_cautious(
+            self, zero_variance):
+        # MC-V-2 fix: the authored literal row is LIVE — an enemy literal
+        # attacks at even odds (1.0) where cautious demands 1.3. The two
+        # archetypes diverge.
         lit = make_marshal("Mack", nation="Austria", personality="literal")
         caut = make_marshal("Charles", nation="Austria", personality="cautious")
         w = make_world(lit, caut, wars=(("France", "Austria"),))
         ai = self._ai()
-        assert ai._get_mood_adjusted_threshold(lit, w) == pytest.approx(
-            ai._get_mood_adjusted_threshold(caut, w))
+        t_lit = ai._get_mood_adjusted_threshold(lit, w)
+        t_caut = ai._get_mood_adjusted_threshold(caut, w)
+        assert t_lit == pytest.approx(1.0)
+        assert t_caut == pytest.approx(1.3)
+        assert t_lit < t_caut
 
     def test_aggressive_seeks_battle_where_cautious_and_literal_hold(self):
-        # Observed full-turn divergence: co-located at ratio 0.9 (0.7 <= r < 1.3),
-        # an aggressive enemy attacks (the French target bleeds); a cautious OR
-        # literal enemy declines (the target is untouched).
+        # Observed full-turn divergence: co-located at ratio 0.9, an
+        # aggressive enemy attacks (the French target bleeds); a cautious
+        # (0.9 < 1.17 min) OR literal (0.9 < 0.92 min — the authored 1.0 row
+        # is live post-MC-V-2) enemy declines: the target is untouched.
         def _target_bled(personality):
             world = WorldState()  # legacy world; Britain at war with France
             for m in world.marshals.values():
@@ -408,6 +419,57 @@ class TestEnemyAIPersonalityDifferentiation:
         assert _target_bled("aggressive") is True
         assert _target_bled("cautious") is False
         assert _target_bled("literal") is False
+
+    def test_literal_attacks_even_odds_where_cautious_declines(self):
+        # The new differentiation the MC-V-2 fix buys: at ratio ~1.11 —
+        # above literal's worst-mood 1.08, below cautious's best-mood 1.17 —
+        # an enemy literal gives battle and an enemy cautious does not.
+        # Deterministic across mood draws by construction.
+        def _target_bled(personality):
+            world = WorldState()  # legacy world; Britain at war with France
+            for m in world.marshals.values():
+                if m.nation == "France" and m.name != "Ney":
+                    m.strength = 0
+                if m.nation == "Britain" and m.name != "Wellington":
+                    m.strength = 0
+            ney = world.get_marshal("Ney")
+            ney.location = "Belgium"
+            ney.strength = 45000
+            welly = world.get_marshal("Wellington")
+            welly.location = "Belgium"
+            welly.strength = 50000       # ratio 50k/45k = 1.11
+            welly.personality = personality
+            welly.fortified = False
+            random.seed(11)
+            EnemyAI(CommandExecutor()).process_nation_turn(
+                "Britain", world, {"world": world, "debug_mode": True})
+            survivor = world.marshals.get("Ney")
+            return survivor is None or survivor.strength < 45000
+
+        assert _target_bled("literal") is True
+        assert _target_bled("cautious") is False
+
+    def test_literal_stands_where_cautious_falls_back(self):
+        # No threatened-fall-back reflex: adjacent to a stronger enemy, a
+        # cautious marshal's P7 pulls him toward friendly ground; a literal
+        # holds his standing disposition (P7 has no literal arm BY DESIGN —
+        # the stagnation breaker is what finally moves him).
+        def _p7_move(personality):
+            marshal = make_marshal("Test", location="Belgium",
+                                   strength=20000, nation="Britain",
+                                   personality=personality)
+            w = make_world(marshal, wars=(("France", "Britain"),))
+            adjacent = list(w.get_region("Belgium").adjacent_regions)
+            enemy = make_marshal("Foe", location=adjacent[0],
+                                 strength=60000, nation="France",
+                                 personality="aggressive")
+            w.marshals[enemy.name] = enemy
+            random.seed(11)
+            ai = EnemyAI(CommandExecutor())
+            return ai._consider_strategic_move(marshal, "Britain", w)
+
+        assert _p7_move("cautious") is not None       # falls back
+        assert _p7_move("literal") is None            # stands his ground
 
 
 # ════════════════════════════════════════════════════════════════════════

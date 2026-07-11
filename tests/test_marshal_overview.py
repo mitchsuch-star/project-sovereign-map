@@ -394,13 +394,25 @@ class TestAbility:
 class TestSkills:
     """Skills range and completeness."""
 
-    def test_displayed_skills_exactly_the_wired_five(self):
-        """The card shows exactly the five wired skills — administration is
-        deliberately HIDDEN until MC-2b lands its mechanic (MC gate Q3,
-        July 10 2026; gate record MARSHAL_CONTENT_PASS_SPEC.md §4). MC-2b
-        restores it to this set when it lands."""
+    def test_displayed_skills_wired_five_on_legacy_world(self):
+        """MC-2b (July 11, 2026) wired administration Europe-only (The
+        Intendance prices the recruit seam there). This helper world is the
+        legacy fixture, where the mechanic is not live — so the row stays
+        hidden (GR9: no advertised stat that does nothing)."""
         expected_skills = {"tactical", "shock", "defense", "logistics", "command"}
         overview = _get_overview()
+        for m in overview:
+            assert set(m["skills"].keys()) == expected_skills, (
+                f"{m['name']} skill display mismatch"
+            )
+
+    def test_displayed_skills_include_administration_on_europe(self):
+        """On a Europe world the administration row displays (MC-2b)."""
+        world = _make_world()
+        world.sovereign_map = "europe"
+        overview = _get_overview(world)
+        expected_skills = {"tactical", "shock", "defense", "logistics",
+                           "administration", "command"}
         for m in overview:
             assert set(m["skills"].keys()) == expected_skills, (
                 f"{m['name']} skill display mismatch"
