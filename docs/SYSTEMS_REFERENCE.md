@@ -1086,7 +1086,19 @@ The `command` skill is consumed at exactly one mechanic — how fast and how wel
 
 Every player-facing recovery number derives from the marshal helpers (post-landing review swept them all): dispatch ETA (`_derive_marshal_status`), executor retreat/broken action-block messages, voluntary-retreat copy + stage-0 penalty display (`movement_executor.py`), forced-retreat flee + surrounded/shattered messages (`combat_executor.py`), and the map hover tooltip — the backend ships derived `retreat_penalty` / `broken_turns_left` in `tactical_state` and `map_renderer_base.gd` renders those, never a hardcoded table.
 
-Deliberately does NOT touch the W6-11 blessed in-battle morale curve. `administration` remains UNWIRED and is hidden from the marshal card (backend `marshal_overview` filter + `marshal_management.gd` skill row) until the owned MC-2b slice lands its recruit-seam mechanic (`MARSHAL_CONTENT_PASS_SPEC.md` §4). Tests: `tests/test_mc_q3_command_rally.py`.
+Deliberately does NOT touch the W6-11 blessed in-battle morale curve. Tests: `tests/test_mc_q3_command_rally.py`. (The 1805 roster's authored command values have been live since MC-2 — fast tier Davout 9 / ArchdukeCharles 8, poor tier Mack/Massena/Buxhowden/Hohenlohe 3.)
+
+### Administration Skill: The Intendance (MC-2b, MC exit review July 11 2026)
+
+The `administration` skill is consumed at exactly one mechanic — how efficiently the marshal's staff raises troops. Single source `marshal.py` (`get_recruit_cost_modifier`; constants `INTENDANCE_THRIFTY_ADMIN=8`, `INTENDANCE_WASTEFUL_ADMIN=3`, `INTENDANCE_COST_SWING=0.15` — in-band tunable). Applied LAST inside `economy_executor._calculate_recruit_cost`'s **Europe-scoped** nation-pricing block, composing on the capital/settling × war ×3 × over-limit price (N1: the legacy fixture world's economy pins do not move). The AI pays and *pre-budgets* the same price through the same helper (GR5 — both `_pick_admin_action` affordability checks pass the marshal).
+
+| Administration | Effect |
+|----------------|--------|
+| ≥ 8 | Recruits cost 15% less (×0.85, rounded) — 1805 tier: Davout, ArchdukeCharles, Moore |
+| 4–7 | Baseline, byte-identical |
+| ≤ 3 | Recruits cost 15% more (×1.15) — 1805 tier: Ney (3), Murat (2), Massena (3) |
+
+Shown = applied: the recruit message appends `(Davout's intendance: -15%)` exactly when the modifier priced the levy, the event carries `intendance_pct` (int), and the marshal card ships `admin_tier`/`admin_note` plus the administration skill row — **on Europe worlds only**; on the legacy rollback world the mechanic is inert and the card keeps the row hidden (GR9: no advertised stat that does nothing; the backend omits the key, `marshal_management.gd` skips absent keys). Code-verified numbers: peace 200 → 170/230; at war 600 → 510/690; the 1805 boot (war ×3 + ~45% over force limit) prices infantry at Rhineland 872 → Davout 741 / Ney 1003. Tests: `tests/test_marshal_content_mc2b_administration.py`.
 
 ### Ally Covers Retreat
 

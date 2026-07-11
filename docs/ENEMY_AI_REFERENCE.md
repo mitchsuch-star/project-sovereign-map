@@ -91,13 +91,12 @@ Player ends turn
 
 ```python
 class EnemyAI:
-    # Attack thresholds by personality
+    # Attack thresholds by personality (MC-V-3: dead balanced/loyal rows
+    # removed post-MC-4; .get(_, 1.0) is the save-compat floor)
     ATTACK_THRESHOLDS = {
         "aggressive": 0.7,   # Attacks even slightly outnumbered
         "cautious": 1.3,     # Needs clear advantage
-        "literal": 1.0,      # Even odds
-        "balanced": 1.0,
-        "loyal": 1.0,
+        "literal": 1.0,      # Even odds — by the book
     }
 
     # Survival threshold (% of starting strength)
@@ -366,6 +365,28 @@ Aggressive marshals drill when:
 2. attack (uses shock bonus if available)
 3. attack or move
 4. drill (if safe) or wait
+
+### Mack / Buxhowden / AI-run Deroy (Literal) — MC-V-2, July 11 2026
+
+Enemy-nation literal marshals play LITERAL (previously aliased to cautious).
+Single source: module-level `get_effective_ai_personality` in `enemy_ai.py` —
+the literal→cautious conversion now applies ONLY to the player's own literal
+marshals gone autonomous.
+
+| Situation | Behavior |
+|-----------|----------|
+| Attack threshold | 1.0 (even odds), mood variance ±8% (most predictable) |
+| Stronger enemy adjacent | NO defensive-stance/fortify reflex (P3 passes through) |
+| Threatened in P7 | NO fall-back — stands his ground |
+| Unthreatened in P7 | Holds his standing disposition; the stagnation breaker (turn 2+) is what finally moves him ("new orders arrive") |
+| P5 fortify / P6 drill | Never on his own initiative (cautious-only / aggressive-only) |
+| P8 default | wait (no stance fiddling) |
+
+Net read: Mack sits at Ulm and gives battle at fair odds without ever
+improvising; Buxhowden is always late. Combat kit (Immovable hold) was always
+GR5-clean; this decision fixed the DECISION layer. Pins:
+`tests/test_mc_personality_assurance.py` (threshold divergence, stands-where-
+cautious-falls-back, attacks-even-odds-where-cautious-declines).
 
 ---
 
