@@ -342,6 +342,14 @@ class Marshal:
         # (dotation.py) — also the save-compat grace: old saves default to -1,
         # so no instant retroactive erosion on load.
         self.expectation_grace_turn: int = -1
+        # ES-7 second pass (§0.6.8): treasury rente. FACE value in g/turn —
+        # counts fully toward satisfaction; the treasury pays
+        # ceil(RENTE_PREMIUM × face) each turn (dotation.get_rente_cost).
+        # Neither pays nor counts while the marshal is captured (W6-7).
+        self.pension: int = 0
+        # Last expectation value announced to the player (Morning Dispatch
+        # expectation-rise lines) — reconciled at dispatch build.
+        self.last_expectation_seen: int = 0
 
         # ════════════════════════════════════════════════════════════
         # RELATIONSHIPS SYSTEM (Phase 4)
@@ -1190,11 +1198,13 @@ class Marshal:
         return base
 
     # ═══════ ADMINISTRATION SKILL: THE INTENDANCE (MC-2b, July 11, 2026) ═══════
-    # The administration skill is consumed here and ONLY here: how efficiently
-    # the marshal's staff raises troops. Applied at the recruit-cost seam
-    # (economy_executor._calculate_recruit_cost), Europe-scoped with the rest
-    # of the nation-priced recruit model (N1: legacy fixture economy pins must
-    # not move). Constants are in-band tunable; structural changes escalate.
+    # The administration skill is consumed in exactly TWO single-source
+    # methods, both on this class: get_recruit_cost_modifier (The Intendance —
+    # how efficiently his staff raises troops, applied at the recruit-cost
+    # seam in economy_executor._calculate_recruit_cost, Europe-scoped, N1:
+    # legacy fixture economy pins must not move) and
+    # get_estate_stability_bonus (The Steward, below). Constants are in-band
+    # tunable; structural changes escalate.
     INTENDANCE_THRIFTY_ADMIN = 8    # administration >= 8: recruits cost 15% less
     INTENDANCE_WASTEFUL_ADMIN = 3   # administration <= 3: recruits cost 15% more
     INTENDANCE_COST_SWING = 0.15
@@ -1213,6 +1223,34 @@ class Marshal:
         if admin <= self.INTENDANCE_WASTEFUL_ADMIN:
             return 1.0 + self.INTENDANCE_COST_SWING
         return 1.0
+
+    # ═══════ ADMINISTRATION SKILL: THE STEWARD (ES-7 second pass, July 11, 2026) ═══════
+    # Estates prosper or rot by their lord's administration: stability growth
+    # on his estate provinces shifts while his nation controls them. Applied
+    # inside world_state.process_stability_growth via
+    # dotation.get_estate_steward_map (one marshal-count map per tick, GR8).
+    # This trajectory difference is what makes estate-vs-rente a genuine
+    # decision (ECONOMY_REVISIT_SPEC.md §0.6.8): land appreciates under an
+    # able lord and rots under a wasteful one; a rente never moves.
+    STEWARD_FAST_ADMIN = 8       # administration >= 8: his estates prosper
+    STEWARD_WASTEFUL_ADMIN = 3   # administration <= 3: "the wasteful lord"
+    STEWARD_FAST_BONUS = 5       # extra stability/turn on his estates
+    STEWARD_WASTEFUL_MALUS = -2
+
+    def get_estate_stability_bonus(self) -> int:
+        """Per-turn stability-growth delta on this marshal's estate provinces.
+
+        Administration 4-7 is byte-identical baseline (0). Same tier
+        thresholds as The Intendance; both sides profit or pay identically
+        (GR5). Never applies to respected-occupied soil — the map helper
+        only emits entries while the holder's nation controls the region.
+        """
+        admin = self.skills.get("administration", 5)
+        if admin >= self.STEWARD_FAST_ADMIN:
+            return self.STEWARD_FAST_BONUS
+        if admin <= self.STEWARD_WASTEFUL_ADMIN:
+            return self.STEWARD_WASTEFUL_MALUS
+        return 0
 
     def get_combat_effectiveness(self) -> float:
         """
@@ -1283,6 +1321,8 @@ class Marshal:
             # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════
             "dotation_regions": list(self.dotation_regions),
             "expectation_grace_turn": int(self.expectation_grace_turn),
+            "pension": int(self.pension),
+            "last_expectation_seen": int(self.last_expectation_seen),
 
             # ═══════ RELATIONSHIPS ═══════
             "relationships": self.relationships.copy(),
@@ -1441,6 +1481,8 @@ class Marshal:
         # the grace clock, so no instant retroactive erosion on load.
         marshal.dotation_regions = list(data.get("dotation_regions") or [])
         marshal.expectation_grace_turn = data.get("expectation_grace_turn", -1)
+        marshal.pension = int(data.get("pension", 0) or 0)
+        marshal.last_expectation_seen = int(data.get("last_expectation_seen", 0) or 0)
 
         # ═══════ RELATIONSHIPS ═══════
         marshal.relationships = data.get("relationships", {}).copy()

@@ -44,6 +44,8 @@ ACTION_DISPLAY = {
     "open_settlement": "opens settlement with",       # Godot wizard action
     "request_terms": "requests terms from",           # SC-30 / Slice G1
     "grant_dotation": "is endowed with",              # ES-7 (Economy S7)
+    "grant_pension": "is granted a rente",            # ES-7 second pass (§0.6.8)
+    "revoke_pension": "has his rente withdrawn",      # ES-7 second pass (§0.6.8)
 }
 
 # ============================================================================
@@ -100,6 +102,8 @@ OBJECTION_DISPLAY = {
     "open_settlement": "opening settlement",       # Godot wizard action
     "request_terms": "requesting terms",            # SC-30 / Slice G1
     "grant_dotation": "receiving an estate",        # ES-7 (no objections in v1)
+    "grant_pension": "receiving a rente",           # ES-7 second pass (no objections in v1)
+    "revoke_pension": "losing his rente",           # ES-7 second pass (no objections in v1)
 }
 
 # ============================================================================
@@ -138,6 +142,8 @@ DEFIANCE_DISPLAY = {
     "open_settlement": "opened settlement",       # Godot wizard action
     "request_terms": "requested terms",            # SC-30 / Slice G1
     "grant_dotation": "received an estate",        # ES-7 (no defiance in v1)
+    "grant_pension": "received a rente",           # ES-7 second pass (no defiance in v1)
+    "revoke_pension": "lost his rente",            # ES-7 second pass (no defiance in v1)
 }
 
 # ============================================================================

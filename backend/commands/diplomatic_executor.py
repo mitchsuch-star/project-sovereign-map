@@ -4109,10 +4109,17 @@ class DiplomaticExecutor:
             if idx < len(ranked):
                 candidate_name, reason = ranked[idx]
                 context["guidance_state"] = "region_pick"
+                # ES-7 second pass (§0.6.8 item 3): Talleyrand flags a
+                # marshal's estate BEFORE the player approves the cession.
+                from backend.game_logic.dotation import estate_cession_warning
+                _estate_text = estate_cession_warning(world, candidate_name)
+                _suggest_line = f"I suggest {candidate_name} — {reason}"
+                if _estate_text:
+                    _suggest_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
                     "target_nation": context.get("target_nation", target_nation),
-                    "talleyrand_text": f"I suggest {candidate_name} — {reason}",
+                    "talleyrand_text": _suggest_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
                          "action": "offer_region"},
@@ -4156,10 +4163,17 @@ class DiplomaticExecutor:
             if approved_count < regions_needed and next_idx < len(ranked):
                 candidate_name, reason = ranked[next_idx]
                 context["guidance_state"] = "region_pick"
+                # §0.6.8 review fix: EVERY candidate prompt flags an estate,
+                # not just the first (territory_yes) one.
+                from backend.game_logic.dotation import estate_cession_warning
+                _estate_text = estate_cession_warning(world, candidate_name)
+                _next_line = f"Very good. I also suggest {candidate_name} — {reason}"
+                if _estate_text:
+                    _next_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
                     "target_nation": context.get("target_nation", target_nation),
-                    "talleyrand_text": f"Very good. I also suggest {candidate_name} — {reason}",
+                    "talleyrand_text": _next_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
                          "action": "offer_region"},
@@ -4192,10 +4206,17 @@ class DiplomaticExecutor:
             if next_idx < len(ranked):
                 candidate_name, reason = ranked[next_idx]
                 context["guidance_state"] = "region_pick"
+                # §0.6.8 review fix: the skip path's next candidate is
+                # flagged too.
+                from backend.game_logic.dotation import estate_cession_warning
+                _estate_text = estate_cession_warning(world, candidate_name)
+                _skip_line = f"Very well. What about {candidate_name}? {reason}"
+                if _estate_text:
+                    _skip_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
                     "target_nation": context.get("target_nation", target_nation),
-                    "talleyrand_text": f"Very well. What about {candidate_name}? {reason}",
+                    "talleyrand_text": _skip_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
                          "action": "offer_region"},

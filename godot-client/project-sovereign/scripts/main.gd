@@ -174,6 +174,7 @@ var glorious_charge_dialog = null
 
 # Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
 var capture_choice_dialog = null
+var reward_dialog = null  # ES-7 second pass (§0.6.8): the Marshal's Reward dialog
 
 # Load Game Dialog (Phase 6: Save/Load)
 var load_dialog = null
@@ -285,6 +286,11 @@ func _ready():
 	capture_choice_dialog = dialog_manager.register("capture_choice", "res://scenes/capture_choice_dialog.tscn")
 	if capture_choice_dialog:
 		capture_choice_dialog.choice_made.connect(_on_capture_choice_made)
+
+	# ES-7 second pass (§0.6.8 item 6): the Marshal's Reward dialog (layer 109)
+	reward_dialog = dialog_manager.register("reward_dialog", "res://scenes/reward_dialog.tscn")
+	if reward_dialog:
+		reward_dialog.reward_command.connect(_on_reward_command)
 
 	load_dialog = dialog_manager.register("load", "res://scenes/load_dialog.tscn")
 	if load_dialog:
@@ -403,6 +409,10 @@ func _ready():
 				dispatch_view = instance
 				if dispatch_view.has_signal("open_envoys_requested"):
 					dispatch_view.open_envoys_requested.connect(_on_dispatch_open_envoys_requested)
+			elif config[0] == "generals":
+				# ES-7 second pass (§0.6.8): the card's [Reward…] link
+				if instance.has_signal("reward_requested"):
+					instance.reward_requested.connect(_on_reward_requested)
 
 	# Notification bar — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
@@ -1388,6 +1398,12 @@ func _display_berthier_report(report: Dictionary):
 	if deleg_attr != "":
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + deleg_attr + "[/color]")
 
+	# ES-7 second pass (§0.6.8 item 4c): a decisive victory that raised the
+	# winner's reward expectation says so in the after-action report.
+	var exp_note = str(report.get("expectation_note", ""))
+	if exp_note != "":
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  " + exp_note + "[/color]")
+
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
 
@@ -1663,12 +1679,17 @@ func _display_turn_change(event: Dictionary):
 	var dotation_str = ""
 	if dotation_skim > 0:
 		dotation_str = " | Dotations: -" + str(int(dotation_skim)) + "g"
+	# ES-7 second pass (§0.6.8): the rente bill is a separate Net component
+	var rente_cost = int(event.get("rente_cost", 0))
+	var rente_str = ""
+	if rente_cost > 0:
+		rente_str = " | Rentes: -" + str(int(rente_cost)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + dotation_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning
@@ -3671,6 +3692,34 @@ func _on_wizard_command_selected(command: String):
 
 	# Send to backend via normal command flow
 	api_client.send_command(command, _on_command_result)
+
+
+# ═══════ ES-7 SECOND PASS (§0.6.8 item 6): THE MARSHAL'S REWARD ═══════
+
+func _on_reward_requested(card: Dictionary):
+	"""The Generals screen's [Reward…] link — open the portfolio dialog."""
+	if reward_dialog:
+		reward_dialog.show_reward(card)
+
+
+func _on_reward_command(command: String):
+	"""A reward-dialog button — same pipeline as a typed command, then
+	refresh the Generals screen so the card shows the new estate/rente."""
+	if command.is_empty():
+		return
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	set_input_enabled(false)
+	api_client.send_command(command, _on_reward_command_result)
+
+
+func _on_reward_command_result(response):
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("generals"):
+		var generals_screen = top_bar.screens["generals"]
+		if generals_screen and generals_screen.has_method("refresh_if_open"):
+			generals_screen.refresh_if_open()
 
 
 func _on_wizard_structured_command_selected(command: String, data: Dictionary):

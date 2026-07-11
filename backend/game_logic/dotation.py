@@ -22,8 +22,18 @@ world has no dotation economy, so no legacy test pins move.
 All constants are the E5 blessed starting values (§0.6.7) — the two-sided
 stacked band test (test_economy_e1_band.py) is the tuning instrument;
 retunes inside the blessed band need no new gate.
+
+SECOND PASS (§0.6.8, user-directed July 11, 2026): the reward PORTFOLIO —
+land is one instrument, not the only one. The RENTE (grant_pension) is the
+treasury alternative: face counts fully toward satisfaction, the treasury
+pays ceil(RENTE_PREMIUM × face)/turn. Estates stay the better rate and
+APPRECIATE (effective income recovers with stability, faster under a
+high-administration Steward) but are lumpy, conquest-gated, and lootable;
+rentes are precise, instant, war-safe, revocable — and premium-priced,
+static, titleless. Neither dominates; the flip is the decision.
 """
 
+import math
 from typing import Dict, List, Optional, Tuple
 
 # ═══════════════ E5 BLESSED CONSTANTS (§0.6.7, July 9, 2026) ═══════════════
@@ -52,6 +62,20 @@ GRACE_TURNS = 2
 # AI grant rung (GR5): the enemy AI endows its most-shortfalling marshal
 # once the shortfall clears this threshold (2 wins' worth of expectation).
 AI_GRANT_SHORTFALL_THRESHOLD = 80
+
+# ═══════ ES-7 SECOND PASS (§0.6.8, July 11, 2026) — THE RENTE ═══════
+# The Domaine Extraordinaire paid in rentes as well as land (Monte
+# Napoleone annuities, chronically in arrears). The premium is the price
+# of paying honor in paper — the structural reason an available estate
+# usually beats a rente on rate, while the rente wins on supply, safety,
+# and precision. In-band tunable.
+RENTE_PREMIUM = 1.5
+
+# AI rente rung guard (GR5): the AI only pensions a marshal when its
+# treasury can carry the bill — >= RENTE_AI_TREASURY_MULT × per-turn cost,
+# never below RENTE_AI_TREASURY_FLOOR.
+RENTE_AI_TREASURY_MULT = 10
+RENTE_AI_TREASURY_FLOOR = 400
 
 # ═══════════ W6-8 "THE SPOILS OF WAR" BLESSED CONSTANTS (spec §10) ═════════
 # Conquering the province that sustains an ENEMY marshal's estate poses a
@@ -87,7 +111,7 @@ def get_expectation(marshal) -> int:
                    EXPECTATION_CAP))
 
 
-def get_satisfaction(marshal, world) -> int:
+def get_estate_income(marshal, world) -> int:
     """Full effective income of the marshal's still-held estates (§0.6.7
     amendment 1 — the 0.30 skim constant is DELETED).
 
@@ -107,6 +131,15 @@ def get_satisfaction(marshal, world) -> int:
         if (region.controller == marshal.nation
                 or is_estate_respected(world, marshal.name, region_name)):
             total += region.get_effective_income()
+    return int(total)
+
+
+def get_satisfaction(marshal, world) -> int:
+    """Estate income + rente face (§0.6.8). A captured marshal's rente
+    neither counts nor pays (W6-7 — his expectations are frozen anyway)."""
+    total = get_estate_income(marshal, world)
+    if not getattr(marshal, "captured_by", ""):
+        total += int(getattr(marshal, "pension", 0))
     return int(total)
 
 
@@ -164,12 +197,97 @@ def check_estate_eligibility(world, nation: str, region_name: str
     if region_name in homeland:
         return False, (f"{region_name} is homeland soil — the Domaine "
                        f"Extraordinaire draws only on conquered provinces.")
-    # Un-dotated: one estate funds one household (any nation's marshal).
-    for marshal in world.marshals.values():
-        if region_name in getattr(marshal, "dotation_regions", []):
-            return False, (f"{region_name} already sustains Marshal "
-                           f"{marshal.name}'s household.")
+    # Un-dotated: one estate funds one household (any nation's marshal) —
+    # but only a LIVE claim blocks (§0.6.8 item 5): the claimant's nation
+    # still controls the region, or the occupier respects his title. A DEAD
+    # claim (province changed hands, no respect entry) is pruned eagerly at
+    # grant time instead, closing the one-turn dead zone after treaty
+    # transfers hand you a province still sitting on an enemy's rolls.
+    claimant = find_live_estate_claimant(world, region_name)
+    if claimant is not None:
+        return False, (f"{region_name} already sustains Marshal "
+                       f"{claimant.name}'s household.")
     return True, ""
+
+
+def _capture_choice_pending(world, region_name: str) -> bool:
+    """True while the capture question chain (plunder/secure → W6-8
+    confiscate/respect) for region_name is still open. The claim's fate is
+    undecided — the player may yet choose RESPECT — so it stays LIVE until
+    the answer lands (pinned by test_w6_estate_confiscation: a
+    pending-choice region is not endowable)."""
+    pending = getattr(world, "pending_capture_choice", None)
+    return isinstance(pending, dict) and pending.get("region") == region_name
+
+
+def find_live_estate_claimant(world, region_name: str):
+    """The marshal whose estate claim on region_name is LIVE — he still
+    controls it through his nation, the occupier respects his title, or
+    the confiscate/respect question is still pending. Returns None when no
+    claim stands (including when only DEAD claims remain). Marshal-count
+    loop (GR8-safe)."""
+    region = world.regions.get(region_name)
+    if region is None:
+        return None
+    for marshal in world.marshals.values():
+        if region_name not in getattr(marshal, "dotation_regions", []):
+            continue
+        if (region.controller == marshal.nation
+                or is_estate_respected(world, marshal.name, region_name)
+                or _capture_choice_pending(world, region_name)):
+            return marshal
+    return None
+
+
+def strip_dead_estate_claims(world, region_name: str) -> List[str]:
+    """Eagerly prune DEAD claims on region_name (the holder's nation no
+    longer controls it, no respect entry stands, and no capture choice is
+    pending) so a fresh grant preserves the one-estate-per-region invariant
+    without waiting for the next turn's prune. Runs the same estate_lost
+    event/notification path the per-turn prune uses. Returns the stripped
+    holders' names."""
+    region = world.regions.get(region_name)
+    stripped: List[str] = []
+    for marshal in world.marshals.values():
+        if region_name not in getattr(marshal, "dotation_regions", []):
+            continue
+        if region is not None and (
+                region.controller == marshal.nation
+                or is_estate_respected(world, marshal.name, region_name)
+                or _capture_choice_pending(world, region_name)):
+            continue
+        marshal.dotation_regions.remove(region_name)
+        log_estate_lost(world, marshal, region_name)
+        stripped.append(marshal.name)
+    return stripped
+
+
+def log_estate_lost(world, marshal, region_name: str) -> None:
+    """The single estate_lost event + player notification path — used by
+    the per-turn prune (world_state._process_dotation_state) AND the eager
+    grant-time strip, so both read identically to the player."""
+    world.log_event({
+        "type": "estate_lost",
+        "marshal": marshal.name,
+        "nation": marshal.nation,
+        "region": region_name,
+    })
+    if marshal.nation == world.player_nation:
+        from backend.notifications import (
+            ESTATE_LOST, NotificationPriority, create_notification,
+        )
+        world.notifications.add(create_notification(
+            notification_type=ESTATE_LOST,
+            priority=NotificationPriority.HIGH,
+            title=f"Marshal {marshal.name} stripped of his estate",
+            message=(
+                f"{region_name}, the estate that funded Marshal "
+                f"{marshal.name}'s honor, has passed from our hands. "
+                f"He will not forget, Sire."
+            ),
+            turn_created=int(world.current_turn),
+            details={"marshal": marshal.name, "region": region_name},
+        ))
 
 
 def list_eligible_estates(world, nation: str) -> List[str]:
@@ -184,10 +302,20 @@ def list_eligible_estates(world, nation: str) -> List[str]:
     indefinitely, and offering it here starved the AI's grant rung (the
     refusal added grant_dotation to skip_actions) and showed the player
     a suggestion the executor always refused.
+
+    §0.6.8 item 5: only LIVE claims exclude (mirror of
+    check_estate_eligibility) — a DEAD claim on a province we just gained
+    by treaty no longer hides it from the list.
     """
     dotated = set()
     for marshal in world.marshals.values():
-        dotated.update(getattr(marshal, "dotation_regions", []))
+        for claim in getattr(marshal, "dotation_regions", []):
+            claim_region = world.regions.get(claim)
+            if claim_region is not None and (
+                    claim_region.controller == marshal.nation
+                    or is_estate_respected(world, marshal.name, claim)
+                    or _capture_choice_pending(world, claim)):
+                dotated.add(claim)
     homeland = set(world.nation_starting_regions.get(nation, []))
     eligible = []
     for region_name in world.get_nation_regions(nation):
@@ -206,6 +334,94 @@ def compute_investiture_fee(marshal) -> int:
     """200g creates the title (first estate); adding land to an existing
     title is free of ceremony (1 AP only)."""
     return 0 if getattr(marshal, "dotation_regions", []) else INVESTITURE_FEE
+
+
+# ═══════════════════ THE RENTE (§0.6.8, second pass) ═══════════════════════
+
+def get_rente_cost(face: int) -> int:
+    """Treasury cost of a rente: ceil(RENTE_PREMIUM × face).
+
+    The premium is the arrears-and-fees of paying honor in paper — the
+    structural reason an available estate usually beats a rente on rate."""
+    face = int(face)
+    if face <= 0:
+        return 0
+    return int(math.ceil(RENTE_PREMIUM * face))
+
+
+def compute_rente_face(marshal, world) -> int:
+    """The face a fresh grant sets: expectation − estate income (never
+    below 0). Granting REPLACES any existing rente with this size — one
+    rente per marshal, always re-sized to close the gap at grant time, so
+    'grant him a rente' after new victories is the top-up verb."""
+    return max(0, get_expectation(marshal) - get_estate_income(marshal, world))
+
+
+def build_rente_offer(marshal, world) -> Dict:
+    """The reward surface's rente line: face + true treasury cost stated
+    together (§0.6.8 item 6 — every option explains its instrument)."""
+    face = compute_rente_face(marshal, world)
+    return {"face": int(face), "cost": int(get_rente_cost(face))}
+
+
+def get_nation_rente_bill(world, nation: str) -> int:
+    """Per-turn treasury cost of a nation's rentes (marshal-count loop,
+    GR8). A captured marshal's rente neither pays nor counts (W6-7)."""
+    if not is_dotation_world(world):
+        return 0
+    total = 0
+    for marshal in world.marshals.values():
+        if marshal.nation != nation or getattr(marshal, "captured_by", ""):
+            continue
+        total += get_rente_cost(int(getattr(marshal, "pension", 0)))
+    return int(total)
+
+
+# ═══════════════ THE STEWARD (§0.6.8 item 2, second pass) ══════════════════
+
+def get_estate_steward_map(world) -> Dict[str, int]:
+    """{region_name: stability-growth delta} for estate provinces whose
+    holder's administration tier moves the needle (single source =
+    Marshal.get_estate_stability_bonus). Emits entries only while the
+    holder's nation controls the region — respected-occupied soil never
+    benefits. Built once per stability tick (marshal-count loop, GR8)."""
+    if not is_dotation_world(world):
+        return {}
+    result: Dict[str, int] = {}
+    for marshal in world.marshals.values():
+        regions = getattr(marshal, "dotation_regions", [])
+        if not regions:
+            continue
+        bonus = int(marshal.get_estate_stability_bonus())
+        if bonus == 0:
+            continue
+        for region_name in regions:
+            region = world.regions.get(region_name)
+            if region is not None and region.controller == marshal.nation:
+                result[region_name] = bonus
+    return result
+
+
+# ═══════════ FORESIGHT WARNINGS (§0.6.8 item 3, second pass) ═══════════════
+
+def estate_cession_warning(world, region_name: str) -> str:
+    """One-line warning when ceding region_name would strip one of the
+    PLAYER's marshals of his estate. Empty string otherwise — AI estates
+    are the AI's problem. Requires the player to actually CONTROL the
+    region (a respected estate on foreign soil being returned to us is a
+    gain, not a cession). Rendered verbatim at every territory-term
+    authoring/confirm surface (settlement wizard, bilateral terms,
+    incoming offers)."""
+    if not is_dotation_world(world):
+        return ""
+    region = world.regions.get(region_name)
+    if region is None or region.controller != world.player_nation:
+        return ""
+    holder = get_nation_dotation_map(world, world.player_nation).get(region_name)
+    if not holder:
+        return ""
+    return (f"{region_name} sustains Marshal {holder}'s title — ceding it "
+            f"strips his estate, and his loyalty will bleed.")
 
 
 # ═══════════════ W6-8 — THE SPOILS OF WAR (estate capture) ════════════════

@@ -292,17 +292,22 @@ def _build_trust_standing(marshal: Marshal) -> Dict[str, Any]:
 
 
 def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
-    """ES-7 estate/expectation section (Economy Revisit S7, spec §0.6.2).
+    """ES-7 estate/expectation section (Economy Revisit S7, spec §0.6.2 +
+    §0.6.8 second pass).
 
     Expectation and estate income are in the same gold/turn units — the
     number IS the explanation, no opaque penalty. `eligible_estates` powers
-    the card's Endow affordance (the typed command is the input surface;
-    the card names the exact provinces so the player never guesses).
-    Empty/zero on the legacy fixture world (ES-7 is Europe-scoped).
+    the card's Endow affordance; `reward_options` (§0.6.8 item 6) powers
+    the Reward dialog's buttons — structured estate rows with incomes, the
+    rente offer with its true treasury cost, and the Steward tier, so every
+    option can explain its instrument. Empty/zero on the legacy fixture
+    world (ES-7 is Europe-scoped).
     """
     from backend.game_logic.dotation import (
-        derive_title, get_expectation, get_satisfaction, is_dotation_world,
-        is_eroding, list_eligible_estates,
+        build_rente_offer, compute_investiture_fee, derive_title,
+        get_estate_income, get_expectation, get_rente_cost,
+        get_satisfaction, is_dotation_world, is_eroding,
+        list_eligible_estates,
     )
 
     if not is_dotation_world(world):
@@ -314,26 +319,78 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
             "estate_regions": [],
             "estate_title": "",
             "eligible_estates": [],
+            "pension": 0,
+            "pension_cost": 0,
+            "rente_offer": {"face": 0, "cost": 0},
+            "investiture_fee": 0,
+            "eligible_estate_details": [],
+            "steward_tier": "",
+            "steward_note": "",
         }
 
     expectation = get_expectation(marshal)
     satisfaction = get_satisfaction(marshal, world)
+    estate_income = get_estate_income(marshal, world)
     shortfall = max(0, expectation - satisfaction)
     estates = list(marshal.dotation_regions)
     # Title derives from the FIRST (founding) estate — flavor only (GR6).
     title = derive_title(estates[0]) if estates else ""
+    # W6-7 / review fix: a PRISONER cannot be rewarded — the grant executors
+    # refuse him, so the card must offer no reward options (no rente offer,
+    # no eligible estates, and the .gd side hides the [Reward…] link).
+    is_captured = bool(getattr(marshal, "captured_by", ""))
     eligible = []
-    if shortfall > 0:
-        eligible = list_eligible_estates(world, marshal.nation)[:4]
+    details = []
+    if shortfall > 0 and not is_captured:
+        full = list_eligible_estates(world, marshal.nation)
+        eligible = full[:4]
+        for region_name in full[:5]:
+            region = world.regions.get(region_name)
+            if region is None:
+                continue
+            details.append({
+                "region": region_name,
+                "income": int(region.get_effective_income()),
+            })
+
+    # The Steward (§0.6.8 item 2): decision-relevant BEFORE endowing —
+    # land appreciates under an able lord, rots under a wasteful one.
+    steward_bonus = int(marshal.get_estate_stability_bonus())
+    if steward_bonus > 0:
+        steward_tier = "prosperous"
+        steward_note = (f"An able administrator — his estates gain "
+                        f"+{steward_bonus} stability/turn and their revenues "
+                        f"rise with them.")
+    elif steward_bonus < 0:
+        steward_tier = "wasteful"
+        steward_note = (f"A wasteful lord — his estates recover "
+                        f"{-steward_bonus} stability/turn slower; land "
+                        f"placed in his hands appreciates poorly.")
+    else:
+        steward_tier = ""
+        steward_note = ""
+
+    pension = 0 if is_captured else int(getattr(marshal, "pension", 0))
+    rente_offer = ({"face": 0, "cost": 0} if is_captured
+                   else build_rente_offer(marshal, world))
 
     return {
         "expectation": int(expectation),
-        "estate_income": int(satisfaction),
+        # §0.6.8: estates ONLY — the rente rides its own keys below, so the
+        # card can show the portfolio, not a blended number.
+        "estate_income": int(estate_income),
         "expectation_shortfall": int(shortfall),
         "is_eroding": bool(is_eroding(marshal, world)),
         "estate_regions": estates,
         "estate_title": title,
         "eligible_estates": eligible,
+        "pension": pension,
+        "pension_cost": int(get_rente_cost(pension)),
+        "rente_offer": rente_offer,
+        "investiture_fee": int(compute_investiture_fee(marshal)),
+        "eligible_estate_details": details,
+        "steward_tier": steward_tier,
+        "steward_note": steward_note,
     }
 
 

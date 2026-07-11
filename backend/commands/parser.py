@@ -256,6 +256,9 @@ class CommandParser:
             "request_terms",
             # ES-7 Estate Endowment (Economy Revisit S7)
             "grant_dotation",   # "endow Ney with Swabia" — 1 admin AP + fee
+            # ES-7 second pass (§0.6.8): the rente
+            "grant_pension",    # "grant Ney a rente" — 1 admin AP, no fee
+            "revoke_pension",   # "revoke Ney's rente"
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

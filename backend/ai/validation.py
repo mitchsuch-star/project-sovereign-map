@@ -81,6 +81,10 @@ VALID_ACTIONS: Set[str] = {
     # ES-7 Estate Endowment (Economy Revisit S7) — "endow Ney with Swabia";
     # marshal + region target, validated like other marshal actions.
     "grant_dotation",
+    # ES-7 second pass (§0.6.8) — the rente: "grant Ney a rente" /
+    # "revoke Ney's rente"; marshal-only, face auto-sized in the executor.
+    "grant_pension",
+    "revoke_pension",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,

@@ -183,6 +183,9 @@ CAMPAIGN_LOG_TYPES = {
     # ES-7 Estate Endowments (Economy Revisit S7)
     "dotation_granted",
     "estate_lost",
+    # ES-7 second pass (§0.6.8) — the rente
+    "rente_granted",
+    "rente_revoked",
     # W6-8 The Spoils of War — conquered-estate resolution
     "estate_confiscated",
     "estate_respected",
@@ -208,6 +211,9 @@ CATEGORY_MAP = {
     # ES-7 Estate Endowments (Economy Revisit S7)
     "dotation_granted": "economy",
     "estate_lost": "economy",
+    # ES-7 second pass (§0.6.8) — the rente
+    "rente_granted": "economy",
+    "rente_revoked": "economy",
     # W6-8 The Spoils of War
     "estate_confiscated": "economy",
     "estate_respected": "economy",
@@ -908,6 +914,18 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation", "")
         region = event.get("region", "his estate")
         return f"{_name_tag(marshal, nation)} stripped of his estate at {region}"
+
+    if event_type == "rente_granted":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        face = int(event.get("face", 0))
+        return f"{_name_tag(marshal, nation)} granted a rente of {face}g/turn"
+
+    if event_type == "rente_revoked":
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        face = int(event.get("face", 0))
+        return f"{_name_tag(marshal, nation)}'s rente of {face}g/turn withdrawn"
 
     if event_type == "estate_confiscated":
         marshal = event.get("marshal", "Unknown")

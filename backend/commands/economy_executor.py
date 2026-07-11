@@ -48,7 +48,9 @@ class EconomyExecutor:
         occupation = int(income_data.get("occupation", 0))
         # ES-7 (S7): estate redirect is a separate Net component too
         dotation_skim = int(income_data.get("dotation_skim", 0))
-        net = (income_data["income"] - occupation - dotation_skim
+        # ES-7 second pass (§0.6.8): the rente bill
+        rente_cost = int(income_data.get("rente_cost", 0))
+        net = (income_data["income"] - occupation - dotation_skim - rente_cost
                - upkeep_data["total"] + admin_bonus)
         treasury = world.nation_gold.get(nation, 0)
 
@@ -95,6 +97,22 @@ class EconomyExecutor:
                 lines.append(
                     f"    {rd['region']}: -{rd['dotation_cost']}g "
                     f"(estate of Marshal {rd['estate_of']})"
+                )
+
+        # ES-7 second pass (§0.6.8): rentes — treasury pensions at premium
+        if rente_cost > 0:
+            from backend.game_logic.dotation import get_rente_cost
+            pensioned = [
+                m for m in world.marshals.values()
+                if m.nation == nation and int(getattr(m, "pension", 0)) > 0
+                and not getattr(m, "captured_by", "")
+            ]
+            lines.append(f"\n  Rentes: -{rente_cost}g  "
+                         f"({len(pensioned)} pensioned marshals)")
+            for m in pensioned:
+                lines.append(
+                    f"    Marshal {m.name}: {int(m.pension)}g/turn face "
+                    f"-> -{get_rente_cost(int(m.pension))}g with fees"
                 )
 
         # Upkeep breakdown
@@ -165,6 +183,7 @@ class EconomyExecutor:
                 "income": int(income_data["income"]),
                 "occupation": int(occupation),
                 "dotation_skim": int(dotation_skim),
+                "rente_cost": int(rente_cost),
                 "upkeep": int(upkeep_data["total"]),
                 "admin_bonus": int(admin_bonus),
                 "net": int(net),
@@ -669,7 +688,7 @@ class EconomyExecutor:
         from backend.game_logic.dotation import (
             check_estate_eligibility, compute_investiture_fee, derive_title,
             get_expectation, get_satisfaction, is_dotation_world,
-            list_eligible_estates,
+            list_eligible_estates, strip_dead_estate_claims,
         )
 
         world: WorldState = game_state.get("world")
@@ -755,6 +774,12 @@ class EconomyExecutor:
             world.nation_gold[acting_nation] = int(treasury - fee)
             world.record_gold_spent(acting_nation, fee)
 
+        # §0.6.8 item 5: a DEAD foreign claim (province gained by treaty,
+        # still on an enemy marshal's rolls until the next prune) no longer
+        # blocks eligibility — strip it NOW so the one-estate-per-region
+        # invariant holds through the grant.
+        strip_dead_estate_claims(world, region_name)
+
         # The endowment itself. NO trust change — paying stops the bleed,
         # never buys trust (named negative-assertion test).
         marshal.dotation_regions.append(region_name)
@@ -794,6 +819,194 @@ class EconomyExecutor:
                 "fee": int(fee),
                 "expectation": int(expectation),
                 "satisfaction": int(satisfaction),
+            }],
+            "new_state": game_state
+        }
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # ES-7 SECOND PASS (§0.6.8): grant_pension / revoke_pension — THE RENTE
+    # ════════════════════════════════════════════════════════════════════════════
+
+    def _execute_grant_pension(self, command: Dict, game_state: Dict) -> Dict:
+        """Grant (or re-size) a marshal's rente — the treasury alternative
+        to land.
+
+        Face = expectation − estate income at grant time (one rente per
+        marshal; granting again after new victories re-sizes it — the
+        top-up verb). Face counts fully toward satisfaction; the treasury
+        pays ceil(RENTE_PREMIUM × face) EVERY turn through the income
+        phase — the recurring premium is the whole cost, so there is no
+        fee here and no title ever. NO trust bump (same rule as the
+        estate: a promise, not a purchase). GR5: the AI pensions through
+        this same method (enemy_ai rente rung).
+        """
+        from backend.game_logic.dotation import (
+            build_rente_offer, is_dotation_world,
+        )
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        if not is_dotation_world(world):
+            return {
+                "success": False,
+                "message": "Rentes are not available in this campaign."
+            }
+
+        marshal_name = (command.get("marshal") or "").strip()
+        if not marshal_name:
+            return {
+                "success": False,
+                "message": "Berthier dips his pen. 'Whose household shall the "
+                           "treasury sustain, Sire? Example: grant Ney a rente.'"
+            }
+
+        marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        acting_nation = command.get("_acting_nation") or marshal.nation
+        if marshal.nation != acting_nation:
+            return {
+                "success": False,
+                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                           f"we cannot pension another crown's marshal."
+            }
+
+        if getattr(marshal, "captured_by", ""):
+            return {
+                "success": False,
+                "message": f"Marshal {marshal.name} sits in a foreign capital — "
+                           f"his household must wait upon his release, Sire."
+            }
+
+        offer = build_rente_offer(marshal, world)
+        face, cost = int(offer["face"]), int(offer["cost"])
+        if face <= 0:
+            held = int(getattr(marshal, "pension", 0))
+            if held > 0:
+                return {
+                    "success": False,
+                    "message": (f"Marshal {marshal.name}'s expectation is "
+                                f"already met — his rente of {held}g/turn "
+                                f"stands unchanged."),
+                }
+            return {
+                "success": False,
+                "message": (f"Marshal {marshal.name}'s expectation is already "
+                            f"met — no rente is needed, Sire."),
+            }
+
+        previous = int(getattr(marshal, "pension", 0))
+        marshal.pension = int(face)
+
+        world.log_event({
+            "type": "rente_granted",
+            "marshal": marshal.name,
+            "nation": acting_nation,
+            "face": int(face),
+            "cost": int(cost),
+            "previous": int(previous),
+        })
+
+        resize_note = (f" (his previous rente of {previous}g/turn is folded in)"
+                       if previous > 0 else "")
+        return {
+            "success": True,
+            "message": (f"By Imperial decree, Marshal {marshal.name} is granted "
+                        f"a rente of {face}g/turn upon the treasury{resize_note}. "
+                        f"With fees and arrears it will cost the crown "
+                        f"{cost}g/turn — paper is dearer than land, Sire, and "
+                        f"it buys no title. It holds his loyalty for exactly "
+                        f"as long as it is paid."),
+            "events": [{
+                "type": "rente_granted",
+                "marshal": marshal.name,
+                "face": int(face),
+                "cost": int(cost),
+                "previous": int(previous),
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_revoke_pension(self, command: Dict, game_state: Dict) -> Dict:
+        """Withdraw a marshal's rente.
+
+        The shortfall machinery reopens on the next reconciliation (grace
+        window, then erosion) — withdrawing favor has the same teeth as
+        losing an estate; no extra penalty is stacked here.
+        """
+        from backend.game_logic.dotation import get_rente_cost, is_dotation_world
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        if not is_dotation_world(world):
+            return {
+                "success": False,
+                "message": "Rentes are not available in this campaign."
+            }
+
+        marshal_name = (command.get("marshal") or "").strip()
+        if not marshal_name:
+            return {
+                "success": False,
+                "message": "Berthier hesitates. 'Whose rente shall the "
+                           "treasury withdraw, Sire?'"
+            }
+
+        marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        acting_nation = command.get("_acting_nation") or marshal.nation
+        if marshal.nation != acting_nation:
+            return {
+                "success": False,
+                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                           f"his rente is not ours to withdraw."
+            }
+
+        previous = int(getattr(marshal, "pension", 0))
+        if previous <= 0:
+            return {
+                "success": False,
+                "message": f"Marshal {marshal.name} holds no rente, Sire."
+            }
+
+        saved = get_rente_cost(previous)
+        marshal.pension = 0
+
+        world.log_event({
+            "type": "rente_revoked",
+            "marshal": marshal.name,
+            "nation": acting_nation,
+            "face": int(previous),
+        })
+
+        # Honest copy (review fix): after estate appreciation the estates
+        # alone may cover his full expectation — revoking the now-redundant
+        # rente reopens nothing, and the message must not threaten erosion
+        # that cannot happen.
+        from backend.game_logic.dotation import get_expectation, get_satisfaction
+        if get_satisfaction(marshal, world) >= get_expectation(marshal):
+            consequence = ("His estates sustain his expectation without it — "
+                           "the paper was redundant, Sire.")
+        else:
+            consequence = ("He will remember who stopped paying, Sire: unmet "
+                           "expectation frays loyalty after its grace expires.")
+
+        return {
+            "success": True,
+            "message": (f"Marshal {marshal.name}'s rente of {previous}g/turn "
+                        f"is withdrawn — the treasury keeps its {saved}g/turn. "
+                        f"{consequence}"),
+            "events": [{
+                "type": "rente_revoked",
+                "marshal": marshal.name,
+                "face": int(previous),
             }],
             "new_state": game_state
         }

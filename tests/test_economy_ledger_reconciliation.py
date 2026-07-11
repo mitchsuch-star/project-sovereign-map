@@ -38,6 +38,8 @@ from backend.models.world_state import WorldState
 # "Occupation" line in strategic_ledger.gd.
 # ES-7 (S7): the full-income redirect to marshals' estates is its own signed
 # component — declared here so the guard forces the "Dotations" render line.
+# ES-7 second pass (§0.6.8): the rente bill is its own signed component —
+# declared here so the guard forces the "Rentes" render line.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -47,6 +49,7 @@ NET_GOLD_COMPONENTS = {
     "settlement_gold": +1,
     "occupation": -1,
     "dotation_skim": -1,
+    "rente_cost": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
 }

@@ -223,6 +223,9 @@ def _build_economy(world, player: str) -> dict:
     # estates — its own signed Net component, rendered as a "Dotations"
     # line (SC-33 both-halves; forced by the NET_GOLD_COMPONENTS guard).
     dotation_skim = int(income_data.get("dotation_skim", 0))
+    # ES-7 second pass (§0.6.8): the rente bill — its own signed Net
+    # component, rendered as a "Rentes" line (same SC-33 contract).
+    rente_cost = int(income_data.get("rente_cost", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
@@ -291,8 +294,8 @@ def _build_economy(world, player: str) -> dict:
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold - occupation - dotation_skim - upkeep_base
-        - upkeep_surcharge
+        + settlement_gold - occupation - dotation_skim - rente_cost
+        - upkeep_base - upkeep_surcharge
     )
 
     # Construction queue: iterate player regions with active builds
@@ -330,6 +333,7 @@ def _build_economy(world, player: str) -> dict:
         "settlement_streams": settlement_streams,
         "occupation": occupation,
         "dotation_skim": dotation_skim,
+        "rente_cost": rente_cost,
         "upkeep": upkeep,
         "upkeep_base": upkeep_base,
         "upkeep_surcharge": upkeep_surcharge,

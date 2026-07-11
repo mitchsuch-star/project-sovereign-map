@@ -276,7 +276,9 @@ class TestPeaceRatifiedCampaignLog:
         # last_stand / marshal_released).
         # W6-8 (July 10, 2026): +2 conquered-estate beats
         # (estate_confiscated / estate_respected).
-        assert len(CAMPAIGN_LOG_TYPES) == 101
+        # ES-7 second pass (§0.6.8, July 11, 2026): +2 rente beats
+        # (rente_granted / rente_revoked).
+        assert len(CAMPAIGN_LOG_TYPES) == 103
 
     def test_format_peace_oneliner(self):
         event = {

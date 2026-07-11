@@ -200,6 +200,19 @@ def _unresolved_address_token(command_text: str,
     return token
 
 
+def _mentions_pension(command_lower: str) -> bool:
+    """ES-7 second pass (§0.6.8): the rente keyword family.
+
+    Several older mock-keyword branches fire on words that also appear in
+    natural rente phrasings — retreat's "withdraw", recruit's "raise", the
+    economy report's "treasury", endow's "grant". Those branches carry this
+    guard so every pension/rente utterance falls through to the pension
+    pair near the end of the chain (CLAUDE.md: mock keyword order matters —
+    the "build parsed as drill" defect class)."""
+    return ("pension" in command_lower or "rente" in command_lower
+            or "annuity" in command_lower)
+
+
 class LLMClient:
     """
     Dual-mode LLM client with provider abstraction:
@@ -1002,7 +1015,10 @@ class LLMClient:
             action = "hold"  # Alias for defend - will be converted in executor
         elif "defend" in command_lower:
             action = "defend"
-        elif "retreat" in command_lower or ("fall back" in command_lower and " to " not in command_lower) or ("withdraw" in command_lower and " to " not in command_lower):
+        # ES-7 second pass (§0.6.8) review fix: "withdraw Ney's rente" is a
+        # pension verb, not an army order — the rente family yields to the
+        # pension branches further down the chain (mock keyword order rule).
+        elif "retreat" in command_lower or ("fall back" in command_lower and " to " not in command_lower) or ("withdraw" in command_lower and " to " not in command_lower and not _mentions_pension(command_lower)):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -1022,7 +1038,10 @@ class LLMClient:
         # "reinforcements" contains the substring "reinforce", so "recruit
         # reinforcements" (and "raise conscripts to reinforce our lines") would
         # otherwise misroute to a destination-less move/SUPPORT order.
-        elif "recruit" in command_lower or re.search(r'\braise\b', command_lower) or "conscript" in command_lower:
+        # ES-7 second pass review fix: "raise Ney's pension" is the top-up
+        # verb, not a levy — the rente family passes through to the pension
+        # branches below.
+        elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
             action = "recruit"
             # Optional: extract what the player ASKED for (for soft correction message)
             if any(kw in command_lower for kw in ["cavalry", "horse", "rider", "horsemen"]):
@@ -1074,7 +1093,11 @@ class LLMClient:
         elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
             action = "repair"
         # Economy info command (Phase 6.2.G)
-        elif any(kw in command_lower for kw in ["economy", "treasury", "finances", "financial"]):
+        # ES-7 second pass review fix: "grant Ney a pension from the
+        # treasury" is a rente command, not a report request — the pension
+        # family passes through (the pension executor's polite refusal beats
+        # silently opening the books).
+        elif any(kw in command_lower for kw in ["economy", "treasury", "finances", "financial"]) and not _mentions_pension(command_lower):
             action = "economy"
         # Garrison command (Session 31) — detach troops to defend a region
         elif re.search(r'\bgarrison\b', command_lower) or any(kw in command_lower for kw in [
@@ -1132,8 +1155,23 @@ class LLMClient:
               or ("grant" in command_lower
                   and any(kw in command_lower for kw in [
                       "estate", "duchy", "domain",
-                  ]))):
+                  ])
+                  and not _mentions_pension(command_lower))):
             action = "grant_dotation"
+        # ES-7 second pass (§0.6.8): the rente — "grant Ney a rente" /
+        # "pension Davout" / "revoke Ney's rente". Revoke checked FIRST
+        # (substring rule) on WORD-BOUNDARY verbs (\bend\b must not fire on
+        # "extend"/"spend"). Earlier branches that shared these words
+        # (retreat's "withdraw", recruit's "raise", the economy report's
+        # "treasury", endow's "grant") carry _mentions_pension guards so
+        # every rente phrasing actually reaches this pair (review fix —
+        # mock keyword order matters).
+        elif (_mentions_pension(command_lower)
+              and re.search(r'\b(revoke|withdraw|rescind|stop|end|terminate|cancel)\b',
+                            command_lower)):
+            action = "revoke_pension"
+        elif _mentions_pension(command_lower):
+            action = "grant_pension"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,

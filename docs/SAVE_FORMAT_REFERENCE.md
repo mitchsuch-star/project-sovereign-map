@@ -399,6 +399,8 @@ Reserved future `event_log` payloads:
 
   "dotation_regions": ["Swabia"],
   "expectation_grace_turn": -1,
+  "pension": 0,
+  "last_expectation_seen": 0,
 
   "relationships": {"Davout": -2, "Grouchy": 0},
 
@@ -532,11 +534,13 @@ Reserved future `event_log` payloads:
 | `autonomous_regions_captured` | int | Captures during autonomy |
 | `trust_warning_shown` | bool | Warning shown at trust < 40 |
 
-#### Estate Endowments (ES-7, Economy Revisit S7)
+#### Estate Endowments (ES-7, Economy Revisit S7 + §0.6.8 second pass)
 | Field | Type | Description |
 |-------|------|-------------|
 | `dotation_regions` | list | Provinces endowed to this marshal — their full effective income redirects to his household; pruned when a province leaves the nation's hands. Default `[]`. |
 | `expectation_grace_turn` | int | Turn an unmet reward expectation was first observed (-1 = none). Erosion fires after the 2-turn grace window. Save-compat: absent → -1, so old saves take no retroactive erosion. |
+| `pension` | int | ES-7 second pass (§0.6.8): the rente FACE in g/turn. Counts fully toward satisfaction; the treasury pays `ceil(1.5 × face)`/turn through the income phase. Neither pays nor counts while captured (W6-7). Default `0`. |
+| `last_expectation_seen` | int | Last expectation value announced in the Morning Dispatch's expectation-rise lines; reconciled at dispatch build. Default `0`. |
 
 #### Relationships & Co-Location (Phase 4 / Phase 7 S59)
 | Field | Type | Description |

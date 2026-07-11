@@ -2347,7 +2347,7 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 
 **Mercy (E6):** bankruptcy halves base AND surcharge (both rates even → exact).
 
-**Income phase:** `process_income_phase(nation)` = income - occupation - dotation_skim - upkeep + admin bonus. Runs for ALL nations during turn resolution.
+**Income phase:** `process_income_phase(nation)` = income - occupation - dotation_skim - rente_cost - upkeep + admin bonus (rente_cost = ES-7 second pass §0.6.8). Runs for ALL nations during turn resolution.
 
 ### Occupation Cost (ES-2, July 9, 2026)
 
@@ -2362,6 +2362,17 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 - **Ledger/UI:** signed `dotation_skim` Net component ("Dotations" line, forced by `NET_GOLD_COMPONENTS`); dispatch situation + "Unmet Marshals" roll-up; treasury report per-estate lines; both turn-end messages + Godot banner; marshal card Expectation/Estates/Shortfall + title + exact-command Endow hint (`marshal_overview._build_estates`); eroding objection tag (cosmetic).
 - **AI (GR5):** `_pick_admin_action` rung (below urgent recruit) endows the most-shortfalling marshal (threshold 80) with the richest eligible province through the same executor; AI marshals erode identically.
 - **Serialized:** `Marshal.dotation_regions` + `Marshal.expectation_grace_turn` only (save-compat: absent → `[]` / `-1`, no retroactive erosion). Tests: `test_economy_es7_dotation.py` (57) + `test_economy_e1_band.py` (the stacked band acceptance).
+
+### The Rente + The Steward (ES-7 second pass §0.6.8, July 11, 2026)
+
+**The reward portfolio — territory is one instrument, not the only one.** Satisfaction = estate income **+ rente face** (`get_satisfaction` = `get_estate_income` + `Marshal.pension`, captured marshals excluded, W6-7).
+
+- **Rente** (`grant_pension` / `revoke_pension`, 1 admin AP each, no fee, mock keywords pension/rente/annuity — revoke verbs revoke/withdraw/rescind only): grant sets `pension = expectation − estate income` (REPLACE semantics — re-grant after new wins is the top-up). The treasury pays **`ceil(RENTE_PREMIUM 1.5 × face)`/turn** — computed in `calculate_turn_income` (`rente_cost` key, `get_nation_rente_bill`), subtracted in `process_income_phase`, rendered as the signed "Rentes" line (ledger `NET_GOLD_COMPONENTS`, dispatch, both turn-end messages, treasury report per-marshal, Godot banner). **No bankruptcy mercy** (deliberate — DESIGN_REFINEMENT ESP-4 owns the arrears/default beat). ZERO trust on grant. AI (GR5): the grant rung prefers land, falls back to the rente when no province is eligible and treasury ≥ max(400, 10× cost).
+- **The Steward:** estate provinces gain/lose stability growth by their holder's administration — `Marshal.get_estate_stability_bonus()` (≥8 → +5/turn, ≤3 → −2, 4–7 byte-identical), applied in `process_stability_growth` via `dotation.get_estate_steward_map` (one marshal-count map per tick; never respected-occupied soil). This is why the portfolio is a genuine decision: land is the better rate AND appreciates (fastest under an able lord) but is lumpy, conquest-gated, and lootable; the rente is instant, precise, war-safe, revocable — premium-priced, static, titleless.
+- **Foresight:** `estate_cession_warning` (player-controlled + player-marshal estates only) renders at every territory surface — settlement review (inline WARNING rows), guided offer labels, the bilateral terms-guidance wizard, bilateral confirm (annotated + summary), incoming settlement offers.
+- **Legibility:** dispatch `expectation_rises` (serialized `Marshal.last_expectation_seen` reconciled at dispatch build) + grace-countdown/pension on Unmet Marshals + `rente_cost`; `DOTATION_EXPECTATION` notification on shortfall-OPEN; battle-report `expectation_note` on decisive player victories; erosion advice names the rente, and says "no conquered province remains to endow" when the eligible list is empty.
+- **Dead-zone fix:** eligibility honors only LIVE claims (controller match / respected / **capture-choice pending** — the W6-8 question keeps its claim alive); grants eagerly strip dead foreign claims through the shared `log_estate_lost` path.
+- **UI:** the Generals card `[Reward…]` bbcode link (meta_clicked) opens the **Marshal's Reward dialog** (`reward_dialog.gd`, layer 109) — estate buttons with income/coverage/investiture, the rente offer with face AND true cost, revoke; buttons issue the standard typed commands; the screen refreshes in place. Serialized: `Marshal.pension`, `Marshal.last_expectation_seen`. Tests: `test_estate_second_pass.py` (66).
 
 **Bankruptcy:** `nation_bankruptcy_turns` tracks consecutive turns with negative gold. Turn 1-2: warnings + halved upkeep. Turn 3+: desertion (5% strength loss per marshal).
 

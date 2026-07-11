@@ -652,6 +652,31 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     from backend.game_logic.diplomatic_templates import annotate_peace_terms
     dialogue["annotated_terms"] = annotate_peace_terms(terms, player_nation, target_nation)
 
+    # ES-7 second pass (§0.6.8 item 3): a bilateral sweetener ceding a
+    # province that sustains a PLAYER marshal's estate warns on BOTH display
+    # paths (annotated section + plain summary fallback) before the
+    # proposal is sent.
+    from backend.game_logic.dotation import estate_cession_warning
+    _warned_regions = set()
+    for _clause in (list(terms.get("sweeteners", []) or [])
+                    + list(terms.get("clauses", []) or [])):
+        if not isinstance(_clause, dict) or _clause.get("type") != "territory_cede":
+            continue
+        for _region_name in _clause.get("regions", []) or []:
+            _region_name = str(_region_name)
+            if _region_name in _warned_regions:
+                continue
+            _warned_regions.add(_region_name)
+            _estate_text = estate_cession_warning(world, _region_name)
+            if _estate_text:
+                dialogue.setdefault("proposal_terms_summary", []).append(
+                    "WARNING: " + _estate_text)
+                dialogue.setdefault("annotated_terms", []).append({
+                    "type": "estate_warning",
+                    "term_direction": "concession",
+                    "display_label": "WARNING: " + _estate_text,
+                })
+
     peace_proposal_types = {"peace", "armistice", "armistice_losing", "armistice_winning"}
     if proposal_type in peace_proposal_types or terms.get("type") in peace_proposal_types:
         snapshot_type = terms.get("type", proposal_type)

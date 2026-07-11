@@ -4787,15 +4787,19 @@ class EnemyAI:
                     "target": weakest.location
                 }
 
-        # Priority 1.5: ES-7 estate endowment (Economy Revisit S7, GR5) —
-        # below urgent recruit, above generic build. Endow the nation's
-        # most-shortfalling marshal with a spare conquered province before
-        # his loyalty erodes further; the investiture fee is deducted in
-        # the executor (never here — the leftover-AP gold bonus is applied
-        # directly in execute_admin_phase, so a fee modeled as a negative
-        # bonus would double-count).
-        if "grant_dotation" not in skip_actions:
-            grant = self._find_dotation_grant(nation, world, treasury)
+        # Priority 1.5: ES-7 estate endowment / rente (Economy Revisit S7 +
+        # §0.6.8 second pass, GR5) — below urgent recruit, above generic
+        # build. Endow the nation's most-shortfalling marshal with a spare
+        # conquered province before his loyalty erodes further; when no
+        # province is eligible, pension him instead if the treasury can
+        # carry the premium. Fees are deducted in the executor (never here —
+        # the leftover-AP gold bonus is applied directly in
+        # execute_admin_phase, so a fee modeled as a negative bonus would
+        # double-count).
+        if ("grant_dotation" not in skip_actions
+                or "grant_pension" not in skip_actions):
+            grant = self._find_dotation_grant(nation, world, treasury,
+                                              skip_actions)
             if grant:
                 return grant
 
@@ -4907,27 +4911,37 @@ class EnemyAI:
         # Priority 8: Save AP for income bonus
         return None
 
-    def _find_dotation_grant(self, nation: str, world, treasury: int) -> Optional[Dict]:
-        """ES-7 (S7): endow the nation's most-shortfalling marshal (GR5).
+    def _find_dotation_grant(self, nation: str, world, treasury: int,
+                             skip_actions: Optional[set] = None) -> Optional[Dict]:
+        """ES-7 (S7) + §0.6.8: reward the nation's most-shortfalling marshal (GR5).
 
-        Fires when a marshal's reward shortfall clears the threshold, an
-        eligible conquered province exists (amendment-4 predicate via
-        list_eligible_estates — cached region index, GR8), and the treasury
-        covers the investiture fee. Picks the richest eligible province for
-        the neediest marshal; the same executor path as the player performs
-        the grant (fee deducted in-executor).
+        Land first — an eligible conquered province at the richest slot
+        (better rate, and it appreciates under the Steward). When NO
+        province is eligible (post-peace, defensive war), fall back to the
+        rente IF the treasury can carry the premium bill
+        (RENTE_AI_TREASURY_MULT × per-turn cost, floor
+        RENTE_AI_TREASURY_FLOOR) — the same portfolio the player faces.
+        Both arms run through the shared executor.
         """
         from backend.game_logic.dotation import (
-            AI_GRANT_SHORTFALL_THRESHOLD, compute_investiture_fee,
-            get_shortfall, is_dotation_world,
+            AI_GRANT_SHORTFALL_THRESHOLD, RENTE_AI_TREASURY_FLOOR,
+            RENTE_AI_TREASURY_MULT, compute_investiture_fee,
+            compute_rente_face, get_rente_cost, get_shortfall,
+            is_dotation_world, list_eligible_estates,
         )
         if not is_dotation_world(world):
             return None
+        skip_actions = skip_actions or set()
 
         neediest = None
         worst_shortfall = 0
         for marshal in world.marshals.values():
             if marshal.nation != nation or marshal.strength <= 0:
+                continue
+            # W6-7: a captured marshal's expectations are frozen — never
+            # spend on a household that cannot receive (the pension
+            # executor refuses captured marshals outright).
+            if getattr(marshal, "captured_by", ""):
                 continue
             shortfall = get_shortfall(marshal, world)
             if shortfall >= AI_GRANT_SHORTFALL_THRESHOLD and shortfall > worst_shortfall:
@@ -4935,18 +4949,30 @@ class EnemyAI:
                 worst_shortfall = shortfall
         if neediest is None:
             return None
-        if treasury < compute_investiture_fee(neediest):
-            return None
 
-        from backend.game_logic.dotation import list_eligible_estates
-        eligible = list_eligible_estates(world, nation)
-        if not eligible:
-            return None
-        return {
-            "action": "grant_dotation",
-            "marshal": neediest.name,
-            "target": eligible[0],   # richest first — closes the gap fastest
-        }
+        # Arm 1 — land (better rate; appreciates).
+        if ("grant_dotation" not in skip_actions
+                and treasury >= compute_investiture_fee(neediest)):
+            eligible = list_eligible_estates(world, nation)
+            if eligible:
+                return {
+                    "action": "grant_dotation",
+                    "marshal": neediest.name,
+                    "target": eligible[0],   # richest first — closes the gap fastest
+                }
+
+        # Arm 2 — the rente (§0.6.8): premium-priced, so only when the
+        # treasury can carry the recurring bill.
+        if "grant_pension" not in skip_actions:
+            face = compute_rente_face(neediest, world)
+            cost = get_rente_cost(face)
+            if face > 0 and treasury >= max(RENTE_AI_TREASURY_FLOOR,
+                                            RENTE_AI_TREASURY_MULT * cost):
+                return {
+                    "action": "grant_pension",
+                    "marshal": neediest.name,
+                }
+        return None
 
     # AI Recruitment Thresholds (Phase 6.2 Audit)
     #

@@ -105,9 +105,23 @@ func _on_dispatch_received(response):
 		auth_color = Utils.COLOR_ERROR
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
 
+	# ES-7 second pass (§0.6.8 item 4a): expectation RISES — the briefing
+	# announces WHEN a marshal starts expecting more, not just when he sours.
+	var rises = situation.get("expectation_rises", [])
+	if rises is Array and rises.size() > 0:
+		for r in rises:
+			if not (r is Dictionary):
+				continue
+			var r_name = str(r.get("marshal", "?"))
+			var r_exp = int(r.get("expectation", 0))
+			var r_sat = int(r.get("satisfaction", 0))
+			var r_line = "  " + r_name + "'s victories raise his expectation — he now looks for " + str(r_exp) + "g/turn (holds " + str(r_sat) + "g)."
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + r_line + "[/color]\n"
+
 	# ES-7 (Economy Revisit S7): Unmet Marshals roll-up — marshals whose
 	# reward expectation exceeds their estate income; eroding = loyalty
-	# actively bleeding (grace window elapsed).
+	# actively bleeding (grace window elapsed). §0.6.8: plus the grace
+	# countdown (the action window) and any standing rente.
 	var unmet = situation.get("unmet_marshals", [])
 	if unmet is Array and unmet.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_WARNING + "]  UNMET MARSHALS[/color]\n"
@@ -119,8 +133,16 @@ func _on_dispatch_received(response):
 			var u_sat = int(u.get("satisfaction", 0))
 			var u_eroding = u.get("eroding", false)
 			var u_color = Utils.COLOR_ERROR if u_eroding else Utils.COLOR_WARNING
-			var u_note = " — loyalty eroding" if u_eroding else ""
-			bbcode += "[color=#" + u_color + "]    " + u_name + " expects " + str(u_exp) + "g/turn of estates, holds " + str(u_sat) + "g" + u_note + "[/color]\n"
+			var u_note = ""
+			if u_eroding:
+				u_note = " — loyalty eroding"
+			else:
+				var u_grace = int(u.get("grace_turns_left", -1))
+				if u_grace >= 0:
+					u_note = " — patience holds " + str(u_grace) + " more turn" + ("s" if u_grace != 1 else "")
+			var u_pension = int(u.get("pension", 0))
+			var u_rente = " (incl. " + str(u_pension) + "g rente)" if u_pension > 0 else ""
+			bbcode += "[color=#" + u_color + "]    " + u_name + " expects " + str(u_exp) + "g/turn, holds " + str(u_sat) + "g" + u_rente + u_note + "[/color]\n"
 	bbcode += "\n"
 
 	# ═══ MARSHAL STATUS ═══

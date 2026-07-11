@@ -542,6 +542,8 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     occupation = int(income_data.get("occupation", 0))
     # ES-7 (S7): income redirected to marshals' estates — same treatment
     dotation_skim = int(income_data.get("dotation_skim", 0))
+    # ES-7 second pass (§0.6.8): the rente bill — same treatment
+    rente_cost = int(income_data.get("rente_cost", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
@@ -549,15 +551,21 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     trade_income = int(trade_income_all.get(player_nation, 0))
 
     treasury_delta = int(income + trade_income - occupation - dotation_skim
-                         - upkeep)
+                         - rente_cost - upkeep)
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the
     # grace window has elapsed (dotation.py — Europe-scoped, empty on the
-    # legacy fixture).
+    # legacy fixture). §0.6.8 item 4a: plus grace_turns_left (the action
+    # window, counted down) and the marshal's current rente.
     unmet_marshals = []
+    # §0.6.8 item 4a: expectation RISES since the last dispatch — "the game
+    # tells you when they expect more". Reconciled against the serialized
+    # Marshal.last_expectation_seen at dispatch build (once per turn).
+    expectation_rises = []
     from backend.game_logic.dotation import (
-        get_expectation, get_satisfaction, is_dotation_world, is_eroding,
+        GRACE_TURNS, get_expectation, get_satisfaction, is_dotation_world,
+        is_eroding,
     )
     if is_dotation_world(world):
         for m in world.marshals.values():
@@ -565,13 +573,33 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
                 continue
             expectation = get_expectation(m)
             satisfaction = get_satisfaction(m, world)
+            previous_seen = int(getattr(m, "last_expectation_seen", 0))
+            if expectation > previous_seen:
+                if previous_seen > 0 or expectation > satisfaction:
+                    # First-ever expectation with it already met stays
+                    # quiet — announce demands, not bookkeeping.
+                    expectation_rises.append({
+                        "marshal": m.name,
+                        "expectation": int(expectation),
+                        "previous": int(previous_seen),
+                        "satisfaction": int(satisfaction),
+                    })
+                m.last_expectation_seen = int(expectation)
             if expectation > satisfaction:
+                grace_turns_left = -1
+                if not getattr(m, "captured_by", ""):
+                    grace_start = int(getattr(m, "expectation_grace_turn", -1))
+                    if grace_start >= 0:
+                        grace_turns_left = max(
+                            0, GRACE_TURNS - (world.current_turn - grace_start))
                 unmet_marshals.append({
                     "marshal": m.name,
                     "expectation": int(expectation),
                     "satisfaction": int(satisfaction),
                     "shortfall": int(expectation - satisfaction),
                     "eroding": bool(is_eroding(m, world)),
+                    "grace_turns_left": int(grace_turns_left),
+                    "pension": int(getattr(m, "pension", 0)),
                 })
 
     bankrupt = int(world.nation_bankruptcy_turns.get(player_nation, 0)) > 0
@@ -608,6 +636,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # morning briefing names whose loyalty is at stake, not just a number
         "dotation_skim": dotation_skim,
         "unmet_marshals": unmet_marshals,
+        # ES-7 second pass (§0.6.8): the rente bill + expectation rises —
+        # the briefing announces WHEN a marshal starts expecting more
+        "rente_cost": rente_cost,
+        "expectation_rises": expectation_rises,
         # ES-3 (S5): over-limit breakdown rides the dispatch so the morning
         # projection can explain a heavy upkeep (treasury_delta above already
         # includes the surcharge via upkeep_data["total"]).

@@ -51,6 +51,9 @@ MOCK_REACHABLE_ACTIONS = [
     "make_amends", "request_terms", "set_war_purpose", "repudiate_bargain",
     # ES-7 Estate Endowment (Economy Revisit S7)
     "grant_dotation",
+    # ES-7 second pass (§0.6.8): the rente — pension/rente/annuity keyword
+    # family; revoke checked before grant in the mock chain.
+    "grant_pension", "revoke_pension",
     # W6-9 (EXP-D1): the strategic assessment verb — mock-reachable via the
     # assess/situation keyword branch AND the question path.
     "diplomatic_advisory",

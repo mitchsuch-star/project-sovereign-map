@@ -372,6 +372,11 @@ func _render_economy():
 	var dotation_skim = int(econ.get("dotation_skim", 0))
 	if dotation_skim > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Dotations: -" + str(dotation_skim) + "g[/color]\n"
+	# ES-7 second pass (§0.6.8): the rente bill — treasury pensions at
+	# premium; its own signed Net component (same SC-33 contract).
+	var rente_cost = int(econ.get("rente_cost", 0))
+	if rente_cost > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Rentes: -" + str(rente_cost) + "g[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).

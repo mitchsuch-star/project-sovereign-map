@@ -97,6 +97,9 @@ ALLY_SETTLEMENT_PETITION = "ally_settlement_petition"
 # leaves the nation's hands (peace cede, recapture, rebellion, vassal grab).
 DOTATION_EROSION = "dotation_erosion"                # HIGH: loyalty fraying
 ESTATE_LOST = "estate_lost"                          # HIGH: estate pruned
+# ES-7 second pass (§0.6.8): fired when a shortfall first OPENS (the grace
+# clock starts) — the player's action window, announced at its start.
+DOTATION_EXPECTATION = "dotation_expectation"        # NORMAL: reward expected
 # W6-8 (Spoils of War): an enemy conqueror CONFISCATED a player marshal's
 # estate outright — fired at confiscation time because the region leaves the
 # marshal's rolls immediately, so the prune's ESTATE_LOST never sees it.

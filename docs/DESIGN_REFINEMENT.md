@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** This is the design-refinement backlog; execution routes through `docs/ROADMAP.md`'s current phase queue. (The old "work begins after `BUG_FIXES.md` is clear" gate cleared April 2026.)
 >
-> **Last Updated:** July 10, 2026 — **Wave 6 APPROVED IN FULL same day it was filed** (+2 gate additions: Dynamic Battle Naming, Literal Doctrine); the build-ready owner is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (12 slices, blessed default numbers recorded there). Wave 6 items came from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153 (now SUPERSEDED by W6-5), R129/R131/R132, R155/R156, R117 (absorbed into W6-9). Prior: July 2, 2026 present-tense pass. April 16, 2026 rescope context preserved below as history.
+> **Last Updated:** July 11, 2026 — **Estate Second Pass deferrals filed** (ESP-1..4, from the ES-7 second-pass design conversation; owner spec `ECONOMY_REVISIT_SPEC.md` §0.6.8). Prior: July 10, 2026 — **Wave 6 APPROVED IN FULL same day it was filed** (+2 gate additions: Dynamic Battle Naming, Literal Doctrine); the build-ready owner is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (12 slices, blessed default numbers recorded there). Wave 6 items came from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153 (now SUPERSEDED by W6-5), R129/R131/R132, R155/R156, R117 (absorbed into W6-9). Prior: July 2, 2026 present-tense pass. April 16, 2026 rescope context preserved below as history.
 
 ---
 
@@ -20,7 +20,8 @@
 | Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
 | Jealousy System | 1 | Separate design gate; Marshal Content Pass MC-3 now an effective prerequisite |
 | **Wave 6 — Creative Capstone (July 10, 2026)** | 14 | **✅ APPROVED IN FULL July 10** (6 expansions + 6 escalations + 2 gate additions: Dynamic Battle Naming, Literal Doctrine); owner = `WAVE6_FUN_FACTOR_SPEC.md` (12 build slices W6-0..W6-11) |
-| **Total** | **59** | |
+| **Estate Second Pass deferrals (July 11, 2026)** | 4 | Filed at the §0.6.8 build — ESP-1 Fontainebleau beat + ESP-2 war-weary rich marshals → Jealousy v3.1 gate; ESP-3 respect-by-treaty → diplomacy gate; ESP-4 rente arrears → econ pass 2 |
+| **Total** | **63** | |
 
 ---
 
@@ -434,6 +435,40 @@ These items are conscious trade-offs where v0.1 chose recognizability, immersion
 - **Urgency raised (July 2, 2026):** 20 nations render now in the shipped 1805 campaign. Owner: queue item 6 (Talleyrand Desk + Explanation Layer) or pre-EA polish.
 - **Files:** `godot-client/project-sovereign/scripts/diplomatic_ledger.gd`
 - **Est. sessions:** 1 as a standalone UX slice, or folded into the Talleyrand Desk pass
+
+---
+
+## Estate Second Pass deferrals (July 11, 2026)
+
+Filed at the ES-7 second-pass build (`ECONOMY_REVISIT_SPEC.md` §0.6.8 — the estates+rentes reward portfolio). Historically grounded in the July-11 design conversation (Domaine Extraordinaire rentes/arrears; Fontainebleau April 1814; Murat's January-1814 Austria treaty).
+
+### ESP-1: The Fontainebleau beat (collective marshal petition)
+- **Summary:** When several marshals are eroding simultaneously (shortfall past grace), the system today runs parallel silent trust bleeds. History says this moment *speaks*: at Fontainebleau the marshals collectively told Napoleon "the army will not march" and forced the abdication. Fire a collective dialogue when ≥3 marshals are eroding on the same turn — a petition demanding estates, rentes, or peace, with real player choices (concede / refuse with trust cost / partial). Converts the death spiral from a punishment into the game's best scene.
+- **When to land:** Jealousy v3.1 gate (next queue item) — the gate already owns marshal-collective emotional mechanics; this is its natural marquee event.
+- **Completion definition:** the petition fires under the trigger in a live game, is answerable via popup, each arm has deterministic effects and tests, and STATUS records the landing.
+- **Files:** `backend/models/world_state.py` (`_process_dotation_state` trigger), `backend/models/dialogue_manager.py`, `backend/game_logic/dotation.py`, Godot dialogue whitelist (per the dialogue-popup-wiring rule).
+- **Est. sessions:** 1
+
+### ESP-2: War-weary rich marshals (satisfaction objects to new wars)
+- **Summary:** Historically the *endowed* marshals were the peace party — by 1812–13 the men with duchies begged Napoleon to stop. Mechanically: a marshal whose expectation is fully met and large (satisfaction ≥ a floor) gains an objection trigger against NEW aggressive war declarations ("I have my duchy, Sire — why do we march again?"). Rides the existing objection_v2 ConcernLevel machinery; no new dialogue plumbing.
+- **When to land:** Jealousy v3.1 gate, same personality/emotion review.
+- **Completion definition:** objection fires for a rich marshal on a player war declaration, never for poor marshals, GR5-checked where applicable, behavior tests.
+- **Files:** `backend/commands/objection_v2.py`, `backend/game_logic/dotation.py` (satisfaction query), `backend/game_logic/diplomacy.py` (war-declaration seam).
+- **Est. sessions:** 0.5 (folded into the Jealousy build)
+
+### ESP-3: Respect-by-treaty (the Murat clause)
+- **Summary:** Treaty transfers of estate provinces currently strip silently on the next tick; only military capture offers the confiscate/respect choice (W6-8). Historically treaty-preserved dotations were real furniture — Murat kept Naples by treaty with Austria (Jan 1814). On ratification of a settlement/treaty that hands YOU a province funding an enemy marshal's estate, fire the same confiscate/respect choice (AI uses its existing at-war rule); respect feeds the existing `respected_estate_mod` +5 acceptance term.
+- **When to land:** a future diplomacy gate — touches ratification flow and acceptance math, so it must NOT land ad hoc. Candidate venue: 8.EVAL's diplomacy triage or a Settlement addendum gate.
+- **Completion definition:** choice fires at the ratify seam for player-received estate provinces, AI symmetric, acceptance term verified, tests for both arms + the third-party-cede no-choice case.
+- **Files:** `backend/game_logic/settlement_ratify.py`, `backend/models/world_state.py` (treaty-clause transfer), `backend/game_logic/dotation.py`, `godot-client/.../capture_choice_dialog.gd` (estate stage reuse).
+- **Est. sessions:** 1
+
+### ESP-4: Rente arrears/default beat
+- **Summary:** §0.6.8 pass-1 rentes charge like upkeep with no bankruptcy mercy. The historical texture — rentes chronically in arrears, marshals resenting unpaid paper — is a drama beat: when the treasury cannot cover the rente bill, rentes lapse (auto-revoke) with a notification ("the treasury defaults on his rente — he holds worthless paper, Sire") and the shortfall machinery reopens. Cheap, legible, and makes deficit-financing marshal loyalty a real risk.
+- **When to land:** Economy pass 2 (EC-1 successor work), or fold into the Fontainebleau slice if the Jealousy gate takes ESP-1.
+- **Completion definition:** insolvency lapses rentes deterministically at one defined seam, notification + dispatch line, both sides GR5, tests incl. the recovery case (re-grant after solvency returns).
+- **Files:** `backend/models/world_state.py` (income/bankruptcy seam), `backend/game_logic/dotation.py`, `backend/notifications.py`.
+- **Est. sessions:** 0.5
 
 ---
 

@@ -21,7 +21,10 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 # Single source of truth — imported by executor.py (P3-1 consolidation)
 # grant_dotation: ES-7 estate endowment (Economy Revisit S7) — 1 admin AP,
 # investiture fee deducted in the executor.
-ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation"}
+# grant_pension / revoke_pension: ES-7 second pass (§0.6.8) rente — 1 admin
+# AP each, no fee (the recurring premium is the cost).
+ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
+                 "grant_pension", "revoke_pension"}
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:
@@ -240,15 +243,17 @@ class MetaExecutor:
         occupation_val = int(income_data.get("occupation", 0))
         # ES-7 (S7): estate redirect is its own Net component too
         dotation_val = int(income_data.get("dotation_skim", 0))
+        # ES-7 second pass (§0.6.8): the rente bill is its own Net component
+        rente_val = int(income_data.get("rente_cost", 0))
         spent_val = saved_gold_spent.get(nation, 0)
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
-        # so Income - Occupation - Dotations - Upkeep + Other == Net == the
-        # real treasury delta.
+        # so Income - Occupation - Dotations - Rentes - Upkeep + Other == Net
+        # == the real treasury delta.
         net_val = treasury - treasury_before_turn
         other_val = net_val - (income_val - occupation_val - dotation_val
-                               - upkeep_val)
+                               - rente_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
@@ -256,10 +261,11 @@ class MetaExecutor:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
         occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
+        rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
         surcharge_val = int(upkeep_data.get("surcharge", 0))
         surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -274,6 +280,7 @@ class MetaExecutor:
             "income": int(income_data.get("income", 0)),
             "occupation": int(occupation_val),
             "dotation_skim": int(dotation_val),
+            "rente_cost": int(rente_val),
             "upkeep": int(upkeep_val),
             "other": int(other_val),
             "spent": int(spent_val),
@@ -480,7 +487,16 @@ ECONOMY (Admin AP - the new imperial economy):
                First estate = 200g investiture; more are fee-free.
                Victories raise a marshal's EXPECTATION of reward -
                leave it unmet and his loyalty erodes each turn.
-               Estates never pay occupation costs.
+               Estates never pay occupation costs, and they GROW:
+               an able administrator's estates (admin 8+) stabilize
+               faster; a wasteful lord's (3-) decay.
+  rente      - "Grant Ney a rente" (1 AP) / "Revoke Ney's rente"
+               The treasury alternative to land: a pension sized to
+               his current shortfall. Safe from war and instantly
+               available anywhere - but it costs the crown HALF
+               AGAIN its face each turn, never grows, and buys no
+               title. Re-grant after new victories to top it up.
+               (Or press G and use the Reward button on his card.)
 
   THE IMPERIAL BOOKS (press T for the full ledger):
   - Upkeep: 8g per 1,000 troops. Armies over your FORCE LIMIT pay

@@ -313,6 +313,11 @@ class WorldState:
             # ES-7 (Economy Revisit S7): endow a marshal with an estate.
             # 1 ADMIN AP (ADMIN_ACTIONS) + the investiture fee in-executor.
             "grant_dotation": 1,
+            # ES-7 second pass (§0.6.8): the rente — grant sizes the pension
+            # to the current gap; revoke withdraws it. 1 ADMIN AP each, no
+            # fee (the premium is the recurring cost).
+            "grant_pension": 1,
+            "revoke_pension": 1,
         }
 
         # ============================================================
@@ -3702,6 +3707,15 @@ class WorldState:
         total_income += naval_income
         # Trade income applied separately via diplomacy.calculate_trade_income()
 
+        # ES-7 second pass (§0.6.8): the rente bill — treasury cost of the
+        # nation's pensions (premium-priced). Deliberately NO bankruptcy
+        # mercy in pass 1 (the arrears/default beat is DESIGN_REFINEMENT
+        # ESP-4, not silent scope).
+        rente_cost = 0
+        if europe:
+            from backend.game_logic.dotation import get_nation_rente_bill
+            rente_cost = get_nation_rente_bill(self, nation)
+
         return {
             "income": total_income,
             "occupation": int(occupation_cost),
@@ -3710,12 +3724,16 @@ class WorldState:
             # mercy needed (E6) — it redirects income the nation is earning,
             # so it structurally floors the estate's net contribution at 0.
             "dotation_skim": int(dotation_skim),
+            # ES-7 second pass: rentes are a TREASURY spend (can run the
+            # nation negative), unlike the skim's structural floor at 0.
+            "rente_cost": int(rente_cost),
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
                 "naval_income": naval_income,
                 "occupation": int(occupation_cost),
                 "dotation_skim": int(dotation_skim),
+                "rente_cost": int(rente_cost),
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -3930,8 +3948,10 @@ class WorldState:
         # ES-7 (S7): full income of endowed provinces is redirected to the
         # marshals' estates — same seam for player and AI (GR5).
         dotation_skim = int(income_data.get("dotation_skim", 0))
+        # ES-7 second pass (§0.6.8): the rente bill — same seam both sides.
+        rente_cost = int(income_data.get("rente_cost", 0))
 
-        net = (income_data["income"] - occupation - dotation_skim
+        net = (income_data["income"] - occupation - dotation_skim - rente_cost
                - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
@@ -3941,11 +3961,13 @@ class WorldState:
 
         occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
         dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
+        rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
         return {
             "nation": nation,
             "income": income_data["income"],
             "occupation": occupation,
             "dotation_skim": dotation_skim,
+            "rente_cost": rente_cost,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
             "admin_bonus": int(admin_bonus),
@@ -3955,7 +3977,7 @@ class WorldState:
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
                        f"+{income_data['income']} income"
-                       f"{occupation_str}{dotation_str}, "
+                       f"{occupation_str}{dotation_str}{rente_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
                        f" = {'+' if net >= 0 else ''}{net} net")
@@ -4000,7 +4022,7 @@ class WorldState:
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
             get_expectation, get_satisfaction, is_estate_respected,
-            prune_respected_estates,
+            list_eligible_estates, log_estate_lost, prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below
@@ -4030,30 +4052,9 @@ class WorldState:
                 ]
                 for region_name in lost:
                     marshal.dotation_regions.remove(region_name)
-                    self.log_event({
-                        "type": "estate_lost",
-                        "marshal": marshal.name,
-                        "nation": marshal.nation,
-                        "region": region_name,
-                    })
-                    if marshal.nation == self.player_nation:
-                        from backend.notifications import (
-                            ESTATE_LOST, NotificationPriority,
-                            create_notification,
-                        )
-                        self.notifications.add(create_notification(
-                            notification_type=ESTATE_LOST,
-                            priority=NotificationPriority.HIGH,
-                            title=f"Marshal {marshal.name} stripped of his estate",
-                            message=(
-                                f"{region_name}, the estate that funded Marshal "
-                                f"{marshal.name}'s honor, has passed from our hands. "
-                                f"He will not forget, Sire."
-                            ),
-                            turn_created=int(self.current_turn),
-                            details={"marshal": marshal.name,
-                                     "region": region_name},
-                        ))
+                    # §0.6.8: single event/notification path, shared with
+                    # the eager grant-time strip (dotation.log_estate_lost).
+                    log_estate_lost(self, marshal, region_name)
 
             # 2) Reconcile expectation vs satisfaction (both in gold/turn —
             #    directly comparable; that comparability IS the legibility).
@@ -4069,6 +4070,30 @@ class WorldState:
             if marshal.expectation_grace_turn < 0:
                 # First unmet turn: start the grace clock, no erosion yet.
                 marshal.expectation_grace_turn = int(self.current_turn)
+                # §0.6.8 item 4b: the grace window IS the player's action
+                # window — announce it when it opens (one per episode).
+                if marshal.nation == self.player_nation:
+                    from backend.notifications import (
+                        DOTATION_EXPECTATION, NotificationPriority,
+                        create_notification,
+                    )
+                    self.notifications.add(create_notification(
+                        notification_type=DOTATION_EXPECTATION,
+                        priority=NotificationPriority.NORMAL,
+                        title=f"Marshal {marshal.name} expects reward",
+                        message=(
+                            f"Marshal {marshal.name} looks for "
+                            f"{expectation}g/turn and holds {satisfaction}g. "
+                            f"His patience holds {GRACE_TURNS} turns — an "
+                            f"estate or a rente will keep his loyalty whole."
+                        ),
+                        turn_created=int(self.current_turn),
+                        details={"marshal": marshal.name,
+                                 "expectation": int(expectation),
+                                 "satisfaction": int(satisfaction),
+                                 "shortfall": int(shortfall),
+                                 "grace_turns": int(GRACE_TURNS)},
+                    ))
                 continue
 
             elapsed = self.current_turn - marshal.expectation_grace_turn
@@ -4087,6 +4112,15 @@ class WorldState:
                     DOTATION_EROSION, NotificationPriority,
                     create_notification,
                 )
+                # §0.6.8 item 4d: honest advice — never tell the player to
+                # endow when no eligible province exists.
+                if list_eligible_estates(self, marshal.nation):
+                    remedy = ("endow him with an estate or grant him a "
+                              "rente to stop the erosion.")
+                else:
+                    remedy = ("no conquered province remains to endow — "
+                              "grant a rente, or let victory furnish an "
+                              "estate.")
                 self.notifications.add(create_notification(
                     notification_type=DOTATION_EROSION,
                     priority=NotificationPriority.HIGH,
@@ -4095,7 +4129,7 @@ class WorldState:
                         f"Marshal {marshal.name}'s victories remain unrewarded "
                         f"(expects {expectation}g/turn of estates; holds "
                         f"{satisfaction}g/turn). His loyalty is fraying — "
-                        f"endow him with an estate to stop the erosion."
+                        f"{remedy}"
                     ),
                     turn_created=int(self.current_turn),
                     details={"marshal": marshal.name,
@@ -4113,14 +4147,22 @@ class WorldState:
 
         Base growth: +5/turn.
         Garrison bonus: +5 if a friendly marshal is present (total +10).
+        The Steward (ES-7 second pass, §0.6.8): an estate province grows
+        faster or slower by its holder's administration tier — single
+        source Marshal.get_estate_stability_bonus, map built ONCE per tick
+        (GR8; empty off-Europe). This appreciation is what makes land a
+        different instrument from a rente.
         Also clears plundered flag when stability recovers past 50 (Phase 6.2.E).
         """
+        from backend.game_logic.dotation import get_estate_steward_map
+        steward_map = get_estate_steward_map(self)
         for region in self.regions.values():
             if region.controller is None:
                 continue  # Neutral/unclaimed regions don't grow
             base_growth = 5
             garrison_bonus = 5 if self._has_marshal_in_region(region.name, region.controller) else 0
-            region.stability = min(100, region.stability + base_growth + garrison_bonus)
+            steward = steward_map.get(region.name, 0)
+            region.stability = min(100, region.stability + base_growth + garrison_bonus + steward)
             # Clear plundered flag when region recovers (Phase 6.2.E)
             if region.plundered and region.stability > 50:
                 region.plundered = False

@@ -2172,6 +2172,24 @@ def build_incoming_settlement_offer_popup(
             continue
         terms_summary.append(_term_display(term))
 
+    # ES-7 second pass (§0.6.8 item 3): an incoming offer demanding a
+    # province that sustains a PLAYER marshal's estate says so — accepting
+    # it is a foresighted choice, never a silent strip. Covers both the
+    # singular `region` and plural `regions` clause shapes (review fix).
+    from backend.game_logic.dotation import estate_cession_warning
+    _estate_warned = set()
+    for term in settlement_terms:
+        if str(term.get("type") or "") != "territory_cede":
+            continue
+        for _raw_name in [term.get("region")] + list(term.get("regions") or []):
+            _region_name = str(_raw_name or "")
+            if not _region_name or _region_name in _estate_warned:
+                continue
+            _estate_warned.add(_region_name)
+            _estate_text = estate_cession_warning(world, _region_name)
+            if _estate_text:
+                terms_summary.append("WARNING: " + _estate_text)
+
     # W6-10 (E-CA-5) — territorial honesty: a peace that freezes the lines
     # must say WHO KEEPS WHAT. When any war participant occupies an
     # opposing participant's homeland soil, the summary appends the

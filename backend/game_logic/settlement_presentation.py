@@ -1265,7 +1265,40 @@ def build_settlement_review(
 
     enriched_terms = [_enrich_term_row(t) for t in terms]
     enriched_allies = [_enrich_ally_row(a) for a in allies]
-    enriched_warnings = [_enrich_warning_row(w) for w in warnings]
+    # ES-7 second pass (§0.6.8 item 3): a territory clause ceding a province
+    # that sustains a PLAYER marshal's estate warns HERE — the last surface
+    # before ratification. Prepended so the compact density cap can never
+    # push it into the overflow.
+    estate_warning_rows: list = []
+    if world is not None:
+        from backend.game_logic.dotation import estate_cession_warning
+        seen_regions: set = set()
+        for term in terms:
+            if str(term.get("type", "")) != "territory_cede":
+                continue
+            # Review fix: territory clauses carry EITHER the singular
+            # `region` or the plural `regions` shape — cover both, like
+            # the ratify-time normalization does.
+            clause_regions = [term.get("region")] + list(
+                term.get("regions") or [])
+            for raw_name in clause_regions:
+                region_name = str(raw_name or "")
+                if not region_name or region_name in seen_regions:
+                    continue
+                seen_regions.add(region_name)
+                text = estate_cession_warning(world, region_name)
+                if text:
+                    estate_warning_rows.append({
+                        "code": "estate_cession",
+                        "code_display": "Marshal's estate at stake",
+                        "detail": text,
+                        # WARNING severity: the cap keeps at least one inline
+                        # (never HARD_STOP — estates never block ratification).
+                        "severity": "WARNING",
+                    })
+    enriched_warnings = (
+        estate_warning_rows + [_enrich_warning_row(w) for w in warnings]
+    )
     terms_inline, terms_overflow = _slice_for_density(enriched_terms, density, _DENSITY_TERMS)
     allies_inline, allies_overflow = _slice_for_density(enriched_allies, density, _DENSITY_ALLIES)
     warning_cap = 1 if density == "compact" else SETTLEMENT_INLINE_WARNING_CAP

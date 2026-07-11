@@ -3142,6 +3142,72 @@
       "notes": "No target pinned — the executor lists eligible estates when the province is omitted. Parses on both worlds; on the legacy fixture the executor refuses (ES-7 is Europe-scoped, N1)."
     },
     {
+      "id": "es7sp-grant-ney-a-rente",
+      "utterance": "grant Ney a rente",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney"
+      },
+      "source": "ES-7 second pass (ECONOMY_REVISIT_SPEC §0.6.8) — the rente keyword family; new-action corpus coverage (checklist step 12).",
+      "notes": "Face is auto-sized in the executor (expectation − estate income), so no target is pinned. The player-facing surface is the Reward dialog on the Generals card; this is the typed form the dialog buttons also issue."
+    },
+    {
+      "id": "es7sp-pension-davout",
+      "utterance": "pension Davout",
+      "world": "any",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Davout"
+      },
+      "source": "ES-7 second pass (§0.6.8) — bare 'pension' verb form.",
+      "notes": "Parses on both worlds; on the legacy fixture the executor refuses (rentes are Europe-scoped, N1)."
+    },
+    {
+      "id": "es7sp-revoke-neys-rente",
+      "utterance": "revoke Ney's rente",
+      "world": "1805",
+      "expected": {
+        "action": "revoke_pension",
+        "marshal": "Ney"
+      },
+      "source": "ES-7 second pass (§0.6.8) — revoke checked BEFORE grant in the mock chain (substring rule), word-boundary verbs revoke/withdraw/rescind/stop/end/terminate/cancel.",
+      "notes": "Withdrawing the rente reopens the shortfall machinery (grace, then erosion) — executor-tier behavior, tested in test_estate_second_pass.py."
+    },
+    {
+      "id": "es7sp-withdraw-neys-rente",
+      "utterance": "withdraw Ney's rente",
+      "world": "1805",
+      "expected": {
+        "action": "revoke_pension",
+        "marshal": "Ney"
+      },
+      "source": "ES-7 second pass review fix — the retreat branch's 'withdraw' clause carries a _mentions_pension guard so this reaches the revoke branch instead of ordering Ney to RETREAT (the review's confirmed MED misroute).",
+      "notes": "Keyword-order pin: retreat is checked ~140 lines earlier in the mock chain; without the guard this utterance parsed to action=retreat at confidence 0.9 (bypassing the LLM fallback even in live mode)."
+    },
+    {
+      "id": "es7sp-stop-davouts-pension",
+      "utterance": "stop Davout's pension",
+      "world": "any",
+      "expected": {
+        "action": "revoke_pension",
+        "marshal": "Davout"
+      },
+      "source": "ES-7 second pass review fix — revoke-intent synonyms (stop/end/terminate/cancel, word-boundary) must revoke, never re-grant (the review's confirmed opposite-action misroute).",
+      "notes": "Word boundaries matter: \\bend\\b must not fire on 'extend'/'spend'."
+    },
+    {
+      "id": "es7sp-raise-neys-pension",
+      "utterance": "raise Ney's pension",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney"
+      },
+      "source": "ES-7 second pass review fix — recruit's \\braise\\b clause carries a _mentions_pension guard; 'raise his pension' is the everyday top-up verb the help text itself invites.",
+      "notes": "Without the guard this recruited infantry (gold + admin AP spent). Grant re-sizes to the current gap (REPLACE semantics)."
+    },
+    {
       "id": "w69-assess-our-situation",
       "utterance": "Talleyrand, assess our situation",
       "world": "any",

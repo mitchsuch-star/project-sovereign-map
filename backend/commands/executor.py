@@ -1378,6 +1378,12 @@ class CommandExecutor:
             result = self._economy._execute_grant_dotation(
                 command, game_state,
                 raw_text=parsed_command.get("raw_input") or "")
+        elif action == "grant_pension":
+            # ES-7 second pass (§0.6.8): the rente — treasury pension, face
+            # auto-sized to the marshal's current gap in-executor.
+            result = self._economy._execute_grant_pension(command, game_state)
+        elif action == "revoke_pension":
+            result = self._economy._execute_revoke_pension(command, game_state)
         elif action == "end_turn":
             result = self._meta._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -1634,8 +1640,11 @@ class CommandExecutor:
             occupation_val = int(income_data.get("occupation", 0))
             # ES-7 (S7): estate redirect is its own Net component too
             dotation_val = int(income_data.get("dotation_skim", 0))
+            # ES-7 second pass (§0.6.8): the rente bill
+            rente_val = int(income_data.get("rente_cost", 0))
             spent_val = saved_gold_spent.get(nation, 0)
-            net_val = income_val - occupation_val - dotation_val - upkeep_val
+            net_val = (income_val - occupation_val - dotation_val - rente_val
+                       - upkeep_val)
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
             turn_end_event = {
                 "type": "turn_end",
@@ -1644,6 +1653,7 @@ class CommandExecutor:
                 "income": int(income_val),
                 "occupation": int(occupation_val),
                 "dotation_skim": int(dotation_val),
+                "rente_cost": int(rente_val),
                 "upkeep": int(upkeep_val),
                 "spent": int(spent_val),
                 "net": int(net_val),
@@ -1658,10 +1668,11 @@ class CommandExecutor:
             spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
             occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
             dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
+            rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{occupation_str}{dotation_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 

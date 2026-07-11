@@ -760,15 +760,24 @@ def _court_demand_suggestions(
     )
     if offer_regions:
         region = offer_regions[0]
+        # ES-7 second pass (§0.6.8 item 3): flag an estate at authoring
+        # time, before the clause is ever added — the confirm surface
+        # (build_settlement_review) warns again for every staged term.
+        from backend.game_logic.dotation import estate_cession_warning
+        _estate_warn = estate_cession_warning(world, region)
+        _reason = resolve_settlement_voice_line(
+            "settlement_guided_reason_territory_offer_talleyrand",
+            court=court,
+            region=region,
+        )
+        if _estate_warn:
+            _reason = f"{_reason} WARNING: {_estate_warn}"
         offer_group.append(_guided_suggestion(
-            label=f"Offer {region} to {court}",
+            label=(f"Offer {region} to {court}"
+                   + (" — a marshal's estate!" if _estate_warn else "")),
             group="offer",
             clause_type="territory_cede",
-            reason_display=resolve_settlement_voice_line(
-                "settlement_guided_reason_territory_offer_talleyrand",
-                court=court,
-                region=region,
-            ),
+            reason_display=_reason,
             court=court,
             war_id=war_id,
             draft_key=draft_key,

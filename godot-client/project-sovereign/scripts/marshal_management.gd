@@ -9,6 +9,9 @@ extends CanvasLayer
 # =============================================================================
 
 signal closed
+# ES-7 second pass (§0.6.8 item 6): the card's [Reward…] link — main.gd
+# opens the reward dialog with this card's payload.
+signal reward_requested(card: Dictionary)
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -22,10 +25,15 @@ const COLOR_DEVOTED = "ffd700"
 
 # State
 var cached_data: Array = []
+# Stored at open() so the screen can refresh in place after a reward
+# command lands (strategic_ledger.gd precedent).
+var _api_client_ref = null
 
 func _ready():
 	close_button.pressed.connect(close_view)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# §0.6.8: bbcode [url=reward:N] affordances (strategic_ledger pattern)
+	content_area.meta_clicked.connect(_on_meta_clicked)
 	hide()
 
 
@@ -68,9 +76,25 @@ func _input(event):
 
 func open(api_client):
 	"""Fetch marshal overview from backend and display it."""
+	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
 	show()
 	api_client.get_marshal_overview(_on_data_received)
+
+
+func refresh_if_open():
+	"""Re-fetch the overview after a reward command so the card reflects
+	the new estate/rente state (§0.6.8 item 6)."""
+	if visible and _api_client_ref:
+		_api_client_ref.get_marshal_overview(_on_data_received)
+
+
+func _on_meta_clicked(meta):
+	var meta_str = str(meta)
+	if meta_str.begins_with("reward:"):
+		var index = int(meta_str.substr(7))
+		if index >= 0 and index < cached_data.size():
+			reward_requested.emit(cached_data[index])
 
 
 func close_view():
@@ -219,14 +243,15 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
 	bbcode += "\n"
 
-	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7) ═══════
-	# Expectation vs estate income in the same g/turn units — the number IS
-	# the explanation (green met / amber unmet / red eroding).
+	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7 + §0.6.8) ═══════
+	# Expectation vs estate income vs rente in the same g/turn units — the
+	# number IS the explanation (green met / amber unmet / red eroding).
 	var expectation = int(m.get("expectation", 0))
 	var estate_income = int(m.get("estate_income", 0))
+	var pension = int(m.get("pension", 0))
 	var shortfall = int(m.get("expectation_shortfall", 0))
 	var estate_title = str(m.get("estate_title", ""))
-	if expectation > 0 or estate_income > 0:
+	if expectation > 0 or estate_income > 0 or pension > 0:
 		if estate_title != "":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
 		var exp_color = Utils.COLOR_SUCCESS
@@ -235,15 +260,28 @@ func _render_card(m: Dictionary, index: int) -> String:
 		elif shortfall > 0:
 			exp_color = Utils.COLOR_WARNING
 		bbcode += "  [color=#" + exp_color + "]Expects: " + str(expectation) + "g/turn | Estates: " + str(estate_income) + "g/turn"
+		if pension > 0:
+			bbcode += " | Rente: " + str(pension) + "g/turn (costs " + str(int(m.get("pension_cost", 0))) + "g)"
 		if shortfall > 0:
 			bbcode += " | Shortfall: " + str(shortfall) + "g"
 			if m.get("is_eroding", false):
 				bbcode += " — loyalty eroding"
 		bbcode += "[/color]\n"
-		var eligible = m.get("eligible_estates", [])
-		if shortfall > 0 and eligible is Array and eligible.size() > 0:
-			var m_name_hint = str(m.get("name", "?"))
-			bbcode += "  [color=#" + COLOR_DIM + "]Endow: 'endow " + m_name_hint + " with " + str(eligible[0]) + "' — eligible: " + ", ".join(PackedStringArray(eligible)) + "[/color]\n"
+		# The Steward (§0.6.8 item 2): land appreciates or rots by this
+		# marshal's administration — decision-relevant before endowing.
+		var steward_note = str(m.get("steward_note", ""))
+		if steward_note != "" and (estate_income > 0 or shortfall > 0):
+			var steward_color = Utils.COLOR_SUCCESS if str(m.get("steward_tier", "")) == "prosperous" else Utils.COLOR_ORANGE
+			bbcode += "  [color=#" + steward_color + "]" + steward_note + "[/color]\n"
+		# §0.6.8 item 6: the Reward button — opens the estate/rente dialog.
+		# Never for a PRISONER (the executors refuse him; review fix).
+		if (shortfall > 0 or pension > 0) and not m.get("captured", false):
+			bbcode += "  [url=reward:" + str(index) + "][color=#" + Utils.COLOR_GOLD + "][ Reward… ][/color][/url]"
+			var eligible = m.get("eligible_estates", [])
+			if shortfall > 0 and eligible is Array and eligible.size() > 0:
+				var m_name_hint = str(m.get("name", "?"))
+				bbcode += "  [color=#" + COLOR_DIM + "]or type: 'endow " + m_name_hint + " with " + str(eligible[0]) + "'[/color]"
+			bbcode += "\n"
 
 	# ═══════ CURRENT STATUS ═══════
 	var location = str(m.get("location", "?"))

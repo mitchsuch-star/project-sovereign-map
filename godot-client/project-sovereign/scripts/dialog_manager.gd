@@ -16,8 +16,9 @@ class_name DialogManager
 #   106: glorious_charge_dialog
 #   107: redemption_dialog
 #   108: objection_dialog
-#   109: proposal_confirm_popup
-#   110: diplomacy_wizard
+#   109: reward_dialog (ES-7 second pass §0.6.8)
+#   110: proposal_confirm_popup + diplomacy_wizard (pre-existing double-book;
+#        never open simultaneously — the wizard hands off before confirm)
 #   111: commitment_paradox_popup
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
