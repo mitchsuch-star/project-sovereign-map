@@ -2937,6 +2937,54 @@ class CombatExecutor:
             enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
 
         # ════════════════════════════════════════════════════════════
+        # ESP-EV-4 (July 11, 2026): a LETHAL order never fires at a
+        # parser-GUESSED target. Live-LLM parses can substitute a real
+        # enemy or region for a name the player wrote that our maps do
+        # not know ("attack Venetia" → Archduke John at Tyrol, live).
+        # When the raw text is available (direct typed player attacks
+        # only — AI, strategic execution, and muster re-issues carry no
+        # raw text) and it names NEITHER the parsed target NOR anything
+        # the resolution produced (enemy name / location / nation,
+        # resolved region — raw or humanized), the target is a guess:
+        # ask, never default-scan (the BUG-CA-3 / W6-1 rule, applied to
+        # the attack path). Placed BEFORE auto-war-declaration so a
+        # guessed target can never drag France into a war.
+        # ════════════════════════════════════════════════════════════
+        _raw_attack_text = str((command or {}).get("_raw_input") or "").lower()
+        if _raw_attack_text and target:
+            from backend.display_names import humanize_entity_name
+
+            def _named_in_raw(token) -> bool:
+                token = str(token or "")
+                if not token:
+                    return False
+                return (token.lower() in _raw_attack_text
+                        or humanize_entity_name(token).lower()
+                        in _raw_attack_text)
+
+            if not _named_in_raw(target):
+                _resolved_tokens = []
+                if resolved_target and resolved_target != target:
+                    _resolved_tokens.append(resolved_target)
+                if enemy_marshal is not None:
+                    _resolved_tokens += [enemy_marshal.name,
+                                         enemy_marshal.location,
+                                         enemy_marshal.nation]
+                if not any(_named_in_raw(t) for t in _resolved_tokens):
+                    visible = world.get_visible_enemies(marshal.nation)
+                    seen = ", ".join(
+                        f"{e.name} at {e.location}" for e in visible[:6]
+                    ) or "none in sight"
+                    return {
+                        "success": False,
+                        "message": (
+                            f"Your order names no foe or province our maps "
+                            f"know, Sire — {marshal.name} will not charge "
+                            f"at a guess. Visible enemies: {seen}."
+                        ),
+                    }
+
+        # ════════════════════════════════════════════════════════════
         # AUTO WAR DECLARATION (Phase 8 Session 2)
         # If attacking a nation we're not at WAR with, auto-declare war
         # before proceeding. Costs 1 DP, applies relation penalties.

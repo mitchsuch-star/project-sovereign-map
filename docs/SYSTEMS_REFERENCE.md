@@ -471,9 +471,23 @@ dampens only the defender's curve if playtests over-shift.
 | stalemate | −scaled(rate, 5) | −scaled(rate, 5) |
 
 `_scaled_morale_loss` is unchanged: `max(base, int(base × min(rate/0.15, 2.5)))`.
-Counter-punch grants, battles_won/lost increments, and the forced-retreat
-threshold (25) are untouched. Pinned by `tests/test_w6_balance_duo.py`
-(incl. the audit battle-2 replay: the 50k holder's delta moves +5 → −5).
+Counter-punch grants and the forced-retreat threshold (25) are untouched.
+Pinned by `tests/test_w6_balance_duo.py` (incl. the audit battle-2 replay:
+the 50k holder's delta moves +5 → −5).
+
+### Battle Records (ESP-EV-3 — unified since July 11, 2026)
+
+**Tactical victories COUNT toward `battles_won`/`battles_lost` on every
+path.** The coordination caller always counted them (atk_won/def_won
+include `*_tactical_victory`); the solo path in `combat.py` now keeps the
+same books — a marshal's record, and his ES-7 reward expectation, no
+longer depend on whether allies happened to march. Stalemate: no records
+move. Mutual destruction: both sides log a loss. Consequence for tuning:
+expectation accrues faster in grinding wars (the eval's Mack-grind now
+feeds the Cost-of-Success) — `REP_STEP`/`EXPECTATION_CAP` remain in-band
+tunable, and E5's "caps ~turn 15–20" guidance should be re-measured at the
+next band check. Pinned by
+`test_estate_second_pass.py::TestUnifiedWinSemantics`.
 
 **Key code:** `combat.py::_build_deferred_result()`, `executor.py::_distribute_casualties()`, `executor.py::_get_casualty_participants()`, `executor.py::_execute_attack()` coordination branch.
 

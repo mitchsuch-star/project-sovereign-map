@@ -726,6 +726,109 @@ class TestBattleReportExpectationNote:
         assert "expectation_note" not in br
 
 
+# ═══════════ ESP-EV-3: UNIFIED WIN SEMANTICS (solo = coordination) ═════════
+
+
+class TestUnifiedWinSemantics:
+    """ESP-EV-3 (July 11, 2026): solo tactical victories count toward
+    battles_won/battles_lost — unified with the coordination caller's
+    long-standing semantics (combat_executor atk_won/def_won include
+    tactical outcomes). A marshal's record — and his ES-7 reward
+    expectation — no longer depends on whether allies happened to march."""
+
+    def _battle(self, seed, atk_strength, def_strength):
+        import random
+        from tests.conftest import MarshalFactory, WorldFactory
+        random.seed(seed)
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=atk_strength,
+                                      personality="aggressive")
+        mack = MarshalFactory.enemy(name="Mack", location="Belgium",
+                                    nation="Austria", strength=def_strength)
+        w = WorldFactory.with_marshals([ney, mack])
+        key = "|".join(sorted(["France", "Austria"]))
+        w.diplomatic_states[key] = "WAR"
+        w.war_start_turns[key] = w.current_turn
+        result = _execute(w, {"marshal": "Ney", "action": "attack",
+                              "target": "Mack", "type": "specific",
+                              "_muster_confirmed": True})
+        ev = (result.get("events") or [{}])[0]
+        return ev.get("outcome"), ney, mack
+
+    def test_attacker_tactical_and_stalemate_bookkeeping(self):
+        observed = set()
+        for seed in range(40):
+            outcome, ney, mack = self._battle(seed, 40000, 26000)
+            observed.add(outcome)
+            if outcome == "attacker_tactical_victory":
+                assert ney.battles_won == 1 and mack.battles_lost == 1
+                assert ney.battles_lost == 0 and mack.battles_won == 0
+            elif outcome == "stalemate":
+                assert ney.battles_won == 0 and mack.battles_won == 0
+                assert ney.battles_lost == 0 and mack.battles_lost == 0
+        assert "attacker_tactical_victory" in observed, observed
+
+    def test_defender_tactical_bookkeeping(self):
+        observed = set()
+        for seed in range(60):
+            outcome, ney, mack = self._battle(seed, 14000, 42000)
+            observed.add(outcome)
+            if outcome == "defender_tactical_victory":
+                assert mack.battles_won == 1 and ney.battles_lost == 1
+                assert mack.battles_lost == 0 and ney.battles_won == 0
+        assert "defender_tactical_victory" in observed, observed
+
+
+# ═══════════ ESP-EV-4: THE GUESSED-TARGET GUARD (attack path) ══════════════
+
+
+class TestGuessedTargetGuard:
+    """ESP-EV-4 (July 11, 2026): a lethal order never fires at a
+    live-LLM-substituted target the player's own words never mentioned
+    ('attack Venetia' → Archduke John at Tyrol, observed live). The
+    BUG-CA-3 / W6-1 rule, applied to the attack path."""
+
+    def test_substituted_target_is_refused(self, world):
+        john = world.marshals["ArchdukeJohn"]
+        strength_before = john.strength
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack Venetia",
+        })
+        assert result["success"] is False
+        assert "will not charge at a guess" in result["message"]
+        assert john.strength == strength_before  # nobody fought
+        assert result.get("pending_interrupt") is None
+
+    def test_target_named_by_location_passes_the_guard(self, world):
+        # "the force at Tyrol" — the resolved enemy's LOCATION appears in
+        # the raw text, so the parse is grounded, not a guess.
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack the force at Tyrol",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+    def test_target_named_by_nation_passes_the_guard(self, world):
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack the Austrians",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+    def test_no_raw_text_bypasses_the_guard(self, world):
+        # AI, strategic execution, and muster re-issues carry no raw text —
+        # the guard is a typed-player-order protection only.
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+        })
+        assert "will not charge at a guess" not in str(result.get("message", ""))
+
+
 # ═══════════════════ CARD PAYLOAD (Reward dialog data) ═════════════════════
 
 

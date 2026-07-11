@@ -665,6 +665,14 @@ class CombatResolver:
                 outcome = "defender_tactical_victory"
                 defender.adjust_morale(5 - _defender_scaled(def_casualty_rate, 10))
                 attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 10))
+                # ESP-EV-3 (July 11, 2026): tactical victories COUNT — the
+                # coordination caller has always counted them toward
+                # battles_won/lost (combat_executor atk_won/def_won sets);
+                # the solo path now keeps the same books, so a marshal's
+                # record (and his ES-7 reward expectation) no longer depends
+                # on whether allies happened to march.
+                defender.battles_won += 1
+                attacker.battles_lost += 1
                 # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
@@ -675,6 +683,9 @@ class CombatResolver:
                 outcome = "attacker_tactical_victory"
                 attacker.adjust_morale(5 - _scaled_morale_loss(atk_casualty_rate, 10))
                 defender.adjust_morale(-_defender_scaled(def_casualty_rate, 10))
+                # ESP-EV-3: unified with the coordination caller (see above).
+                attacker.battles_won += 1
+                defender.battles_lost += 1
             else:
                 victor = None
                 outcome = "stalemate"

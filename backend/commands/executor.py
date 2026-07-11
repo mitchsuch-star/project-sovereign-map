@@ -1459,6 +1459,11 @@ class CommandExecutor:
             result = self._vassal._execute_release_vassal(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
+            # ESP-EV-4: the raw text rides on the command dict so the attack
+            # path's guessed-target guard can compare the parse against the
+            # player's own words (transient — command dicts never serialize).
+            if isinstance(command, dict) and "_raw_input" not in command:
+                command["_raw_input"] = parsed_command.get("raw_input") or ""
             result = self._execute_specific(command, game_state)
         elif command_type == "general_attack":
             result = self._combat._execute_general_attack(command, game_state)
@@ -1727,6 +1732,9 @@ class CommandExecutor:
             # W6-4: the command dict rides along so the muster-preview gate
             # can distinguish a direct player attack from AI/strategic/
             # confirmed re-issues (every other caller passes command=None).
+            # ESP-EV-4: `execute` stashed the raw text on this dict, so the
+            # guessed-target guard can tell a typed name from a live-LLM
+            # substitution.
             return self._combat._execute_attack(
                 marshal, target, world, game_state, command=command)
         elif action == "defend":
