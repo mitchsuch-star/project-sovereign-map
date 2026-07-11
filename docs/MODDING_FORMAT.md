@@ -149,7 +149,7 @@ Marshals represent commanders on the map.
 | `name` | string | **REQUIRED** | Marshal's name |
 | `location` | string | **REQUIRED** | Region name where marshal starts |
 | `strength` | integer | **REQUIRED** | Number of troops (e.g., 50000) |
-| `personality` | string | "balanced" | One of: `aggressive`, `cautious`, `literal`, `balanced`, `loyal` |
+| `personality` | string | "balanced" | One of: `aggressive`, `cautious`, `literal` — the ONLY valid authoring values (MC-4, July 10, 2026: `balanced`/`loyal` are retired reserved values, a hard validation ERROR — a scenario authoring one cannot boot). Omitting the field falls back to the inert save-compat default `"balanced"` (no objection triggers ever fire) and logs a boot warning — author the field explicitly. |
 | `nation` | string | "France" | Nation this marshal belongs to |
 | `cavalry` | boolean | false | If true, has cavalry movement/abilities |
 | `movement_range` | integer | 1 | Regions can move per turn (cavalry often 2) |
@@ -167,9 +167,9 @@ Marshals represent commanders on the map.
 |-------------|----------|
 | `aggressive` | Prefers attacking, objects to defensive orders |
 | `cautious` | Prefers defense, objects to risky attacks |
-| `literal` | Follows orders exactly, needs clear instructions |
-| `balanced` | No strong preferences |
-| `loyal` | Rarely objects to any order |
+| `literal` | Follows orders exactly, never objects (the Literal Doctrine) |
+
+`balanced` and `loyal` are RETIRED reserved values (MC-4, July 10, 2026) — no shipped marshal uses them, they carry no objection triggers or combat modifiers, and the validator rejects them. They survive only as save-load fallbacks.
 
 ### Skills Object
 

@@ -87,7 +87,7 @@
             "name": "Sforza",
             "location": "Milan_City",
             "strength": 30000,
-            "personality": "balanced",
+            "personality": "cautious",
             "nation": "Milan",
             "skills": {
                 "tactical": 7,

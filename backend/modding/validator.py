@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Set
 
+from backend.models.personality import IMPLEMENTED_PERSONALITIES
 from backend.models.region import NATION_CAPITALS
 from backend.nation_config import EUROPE_NATION_CAPITALS, validate_scenario_runtime_support
 
@@ -67,7 +68,12 @@ class ValidationResult:
 # SCHEMA DEFINITIONS
 # ============================================================================
 
-VALID_PERSONALITIES = {"aggressive", "cautious", "literal", "balanced", "loyal"}
+# MC-4 (July 10, 2026): authoring is restricted to the three IMPLEMENTED
+# types — "balanced"/"loyal" are retired reserved values (no triggers, no
+# modifiers; a marshal authored with one objects to nothing, silently).
+# Because from_scenario hard-fails on validator errors, this set IS the
+# scenario-boot guard. Single source: backend/models/personality.py.
+VALID_PERSONALITIES = set(IMPLEMENTED_PERSONALITIES)
 VALID_STANCES = {"neutral", "defensive", "aggressive"}
 
 # Unknown-nation WARNING set only (hard nation gating is world-scoped in

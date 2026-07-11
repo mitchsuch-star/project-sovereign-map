@@ -1537,6 +1537,17 @@ def create_marshal_from_data(data: Mapping) -> Marshal:
     construction; relationships are applied by ``create_marshals_from_data``
     after the full roster exists so cross-references resolve.
     """
+    # MC-4 boot guard: authored rosters may only use the three implemented
+    # personalities — balanced/loyal are retired reserved values (an
+    # authored marshal carrying one would object to NOTHING, silently).
+    from backend.models.personality import IMPLEMENTED_PERSONALITIES
+    personality = data.get("personality")
+    if personality not in IMPLEMENTED_PERSONALITIES:
+        raise ValueError(
+            f"Marshal {data.get('name', '?')!r}: personality {personality!r} "
+            f"is not an implemented type — author one of "
+            f"{sorted(IMPLEMENTED_PERSONALITIES)} (MC-4 boot guard)"
+        )
     ctor_kwargs = {k: v for k, v in data.items() if k not in ("biography", "relationships")}
     marshal = Marshal(**ctor_kwargs)
     biography = data.get("biography", "")

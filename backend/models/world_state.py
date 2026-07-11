@@ -5587,6 +5587,22 @@ class WorldState:
         # Use from_dict for actual loading
         world = cls.from_dict(scenario_data)
 
+        # MC-4 boot-guard log arm: an EXPLICIT retired/typo'd personality is
+        # already a hard validator error above, but a marshal dict that
+        # OMITS the key boots on from_dict's save-compat "balanced" default
+        # — a retired type with no objection triggers. Log it so a minimal
+        # scenario can't ship the silent chimera unnoticed.
+        import logging
+
+        from backend.models.personality import IMPLEMENTED_PERSONALITIES
+        for _m in world.marshals.values():
+            if _m.personality not in IMPLEMENTED_PERSONALITIES:
+                logging.getLogger(__name__).warning(
+                    "Scenario marshal %r booted with unimplemented personality %r "
+                    "(no objection triggers will ever fire) — author one of %s",
+                    _m.name, _m.personality, sorted(IMPLEMENTED_PERSONALITIES),
+                )
+
         # 1805 pre-slice: seed scenario-declared wars through the LIVE war
         # machinery (`ensure_war_instance_for_pair` — the smoke-start path)
         # instead of hand-authored raw `war_instance` JSON, which would load

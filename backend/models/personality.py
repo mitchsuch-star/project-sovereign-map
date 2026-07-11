@@ -65,12 +65,31 @@ from typing import Dict, Optional
 
 
 class Personality(Enum):
-    """Marshal personality types affecting objection behavior."""
+    """Marshal personality types affecting objection behavior.
+
+    MC-4 (July 10, 2026): the roster ships on THREE implemented types.
+    BALANCED/LOYAL are retired reserved values — kept only as save-load /
+    runtime fallbacks (``get_personality`` unknown-string default, the
+    ``from_dict`` missing-key default). They are NOT valid authoring values:
+    the modding validator rejects them and ``create_marshal_from_data``
+    raises. Re-open owners: the Jealousy v3.1 gate (v3.2 roster addendum)
+    or the MC exit review, on evidence three types are expressively
+    insufficient. A revived fourth type must NOT be named "loyal" — the
+    diplomat ``loyalist`` type collides (several files getattr
+    ``personality`` on both object kinds).
+    """
     AGGRESSIVE = "aggressive"
     CAUTIOUS = "cautious"
     LITERAL = "literal"
-    BALANCED = "balanced"  # Reserved — no marshals use this yet (1805 expansion)
-    LOYAL = "loyal"  # Reserved — no marshals use this yet (1805 expansion)
+    BALANCED = "balanced"  # Retired reserved value — fallback only (MC-4)
+    LOYAL = "loyal"  # Retired reserved value — fallback only (MC-4)
+
+
+# MC-4 boot-guard single source: the only personalities a marshal may be
+# AUTHORED with. Consumed by the modding validator (scenario boot hard-fails
+# on anything else via from_scenario) and create_marshal_from_data (the
+# data-driven roster path).
+IMPLEMENTED_PERSONALITIES = frozenset({"aggressive", "cautious", "literal"})
 
 
 # Personality descriptions for UI/narrative
@@ -150,8 +169,11 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     # entirely (pinned by test_w6_literal_doctrine.py).
     Personality.LITERAL: {},
 
-    # BALANCED/LOYAL: Reserved for 1805 expansion. No current marshal uses these.
-    # Trigger entries removed in Systems Audit Session 11 — add back when marshals ship.
+    # BALANCED/LOYAL: RETIRED reserved values (MC-4, July 10, 2026 — the
+    # "1805 expansion" framing is closed; no marshal ships with these and
+    # none may be authored with them). They survive only as runtime
+    # fallbacks; a marshal reaching one objects to nothing BY OMISSION,
+    # which is why the boot guard keeps them out of authored data.
 }
 
 

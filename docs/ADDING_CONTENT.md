@@ -87,12 +87,10 @@ Answer these questions BEFORE writing any code:
   - [ ] Enemy marshal → Add to `create_enemy_marshals()`
 
 #### Personality Type
-- [ ] **Which personality?**
+- [ ] **Which personality?** (These three are the ONLY valid authoring values — MC-4, July 10, 2026: `balanced`/`loyal` are retired reserved values, rejected by the validator and `create_marshal_from_data`; see [Adding New Personalities](#adding-new-personalities) for the re-open contract.)
   - [ ] `aggressive` - Attacks readily, objects to defensive orders
   - [ ] `cautious` - Defensive-minded, objects to risky attacks
-  - [ ] `literal` - Follows orders exactly, never improvises
-  - [ ] `balanced` - Mix of traits (placeholder, not fully implemented)
-  - [ ] `loyal` - Extreme obedience (placeholder, not fully implemented)
+  - [ ] `literal` - Follows orders exactly, never objects (the Literal Doctrine)
   - [ ] **NEW personality type?** See [Adding New Personalities](#adding-new-personalities)
 
 > **IMPORTANT: Personality = Auto-Inherited Mechanics!**
@@ -226,7 +224,7 @@ Fill out this sheet completely before implementing:
 | PERSONALITY & UNIT TYPE                                     |
 | ----------------------------------------------------------- |
 | Personality: [ ] aggressive  [ ] cautious  [ ] literal      |
-|              [ ] balanced    [ ] loyal                      |
+|   (the only valid values — balanced/loyal retired, MC-4)    |
 |                                                             |
 | Unit Type:   [ ] Infantry (movement_range=1)                |
 |              [ ] Cavalry  (movement_range=2, cavalry=True)  |
@@ -616,7 +614,7 @@ Before committing, verify ALL items:
 #### Marshal Definition
 - [ ] Name is unique (not already in `self.marshals`)
 - [ ] Nation exists in game (or you've added it)
-- [ ] Personality is valid: `aggressive`, `cautious`, `literal`, `balanced`, `loyal`
+- [ ] Personality is valid: `aggressive`, `cautious`, or `literal` (the only three — `balanced`/`loyal` are retired and boot-guarded, MC-4)
 - [ ] Starting region exists in `backend/models/region.py`
 - [ ] Skills are all in range 1-10
 - [ ] Tactical skill is in range 0-12
@@ -1148,7 +1146,9 @@ If a future nation is intentionally absent from the scenario map, stop here and 
 
 ### Adding New Personalities
 
-If creating a new personality type:
+> **GATED — read the contract first (MC-4, July 10, 2026; `MARSHAL_CONTENT_PASS_SPEC.md` §9).** The roster ships on the three implemented types, and `balanced`/`loyal` were retired rather than implemented — a half-shipped type is a chimera that **objects to nothing**. A new personality type is a CR-5-magnitude platform slice (V2 evaluators, objection templates, defiance fallback rows, strategic-doctrine forks, a user-gated delegation arm, corpus/eval re-validation, a voice bank, ~15 copy surfaces), not the three-step recipe below. **Re-open owners:** the Jealousy v3.1 gate (v3.2 roster addendum) or the MC exit review, on evidence three types are expressively insufficient. **Naming rule:** a revived fourth type must NOT be named `loyal` — it collides with the diplomat `loyalist` type (several files read `getattr(x, 'personality')` on both object kinds). Also update `IMPLEMENTED_PERSONALITIES` in `personality.py` (the boot guard's single source) or every authored marshal of the new type will refuse to boot.
+
+If creating a new personality type (after clearing the gate above):
 
 #### 1. Add Modifiers
 
@@ -2357,7 +2357,7 @@ Complete guide for adding new diplomatic representatives. Diplomats are NOT mars
 |--------|---------|----------|
 | Class | `Marshal` | `DiplomaticRepresentative` |
 | Storage | `world.marshals` dict | `world.diplomats` dict (keyed by nation) |
-| Personality types | aggressive, cautious, literal, balanced, loyal | schemer, loyalist, hawk, dove |
+| Personality types | aggressive, cautious, literal (balanced/loyal retired — MC-4; never revive one named "loyal": it collides with the diplomat `loyalist` type) | schemer, loyalist, hawk, dove |
 | Trust | Yes (Trust class) | Yes (Trust class) |
 | Skills | tactical, shock, defense, logistics, admin, command | skill (single value, 1-10) |
 | Combat | Yes | No |

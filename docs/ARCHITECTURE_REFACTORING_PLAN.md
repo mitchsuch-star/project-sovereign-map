@@ -2454,7 +2454,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 22 | LLM fallback threshold | MODERATE | Only affects anthropic mode (not mock). Tune when LLM mode is primary |
 | 23 | Fixed AI nation order (Britain first-mover) | LOW | Condition arrived (July 2, 2026: 19 AI nations act in fixed order on the shipped 126-province map); evaluate at 8.EVAL |
 | 24 | Notification lifecycle (no expiry/dedup) | LOW | No player-reported issues. Address if notification bar becomes cluttered |
-| 29 | BALANCED/LOYAL personalities unimplemented | LOW | Owned by `docs/MARSHAL_CONTENT_PASS_SPEC.md` MC-4 (July 2, 2026) |
+| 29 | BALANCED/LOYAL personalities unimplemented | LOW | ✅ RESOLVED at MC-4 (July 10, 2026 — `MARSHAL_CONTENT_PASS_SPEC.md` §9): deliberately NOT implemented; retired reserved values, deferred by GR9 contract behind a three-arm boot guard (authoring rejected, save-load fallback kept). Re-open owners: Jealousy v3.1 gate / MC exit review |
 | 31 | Dispatch hardcoded "France" | LOW | Player is always France in current game. Fix when adding faction selection |
 | 33 | Region name substring matching | LOW | Condition arrived (July 2, 2026: 126 provinces shipped); owned by `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-0/CR-2 (name-collision surface) |
 | 34 | Talleyrand turn_number fallback | LOW | Defensive fallback — no crash, just uses 0. Fix during next Talleyrand work |
