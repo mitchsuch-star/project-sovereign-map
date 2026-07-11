@@ -138,6 +138,12 @@ func send_objection_response(choice: String, callback: Callable):
 	_send_post("/respond_to_objection", {"choice": choice}, callback)
 
 
+func send_marshal_petition_response(choice: String, callback: Callable):
+	# Jealousy v3.2 (spec §0.2-10): ONE endpoint answers every marshal
+	# petition kind — confrontation, rivalry, Fontainebleau, war-weary.
+	_send_post("/marshal_petition_response", {"choice": choice}, callback)
+
+
 func send_diplomatic_objection_response(choice: String, data: Dictionary, callback: Callable):
 	var body = {"choice": choice}
 	if data.has("action"):

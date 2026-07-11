@@ -175,6 +175,7 @@ var glorious_charge_dialog = null
 # Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
 var capture_choice_dialog = null
 var reward_dialog = null  # ES-7 second pass (§0.6.8): the Marshal's Reward dialog
+var marshal_petition_dialog = null  # Jealousy v3.2: the marshal-petition channel (layer 114)
 
 # Load Game Dialog (Phase 6: Save/Load)
 var load_dialog = null
@@ -291,6 +292,12 @@ func _ready():
 	reward_dialog = dialog_manager.register("reward_dialog", "res://scenes/reward_dialog.tscn")
 	if reward_dialog:
 		reward_dialog.reward_command.connect(_on_reward_command)
+
+	# Jealousy v3.2 (spec §0.2-10): the marshal-petition channel (layer 114) —
+	# jealousy confrontations, rivalry events, Fontainebleau, war-weary counsel.
+	marshal_petition_dialog = dialog_manager.register("marshal_petition", "res://scenes/marshal_petition_dialog.tscn")
+	if marshal_petition_dialog:
+		marshal_petition_dialog.petition_choice.connect(_on_marshal_petition_choice)
 
 	load_dialog = dialog_manager.register("load", "res://scenes/load_dialog.tscn")
 	if load_dialog:
@@ -413,6 +420,9 @@ func _ready():
 				# ES-7 second pass (§0.6.8): the card's [Reward…] link
 				if instance.has_signal("reward_requested"):
 					instance.reward_requested.connect(_on_reward_requested)
+				# Marshal Recruitment (Jealousy v3.2): the Commission view
+				if instance.has_signal("commission_requested"):
+					instance.commission_requested.connect(_on_commission_requested)
 
 	# Notification bar — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
@@ -849,6 +859,7 @@ func _configure_response_routes():
 	_post_hud_response_routes = [
 		{"id": "commitment_paradox", "matches": "_response_has_commitment_paradox_route", "show": "_route_commitment_paradox_response"},
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
+		{"id": "marshal_petition", "matches": "_response_has_marshal_petition_route", "show": "_route_marshal_petition_response"},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
 		{"id": "incoming_settlement_offer", "matches": "_response_has_incoming_settlement_offer_route", "show": "_route_incoming_settlement_offer_response"},
@@ -911,6 +922,19 @@ func _response_has_capture_choice_route(response: Dictionary) -> bool:
 
 func _route_capture_choice_response(response: Dictionary):
 	_show_capture_choice_dialog(response)
+
+func _response_has_marshal_petition_route(response: Dictionary) -> bool:
+	# Jealousy v3.2: the PopupQueue delivers the petition under
+	# `marshal_petition`; ESP-2 also attaches it directly to the
+	# declare-war command result.
+	return (
+		response.has("marshal_petition")
+		and response.marshal_petition != null
+		and marshal_petition_dialog != null
+	)
+
+func _route_marshal_petition_response(response: Dictionary):
+	marshal_petition_dialog.show_petition(response.marshal_petition)
 
 func _response_has_diplomatic_objection_route(response: Dictionary) -> bool:
 	return (
@@ -1403,6 +1427,11 @@ func _display_berthier_report(report: Dictionary):
 	var exp_note = str(report.get("expectation_note", ""))
 	if exp_note != "":
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  " + exp_note + "[/color]")
+
+	# Jealousy v3.2 (spec §11): Berthier notes jealous conduct on the field.
+	var jl_note = str(report.get("jealousy_note", ""))
+	if jl_note != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + jl_note + "[/color]")
 
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
@@ -3702,6 +3731,14 @@ func _on_reward_requested(card: Dictionary):
 		reward_dialog.show_reward(card)
 
 
+func _on_commission_requested(candidate_name: String):
+	"""Marshal Recruitment: a [Commission X] button — the typed command
+	through the reward pipeline (history, echo, Generals refresh)."""
+	if candidate_name.is_empty():
+		return
+	_on_reward_command("commission " + candidate_name)
+
+
 func _on_reward_command(command: String):
 	"""A reward-dialog button — same pipeline as a typed command, then
 	refresh the Generals screen so the card shows the new estate/rente."""
@@ -3715,6 +3752,25 @@ func _on_reward_command(command: String):
 
 
 func _on_reward_command_result(response):
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("generals"):
+		var generals_screen = top_bar.screens["generals"]
+		if generals_screen and generals_screen.has_method("refresh_if_open"):
+			generals_screen.refresh_if_open()
+
+
+# ═══════ JEALOUSY v3.2: THE MARSHAL-PETITION CHANNEL (spec §0.2-10) ═══════
+
+func _on_marshal_petition_choice(choice_id: String):
+	"""A petition-dialog button — POST the answer to the one shared
+	endpoint; the backend dispatches by petition kind."""
+	if choice_id.is_empty():
+		return
+	set_input_enabled(false)
+	api_client.send_marshal_petition_response(choice_id, _on_marshal_petition_result)
+
+
+func _on_marshal_petition_result(response):
 	_on_command_result(response)
 	if top_bar and top_bar.screens.has("generals"):
 		var generals_screen = top_bar.screens["generals"]

@@ -22,7 +22,7 @@ class_name DialogManager
 #   111: commitment_paradox_popup
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
-#   114: (removed)
+#   114: marshal_petition_dialog (Jealousy v3.2 — the petition channel)
 #   115: vassal_rebellion_popup
 #   116: sabotage_discovery_popup
 #   117: coalition_declaration_popup

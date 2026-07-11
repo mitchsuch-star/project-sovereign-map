@@ -188,6 +188,11 @@ A future save/load system should use this as the specification.
 | `pending_objection` | dict\|null | null | Objection awaiting response |
 | `pending_redemption` | dict\|null | null | Redemption event awaiting response |
 | `pending_capture_choice` | dict\|null | null | Plunder/secure choice awaiting response: `{region, capturer, previous_controller}` (Phase 6.2.E) |
+| `pending_marshal_petition` | dict\|null | null | **Jealousy v3.2:** the marshal-petition channel — kind-discriminated (`jealousy_confrontation`/`rivalry_confrontation`/`fontainebleau`/`war_weary`) with `title/body/speaker/options[]/context`. Answered via POST `/marshal_petition_response`; re-pushed to the popup queue each turn while unanswered. |
+| `jealousy_confrontations_seen` | list[str] | [] | First-time §6 confrontation pairs already shown (sorted `"A\|B"` keys). |
+| `rivalry_transitions_seen` | list[str] | [] | §6b transitions already fired (`"A\|B@-1"` keys — once per transition per pair). |
+| `fontainebleau_last_turn` | int | -999 | ESP-1 cooldown anchor (last collective-petition turn). |
+| `marshal_pool` | dict | {} | **Marshal Recruitment:** authored candidate bench per nation `{nation: [entries]}` — entries removed as commissioned (`MARSHAL_RECRUITMENT_SPEC.md`). |
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
@@ -545,9 +550,22 @@ Reserved future `event_log` payloads:
 #### Relationships & Co-Location (Phase 4 / Phase 7 S59)
 | Field | Type | Description |
 |-------|------|-------------|
-| `relationships` | dict | Marshal name → relationship level (-2 to +2) |
+| `relationships` | dict | Marshal name → relationship level (-2 to +2). **Jealousy v3.2:** a live grievance's temporary −1 is DERIVED in `get_relationship` and never written here. |
 | `co_location_turns` | dict | Marshal name → turn when co-location streak started |
 | `last_relationship_change_turn` | dict | Marshal name → last turn relationship changed (S64 cooldown) |
+
+#### Jealousy System (v3.2, July 11, 2026 — docs/JEALOUSY_SPEC.md §0)
+| Field | Type | Description |
+|-------|------|-------------|
+| `jealous_of` | str\|null | Grievance target marshal name (`null` = content). Drives the derived −1, expressions, and resolution arc. Default `null`. |
+| `jealousy_turns_remaining` | int | Grievance countdown (2–5, delta-scaled). Default `0`. |
+| `jealousy_surge_turns` | int | "I showed them" surge countdown (+10% attack/defense or lingering Literal intel for 1 turn after ACTION resolution). Default `0`. |
+| `jealousy_autonomous_warned` | bool | Aggressive advance-warning latch — the attack fires at end-turn unless the player orders him. Default `false`. |
+| `glory_events` | list[dict] | Rolling glory record `[{turn, points}]`, pruned to the 5-turn window each evaluation. Default `[]`. |
+| `jealousy_history` | dict | Lifetime fires per target `{name: [turns]}` **plus** the `"__levels__"` key → `{name: escalation_level}` dict (mixed-shape — serialization copies each value by its true shape). Default `{}`. |
+| `consecutive_hold_turns` | int | Literal sidelining counter (HOLD/no-order while peers actively engaged). Default `0`. |
+| `separation_flagged` | dict | §6b "Separate Them" `{marshal_name: true}` — dispatch warns when a flagged pair stands within reach. Default `{}`. |
+| `glory_crowned` | bool | Crowned with Glory: #1 on the nation's ladder (+1 shock/defense/administration via `get_effective_skill`/`get_admin_with_crown`). Recomputed every evaluation; serialized so a mid-turn save keeps the buff live. Default `false`. |
 
 #### Tactical State
 | Field | Type | Description |

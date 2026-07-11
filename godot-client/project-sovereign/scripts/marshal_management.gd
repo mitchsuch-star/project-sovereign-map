@@ -12,6 +12,10 @@ signal closed
 # ES-7 second pass (§0.6.8 item 6): the card's [Reward…] link — main.gd
 # opens the reward dialog with this card's payload.
 signal reward_requested(card: Dictionary)
+# Marshal Recruitment (Jealousy v3.2): the Commission view's button —
+# main.gd issues the typed `commission <name>` command through the same
+# pipeline the reward dialog uses.
+signal commission_requested(candidate_name: String)
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -25,6 +29,13 @@ const COLOR_DEVOTED = "ffd700"
 
 # State
 var cached_data: Array = []
+# Jealousy v3.2: the player's glory ladder + the recruitment pool ride the
+# same /marshal_overview payload.
+var cached_ladder: Array = []
+var cached_recruitment: Dictionary = {}
+# Commission view toggle — true renders the candidate bench instead of the
+# marshal cards ([url=commission_open] / [url=commission_back]).
+var _commission_view := false
 # Stored at open() so the screen can refresh in place after a reward
 # command lands (strategic_ledger.gd precedent).
 var _api_client_ref = null
@@ -95,12 +106,25 @@ func _on_meta_clicked(meta):
 		var index = int(meta_str.substr(7))
 		if index >= 0 and index < cached_data.size():
 			reward_requested.emit(cached_data[index])
+	elif meta_str == "commission_open":
+		_commission_view = true
+		_render_current_view()
+	elif meta_str == "commission_back":
+		_commission_view = false
+		_render_current_view()
+	elif meta_str.begins_with("commission:"):
+		var candidate = meta_str.substr(11)
+		if candidate != "":
+			commission_requested.emit(candidate)
 
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
 	hide()
 	cached_data = []
+	cached_ladder = []
+	cached_recruitment = {}
+	_commission_view = false
 	closed.emit()
 
 
@@ -114,22 +138,130 @@ func _on_data_received(response):
 		return
 
 	cached_data = response.get("marshals", [])
-	if cached_data.size() == 0:
+	cached_ladder = response.get("glory_ladder", [])
+	cached_recruitment = response.get("recruitment", {})
+	if cached_data.size() == 0 and not _commission_view:
 		content_area.text = "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]"
 		return
 
-	_render_all_cards()
+	_render_current_view()
+
+
+func _render_current_view():
+	if _commission_view:
+		_render_commission_view()
+	else:
+		_render_all_cards()
 
 
 func _render_all_cards():
-	"""Render all marshal cards as a vertical list."""
-	var bbcode = ""
+	"""Render the glory ladder header, then all marshal cards."""
+	var bbcode = _render_glory_ladder()
 
 	for i in range(cached_data.size()):
 		var m = cached_data[i]
 		bbcode += _render_card(m, i)
 		if i < cached_data.size() - 1:
 			bbcode += "[color=#" + Utils.COLOR_GREY + "]────────────────────────────────────────[/color]\n\n"
+
+	content_area.text = bbcode
+
+
+func _render_glory_ladder() -> String:
+	"""Jealousy v3.2: THE LAURELS OF THE ARMY — the nation's glory ladder
+	(rank, ★ crown, 10-wide glory bar, live grievance arrows) plus the
+	Commission affordance when a candidate bench exists."""
+	var bbcode = ""
+	var candidates = cached_recruitment.get("candidates", [])
+	var has_bench = candidates is Array and candidates.size() > 0
+
+	if cached_ladder is Array and cached_ladder.size() > 1:
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
+		bbcode += "  [color=#" + COLOR_DIM + "](glory, last 5 turns — the man above draws the envy of the man below)[/color]\n"
+		for i in range(cached_ladder.size()):
+			var row = cached_ladder[i]
+			var rname = str(row.get("name", "?"))
+			var glory = int(row.get("glory", 0))
+			var crowned = bool(row.get("crowned", false))
+			var envies = str(row.get("jealous_of", "")) if row.get("jealous_of") != null else ""
+			var filled = clampi(glory, 0, 10)
+			var bar_color = Utils.COLOR_GOLD if crowned else (Utils.COLOR_INFO if glory > 0 else COLOR_DIM)
+			var bar = "[color=#" + bar_color + "]" + "█".repeat(filled) + "[/color]"
+			bar += "[color=#" + COLOR_DIM + "]" + "░".repeat(10 - filled) + "[/color]"
+			bbcode += "  " + str(i + 1) + ". "
+			if crowned:
+				bbcode += "[color=#" + COLOR_DEVOTED + "]★ " + rname + "[/color]"
+			else:
+				bbcode += rname
+			bbcode += "  " + bar + " [color=#" + bar_color + "]" + str(glory) + "[/color]"
+			if crowned:
+				bbcode += "  [color=#" + COLOR_DEVOTED + "]Crowned with Glory (+1 shock/defense/administration)[/color]"
+			if envies != "":
+				bbcode += "  [color=#" + Utils.COLOR_ERROR + "]» envious of " + envies + "[/color]"
+			bbcode += "\n"
+		bbcode += "\n"
+
+	if has_bench:
+		bbcode += "[url=commission_open][color=#" + Utils.COLOR_GOLD + "][ Commission a Marshal… ][/color][/url]"
+		bbcode += "  [color=#" + COLOR_DIM + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
+
+	if bbcode != "":
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]════════════════════════════════════════[/color]\n\n"
+	return bbcode
+
+
+func _render_commission_view():
+	"""Marshal Recruitment: the candidate bench — full character sheets,
+	honest availability (the executor's own check), price/corps chips."""
+	var bbcode = "[url=commission_back][color=#" + Utils.COLOR_INFO + "][ ← Back to the Marshalate ][/color][/url]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
+	var treasury = int(cached_recruitment.get("treasury", 0))
+	var pool = int(cached_recruitment.get("infantry_pool", 0))
+	var corps = int(cached_recruitment.get("corps_size", 5000))
+	bbcode += "[color=#" + COLOR_DIM + "]Treasury: " + _format_number(treasury) + "g | Infantry pool: " + _format_number(pool)
+	bbcode += " | A commission raises a corps of " + _format_number(corps) + " at the capital (1 admin AP + the candidate's price).[/color]\n\n"
+
+	var candidates = cached_recruitment.get("candidates", [])
+	if not (candidates is Array) or candidates.size() == 0:
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]The bench is empty — every marshal France could call already serves.[/color]"
+		content_area.text = bbcode
+		return
+
+	for c in candidates:
+		if not (c is Dictionary):
+			continue
+		var cname = str(c.get("name", "?"))
+		var personality = str(c.get("personality", "?"))
+		var cost = int(c.get("cost", 0))
+		var available = bool(c.get("available", false))
+		var reason = str(c.get("blocked_reason", ""))
+
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "][" + personality.capitalize() + "][/color]"
+		if c.get("cavalry", false):
+			bbcode += "  [color=#" + Utils.COLOR_ORANGE + "][Cavalry][/color]"
+		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + _format_number(cost) + "g[/color]\n"
+		var bio = str(c.get("biography", ""))
+		if bio != "":
+			bbcode += "[color=#" + COLOR_DIM + "]" + bio + "[/color]\n"
+		var skills = c.get("skills", {})
+		if skills is Dictionary:
+			for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
+				if skills.has(skill_name):
+					bbcode += "  " + _skill_bar_row(skill_name.capitalize(), int(skills.get(skill_name, 5)), "")
+		var seeds = c.get("relationships", {})
+		if seeds is Dictionary and seeds.size() > 0:
+			var seed_parts = []
+			for other in seeds:
+				var v = int(seeds[other])
+				var vlabel = "Friendly" if v > 0 else ("Rival" if v == -1 else "Hostile")
+				seed_parts.append(other + ": " + _relationship_colored(v, vlabel))
+			bbcode += "  [color=#" + COLOR_DIM + "]Arrives with a history —[/color] " + ", ".join(seed_parts) + "\n"
+		if available:
+			bbcode += "  [url=commission:" + cname + "][color=#" + Utils.COLOR_SUCCESS + "][ Commission " + cname + " — " + _format_number(cost) + "g ][/color][/url]\n"
+		else:
+			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Unavailable: " + reason + "[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]────────────────────────────────────────[/color]\n\n"
 
 	content_area.text = bbcode
 
@@ -242,6 +374,35 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if overridden > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
 	bbcode += "\n"
+
+	# ═══════ JEALOUSY v3.2: GLORY & GRIEVANCES (shown = applied) ═══════
+	var glory = int(m.get("glory", 0))
+	var glory_rank = int(m.get("glory_rank", 0))
+	var glory_roster = int(m.get("glory_roster", 0))
+	if glory > 0 or glory_rank > 0:
+		bbcode += "  Glory: [color=#" + (Utils.COLOR_GOLD if glory > 0 else Utils.COLOR_GREY) + "]" + str(glory) + "[/color]"
+		if glory_rank > 0 and glory_roster > 1:
+			bbcode += "  [color=#" + COLOR_DIM + "](rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder)[/color]"
+		if m.get("glory_crowned", false):
+			bbcode += "  [color=#" + COLOR_DEVOTED + "]★ CROWNED WITH GLORY (+1 shock/defense/administration)[/color]"
+		bbcode += "\n"
+	var jealous_of = str(m.get("jealous_of", "")) if m.get("jealous_of") != null else ""
+	if jealous_of != "":
+		var jl_turns = int(m.get("jealousy_turns_remaining", 0))
+		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]GRIEVANCE: envious of " + jealous_of
+		if jl_turns > 0:
+			bbcode += " (" + str(jl_turns) + " turn" + ("s" if jl_turns != 1 else "") + " unless satisfied)"
+		if m.get("jealousy_warned", false):
+			bbcode += " — HE EYES THE ENEMY ON HIS OWN; any order restrains him"
+		bbcode += "[/color]\n"
+	if m.get("jealousy_surge", false):
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]VINDICATED — he fights with renewed purpose this turn[/color]\n"
+	var feuds = m.get("feuds", [])
+	if feuds is Array and feuds.size() > 0:
+		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Entrenched feud: " + ", ".join(feuds) + "[/color]\n"
+	var separations = m.get("separations", [])
+	if separations is Array and separations.size() > 0:
+		bbcode += "  [color=#" + COLOR_DIM + "]Kept apart from: " + ", ".join(separations) + " (Berthier watches)[/color]\n"
 
 	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7 + §0.6.8) ═══════
 	# Expectation vs estate income vs rente in the same g/turn units — the
