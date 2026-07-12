@@ -1298,6 +1298,21 @@ func _on_map_area_resized():
 	queue_redraw()
 
 
+func refresh_viewport_scale() -> void:
+	# UI-2 (DEF-13 fold) hook: after the global content_scale_factor changes, the
+	# camera fit metrics may shift, so recompute the zoom floor + camera limits and
+	# redraw. The map's on-screen COVERAGE is already correct at any scale (the
+	# full-rect SubViewportContainer always fills the window). Its RENDER
+	# resolution stays tied to the container's stretch (unchanged from pre-UI-2) —
+	# raising it to physical under scale requires disabling the container's stretch,
+	# which is deferred to UI-2 Part 2 behind a visual-verification gate so the
+	# mature map renderer is not perturbed here. This method deliberately does NOT
+	# set map_viewport.size (that would fight the container's stretch).
+	_update_zoom_floor()
+	_update_camera_limits()
+	queue_redraw()
+
+
 func _get_camera_viewport_size() -> Vector2:
 	if map_viewport != null and map_viewport.size.x > 0 and map_viewport.size.y > 0:
 		return Vector2(map_viewport.size)

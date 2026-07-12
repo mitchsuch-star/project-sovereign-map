@@ -247,26 +247,51 @@ def test_mack_turn_one_takes_swabia_and_ends_hostile_strain():
     assert not [e for e in events if e.get("marshal") == "Mack"]
 
 
-# ══════════════════════════ DEF-13: fixed-HUD baseline (Slice 9 decision) ══════════════════════════
+# ══════════════════════════ DEF-13: UI-scale mechanism (UI-2, July 12, 2026) ══════════════════════════
 
 
-def test_def13_fixed_hud_baseline_pins():
-    """Slice 9 decision of record (July 2, 2026): DEF-13 is re-owned as the
-    'UI-Scale Mini-Pass' slice (content_scale_factor + native-map
-    compensation; per-Control scale is blurry on the pinned Godot 4.4).
-    Until that pass lands, the two named panels keep their recorded
-    fixed-pixel geometry — a silent change here must fail loudly and
-    re-open the row (docs/MAP_IMPLEMENTATION_PLAN.md DEF-13)."""
+def test_def13_ui_scale_mechanism_landed():
+    """DEF-13 ('UI-Scale Mini-Pass') was folded into the UI Visual Foundation
+    Sweep as UI-2 and LANDED July 12, 2026. The old fixed-HUD baseline pin is
+    RETIRED: the command window is now user-resizable (drag grip) and text-
+    scalable (A− / A+), and a global content_scale_factor slider lives in the
+    pause-menu Settings. This replacement pin asserts the *mechanism* exists so
+    a silent removal fails loudly (docs/UI_VISUAL_FOUNDATION_SPEC.md §8 U2).
+
+    The war-status panel is deliberately NOT part of the resize mechanism, so
+    its recorded geometry is still pinned here."""
     root = Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+
+    # The persistence layer for the three user display preferences.
+    ui_settings = (root / "scripts" / "ui_settings.gd").read_text(encoding="utf-8")
+    assert "class_name UiSettings" in ui_settings
+    for token in ("get_ui_scale", "get_terminal_scale", "set_terminal_size"):
+        assert token in ui_settings, f"ui_settings.gd missing {token}"
+
+    # The terminal resize + scale mechanism + the global scale wiring.
+    main_gd = (root / "scripts" / "main.gd").read_text(encoding="utf-8")
+    for token in (
+        "content_scale_factor",
+        "_apply_terminal_size",
+        "_apply_terminal_scale",
+        "_on_grip_gui_input",
+        "resize_grip",
+    ):
+        assert token in main_gd, f"main.gd missing UI-2 mechanism token {token}"
+
+    # The renderer exposes the post-scale camera-refresh hook (Part 1); true
+    # physical-resolution compensation is Part 2. content_scale_factor itself is
+    # owned by main.gd, not the renderer.
+    renderer = (root / "scenes" / "map_renderer_base.gd").read_text(encoding="utf-8")
+    assert "refresh_viewport_scale" in renderer
+    assert "content_scale_factor" in main_gd
+
+    # The A− / A+ scale buttons exist in the terminal header.
     main_tscn = (root / "scenes" / "main.tscn").read_text(encoding="utf-8")
+    assert '[node name="ScaleDownButton"' in main_tscn
+    assert '[node name="ScaleUpButton"' in main_tscn
 
-    # BottomLeftUI: bottom-left anchored, fixed 400x270 via pixel offsets.
-    bl = main_tscn.split('[node name="BottomLeftUI"', 1)[1].split("[node", 1)[0]
-    assert "offset_left = 10.0" in bl
-    assert "offset_top = -280.0" in bl
-    assert "offset_right = 410.0" in bl
-    assert "offset_bottom = -10.0" in bl
-
+    # War-status panel geometry is NOT resizable — still pinned.
     war_tscn = (root / "scenes" / "war_status_panel.tscn").read_text(encoding="utf-8")
     assert "offset_left = -200.0" in war_tscn
     assert "offset_top = -200.0" in war_tscn

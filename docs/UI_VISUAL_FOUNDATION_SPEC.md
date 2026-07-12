@@ -2,10 +2,18 @@
 
 > **Status:** ▶ IN PROGRESS. **Session U1 (UI-0 + UI-1) ✅ LANDED July 12, 2026** — font stack +
 > `ui/main_theme.tres` + typed Button styleboxes registered project-wide, boot-smoke 0 `SCRIPT ERROR`,
-> `tests/test_ui_visual_foundation.py` (15) green. **PAUSED for user review before Session U2** (slice
-> cadence). Design proposal + all third-party assets gathered and license-verified. **The War-Table
-> Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round base (§7), references gathered.**
-> The sweep is segmented into build sessions **U1–U5** in **§8 (Session Segmentation Ledger)** — U1 done, resume at **U2**.
+> `tests/test_ui_visual_foundation.py` (15) green. **Session U2 Part 1 ("UI Scale & the Expandable
+> Command Window") ✅ LANDED July 12, 2026** — the command window is now user-resizable (corner
+> drag-grip, double-click reset) + text-scalable (A− / A+), a global Interface Scale slider
+> (`content_scale_factor`) lives in the pause-menu Settings, all persisted via the new
+> `scripts/ui_settings.gd` (`user://ui_settings.cfg`); the DEF-13 fixed-HUD baseline pin is RETIRED
+> for a mechanism pin; boot-smoke 0 `SCRIPT ERROR`; `tests/test_ui_scale_expandable_terminal.py` (12)
+> green. **U2 Part 2 REMAINS** (colour-centralization 51-file migration, per-type theme font sizes,
+> ≥2560 readability audit, + the true native-resolution map compensation) — see §8. **PAUSED for user
+> review before U2 Part 2** (slice cadence). Design proposal + all third-party assets gathered and
+> license-verified. **The War-Table Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round
+> base (§7), references gathered.** The sweep is segmented into build sessions **U1–U5** in **§8
+> (Session Segmentation Ledger)** — U1 + U2 Part 1 done, resume at **U2 Part 2**.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -321,15 +329,47 @@ keyed to its dominant arm.
 
 ### Session U2 — UI-2: color centralization + UI scale (folds DEF-13)
 - **Entry:** U1 landed + reviewed.
-- **Spots checklist:**
-  - [ ] Migrate inline `Color()` duplicates → `Utils`/theme colors across the 51 files / 299 overrides (guarded by `test_gdscript_color_centralization.py`).
-  - [ ] Wire the UI-scale slider: `get_window().content_scale_factor` (0.75–2.0) over a `canvas_items`/`expand` baseline; **keep `map_viewport.size` native** (DEF-13).
-  - [ ] Per-type font sizes on the theme.
-  - [ ] Replace `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` with the chosen-mechanism pin.
+- **Split (July 12, 2026):** U2 was split into **Part 1 (UI scale + the user-requested
+  expandable/scaling command window; ✅ LANDED)** and **Part 2 (colour migration + theme sizes +
+  readability audit + true native-map compensation; ▶ REMAINS)** so the stateful new feature lands
+  focused/reviewable, separate from the sprawling 51-file colour sweep (slice cadence).
+
+- **Part 1 spots checklist — ✅ LANDED July 12, 2026:**
+  - [x] **Expandable command window** (user request) — `BottomLeftUI` gains a top-right corner
+    drag-grip (`main.gd` `_create_resize_grip`/`_on_grip_gui_input`/`_resize_terminal_from_mouse`,
+    grows up+right from its bottom-left anchor, min 300×180 / max 1000×900 clamped to the window,
+    double-click resets) + `A− / A+` header buttons that scale **every** terminal font crisply
+    (`_apply_terminal_scale`, base sizes auto-discovered from the `.tscn` so it never drifts).
+  - [x] Wire the UI-scale slider: `get_window().content_scale_factor` (0.75–2.0) in the pause-menu
+    Settings (replaces the "coming soon" stub); `main.gd` owns applying + persistence. Stretch mode
+    left **disabled** (lowest map risk); the map's on-screen coverage is unaffected at any scale.
+    **`canvas_items`/`expand` baseline was NOT adopted** (Part 2 decides it against the map).
+  - [x] Persistence — new `scripts/ui_settings.gd` (`class_name UiSettings`, `user://ui_settings.cfg`):
+    terminal width/height, terminal scale, global ui_scale; clamped on read AND write.
+  - [x] Replace `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` → the
+    `test_def13_ui_scale_mechanism_landed` mechanism pin (war-status geometry still pinned).
+  - [x] Boot engine → `grep SCRIPT ERROR` == 0 (headless editor parse + game-scene `_ready` run; the
+    single `SubViewport` stretch warning is pre-existing, not introduced).
+  - [x] Test: `tests/test_ui_scale_expandable_terminal.py` (12) + `test_gdscript_color_centralization.py`
+    still green; the Godot parse report regenerated.
+
+- **Part 2 spots checklist — ▶ REMAINS (owner = this row; landing = a future U2 Part 2 session):**
+  - [ ] Migrate inline `Color()` duplicates → `Utils`/theme colors across the 51 files / 299 overrides
+    (guarded by `test_gdscript_color_centralization.py`; completion = inline-`Color()` count materially
+    reduced). *A handful of new navy/gold `Color()` literals for the resize grip + settings box were
+    added in Part 1 and are in-scope for this migration.*
+  - [ ] Per-type font sizes on the theme (`Button`/`Label`/`LineEdit`/`RichTextLabel`) — done
+    deliberately with a readability pass so it doesn't destabilise all 30 screens.
+  - [ ] **True native-resolution map compensation** — under `content_scale_factor` the map's SubViewport
+    still renders at the container's stretched (logical) size, so it softens at scale > 1.0 (coverage is
+    correct; only render-res). Raising it to physical requires disabling `SubViewportContainer.stretch`
+    + manual sizing/display-scale, which **must be visually verified** before landing (why it's deferred
+    off the mature-map renderer). Completion = `map_viewport.size` physical/native at any scale, map
+    visibly crisp, boot-smoke clean. Hook already in place: `map_renderer_base.refresh_viewport_scale`.
   - [ ] Readability pass at ≥2560-wide (DEF-13 completion criterion).
   - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
 - **Exit:** UI-2 completion definition (§4); `test_gdscript_color_centralization.py` green.
-- **STATUS line:** record UI-2 landing + the DEF-13 fold.
+- **STATUS line:** ✅ recorded — U2 Part 1 landed July 12, 2026; U2 Part 2 remains.
 
 ### Session U3 — UI-3: texture / border / icon / portrait polish (excludes pieces)
 - **Entry:** U2 landed.

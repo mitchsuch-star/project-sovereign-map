@@ -11,6 +11,15 @@ signal save_requested
 signal load_requested
 signal new_game_requested
 signal closed
+# UI-2: emitted when the player moves the Interface Scale slider. main.gd owns
+# applying it (content_scale_factor + native-map compensation + persistence).
+# `persist` is false for the intermediate steps of a live drag (apply only) and
+# true at drag end / for a click or keyboard change (apply AND save to disk).
+signal ui_scale_changed(value, persist)
+
+# True while the Interface Scale slider is being dragged (suppresses per-step
+# disk writes; the final value persists on drag_ended).
+var _scale_dragging := false
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -21,7 +30,10 @@ signal closed
 @onready var confirm_new_game_button = $PanelContainer/VBoxContainer/NewGameConfirmBox/NewGameConfirmButtons/ConfirmNewGameButton
 @onready var cancel_new_game_button = $PanelContainer/VBoxContainer/NewGameConfirmBox/NewGameConfirmButtons/CancelNewGameButton
 @onready var settings_button = $PanelContainer/VBoxContainer/SettingsButton
-@onready var settings_stub = $PanelContainer/VBoxContainer/SettingsStub
+@onready var settings_box = $PanelContainer/VBoxContainer/SettingsBox
+@onready var ui_scale_slider = $PanelContainer/VBoxContainer/SettingsBox/ScaleRow/UiScaleSlider
+@onready var ui_scale_value = $PanelContainer/VBoxContainer/SettingsBox/ScaleRow/UiScaleValue
+@onready var reset_scale_button = $PanelContainer/VBoxContainer/SettingsBox/ResetScaleButton
 @onready var quit_button = $PanelContainer/VBoxContainer/QuitButton
 
 func _ready():
@@ -33,6 +45,17 @@ func _ready():
 	settings_button.pressed.connect(_on_settings)
 	quit_button.pressed.connect(_on_quit)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# UI-2: initialize the Interface Scale slider from the saved preference and
+	# wire it. `set_value_no_signal` avoids emitting a spurious change on boot.
+	ui_scale_slider.min_value = UiSettings.MIN_UI_SCALE
+	ui_scale_slider.max_value = UiSettings.MAX_UI_SCALE
+	ui_scale_slider.step = UiSettings.UI_SCALE_STEP
+	ui_scale_slider.set_value_no_signal(UiSettings.get_ui_scale())
+	_update_scale_value_label(UiSettings.get_ui_scale())
+	ui_scale_slider.value_changed.connect(_on_ui_scale_slider_changed)
+	ui_scale_slider.drag_started.connect(_on_scale_drag_started)
+	ui_scale_slider.drag_ended.connect(_on_scale_drag_ended)
+	reset_scale_button.pressed.connect(_on_reset_scale)
 	_set_new_game_confirmation_visible(false)
 	hide()
 
@@ -46,7 +69,7 @@ func close_menu():
 	closed.emit()
 
 func _reset_menu_state():
-	settings_stub.visible = false
+	settings_box.visible = false
 	_set_new_game_confirmation_visible(false)
 
 func _set_new_game_confirmation_visible(visible: bool):
@@ -57,7 +80,7 @@ func _set_new_game_confirmation_visible(visible: bool):
 	settings_button.disabled = visible
 	quit_button.disabled = visible
 	if visible:
-		settings_stub.visible = false
+		settings_box.visible = false
 		confirm_new_game_button.grab_focus()
 
 func _on_save():
@@ -80,7 +103,35 @@ func _on_cancel_new_game():
 	new_game_button.grab_focus()
 
 func _on_settings():
-	settings_stub.visible = true
+	settings_box.visible = not settings_box.visible
+
+func _on_ui_scale_slider_changed(value: float):
+	# Apply live every step; persist only when NOT mid-drag (i.e. a click on the
+	# track or a keyboard step, which fire no drag_started/ended pair). Drag steps
+	# persist once at drag_ended.
+	_update_scale_value_label(value)
+	ui_scale_changed.emit(value, not _scale_dragging)
+
+func _on_scale_drag_started():
+	_scale_dragging = true
+
+func _on_scale_drag_ended(_value_changed: bool):
+	_scale_dragging = false
+	# Persist the settled value once, at drag end.
+	ui_scale_changed.emit(ui_scale_slider.value, true)
+
+func _on_reset_scale():
+	# Snaps the slider to 1.0; value_changed fires only if it actually moved, so
+	# emit explicitly to guarantee the reset applies (and persists) even when
+	# already at 100%.
+	if is_equal_approx(ui_scale_slider.value, UiSettings.DEFAULT_UI_SCALE):
+		_update_scale_value_label(UiSettings.DEFAULT_UI_SCALE)
+		ui_scale_changed.emit(UiSettings.DEFAULT_UI_SCALE, true)
+	else:
+		ui_scale_slider.value = UiSettings.DEFAULT_UI_SCALE
+
+func _update_scale_value_label(value: float):
+	ui_scale_value.text = "%d%%" % int(round(value * 100.0))
 
 func _on_quit():
 	get_tree().quit()

@@ -143,6 +143,27 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 @onready var bottom_left_ui = $BottomLeftUI
 @onready var minimize_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/MinimizeButton
 @onready var restore_button = $RestoreButton
+
+# UI References - Terminal text scale (A− / A+), UI-2
+@onready var scale_down_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/ScaleDownButton
+@onready var scale_up_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/ScaleUpButton
+
+# ── UI-2: Expandable command window + UI scale (DEF-13 fold) ──
+# The terminal is anchored bottom-left; it grows UP and to the RIGHT from that
+# fixed corner (offset_left / offset_bottom stay put; offset_right / offset_top
+# carry the width / height). A corner grip drives the resize; A− / A+ drive a
+# crisp per-terminal font scale. Both persist via UiSettings.
+const GRIP_SIZE := 20.0
+const TERMINAL_ANCHOR_LEFT := 10.0    # matches BottomLeftUI offset_left in main.tscn
+const TERMINAL_ANCHOR_BOTTOM := -10.0  # matches BottomLeftUI offset_bottom in main.tscn
+var _terminal_width := UiSettings.DEFAULT_TERMINAL_WIDTH
+var _terminal_height := UiSettings.DEFAULT_TERMINAL_HEIGHT
+var _terminal_scale := UiSettings.DEFAULT_TERMINAL_SCALE
+var resize_grip: Panel = null
+var _grip_dragging := false
+# Auto-discovered [{node, key, base}] of every font override inside the terminal,
+# captured from the .tscn at boot so the scale multiplies the authored sizes.
+var _scalable_fonts: Array = []
 # Top Bar (Session A)
 var top_bar = null
 
@@ -461,6 +482,18 @@ func _ready():
 	if not restore_button.pressed.is_connected(_restore_terminal):
 		restore_button.pressed.connect(_restore_terminal)
 
+	# ── UI-2: expandable + scaling command window (DEF-13 fold) ──
+	# Apply the saved global interface scale FIRST so the logical viewport is
+	# settled before the terminal geometry is computed in logical coordinates.
+	_apply_ui_scale(UiSettings.get_ui_scale(), false)
+	_setup_scalable_terminal()
+	# The pause-menu Settings slider drives the global scale through us (we own
+	# the map compensation + persistence).
+	if pause_menu and pause_menu.has_signal("ui_scale_changed"):
+		pause_menu.ui_scale_changed.connect(_on_ui_scale_changed)
+	if not resized.is_connected(_on_root_resized):
+		resized.connect(_on_root_resized)
+
 	# Start disabled until connected
 	set_input_enabled(false)
 	if map_area:
@@ -748,12 +781,197 @@ func _minimize_terminal():
 	"""Collapse the terminal panel, show restore button."""
 	bottom_left_ui.visible = false
 	restore_button.visible = true
+	if resize_grip:
+		resize_grip.visible = false
 
 func _restore_terminal():
 	"""Expand the terminal panel, hide restore button."""
 	bottom_left_ui.visible = true
 	restore_button.visible = false
+	if resize_grip:
+		resize_grip.visible = true
+		_reposition_after_layout()
 	command_input.grab_focus()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# UI-2: Expandable command window + terminal text scale (DEF-13 fold)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_scalable_terminal() -> void:
+	"""Wire the A− / A+ text scale + the corner resize grip and restore the
+	saved footprint/scale. Called once from _ready() after the global UI scale
+	has been applied."""
+	_collect_scalable_fonts()
+
+	if scale_down_button and not scale_down_button.pressed.is_connected(_on_scale_down_pressed):
+		scale_down_button.pressed.connect(_on_scale_down_pressed)
+	if scale_up_button and not scale_up_button.pressed.is_connected(_on_scale_up_pressed):
+		scale_up_button.pressed.connect(_on_scale_up_pressed)
+
+	_create_resize_grip()
+
+	# Restore persisted preferences.
+	_apply_terminal_scale(UiSettings.get_terminal_scale())
+	_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
+
+func _collect_scalable_fonts() -> void:
+	"""Snapshot every authored font-size override inside the terminal so the
+	scale multiplies the .tscn base sizes (auto-adapts if the layout changes;
+	no per-node enumeration to drift). Includes the out-of-panel RestoreButton."""
+	_scalable_fonts.clear()
+	_gather_fonts(bottom_left_ui)
+	_gather_fonts(restore_button)
+
+func _gather_fonts(node: Node) -> void:
+	if node is Control:
+		for key in ["font_size", "normal_font_size", "bold_font_size"]:
+			if node.has_theme_font_size_override(key):
+				_scalable_fonts.append({
+					"node": node,
+					"key": key,
+					"base": node.get_theme_font_size(key),
+				})
+	for child in node.get_children():
+		_gather_fonts(child)
+
+func _apply_terminal_scale(scale: float) -> void:
+	_terminal_scale = clampf(scale, UiSettings.MIN_TERMINAL_SCALE, UiSettings.MAX_TERMINAL_SCALE)
+	for f in _scalable_fonts:
+		var n = f.get("node")
+		if is_instance_valid(n):
+			n.add_theme_font_size_override(f.key, int(round(float(f.base) * _terminal_scale)))
+	# Larger text may need a taller panel to keep the input row visible.
+	_reposition_after_layout()
+
+func _on_scale_down_pressed() -> void:
+	_apply_terminal_scale(_terminal_scale - UiSettings.TERMINAL_SCALE_STEP)
+	UiSettings.set_terminal_scale(_terminal_scale)
+
+func _on_scale_up_pressed() -> void:
+	_apply_terminal_scale(_terminal_scale + UiSettings.TERMINAL_SCALE_STEP)
+	UiSettings.set_terminal_scale(_terminal_scale)
+
+func _create_resize_grip() -> void:
+	if resize_grip and is_instance_valid(resize_grip):
+		return
+	resize_grip = Panel.new()
+	resize_grip.name = "TerminalResizeGrip"
+	resize_grip.custom_minimum_size = Vector2(GRIP_SIZE, GRIP_SIZE)
+	resize_grip.size = Vector2(GRIP_SIZE, GRIP_SIZE)
+	resize_grip.mouse_filter = Control.MOUSE_FILTER_STOP
+	resize_grip.mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
+	resize_grip.tooltip_text = "Drag to resize the command window · double-click to reset"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.1, 0.15, 0.92)
+	sb.border_color = Color(0.85, 0.75, 0.55, 1)  # gold, matches the terminal accent
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(3)
+	resize_grip.add_theme_stylebox_override("panel", sb)
+	var glyph := Label.new()
+	glyph.text = "⤢"
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	glyph.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1))
+	glyph.add_theme_font_size_override("font_size", 12)
+	resize_grip.add_child(glyph)
+	add_child(resize_grip)
+	resize_grip.gui_input.connect(_on_grip_gui_input)
+	_position_resize_grip()
+
+func _apply_terminal_size(width: float, height: float) -> void:
+	"""Set the DESIRED terminal footprint (the user's intent) and lay it out.
+	The desired size is clamped only to the absolute min/max — never to the
+	window — so a transient viewport shrink (a window resize or a raised global
+	scale) can't permanently shrink it. The window fit happens in
+	_relayout_terminal, for DISPLAY only, and is never written back over intent."""
+	_terminal_width = clampf(width, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
+	_terminal_height = clampf(height, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
+	_relayout_terminal()
+
+func _relayout_terminal() -> void:
+	"""Fit the DESIRED size to the current viewport for display only. Anchored
+	bottom-left: the fixed corner stays, width extends offset_right, height
+	extends offset_top (negative = upward). Growing the window back restores the
+	intended footprint because _terminal_width/height are left untouched here."""
+	var disp_w = clampf(_terminal_width, UiSettings.MIN_TERMINAL_WIDTH,
+			maxf(UiSettings.MIN_TERMINAL_WIDTH, size.x - TERMINAL_ANCHOR_LEFT * 2.0))
+	var disp_h = clampf(_terminal_height, UiSettings.MIN_TERMINAL_HEIGHT,
+			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0))
+	bottom_left_ui.offset_left = TERMINAL_ANCHOR_LEFT
+	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
+	bottom_left_ui.offset_right = TERMINAL_ANCHOR_LEFT + disp_w
+	bottom_left_ui.offset_top = TERMINAL_ANCHOR_BOTTOM - disp_h
+	_reposition_after_layout()
+
+func _position_resize_grip() -> void:
+	if resize_grip == null or not is_instance_valid(resize_grip):
+		return
+	if not bottom_left_ui.visible:
+		return
+	# Read the ACTUAL rendered rect: BottomLeftUI is a PanelContainer, so it
+	# clamps up to its combined minimum size (header + output + input row), and
+	# A+ text scale enlarges that min — the grip must follow the real top-right
+	# corner, not the requested footprint, or it strands mid-panel.
+	var rect: Rect2 = bottom_left_ui.get_global_rect()
+	var corner := Vector2(rect.position.x + rect.size.x, rect.position.y)
+	resize_grip.position = corner - resize_grip.size * 0.5
+
+func _reposition_after_layout() -> void:
+	# Font/scale changes can reflow container min-sizes a frame later.
+	call_deferred("_position_resize_grip")
+
+func _on_grip_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			if event.double_click:
+				_reset_terminal_size()
+			else:
+				_grip_dragging = true
+		else:
+			if _grip_dragging:
+				_grip_dragging = false
+				UiSettings.set_terminal_size(_terminal_width, _terminal_height)
+	elif event is InputEventMouseMotion and _grip_dragging:
+		_resize_terminal_from_mouse(get_global_mouse_position())
+
+func _resize_terminal_from_mouse(mouse_pos: Vector2) -> void:
+	# The panel's fixed corner is bottom-left; the grip drags the top-right one.
+	var new_width = mouse_pos.x - TERMINAL_ANCHOR_LEFT
+	var bottom_y = size.y + TERMINAL_ANCHOR_BOTTOM
+	var new_height = bottom_y - mouse_pos.y
+	_apply_terminal_size(new_width, new_height)
+
+func _reset_terminal_size() -> void:
+	_apply_terminal_size(UiSettings.DEFAULT_TERMINAL_WIDTH, UiSettings.DEFAULT_TERMINAL_HEIGHT)
+	UiSettings.set_terminal_size(_terminal_width, _terminal_height)
+
+func _on_root_resized() -> void:
+	# Window / global-scale reflow: re-fit the UNCHANGED desired size to the new
+	# viewport (display-only) and re-glue the grip. Must NOT go through
+	# _apply_terminal_size, which would re-clamp the intent.
+	_relayout_terminal()
+
+func _apply_ui_scale(scale: float, persist: bool = true) -> void:
+	"""Global interface scale via content_scale_factor (UI-2 / DEF-13 fold).
+	The map SubViewport is recompensated to stay crisp."""
+	var clamped = clampf(scale, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)
+	var win = get_window()
+	if win:
+		win.content_scale_factor = clamped
+	if map_area and map_area.has_method("refresh_viewport_scale"):
+		map_area.refresh_viewport_scale()
+	if persist:
+		UiSettings.set_ui_scale(clamped)
+	# Logical viewport size just changed — re-glue the terminal + grip.
+	call_deferred("_on_root_resized")
+
+func _on_ui_scale_changed(scale: float, persist: bool = true) -> void:
+	# Applied live for preview on every slider step; persisted only when the drag
+	# ends (or immediately for a click / keyboard change) so a drag doesn't spam
+	# the config file to disk each step.
+	_apply_ui_scale(scale, persist)
 
 func _toggle_terminal():
 	"""Toggle terminal panel visibility."""

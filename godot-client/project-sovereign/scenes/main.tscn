@@ -68,6 +68,22 @@ theme_override_font_sizes/font_size = 14
 text = "⚔ IMPERIAL COMMAND ⚔"
 horizontal_alignment = 1
 
+[node name="ScaleDownButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow"]
+custom_minimum_size = Vector2(26, 0)
+layout_mode = 2
+tooltip_text = "Smaller text"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "A−"
+
+[node name="ScaleUpButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow"]
+custom_minimum_size = Vector2(26, 0)
+layout_mode = 2
+tooltip_text = "Larger text"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "A+"
+
 [node name="MinimizeButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow"]
 custom_minimum_size = Vector2(28, 0)
 layout_mode = 2
