@@ -1,7 +1,9 @@
 # UI Visual Foundation Sweep — Spec
 
 > **Status:** ▶ NEXT (queued July 12, 2026). Design proposal + all third-party assets
-> already gathered and license-verified; build not yet started.
+> already gathered and license-verified; build not yet started. **The War-Table Pieces style gate
+> is CLOSED (July 12, 2026) — tin flats on a round base (§7), references gathered.** The sweep is
+> now segmented into build sessions **U1–U5** in **§8 (Session Segmentation Ledger)** — start at U1.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -161,63 +163,204 @@ Target: fonts `assets/fonts/`, theme `ui/main_theme.tres`, pull navy/gold from `
 
 ## 7. War-Table Pieces (UI-3 sub-item) — the 2.5D unit diorama
 
-> **Status:** researched + design-recommended July 12, 2026; needs a small style gate before art.
-> **Decision locked:** **no camera tilt** → **baked 2.5D pieces on the existing 2D map** (additive
-> layer; the mature map / DEF-9..13 stays untouched). Real-time 3D was rejected for map pieces
-> (a static piece gains nothing from it) — the win is dimensional pieces baked to sprites.
-> **Reference artifacts:** the "War Table — Pieces & the 2.5D Pipeline" style guide and the
-> "Visual Foundation" proposal (both generated this session). Research sources: Kriegsspiel
-> (kriegsspiel.org, Wikipedia), tin flats/Zinnfiguren (Wikipedia *Toy soldier*), round soldiers
-> (Lucotte, W. Britain), Napoleon's 1805 pin table (Bacler d'Albe, frenchempire.net).
+> **Status:** **style gate CLOSED July 12, 2026 — G1 / G2 / G3 all LOCKED** (user chose
+> **tin flats on a round base**). Reference images gathered + license-verified this session
+> (below). Art not yet started; owned by session **U4** (art) + **U5** (code) in the §8 ledger.
+> **Decision locked (structural, unchanged):** **no camera tilt** → **baked 2.5D pieces on the
+> existing 2D map** (additive layer; the mature map / DEF-9..13 stays untouched). Real-time 3D was
+> rejected for map pieces — the win is dimensional pieces baked to sprites.
+> **Research sources:** tin flats / Zinnfiguren (Plassenburg Zinnfiguren-Museum Kulmbach via
+> Wikimedia/Thomas Quine; Louis Liljedahl 30 mm Napoleonic flats; Roscheider Hof; Goslar;
+> W. Schweizer slate mould; Kieler & Rick Sanders collector catalogs). The July-12 five-style
+> selection board (round-sculpt / Kriegsspiel-block / round-soldier / tin-flat / pin) is the
+> historical decision artifact — the tin-flat arm won.
 
 **Goal:** physical "war-table" pieces — one each for **infantry / cavalry / artillery** — that a
-marshal pushes across the map, like Kriegsspiel or a diorama. Color = side is universal; branch
-always needs a second channel.
+marshal pushes across the map, like a Kriegsspiel diorama. Color = side is universal; branch always
+needs a second channel.
 
-**Recommended style (gate item G1):** a **round sculpt on a Kriegsspiel-shaped base, faction-tinted.**
-The sculpt gives the diorama look + the volume a baked contact shadow needs; the base footprint
-restores the *shape* channel that rescues the weak lone-infantry read; the tint codes the side.
-Ranked fallbacks: pure Kriegsspiel blocks (safe/cheap) → pure round soldiers → tin flats (fights
-2.5D) → flags/pins (no branch info; keep as a secondary objective/HQ layer only).
+### Style — LOCKED (gate G1): tin flat on a round base ("the standee")
 
-**Per-arm spec — three redundant legibility channels** (base footprint + silhouette + faction color),
-so any two can fail at 48–64px and it still reads:
-- **Infantry** — widest/longest base; rank of 2–3 shako figures + flag → *wide vertical bristle*.
-- **Cavalry** — compact square base; single mounted rider, sabre up, taller → *tall organic mass*.
-- **Artillery** — smallest base; cannon (barrel + one big wheel), one gunner → *low horizontal wheel*.
-- Matched-set rules: identical base height/bevel, identical baked shadow, one shared light + fixed
-  3/4 angle, matte toy-paint. One piece = one corps (inf/art are small clusters, never a lone man).
-  No fine detail at 64px — strength/facings/pips live in hover/zoom.
+The piece is a **Zinnfigur tin flat** — an engraved, dead-broadside side-profile figure — standing
+in a slot on a **round base disc**. The flat carries the branch **silhouette** (the read the user
+chose for its folk-art character); the round base restores the **footprint** channel a bare flat
+lacks and gives the **baked contact shadow** a disc to sit on — which cures the "flats fight 2.5D"
+objection that had ranked pure flats 4th at the open gate. This is the tabletop
+"standee-on-a-round-base" pattern.
 
-**2.5D render pipeline** (model in 3D, bake to a flat sprite once — 2D at runtime):
-1. Model piece in Blender (round sculpt + shaped base; CC0 base mesh kitbash or low-poly primitives).
-2. ONE **orthographic** camera at a fixed ~45° 3/4 angle, shared by all pieces (ortho = no
-   position-dependent distortion across the map).
-3. Light once (fixed key + soft fill) → bakes volume + guarantees a matched set.
-4. Bake the **contact shadow as a separate sprite** (shadow-catcher / AO pass) — it glues the piece
-   to the table.
-5. Render PNG+alpha at 2–3× size. Optional neutral **tint-mask** so ONE render recolors to all 20
-   nations via `modulate` (reuse `Utils.NATION_COLORS`); optional 4–8 facing angles.
-6. Godot: `Sprite2D` at the province anchor + shadow child; **Y-sort** for fake depth; **tween**
-   position along the march path for the "sliding piece" feel. The 2D map is unchanged.
+- **G1 = tin-flat-on-round-base** — LOCKED (user, July 12, 2026).
+- **G2 (production path) = billboard + painted broadside texture.** The "model" is a thin extruded
+  blade / alpha-cut quad + a round base disc primitive (both trivial in Blender); the *art* is the
+  painted broadside texture, traced from the public-domain Zinnfiguren references below. No 3D
+  organic sculpt and no CC0-mesh kitbash is needed (that path was for the round-sculpt style).
+- **G3 (recolor) = neutral tint-mask.** Faction color drives a **coat-mass mask** via Godot
+  `modulate` (`Utils.NATION_COLORS`); bare pewter/metal and the base stay neutral so the "tin"
+  identity survives every faction hue. One render → 20 nations.
 
-**Tooling — how it gets built:** Blender is Python-scriptable (`bpy`) and runs headless
-(`blender --background --python`), so the render RIG (camera/light/shadow), materials, faction-tint
-batch, geometric pieces (bases, cannon, blocks), batch-rendering, and the Godot placement code are
-**fully automatable + iterable** (render → inspect PNG → adjust). Detailed *organic* sculpts
-(realistic horse/soldier) come from a CC0 base mesh or an artist; a **stylized low-poly / carved-toy**
-look is fully script-generatable and reads well small — **gate item G2: hybrid-realistic (CC0 meshes)
-vs. stylized-low-poly (fully generated).**
+### Per-arm spec (flats) — three redundant channels: round-base footprint + broadside silhouette + faction tint
 
-**Effort:** ~2–4 days art (3 pieces + one reusable render rig) · 1 code slice (placement/Y-sort/
-tween, additive to the 2D map) · ~free runtime (baked sprites).
+All figures face one consistent direction (Zinnfigur convention = nose-right); a **mirrored L/R
+pair** per arm lets a piece face its travel heading.
+- **Infantry** — widest round base; a **rank of 2–3 broadside shako figures + a taller colour/eagle
+  bearer** breaking the top line → *wide vertical bristle*.
+- **Cavalry** — mid round base; a **single horse+rider in dead side-profile, sabre raised** clear of
+  the shako → *tall galloping mass*.
+- **Artillery** — wide, low round base; a **broadside gun (big spoked wheel + tapering barrel +
+  trail spike) + 1–2 crew** in the same plane → *low horizontal wheel*.
+- Matched-set rules: identical base-disc height/bevel, identical baked line-shadow, one shared
+  locked light, matte toy-enamel, paper-thin edge rim. One piece = one corps. No fine detail at
+  64px — strength/facings live in hover/zoom.
 
-**Open gate items (decide before art):** G1 style (hybrid vs pure Kriegsspiel) · G2 realism path
-(CC0-mesh vs low-poly) · G3 tint-mask-recolor vs per-faction render.
+### 2.5D render pipeline (flats variant)
 
-**Completion definition:** the three arm pieces render as baked PNG+alpha sprites with a separate
-contact shadow, faction-tint working via `modulate`, placed + Y-sorted on the map at marshal
-locations and tweening on move; the 2D map/zoom/labels untouched (0 `SCRIPT ERROR`).
+1. **Model** — a near-2D blade (a few mm of relief) or an alpha-cut billboard quad, set in a
+   diametral slot on a round base disc (3 footprint sizes). Author the broadside texture by tracing
+   the PD Zinnfiguren refs + matte enamel; engraved detail = shallow raised **lines**, not sculpted
+   volume.
+2. **Camera — LOCKED dead-broadside** (90° side-on, orthographic, level with the figure; at most
+   ~5–10° top-down only so the base ellipse reads). **Never 3/4** — off-axis collapses a flat to a
+   sliver. (This replaces the round-sculpt pipeline's 45° 3/4 rig.)
+3. **Light once** — a single low-angle key + soft fill; a thin bright rim on the raised relief
+   edges; the paper-thin silhouette edge is the "flat, not mini" tell.
+4. **Bake a line-shaped contact shadow** — a narrow dark line-ellipse tight under the feet/wheel,
+   feathering to the disc rim (a body-blob shadow reads as a rounded mini and is wrong for a flat).
+5. **Render PNG+alpha at 2–3×** — neutral coat **tint-mask** + a **mirrored L/R facing pair** per
+   arm; base + metal on neutral channels.
+6. **Godot** — `Sprite2D` (flat) + round-base child + shadow child at the province anchor;
+   **Y-sort** for depth; **tween** along the march path; flip to the L/R facing by travel heading;
+   faction `modulate` on the mask. The 2D map is unchanged.
 
-**Test:** extend `tests/test_ui_visual_foundation.py` — assert the 3 piece sprites (+ shadow) exist
-in `assets/ui/pieces/` and that each active marshal renders a piece keyed to its dominant arm.
+**Tooling:** the quad/blade + round base + slot + shadow bake are `bpy`-scriptable and headless-
+batchable (`blender --background --python`; render → inspect PNG → adjust). The one real art task is
+the three painted broadside textures — traced from the references below.
+
+### Reference images (gathered + verified July 12, 2026)
+
+Ship-able references are Wikimedia Commons under **CC BY / CC BY-SA** (attribution — add to
+`THIRD_PARTY_LICENSES.md` if any texel is directly derived); collector catalogs are **look-only**
+(trace the pose, don't ship the pixels).
+
+**Flat-on-round-base + material read (start here — the exact target):**
+- [Louis Liljedahl — 30 mm French Napoleonic flats on rounded bases](https://commons.wikimedia.org/wiki/File:Wiki_louis_4.jpg) — CC BY-SA 3.0. French marshal-era flats (2 mounted + 1 foot), dead broadside, each on a rounded tan plinth.
+- [Liljedahl — single mounted cuirassier on a round base](https://commons.wikimedia.org/wiki/File:Wiki_louis_2.jpg) — CC BY-SA 3.0. Clean single silhouette + base + matte-enamel-over-relief.
+- [Liljedahl — unpainted 30 mm flat (raw pewter relief)](https://commons.wikimedia.org/wiki/File:Wiki_louis_1.jpg) — CC BY-SA 3.0. The material before paint: shallow raised-line relief, matte pewter, knife-thin edge.
+- [Roscheider Hof museum — flats on base slabs](https://commons.wikimedia.org/wiki/File:Konz,_Roscheider_Hof,_Zinnfiguren.jpg) — CC BY 4.0. Eye-level "flat blade rising off a base."
+- [Zinnfiguren-Museum Goslar — flats on oval bases](https://commons.wikimedia.org/wiki/File:Zinnfiguren_Goslar_19_Kaiser.JPG) — CC BY-SA 3.0. Isolated silhouettes, base-under-figure geometry.
+- [Engraved slate mould for flats (W. Schweizer)](https://commons.wikimedia.org/wiki/File:Gravur_einer_Zinngussform_f%C3%BCr_Flachfiguren_Wilhelm_Schweizer.jpg) — CC BY-SA 4.0. Why a flat looks the way it does (intaglio broadside relief).
+
+**Infantry** (CC BY 2.0, Plassenburg Zinnfiguren-Museum / T. Quine):
+- [Napoleonic riflemen](https://commons.wikimedia.org/wiki/File:Napoleonic_riflemen_(24797751511).jpg) · [Napoleonic soldiers — shako line](https://commons.wikimedia.org/wiki/File:Napoleonic_soldiers_(24734242121).jpg) · [Napoleonic marching band — standard/instrument-bearer analogue](https://commons.wikimedia.org/wiki/File:Napoleonic_marching_band_(24536875213).jpg)
+- Look-only: [Rick Sanders — French flats (colour bearer + Guard bearskin)](https://www.ricksanderszf.com/france.html)
+
+**Cavalry** (CC BY 2.0, Plassenburg / T. Quine):
+- [Light cavalry](https://commons.wikimedia.org/wiki/File:Light_cavalry_(27305669784).jpg) · [Charging horsemen — raised sabre](https://commons.wikimedia.org/wiki/File:Charging_horsemen_(25372789301).jpg) · [Dragoons on the attack](https://commons.wikimedia.org/wiki/File:Dragoons_on_the_attack_(27853691975).jpg) · [Gen. Lasalle — single mounted figure](https://commons.wikimedia.org/wiki/File:General_Lasalle_in_the_field_(25922185200).jpg)
+
+**Artillery** (CC BY 2.0, Plassenburg / T. Quine + look-only Kieler):
+- [Model artillery — gun-silhouette library](https://commons.wikimedia.org/wiki/File:Model_artillery_(25303850485).jpg) · [Tiny artillery — flat + base at table scale](https://commons.wikimedia.org/wiki/File:Tiny_artillery_(27738350581).jpg)
+- Look-only: [Kieler — French Napoleonic gun + crew flat plate (Hf 19)](https://www.kieler-zinnfiguren.de/Figures/FranzArtill2.jpg) — the exact cannon+crew broadside target.
+
+Full open-license pool: [Category: Tin soldiers in Plassenburg Zinnfiguren-Museum](https://commons.wikimedia.org/wiki/Category:Tin_soldiers_in_Plassenburg_Zinnfiguren_Museum) (166 files, mostly CC BY 2.0).
+
+### Modeling notes (distilled from the reference sweep)
+
+- **Silhouette is the whole product.** Every prop (musket, sabre, shako, horse legs, spoked wheel,
+  trail) must survive in pure outline. Colour/eagle bearer = the tallest silhouette in the infantry
+  rank; cavalry = locked gallop + raised sabre clearing the helmet; artillery = wheel ≈ barrel
+  length, crew tucked against the gun in-plane.
+- **Lock the broadside camera** dead-level, nose-right; never 3/4. Mirror for the opposite travel
+  direction rather than rotating.
+- **Round base = the footprint channel.** Disc diameter ≈ figure width; figure plane bisects the
+  disc; a small root/tab where feet/hooves/wheel fuse into the base kills the floating knife-edge.
+  Default un-tinted base = ochre "ground."
+- **Line-shaped contact shadow, not a body blob** — darkest where blade meets base, feathering to
+  the rim.
+- **Tint one channel.** Coat mass = faction mask (French navy w/ red facings as the authored base
+  look); bare pewter/metal (sabre, barrel-bronze, tyres) + base stay neutral so "tin" survives any
+  hue; a darker line-in-the-groove + lighter ridge-highlight makes the low relief pop at table scale.
+
+**Effort:** ~2–3 days art (3 broadside textures + round base + line-shadow + the locked rig) · 1
+code slice (placement / Y-sort / facing-flip / tween, additive) · ~free runtime.
+
+**Completion definition:** the three arm flats render as baked PNG+alpha sprites (figure + round
+base + line-shadow, mirrored L/R), faction tint working via `modulate` on the coat mask, placed +
+Y-sorted on the map at marshal locations and tweening + facing-flipping on move; the 2D
+map/zoom/labels untouched (0 `SCRIPT ERROR`); CC-BY reference attributions recorded in
+`THIRD_PARTY_LICENSES.md` if any art is traced from them.
+
+**Test:** extend `tests/test_ui_visual_foundation.py` — assert the 3 flat sprites (+ round base +
+shadow, both facings) exist in `assets/ui/pieces/` and that each active marshal renders a piece
+keyed to its dominant arm.
+
+---
+
+## 8. Session Segmentation Ledger — how the sweep is split across sessions
+
+> **Purpose (GR9 completeness — "don't miss any spots"):** the sweep is bigger than one session.
+> This ledger cuts it into session-sized slices, each with an **exact spots checklist**, entry/exit
+> criteria, its test, and a STATUS line, so a fresh session can pick up a slice and finish it
+> without a gap. **Standing per-session rule:** every session ends by (a) booting the engine + `grep`
+> for `SCRIPT ERROR`, (b) landing that session's test green + the full suite green (pre-commit hook),
+> (c) ticking its boxes below + updating `docs/STATUS.md`. **Land each session, then pause for review**
+> (slice cadence) before the next. Dependency spine: **U1 → U2 → U3**; **U4 → U5** (pieces) depend
+> only on U1's theme and may run any time after U1 — recommended after U3.
+
+### Session U1 — Foundation: UI-0 + UI-1 (then PAUSE for review)
+- **Entry:** master clean; the git-ignored `assets/` tree present (§2).
+- **Spots checklist:**
+  - [ ] **UI-0** — audit `assets/` completeness vs §2; decide + apply the git-tracking policy (force-add the specific font `.ttf` + `.import` sidecars, textures, borders, icons, portraits, heraldry, audio, ornaments, decor under the git-ignored dir); set `.svg`/font import scale so icons/portraits stay crisp; reconcile `THIRD_PARTY_LICENSES.md`.
+  - [ ] **UI-1 fonts** — Cinzel / EB Garamond / Source Sans 3 `.ttf` into `assets/fonts/`; commit each `.import` sidecar.
+  - [ ] **UI-1 theme** — author `ui/main_theme.tres`: `default_font` (EB Garamond) + `default_font_size` (16); Button `normal`/`hover`/`pressed`/`disabled` styleboxes (gold border / navy fill / 2px bottom / radius 3); `PanelContainer` `panel`; `HeadingLabel` `FontVariation` on Cinzel with a navy outline.
+  - [ ] **UI-1 register** — Project Settings → GUI → Theme → Custom (writes `[gui] theme/custom`); restart to apply.
+  - [ ] Confirm `popup_base.gd::_apply_standard_theme()` + every `*_popup.gd` inherit the skin (no per-node re-override).
+  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
+  - [ ] Add `tests/test_ui_visual_foundation.py` (§5): `gui/theme/custom` set + `main_theme.tres` parses + defines the four Button styleboxes + `PanelContainer panel` + `HeadingLabel`; expected font families present with `OFL.txt`; a portrait exists for every `europe_1805.json` marshal key **except Abdurrahman**.
+- **Exit:** UI-1 completion definition (§4) met; **PAUSE for user review.**
+- **STATUS line:** record UI-0 + UI-1 landing + the boot-smoke result.
+
+### Session U2 — UI-2: color centralization + UI scale (folds DEF-13)
+- **Entry:** U1 landed + reviewed.
+- **Spots checklist:**
+  - [ ] Migrate inline `Color()` duplicates → `Utils`/theme colors across the 51 files / 299 overrides (guarded by `test_gdscript_color_centralization.py`).
+  - [ ] Wire the UI-scale slider: `get_window().content_scale_factor` (0.75–2.0) over a `canvas_items`/`expand` baseline; **keep `map_viewport.size` native** (DEF-13).
+  - [ ] Per-type font sizes on the theme.
+  - [ ] Replace `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` with the chosen-mechanism pin.
+  - [ ] Readability pass at ≥2560-wide (DEF-13 completion criterion).
+  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
+- **Exit:** UI-2 completion definition (§4); `test_gdscript_color_centralization.py` green.
+- **STATUS line:** record UI-2 landing + the DEF-13 fold.
+
+### Session U3 — UI-3: texture / border / icon / portrait polish (excludes pieces)
+- **Entry:** U2 landed.
+- **Spots checklist:**
+  - [ ] Parchment/leather panel fills; convert war-room / dispatch / ledger panels to `StyleBoxTexture` 9-slice frames.
+  - [ ] Filigree corners on marshal cards.
+  - [ ] Wire the Phosphor + Game-icons sets onto their target HUD/buttons (strip the Game-icons 512² black bg `<path>`, recolor gold via `modulate`); add the Game-icons + Lamoot **CC-BY visible credit** if those assets ship.
+  - [ ] Wire the 37 portraits into the Generals screen + character-sheet cards; **Abdurrahman → monogram/silhouette fallback** (graceful, no wrong likeness).
+  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
+- **Exit:** UI-3 completion definition (§4).
+- **STATUS line:** record UI-3 base-polish landing.
+
+### Session U4 — War-Table Pieces ART (tin-flat-on-round-base, Blender)
+- **Entry:** U1 landed (independent of U2/U3; recommended after U3). Reference set = §7.
+- **Spots checklist:**
+  - [ ] Build the Blender rig: **locked dead-broadside** ortho camera, single low-angle key + soft fill, shadow-catcher plane.
+  - [ ] Author 3 broadside textures — infantry (rank + taller colour bearer) / cavalry (horse+rider, sabre raised) / artillery (gun + big spoked wheel + trail + 1–2 crew) — traced from the §7 PD Zinnfiguren refs; matte enamel + engraved-line rim.
+  - [ ] Round base disc primitive (3 footprint sizes) + diametral slot; **line-shaped** contact-shadow bake.
+  - [ ] Neutral **coat tint-mask**; base + metal on neutral channels.
+  - [ ] **Mirrored L/R facing pair** per arm.
+  - [ ] Export PNG+alpha (2–3×) → `assets/ui/pieces/` (figure + base + shadow + mask, per arm × 2 facings).
+  - [ ] Add the CC-BY reference attributions (Plassenburg/Quine, Liljedahl, Roscheider Hof, Goslar, Schweizer) to `THIRD_PARTY_LICENSES.md` if any art is traced from them.
+- **Exit:** all sprites present in `assets/ui/pieces/` per the naming above.
+- **STATUS line:** record the piece-art landing + attribution updates.
+
+### Session U5 — War-Table Pieces CODE (Godot placement)
+- **Entry:** U4 art exists.
+- **Spots checklist:**
+  - [ ] `Sprite2D` (flat) + round-base child + shadow child at each active marshal's province anchor, keyed to dominant arm.
+  - [ ] **Y-sort** for depth; **tween** position along the march path on move; **flip facing** by travel heading.
+  - [ ] Faction `modulate` on the coat mask via `Utils.NATION_COLORS`.
+  - [ ] Additive layer — the 2D map / zoom / labels untouched.
+  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
+  - [ ] Extend `tests/test_ui_visual_foundation.py`: the 3 flat sprites (+ base + shadow, both facings) exist; each active marshal renders a piece keyed to its dominant arm.
+- **Exit:** §7 pieces completion definition.
+- **STATUS line:** record the pieces-code landing; the War-Table Pieces sub-item CLOSED.
