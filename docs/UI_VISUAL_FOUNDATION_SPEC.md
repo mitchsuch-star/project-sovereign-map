@@ -1,9 +1,11 @@
 # UI Visual Foundation Sweep — Spec
 
-> **Status:** ▶ NEXT (queued July 12, 2026). Design proposal + all third-party assets
-> already gathered and license-verified; build not yet started. **The War-Table Pieces style gate
-> is CLOSED (July 12, 2026) — tin flats on a round base (§7), references gathered.** The sweep is
-> now segmented into build sessions **U1–U5** in **§8 (Session Segmentation Ledger)** — start at U1.
+> **Status:** ▶ IN PROGRESS. **Session U1 (UI-0 + UI-1) ✅ LANDED July 12, 2026** — font stack +
+> `ui/main_theme.tres` + typed Button styleboxes registered project-wide, boot-smoke 0 `SCRIPT ERROR`,
+> `tests/test_ui_visual_foundation.py` (15) green. **PAUSED for user review before Session U2** (slice
+> cadence). Design proposal + all third-party assets gathered and license-verified. **The War-Table
+> Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round base (§7), references gathered.**
+> The sweep is segmented into build sessions **U1–U5** in **§8 (Session Segmentation Ledger)** — U1 done, resume at **U2**.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -308,14 +310,14 @@ keyed to its dominant arm.
 - **Entry:** master clean; the git-ignored `assets/` tree present (§2).
 - **Spots checklist:**
   - [x] **UI-0** ✅ LANDED July 12, 2026 — audited `assets/` complete vs §2 (13 font families each w/ OFL; 37 portraits + the Abdurrahman exception; two-set icons; 16 flags); git-tracking policy applied = **force-add the usable shipped assets** (198 files, ~77 MB: `.ttf`+`OFL.txt`, portraits, icon/border/heraldry/ornament/decor SVG+PNG+JPG, the two icon `LICENSE` files, textures, audio WAVs) while the **`*.zip` master-pools, source `*.psd`, and the 265 MB `movies.avi` stay ignored**; `THIRD_PARTY_LICENSES.md` reconciled. **`.import` sidecars + `.svg`/font import-scale deferred to UI-1's import step** (Godot has not imported the assets yet — no sidecars exist to configure; UI-1's checklist owns "commit each `.import` sidecar").
-  - [ ] **UI-1 fonts** — Cinzel / EB Garamond / Source Sans 3 `.ttf` into `assets/fonts/`; commit each `.import` sidecar.
-  - [ ] **UI-1 theme** — author `ui/main_theme.tres`: `default_font` (EB Garamond) + `default_font_size` (16); Button `normal`/`hover`/`pressed`/`disabled` styleboxes (gold border / navy fill / 2px bottom / radius 3); `PanelContainer` `panel`; `HeadingLabel` `FontVariation` on Cinzel with a navy outline.
-  - [ ] **UI-1 register** — Project Settings → GUI → Theme → Custom (writes `[gui] theme/custom`); restart to apply.
-  - [ ] Confirm `popup_base.gd::_apply_standard_theme()` + every `*_popup.gd` inherit the skin (no per-node re-override).
-  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
-  - [ ] Add `tests/test_ui_visual_foundation.py` (§5): `gui/theme/custom` set + `main_theme.tres` parses + defines the four Button styleboxes + `PanelContainer panel` + `HeadingLabel`; expected font families present with `OFL.txt`; a portrait exists for every `europe_1805.json` marshal key **except Abdurrahman**.
-- **Exit:** UI-1 completion definition (§4) met; **PAUSE for user review.**
-- **STATUS line:** record UI-0 + UI-1 landing + the boot-smoke result.
+  - [x] **UI-1 fonts** ✅ LANDED July 12, 2026 — the 3 UI-1 `.ttf` were already tracked (UI-0); Godot 4.4.1 `--headless --import` generated all 26 font `.import` sidecars; the 3 in-use sidecars (Cinzel `uid://cxiqku0m3u7af`, EB Garamond `uid://dnyhh3gjkf5ox`, Source Sans 3 `uid://3snjpsvwfje5`) are **force-added** (they sit under the git-ignored `assets/` + match the global `*.import` ignore; `.godot/imported/` cache stays regenerated, not committed).
+  - [x] **UI-1 theme** ✅ LANDED — `ui/main_theme.tres` authored via a one-shot GDScript generator (guarantees correct type-variation + ext_resource serialization; generator deleted after run): `default_font` = EB Garamond @ 16; Button `normal`/`hover`/`pressed`/`disabled` (+ `focus`) styleboxes (navy fill / gold border / 2px bottom / radius 3); `PanelContainer/panel`; `HeadingLabel` = `Label` variation with a Cinzel `FontVariation` (wght 600) + navy outline (size 5).
+  - [x] **UI-1 register** ✅ LANDED — `project.godot` gained `[gui] theme/custom="res://ui/main_theme.tres"`.
+  - [x] Confirm inherit-the-skin ✅ — the project-wide theme now propagates to every `Control`; buttons that previously overrode only `font_color` (§0) inherit the new styleboxes. Per-node overrides (`popup_base.gd::_apply_standard_theme`, the 299-override sprawl) intentionally remain for **UI-2** to migrate — not ripped out here.
+  - [x] Boot engine → `grep SCRIPT ERROR` == 0 ✅ — both a headless `--editor` open (parses every `.gd` + loads the theme) AND a headless game-scene run (`--quit-after 180`, executes `_ready()`) reported **0 `SCRIPT ERROR`** and no theme/font/resource load failure.
+  - [x] Add `tests/test_ui_visual_foundation.py` ✅ (15 tests, all green): `gui/theme/custom` set + `main_theme.tres` parses + the four Button styleboxes + `PanelContainer panel` + `HeadingLabel` variation + default_font@16; the 3 font families present with `OFL.txt` + a committed `.import` sidecar; a portrait for every `europe_1805.json` marshal (21 active + 17 pool = 37) **except Abdurrahman** (exemption self-guarded).
+- **Exit:** UI-1 completion definition (§4) met ✅; **PAUSE for user review.**
+- **STATUS line:** ✅ recorded — UI-0 + UI-1 landed July 12, 2026; boot-smoke 0 `SCRIPT ERROR` (editor + game scene).
 
 ### Session U2 — UI-2: color centralization + UI scale (folds DEF-13)
 - **Entry:** U1 landed + reviewed.
