@@ -1,8 +1,16 @@
 # Third-Party Asset Licenses — Project Sovereign
 
-All UI assets below were downloaded into `godot-client/project-sovereign/assets/`
-(that directory is git-ignored; this manifest is the tracked record). Every license
+All UI assets below live under `godot-client/project-sovereign/assets/`. Every license
 and source URL was verified against its live source page before download.
+
+**Git-tracking policy (UI-0, July 12, 2026):** the `assets/` directory is blanket
+git-ignored, but the **usable shipped assets are force-tracked** (`git add -f`) so the repo
+is self-contained and the portability tests pass on any clone — fonts (`.ttf` + `OFL.txt`),
+portraits, icon/border/heraldry/ornament/decor SVG+PNG+JPG, the two icon `LICENSE` files,
+textures, and audio WAVs (198 files, ~77 MB). **Deliberately NOT tracked** (remain ignored to
+keep git history lean): the working `*.zip` master pools, the source `*.psd` files, and the
+stray `movies.avi`. Adding a new asset to a tracked subdir therefore needs another `git add -f`.
+Godot `.import` sidecars are generated + committed in UI-1 (the editor has not imported yet).
 
 **Attribution obligations at a glance:** the fonts, textures, icons, audio, flags,
 ornaments, and portraits require **no in-game credit** except two items. The **only**
