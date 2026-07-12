@@ -73,7 +73,7 @@ func _add_option(option: Dictionary):
 	btn.text = label
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.add_theme_font_size_override("font_size", 14)
-	btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1))
+	btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 	btn.disabled = not bool(option.get("enabled", true))
 	btn.tooltip_text = str(option.get("detail", ""))
 	btn.pressed.connect(_on_option_pressed.bind(str(option.get("id", ""))))

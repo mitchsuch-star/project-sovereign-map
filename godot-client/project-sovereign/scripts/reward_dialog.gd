@@ -96,7 +96,7 @@ func show_reward(card: Dictionary):
 			_add_option(
 				"Endow " + region + " — " + str(income) + "g/turn" + covers + fee_str,
 				"endow " + m_name + " with " + region,
-				Color(0.85, 0.75, 0.55, 1)
+				Utils.UI_GOLD
 			)
 			option_count += 1
 

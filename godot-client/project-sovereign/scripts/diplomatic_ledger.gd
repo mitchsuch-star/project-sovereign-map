@@ -60,16 +60,16 @@ func _ready():
 
 	# Build tab styles
 	_active_tab_style = StyleBoxFlat.new()
-	_active_tab_style.bg_color = Color(0.25, 0.22, 0.15, 1.0)
+	_active_tab_style.bg_color = Utils.UI_ACTIVE_TAB_BG
 	_active_tab_style.border_width_bottom = 2
-	_active_tab_style.border_color = Color(0.85, 0.75, 0.55, 1.0)
+	_active_tab_style.border_color = Utils.UI_GOLD
 	_active_tab_style.content_margin_left = 6.0
 	_active_tab_style.content_margin_right = 6.0
 	_active_tab_style.content_margin_top = 3.0
 	_active_tab_style.content_margin_bottom = 3.0
 
 	_normal_tab_style = StyleBoxFlat.new()
-	_normal_tab_style.bg_color = Color(0.12, 0.14, 0.18, 1.0)
+	_normal_tab_style.bg_color = Utils.UI_PANEL_BG
 	_normal_tab_style.content_margin_left = 6.0
 	_normal_tab_style.content_margin_right = 6.0
 	_normal_tab_style.content_margin_top = 3.0

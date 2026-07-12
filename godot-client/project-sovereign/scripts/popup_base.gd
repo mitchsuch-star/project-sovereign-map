@@ -32,10 +32,10 @@ func _disable_buttons_recursive(node: Node):
 			child.disabled = true
 		_disable_buttons_recursive(child)
 
-func _apply_standard_theme(panel: PanelContainer, border_color: Color = Color(0.85, 0.75, 0.55, 0.6)):
+func _apply_standard_theme(panel: PanelContainer, border_color: Color = Color(Utils.UI_GOLD, 0.6)):
 	"""Apply consistent dark panel theme with optional border color."""
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.18, 0.95)
+	style.bg_color = Utils.UI_POPUP_BG
 	style.border_color = border_color
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)

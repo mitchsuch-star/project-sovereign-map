@@ -92,18 +92,30 @@ func _draw():
 	var font: Font = ThemeDB.fallback_font
 	if font == null or _renderer == null or _renderer.map_viewport == null:
 		return
+	# UI-2 Part 2: the map SubViewport now renders at PHYSICAL resolution, so its
+	# canvas_transform maps world -> physical viewport px and the camera zoom is
+	# physical-px/world. This layer draws in the Control's LOGICAL space, so undo
+	# the physical scale (÷ viewport-pixel-scale) on BOTH the projection transform
+	# and the zoom that drives the LOD switch + font size. At scale 1.0 vp == 1.0
+	# and this is a no-op (identical to pre-Part-2).
+	var vp_scale: float = 1.0
+	if _renderer.has_method("_viewport_pixel_scale"):
+		vp_scale = _renderer._viewport_pixel_scale()
 	var xform: Transform2D = _renderer.map_viewport.canvas_transform
-	if _zoom_level >= PROVINCE_LABEL_MIN_ZOOM:
+	if not is_equal_approx(vp_scale, 1.0):
+		xform = xform.scaled(Vector2(1.0 / vp_scale, 1.0 / vp_scale))
+	var logical_zoom: float = _zoom_level / vp_scale
+	if logical_zoom >= PROVINCE_LABEL_MIN_ZOOM:
 		_projected_avoid_rects = _project_avoid_rects(xform)
 		_draw_label_tier(
 			font, _province_labels, xform,
-			clampf(PROVINCE_FONT_BASE * _zoom_level, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)
+			clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)
 		)
 	else:
 		_projected_avoid_rects = []
 		_draw_label_tier(
 			font, _nation_labels, xform,
-			clampf(NATION_FONT_BASE * _zoom_level, NATION_FONT_MIN, NATION_FONT_MAX)
+			clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)
 		)
 
 

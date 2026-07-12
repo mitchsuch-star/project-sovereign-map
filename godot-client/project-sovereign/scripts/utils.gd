@@ -151,6 +151,28 @@ const COLOR_CONNECTION = Color(0.25, 0.17, 0.1, 0.8)
 # BUG to be seen, not camouflage.
 const COLOR_ENEMY_DEFAULT = Color(0.9, 0.05, 0.85)
 
+# === Shared UI Chrome Colors (Color objects for StyleBox / theme overrides) ===
+# UI-2 Part 2 centralization: these navy/gold/state Colors recurred inline
+# across the HUD, ledger, and popup scripts (top_bar, both ledgers, popup_base,
+# war status/detail, notifications, dialogs). Single source so a re-skin is one
+# edit instead of touching dozens of scenes. The COLOR_* consts above are hex
+# STRINGS for BBCode; these are the Color-object equivalents for
+# add_theme_*_override() and StyleBoxFlat. Values are byte-identical to the
+# literals they replace (the gold matches main_theme.tres / COLOR_GOLD).
+const UI_GOLD := Color(0.85, 0.75, 0.55, 1.0)                    # primary gold accent (borders, active text)
+const UI_GOLD_BRIGHT := Color(0.941176, 0.878431, 0.690196, 1.0)  # hover/focus gold
+const UI_PANEL_BG := Color(0.12, 0.14, 0.18, 1.0)               # normal tab / bar panel fill
+const UI_ACTIVE_TAB_BG := Color(0.25, 0.22, 0.15, 1.0)         # active tab / highlighted button fill
+const UI_POPUP_BG := Color(0.1, 0.1, 0.18, 0.95)               # modal popup panel fill (matches theme PanelContainer)
+const UI_TEXT_DIM := Color(0.75, 0.72, 0.65, 1.0)              # dimmed label text
+const UI_ALERT := Color(0.85, 0.25, 0.25, 1.0)                 # alert / danger red
+const UI_WARNING := Color(0.85, 0.65, 0.2, 1.0)               # amber warning / threat
+# Score / balance-bar palette (shared by war_status_panel + war_detail_popup):
+const UI_SCORE_POSITIVE := Color(0.29, 0.67, 0.29)            # winning green
+const UI_SCORE_NEGATIVE := Color(0.67, 0.27, 0.27)           # losing red
+const UI_SCORE_NEUTRAL := Color(0.75, 0.75, 0.78)           # neutral grey
+const UI_BAR_BG := Color(0.15, 0.15, 0.2, 0.8)              # score bar track
+
 # === Formatting Helpers ===
 
 static func bbcode_color(text: String, color: String) -> String:

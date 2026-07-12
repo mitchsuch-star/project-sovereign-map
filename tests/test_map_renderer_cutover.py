@@ -54,11 +54,15 @@ def test_renderer_base_isolates_map_world_in_subviewport_camera():
         "viewport_background = ColorRect.new()",
         'viewport_background.name = "ViewportBackground"',
         "viewport_background.color = MAP_BACKGROUND_COLOR",
-        "map_viewport_container = SubViewportContainer.new()",
-        'map_viewport_container.name = "MapViewportContainer"',
-        "map_viewport_container.stretch = true",
+        # UI-2 Part 2: the map world is still isolated in a SubViewport + camera,
+        # but displayed via a STRETCH_SCALE TextureRect (physical-resolution
+        # render) rather than a stretch-drawing SubViewportContainer.
         "map_viewport = SubViewport.new()",
         'map_viewport.name = "MapViewport"',
+        "map_display = TextureRect.new()",
+        'map_display.name = "MapDisplay"',
+        "map_display.stretch_mode = TextureRect.STRETCH_SCALE",
+        "map_display.texture = map_viewport.get_texture()",
         "map_root = Node2D.new()",
         'map_root.name = "MapRoot"',
         "map_camera = Camera2D.new()",
@@ -272,8 +276,16 @@ def test_hover_and_click_lookup_use_color_map_sampling_before_fallback():
     source = _read(BASE_GD)
     assert "func _lookup_region_from_color_map(map_position: Vector2) -> String:" in source
     assert "var pixel = province_lookup_image.get_pixel(pixel_x, pixel_y)" in source
-    assert "return map_viewport.canvas_transform.affine_inverse() * local_pos" in source
-    assert "var target_position = map_point_before - (local_point - viewport_center) / new_zoom" in source
+    # UI-2 Part 2: logical pointer coords are scaled into the SubViewport's
+    # (physical) pixel space before the camera transform / zoom division.
+    assert (
+        "return map_viewport.canvas_transform.affine_inverse() * (local_pos * _viewport_pixel_scale())"
+        in source
+    )
+    assert (
+        "var target_position = map_point_before - (local_point - viewport_center) * _viewport_pixel_scale() / new_zoom"
+        in source
+    )
     assert "var color_map_region = _lookup_region_from_color_map(map_mouse)" in source
     assert "_set_hovered_region(color_map_region)" in source
     assert "var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))" in source

@@ -92,7 +92,7 @@ func _on_campaign_log_received(response):
 		header_btn.set_meta("turn_label", "Turn 0 - Setup" if turn_num == 0 else "Turn %d" % turn_num)
 		header_btn.set_meta("event_count", event_count)
 		header_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		header_btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1))
+		header_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 		header_btn.add_theme_color_override("font_hover_color", Color(1, 0.95, 0.75, 1))
 		header_btn.add_theme_font_size_override("font_size", 14)
 		header_btn.pressed.connect(_toggle_turn.bind(turn_num))

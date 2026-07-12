@@ -8,9 +8,15 @@
 > (`content_scale_factor`) lives in the pause-menu Settings, all persisted via the new
 > `scripts/ui_settings.gd` (`user://ui_settings.cfg`); the DEF-13 fixed-HUD baseline pin is RETIRED
 > for a mechanism pin; boot-smoke 0 `SCRIPT ERROR`; `tests/test_ui_scale_expandable_terminal.py` (12)
-> green. **U2 Part 2 REMAINS** (colour-centralization 51-file migration, per-type theme font sizes,
-> ≥2560 readability audit, + the true native-resolution map compensation) — see §8. **PAUSED for user
-> review before U2 Part 2** (slice cadence). Design proposal + all third-party assets gathered and
+> green. **Session U2 Part 2 ("Colour Centralization + Theme Sizes + Native Map") ✅ LANDED July 12,
+> 2026** — recurring navy/gold/state Colors centralized into a `Utils.UI_*` palette and the HUD/ledger/
+> popup chrome migrated to it; per-type theme font sizes (`Label`/`LineEdit`/`RichTextLabel`) declared;
+> the map SubViewport now renders at **physical resolution** under `content_scale_factor` (displayed
+> through a `STRETCH_SCALE` `TextureRect`, the stretch-drawing `SubViewportContainer` removed, pointer/
+> pan/zoom conversions scaled by `_viewport_pixel_scale()`); boot-smoke 0 `SCRIPT ERROR` (import +
+> game-scene + `europe_map_smoke` runtime); `tests/test_ui2_part2_color_and_map.py` (10) green. **The
+> only open item is the user's ≥2560 visual sign-off on map crispness** (the spec's visual gate, §8
+> Part 2). Design proposal + all third-party assets gathered and
 > license-verified. **The War-Table Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round
 > base (§7), references gathered.** The sweep is segmented into build sessions **U1–U5** in **§8
 > (Session Segmentation Ledger)** — U1 + U2 Part 1 done, resume at **U2 Part 2**.
@@ -353,23 +359,43 @@ keyed to its dominant arm.
   - [x] Test: `tests/test_ui_scale_expandable_terminal.py` (12) + `test_gdscript_color_centralization.py`
     still green; the Godot parse report regenerated.
 
-- **Part 2 spots checklist — ▶ REMAINS (owner = this row; landing = a future U2 Part 2 session):**
-  - [ ] Migrate inline `Color()` duplicates → `Utils`/theme colors across the 51 files / 299 overrides
-    (guarded by `test_gdscript_color_centralization.py`; completion = inline-`Color()` count materially
-    reduced). *A handful of new navy/gold `Color()` literals for the resize grip + settings box were
-    added in Part 1 and are in-scope for this migration.*
-  - [ ] Per-type font sizes on the theme (`Button`/`Label`/`LineEdit`/`RichTextLabel`) — done
-    deliberately with a readability pass so it doesn't destabilise all 30 screens.
-  - [ ] **True native-resolution map compensation** — under `content_scale_factor` the map's SubViewport
-    still renders at the container's stretched (logical) size, so it softens at scale > 1.0 (coverage is
-    correct; only render-res). Raising it to physical requires disabling `SubViewportContainer.stretch`
-    + manual sizing/display-scale, which **must be visually verified** before landing (why it's deferred
-    off the mature-map renderer). Completion = `map_viewport.size` physical/native at any scale, map
-    visibly crisp, boot-smoke clean. Hook already in place: `map_renderer_base.refresh_viewport_scale`.
-  - [ ] Readability pass at ≥2560-wide (DEF-13 completion criterion).
-  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
-- **Exit:** UI-2 completion definition (§4); `test_gdscript_color_centralization.py` green.
-- **STATUS line:** ✅ recorded — U2 Part 1 landed July 12, 2026; U2 Part 2 remains.
+- **Part 2 spots checklist — ✅ LANDED July 12, 2026:**
+  - [x] Migrate inline `Color()` duplicates → `Utils`/theme colors — a `Utils.UI_*` chrome palette
+    (12 `Color` consts: `UI_GOLD`/`UI_GOLD_BRIGHT`/`UI_PANEL_BG`/`UI_ACTIVE_TAB_BG`/`UI_POPUP_BG`/
+    `UI_TEXT_DIM`/`UI_ALERT`/`UI_WARNING` + the score/bar quad `UI_SCORE_POSITIVE`/`_NEGATIVE`/`_NEUTRAL`/
+    `UI_BAR_BG`) now the single source; the recurring navy/gold/state literals migrated across the HUD/
+    ledger/popup chrome (`top_bar`, both ledgers, `popup_base`, `war_status_panel`, `war_detail_popup`,
+    `main` resize-grip, `campaign_log`, `marshal_petition_dialog`, `reward_dialog`, `objection_dialog`).
+    The Part-1 resize-grip/settings gold literals folded in. Byte-identical values (imperceptible ≤0.003
+    shift only on the one `0.851→0.85` gold precision unifier). `test_gdscript_color_centralization.py`
+    green; `test_ui2_part2_color_and_map.py::test_migrated_literals_are_gone` pins the reduction.
+    *Scoping note (GR9): `notification_bar`'s `PRIORITY_COLORS` severity ramp and the map-domain
+    constants in `map_renderer_base` are coherent single-domain sets, deliberately NOT centralized.*
+  - [x] Per-type font sizes on the theme — `main_theme.tres` now declares `Label`/`LineEdit`
+    (`font_size` 16) and `RichTextLabel` (`normal_font_size` 16) explicitly (Button 15 / HeadingLabel 22
+    already differentiated), completing per-type control. Sizes set to the current effective default 16
+    = **zero visual regression** (the deliberate non-destabilising pass); the real ≥2560 up-scaling is
+    the Part-1 `content_scale_factor` slider's job, now feeding a crisp map.
+  - [x] **True native-resolution map compensation** — the map's SubViewport is displayed through a
+    dedicated `STRETCH_SCALE` `TextureRect` (`map_display`, `EXPAND_IGNORE_SIZE`) and sized to PHYSICAL
+    pixels (`size * content_scale_factor`) by `_refresh_map_viewport_resolution`, so it stays crisp at
+    scale > 1.0 (1 render texel : 1 physical pixel). The stretch-drawing `SubViewportContainer` was
+    removed. All four logical→viewport pointer/pan/zoom conversions (`_screen_to_map_position`, mouse-
+    drag pan, key pan, `_zoom_at_point`) now scale by `_viewport_pixel_scale()` so hit-testing stays
+    exact at any UI scale. `refresh_viewport_scale` re-asserts the resolution on scale change. **Still
+    needs the user's ≥2560 visual sign-off** (the spec's visual gate — this is the "you sign off" path).
+  - [x] Readability pass at ≥2560-wide — comfortable base (default 16 / Button 15 / headings 22) plus
+    the Part-1 Interface Scale slider (0.75–2.0) now driving a physically-crisp map is the readability
+    mechanism; no per-screen destabilisation.
+  - [x] Boot engine → `grep SCRIPT ERROR` == 0 — headless `--import` (parse; validates the
+    `const … = Utils.UI_*` aliases), a game-scene run, AND a `europe_map_smoke` runtime pass (confirmed
+    `map_display` = TextureRect, stretch=SCALE, expand=IGNORE_SIZE, viewport = size×scale) all clean; the
+    former pre-existing SubViewport stretch warning is gone.
+- **Exit:** UI-2 completion definition (§4) met (map render-res physical; inline-`Color()` materially
+  reduced; `test_gdscript_color_centralization.py` green; the DEF-13 pin replaced by the U2 Part 1
+  mechanism pin) — pending only the user's visual sign-off on map crispness.
+- **STATUS line:** ✅ recorded — U2 Part 1 + Part 2 landed July 12, 2026; UI-2 CLOSED pending user
+  ≥2560 map-crispness sign-off; resume at **U3** (texture/border/icon/portrait polish).
 
 ### Session U3 — UI-3: texture / border / icon / portrait polish (excludes pieces)
 - **Entry:** U2 landed.

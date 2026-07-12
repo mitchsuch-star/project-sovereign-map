@@ -49,16 +49,16 @@ const TALLEYRAND_SUMMARY_MAX_CHARS := 34
 func _ready():
 	# Build button styles
 	_active_style = StyleBoxFlat.new()
-	_active_style.bg_color = Color(0.25, 0.22, 0.15, 1.0)
+	_active_style.bg_color = Utils.UI_ACTIVE_TAB_BG
 	_active_style.border_width_bottom = 2
-	_active_style.border_color = Color(0.85, 0.75, 0.55, 1.0)
+	_active_style.border_color = Utils.UI_GOLD
 	_active_style.content_margin_left = 8.0
 	_active_style.content_margin_right = 8.0
 	_active_style.content_margin_top = 4.0
 	_active_style.content_margin_bottom = 4.0
 
 	_normal_style = StyleBoxFlat.new()
-	_normal_style.bg_color = Color(0.12, 0.14, 0.18, 1.0)
+	_normal_style.bg_color = Utils.UI_PANEL_BG
 	_normal_style.content_margin_left = 8.0
 	_normal_style.content_margin_right = 8.0
 	_normal_style.content_margin_top = 4.0
@@ -282,10 +282,10 @@ func _update_button_highlights():
 		var btn = button_map[sname]
 		if sname == active_screen:
 			btn.add_theme_stylebox_override("normal", _active_style)
-			btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1.0))
+			btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 		else:
 			btn.add_theme_stylebox_override("normal", _normal_style)
-			btn.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))
+			btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 
 
 # =============================================================================
@@ -310,7 +310,7 @@ func update_diplomatic_fields(data: Dictionary):
 	elif threat < 60:
 		threat_label.visible = true
 		threat_label.text = "[THREAT]"
-		threat_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
+		threat_label.add_theme_color_override("font_color", Utils.UI_WARNING)
 		if brewing:
 			_start_threat_pulse()
 		else:
@@ -318,7 +318,7 @@ func update_diplomatic_fields(data: Dictionary):
 	else:
 		threat_label.visible = true
 		threat_label.text = "[THREAT!]"
-		threat_label.add_theme_color_override("font_color", Color(0.85, 0.25, 0.25, 1.0))
+		threat_label.add_theme_color_override("font_color", Utils.UI_ALERT)
 		if brewing:
 			_start_threat_pulse()
 		else:
@@ -358,7 +358,7 @@ func update_mailbox_count(envoy_count: int):
 		mailbox_btn.tooltip_text = str(envoy_count) + " pending envoy(s) await your reply."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
-		mailbox_btn.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
+		mailbox_btn.add_theme_color_override("font_color", Utils.UI_WARNING)
 	else:
 		mailbox_btn.text = "Envoys"
 		mailbox_btn.tooltip_text = "No pending envoys."

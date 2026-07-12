@@ -38,7 +38,8 @@ const COLOR_DIMMED = "#808080"
 const COLOR_INFO = "#a0a0a8"
 
 # Bar colors — nation tints come from Utils.NATION_COLORS (§3.3).
-const COLOR_BAR_BG = Color(0.15, 0.15, 0.2, 0.8)
+# UI-2 Part 2: the bar track is shared with war_status_panel via Utils.
+const COLOR_BAR_BG = Utils.UI_BAR_BG
 const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
 
 
@@ -199,7 +200,7 @@ func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, b
 	lbl.text = Utils.display_nation_name(opponent)
 	lbl.custom_minimum_size = Vector2(60, 0)
 	lbl.add_theme_font_size_override("font_size", 10)
-	var score_color_val = Color(0.29, 0.67, 0.29) if score > 0 else (Color(0.67, 0.27, 0.27) if score < 0 else Color(0.75, 0.75, 0.78))
+	var score_color_val = Utils.UI_SCORE_POSITIVE if score > 0 else (Utils.UI_SCORE_NEGATIVE if score < 0 else Utils.UI_SCORE_NEUTRAL)
 	lbl.add_theme_color_override("font_color", score_color_val)
 	row.add_child(lbl)
 
@@ -502,7 +503,7 @@ func _add_coalition_settlement_explainer():
 	lbl.tooltip_text = "Open an individual war detail to prepare a settlement for that war."
 	lbl.custom_minimum_size = Vector2(250, 36)
 	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))
+	lbl.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	button_row.add_child(lbl)
 

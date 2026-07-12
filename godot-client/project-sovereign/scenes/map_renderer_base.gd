@@ -163,9 +163,12 @@ const PAN_SPEED_KEYS: float = 300.0
 const ZOOM_SPEED: float = 0.1
 const ZOOM_DURATION: float = 0.2
 
-var map_viewport_container: SubViewportContainer
 var viewport_background: ColorRect
 var map_viewport: SubViewport
+# UI-2 Part 2: the SubViewport is displayed through this TextureRect (not a
+# stretch-drawing SubViewportContainer) so it can render at PHYSICAL resolution
+# and stay crisp under a global content_scale_factor > 1.0.
+var map_display: TextureRect
 var map_root: Node2D
 var map_camera: Camera2D
 var world_layer: Control
@@ -685,20 +688,34 @@ func _create_scene_layers():
 		viewport_background.color = BITMAP_LETTERBOX_COLOR
 	add_child(viewport_background)
 
-	map_viewport_container = SubViewportContainer.new()
-	map_viewport_container.name = "MapViewportContainer"
-	map_viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	map_viewport_container.stretch = true
-	map_viewport_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(map_viewport_container)
-
+	# UI-2 Part 2 — native-resolution map under content_scale_factor.
+	# The SubViewport is hosted directly (no stretch-drawing SubViewportContainer)
+	# and sized to PHYSICAL pixels (logical size * content_scale_factor) by
+	# _refresh_map_viewport_resolution(). A dedicated TextureRect scales its
+	# texture (STRETCH_SCALE) into the logical full-rect — 1 render texel : 1
+	# physical pixel = crisp at any UI scale. The old container stretch-drew a
+	# logical-sized render target which the global content scale then magnified
+	# (soft at scale > 1.0). Input is handled by this Control's own _input(), so
+	# dropping the container's input routing is intentional.
 	map_viewport = SubViewport.new()
 	map_viewport.name = "MapViewport"
 	map_viewport.disable_3d = true
 	map_viewport.handle_input_locally = false
 	map_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	map_viewport.transparent_bg = true
-	map_viewport_container.add_child(map_viewport)
+	add_child(map_viewport)
+
+	map_display = TextureRect.new()
+	map_display.name = "MapDisplay"
+	map_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_display.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_display.stretch_mode = TextureRect.STRETCH_SCALE
+	map_display.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	map_display.texture = map_viewport.get_texture()
+	add_child(map_display)
+
+	_refresh_map_viewport_resolution()
 
 	map_root = Node2D.new()
 	map_root.name = "MapRoot"
@@ -1287,27 +1304,55 @@ func _clear_children(node: Node):
 
 
 func _on_map_area_resized():
-	if map_viewport != null:
-		var viewport_size = Vector2i(
-			max(1, int(round(size.x))),
-			max(1, int(round(size.y)))
-		)
-		map_viewport.size = viewport_size
+	_refresh_map_viewport_resolution()
 	_update_zoom_floor()
 	_update_camera_limits()
 	queue_redraw()
 
 
+func _target_content_scale() -> float:
+	# The global UI scale (get_window().content_scale_factor). The SubViewport is
+	# a separate viewport that the content scale does NOT apply to, so we bake it
+	# into the render resolution ourselves (UI-2 Part 2).
+	var win := get_window()
+	if win == null:
+		return 1.0
+	return maxf(win.content_scale_factor, 0.01)
+
+
+func _viewport_pixel_scale() -> float:
+	# Ratio of SubViewport RENDER pixels to the Control's LOGICAL pixels — equals
+	# _target_content_scale() once _refresh_map_viewport_resolution() has run.
+	# Used to convert logical pointer/pan deltas into the camera's viewport-pixel
+	# space (the camera's canvas_transform maps world -> physical viewport px).
+	if map_viewport == null or size.x <= 0.0:
+		return 1.0
+	return maxf(float(map_viewport.size.x) / size.x, 0.01)
+
+
+func _refresh_map_viewport_resolution() -> void:
+	# UI-2 Part 2: render the map at PHYSICAL resolution so it stays crisp under a
+	# global content_scale_factor > 1.0. `size` is the Control's LOGICAL rect;
+	# multiply by the content scale to get physical pixels. The TextureRect then
+	# scales this back into the logical full-rect at 1 texel : 1 physical pixel.
+	if map_viewport == null:
+		return
+	var scale := _target_content_scale()
+	var target := Vector2i(
+		max(1, int(round(size.x * scale))),
+		max(1, int(round(size.y * scale)))
+	)
+	if map_viewport.size != target:
+		map_viewport.size = target
+
+
 func refresh_viewport_scale() -> void:
-	# UI-2 (DEF-13 fold) hook: after the global content_scale_factor changes, the
-	# camera fit metrics may shift, so recompute the zoom floor + camera limits and
-	# redraw. The map's on-screen COVERAGE is already correct at any scale (the
-	# full-rect SubViewportContainer always fills the window). Its RENDER
-	# resolution stays tied to the container's stretch (unchanged from pre-UI-2) —
-	# raising it to physical under scale requires disabling the container's stretch,
-	# which is deferred to UI-2 Part 2 behind a visual-verification gate so the
-	# mature map renderer is not perturbed here. This method deliberately does NOT
-	# set map_viewport.size (that would fight the container's stretch).
+	# UI-2 Part 2 hook: after the global content_scale_factor changes, resize the
+	# SubViewport to the new PHYSICAL resolution (keeping the map crisp — the
+	# TextureRect scales it back into the logical full-rect) and recompute the
+	# camera fit metrics. On-screen COVERAGE is unchanged; only render resolution
+	# tracks the scale now.
+	_refresh_map_viewport_resolution()
 	_update_zoom_floor()
 	_update_camera_limits()
 	queue_redraw()
@@ -1460,7 +1505,7 @@ func _process(delta: float):
 		if pan_keys_pressed["down"]:
 			pan_input.y -= 1
 		if pan_input != Vector2.ZERO:
-			var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta / _zoom_level
+			var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta * _viewport_pixel_scale() / _zoom_level
 			_set_camera_position(map_camera.position + world_delta)
 	elif pan_keys_pressed["left"] or pan_keys_pressed["right"] or pan_keys_pressed["up"] or pan_keys_pressed["down"]:
 		_clear_pan_key_state()
@@ -1482,7 +1527,7 @@ func _input(event):
 		if is_panning:
 			var drag_delta = event.position - pan_start_pos
 			pan_start_pos = event.position
-			_set_camera_position(map_camera.position - drag_delta / _zoom_level)
+			_set_camera_position(map_camera.position - drag_delta * _viewport_pixel_scale() / _zoom_level)
 		else:
 			_refresh_hover_state()
 			queue_redraw()
@@ -1587,7 +1632,10 @@ func _screen_to_map_position(screen_position: Vector2) -> Vector2:
 	if map_viewport == null:
 		return screen_position
 	var local_pos = screen_position - global_position
-	return map_viewport.canvas_transform.affine_inverse() * local_pos
+	# local_pos is in the Control's LOGICAL pixels; the camera's canvas_transform
+	# maps world -> the SubViewport's (physical) pixel space, so scale up first
+	# (UI-2 Part 2 — the SubViewport renders at physical resolution).
+	return map_viewport.canvas_transform.affine_inverse() * (local_pos * _viewport_pixel_scale())
 
 
 func _get_map_mouse_position() -> Vector2:
@@ -1682,7 +1730,9 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 	var map_point_before = _screen_to_map_position(point)
 	var local_point = point - global_position
 	var viewport_center = size / 2.0
-	var target_position = map_point_before - (local_point - viewport_center) / new_zoom
+	# The logical cursor offset is scaled into the camera's physical viewport-px
+	# space before dividing by the (world -> physical px) zoom (UI-2 Part 2).
+	var target_position = map_point_before - (local_point - viewport_center) * _viewport_pixel_scale() / new_zoom
 	target_position = _clamp_camera_position(target_position)
 
 	if zoom_tween:

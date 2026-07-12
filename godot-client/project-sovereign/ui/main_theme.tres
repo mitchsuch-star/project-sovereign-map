@@ -125,4 +125,7 @@ HeadingLabel/colors/font_outline_color = Color(0.04, 0.05, 0.11, 1)
 HeadingLabel/constants/outline_size = 5
 HeadingLabel/font_sizes/font_size = 22
 HeadingLabel/fonts/font = SubResource("FontVariation_uww5w")
+Label/font_sizes/font_size = 16
+LineEdit/font_sizes/font_size = 16
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_xlm04")
+RichTextLabel/font_sizes/normal_font_size = 16

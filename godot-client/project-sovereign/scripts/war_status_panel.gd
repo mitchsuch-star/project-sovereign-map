@@ -18,12 +18,14 @@ signal coalition_header_clicked()
 @onready var header_label = $PanelContainer/ScrollContainer/VBoxContainer/HeaderLabel
 
 # Nation tints — single source is Utils.NATION_COLORS (§3.3).
-const COLOR_GREEN = Color(0.29, 0.67, 0.29)
-const COLOR_RED = Color(0.67, 0.27, 0.27)
-const COLOR_WHITE = Color(0.75, 0.75, 0.78)
+# UI-2 Part 2: the score triad + bar track are shared with war_detail_popup —
+# they now alias the centralized Utils palette (single source for a re-skin).
+const COLOR_GREEN = Utils.UI_SCORE_POSITIVE
+const COLOR_RED = Utils.UI_SCORE_NEGATIVE
+const COLOR_WHITE = Utils.UI_SCORE_NEUTRAL
 const COLOR_GOLD = Color(0.85, 0.7, 0.3)
 const COLOR_DIMMED = Color(0.5, 0.5, 0.5)
-const COLOR_BAR_BG = Color(0.15, 0.15, 0.2, 0.8)
+const COLOR_BAR_BG = Utils.UI_BAR_BG
 const COLOR_BAR_CENTER = Color(0.35, 0.35, 0.4, 0.6)
 
 # Resize constraints

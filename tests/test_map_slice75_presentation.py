@@ -391,7 +391,10 @@ def test_label_layer_script_draws_two_lod_tiers():
     assert "func set_labels(" in source
     assert "func set_zoom_level(" in source
     draw_body = _func_body(source, "func _draw():")
-    assert "_zoom_level >= PROVINCE_LABEL_MIN_ZOOM" in draw_body
+    # UI-2 Part 2: the tier switch keys off `logical_zoom` (= _zoom_level /
+    # viewport-pixel-scale) so the LOD stays consistent on-screen once the map
+    # SubViewport renders at physical resolution.
+    assert "logical_zoom >= PROVINCE_LABEL_MIN_ZOOM" in draw_body
     assert "_province_labels" in draw_body and "_nation_labels" in draw_body
     tier_body = _func_body(
         source,
@@ -409,8 +412,10 @@ def test_labels_are_screen_space_and_grow_with_zoom():
     source = _read(LABEL_GD)
     assert "_renderer.map_viewport.canvas_transform" in source
     draw_body = _func_body(source, "func _draw():")
-    assert "clampf(PROVINCE_FONT_BASE * _zoom_level, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)" in draw_body
-    assert "clampf(NATION_FONT_BASE * _zoom_level, NATION_FONT_MIN, NATION_FONT_MAX)" in draw_body
+    # UI-2 Part 2: font size grows with `logical_zoom` (scale-corrected zoom) so
+    # labels stay the right on-screen size under content_scale_factor > 1.0.
+    assert "clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)" in draw_body
+    assert "clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)" in draw_body
     # Growth clamps must be a real range (min < max) so labels neither
     # vanish nor explode.
     for tier in ["NATION", "PROVINCE"]:

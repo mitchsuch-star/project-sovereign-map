@@ -863,7 +863,7 @@ func _create_resize_grip() -> void:
 	resize_grip.tooltip_text = "Drag to resize the command window · double-click to reset"
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.08, 0.1, 0.15, 0.92)
-	sb.border_color = Color(0.85, 0.75, 0.55, 1)  # gold, matches the terminal accent
+	sb.border_color = Utils.UI_GOLD  # gold, matches the terminal accent
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(3)
 	resize_grip.add_theme_stylebox_override("panel", sb)
@@ -873,7 +873,7 @@ func _create_resize_grip() -> void:
 	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
 	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	glyph.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1))
+	glyph.add_theme_color_override("font_color", Utils.UI_GOLD)
 	glyph.add_theme_font_size_override("font_size", 12)
 	resize_grip.add_child(glyph)
 	add_child(resize_grip)

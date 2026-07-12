@@ -37,7 +37,7 @@ const COLOR_COMPROMISE = "4a4a4a"  # Gray
 
 # V2a tone-based border colors
 const TONE_COLORS = {
-	"respectful": Color(0.851, 0.753, 0.549, 1),  # Gold
+	"respectful": Utils.UI_GOLD,  # Gold
 	"firm": Color(0.9, 0.6, 0.2, 1),               # Orange
 	"challenging": Color(0.8, 0.2, 0.2, 1),         # Red
 	"defiant": Color(0.55, 0.0, 0.0, 1),            # Dark red

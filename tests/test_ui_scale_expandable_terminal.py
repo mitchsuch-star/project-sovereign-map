@@ -154,13 +154,15 @@ def test_main_connects_pause_menu_scale_signal():
 
 def test_renderer_has_scale_refresh_hook():
     text = _read(SCENES / "map_renderer_base.gd")
-    # The hook recomputes camera fit after a global scale change. It must NOT set
-    # map_viewport.size (that fights the SubViewportContainer's stretch and logs a
-    # warning); true physical-resolution compensation is deferred to Part 2.
+    # UI-2 Part 2 landed the physical-resolution compensation: the hook now
+    # re-asserts the SubViewport render resolution (via
+    # _refresh_map_viewport_resolution) AND recomputes the camera fit after a
+    # global content_scale_factor change. (Deeper Part-2 assertions live in
+    # tests/test_ui2_part2_color_and_map.py.)
     hook = text.split("func refresh_viewport_scale", 1)
     assert len(hook) == 2, "renderer must define refresh_viewport_scale"
     body = hook[1].split("\nfunc ", 1)[0]
     assert "_update_camera_limits" in body
-    assert not re.search(r"map_viewport\.size\s*=", body), (
-        "refresh_viewport_scale must not assign map_viewport.size (Part-2 work)"
+    assert "_refresh_map_viewport_resolution" in body, (
+        "refresh_viewport_scale must re-assert the physical render resolution"
     )
