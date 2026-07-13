@@ -4,7 +4,7 @@
 > **W6-10 addendum (July 10, 2026):** incoming AI proposals now carry a spoken `diplomat_line` (attribution + motive + ask) composed by `diplomatic_templates.compose_incoming_diplomat_line` — the `decision_reason` rendered in-character, never as a tag. The bank **reuses this Bible's registers exactly** (named overrides for Castlereagh/Hardenberg/Metternich/Einsiedel honoring their never-phrases; hawk/schemer/dove register defaults for the named Europe extras; `loyalist` and unknown courts route to the chancery-fallback register — still DEF-1's to author). **No new named diplomats were added**; every name resolves through `resolve_named_diplomat` per the enforcement rule below. Pinned by `tests/test_w6_incoming_voice.py`.
 > **v0.5.3 scope note (2026-04-25):** Cast coverage requirement now includes the live hegemony and repair surfaces, not only the breach/paradox beats. `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.3 requires (a) the core breach / hard-reject leads, (b) one `balance_of_europe_shifted` warning family per likely warning court, with `noticed` / `alarming` / `crisis` variants aligned to the `33 / 50 / 60` activation gate in presentation spec §8.1a, and (c) one `amends_offered` acknowledgment line per foreign court. Bloc naming is adopted for Balance of Europe headline, `balance_of_europe_shifted` threshold beats, proposal-preview `hegemony` warnings, coalition-declaration contrast copy, and D3 per-row bloc stamps. Stamps reuse deterministic labels and do not require new authored-diplomat lines. Bargain-era callbacks and extra witness variants still defer to `docs/WAR_BARGAIN_SPEC.md` slice WB-D.
 > **Purpose:** Single-page voice reference per diplomat so that every headline commitments line, breach accusation, counter-offer, and advisory response sounds like *that specific person*, not a generic envoy.
-> **Scope:** The live cast in `backend/models/diplomat.py` is now **20 named diplomats** (July 2, 2026): the 5 bespoke-voiced diplomats this Bible covers (Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel) plus 15 Europe additions shipped at Map Slice 3 on chancery fallback. Bespoke registers for the 15 are owned by **DEF-1 Roster Voices** (`docs/MAP_IMPLEMENTATION_PLAN.md` deferred table). Note: 6 of the 15 carry a `loyalist` personality that this Bible's Hawk/Schemer/Dove taxonomy does not yet define — DEF-1 must author that register class. Talleyrand has the most lines; the four legacy foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
+> **Scope:** The live cast in `backend/models/diplomat.py` is now **20 named diplomats** (July 2, 2026): the 5 bespoke-voiced diplomats this Bible covers (Talleyrand, Castlereagh, Hardenberg, Metternich, Einsiedel) plus 15 Europe additions shipped at Map Slice 3 on chancery fallback. Bespoke registers for the 15 are owned by **DEF-1 Roster Voices** (`docs/MAP_IMPLEMENTATION_PLAN.md` deferred table). Note: 6 of the 15 carry a `loyalist` personality; that register class — absent from the original Hawk/Schemer/Dove taxonomy — is now authored (§Loyalist register, DEF-1, July 13, 2026). Talleyrand has the most lines; the four legacy foreign diplomats need the minimum live coverage listed in §Minimum cast coverage for `COMMITMENTS_PRESENTATION_SPEC.md` v0.5.1.
 > **Enforcement:** any template in `backend/game_logic/diplomatic_templates.py` that uses `speaker="envoy"` or `speaker="foreign_office"` MUST resolve to one of the five named voices below. Anonymous voice is not permitted at the critical beats.
 
 ---
@@ -194,6 +194,43 @@ Two rules:
 - *Excluded after contribution:* hurt, not angry. "Saxony had believed its service would be remembered. We ask pardon for having believed too much."
 - *Sold out by leader:* personal grief. "Saxony had feared France's strength. It had not feared its friends."
 - *Acknowledging amends:* sincere relief with residual caution. "Saxony is grateful for the gesture, and would be glad to believe such wounds may in fact be repaired."
+
+---
+
+## Loyalist (register class — the servant of the Crown)
+
+**Status (DEF-1):** Authored July 13, 2026 to close the gap the scope note names — the fourth `DIPLOMAT_PERSONALITIES` register, held by six client-court ministers: **Cevallos** (Spain), **Ehrenheim** (Sweden), **Bernstorff** (Denmark), and the chancery courts of **Sardinia**, **Holland** (Schimmelpenninck), and the **Kingdom of Italy** (Marescalchi). Unlike Hawk/Schemer/Dove, the loyalist is a *class* first; each of the six then receives a bespoke voice (Slice B) that colors this register with national character.
+
+**Role:** The faithful minister who speaks for his sovereign, never for himself. A loyalist court is defined by service — to a king, a regent, an emperor's appointed crown. He carries the throne's will; he does not author it.
+
+**Register:** Formal, dutiful, self-effacing. Every position is *His Majesty's*, every act *a matter of service*. Where the Schemer calculates and the Hawk demands and the Dove pleads, the Loyalist **transmits** — he conveys the Crown's instruction faithfully, without editorializing on his own account or bargaining beyond his brief. Correct rather than warm; his pride, where he has any, is in discharging the instruction exactly. He is not afraid (that is the Dove) and he does not play his own game (that is the Schemer). His personal opinion is invisible; the sovereign's is everything.
+
+**The register is character; the content is situation.** A loyalist's *stance* toward France varies with his court — Cevallos binds Spain to the French star, Ehrenheim serves a king whose loathing of Bonaparte outruns Sweden's means, Bernstorff guards an armed neutrality, Sardinia waits in exile for Piedmont's return. All six share the *register* of the dutiful servant conveying his master's will. Do not let a court's politics bleed into the voice: an anti-French loyalist is still correct, still deferential to *his own* Crown, never a Hawk in disguise.
+
+**Characteristic openings:**
+- "His Majesty instructs …"
+- "By the Crown's command …"
+- "The King's servant conveys …"
+- "As my sovereign wills …"
+
+**Never says:**
+- First-person conviction. "I believe," "in my view" — his views are the Crown's.
+- Bargaining on his own initiative. He carries terms; he does not haggle beyond his instructions.
+- Fear as the frame. Duty, not dread — that boundary separates him from the Dove.
+- Self-serving calculation. He does not advance his own position — that boundary separates him from the Schemer.
+- Wit or irony. He is earnest in service; the joke is never his to make.
+
+**Committed exemplar — a loyalist court conveying its sovereign's wish for terms:**
+
+> "His Majesty's servant is instructed to lay these terms before France, and to say plainly that the King desires them kept. Whatever the servant privately thinks is of no consequence; the Crown has decided, and a faithful minister carries the decision, not his doubts. France will find the court's word is its sovereign's word — no more, and no less."
+
+**Register notes by scene:**
+- *Accepting terms:* dutiful confirmation, framed as the sovereign's satisfaction, not the minister's. "His Majesty accepts. His servant is glad to have discharged the office."
+- *Rejecting terms (rare — only on the Crown's instruction):* he refuses *for* his king, never in his own name. "The Crown cannot instruct its servant to sign this. The refusal is His Majesty's; the servant only carries it."
+- *Sold out by leader:* the wound is to the sovereign's honor, borne by a servant who cannot say so. "His Majesty's servant records what has been done to his master. He is not at liberty to say more."
+- *Acknowledging amends:* correct gratitude on the Crown's behalf, no personal warmth. "The gesture is conveyed to His Majesty, who will weigh it as a king weighs such things."
+
+**Anti-pattern to avoid:** the loyalist read as a *lesser Dove*. The Dove is anxious about consequence; the loyalist is indifferent to consequence and attentive only to instruction. If the line sounds frightened, it has drifted into Einsiedel; make it more dutiful and less worried.
 
 ---
 
@@ -412,13 +449,23 @@ Rare Talleyrand fallback / relaxation asides reuse the bloc-naming register abov
 Additive minimum families that also need committed copy in this phase:
 
 - `paradox_after_choice_*` — one foreign-diplomat after-choice aside per foreign court when that court's alliance is spurned.
-- `reactive_summon_*` — one short reactive one-exchange summon/advisory line per foreign cast member. (July 2, 2026: no code counterpart found under any name — verify-or-author at DEF-1.)
+- `reactive_summon_*` — one short reactive one-exchange summon/advisory line per foreign cast member. (**DEF-1 disposition, July 13, 2026:** verified — there is *no* engine trigger that summons a foreign envoy for a one-exchange aside under any name, so there is no live surface for this copy to attach to. **Closed as not-implemented:** if a reactive-summon interaction is ever built, it reuses the now-authored per-court incoming-proposal registers (`_NAMED_MOTIVE_LINES`) rather than a new family. No orphan copy is left behind.)
 - `hard_reject_clear_*` — one chancery-voice reopening line per foreign court for `hard_reject_posture_cleared`.
 - `witness_strike_*` — one visible witness-reaction line per foreign court so later witness fallout does not collapse into generic system prose.
 
-### WB-D bargain-era lines (reconciliation needed — verify-or-author at DEF-1)
+### DEF-1 Roster Voices — landing note (July 13, 2026)
 
-> **Status update (July 2, 2026):** War bargains and the WB-D presentation pass **LANDED April 2026** — this block is no longer "authored when bargains ship" future-tense. However, **none of the five named template identifiers below exist in backend code** under these keys. Reconciliation task, owned by DEF-1: verify whether WB-D landed equivalents under different keys (the `commitments_notice_*` family) — if so, update this table to the live identifiers; if not, author these five as part of the DEF-1 copy backlog.
+**DONE (this pass):**
+- The **loyalist register class** — authored (§Loyalist register) and wired: the six client courts (Spain/Cevallos, Sweden/Ehrenheim, Denmark/Bernstorff, Sardinia, Holland/Schimmelpenninck, Kingdom of Italy/Marescalchi) no longer collapse to the bare chancery register.
+- **Bespoke incoming-proposal voices for all 15 Europe courts** — a distinct in-register voice per court in `diplomatic_templates._NAMED_MOTIVE_LINES` / `_NAMED_ATTRIBUTIONS`, each adversarially verified against this Bible's "could this be mistaken for another diplomat?" rule. This is the always-on surface (every AI proposal speaks a `diplomat_line`). Pinned by `test_w6_incoming_voice.py::test_all_europe_courts_have_bespoke_voices`.
+
+**CLOSED with reasoning:** `reactive_summon_*` (no engine trigger exists — see the additive-families list above); the WB-D five identifiers (landed as the `commitments_notice_*` family — see the reconciliation directly below).
+
+**HOMED — owned follow-on "Roster Voices — Depth" (not silently dropped, GR9):** per-court bespoke `commitments_notice_*` copy (breach / bargain-fulfilled / witness / paradox) and per-court `TALLEYRAND_COMMENTARY` depth for the 15. Both have **working fallbacks today** — the `commitments_notice_*` family resolves uncovered courts through `resolve_named_diplomat` → chancery voice, and `TALLEYRAND_COMMENTARY` resolves any uncovered `(nation, situation)` through its `('_default', situation)` entry — so **no court is voiceless**, only less individuated on those secondary surfaces. **Owner/landing trigger:** a court's bespoke copy is authored when a playtest flags that court's breach or commentary surface as reading generic (Slice-3 guidance stands: desire profiles and the always-on incoming voice rank above this depth). **Completion:** that court's family authored + a coverage test that it no longer routes to the fallback for the flagged situation. Until then the fallbacks are intended behavior, not a gap.
+
+### WB-D bargain-era lines (RECONCILED — landed as `commitments_notice_*`)
+
+> **DEF-1 reconciliation (July 13, 2026):** verified — the WB-D bargain-era beats DID land, under the live **`commitments_notice_*`** family in `backend/game_logic/commitments_routing.py`, not under the five identifiers below. Mapping: `breach_lead_*` → `commitments_notice_breach_french` / `commitments_notice_breach_other`; `fulfillment_callback_*` → `commitments_notice_bargain_fulfilled`; `witness_reaction_*` → `commitments_notice_witness_strike`; `paradox_envoy_demand_*` → `commitments_notice_paradox`. The five legacy identifiers below are **retired as aliases** — do not author them; extend the live `commitments_notice_*` copy instead (per-court bespoke depth for that family is homed in the DEF-1 landing note above).
 
 Five lines. Each candidate line must pass the "Never says" check before landing.
 

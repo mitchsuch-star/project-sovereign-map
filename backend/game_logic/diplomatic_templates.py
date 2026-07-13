@@ -65,8 +65,9 @@ def resolve_named_diplomat(
 # in-character, never as a tag. Named-cast overrides keep the Bible's
 # register distinctions (Castlereagh = institutional hawk, Hardenberg =
 # personal hawk, Metternich = schemer-at-us, Einsiedel = the dove).
-# The `loyalist` register (6 unnamed-court nations) routes to the
-# chancery fallback per the W6-10 pinned test — DEF-1 owns that register.
+# The `loyalist` register (6 client-court nations) now has its own
+# defined register (DEF-1 Roster Voices — the dutiful crown-servant);
+# only unknown/absent personalities fall back to the chancery register.
 # No LLM (GR6); rotation is deterministic (turn + nation length).
 # ═══════════════════════════════════════════════════════════════════
 
@@ -136,6 +137,28 @@ _INCOMING_MOTIVE_LINES = {
         "Their chancery conveys the offer without further comment.",
         "The court of {nation} lets the terms speak for themselves.",
     ],
+    # DEF-1 Roster Voices — the LOYALIST register (the dutiful servant of
+    # the Crown). He speaks for his sovereign, not himself: every position
+    # is His Majesty's, every act a matter of service. Distinct from the
+    # Dove (who fears) and the Schemer (who serves himself). Content varies
+    # by a court's stance toward France; the register — faithful, formal,
+    # self-effacing — does not. See DIPLOMAT_VOICE_BIBLE.md §Loyalist.
+    ("loyalist", "war_overload"): [
+        "His Majesty's servant conveys that {nation} has borne its share of this war, and its sovereign would see it closed.",
+        "The Crown's instruction is peace; {nation} has spent enough of its people in this quarrel.",
+    ],
+    ("loyalist", "shared_enemy_survival"): [
+        "By the Crown's judgment, one hand threatens {nation} and France alike, and should be answered by both.",
+        "His Majesty instructs that {nation} stand beside France against the danger both thrones can see.",
+    ],
+    ("loyalist", "hegemony_pressure"): [
+        "{nation}'s sovereign would keep his house at peace with France's greatness, and sends his servant to say as much.",
+        "As my master wills, {nation} seeks France's good regard rather than France's displeasure.",
+    ],
+    ("loyalist", "unknown_baseline"): [
+        "His Majesty's servant lays {nation}'s offer before France, exactly as instructed.",
+        "By the Crown's command, {nation} sets these terms before France for her consideration.",
+    ],
 }
 
 # Named-cast motive overrides — the Voice Bible's register distinctions.
@@ -204,6 +227,262 @@ _NAMED_MOTIVE_LINES = {
         "His Majesty submits the offer most respectfully for France's consideration.",
         "We hope, most sincerely, that France will find the terms agreeable.",
     ],
+    # ── DEF-1 Roster Voices: the 15 Europe courts (Slice B, bespoke + adversarially verified against DIPLOMAT_VOICE_BIBLE.md) ──
+    # Araujo
+    ('Araujo', 'war_overload'): [
+        'Portugal is a small kingdom at the edge of a great storm, and she grows weary of bracing her shutters against winds that are not of her making.',
+        'Lisbon has counted the cost of these campaigns in ports left idle and harvests left unsold, and she would gladly close that ledger before the season turns.',
+    ],
+    ('Araujo', 'shared_enemy_survival'): [
+        'Portugal has learned that a danger which unsettles Paris will not long spare Lisbon, and a court with few soldiers does well to keep close to the strong when one peril overhangs them both.',
+        'It would be a poor sort of prudence for Lisbon to look quietly away while a threat gathers that troubles France no less than herself.',
+    ],
+    ('Araujo', 'hegemony_pressure'): [
+        'Portugal has watched France grow so vast that a careful minister in Lisbon thinks less of resisting such a tide than of finding a quiet harbor within it.',
+        "A kingdom as modest as ours does not measure itself against the Empire's shadow, and Lisbon would far rather reach an understanding than be caught standing in its path.",
+    ],
+    ('Araujo', 'unknown_baseline'): [
+        'Lisbon sends this proposal in the plain hope that two courts may speak frankly and part on better terms than they met.',
+        'Portugal lays this matter before France without ceremony or hidden design, trusting that a fair word offered today spares a hard one tomorrow.',
+    ],
+    # Bernstorff
+    ('Bernstorff', 'war_overload'): [
+        "Season upon season this war has pressed against Denmark's coasts and crowded her narrows, and the Crown Prince has charged his servants to spare the realm any further of it.",
+        "Denmark's neutral flag has been made to bear the whole weight of a quarrel not her own, and her sovereign now judges that burden long enough carried.",
+    ],
+    ('Bernstorff', 'shared_enemy_survival'): [
+        'A power that keeps its fleets forever off the narrows presses upon Denmark and France alike, and the Crown Prince holds that courts so menaced do well to stand as one.',
+        "The same navy that shadows Denmark's straits and throttles the commerce of the Baltic bears no less heavily upon France, and by her sovereign's reckoning two realms so pressed are better joined than sundered.",
+    ],
+    ('Bernstorff', 'hegemony_pressure'): [
+        "The Crown of Denmark marks how far France's power now reaches across Europe, and her sovereign judges it the part of a careful neighbour to settle matters by agreement rather than by arms.",
+        "As France's ascendancy spreads over the map of the Continent, the Crown Prince would keep his narrows clear of so great a contest and treat plainly with Paris instead.",
+    ],
+    ('Bernstorff', 'unknown_baseline'): [
+        'The Crown of Denmark sends her minister to set a proposal plainly before France, one neutral court speaking correctly to another across the narrow seas.',
+        'By command of the Crown Prince, Denmark lays this matter before the French court directly and without disguise, that it may be weighed on its own terms.',
+    ],
+    # Cevallos
+    ('Cevallos', 'war_overload'): [
+        'His Catholic Majesty has watched the treasure and the sons of Spain spent in a war that wearies the whole kingdom, and it is His will that this burden now be set down.',
+        'The Crown of Spain has borne the length of this war in good faith, and His Majesty judges that a loyal realm may be asked to bear no more.',
+    ],
+    ('Cevallos', 'shared_enemy_survival'): [
+        "His Catholic Majesty sees the very foe that threatens France standing in equal enmity against the Spanish throne, and it is the King's command that the two crowns face it as one.",
+        'Spain and France are menaced by a single power upon the seas, and His Majesty holds that the safety of both kingdoms rests in common cause.',
+    ],
+    ('Cevallos', 'hegemony_pressure'): [
+        "His Catholic Majesty marks how far the power of France now reaches, and it is the King's wish that so weighty a friendship be fixed in settled terms and not left to chance.",
+        "The Crown of Spain beholds the greatness to which France has risen, and it is His Majesty's wish that a friendship of such weight rest upon plain and honorable articles rather than upon trust alone.",
+    ],
+    ('Cevallos', 'unknown_baseline'): [
+        'His Catholic Majesty has charged this ministry to set His terms before you plainly, in the very form the King intends and no other.',
+        'The Crown of Spain sets this proposal before you as it stands, by the direct command of His Majesty.',
+    ],
+    # Chancery of Hanover
+    ('Chancery of Hanover', 'war_overload'): [
+        "Hanover has been a high-road for other men's armies too long, and the electorate has quietly learned that a still country outlasts a loud one.",
+        "This court has watched a quarrel that was never Hanover's own empty its granaries and wear its lanes to ruts, and weariness now speaks more plainly than any allegiance could.",
+    ],
+    ('Chancery of Hanover', 'shared_enemy_survival'): [
+        "There is a peril that troubles both Paris and this court alike, and Hanover would sooner meet it at France's shoulder than across the field from her.",
+        "The electorate finds its own dangers and France's have grown to wear the same face, and a small country learns early to keep to the lee of a stronger one.",
+    ],
+    ('Chancery of Hanover', 'hegemony_pressure'): [
+        'Hanover has watched France grow until her shadow lies across the whole of the north, and a prudent electorate does not set itself against a tide it has no power to turn.',
+        "This court holds no illusion of matching France's strength, and it judges a quiet understanding far the wiser course beside a proud and empty resistance.",
+    ],
+    ('Chancery of Hanover', 'unknown_baseline'): [
+        'The Chancery of Hanover sets a plain proposal before France, without ornament and without any hidden design folded inside it.',
+        'This court comes forward softly, as an electorate must that weighs each word before two watching masters, and lays its offer open for France to read.',
+    ],
+    # Chancery of Helvetia
+    ('Chancery of Helvetia', 'war_overload'): [
+        'The cantons have watched foreign armies cross the passes so long that our valleys are worn thin, and Helvetia has no men to spare for the quarrels of greater crowns.',
+        'Helvetia was fashioned for the tending of herds and the guarding of the snows, not for the long carriage of war, and the Confederation is weary to the very bone.',
+    ],
+    ('Chancery of Helvetia', 'shared_enemy_survival'): [
+        'A shadow gathers beyond our eastern mountains that menaces the cantons no less than France, and a small folk does well to stand where the larger shield already stands.',
+        'The same power that would spill across our passes would press upon France in the same season, and Helvetia would sooner share the watch than keep it alone.',
+    ],
+    ('Chancery of Helvetia', 'hegemony_pressure'): [
+        'France has grown so vast that even an old neutrality feels its weight against the mountains, and the Confederation has always held it wiser to bend early than to be broken late.',
+        'We are a small confederation that covets nothing beyond the quiet of its own valleys, and before a power so vast the cantons hold it no dishonor to seek terms rather than a stand they could not keep.',
+    ],
+    ('Chancery of Helvetia', 'unknown_baseline'): [
+        'The Diet has sent me with a plain proposal and no long oration, for the cantons like their business as they like their mountain roads, straight and without ornament.',
+        'Helvetia comes in its own name and by the common wish of its cantons, with the offer laid out plainly and nothing folded away out of sight.',
+    ],
+    # Chancery of Hesse
+    ('Chancery of Hesse', 'war_overload'): [
+        'Hesse is a small country that has been trodden by the passage of larger armies, and it wishes only to be left out of what remains of this war.',
+        'The war has asked more of Hesse than so modest a land can give, and it longs for nothing so much as quiet.',
+    ],
+    ('Chancery of Hesse', 'shared_enemy_survival'): [
+        'Hesse and France look upon the same danger, and so slight a country would far rather stand quietly beside France than face it alone.',
+        "A land as small as Hesse cannot weather the common enemy unaided, and it would sooner be counted, however modestly, among France's friends.",
+    ],
+    ('Chancery of Hesse', 'hegemony_pressure'): [
+        'Hesse has watched France grow very great, and a court so small knows better than to stand in the path of such a power, preferring an understanding to any quarrel.',
+        'So great a power has nothing to fear from a house as small as Hesse, which asks only to come quietly to terms and give France no trouble at all.',
+    ],
+    ('Chancery of Hesse', 'unknown_baseline'): [
+        'Hesse comes to the French court with no design and no complaint, asking only to settle a small matter between them.',
+        'The Chancery of Hesse lays this before France plainly, as one small court that would prefer its arrangements to remain simple.',
+    ],
+    # Chancery of Sardinia
+    ('Chancery of Sardinia', 'war_overload'): [
+        'From his island the King of Sardinia has counted every winter of this war, and the Crown grows weary of a struggle that spares neither his people nor his patience.',
+        "His Majesty's house has given years and its soldiers to this long quarrel, and in the King's name his chancery submits that a court so long displaced need bleed no further.",
+    ],
+    ('Chancery of Sardinia', 'shared_enemy_survival'): [
+        "A common danger now stands against both France and the King of Sardinia, and His Majesty's chancery is charged to say that even a displaced crown knows when two swords must meet one enemy.",
+        'The same power that would harm France reaches also toward what little remains to the King upon his island, and the Crown, dutiful before necessity, will not face it alone.',
+    ],
+    ('Chancery of Sardinia', 'hegemony_pressure'): [
+        'The King of Sardinia has already felt the full weight of France upon his lost mainland, and the Crown judges it the wiser course to treat with such a power than to defy it to no purpose.',
+        "His Majesty marks how far the reach of France now extends across Europe, and in the King's name his chancery would sooner secure an honorable understanding than court a ruin it already knows too well.",
+    ],
+    ('Chancery of Sardinia', 'unknown_baseline'): [
+        "The chancery of Sardinia comes before France in the King's name, charged to set this offer plainly and without ornament before you.",
+        "His Majesty's servants are instructed to lay this proposal before you exactly as the King has framed it, adding neither argument nor plea of their own.",
+    ],
+    # Consalvi
+    ('Consalvi', 'war_overload'): [
+        "The Holy See has watched too many of God's children fall to the sword, and a shepherd cannot bless what only widows his flock.",
+        'War has drawn from Rome more grief than any treasury could hold, and the Church was not raised to preside over so much dying.',
+    ],
+    ('Consalvi', 'shared_enemy_survival'): [
+        'A common adversary now threatens both the throne of France and the See of Peter, and Providence seldom hands two houses the same shield without meaning them to stand behind it together.',
+        'The Holy See and France face the same wolf at the fold, Emperor, and even a churchman knows that the lambs who scatter are the lambs who are lost.',
+    ],
+    ('Consalvi', 'hegemony_pressure'): [
+        'France has grown so vast that her shadow now falls even upon the altar, and Rome, having no armies to set against it, would far sooner offer her friendship than her fear.',
+        'Rome has outlasted the storms of many centuries by bowing her head to the wind rather than breaking against it, and she would seek only to shelter beneath the greatness of France, never to strive against it.',
+    ],
+    ('Consalvi', 'unknown_baseline'): [
+        'The Holy See comes to the Emperor bearing neither complaint nor condition, only a matter it would set plainly before him.',
+        'Rome lays this before the Emperor without adornment, a matter she would rather he judged for its own worth than for the ceremony that might dress it.',
+    ],
+    # Czartoryski
+    ('Czartoryski', 'war_overload'): [
+        'Russia has spent enough of her strength upon a war that advances no vision equal to the century, and the reordering of Europe cannot be raised upon exhausted armies.',
+        'The blood Russia now pours out would be better husbanded for the larger work that history reserves for her, and this present quarrel only postpones that appointment.',
+    ],
+    ('Czartoryski', 'shared_enemy_survival'): [
+        "There is an adversary whose ambition menaces the whole architecture of Europe, and two powers who grasp the continent's future would do well to face him as one.",
+        'Both Petersburg and Paris look upon a rival who would keep Europe fettered in its old and broken shape, and two crowns acting as one might yet decide what should rise in its place.',
+    ],
+    ('Czartoryski', 'hegemony_pressure'): [
+        'A Europe in which one crown grows to eclipse all the others can never settle into the design that a lasting peace requires, and Russia would far rather compose that balance by agreement than leave it to the arbitration of arms.',
+        "France's star climbs so swiftly that the lesser courts grow restive, and it would honor the wisdom of both our thrones to settle the shape of things before that unease hardens into coalition.",
+    ],
+    ('Czartoryski', 'unknown_baseline'): [
+        'Russia lays this proposal before you in the plain conviction that the affairs of Europe are best arranged by those with the vision to see the whole board.',
+        'Petersburg extends these terms without ornament, trusting that two courts of consequence need no long preamble to perceive where their interests already point.',
+    ],
+    # Ehrenheim
+    ('Ehrenheim', 'war_overload'): [
+        "His Majesty's servant is charged to avow plainly that Sweden has spent her strength in the King's long quarrel with Bonaparte beyond what her means can sustain.",
+        "The Crown does not disguise from France that Sweden's armies and her treasury are alike worn thin by a war the King no longer has the means to press.",
+    ],
+    ('Ehrenheim', 'shared_enemy_survival'): [
+        "His Majesty makes no secret of his distaste for France, yet the Crown instructs its servant to own that a nearer foe now threatens the kingdom's very survival and menaces both thrones alike.",
+        "By the King's own command his minister is bidden to set aside the quarrel of years, for a common enemy presses upon France and Sweden together and would see both undone.",
+    ],
+    ('Ehrenheim', 'hegemony_pressure'): [
+        "His Majesty regards the spread of French power across the north with plain disquiet, yet the Crown, weighing that disquiet against Sweden's slender means, instructs its servant to prefer terms to the trial of arms.",
+        'The King does not pretend to welcome the shadow France now casts over Europe, and it is precisely because he cannot answer it in the field that his servant is sent seeking accommodation.',
+    ],
+    ('Ehrenheim', 'unknown_baseline'): [
+        "His Majesty's servant is instructed to set this proposal before France exactly as the Crown has framed it, and to add nothing to it of his own.",
+        'The King has decided what he would put to France, and his minister comes only to convey that decision plainly, neither pressing it nor coloring it.',
+    ],
+    # Marescalchi
+    ('Marescalchi', 'war_overload'): [
+        "The Kingdom of Italy has poured out its sons and its treasure in its sovereign's wars, and now, its duty faithfully done, it lays its weariness before the throne it shares with France.",
+        "Italy has followed wherever its King's eagles have led, and the kingdom's fields, so long trampled beneath the march of armies, now long for quiet.",
+    ],
+    ('Marescalchi', 'shared_enemy_survival'): [
+        "The same foe that menaces France stands equally against the crown Italy shares with her, and the Kingdom would gladly set its shoulder beside the Emperor's own.",
+        "Italy sees the enemy at the Empire's gate as an enemy at its own, for the King who guards Paris is the King who guards Milan.",
+    ],
+    ('Marescalchi', 'hegemony_pressure'): [
+        'His Majesty has raised France to a greatness Europe has never beheld, and the Kingdom of Italy, which shares his crown, asks only to be joined to that grandeur by firm covenant rather than left to stand apart from it.',
+        "Where the Emperor's star climbs so high above the other courts of Europe, the Kingdom of Italy seeks no station of its own apart from his, and asks that its loyal place at his side be set down plainly for all the continent to read.",
+    ],
+    ('Marescalchi', 'unknown_baseline'): [
+        'The Kingdom of Italy comes before France in the plain good faith of a house that answers to the very same sovereign.',
+        'Italy lays its proposal before the Emperor without condition or artifice, as a faithful kingdom owes its plain word to its King.',
+    ],
+    # Medici
+    ('Medici', 'war_overload'): [
+        'Naples is a small kingdom that has spent both its treasure and its quiet on a quarrel that was never truly its own.',
+        'The Two Sicilies have watched this war pass over them like weather, and even weather, in time, wears the stone.',
+    ],
+    ('Medici', 'shared_enemy_survival'): [
+        'Naples and France feel the same cold shadow move upon the water, and a small kingdom learns early which storms it dares not face alone.',
+        'There is a danger that troubles Paris and Naples alike, and it would be an ungracious thing to stand apart when our concerns lean the same way.',
+    ],
+    ('Medici', 'hegemony_pressure'): [
+        'The greatness of France fills the whole of the continent now, and a court as modest as Naples has never thought it wise to stand in the path of so great a river.',
+        'Naples has never confused the friendship of great powers with a burden, and a small court stays whole only by knowing where the safer shore lies.',
+    ],
+    ('Medici', 'unknown_baseline'): [
+        'Naples comes to Paris in the old manner, with courtesy and an open hand, and lays a simple proposal upon the table.',
+        'There is a small matter the court of Naples would set before the Emperor, plainly and without any ceremony.',
+    ],
+    # Montgelas
+    ('Montgelas', 'war_overload'): [
+        'Bavaria has spent more blood and coin on this war than any peace could ever repay, and a well-kept state does not go on funding a loss.',
+        "Each further campaign quietly undoes a year of Munich's reforms, and Bavaria did not remake itself merely to be marched across a second time.",
+    ],
+    ('Montgelas', 'shared_enemy_survival'): [
+        'Bavaria and France are pressed by the same court to the east, and two states facing one neighbor are worth more set side by side than kept apart.',
+        "Vienna's designs weigh on Munich as heavily as on Paris, and it would be poor arithmetic to answer the same enemy in two separate quarters.",
+    ],
+    ('Montgelas', 'hegemony_pressure'): [
+        'Bavaria has marked where the weight of Europe now settles, and a prudent state places itself beside the rising power, never beneath it.',
+        "France's reach lengthens with every season, and Munich would sooner write the terms of that nearness now than be handed them later.",
+    ],
+    ('Montgelas', 'unknown_baseline'): [
+        'Bavaria finds a plain advantage in this arrangement and prefers to settle such matters while they are still only advantages.',
+        'Munich lays the question before Paris without ornament, as one balances an account between two parties who each know their own interest.',
+    ],
+    # Reis Efendi
+    ('Reis Efendi', 'war_overload'): [
+        'The Porte has outlasted longer storms than this one, yet it sees no wisdom in spending good years upon a quarrel that time itself would sooner settle.',
+        'The Empire is old and has grown weary of these long reckonings, and it would far rather let this war drift quietly out of season than press it another mile.',
+    ],
+    ('Reis Efendi', 'shared_enemy_survival'): [
+        "It has not escaped the Porte's patient notice that France and the House of Osman are vexed by the very same restless neighbor, and where two men share a shadow they may as easily share a lamp.",
+        'The Sublime Porte, which forgets nothing and hurries nothing, perceives that its concerns and those of France now incline toward one and the same disturber of the general peace.',
+    ],
+    ('Reis Efendi', 'hegemony_pressure'): [
+        'The Porte watches the star of France climb ever higher and, being an old admirer of whatever endures, would sooner arrange itself gracefully beneath so great a light than stand across its path.',
+        "The Sublime Porte has learned across many centuries that it is the wiser house which comes to terms with the rising tide rather than argue with it, and it finds in France's greatness every reason for accommodation and none for dispute.",
+    ],
+    ('Reis Efendi', 'unknown_baseline'): [
+        'The Sublime Porte approaches France in the plain and unhurried manner of an old house, laying its proposal upon the table with neither urgency nor concealment.',
+        "The Porte offers this matter simply, as one offers coffee to a guest, and is content to await France's pleasure in its own good time.",
+    ],
+    # Schimmelpenninck
+    ('Schimmelpenninck', 'war_overload'): [
+        "Holland has spent its treasure and its seamen in France's wars until the Republic can furnish no more, and the States have charged me to say so plainly.",
+        "The commonwealth has borne the war at France's side to the very limit of what a small nation can bear, and it is the duty of this office to report that limit reached.",
+    ],
+    ('Schimmelpenninck', 'shared_enemy_survival'): [
+        "Holland and France are pressed by the same power upon the same seas, and the Republic holds that its safety and its patron's have become one cause.",
+        'The enemy that threatens France threatens first the coasts of Holland, and the States have resolved that the two nations must now stand or fall as one.',
+    ],
+    ('Schimmelpenninck', 'hegemony_pressure'): [
+        "Holland lives already within the reach of France's power and knows better than any nation what that reach can compass, and the Republic would have that relation settled by treaty rather than proved by arms.",
+        "France now stands foremost among the powers of Europe, and the States, mindful that Holland's fortunes have long been joined to hers, have charged me to seek that this connection be made firm and lasting by treaty.",
+    ],
+    ('Schimmelpenninck', 'unknown_baseline'): [
+        'The States of Holland have directed this proposal to your Majesty, and I lay it before you as the office requires, without addition of my own.',
+        'Holland presents these terms in the plain form the Republic has settled upon, and it is mine only to deliver them faithfully.',
+    ],
 }
 
 # Attribution prefixes (the "face" of the line).
@@ -212,6 +491,22 @@ _NAMED_ATTRIBUTIONS = {
     "Hardenberg": "Hardenberg, stiffly:",
     "Metternich": "Metternich, with perfect politeness:",
     "Einsiedel": "Einsiedel, anxiously:",
+    # DEF-1 Roster Voices — the 15 Europe courts (bespoke, Voice-Bible verified).
+    'Araujo': 'Araujo, measuring the room:',
+    'Bernstorff': 'Bernstorff, watchful and correct:',
+    'Cevallos': "Cevallos, in his King's name:",
+    'Chancery of Hanover': 'The Chancery of Hanover, guardedly:',
+    'Chancery of Helvetia': 'The Helvetic Chancery, unhurried:',
+    'Chancery of Hesse': 'Hesse, wishing to go unnoticed:',
+    'Chancery of Sardinia': 'The Sardinian chancery, dutifully:',
+    'Consalvi': 'Cardinal Consalvi, serenely:',
+    'Czartoryski': 'Czartoryski, with sweeping calm:',
+    'Ehrenheim': "Ehrenheim, conveying his King's word:",
+    'Marescalchi': 'Marescalchi, with ardent devotion:',
+    'Medici': 'Medici, smoothly evasive:',
+    'Montgelas': 'Montgelas, coolly reckoning the gains:',
+    'Reis Efendi': 'Reis Efendi, serene and unhurried:',
+    'Schimmelpenninck': 'Schimmelpenninck, correct and unillusioned:',
 }
 
 # The ask, in-register, per acceptance type (terms["type"]).
@@ -255,15 +550,16 @@ def compose_incoming_diplomat_line(
     if variants:
         attribution = _NAMED_ATTRIBUTIONS.get(name, f"{name}:")
     else:
-        # Register from the diplomat record; loyalist and unknown route to
-        # the chancery fallback register (pinned — DEF-1 owns loyalist).
+        # Register from the diplomat record. Loyalist now has its own
+        # defined register (DEF-1 Roster Voices); only unknown/absent
+        # personalities fall back to the chancery register.
         diplomats = getattr(world, "diplomats", {}) or {}
         record = diplomats.get(nation_name)
         register = ""
         if record is not None:
             raw = getattr(record, "personality", "")
             register = str(getattr(raw, "value", raw) or "").lower()
-        if register not in ("hawk", "schemer", "dove"):
+        if register not in ("hawk", "schemer", "dove", "loyalist"):
             register = "chancery"
         variants = _INCOMING_MOTIVE_LINES[(register, reason)]
         if register == "chancery" or name.startswith("The Chancery"):

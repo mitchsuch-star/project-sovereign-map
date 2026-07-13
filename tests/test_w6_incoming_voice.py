@@ -95,15 +95,53 @@ class TestDiplomatLine:
             decision_reason="war_overload")
         assert "Castlereagh" in line
 
-    def test_chancery_fallback_for_loyalist_courts(self, world):
-        """The 6 loyalist courts (Spain et al.) route to the chancery
-        register — pinned as NOT a bug (DEF-1 owns the loyalist register)."""
+    def test_loyalist_courts_use_loyalist_register(self, world):
+        """DEF-1: the loyalist courts (Spain et al.) now speak in the
+        dutiful crown-servant register, not the bare chancery fallback."""
         line = compose_incoming_diplomat_line(
             world, nation="Spain", proposal_type="non_aggression",
             decision_reason="hegemony_pressure")
         assert line
-        assert "conveys:" in line  # chancery-register attribution
-        assert "Spain" in line
+        assert "Cevallos" in line          # the named loyalist minister
+        assert "conveys:" not in line      # no longer the chancery register
+
+    def test_loyalist_register_bank_defined(self):
+        """DEF-1: the loyalist register class is authored for all four
+        decision reasons with two deterministic variants and a {nation}
+        slot (the Voice Bible-owned register class)."""
+        from backend.game_logic.diplomatic_templates import (
+            _INCOMING_MOTIVE_LINES,
+        )
+        for reason in ("war_overload", "shared_enemy_survival",
+                       "hegemony_pressure", "unknown_baseline"):
+            variants = _INCOMING_MOTIVE_LINES[("loyalist", reason)]
+            assert len(variants) == 2
+            for line in variants:
+                assert "{nation}" in line
+
+    def test_all_europe_courts_have_bespoke_voices(self, world):
+        """DEF-1 Roster Voices: every one of the 15 Europe courts resolves
+        to its own named voice (never the bare chancery fallback) across
+        all four decision reasons — the token is a fragment of that court's
+        authored attribution."""
+        courts = {
+            "Russia": "Czartoryski", "Bavaria": "Montgelas",
+            "Ottoman": "Reis Efendi", "Naples": "Medici",
+            "Portugal": "Araujo", "PapalStates": "Consalvi",
+            "Hanover": "Hanover", "Hesse": "Hesse",
+            "Switzerland": "Helvetic", "Spain": "Cevallos",
+            "Sweden": "Ehrenheim", "Denmark": "Bernstorff",
+            "Sardinia": "Sardinian", "Holland": "Schimmelpenninck",
+            "KingdomOfItaly": "Marescalchi",
+        }
+        for nation, token in courts.items():
+            for reason in ("war_overload", "shared_enemy_survival",
+                           "hegemony_pressure", "unknown_baseline"):
+                line = compose_incoming_diplomat_line(
+                    world, nation=nation, proposal_type="peace",
+                    decision_reason=reason)
+                assert token in line, (nation, reason, line)
+                assert "conveys:" not in line, (nation, reason, line)
 
     def test_unknown_court_gets_chancery_line(self):
         legacy = WorldState(player_nation="France")
