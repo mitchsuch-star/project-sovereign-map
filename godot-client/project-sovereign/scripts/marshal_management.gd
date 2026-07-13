@@ -27,6 +27,21 @@ signal commission_requested(candidate_name: String)
 const COLOR_DIM = "666670"
 const COLOR_DEVOTED = "ffd700"
 
+# UI-3 (texture/icon/portrait polish): PD marshal likenesses keyed by internal
+# marshal name (assets/portraits/<name>.jpg|png — the same keys the coverage
+# test guards). A keyless marshal (only Abdurrahman by design) degrades to a
+# gold monogram so no card is ever faceless (spec §4/§2). Icons are the curated
+# white-silhouette sets, tinted at render via the [img color=...] BBCode option.
+const _PORTRAIT_DIR = "res://assets/portraits/"
+const _PORTRAIT_EXTS = [".jpg", ".png", ".jpeg", ".webp"]
+const _PORTRAIT_W = 60
+const _PORTRAIT_H = 76
+const _ICON_GAME = "res://assets/ui/icons/game-icons/"
+const _ICON_PHOSPHOR = "res://assets/ui/icons/phosphor/"
+# Cache portrait lookups so a long roster doesn't re-probe ResourceLoader each
+# render (the overview re-renders on every refresh).
+var _portrait_cache: Dictionary = {}
+
 # State
 var cached_data: Array = []
 # Jealousy v3.2: the player's glory ladder + the recruitment pool ride the
@@ -42,6 +57,7 @@ var _api_client_ref = null
 
 func _ready():
 	close_button.pressed.connect(close_view)
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	# §0.6.8: bbcode [url=reward:N] affordances (strategic_ledger pattern)
 	content_area.meta_clicked.connect(_on_meta_clicked)
@@ -77,10 +93,10 @@ func _input(event):
 				return
 		if index >= 0 and index < cached_data.size():
 			# Scroll to marshal card — approximate position based on card height
-			# TECH DEBT: 380px/card is hardcoded (bumped from 320 when MC-2's
-			# skill-bar rows grew the card). Revisit if playtesting shows
-			# scroll misalignment.
-			var scroll_target = index * 380
+			# TECH DEBT: px/card is hardcoded (320 → 380 for MC-2's skill-bar
+			# rows → 470 for the UI-3 portrait thumbnail on its own line).
+			# Revisit if playtesting shows scroll misalignment.
+			var scroll_target = index * 470
 			scroll_container.scroll_vertical = scroll_target
 			get_viewport().set_input_as_handled()
 
@@ -183,7 +199,8 @@ func _render_glory_ladder() -> String:
 	var has_bench = candidates is Array and candidates.size() > 0
 
 	if cached_ladder is Array and cached_ladder.size() > 1:
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
+		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
 		bbcode += "  [color=#" + COLOR_DIM + "](glory, last 5 turns — the man above draws the envy of the man below)[/color]\n"
 		for i in range(cached_ladder.size()):
 			var row = cached_ladder[i]
@@ -209,6 +226,7 @@ func _render_glory_ladder() -> String:
 		bbcode += "\n"
 
 	if has_bench:
+		bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 18, Utils.COLOR_GOLD) + " "
 		bbcode += "[url=commission_open][color=#" + Utils.COLOR_GOLD + "][ Commission a Marshal… ][/color][/url]"
 		bbcode += "  [color=#" + COLOR_DIM + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
 
@@ -221,7 +239,8 @@ func _render_commission_view():
 	"""Marshal Recruitment: the candidate bench — full character sheets,
 	honest availability (the executor's own check), price/corps chips."""
 	var bbcode = "[url=commission_back][color=#" + Utils.COLOR_INFO + "][ ← Back to the Marshalate ][/color][/url]\n\n"
-	bbcode += "[color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
+	bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
+	bbcode += " [color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
 	var treasury = int(cached_recruitment.get("treasury", 0))
 	var pool = int(cached_recruitment.get("infantry_pool", 0))
 	var corps = int(cached_recruitment.get("corps_size", 5000))
@@ -243,10 +262,11 @@ func _render_commission_view():
 		var available = bool(c.get("available", false))
 		var reason = str(c.get("blocked_reason", ""))
 
+		bbcode += _portrait_block(cname, 48, 60)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "][" + personality.capitalize() + "][/color]"
 		if c.get("cavalry", false):
-			bbcode += "  [color=#" + Utils.COLOR_ORANGE + "][Cavalry][/color]"
+			bbcode += "  " + _unit_icon("Cavalry", Utils.COLOR_ORANGE) + " [color=#" + Utils.COLOR_ORANGE + "][Cavalry][/color]"
 		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + _format_number(cost) + "g[/color]\n"
 		var bio = str(c.get("biography", ""))
 		if bio != "":
@@ -292,9 +312,10 @@ func _render_card(m: Dictionary, index: int) -> String:
 			type_color = Utils.COLOR_ERROR
 
 	var key_hint = "[" + str(index + 1) + "] "
+	bbcode += _portrait_block(name)
 	bbcode += "[color=#" + Utils.COLOR_GREY + "]" + key_hint + "[/color]"
 	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
-	bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
+	bbcode += "  " + _unit_icon(unit_type, type_color) + " [color=#" + type_color + "][" + unit_type + "][/color]"
 	bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + Utils.display_nation_name(nation) + "[/color]\n"
 
 	# ═══════ BIOGRAPHY ═══════
@@ -545,6 +566,46 @@ func _render_card(m: Dictionary, index: int) -> String:
 # =============================================================================
 # COLOR HELPERS
 # =============================================================================
+
+# =============================================================================
+# UI-3 PORTRAIT / ICON HELPERS
+# =============================================================================
+
+func _portrait_block(name: String, w: int = _PORTRAIT_W, h: int = _PORTRAIT_H) -> String:
+	"""A portrait thumbnail on its own line (natural colour), or a gold monogram
+	when no PD likeness exists (Abdurrahman by design). Lookups are cached so a
+	long roster does not re-probe ResourceLoader on every re-render."""
+	var path = ""
+	if _portrait_cache.has(name):
+		path = _portrait_cache[name]
+	else:
+		for ext in _PORTRAIT_EXTS:
+			var p = _PORTRAIT_DIR + name + ext
+			if ResourceLoader.exists(p):
+				path = p
+				break
+		_portrait_cache[name] = path
+	if path != "":
+		return "[img width=%d height=%d]%s[/img]\n" % [w, h, path]
+	var initial = name.substr(0, 1).to_upper() if name.length() > 0 else "?"
+	return "[color=#" + Utils.COLOR_GOLD + "]〔 " + initial + " 〕[/color]\n"
+
+
+func _icon(path: String, size: int, color: String) -> String:
+	"""Inline BBCode icon, tinted (the curated sets ship as white silhouettes so
+	the [img color=...] multiply lands the intended hue)."""
+	return "[img width=%d height=%d color=#%s]%s[/img]" % [size, size, color, path]
+
+
+func _unit_icon(unit_type: String, color: String) -> String:
+	var key = "unit-infantry"
+	match unit_type:
+		"Cavalry":
+			key = "unit-cavalry"
+		"Artillery":
+			key = "unit-artillery"
+	return _icon(_ICON_GAME + key + ".svg", 18, color)
+
 
 # TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
 # marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.

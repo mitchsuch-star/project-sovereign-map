@@ -116,6 +116,13 @@ func _ready():
 	for btn in button_map.values():
 		btn.add_theme_stylebox_override("normal", _normal_style)
 
+	# UI-3: a tinted leading icon per nav button (labels + hotkey hints kept).
+	Utils.apply_button_icon(event_log_btn, Utils.ICON_PHOSPHOR + "list.svg")
+	Utils.apply_button_icon(ledger_btn, Utils.ICON_PHOSPHOR + "map-trifold.svg")
+	Utils.apply_button_icon(generals_btn, Utils.ICON_PHOSPHOR + "users-three.svg")
+	Utils.apply_button_icon(diplo_ledger_btn, Utils.ICON_PHOSPHOR + "handshake.svg")
+	Utils.apply_button_icon(dispatch_btn, Utils.ICON_PHOSPHOR + "scroll.svg")
+
 	# Initialize turn label
 	turn_label.text = "Turn 1"
 

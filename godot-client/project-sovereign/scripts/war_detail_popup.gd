@@ -46,6 +46,7 @@ const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
 func _ready():
 	hide()
 	close_button.pressed.connect(_close_popup)
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 
 

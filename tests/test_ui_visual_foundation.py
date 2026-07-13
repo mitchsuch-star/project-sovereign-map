@@ -181,3 +181,103 @@ def test_abdurrahman_exemption_is_real():
     assert not _has_portrait(
         "Abdurrahman"
     ), "Abdurrahman now has a portrait — remove him from PORTRAIT_EXEMPT"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Session U3 (UI-3) — texture / icon / portrait polish
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# The curated icon sets are tinted gold at render (BBCode [img color=...] /
+# Button icon_*_color). That multiply only works on a WHITE silhouette, so the
+# wired icons must have been recolored off their shipped defaults: game-icons
+# carry a 512² black background <path> and phosphor uses currentColor (Godot
+# rasterizes it black — modulate cannot lighten black). These guard that the
+# preprocessing is not silently reverted (display-only, GR6).
+
+ICONS_DIR = GODOT_PROJ / "assets" / "ui" / "icons"
+ORNAMENTS_DIR = GODOT_PROJ / "assets" / "ui" / "ornaments"
+MARSHAL_MGMT_TSCN = GODOT_PROJ / "scenes" / "marshal_management.tscn"
+
+# game-icons wired inline in the Generals cards + commission bench.
+GAME_ICONS_WIRED = ["unit-infantry", "unit-cavalry", "unit-artillery"]
+# phosphor icons wired on buttons / inline (close X, top-bar nav, resize grip,
+# Text-Size, marshal-card headers).
+PHOSPHOR_WIRED = [
+    "x", "arrows-out", "medal-military", "crown",
+    "list", "map-trifold", "users-three", "handshake", "scroll",
+]
+
+
+@pytest.mark.parametrize("name", GAME_ICONS_WIRED)
+def test_game_icon_black_background_stripped(name):
+    svg = _read(ICONS_DIR / "game-icons" / f"{name}.svg")
+    assert 'd="M0 0h512v512H0z"' not in svg, (
+        f"game-icons/{name}.svg still carries the 512² black bg <path> — the "
+        f"gold [img color=...] tint would render a black box (spec §8 U3)"
+    )
+
+
+@pytest.mark.parametrize("name", PHOSPHOR_WIRED)
+def test_phosphor_icon_recolored_off_currentcolor(name):
+    svg = _read(ICONS_DIR / "phosphor" / f"{name}.svg")
+    assert "currentColor" not in svg, (
+        f"phosphor/{name}.svg still uses currentColor — Godot rasterizes it "
+        f"black and modulate cannot lighten black to gold (spec §8 U3)"
+    )
+
+
+def test_filigree_ornament_recolored_white():
+    svg = _read(ORNAMENTS_DIR / "corner_floral_01.svg")
+    assert "#000000" not in svg, (
+        "corner_floral_01.svg is still black fill — the gold modulate on the "
+        "Generals filigree corners would render it black (spec §8 U3)"
+    )
+
+
+def test_theme_panel_uses_leather_texture():
+    text = _read(THEME_PATH)
+    assert "StyleBoxTexture" in text, (
+        "main_theme.tres must define a StyleBoxTexture (UI-3 leather panel fill)"
+    )
+    assert "fabric_leather_01_diff_1k.jpg" in text, (
+        "the UI-3 panel StyleBoxTexture must reference the leather texture asset"
+    )
+    assert re.search(
+        r'(?m)^PanelContainer/styles/panel\s*=\s*SubResource\("StyleBoxTexture',
+        text,
+    ), "PanelContainer/panel must be wired to the leather StyleBoxTexture (UI-3)"
+
+
+def test_generals_scene_has_filigree_corners():
+    text = _read(MARSHAL_MGMT_TSCN)
+    assert "corner_floral_01.svg" in text, (
+        "the Generals scene must reference the corner filigree ornament (UI-3)"
+    )
+    assert text.count('type="TextureRect"') >= 2, (
+        "the Generals scene must carry the two filigree corner TextureRects (UI-3)"
+    )
+
+
+# UI-3 wires two assets BY UID in committed resources (leather in main_theme.tres,
+# corner_floral in the Generals scene). Their .import sidecars pin those UIDs and
+# are force-added (like the UI-1 font sidecars) so a clean clone resolves the UID
+# without an invalid-reference warning before the first --import (spec §8 UI-0/U3,
+# same precedent as test_ui1_font_import_sidecar_committed).
+UI3_UID_SIDECARS = [
+    ("assets/textures/fabric_leather_01_diff_1k.jpg.import", THEME_PATH),
+    ("assets/ui/ornaments/corner_floral_01.svg.import", MARSHAL_MGMT_TSCN),
+]
+
+
+@pytest.mark.parametrize("sidecar_rel,referrer_path", UI3_UID_SIDECARS)
+def test_ui3_uid_referenced_import_sidecar_present_and_matches(sidecar_rel, referrer_path):
+    sidecar = GODOT_PROJ / sidecar_rel
+    assert sidecar.exists(), f"missing UID-pinning import sidecar {sidecar.name}"
+    m = re.search(r'(?m)^uid="(uid://[a-z0-9]+)"', _read(sidecar))
+    assert m, f"{sidecar.name} must pin a uid"
+    uid = m.group(1)
+    assert uid in _read(referrer_path), (
+        f"{sidecar.name} uid {uid} does not match the ext_resource UID in "
+        f"{referrer_path.name} — a UID drift would break the reference on a "
+        f"clean clone"
+    )

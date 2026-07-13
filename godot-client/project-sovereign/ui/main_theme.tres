@@ -1,7 +1,8 @@
-[gd_resource type="Theme" load_steps=10 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=12 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
+[ext_resource type="Texture2D" uid="uid://bi4gql7ex5xcv" path="res://assets/textures/fabric_leather_01_diff_1k.jpg" id="3_leather"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_joxlk"]
 content_margin_left = 12.0
@@ -105,6 +106,15 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_leather"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+texture = ExtResource("3_leather")
+region_rect = Rect2(300, 150, 680, 680)
+modulate_color = Color(0.24, 0.27, 0.46, 0.96)
+
 [resource]
 default_font = ExtResource("2_3xb56")
 default_font_size = 16
@@ -127,5 +137,5 @@ HeadingLabel/font_sizes/font_size = 22
 HeadingLabel/fonts/font = SubResource("FontVariation_uww5w")
 Label/font_sizes/font_size = 16
 LineEdit/font_sizes/font_size = 16
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_xlm04")
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_leather")
 RichTextLabel/font_sizes/normal_font_size = 16

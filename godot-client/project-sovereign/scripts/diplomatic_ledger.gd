@@ -51,6 +51,7 @@ var _pulse_state: bool = false
 
 func _ready():
 	close_button.pressed.connect(close_view)
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
 

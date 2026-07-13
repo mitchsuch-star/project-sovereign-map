@@ -851,14 +851,19 @@ func _create_resize_grip() -> void:
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(3)
 	resize_grip.add_theme_stylebox_override("panel", sb)
-	var glyph := Label.new()
-	glyph.text = "⤢"
+	# UI-3: the grip's ⤢ glyph becomes the arrows-out icon (white silhouette
+	# tinted gold via modulate; EXPAND_IGNORE_SIZE lets the 256px SVG fit the grip).
+	var glyph := TextureRect.new()
+	glyph.texture = load(Utils.ICON_PHOSPHOR + "arrows-out.svg")
+	glyph.modulate = Utils.UI_GOLD
 	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
-	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	glyph.add_theme_color_override("font_color", Utils.UI_GOLD)
-	glyph.add_theme_font_size_override("font_size", 12)
+	glyph.offset_left = 4.0
+	glyph.offset_top = 4.0
+	glyph.offset_right = -4.0
+	glyph.offset_bottom = -4.0
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	resize_grip.add_child(glyph)
 	add_child(resize_grip)
 	resize_grip.gui_input.connect(_on_grip_gui_input)

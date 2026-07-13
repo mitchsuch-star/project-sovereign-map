@@ -33,6 +33,7 @@ var _normal_tab_style: StyleBoxFlat = null
 
 func _ready():
 	close_button.pressed.connect(close_view)
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 
 	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab]

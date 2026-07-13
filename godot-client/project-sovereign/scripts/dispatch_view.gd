@@ -21,6 +21,7 @@ signal open_envoys_requested
 
 func _ready():
 	close_button.pressed.connect(close_view)
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	open_envoys_button.pressed.connect(_on_open_envoys_pressed)
 	hide()

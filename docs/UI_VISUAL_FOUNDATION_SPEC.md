@@ -30,8 +30,21 @@
 > `docs/BUG_FIXES.md` §UI-2d). Design proposal + all third-party assets gathered and
 > license-verified. **The War-Table Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round
 > base (§7), references gathered.** The sweep is segmented into build sessions **U1–U5** in **§8
-> (Session Segmentation Ledger)** — U1 + U2 (Parts 1, 2, 2c) done, resume at **U3** (texture / border /
-> icon / portrait polish).
+> (Session Segmentation Ledger)** — U1 + U2 (Parts 1, 2, 2c) + **U3 (texture / icon / portrait polish)
+> ✅ LANDED July 12, 2026** all done; resume at **U4** (War-Table Pieces art).
+> **Session U3 ("Texture / Icon / Portrait Polish") ✅ LANDED July 12, 2026** — the 37 PD marshal
+> portraits render as `[img]` thumbnails on the Generals cards + Commission bench (Abdurrahman → gold
+> monogram); the curated icon sets, preprocessed to white silhouettes, are tinted gold onto the close-X
+> of all 5 command screens, the 5 top-bar nav buttons, the terminal resize-grip, and the Generals unit/
+> laurel/commission headers (game-icons CC-BY credit shipped in the pause-menu Settings); gold filigree
+> corners frame the Generals panel; a navy-tinted leather `StyleBoxTexture` grains the theme
+> `PanelContainer` (terminal + popups). **Deviation (GR9-documented, §8 U3):** the crisp `StyleBoxFlat`
+> gold borders on the big command screens were KEPT (+ filigree) rather than replaced by muddy
+> full-texture 9-slice frames — the sole frame asset is a dark brown that `modulate` cannot gild without
+> degrading legibility. Boot-smoke 0 `SCRIPT ERROR`; parse-harness report regenerated;
+> `tests/test_ui_visual_foundation.py` (+11 UI-3 assertions); suite 13,022 passed / 3 skipped. **Open:
+> user visual sign-off** on leather subtlety / top-bar icon size / filigree placement / portrait aspect
+> (§8 U3, matches the U2 map-crispness gate).
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -409,16 +422,50 @@ keyed to its dominant arm.
 - **STATUS line:** ✅ recorded — U2 Part 1 + Part 2 landed July 12, 2026; UI-2 CLOSED pending user
   ≥2560 map-crispness sign-off; resume at **U3** (texture/border/icon/portrait polish).
 
-### Session U3 — UI-3: texture / border / icon / portrait polish (excludes pieces)
+### Session U3 — UI-3: texture / border / icon / portrait polish (excludes pieces)  ✅ LANDED July 12, 2026
 - **Entry:** U2 landed.
 - **Spots checklist:**
-  - [ ] Parchment/leather panel fills; convert war-room / dispatch / ledger panels to `StyleBoxTexture` 9-slice frames.
-  - [ ] Filigree corners on marshal cards.
-  - [ ] Wire the Phosphor + Game-icons sets onto their target HUD/buttons (strip the Game-icons 512² black bg `<path>`, recolor gold via `modulate`); add the Game-icons + Lamoot **CC-BY visible credit** if those assets ship.
-  - [ ] Wire the 37 portraits into the Generals screen + character-sheet cards; **Abdurrahman → monogram/silhouette fallback** (graceful, no wrong likeness).
-  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
-- **Exit:** UI-3 completion definition (§4).
-- **STATUS line:** record UI-3 base-polish landing.
+  - [x] **Panel texture + framing** — a navy-tinted **leather `StyleBoxTexture`** (seam-free
+    `region_rect` crop of `fabric_leather_01_diff_1k.jpg`, `modulate_color` dark navy) is wired to the
+    theme `PanelContainer/panel`, so the always-visible command terminal + non-overriding popups gain a
+    subtle leather grain. **Deviation (conscious, documented — GR9):** the big command screens (Generals
+    / both ledgers / dispatch / war detail) each carry a LOCAL crisp `StyleBoxFlat` (gold border + navy
+    fill + rounded corners) and those were KEPT rather than converted to `StyleBoxTexture` 9-slice frames
+    — the only frame asset on disk (`buttons-and-frame_frame.png`) decodes as a muddy dark-brown 56² and
+    `modulate` cannot brighten a dark texture to gold, so a full-texture frame would have DEGRADED the
+    crisp navy/gold legibility the project guards. The framing intent is met instead by the filigree
+    corners below (readability-first, per the map-palette precedent).
+  - [x] **Filigree corners** — two gold-modulated `corner_floral_01.svg` `TextureRect`s straddle the
+    Generals panel's bottom corners (`mouse_filter=IGNORE`, semi-transparent so text reads through the
+    line-art). Generals-scoped (the "marshal cards" panel). The ornament SVG was recolored `#000000`→
+    `#ffffff` so the gold `modulate` lands (black × gold = black otherwise).
+  - [x] **Icons on HUD/buttons** — the curated sets were preprocessed to WHITE silhouettes (game-icons:
+    512² black bg `<path>` stripped; phosphor: `currentColor`→`#ffffff`) so the gold tint (`[img color=]`
+    inline / `icon_normal_color` on buttons) lands. Wired: close-**X** → `x.svg` on all 5 command screens
+    (shared `Utils.apply_icon_only_button`); the 5 top-bar nav buttons → phosphor `list`/`map-trifold`/
+    `users-three`/`handshake`/`scroll` (`Utils.apply_button_icon`, labels + hotkey hints kept); the
+    terminal resize-grip glyph → `arrows-out.svg`; Generals inline unit icons (game-icons
+    `unit-infantry/cavalry/artillery`, tinted to the type colour) + `medal-military`/`crown` on the
+    Laurels/Commission headers. The **game-icons CC-BY 3.0 visible credit** ships in the pause-menu
+    Settings box (Phosphor is MIT; portraits PD). *(Text-Size +/− kept their glyphs — an icon is illegible
+    at 24×14. Lamoot border art not shipped, so no Lamoot credit needed.)*
+  - [x] **Portraits** — the 37 PD likenesses render as `[img]` thumbnails on the Generals marshal cards
+    (60×76) AND the Commission bench candidates (48×60), keyed by internal marshal name (matches the
+    coverage test's keys); a marshal with no likeness (**Abdurrahman** by design) degrades to a gold
+    monogram, so no card is faceless.
+  - [x] **Boot engine → `grep SCRIPT ERROR` == 0** — headless `--import` (re-imports the edited SVGs) +
+    game-scene run (`main.gd`/`top_bar`/all four `add_child`'d screens run `_ready` at boot) both clean;
+    the settlement parse-harness report regenerated (every covered script parse_ok + load_ok).
+    `test_ui_visual_foundation.py` extended (+11 UI-3 assertions); full suite **13,022 passed / 3 skipped**.
+- **Exit:** UI-3 completion definition (§4) met — panels textured (terminal/popup leather + filigree
+  framing), curated icons render on their target buttons/HUD, portraits show on Generals + character-sheet
+  cards with the Abdurrahman monogram fallback.
+- **⚠ open (visual sign-off, matches U2's map-crispness user gate):** boot-clean but NOT screenshot-verified
+  — please eyeball (a) the terminal leather-grain subtlety, (b) top-bar nav icon sizing (`expand_icon`),
+  (c) the Generals bottom-corner filigree placement, (d) portrait thumbnail aspect. Each is a one-line
+  tune/revert if off.
+- **STATUS line:** ✅ recorded — UI-3 texture/icon/portrait polish landed July 12, 2026; boot-smoke 0
+  `SCRIPT ERROR`; resume at **U4** (War-Table Pieces art) or **DEF-1 voices** per the queue.
 
 ### Session U4 — War-Table Pieces ART (tin-flat-on-round-base, Blender)
 - **Entry:** U1 landed (independent of U2/U3; recommended after U3). Reference set = §7.

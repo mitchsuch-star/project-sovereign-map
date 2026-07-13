@@ -173,6 +173,54 @@ const UI_SCORE_NEGATIVE := Color(0.67, 0.27, 0.27)           # losing red
 const UI_SCORE_NEUTRAL := Color(0.75, 0.75, 0.78)           # neutral grey
 const UI_BAR_BG := Color(0.15, 0.15, 0.2, 0.8)              # score bar track
 
+# === UI-3 Icon Wiring Helpers ===
+# The curated icon sets ship as WHITE silhouettes (game-icons: black bg stripped;
+# phosphor: currentColor→#ffffff), so a gold icon_*_color tint lands the intended
+# hue. These centralize the two button-icon patterns so every screen wires icons
+# identically (display-only, GR6).
+const ICON_PHOSPHOR := "res://assets/ui/icons/phosphor/"
+const ICON_GAME := "res://assets/ui/icons/game-icons/"
+
+static func apply_icon_only_button(btn, icon_path: String) -> void:
+	"""Turn a small text button (a close X, etc.) into a tinted icon-only button:
+	transparent bg, tight margins so a 256px SVG shrinks to the button, gold tint
+	that brightens on hover. `expand_icon` keeps the source high-res (crisp at any
+	UI scale)."""
+	if btn == null:
+		return
+	var tex = load(icon_path)
+	if tex == null:
+		return
+	btn.text = ""
+	btn.icon = tex
+	btn.expand_icon = true
+	var empty := StyleBoxEmpty.new()
+	empty.set_content_margin_all(3)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(state, empty)
+	btn.add_theme_color_override("icon_normal_color", UI_GOLD)
+	btn.add_theme_color_override("icon_hover_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("icon_pressed_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("icon_focus_color", UI_GOLD_BRIGHT)
+
+
+static func apply_button_icon(btn, icon_path: String) -> void:
+	"""Add a tinted leading icon to a text button (keeps the label + its styling).
+	`expand_icon` scales the icon to the button height so the bar layout is not
+	blown out by the 256px source."""
+	if btn == null:
+		return
+	var tex = load(icon_path)
+	if tex == null:
+		return
+	btn.icon = tex
+	btn.expand_icon = true
+	btn.add_theme_color_override("icon_normal_color", UI_GOLD)
+	btn.add_theme_color_override("icon_hover_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("icon_pressed_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("icon_focus_color", UI_GOLD_BRIGHT)
+
+
 # === Formatting Helpers ===
 
 static func bbcode_color(text: String, color: String) -> String:

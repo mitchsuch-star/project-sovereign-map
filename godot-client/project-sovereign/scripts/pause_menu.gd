@@ -56,8 +56,24 @@ func _ready():
 	ui_scale_slider.drag_started.connect(_on_scale_drag_started)
 	ui_scale_slider.drag_ended.connect(_on_scale_drag_ended)
 	reset_scale_button.pressed.connect(_on_reset_scale)
+	_add_asset_credits()
 	_set_new_game_confirmation_visible(false)
 	hide()
+
+func _add_asset_credits():
+	# UI-3: visible attribution for the shipped CC-BY asset (game-icons.net unit
+	# silhouettes) — the licence requires end-user-visible credit. Phosphor is MIT
+	# and the portraits/textures are PD/CC0 (credited for courtesy). Full terms:
+	# repo-root THIRD_PARTY_LICENSES.md.
+	var credit := Label.new()
+	credit.name = "AssetCredits"
+	credit.text = ("Unit icons by Lorc, Delapouite & contributors (game-icons.net, "
+		+ "CC BY 3.0) · Interface icons: Phosphor (MIT) · Marshal portraits: "
+		+ "public domain (Wikimedia Commons).")
+	credit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	credit.add_theme_font_size_override("font_size", 10)
+	credit.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	settings_box.add_child(credit)
 
 func open_menu():
 	_reset_menu_state()
