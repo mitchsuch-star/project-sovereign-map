@@ -52,6 +52,7 @@ the `.ttf` in `assets/fonts/`). No in-game credit. Do not reuse a Reserved Font 
 | Old Parchment Paper | cron — https://opengameart.org/content/old-parchment-paper |
 | Fantasy UI Borders | Kenney — https://kenney.nl/assets/fantasy-ui-borders |
 | UI Pack | Kenney — https://kenney.nl/assets/ui-pack |
+| UI Pack (RPG Expansion) — bar frames + fills (`assets/ui/bars/`) | Kenney — https://kenney.nl/assets/ui-pack-rpg-expansion |
 | Golden UI | Buch — https://opengameart.org/content/golden-ui |
 | Card Template | Cethiel — https://opengameart.org/content/card-template-0 |
 | Buttons and Frame | https://opengameart.org/content/buttons-and-frame |
