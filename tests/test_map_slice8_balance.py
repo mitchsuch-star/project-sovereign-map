@@ -253,27 +253,31 @@ def test_mack_turn_one_takes_swabia_and_ends_hostile_strain():
 def test_def13_ui_scale_mechanism_landed():
     """DEF-13 ('UI-Scale Mini-Pass') was folded into the UI Visual Foundation
     Sweep as UI-2 and LANDED July 12, 2026. The old fixed-HUD baseline pin is
-    RETIRED: the command window is now user-resizable (drag grip) and text-
-    scalable (A− / A+), and a global content_scale_factor slider lives in the
-    pause-menu Settings. This replacement pin asserts the *mechanism* exists so
-    a silent removal fails loudly (docs/UI_VISUAL_FOUNDATION_SPEC.md §8 U2).
+    RETIRED: the command window is now user-resizable (drag grip), and a global
+    content_scale_factor scale lives in BOTH the pause-menu Settings slider and
+    (UI-2c, July 12) the command window's "Text Size" +/- buttons. This
+    replacement pin asserts the *mechanism* exists so a silent removal fails
+    loudly (docs/UI_VISUAL_FOUNDATION_SPEC.md §8 U2 / U2c).
 
     The war-status panel is deliberately NOT part of the resize mechanism, so
     its recorded geometry is still pinned here."""
     root = Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
 
-    # The persistence layer for the three user display preferences.
+    # The persistence layer for the user display preferences (footprint + the
+    # one global UI/text scale; UI-2c retired the terminal-only text scale).
     ui_settings = (root / "scripts" / "ui_settings.gd").read_text(encoding="utf-8")
     assert "class_name UiSettings" in ui_settings
-    for token in ("get_ui_scale", "get_terminal_scale", "set_terminal_size"):
+    for token in ("get_ui_scale", "set_ui_scale", "set_terminal_size"):
         assert token in ui_settings, f"ui_settings.gd missing {token}"
 
-    # The terminal resize + scale mechanism + the global scale wiring.
+    # The terminal resize mechanism + the global scale wiring (the Text Size
+    # buttons step content_scale_factor through _apply_ui_scale).
     main_gd = (root / "scripts" / "main.gd").read_text(encoding="utf-8")
     for token in (
         "content_scale_factor",
         "_apply_terminal_size",
-        "_apply_terminal_scale",
+        "_apply_ui_scale",
+        "_step_ui_scale",
         "_on_grip_gui_input",
         "resize_grip",
     ):
@@ -286,10 +290,11 @@ def test_def13_ui_scale_mechanism_landed():
     assert "refresh_viewport_scale" in renderer
     assert "content_scale_factor" in main_gd
 
-    # The A− / A+ scale buttons exist in the terminal header.
+    # The "Text Size" +/- scale buttons exist in the terminal header (UI-2c).
     main_tscn = (root / "scenes" / "main.tscn").read_text(encoding="utf-8")
     assert '[node name="ScaleDownButton"' in main_tscn
     assert '[node name="ScaleUpButton"' in main_tscn
+    assert '[node name="TextSizeLabel"' in main_tscn
 
     # War-status panel geometry is NOT resizable — still pinned.
     war_tscn = (root / "scenes" / "war_status_panel.tscn").read_text(encoding="utf-8")

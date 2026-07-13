@@ -16,10 +16,22 @@
 > pan/zoom conversions scaled by `_viewport_pixel_scale()`); boot-smoke 0 `SCRIPT ERROR` (import +
 > game-scene + `europe_map_smoke` runtime); `tests/test_ui2_part2_color_and_map.py` (10) green. **The
 > only open item is the user's ≥2560 visual sign-off on map crispness** (the spec's visual gate, §8
-> Part 2). Design proposal + all third-party assets gathered and
+> Part 2). **Session U2c ("Global Text Size + pop-up-wide scaling") ✅ LANDED July 12, 2026** — the
+> user-requested follow-on: the command window's A− / A+ pair became a labelled **"Text Size"**
+> control (a "Text Size" label beside a stacked **+ / −**), and it now drives the **global**
+> `content_scale_factor` (the same value the pause-menu slider writes) instead of the retired
+> terminal-only font scale — so one control enlarges the command window **and every CanvasLayer
+> pop-up / ledger** (verified: the viewport final-transform applies to CanvasLayers), map still crisp;
+> the pause slider re-syncs on open; `tests/test_ui2c_global_text_size.py` (5) +
+> `test_ui_scale_expandable_terminal.py` retargeted + the DEF-13 mechanism pin updated; boot-smoke 0
+> `SCRIPT ERROR`. Its 7-agent review confirmed one stale-copy fix (pause-menu hint) and filed one
+> **owned pre-existing** follow-up: **UI-2d — modal viewport-safety** (fixed-size decision modals can
+> overflow a short viewport at scale ≈ 2.0; not on the ≥2560 display; contract + DoD in
+> `docs/BUG_FIXES.md` §UI-2d). Design proposal + all third-party assets gathered and
 > license-verified. **The War-Table Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round
 > base (§7), references gathered.** The sweep is segmented into build sessions **U1–U5** in **§8
-> (Session Segmentation Ledger)** — U1 + U2 Part 1 done, resume at **U2 Part 2**.
+> (Session Segmentation Ledger)** — U1 + U2 (Parts 1, 2, 2c) done, resume at **U3** (texture / border /
+> icon / portrait polish).
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).

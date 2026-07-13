@@ -3,13 +3,19 @@
 Pins the "UI Scale & Expandable Command Window" deliverables per
 ``docs/UI_VISUAL_FOUNDATION_SPEC.md`` §8 U2 (the DEF-13 fold):
 
-- ``ui_settings.gd`` persists the three display preferences (terminal size,
-  terminal text scale, global UI scale) with clamped ranges.
-- The command window (``BottomLeftUI``) is user-resizable via a corner grip and
-  text-scalable via A− / A+ buttons, wired in ``main.gd``.
+- ``ui_settings.gd`` persists the display preferences (terminal footprint +
+  the global UI/text scale) with clamped ranges.
+- The command window (``BottomLeftUI``) is user-resizable via a corner grip, and
+  the header "Text Size" +/- buttons drive the GLOBAL scale (UI-2c), wired in
+  ``main.gd`` — the same value the pause-menu slider writes, so pop-ups scale too.
 - A global ``content_scale_factor`` "Interface Scale" slider lives in the
   pause-menu Settings and drives ``main.gd`` (which owns persistence + the
   native-map compensation).
+
+UI-2c note: the old *terminal-only* text scale (``terminal/scale`` / the former
+A− / A+ font-override machinery) was retired — it never reached the CanvasLayer
+pop-ups. The Text Size buttons now step ``UiSettings.get_ui_scale()`` through
+``_apply_ui_scale``, so one control enlarges the terminal AND every pop-up.
 - The map renderer re-asserts the SubViewport at physical resolution so the map
   stays crisp under a non-1.0 scale (``refresh_viewport_scale``).
 
@@ -44,18 +50,25 @@ def test_ui_settings_exists_and_is_a_class():
     assert 'const PATH := "user://ui_settings.cfg"' in text
 
 
-def test_ui_settings_exposes_the_three_preferences():
+def test_ui_settings_exposes_the_preferences():
     text = _read(SCRIPTS / "ui_settings.gd")
     for getter in (
         "func get_terminal_width",
         "func get_terminal_height",
         "func set_terminal_size",
-        "func get_terminal_scale",
-        "func set_terminal_scale",
         "func get_ui_scale",
         "func set_ui_scale",
     ):
         assert getter in text, f"ui_settings.gd missing {getter}"
+
+
+def test_ui_settings_retired_terminal_only_text_scale():
+    # UI-2c: the terminal-only font scale is gone — the one global ui_scale is
+    # the single text-size source now (guards a silent re-introduction).
+    text = _read(SCRIPTS / "ui_settings.gd")
+    assert "func get_terminal_scale" not in text
+    assert "func set_terminal_scale" not in text
+    assert "UI_SCALE_BUTTON_STEP" in text, "coarse per-click step for the +/- buttons"
 
 
 def test_ui_settings_clamps_ranges():
@@ -67,8 +80,6 @@ def test_ui_settings_clamps_ranges():
         "MAX_TERMINAL_WIDTH",
         "MIN_TERMINAL_HEIGHT",
         "MAX_TERMINAL_HEIGHT",
-        "MIN_TERMINAL_SCALE",
-        "MAX_TERMINAL_SCALE",
         "MIN_UI_SCALE",
         "MAX_UI_SCALE",
     ):
@@ -98,18 +109,21 @@ def test_main_wires_resize_grip_and_drag():
     assert "func _reset_terminal_size" in text
 
 
-def test_main_wires_terminal_text_scale():
+def test_main_text_size_buttons_drive_global_scale():
+    # UI-2c: the +/- buttons step the GLOBAL scale via _apply_ui_scale, NOT a
+    # terminal-only font override. The retired machinery must be gone.
     text = _read(SCRIPTS / "main.gd")
-    assert "func _apply_terminal_scale" in text
-    assert "add_theme_font_size_override" in text
     assert "scale_down_button" in text and "scale_up_button" in text
-    # Base sizes are auto-discovered from the .tscn, not hardcoded.
-    assert "func _collect_scalable_fonts" in text
+    assert "func _step_ui_scale" in text
+    assert "func _on_scale_up_pressed" in text and "func _on_scale_down_pressed" in text
+    assert "UI_SCALE_BUTTON_STEP" in text
+    # The old terminal-only text-scale functions are retired.
+    assert "func _apply_terminal_scale" not in text
+    assert "func _collect_scalable_fonts" not in text
 
 
 def test_main_applies_and_persists_settings():
     text = _read(SCRIPTS / "main.gd")
-    assert "UiSettings.get_terminal_scale()" in text
     assert "UiSettings.set_terminal_size(" in text
     assert "UiSettings.get_ui_scale()" in text
     assert "func _apply_ui_scale" in text

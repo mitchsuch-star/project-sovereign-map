@@ -169,7 +169,7 @@ text = "Reset to 100%"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.627, 0.627, 0.659, 1)
 theme_override_font_sizes/font_size = 11
-text = "Resize the whole interface if it reads too small or too large on your display. The command window also has its own drag-resize corner and A− / A+ text buttons."
+text = "Resize the whole interface — command window, ledgers, and pop-ups — if it reads too small or too large on your display. The command window header has quick Text Size + / − buttons that adjust this same scale, plus a drag-resize corner."
 horizontal_alignment = 1
 autowrap_mode = 2
 

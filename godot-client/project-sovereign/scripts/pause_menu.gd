@@ -61,6 +61,11 @@ func _ready():
 
 func open_menu():
 	_reset_menu_state()
+	# Re-sync the slider from the saved scale: the command-window "Text Size"
+	# +/- buttons write the same UiSettings value, so re-reading on open keeps
+	# this slider from showing a stale figure after the player used them.
+	ui_scale_slider.set_value_no_signal(UiSettings.get_ui_scale())
+	_update_scale_value_label(UiSettings.get_ui_scale())
 	show()
 
 func close_menu():

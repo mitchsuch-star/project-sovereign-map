@@ -5,10 +5,19 @@ class_name UiSettings
 # PROJECT SOVEREIGN — UI Settings persistence (UI-2 / DEF-13 fold)
 # =============================================================================
 # Single source of truth for the user-adjustable display preferences added in
-# the UI Visual Foundation Sweep, Session U2:
+# the UI Visual Foundation Sweep, Session U2 (+ U2c: Global Text Size):
 #   • the command window's footprint (drag-resize grip)   → terminal/width,height
-#   • the command window's text scale (A− / A+ buttons)   → terminal/scale
-#   • the global interface scale (pause-menu Settings)    → display/ui_scale
+#   • the global interface / text scale                   → display/ui_scale
+#     — driven by BOTH the pause-menu "Interface Scale" slider AND the command
+#       window's "Text Size" +/- buttons (they share this one value, so a bump
+#       from either surface scales the terminal, every ledger, AND every pop-up;
+#       the map is kept crisp by the renderer's native-resolution compensation).
+#
+# U2c retired the old *terminal-only* text scale (`terminal/scale`, the former
+# A− / A+): it multiplied font-size overrides inside the command window alone and
+# never reached the CanvasLayer pop-ups the player actually asked to enlarge.
+# The one global `display/ui_scale` (`content_scale_factor`) supersedes it and
+# scales the whole GUI uniformly, so there is now a single text-size source.
 #
 # Backed by a ConfigFile at `user://ui_settings.cfg`. Every setter writes
 # through immediately (the file is a handful of scalars). Values are clamped to
@@ -28,17 +37,14 @@ const MAX_TERMINAL_WIDTH := 1000.0
 const MIN_TERMINAL_HEIGHT := 180.0
 const MAX_TERMINAL_HEIGHT := 900.0
 
-# --- Command-window text scale (A− / A+) ---
-const DEFAULT_TERMINAL_SCALE := 1.0
-const MIN_TERMINAL_SCALE := 0.8
-const MAX_TERMINAL_SCALE := 2.0
-const TERMINAL_SCALE_STEP := 0.1
-
-# --- Global interface scale (content_scale_factor; pause-menu Settings) ---
+# --- Global interface / text scale (content_scale_factor) ---
+# Driven by the pause-menu slider (fine 0.05 steps) AND the command-window
+# "Text Size" +/- buttons (coarser BUTTON_STEP so one click is a visible jump).
 const DEFAULT_UI_SCALE := 1.0
 const MIN_UI_SCALE := 0.75
 const MAX_UI_SCALE := 2.0
 const UI_SCALE_STEP := 0.05
+const UI_SCALE_BUTTON_STEP := 0.1
 
 static var _cfg: ConfigFile = null
 
@@ -76,17 +82,7 @@ static func set_terminal_size(width: float, height: float) -> void:
 	_write_num("terminal", "height", clampf(height, MIN_TERMINAL_HEIGHT, MAX_TERMINAL_HEIGHT))
 
 
-# --- Terminal text scale ---
-static func get_terminal_scale() -> float:
-	return clampf(_read_num("terminal", "scale", DEFAULT_TERMINAL_SCALE),
-			MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE)
-
-
-static func set_terminal_scale(scale: float) -> void:
-	_write_num("terminal", "scale", clampf(scale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE))
-
-
-# --- Global interface scale ---
+# --- Global interface / text scale ---
 static func get_ui_scale() -> float:
 	return clampf(_read_num("display", "ui_scale", DEFAULT_UI_SCALE),
 			MIN_UI_SCALE, MAX_UI_SCALE)

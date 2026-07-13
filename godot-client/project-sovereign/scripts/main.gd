@@ -144,26 +144,28 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 @onready var minimize_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/MinimizeButton
 @onready var restore_button = $RestoreButton
 
-# UI References - Terminal text scale (A− / A+), UI-2
-@onready var scale_down_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/ScaleDownButton
-@onready var scale_up_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/ScaleUpButton
+# UI References - Global "Text Size" control (stacked +/-), UI-2c
+@onready var scale_down_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/TextSizeBox/TextSizeButtons/ScaleDownButton
+@onready var scale_up_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/TextSizeBox/TextSizeButtons/ScaleUpButton
+@onready var text_size_label = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/TextSizeBox/TextSizeLabel
 
 # ── UI-2: Expandable command window + UI scale (DEF-13 fold) ──
 # The terminal is anchored bottom-left; it grows UP and to the RIGHT from that
 # fixed corner (offset_left / offset_bottom stay put; offset_right / offset_top
-# carry the width / height). A corner grip drives the resize; A− / A+ drive a
-# crisp per-terminal font scale. Both persist via UiSettings.
+# carry the width / height). A corner grip drives the resize.
+#
+# UI-2c: the header "Text Size" +/- buttons drive the GLOBAL interface scale
+# (content_scale_factor) — the same value as the pause-menu "Interface Scale"
+# slider — so one control enlarges the command window AND every ledger/pop-up
+# uniformly (the map stays crisp via the renderer's native-res compensation).
+# The old terminal-only font scale was retired: it never reached the pop-ups.
 const GRIP_SIZE := 20.0
 const TERMINAL_ANCHOR_LEFT := 10.0    # matches BottomLeftUI offset_left in main.tscn
 const TERMINAL_ANCHOR_BOTTOM := -10.0  # matches BottomLeftUI offset_bottom in main.tscn
 var _terminal_width := UiSettings.DEFAULT_TERMINAL_WIDTH
 var _terminal_height := UiSettings.DEFAULT_TERMINAL_HEIGHT
-var _terminal_scale := UiSettings.DEFAULT_TERMINAL_SCALE
 var resize_grip: Panel = null
 var _grip_dragging := false
-# Auto-discovered [{node, key, base}] of every font override inside the terminal,
-# captured from the .tscn at boot so the scale multiplies the authored sizes.
-var _scalable_fonts: Array = []
 # Top Bar (Session A)
 var top_bar = null
 
@@ -798,11 +800,9 @@ func _restore_terminal():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _setup_scalable_terminal() -> void:
-	"""Wire the A− / A+ text scale + the corner resize grip and restore the
-	saved footprint/scale. Called once from _ready() after the global UI scale
-	has been applied."""
-	_collect_scalable_fonts()
-
+	"""Wire the header "Text Size" +/- buttons + the corner resize grip and
+	restore the saved footprint. Called once from _ready() after the global UI
+	scale has been applied."""
 	if scale_down_button and not scale_down_button.pressed.is_connected(_on_scale_down_pressed):
 		scale_down_button.pressed.connect(_on_scale_down_pressed)
 	if scale_up_button and not scale_up_button.pressed.is_connected(_on_scale_up_pressed):
@@ -810,46 +810,30 @@ func _setup_scalable_terminal() -> void:
 
 	_create_resize_grip()
 
-	# Restore persisted preferences.
-	_apply_terminal_scale(UiSettings.get_terminal_scale())
+	# Restore the persisted footprint; the persisted text scale is applied
+	# globally by _apply_ui_scale() (called just before us in _ready()).
 	_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
-
-func _collect_scalable_fonts() -> void:
-	"""Snapshot every authored font-size override inside the terminal so the
-	scale multiplies the .tscn base sizes (auto-adapts if the layout changes;
-	no per-node enumeration to drift). Includes the out-of-panel RestoreButton."""
-	_scalable_fonts.clear()
-	_gather_fonts(bottom_left_ui)
-	_gather_fonts(restore_button)
-
-func _gather_fonts(node: Node) -> void:
-	if node is Control:
-		for key in ["font_size", "normal_font_size", "bold_font_size"]:
-			if node.has_theme_font_size_override(key):
-				_scalable_fonts.append({
-					"node": node,
-					"key": key,
-					"base": node.get_theme_font_size(key),
-				})
-	for child in node.get_children():
-		_gather_fonts(child)
-
-func _apply_terminal_scale(scale: float) -> void:
-	_terminal_scale = clampf(scale, UiSettings.MIN_TERMINAL_SCALE, UiSettings.MAX_TERMINAL_SCALE)
-	for f in _scalable_fonts:
-		var n = f.get("node")
-		if is_instance_valid(n):
-			n.add_theme_font_size_override(f.key, int(round(float(f.base) * _terminal_scale)))
-	# Larger text may need a taller panel to keep the input row visible.
-	_reposition_after_layout()
+	_update_text_size_readout()
 
 func _on_scale_down_pressed() -> void:
-	_apply_terminal_scale(_terminal_scale - UiSettings.TERMINAL_SCALE_STEP)
-	UiSettings.set_terminal_scale(_terminal_scale)
+	_step_ui_scale(-1)
 
 func _on_scale_up_pressed() -> void:
-	_apply_terminal_scale(_terminal_scale + UiSettings.TERMINAL_SCALE_STEP)
-	UiSettings.set_terminal_scale(_terminal_scale)
+	_step_ui_scale(1)
+
+func _step_ui_scale(direction: int) -> void:
+	"""Bump the GLOBAL interface scale one coarse step from the header Text Size
+	buttons. Reuses _apply_ui_scale so the map-crispness compensation, terminal
+	relayout, pause-slider sync, and persistence all happen in one place."""
+	var current := UiSettings.get_ui_scale()
+	_apply_ui_scale(current + float(direction) * UiSettings.UI_SCALE_BUTTON_STEP, true)
+
+func _update_text_size_readout() -> void:
+	"""Keep the Text Size control's tooltip showing the live percentage (the
+	label text stays a stable "Text Size" so the header never reflows)."""
+	if text_size_label and is_instance_valid(text_size_label):
+		var pct := int(round(UiSettings.get_ui_scale() * 100.0))
+		text_size_label.tooltip_text = "Text Size: %d%% — scales the command window and every pop-up/ledger." % pct
 
 func _create_resize_grip() -> void:
 	if resize_grip and is_instance_valid(resize_grip):
@@ -964,6 +948,8 @@ func _apply_ui_scale(scale: float, persist: bool = true) -> void:
 		map_area.refresh_viewport_scale()
 	if persist:
 		UiSettings.set_ui_scale(clamped)
+	# Reflect the new percentage on the header Text Size control.
+	_update_text_size_readout()
 	# Logical viewport size just changed — re-glue the terminal + grip.
 	call_deferred("_on_root_resized")
 
