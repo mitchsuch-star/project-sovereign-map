@@ -153,6 +153,7 @@ Marshals represent commanders on the map.
 | `personality` | string | "balanced" | One of: `aggressive`, `cautious`, `literal` — the ONLY valid authoring values (MC-4, July 10, 2026: `balanced`/`loyal` are retired reserved values, a hard validation ERROR — a scenario authoring one cannot boot). Omitting the field falls back to the inert save-compat default `"balanced"` (no objection triggers ever fire) and logs a boot warning — author the field explicitly. |
 | `nation` | string | "France" | Nation this marshal belongs to |
 | `cavalry` | boolean | false | If true, has cavalry movement/abilities |
+| `artillery` | boolean | false | If true, an artillery marshal — bombardment, +damage, fort degradation; cannot melee-attack. Mutually exclusive with `cavalry`. A commissioned artillery candidate raises its corps (`RECRUIT_ARTILLERY_CORPS`, 3,000) from the nation's `artillery` manpower pool, not infantry. See `docs/ARTILLERY_GAP_SPEC.md`. |
 | `movement_range` | integer | 1 | Regions can move per turn (cavalry often 2) |
 | `tactical_skill` | integer | 5 | Overall tactical rating (1-10) |
 | `morale` | integer | 70 | Starting morale (0-100) |

@@ -41,8 +41,13 @@ UI1_FONTS = [
     ("SourceSans3[wght].ttf", "SourceSans3-OFL.txt"),
 ]
 
-# Marshal with no confident PD portrait — unillustrated by design (spec §2).
-PORTRAIT_EXEMPT = {"Abdurrahman"}
+# Marshals with no confident PD portrait — unillustrated by design (spec §2),
+# rendered with the gold-monogram fallback. Abdurrahman + the ARTILLERY_GAP_SPEC
+# gunners (bench artillery candidates, no curated PD likeness sourced yet).
+PORTRAIT_EXEMPT = {
+    "Abdurrahman",
+    "Senarmont", "Smola", "Kutaisov", "Holtzendorff", "Shrapnel",
+}
 PORTRAIT_EXTS = (".jpg", ".png", ".jpeg", ".webp")
 
 # ── War-Table Pieces (UI-4, spec §7) ────────────────────────────────────────

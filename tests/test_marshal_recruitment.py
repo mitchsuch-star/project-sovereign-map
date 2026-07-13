@@ -54,7 +54,8 @@ class TestPoolAuthoring:
         assert set(world.marshal_pool.keys()) == \
             {"France", "Austria", "Russia", "Prussia", "Britain"}
         assert [c["name"] for c in world.marshal_pool["France"]] == \
-            ["Mortier", "Grouchy", "Suchet", "Oudinot", "Augereau", "Marmont"]
+            ["Mortier", "Grouchy", "Suchet", "Oudinot", "Augereau",
+             "Marmont", "Senarmont"]  # Marmont + Senarmont = France's guns
 
     def test_pool_round_trips(self, world):
         restored = WorldState.from_dict(world.to_dict())
@@ -322,10 +323,11 @@ class TestSurfaces:
     def test_recruitment_payload_shape(self, world):
         payload = R.build_recruitment_payload(world)
         assert payload["corps_size"] == R.RECRUIT_MARSHAL_CORPS
-        assert len(payload["candidates"]) == 6
+        assert len(payload["candidates"]) == 7  # +Senarmont (artillery)
         first = payload["candidates"][0]
         for key in ("name", "personality", "skills", "trust", "biography",
-                    "cost", "available", "blocked_reason", "relationships"):
+                    "cost", "available", "blocked_reason", "relationships",
+                    "arm", "artillery"):
             assert key in first
         # honesty: at the 800g boot treasury nothing is affordable
         assert all(not c["available"] for c in payload["candidates"])

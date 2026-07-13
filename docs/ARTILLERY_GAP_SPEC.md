@@ -1,8 +1,23 @@
 # Artillery Arm — Filling the Gap (Spec)
 
-> **Status:** DRAFT / design gate — July 13, 2026. Proposal only; **no game data or balance change lands until the user blesses a scope option (§7).** Per the user's steer: "make spec how we can fill in artillery gap on bench for all on bench and active — some generals might already fit the bill."
+> **Status:** ✅ **LANDED July 13, 2026** (user-directed: "all nations and bench, artillery more scarce, majors have more available; check that recruiting a marshal requires manpower; make the starting state favor France a bit and realistic"). What shipped + the two conscious divergences are in the **Landing note** directly below; the original proposal (§1–§9) is kept for reference.
 > **Owner:** this doc. **Prerequisite eval:** the July 13, 2026 artillery reachability finding (below).
 > **Golden rules in play:** GR5 (enemy AI uses the same systems), GR6 (LLM never touches mechanics — N/A here), GR8 (scale-ready), GR9 (no open-ended deferrals — every option below has a landing + measurement).
+
+## Landing note (July 13, 2026)
+
+**Shipped — the arm is reachable, scarce, majors-favoured, and France-first:**
+- **Arm-aware manpower commission** (the "check required manpower" ask, done for all three arms). `recruitment.candidate_arm` / `corps_requirement` route a commission to its ARM-appropriate pool: infantry→infantry (5,000, unchanged), cavalry→**cavalry** pool (5,000 — fixes the pre-existing "cavalry drawn from infantry"), artillery→**artillery** pool (`RECRUIT_ARTILLERY_CORPS=3000`, the scarce arm). `check_commission` gates on that pool and `commission_marshal` draws from it. The authored artillery flag rides through `create_marshal_from_data` untouched; `build_recruitment_payload` now carries `arm`/`artillery`/per-arm `pools`; the validator gained an `artillery` boolean + cavalry/artillery mutual-exclusivity check.
+- **Content — a gunner on every commissioning bench:** France **Marmont** (reflagged — his "artillery savant" bio is now true) **+ Senarmont**; Austria **Smola**; Russia **Kutaisov**; Prussia **Holtzendorff**; Britain **Shrapnel**.
+- **Scarcity = the pools.** Artillery pools are authored small (France 10k, majors 5–6k, Britain 4k, minors 500–2k) and a battery costs 3,000, so majors raise guns readily and thin pools shut a battery out until they regenerate — "more scarce, majors have more available" falls out of the data, no new mechanic.
+- **France favoured (realistic).** France fields artillery **first** (10k pool, 2× any other major), **most** (two gunners), and **cheapest** (4,500 vs 5,000–5,500) — French artillery superiority modelled as capacity + depth + price.
+- Tests: `tests/test_artillery_arm.py` (14 — reachability, arm-aware draw/gate for all three arms, pool-gated scarcity, both-sides AI parity, mutual-exclusivity) + `test_marshal_recruitment.py` extended. Suite **13,075 / 3 skip**, ruff clean. The artillery COMBAT mechanics (bombardment, +damage, fort degradation, the triangle) are **unchanged** and already covered by `test_bombardment.py`/`test_artillery.py`; this pass only made the arm reachable, so no constant retune was needed.
+
+**Two conscious divergences from a literal reading (flagged for the user):**
+1. **"all nations" → all nations that can commission (the 5 bench powers).** The 15 minors have no `marshal_pool` bench at all, so they cannot raise artillery (or any marshal) — which is also historically right (minor states did not field independent grand batteries), and their tiny artillery pools would gate a battery anyway. Literal all-20 would mean authoring 15 new minor benches — a separate expansion, available on request.
+2. **France's favour is on the BENCH, not an active starting battery.** An active artillery marshal at turn 1 would add ~4,000 men to France and shift a **blessed ES-3 economy anchor** (turn-1 upkeep 236g→252g) plus cascade into ~8 count/balance pins. Rewriting a blessed balance number as a side effect of an artillery build is not something to bury, so France's edge rides the bench (depth + price + pool) instead. If you want France to literally start with a battery on the board, it's a one-line add that shifts the France upkeep anchor ~16g — say the word.
+
+**Open follow-ups (GR9-homed):** the Commission-bench card can show the arm (the payload now carries `arm`/`artillery`; a small Godot read); minor-nation benches for literal all-20; portraits for the five gunners (they use the gold-monogram fallback today).
 
 ---
 

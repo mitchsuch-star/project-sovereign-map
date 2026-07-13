@@ -440,8 +440,20 @@
                 "skills": { "tactical": 7, "shock": 5, "defense": 6, "logistics": 7, "administration": 7, "command": 5 },
                 "tactical_skill": 7,
                 "trust": { "value": 60 },
+                "artillery": true,
                 "cost": 4500,
                 "biography": "Auguste Marmont - artillery savant, companion of the Emperor's youth, and the most nakedly ambitious officer in France.",
+                "relationships": {}
+            },
+            {
+                "name": "Senarmont",
+                "personality": "cautious",
+                "skills": { "tactical": 7, "shock": 3, "defense": 6, "logistics": 6, "administration": 6, "command": 6 },
+                "tactical_skill": 7,
+                "trust": { "value": 75 },
+                "cost": 4500,
+                "artillery": true,
+                "biography": "Alexandre de Senarmont - master of the massed battery, who rolls the guns forward to shatter a line at the decisive hour. France's artillery is the finest in Europe, and her gunners the cheapest to raise.",
                 "relationships": {}
             }
         ],
@@ -475,6 +487,17 @@
                 "cost": 3500,
                 "biography": "Johann von Liechtenstein - the cavalry prince. Charges first, negotiates after.",
                 "relationships": {}
+            },
+            {
+                "name": "Smola",
+                "personality": "cautious",
+                "skills": { "tactical": 7, "shock": 3, "defense": 6, "logistics": 6, "administration": 6, "command": 5 },
+                "tactical_skill": 7,
+                "trust": { "value": 70 },
+                "cost": 5000,
+                "artillery": true,
+                "biography": "Josef Smola - Austria's foremost gunner, a lifelong artillerist who lays a massed battery with a duelist's eye.",
+                "relationships": {}
             }
         ],
         "Russia": [
@@ -506,6 +529,17 @@
                 "trust": { "value": 85 },
                 "cost": 4000,
                 "biography": "Dmitry Dokhturov - the unshakeable. Small, ill, half-deaf, and utterly immovable from any post entrusted to him.",
+                "relationships": {}
+            },
+            {
+                "name": "Kutaisov",
+                "personality": "aggressive",
+                "skills": { "tactical": 7, "shock": 4, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 7,
+                "trust": { "value": 75 },
+                "cost": 5000,
+                "artillery": true,
+                "biography": "Alexander Kutaisov - the young prodigy of the Russian guns, brilliant, beloved, and brave to a fault.",
                 "relationships": {}
             }
         ],
@@ -539,6 +573,17 @@
                 "cost": 4000,
                 "biography": "Ludwig Yorck - dour, exact, and stiff-necked. Obeys the letter of every order and trusts no one, least of all his superiors.",
                 "relationships": {}
+            },
+            {
+                "name": "Holtzendorff",
+                "personality": "cautious",
+                "skills": { "tactical": 6, "shock": 3, "defense": 6, "logistics": 6, "administration": 6, "command": 5 },
+                "tactical_skill": 6,
+                "trust": { "value": 70 },
+                "cost": 5000,
+                "artillery": true,
+                "biography": "Karl von Holtzendorff - keeper of the King's artillery reserve, methodical and precise where the Prussian line is not.",
+                "relationships": {}
             }
         ],
         "Britain": [
@@ -561,6 +606,17 @@
                 "trust": { "value": 70 },
                 "cost": 3500,
                 "biography": "Henry Paget - the finest cavalry officer Britain owns, and the boldest. His charges end in glory or in Spain.",
+                "relationships": {}
+            },
+            {
+                "name": "Shrapnel",
+                "personality": "cautious",
+                "skills": { "tactical": 7, "shock": 3, "defense": 5, "logistics": 6, "administration": 6, "command": 5 },
+                "tactical_skill": 7,
+                "trust": { "value": 70 },
+                "cost": 5500,
+                "artillery": true,
+                "biography": "Henry Shrapnel - Royal Artillery officer whose spherical case-shot bursts above a line and scythes it down; Britain's guns are few but deadly.",
                 "relationships": {}
             }
         ]

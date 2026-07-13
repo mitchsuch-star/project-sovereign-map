@@ -11,8 +11,9 @@ the typed command / Generals-screen dialog; the enemy AI commissions
 through its admin-phase rung when at war, under-officered, and solvent.
 
 Costs: authored gold price + RECRUIT_MARSHAL_AP action points + an initial
-corps of RECRUIT_MARSHAL_CORPS men drawn from the nation's INFANTRY
-manpower pool (the corps then costs normal strength-based upkeep — ES-3).
+corps drawn from the nation's ARM-APPROPRIATE manpower pool (infantry /
+cavalry / artillery — ARTILLERY_GAP_SPEC), sized by arm (the corps then
+costs normal strength-based upkeep — ES-3).
 The new marshal arrives at the nation's capital (or its richest still-held
 homeland province if the capital has fallen), enters the glory ladder at
 zero (nobody resents an unproven man — spec §1 ties), and applies his
@@ -24,7 +25,7 @@ authored command/administration), the MC-3 relationship web (seeds), and
 ES-7 expectations (battles_won 0 → expectation 0 — his duchy comes later).
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -36,6 +37,36 @@ RECRUIT_MARSHAL_AP = 1          # ADMIN action points (ADMIN_ACTIONS family —
 # treasury; these only decide WHEN it reaches for the pool).
 AI_RECRUIT_MAX_STANDING = 3     # commission only while standing roster < 3
 AI_RECRUIT_TREASURY_BUFFER = 1000
+
+# Arm-aware corps sizes (ARTILLERY_GAP_SPEC §4). A commission raises its
+# initial corps from the ARM-APPROPRIATE manpower pool — infantry from
+# infantry, horse from the cavalry pool, guns from the (scarcer) artillery
+# pool. This is what makes artillery scarce: the authored artillery pools
+# are small (majors 5–6k, minors 500–2k), so majors raise batteries readily
+# and minors are pool-shut-out. Artillery is fewer men (guns + train).
+RECRUIT_CAVALRY_CORPS = 5000       # cavalry corps — drawn from the cavalry pool
+RECRUIT_ARTILLERY_CORPS = 3000     # artillery — the scarce arm
+
+_ARM_CORPS_SIZE = {
+    "infantry": RECRUIT_MARSHAL_CORPS,
+    "cavalry": RECRUIT_CAVALRY_CORPS,
+    "artillery": RECRUIT_ARTILLERY_CORPS,
+}
+
+
+def candidate_arm(candidate: Dict) -> str:
+    """The manpower arm a commissioned candidate raises its corps from."""
+    if candidate.get("artillery"):
+        return "artillery"
+    if candidate.get("cavalry"):
+        return "cavalry"
+    return "infantry"
+
+
+def corps_requirement(candidate: Dict) -> Tuple[str, int]:
+    """(arm, men) — the candidate's initial corps and the pool it draws from."""
+    arm = candidate_arm(candidate)
+    return arm, _ARM_CORPS_SIZE[arm]
 
 
 # ═══════════════════════════ POOL QUERIES ═════════════════════════════════
@@ -90,11 +121,12 @@ def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
     if world.nation_gold.get(nation, 0) < cost:
         return (f"Commissioning {name} costs {cost}g — the treasury holds "
                 f"{int(world.nation_gold.get(nation, 0))}g.")
+    arm, size = corps_requirement(candidate)
     pool = world.manpower_pools.get(nation, {})
-    if int(pool.get("infantry", 0)) < RECRUIT_MARSHAL_CORPS:
-        return (f"Raising {name}'s corps needs {RECRUIT_MARSHAL_CORPS:,} "
-                f"men from the infantry pool — only "
-                f"{int(pool.get('infantry', 0)):,} remain.")
+    have = int(pool.get(arm, 0))
+    if have < size:
+        return (f"Raising {name}'s corps needs {size:,} men from the "
+                f"{arm} pool — only {have:,} remain.")
     if find_spawn_region(world, nation) is None:
         return f"No soil remains on which {name} could raise his corps."
     return None
@@ -109,17 +141,19 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
     name = candidate.get("name", "?")
     cost = int(candidate.get("cost", 0))
     spawn = find_spawn_region(world, nation)
+    arm, size = corps_requirement(candidate)
 
     # Candidates use the SCENARIO field shape (trust: {"value": N}) but are
     # created through the boot factory (ctor kwarg: starting_trust int) —
-    # convert here; drop the pool-only `cost` key.
+    # convert here; drop the pool-only `cost` key. The `cavalry`/`artillery`
+    # arm flag rides through the ctor untouched.
     ctor = {k: v for k, v in candidate.items()
             if k not in ("cost", "relationships", "nation", "location",
                          "strength", "trust")}
     ctor["name"] = name
     ctor["nation"] = nation
     ctor["location"] = spawn
-    ctor["strength"] = RECRUIT_MARSHAL_CORPS
+    ctor["strength"] = size
     ctor["starting_trust"] = int(
         (candidate.get("trust", {}) or {}).get("value", 70))
     marshal = create_marshal_from_data(ctor)
@@ -127,9 +161,8 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
     world.nation_gold[nation] = world.nation_gold.get(nation, 0) - cost
     if hasattr(world, "record_gold_spent"):
         world.record_gold_spent(nation, cost)
-    world.manpower_pools[nation]["infantry"] = (
-        int(world.manpower_pools[nation].get("infantry", 0))
-        - RECRUIT_MARSHAL_CORPS)
+    world.manpower_pools[nation][arm] = (
+        int(world.manpower_pools[nation].get(arm, 0)) - size)
     world.marshals[name] = marshal
 
     # Relationship seeds — symmetric both directions (MC-3 authoring
@@ -165,7 +198,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
         events.append({
             "type": "marshal_commissioned",
             "message": (f"Marshal {name} accepts his commission — he raises "
-                        f"a corps of {RECRUIT_MARSHAL_CORPS:,} at {spawn}."),
+                        f"a corps of {size:,} at {spawn}."),
             "nation": nation,
             "marshal": name,
         })
@@ -177,7 +210,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
             priority=NotificationPriority.NORMAL,
             title=f"Marshal {name} commissioned",
             message=(f"{name} joins the marshalate at {spawn} with "
-                     f"{RECRUIT_MARSHAL_CORPS:,} men ({cost}g)."),
+                     f"{size:,} men ({cost}g)."),
             turn_created=int(world.current_turn),
             details={"marshal": name, "location": spawn, "cost": cost},
         ))
@@ -195,7 +228,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
         "nation": nation,
         "location": spawn,
         "cost": cost,
-        "corps": RECRUIT_MARSHAL_CORPS,
+        "corps": size,
         "seeds": applied_seeds,
     }
 
@@ -245,17 +278,24 @@ def build_recruitment_payload(world) -> Dict:
             "trust": int((candidate.get("trust", {}) or {}).get("value", 70)),
             "biography": candidate.get("biography", ""),
             "cost": int(candidate.get("cost", 0)),
-            "corps": RECRUIT_MARSHAL_CORPS,
+            "corps": corps_requirement(candidate)[1],
+            "arm": candidate_arm(candidate),
             "cavalry": bool(candidate.get("cavalry", False)),
+            "artillery": bool(candidate.get("artillery", False)),
             "relationships": dict(candidate.get("relationships", {}) or {}),
             "available": reason is None,
             "blocked_reason": reason or "",
         })
+    nation_pool = world.manpower_pools.get(nation, {}) or {}
     return {
         "candidates": candidates,
         "ap_cost": RECRUIT_MARSHAL_AP,
         "corps_size": RECRUIT_MARSHAL_CORPS,
         "treasury": int(world.nation_gold.get(nation, 0)),
-        "infantry_pool": int(
-            (world.manpower_pools.get(nation, {}) or {}).get("infantry", 0)),
+        "infantry_pool": int(nation_pool.get("infantry", 0)),
+        "pools": {
+            "infantry": int(nation_pool.get("infantry", 0)),
+            "cavalry": int(nation_pool.get("cavalry", 0)),
+            "artillery": int(nation_pool.get("artillery", 0)),
+        },
     }

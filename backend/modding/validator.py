@@ -85,8 +85,8 @@ VALID_SKILLS = {"tactical", "shock", "defense", "logistics", "administration", "
 MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
 MARSHAL_OPTIONAL_FIELDS = {
     "personality", "nation", "movement_range", "tactical_skill",
-    "skills", "ability", "cavalry", "spawn_location", "morale",
-    "trust", "stance", "relationships"
+    "skills", "ability", "cavalry", "artillery", "spawn_location", "morale",
+    "trust", "stance", "relationships", "biography"
 }
 
 REGION_REQUIRED_FIELDS = {"name", "adjacent_regions"}
@@ -201,6 +201,13 @@ def validate_marshal(data: Dict[str, Any], path: str = "marshal") -> ValidationR
     if "cavalry" in data:
         if not isinstance(data["cavalry"], bool):
             result.add_error(f"{path}.cavalry", f"Must be a boolean, got {type(data['cavalry']).__name__}")
+
+    # Validate artillery (ARTILLERY_GAP_SPEC) — mutually exclusive with cavalry
+    if "artillery" in data:
+        if not isinstance(data["artillery"], bool):
+            result.add_error(f"{path}.artillery", f"Must be a boolean, got {type(data['artillery']).__name__}")
+        elif data["artillery"] and data.get("cavalry"):
+            result.add_error(f"{path}.artillery", "A marshal cannot be both cavalry and artillery")
 
     # Validate morale
     if "morale" in data:
