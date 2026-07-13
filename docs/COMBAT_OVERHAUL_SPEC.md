@@ -140,10 +140,11 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 
 ---
 
-### Phase 0 — Baseline & Harness *(no balance change; pure measurement)*
+### Phase 0 — Baseline & Harness *(no balance change; pure measurement)* — ✅ LANDED July 13, 2026
 **Session entry:** read §2, §3. Assumes clean master. No gameplay effect.
-- **P0-1** Build `tests/test_combat_sweep_metrics.py` (M1–M7 harness) + a headless battle-sim helper.
-- **P0-2** Run **Sweep 0**: fill M1–M7 baselines; capture a fresh `LIVE_PLAY_EVIDENCE.md`; store `docs/audits/SWEEP_0_<date>.md`.
+- **P0-1** Build `tests/test_combat_sweep_metrics.py` (M1–M7 harness) + a headless battle-sim helper. ✅ Done — deterministic Monte-Carlo (400 fixed seeds) over the REAL `combat.py` / `battle_report.py` / `_distribute_casualties` / `jealousy.py`; 9 tests green.
+- **P0-2** Run **Sweep 0**: fill M1–M7 baselines; store `docs/audits/SWEEP_0_2026_07_13.md`. ✅ Done. Half-A baselines: **M1** flat `0.000×5` (concentration inert) · **M1b** `0/0/0` (no personality expression) · **M2** `0.000/0.000` · **M3** `+4251` net (defender GAINS) · **M4** `0.0%` consistency · **M5** `+0.116` payoff · **M6** `0.000` GUARD holds · **M7** `never` (drama dormant). **Half B** = the same-day ⚔️ Field Review scoreboard (§1) — the fresh live evidence Sweep 0 anchors to (no duplicate playthrough; §2.2 re-runs from Sweep 1).
+- **Two modelled knobs** (the only forward constants, both at baseline in the harness): `COMMITTED_ALPHA = 0.0` (CO-1 flips it) and `AI_CORPS_REGEN_PER_TURN = 10000` (CO-4 flips it). Everything else is measured from real resolution.
 **Exit:** baselines recorded; harness green (asserting *current* values, so later slices flip them). **Test:** the harness itself. **Risk:** none (measurement only).
 
 ---
@@ -235,7 +236,7 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 
 | Phase / slice | State | Metric | Landed (SHA) |
 |---|---|---|---|
-| Phase 0 — harness + Sweep 0 | NOT STARTED | M1–M7 baseline | — |
+| Phase 0 — harness + Sweep 0 | ✅ **LANDED July 13, 2026** | M1–M7 baseline captured | (this commit) |
 | CO-1 additive strength | NOT STARTED | M1 | — |
 | CO-1b personality/relationship scaling | NOT STARTED | M1b | — |
 | CO-2 odds band | NOT STARTED | M1/M2 | — |
