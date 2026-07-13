@@ -41,6 +41,9 @@ const COLOR_INFO = "#a0a0a8"
 # UI-2 Part 2: the bar track is shared with war_status_panel via Utils.
 const COLOR_BAR_BG = Utils.UI_BAR_BG
 const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
+# War-score bar frame (CC0 Kenney RPG track): 9px 3-slice caps + cool-navy tint.
+const BAR_FRAME_CAP = 9
+const COLOR_BAR_FRAME_TINT = Color(0.72, 0.78, 1.0)
 
 
 func _ready():
@@ -219,9 +222,15 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var container = Control.new()
 	container.custom_minimum_size = Vector2(bar_width, bar_height)
 
-	# Background
-	var bg = ColorRect.new()
-	bg.color = COLOR_BAR_BG
+	# Background — a recessed bar FRAME (CC0 Kenney RPG track, assets/ui/bars/
+	# bar_frame.png), cool-navy tinted, so the tug-of-war sits in a real bar track
+	# with rounded ends instead of a flat rectangle. load() (not preload) so a
+	# missing texture degrades to an empty NinePatch rather than a parse failure.
+	var bg = NinePatchRect.new()
+	bg.texture = load("res://assets/ui/bars/bar_frame.png")
+	bg.patch_margin_left = BAR_FRAME_CAP
+	bg.patch_margin_right = BAR_FRAME_CAP
+	bg.modulate = COLOR_BAR_FRAME_TINT
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(bg)
 

@@ -27,6 +27,12 @@ signal commission_requested(candidate_name: String)
 const COLOR_DIM = "666670"
 const COLOR_DEVOTED = "ffd700"
 
+# Inline graphical stat bars (skill + glory rows): the CC0 Kenney RPG frame+fill
+# baked to assets/ui/bars/bar_<0..10>.png (grayscale, tinted per value via
+# [img color]). Baked at 110x14 = display 1:1.
+const STAT_BAR_W = 110
+const STAT_BAR_H = 14
+
 # UI-3 (texture/icon/portrait polish): PD marshal likenesses keyed by internal
 # marshal name (assets/portraits/<name>.jpg|png — the same keys the coverage
 # test guards). A keyless marshal (only Abdurrahman by design) degrades to a
@@ -210,8 +216,7 @@ func _render_glory_ladder() -> String:
 			var envies = str(row.get("jealous_of", "")) if row.get("jealous_of") != null else ""
 			var filled = clampi(glory, 0, 10)
 			var bar_color = Utils.COLOR_GOLD if crowned else (Utils.COLOR_INFO if glory > 0 else COLOR_DIM)
-			var bar = "[color=#" + bar_color + "]" + "█".repeat(filled) + "[/color]"
-			bar += "[color=#" + COLOR_DIM + "]" + "░".repeat(10 - filled) + "[/color]"
+			var bar = _stat_bar_img(filled, bar_color)
 			bbcode += "  " + str(i + 1) + ". "
 			if crowned:
 				bbcode += "[color=#" + COLOR_DEVOTED + "]★ " + rname + "[/color]"
@@ -658,16 +663,24 @@ func _skill_bar_row(label: String, val: int, note: String) -> String:
 	elif val <= 5:
 		color = Utils.COLOR_GREY
 	var filled = clampi(val, 0, 10)
-	var bar = "[color=#" + color + "]" + "█".repeat(filled) + "[/color]"
-	bar += "[color=#" + COLOR_DIM + "]" + "░".repeat(10 - filled) + "[/color]"
-	# Bar FIRST so every row's fixed 10-cell bar starts at the same x and the
-	# bars form a clean column. The label used to LEAD, and its varying width
-	# ("Shock" 5 chars vs "Administration" 14) staircased the bars into a ragged
-	# column in the proportional UI font (UI-1). Label + value now trail the bar.
+	# Inline GRAPHICAL bar (CC0 Kenney RPG frame+fill, assets/ui/bars/bar_<v>.png):
+	# a grayscale glossy fill tinted per value via [img color]. Bar FIRST + fixed
+	# width so the bars form a clean column regardless of label width (the old █░
+	# text bars staircased under the proportional UI font once a label like
+	# "Administration" led the row).
+	var bar = _stat_bar_img(filled, color)
 	var row = bar + "  " + label + " [color=#" + color + "]" + str(val) + "[/color]"
 	if note != "":
 		row += "  [color=#" + COLOR_DIM + "]" + note + "[/color]"
 	return row + "\n"
+
+
+func _stat_bar_img(filled: int, hex_color: String) -> String:
+	"""One inline graphical stat bar, value 0..10, tinted to hex_color (no '#')."""
+	var v = clampi(filled, 0, 10)
+	return ("[img color=#" + hex_color + " width=" + str(STAT_BAR_W)
+		+ " height=" + str(STAT_BAR_H) + "]res://assets/ui/bars/bar_"
+		+ str(v) + ".png[/img]")
 
 
 func _trust_colored(val: int, label: String) -> String:
