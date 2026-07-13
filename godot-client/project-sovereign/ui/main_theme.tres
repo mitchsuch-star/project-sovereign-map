@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=12 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=11 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
@@ -89,22 +89,6 @@ base_font = ExtResource("1_6tukj")
 variation_opentype = {
 2003265652: 600
 }
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xlm04"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0.1, 0.1, 0.18, 0.95)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.851, 0.753, 0.549, 0.4)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_leather"]
 content_margin_left = 12.0

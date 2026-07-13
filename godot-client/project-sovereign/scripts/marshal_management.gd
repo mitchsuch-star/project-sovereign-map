@@ -34,8 +34,8 @@ const COLOR_DEVOTED = "ffd700"
 # white-silhouette sets, tinted at render via the [img color=...] BBCode option.
 const _PORTRAIT_DIR = "res://assets/portraits/"
 const _PORTRAIT_EXTS = [".jpg", ".png", ".jpeg", ".webp"]
-const _PORTRAIT_W = 60
-const _PORTRAIT_H = 76
+const _PORTRAIT_W = 80
+const _PORTRAIT_H = 100
 const _ICON_GAME = "res://assets/ui/icons/game-icons/"
 const _ICON_PHOSPHOR = "res://assets/ui/icons/phosphor/"
 # Cache portrait lookups so a long roster doesn't re-probe ResourceLoader each
@@ -94,9 +94,9 @@ func _input(event):
 		if index >= 0 and index < cached_data.size():
 			# Scroll to marshal card — approximate position based on card height
 			# TECH DEBT: px/card is hardcoded (320 → 380 for MC-2's skill-bar
-			# rows → 470 for the UI-3 portrait thumbnail on its own line).
+			# rows → 520 for the UI-3 portrait thumbnail + the larger card font).
 			# Revisit if playtesting shows scroll misalignment.
-			var scroll_target = index * 470
+			var scroll_target = index * 520
 			scroll_container.scroll_vertical = scroll_target
 			get_viewport().set_input_as_handled()
 
@@ -226,8 +226,7 @@ func _render_glory_ladder() -> String:
 		bbcode += "\n"
 
 	if has_bench:
-		bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 18, Utils.COLOR_GOLD) + " "
-		bbcode += "[url=commission_open][color=#" + Utils.COLOR_GOLD + "][ Commission a Marshal… ][/color][/url]"
+		bbcode += _button_chip("commission_open", "Commission a Marshal…", "f4e6bd", "3a2f18", _ICON_PHOSPHOR + "crown.svg")
 		bbcode += "  [color=#" + COLOR_DIM + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
 
 	if bbcode != "":
@@ -238,7 +237,7 @@ func _render_glory_ladder() -> String:
 func _render_commission_view():
 	"""Marshal Recruitment: the candidate bench — full character sheets,
 	honest availability (the executor's own check), price/corps chips."""
-	var bbcode = "[url=commission_back][color=#" + Utils.COLOR_INFO + "][ ← Back to the Marshalate ][/color][/url]\n\n"
+	var bbcode = _button_chip("commission_back", "← Back to the Marshalate", "a9c7e6", "22283a") + "\n\n"
 	bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
 	bbcode += " [color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
 	var treasury = int(cached_recruitment.get("treasury", 0))
@@ -262,7 +261,7 @@ func _render_commission_view():
 		var available = bool(c.get("available", false))
 		var reason = str(c.get("blocked_reason", ""))
 
-		bbcode += _portrait_block(cname, 48, 60)
+		bbcode += _portrait_block(cname, 64, 80)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "][" + personality.capitalize() + "][/color]"
 		if c.get("cavalry", false):
@@ -285,7 +284,7 @@ func _render_commission_view():
 				seed_parts.append(other + ": " + _relationship_colored(v, vlabel))
 			bbcode += "  [color=#" + COLOR_DIM + "]Arrives with a history —[/color] " + ", ".join(seed_parts) + "\n"
 		if available:
-			bbcode += "  [url=commission:" + cname + "][color=#" + Utils.COLOR_SUCCESS + "][ Commission " + cname + " — " + _format_number(cost) + "g ][/color][/url]\n"
+			bbcode += "  " + _button_chip("commission:" + cname, "Commission " + cname + " — " + _format_number(cost) + "g", "b6e6b6", "1e3320") + "\n"
 		else:
 			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Unavailable: " + reason + "[/color]\n"
 		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]────────────────────────────────────────[/color]\n\n"
@@ -315,7 +314,12 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += _portrait_block(name)
 	bbcode += "[color=#" + Utils.COLOR_GREY + "]" + key_hint + "[/color]"
 	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
-	bbcode += "  " + _unit_icon(unit_type, type_color) + " [color=#" + type_color + "][" + unit_type + "][/color]"
+	# Cavalry/Artillery keep their (clear) icon; Infantry is label-only — the
+	# game-icons infantry glyph reads as an ambiguous caret at 18px (UI-3 tune).
+	if unit_type != "Infantry":
+		bbcode += "  " + _unit_icon(unit_type, type_color) + " [color=#" + type_color + "][" + unit_type + "][/color]"
+	else:
+		bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
 	bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + Utils.display_nation_name(nation) + "[/color]\n"
 
 	# ═══════ BIOGRAPHY ═══════
@@ -605,6 +609,17 @@ func _unit_icon(unit_type: String, color: String) -> String:
 		"Artillery":
 			key = "unit-artillery"
 	return _icon(_ICON_GAME + key + ".svg", 18, color)
+
+
+func _button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "") -> String:
+	"""A filled bbcode 'button' — a `bgcolor` pill with padding, an optional
+	leading icon, and a `url` covering the whole chip (icon + label click). Reads
+	as a button inside the RichTextLabel card without a real Button node."""
+	var inner = ""
+	if icon_path != "":
+		inner += _icon(icon_path, 18, text_hex) + " "
+	inner += "[color=#" + text_hex + "]" + label + "[/color]"
+	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
 
 
 # TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
