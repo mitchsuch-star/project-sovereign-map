@@ -222,48 +222,33 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var container = Control.new()
 	container.custom_minimum_size = Vector2(bar_width, bar_height)
 
-	# Recessed track — a real drawn rounded pill. (The old CC0 frame PNG was a
-	# 36x18 near-transparent black wash, ~10% alpha, i.e. invisible on the dark
-	# panel, so an even score read as an empty gap. A StyleBoxFlat draws a track
-	# that always shows the meter, with rounded ends and a subtle rim.)
-	var track = Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = COLOR_BAR_BG
-	sb.set_corner_radius_all(int(bar_height / 2.0))
-	sb.set_border_width_all(1)
-	sb.border_color = Color(0.34, 0.38, 0.48, 0.9)
-	track.add_theme_stylebox_override("panel", sb)
+	# Gold-rimmed recessed track (assets/ui/bars/warbar_track.png, 3-slice).
+	# Matches the HUD bar. load() so a missing texture degrades gracefully.
+	var track = NinePatchRect.new()
+	track.texture = load("res://assets/ui/bars/warbar_track.png")
+	track.patch_margin_left = 14
+	track.patch_margin_right = 14
 	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(track)
 
-	# Score fill — anchored fractions of the ACTUAL width, measured from center;
-	# inset 2px vertically so it sits inside the track rim.
+	var enemy_color: Color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
+	var france_color: Color = Utils.NATION_COLORS["France"]
+
+	# Glossy fill from centre, tinted to the leader's nation via modulate.
 	var normalized = clamp(score, -100, 100)
-	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
-
-	if normalized > 0:
-		var fill = ColorRect.new()
-		fill.color = Utils.NATION_COLORS["France"]
-		_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
-		fill.offset_top = 2.0
-		fill.offset_bottom = -2.0
+	if normalized != 0:
+		var fill = TextureRect.new()
+		fill.texture = load("res://assets/ui/bars/warbar_fill.png")
+		fill.stretch_mode = TextureRect.STRETCH_SCALE
+		if normalized > 0:
+			fill.modulate = france_color
+			_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+		else:
+			fill.modulate = enemy_color
+			_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+		fill.offset_top = 3.0
+		fill.offset_bottom = -3.0
 		container.add_child(fill)
-	elif normalized < 0:
-		var fill = ColorRect.new()
-		fill.color = enemy_color
-		_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
-		fill.offset_top = 2.0
-		fill.offset_bottom = -2.0
-		container.add_child(fill)
-
-	# Center marker (brighter tick) — tracks the stretched width so an even (0)
-	# score still reads as a real balanced meter rather than a blank track.
-	var center_line = ColorRect.new()
-	center_line.color = Color(0.62, 0.66, 0.74, 0.85)
-	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 1.0)
-	center_line.offset_top = 2.0
-	center_line.offset_bottom = -2.0
-	container.add_child(center_line)
 
 	# Score label. Slice 7.5 review fold: dark outline keeps the score
 	# readable over light nation fills (e.g. PapalStates white) at high scores.

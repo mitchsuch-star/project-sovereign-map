@@ -48,6 +48,24 @@ const DRAG_MARGIN = 6  # Pixels from edge to trigger resize cursor
 
 func _ready():
 	hide()
+	_add_panel_grain()
+
+
+func _add_panel_grain() -> void:
+	# Subtle dark-leather grain behind the panel content for a richer, in-world
+	# feel (existing CC0 leather asset, dark-navy-tinted + low alpha so it reads
+	# as texture, not a brown wash). Behind the ScrollContainer; ignores mouse.
+	var tex = load("res://assets/textures/fabric_leather_01_diff_1k.jpg")
+	if tex == null:
+		return
+	var grain = TextureRect.new()
+	grain.texture = tex
+	grain.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	grain.modulate = Color(0.30, 0.32, 0.44, 0.32)
+	grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel_container.add_child(grain)
+	panel_container.move_child(grain, 0)
 
 
 func _input(event):
@@ -154,6 +172,23 @@ func update_wars(data: Dictionary) -> void:
 			_add_armistice_card(w)
 
 	show()
+	_fit_panel_to_content()
+
+
+func _fit_panel_to_content() -> void:
+	# Shrink-wrap the panel height to its content (up to MAX_HEIGHT_RATIO of the
+	# screen, then the ScrollContainer scrolls). A fixed .tscn height left a big
+	# dead gap below a single war entry. Anchored bottom-right, so we move the TOP
+	# edge; width stays user-draggable. One frame lets the containers lay out.
+	await get_tree().process_frame
+	if not visible or not is_instance_valid(panel_container):
+		return
+	var content_h: float = vbox.get_combined_minimum_size().y
+	var screen_size: Vector2 = get_viewport().get_visible_rect().size
+	var max_h := float(int(screen_size.y * MAX_HEIGHT_RATIO))
+	# +8 covers the panel stylebox content margins (2 top + 4 bottom) + slack.
+	var target_h: float = clampf(content_h + 8.0, MIN_HEIGHT, max_h)
+	panel_container.offset_top = panel_container.offset_bottom - target_h
 
 
 func _add_coalition_header(coalition_name: String):
@@ -180,7 +215,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	# Whole card is a flat Button for full clickability
 	var row_btn = Button.new()
 	row_btn.flat = true
-	row_btn.custom_minimum_size = Vector2(0, 30)
+	row_btn.custom_minimum_size = Vector2(0, 36)
 	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war", str(war_data.get("war_instance_id", ""))))
 	row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row_btn.tooltip_text = _build_war_tooltip(war_data)
@@ -202,9 +237,17 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 10)
-	name_label.add_theme_color_override("font_color", _get_score_color(score))
+	name_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_label)
+
+	# Score number lives here (not on the bar) so it never fights the centre gem.
+	var score_label = Label.new()
+	score_label.text = ("+" if score > 0 else "") + str(score)
+	score_label.add_theme_font_size_override("font_size", 10)
+	score_label.add_theme_color_override("font_color", _get_score_color(score))
+	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_row.add_child(score_label)
 
 	var turn_label = Label.new()
 	turn_label.text = "T:" + str(duration)
@@ -215,7 +258,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	col.add_child(name_row)
 
 	# ── Line 2: full-width tug-of-war bar ──
-	var bar = _create_tug_of_war_bar(score, opponent, 80, 12)
+	var bar = _create_tug_of_war_bar(score, opponent, 80, 16)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(bar)
@@ -289,79 +332,63 @@ func _add_armistice_card(war_data: Dictionary):
 
 
 func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int) -> Control:
-	"""Create a two-tone tug-of-war bar. Blue=France (right), Red=enemy (left).
-	Center = 0. Score > 0 means France winning (blue fills right of center).
-	Score < 0 means enemy winning (red fills left of center).
-	All children use MOUSE_FILTER_IGNORE so clicks pass to parent."""
+	"""Premium tug-of-war gauge: a gold-rimmed recessed track, a glossy fill
+	tinted to the leader's nation (France blue right / enemy left), and a gold
+	centre gem. The SCORE NUMBER is shown on the name line, not on the bar, so
+	it never fights the gem. All children pass the mouse to the parent button."""
+	return _build_tug_of_war_bar(score, opponent, bar_width, bar_height)
+
+
+# Shared premium tug-of-war builder (HUD + detail popup use the same textures,
+# assets/ui/bars/warbar_*.png — original gold-and-navy chrome). load() (not
+# preload) so a missing texture degrades gracefully instead of a parse failure.
+static func _build_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int) -> Control:
 	var container = Control.new()
 	container.custom_minimum_size = Vector2(bar_width, bar_height)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Recessed track — a real drawn rounded pill. (The old CC0 frame PNG was a
-	# 36x18 near-transparent BLACK wash, ~10% alpha, so it was invisible on the
-	# dark panel and an even score read as an empty gap. A StyleBoxFlat draws a
-	# track that always shows the meter, with rounded ends and a subtle rim.)
-	var track = Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = COLOR_BAR_BG
-	sb.set_corner_radius_all(int(bar_height / 2.0))
-	sb.set_border_width_all(1)
-	sb.border_color = Color(0.34, 0.38, 0.48, 0.9)
-	track.add_theme_stylebox_override("panel", sb)
+	# Gold-rimmed recessed track (horizontal 3-slice: rounded L/R caps).
+	var track = NinePatchRect.new()
+	track.texture = load("res://assets/ui/bars/warbar_track.png")
+	track.patch_margin_left = 14
+	track.patch_margin_right = 14
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(track)
 
-	# Score fill — anchored fractions of the ACTUAL width, measured from center;
-	# inset 2px vertically so it sits inside the track rim.
+	# Glossy fill from centre, tinted to the leader's nation via modulate (the
+	# fill texture is grayscale, so modulate keeps the gloss).
 	var normalized = clamp(score, -100, 100)
-	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
-
-	if normalized > 0:
-		# France winning — blue fills from center rightward.
-		var fill = ColorRect.new()
-		fill.color = Utils.NATION_COLORS["France"]
+	if normalized != 0:
+		var fill = TextureRect.new()
+		fill.texture = load("res://assets/ui/bars/warbar_fill.png")
+		fill.stretch_mode = TextureRect.STRETCH_SCALE
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
-		fill.offset_top = 2.0
-		fill.offset_bottom = -2.0
-		container.add_child(fill)
-	elif normalized < 0:
-		# Enemy winning — red fills from center leftward.
-		var fill = ColorRect.new()
-		fill.color = enemy_color
-		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
-		fill.offset_top = 2.0
-		fill.offset_bottom = -2.0
+		if normalized > 0:
+			fill.modulate = Utils.NATION_COLORS["France"]
+			_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+		else:
+			fill.modulate = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
+			_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+		fill.offset_top = 3.0
+		fill.offset_bottom = -3.0
 		container.add_child(fill)
 
-	# Center marker (brighter tick) — anchored to the container's TRUE center so
-	# it tracks the stretched width, and so an even (0) score still reads as a
-	# real balanced meter rather than a blank track.
-	var center_line = ColorRect.new()
-	center_line.color = Color(0.62, 0.66, 0.74, 0.85)
-	center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 1.0)
-	center_line.offset_top = 2.0
-	center_line.offset_bottom = -2.0
-	container.add_child(center_line)
-
-	# Score label (small, centered on bar). Slice 7.5 review fold: dark
-	# outline keeps the score readable over light nation fills (e.g. the
-	# re-authored PapalStates white) at high scores.
-	var score_label = Label.new()
-	var score_sign = "+" if score > 0 else ""
-	score_label.text = score_sign + str(score)
-	score_label.add_theme_font_size_override("font_size", 8)
-	score_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
-	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	score_label.add_theme_constant_override("outline_size", 3)
-	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	container.add_child(score_label)
+	# Gold centre gem (the balanced-point marker; reads even at an even score).
+	var gem = TextureRect.new()
+	gem.texture = load("res://assets/ui/bars/warbar_gem.png")
+	gem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gem_size := float(bar_height) + 4.0
+	gem.anchor_left = 0.5
+	gem.anchor_right = 0.5
+	gem.anchor_top = 0.5
+	gem.anchor_bottom = 0.5
+	gem.offset_left = -gem_size / 2.0
+	gem.offset_right = gem_size / 2.0
+	gem.offset_top = -gem_size / 2.0
+	gem.offset_bottom = gem_size / 2.0
+	container.add_child(gem)
 
 	return container
 
