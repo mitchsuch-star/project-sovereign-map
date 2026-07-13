@@ -44,35 +44,48 @@ W = FRAME * SS
 GY = 210 * SS        # ground line (base-disc centre y)
 CX = 128 * SS        # frame centre x
 
-# ── palette (neutral "tin" channels; coat is faction-tinted elsewhere) ──────
-STEEL       = (196, 202, 210, 255)
-STEEL_DK    = (86, 92, 102, 255)
-BRONZE      = (176, 138, 84, 255)
-BRONZE_DK   = (120, 92, 52, 255)
-WOOD        = (120, 86, 50, 255)
-WOOD_DK     = (78, 54, 30, 255)
-BLACK_GEAR  = (44, 44, 52, 255)
-BLACK_HI    = (92, 92, 104, 255)
-FLESH       = (216, 170, 128, 255)
-FLESH_DK    = (168, 120, 84, 255)
-BREECH      = (222, 216, 200, 255)   # white breeches -> warm off-white
-BREECH_DK   = (170, 162, 142, 255)
-HORSE       = (122, 96, 68, 255)     # bay
-HORSE_DK    = (78, 58, 40, 255)
-HORSE_MANE  = (54, 40, 28, 255)
-SLATE       = (86, 98, 116, 255)     # body-layer coat fallback
-SLATE_DK    = (54, 64, 80, 255)
-RIM         = (245, 240, 228, 235)   # bright pewter rim light
+# ── palette — CARVED WOOD (July 13 rework) ──────────────────────────────────
+# The figure is now one turned/carved wooden object: tone-only differentiation
+# (light oak -> dark walnut) so it reads as wood, NOT a painted tin soldier. The
+# faction colour lives on the base-rim band + flag/shabraque/guidon (the coat
+# tint-mask), never on the figure. The per-part variable names are KEPT from the
+# old tin palette so every drawing call is unchanged — only the values move to
+# wood, and value-contrast between parts is preserved so the carving still reads.
+OAK_HI      = (202, 160, 108, 255)   # lit wood (legs, face, belt, plume, highlights)
+OAK         = (170, 126, 80, 255)    # mid wood (coat mass, horse)
+OAK_DK      = (130, 94, 58, 255)     # shadowed wood
+WALNUT      = (96, 66, 40, 255)      # dark wood (boots, shako, hair, hooves, metal)
+WALNUT_DK   = (64, 44, 26, 255)      # darkest carved accents
 
-# coat mask (multiplied by nation colour): near-white base, darker grooves
+STEEL       = (214, 178, 126, 255)   # "bright" carved wood (bayonet/sabre/hub glint)
+STEEL_DK    = WALNUT
+BRONZE      = (178, 132, 76, 255)    # warm wood (cannon barrel, hilt, finial)
+BRONZE_DK   = WALNUT
+WOOD        = OAK_DK                  # flagpole, musket stock, gun trail beam
+WOOD_DK     = WALNUT
+BLACK_GEAR  = WALNUT                  # boots / shako -> dark carved wood (not black)
+BLACK_HI    = OAK_DK                  # shako top band
+FLESH       = (206, 164, 112, 255)   # face -> light wood
+FLESH_DK    = OAK
+BREECH      = OAK_HI                  # breeches / plume / crossbelt -> lit wood
+BREECH_DK   = OAK
+HORSE       = OAK                     # horse body
+HORSE_DK    = OAK_DK
+HORSE_MANE  = WALNUT
+SLATE       = OAK                     # rider coat fallback
+SLATE_DK    = OAK_DK
+RIM         = (228, 196, 146, 235)   # warm wood rim light (was cool pewter)
+
+# coat mask (multiplied by nation colour): near-white base, darker grooves.
+# Now carries ONLY the faction accents (base-rim band + flag / shabraque / guidon).
 COAT_HI     = (244, 244, 244, 255)
-COAT_MID    = (214, 214, 214, 255)
+COAT_MID    = (210, 210, 210, 255)
 COAT_LO     = (168, 168, 168, 255)
 
-BASE_TOP    = (188, 150, 92, 255)    # ochre ground, lit top face
-BASE_MID    = (150, 116, 66, 255)
-BASE_RIM    = (104, 78, 42, 255)
-BASE_HI     = (222, 196, 146, 235)
+BASE_TOP    = (168, 126, 78, 255)    # turned-wood base, lit top face
+BASE_MID    = (128, 92, 54, 255)
+BASE_RIM    = (86, 60, 34, 255)
+BASE_HI     = (208, 174, 122, 235)
 
 SHADOW_COL  = (18, 14, 10)
 
@@ -174,23 +187,51 @@ def make_shadow(width_frac):
     return lay.filter(ImageFilter.GaussianBlur(8 * SS))
 
 
-# ── coat helper: paint the same silhouette into body(slate) + coat(mask) ─────
-def paint_coat(body, coat, pts, groove=None):
-    """Paint the coat mass into the coat mask only (faction-tinted downstream).
-
-    The body layer is left transparent here so the tinted coat shows through;
-    the relief pass bakes the coat's lit/shaded EDGE lines into the body on top.
-    """
-    smooth_fill(coat, pts, COAT_HI)
+# ── coat / faction helpers ──────────────────────────────────────────────────
+def paint_wood_coat(body, pts, groove=None):
+    """Paint the coat mass into the BODY as carved wood (mid oak + a lower-half
+    shade + walnut grooves). The figure is now wood, not a faction-tinted mass —
+    faction colour rides the base-rim + flag/shabraque accents instead."""
+    smooth_fill(body, pts, OAK)
     dense = catmull(pts)
     ys = [p[1] for p in dense]
     ymid = (min(ys) + max(ys)) * 0.5
     lower = [p for p in dense if p[1] > ymid]          # bottom-half volume shade
     if len(lower) > 2:
+        ImageDraw.Draw(body).polygon(lower, fill=OAK_DK)
+    # carved-edge contour: defines the coat as a turned mass AND separates
+    # overlapping infantry figures (which share one wood tone) from each other.
+    stroke(body, pts, WALNUT_DK, 1.4 * SS, closed=True, smooth=True)
+    if groove:
+        for g in groove:
+            stroke(body, g, WALNUT, 2.0 * SS, smooth=True)
+
+
+def faction_fill(coat, pts, groove=None):
+    """Paint a faction accent (flag / shabraque / guidon) into the coat tint-mask
+    — near-white so Godot `modulate` multiplies it to the nation hue."""
+    smooth_fill(coat, pts, COAT_HI)
+    dense = catmull(pts)
+    ys = [p[1] for p in dense]
+    ymid = (min(ys) + max(ys)) * 0.5
+    lower = [p for p in dense if p[1] > ymid]
+    if len(lower) > 2:
         ImageDraw.Draw(coat).polygon(lower, fill=COAT_MID)
     if groove:
         for g in groove:
-            stroke(coat, g, COAT_LO, 2.0 * SS, smooth=True)
+            stroke(coat, g, COAT_LO, 1.6 * SS, smooth=True)
+
+
+def faction_base_rim(coat, width_frac):
+    """A painted rim band around the base's top-face edge — the tell of a painted
+    wooden wargame base, and the widest, most legible faction signal at map zoom.
+    Drawn into the coat tint-mask so it takes the nation hue."""
+    rx = width_frac * W * 0.5
+    ry = rx * 0.34
+    cy = GY - 2 * SS                                    # matches make_base lit top face
+    ImageDraw.Draw(coat).ellipse(
+        [CX - rx * 0.96, cy - ry * 0.9, CX + rx * 0.96, cy + ry * 0.9],
+        outline=COAT_HI, width=int(5 * SS))
 
 
 # =============================================================================
@@ -230,8 +271,8 @@ def foot_soldier(body, coat, cx, s=1.0, bearer=False):
         (cx - 13 * u * s, gy - 40 * u * s),  # coat-tail flare (back)
         (cx - 10 * u * s, gy - 58 * u * s),
     ]
-    paint_coat(body, coat, coat_pts,
-               groove=[[(cx + 2 * u * s, gy - 64 * u * s), (cx + 3 * u * s, gy - 38 * u * s)]])
+    paint_wood_coat(body, coat_pts,
+                    groove=[[(cx + 2 * u * s, gy - 64 * u * s), (cx + 3 * u * s, gy - 38 * u * s)]])
     # cross-belt (white) over coat
     stroke(body, [(cx - 7 * u * s, gy - 64 * u * s), (cx + 10 * u * s, gy - 44 * u * s)],
            BREECH, 2.6 * u * s)
@@ -275,9 +316,10 @@ def build_infantry():
     body, coat = new_layer(), new_layer()
     # back-to-front so overlaps read (painter's order); figures sized up ~12%
     # from U4 so the rank fills the frame and survives the 64px map read
-    foot_soldier(body, coat, CX - 34 * SS, s=1.05)
-    foot_soldier(body, coat, CX + 29 * SS, s=1.10)
-    foot_soldier(body, coat, CX - 3 * SS, s=1.19, bearer=True)   # centre bearer, tallest
+    foot_soldier(body, coat, CX - 39 * SS, s=1.05)
+    foot_soldier(body, coat, CX + 34 * SS, s=1.10)
+    foot_soldier(body, coat, CX - 2 * SS, s=1.19, bearer=True)   # centre bearer, tallest
+    faction_base_rim(coat, 0.80)                                  # painted base band
     return {"base": make_base(0.80), "shadow": make_shadow(0.80),
             "body": body, "coat": coat}
 
@@ -368,7 +410,7 @@ def build_cavalry():
     ry_ = gy - 62 * u                 # rider hip / saddle point
     shab = [(rx_ - 13 * u, ry_ + 1 * u), (rx_ + 13 * u, ry_ + 1 * u),
             (rx_ + 15 * u, ry_ + 16 * u), (rx_ - 16 * u, ry_ + 16 * u)]
-    paint_coat(body, coat, shab)
+    faction_fill(coat, shab)          # saddle-cloth carries the nation hue
 
     # --- rider (bigger than U4 so he owns the top half) ---
     # near leg over the shabraque
@@ -379,7 +421,7 @@ def build_cavalry():
     torso_r = [(rx_ - 10 * u, ry_ + 2 * u), (rx_ + 10 * u, ry_ + 2 * u),
                (rx_ + 12 * u, ry_ - 16 * u), (rx_ + 6 * u, ry_ - 26 * u),
                (rx_ - 8 * u, ry_ - 24 * u), (rx_ - 14 * u, ry_ - 10 * u)]
-    paint_coat(body, coat, torso_r)
+    paint_wood_coat(body, torso_r)
     stroke(body, [(rx_ - 8 * u, ry_ - 22 * u), (rx_ + 10 * u, ry_ - 4 * u)], BREECH, 2.6 * u)  # crossbelt
     # reins: hand to the muzzle
     stroke(body, [(rx_ + 11 * u, ry_ - 6 * u), (cx + 58 * u, gy - 73 * u)], BLACK_GEAR, 1.5 * u)
@@ -396,6 +438,7 @@ def build_cavalry():
     stroke(body, [hand, (rx_ + 33 * u, ry_ - 62 * u), (rx_ + 40 * u, ry_ - 78 * u)],
            STEEL, 2.8 * u, smooth=True)                                   # curved blade
     disc(body, hand[0], hand[1], 2.6 * u, 2.6 * u, BRONZE)                # hilt
+    faction_base_rim(coat, 0.58)                                          # painted base band
     return {"base": make_base(0.58), "shadow": make_shadow(0.66),
             "body": body, "coat": coat}
 
@@ -455,7 +498,7 @@ def build_artillery():
         torso = [(gx - 7 * u, gy - 51 * u), (gx + 7 * u, gy - 49 * u),
                  (gx + 8 * u, gy - 36 * u), (gx + 4 * u, gy - 28 * u),
                  (gx - 6 * u, gy - 29 * u), (gx - 8 * u, gy - 38 * u)]
-        paint_coat(body, coat, torso)
+        paint_wood_coat(body, torso)
         stroke(body, [(gx - 5 * u, gy - 49 * u), (gx + 7 * u, gy - 37 * u)],
                BREECH, 2.2 * u)                                                  # crossbelt
         disc(body, gx + 1 * u, gy - 55 * u, 5 * u, 5.5 * u, FLESH)               # face
@@ -468,11 +511,38 @@ def build_artillery():
         disc(body, gx + 34 * u, gy - 60 * u, 2.2 * u, 2.2 * u, STEEL)
 
     gunner(cx - 36 * u)
+    # faction guidon on a short staff planted behind the gun (the arm's colour hit)
+    gpx = cx - 54 * u
+    line(body, (gpx, gy - 2 * u), (gpx, gy - 76 * u), WOOD, 2.2 * u)      # staff
+    disc(body, gpx, gy - 78 * u, 2.2 * u, 2.2 * u, BRONZE)               # finial
+    faction_fill(coat, [(gpx, gy - 74 * u), (gpx + 22 * u, gy - 70 * u),
+                        (gpx + 17 * u, gy - 62 * u), (gpx + 22 * u, gy - 54 * u),
+                        (gpx, gy - 58 * u)])
+    faction_base_rim(coat, 0.86)                                         # painted base band
     return {"base": make_base(0.86), "shadow": make_shadow(0.86),
             "body": body, "coat": coat}
 
 
-# ── relief pass: bake engraved-tin lighting from the figure silhouette ──────
+# ── wood grain: multiply near-vertical timber grain into the figure ─────────
+def add_grain(body):
+    """Multiply subtle near-vertical wood grain into the figure so it reads as
+    carved timber. RGB-only (alpha untouched -> relief geometry unaffected)."""
+    ba = np.array(body).astype(np.float32)
+    alpha = ba[:, :, 3] > 20
+    xs = np.arange(W, dtype=np.float32)[None, :]
+    ys = np.arange(W, dtype=np.float32)[:, None]
+    warp = np.sin(ys * 0.010) * 5.0                  # gentle waver so grain isn't ruled
+    g = (np.sin((xs + warp) * 0.22)
+         + 0.55 * np.sin((xs + warp) * 0.51 + 1.7)
+         + 0.30 * np.sin(xs * 0.09 + ys * 0.006))
+    g = (g - g.min()) / (g.max() - g.min())          # 0..1
+    factor = (0.88 + 0.17 * g)[:, :, None]           # 0.88 .. 1.05 tonal ripple
+    rgb = np.clip(ba[:, :, :3] * factor, 0, 255)
+    ba[:, :, :3] = np.where(alpha[:, :, None], rgb, ba[:, :, :3])
+    return Image.fromarray(ba.astype(np.uint8), "RGBA")
+
+
+# ── relief pass: bake carved-wood lighting from the figure silhouette ───────
 def add_relief(body, coat):
     """Return body with a baked rim light / core shadow / dark contour so the
     flat reads as engraved pewter. Light from upper-right (fronts of the
@@ -499,9 +569,9 @@ def add_relief(body, coat):
     drk = edge & shift(union, +K, -K)     # down-left-facing edge -> shade
 
     fx = np.zeros((W, W, 4), dtype=np.uint8)
-    fx[outer] = (22, 18, 14, 210)         # crisp dark contour (separation)
-    fx[drk] = (30, 24, 18, 120)           # core shadow (semi -> darkens)
-    fx[lit] = RIM                         # bright pewter rim
+    fx[outer] = (38, 24, 14, 205)         # warm dark contour (separation)
+    fx[drk] = (44, 28, 16, 120)           # warm core shadow (semi -> darkens)
+    fx[lit] = RIM                         # warm wood rim light
     fx_img = Image.fromarray(fx, "RGBA")
     return Image.alpha_composite(body, fx_img)
 
@@ -549,6 +619,7 @@ def build_all():
     out = {}
     for arm, fn in ARMS.items():
         raw = fn()
+        raw["body"] = add_grain(raw["body"])
         raw["body"] = add_relief(raw["body"], raw["coat"])
         R = {k: downscale(v) for k, v in raw.items()}
         Lf = {k: v.transpose(Image.FLIP_LEFT_RIGHT) for k, v in R.items()}

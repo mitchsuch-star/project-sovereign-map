@@ -14,11 +14,12 @@ const REGION_LABEL_HEIGHT: float = 20.0
 const MARSHAL_ICON_SIZE := Vector2(16, 16)
 const MARSHAL_ICON_SPACING: float = 8.0
 const MARSHAL_ICON_Y_OFFSET: float = -50.0
-# UI-5 War-Table Pieces: on-map draw size of a tin-flat standee (the full 256px
-# source frame maps to this height; the visible figure is ~55% of it), the
+# UI-5 War-Table Pieces: on-map draw size of a carved-wood standee (the full
+# 256px source frame maps to this height; the visible figure is ~55% of it), the
 # horizontal spread for co-located marshals, and the province->province move
-# tween. Tunable — flagged for visual sign-off like the U2/U3 gates.
-const WAR_PIECE_FRAME_PX: float = 84.0
+# tween. Tunable — flagged for visual sign-off like the U2/U3 gates. Shrunk from
+# 84 -> 64 so standees in neighbouring provinces stop overlapping (July 13 feedback).
+const WAR_PIECE_FRAME_PX: float = 64.0
 const WAR_PIECE_SLOT_SPACING: float = 30.0
 const WAR_PIECE_MOVE_DURATION: float = 0.45
 const GARRISON_SIZE := Vector2(26, 18)

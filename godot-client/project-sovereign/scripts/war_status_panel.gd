@@ -168,52 +168,59 @@ func _add_coalition_header(coalition_name: String):
 
 
 func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
-	"""Add a compact war entry: entire row is clickable."""
+	"""Add a two-line war entry: name + turn on top, a full-width tug-of-war bar
+	below. Two lines guarantee the bar always gets the panel's full width — a
+	long collapsed coalition name (e.g. "Britain + Austria + Russia") no longer
+	crushes it to nothing. Entire card is clickable."""
 	var opponent = str(war_data.get("opponent", "?"))
 	var opponent_display = Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(opponent))))
 	var score = int(float(war_data.get("war_score", 0)))
 	var duration = int(float(war_data.get("duration", 0)))
 
-	# Whole row is a flat Button for full clickability
+	# Whole card is a flat Button for full clickability
 	var row_btn = Button.new()
 	row_btn.flat = true
-	row_btn.custom_minimum_size = Vector2(0, 18)
+	row_btn.custom_minimum_size = Vector2(0, 30)
 	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war", str(war_data.get("war_instance_id", ""))))
 	row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	row_btn.tooltip_text = _build_war_tooltip(war_data)
 
-	# Inner HBox for layout — passes mouse through to the button
-	var row = HBoxContainer.new()
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.add_theme_constant_override("separation", 4)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Inner VBox: [name row] over [bar]. Passes mouse through to the button.
+	var col = VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.add_theme_constant_override("separation", 1)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Nation name label
+	# ── Line 1: name (clips instead of pushing) + turn counter ──
+	var name_row = HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 4)
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	var name_label = Label.new()
 	var indent = "  " if is_coalition_member else ""
 	name_label.text = indent + opponent_display
-	name_label.custom_minimum_size = Vector2(60, 0)
-	name_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	name_label.clip_text = true
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", _get_score_color(score))
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(name_label)
+	name_row.add_child(name_label)
 
-	# Tug-of-war bar
-	var bar = _create_tug_of_war_bar(score, opponent, 80, 6)
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bar)
-
-	# Turn counter
 	var turn_label = Label.new()
 	turn_label.text = "T:" + str(duration)
 	turn_label.add_theme_font_size_override("font_size", 9)
 	turn_label.add_theme_color_override("font_color", COLOR_DIMMED)
 	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(turn_label)
+	name_row.add_child(turn_label)
+	col.add_child(name_row)
 
-	row_btn.add_child(row)
+	# ── Line 2: full-width tug-of-war bar ──
+	var bar = _create_tug_of_war_bar(score, opponent, 80, 12)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(bar)
+
+	row_btn.add_child(col)
 	vbox.add_child(row_btn)
 
 
@@ -290,30 +297,23 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	container.custom_minimum_size = Vector2(bar_width, bar_height)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Background — a recessed bar FRAME (CC0 Kenney RPG track, assets/ui/bars/
-	# bar_frame.png), cool-navy tinted, so the tug-of-war sits in a real bar track
-	# with rounded ends instead of a flat rectangle. load() (not preload) so a
-	# missing texture degrades to an empty NinePatch rather than a parse failure.
-	var bg = NinePatchRect.new()
-	bg.texture = load("res://assets/ui/bars/bar_frame.png")
-	bg.patch_margin_left = BAR_FRAME_CAP
-	bg.patch_margin_right = BAR_FRAME_CAP
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.modulate = COLOR_BAR_FRAME_TINT
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	container.add_child(bg)
+	# Recessed track — a real drawn rounded pill. (The old CC0 frame PNG was a
+	# 36x18 near-transparent BLACK wash, ~10% alpha, so it was invisible on the
+	# dark panel and an even score read as an empty gap. A StyleBoxFlat draws a
+	# track that always shows the meter, with rounded ends and a subtle rim.)
+	var track = Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COLOR_BAR_BG
+	sb.set_corner_radius_all(int(bar_height / 2.0))
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.34, 0.38, 0.48, 0.9)
+	track.add_theme_stylebox_override("panel", sb)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	container.add_child(track)
 
-	# Center line (subtle). Anchored to the container's TRUE horizontal center so
-	# it tracks the actual (stretched) width. This bar is added with
-	# SIZE_EXPAND_FILL, so fixed bar_width/2 coordinates bunched the whole
-	# tug-of-war into the left `bar_width` px of a wider bar (UI bar-fill fix).
-	var center_line = ColorRect.new()
-	center_line.color = COLOR_BAR_CENTER
-	center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 0.0)
-	container.add_child(center_line)
-
-	# Score fill — anchored fractions of the ACTUAL width, measured from center.
+	# Score fill — anchored fractions of the ACTUAL width, measured from center;
+	# inset 2px vertically so it sits inside the track rim.
 	var normalized = clamp(score, -100, 100)
 	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
 
@@ -323,6 +323,8 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 		fill.color = Utils.NATION_COLORS["France"]
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+		fill.offset_top = 2.0
+		fill.offset_bottom = -2.0
 		container.add_child(fill)
 	elif normalized < 0:
 		# Enemy winning — red fills from center leftward.
@@ -330,7 +332,20 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 		fill.color = enemy_color
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+		fill.offset_top = 2.0
+		fill.offset_bottom = -2.0
 		container.add_child(fill)
+
+	# Center marker (brighter tick) — anchored to the container's TRUE center so
+	# it tracks the stretched width, and so an even (0) score still reads as a
+	# real balanced meter rather than a blank track.
+	var center_line = ColorRect.new()
+	center_line.color = Color(0.62, 0.66, 0.74, 0.85)
+	center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 1.0)
+	center_line.offset_top = 2.0
+	center_line.offset_bottom = -2.0
+	container.add_child(center_line)
 
 	# Score label (small, centered on bar). Slice 7.5 review fold: dark
 	# outline keeps the score readable over light nation fills (e.g. the
@@ -339,11 +354,12 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var score_sign = "+" if score > 0 else ""
 	score_label.text = score_sign + str(score)
 	score_label.add_theme_font_size_override("font_size", 8)
-	score_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	score_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
+	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	score_label.add_theme_constant_override("outline_size", 3)
 	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(score_label)
 

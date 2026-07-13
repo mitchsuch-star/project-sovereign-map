@@ -222,28 +222,22 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var container = Control.new()
 	container.custom_minimum_size = Vector2(bar_width, bar_height)
 
-	# Background — a recessed bar FRAME (CC0 Kenney RPG track, assets/ui/bars/
-	# bar_frame.png), cool-navy tinted, so the tug-of-war sits in a real bar track
-	# with rounded ends instead of a flat rectangle. load() (not preload) so a
-	# missing texture degrades to an empty NinePatch rather than a parse failure.
-	var bg = NinePatchRect.new()
-	bg.texture = load("res://assets/ui/bars/bar_frame.png")
-	bg.patch_margin_left = BAR_FRAME_CAP
-	bg.patch_margin_right = BAR_FRAME_CAP
-	bg.modulate = COLOR_BAR_FRAME_TINT
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	container.add_child(bg)
+	# Recessed track — a real drawn rounded pill. (The old CC0 frame PNG was a
+	# 36x18 near-transparent black wash, ~10% alpha, i.e. invisible on the dark
+	# panel, so an even score read as an empty gap. A StyleBoxFlat draws a track
+	# that always shows the meter, with rounded ends and a subtle rim.)
+	var track = Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = COLOR_BAR_BG
+	sb.set_corner_radius_all(int(bar_height / 2.0))
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.34, 0.38, 0.48, 0.9)
+	track.add_theme_stylebox_override("panel", sb)
+	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	container.add_child(track)
 
-	# Center line. Anchored to the container's TRUE horizontal center so it tracks
-	# the actual (stretched) width — coalition rows add this bar with
-	# SIZE_EXPAND_FILL, so a fixed bar_width/2 coordinate bunched the whole
-	# tug-of-war into the left `bar_width` px of a wider bar (UI bar-fill fix).
-	var center_line = ColorRect.new()
-	center_line.color = COLOR_BAR_CENTER
-	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 0.0)
-	container.add_child(center_line)
-
-	# Score fill — anchored fractions of the ACTUAL width, measured from center.
+	# Score fill — anchored fractions of the ACTUAL width, measured from center;
+	# inset 2px vertically so it sits inside the track rim.
 	var normalized = clamp(score, -100, 100)
 	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
 
@@ -251,12 +245,25 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 		var fill = ColorRect.new()
 		fill.color = Utils.NATION_COLORS["France"]
 		_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+		fill.offset_top = 2.0
+		fill.offset_bottom = -2.0
 		container.add_child(fill)
 	elif normalized < 0:
 		var fill = ColorRect.new()
 		fill.color = enemy_color
 		_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+		fill.offset_top = 2.0
+		fill.offset_bottom = -2.0
 		container.add_child(fill)
+
+	# Center marker (brighter tick) — tracks the stretched width so an even (0)
+	# score still reads as a real balanced meter rather than a blank track.
+	var center_line = ColorRect.new()
+	center_line.color = Color(0.62, 0.66, 0.74, 0.85)
+	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 1.0)
+	center_line.offset_top = 2.0
+	center_line.offset_bottom = -2.0
+	container.add_child(center_line)
 
 	# Score label. Slice 7.5 review fold: dark outline keeps the score
 	# readable over light nation fills (e.g. PapalStates white) at high scores.
