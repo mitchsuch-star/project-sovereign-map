@@ -61,6 +61,11 @@ func _add_panel_grain() -> void:
 	var grain = TextureRect.new()
 	grain.texture = tex
 	grain.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# CRITICAL: without EXPAND_IGNORE_SIZE the TextureRect reports the 1024x1024
+	# texture as its minimum size, and PanelContainer (which sizes to its
+	# children's min) balloons the whole panel to fill the screen.
+	grain.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	grain.custom_minimum_size = Vector2.ZERO
 	grain.modulate = Color(0.30, 0.32, 0.44, 0.32)
 	grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
