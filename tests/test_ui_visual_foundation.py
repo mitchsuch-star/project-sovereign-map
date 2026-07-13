@@ -421,3 +421,66 @@ def test_piece_body_and_coat_are_real_cutouts(arm):
         f"{arm}_coat_r coat-mask coverage {coat_frac:.3f} out of range — the "
         f"faction tint would have no (or a full-frame) target"
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# War-Table Pieces — CODE (Session U5, spec §8 U5)
+#
+# The "each active marshal renders a piece keyed to its dominant arm" behaviour
+# needs a live Godot tree, which pytest cannot boot; the engine boot-smoke
+# (0 SCRIPT ERROR) is the manual runtime gate. These are STATIC source
+# assertions — the same .gd-as-text approach the UI-1/2/3 tests use — pinning
+# that the placement layer, arm keying, faction tint, and tween/facing wiring
+# are present and can't silently regress.
+# ═══════════════════════════════════════════════════════════════════════════
+
+SCENES_DIR = GODOT_PROJ / "scenes"
+WAR_PIECE_GD = SCENES_DIR / "war_table_piece.gd"
+MAP_RENDERER_GD = SCENES_DIR / "map_renderer_base.gd"
+
+
+def test_war_table_piece_script_shape():
+    assert WAR_PIECE_GD.exists(), f"missing {WAR_PIECE_GD}"
+    src = _read(WAR_PIECE_GD)
+    assert "class_name WarTablePiece" in src, "piece must register a global class_name"
+    # loads its sprites from the pieces dir, both facings, layered composite.
+    assert 'PIECES_DIR := "res://assets/ui/pieces/"' in src
+    assert '"shadow", "base", "coat", "body"' in src, "layer compositing order"
+    # only the coat is faction-tinted (shadow/base/body stay neutral pewter).
+    assert re.search(r"func set_faction", src), "faction tint entry point"
+    assert re.search(r'_sprites\.get\("coat"', src), "faction tint targets the coat only"
+    # facing flip + move tween present (the U5 motion behaviours).
+    assert "func set_facing" in src and "func move_to" in src
+    assert "create_tween" in src, "move_to must tween province->province"
+
+
+def test_map_renderer_wires_war_table_pieces():
+    assert MAP_RENDERER_GD.exists(), f"missing {MAP_RENDERER_GD}"
+    src = _read(MAP_RENDERER_GD)
+    # a persistent, y-sorted piece layer distinct from the torn-down force layer.
+    assert "pieces_layer" in src
+    assert "y_sort_enabled = true" in src, "pieces must y-sort by depth"
+    assert "WarTablePiece.pieces_available()" in src, "gate on assets present"
+    # dominant-arm keying from the mutually-exclusive tactical_state flags.
+    assert "func _marshal_arm" in src
+    assert re.search(r'ts\.get\("cavalry"', src) and re.search(r'ts\.get\("artillery"', src), (
+        "arm keys off tactical_state cavalry/artillery, else infantry"
+    )
+    assert 'return "infantry"' in src
+    # the diff updater is invoked from BOTH refresh paths.
+    assert src.count("_update_war_table_pieces()") >= 3, (
+        "_update_war_table_pieces must be defined and called from update_all_regions "
+        "and update_region"
+    )
+    # faction tint sourced from the centralized palette (never inline).
+    assert "Utils.COLOR_ENEMY_DEFAULT" in src
+
+
+def test_war_table_pieces_only_in_bitmap_mode():
+    """The legacy circle fixture keeps its square icons — pieces are gated to
+    the commissioned bitmap map so the fixture's visuals/tests are untouched."""
+    src = _read(MAP_RENDERER_GD)
+    # the pieces_layer creation is guarded by _bitmap_mode.
+    assert re.search(
+        r"if _bitmap_mode and WarTablePiece\.pieces_available\(\):", src
+    ), "pieces_layer must be created only in bitmap mode with assets present"

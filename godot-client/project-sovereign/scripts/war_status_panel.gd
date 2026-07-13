@@ -292,39 +292,34 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(bg)
 
-	# Center line (subtle)
+	# Center line (subtle). Anchored to the container's TRUE horizontal center so
+	# it tracks the actual (stretched) width. This bar is added with
+	# SIZE_EXPAND_FILL, so fixed bar_width/2 coordinates bunched the whole
+	# tug-of-war into the left `bar_width` px of a wider bar (UI bar-fill fix).
 	var center_line = ColorRect.new()
 	center_line.color = COLOR_BAR_CENTER
 	center_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center_line.position = Vector2(bar_width / 2 - 1, 0)
-	center_line.size = Vector2(1, bar_height)
+	_anchor_bar_child(center_line, 0.5, 0.5, -1.0, 0.0)
 	container.add_child(center_line)
 
-	# Score fill
+	# Score fill — anchored fractions of the ACTUAL width, measured from center.
 	var normalized = clamp(score, -100, 100)
 	var enemy_color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
-	var half_w = bar_width / 2.0
 
 	if normalized > 0:
-		# France winning — blue fills from center rightward
-		var fill_width = int((normalized / 100.0) * half_w)
-		if fill_width > 0:
-			var fill = ColorRect.new()
-			fill.color = Utils.NATION_COLORS["France"]
-			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			fill.position = Vector2(int(half_w), 0)
-			fill.size = Vector2(fill_width, bar_height)
-			container.add_child(fill)
+		# France winning — blue fills from center rightward.
+		var fill = ColorRect.new()
+		fill.color = Utils.NATION_COLORS["France"]
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+		container.add_child(fill)
 	elif normalized < 0:
-		# Enemy winning — red fills from center leftward
-		var fill_width = int((abs(normalized) / 100.0) * half_w)
-		if fill_width > 0:
-			var fill = ColorRect.new()
-			fill.color = enemy_color
-			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			fill.position = Vector2(int(half_w) - fill_width, 0)
-			fill.size = Vector2(fill_width, bar_height)
-			container.add_child(fill)
+		# Enemy winning — red fills from center leftward.
+		var fill = ColorRect.new()
+		fill.color = enemy_color
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+		container.add_child(fill)
 
 	# Score label (small, centered on bar). Slice 7.5 review fold: dark
 	# outline keeps the score readable over light nation fills (e.g. the
@@ -342,6 +337,19 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	container.add_child(score_label)
 
 	return container
+
+
+static func _anchor_bar_child(node: Control, a_left: float, a_right: float, o_left: float, o_right: float) -> void:
+	# Anchor a tug-of-war bar child horizontally to fractions of the container's
+	# ACTUAL width (full height), so it resizes with a SIZE_EXPAND_FILL bar.
+	node.anchor_left = a_left
+	node.anchor_right = a_right
+	node.anchor_top = 0.0
+	node.anchor_bottom = 1.0
+	node.offset_left = o_left
+	node.offset_right = o_right
+	node.offset_top = 0.0
+	node.offset_bottom = 0.0
 
 
 func _get_score_color(score: int) -> Color:

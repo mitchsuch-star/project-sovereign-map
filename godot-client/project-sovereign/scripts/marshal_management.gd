@@ -660,7 +660,11 @@ func _skill_bar_row(label: String, val: int, note: String) -> String:
 	var filled = clampi(val, 0, 10)
 	var bar = "[color=#" + color + "]" + "█".repeat(filled) + "[/color]"
 	bar += "[color=#" + COLOR_DIM + "]" + "░".repeat(10 - filled) + "[/color]"
-	var row = label + " " + bar + " [color=#" + color + "]" + str(val) + "[/color]"
+	# Bar FIRST so every row's fixed 10-cell bar starts at the same x and the
+	# bars form a clean column. The label used to LEAD, and its varying width
+	# ("Shock" 5 chars vs "Administration" 14) staircased the bars into a ragged
+	# column in the proportional UI font (UI-1). Label + value now trail the bar.
+	var row = bar + "  " + label + " [color=#" + color + "]" + str(val) + "[/color]"
 	if note != "":
 		row += "  [color=#" + COLOR_DIM + "]" + note + "[/color]"
 	return row + "\n"

@@ -14,6 +14,13 @@ const REGION_LABEL_HEIGHT: float = 20.0
 const MARSHAL_ICON_SIZE := Vector2(16, 16)
 const MARSHAL_ICON_SPACING: float = 8.0
 const MARSHAL_ICON_Y_OFFSET: float = -50.0
+# UI-5 War-Table Pieces: on-map draw size of a tin-flat standee (the full 256px
+# source frame maps to this height; the visible figure is ~55% of it), the
+# horizontal spread for co-located marshals, and the province->province move
+# tween. Tunable — flagged for visual sign-off like the U2/U3 gates.
+const WAR_PIECE_FRAME_PX: float = 84.0
+const WAR_PIECE_SLOT_SPACING: float = 30.0
+const WAR_PIECE_MOVE_DURATION: float = 0.45
 const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
 # UI cleanup (July 2 playtest feedback): force name labels draw straight on
@@ -184,6 +191,18 @@ var owner_fill_layer: TextureRect
 var region_nodes := {}
 var marshal_hitboxes: Array = []
 var fogged_force_hitboxes: Array = []
+# UI-5 War-Table Pieces: a PERSISTENT, y-sorted layer of tin-flat standees at
+# marshal anchors. Unlike the force_layer icons (torn down every refresh — see
+# _rebuild_dynamic_nodes), pieces keep per-marshal node identity across updates
+# so they can tween province->province and flip facing by travel heading. Only
+# populated in bitmap-art mode (the legacy circle fixture keeps its square icons).
+var pieces_layer: Node2D = null
+var _war_pieces := {}          # marshal name -> WarTablePiece
+var _war_piece_anchors := {}   # marshal name -> Vector2 (last layer anchor)
+var _war_piece_regions := {}   # marshal name -> String (last region — a REAL
+                               # move (region change) tweens + flips facing; a
+                               # pure slot re-center from a neighbor arriving/
+                               # leaving snaps, so idle marshals don't slide.
 var province_definition := {}
 var province_shapes := {}
 var province_color_lookup := {}
@@ -784,6 +803,20 @@ func _create_scene_layers():
 	region_layer.z_index = 1
 	world_layer.add_child(region_layer)
 
+	# UI-5: war-table pieces — tin-flat standees at marshal anchors. A Node2D
+	# (not a Control) so it can y-sort its children by depth and each piece can
+	# tween. z_index 2 = above the province art/region fills, and — added BEFORE
+	# force_layer (same z) — it draws UNDER the marshal name labels so text stays
+	# readable over the pieces. Bitmap-art maps only (the war-table fantasy is on
+	# the commissioned map); the legacy circle fixture keeps its square icons.
+	pieces_layer = null
+	if _bitmap_mode and WarTablePiece.pieces_available():
+		pieces_layer = Node2D.new()
+		pieces_layer.name = "WarTablePieceLayer"
+		pieces_layer.y_sort_enabled = true
+		pieces_layer.z_index = 2
+		world_layer.add_child(pieces_layer)
+
 	force_layer = Control.new()
 	force_layer.name = "ForceLayer"
 	force_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1130,30 +1163,61 @@ func _rebuild_dynamic_nodes():
 	_refresh_hover_state()
 
 
+func _marshal_slot_offset(i: int, count: int) -> float:
+	# Symmetric horizontal spread for co-located marshals — shared by the standee
+	# layer and the name labels so a name rests over its own piece (the label is
+	# rebuilt at the destination each refresh; during a march the piece tweens up
+	# to it over WAR_PIECE_MOVE_DURATION, so they briefly separate then re-align).
+	return (float(i) - float(count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING
+
+
 func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 	var font = ThemeDB.fallback_font
+	var pieces_active := pieces_layer != null
+	var colors = _get_colors()
+	# Legacy square-icon horizontal layout (only used when pieces are inactive).
 	var total_width = marshals.size() * MARSHAL_ICON_SIZE.x + max(0, marshals.size() - 1) * MARSHAL_ICON_SPACING
 	var start_x = -total_width / 2.0
-	var colors = _get_colors()
 
 	for i in range(marshals.size()):
 		var marshal: Dictionary = marshals[i]
 		var marshal_name = str(marshal.get("name", "?"))
 		var nation = str(marshal.get("nation", "Neutral"))
-		var icon_pos = region_pos + Vector2(start_x + i * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
-		var layer_icon_pos = _world_to_layer_position(icon_pos)
-		var icon_panel = Panel.new()
-		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon_panel.position = layer_icon_pos
-		icon_panel.size = MARSHAL_ICON_SIZE
-		icon_panel.add_theme_stylebox_override("panel", _make_box_style(colors.get(nation, Color(1.0, 0.0, 1.0)), Color.BLACK, 2.0, 2))
-		force_layer.add_child(icon_panel)
-
 		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
-		var name_offset := Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
+
+		# label_anchor_world = top-left of the name label (WORLD coords);
+		# hitbox_rect = the hover target (WORLD coords).
+		var label_anchor_world: Vector2
+		var hitbox_rect: Rect2
+
+		if pieces_active:
+			# The standee IS the marshal's map presence (drawn by
+			# _update_war_table_pieces, spread by the same slot math). Skip the
+			# colored square; float the name above the standee and size the hover
+			# box to its footprint.
+			var slot_x := _marshal_slot_offset(i, marshals.size())
+			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0 + i * 13.0)
+			label_anchor_world = region_pos + Vector2(slot_x - name_width / 2.0, name_y)
+			var box_w := maxf(WAR_PIECE_SLOT_SPACING, 34.0)
+			var box_h := WAR_PIECE_FRAME_PX * 0.62
+			hitbox_rect = Rect2(
+				region_pos + Vector2(slot_x - box_w / 2.0, -box_h),
+				Vector2(box_w, box_h)
+			)
+		else:
+			var icon_pos = region_pos + Vector2(start_x + i * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
+			var icon_panel = Panel.new()
+			icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_panel.position = _world_to_layer_position(icon_pos)
+			icon_panel.size = MARSHAL_ICON_SIZE
+			icon_panel.add_theme_stylebox_override("panel", _make_box_style(colors.get(nation, Color(1.0, 0.0, 1.0)), Color.BLACK, 2.0, 2))
+			force_layer.add_child(icon_panel)
+			label_anchor_world = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
+			hitbox_rect = Rect2(icon_pos, MARSHAL_ICON_SIZE)
+
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = layer_icon_pos + name_offset
+		name_label.position = _world_to_layer_position(label_anchor_world)
 		name_label.size = Vector2(name_width, 14.0)
 		name_label.text = marshal_name
 		name_label.add_theme_font_size_override("font_size", 11)
@@ -1163,11 +1227,107 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		force_layer.add_child(name_label)
 
 		marshal_hitboxes.append({
-			"rect": Rect2(icon_pos, MARSHAL_ICON_SIZE),
+			"rect": hitbox_rect,
 			"marshal": marshal,
 		})
-		_label_avoid_world_rects.append(Rect2(icon_pos, MARSHAL_ICON_SIZE))
-		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, 14.0)))
+		_label_avoid_world_rects.append(hitbox_rect)
+		_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, 14.0)))
+
+
+func _marshal_arm(marshal: Dictionary) -> String:
+	# One marshal is a single unit type (models/marshal.py: cavalry/artillery are
+	# mutually-exclusive bools, else infantry). That IS the dominant arm.
+	# The backend ships a display-only top-level "arm" for EVERY visible marshal
+	# (own + FULL-visibility enemy); read it first so enemy corps key correctly.
+	# tactical_state.cavalry/artillery is the player-only fallback for older
+	# payloads (it is absent on enemy marshals — hence the top-level field).
+	var top := str(marshal.get("arm", ""))
+	if top == "cavalry" or top == "artillery" or top == "infantry":
+		return top
+	var ts: Dictionary = marshal.get("tactical_state", {})
+	if bool(ts.get("cavalry", false)):
+		return "cavalry"
+	if bool(ts.get("artillery", false)):
+		return "artillery"
+	return "infantry"
+
+
+func _update_war_table_pieces() -> void:
+	# Diff the live marshal set against the persistent standee layer: retire gone
+	# marshals, tween movers (facing by travel heading), spawn newcomers. Runs
+	# after _rebuild_dynamic_nodes so region_marshals is current.
+	if pieces_layer == null:
+		return
+	var colors = _get_colors()
+	var positions = _get_active_region_positions()
+
+	# Desired state: marshal name -> {anchor (layer coords), arm, nation}.
+	var desired := {}
+	for region_name in region_marshals:
+		if not positions.has(region_name):
+			continue
+		var region_pos: Vector2 = positions[region_name]
+		var marshals: Array = region_marshals[region_name]
+		var count := marshals.size()
+		for i in range(count):
+			var marshal: Dictionary = marshals[i]
+			var mname := str(marshal.get("name", ""))
+			if mname == "":
+				continue
+			var world_anchor := region_pos + Vector2(_marshal_slot_offset(i, count), 0.0)
+			desired[mname] = {
+				"anchor": _world_to_layer_position(world_anchor),
+				"region": region_name,
+				"arm": _marshal_arm(marshal),
+				"nation": str(marshal.get("nation", "Neutral")),
+			}
+
+	# Retire pieces whose marshal is gone (killed / captured / fogged out).
+	for mname in _war_pieces.keys():
+		if not desired.has(mname):
+			var gone: Node = _war_pieces[mname]
+			if is_instance_valid(gone):
+				gone.queue_free()
+			_war_pieces.erase(mname)
+			_war_piece_anchors.erase(mname)
+			_war_piece_regions.erase(mname)
+
+	# Create or update the live pieces.
+	for mname in desired:
+		var spec: Dictionary = desired[mname]
+		var anchor: Vector2 = spec["anchor"]
+		var region: String = spec["region"]
+		var arm: String = spec["arm"]
+		var nation_color: Color = colors.get(spec["nation"], Utils.COLOR_ENEMY_DEFAULT)
+
+		var piece = _war_pieces.get(mname, null)
+		if piece != null and is_instance_valid(piece):
+			piece.set_arm(arm)
+			piece.set_faction(nation_color)
+			var prev_region: String = str(_war_piece_regions.get(mname, region))
+			var prev: Vector2 = _war_piece_anchors.get(mname, anchor)
+			if region != prev_region:
+				# A REAL march — tween along the path + face the travel heading.
+				if anchor.x > prev.x + 0.5:
+					piece.set_facing("r")
+				elif anchor.x < prev.x - 0.5:
+					piece.set_facing("l")
+				piece.move_to(anchor, WAR_PIECE_MOVE_DURATION)
+			elif prev.distance_to(anchor) > 0.5:
+				# Same region, slot re-centered because a neighbor arrived/left —
+				# snap in place (no slide, no facing flip) so idle pieces are still.
+				piece.position = anchor
+			_war_piece_anchors[mname] = anchor
+			_war_piece_regions[mname] = region
+			continue
+
+		var new_piece = WarTablePiece.new()
+		pieces_layer.add_child(new_piece)
+		new_piece.setup(arm, "r", nation_color, WAR_PIECE_FRAME_PX)
+		new_piece.position = anchor
+		_war_pieces[mname] = new_piece
+		_war_piece_anchors[mname] = anchor
+		_war_piece_regions[mname] = region
 
 
 func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regular_marshal_offset: int):
@@ -2264,6 +2424,7 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 	_refresh_owner_fill_palette()
 	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
+	_update_war_table_pieces()
 	queue_redraw()
 
 
@@ -2319,4 +2480,5 @@ func update_all_regions(map_data: Dictionary):
 	_refresh_owner_fill_palette()
 	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
+	_update_war_table_pieces()
 	queue_redraw()

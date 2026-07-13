@@ -33,7 +33,22 @@
 > (Session Segmentation Ledger)** — U1 + U2 (Parts 1, 2, 2c) + **U3 (texture / icon / portrait polish)
 > ✅ LANDED July 12, 2026** + **U4 (War-Table Pieces ART) ✅ LANDED July 12, 2026** (24 tin-flat
 > sprites in `assets/ui/pieces/`, 2D pipeline `tools/gen_war_table_pieces.py` — Blender not installed,
-> conscious §8-U4 deviation) all done; resume at **U5** (War-Table Pieces Godot placement code).
+> conscious §8-U4 deviation) + **U5 (War-Table Pieces Godot placement) ✅ LANDED July 13, 2026** all
+> done — **the sweep is U1–U5 COMPLETE** (pending the standing U2/U3/U5 visual sign-offs).
+> **Session U5 (War-Table Pieces CODE) ✅ LANDED July 13, 2026** — `scenes/war_table_piece.gd`
+> (`class_name WarTablePiece`: 4 stacked ground-anchored `Sprite2D` layers, faction `modulate` on the
+> coat only + a dark-hue value floor) placed by a persistent y-sorted `pieces_layer` under `world_layer`
+> and a DIFF updater `_update_war_table_pieces()` (retire/snap-recenter/tween-real-move/spawn, facing-flip
+> by heading), keyed to a NEW display-only backend `arm` field (fog-safe — enemies carry arm only at FULL
+> visibility) so enemy corps no longer all draw as infantry; bitmap-mode gated (legacy fixture keeps its
+> square icons); the piece ART re-touched (cavalry redrawn, infantry/artillery upscaled, the occluded
+> contact shadow made visible). Boot-smoke 0 `SCRIPT ERROR` (probe-confirmed 3 pieces keyed to
+> infantry/cavalry/artillery); `test_ui_visual_foundation.py` +3, `test_fog_of_war.py::TestMarshalArmField`
+> +4. **Also this session (UI bar-fill fixes the user flagged):** the war-score tug-of-war bar
+> (`war_status_panel.gd` + `war_detail_popup.gd`) switched from fixed `bar_width` inner coords to anchor
+> fractions so the centre line + fills track a `SIZE_EXPAND_FILL` container (they had bunched into the
+> left ~80px of a wider bar); the marshal-card skill `█░` bars re-ordered bar-first so the varying label
+> width no longer staircases the bar column.
 > **Session U3 ("Texture / Icon / Portrait Polish") ✅ LANDED July 12, 2026** — the 37 PD marshal
 > portraits render as `[img]` thumbnails on the Generals cards + Commission bench (Abdurrahman → gold
 > monogram); the curated icon sets, preprocessed to white silhouettes, are tinted gold onto the close-X
@@ -507,14 +522,61 @@ keyed to its dominant arm.
 - **STATUS line:** ✅ recorded — War-Table Pieces ART landed July 12, 2026; **resume at U5** (Godot
   placement: Y-sort / tween / facing-flip / marshal→dominant-arm keying + its behaviour test).
 
-### Session U5 — War-Table Pieces CODE (Godot placement)
+### Session U5 — War-Table Pieces CODE (Godot placement)  ✅ LANDED July 13, 2026
 - **Entry:** U4 art exists.
 - **Spots checklist:**
-  - [ ] `Sprite2D` (flat) + round-base child + shadow child at each active marshal's province anchor, keyed to dominant arm.
-  - [ ] **Y-sort** for depth; **tween** position along the march path on move; **flip facing** by travel heading.
-  - [ ] Faction `modulate` on the coat mask via `Utils.NATION_COLORS`.
-  - [ ] Additive layer — the 2D map / zoom / labels untouched.
-  - [ ] Boot engine → `grep SCRIPT ERROR` == 0.
-  - [ ] Extend `tests/test_ui_visual_foundation.py`: the 3 flat sprites (+ base + shadow, both facings) exist; each active marshal renders a piece keyed to its dominant arm.
-- **Exit:** §7 pieces completion definition.
-- **STATUS line:** record the pieces-code landing; the War-Table Pieces sub-item CLOSED.
+  - [x] `Sprite2D` (flat) + round-base + shadow + coat layers per marshal at its
+    province anchor, keyed to dominant arm — new `scenes/war_table_piece.gd`
+    (`class_name WarTablePiece`): 4 stacked `Sprite2D` children (shadow/base/coat/
+    body), ground-anchored at the node origin (centered=false, offset (−128,−210),
+    node scale = frame_px/256) so feet sit on the province and y-sort orders by feet;
+    static texture cache; `pieces_available()` asset gate.
+  - [x] **Y-sort** (`pieces_layer.y_sort_enabled`, a persistent `Node2D` under
+    `world_layer` distinct from the torn-down `force_layer`); **tween** province→
+    province on a REAL region change (`WarTablePiece.move_to`, kills the prior
+    tween); **facing flip** by travel-heading dx. `_update_war_table_pieces()` is a
+    DIFF updater (retire gone / snap slot-re-centers / tween real moves / spawn new)
+    called from both `update_all_regions` + `update_region`.
+  - [x] Faction `modulate` on the COAT sprite only via `Utils.NATION_COLORS`
+    (base/shadow/body neutral pewter); a value floor (`_legible_tint`) lifts very
+    dark hues (Prussia) so the coat doesn't muddy into the relief.
+  - [x] **Dominant arm keyed backend-side too** — added a display-only top-level
+    `arm` to the base marshal dict in `world_state.get_game_state_summary` (derived
+    from the existing `cavalry`/`artillery` flags, GR6); `tactical_state` is
+    player-only, so without this every ENEMY corps drew as infantry. Fog-safe: the
+    filtered summary keeps enemy marshals in `marshals[]` only at FULL visibility,
+    reducing PARTIAL/STALE to `fogged_forces` (name/nation/band only) — arm never
+    leaks (`tests/test_fog_of_war.py::TestMarshalArmField`, 4). `_marshal_arm` reads
+    the top-level field first, `tactical_state` as the legacy fallback.
+  - [x] Additive layer — the 2D map / zoom / labels untouched; bitmap-mode gated
+    (`_bitmap_mode and WarTablePiece.pieces_available()`), so the legacy circle
+    fixture keeps its square icons. The `force_layer` square is suppressed when
+    pieces are active (name label + hitbox kept, aligned to the standee slot math).
+  - [x] Boot engine → `grep SCRIPT ERROR` == 0 (headless `--import` + main-scene
+    run; a temp `_piece_probe` scene confirmed 3 pieces instantiate keyed to
+    `[infantry, cavalry, artillery]` + the move/retire path, then removed).
+  - [x] `tests/test_ui_visual_foundation.py` extended (+3 static `.gd` assertions:
+    the piece class shape, the renderer wiring, the bitmap-mode gate) — full file
+    green. The "each marshal renders a piece keyed to arm" runtime behaviour is the
+    manual boot-smoke gate (pytest can't boot Godot).
+- **Piece ART re-touch (this session):** cavalry redrawn (deep-chested horse,
+  arched neck + ears, clean gallop, raised curved sabre — the U4 pass read as
+  spidery legs + a muddled head); infantry coat mass widened + figures upscaled
+  ~12% for the 64px map read; artillery crew enlarged; the contact shadow was
+  fully occluded by the opaque base disc (drawn at 0.82× base radius underneath) —
+  now a soft halo peeking past the base rim so pieces read as grounded.
+  Regenerated the 24 sprites; verified legibility + faction tint (France/Austria/
+  Russia) at 48–80px.
+- **Exit:** §7 pieces completion definition met — pieces placed + y-sorted + facing-
+  flipping + tweening + faction-tinted on the map, the 2D map/zoom/labels untouched,
+  0 `SCRIPT ERROR`.
+- **⚠ open (visual sign-off, matches the U2/U3 gates):** boot-clean but not
+  screenshot-verified in a live game. Please eyeball on the running map: (a) piece
+  on-map size (`WAR_PIECE_FRAME_PX=84`) and clustering (`WAR_PIECE_SLOT_SPACING=30`
+  — co-located standees overlap since they spread only in x); (b) dark-nation
+  (Prussia) tint after the value floor; (c) cavalry/artillery faction read (the hue
+  sits on a smaller mass than infantry's three coats + banner); (d) the ~0.45s move
+  tween feel. Each is a one-line tune.
+- **STATUS line:** ✅ recorded — War-Table Pieces CODE landed July 13, 2026; the
+  War-Table Pieces sub-item CLOSED. **The UI Visual Foundation Sweep is now
+  U1–U5 complete** (pending the standing U2 map-crispness / U3 / U5 visual sign-offs).

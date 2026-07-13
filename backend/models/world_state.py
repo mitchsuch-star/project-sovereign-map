@@ -5871,7 +5871,20 @@ class WorldState:
                     "nation": m.nation,
                     "strength": int(m.strength),
                     "morale": int(m.morale),
-                    "movement_range": int(m.movement_range)
+                    "movement_range": int(m.movement_range),
+                    # Display-only dominant arm (GR6: derived from the existing
+                    # mutually-exclusive cavalry/artillery flags, no mechanic
+                    # touch). Rides the BASE dict so the map war-table pieces can
+                    # key an enemy's arm too — tactical_state is player-only, so
+                    # without this every enemy corps drew as infantry. Fog-safe:
+                    # the filtered summary only keeps enemy marshals in
+                    # marshals[] at FULL visibility; PARTIAL/STALE reduce to
+                    # fogged_forces (name/nation/band only), so arm never leaks.
+                    "arm": (
+                        "cavalry" if getattr(m, "cavalry", False)
+                        else "artillery" if getattr(m, "artillery", False)
+                        else "infantry"
+                    ),
                 }
 
                 # Add debug info for player marshals

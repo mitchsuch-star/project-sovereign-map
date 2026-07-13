@@ -1,0 +1,138 @@
+extends Node2D
+class_name WarTablePiece
+
+# War-Table Pieces (UI-5) — one tin-flat "standee" per marshal on the campaign
+# map, keyed to the marshal's arm (infantry / cavalry / artillery), faction-
+# tinted, and ground-anchored at this Node2D's origin so the parent y-sort
+# layer orders pieces by their feet (pieces lower on the map draw in front).
+#
+# The 24 source sprites live in assets/ui/pieces/ as {arm}_{layer}_{facing}.png
+# (authored by tools/gen_war_table_pieces.py — spec §7). Four layers per piece,
+# composited bottom -> top: shadow, base, coat, body. Only the COAT carries the
+# faction tint (Utils.NATION_COLORS via `modulate`); shadow / base / body stay
+# neutral pewter so the "tin" identity survives every nation hue.
+#
+# Display-only (Golden Rule 6): a piece never reads or writes game state — it is
+# fed (arm, facing, nation colour, anchor) by the map renderer.
+
+const PIECES_DIR := "res://assets/ui/pieces/"
+# Bottom -> top compositing order (matches the generator's LAYER_ORDER).
+const LAYER_ORDER := ["shadow", "base", "coat", "body"]
+# The generator draws every figure's ground-contact line at y=210 in the 256px
+# frame; the sprites are offset so this point lands on the node origin (feet on
+# the province -> clean y-sort + tween from the contact point).
+const SPRITE_FRAME := 256.0
+const SPRITE_GROUND_Y := 210.0
+const VALID_ARMS := ["infantry", "cavalry", "artillery"]
+
+# Texture cache shared across every piece — the 24 sprites load at most once.
+static var _texture_cache := {}
+
+var arm: String = "infantry"
+var facing: String = "r"
+var _frame_px: float = 84.0
+var _sprites := {}          # layer name -> Sprite2D
+var _move_tween: Tween = null
+
+
+static func _texture_path(arm_key: String, layer: String, facing_key: String) -> String:
+	return "%s%s_%s_%s.png" % [PIECES_DIR, arm_key, layer, facing_key]
+
+
+static func _load_texture(arm_key: String, layer: String, facing_key: String) -> Texture2D:
+	var path := _texture_path(arm_key, layer, facing_key)
+	if _texture_cache.has(path):
+		return _texture_cache[path]
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = ResourceLoader.load(path)
+	_texture_cache[path] = tex
+	return tex
+
+
+static func pieces_available() -> bool:
+	# One representative sprite existing is the "assets present" gate; the map
+	# renderer skips the whole pieces layer when this is false (fallback to the
+	# legacy colored-square marshal icons).
+	return ResourceLoader.exists(_texture_path("infantry", "body", "r"))
+
+
+func setup(arm_key: String, facing_key: String, nation_color: Color, frame_px: float) -> void:
+	arm = arm_key if arm_key in VALID_ARMS else "infantry"
+	facing = facing_key if facing_key in ["r", "l"] else "r"
+	_frame_px = frame_px
+	for layer in LAYER_ORDER:
+		var spr := Sprite2D.new()
+		spr.name = layer.capitalize()
+		spr.centered = false
+		# Downscaled from 256 px — mipmapped linear keeps the tin flat smooth as
+		# the map zooms, matching the commissioned map art's filter.
+		spr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		add_child(spr)
+		_sprites[layer] = spr
+	_apply_textures()
+	set_faction(nation_color)
+	_apply_frame()
+
+
+func _apply_textures() -> void:
+	for layer in LAYER_ORDER:
+		var spr: Sprite2D = _sprites.get(layer, null)
+		if spr == null:
+			continue
+		spr.texture = _load_texture(arm, layer, facing)
+
+
+func _apply_frame() -> void:
+	# Scale the whole node so the 256px source frame draws `_frame_px` tall, and
+	# offset the (top-left-origin) sprites so the ground-contact pixel sits at the
+	# node origin. Node origin == feet -> y-sort by feet, tween from the feet.
+	var s := _frame_px / SPRITE_FRAME
+	scale = Vector2(s, s)
+	var offset := Vector2(-SPRITE_FRAME / 2.0, -SPRITE_GROUND_Y)
+	for spr in _sprites.values():
+		spr.position = offset
+
+
+func set_faction(nation_color: Color) -> void:
+	var coat: Sprite2D = _sprites.get("coat", null)
+	if coat != null:
+		coat.modulate = _legible_tint(nation_color)
+
+
+func _legible_tint(c: Color) -> Color:
+	# The coat mask is near-white and `modulate` MULTIPLIES it, so a very dark
+	# nation hue (e.g. Prussia's near-black) yields a near-black coat that muddies
+	# into the pewter relief. Lift only genuinely dark hues to a value floor,
+	# scaling all channels equally so the hue is preserved; mid/light nations
+	# (France navy, Austria gold, Papal near-white) pass through untouched.
+	const VALUE_FLOOR := 0.5
+	var v := maxf(c.r, maxf(c.g, c.b))
+	if v >= VALUE_FLOOR or v <= 0.001:
+		return c
+	var k := VALUE_FLOOR / v
+	return Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0), c.a)
+
+
+func set_facing(facing_key: String) -> void:
+	if facing_key == facing or not (facing_key in ["r", "l"]):
+		return
+	facing = facing_key
+	_apply_textures()
+
+
+func set_arm(arm_key: String) -> void:
+	if arm_key == arm or not (arm_key in VALID_ARMS):
+		return
+	arm = arm_key
+	_apply_textures()
+
+
+func move_to(target: Vector2, duration: float) -> void:
+	# Tween the standee province -> province. Kills any in-flight move so a rapid
+	# second update retargets cleanly instead of stacking conflicting tweens.
+	if _move_tween != null and _move_tween.is_valid():
+		_move_tween.kill()
+	_move_tween = create_tween()
+	_move_tween.tween_property(self, "position", target, duration) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)

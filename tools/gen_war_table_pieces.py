@@ -154,16 +154,24 @@ def make_base(width_frac):
 
 
 def make_shadow(width_frac):
-    """Narrow line-shaped contact shadow hugging the feet, feathered to rim."""
+    """Soft contact shadow grounding the piece on the terrain.
+
+    NOTE: the base disc (drawn ON TOP of this layer) is opaque, so a shadow
+    tucked *under* it is invisible — earlier it used 0.82x the base radius and
+    never showed a pixel. This draws it slightly WIDER than the base and dropped
+    below centre, so a feathered halo peeks past the base's lower rim and reads
+    as the piece casting a shadow on the ground.
+    """
     lay = Image.new("RGBA", (W, W), (0, 0, 0, 0))
-    rx = width_frac * W * 0.5 * 0.82
-    ry = rx * 0.20
+    base_rx = width_frac * W * 0.5
+    rx = base_rx * 1.08                 # past the base rim so the halo shows
+    ry = rx * 0.26
+    cy = GY + 9 * SS                     # dropped below the base so it reads as ground
     d = ImageDraw.Draw(lay)
-    d.ellipse([CX - rx, GY - ry - 2 * SS, CX + rx, GY + ry - 2 * SS],
-              fill=SHADOW_COL + (150,))
-    d.ellipse([CX - rx * 0.6, GY - ry * 0.7 - 2 * SS, CX + rx * 0.6, GY + ry * 0.7 - 2 * SS],
-              fill=SHADOW_COL + (210,))
-    return lay.filter(ImageFilter.GaussianBlur(6 * SS))
+    d.ellipse([CX - rx, cy - ry, CX + rx, cy + ry], fill=SHADOW_COL + (130,))
+    d.ellipse([CX - rx * 0.62, cy - ry * 0.72, CX + rx * 0.62, cy + ry * 0.72],
+              fill=SHADOW_COL + (185,))
+    return lay.filter(ImageFilter.GaussianBlur(8 * SS))
 
 
 # ── coat helper: paint the same silhouette into body(slate) + coat(mask) ─────
@@ -210,20 +218,22 @@ def foot_soldier(body, coat, cx, s=1.0, bearer=False):
                      (cx + 11 * u * s, gy), (cx + 10 * u * s, gy - 5 * u * s)], BLACK_GEAR)
 
     # --- coat (torso + tails) : the tintable mass ---
+    # habit-long: shoulders a touch wider, tails to upper thigh, so the
+    # faction hue owns a real mass at 64px map scale (the U4 coat read thin)
     coat_pts = [
-        (cx - 6 * u * s, gy - 66 * u * s),   # back shoulder
-        (cx + 8 * u * s, gy - 66 * u * s),   # front shoulder
-        (cx + 10 * u * s, gy - 50 * u * s),  # chest
-        (cx + 9 * u * s, gy - 40 * u * s),   # front hip
-        (cx + 3 * u * s, gy - 36 * u * s),
-        (cx - 7 * u * s, gy - 37 * u * s),   # tail bottom
-        (cx - 12 * u * s, gy - 44 * u * s),  # coat-tail flare (back)
-        (cx - 9 * u * s, gy - 58 * u * s),
+        (cx - 7 * u * s, gy - 66 * u * s),   # back shoulder
+        (cx + 9 * u * s, gy - 66 * u * s),   # front shoulder
+        (cx + 11 * u * s, gy - 50 * u * s),  # chest
+        (cx + 10 * u * s, gy - 36 * u * s),  # front hip
+        (cx + 3 * u * s, gy - 32 * u * s),
+        (cx - 8 * u * s, gy - 33 * u * s),   # tail bottom
+        (cx - 13 * u * s, gy - 40 * u * s),  # coat-tail flare (back)
+        (cx - 10 * u * s, gy - 58 * u * s),
     ]
     paint_coat(body, coat, coat_pts,
-               groove=[[(cx + 2 * u * s, gy - 64 * u * s), (cx + 3 * u * s, gy - 40 * u * s)]])
+               groove=[[(cx + 2 * u * s, gy - 64 * u * s), (cx + 3 * u * s, gy - 38 * u * s)]])
     # cross-belt (white) over coat
-    stroke(body, [(cx - 7 * u * s, gy - 64 * u * s), (cx + 9 * u * s, gy - 46 * u * s)],
+    stroke(body, [(cx - 7 * u * s, gy - 64 * u * s), (cx + 10 * u * s, gy - 44 * u * s)],
            BREECH, 2.6 * u * s)
 
     # --- head: flesh + black shako with peak + plume ---
@@ -263,89 +273,130 @@ def foot_soldier(body, coat, cx, s=1.0, bearer=False):
 
 def build_infantry():
     body, coat = new_layer(), new_layer()
-    # back-to-front so overlaps read (painter's order)
-    foot_soldier(body, coat, CX - 30 * SS, s=0.94)
-    foot_soldier(body, coat, CX + 26 * SS, s=0.98)
-    foot_soldier(body, coat, CX - 2 * SS, s=1.06, bearer=True)   # centre bearer, tallest
+    # back-to-front so overlaps read (painter's order); figures sized up ~12%
+    # from U4 so the rank fills the frame and survives the 64px map read
+    foot_soldier(body, coat, CX - 34 * SS, s=1.05)
+    foot_soldier(body, coat, CX + 29 * SS, s=1.10)
+    foot_soldier(body, coat, CX - 3 * SS, s=1.19, bearer=True)   # centre bearer, tallest
     return {"base": make_base(0.80), "shadow": make_shadow(0.80),
             "body": body, "coat": coat}
 
 
 # =============================================================================
 #  CAVALRY  — single horse + rider in side profile, sabre raised
+#  (U4-review rework: the first pass read as a sprawl of thin legs with a
+#   muddled head; this pass = deep-chested barrel, arched neck into a wedge
+#   head with ears, two clean leg PAIRS in a classic gallop, a bigger rider,
+#   and a faction-tinted shabraque so the nation hue reads at 64px)
 # =============================================================================
 def build_cavalry():
     body, coat = new_layer(), new_layer()
     u = SS
     gy = GY
     cx = CX
-    # --- horse body (galloping, legs extended) ---
-    horse = [
-        (cx - 34 * u, gy - 44 * u),   # rump top
-        (cx - 6 * u, gy - 52 * u),    # back
-        (cx + 22 * u, gy - 50 * u),   # withers
-        (cx + 40 * u, gy - 46 * u),   # neck base
-        (cx + 30 * u, gy - 40 * u),   # chest
-        (cx + 30 * u, gy - 26 * u),   # front upper leg
-        (cx + 2 * u, gy - 34 * u),    # belly
-        (cx - 30 * u, gy - 30 * u),   # flank
-        (cx - 40 * u, gy - 40 * u),   # hindquarter
-    ]
-    smooth_fill(body, horse, HORSE)
-    # lower belly shade
-    ImageDraw.Draw(body).polygon(
-        [(cx - 30 * u, gy - 30 * u), (cx + 30 * u, gy - 26 * u),
-         (cx + 26 * u, gy - 20 * u), (cx - 28 * u, gy - 22 * u)], fill=HORSE_DK)
-    # --- legs: front pair reaching forward, hind pair driving back ---
+
+    # --- far-side legs first (darker, behind the barrel) ---
     for (hip, knee, hoof, wd) in [
-        ((cx + 26 * u, gy - 30 * u), (cx + 36 * u, gy - 14 * u), (cx + 44 * u, gy - 1 * u), 7.0),  # fore-lead
-        ((cx + 22 * u, gy - 30 * u), (cx + 20 * u, gy - 16 * u), (cx + 16 * u, gy - 1 * u), 6.2),  # fore-trail
-        ((cx - 30 * u, gy - 34 * u), (cx - 40 * u, gy - 18 * u), (cx - 46 * u, gy - 1 * u), 7.0),  # hind-drive
-        ((cx - 24 * u, gy - 34 * u), (cx - 18 * u, gy - 18 * u), (cx - 12 * u, gy - 1 * u), 6.2),  # hind-trail
+        ((cx + 20 * u, gy - 36 * u), (cx + 34 * u, gy - 22 * u), (cx + 47 * u, gy - 10 * u), 5.6),  # far fore
+        ((cx - 30 * u, gy - 38 * u), (cx - 42 * u, gy - 18 * u), (cx - 50 * u, gy - 2 * u), 5.6),   # far hind
     ]:
         stroke(body, [hip, knee, hoof], HORSE_DK, wd * u, smooth=True)
-        disc(body, hoof[0], hoof[1], 3.0 * u, 2.6 * u, BLACK_GEAR)
-    # --- neck + head reaching forward ---
-    neck = [(cx + 34 * u, gy - 48 * u), (cx + 50 * u, gy - 56 * u),
-            (cx + 60 * u, gy - 52 * u), (cx + 58 * u, gy - 42 * u),
-            (cx + 46 * u, gy - 40 * u), (cx + 36 * u, gy - 40 * u)]
-    smooth_fill(body, neck, HORSE)
-    head = [(cx + 56 * u, gy - 56 * u), (cx + 68 * u, gy - 52 * u),
-            (cx + 70 * u, gy - 44 * u), (cx + 62 * u, gy - 40 * u),
-            (cx + 54 * u, gy - 44 * u)]
-    smooth_fill(body, head, HORSE)
-    # mane + tail
-    stroke(body, [(cx + 30 * u, gy - 52 * u), (cx + 48 * u, gy - 58 * u), (cx + 58 * u, gy - 56 * u)],
-           HORSE_MANE, 3.5 * u, smooth=True)
-    smooth_fill(body, [(cx - 38 * u, gy - 46 * u), (cx - 50 * u, gy - 42 * u),
-                       (cx - 58 * u, gy - 22 * u), (cx - 54 * u, gy - 12 * u),
-                       (cx - 50 * u, gy - 24 * u), (cx - 44 * u, gy - 38 * u),
-                       (cx - 36 * u, gy - 42 * u)], HORSE_MANE)  # streaming tail
+        disc(body, hoof[0], hoof[1], 2.6 * u, 2.2 * u, BLACK_GEAR)
 
-    # --- rider ---
-    rx = cx - 2 * u
-    ry = gy - 52 * u
-    # legs astride
-    stroke(body, [(rx + 4 * u, ry + 2 * u), (rx + 12 * u, ry + 12 * u), (rx + 16 * u, ry + 22 * u)],
+    # --- streaming tail (behind the rump) ---
+    smooth_fill(body, [
+        (cx - 46 * u, gy - 56 * u), (cx - 62 * u, gy - 52 * u),
+        (cx - 72 * u, gy - 38 * u), (cx - 67 * u, gy - 28 * u),
+        (cx - 58 * u, gy - 40 * u), (cx - 48 * u, gy - 48 * u),
+    ], HORSE_MANE)
+
+    # --- barrel: deep chest, round rump ---
+    torso = [
+        (cx - 44 * u, gy - 56 * u),   # top of rump
+        (cx - 18 * u, gy - 62 * u),   # back
+        (cx + 8 * u, gy - 62 * u),    # withers
+        (cx + 24 * u, gy - 58 * u),   # neck-base top
+        (cx + 30 * u, gy - 46 * u),   # chest front
+        (cx + 24 * u, gy - 32 * u),   # girth
+        (cx - 4 * u, gy - 29 * u),    # belly
+        (cx - 30 * u, gy - 33 * u),   # flank
+        (cx - 48 * u, gy - 42 * u),   # hindquarter
+    ]
+    smooth_fill(body, torso, HORSE)
+    # lower belly shade (volume)
+    ImageDraw.Draw(body).polygon(
+        [(cx - 30 * u, gy - 33 * u), (cx + 24 * u, gy - 32 * u),
+         (cx + 18 * u, gy - 25 * u), (cx - 28 * u, gy - 26 * u)], fill=HORSE_DK)
+
+    # --- near-side legs (over the barrel): classic gallop ---
+    for (hip, knee, hoof, wd) in [
+        ((cx + 22 * u, gy - 38 * u), (cx + 42 * u, gy - 28 * u), (cx + 58 * u, gy - 18 * u), 6.6),  # near fore, reaching
+        ((cx - 34 * u, gy - 40 * u), (cx - 50 * u, gy - 22 * u), (cx - 62 * u, gy - 2 * u), 6.6),   # near hind, driving
+    ]:
+        stroke(body, [hip, knee, hoof], HORSE, wd * u, smooth=True)
+        disc(body, hoof[0], hoof[1], 2.8 * u, 2.4 * u, BLACK_GEAR)
+
+    # --- arched neck rising to the poll ---
+    neck = [
+        (cx + 16 * u, gy - 62 * u),   # base at withers
+        (cx + 36 * u, gy - 80 * u),   # crest
+        (cx + 46 * u, gy - 88 * u),   # poll
+        (cx + 50 * u, gy - 80 * u),   # forehead front
+        (cx + 40 * u, gy - 60 * u),   # throat
+        (cx + 30 * u, gy - 46 * u),   # chest join
+    ]
+    smooth_fill(body, neck, HORSE)
+    # wedge head: poll -> muzzle pointing forward-down
+    head = [
+        (cx + 42 * u, gy - 90 * u),
+        (cx + 52 * u, gy - 87 * u),
+        (cx + 64 * u, gy - 75 * u),   # muzzle top
+        (cx + 62 * u, gy - 69 * u),   # lip
+        (cx + 49 * u, gy - 72 * u),   # jaw
+        (cx + 39 * u, gy - 79 * u),
+    ]
+    smooth_fill(body, head, HORSE)
+    # ears (the "horse" tell in pure silhouette)
+    stroke(body, [(cx + 43 * u, gy - 90 * u), (cx + 40 * u, gy - 98 * u)], HORSE_DK, 2.4 * u)
+    stroke(body, [(cx + 48 * u, gy - 89 * u), (cx + 48 * u, gy - 97 * u)], HORSE_DK, 2.4 * u)
+    # mane along the crest
+    stroke(body, [(cx + 12 * u, gy - 63 * u), (cx + 32 * u, gy - 79 * u), (cx + 44 * u, gy - 90 * u)],
+           HORSE_MANE, 4.0 * u, smooth=True)
+
+    # --- shabraque (saddle cloth) : faction-tinted mass under the rider ---
+    rx_ = cx - 4 * u
+    ry_ = gy - 62 * u                 # rider hip / saddle point
+    shab = [(rx_ - 13 * u, ry_ + 1 * u), (rx_ + 13 * u, ry_ + 1 * u),
+            (rx_ + 15 * u, ry_ + 16 * u), (rx_ - 16 * u, ry_ + 16 * u)]
+    paint_coat(body, coat, shab)
+
+    # --- rider (bigger than U4 so he owns the top half) ---
+    # near leg over the shabraque
+    stroke(body, [(rx_ + 2 * u, ry_ + 2 * u), (rx_ + 8 * u, ry_ + 14 * u), (rx_ + 10 * u, ry_ + 26 * u)],
            SLATE_DK, 5 * u, smooth=True)
-    # torso coat (tint)
-    torso = [(rx - 8 * u, ry - 2 * u), (rx + 8 * u, ry - 2 * u),
-             (rx + 10 * u, ry - 18 * u), (rx + 4 * u, ry - 24 * u),
-             (rx - 6 * u, ry - 22 * u), (rx - 12 * u, ry - 12 * u)]
-    paint_coat(body, coat, torso)
-    stroke(body, [(rx - 8 * u, ry - 20 * u), (rx + 8 * u, ry - 6 * u)], BREECH, 2.4 * u)  # belt
-    # head + helmet
-    disc(body, rx + 4 * u, ry - 26 * u, 5 * u, 5.5 * u, FLESH)
-    hard_fill(body, [(rx - 1 * u, ry - 28 * u), (rx + 9 * u, ry - 28 * u),
-                     (rx + 9 * u, ry - 38 * u), (rx - 1 * u, ry - 38 * u)], BLACK_GEAR)
-    stroke(body, [(rx + 4 * u, ry - 38 * u), (rx + 2 * u, ry - 48 * u)], BREECH, 3 * u)  # plume
-    # near arm raised with sabre, clearing the helmet
-    sh = (rx + 2 * u, ry - 16 * u)
-    hand = (rx + 20 * u, ry - 40 * u)
-    stroke(body, [sh, (rx + 14 * u, ry - 24 * u), hand], SLATE_DK, 4 * u, smooth=True)
-    line(body, hand, (rx + 40 * u, ry - 74 * u), STEEL, 2.6 * u)     # sabre blade
-    disc(body, hand[0], hand[1], 2.4 * u, 2.4 * u, BRONZE)          # hilt
-    return {"base": make_base(0.58), "shadow": make_shadow(0.62),
+    disc(body, rx_ + 10 * u, ry_ + 27 * u, 3 * u, 2.4 * u, BLACK_GEAR)   # boot
+    # torso coat (tint mass)
+    torso_r = [(rx_ - 10 * u, ry_ + 2 * u), (rx_ + 10 * u, ry_ + 2 * u),
+               (rx_ + 12 * u, ry_ - 16 * u), (rx_ + 6 * u, ry_ - 26 * u),
+               (rx_ - 8 * u, ry_ - 24 * u), (rx_ - 14 * u, ry_ - 10 * u)]
+    paint_coat(body, coat, torso_r)
+    stroke(body, [(rx_ - 8 * u, ry_ - 22 * u), (rx_ + 10 * u, ry_ - 4 * u)], BREECH, 2.6 * u)  # crossbelt
+    # reins: hand to the muzzle
+    stroke(body, [(rx_ + 11 * u, ry_ - 6 * u), (cx + 58 * u, gy - 73 * u)], BLACK_GEAR, 1.5 * u)
+    # head + shako + plume
+    disc(body, rx_ + 2 * u, ry_ - 30 * u, 5 * u, 5.5 * u, FLESH)
+    hard_fill(body, [(rx_ - 4 * u, ry_ - 32 * u), (rx_ + 8 * u, ry_ - 32 * u),
+                     (rx_ + 8 * u, ry_ - 45 * u), (rx_ - 4 * u, ry_ - 45 * u)], BLACK_GEAR)
+    disc(body, rx_ + 2 * u, ry_ - 45 * u, 5.5 * u, 2.0 * u, BLACK_HI)   # top band
+    stroke(body, [(rx_ + 2 * u, ry_ - 45 * u), (rx_ + 0 * u, ry_ - 57 * u)], BREECH, 3.2 * u)  # plume
+    # near arm raised, curved sabre clearing the shako
+    sh = (rx_ + 6 * u, ry_ - 18 * u)
+    hand = (rx_ + 22 * u, ry_ - 44 * u)
+    stroke(body, [sh, (rx_ + 16 * u, ry_ - 30 * u), hand], SLATE_DK, 4.2 * u, smooth=True)
+    stroke(body, [hand, (rx_ + 33 * u, ry_ - 62 * u), (rx_ + 40 * u, ry_ - 78 * u)],
+           STEEL, 2.8 * u, smooth=True)                                   # curved blade
+    disc(body, hand[0], hand[1], 2.6 * u, 2.6 * u, BRONZE)                # hilt
+    return {"base": make_base(0.58), "shadow": make_shadow(0.66),
             "body": body, "coat": coat}
 
 
@@ -354,7 +405,7 @@ def build_cavalry():
 # =============================================================================
 def build_artillery():
     body, coat = new_layer(), new_layer()
-    u = SS
+    u = SS * 1.1   # U4 review: the gun sat small in frame — +10% for the map read
     gy = GY
     cx = CX
     # --- trail (tail beam to the left, with ground spike) ---
@@ -401,12 +452,17 @@ def build_artillery():
                            (gx + 9 * u, gy - 3 * u), (gx + 5 * u, gy - 28 * u)], BREECH)  # front leg
         hard_fill(body, [(gx + 4 * u, gy - 4 * u), (gx + 4 * u, gy), (gx + 11 * u, gy),
                          (gx + 11 * u, gy - 4 * u)], BLACK_GEAR)
-        torso = [(gx - 5 * u, gy - 50 * u), (gx + 6 * u, gy - 48 * u),
-                 (gx + 6 * u, gy - 30 * u), (gx - 5 * u, gy - 31 * u)]
+        torso = [(gx - 7 * u, gy - 51 * u), (gx + 7 * u, gy - 49 * u),
+                 (gx + 8 * u, gy - 36 * u), (gx + 4 * u, gy - 28 * u),
+                 (gx - 6 * u, gy - 29 * u), (gx - 8 * u, gy - 38 * u)]
         paint_coat(body, coat, torso)
-        disc(body, gx + 1 * u, gy - 54 * u, 5 * u, 5.5 * u, FLESH)               # face
-        hard_fill(body, [(gx - 4 * u, gy - 55 * u), (gx + 6 * u, gy - 55 * u),
-                         (gx + 6 * u, gy - 66 * u), (gx - 4 * u, gy - 66 * u)], BLACK_GEAR)  # shako
+        stroke(body, [(gx - 5 * u, gy - 49 * u), (gx + 7 * u, gy - 37 * u)],
+               BREECH, 2.2 * u)                                                  # crossbelt
+        disc(body, gx + 1 * u, gy - 55 * u, 5 * u, 5.5 * u, FLESH)               # face
+        hard_fill(body, [(gx - 4 * u, gy - 56 * u), (gx + 6 * u, gy - 56 * u),
+                         (gx + 6 * u, gy - 68 * u), (gx - 4 * u, gy - 68 * u)], BLACK_GEAR)  # shako
+        disc(body, gx + 1 * u, gy - 68 * u, 5 * u, 1.8 * u, BLACK_HI)            # top band
+        stroke(body, [(gx + 1 * u, gy - 68 * u), (gx, gy - 78 * u)], BREECH, 2.8 * u)  # plume
         # ramrod raised toward the muzzle (up-right, in-plane against the gun)
         stroke(body, [(gx + 5 * u, gy - 42 * u), (gx + 34 * u, gy - 60 * u)], WOOD, 2.2 * u)
         disc(body, gx + 34 * u, gy - 60 * u, 2.2 * u, 2.2 * u, STEEL)

@@ -920,6 +920,71 @@ class TestStaleIntelMapInjection:
         assert any(m["name"] == "Wellington" for m in bav["marshals"]), \
             "Wellington should be visible at Bavaria"
 
+
+# ============================================================================
+# DISPLAY-ONLY MARSHAL "arm" FIELD (map war-table pieces, UI-5)
+# ============================================================================
+
+class TestMarshalArmField:
+    """The filtered summary ships a display-only top-level `arm` for every
+    VISIBLE marshal so the Godot map can key its war-table piece to the arm —
+    including enemies (whose tactical_state is player-only). It must never leak
+    for a fogged enemy reduced to a silhouette."""
+
+    def _find_marshal(self, filtered, region, name):
+        for m in filtered["map_data"][region]["marshals"]:
+            if m["name"] == name:
+                return m
+        return None
+
+    def test_own_marshal_arm_matches_type(self):
+        world = WorldState()
+        davout = world.get_marshal("Davout")   # French (player), at Paris (FULL)
+        davout.cavalry = False
+        davout.artillery = True
+        world.calculate_visibility()
+        filtered = world.get_filtered_game_state_summary()
+        md = self._find_marshal(filtered, davout.location, "Davout")
+        assert md is not None and md["arm"] == "artillery"
+
+    def test_infantry_is_the_default_arm(self):
+        world = WorldState()
+        davout = world.get_marshal("Davout")
+        davout.cavalry = False
+        davout.artillery = False
+        world.calculate_visibility()
+        filtered = world.get_filtered_game_state_summary()
+        md = self._find_marshal(filtered, davout.location, "Davout")
+        assert md is not None and md["arm"] == "infantry"
+
+    def test_enemy_marshal_arm_present_at_full(self):
+        """The whole point: an enemy corps carries its arm at FULL visibility
+        (tactical_state is player-only, so without the top-level field every
+        enemy would draw as infantry)."""
+        world = WorldState()
+        wellington = world.get_marshal("Wellington")   # enemy (British)
+        wellington.cavalry = True
+        wellington.artillery = False
+        # Put a French marshal on Wellington's region for FULL visibility.
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = wellington.location
+        world.calculate_visibility()
+        filtered = world.get_filtered_game_state_summary()
+        md = self._find_marshal(filtered, wellington.location, "Wellington")
+        assert md is not None, "Wellington should be visible at FULL"
+        assert md["arm"] == "cavalry", "enemy arm must ride the FULL-visibility marshal dict"
+
+    def test_arm_never_leaks_into_fogged_forces(self):
+        """A PARTIAL/STALE enemy is reduced to a silhouette (name/nation/band
+        only) — the arm must not ride along."""
+        world = WorldState()
+        filtered = world.get_filtered_game_state_summary()
+        for region_data in filtered["map_data"].values():
+            for fogged in region_data["fogged_forces"]:
+                assert "arm" not in fogged, (
+                    "arm leaked into a fogged silhouette — fog boundary broken"
+                )
+
     def test_stale_ghost_only_for_enemy_marshals(self):
         """Stale injection should not include player's own marshals."""
         world = WorldState()
