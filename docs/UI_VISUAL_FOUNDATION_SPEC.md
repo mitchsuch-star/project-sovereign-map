@@ -31,7 +31,9 @@
 > license-verified. **The War-Table Pieces style gate is CLOSED (July 12, 2026) — tin flats on a round
 > base (§7), references gathered.** The sweep is segmented into build sessions **U1–U5** in **§8
 > (Session Segmentation Ledger)** — U1 + U2 (Parts 1, 2, 2c) + **U3 (texture / icon / portrait polish)
-> ✅ LANDED July 12, 2026** all done; resume at **U4** (War-Table Pieces art).
+> ✅ LANDED July 12, 2026** + **U4 (War-Table Pieces ART) ✅ LANDED July 12, 2026** (24 tin-flat
+> sprites in `assets/ui/pieces/`, 2D pipeline `tools/gen_war_table_pieces.py` — Blender not installed,
+> conscious §8-U4 deviation) all done; resume at **U5** (War-Table Pieces Godot placement code).
 > **Session U3 ("Texture / Icon / Portrait Polish") ✅ LANDED July 12, 2026** — the 37 PD marshal
 > portraits render as `[img]` thumbnails on the Generals cards + Commission bench (Abdurrahman → gold
 > monogram); the curated icon sets, preprocessed to white silhouettes, are tinted gold onto the close-X
@@ -467,18 +469,43 @@ keyed to its dominant arm.
 - **STATUS line:** ✅ recorded — UI-3 texture/icon/portrait polish landed July 12, 2026; boot-smoke 0
   `SCRIPT ERROR`; resume at **U4** (War-Table Pieces art) or **DEF-1 voices** per the queue.
 
-### Session U4 — War-Table Pieces ART (tin-flat-on-round-base, Blender)
+### Session U4 — War-Table Pieces ART (tin-flat-on-round-base)  ✅ LANDED July 12, 2026
 - **Entry:** U1 landed (independent of U2/U3; recommended after U3). Reference set = §7.
+- **Pipeline note (conscious deviation, GR9):** Blender is **not installed** on this
+  machine, and a tin *flat* is by definition a 2D silhouette with shallow relief — so the
+  art was authored with an equivalent **2D supersampled pipeline** (`tools/gen_war_table_pieces.py`,
+  Pillow + numpy, offline dev-only, not in `requirements.txt` / not run by CI) instead of a
+  headless `bpy` rig. Every §7 art requirement is met: dead-broadside nose-right silhouettes,
+  matte-enamel coat + engraved-line **rim light / core-shadow / dark contour** relief pass baked
+  from the figure silhouette, a beveled round base disc (per-arm footprint), a **line-shaped**
+  contact shadow, a neutral faction **coat tint-mask** (metal/base stay neutral), and a
+  **mirrored L/R** pair. Output is deterministic (re-export → zero diff). The reference photos
+  were *studied, not traced* — **no third-party pixels used or derived** (so no mandatory
+  attribution; a courtesy reference-inspiration note was added to `THIRD_PARTY_LICENSES.md`).
 - **Spots checklist:**
-  - [ ] Build the Blender rig: **locked dead-broadside** ortho camera, single low-angle key + soft fill, shadow-catcher plane.
-  - [ ] Author 3 broadside textures — infantry (rank + taller colour bearer) / cavalry (horse+rider, sabre raised) / artillery (gun + big spoked wheel + trail + 1–2 crew) — traced from the §7 PD Zinnfiguren refs; matte enamel + engraved-line rim.
-  - [ ] Round base disc primitive (3 footprint sizes) + diametral slot; **line-shaped** contact-shadow bake.
-  - [ ] Neutral **coat tint-mask**; base + metal on neutral channels.
-  - [ ] **Mirrored L/R facing pair** per arm.
-  - [ ] Export PNG+alpha (2–3×) → `assets/ui/pieces/` (figure + base + shadow + mask, per arm × 2 facings).
-  - [ ] Add the CC-BY reference attributions (Plassenburg/Quine, Liljedahl, Roscheider Hof, Goslar, Schweizer) to `THIRD_PARTY_LICENSES.md` if any art is traced from them.
-- **Exit:** all sprites present in `assets/ui/pieces/` per the naming above.
-- **STATUS line:** record the piece-art landing + attribution updates.
+  - [x] Locked **dead-broadside** framing, single low-angle key (relief pass = rim light on
+    up-right-facing edges + core shadow on down-left + crisp dark contour), baked at 4× supersample.
+  - [x] Author 3 broadside figures — infantry (tight-rank shako soldiers + a taller colour/eagle
+    bearer whose banner is part of the tint-mask) / cavalry (galloping horse + rider, sabre raised
+    clear of the shako) / artillery (bronze barrel + big spoked wheel + trail-with-spike + an upright
+    gunner with ramrod) — matte enamel + engraved-line rim; verified legible at 64px map scale.
+  - [x] Round base disc (per-arm footprint: infantry widest 0.80 / cavalry 0.58 / artillery 0.86)
+    with a top-down bevel + rim highlight; **line-shaped** feathered contact-shadow layer.
+  - [x] Neutral **coat tint-mask** (light-gray coat mass, Godot `modulate` multiplies it to the
+    nation hue); base + metal + flesh on neutral channels so "tin" survives every faction colour.
+  - [x] **Mirrored L/R facing pair** per arm (nose-right + horizontal flip).
+  - [x] Export PNG+alpha (256², ≈2–3× map size) → `assets/ui/pieces/` = **24 sprites**
+    `{arm}_{layer}_{facing}.png` (layers base/shadow/coat/body × facings r,l). Force-added
+    (the `assets/` tree is git-ignored, like the U1 fonts / U3 icons).
+  - [x] Reference-inspiration credits added to `THIRD_PARTY_LICENSES.md` (Plassenburg/Quine,
+    Liljedahl, Roscheider Hof, Goslar, Schweizer) — courtesy only; no pixels derived.
+  - [x] **Test:** `tests/test_ui_visual_foundation.py` extended (+5 piece tests, stdlib PNG parse,
+    no Pillow dep) — the 24 sprites exist + exact-set, each 256² RGBA + non-truncated + non-blank,
+    body/coat are real cutouts (alpha-coverage bounds). Full file green.
+- **Exit:** all 24 sprites present in `assets/ui/pieces/` per the naming above; from-disk composite
+  verified tinting correctly for multiple nations (France navy, Russia green) with metal/base neutral.
+- **STATUS line:** ✅ recorded — War-Table Pieces ART landed July 12, 2026; **resume at U5** (Godot
+  placement: Y-sort / tween / facing-flip / marshal→dominant-arm keying + its behaviour test).
 
 ### Session U5 — War-Table Pieces CODE (Godot placement)
 - **Entry:** U4 art exists.

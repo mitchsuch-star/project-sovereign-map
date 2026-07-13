@@ -45,6 +45,12 @@ UI1_FONTS = [
 PORTRAIT_EXEMPT = {"Abdurrahman"}
 PORTRAIT_EXTS = (".jpg", ".png", ".jpeg", ".webp")
 
+# ── War-Table Pieces (UI-4, spec §7) ────────────────────────────────────────
+PIECES_DIR = GODOT_PROJ / "assets" / "ui" / "pieces"
+PIECE_ARMS = ("infantry", "cavalry", "artillery")
+PIECE_LAYERS = ("base", "shadow", "coat", "body")  # bottom->top compositing order
+PIECE_FACINGS = ("r", "l")                          # nose-right + mirrored
+
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -280,4 +286,138 @@ def test_ui3_uid_referenced_import_sidecar_present_and_matches(sidecar_rel, refe
         f"{sidecar.name} uid {uid} does not match the ext_resource UID in "
         f"{referrer_path.name} — a UID drift would break the reference on a "
         f"clean clone"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# War-Table Pieces (UI-4) — tin-flat map-piece sprites (spec §7)
+#
+# The three arm flats (infantry / cavalry / artillery) each ship four layered
+# PNGs — base disc / contact shadow / faction coat-mask / figure body — in both
+# facings, so U5's Godot code can Y-sort them and tint the coat via `modulate`
+# (Utils.NATION_COLORS) while metal/base stay neutral. These assertions guard
+# the ART (existence, format, non-blank cutout). The "each active marshal
+# renders a piece keyed to its dominant arm" behaviour is owned by session U5
+# (spec §8 U5 checklist), which lands the placement code + its own test.
+#
+# PNG parsing is stdlib-only (struct + zlib) so the pre-commit suite gains no
+# Pillow dependency — the offline generator (tools/gen_war_table_pieces.py) is
+# the only thing that needs Pillow/numpy, and CI never runs it.
+# ═══════════════════════════════════════════════════════════════════════════
+
+import struct  # noqa: E402
+import zlib  # noqa: E402
+
+_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+
+def _png_header(path: Path):
+    """(width, height, bit_depth, color_type) from the IHDR — no decode."""
+    data = path.read_bytes()
+    assert data[:8] == _PNG_MAGIC, f"{path.name} is not a PNG"
+    assert data[12:16] == b"IHDR", f"{path.name} has no IHDR"
+    w, h, bit_depth, color_type = struct.unpack(">IIBB", data[16:26])
+    return data, w, h, bit_depth, color_type
+
+
+def _idat_raw(data: bytes) -> bytes:
+    """Concatenate + inflate every IDAT chunk (fast C zlib)."""
+    idat = bytearray()
+    off = 8
+    while off < len(data):
+        (ln,) = struct.unpack(">I", data[off:off + 4])
+        typ = data[off + 4:off + 8]
+        if typ == b"IDAT":
+            idat += data[off + 8:off + 8 + ln]
+        elif typ == b"IEND":
+            break
+        off += 12 + ln
+    return zlib.decompress(bytes(idat))
+
+
+def _decode_alpha_fraction(path: Path) -> float:
+    """Fraction of pixels with alpha>20, after a full RGBA unfilter."""
+    data, w, h, _, _ = _png_header(path)
+    raw = _idat_raw(data)
+    stride = w * 4
+    prev = bytearray(stride)
+    opaque = 0
+    pos = 0
+    for _y in range(h):
+        f = raw[pos]
+        pos += 1
+        line = bytearray(raw[pos:pos + stride])
+        pos += stride
+        if f == 1:
+            for i in range(4, stride):
+                line[i] = (line[i] + line[i - 4]) & 255
+        elif f == 2:
+            for i in range(stride):
+                line[i] = (line[i] + prev[i]) & 255
+        elif f == 3:
+            for i in range(stride):
+                a = line[i - 4] if i >= 4 else 0
+                line[i] = (line[i] + ((a + prev[i]) >> 1)) & 255
+        elif f == 4:
+            for i in range(stride):
+                a = line[i - 4] if i >= 4 else 0
+                b = prev[i]
+                c = prev[i - 4] if i >= 4 else 0
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+                line[i] = (line[i] + pr) & 255
+        for i in range(3, stride, 4):
+            if line[i] > 20:
+                opaque += 1
+        prev = line
+    return opaque / float(w * h)
+
+
+ALL_PIECE_FILES = [
+    f"{arm}_{layer}_{facing}.png"
+    for arm in PIECE_ARMS
+    for layer in PIECE_LAYERS
+    for facing in PIECE_FACINGS
+]
+
+
+def test_pieces_dir_has_all_24_sprites():
+    assert PIECES_DIR.is_dir(), f"missing war-table pieces dir {PIECES_DIR}"
+    for name in ALL_PIECE_FILES:
+        assert (PIECES_DIR / name).exists(), f"missing piece sprite {name}"
+    # exactly the canonical set (guards stray/renamed files)
+    on_disk = {p.name for p in PIECES_DIR.glob("*.png")}
+    assert on_disk == set(ALL_PIECE_FILES), (
+        f"pieces dir contents drifted: extra={on_disk - set(ALL_PIECE_FILES)}, "
+        f"missing={set(ALL_PIECE_FILES) - on_disk}"
+    )
+
+
+@pytest.mark.parametrize("name", ALL_PIECE_FILES)
+def test_piece_sprite_is_256_rgba_and_not_truncated(name):
+    path = PIECES_DIR / name
+    data, w, h, bit_depth, color_type = _png_header(path)
+    assert (w, h) == (256, 256), f"{name} is {w}x{h}, expected 256x256"
+    assert bit_depth == 8, f"{name} bit depth {bit_depth}, expected 8"
+    assert color_type == 6, f"{name} color type {color_type}, expected 6 (RGBA)"
+    raw = _idat_raw(data)
+    assert len(raw) == h * (w * 4 + 1), f"{name} IDAT decodes to a truncated image"
+    assert any(b != 0 for b in raw), f"{name} is fully blank/transparent"
+
+
+@pytest.mark.parametrize("arm", PIECE_ARMS)
+def test_piece_body_and_coat_are_real_cutouts(arm):
+    """The figure (body) is a cutout with detail; the coat mask has a tintable
+    mass. Both must be neither blank nor a full opaque rectangle."""
+    body_frac = _decode_alpha_fraction(PIECES_DIR / f"{arm}_body_r.png")
+    coat_frac = _decode_alpha_fraction(PIECES_DIR / f"{arm}_coat_r.png")
+    assert 0.02 < body_frac < 0.85, (
+        f"{arm}_body_r alpha coverage {body_frac:.3f} out of range — blank or solid?"
+    )
+    # cavalry/artillery carry a single rider/gunner coat (~0.5%); infantry ~4%.
+    # Floor guards a blank mask; ceiling guards a full-frame fill.
+    assert 0.003 < coat_frac < 0.60, (
+        f"{arm}_coat_r coat-mask coverage {coat_frac:.3f} out of range — the "
+        f"faction tint would have no (or a full-frame) target"
     )

@@ -122,3 +122,23 @@ via Wikimedia Commons (public domain)."
 Not downloaded: **Abdurrahman** (Ottoman roster entry) — no confident public-domain
 portrait of the correct historical figure was found; left unillustrated by design
 rather than risk a wrong likeness.
+
+---
+
+## War-Table Pieces — ORIGINAL generated art (`assets/ui/pieces/`)
+
+The infantry / cavalry / artillery "tin flat" map pieces — 24 sprites named
+`{arm}_{layer}_{facing}.png` (layers: base / shadow / coat / body; facings r, l)
+— are **100% original art**, generated procedurally by
+`tools/gen_war_table_pieces.py`. **No third-party pixels are used or derived** —
+every silhouette is drawn from scratch. They carry no license encumbrance and
+need no attribution.
+
+**Courtesy reference-inspiration note (no texel copied):** the Zinnfigur
+"flat"/*standee-on-a-round-base* aesthetic was studied from — but no pixels
+taken from — these public reference sets: Plassenburg Zinnfiguren-Museum /
+Thomas Quine (CC BY 2.0), Louis Liljedahl 30 mm Napoleonic flats (CC BY-SA 3.0),
+Roscheider Hof (CC BY 4.0), Zinnfiguren-Museum Goslar (CC BY-SA 3.0), and the
+W. Schweizer engraved slate mould (CC BY-SA 4.0). Per `UI_VISUAL_FOUNDATION_SPEC`
+§7 these credits become a *required* attribution only if a future revision
+directly derives pixels from a reference image.
