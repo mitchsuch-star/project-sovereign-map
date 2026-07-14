@@ -207,11 +207,11 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 
 ---
 
-### Phase 5 — Vassals
+### Phase 5 — Vassals — ✅ HALF A LANDED July 14, 2026
 **Session entry:** read §3.4.
-- **VS-1 Loyalty recovery lever + teach it.** Surface the Autonomous-flip (+1 drift) and/or add a garrison/gold lever in the healthy 100→40 band (lower the `abs(delta)≥3` event gate so it's visible).
-- **VS-2 Dead-code cleanup.** Wire or delete the always-0 "war weariness" term for own vassals (`vassal.py:356`).
-**Exit:** a falling vassal can be arrested by a surfaced action. **Tests:** `test_vassal_recovery_lever.py`. **Sweep 4** (Half B): Vassals ≥6.5.
+- **VS-1 Loyalty recovery lever + teach it.** ✅ Landed. The event gate lowered `abs(delta) ≥ 3 → ≥ 2` (`vassal.py`), so the steady satellite bleed (-2/turn) now surfaces every turn instead of hiding until it crossed 20. A **recovery hint** ("Invest, garrison their capital, or grant autonomy to steady them.") rides the `vassal_loyalty` event (new `recovery_hint` field, folded into the dispatch `message`) whenever a vassal is *falling while still in the healthy band* (`delta < 0 and new_loyalty ≥ 40`) — the recovery loop is now discoverable BEFORE the `≤ 10` crisis popup. Talleyrand's `< 35` dispatch advisory also names the three levers. The arresting actions already existed (invest +10, garrison +5..8, grant-autonomy flips drift to +1) — VS-1 makes them *visible and taught*.
+- **VS-2 Dead-code cleanup.** ✅ DELETED. The `get_coalition_loyalty_penalty` "war weariness" contribution (`vassal.py`) was always 0 for a lord's own satellite (never a coalition member AGAINST its lord); coalition membership is a diplomatic-acceptance concept, not a loyalty-drift one. Removed; loyalty drift is now independent of coalition state. (The prior `test_deep_audit_session2.py::TestFix17...` pin was flipped to assert the removal.)
+**Exit:** ✅ a falling vassal can be arrested by a surfaced action — the recovery hint names the levers on the very turn the slide surfaces. **Tests:** `test_vassal_recovery_lever.py` (9); Fix17 pin re-blessed. Suite 13,177/3, ruff clean, no `.gd`. **▶ NEXT: Sweep 4** (Half B): Vassals ≥6.5.
 
 ---
 
@@ -274,7 +274,7 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | EC-U2 gold sink (infrastructure) | ✅ **LANDED July 14, 2026** | conquest-free sink reachable | `0997eac` |
 | EC-U3 Grande Armée surcharge | ✅ **LANDED July 14, 2026** | France absorption 36.9%→55.5% | `9d57597` |
 | **Sweep 3 (Half B)** | ✅ **RAN July 14, 2026** | Economy 5.0→6.0→**6.5** (target MET via EC-U3); 0 regressions | `SWEEP_3_2026_07_14.md` |
-| VS-1 loyalty lever / VS-2 dead code | NOT STARTED | Half B | — |
+| VS-1 loyalty lever / VS-2 dead code | ✅ **LANDED July 14, 2026** — event gate 3→2, recovery hint teaches invest/garrison/autonomy; war-weariness dead term deleted | Sweep 4 (Half B) pending | this session |
 | PF-1…PF-9 + AI-1 | NOT STARTED | Half B | — |
 | Sweeps 1–5 + exit sweep | NOT STARTED | full | — |
 

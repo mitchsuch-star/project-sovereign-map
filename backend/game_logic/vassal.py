@@ -352,20 +352,26 @@ def process_vassal_loyalty(world) -> List[dict]:
         relation = world.nation_relations.get(diplo_key, 0)
         _contribute("relations with the lord", relation // 20)
 
-        # 7. Coalition loyalty penalty
-        from backend.game_logic.coalition import get_coalition_loyalty_penalty
-        coalition_penalty = get_coalition_loyalty_penalty(vassal_name, world)
-        _contribute("war weariness", coalition_penalty)
+        # 7. (VS-2, Combat Overhaul Phase 5) The old "war weariness" offset
+        # read get_coalition_loyalty_penalty(vassal_name) — but a lord's own
+        # satellite is never a member of a coalition AGAINST that lord, so the
+        # term was always 0 (dead code). Deleted: coalition membership is a
+        # diplomatic-acceptance concept, not a loyalty-drift one.
 
         # Apply delta
         new_loyalty = max(LOYALTY_MIN, min(LOYALTY_MAX, old_loyalty + delta))
         state["loyalty"] = int(new_loyalty)
 
-        # Generate event if significant change
-        if abs(delta) >= 3 or new_loyalty <= 20:
+        # Generate event if significant change.
+        # VS-1 (Combat Overhaul Phase 5): the gate was abs(delta) >= 3, which
+        # HID the steady satellite bleed (-2/turn) until it crossed 20 — the
+        # player never saw a healthy-band vassal slipping, nor learned the
+        # levers to arrest it. Lowered to >= 2 so a bare satellite's drift
+        # surfaces every turn, and a recovery hint teaches the fix.
+        if abs(delta) >= 2 or new_loyalty <= 20:
             # W6-3 §5.4: name the top same-sign contributors (max 2) so the
             # dispatch/log line reads "Switzerland 84 (−8): puppet
-            # resentment, war weariness".
+            # resentment, the lord's defeats".
             sign = 1 if delta >= 0 else -1
             dominant = sorted(
                 ((label, value) for label, value in contributions.items()
@@ -374,6 +380,17 @@ def process_vassal_loyalty(world) -> List[dict]:
             )[:2]
             reason = ", ".join(label for label, _ in dominant)
             delta_str = f"+{delta}" if delta >= 0 else str(delta)
+
+            # VS-1 "teach it": a vassal slipping while still in the healthy
+            # band (>= 40) gets a one-line reminder of the three arresting
+            # levers, so the recovery loop is discoverable BEFORE the crisis
+            # popup at <= 10. Suppressed once rebellion advisories take over.
+            recovery_hint = ""
+            if delta < 0 and new_loyalty >= 40:
+                recovery_hint = (
+                    "Invest, garrison their capital, or grant autonomy to steady them."
+                )
+
             events.append({
                 "type": "vassal_loyalty",
                 "vassal": vassal_name,
@@ -385,9 +402,11 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "new_loyalty": int(new_loyalty),
                 "delta": int(delta),
                 "reason": reason,
+                "recovery_hint": recovery_hint,
                 "message": (
                     f"{vassal_name} loyalty {int(new_loyalty)} ({delta_str})"
                     + (f": {reason}" if reason else "")
+                    + (f" — {recovery_hint}" if recovery_hint else "")
                 ),
             })
 

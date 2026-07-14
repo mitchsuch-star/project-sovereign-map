@@ -606,16 +606,21 @@ class TestFix16RebellionWarCascade:
 
 
 # ════════════════════════════════════════════════════════════════
-# FIX 17: Coalition loyalty penalty in vassal loyalty
+# FIX 17: Coalition loyalty penalty in vassal loyalty — REVERSED by VS-2
 # ════════════════════════════════════════════════════════════════
 
 class TestFix17CoalitionLoyaltyPenalty:
-    """Vassal in active coalition should have lower loyalty."""
+    """VS-2 (Combat Overhaul Phase 5) DELETED the coalition "war weariness"
+    term from vassal loyalty drift. A lord's own satellite is never a member of
+    a coalition AGAINST that lord, so the term was always 0 in real play (dead
+    code); coalition membership is a diplomatic-acceptance concept, not a
+    loyalty-drift one. This test now pins the REMOVAL: a (contrived) coalition
+    member's loyalty drifts by pure autonomy, untouched by the coalition."""
 
-    def test_vassal_in_coalition_gets_penalty(self):
+    def test_vassal_in_coalition_no_longer_penalized(self):
         world = _make_vassal_world(loyalty=50)
 
-        # Set up active coalition with Saxony as member
+        # Set up active coalition with Saxony as a (contrived) member
         world.active_coalition = {
             "members": ["Saxony", "Prussia"],
             "leader": "Prussia",
@@ -624,14 +629,15 @@ class TestFix17CoalitionLoyaltyPenalty:
         }
         world.war_exhaustion = {"Saxony": 0}
 
-        # Process loyalty — coalition penalty should reduce it further
+        loyalty_before = world.vassals["Saxony"]["loyalty"]
         process_vassal_loyalty(world)
-
-        # Satellite drift = -2, coalition penalty (min(-15 + 0/10, 0) = -15)
-        # Total delta should be negative and include coalition penalty
         loyalty = world.vassals["Saxony"]["loyalty"]
-        # Without coalition: 50 - 2 = 48. With coalition: 50 - 2 - 15 = 33
-        assert loyalty < 48  # Must be lower than just drift
+
+        # Pre-VS-2 the halved coalition penalty (-7) would have dropped this to
+        # ~43. Post-VS-2 the coalition is invisible to loyalty: satellite drift
+        # (-2) is cancelled by the default France/Saxony relation (+2, via
+        # relation//20), so loyalty holds at its starting 50.
+        assert loyalty == loyalty_before == 50
 
 
 # ════════════════════════════════════════════════════════════════

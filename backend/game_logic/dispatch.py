@@ -1362,9 +1362,12 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                     _set_cooldown(nation, "vassal_loyalty", 3)
                 elif loyalty < 35:
                     observations.append({
+                        # VS-1 (Combat Overhaul Phase 5): name the arresting
+                        # levers so the recovery loop is taught before crisis.
                         "message": (
                             f"Sire, Talleyrand notes growing discontent in {nation}. "
-                            f"Loyalty stands at {int(loyalty)}."
+                            f"Loyalty stands at {int(loyalty)}. Invest, garrison "
+                            f"their capital, or grant them autonomy to steady them."
                         ),
                         "trigger_type": "vassal_loyalty",
                         "target_nation": nation,
