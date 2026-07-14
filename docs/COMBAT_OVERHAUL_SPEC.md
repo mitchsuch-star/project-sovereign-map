@@ -186,14 +186,15 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 
 ---
 
-### Phase 3 — Un-starve Marshal Drama (break the triple lock) — ✅ HALF-A LANDED July 14, 2026
-**Landing (Half A):** all three locks broken in `jealousy.py`; **M7 flipped `never → turn 1`** (the winnable massed-assault roster run) with M1–M6 held, full suite 13,146/3, ruff clean, no `.gd` touched. New tests `test_drama_glory_from_attrition.py` (15) + `test_drama_ladder_liveness.py` (10); 106 existing jealousy tests unchanged-green. Constants are in-band tunable single sources in `jealousy.py`. **Remaining:** Sweep 2 (Half B) — the live-play LLM component review (§2.2) — to confirm Marshal Drama ≥7.5 and that a petition surfaces organically.
+### Phase 3 — Un-starve Marshal Drama (break the triple lock) — ✅ COMPLETE July 14, 2026 (Half A + Half B)
+**Landing (Half A):** all three locks broken in `jealousy.py`; **M7 flipped `never → turn 1`** (the winnable massed-assault roster run) with M1–M6 held, full suite 13,146/3, ruff clean, no `.gd` touched. New tests `test_drama_glory_from_attrition.py` (15) + `test_drama_ladder_liveness.py` (10); 106 existing jealousy tests unchanged-green. Constants are in-band tunable single sources in `jealousy.py`.
+**✅ Sweep 2 (Half B) RAN July 14, 2026 — `docs/audits/SWEEP_2_2026_07_14.md`:** the 12-component LLM review (13 agents / ~1.43M tokens) on a fresh 6-turn `LLM_MODE=anthropic` France/1805 playthrough (`docs/audits/SWEEP_2_LIVE_EVIDENCE_2026_07_14.md`). **Marshal Drama 6.0 → 7.5 (met target, +1.5)**; Narration 7.5→8.0, Marshal System 7.0→7.5, Architecture 7.5→8.0 (all +0.5); 8 pillars held flat, **0 regressions**; overall directional ≈7.15–7.25 (right at the ≥7.3 line). **An organic petition fired FOUR times across three kinds + the Fontainebleau collective beat** (M7 in the wild: turn 2), with DR-1/DR-2/DR-3 all confirmed live and the Jealousy↔ES-7 rente economy interlocked. Two honest caveats (no autonomous glory-attack executed live; the crown never lit on a top tie — both WAD evidence gaps for a differently-driven session, not defects). **Phase 3 EXITS.**
 **Session entry:** read §3.2 (the triple lock). Assumes Phases 1–2 landed (wins now reachable).
 - **DR-1 Glory from attrition/occupation (G-6).** ✅ `record_battle_glory` now awards `STALEMATE_GLORY = 1` for an **inconclusive** battle where one side **out-bleeds the other ≥2:1** (new `_out_bled` predicate — flawless exchange counts) **or takes a province** — symmetric player/enemy (GR5). A hard-fought grind feeds the ladder before a clean rout. Clean-win scoring is unchanged (regression-pinned).
 - **DR-2 Slow glory decay.** ✅ `GLORY_WINDOW` lengthened `5 → 8` (the sole glory-decay lever) so occasional deeds accrete into a ladder gap instead of evaporating at turn 6.
 - **DR-3 Authority dampening rework.** ✅ Chose the **"exempt the first rung"** option: the `authority>70 ⇒ +1 threshold` calm now applies **only to rung ≥ 2 (neutral/friendly professionals)**; a marshal who already resents the celebrated man (a Rival −1 / Hostile −2, relationship-base threshold 1) keeps his hair-trigger edge even at the height of empire. Keyed on the *relationship* base (before idle acceleration), so an idle-accelerated professional is still calmed while winning. The `authority<30` death-spiral acceleration is untouched (pinned). The existing professional-pair dampening test is unchanged-green (it uses a rung-2 pair).
   - **Harness note (M7):** the Phase-0 `measure_m7` scenario modeled a *losing* 1:1 assault (attacker out-BLED every turn ⇒ zero glory is correct for losing), which never reproduced the triple lock the spec describes (a player *winning* the attrition earning no glory). Phase 3 re-frames it to the review's **winnable ~3:1 massed assault** into a dug-in defender — the attacker out-damages but the fort resists a clean rout — which is dormant under baseline jealousy constants and lively under Phase 3. Documented in the test docstring.
-**Exit:** **M7** ≤ 8 ✅ (jealousy trigger fires turn 1 in the scripted roster run); a live playthrough surfaces a petition organically *(Sweep 2, pending)*. **Tests:** `test_drama_glory_from_attrition.py` ✅, `test_drama_ladder_liveness.py` ✅ (M7). **Sweep 2** (Half B): Marshal Drama ≥7.5 *(pending live-play run)*.
+**Exit:** ✅ **M7** ≤ 8 (jealousy trigger fires turn 1 in the scripted roster run; **turn 2 in the wild**); ✅ a live playthrough surfaced a petition organically (four, across three kinds — Sweep 2). **Tests:** `test_drama_glory_from_attrition.py` ✅, `test_drama_ladder_liveness.py` ✅ (M7). **Sweep 2** (Half B): ✅ Marshal Drama **7.5** (met), 0 regressions — `docs/audits/SWEEP_2_2026_07_14.md`.
 
 ---
 
@@ -264,9 +265,10 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | CO-4 regen cap | ✅ **LANDED July 13, 2026** | M3 ✅ −2749 | (Phase 2 commit) |
 | CO-6 reinforcement legibility | ✅ **LANDED July 13, 2026** | Half B | (Phase 2 commit) |
 | CO-7 Iron Resolve stance | ✅ **LANDED July 13, 2026** | M5 ✅ +0.24 | (Phase 2 commit) |
-| DR-1 glory from attrition | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
-| DR-2 glory decay | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
-| DR-3 authority dampening | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
+| DR-1 glory from attrition | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | `38324bf` |
+| DR-2 glory decay | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | `38324bf` |
+| DR-3 authority dampening | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | `38324bf` |
+| **Sweep 2 (Half B)** | ✅ **RAN July 14, 2026** | Drama 6.0→**7.5** met; 0 regressions | `SWEEP_2_2026_07_14.md` |
 | EC-U1 upkeep | NOT STARTED | Half B | — |
 | EC-U2 gold sink | NOT STARTED | Half B | — |
 | VS-1 loyalty lever / VS-2 dead code | NOT STARTED | Half B | — |
