@@ -14,6 +14,36 @@ from backend.models.world_state import (
 )
 
 
+# ── CO-4 (Combat Overhaul Phase 2): cap the per-corps regeneration ──────────
+# The Field Review saw a besieged corps (Mack in Swabia) reinforce +10,000 in
+# a single turn while the best assault removed ~5,000 — frontal attrition was
+# literally unwinnable (spec §0.1, metric M3). A corps recruiting AWAY from a
+# friendly supply depot or capital cannot raise a full batch: the reinforcement
+# is capped to AI_CORPS_REGEN_CAP men. Sweep-tuned (spec §2.1); start 3,000.
+#
+# GR5: the cap is a property of the SHARED recruit executor, keyed on the
+# recruiting corps' supply context — the enemy AI recruit rung supplies the
+# cap when its corps is in the field (the input value that differs), and the
+# same helper is available to any caller. Per spec §4 Phase 2, the player's
+# own base recruit at a capital/depot is untouched (it satisfies the exemption)
+# and retreat-recovery is a separate path the cap never sees.
+AI_CORPS_REGEN_CAP = 3000
+
+
+def region_has_friendly_supply(region) -> bool:
+    """CO-4: a corps recruiting here can draw a full reinforcement batch —
+    the region is a capital or hosts a supply depot. Everywhere else is 'the
+    field' and reinforcement is capped to AI_CORPS_REGEN_CAP."""
+    if region is None:
+        return False
+    if getattr(region, "region_type", None) == "capital":
+        return True
+    try:
+        return bool(region.has_building("supply_depot"))
+    except Exception:
+        return False
+
+
 class EconomyExecutor:
     """Handles economy, recruitment, garrison, building, and repair commands."""
 
@@ -330,6 +360,21 @@ class EconomyExecutor:
         else:
             NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
 
+        # CO-4 (Combat Overhaul Phase 2): a corps reinforcing in the field —
+        # away from a friendly supply depot or capital — cannot raise a full
+        # batch; the reinforcement is capped to AI_CORPS_REGEN_CAP so sustained
+        # superior assault net-reduces it (metric M3). The caller (the enemy AI
+        # recruit rung) sets reinforcement_cap when its corps is forward; the
+        # cap only bites when it is below the batch size (artillery's 3,000 is
+        # already at the floor). Manpower drawn and morale dilution follow the
+        # capped figure; gold is the batch price (a field levy is inefficient).
+        field_regen_capped = False
+        reinforcement_cap = command.get("reinforcement_cap")
+        if (reinforcement_cap is not None
+                and 0 < reinforcement_cap < NEW_TROOPS):
+            NEW_TROOPS = int(reinforcement_cap)
+            field_regen_capped = True
+
         # Build base_message with correct type and amount
         type_label = recruit_type
         if marshal_specified:
@@ -338,6 +383,10 @@ class EconomyExecutor:
             base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({distance} regions away)"
         else:
             base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} (nearest to capital)"
+
+        # CO-4: name the field-levy cap so a capped reinforcement is legible.
+        if field_regen_capped:
+            base_message += f" (field levy — no depot; capped at {NEW_TROOPS:,})"
 
         # Soft correction: player asked for wrong type
         soft_correction = ""

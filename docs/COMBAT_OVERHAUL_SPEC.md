@@ -160,7 +160,20 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 
 ---
 
-### Phase 2 — Decisiveness & counter-pressure
+### Phase 2 — Decisiveness & counter-pressure — ✅ LANDED July 13, 2026
+**Landing (Sweep 1, `docs/audits/SWEEP_1_2026_07_13.md`):** all four slices in.
+**CO-3** = `combat.decisiveness_morale_penalty` (out-bled side of a lopsided
+casualty exchange breaks faster; pivot 1.75 / slope 22 / cap 55; both morale
+paths, GR5; `defender_bonus` untouched, M6 held) → M2 `0.61 @2:1 / 1.00 @3:1`.
+**CO-4** = `economy_executor.AI_CORPS_REGEN_CAP = 3000` + `region_has_friendly_supply`;
+a corps reinforcing away from a depot/capital recruits a capped levy
+(`_execute_recruit` honours `reinforcement_cap`; enemy P1/P7 rungs set it when
+forward; harness knob guarded) → M3 `−2749`. **CO-6** = the committed effective
+strength named in coordinated battles. **CO-7** = Iron Resolve release exempts
+the fortify-mandated defensive-stance penalty in `get_attack_modifier` → M5
+`+0.24`. Tests: `test_combat_overhaul_phase2.py` (20) + the flipped M2/M3/M5
+harness assertions + `test_regen_cap_matches_production`; 3 MC-band fixtures
+re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 **Session entry:** read §3.1, Phase 1 landing. Assumes CO-1/CO-2 live.
 - **CO-3 Decisiveness → capture.** Steepen defender morale loss on lopsided casualty ratios (tune `_scaled_morale_loss` / `DEFENDER_MORALE_CURVE_FACTOR`, *sweep*) so a heavily-outnumbered defender crosses the rout threshold → forced retreat → the pursuer takes the province (the plunder/secure pipeline finally fires). Do NOT lower `defender_bonus` (M6).
 - **CO-4 Cap enemy regeneration.** Shared helper caps per-corps strength regrowth to `R` men/turn (*sweep*, start 3,000) unless in a friendly depot/capital; retreat-recovery & player recruit untouched; applies to the enemy recruit rung (`enemy_ai.py` P1/P4.5/P7) + garrison→corps top-ups. GR5: same helper both sides.
@@ -242,10 +255,10 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 | CO-1b personality/relationship scaling | ✅ **LANDED July 13, 2026** | M1b ✅ agg>cau>hostile | (Phase 1 commit) |
 | CO-2 odds band | ✅ **LANDED July 13, 2026** | M1 (committed) | (Phase 1 commit) |
 | CO-5 report single-source | ✅ **LANDED July 13, 2026** | M4 ✅ 100% | (Phase 1 commit) |
-| CO-3 decisiveness → capture | NOT STARTED | M2 | — |
-| CO-4 regen cap | NOT STARTED | M3 | — |
-| CO-6 reinforcement legibility | NOT STARTED | Half B | — |
-| CO-7 Iron Resolve stance | NOT STARTED | M5 | — |
+| CO-3 decisiveness → capture | ✅ **LANDED July 13, 2026** | M2 ✅ 0.61/1.00 | (Phase 2 commit) |
+| CO-4 regen cap | ✅ **LANDED July 13, 2026** | M3 ✅ −2749 | (Phase 2 commit) |
+| CO-6 reinforcement legibility | ✅ **LANDED July 13, 2026** | Half B | (Phase 2 commit) |
+| CO-7 Iron Resolve stance | ✅ **LANDED July 13, 2026** | M5 ✅ +0.24 | (Phase 2 commit) |
 | DR-1 glory from attrition | NOT STARTED | M7 | — |
 | DR-2 glory decay | NOT STARTED | M7 | — |
 | DR-3 authority dampening | NOT STARTED | M7 | — |

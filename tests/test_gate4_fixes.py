@@ -409,7 +409,15 @@ class TestReinforcerRetreatOnLoss:
                 "Reinforcer should stay in battle region when attacker wins"
 
     def test_artillery_reinforcer_stays_at_origin_regardless(self):
-        """Artillery stays at origin whether attacker wins or loses (never relocates)."""
+        """Artillery stays at origin whether attacker wins or loses (never relocates).
+
+        CO-3 (Phase 2): the lopsided-exchange decisiveness penalty now routs a
+        whole assaulting force that loses catastrophically (all participants
+        share the attacker morale delta), which would force-retreat even the
+        artillery. Wellington re-tuned 50k -> 42k so the assault still FAILS
+        (Waterloo stays British) but the artillery's morale holds above the
+        rout threshold — isolating the invariant under test (artillery never
+        relocates) from the separate forced-retreat path."""
         random.seed(99)
         ney = self.world.get_marshal("Ney")
         ney.location = "Waterloo"
@@ -421,7 +429,7 @@ class TestReinforcerRetreatOnLoss:
 
         wellington = self.world.get_marshal("Wellington")
         wellington.location = "Waterloo"
-        wellington.strength = 50000
+        wellington.strength = 42000
 
         self.executor._execute_attack(
             ney, "Wellington", self.world, self.game_state)

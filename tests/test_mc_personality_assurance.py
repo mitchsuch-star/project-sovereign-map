@@ -488,9 +488,12 @@ class TestEnemySideAbilitiesLive:
         def _band_battle(ability):
             attacker = make_marshal("Ney", nation="France", strength=40000,
                                    personality="aggressive")
+            # CO-3 (Phase 2): the lopsided-exchange decisiveness penalty
+            # deepened the loser's morale hit — starting morale re-tuned
+            # 40 -> 48 to keep the (15, 25] isolation band meaningful.
             charles = make_marshal("ArchdukeCharles", nation="Austria",
                                    personality="cautious", strength=35000,
-                                   morale=40, ability=ability)
+                                   morale=48, ability=ability)
             result = CombatResolver().resolve_battle(attacker, charles)
             assert 15 < result["defender"]["morale"] <= FORCED_RETREAT_THRESHOLD
             return result

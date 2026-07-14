@@ -3901,6 +3901,12 @@ class CombatExecutor:
                 marshal, atk_participants, world)
             committed_defender = self._committed_reinforcement_strength(
                 enemy_marshal, def_participants, world)
+            # CO-6 (Combat Overhaul Phase 2): capture the pre-battle lead
+            # strength and the committed sum for the reinforcement legibility
+            # line (built with reinforcement_messages below). marshal.strength
+            # here is still pre-distribution (casualties applied later).
+            _co6_lead_pre_strength = int(marshal.strength)
+            _co6_committed_attacker = committed_attacker
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=marshal,
                 defender=enemy_marshal,
@@ -4854,6 +4860,19 @@ class CombatExecutor:
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
+
+        # CO-6 (Combat Overhaul Phase 2): reinforcement legibility — name the
+        # committed effective strength so the player SEES that massing corps
+        # adds weight to the clash (the CO-1 additive model, previously
+        # invisible). Only when reinforcers actually arrived and contributed.
+        _co6_committed = int(locals().get("_co6_committed_attacker", 0) or 0)
+        if arrived_names and _co6_committed > 0:
+            _co6_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
+            _co6_total = _co6_lead + _co6_committed
+            joined = ", ".join(arrived_names)
+            reinf_messages.append(
+                f"Massed effective strength: {_co6_lead:,} (lead) + "
+                f"{_co6_committed:,} committed ({joined}) = {_co6_total:,}.")
 
         # Aggregate ally casualties (Session 66)
         if arrived_names and atk_distribution:

@@ -21,15 +21,15 @@ the metrics, so a later phase flips a single constant + the paired assertion:
                                      #        (Field Review: Mack +10,000 in
                                      #        one turn). CO-4 caps it to R.
 
-Metric map (spec §2.1) — ✅ = at target after Phase 1 (July 13, 2026):
+Metric map (spec §2.1) — ✅ = at target after Phase 2 (July 13, 2026):
 
-    ID   State after Phase 1            Target                       Fixed by
+    ID   State after Phase 2            Target                       Fixed by
     M1   ✅ monotonic (0.82 @5 corps)   strictly non-decreasing      CO-1
     M1b  ✅ agg 41.4k > cau 36k > 0     aggressive > cautious > hostile CO-1b
-    M2   ~0 rout @2:1 & 3:1 (pending)   >=0.35 @2:1, >=0.65 @3:1     CO-3 (Phase 2)
-    M3   defender GAINS (pending)       net <= -2000                 CO-4 (Phase 2)
+    M2   ✅ 0.61 @2:1 / 1.00 @3:1       >=0.35 @2:1, >=0.65 @3:1     CO-3 (Phase 2)
+    M3   ✅ net <= -2000 (capped regen) net <= -2000                 CO-4 (Phase 2)
     M4   ✅ 100% multi-marshal          100%                         CO-5
-    M5   stance-trapped (pending)       >= +18%                      CO-7 (Phase 2)
+    M5   ✅ +0.24 (stance freed)        >= +18%                      CO-7 (Phase 2)
     M6   defender-favourable (GUARD)    stays defender-favourable    holds all phases
     M7   drama dormant (pending)        <= 8                         Phase 3
 
@@ -71,12 +71,14 @@ from backend.models.world_state import WorldState
 # effectiveness · attack_modifier · relationship_factor).
 COMMITTED_ALPHA = 0.6
 
-# CO-4: the enemy's uncapped per-corps regeneration. The Field Review saw Mack
-# reinforce +10,000 in a single turn while the best assault removed ~5,000 —
-# frontal attrition was literally unwinnable. Phase 2 caps this to R (start
-# 3,000) unless the corps sits in a friendly depot/capital, and M3 flips from
+# CO-4 (Phase 2, LANDED July 13, 2026): the enemy's per-corps regeneration is
+# now CAPPED. The Field Review saw Mack reinforce +10,000 in a single turn
+# while the best assault removed ~5,000 — frontal attrition was literally
+# unwinnable. CO-4 caps a corps reinforcing in the field (no friendly depot or
+# capital) to R men/turn — the SAME single-source value as production
+# economy_executor.AI_CORPS_REGEN_CAP (guarded below) — so M3 flips from
 # "defender GAINS" to "net <= -2000".
-AI_CORPS_REGEN_PER_TURN = 10000
+AI_CORPS_REGEN_PER_TURN = 3000
 
 # Monte-Carlo seed set. 400 trials is ample for stable win-rates and runs in a
 # fraction of a second (each resolve is microseconds).
@@ -92,6 +94,16 @@ def test_committed_alpha_matches_production():
         "Harness COMMITTED_ALPHA drifted from production "
         f"CombatExecutor.COMMITTED_ALPHA ({COMMITTED_ALPHA} != "
         f"{CombatExecutor.COMMITTED_ALPHA})")
+
+
+def test_regen_cap_matches_production():
+    """CO-4 single-source guard: the harness regen knob must equal the
+    production field-regen cap so M3 models the capped code path."""
+    from backend.commands.economy_executor import AI_CORPS_REGEN_CAP
+    assert AI_CORPS_REGEN_PER_TURN == AI_CORPS_REGEN_CAP, (
+        "Harness AI_CORPS_REGEN_PER_TURN drifted from production "
+        f"economy_executor.AI_CORPS_REGEN_CAP ({AI_CORPS_REGEN_PER_TURN} != "
+        f"{AI_CORPS_REGEN_CAP})")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -274,15 +286,16 @@ def measure_m2():
             "3:1": _rout_within_two_turns(3.0)}
 
 
-def test_m2_no_fast_decisiveness_at_baseline():
+def test_m2_decisiveness_at_target():
     m2 = measure_m2()
     print("\n[M2] rout-within-2-turns  2:1={:.4f}  3:1={:.4f}".format(
         m2["2:1"], m2["3:1"]))
-    # BASELINE: heavily-outnumbered defenders almost never rout in <=2 turns —
-    # morale loss per clash is small vs FORCED_RETREAT_THRESHOLD (25). Phase 2
-    # (CO-3) lifts these to >=0.35 @2:1 and >=0.65 @3:1.
-    assert m2["2:1"] < 0.35, f"M2 baseline @2:1 expected below target; got {m2['2:1']:.4f}"
-    assert m2["3:1"] < 0.65, f"M2 baseline @3:1 expected below target; got {m2['3:1']:.4f}"
+    # CO-3 (Phase 2, LANDED July 13, 2026): a heavily-outnumbered defender who
+    # bleeds far more than he inflicts breaks faster — the lopsided-exchange
+    # morale penalty carries him across FORCED_RETREAT_THRESHOLD within two
+    # sustained assaults. Target: >=0.35 @2:1, >=0.65 @3:1.
+    assert m2["2:1"] >= 0.35, f"M2 @2:1 expected >=0.35; got {m2['2:1']:.4f}"
+    assert m2["3:1"] >= 0.65, f"M2 @3:1 expected >=0.65; got {m2['3:1']:.4f}"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -318,16 +331,17 @@ def measure_m3():
     return {"mean_casualties": mean_cas, "net_delta": net}
 
 
-def test_m3_defender_gains_ground_at_baseline():
+def test_m3_attrition_winnable_at_target():
     m3 = measure_m3()
     print("\n[M3] sustained 2:1 - mean casualties/turn={:.0f}  "
           "net defender delta/turn={:+.0f}".format(
               m3["mean_casualties"], m3["net_delta"]))
-    # BASELINE: frontal attrition is unwinnable — the defender does not lose
-    # ground (net >= 0). Phase 2 (CO-4) caps regen so net <= -2000.
-    assert m3["net_delta"] >= 0, (
-        "M3 baseline expected the defender to hold/gain ground under sustained "
-        f"assault; net was {m3['net_delta']:+.0f}")
+    # CO-4 (Phase 2, LANDED July 13, 2026): the field-regen cap (R=3,000) is
+    # out-paced by a sustained superior assault, so a besieged defender net-
+    # loses ground turn over turn. Target: net <= -2000.
+    assert m3["net_delta"] <= -2000, (
+        "M3 expected the defender to net-lose ground under sustained assault "
+        f"(<= -2000); net was {m3['net_delta']:+.0f}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -429,13 +443,15 @@ def measure_m5():
             "payoff": mod_trapped - mod_normal}
 
 
-def test_m5_iron_resolve_stance_trapped_at_baseline():
+def test_m5_iron_resolve_payoff_at_target():
     m5 = measure_m5()
     print("\n[M5] iron-resolve payoff: trapped={:.3f} normal={:.3f} "
           "net={:+.3f}".format(m5["trapped"], m5["normal"], m5["payoff"]))
-    # BASELINE: the trapped release nets well under the +18% target.
-    assert m5["payoff"] < 0.18, (
-        f"M5 baseline expected payoff below target (+18%); got {m5['payoff']:+.3f}")
+    # CO-7 (Phase 2, LANDED July 13, 2026): releasing the coil no longer
+    # self-cancels against the fortify-mandated defensive stance — the +24%
+    # lands in full. Target: payoff >= +0.18.
+    assert m5["payoff"] >= 0.18, (
+        f"M5 expected payoff >= +0.18 after CO-7; got {m5['payoff']:+.3f}")
 
 
 # ════════════════════════════════════════════════════════════════════════════

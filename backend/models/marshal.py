@@ -1016,6 +1016,16 @@ class Marshal:
             iron_stacks = getattr(self, 'iron_resolve_stacks', 0)
             if iron_stacks > 0:
                 modifier *= (1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
+                # CO-7 (Combat Overhaul Phase 2): the coil accrues ONLY while
+                # fortified, which forces the DEFENSIVE stance (−10% attack).
+                # Releasing from that fortify-mandated stance must not
+                # self-cancel the payoff — exempt the release from the base
+                # defensive-stance attack penalty so the coiled spring lands
+                # its full value (metric M5). The ×0.90 was applied above; undo
+                # exactly that factor (personality mods are untouched). Player
+                # and enemy alike (GR5). Read-only when consume=False.
+                if self.stance == Stance.DEFENSIVE:
+                    modifier /= 0.90
                 if consume:
                     self.iron_resolve_stacks = 0  # Consume after use
 

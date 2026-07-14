@@ -88,6 +88,33 @@ FORCED_RETREAT_THRESHOLD = 25
 DEFENDER_MORALE_CURVE_FACTOR = 1.0
 
 
+# ── CO-3 (Combat Overhaul Phase 2): decisiveness → capture ──────────────────
+# A force that bleeds far more than it inflicts breaks faster, so a heavily-
+# outnumbered defender can be routed → captured (the plunder/secure pipeline
+# finally fires). The extra morale loss keys on the casualty EXCHANGE RATIO
+# (out-bled side ÷ the other), NOT on absolute size — an equal-strength
+# defender who trades evenly (metric M6) is untouched; only a lopsided loss
+# accelerates the break. Symmetric (GR5): whichever combatant is losing the
+# blood exchange pays it, player or enemy. Sweep-tuned against M2 (spec §2.1);
+# blessed pivot 1.75 / slope 22 / cap 55 (SWEEP_1_2026_07_13).
+DECISIVENESS_EXCHANGE_PIVOT = 1.75   # exchange ratio at which the extra loss begins
+DECISIVENESS_MORALE_SLOPE = 22       # extra morale loss per unit of ratio over the pivot
+DECISIVENESS_MORALE_CAP = 55         # ceiling on the extra morale loss
+
+
+def decisiveness_morale_penalty(loser_casualties: float,
+                                winner_casualties: float) -> int:
+    """CO-3: extra morale loss for the side losing a lopsided casualty
+    exchange, scaled by how lopsided it is. Returns 0 until the exchange ratio
+    exceeds DECISIVENESS_EXCHANGE_PIVOT. Single source — both the immediate and
+    the deferred (coordinated) morale paths call this so the two never drift."""
+    ratio = loser_casualties / max(winner_casualties, 1.0)
+    if ratio <= DECISIVENESS_EXCHANGE_PIVOT:
+        return 0
+    return int(min(DECISIVENESS_MORALE_CAP,
+                   (ratio - DECISIVENESS_EXCHANGE_PIVOT) * DECISIVENESS_MORALE_SLOPE))
+
+
 class CombatResolver:
     """
     Resolves battles between armies.
@@ -639,6 +666,12 @@ class CombatResolver:
             return int(round(_scaled_morale_loss(casualty_rate, base_loss)
                              * DEFENDER_MORALE_CURVE_FACTOR))
 
+        # CO-3 decisiveness: extra morale loss for the side losing a lopsided
+        # blood exchange (out-bled ÷ other). Only one side can be non-zero;
+        # applied to the LOSER of each outcome below (winners never pay it).
+        _dec_def = decisiveness_morale_penalty(defender_casualties, attacker_casualties)
+        _dec_atk = decisiveness_morale_penalty(attacker_casualties, defender_casualties)
+
         # Determine victor (AFTER applying casualties).
         # W6-11 (E-CA-1): a WINNER's morale delta = outcome bonus MINUS the
         # same casualty-scaled loss the loser pays in that arm — blood costs
@@ -655,7 +688,7 @@ class CombatResolver:
             victor = defender
             outcome = "defender_victory"
             defender.adjust_morale(10 - _defender_scaled(def_casualty_rate, 20))
-            attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20))
+            attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20) - _dec_atk)
             defender.battles_won += 1
             attacker.battles_lost += 1
             # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
@@ -667,7 +700,7 @@ class CombatResolver:
             victor = attacker
             outcome = "attacker_victory"
             attacker.adjust_morale(10 - _scaled_morale_loss(atk_casualty_rate, 20))
-            defender.adjust_morale(-_defender_scaled(def_casualty_rate, 20))
+            defender.adjust_morale(-_defender_scaled(def_casualty_rate, 20) - _dec_def)
             attacker.battles_won += 1
             defender.battles_lost += 1
         else:
@@ -676,7 +709,7 @@ class CombatResolver:
                 victor = defender
                 outcome = "defender_tactical_victory"
                 defender.adjust_morale(5 - _defender_scaled(def_casualty_rate, 10))
-                attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 10))
+                attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 10) - _dec_atk)
                 # ESP-EV-3 (July 11, 2026): tactical victories COUNT — the
                 # coordination caller has always counted them toward
                 # battles_won/lost (combat_executor atk_won/def_won sets);
@@ -694,7 +727,7 @@ class CombatResolver:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
                 attacker.adjust_morale(5 - _scaled_morale_loss(atk_casualty_rate, 10))
-                defender.adjust_morale(-_defender_scaled(def_casualty_rate, 10))
+                defender.adjust_morale(-_defender_scaled(def_casualty_rate, 10) - _dec_def)
                 # ESP-EV-3: unified with the coordination caller (see above).
                 attacker.battles_won += 1
                 defender.battles_lost += 1
@@ -1239,6 +1272,11 @@ class CombatResolver:
             return int(round(_scaled_morale_loss(casualty_rate, base_loss)
                              * DEFENDER_MORALE_CURVE_FACTOR))
 
+        # CO-3 decisiveness — MUST mirror the immediate path's helper call so
+        # coordinated battles break lopsidedly-outnumbered defenders too.
+        _dec_def = decisiveness_morale_penalty(defender_casualties, attacker_casualties)
+        _dec_atk = decisiveness_morale_penalty(attacker_casualties, defender_casualties)
+
         # C2: Victor from PROJECTED strength (never modify .strength)
         projected_atk = attacker.strength - attacker_casualties
         projected_def = defender.strength - defender_casualties
@@ -1256,12 +1294,12 @@ class CombatResolver:
             victor = defender
             outcome = "defender_victory"
             def_morale_delta = 10 - _defender_scaled(def_casualty_rate, 20)
-            atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20)
+            atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20) - _dec_atk
         elif projected_def <= 0:
             victor = attacker
             outcome = "attacker_victory"
             atk_morale_delta = 10 - _scaled_morale_loss(atk_casualty_rate, 20)
-            def_morale_delta = -_defender_scaled(def_casualty_rate, 20)
+            def_morale_delta = -_defender_scaled(def_casualty_rate, 20) - _dec_def
         else:
             # Both survive — tactical result
             # CRITICAL: 1.5 threshold MUST match line ~477 in normal path
@@ -1269,12 +1307,12 @@ class CombatResolver:
                 victor = defender
                 outcome = "defender_tactical_victory"
                 def_morale_delta = 5 - _defender_scaled(def_casualty_rate, 10)
-                atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 10)
+                atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 10) - _dec_atk
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
                 atk_morale_delta = 5 - _scaled_morale_loss(atk_casualty_rate, 10)
-                def_morale_delta = -_defender_scaled(def_casualty_rate, 10)
+                def_morale_delta = -_defender_scaled(def_casualty_rate, 10) - _dec_def
             else:
                 victor = None
                 outcome = "stalemate"

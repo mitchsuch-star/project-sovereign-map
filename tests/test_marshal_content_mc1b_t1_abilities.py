@@ -511,11 +511,14 @@ class TestCharlesRoutThreshold:
         assert ney.get_rout_threshold(FORCED_RETREAT_THRESHOLD) == FORCED_RETREAT_THRESHOLD
 
     def _band_battle(self, ability):
-        """Deterministic solo battle whose loser lands in (15, 25] morale."""
+        """Deterministic solo battle whose loser lands in (15, 25] morale.
+        (CO-3, Phase 2: the lopsided-exchange decisiveness penalty deepened
+        the loser's morale hit, so the starting morale is re-tuned 40 -> 48 to
+        keep the isolation band meaningful; the threshold nuance is unchanged.)"""
         attacker = make_marshal("Ney", strength=40000)
         charles = make_marshal("Charles", nation="Britain",
                                personality="cautious", strength=35000,
-                               morale=40, ability=ability)
+                               morale=48, ability=ability)
         result = CombatResolver().resolve_battle(attacker, charles)
         post_morale = result["defender"]["morale"]
         assert 15 < post_morale <= FORCED_RETREAT_THRESHOLD, (
@@ -536,9 +539,13 @@ class TestCharlesRoutThreshold:
             ney = make_marshal("Ney", strength=40000)
             davout = make_marshal("Davout", strength=30000,
                                   personality="cautious")
+            # CO-3 (Phase 2): with committed reinforcement (CO-1) AND the
+            # lopsided-exchange decisiveness penalty, a two-corps assault
+            # crushes Charles far harder — starting morale re-tuned 40 -> 72
+            # to keep the loser inside the (15, 25] isolation band.
             charles = make_marshal("Charles", location="Belgium",
                                    nation="Britain", personality="cautious",
-                                   strength=35000, morale=40, ability=ability)
+                                   strength=35000, morale=72, ability=ability)
             world = make_world(ney, davout, charles)
             result = execute_attack(world, "Ney", "Charles")
             return charles, result
