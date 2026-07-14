@@ -245,17 +245,6 @@ class Marshal:
         self.location = location
         self.strength = strength
         self.starting_strength = strength  # NEW: Track original strength
-        # EC-U1 (Combat Overhaul Phase 4): the corps' ESTABLISHMENT — a
-        # high-water-mark of strength. Billed upkeep never drops below it on
-        # the Europe campaign, so grinding a corps down in battle no longer
-        # LOWERS its upkeep (the "losing pays" regressive bug). Era note: the
-        # Napoleonic state committed to maintaining corps at establishment;
-        # losses obliged paid replacements (recruit gold), never a rebate.
-        # Initialised to 0 and only ever raised by the once-per-turn
-        # reconcile (world_state._reconcile_establishments), so a freshly
-        # built or directly-set marshal bills on CURRENT strength until a
-        # turn has been processed — keeping every direct-call test unchanged.
-        self.establishment = 0
         self.personality = personality
         self.nation = nation
         self.original_nation = None  # Track pre-vassalage nation for cleanup on rebellion
@@ -1234,19 +1223,6 @@ class Marshal:
             base = min(10, base + 1)
         return base
 
-    def get_upkeep_strength(self) -> int:
-        """EC-U1: the strength this corps is BILLED upkeep on (Europe).
-
-        max(current strength, establishment) — a corps ground down below its
-        established size is still billed at establishment (you owe the
-        replacements), so attrition never LOWERS upkeep. `establishment` is a
-        high-water-mark reconciled once per turn; it is 0 for a marshal that
-        has not yet been through a turn, so a fresh corps bills on current
-        strength. Callers gate the Europe-vs-legacy choice — the legacy
-        fixture world keeps its strength-proportional upkeep (N1).
-        """
-        return max(int(self.strength), int(self.establishment))
-
     def add_troops(self, amount: int) -> None:
         """Add troops to this marshal's army (recruitment)."""
         self.strength += amount
@@ -1411,7 +1387,6 @@ class Marshal:
             "location": self.location,
             "strength": int(self.strength),
             "starting_strength": int(self.starting_strength),
-            "establishment": int(self.establishment),  # EC-U1 upkeep high-water-mark
             "personality": self.personality,
             "nation": self.nation,
             "original_nation": self.original_nation,
@@ -1593,10 +1568,6 @@ class Marshal:
 
         # ═══════ CORE IDENTITY ═══════
         marshal.starting_strength = data.get("starting_strength", marshal.strength)
-        # EC-U1: default 0 (not yet reconciled) — an old save with no field
-        # bills on current strength until the next turn reconciles the peak,
-        # so loading never retroactively over-bills a mid-attrition army.
-        marshal.establishment = int(data.get("establishment", 0))
         marshal.biography = data.get("biography", "")
         marshal.original_nation = data.get("original_nation", None)
 

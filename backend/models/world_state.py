@@ -3915,15 +3915,13 @@ class WorldState:
         breakdown = []
         for marshal in self.marshals.values():
             if marshal.nation == nation and marshal.strength > 0:
-                # EC-U1 (Combat Overhaul Phase 4): on the Europe campaign the
-                # corps is billed on its ESTABLISHMENT — max(current strength,
-                # high-water-mark) — so grinding it down in battle no longer
-                # LOWERS upkeep (the regressive "losing pays" bug). At boot and
-                # on any not-yet-reconciled marshal establishment is 0, so
-                # billed == strength and the boot economy is untouched (the E1
-                # band's Austria +18 constraint holds). Legacy world keeps the
-                # strength-proportional bill (N1).
-                billed = marshal.get_upkeep_strength() if europe else marshal.strength
+                # Upkeep bills on the corps' ACTUAL fielded strength — you
+                # pay for the soldiers you have. Attrition lowers the bill;
+                # rebuilding a corps (recruit gold) raises it again. Same seam
+                # both worlds and both sides (GR5). The over-limit and Grande
+                # Armée surcharges below key off this same live total_strength,
+                # so a shrinking army also sheds its surcharge.
+                billed = marshal.strength
                 cost = (billed // 1000) * rate
                 base_upkeep += cost
                 total_strength += billed
@@ -3978,20 +3976,6 @@ class WorldState:
             "breakdown": breakdown,
             "halved": is_bankrupt
         }
-
-    def _reconcile_establishments(self) -> None:
-        """EC-U1: raise each marshal's establishment to its peak strength.
-
-        Called once per turn (advance_turn) before the income phase. The
-        establishment is a monotonic high-water-mark: it captures a corps
-        recruited/reinforced UP to a new size, and then HOLDS when the corps
-        is attrited, so upkeep billed on max(strength, establishment) never
-        falls with battle losses. Nation-agnostic (GR5 — enemy corps
-        establish identically). Bounded loop over marshals (GR8), not regions.
-        """
-        for marshal in self.marshals.values():
-            if marshal.strength > marshal.establishment:
-                marshal.establishment = int(marshal.strength)
 
     # ========================================
     # INCOME PHASE (Phase 6.2.B)
@@ -5948,16 +5932,6 @@ class WorldState:
         # belongs here, after marshals/regions/turn are final.
         world.calculate_visibility()
 
-        # EC-U1: seed each corps' establishment to its boot strength so the
-        # non-regressive-upkeep floor is armed from turn 1 — otherwise the
-        # very first turn's combat would attrite a corps before the first
-        # per-turn reconcile ever captured its boot peak (a one-turn
-        # under-bill window). Billing is max(strength, establishment), so at
-        # boot billed == strength: the E1 band and the Austria +18 boot
-        # solvency constraint are byte-unchanged. Europe billing only reads
-        # establishment (N1); the legacy fixture world never runs this path.
-        world._reconcile_establishments()
-
         return world
 
     def get_game_state_summary(self) -> Dict:
@@ -6724,14 +6698,6 @@ class WorldState:
         cleared = self._dialogue_manager.clear_stale(self.current_turn)
         if cleared:
             self.incoming_proposal_popup = None  # Fix 8: Clear paired popup too
-
-        # ════════════════════════════════════════════════════════════
-        # EC-U1 ESTABLISHMENT RECONCILE (Combat Overhaul Phase 4) — before
-        # the income phase, so this turn's upkeep is billed on the peak
-        # strength each corps has reached (the high-water-mark that makes
-        # attrition non-regressive). One bounded loop over marshals (GR8).
-        # ════════════════════════════════════════════════════════════
-        self._reconcile_establishments()
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
