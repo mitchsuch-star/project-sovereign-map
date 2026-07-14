@@ -186,12 +186,14 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 
 ---
 
-### Phase 3 — Un-starve Marshal Drama (break the triple lock)
+### Phase 3 — Un-starve Marshal Drama (break the triple lock) — ✅ HALF-A LANDED July 14, 2026
+**Landing (Half A):** all three locks broken in `jealousy.py`; **M7 flipped `never → turn 1`** (the winnable massed-assault roster run) with M1–M6 held, full suite 13,146/3, ruff clean, no `.gd` touched. New tests `test_drama_glory_from_attrition.py` (15) + `test_drama_ladder_liveness.py` (10); 106 existing jealousy tests unchanged-green. Constants are in-band tunable single sources in `jealousy.py`. **Remaining:** Sweep 2 (Half B) — the live-play LLM component review (§2.2) — to confirm Marshal Drama ≥7.5 and that a petition surfaces organically.
 **Session entry:** read §3.2 (the triple lock). Assumes Phases 1–2 landed (wins now reachable).
-- **DR-1 Glory from attrition/occupation (G-6).** In `record_battle_glory`, award partial glory (*sweep*, e.g. +1) for a **lopsided-casualty stalemate** (attacker out-damages defender ≥2:1 without a decisive result) and for **taking a province**, so a hard-fought campaign feeds the ladder even before a clean rout.
-- **DR-2 Slow glory decay.** Lengthen `GLORY_WINDOW` (*sweep*, e.g. 5→8) OR make glory partly cumulative so occasional deeds accrete into a ladder gap.
-- **DR-3 Authority dampening rework.** The `authority>70 ⇒ +1 threshold` gate (`jealousy.py:381`) keeps the whole engine dormant for a strong early game. Options (gate at build): raise the dampening cutoff, make it a soft scale, or exempt the *first* rung so ambition still simmers at high authority. Must not break the `authority<30` acceleration.
-**Exit:** **M7** ≤ 8 (a jealousy trigger fires in a scripted roster run); a live playthrough surfaces a petition organically. **Tests:** `test_drama_glory_from_attrition.py`, `test_drama_ladder_liveness.py` (M7). **Sweep 2** (Half B): Marshal Drama ≥7.5.
+- **DR-1 Glory from attrition/occupation (G-6).** ✅ `record_battle_glory` now awards `STALEMATE_GLORY = 1` for an **inconclusive** battle where one side **out-bleeds the other ≥2:1** (new `_out_bled` predicate — flawless exchange counts) **or takes a province** — symmetric player/enemy (GR5). A hard-fought grind feeds the ladder before a clean rout. Clean-win scoring is unchanged (regression-pinned).
+- **DR-2 Slow glory decay.** ✅ `GLORY_WINDOW` lengthened `5 → 8` (the sole glory-decay lever) so occasional deeds accrete into a ladder gap instead of evaporating at turn 6.
+- **DR-3 Authority dampening rework.** ✅ Chose the **"exempt the first rung"** option: the `authority>70 ⇒ +1 threshold` calm now applies **only to rung ≥ 2 (neutral/friendly professionals)**; a marshal who already resents the celebrated man (a Rival −1 / Hostile −2, relationship-base threshold 1) keeps his hair-trigger edge even at the height of empire. Keyed on the *relationship* base (before idle acceleration), so an idle-accelerated professional is still calmed while winning. The `authority<30` death-spiral acceleration is untouched (pinned). The existing professional-pair dampening test is unchanged-green (it uses a rung-2 pair).
+  - **Harness note (M7):** the Phase-0 `measure_m7` scenario modeled a *losing* 1:1 assault (attacker out-BLED every turn ⇒ zero glory is correct for losing), which never reproduced the triple lock the spec describes (a player *winning* the attrition earning no glory). Phase 3 re-frames it to the review's **winnable ~3:1 massed assault** into a dug-in defender — the attacker out-damages but the fort resists a clean rout — which is dormant under baseline jealousy constants and lively under Phase 3. Documented in the test docstring.
+**Exit:** **M7** ≤ 8 ✅ (jealousy trigger fires turn 1 in the scripted roster run); a live playthrough surfaces a petition organically *(Sweep 2, pending)*. **Tests:** `test_drama_glory_from_attrition.py` ✅, `test_drama_ladder_liveness.py` ✅ (M7). **Sweep 2** (Half B): Marshal Drama ≥7.5 *(pending live-play run)*.
 
 ---
 
@@ -262,9 +264,9 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | CO-4 regen cap | ✅ **LANDED July 13, 2026** | M3 ✅ −2749 | (Phase 2 commit) |
 | CO-6 reinforcement legibility | ✅ **LANDED July 13, 2026** | Half B | (Phase 2 commit) |
 | CO-7 Iron Resolve stance | ✅ **LANDED July 13, 2026** | M5 ✅ +0.24 | (Phase 2 commit) |
-| DR-1 glory from attrition | NOT STARTED | M7 | — |
-| DR-2 glory decay | NOT STARTED | M7 | — |
-| DR-3 authority dampening | NOT STARTED | M7 | — |
+| DR-1 glory from attrition | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
+| DR-2 glory decay | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
+| DR-3 authority dampening | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | (Phase 3 commit) |
 | EC-U1 upkeep | NOT STARTED | Half B | — |
 | EC-U2 gold sink | NOT STARTED | Half B | — |
 | VS-1 loyalty lever / VS-2 dead code | NOT STARTED | Half B | — |

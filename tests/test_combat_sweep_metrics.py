@@ -503,15 +503,30 @@ def _france_standing(world):
             and not getattr(m, "captured_by", "")]
 
 
+# The review's WINNABLE concentration. After Phases 1-2 (additive committed
+# strength + decisiveness) a marshal who MASSES his force grinds a dug-in
+# defender down instead of stalemating forever — the ~3:1 concentration the
+# review used to grind Mack 52k->21.7k. We model that as a decisive assault
+# against a defender dug in at roughly a third of the committed force, so the
+# attacker out-DAMAGES (the situation the triple lock actually starved: a
+# player winning the attrition who earns no glory for it). The original Phase-0
+# harness modeled a 1:1 assault where the attacker is out-BLED and simply
+# loses every battle — zero glory is correct there (no laurels for losing), so
+# it never reproduced the lock. This is the faithful post-Phase-2 regime.
+_M7_ASSAULT_ENEMY_FRAC = 0.35
+
+
 def measure_m7(horizon=8):
     """Turns until any France marshal develops a grievance, in an 8-turn
-    frontal-attrition run at high authority — the reviewed play pattern.
+    massed-assault run at high authority — the reviewed play pattern, now
+    winnable. Returns the first trigger turn, or _M7_NEVER.
 
-    Reproduces the triple lock (spec §3.2): the France roster grinds against a
-    dug-in enemy each turn (stalemate-dominated ⇒ ~0 glory recorded), authority
-    sits at 100 (the +1 threshold dampening is live), and glory decays inside a
-    5-turn window. No glory gap forms, so no grievance fires. Returns the first
-    trigger turn, or _M7_NEVER.
+    The triple lock (spec §3.2) is what kept this dormant BEFORE Phase 3:
+    (1) the hard-fought out-damaging stalemate awarded ZERO glory, (2) any
+    stray point decayed inside a 5-turn window, and (3) authority 100 raised
+    every jealousy threshold by one. Phase 3 breaks all three — DR-1 scores the
+    out-damaging grind, DR-2 lets it accrete (window 8), DR-3 exempts the
+    hair-trigger rival from the winning-army dampening — so a grievance forms.
     """
     world = WorldState.from_dict(
         WorldState.from_scenario(str(_SCENARIO_PATH)).to_dict())
@@ -522,10 +537,12 @@ def measure_m7(horizon=8):
         world.current_turn = turn
         random.seed(10_000 + turn)
         for marshal in roster:
-            # Each marshal assaults a fresh dug-in enemy of equal weight — a
-            # frontal grind that stalemates far more often than it breaks.
-            enemy = _mk("EnemyCorps", marshal.strength or 40000, "cautious",
-                        "Austria", morale=100, defense_bonus=0.15)
+            # Each marshal commits a massed force (~3:1) against a fresh dug-in
+            # enemy — he out-damages the grind but the fortified defender
+            # resists a clean rout, exactly the review's Mack assault.
+            enemy = _mk("EnemyCorps",
+                        int((marshal.strength or 40000) * _M7_ASSAULT_ENEMY_FRAC),
+                        "cautious", "Austria", morale=100, defense_bonus=0.15)
             pre_atk = marshal.strength
             pre_def = enemy.strength
             res = _resolve(marshal, enemy, terrain=_DUG_IN_TERRAIN,
@@ -553,15 +570,16 @@ def measure_m7(horizon=8):
     return _M7_NEVER
 
 
-def test_m7_drama_dormant_at_baseline():
+def test_m7_drama_comes_alive():
     first = measure_m7()
     shown = "never" if first == _M7_NEVER else f"turn {first}"
     print("\n[M7] first jealousy trigger over 8 turns: {}".format(shown))
-    # BASELINE: the triple lock keeps the drama engine dormant — no grievance
-    # fires in a frontal-attrition game. Phase 3 breaks all three locks so a
-    # trigger fires within 8 turns.
-    assert first > 8, (
-        f"M7 baseline expected NO trigger within 8 turns; fired on turn {first}")
+    # PHASE 3: the triple lock is broken (DR-1 glory-from-attrition, DR-2 slow
+    # decay, DR-3 authority-dampening rework), so a grievance forms within the
+    # 8-turn horizon in the winnable massed-assault run. Target: M7 <= 8.
+    assert 1 <= first <= 8, (
+        f"M7 (Phase 3) expected a jealousy trigger within 8 turns; got "
+        f"{'never' if first == _M7_NEVER else first}")
 
 
 # ════════════════════════════════════════════════════════════════════════════

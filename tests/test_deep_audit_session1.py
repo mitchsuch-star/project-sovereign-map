@@ -14,6 +14,8 @@ Covers 10 fixes:
 - Fix 10: Dead code (no tests needed — style only)
 """
 
+import random
+
 from backend.models.marshal import Marshal, Stance
 from backend.models.world_state import WorldState
 from backend.game_logic.combat import CombatResolver
@@ -173,6 +175,14 @@ class TestFix2WarScoreCasualties:
 
     def test_war_score_accumulates_across_battles(self):
         """Multiple battles should each add records."""
+        # Seed for determinism (this repo runs under pytest-randomly). Without
+        # a seed the first 80k-vs-15k assault sometimes ROUTS Blucher, who
+        # flees and yields Saxony — leaving a pending capture-choice popup that
+        # blocks the second attack, so only one record lands. This seed keeps
+        # Blucher holding Saxony so the intended two-battle case is exercised.
+        # (Flakiness widened after the Phase 1-2 combat-decisiveness landings;
+        # test-only fix, no product behavior change.)
+        random.seed(2)
         atk = _make_marshal(name="Ney", location="Saxony", strength=80000, nation="France")
         dfn = _make_marshal(name="Blucher", location="Saxony", strength=15000, nation="Prussia")
         world = _make_world_with_marshals([atk, dfn])

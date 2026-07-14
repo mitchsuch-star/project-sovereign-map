@@ -38,7 +38,16 @@ from backend.game_logic import dotation
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
-GLORY_WINDOW = 5                    # rolling window (turns) for glory scores
+GLORY_WINDOW = 8                    # rolling window (turns) for glory scores
+#   DR-2 (Phase 3, spec §3.2): lengthened 5 -> 8 so occasional deeds accrete
+#   into a ladder gap instead of evaporating before ambition can form. The
+#   window is the ONLY glory-decay lever; nothing else changed.
+
+STALEMATE_GLORY = 1                 # DR-1 (Phase 3): partial glory for a
+#   hard-fought inconclusive battle where one side out-bleeds the other >=2:1,
+#   or for taking a province without a clean field victory. Feeds the ladder
+#   before a decisive rout — the "ground them down over six assaults" campaign
+#   the Field Review saw earns laurels. Symmetric (GR5).
 
 # Trigger thresholds by relationship with the target (spec §1).
 # None = immune. Hostile additionally requires idle >= HOSTILE_IDLE_TURNS.
@@ -137,6 +146,14 @@ def _victory_points(casualties_own: int, casualties_enemy: int,
     return points
 
 
+def _out_bled(own_casualties: int, enemy_casualties: int) -> bool:
+    """True when this side inflicted >=2x the losses it took (DR-1, spec §3.2).
+    A flawless exchange (took nothing, dealt something) counts."""
+    if own_casualties <= 0:
+        return enemy_casualties > 0
+    return enemy_casualties >= 2 * own_casualties
+
+
 def _defeat_points(casualties_own: int, casualties_enemy: int,
                    territory_lost: bool, outnumbered: bool) -> int:
     """Glory lost on a defeat (spec §1 v3.1). Outnumbered losses carry no
@@ -190,6 +207,21 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
             _append_glory(defender, turn, _defeat_points(
                 defender_casualties, attacker_casualties,
                 territory_lost=conquered, outnumbered=def_outnumbered))
+
+    # DR-1 (Phase 3, spec §3.2): a hard-fought INCONCLUSIVE battle still feeds
+    # the ladder. Neither primary achieved a decisive result, but the commander
+    # who out-bled the other >=2:1 — or who took the province off an uncontested
+    # occupation — earns partial glory. Symmetric (GR5): whichever side
+    # dominated the exchange is rewarded. This is what breaks lock 1 of the
+    # triple lock (stalemate == zero glory) so a grinding campaign accretes.
+    if not attacker_won and not defender_won:
+        if attacker is not None and (
+                conquered
+                or _out_bled(attacker_casualties, defender_casualties)):
+            _append_glory(attacker, turn, STALEMATE_GLORY)
+        elif defender is not None and _out_bled(defender_casualties,
+                                                attacker_casualties):
+            _append_glory(defender, turn, STALEMATE_GLORY)
 
     # Non-primary participants: base +/-1 (shared the field, not the command).
     for participant in (attacker_participants or []):
@@ -376,11 +408,20 @@ def _threshold_for(marshal, target, authority: int) -> Optional[Tuple[int, bool]
         # hostile idle gate is waived (§0 build decision — acceleration
         # never ADDS gates).
         return 1, False
+    # DR-3 (Phase 3, spec §3.2): the "first rung" is exempt from the winning
+    # calm. A marshal who ALREADY resents the celebrated man — a Rival (-1) or
+    # Hostile (-2), relationship-base threshold 1 — keeps his hair-trigger edge
+    # even at the height of empire; his ambition is not anesthetized by the
+    # Emperor's success (the marshals feuded through the victories — Auerstedt
+    # was 1806). Only the neutral/friendly professionals (rung >= 2) are calmed.
+    # Exemption is keyed on the RELATIONSHIP base, before idle acceleration, so
+    # an idle professional turned hair-trigger is still dampened while winning.
+    hair_trigger = base == 1
     if getattr(marshal, "idle_turns", 0) >= IDLE_ACCELERATION_TURNS:
         base = max(1, base - 1)
-    if authority > AUTHORITY_SUPPRESS_ABOVE:
-        # Winning calms the army (+1 to every threshold) — it does not
-        # anesthetize it (§0.2 build amendment).
+    if authority > AUTHORITY_SUPPRESS_ABOVE and not hair_trigger:
+        # Winning calms the professionals (+1 to their threshold) — it does not
+        # anesthetize the army (§0.2 build amendment, DR-3 refinement).
         base += 1
     return base, requires_idle
 
