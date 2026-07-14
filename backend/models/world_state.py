@@ -126,6 +126,27 @@ LEGACY_UPKEEP_RATE = 5                 # g per 1,000 troops (legacy fixture worl
 EUROPE_UPKEEP_RATE = 8                 # g per 1,000 troops (E3 blessed, was 5)
 FORCE_LIMIT_BASE = 60000               # Per-nation force-limit floor (E3)
 FORCE_LIMIT_PER_REGION = 2500          # Limit growth per controlled region (E3)
+# EC-U3 (Combat Overhaul Phase 4, Sweep-3 follow-up): the "Grande Armée"
+# surcharge — a premium upkeep rate on TOTAL nation strength above an ABSOLUTE
+# threshold, modelling the ruinous diseconomies of scale a supermassive
+# standing army carried (supply trains, remounts, administration, foraging
+# radius). Unlike the per-nation ES-3 over-limit band, this is keyed on
+# absolute size, so at the 1805 boot ONLY France (189k) crosses it — the one
+# nation whose region income (3,400) massively outran its army cost, banking a
+# firehose surplus (Sweep-3: Economy held at 6.0 on exactly this "loose gold").
+# Austria (126k on a thin 1,250 income — the binding boot-solvency constraint)
+# and every other nation sit below the threshold and are byte-unaffected, so
+# this bites the hegemon's surplus without breaking the E1 band. GR5: any
+# nation that grows this large pays it. Europe-scoped (N1). Sweep-tunable.
+GRANDE_ARMEE_THRESHOLD = 140000        # men; above this, the premium rate applies
+GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
+#   Sweep-3 tuning (measured, France/1805): rate 18 puts France's turn-1
+#   absorption at 55.5% — just inside the EC-2 aspirational 55-70% band that
+#   the original blessed constants (rate 8) could not reach (36.9%) without
+#   breaking Austria's +18 boot solvency. It cuts France's homeland surplus
+#   ~29% (net 2989 -> 2107) and makes a FULLY-doubled army (378k) the exact
+#   edge of sustainability (break-even, no death-spiral over 6 turns) — the
+#   anti-snowball lesson: grow your army with your ECONOMY, not your map.
 # EC-U2 (Combat Overhaul Phase 4): per-turn maintenance for each completed
 # military/civil structure a nation keeps — depots, fortifications, training
 # grounds, markets, stables (region.buildings) and active watchtowers. The
@@ -3923,17 +3944,33 @@ class WorldState:
             surcharge = (band_over // 1000) * (rate // 2) \
                 + (band_severe // 1000) * rate
 
+        # EC-U3 Grande Armée surcharge — a premium on ABSOLUTE strength above
+        # GRANDE_ARMEE_THRESHOLD (Europe only), folded into `surcharge` so the
+        # ledger's total == base + surcharge reconciliation is preserved. At
+        # boot only France crosses the threshold (GR5 — any nation that grows
+        # this large pays it identically).
+        grande = 0
+        if europe and total_strength > GRANDE_ARMEE_THRESHOLD:
+            grande = ((total_strength - GRANDE_ARMEE_THRESHOLD) // 1000) \
+                * GRANDE_ARMEE_RATE
+            surcharge += grande
+
         # Mercy mechanic: halve upkeep during bankruptcy (E6: covers the
         # surcharge too; halved separately so total == base + surcharge)
         is_bankrupt = self.nation_bankruptcy_turns.get(nation, 0) >= 1
         if is_bankrupt:
             base_upkeep = base_upkeep // 2
             surcharge = surcharge // 2
+            grande = grande // 2
 
         return {
             "total": int(base_upkeep + surcharge),
             "base": int(base_upkeep),
             "surcharge": int(surcharge),
+            # EC-U3: the Grande Armée portion OF the surcharge (informational;
+            # already inside `surcharge`/`total`, so the ledger reconciliation
+            # is untouched — this only lets the UI split the line for legibility).
+            "grande_armee": int(grande),
             "force_limit": int(force_limit) if force_limit is not None else None,
             "total_strength": int(total_strength),
             "over_limit": bool(force_limit is not None

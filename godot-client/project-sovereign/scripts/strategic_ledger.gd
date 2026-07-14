@@ -390,14 +390,20 @@ func _render_economy():
 	# folded total, so the visible lines still sum to Net — §3 invariant).
 	var upkeep_surcharge = int(econ.get("upkeep_surcharge", 0))
 	var upkeep_base = int(econ.get("upkeep_base", upkeep))
+	# EC-U3: the surcharge splits into the ES-3 over-limit part and the Grande
+	# Armée premium (a supermassive standing army's diseconomies of scale).
+	var grande_armee = int(econ.get("grande_armee", 0))
+	var over_limit_surcharge = upkeep_surcharge - grande_armee
 	bbcode += "  Upkeep:   -" + str(upkeep_base) + "g\n"
-	if upkeep_surcharge > 0:
+	if over_limit_surcharge > 0:
 		var force_limit = int(econ.get("force_limit", 0))
 		var army_total = int(econ.get("army_strength_total", 0))
-		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Over-limit surcharge: -" + str(upkeep_surcharge) + "g"
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Over-limit surcharge: -" + str(over_limit_surcharge) + "g"
 		if force_limit > 0:
 			bbcode += "  (" + _format_number(army_total) + " / " + _format_number(force_limit) + " force limit)"
 		bbcode += "[/color]\n"
+	if grande_armee > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Grande Armée surcharge: -" + str(grande_armee) + "g[/color]\n"
 
 	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
 	var net_sign = "+" if net >= 0 else ""

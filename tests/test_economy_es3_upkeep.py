@@ -39,6 +39,8 @@ from backend.models.world_state import (
     EUROPE_UPKEEP_RATE,
     FORCE_LIMIT_BASE,
     FORCE_LIMIT_PER_REGION,
+    GRANDE_ARMEE_RATE,
+    GRANDE_ARMEE_THRESHOLD,
     LEGACY_UPKEEP_RATE,
     WorldState,
 )
@@ -147,11 +149,17 @@ class TestEuropeUpkeepFormula:
         """At 2× the limit: band up to 150% pays +4/1,000, the rest +8/1,000.
         limit L → band1 = L/2 → (L/2)//1000 × 4; band2 = L/2 → ×8."""
         limit = europe.get_force_limit("France")
-        _solo_army(europe, limit * 2)
+        army = limit * 2
+        _solo_army(europe, army)
         result = europe.calculate_turn_upkeep("France")
         half = limit // 2
-        expected = (half // 1000) * 4 + (half // 1000) * 8
+        es3 = (half // 1000) * 4 + (half // 1000) * 8
+        # EC-U3: the Grande Armée premium stacks on top of the ES-3 bands for
+        # an army above the absolute threshold (limit*2 is well past it here).
+        grande = max(0, (army - GRANDE_ARMEE_THRESHOLD) // 1000) * GRANDE_ARMEE_RATE
+        expected = es3 + grande
         assert result["surcharge"] == expected
+        assert result["grande_armee"] == grande
         assert result["total"] == result["base"] + expected
 
     def test_surcharge_sums_across_marshals(self, europe):
@@ -313,13 +321,19 @@ class TestTurn1Anchor:
             )
 
     def test_france_pays_the_blessed_surcharge(self, world1805):
-        """189k army vs 130k limit, below the 195k severe threshold:
-        59,000 over → 59 × 4 = 236g."""
+        """189k army vs 130k limit, below the 195k severe threshold: the ES-3
+        over-limit portion is 59,000 over → 59 × 4 = 236g. EC-U3 then stacks
+        the Grande Armée premium — 49,000 above the 140k absolute threshold →
+        49 × 18 = 882g — for a total surcharge of 1,118g (the two components
+        reported separately for legibility)."""
         upkeep_data = world1805.calculate_turn_upkeep("France")
         assert upkeep_data["total_strength"] == 189000
         assert upkeep_data["force_limit"] == 130000
-        assert upkeep_data["surcharge"] == 236
-        assert upkeep_data["total"] == 1512 + 236
+        grande = ((189000 - GRANDE_ARMEE_THRESHOLD) // 1000) * GRANDE_ARMEE_RATE
+        assert grande == 882
+        assert upkeep_data["grande_armee"] == 882
+        assert upkeep_data["surcharge"] == 236 + 882  # ES-3 236 + Grande Armée 882
+        assert upkeep_data["total"] == 1512 + 236 + 882
 
     def test_austria_reaches_the_severe_band(self, world1805):
         """126k army vs 77.5k limit (150% = 116,250): band1 38,750 → 152g,
@@ -329,15 +343,17 @@ class TestTurn1Anchor:
         assert upkeep_data["surcharge"] == 152 + 72
 
     def test_france_absorption_below_the_stacked_band(self, world1805):
-        """ES-3 alone absorbs ~47% of France's gross — deliberately BELOW
-        the 55–70% E1 band, which is measured against ES-2+ES-3+ES-7
-        stacked (S7's band test is the tuning instrument). If this creeps
-        above the band floor on its own, the stacked set will overshoot."""
+        """ES-3 ALONE (the force-limit upkeep, EXCLUDING the EC-U3 Grande
+        Armée premium) absorbs ~47% of France's gross — deliberately BELOW
+        the 55–70% E1 band. EC-U3 is a separate layer (its own `grande_armee`
+        sub-line), so this ES-3-only measure subtracts it; the stacked band
+        (ES-2+ES-3+ES-7+EC-U3) is the E1 test's instrument."""
         from backend.game_logic.diplomacy import calculate_trade_income
-        upkeep = world1805.calculate_turn_upkeep("France")["total"]
+        up = world1805.calculate_turn_upkeep("France")
+        es3_only = up["total"] - up["grande_armee"]  # exclude the EC-U3 layer
         gross = (
             world1805.calculate_turn_income("France")["income"]
             + calculate_trade_income(world1805).get("France", 0)
         )
-        absorption = upkeep / gross
+        absorption = es3_only / gross
         assert 0.40 <= absorption <= 0.55

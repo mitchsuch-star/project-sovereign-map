@@ -267,9 +267,22 @@ class MetaExecutor:
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
-        # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
+        # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure.
+        # EC-U3: the Grande Armée premium is part of that surcharge — name it
+        # separately so a France paying a big army-size premium sees why.
         surcharge_val = int(upkeep_data.get("surcharge", 0))
-        surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
+        grande_val = int(upkeep_data.get("grande_armee", 0))
+        over_limit_val = surcharge_val - grande_val
+        if grande_val > 0:
+            parts = []
+            if over_limit_val > 0:
+                parts.append(f"{over_limit_val}g over-limit")
+            parts.append(f"{grande_val}g Grande Armée")
+            surcharge_str = f" (incl. {', '.join(parts)})"
+        elif surcharge_val > 0:
+            surcharge_str = f" (incl. {surcharge_val}g over-limit)"
+        else:
+            surcharge_str = ""
         message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:

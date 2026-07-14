@@ -215,6 +215,10 @@ def _build_economy(world, player: str) -> dict:
     # under bankruptcy mercy), so the split lines reconcile to Net.
     upkeep_surcharge = int(upkeep_data.get("surcharge", 0))
     upkeep_base = upkeep - upkeep_surcharge
+    # EC-U3: the Grande Armée portion OF the surcharge (informational — already
+    # inside upkeep_surcharge, so Net reconciliation is untouched; lets the UI
+    # split the surcharge line into the ES-3 over-limit part and the EC-U3 part).
+    grande_armee = int(upkeep_data.get("grande_armee", 0))
     # ES-2 (S6): recurring cost of holding non-homeland soil — its own
     # signed Net component (income stays GROSS), rendered as an
     # "Occupation" line so the visible lines still sum to Net (SC-33).
@@ -342,6 +346,7 @@ def _build_economy(world, player: str) -> dict:
         "upkeep": upkeep,
         "upkeep_base": upkeep_base,
         "upkeep_surcharge": upkeep_surcharge,
+        "grande_armee": grande_armee,
         # 0 = no limit (legacy world) — int-safe sentinel for Godot (GR2)
         "force_limit": int(upkeep_data.get("force_limit") or 0),
         "over_force_limit": bool(upkeep_data.get("over_limit", False)),

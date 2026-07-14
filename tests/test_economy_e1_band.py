@@ -11,15 +11,24 @@ Absorption metric: drains / gross, where
            + vassal tribute + incoming settlement gold
 (the TOTAL economy including the diplomatic layer, per E1).
 
-═══ MEASURED ANCHORS AT THE BLESSED CONSTANTS (July 9, 2026) ═══
+═══ MEASURED ANCHORS (EC-U3 re-tune, July 14, 2026) ═══
 
-  turn-1 France:                     absorption 36.9%  net +2,989
-  doubled empire, fresh (hostile):   absorption 84.2%  net   +725
+  turn-1 France:                     absorption 55.5%  net +2,107
+  doubled empire, fresh (hostile):   absorption 84%+   (heavily absorbed)
   doubled empire, steady state
     (pacified + doubled army
-     + 3 endowed marshals):          absorption 54.5%  net +4,229
-  boot solvency: every armed nation net-positive; Austria +18 is the
-    BINDING constraint (126k army vs 77.5k force limit at boot).
+     + 3 endowed marshals):          absorption 100%+  edge of sustainability
+  boot solvency: every armed nation net-positive; Austria +18 is STILL the
+    BINDING constraint (126k army vs 77.5k force limit at boot) — and STILL
+    byte-unchanged, because EC-U3's Grande Armée surcharge is keyed on
+    ABSOLUTE strength above 140k, which at boot ONLY France (189k) crosses.
+
+  EC-U3 (Combat Overhaul Phase 4, Sweep-3 follow-up) is what moved turn-1
+  France from the old measured 36.9% into the EC-2 aspirational 55–70% band:
+  a premium upkeep rate (GRANDE_ARMEE_RATE g/1,000 above GRANDE_ARMEE_THRESHOLD)
+  on France's uniquely-huge army, modelling the ruinous diseconomies of scale
+  a supermassive standing army carried. It cuts France's homeland surplus ~29%
+  and makes a FULLY-doubled army the edge of sustainability (not a spiral).
 
 ═══ THE RECORDED TENSION (band retune input for the user) ═══
 
@@ -101,13 +110,18 @@ def _endow_marshals(world, nation, count=3):
 
 class TestTurnOneAnchor:
     def test_france_turn_one_absorption_bounded(self, world):
-        """Measured 36.9% at the blessed constants (see module docstring for
-        why the aspirational 55% floor is unreachable without breaking boot
-        solvency). Bounded so drift in EITHER direction is a conscious
-        retune: below 0.30 the drains stopped biting; above 0.55 someone
-        retuned toward the aspirational band — re-verify Austria first."""
+        """EC-U3 (Sweep-3 follow-up) REACHED the aspirational anchor. The
+        Grande Armée surcharge (a premium on France's uniquely-huge 189k army,
+        above the 140k absolute threshold) lifts France's turn-1 stacked
+        absorption from the old measured 36.9% to ~55.5% — inside the original
+        EC-2 aspirational 55–70% band that rate-8 alone could not reach
+        without breaking Austria's +18 boot solvency (EC-U3 touches ONLY
+        France at boot, so Austria is byte-unchanged). Bounded so drift is a
+        conscious retune: below 0.50 the Grande Armée bite weakened; above
+        0.62 the rate was pushed past the measured sweet spot (re-verify the
+        doubled-empire steady state stays out of a death-spiral)."""
         drains, gross, absorption, net = _absorption(world, "France")
-        assert 0.30 <= absorption <= 0.55, (
+        assert 0.50 <= absorption <= 0.62, (
             f"France turn-1 stacked absorption {absorption:.1%} left the "
             f"measured range (drains={drains} gross={gross})")
         assert net > 0
@@ -148,20 +162,31 @@ class TestDoubledEmpire:
         assert net > -world.nation_gold.get("France", 0)
 
     def test_steady_state_lands_in_blessed_band(self, world):
-        """The realistic doubled-empire steady state — pacified provinces,
-        an army grown to match (2x), three endowed marshals — lands INSIDE
-        the blessed 55-70%-ish band (measured 54.5%): the stacked drains
-        absorb roughly half the whole economy, permanently."""
+        """EC-U3 sharpened the anti-snowball at the top end. Doubling the
+        empire AND fielding a fully-doubled army (~378k) now runs the Grande
+        Armée surcharge hard — absorption climbs past 0.70 (from the old
+        54.5%) and the empire sits at the EDGE of sustainability (near
+        break-even). This is the intended lesson: grow your army with your
+        ECONOMY, not your map. Crucially it is NOT a death-spiral — over six
+        turns the bankruptcy counter never reaches the desertion tier (3) and
+        the treasury holds positive (the mercy + income growth arrest it)."""
         _double_empire(world, stability=100)
         for m in world.marshals.values():
             if m.nation == "France":
                 m.strength *= 2
         _endow_marshals(world, "France", count=3)
         drains, gross, absorption, net = _absorption(world, "France")
-        assert 0.45 <= absorption <= 0.70, (
-            f"steady-state doubled-empire absorption {absorption:.1%} "
-            f"(drains={drains} gross={gross})")
-        assert net > 0
+        # a fully-doubled army is now HEAVILY absorbed (the sharpened
+        # anti-snowball), not the comfortable ~55% of the pre-EC-U3 world
+        assert absorption >= 0.70, (
+            f"steady-state doubled-army absorption {absorption:.1%} — the "
+            f"Grande Armée surcharge stopped biting (drains={drains} gross={gross})")
+        # ...but sustainable: no death-spiral, treasury does not collapse
+        for _ in range(6):
+            world.advance_turn()
+        assert world.nation_bankruptcy_turns.get("France", 0) < 3, (
+            "doubled-army France death-spiralled under the Grande Armée surcharge")
+        assert world.nation_gold["France"] > 0
         # the stack is genuinely three-drain here
         econ = _build_economy(world, "France")
         assert econ["occupation"] > 0
