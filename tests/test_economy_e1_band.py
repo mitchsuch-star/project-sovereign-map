@@ -177,10 +177,15 @@ class TestDoubledEmpire:
         _endow_marshals(world, "France", count=3)
         drains, gross, absorption, net = _absorption(world, "France")
         # a fully-doubled army is now HEAVILY absorbed (the sharpened
-        # anti-snowball), not the comfortable ~55% of the pre-EC-U3 world
-        assert absorption >= 0.70, (
-            f"steady-state doubled-army absorption {absorption:.1%} — the "
-            f"Grande Armée surcharge stopped biting (drains={drains} gross={gross})")
+        # anti-snowball), not the comfortable ~55% of the pre-EC-U3 world.
+        # Bounded on BOTH sides (the name is historical — it now asserts the
+        # heavily-absorbed edge, not the old 55-70% band): below 0.70 the
+        # Grande Armée surcharge stopped biting; above 1.30 the rate was
+        # over-tuned past the edge of sustainability into a hard deficit even
+        # the 6-turn no-spiral check below could miss on turn 1.
+        assert 0.70 <= absorption <= 1.30, (
+            f"steady-state doubled-army absorption {absorption:.1%} left the "
+            f"measured edge-of-sustainability range (drains={drains} gross={gross})")
         # ...but sustainable: no death-spiral, treasury does not collapse
         for _ in range(6):
             world.advance_turn()
