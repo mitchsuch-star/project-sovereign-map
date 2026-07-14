@@ -703,6 +703,10 @@ class TestManpowerInteractions:
         davout.location = "Paris"
         ney = world.get_marshal("Ney")
         ney.location = "Belgium"  # Different location
+        # CO-4 (Phase 2): field recruit is capped without a depot/capital; this
+        # test exercises full-batch POOL accounting, so supply Belgium.
+        world.get_region("Belgium").buildings.append(
+            {"type": "supply_depot", "damaged": False})
         give_gold(world, "France", 1000)
 
         # First: infantry recruit
@@ -874,6 +878,9 @@ class TestAIManpowerIntegration:
         milan = world.get_region("Milan")
         milan.controller = "Britain"
         milan.stability = 100
+        # CO-4 (Phase 2): supply Milan so this pool-depletion test draws the
+        # full cavalry batch (the field cap is exercised separately).
+        milan.buildings.append({"type": "supply_depot", "damaged": False})
 
         # First recruit should succeed (5000 cavalry available)
         action1 = ai._pick_admin_action("Britain", world, admin_ap=2)
@@ -981,6 +988,9 @@ class TestAIManpowerIntegration:
         milan = world.get_region("Milan")
         milan.controller = "Britain"
         milan.stability = 100
+        # CO-4 (Phase 2): supply Milan so the full infantry batch is drawn
+        # (this test pins pool-deduction correctness, not the field cap).
+        milan.buildings.append({"type": "supply_depot", "damaged": False})
         give_gold(world, "Britain", 500)
 
         result = executor.execute(

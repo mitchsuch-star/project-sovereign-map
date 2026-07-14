@@ -360,19 +360,30 @@ class EconomyExecutor:
         else:
             NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
 
-        # CO-4 (Combat Overhaul Phase 2): a corps reinforcing in the field —
-        # away from a friendly supply depot or capital — cannot raise a full
-        # batch; the reinforcement is capped to AI_CORPS_REGEN_CAP so sustained
-        # superior assault net-reduces it (metric M3). The caller (the enemy AI
-        # recruit rung) sets reinforcement_cap when its corps is forward; the
-        # cap only bites when it is below the batch size (artillery's 3,000 is
-        # already at the floor). Manpower drawn and morale dilution follow the
-        # capped figure; gold is the batch price (a field levy is inefficient).
+        # CO-4 (Combat Overhaul Phase 2): the SYMMETRIC field-regen cap. A corps
+        # reinforcing in the field — away from a friendly supply depot or
+        # capital — cannot raise a full batch; the levy is capped to
+        # AI_CORPS_REGEN_CAP men. This is ONE rule keyed on the recruit
+        # region's supply, identical for player and enemy (GR5 — "same executor,
+        # the supply context is the differing input"): it makes a besieged
+        # corps net-lose ground under sustained superior assault (metric M3) and
+        # stops EITHER side out-regenerating an assault by rebuilding a forward
+        # corps. Recruiting at a depot or capital is uncapped, so the strategic
+        # loop is "reinforce at your bases, then march to the front" (build a
+        # forward supply_depot to levy there). Artillery's 3,000 batch is
+        # already at the floor. Manpower drawn and morale dilution follow the
+        # capped figure; gold stays the batch price (a pure throughput cap, not
+        # a price penalty — keeps the ledger simple). An explicit
+        # command["reinforcement_cap"] may only lower it further, never raise.
+        _recruit_region = world.get_region(recruitment_location)
+        field_cap = (None if region_has_friendly_supply(_recruit_region)
+                     else AI_CORPS_REGEN_CAP)
+        _override = command.get("reinforcement_cap")
+        if _override is not None and _override > 0:
+            field_cap = _override if field_cap is None else min(field_cap, _override)
         field_regen_capped = False
-        reinforcement_cap = command.get("reinforcement_cap")
-        if (reinforcement_cap is not None
-                and 0 < reinforcement_cap < NEW_TROOPS):
-            NEW_TROOPS = int(reinforcement_cap)
+        if field_cap is not None and 0 < field_cap < NEW_TROOPS:
+            NEW_TROOPS = int(field_cap)
             field_regen_capped = True
 
         # Build base_message with correct type and amount

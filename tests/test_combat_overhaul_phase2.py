@@ -133,6 +133,10 @@ class TestCO4FriendlySupply:
 
 
 class TestCO4RecruitCap:
+    """CO-4 is symmetric (GR5): the field-regen cap lives in the SHARED recruit
+    executor, keyed on the recruit region's supply — a bare field region caps
+    both the player's and the enemy's levy; a depot/capital is uncapped."""
+
     def setup_method(self):
         self.world = WorldState()
         self.executor = CommandExecutor()
@@ -143,69 +147,57 @@ class TestCO4RecruitCap:
         cmd.update(extra)
         return self.executor._economy._execute_recruit(cmd, self.gs)
 
-    def test_cap_reduces_infantry_batch(self):
+    def _supply(self, region_name):
+        self.world.get_region(region_name).buildings.append(
+            {"type": "supply_depot", "damaged": False})
+
+    def test_capital_recruit_full_batch(self):
         davout = self.world.get_marshal("Davout")
-        davout.location = "Paris"  # controlled, stable
-        res = self._recruit("Davout", reinforcement_cap=AI_CORPS_REGEN_CAP)
+        davout.location = "Paris"  # capital → supplied → uncapped
+        res = self._recruit("Davout")
+        assert res["success"], res.get("message")
+        assert res["events"][0]["troops_added"] == 10000
+
+    def test_field_recruit_capped_for_player(self):
+        # A player corps reinforcing in a bare field region is capped too.
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # controlled, no depot/capital
+        res = self._recruit("Davout")
         assert res["success"], res.get("message")
         assert res["events"][0]["troops_added"] == AI_CORPS_REGEN_CAP
 
-    def test_uncapped_recruit_full_batch(self):
+    def test_depot_recruit_uncapped(self):
         davout = self.world.get_marshal("Davout")
-        davout.location = "Paris"
-        res = self._recruit("Davout")  # no cap → full infantry batch
+        davout.location = "Belgium"
+        self._supply("Belgium")  # forward depot lifts the cap
+        res = self._recruit("Davout")
+        assert res["events"][0]["troops_added"] == 10000
+
+    def test_override_lowers_further(self):
+        # An explicit reinforcement_cap can only lower, never raise.
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Paris"  # supplied → would be 10000
+        res = self._recruit("Davout", reinforcement_cap=1500)
+        assert res["events"][0]["troops_added"] == 1500
+
+
+class TestCO4EnemyFieldRecruitCapped:
+    """GR5 in practice: an ENEMY corps recruiting in a bare field region draws
+    the same capped levy through the same executor — no enemy-specific wiring."""
+
+    def test_enemy_field_recruit_capped(self):
+        world = WorldState()
+        executor = CommandExecutor()
+        mack = world.get_marshal("Wellington")  # any non-France marshal
+        mack.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = mack.nation
+        milan.stability = 100
+        world.nation_gold[mack.nation] = 5000
+        res = executor._economy._execute_recruit(
+            {"marshal": mack.name}, {"world": world})
         assert res["success"], res.get("message")
-        assert res["events"][0]["troops_added"] == 10000
-
-    def test_cap_above_batch_is_noop(self):
-        # A cap larger than the batch never inflates it.
-        davout = self.world.get_marshal("Davout")
-        davout.location = "Paris"
-        res = self._recruit("Davout", reinforcement_cap=50000)
-        assert res["events"][0]["troops_added"] == 10000
-
-
-class TestCO4EnemyRungWiresCap:
-    """The enemy AI recruit rung supplies the cap when its corps is forward
-    (no friendly depot/capital) and omits it in a supplied region (GR5: the
-    same recruit executor, the supply context is the differing input)."""
-
-    def _forward_region(self):
-        return SimpleNamespace(region_type="plains", stability=100,
-                               has_building=lambda b: False)
-
-    def _supplied_region(self):
-        return SimpleNamespace(region_type="capital", stability=100,
-                               has_building=lambda b: False)
-
-    def _rung(self, region):
-        from backend.ai.enemy_ai import EnemyAI
-        ai = EnemyAI.__new__(EnemyAI)
-
-        weakest = _mk("Mack", 20000, "cautious", "Austria")
-        weakest.location = "Swabia"
-
-        world = SimpleNamespace(
-            nation_gold={"Austria": 999999},
-            get_region=lambda loc: region,
-        )
-        ai._find_weakest_marshal_for_admin = (
-            lambda nation, w, threshold=None: weakest)
-        ai.executor = SimpleNamespace(
-            _calculate_recruit_cost=lambda *a, **k: 100)
-        # Only the P1 urgent-recruit rung is exercised; short-circuit the rest.
-        ai._find_dotation_grant = lambda *a, **k: None
-        return ai._pick_admin_action("Austria", world, admin_ap=1)
-
-    def test_forward_corps_gets_cap(self):
-        cmd = self._rung(self._forward_region())
-        assert cmd["action"] == "recruit"
-        assert cmd.get("reinforcement_cap") == AI_CORPS_REGEN_CAP
-
-    def test_supplied_corps_uncapped(self):
-        cmd = self._rung(self._supplied_region())
-        assert cmd["action"] == "recruit"
-        assert "reinforcement_cap" not in cmd
+        assert res["events"][0]["troops_added"] == AI_CORPS_REGEN_CAP
 
 
 # ════════════════════════════════════════════════════════════════════════

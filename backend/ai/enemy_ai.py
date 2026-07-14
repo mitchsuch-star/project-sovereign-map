@@ -4806,21 +4806,15 @@ class EnemyAI:
                 if region else base_cost)
 
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
-                cmd = {
+                # CO-4: the field-regen cap is applied symmetrically in the
+                # shared recruit executor keyed on the recruit region's supply
+                # (GR5) — the enemy rung needs no special wiring; a forward
+                # corps is capped for both sides alike.
+                return {
                     "action": "recruit",
                     "marshal": weakest.name,
                     "target": weakest.location
                 }
-                # CO-4: a corps reinforcing in the field (no friendly depot or
-                # capital) can only raise a capped levy, so sustained superior
-                # assault net-reduces it (metric M3). GR5: same recruit executor,
-                # the supply context is the differing input value.
-                from backend.commands.economy_executor import (
-                    AI_CORPS_REGEN_CAP, region_has_friendly_supply,
-                )
-                if not region_has_friendly_supply(region):
-                    cmd["reinforcement_cap"] = AI_CORPS_REGEN_CAP
-                return cmd
 
         # Priority 1.5: ES-7 estate endowment / rente (Economy Revisit S7 +
         # §0.6.8 second pass, GR5) — below urgent recruit, above generic
@@ -4948,19 +4942,13 @@ class EnemyAI:
                     marshal=rebuild_target)
                 if region else base_cost)
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
-                cmd = {
+                # CO-4: the field-regen cap is applied symmetrically in the
+                # shared recruit executor (see the P1 urgent-recruit rung).
+                return {
                     "action": "recruit",
                     "marshal": rebuild_target.name,
                     "target": rebuild_target.location
                 }
-                # CO-4 (see the P1 urgent-recruit rung): a forward corps only
-                # rebuilds a capped levy without a friendly depot/capital.
-                from backend.commands.economy_executor import (
-                    AI_CORPS_REGEN_CAP, region_has_friendly_supply,
-                )
-                if not region_has_friendly_supply(region):
-                    cmd["reinforcement_cap"] = AI_CORPS_REGEN_CAP
-                return cmd
 
         # Priority 8: Save AP for income bonus
         return None

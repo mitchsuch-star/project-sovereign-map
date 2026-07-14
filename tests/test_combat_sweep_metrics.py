@@ -71,13 +71,14 @@ from backend.models.world_state import WorldState
 # effectiveness · attack_modifier · relationship_factor).
 COMMITTED_ALPHA = 0.6
 
-# CO-4 (Phase 2, LANDED July 13, 2026): the enemy's per-corps regeneration is
-# now CAPPED. The Field Review saw Mack reinforce +10,000 in a single turn
+# CO-4 (Phase 2, LANDED July 13, 2026): per-corps regeneration is now CAPPED
+# SYMMETRICALLY. The Field Review saw Mack reinforce +10,000 in a single turn
 # while the best assault removed ~5,000 — frontal attrition was literally
-# unwinnable. CO-4 caps a corps reinforcing in the field (no friendly depot or
-# capital) to R men/turn — the SAME single-source value as production
-# economy_executor.AI_CORPS_REGEN_CAP (guarded below) — so M3 flips from
-# "defender GAINS" to "net <= -2000".
+# unwinnable. CO-4 caps ANY corps reinforcing in the field (no friendly depot
+# or capital) to R men/turn — one rule keyed on the recruit region's supply,
+# identical for player and enemy (GR5) — the SAME single-source value as
+# production economy_executor.AI_CORPS_REGEN_CAP (guarded below) — so M3 flips
+# from "defender GAINS" to "net <= -2000".
 AI_CORPS_REGEN_PER_TURN = 3000
 
 # Monte-Carlo seed set. 400 trials is ample for stable win-rates and runs in a

@@ -166,9 +166,12 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 casualty exchange breaks faster; pivot 1.75 / slope 22 / cap 55; both morale
 paths, GR5; `defender_bonus` untouched, M6 held) → M2 `0.61 @2:1 / 1.00 @3:1`.
 **CO-4** = `economy_executor.AI_CORPS_REGEN_CAP = 3000` + `region_has_friendly_supply`;
-a corps reinforcing away from a depot/capital recruits a capped levy
-(`_execute_recruit` honours `reinforcement_cap`; enemy P1/P7 rungs set it when
-forward; harness knob guarded) → M3 `−2749`. **CO-6** = the committed effective
+**SYMMETRIC** (GR5) — ANY corps reinforcing away from a depot/capital recruits a
+capped levy, one rule in the shared `_execute_recruit` keyed on the recruit
+region's supply (player and enemy alike; the enemy AI needs no special wiring).
+Troop `recruit` only — commissioning a new marshal (`_execute_recruit_marshal`)
+is untouched (still hires at the capital). Caps troops, gold stays batch price;
+harness knob guarded → M3 `−2749`. **CO-6** = the committed effective
 strength named in coordinated battles. **CO-7** = Iron Resolve release exempts
 the fortify-mandated defensive-stance penalty in `get_attack_modifier` → M5
 `+0.24`. Tests: `test_combat_overhaul_phase2.py` (20) + the flipped M2/M3/M5
