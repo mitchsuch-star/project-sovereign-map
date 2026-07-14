@@ -182,7 +182,7 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         if region is None or region.controller != player_nation:
             continue
         enemy_entries = [km for km in intel.known_marshals
-                         if km.get("nation") != player_nation]
+                         if _intel_marshal_is_enemy(world, player_nation, km)]
         if not enemy_entries:
             continue
         enemy_name = humanize_entity_name(enemy_entries[0].get("name", "an enemy army"))
@@ -332,6 +332,22 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
     return arcs
 
 
+def _intel_marshal_is_enemy(world, player_nation: str, km: dict) -> bool:
+    """True when a known-marshal intel entry is an ACTIVE belligerent vs the
+    player — the 'enemy' predicate for the danger/threat readings below.
+
+    Excludes the player's own marshals AND non-belligerents (allies, vassals,
+    neutrals). A co-located ALLY must never inflate a threat/danger reading
+    (playtest F3: a Bavarian ally sharing the field at Munich lit a false
+    "IN PERIL - an enemy force ... shares the field"). ``is_at_war`` is the
+    single source; it already excludes allies, vassals, and neutrals.
+    """
+    km_nation = km.get("nation")
+    if not km_nation or km_nation == player_nation:
+        return False
+    return bool(world.is_at_war(player_nation, km_nation))
+
+
 def _derive_danger(marshal, world, player_nation: str,
                    supply_turns: Dict[str, List[int]]) -> str:
     """W6-3 §5.2: one danger string per marshal row ("" when none).
@@ -344,7 +360,7 @@ def _derive_danger(marshal, world, player_nation: str,
     if intel is not None and intel.visibility != UNKNOWN and marshal.strength > 0:
         enemy_total = 0
         for km in intel.known_marshals:
-            if km.get("nation") == player_nation:
+            if not _intel_marshal_is_enemy(world, player_nation, km):
                 continue
             if "strength" in km:
                 enemy_total += int(km["strength"])
@@ -684,8 +700,8 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
             continue
 
         for km in intel.known_marshals:
-            if km.get("nation") == player_nation:
-                continue  # Skip friendly forces
+            if not _intel_marshal_is_enemy(world, player_nation, km):
+                continue  # Skip own + non-belligerent (ally/vassal/neutral) forces
             name = km.get("name", "")
             if name in counted_marshals:
                 continue
@@ -1361,13 +1377,19 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                     })
                     _set_cooldown(nation, "vassal_loyalty", 3)
                 elif loyalty < 35:
+                    # C1 (playtest): grip-aware advisory — the old copy hard-coded
+                    # the healthy-band levers (incl. the dead "garrison their
+                    # capital"), contradicting the grip-aware per-event line in
+                    # the same dispatch and steering the player to spend on a
+                    # VS-R-blunted invest during a spiral. Single source.
+                    from backend.models.authority import get_imperial_grip
+                    from backend.game_logic.vassal import recovery_hint_for_grip
+                    _grip = get_imperial_grip(world, player_nation)
                     observations.append({
-                        # VS-1 (Combat Overhaul Phase 5): name the arresting
-                        # levers so the recovery loop is taught before crisis.
                         "message": (
                             f"Sire, Talleyrand notes growing discontent in {nation}. "
-                            f"Loyalty stands at {int(loyalty)}. Invest, garrison "
-                            f"their capital, or grant them autonomy to steady them."
+                            f"Loyalty stands at {int(loyalty)}. "
+                            f"{recovery_hint_for_grip(_grip)}"
                         ),
                         "trigger_type": "vassal_loyalty",
                         "target_nation": nation,

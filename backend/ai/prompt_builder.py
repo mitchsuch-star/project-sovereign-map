@@ -806,7 +806,20 @@ def build_berthier_recovery_prompt(
 
     marshals_info = _format_marshals(game_state)
     enemies_info = _format_enemies(game_state)
-    actions_list = ", ".join(sorted(VALID_ACTIONS))
+    # F5 (playtest): feed Berthier HUMAN-READABLE verbs, not raw ids. The old
+    # code injected `sorted(VALID_ACTIONS)` verbatim, so the LLM echoed raw ids
+    # like "Invest_vassal" straight to the player (R7 leak). Map through the
+    # display names and drop the meta/debug/internal verbs a player never types.
+    from backend.display_names import action_display_name
+    _RECOVERY_HIDDEN_ACTIONS = {
+        "cheat", "debug", "unknown", "status", "help",
+        "diplomatic_error", "diplomatic_downgrade", "diplomatic_break",
+    }
+    actions_list = ", ".join(sorted(
+        action_display_name(a)
+        for a in VALID_ACTIONS
+        if a not in _RECOVERY_HIDDEN_ACTIONS
+    ))
 
     system_prompt = (
         "You are Berthier, Napoleon's meticulous chief of staff. "

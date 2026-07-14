@@ -300,6 +300,17 @@ turns** for a full-3-satellite spiral collapse. *All in-band tunable; see memo �
   spiral; full-3-satellite collapse ≥ 8 turns)**, and GR5 enemy-lord symmetry. Suite
   **13,219/3**, ruff clean, no `.gd` touched; a 5-lens adversarial review returned zero
   confirmed findings.
+- **Playtest follow-up (July 14, 2026 — `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`):** a
+  live europe_1805 playtest confirmed VS-R fires as designed (grip spiraled to ~20 at a
+  healthy authority 65 as Paris fell; invest blunted +10→+4; spiral hint fired) and routed
+  10 findings — **all bug-fixes landed the same session** (`BUG_FIXES.md` §Vassal Playtest
+  Findings, `test_playtest_fixes_2026_07_14.py`). VS-R-adjacent: the spiral recovery hint had
+  named a VS-R-blunted lever ("grant autonomy") + a nonexistent "subsidy" + a dead "garrison
+  their capital" lever → rewritten to a single-source grip-aware `recovery_hint_for_grip`;
+  Talleyrand's `<35` advisory made grip-aware; the autonomy-up blunt now explained; a blocked
+  co-belligerent rebellion no longer orphans the vassal at a stale `VASSAL` state (graceful
+  independence). Design residuals → `DESIGN_REFINEMENT.md` VP-D1 (garrison wire-or-remove),
+  VP-D4 (grip memoization). The §Q4 −4 floor remains HELD.
 
 ---
 

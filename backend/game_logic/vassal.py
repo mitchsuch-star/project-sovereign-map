@@ -256,18 +256,42 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
 # LOYALTY PROCESSING (advance_turn Step 6)
 # ═══════════════════════════════════════════════════════
 
+def recovery_hint_for_grip(grip: int) -> str:
+    """VS-1/VS-R one-line reminder of the levers that actually ARREST a
+    satellite's drift, grip-aware. Single source for every recovery surface
+    (the per-event dispatch line AND Talleyrand's <35 advisory).
+
+    Names ONLY working levers (playtest F1/F1c): the old copy recommended a
+    dead "garrison their capital" lever, the autonomy lever that VS-R itself
+    blunts in the spiral band, and a nonexistent "large subsidy" action.
+      grip >= 30 (healthy): invest and autonomy-up both pay full loyalty.
+      grip <  30 (spiral):  coin (invest) and concessions (autonomy-up) are
+        blunted to 40%; only winning a decisive battle (which restores grip)
+        or releasing the vassal actually holds.
+    """
+    if grip < AUTHORITY_ACCELERATE_BELOW:
+        return ("The Emperor's grip is slipping - coin and concessions no "
+                "longer hold them. Win a decisive battle to restore your grip, "
+                "or release them before they break away.")
+    return "Invest in them or grant them autonomy to steady them."
+
+
 def process_vassal_loyalty(world) -> List[dict]:
     """
     Process all vassal loyalty modifiers per turn.
 
     Modifiers:
     - Autonomy drift: PUPPET -4, SATELLITE -2, AUTONOMOUS +1
-    - Garrison in vassal capital: +2 base + min(garrison_troops//5000, 3), capped at 4
+    - Garrison in vassal capital: +5 base + min(garrison_troops//5000, 3), cap 8
+      (NOTE: unwired in production — reads `garrison_troops`, a field nothing
+      assigns; kept + tested as the intended formula. Wire-or-remove is a
+      DESIGN_REFINEMENT decision; VS-1's hint no longer advertises it — F1c.)
     - Gold investment treaty: +1 per 100g/turn from active treaty clause
     - Shared enemy: +2 per shared war (lord and vassal both at WAR with same)
     - Lord winning battles: +1 per battle won this turn (max +3)
     - Lord losing battles: -2 per battle lost this turn (max -6)
     - Relation modifier: nation_relation(vassal, lord) // 20
+    - (VS-R) Emperor's faltering grip: -2 when the lord's imperial grip < 30
 
     Returns list of event dicts for dispatch.
     """
@@ -299,9 +323,14 @@ def process_vassal_loyalty(world) -> List[dict]:
                        else "autonomous confidence")
         _contribute(drift_label, drift)
 
-        # 2. Garrison in vassal capital — world-scoped (1805 pre-slice item 7
-        # family): the Europe satellites (Holland/KingdomOfItaly/Switzerland)
-        # are not in the legacy dict, so their garrison loyalty never applied.
+        # 2. Garrison in vassal capital. NOTE (playtest F1c): this reads
+        # `region.garrison_troops`, a field NOTHING in production assigns
+        # (Region has garrison_strength / garrison_detachment), and gates on
+        # `controller == lord` (false for a satellite that owns its own
+        # capital) — so it contributes 0 in real play. Kept + unit-tested as
+        # the intended formula; VS-1's recovery hint no longer advertises it.
+        # Wire-or-remove is a DESIGN_REFINEMENT decision (needs a real way for
+        # the lord to garrison a foreign-controlled vassal capital).
         vassal_capital = world.get_nation_capital(vassal_name)
         if vassal_capital:
             region = world.regions.get(vassal_capital)
@@ -407,25 +436,14 @@ def process_vassal_loyalty(world) -> List[dict]:
             delta_str = f"+{delta}" if delta >= 0 else str(delta)
 
             # VS-1 "teach it": a vassal slipping while still in the healthy
-            # band (>= 40) gets a one-line reminder of the three arresting
-            # levers, so the recovery loop is discoverable BEFORE the crisis
-            # popup at <= 10. Suppressed once rebellion advisories take over.
+            # band (>= 40) gets a one-line reminder of the arresting levers, so
+            # the recovery loop is discoverable BEFORE the crisis popup at <=
+            # 10. Grip-aware via the single-source helper (playtest F1: the old
+            # copy named a blunted lever + a nonexistent "subsidy" + the dead
+            # "garrison their capital"). Land grants join once VS-3 lands.
             recovery_hint = ""
             if delta < 0 and new_loyalty >= 40:
-                if lord_grip < AUTHORITY_ACCELERATE_BELOW:
-                    # VS-R "no cheap recovery": in the spiral band the cheap
-                    # gestures (invest, a token subsidy) are blunted — name the
-                    # levers that still hold. (Land grants join this line once
-                    # VS-3 lands — owner: VASSAL_DEEPENING_SPEC §1.)
-                    recovery_hint = (
-                        "The Emperor's grip is slipping — cheap gestures no longer "
-                        "hold them. Grant autonomy, pay a large subsidy, release "
-                        "them, or win a decisive battle."
-                    )
-                else:
-                    recovery_hint = (
-                        "Invest, garrison their capital, or grant autonomy to steady them."
-                    )
+                recovery_hint = recovery_hint_for_grip(lord_grip)
 
             events.append({
                 "type": "vassal_loyalty",
@@ -618,18 +636,30 @@ def check_vassal_rebellion(world) -> List[dict]:
                 )
                 events.extend(cascade_events)
             else:
-                # Hard-stop diagnostics — surface as an event so playtest
-                # logs catch a misbehaving rebellion seam. A3 will resolve
-                # `war_instance_merge_required` with the merge transaction.
+                # F8b (playtest): the vassal was already removed from
+                # world.vassals (above), so simply `continue`-ing here left the
+                # France|vassal diplomatic_state stuck at VASSAL — a permanent
+                # orphan (unattackable, never at war, never loyalty-processed).
+                # Reproduced live: a co-belligerent satellite (KoI, sharing
+                # France's war vs Austria) hit a war-instance side-conflict and
+                # orphaned while still holding all its territory. Resolve it as
+                # GRACEFUL INDEPENDENCE — the satellite breaks free as a neutral
+                # rather than declaring war (the "switch sides / join the
+                # coalition" outcome is the deferred GR9 slice). Clearing the
+                # VASSAL relation to PEACE removes the desync AND sidesteps the
+                # war-instance conflict entirely (no new war pair needed).
+                set_diplomatic_state(
+                    world, vassal_name, lord, "PEACE",
+                    "vassal_rebellion_independent",
+                )
                 events.append({
-                    "type": "vassal_rebellion_blocked",
+                    "type": "vassal_rebellion_independent",
                     "vassal": vassal_name,
                     "lord": lord,
-                    "error": war_instance_result.get("error"),
-                    "details": war_instance_result.get("details", {}),
+                    "detail": war_instance_result.get("error"),
                     "message": (
-                        f"{vassal_name} cannot rebel against {lord}: "
-                        f"{war_instance_result.get('error')}"
+                        f"{vassal_name} breaks free of {lord} and stands alone "
+                        f"- an independent power, though no war is declared."
                     ),
                 })
                 continue
@@ -922,7 +952,13 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
         mult = get_authority_lever_multiplier(world, lord)
         gain = int(10 * mult)
         state["loyalty"] = int(min(LOYALTY_MAX, state["loyalty"] + gain))
-        loyalty_msg = f"+{gain} loyalty (increased autonomy)"
+        # C2 (playtest): name the cause when the gesture is blunted, matching
+        # invest_in_vassal — otherwise the player who followed the "grant
+        # autonomy" hint hits an unexplained reduced value.
+        blunted = "" if gain >= 10 else (
+            " - the Emperor's faltering grip blunts the gesture"
+        )
+        loyalty_msg = f"+{gain} loyalty (increased autonomy){blunted}"
     else:
         # Less autonomy = vassal is unhappy. NEVER softened — low grip must not
         # cushion a downgrade (VS-R Q3).

@@ -25,6 +25,19 @@
 
 ---
 
+## Vassal Playtest — Design Items (July 14, 2026)
+
+> Routed (not bugs) from the July 14 vassal playtest + 14-agent verification. Bug fixes landed the same session (`docs/BUG_FIXES.md` §Vassal Playtest Findings); memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`. These are intent/legibility/enhancement calls, not defects.
+
+| ID | Pri | Item | Detail | Owner / gate |
+|----|-----|------|--------|--------------|
+| VP-D1 | P3 | **Garrison-as-a-real-loyalty lever (wire or remove)** | The vassal garrison-loyalty formula (`vassal.py` step 2) reads `region.garrison_troops`, a field nothing in production assigns, and gates on `controller==lord` (false for a self-owning satellite) — so it is unwired-but-tested. Either WIRE it (read `garrison_strength`/`garrison_detachment`; decide whether/how a lord can garrison a foreign-controlled vassal capital + the loyalty tie + balance) so VS-1 can advertise it again, or REMOVE the formula + its 4 tests. F1c dropped it from the hint copy in the meantime. | VS-3 land-grants slice or a vassal-depth pass; escalate the balance number if wired |
+| VP-D2 | P3 | **Muster odds band omits the defender baseline edge** | The muster "odds"/"balance of force" band (`objection_v2.inferred_attack_odds_band`) folds terrain + fort but NOT the always-on +20% `defender_bonus`, defender DEFENSE skill, ±10% variance, or the 2d6 — so "favorable" reflects force balance, not the casualty exchange (playtest: a "favorable" attack lost 8,819 to inflict 469 into mountains vs a cautious defender). F2 reworded the label to "the balance of force looks …"; the deeper fix (fold the defender baseline into the ratio, and/or a wider band) touches the CR-5 inferred-attack gate threshold → needs re-tuning + a combat sweep, not a silent change. | Combat legibility pass / next combat sweep (escalate the threshold) |
+| VP-D3 | P3 | **Committed defensive reinforcers valued by offensive potential** | `_committed_reinforcement_strength` uniformly uses `get_attack_modifier` (combat_executor.py), incl. for the committed DEFENDER — so a cautious/defensive corps reinforcing a defense is systematically undervalued (folds the defensive-stance ×0.90 + attack personality mods). GR5-symmetric (same fn both sides), so a modeling inconsistency, not an exploit — possibly intended as one generic "combat contribution" metric. **Verify intent first.** | Combat review — confirm intent before any change |
+| VP-D4 | trivial | **grip recomputed per enemy in the courting loop** | `attempt_vassal_courting` calls `get_imperial_grip(world, player)` once per enemy-nation call each turn (each re-scans homeland + war scores). `process_vassal_loyalty` already memoizes grip per lord; the courting path doesn't. Bounded by N enemies (not a per-region inner loop) — a GR8 cache-per-turn nit, deliberately NOT micro-optimized (staleness risk on a pure derived read outweighs the negligible gain). | Perf nit — fix only if a scale tripwire flags it |
+
+---
+
 ## Post-Fix Routing Update
 
 The old bug-phase gate is now cleared. Sessions 1-7 in `docs/BUG_FIXES.md` are complete, and the diplomacy contract is now stable enough to plan legitimacy and strategy work on top of it.

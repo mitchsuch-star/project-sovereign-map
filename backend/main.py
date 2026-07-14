@@ -3562,12 +3562,18 @@ def debug_vassal_loyalty(nation: str):
     lord = state["lord"]
     loyalty = int(state["loyalty"])
 
-    # Compute modifiers manually to match vassal.py process_vassal_loyalty
+    # Compute modifiers to match vassal.py process_vassal_loyalty. F7
+    # (playtest): the old breakdown reported only 4 of the ~7 contributors —
+    # it dropped both the lord's battle-results term AND the VS-R imperial-grip
+    # term, so the displayed mods never summed to the real per-turn delta.
     from backend.game_logic.vassal import AUTONOMY_DRIFT
+    from backend.models.authority import get_imperial_grip, authority_vassal_drift
 
     autonomy = state.get("autonomy", 1)
     drift = AUTONOMY_DRIFT.get(autonomy, 0)
 
+    # Garrison term (unwired in production — reads `garrison_troops`, which
+    # nothing assigns; 0 in real play, but shown to mirror the pipeline).
     garrison_bonus = 0
     vassal_capital = world.get_nation_capital(nation)
     if vassal_capital:
@@ -3575,7 +3581,7 @@ def debug_vassal_loyalty(nation: str):
         if region:
             garrison_troops = getattr(region, 'garrison_troops', 0) or 0
             if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
-                garrison_bonus = 5 + min(garrison_troops // 5000, 3)
+                garrison_bonus = min(8, 5 + min(garrison_troops // 5000, 3))
 
     shared_enemy_bonus = 0
     all_nations = set(getattr(world, "enemy_nations", []))
@@ -3589,20 +3595,50 @@ def debug_vassal_loyalty(nation: str):
         if lord_state == "WAR" and vassal_state_diplo == "WAR":
             shared_enemy_bonus += 2
 
+    # Lord's battle results this turn (process_vassal_loyalty step 5).
+    wins = losses = 0
+    for battle in getattr(world, 'battles_this_turn', []):
+        result = (battle.get("result", "") or "").lower()
+        atk = world.get_marshal(battle.get("attacker", ""))
+        dfn = world.get_marshal(battle.get("defender", ""))
+        atk_nation = getattr(atk, 'nation', '') if atk else ''
+        def_nation = getattr(dfn, 'nation', '') if dfn else ''
+        if atk_nation != lord and def_nation != lord:
+            continue
+        if "attacker" in result and "victory" in result:
+            winner = atk_nation
+        elif "defender" in result and "victory" in result:
+            winner = def_nation
+        else:
+            continue
+        if winner == lord:
+            wins += 1
+        else:
+            losses += 1
+    lord_battle_modifier = min(wins, 3) - min(losses, 3) * 2
+
     diplo_key = world._make_diplo_key(nation, lord)
     relation = world.nation_relations.get(diplo_key, 0)
     relation_modifier = relation // 20
+
+    grip = get_imperial_grip(world, lord)
+    grip_drift = authority_vassal_drift(grip)
 
     return {
         "success": True,
         "nation": nation,
         "loyalty": loyalty,
         "lord": lord,
+        "imperial_grip": int(grip),
+        # NOTE: excludes the rare gold-investment-treaty term (step 3), 0 unless
+        # an active treaty clause funds the vassal.
         "modifiers": {
             "autonomy_drift": drift,
             "garrison_bonus": garrison_bonus,
             "shared_enemy_bonus": shared_enemy_bonus,
+            "lord_battle_modifier": lord_battle_modifier,
             "relation_modifier": relation_modifier,
+            "imperial_grip_drift": grip_drift,
         },
     }
 

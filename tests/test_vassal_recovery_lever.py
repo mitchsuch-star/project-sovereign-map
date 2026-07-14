@@ -77,11 +77,14 @@ class TestVS1RecoveryHint:
         world = _make_world()
         _add_vassal(world, loyalty=80)
         e = _vassal_events(process_vassal_loyalty(world))[0]
-        assert e["recovery_hint"]
-        for lever in ("Invest", "garrison", "autonomy"):
-            assert lever.lower() in e["recovery_hint"].lower()
+        hint = e["recovery_hint"]
+        assert hint
+        assert "invest" in hint.lower()
+        assert "autonomy" in hint.lower()
+        # F1c: the dead 'garrison their capital' lever is gone
+        assert "garrison" not in hint.lower()
         # Folded into the surfaced dispatch message too.
-        assert e["recovery_hint"] in e["message"]
+        assert hint in e["message"]
 
     def test_no_hint_when_rising(self):
         """A vassal whose net loyalty is RISING is not 'falling' — no lecture.

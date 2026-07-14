@@ -45,23 +45,32 @@ class VassalExecutor:
             AUTONOMY_PUPPET, AUTONOMY_SATELLITE, AUTONOMY_AUTONOMOUS,
             change_vassal_autonomy
         )
-        raw_text = (command.get("raw_input") or command.get("original_command") or "").lower()
+        # F6 (playtest): the parser populates `raw_command`; the old chain read
+        # only `raw_input`/`original_command` (never set), so the level phrase
+        # was always empty and every order dead-ended on "Specify autonomy
+        # level" — the exact verb VS-1's recovery hint teaches. Read raw_command.
+        raw_text = (
+            command.get("raw_input")
+            or command.get("original_command")
+            or command.get("raw_command")
+            or ""
+        ).lower()
         if "puppet" in raw_text:
             new_level = AUTONOMY_PUPPET
         elif "satellite" in raw_text:
             new_level = AUTONOMY_SATELLITE
         elif "autonomous" in raw_text:
             new_level = AUTONOMY_AUTONOMOUS
-        elif "increase" in raw_text:
-            # Direction-based: increase by one level
+        elif any(w in raw_text for w in ("increase", "more autonomy", "loosen", "grant")):
+            # Direction-based: one level MORE autonomy (VS-1 hint: "grant autonomy")
             vassals = getattr(world, 'vassals', {})
             v = vassals.get(target, {})
             current = v.get("autonomy", AUTONOMY_SATELLITE)
             if current >= AUTONOMY_AUTONOMOUS:
                 return {"success": False, "message": f"{target} is already at maximum autonomy."}
             new_level = current + 1
-        elif "decrease" in raw_text:
-            # Direction-based: decrease by one level
+        elif any(w in raw_text for w in ("decrease", "less autonomy", "tighten", "reduce")):
+            # Direction-based: one level LESS autonomy
             vassals = getattr(world, 'vassals', {})
             v = vassals.get(target, {})
             current = v.get("autonomy", AUTONOMY_SATELLITE)

@@ -16,6 +16,34 @@ from backend.commands.objection_v2 import (
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display
 
 
+def _resolve_region_from_phrase(world, phrase: str):
+    """Best-effort resolve a messy MOVE_TO/HOLD target phrase to a real region.
+
+    F4 (playtest): the parser/LLM occasionally returns an unparsed phrase
+    ("On Archduke John At Tyrol" from "march on Archduke John at Tyrol")
+    instead of a bare region, which used to leak verbatim into "No path from
+    X to <raw>". Prefer an explicit REGION name appearing in the phrase
+    (longest wins — 'Ile-de-France' beats 'France'); fall back to a MARSHAL
+    named in the phrase -> that marshal's current location. Returns a region
+    name or None.
+    """
+    if not phrase:
+        return None
+    lowered = phrase.lower()
+    best = None
+    for region_name in world.regions:
+        rl = region_name.lower()
+        if len(rl) >= 4 and rl in lowered and (best is None or len(region_name) > len(best)):
+            best = region_name
+    if best is not None:
+        return best
+    for marshal in world.marshals.values():
+        name = getattr(marshal, "name", "")
+        if name and name.lower() in lowered:
+            return marshal.location
+    return None
+
+
 class StrategicExecutor:
     """Strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objections.
 
@@ -507,6 +535,23 @@ class StrategicExecutor:
                 dest = ally.location if ally else None
             elif strategic_type == "HOLD":
                 dest = target
+
+            # F4 (playtest): resolve a messy destination phrase to a real
+            # region before pathfinding, and never leak an unresolved phrase.
+            if (strategic_type in ("MOVE_TO", "HOLD")
+                    and dest and dest not in world.regions):
+                resolved = _resolve_region_from_phrase(world, dest)
+                if resolved is None:
+                    return {
+                        "success": False,
+                        "message": (
+                            f"I could not make out a destination in that order, "
+                            f"Sire - name a province (e.g. '{marshal.name}, move "
+                            f"to {marshal.location}')."
+                        ),
+                        "variable_action_cost": 0,
+                    }
+                dest = resolved
 
             if dest and dest != marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)

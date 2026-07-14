@@ -1139,11 +1139,16 @@ class LLMClient:
             + [f"invest in {n}" for n in known_nations_lower]
         )):
             action = "invest_vassal"
-        elif any(kw in command_lower for kw in [
-            "change autonomy", "set autonomy", "make puppet",
-            "make satellite", "make autonomous",
-            "increase autonomy", "decrease autonomy",
-        ]):
+        elif (
+            # F6 (playtest): the old list required CONTIGUOUS phrases
+            # ("change autonomy"), so "change Holland autonomy to autonomous"
+            # or "grant Holland autonomy" — the literal phrasing of VS-1's own
+            # hint — fell through to Unknown. Match on the specific word
+            # "autonomy", or a "make/set/turn <vassal> <level>" pattern.
+            "autonomy" in command_lower
+            or (any(v in command_lower for v in ("make", "set", "turn"))
+                and any(lv in command_lower for lv in ("puppet", "satellite", "autonomous")))
+        ):
             action = "change_autonomy"
         elif any(kw in command_lower for kw in (
             [

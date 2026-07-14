@@ -623,7 +623,8 @@ class CombatExecutor:
             f"({preview['attacker']['strength']:,}) vs "
             f"{preview['target']['name']} "
             f"({preview['target']['strength_display']}) at "
-            f"{preview['target']['location']} — odds {preview['odds_band']}."
+            f"{preview['target']['location']} — the balance of force looks "
+            f"{preview['odds_band']}."
         ]
         for row in preview["rows"]:
             verdict = "WILL JOIN" if row["will_join"] else "WILL NOT"
