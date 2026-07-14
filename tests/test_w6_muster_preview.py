@@ -321,8 +321,12 @@ def muster_endpoint():
     massena = MarshalFactory.infantry(name="Massena", location="Paris",
                                       strength=60000,
                                       personality="aggressive")
+    # CO-2 (Combat Overhaul Phase 1): the odds band now reflects the TOTAL
+    # committed force — Massena (adjacent, aggressive) musters in, so Mack must
+    # be strong enough that the odds stay non-favorable WITH that committed
+    # contribution, or the gate would (correctly) not arm.
     mack = MarshalFactory.enemy(name="Mack", location="Belgium",
-                                nation="Austria", strength=26000)
+                                nation="Austria", strength=90000)
     world = WorldFactory.with_marshals([ney, massena, mack])
     _war(world)
     orig = (main_module.parser, main_module.world, main_module.game_state)
@@ -355,7 +359,7 @@ class TestMusterTypedAnswerEndpoint:
         msg = str(answer.get("message", ""))
         assert "Ney leads the charge" in msg
         assert "Massena leads the charge" not in msg
-        assert world.marshals["Mack"].strength < 26000
+        assert world.marshals["Mack"].strength < 90000
 
     def test_cancel_still_stands_down(self, muster_endpoint):
         client, world = muster_endpoint
@@ -364,5 +368,5 @@ class TestMusterTypedAnswerEndpoint:
             "/command", json={"command": "cancel"}).json()
         ney = world.marshals["Ney"]
         assert getattr(ney, "pending_interrupt", None) is None
-        assert world.marshals["Mack"].strength == 26000
+        assert world.marshals["Mack"].strength == 90000
         assert answer.get("success") is not False

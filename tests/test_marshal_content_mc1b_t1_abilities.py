@@ -663,9 +663,13 @@ class TestNonPrimaryRoutThreshold:
         ney = make_marshal("Ney", strength=40000)
         mack = make_marshal("Mack", location="Belgium", nation="Britain",
                             personality="cautious", strength=35000, morale=60)
+        # CO-1 (Combat Overhaul Phase 1): committed reinforcement strength
+        # (Charles reinforces Mack's defence) softens the blow, so the
+        # non-primary's post-battle morale loss is smaller — re-tuned the
+        # starting morale so it still lands in the rout-decision band (15, 25].
         charles = make_marshal("Charles", location="Belgium",
                                nation="Britain", personality="cautious",
-                               strength=30000, morale=36, ability=ability)
+                               strength=30000, morale=27, ability=ability)
         world = make_world(ney, mack, charles)
         result = execute_attack(world, "Ney", "Mack")
         return charles, result

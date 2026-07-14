@@ -6,7 +6,17 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
-### ⚔️ COMBAT OVERHAUL — PHASE 0 (Baseline & Harness) LANDED July 13, 2026 — `docs/COMBAT_OVERHAUL_SPEC.md` §4 Phase 0 — ▶ **Phase 1 NEXT**
+### ⚔️ COMBAT OVERHAUL — PHASE 1 (Combat core: additive strength) LANDED July 13, 2026 — `docs/COMBAT_OVERHAUL_SPEC.md` §4 Phase 1 — ▶ **Phase 2 NEXT**
+
+**The keystone slice.** CO-1 additive committed strength + CO-1b personality/relationship scaling + CO-2 odds band + CO-5 single-source survivor count. **Sweep 1a** (`docs/audits/SWEEP_1a_2026_07_13.md`, Half A only per §2.3): α tuned to `COMMITTED_ALPHA = 0.6` (single source `combat_executor.CombatExecutor.COMMITTED_ALPHA`, harness-guarded).
+
+- **CO-1/CO-1b** — `resolve_battle` gains `committed_attacker`/`committed_defender` (default 0.0 → every solo battle byte-identical); `_calculate_effective_strength` adds the already-effective committed mass. `_committed_reinforcement_strength` scores each reinforcer `α · strength · effectiveness · get_attack_modifier(consume=False) · rel_factor` (MC-3 ×0.0…×1.5, Jealousy-v3.2 withholding). New `consume=False` read path on `Marshal.get_attack_modifier` (GR1 — no one-time bonus spent scoring a reinforcer). Symmetric both sides (GR5).
+- **CO-2** — muster odds band folds the WILL-JOIN committed strength (`inferred_attack_effective_ratio(committed_attacker=…)`); CR-5 gate's lead-only read untouched.
+- **CO-5** — `_reconcile_report_survivors` single-sources the post-battle strength so the report's `casualty_summary` and the event agree (the two-truths bug).
+- **Metrics FLIPPED:** M1 flat→`0.82` @5 corps (monotonic), M1b `0/0/0`→`41400/36000/0`, M4 `0%`→`100%`; **M6 GUARD held** `0.000`; M2/M3/M5/M7 correctly unchanged (Phase 2/3). Suite **13,100/3**, ruff clean, no `.gd` touched. Tests: `test_combat_overhaul_co1_additive.py` (11) + `..._co5_report_consistency.py` (4); 5 fixtures re-tuned (all confirmed intended — each passes with α=0.0).
+- **▶ NEXT: Phase 2** — CO-3 decisiveness→capture (M2), CO-4 enemy regen cap (M3), CO-6 reinforcement legibility, CO-7 Iron Resolve stance (M5). Then **Sweep 1** (Half A + first Half-B LLM review).
+
+### ⚔️ COMBAT OVERHAUL — PHASE 0 (Baseline & Harness) LANDED July 13, 2026 — `docs/COMBAT_OVERHAUL_SPEC.md` §4 Phase 0
 
 **User direction: "do next phase the fixes from playtest, code, commit and push initial phase of this."** Phase 0 of the Combat Overhaul & Score-Raising Program — the measurement foundation the whole build-and-measure program is judged against. **No balance change; pure measurement.**
 

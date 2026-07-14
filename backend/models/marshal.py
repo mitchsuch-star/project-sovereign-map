@@ -934,18 +934,29 @@ class Marshal:
     # STANCE MODIFIER METHODS
     # ════════════════════════════════════════════════════════════
 
-    def get_attack_modifier(self, strength_ratio: float = None) -> float:
+    def get_attack_modifier(self, strength_ratio: float = None,
+                            consume: bool = True) -> float:
         """
         Get attack modifier from stance, personality, and other sources.
 
-        WARNING: This method has SIDE EFFECTS. It consumes (zeroes out):
+        WARNING: This method has SIDE EFFECTS when consume=True. It consumes
+        (zeroes out):
         - strategic_combat_bonus (one-time inspiring command bonus)
         - counter_punch_ready (Davout's +20% after defending)
         - iron_resolve_stacks (Iron Resolve: +8%/stack, all stacks — MC-1c)
         These are read-then-clear by design — call only ONCE per combat.
 
+        CO-1b (Combat Overhaul Phase 1): pass consume=False for a READ-ONLY
+        snapshot of the multiplier (no state cleared). Used to score a
+        REINFORCER's committed contribution without spending its one-time
+        bonuses — the reinforcer is not the lead, so it never gets to spend
+        them in this battle and must keep them for its own next attack.
+
         Args:
             strength_ratio: Our strength / enemy strength (for bad odds check)
+            consume: When False, compute the same multiplier but DO NOT clear
+                any one-time bonus fields (GR1: single source, side-effect-free
+                read).
 
         Returns:
             Float multiplier (e.g., 1.15 = +15% attack)
@@ -970,7 +981,8 @@ class Marshal:
         strategic_bonus = self.strategic_combat_bonus
         if strategic_bonus > 0:
             modifier *= (1.0 + strategic_bonus / 100.0)  # 10 → +10%
-            self.strategic_combat_bonus = 0  # Consume after use
+            if consume:
+                self.strategic_combat_bonus = 0  # Consume after use
 
         # Personality-specific attack modifiers
         personality_mod = get_attack_modifier_for_personality(
@@ -992,7 +1004,8 @@ class Marshal:
                 and self.ability.get("name") == "Counter-Punch Mastery"
                 and getattr(self, 'counter_punch_ready', False)):
             modifier *= 1.20  # +20%
-            self.counter_punch_ready = False  # Consume after use
+            if consume:
+                self.counter_punch_ready = False  # Consume after use
 
         # Iron Resolve (MC-1c): the coiled spring releases — ANY attack
         # consumes ALL stacks for +8% each (max +24%). Consumed HERE only
@@ -1003,7 +1016,8 @@ class Marshal:
             iron_stacks = getattr(self, 'iron_resolve_stacks', 0)
             if iron_stacks > 0:
                 modifier *= (1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
-                self.iron_resolve_stacks = 0  # Consume after use
+                if consume:
+                    self.iron_resolve_stacks = 0  # Consume after use
 
         # Jealousy (v3.2): the grievance as fuel. +15% on SOLO attacks while
         # jealous (the transient _jealousy_solo_attack is stamped by

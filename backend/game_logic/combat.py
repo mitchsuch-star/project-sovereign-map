@@ -173,6 +173,8 @@ class CombatResolver:
             glorious_charge: bool = False,
             fortification_bonus: float = 0.0,
             apply_casualties: bool = True,
+            committed_attacker: float = 0.0,
+            committed_defender: float = 0.0,
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
@@ -185,6 +187,13 @@ class CombatResolver:
             flanking_message: Message describing the flanking situation
             glorious_charge: If True, deals 2x damage dealt AND taken (cavalry recklessness)
             fortification_bonus: Defense bonus from fortification building (Phase 6.2.E)
+            committed_attacker: CO-1 (Combat Overhaul Phase 1) — additive
+                effective strength from the attacker's committed reinforcers
+                (personality- & relationship-scaled in combat_executor via
+                _committed_reinforcement_strength; GR1-safe, read there). 0.0
+                for a solo battle → identical to pre-CO-1 behaviour.
+            committed_defender: symmetric additive strength for a reinforced
+                defender (GR5 — same code path both sides).
         """
 
         # C2 fix: Log warning for same-nation combat (defensive programming).
@@ -196,9 +205,12 @@ class CombatResolver:
         # Roll combat dice for attacker (flanking bonus adds to roll)
         attacker_roll = self.roll_combat_dice(attacker, flanking_bonus=int(flanking_bonus))
 
-        # Calculate effective strengths
-        attacker_effective = self._calculate_effective_strength(attacker, is_attacker=True)
-        defender_effective = self._calculate_effective_strength(defender, is_attacker=False)
+        # Calculate effective strengths (CO-1: committed reinforcement strength
+        # adds to the clash — additive, not a capped coordination %).
+        attacker_effective = self._calculate_effective_strength(
+            attacker, is_attacker=True, committed=committed_attacker)
+        defender_effective = self._calculate_effective_strength(
+            defender, is_attacker=False, committed=committed_defender)
 
         #print(f"   Attacker effective: {attacker_effective:,.0f}")
         #print(f"   Defender effective: {defender_effective:,.0f}")
@@ -1015,8 +1027,20 @@ class CombatResolver:
         }
         return result_dict
 
-    def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool) -> float:
-        """Calculate effective combat strength considering morale."""
+    def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool,
+                                      committed: float = 0.0) -> float:
+        """Calculate effective combat strength considering morale.
+
+        CO-1 (Combat Overhaul Phase 1): `committed` is the already-effective
+        additive strength contributed by this marshal's committed reinforcers
+        (each scaled by their own morale, personality attack modifier and the
+        MC-3 relationship factor in combat_executor._committed_reinforcement_
+        strength — GR1-safe, computed there). It is added to the lead's own
+        effective strength AFTER the lead's multipliers, so the reinforcers'
+        effectiveness is not double-scaled by the lead's morale. Defaults to
+        0.0 → byte-identical to pre-CO-1 for every solo battle and existing
+        caller.
+        """
         base_strength = float(marshal.strength)
 
         # Morale multiplier (from marshal.get_combat_effectiveness())
@@ -1031,6 +1055,9 @@ class CombatResolver:
         variance_multiplier = 1.0 + random.uniform(-self.variance, self.variance)
 
         effective = base_strength * morale_multiplier * defender_multiplier * variance_multiplier
+
+        # CO-1: committed reinforcement mass (already effective, see docstring).
+        effective += max(0.0, committed)
 
         return effective
 

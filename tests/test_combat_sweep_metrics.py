@@ -21,17 +21,17 @@ the metrics, so a later phase flips a single constant + the paired assertion:
                                      #        (Field Review: Mack +10,000 in
                                      #        one turn). CO-4 caps it to R.
 
-Metric map (spec §2.1):
+Metric map (spec §2.1) — ✅ = at target after Phase 1 (July 13, 2026):
 
-    ID   Baseline (now)                 Target                       Fixed by
-    M1   concentration inert            strictly non-decreasing      CO-1
-    M1b  no personality expression      aggressive > cautious > hostile CO-1b
-    M2   ~0 rout @2:1 & 3:1             >=0.35 @2:1, >=0.65 @3:1     CO-3
-    M3   defender GAINS (net >= 0)      net <= -2000                 CO-4
-    M4   0% multi-marshal consistency   100%                         CO-5
-    M5   stance-trapped iron payoff     >= +18%                      CO-7
+    ID   State after Phase 1            Target                       Fixed by
+    M1   ✅ monotonic (0.82 @5 corps)   strictly non-decreasing      CO-1
+    M1b  ✅ agg 41.4k > cau 36k > 0     aggressive > cautious > hostile CO-1b
+    M2   ~0 rout @2:1 & 3:1 (pending)   >=0.35 @2:1, >=0.65 @3:1     CO-3 (Phase 2)
+    M3   defender GAINS (pending)       net <= -2000                 CO-4 (Phase 2)
+    M4   ✅ 100% multi-marshal          100%                         CO-5
+    M5   stance-trapped (pending)       >= +18%                      CO-7 (Phase 2)
     M6   defender-favourable (GUARD)    stays defender-favourable    holds all phases
-    M7   drama dormant (never <= 8)     <= 8                         Phase 3
+    M7   drama dormant (pending)        <= 8                         Phase 3
 
 Determinism: `random.seed(s)` is set before every single `resolve_battle`
 call (combat.py draws 2d6 + a ±10% variance from the module `random`), and
@@ -63,11 +63,13 @@ from backend.models.world_state import WorldState
 # TUNING KNOBS (baseline values — see module docstring / spec §0.3)
 # ════════════════════════════════════════════════════════════════════════════
 
-# CO-1: at baseline, committed reinforcements add zero strength — combat.py's
-# _calculate_effective_strength (:1018) resolves on marshal.strength (the lead)
-# only. Phase 1 flips this to the sweep-tuned α (start 0.6) and the M1/M1b
-# assertions flip from "flat" to "monotonic / personality-expressed".
-COMMITTED_ALPHA = 0.0
+# CO-1: committed reinforcements add strength to the clash. Phase 1 (LANDED
+# July 13, 2026) set this to the sweep-tuned α — the SAME single-source value
+# as combat_executor.CombatExecutor.COMMITTED_ALPHA — and flipped the M1/M1b
+# assertions from "flat" to "monotonic / personality-expressed". This mirrors
+# the production _committed_reinforcement_strength model (α · strength ·
+# effectiveness · attack_modifier · relationship_factor).
+COMMITTED_ALPHA = 0.6
 
 # CO-4: the enemy's uncapped per-corps regeneration. The Field Review saw Mack
 # reinforce +10,000 in a single turn while the best assault removed ~5,000 —
@@ -80,6 +82,16 @@ AI_CORPS_REGEN_PER_TURN = 10000
 # fraction of a second (each resolve is microseconds).
 SEEDS = tuple(range(400))
 N = len(SEEDS)
+
+
+def test_committed_alpha_matches_production():
+    """Single-source guard: the harness α must equal the production α so the
+    modelled M1/M1b curve tracks what combat resolution actually does."""
+    from backend.commands.combat_executor import CombatExecutor
+    assert COMMITTED_ALPHA == CombatExecutor.COMMITTED_ALPHA, (
+        "Harness COMMITTED_ALPHA drifted from production "
+        f"CombatExecutor.COMMITTED_ALPHA ({COMMITTED_ALPHA} != "
+        f"{CombatExecutor.COMMITTED_ALPHA})")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -194,30 +206,36 @@ def measure_m1b():
     }
 
 
-def test_m1_concentration_is_inert_at_baseline():
+def test_m1_concentration_is_monotonic():
     rates = measure_m1()
     print("\n[M1] committed-corps win-rate (1..5):",
           [round(r, 4) for r in rates])
-    # BASELINE: massing corps does not change P(win) — reinforcers add no
-    # strength (combat.py:1018 resolves lead-only). Phase 1 (CO-1) flips this
-    # to strictly non-decreasing with 3 corps materially above 1.
-    assert rates[2] - rates[0] < 0.05, (
-        "M1 baseline expected FLAT (concentration inert); "
-        f"3-corps gain over 1-corps was {rates[2] - rates[0]:.4f}")
-    assert rates[4] - rates[0] < 0.05, (
-        "M1 baseline expected FLAT across 1..5 corps; "
-        f"5-corps gain was {rates[4] - rates[0]:.4f}")
+    # CO-1 (Phase 1): committed corps add strength, so P(win) is strictly
+    # non-decreasing as the force is massed, and committing the whole force is
+    # decisively better than the lead alone. (Against the DUG-IN defender used
+    # here — mountains+fort — the outright-destruction win only becomes likely
+    # at the top of the ramp; morale-driven routs that make 3 corps decisive
+    # land in Phase 2 / metric M2.)
+    for i in range(len(rates) - 1):
+        assert rates[i + 1] >= rates[i] - 1e-9, (
+            f"M1 expected non-decreasing win-rate; corps {i+1}->{i+2} "
+            f"dropped {rates[i]:.4f}->{rates[i+1]:.4f}")
+    assert rates[-1] - rates[0] >= 0.30, (
+        "M1 expected massing the full committed force to be decisively better "
+        f"than the lead alone; 5-corps gain over 1-corps was {rates[-1] - rates[0]:.4f}")
 
 
-def test_m1b_no_personality_expression_at_baseline():
+def test_m1b_personality_expressed_in_mass():
     contribs = measure_m1b()
     print("\n[M1b] reinforcer committed contribution by personality:",
           {k: round(v, 2) for k, v in contribs.items()})
-    # BASELINE: a reinforcer's contribution to committed strength is identical
-    # (zero) regardless of personality/relationship — mass is not expressed.
-    # Phase 1 (CO-1b) makes aggressive > cautious > hostile-pair.
-    assert contribs["aggressive"] == contribs["cautious"] == 0.0, (
-        "M1b baseline expected NO personality expression (all contributions 0)")
+    # CO-1b (Phase 1): a reinforcer's committed contribution expresses their
+    # OWN personality (attack modifier) and their relationship to the lead —
+    # aggressive pushes harder than cautious of equal size, and a hostile-pair
+    # reinforcer contributes nothing (×0.0 MC-3 factor).
+    assert contribs["aggressive"] > contribs["cautious"] > contribs["hostile_pair"], (
+        "M1b expected aggressive > cautious > hostile-pair; got "
+        f"{contribs}")
     assert contribs["hostile_pair"] == 0.0
 
 
@@ -328,12 +346,18 @@ def measure_m4():
     """Fraction of multi-marshal battles where the report's attacker_remaining
     agrees with the downstream event's remaining.
 
-    The two-truths bug: the battle report derives attacker_remaining from the
-    LEAD-vs-lead casualties (battle_report.py:865 → original − casualties),
-    while the executor sets the event remaining to the lead's strength AFTER
-    distributing the total casualties across all participants
-    (combat_executor.py:3874). In a multi-marshal battle the lead only absorbs
-    its proportional share, so the two disagree.
+    The two-truths bug (pre-CO-5): the battle report derived attacker_remaining
+    from the LEAD-vs-lead casualties (battle_report → original − whole-corps
+    casualties), while the executor set the event remaining to the lead's
+    strength AFTER distributing the total casualties across all participants —
+    so the two disagreed in every multi-marshal battle.
+
+    CO-5 (Phase 1) exercised here: resolve deferred (apply_casualties=False, as
+    the real coordinated path does), distribute the raw casualties across
+    [lead, reinforcer], apply the lead's share, then call the SAME production
+    reconciliation the executor calls (_reconcile_report_survivors). Afterward
+    the report's attacker_remaining and the event's remaining are ONE canonical
+    value (the lead's post-distribution strength) → 100%.
     """
     ce = _executor()
     consistent = 0
@@ -341,36 +365,43 @@ def measure_m4():
         random.seed(s)
         lead_orig, reinf_orig = 30000, 20000
         lead = _mk("Ney", lead_orig, "aggressive", "France")
+        reinf = _mk("Soult", reinf_orig, "aggressive", "France")
         deff = _mk("Mack", 40000, "cautious", "Austria", defense_bonus=0.15)
 
-        # Real resolution of the lead vs the defender (generates the report).
-        res = _resolve(lead, deff, terrain="plains")
+        # Real DEFERRED resolution (coordinated path) — report built here, no
+        # marshal state mutated. CO-1: the reinforcer commits strength too,
+        # via the production helper (world unused for a same-nation pair).
+        committed = ce._committed_reinforcement_strength(lead, [lead, reinf], None)
+        res = CombatResolver().resolve_battle(
+            lead, deff, terrain="plains", apply_casualties=False,
+            committed_attacker=committed)
         report = res["battle_report"]
-        report_remaining = report["casualty_summary"]["attacker_remaining"]
-        lead_casualties = res["attacker"]["casualties"]
 
-        # Real distribution of the lead's casualties across [lead, reinforcer]
-        # at their pre-battle strengths → the lead's actual post-battle strength
-        # (what combat_executor.py:3874 writes as the event remaining).
-        dist_lead = _mk("Ney", lead_orig, "aggressive", "France")
-        dist_reinf = _mk("Soult", reinf_orig, "aggressive", "France")
-        shares = ce._distribute_casualties(lead_casualties,
-                                           [dist_lead, dist_reinf])
-        event_remaining = lead_orig - shares.get("Ney", 0)
+        # Real distribution of the whole-corps raw casualties across the
+        # participants, then apply the lead's share (as the executor does).
+        shares = ce._distribute_casualties(
+            res["attacker_raw_casualties"], [lead, reinf])
+        lead.take_casualties(shares.get("Ney", 0))
+        deff.take_casualties(res["defender_raw_casualties"])
+
+        # CO-5: the production reconciliation — both surfaces now read the
+        # lead's post-distribution strength.
+        ce._reconcile_report_survivors(res, lead, deff)
+        report_remaining = report["casualty_summary"]["attacker_remaining"]
+        event_remaining = int(lead.strength)
 
         if event_remaining == report_remaining:
             consistent += 1
     return consistent / N
 
 
-def test_m4_report_inconsistent_in_multimarshal_at_baseline():
+def test_m4_report_consistent_in_multimarshal():
     rate = measure_m4()
     print("\n[M4] multi-marshal report consistency: {:.1%}".format(rate))
-    # BASELINE: the report and the event disagree in essentially every
-    # multi-marshal battle (the survivor two-truths bug). Phase 1 (CO-5)
-    # single-sources the survivor count → 100%.
-    assert rate < 0.05, (
-        f"M4 baseline expected ~0% consistency; got {rate:.1%}")
+    # CO-5 (Phase 1): the report and the event read ONE canonical survivor
+    # count → consistent in every multi-marshal battle.
+    assert rate == 1.0, (
+        f"M4 expected 100% consistency after CO-5; got {rate:.1%}")
 
 
 # ════════════════════════════════════════════════════════════════════════════

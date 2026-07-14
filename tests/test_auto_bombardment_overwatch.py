@@ -280,6 +280,14 @@ class TestAutoBombardmentAdvanced:
         """If bombardment kills defender, skip resolve_battle entirely."""
         world, ney, wellington, drouot = _make_world_for_support_bombardment()
         wellington.strength = 100  # Very weak — bombardment will kill
+        # Isolate Wellington: other Britain marshals (e.g. Uxbridge, adjacent
+        # at Hanover) would REINFORCE Waterloo, and post-CO-1 that committed
+        # defence distributes the damage and keeps the weak primary alive —
+        # defeating this test's intent. This test is about the LONE-defender
+        # bombardment-kill path, so drop every other Britain marshal.
+        for name in [m.name for m in world.marshals.values()
+                     if m.name != "Wellington" and m.nation == wellington.nation]:
+            del world.marshals[name]
 
         result = _execute_attack(world, "Ney", "Wellington")
 

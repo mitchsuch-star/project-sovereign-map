@@ -149,13 +149,14 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 
 ---
 
-### Phase 1 — Combat core: additive, personality-scaled strength *(the keystone)*
+### Phase 1 — Combat core: additive, personality-scaled strength *(the keystone)* — ✅ LANDED July 13, 2026
 **Session entry:** read §3.1, Phase 0 baselines. Assumes P0 harness exists.
+**Landing (Sweep 1a, `docs/audits/SWEEP_1a_2026_07_13.md`):** α tuned to `COMMITTED_ALPHA = 0.6` (single source `combat_executor.CombatExecutor.COMMITTED_ALPHA`, harness-guarded). M1 flat → `0.000→0.000→0.013→0.355→0.818` (monotonic; 0.82 at 5 corps); M1b `0/0/0` → `41400/36000/0` (aggressive > cautious > hostile); M4 `0%` → `100%`; M6 GUARD held `0.000`; no Phase-2/3 metric regressed. Full suite 13,100/3, ruff clean, no `.gd` touched. New tests `test_combat_overhaul_co1_additive.py` (11) + `..._co5_report_consistency.py` (4); 5 fixtures re-tuned (all confirmed intended — each passes with α=0.0).
 - **CO-1 Additive committed strength.** Attacker effective strength = lead effective strength **+ `α`·Σ(committed reinforcer contribution)**, over the muster "WILL JOIN" set (`combat_executor._calculate_reinforcements`). Symmetric for a reinforced defender (GR5). Lives in `combat.py:_calculate_effective_strength` (new `committed` arg); **GR1-safe** (strength, not a modifier).
 - **CO-1b Personality- & relationship-scaled contribution (G-1b).** Each reinforcer's contribution = `α · reinforcer.strength · reinforcer.get_combat_effectiveness() · (1 + reinforcer.get_attack_modifier(ratio)) · rel_factor`, where `get_attack_modifier` is READ from the reinforcer (single-source, GR1) and `rel_factor` is the MC-3 coordination scale toward the lead (×0.0 hostile … ×1.25 devoted). Aggressive/high-shock reinforcers push harder; a resentful reinforcer contributes ≈0. Coordination % synergy stays on top.
 - **CO-2 Odds band = committed force.** The muster `odds_band` computes on CO-1 committed strength so the read matches resolution.
 - **CO-5 Single-source survivor count.** One canonical post-battle strength consumed by BOTH the event and `casualty_summary` (reconcile `battle_report.py:865` ↔ `combat_executor.py:3874`). This is the missing **integration pin**.
-**Exit:** M1 monotonic; **M1b** aggressive>cautious>hostile; M4 = 100%. **Tests:** `test_combat_overhaul_co1_additive.py` (M1 + M1b), `..._co5_report_consistency.py` (solo + multi + reinforced equality). **Sweep 1a** (Half A only).
+**Exit:** ✅ M1 monotonic; **M1b** aggressive>cautious>hostile; M4 = 100% (all met). **Tests:** `test_combat_overhaul_co1_additive.py` (M1 + M1b), `..._co5_report_consistency.py` (solo + multi + reinforced equality). **Sweep 1a** (Half A only) — recorded.
 
 ---
 
@@ -236,11 +237,11 @@ Every phase opens with a **Session Entry** (what to read, what it assumes) and c
 
 | Phase / slice | State | Metric | Landed (SHA) |
 |---|---|---|---|
-| Phase 0 — harness + Sweep 0 | ✅ **LANDED July 13, 2026** | M1–M7 baseline captured | (this commit) |
-| CO-1 additive strength | NOT STARTED | M1 | — |
-| CO-1b personality/relationship scaling | NOT STARTED | M1b | — |
-| CO-2 odds band | NOT STARTED | M1/M2 | — |
-| CO-5 report single-source | NOT STARTED | M4 | — |
+| Phase 0 — harness + Sweep 0 | ✅ **LANDED July 13, 2026** | M1–M7 baseline captured | `9abd89f` |
+| CO-1 additive strength | ✅ **LANDED July 13, 2026** | M1 ✅ monotonic | (Phase 1 commit) |
+| CO-1b personality/relationship scaling | ✅ **LANDED July 13, 2026** | M1b ✅ agg>cau>hostile | (Phase 1 commit) |
+| CO-2 odds band | ✅ **LANDED July 13, 2026** | M1 (committed) | (Phase 1 commit) |
+| CO-5 report single-source | ✅ **LANDED July 13, 2026** | M4 ✅ 100% | (Phase 1 commit) |
 | CO-3 decisiveness → capture | NOT STARTED | M2 | — |
 | CO-4 regen cap | NOT STARTED | M3 | — |
 | CO-6 reinforcement legibility | NOT STARTED | Half B | — |

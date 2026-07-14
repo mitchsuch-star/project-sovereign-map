@@ -95,6 +95,67 @@ class CombatExecutor:
     # Relationship → coordination scaling factors (§3 of MULTI_MARSHAL_SPEC)
     _RELATIONSHIP_SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
 
+    # CO-1 (Combat Overhaul Phase 1, spec §0.3 G-1): committed reinforcing
+    # corps add STRENGTH to the clash, not just a capped coordination %.
+    # Each reinforcer's contribution is α · strength · effectiveness ·
+    # attack_modifier · relationship_factor (CO-1b). α is the sweep-tuned
+    # discount (Sweep 1a; a reinforcer is worth ~α·attack_mult of its raw
+    # strength relative to leading its own corps). Single source, read by
+    # both the resolution path and the muster odds band (CO-2).
+    COMMITTED_ALPHA = 0.6
+
+    def _committed_reinforcement_strength(self, lead, participants, world) -> float:
+        """CO-1/CO-1b: additive committed strength a lead's reinforcers bring
+        to the clash (everyone in `participants` except the lead).
+
+        Each reinforcer's contribution (spec §0.3 G-1b):
+
+            α · r.strength · r.get_combat_effectiveness()
+              · r.get_attack_modifier(1.0, consume=False) · rel_factor
+
+        where get_attack_modifier is READ (consume=False — no one-time bonus is
+        spent; GR1 single source, never recomputed here) and rel_factor is the
+        MC-3 relationship scale toward the lead (_RELATIONSHIP_SCALING: ×0.0
+        hostile … ×1.5 devoted), matching the live-grievance withholding the
+        coordination path uses (_calculate_per_ally_coordination): an aggressive
+        grievance is a hard 0.0, a non-aggressive one reads the worse direction.
+
+        An aggressive/high-shock reinforcer pushes harder than a cautious one of
+        equal size; a marshal who resents the lead contributes ≈0. Returns a
+        float (0.0 when the lead fights alone).
+        """
+        total = 0.0
+        for r in participants:
+            if r is lead or r.name == lead.name:
+                continue
+            if getattr(r, "strength", 0) <= 0:
+                continue
+
+            rel = lead.get_relationship(r.name)
+            scale = self._RELATIONSHIP_SCALING.get(rel, 1.0)
+
+            # Jealousy v3.2 withholding — mirror _calculate_per_ally_coordination
+            # so committed mass and coordination read the same grievance.
+            lead_jealous = getattr(lead, "jealous_of", None) == r.name
+            r_jealous = getattr(r, "jealous_of", None) == lead.name
+            if lead_jealous or r_jealous:
+                jealous_one = lead if lead_jealous else r
+                if jealous_one.personality == "aggressive":
+                    scale = 0.0
+                else:
+                    pair_rel = min(lead.get_relationship(r.name),
+                                   r.get_relationship(lead.name))
+                    scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
+
+            if scale <= 0.0:
+                continue
+
+            eff = r.get_combat_effectiveness()
+            atk_mult = r.get_attack_modifier(1.0, consume=False)
+            total += self.COMMITTED_ALPHA * r.strength * eff * atk_mult * scale
+
+        return total
+
     def _calculate_per_ally_coordination(self, marshal, allies) -> tuple:
         """
         Calculate per-ally relationship-scaled coordination bonus.
@@ -486,6 +547,7 @@ class CombatExecutor:
 
         rows = []
         shared_casualty_note = ""
+        will_join_marshals = []
         region = world.get_region(battle_region)
         adjacent = set(region.adjacent_regions) if region else set()
         for m in world.marshals.values():
@@ -495,6 +557,8 @@ class CombatExecutor:
                 continue
             will_join, code = self._muster_reason(
                 m, marshal, battle_region, nation, world)
+            if will_join:
+                will_join_marshals.append(m)
             row = {
                 "marshal": m.name,
                 "location": m.location,
@@ -521,11 +585,19 @@ class CombatExecutor:
                 )
             rows.append(row)
 
-        odds_band = inferred_attack_odds_band(marshal, enemy_marshal, game_state)
+        # CO-2: the odds band reflects the TOTAL committed force (lead + the
+        # personality/relationship-scaled contribution of every marshal that
+        # WILL JOIN) so the preview matches what CO-1 resolves.
+        committed_attacker = self._committed_reinforcement_strength(
+            marshal, will_join_marshals, world)
+        odds_band = inferred_attack_odds_band(
+            marshal, enemy_marshal, game_state,
+            committed_attacker=committed_attacker)
 
         preview = {
             "attacker": {"name": marshal.name,
-                         "strength": int(marshal.strength)},
+                         "strength": int(marshal.strength),
+                         "committed_strength": int(marshal.strength + committed_attacker)},
             "target": {"name": enemy_marshal.name,
                        "location": battle_region,
                        "strength_display": target_strength_display},
@@ -911,6 +983,38 @@ class CombatExecutor:
             shares[p.name] = min(shares[p.name], p.strength)
 
         return shares
+
+    @staticmethod
+    def _reconcile_report_survivors(battle_result, lead, defender) -> None:
+        """CO-5 (Combat Overhaul Phase 1): single-source the survivor count.
+
+        In a coordinated battle resolve_battle builds the battle report from the
+        LEAD-vs-lead casualties (battle_report derives attacker_remaining =
+        original − whole-corps casualties), while the caller sets the event's
+        `remaining` to the lead's strength AFTER distributing the total across
+        all participants — so the report and the event disagreed in every
+        multi-marshal battle (the "two-truths" bug, spec §3.1 / metric M4).
+
+        Call this AFTER casualties have been distributed and applied (lead and
+        defender strengths are final for the clash, before pursuit): both the
+        report's casualty_summary and the event now read ONE canonical value —
+        the lead's / defender-primary's actual post-battle strength. Reinforcer
+        losses continue to be reported separately (reinforcement_messages).
+        """
+        report = battle_result.get("battle_report")
+        if not isinstance(report, dict):
+            return
+        cs = report.get("casualty_summary")
+        if not isinstance(cs, dict):
+            return
+        a_orig = int(cs.get("attacker_original", getattr(lead, "strength", 0)))
+        d_orig = int(cs.get("defender_original", getattr(defender, "strength", 0)))
+        a_remaining = int(getattr(lead, "strength", 0))
+        d_remaining = int(getattr(defender, "strength", 0))
+        cs["attacker_remaining"] = a_remaining
+        cs["attacker_casualties"] = max(0, a_orig - a_remaining)
+        cs["defender_remaining"] = d_remaining
+        cs["defender_casualties"] = max(0, d_orig - d_remaining)
 
     @staticmethod
     def _rewrite_primary_casualties(description, atk_name, atk_raw, atk_share,
@@ -3790,6 +3894,13 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
         if is_coordinated_battle:
+            # CO-1/CO-1b: committed reinforcement strength adds to the clash,
+            # personality- & relationship-scaled (single source, GR1-safe read).
+            # Symmetric for a reinforced defender (GR5).
+            committed_attacker = self._committed_reinforcement_strength(
+                marshal, atk_participants, world)
+            committed_defender = self._committed_reinforcement_strength(
+                enemy_marshal, def_participants, world)
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=marshal,
                 defender=enemy_marshal,
@@ -3798,6 +3909,8 @@ class CombatExecutor:
                 flanking_message=flanking_message,
                 fortification_bonus=fort_bonus,
                 apply_casualties=False,
+                committed_attacker=committed_attacker,
+                committed_defender=committed_defender,
             )
 
             # Distribute raw casualties proportionally among participants
@@ -3875,6 +3988,13 @@ class CombatExecutor:
             battle_result["attacker"]["morale"] = int(marshal.morale)
             battle_result["defender"]["remaining"] = int(enemy_marshal.strength)
             battle_result["defender"]["morale"] = int(enemy_marshal.morale)
+
+            # CO-5: single-source the survivor count — reconcile the battle
+            # report's casualty_summary to the SAME post-distribution strengths
+            # the event carries (the "two-truths" fix, M4). Runs before the
+            # pursuit block, which then adds pursuit to BOTH surfaces.
+            self._reconcile_report_survivors(
+                battle_result, marshal, enemy_marshal)
 
             # Set forced_retreat flags per-primary for _handle_forced_retreat
             # Uses module-level FORCED_RETREAT_THRESHOLD from combat.py (Bug 7 fix)

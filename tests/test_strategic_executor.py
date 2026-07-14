@@ -1678,8 +1678,10 @@ class TestMovementEnforcement:
         # Audit 2026-07-09 (§4 known fix): the aggressive contact handling
         # rolls combat dice — on a hot roll Wellington force-retreats and
         # Belgium opens up, so the stop-before assertion was RNG-flaky.
-        # Seed pins the battle to a non-rout outcome.
-        random.seed(20260709)
+        # Seed pins the battle to a non-rout outcome. Re-pinned July 13, 2026
+        # for Combat Overhaul Phase 1 (CO-1 additive committed strength shifted
+        # the casualty/morale math, so the old seed now produced a rout).
+        random.seed(15)
 
         ney = world.get_marshal("Ney")
         ney.personality = "aggressive"

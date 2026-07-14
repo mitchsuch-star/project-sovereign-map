@@ -864,12 +864,19 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
             >= INFERRED_ATTACK_FAVORABLE_RATIO)
 
 
-def inferred_attack_effective_ratio(marshal, enemy, game_state=None) -> float:
+def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
+                                    committed_attacker: float = 0.0) -> float:
     """The fortification/terrain-aware attacker/effective-defender ratio —
     the SINGLE odds formula (see inferred_attack_favorable's docstring).
     W6-4 extracts it so the muster preview's odds band reads the same
-    number the CR-5 gate does (no second formula, GR1 spirit)."""
+    number the CR-5 gate does (no second formula, GR1 spirit).
+
+    CO-2 (Combat Overhaul Phase 1): `committed_attacker` adds the muster's
+    committed reinforcement strength so the odds band reflects the TOTAL
+    force that will fight, not the lead alone — matching what CO-1 resolves.
+    Defaults to 0.0 → the CR-5 gate's lead-only read is unchanged."""
     attacker = max(0, getattr(marshal, "strength", 0) or 0)
+    attacker += max(0.0, committed_attacker)
     defender = max(1, getattr(enemy, "strength", 0) or 0)
 
     bonus = 0.0
@@ -896,12 +903,17 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None) -> float:
     return attacker / effective_defender
 
 
-def inferred_attack_odds_band(marshal, enemy, game_state=None) -> str:
+def inferred_attack_odds_band(marshal, enemy, game_state=None,
+                              committed_attacker: float = 0.0) -> str:
     """W6-4 muster preview: three-way display band over the single odds
     formula. `favorable` (ratio >= 1.0) resolves immediately; `even`
     (the CR-5 0.7 floor up to parity) and `unfavorable` (< 0.7) route
-    the player attack through the one-modal muster confirm."""
-    ratio = inferred_attack_effective_ratio(marshal, enemy, game_state)
+    the player attack through the one-modal muster confirm.
+
+    CO-2: `committed_attacker` folds the mustered reinforcement strength into
+    the ratio so the band reflects the total committed force."""
+    ratio = inferred_attack_effective_ratio(
+        marshal, enemy, game_state, committed_attacker=committed_attacker)
     if ratio >= 1.0:
         return "favorable"
     if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:
