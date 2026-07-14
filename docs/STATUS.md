@@ -15,7 +15,8 @@
 - **CO-6 reinforcement legibility** — coordinated battles print `Massed effective strength: <lead> (lead) + <committed> committed (<names>) = <total>.` (a rival reinforcer, CO-1b ×0.0, correctly prints no line).
 - **CO-7 Iron Resolve stance** — releasing the coil exempts the fortify-mandated ×0.90 defensive-stance attack penalty in `get_attack_modifier` (personality mods untouched; read-only when `consume=False`). The 3-stack release lands full +24%. → **M5 `+0.24`**.
 - **Regression:** suite **13,121/3**, ruff clean, no `.gd` touched. Tests: `test_combat_overhaul_phase2.py` (20) + flipped M2/M3/M5 harness assertions; 3 MC-band fixtures re-tuned for the deeper decisiveness hit (Charles solo 40→48 / coordinated 40→72; enemy Charles 40→48; the artillery-reinforcer scenario Wellington 50k→42k so the assault still fails but the gun holds).
-- **▶ NEXT: Phase 3** — un-starve Marshal Drama (break the verified triple lock: DR-1 glory-from-attrition/occupation, DR-2 slow glory decay `GLORY_WINDOW` 5→8, DR-3 authority-dampening rework; target **M7 ≤ 8**). Then **Sweep 2**. The Half-B LLM component review (~3M tokens) is a separate explicit run.
+- **Sweep 1 Half B RAN** (July 13, 2026 — 12-component LLM review, 13 agents/~1.1M tokens, grounded in code + Half-A deltas + a live probe): **Combat 5.0→7.5 (+2.5, met)**, Narration 7.0→7.5, Marshal System 6.5→7.0, Architecture 7.0→7.5 (all +0.5); 8 held, **0 regressions** (Enemy AI held 8.0 — the symmetric cap is not farmable, R2 cleared). Overall directional ≈6.9–7.0 (short of 7.3 *by design* — later phases own the flat pillars). Recorded in `docs/audits/SWEEP_1_2026_07_13.md` §Half B.
+- **▶ NEXT: Phase 3** — un-starve Marshal Drama (break the verified triple lock: DR-1 glory-from-attrition/occupation, DR-2 slow glory decay `GLORY_WINDOW` 5→8, DR-3 authority-dampening rework; target **M7 ≤ 8**). Then **Sweep 2**.
 
 ---
 
