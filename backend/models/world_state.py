@@ -126,6 +126,17 @@ LEGACY_UPKEEP_RATE = 5                 # g per 1,000 troops (legacy fixture worl
 EUROPE_UPKEEP_RATE = 8                 # g per 1,000 troops (E3 blessed, was 5)
 FORCE_LIMIT_BASE = 60000               # Per-nation force-limit floor (E3)
 FORCE_LIMIT_PER_REGION = 2500          # Limit growth per controlled region (E3)
+# EC-U2 (Combat Overhaul Phase 4): per-turn maintenance for each completed
+# military/civil structure a nation keeps — depots, fortifications, training
+# grounds, markets, stables (region.buildings) and active watchtowers. The
+# conquest-FREE gold sink: a homeland-only France with a standing surplus can
+# invest it in infrastructure (better supply/defence/income) but then carries
+# the recurring bill, so banked gold becomes a decision. Europe-scoped (N1 —
+# the legacy fixture world pays none); symmetric player/AI (GR5 — the AI
+# builds through the same pipeline and pays through this same seam). Nations
+# boot with zero built structures (the 1805 scenario authors none), so this
+# is 0 at turn 1 and cannot break the E1 boot-solvency band. Sweep-tunable.
+EUROPE_INFRASTRUCTURE_UPKEEP = 40      # g per turn per built structure
 
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
@@ -3744,6 +3755,7 @@ class WorldState:
         total_income = 0
         occupation_cost = 0
         dotation_skim = 0
+        infrastructure_cost = 0  # EC-U2: per-turn maintenance of built structures
         region_breakdown = []
         for region_name in nation_regions:
             region = self.regions[region_name]
@@ -3758,6 +3770,14 @@ class WorldState:
             elif europe and region_name not in homeland:
                 occ_cost = int(region.income_value * region.get_occupation_fraction())
                 occupation_cost += occ_cost
+            # EC-U2: maintenance rides this existing per-region loop (GR8 — no
+            # extra scan). Every completed building plus an active/damaged
+            # watchtower costs the flat structure rate. Europe-scoped (N1).
+            if europe:
+                structures = len(region.buildings)
+                if region.watchtower in ("active", "damaged"):
+                    structures += 1
+                infrastructure_cost += structures * EUROPE_INFRASTRUCTURE_UPKEEP
             region_breakdown.append({
                 "region": region_name,
                 "base_income": region.income_value,
@@ -3775,6 +3795,10 @@ class WorldState:
         occupation_halved = self.nation_bankruptcy_turns.get(nation, 0) >= 1
         if occupation_halved:
             occupation_cost //= 2
+            # EC-U2: infrastructure maintenance gets the same bankruptcy mercy
+            # as occupation/upkeep, so a struggling nation is not tipped
+            # deeper by its own forts.
+            infrastructure_cost //= 2
 
         # British naval income — abstracted trade dominance / colonial revenue
         # Scales from authored coastal metadata, avoiding per-map hardcoded province names.
@@ -3809,6 +3833,9 @@ class WorldState:
             # ES-7 second pass: rentes are a TREASURY spend (can run the
             # nation negative), unlike the skim's structural floor at 0.
             "rente_cost": int(rente_cost),
+            # EC-U2: per-turn maintenance of built structures — a signed Net
+            # component of its own (income stays GROSS), the conquest-free sink.
+            "infrastructure": int(infrastructure_cost),
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
@@ -3816,6 +3843,7 @@ class WorldState:
                 "occupation": int(occupation_cost),
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
+                "infrastructure": int(infrastructure_cost),
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -3866,12 +3894,22 @@ class WorldState:
         breakdown = []
         for marshal in self.marshals.values():
             if marshal.nation == nation and marshal.strength > 0:
-                cost = (marshal.strength // 1000) * rate
+                # EC-U1 (Combat Overhaul Phase 4): on the Europe campaign the
+                # corps is billed on its ESTABLISHMENT — max(current strength,
+                # high-water-mark) — so grinding it down in battle no longer
+                # LOWERS upkeep (the regressive "losing pays" bug). At boot and
+                # on any not-yet-reconciled marshal establishment is 0, so
+                # billed == strength and the boot economy is untouched (the E1
+                # band's Austria +18 constraint holds). Legacy world keeps the
+                # strength-proportional bill (N1).
+                billed = marshal.get_upkeep_strength() if europe else marshal.strength
+                cost = (billed // 1000) * rate
                 base_upkeep += cost
-                total_strength += marshal.strength
+                total_strength += billed
                 breakdown.append({
                     "marshal": marshal.name,
                     "strength": marshal.strength,
+                    "billed_strength": int(billed),
                     "upkeep": cost
                 })
 
@@ -3903,6 +3941,20 @@ class WorldState:
             "breakdown": breakdown,
             "halved": is_bankrupt
         }
+
+    def _reconcile_establishments(self) -> None:
+        """EC-U1: raise each marshal's establishment to its peak strength.
+
+        Called once per turn (advance_turn) before the income phase. The
+        establishment is a monotonic high-water-mark: it captures a corps
+        recruited/reinforced UP to a new size, and then HOLDS when the corps
+        is attrited, so upkeep billed on max(strength, establishment) never
+        falls with battle losses. Nation-agnostic (GR5 — enemy corps
+        establish identically). Bounded loop over marshals (GR8), not regions.
+        """
+        for marshal in self.marshals.values():
+            if marshal.strength > marshal.establishment:
+                marshal.establishment = int(marshal.strength)
 
     # ========================================
     # INCOME PHASE (Phase 6.2.B)
@@ -4032,9 +4084,11 @@ class WorldState:
         dotation_skim = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill — same seam both sides.
         rente_cost = int(income_data.get("rente_cost", 0))
+        # EC-U2: infrastructure maintenance — same seam both sides (GR5).
+        infrastructure = int(income_data.get("infrastructure", 0))
 
         net = (income_data["income"] - occupation - dotation_skim - rente_cost
-               - upkeep_data["total"] + admin_bonus)
+               - infrastructure - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
         # NOTE: Bankruptcy check moved to _advance_turn_internal() AFTER all
@@ -4044,12 +4098,15 @@ class WorldState:
         occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
         dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
         rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
+        infrastructure_str = (f", -{infrastructure} infrastructure"
+                              if infrastructure > 0 else "")
         return {
             "nation": nation,
             "income": income_data["income"],
             "occupation": occupation,
             "dotation_skim": dotation_skim,
             "rente_cost": rente_cost,
+            "infrastructure": infrastructure,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
             "admin_bonus": int(admin_bonus),
@@ -4059,7 +4116,8 @@ class WorldState:
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
                        f"+{income_data['income']} income"
-                       f"{occupation_str}{dotation_str}{rente_str}, "
+                       f"{occupation_str}{dotation_str}{rente_str}"
+                       f"{infrastructure_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
                        f" = {'+' if net >= 0 else ''}{net} net")
@@ -6619,6 +6677,14 @@ class WorldState:
         cleared = self._dialogue_manager.clear_stale(self.current_turn)
         if cleared:
             self.incoming_proposal_popup = None  # Fix 8: Clear paired popup too
+
+        # ════════════════════════════════════════════════════════════
+        # EC-U1 ESTABLISHMENT RECONCILE (Combat Overhaul Phase 4) — before
+        # the income phase, so this turn's upkeep is billed on the peak
+        # strength each corps has reached (the high-water-mark that makes
+        # attrition non-regressive). One bounded loop over marshals (GR8).
+        # ════════════════════════════════════════════════════════════
+        self._reconcile_establishments()
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations

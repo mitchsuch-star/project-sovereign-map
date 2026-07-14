@@ -378,6 +378,13 @@ func _render_economy():
 	var rente_cost = int(econ.get("rente_cost", 0))
 	if rente_cost > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Rentes: -" + str(rente_cost) + "g[/color]\n"
+	# EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
+	# structures (depots, forts, training grounds, markets, stables,
+	# watchtowers) — the conquest-free gold sink; its own signed Net
+	# component (same SC-33 contract, NET_GOLD_COMPONENTS-guarded).
+	var infrastructure = int(econ.get("infrastructure", 0))
+	if infrastructure > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Infrastructure: -" + str(infrastructure) + "g[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).

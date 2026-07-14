@@ -544,6 +544,8 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     dotation_skim = int(income_data.get("dotation_skim", 0))
     # ES-7 second pass (§0.6.8): the rente bill — same treatment
     rente_cost = int(income_data.get("rente_cost", 0))
+    # EC-U2: infrastructure maintenance — same treatment (its own Net component)
+    infrastructure = int(income_data.get("infrastructure", 0))
 
     # Trade income from diplomatic states (read-only calculation)
     from backend.game_logic.diplomacy import calculate_trade_income
@@ -551,7 +553,7 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     trade_income = int(trade_income_all.get(player_nation, 0))
 
     treasury_delta = int(income + trade_income - occupation - dotation_skim
-                         - rente_cost - upkeep)
+                         - rente_cost - infrastructure - upkeep)
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the

@@ -247,15 +247,17 @@ class MetaExecutor:
         dotation_val = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill is its own Net component
         rente_val = int(income_data.get("rente_cost", 0))
+        # EC-U2: infrastructure maintenance is its own Net component too
+        infrastructure_val = int(income_data.get("infrastructure", 0))
         spent_val = saved_gold_spent.get(nation, 0)
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
-        # so Income - Occupation - Dotations - Rentes - Upkeep + Other == Net
-        # == the real treasury delta.
+        # so Income - Occupation - Dotations - Rentes - Infrastructure - Upkeep
+        # + Other == Net == the real treasury delta.
         net_val = treasury - treasury_before_turn
         other_val = net_val - (income_val - occupation_val - dotation_val
-                               - rente_val - upkeep_val)
+                               - rente_val - infrastructure_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
@@ -264,10 +266,11 @@ class MetaExecutor:
         occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
+        infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
         surcharge_val = int(upkeep_data.get("surcharge", 0))
         surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]

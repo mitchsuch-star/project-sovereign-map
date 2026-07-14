@@ -40,6 +40,9 @@ from backend.models.world_state import WorldState
 # component — declared here so the guard forces the "Dotations" render line.
 # ES-7 second pass (§0.6.8): the rente bill is its own signed component —
 # declared here so the guard forces the "Rentes" render line.
+# EC-U2 (Combat Overhaul Phase 4): infrastructure maintenance is its own
+# signed component — declared here so the guard forces the "Infrastructure"
+# render line.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -50,6 +53,7 @@ NET_GOLD_COMPONENTS = {
     "occupation": -1,
     "dotation_skim": -1,
     "rente_cost": -1,
+    "infrastructure": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
 }

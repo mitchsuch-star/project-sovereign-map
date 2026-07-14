@@ -198,11 +198,11 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 
 ---
 
-### Phase 4 — Economy
-**Session entry:** read §3.3. Independent of combat but scores realize once wins exist.
-- **EC-U1 Non-regressive upkeep.** Attrition must not raise net income (`world_state.py:3869`). Options (build): per-corps upkeep floor, or income-coupled scaling. Keep the ledger transparent.
-- **EC-U2 A gold sink reachable without conquest.** *sweep* which: fortification/depot upkeep, ally subsidies, or recruit-cost scaling with total army size — so the ~+3,000/turn surplus becomes a decision for a homeland-only France.
-**Exit:** attrition does not increase net income; a homeland-only France has a meaningful gold decision by turn 5. **Tests:** `test_economy_upkeep_not_regressive.py`, `test_economy_sink_reachable.py`. **Sweep 3** (Half B): Economy ≥6.5.
+### Phase 4 — Economy — ✅ HALF A LANDED July 14, 2026
+**Landing (Half A):** both slices in, backend + one `.gd`, suite 13,167/3, ruff clean, Godot parse-clean.
+- **EC-U1 Non-regressive upkeep.** ✅ Chose the **establishment high-water-mark** option (not the flat per-corps floor — a floor still leaks in the above-floor band). New serialized `Marshal.establishment`, reconciled once per turn (`WorldState._reconcile_establishments`, GR8 bounded loop); Europe upkeep is billed on `max(strength, establishment)` (`marshal.get_upkeep_strength`, single source) so grinding a corps down no longer LOWERS its bill. Establishment is **0 until the first reconcile**, so every direct-call upkeep test AND the E1 boot band (Austria +18) are byte-unchanged — the change only bites after a turn of play. Era-grounded: the state maintained corps at establishment; losses obliged paid replacements, never a rebate. Legacy world keeps strength-proportional upkeep (N1). Ledger stays transparent (per-marshal `billed_strength` in the upkeep breakdown).
+- **EC-U2 A gold sink reachable without conquest.** ✅ Chose **infrastructure/depot upkeep** (the boot-solvency-safe option — ally-subsidy/army-size recurring drains would hit every nation at boot and break Austria +18). New `EUROPE_INFRASTRUCTURE_UPKEEP = 40` g/turn per built structure (depots, forts, training grounds, markets, stables, active/damaged watchtowers), rides the existing per-region income loop (GR8, no new scan), bankruptcy-mercy halved like occupation, its own signed **"Infrastructure"** Net component (threaded through `process_income_phase`, `ledger.py`, `meta_executor`, `dispatch`, `strategic_ledger.gd`, and `NET_GOLD_COMPONENTS`). Boot-safe (the 1805 scenario authors no buildings → 0 at turn 1 for all nations). Symmetric player/AI (GR5). A homeland-only France now decides whether to invest its surplus in infrastructure and carry the recurring bill, or hoard.
+**Exit:** ✅ attrition does not increase net income (`test_economy_upkeep_not_regressive.py`, incl. a falsifiable counterfactual that the bug reproduces with the fix removed); ✅ a homeland-only France has a meaningful gold decision reachable without conquest (`test_economy_sink_reachable.py`). **Tests:** `test_economy_upkeep_not_regressive.py` (13), `test_economy_sink_reachable.py` (10), `NET_GOLD_COMPONENTS` extended. **Sweep 3** (Half B, Economy ≥6.5): **PENDING** — the once-per-phase ~3M-token live LLM review runs next.
 
 ---
 
@@ -269,8 +269,9 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | DR-2 glory decay | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | `38324bf` |
 | DR-3 authority dampening | ✅ **LANDED July 14, 2026** | M7 ✅ turn 1 | `38324bf` |
 | **Sweep 2 (Half B)** | ✅ **RAN July 14, 2026** | Drama 6.0→**7.5** met; 0 regressions | `SWEEP_2_2026_07_14.md` |
-| EC-U1 upkeep | NOT STARTED | Half B | — |
-| EC-U2 gold sink | NOT STARTED | Half B | — |
+| EC-U1 upkeep (establishment) | ✅ **LANDED July 14, 2026** | net non-regressive under attrition | (Phase 4 commit) |
+| EC-U2 gold sink (infrastructure) | ✅ **LANDED July 14, 2026** | conquest-free sink reachable | (Phase 4 commit) |
+| **Sweep 3 (Half B)** | PENDING | Economy ≥6.5 | — |
 | VS-1 loyalty lever / VS-2 dead code | NOT STARTED | Half B | — |
 | PF-1…PF-9 + AI-1 | NOT STARTED | Half B | — |
 | Sweeps 1–5 + exit sweep | NOT STARTED | full | — |

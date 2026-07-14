@@ -360,6 +360,7 @@ Reserved future `event_log` payloads:
   "location": "Belgium",
   "strength": 72000,
   "starting_strength": 72000,
+  "establishment": 72000,
   "personality": "aggressive",
   "nation": "France",
   "spawn_location": "Paris",
@@ -487,6 +488,7 @@ Reserved future `event_log` payloads:
 | `location` | string | Current region name |
 | `strength` | int | Current army size |
 | `starting_strength` | int | Original army size |
+| `establishment` | int | EC-U1 upkeep high-water-mark of strength; billed upkeep (Europe) never drops below it. 0 until first per-turn reconcile |
 | `personality` | string | "aggressive", "cautious", "literal", "balanced" |
 | `nation` | string | "France", "Britain", "Prussia", "Austria", "Saxony" |
 | `original_nation` | string/null | Pre-vassalage nation. Cleared on rebellion. (Phase 1 R61) |
