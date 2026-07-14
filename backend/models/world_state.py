@@ -5911,6 +5911,16 @@ class WorldState:
         # belongs here, after marshals/regions/turn are final.
         world.calculate_visibility()
 
+        # EC-U1: seed each corps' establishment to its boot strength so the
+        # non-regressive-upkeep floor is armed from turn 1 — otherwise the
+        # very first turn's combat would attrite a corps before the first
+        # per-turn reconcile ever captured its boot peak (a one-turn
+        # under-bill window). Billing is max(strength, establishment), so at
+        # boot billed == strength: the E1 band and the Austria +18 boot
+        # solvency constraint are byte-unchanged. Europe billing only reads
+        # establishment (N1); the legacy fixture world never runs this path.
+        world._reconcile_establishments()
+
         return world
 
     def get_game_state_summary(self) -> Dict:
