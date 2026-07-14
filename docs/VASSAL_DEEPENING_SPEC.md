@@ -1,12 +1,16 @@
 # Vassal Deepening Spec — Land Grants & Authority Coupling
 
-> **Status:** DRAFT — design gate PENDING. Authored July 14, 2026 as the phase that
-> follows Combat Overhaul Phase 5 (Vassals). **Nothing here is built.** VS-3 is
-> spec-complete and buildable after a bless; **VS-R is research-first** — next
-> session runs the research memo, then a user gate sets the numbers before any code.
+> **Status:** Authored July 14, 2026 as the phase that follows Combat Overhaul
+> Phase 5 (Vassals). **VS-R ✅ BUILT July 14, 2026** at the memo's recommended
+> defaults (user-directed: "code the recommendations from the vassal spec commit"),
+> landing record §2.7. **VS-3 is DEFERRED to a following session** — it routes
+> through the F1 Diplomacy Wizard (a diplo-screen slice), held out of the VS-R
+> build by the user's "leave anything that touched the diplo screen for next
+> session" instruction; §1 is spec-complete and buildable.
 >
-> **Owner routing:** CLAUDE.md Current Phase Queue → this spec. Sits after the
-> Combat Overhaul program (or interleaves after Sweep 4 — user's call at the gate).
+> **Owner routing:** CLAUDE.md Current Phase Queue → this spec. VS-3 sits next
+> (its own slice); "The Defection" (coalition-join) remains a separately-gated
+> GR9 follow-on (§2.7 + memo §Q7).
 
 ---
 
@@ -112,7 +116,7 @@ province/war sub-picker pattern (`diplomacy_wizard.gd` — the `war_id` picker,
 
 ---
 
-## 2. VS-R — Authority ↔ Vassal-Loyalty Coupling (RESEARCH-FIRST)
+## 2. VS-R — Authority ↔ Vassal-Loyalty Coupling
 
 **Fantasy:** "The Empire holds because *you* hold. When Napoleon falters, the
 satellites smell weakness — and only real concessions keep them."
@@ -120,70 +124,192 @@ satellites smell weakness — and only real concessions keep them."
 Today vassal loyalty drift is **independent of the lord's authority**. VS-R couples
 them so a **spiral** in the Emperor's grip loosens the whole satellite web, and at
 rock-bottom authority the cheap levers (invest, a token subsidy) no longer suffice —
-only **land, autonomy, or a large subsidy** arrest defection.
+only **land, autonomy, a large subsidy, or winning battles** arrest defection.
 
-### 2.1 This is RESEARCH-FIRST — next session's job
+> **✅ RESEARCH COMPLETE — July 14, 2026.** Memo:
+> [`docs/audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md`](audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md)
+> (9-agent adversarially-verified research: history / authority-code / vassal-code /
+> jealousy-coherence; historical timeline independently fact-checked). This section is
+> now **gate-ready**: the memo answers all seven research questions with recommended
+> numbers and **supersedes the original draft band curve**. **The gate decides §2.6
+> (Open Questions) + §2.5 numbers before any code.**
 
-The next session **must produce a research memo** (`docs/audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_YYYY_MM_DD.md`)
-answering the questions below with measured numbers, **then a user gate** sets the
-constants **before any build**. Do not code VS-R off this draft.
+### 2.1 Historical grounding — *does it play like Napoleon losing his vassals IRL?*
 
-### 2.2 Research questions
+**Yes, on every axis except one** (the memo's headline verdict). The 1812–14 collapse
+of the Confederation of the Rhine *was* loss-of-grip → loss-of-vassals:
 
-1. **Which authority signal?** Two exist:
-   - `world.authority_tracker.authority` (0–100) — Napoleon's *marshal-deference*
-     grip (defer-to-marshals erodes it; the exploit-guard). This is the "spiral" the
-     brief evokes — a weak, deferring Emperor.
-   - `world.nation_authority[player]` — the per-nation *strategic* authority.
-   Decide which drives the coupling (or a blend). Recommendation to test: the
-   `authority_tracker` grip, since the brief ties loss-of-vassals to *Napoleon
-   spiraling*, not a strategic stat.
-2. **Coupling curve.** A drift modifier as a function of authority, **coherent with
-   the jealousy bands** (jealousy already treats >70 as calm and <30 as the
-   death-spiral zone — `jealousy.py`). Proposed shape to measure:
-   - authority ≥ 70 → **+1** vassal drift (empire ascendant),
-   - 40–69 → **0**,
-   - 20–39 → **−2**,
-   - < 20 → **−4** *and* elevated defection risk.
-3. **The "no cheap recovery" clause** — the crux of the brief. When authority is in
-   the spiral band, the cheap levers must be **blunted**: invest gives reduced
-   loyalty, an autonomy-flip alone is insufficient, and only a **land grant (VS-3),
-   a large subsidy, or full release** meaningfully arrests defection. Model this as a
-   *lever effectiveness multiplier* scaled by authority, and confirm it's dramatic
-   but **recoverable** ("he MAY lose them" — risk, not certainty).
-4. **One-way or feedback loop?** Does holding vassals loyally *bolster* authority
-   back? A two-way loop is thematically rich but **risks an unrecoverable death
-   spiral** — must be bounded. Default recommendation: **one-way** (authority →
-   loyalty) for v1; revisit a bolster term only if v1 feels inert.
-5. **Interaction with jealousy.** Jealousy *already* keys off authority (<30
-   acceleration). Ensure VS-R doesn't double-count or compound into an uncontrollable
-   collapse when both fire at once.
-6. **Boot-band & fixture safety.** At boot authority is 100 → coupling is
-   dormant/positive. Confirm zero perturbation to the E1 economy band, the existing
-   vassal fixtures, and the Phase-5 `test_vassal_recovery_lever.py` pins.
-7. **Defection mechanics.** At the spiral floor, is it accelerated loyalty bleed into
-   the existing rebellion path, or a new direct "defection" event (join the
-   coalition / flip to an enemy)? Historically the Rhine states *switched sides*, not
-   merely rebelled — worth modeling as a distinct outcome.
+| Real event | VS-R mechanic | Faithful? |
+|---|---|---|
+| Russia catastrophe breaks the aura of invincibility; the enforcement army evaporates | Grip falls → satellite drift turns negative | ✅ the whole fantasy |
+| **Treaty of Ried, 8 Oct 1813** — Bavaria flips only when Napoleon can't guarantee its frontier; the deal is **sovereignty + no net territorial loss** | "No cheap recovery": at the floor only land (VS-3) / autonomy / release / large subsidy work | ✅ the binding concession was *existential* |
+| **Saxony returns to Napoleon after Lützen** (spring 1813); the web holds through the summer | One-way coupling → winning raises grip → drift returns to neutral, in-progress defections arrestable | ✅ **reversibility is essential; one-way delivers it** |
+| Ried is the template; Saxon + Württemberg contingents flip **mid-battle at Leipzig** | Cascade term: first flip raises defection *risk* for siblings | ✅ keep it probabilistic |
+| The Rhine states **switched sides and turned their armies on France** — they did *not* rebel into an independent war | Today the game only models **independent rebellion** | ❌ **the one unfaithful element → §2.4-Q7** |
 
-### 2.3 Landing contract (Golden Rule 9)
+The single required correction: the flagship outcome is *"the satellite joins the
+enemy coalition and its army joins the enemy order of battle."* VS-R **v1 ships
+grip-accelerated *independent* rebellion** (faithful enough, near-zero cost) and homes
+**coalition-defection ("The Defection") as a separate GR9 follow-on slice**.
 
-- **Owner:** this spec §2. **Landing slice:** VS-R (post-research, post-gate).
-- **Completion definition:** vassal drift responds to the lord's authority per the
-  blessed curve; in the spiral band the cheap levers are blunted and only major
-  concessions arrest defection; boot is dormant; jealousy interaction bounded.
-- **STATUS line + tracking:** the research memo lands first (its own STATUS line),
-  then the gate, then the build.
-- **Behavior test:** `test_vassal_authority_coupling.py` — band curve, lever-blunting
-  in the spiral zone, boot-dormancy, jealousy non-compounding, recoverability.
+### 2.2 The signal — a derived "imperial grip" (the crux finding)
+
+The draft assumed `authority_tracker.authority` was the "spiral" signal. **It is not:
+the code strand proved `authority_tracker` does NOT spiral on military collapse** —
+its only military movers are ±5 per-battle nudges gated on *outnumbering* (being
+overrun ⇒ no dock), and a capital lost to an enemy garrison assault changes it by
+**zero** (the authority block is guarded to the player-as-attacker). A player can lose
+the war, shed home provinces, and have Paris taken with the tracker near 100 — high
+exactly when history says the satellites should defect. `nation_authority[player]` is
+**worse — inert dead code** (`modify_nation_authority` never called;
+`_process_nation_authority` is a `pass`).
+
+**Recommendation (memo Q1): a new single-source `get_imperial_grip(world, nation)`**
+that blends the player's `authority_tracker` (the *court/marshal-deference* component)
+with the **same territorial-collapse term the jealousy enemy proxy already carries**
+(capital held, homeland majority, war_score). This makes the player's grip finally
+respond to losing capital/homeland/war, and — because it keys off the lord — is
+**symmetric for AI lords for free (GR5)**. Boot returns **100** for the player (full
+empire) → coupling dormant; enemy intact → 75 (jealousy parity). Reuses only existing
+seams; **zero new serialized fields**. *(Cheapest v1 fallback: key off the existing
+`get_authority_proxy` as-is and accept a thin player-side signal — gate's call, §2.6-Q1.)*
+
+### 2.3 The coupling curve (supersedes the draft)
+
+The draft's `≥70 → +1 / 40–69 0 / 20–39 −2 / <20 −4` is **retired**. Two corrections:
+
+- **The high band must be `0`, NOT `+1`.** A `+1` "ascendant" bonus is a *balance
+  change* that breaks a **hard boot-dormancy pin against ~10 test files** (8
+  `TestLoyaltyTicks` + 4 `test_vassal_recovery_lever` pins assert exact `-2`/`+1`
+  deltas at default authority 100). Because `_contribute` records only nonzero values
+  (`vassal.py:276`), a `0` term is byte-identical. **Coupling is negative-only,
+  spiral-band only, and keys off the *lord's* grip (not the vassal's loyalty).**
+- **Anchor on jealousy's 70/30 breakpoints, not the draft's 40/20** — so crossing a
+  line lights up *both* the marshal board and the satellite board as one felt moment.
+
+| Grip band | Vassal drift term | Rationale |
+|---|---|---|
+| **≥ 70** (`AUTHORITY_SUPPRESS_ABOVE`) | **0** | Same line that calms the marshals; byte-identical boot |
+| **30 – 69** | **0** | Ordinary autonomy drift governs |
+| **< 30** (`AUTHORITY_ACCELERATE_BELOW`) | **−2** / turn | The one advertised spiral threshold |
+| *(optional nested)* **< 15** | **−4** floor | Only if −2 too gentle; below the shared 30 line |
+
+**Additive** to `AUTONOMY_DRIFT`, **capped at −4 non-stacking, NEVER a multiplier**
+(the one shape that yields unrecoverable collapse). Worst realistic case puppet(−4) +
+floor(−4) = −8/turn ≈ 13 turns to 0. Enemy side auto-bounds to the −2 tier (proxy
+floors at 25).
+
+### 2.4 The remaining answered questions (from the memo)
+
+- **Q3 — "No cheap recovery":** a `get_authority_lever_multiplier(world, lord)` returns
+  exactly `1.0` at healthy grip (byte-identical boot) and `0.40` in the <30 band,
+  applied to the **cheap one-shots only** — invest (+10, `:822`) and autonomy-up (+10,
+  `:875` upgrade branch). **Never softened:** VS-3 land grant (the premier arresting
+  lever), full release, the autonomy-*down* −15. *History addendum:* the strongest
+  arrestor of all is **winning battles** (Saxony after Lützen) — it falls out of the
+  one-way loop automatically but must be an explicit assertion in the recoverability test.
+- **Q4 — One-way (authority → loyalty) for v1.** Do NOT feed vassal state back into
+  authority: jealousy has **no automatic per-turn authority sink** (its four writes are
+  all player-choice-gated), so a two-way loop would open the *first* brakeless sink in
+  the exact spiral zone where Fontainebleau also fires — an unrecoverable spiral. Any
+  future bolster term must be asymmetric, small, capped, and positive-state-gated
+  (never rescues a spiral).
+- **Q5 — Jealousy co-firing is thematically correct** (two casualties of one cause) and
+  bounded by: latch-free per-turn recompute (no permanent-escalation mirror); the −4
+  cap; defection routed through the existing *probabilistic* `check_defection_cascade`
+  roll (risk, not certainty); and **the de-compounding lever — VS-R stays ACTIVE during
+  a capital-threat where jealousy goes silent** (army-infighting when grip is low;
+  satellite-flight when the capital is under the knife — more legible *and* more
+  historical).
+- **Q6 — Boot-dormant at authority 100; ZERO new serialized fields for v1** (all inputs
+  already persist). Pins named in the memo §Q6 stay green.
+- **Q7 — Defection:** v1 = grip-accelerated *independent* rebellion (reuse
+  `check_vassal_rebellion` unchanged). Coalition-join is the historically faithful
+  outcome but a **new mechanism** (static membership — zero `members.append` sites +
+  target selection + contingent transfer) → its own GR9 slice.
+- **Interaction — enemy courting scales up in the spiral** (`attempt_vassal_courting`):
+  the `loyalty < 50` unlock widens and `loyalty_reduction` amplifies when the player's
+  grip is low — the Allies peel satellites once Napoleon looks weak (the Ried dynamic),
+  bounded by the existing cooldown + one-per-turn cap.
+
+### 2.5 Recommended numbers (escalate to the gate)
+
+`VS_R_DRIFT_ASCENDANT=0` · `VS_R_DRIFT_NEUTRAL=0` · `VS_R_DRIFT_SPIRAL=−2` ·
+`VS_R_DRIFT_FLOOR=−4` (below grip 15, optional) · `VS_R_DRIFT_CAP=−4` non-stacking ·
+`VS_R_CHEAP_LEVER_MULT=0.40` in the <30 band · grip docks `GRIP_CAPITAL_LOST=−40` /
+`GRIP_HOMELAND_MINORITY=−25` / war_score `−15` (< −50) / `−8` (< −30) · reuse
+`AUTHORITY_SUPPRESS_ABOVE=70` / `AUTHORITY_ACCELERATE_BELOW=30` · courting unlock widen
+0→+15 by grip · courting effectiveness ×1.0→×1.5 by grip · recoverability floor **≥ 8
+turns** for a full-3-satellite spiral collapse. *All in-band tunable; see memo §4.*
+
+### 2.6 Open questions for the gate
+
+1. **Grip helper vs. direct dock** — bless the derived `get_imperial_grip` superset
+   (recommended) and keep `get_authority_proxy` untouched for jealousy? Or the cheapest
+   v1 (`get_authority_proxy` as-is, thin player signal)?
+2. **Does the multiplier hit the per-turn subsidy?** v1 softens only invest +
+   autonomy-up, leaving subsidy full-strength (a *large* subsidy stays existential).
+3. **Coalition-defection now or later** — v1 independent rebellion + "The Defection"
+   as a separate GR9 slice? (Recommended.)
+4. **Optional −4 floor** below grip 15 up front, or hold for post-playtest tuning?
+5. **Layering relocation** — move `get_authority_proxy` + `is_capital_threatened` + the
+   two breakpoints into `backend/models/authority.py` ("one grip = one module"), or
+   accept a recorded `vassal.py → jealousy.py` import deviation?
+6. **Copy bless** — the spiral-band `recovery_hint` variant naming *land / large
+   subsidy / release / win a decisive battle*.
+
+### 2.7 Landing contract (Golden Rule 9) — ✅ LANDED July 14, 2026
+
+- **Owner:** this spec §2 + the research memo. **Landing slice:** VS-R ✅ **BUILT**
+  (backend-only); "The Defection" coalition-join is a separately-gated GR9 follow-on.
+- **Completion definition — MET:** vassal drift responds to the lord's *imperial
+  grip* per the blessed curve; in the spiral band the cheap levers are blunted and
+  only major concessions (or winning battles) arrest defection; enemy courting scales
+  with player weakness; boot is dormant at authority 100; jealousy co-fires but stays
+  recoverable (one-way, read-only on authority).
+- **What landed (all six §2.6 recommendations coded at the §2.5 defaults):**
+  - **Signal (Q1):** `get_imperial_grip(world, nation)` in `backend/models/authority.py`
+    — the derived superset; `get_authority_proxy` left untouched for jealousy. Boot:
+    player 100 / enemy 75 / enemy floor 20 (never sub-15). **Zero new serialized fields.**
+  - **Curve (Q2):** `authority_vassal_drift` — grip ≥ 30 → 0 (byte-identical),
+    grip < 30 → −2, capped at `VS_R_DRIFT_CAP=−4`, additive not multiplicative.
+  - **No cheap recovery (Q3):** `get_authority_lever_multiplier` (1.0 healthy /
+    0.40 in <30) blunts **invest + autonomy-up ONLY**; **subsidy left full-strength
+    (Q2)**; release / autonomy-down / VS-3 never softened; a spiral-band `recovery_hint`
+    variant names the levers that still work (land grant joins that copy when VS-3 lands).
+  - **One-way (Q4):** VS-R never writes `authority_tracker` back.
+  - **Courting scale:** `attempt_vassal_courting` unlock widens (50 → 50 + up to 15)
+    and effectiveness scales (×1.0 → ×1.5) by the player's grip; 0/×1.0 at healthy grip.
+  - **Coalition-defection (Q7):** **NOT built** — v1 ships grip-accelerated *independent*
+    rebellion (reuses `check_vassal_rebellion` unchanged; the coupling just feeds loyalty
+    drift into the existing collapse condition). "The Defection" stays a GR9 slice.
+- **Recorded deviations (GR9):**
+  - **§Q5 layering — partial:** relocated only the two shared breakpoints
+    (`AUTHORITY_SUPPRESS_ABOVE`/`ACCELERATE_BELOW`) to `authority.py` (jealousy
+    re-imports them). `get_authority_proxy`/`is_capital_threatened` **stay in
+    `jealousy.py`** — jealousy-internal in use, VS-R never reads them; full relocation
+    is a follow-on tidy, not a v1 need. No circular import (authority.py stays a leaf;
+    the diplomacy war-score import is function-local).
+  - **§Q4 optional −4 floor below grip 15 — HELD** for post-playtest tuning (owner:
+    §2.6-Q4). v1 ships the single −2 spiral term; `VS_R_DRIFT_CAP` already bounds any
+    future floor.
+- **Behavior test:** `test_vassal_authority_coupling.py` (42) — banded curve, grip math
+  + edge cases, boot-dormancy/byte-identical pins, lever-blunting (invest/autonomy-up
+  only; subsidy/release/autonomy-down unsoftened), courting-scales-with-weakness,
+  one-way/no-writeback, no-new-serialized-fields, **recoverability (winning arrests the
+  spiral; full-3-satellite collapse ≥ 8 turns)**, and GR5 enemy-lord symmetry. Suite
+  **13,219/3**, ruff clean, no `.gd` touched; a 5-lens adversarial review returned zero
+  confirmed findings.
 
 ---
 
 ## 3. Open questions for the gate
 
+**VS-3 questions** (the land-grant slice — §1):
+
 1. **Sequencing** — VS-3 immediately after Sweep 4, or hold the whole Vassal
    Deepening set until the Combat Overhaul program exits? (Recommendation: VS-3 can
-   land standalone; VS-R waits on its research.)
+   land standalone; VS-R follows now that its research is done.)
 2. **Contiguity** — require a granted province to touch the vassal's territory, or
    allow any lord-owned province? (Recommendation: contiguity — cleaner map, blocks
    nonsense gifts.)
@@ -194,7 +320,11 @@ constants **before any build**. Do not code VS-R off this draft.
    token loyalty? (Recommendation: no hard floor, but worth-scaled bonus already
    makes token gifts near-useless.)
 5. **VS-3 numbers** — GRANT_LOYALTY_BASE/CAP/INCOME_DIVISOR, cost (DP/AP), cooldown.
-6. **VS-R** — everything in §2.2 (research memo first).
+
+**VS-R questions** — the six decisions in **§2.6** (signal choice, subsidy softening,
+coalition-defection now/later, the optional −4 floor, layering relocation, copy bless),
+with recommended numbers in **§2.5**. Research is complete; the memo makes a
+recommendation on each.
 
 ---
 
@@ -206,12 +336,21 @@ constants **before any build**. Do not code VS-R off this draft.
 | Vassal loyalty / tribute | `vassal.py` (`process_vassal_loyalty`, `TRIBUTE_RATES`, `invest_in_vassal` pattern) |
 | Wizard action list | `diplomatic_advisory.py` (vassal action block, `invest_vassal` kind) |
 | Wizard sub-picker | `diplomacy_wizard.gd` (war_id picker pattern, `_structured_payload_for_action`) |
-| Player authority (grip) | `world.authority_tracker.authority`; `world.nation_authority[player]` |
-| Authority bands precedent | `jealousy.py` (>70 calm / <30 spiral) |
-| AI parity (GR5) | `enemy_ai.py` (new grant/rescue rung, same executor) |
+| Player authority (grip) | **derived `get_imperial_grip`** (new, `authority.py`) — `authority_tracker` court component + territorial-collapse term; **NOT** raw `authority_tracker` (doesn't spiral on military collapse) or `nation_authority[player]` (inert dead code) |
+| Authority signal / GR5 | `get_authority_proxy` (`jealousy.py:343`, enemy 75/50/25); reuse gives enemy lords the coupling for free |
+| Authority bands precedent | `jealousy.py:66-67` (`AUTHORITY_SUPPRESS_ABOVE=70` / `ACCELERATE_BELOW=30`) — VS-R anchors on the same two lines |
+| VS-R drift hook | `vassal.py:353→361` (`_contribute` between relation term and `# Apply delta`) |
+| VS-R lever multiplier | `invest_in_vassal:822`, `change_vassal_autonomy:875` (upgrade only) |
+| VS-R courting scale | `attempt_vassal_courting` (`vassal.py:1132/1152/1154`) |
+| Defection / rebellion (v1) | `check_defection_cascade:654` (probabilistic roll) → `check_vassal_rebellion:505` |
+| Coalition-defection (GR9 follow-on) | `coalition.py:1173/1234` (static `members`) + `diplomacy.py:7996` |
+| AI parity (GR5) | `enemy_ai.py` (new grant/rescue rung, same executor); VS-R symmetric via `get_imperial_grip(lord)` |
+
+Full seam-by-seam map + recommended constants in the research memo
+[`docs/audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md`](audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md) §6.
 
 ---
 
-*Prepared July 14, 2026. VS-3 spec-complete pending a bless; VS-R research-first —
-next session authors the memo, then a user gate sets the numbers. No code until the
-gate.*
+*Prepared July 14, 2026. VS-3 spec-complete pending a bless; **VS-R research COMPLETE**
+(memo landed July 14, 2026) — §2 gate-ready with recommended numbers. No code until the
+gate blesses §2.5–2.6.*

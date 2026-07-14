@@ -16,6 +16,17 @@ Single source of truth for vassal mechanics:
 import random
 from typing import List
 from backend.models.trust import Trust
+# VS-R (docs/VASSAL_DEEPENING_SPEC.md §2): imperial-grip -> vassal-loyalty
+# coupling. authority.py is the leaf "one grip = one module" home, so this is a
+# clean downward import (no circular risk).
+from backend.models.authority import (
+    AUTHORITY_ACCELERATE_BELOW,
+    authority_vassal_drift,
+    courting_effectiveness_scale,
+    courting_unlock_bonus,
+    get_authority_lever_multiplier,
+    get_imperial_grip,
+)
 
 # ═══════ AUTONOMY LEVELS ═══════
 AUTONOMY_PUPPET = 0       # -4 drift/turn
@@ -261,6 +272,9 @@ def process_vassal_loyalty(world) -> List[dict]:
     Returns list of event dicts for dispatch.
     """
     events = []
+    # VS-R: imperial grip is per-LORD; memoize so multiple satellites of the
+    # same lord don't recompute it (GR8 — no repeated per-region scans).
+    grip_by_lord: dict = {}
 
     for vassal_name, state in list(world.vassals.items()):
         lord = state["lord"]
@@ -352,10 +366,21 @@ def process_vassal_loyalty(world) -> List[dict]:
         relation = world.nation_relations.get(diplo_key, 0)
         _contribute("relations with the lord", relation // 20)
 
-        # 7. (VS-2, Combat Overhaul Phase 5) The old "war weariness" offset
-        # read get_coalition_loyalty_penalty(vassal_name) — but a lord's own
-        # satellite is never a member of a coalition AGAINST that lord, so the
-        # term was always 0 (dead code). Deleted: coalition membership is a
+        # 7. (VS-R) The Emperor's imperial grip. When the lord's grip spirals
+        # (< 30), the whole satellite web loosens and only major concessions —
+        # or winning battles — arrest it. Boot-dormant: grip >= 30 contributes
+        # 0 (byte-identical — _contribute skips zero). Keys off the LORD's grip,
+        # not the vassal's loyalty, so it fires symmetrically for enemy lords
+        # (GR5). Read-only on authority (one-way coupling; memo Q4).
+        if lord not in grip_by_lord:
+            grip_by_lord[lord] = get_imperial_grip(world, lord)
+        lord_grip = grip_by_lord[lord]
+        _contribute("the Emperor's faltering grip", authority_vassal_drift(lord_grip))
+
+        # (VS-2, Combat Overhaul Phase 5) The old "war weariness" offset read
+        # get_coalition_loyalty_penalty(vassal_name) — but a lord's own satellite
+        # is never a member of a coalition AGAINST that lord, so the term was
+        # always 0 (dead code). Deleted: coalition membership is a
         # diplomatic-acceptance concept, not a loyalty-drift one.
 
         # Apply delta
@@ -387,9 +412,20 @@ def process_vassal_loyalty(world) -> List[dict]:
             # popup at <= 10. Suppressed once rebellion advisories take over.
             recovery_hint = ""
             if delta < 0 and new_loyalty >= 40:
-                recovery_hint = (
-                    "Invest, garrison their capital, or grant autonomy to steady them."
-                )
+                if lord_grip < AUTHORITY_ACCELERATE_BELOW:
+                    # VS-R "no cheap recovery": in the spiral band the cheap
+                    # gestures (invest, a token subsidy) are blunted — name the
+                    # levers that still hold. (Land grants join this line once
+                    # VS-3 lands — owner: VASSAL_DEEPENING_SPEC §1.)
+                    recovery_hint = (
+                        "The Emperor's grip is slipping — cheap gestures no longer "
+                        "hold them. Grant autonomy, pay a large subsidy, release "
+                        "them, or win a decisive battle."
+                    )
+                else:
+                    recovery_hint = (
+                        "Invest, garrison their capital, or grant autonomy to steady them."
+                    )
 
             events.append({
                 "type": "vassal_loyalty",
@@ -815,19 +851,28 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
             "message": f"Insufficient gold ({gold}/{INVEST_GOLD_COST} required)."
         }
 
-    # Apply investment
+    # Apply investment. VS-R "no cheap recovery": in the spiral band (lord grip
+    # < 30) the +10 loyalty is BLUNTED — you still pay full cost, which is the
+    # point (a token gesture no longer holds a wavering satellite). At healthy
+    # grip the multiplier is exactly 1.0, so the gain and message are byte-
+    # identical to pre-VS-R.
+    mult = get_authority_lever_multiplier(world, lord)
+    gain = int(INVEST_LOYALTY_GAIN * mult)
     world.diplomatic_points = int(dp - INVEST_DP_COST)
     world.nation_gold[lord] = int(gold - INVEST_GOLD_COST)
     old_loyalty = state["loyalty"]
-    state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + INVEST_LOYALTY_GAIN))
+    state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + gain))
     cooldowns[vassal_name] = INVEST_COOLDOWN
     world.vassal_investment_cooldowns = cooldowns
 
+    blunted = "" if gain >= INVEST_LOYALTY_GAIN else (
+        " — the Emperor's faltering grip blunts the gesture"
+    )
     return {
         "success": True,
         "message": (
-            f"Invested in {vassal_name}: +{INVEST_LOYALTY_GAIN} loyalty "
-            f"({old_loyalty} → {state['loyalty']}). "
+            f"Invested in {vassal_name}: +{gain} loyalty "
+            f"({old_loyalty} → {state['loyalty']}){blunted}. "
             f"Cost: {INVEST_DP_COST} DP + {INVEST_GOLD_COST}g. "
             f"Cooldown: {INVEST_COOLDOWN} turns."
         ),
@@ -854,6 +899,7 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
         return {"success": False, "message": f"Invalid autonomy level: {new_level}. Use 0 (Puppet), 1 (Satellite), or 2 (Autonomous)."}
 
     state = world.vassals[vassal_name]
+    lord = state.get("lord", getattr(world, 'player_nation', 'France'))
     old_level = state.get("autonomy", AUTONOMY_SATELLITE)
 
     if old_level == new_level:
@@ -871,11 +917,15 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
 
     # Loyalty adjustment
     if new_level > old_level:
-        # More autonomy = vassal is happier
-        state["loyalty"] = int(min(LOYALTY_MAX, state["loyalty"] + 10))
-        loyalty_msg = "+10 loyalty (increased autonomy)"
+        # More autonomy = vassal is happier. VS-R: the +10 is a CHEAP one-shot,
+        # blunted in the lord's spiral band (byte-identical at healthy grip).
+        mult = get_authority_lever_multiplier(world, lord)
+        gain = int(10 * mult)
+        state["loyalty"] = int(min(LOYALTY_MAX, state["loyalty"] + gain))
+        loyalty_msg = f"+{gain} loyalty (increased autonomy)"
     else:
-        # Less autonomy = vassal is unhappy
+        # Less autonomy = vassal is unhappy. NEVER softened — low grip must not
+        # cushion a downgrade (VS-R Q3).
         state["loyalty"] = int(max(LOYALTY_MIN, state["loyalty"] - 15))
         loyalty_msg = "-15 loyalty (decreased autonomy)"
 
@@ -1126,10 +1176,19 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
     if dp < 2:
         return events
 
+    # VS-R: the Allies peel satellites precisely when Napoleon looks weak. As the
+    # player's imperial grip falls the courting unlock reaches DEEPER (threshold
+    # 50 -> 50 + bonus) and each success bites HARDER (loyalty_reduction x1.0 ->
+    # x1.5). Both are 0 / x1.0 at healthy grip, so boot behaviour is byte-
+    # identical. Bounded by the existing 3-turn cooldown + one-vassal-per-turn cap.
+    player_grip = get_imperial_grip(world, player)
+    unlock_bonus = courting_unlock_bonus(player_grip)
+    eff_scale = courting_effectiveness_scale(player_grip)
+
     for vassal_name, state in world.vassals.items():
         if state["lord"] != player:
             continue
-        if state["loyalty"] >= 50:
+        if state["loyalty"] >= 50 + unlock_bonus:
             continue
 
         # Anti-spam cooldown
@@ -1145,13 +1204,11 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
 
         dp_nations[nation] = dp_nations.get(nation, 0) - 2
 
-        # Calculate loyalty reduction
+        # Calculate loyalty reduction (VS-R: scaled by the player's grip)
         diplo_key = world._make_diplo_key(vassal_name, nation)
         relation = world.nation_relations.get(diplo_key, 0)
-        if relation > 0:
-            loyalty_reduction = 15
-        else:
-            loyalty_reduction = 5
+        base_reduction = 15 if relation > 0 else 5
+        loyalty_reduction = int(round(base_reduction * eff_scale))
 
         state["loyalty"] = max(LOYALTY_MIN, state["loyalty"] - loyalty_reduction)
 

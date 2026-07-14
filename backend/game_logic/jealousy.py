@@ -35,6 +35,13 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from backend.game_logic import dotation
+# One grip = one module (VS-R gate Open Q#5): the shared authority breakpoints
+# live in the leaf so jealousy AND vassal anchor on the SAME two lines. Used
+# below at _threshold_for; re-exported here for backward compat (J.AUTHORITY_*).
+from backend.models.authority import (  # noqa: F401
+    AUTHORITY_ACCELERATE_BELOW,
+    AUTHORITY_SUPPRESS_ABOVE,
+)
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -56,16 +63,17 @@ HOSTILE_IDLE_TURNS = 2
 IDLE_ACCELERATION_TURNS = 3         # idle >= 3 -> threshold -1 (min 1)
 
 # Authority polarity (spec §1, AMENDED at build — §0.2 landing note):
-# authority > 70 DAMPENS (+1 to every threshold) rather than suppressing
-# outright. Boot authority is 100; full immunity would leave the system
-# dormant for any winning campaign, contradicting the crown's own
-# "reward for excellence creates friction" design (the marshals feuded at
-# the height of empire — Auerstedt was 1806). The death-spiral
-# acceleration below 30 is unchanged; capital-threatened remains a full
-# suppression (survival overrides pettiness).
-AUTHORITY_SUPPRESS_ABOVE = 70       # authority > 70 -> thresholds +1
-AUTHORITY_ACCELERATE_BELOW = 30     # authority < 30 -> every threshold = 1,
-                                    # hostile idle gate waived (blame-seeking)
+# authority > 70 (AUTHORITY_SUPPRESS_ABOVE) DAMPENS (+1 to every threshold)
+# rather than suppressing outright. Boot authority is 100; full immunity would
+# leave the system dormant for any winning campaign, contradicting the crown's
+# own "reward for excellence creates friction" design (the marshals feuded at
+# the height of empire — Auerstedt was 1806). The death-spiral acceleration
+# below 30 (AUTHORITY_ACCELERATE_BELOW) is unchanged; capital-threatened remains
+# a full suppression (survival overrides pettiness).
+# NOTE: both breakpoints now live in backend/models/authority.py (single source,
+# imported at the top of this module) so VS-R's satellite coupling anchors on the
+# identical lines — crossing 70/30 lights up the marshal board AND the satellite
+# board as one felt moment.
 
 DURATION_MIN = 2                    # duration = 2 + (delta - threshold), 2..5
 DURATION_MAX = 5

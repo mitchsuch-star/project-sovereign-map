@@ -312,3 +312,185 @@ def check_excessive_trust(authority_tracker, current_turn: int) -> int:
         return -2
     else:
         return 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VS-R — IMPERIAL GRIP & VASSAL-LOYALTY COUPLING
+# ═══════════════════════════════════════════════════════════════════════════
+# Spec: docs/VASSAL_DEEPENING_SPEC.md §2 + memo
+#   docs/audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md.
+#
+# "The Empire holds because *you* hold." When Napoleon's grip spirals, the whole
+# satellite web loosens — and at rock-bottom grip the cheap levers no longer
+# suffice; only land / autonomy / a large subsidy / winning battles arrest it.
+#
+# One grip = one module (gate Open Q#5): the two shared breakpoints below live
+# here, in the leaf, so both jealousy.py and vassal.py import DOWN into a single
+# source of truth — marshal feuds AND satellite defection anchor on the SAME two
+# lines. (get_authority_proxy / is_capital_threatened stay in jealousy.py by a
+# recorded scope deviation — they are jealousy-internal in use and pinned there;
+# VS-R never reads them. Their relocation is a follow-on tidy, not a v1 need.)
+
+# Shared "one grip" breakpoints (relocated here from jealousy.py). Authority > 70
+# DAMPENS marshal feuds; < 30 is the one advertised spiral line (army infighting
+# AND, per VS-R, satellite flight). See jealousy.py for the polarity rationale.
+AUTHORITY_SUPPRESS_ABOVE = 70
+AUTHORITY_ACCELERATE_BELOW = 30
+
+# Imperial-grip territorial-collapse docks. Enemy parity: an intact enemy court
+# reads 75 (jealousy proxy parity); a capital-lost enemy grades to 35. The docks
+# make the PLAYER's grip finally fall when Paris / the homeland / the war is lost
+# — the raw authority_tracker never did (memo Q1: its only military movers are
+# ±5 nudges gated on OUTNUMBERING, and a capital lost to an enemy assault docks
+# it by zero).
+GRIP_ENEMY_COURT_BASE = 75
+GRIP_CAPITAL_LOST = 40
+GRIP_HOMELAND_MINORITY = 25   # capital held but < half the homeland retained
+GRIP_WARSCORE_DEEP = 15       # worst active war_score < -50
+GRIP_WARSCORE_LOSING = 8      # worst active war_score < -30 (cascade-aligned)
+
+# VS-R vassal-drift coupling — negative-only, spiral-band only, CAPPED, NEVER a
+# multiplier (the one shape that yields unrecoverable collapse; memo Q2/Q5).
+# Boot-dormant: grip >= 30 contributes 0, and process_vassal_loyalty's
+# _contribute() skips zero, so the healthy band is byte-identical to pre-VS-R.
+VS_R_DRIFT_SPIRAL = -2        # grip < 30
+VS_R_DRIFT_CAP = -4           # hard per-turn magnitude cap on the grip term
+# The optional sub-15 "-4 floor" (memo §Q4) is HELD for post-playtest tuning:
+# v1 ships the single -2 spiral term. VS_R_DRIFT_CAP already bounds any future
+# floor. Owner for the escalation: VASSAL_DEEPENING_SPEC §2.6-Q4.
+
+# "No cheap recovery": blunt the CHEAP one-shots (invest, autonomy-up) in the
+# spiral band. Land grants (VS-3), full release, autonomy-DOWN, and the per-turn
+# subsidy are NEVER softened — a *large* subsidy stays a valid existential lever.
+VS_R_CHEAP_LEVER_MULT = 0.40
+
+
+def _capital_held(world, nation: str) -> bool:
+    """True when ``nation`` still controls its own capital region."""
+    capital = world.get_nation_capital(nation)
+    region = world.regions.get(capital) if capital else None
+    return bool(region is not None and getattr(region, "controller", None) == nation)
+
+
+def _homeland_held_fraction(world, nation: str):
+    """(held, total) of the nation's STARTING homeland it still controls.
+
+    Reconstructed from nation_starting_regions (populated for every nation incl.
+    the player); returns (0, 0) when no homeland is recorded (bare test worlds).
+    """
+    home = list(getattr(world, "nation_starting_regions", {}).get(nation, []) or [])
+    if not home:
+        return 0, 0
+    held = 0
+    for region_name in home:
+        region = world.regions.get(region_name)
+        if region is not None and getattr(region, "controller", None) == nation:
+            held += 1
+    return held, len(home)
+
+
+def _worst_war_score(world, nation: str):
+    """Most negative war_score across the nation's ACTIVE wars, or None.
+
+    "Losing the war" is a grip signal; the worst front is the one that shakes
+    the court. Function-local diplomacy import (keeps authority.py a leaf).
+    """
+    get_actives = getattr(world, "get_active_nations", None)
+    if get_actives is None:
+        return None
+    from backend.game_logic.diplomacy import get_war_score_for
+    worst = None
+    for other in get_actives():
+        if other == nation:
+            continue
+        if not world.is_at_war(nation, other):
+            continue
+        score = get_war_score_for(world, nation, other)
+        if worst is None or score < worst:
+            worst = score
+    return worst
+
+
+def get_imperial_grip(world, nation: str) -> int:
+    """Napoleon-style 'imperial grip' (0-100), symmetric by construction (GR5).
+
+    Blends the lord's COURT standing — authority_tracker for the player, a flat
+    baseline for enemies (jealousy-proxy parity) — with a TERRITORIAL-collapse
+    term (capital held, homeland majority, worst war score). This is the VS-R
+    signal, and the crux fix of the research: the raw authority_tracker does NOT
+    spiral on military collapse, so a player could lose the war and Paris with
+    the tracker near 100. The derived grip closes that gap, and because it keys
+    off the LORD it hands enemy lords the coupling for free.
+
+    Boot returns: player at authority 100 / full empire -> 100 (VS-R dormant);
+    enemy intact -> 75; enemy capital lost -> 35. Pure derived read — NO
+    serialized field (memo Q6). NOT a substitute for jealousy's
+    get_authority_proxy (its 75/50/25 pins stand); this is a graded superset.
+    """
+    if nation == getattr(world, "player_nation", None):
+        tracker = getattr(world, "authority_tracker", None)
+        base = int(getattr(tracker, "authority", 100)) if tracker is not None else 100
+    else:
+        base = GRIP_ENEMY_COURT_BASE
+
+    # Territorial-collapse term. Capital loss dominates (-40); an intact capital
+    # atop a lost homeland is the softer signal (-25). Mutually exclusive so the
+    # enemy floor stays at the -2 tier (75 - 40 - 15 = 20; never sub-15).
+    if not _capital_held(world, nation):
+        base -= GRIP_CAPITAL_LOST
+    else:
+        held, total = _homeland_held_fraction(world, nation)
+        if total and held * 2 < total:
+            base -= GRIP_HOMELAND_MINORITY
+
+    worst = _worst_war_score(world, nation)
+    if worst is not None:
+        if worst < -50:
+            base -= GRIP_WARSCORE_DEEP
+        elif worst < -30:
+            base -= GRIP_WARSCORE_LOSING
+
+    return max(0, min(100, base))
+
+
+def authority_vassal_drift(grip: int) -> int:
+    """VS-R banded vassal-loyalty drift from the lord's imperial grip.
+
+    Boot-dormant (grip >= 30 -> 0, byte-identical); negative-only; capped in
+    magnitude at VS_R_DRIFT_CAP. Additive to AUTONOMY_DRIFT, never multiplicative.
+    """
+    if grip >= AUTHORITY_ACCELERATE_BELOW:
+        return 0
+    return max(VS_R_DRIFT_CAP, VS_R_DRIFT_SPIRAL)
+
+
+def get_authority_lever_multiplier(world, lord: str) -> float:
+    """VS-R 'no cheap recovery' multiplier for the CHEAP one-shot loyalty levers.
+
+    Exactly 1.0 at healthy grip (byte-identical boot); VS_R_CHEAP_LEVER_MULT in
+    the <30 spiral band. Applied ONLY to invest and autonomy-up — land grants,
+    release, autonomy-DOWN, and the per-turn subsidy are never softened.
+    """
+    if get_imperial_grip(world, lord) >= AUTHORITY_ACCELERATE_BELOW:
+        return 1.0
+    return VS_R_CHEAP_LEVER_MULT
+
+
+def courting_unlock_bonus(grip: int) -> int:
+    """VS-R: enemy courting reaches deeper (loyalty threshold 50 -> 50 + bonus)
+    as the LORD's grip falls — the Allies peel satellites once the Emperor looks
+    weak (the Treaty of Ried dynamic). 0 at grip >= 30 (pins green), up to +15 at
+    grip 0."""
+    if grip >= AUTHORITY_ACCELERATE_BELOW:
+        return 0
+    span = AUTHORITY_ACCELERATE_BELOW
+    return int(round(15 * (span - grip) / span))
+
+
+def courting_effectiveness_scale(grip: int) -> float:
+    """VS-R: enemy courting bites harder (x1.0 -> x1.5 on loyalty_reduction) as
+    the lord's grip falls. 1.0 at grip >= 30 (pins green)."""
+    if grip >= AUTHORITY_ACCELERATE_BELOW:
+        return 1.0
+    span = AUTHORITY_ACCELERATE_BELOW
+    return 1.0 + 0.5 * (span - grip) / span
