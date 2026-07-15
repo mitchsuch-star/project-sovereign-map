@@ -368,6 +368,21 @@ class CommandParser:
                 llm_result["target"] = llm_result["marshal"]
             llm_result["marshal"] = None
             return (llm_result, None)
+        # Vassal-family actions target a NATION, not a marshal — the executor
+        # resolves the nation (and the more/less/grant direction) from
+        # raw_command (F6). A stray direction word must NOT be fuzzy-matched to
+        # a marshal: "grant Holland MORE autonomy" was matching "more" -> "Murat"
+        # and failing the whole command (Sweep 4 finding), while "grant Holland
+        # autonomy" (no direction word) parsed. Skip marshal matching here, same
+        # as recruit_marshal; move any extracted name into target so an explicit
+        # nation survives for the executor.
+        if llm_result.get("action") in (
+                "change_autonomy", "invest_vassal", "release_vassal",
+                "make_vassal"):
+            if llm_result.get("marshal") and not llm_result.get("target"):
+                llm_result["target"] = llm_result["marshal"]
+            llm_result["marshal"] = None
+            return (llm_result, None)
         # Fuzzy match marshal name if LLM extracted one
         if llm_result.get("marshal"):
             # CR-1: an extracted "marshal" that IS a known enemy commander

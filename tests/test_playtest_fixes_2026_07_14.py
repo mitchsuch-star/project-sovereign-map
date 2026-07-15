@@ -160,6 +160,81 @@ class TestTypedAutonomyParse:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Sweep 4 (2026-07-15) — the FULL parse pipeline must not fuzzy-match a
+# direction word ("more"/"less") to a marshal and FAIL a vassal command.
+#   Root cause: change_autonomy targets a NATION (executor resolves it from
+#   raw_command), but _apply_fuzzy_matching still hunted for a marshal in the
+#   leftover words — "grant Holland MORE autonomy" matched "more" -> "Murat"
+#   and returned a marshal_suggest error, so the command shrugged. "grant
+#   Holland autonomy" (no direction word) parsed. The F6 tests above covered
+#   the mock parser + executor but NOT CommandParser.parse, which is why the
+#   gap slipped through — these pin the full pipeline.
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestSweep4AutonomyDirectionParse:
+    def _parser(self):
+        from backend.commands.parser import CommandParser
+        return CommandParser(use_real_llm=False)
+
+    @pytest.mark.parametrize("text", [
+        "grant Holland more autonomy",
+        "give Holland more autonomy",
+        "grant Holland less autonomy",
+        "reduce Switzerland autonomy",
+        "grant Holland autonomy",          # the no-direction control (always worked)
+        "make Holland autonomous",
+    ])
+    def test_full_parse_pipeline_does_not_shrug_on_direction_word(self, text):
+        w = _make_world()
+        _add_vassal(w, "Holland", loyalty=90, autonomy=AUTONOMY_SATELLITE)
+        _add_vassal(w, "Switzerland", loyalty=90, autonomy=AUTONOMY_SATELLITE)
+        parser = self._parser()
+        result = parser.parse(text, game_state={"world": w}, world=w)
+        # Pre-fix: "more"/"less" -> success=False with a Murat marshal_suggest error.
+        assert result.get("success") is True, (text, result.get("error"))
+        cmd = result.get("command") or {}
+        assert cmd.get("action") == "change_autonomy", (text, cmd.get("action"))
+        # And the direction word must NOT have been absorbed as a marshal.
+        assert cmd.get("marshal") is None, (text, cmd.get("marshal"))
+
+    def test_more_autonomy_no_longer_suggests_a_marshal(self):
+        """The exact Sweep-4 symptom: 'more' fuzzy-matched to a marshal."""
+        w = _make_world()
+        _add_vassal(w, "Holland", loyalty=90, autonomy=AUTONOMY_SATELLITE)
+        result = self._parser().parse(
+            "grant Holland more autonomy", game_state={"world": w}, world=w)
+        assert result.get("success") is True
+        # falsifiable: the pre-fix failure carried these keys
+        assert result.get("kind") != "marshal_suggest"
+        assert "Murat" not in (result.get("suggestion") or "")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VP-D5 (Sweep 4) — granting autonomy surfaces its PERMANENT tribute cut
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestAutonomyTributeLegibility:
+    def test_autonomy_up_names_the_permanent_income_cut(self):
+        w = _make_world(authority=100)
+        _add_vassal(w, "Saxony", loyalty=50, autonomy=AUTONOMY_SATELLITE)
+        w.diplomatic_points = 5
+        res = change_vassal_autonomy(w, "Saxony", AUTONOMY_AUTONOMOUS)
+        assert res["success"], res
+        # shows the tribute DELTA (75% -> 50%) and flags it as a permanent cut
+        assert "75% → 50%" in res["message"], res["message"]
+        assert "permanent income cut" in res["message"], res["message"]
+
+    def test_autonomy_down_names_the_income_gain(self):
+        w = _make_world(authority=100)
+        _add_vassal(w, "Saxony", loyalty=80, autonomy=AUTONOMY_AUTONOMOUS)
+        w.diplomatic_points = 5
+        res = change_vassal_autonomy(w, "Saxony", AUTONOMY_SATELLITE)
+        assert res["success"], res
+        assert "50% → 75%" in res["message"], res["message"]
+        assert "collect more of their income" in res["message"], res["message"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # F3 — danger/threat readings exclude allies, vassals, and neutrals
 # ═══════════════════════════════════════════════════════════════════════════
 

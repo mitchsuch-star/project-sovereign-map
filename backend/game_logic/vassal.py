@@ -965,12 +965,28 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
         state["loyalty"] = int(max(LOYALTY_MIN, state["loyalty"] - 15))
         loyalty_msg = "-15 loyalty (decreased autonomy)"
 
+    # VP-D5 (Sweep 4): surface the tribute TRADE-OFF, not just the new rate.
+    # Granting autonomy is a PERMANENT income cut (Satellite 75% -> Autonomous
+    # 50%); a player following the "grant autonomy" recovery hint was buying a
+    # one-shot loyalty bump without being told the recurring cost. Show the
+    # delta directionally so the cost/benefit is explicit at the decision point.
+    old_tribute = TRIBUTE_RATES[old_level] * 100
+    new_tribute = TRIBUTE_RATES[new_level] * 100
+    if new_tribute < old_tribute:
+        tribute_msg = (f"Tribute rate: {old_tribute:.0f}% → {new_tribute:.0f}% "
+                       f"(a permanent income cut)")
+    elif new_tribute > old_tribute:
+        tribute_msg = (f"Tribute rate: {old_tribute:.0f}% → {new_tribute:.0f}% "
+                       f"(you collect more of their income)")
+    else:
+        tribute_msg = f"Tribute rate: {new_tribute:.0f}%"
+
     return {
         "success": True,
         "message": (
             f"{vassal_name} autonomy changed: "
             f"{AUTONOMY_NAMES[old_level]} → {AUTONOMY_NAMES[new_level]}. "
-            f"{loyalty_msg}. Tribute rate: {TRIBUTE_RATES[new_level]*100:.0f}%."
+            f"{loyalty_msg}. {tribute_msg}."
         ),
     }
 
