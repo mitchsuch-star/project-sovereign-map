@@ -3432,6 +3432,26 @@ class CombatExecutor:
                 "game_state": world.get_filtered_game_state_summary(),
             }
 
+        # PF-7: a "bombard" verb issued to a marshal with NO guns previously
+        # fell straight through to a melee assault (no artillery -> the routing
+        # below is skipped and resolve_battle runs). Reject it clearly BEFORE
+        # the muster gate / AP spend / resolve_battle. Player-issued only:
+        # command carries raw_command; AI / strategic-execution / auto-dispatch
+        # / defiance callers pass command=None and are unaffected. Same-region
+        # artillery "bombard" -> full battle is intended (BOMBARDMENT_SPEC §3)
+        # and handled by the routing below, so this only fires with no guns.
+        _bombard_verbs = ("bombard", "barrage", "shell", "cannonade")
+        if (command
+                and any(v in (command.get("raw_command") or "").lower()
+                        for v in _bombard_verbs)
+                and not getattr(marshal, 'artillery', False)):
+            return {
+                "success": False,
+                "message": (f"Berthier shakes his head. \"{marshal.name} commands "
+                            f"no guns, Sire — he cannot bombard. Order a direct "
+                            f"assault, or bring an artillery corps within range.\""),
+            }
+
         if (getattr(marshal, 'artillery', False)
                 and marshal.location != enemy_marshal.location):
             bombard_result = self._execute_bombardment(

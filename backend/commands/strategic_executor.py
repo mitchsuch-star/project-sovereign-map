@@ -1192,6 +1192,14 @@ class StrategicExecutor:
             if not is_auto_upgrade:
                 msg += (f" (1 AP — {marshal.name} executes precise orders "
                         f"with fewer couriers.)")
+        elif strategic_type == "HOLD" and strategic_cost == 2:
+            # PF-6: a tactical-sounding "hold your ground" is upgraded to a
+            # 2-AP standing strategic HOLD for a non-literal marshal. Announce
+            # the upgrade inline (the V2-58 pricing stands — do NOT re-price)
+            # and name the 1-AP tactical alternative so the player can opt out.
+            msg += (" (2 AP — a standing strategic order to hold this ground "
+                    "turn after turn. For a single-turn tactical hold, order "
+                    "'defend' at 1 AP.)")
 
         return {
             "success": True,

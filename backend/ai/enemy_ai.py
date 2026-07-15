@@ -1905,12 +1905,19 @@ class EnemyAI:
             return (move_action, 7)
 
         # ════════════════════════════════════════════════════════════
-        # PRIORITY 4.78: DEFENSIVE REINFORCEMENT POSITIONING
-        # Move adjacent to threatened ally for reinforcement readiness
+        # PRIORITY 7.4: DEFENSIVE REINFORCEMENT POSITIONING
+        # Move adjacent to threatened ally for reinforcement readiness.
+        # AI-1: this rung was historically labelled "P4.78" but has always been
+        # EVALUATED here — after P7 strategic movement, before P7.5 stagnation —
+        # so the 4.78 label misrepresented the decision order (the tier was
+        # "decoupled from evaluation order"). Relabelled to P7.4 to match its
+        # true position; the returned score stays 7 (load-bearing: the caller's
+        # P8-retreat suppression keys off `action_priority == 7`), and the code
+        # position is unchanged, so this is a behavior-preserving relabel only.
         # ════════════════════════════════════════════════════════════
         reinforce_action = self._find_defensive_reinforcement_position(marshal, nation, world)
         if reinforce_action:
-            ai_debug(f"  -> P4.78 Defensive Reinforcement: {reinforce_action}")
+            ai_debug(f"  -> P7.4 Defensive Reinforcement: {reinforce_action}")
             return (reinforce_action, 7)
 
         # ─── P7.5: STAGNATION ESCALATION ──────────────────────────────────────

@@ -1054,8 +1054,17 @@ class LLMClient:
         elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
             action = "recruit"
             # Optional: extract what the player ASKED for (for soft correction message)
+            # Cavalry is checked FIRST so "horse artillery" stays cavalry. PF-7:
+            # "artillery" was previously unrecognized, so requesting an arm a
+            # marshal doesn't command was dropped silently — the artillery arm
+            # now feeds the existing soft-correction seam in _execute_recruit.
             if any(kw in command_lower for kw in ["cavalry", "horse", "rider", "horsemen"]):
                 requested_type = "cavalry"
+            elif re.search(r'\b(?:artillery|cannons?|guns?|batter(?:y|ies)|artillerie)\b', command_lower):
+                # PF-7 review fix: WORD-BOUNDARY match — the bare substring "gun"
+                # collided with the region name "Burgundy" (bur-GUN-dy), firing a
+                # spurious soft-correction on "recruit infantry at Burgundy".
+                requested_type = "artillery"
             elif "infantry" in command_lower or "foot" in command_lower:
                 requested_type = "infantry"
             else:

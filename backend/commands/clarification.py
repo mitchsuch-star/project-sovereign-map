@@ -353,7 +353,15 @@ def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
                  if o.get("target")}
     by_label = {str(o.get("label") or "").lower(): o for o in actionable
                 if o.get("label")}
-    option = by_target.get(stripped) or by_label.get(stripped)
+    # PF-2: an option may declare answer `aliases` — the natural-language verbs
+    # its question text offered (e.g. a delegation ASK offers "give battle" /
+    # "observe"). Matching them lets the player answer in the question's own
+    # words instead of only the button label/target. Options without aliases
+    # (every legacy clarification) are byte-unchanged.
+    by_alias = {str(a).lower(): o for o in actionable
+                for a in (o.get("aliases") or [])}
+    option = (by_target.get(stripped) or by_label.get(stripped)
+              or by_alias.get(stripped))
     if option is None and len(stripped) >= 3:
         near = _closest_by_edit_distance(stripped, list(by_target))
         if near is not None:

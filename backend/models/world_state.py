@@ -3445,7 +3445,24 @@ class WorldState:
         for marshal in self.marshals.values():
             marshal.in_combat_this_turn = False
 
-    def find_path(self, start: str, end: str, avoid_regions: List[str] = None) -> Optional[List[str]]:
+    def _region_passable_for(self, region_name: str, nation: str) -> bool:
+        """PF-8: True if `nation` may route THROUGH region_name — its controller
+        is unclaimed, the nation's own, or a nation whose territory it may enter
+        (war / alliance / open borders, per can_enter_territory). O(1) per call
+        (a dict get + a diplomatic-state lookup) — NOT a region scan; the
+        destination is excluded by callers so a march INTO closed land still
+        builds a path (and then hands off to the stall-feedback reroute/break)."""
+        region = self.regions.get(region_name)
+        if region is None:
+            return True
+        controller = region.controller
+        if not controller or controller == nation:
+            return True
+        from backend.game_logic.diplomacy import can_enter_territory
+        return can_enter_territory(self, nation, controller)
+
+    def find_path(self, start: str, end: str, avoid_regions: List[str] = None,
+                  passable_for: str = None) -> Optional[List[str]]:
         """
         Find shortest path between two regions using BFS.
 
@@ -3454,6 +3471,9 @@ class WorldState:
             end: Destination region name
             avoid_regions: Optional list of region names to skip (for cautious pathing).
                            The destination is never avoided even if in this list.
+            passable_for: Optional nation name. When set, the path routes only
+                          THROUGH regions this nation may enter (PF-8); the
+                          destination is never filtered.
 
         Returns:
             List of region names from start to end (inclusive), or None if no path.
@@ -3480,13 +3500,18 @@ class WorldState:
                 if adjacent == end:
                     return path + [end]
 
-                if adjacent not in visited and adjacent not in avoid_regions:
-                    visited.add(adjacent)
-                    queue.append((adjacent, path + [adjacent]))
+                if adjacent in visited or adjacent in avoid_regions:
+                    continue
+                if (passable_for
+                        and not self._region_passable_for(adjacent, passable_for)):
+                    continue
+                visited.add(adjacent)
+                queue.append((adjacent, path + [adjacent]))
 
         return None  # Not reachable
 
-    def find_weighted_path(self, start: str, end: str, avoid_regions: List[str] = None) -> Optional[List[str]]:
+    def find_weighted_path(self, start: str, end: str, avoid_regions: List[str] = None,
+                           passable_for: str = None) -> Optional[List[str]]:
         """
         Find lowest-attrition path between two regions using Dijkstra.
 
@@ -3498,6 +3523,10 @@ class WorldState:
             end: Destination region name
             avoid_regions: Optional list of region names to skip.
                            The destination is never avoided even if in this list.
+            passable_for: Optional nation name. When set, the route only passes
+                          THROUGH regions this nation may enter (PF-8 — prefer
+                          friendly/open-border corridors over impassable neutral
+                          land); the destination is never filtered.
 
         Returns:
             List of region names from start to end (inclusive), or None if no path.
@@ -3534,6 +3563,9 @@ class WorldState:
                 if adjacent in visited:
                     continue
                 if adjacent in avoid_regions and adjacent != end:
+                    continue
+                if (passable_for and adjacent != end
+                        and not self._region_passable_for(adjacent, passable_for)):
                     continue
 
                 # Edge weight = movement cost of entering the adjacent region
@@ -4238,6 +4270,12 @@ class WorldState:
                         DOTATION_EXPECTATION, NotificationPriority,
                         create_notification,
                     )
+                    # PF-5: keep at most one live reward-expectation notice per
+                    # marshal (a met->unmet re-open otherwise stacks a duplicate).
+                    self.notifications.dismiss_by_type(
+                        DOTATION_EXPECTATION,
+                        filter_fn=lambda n, mn=marshal.name: (
+                            n.get("details", {}).get("marshal") == mn))
                     self.notifications.add(create_notification(
                         notification_type=DOTATION_EXPECTATION,
                         priority=NotificationPriority.NORMAL,
@@ -7839,12 +7877,21 @@ class WorldState:
             from backend.notifications import (
                 create_notification, NotificationPriority, TREATY_SIGNED,
             )
+            # PF-5: collapse a re-signed treaty with the SAME counterparty to the
+            # latest notice (they otherwise pile up and re-render every turn).
+            # Distinct counterparties keep distinct notices.
+            _treaty_counterpart = player_counterpart or target_nation
+            self.notifications.dismiss_by_type(
+                TREATY_SIGNED,
+                filter_fn=lambda n, c=_treaty_counterpart: (
+                    n.get("details", {}).get("counterpart") == c))
             self.notifications.add(create_notification(
                 TREATY_SIGNED,
                 NotificationPriority.NORMAL,
-                f"Treaty with {player_counterpart or target_nation}",
+                f"Treaty with {_treaty_counterpart}",
                 f"{proposer} and {target_nation} have signed {with_indefinite_article(proposal_display_name(proposal_type))}.",
                 int(self.current_turn),
+                details={"counterpart": _treaty_counterpart},
             ))
 
             from backend.game_logic.dispatch import queue_dispatch_event

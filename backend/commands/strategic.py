@@ -835,6 +835,7 @@ class StrategicOrderProcessor:
         # Move up to movement_range regions
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
+        last_fail = None  # PF-8: remember why the last step failed (for feedback)
         print(f"[STRATEGIC MOVE] {marshal.name}: {marshal.location} -> {destination}, "
               f"cavalry={getattr(marshal, 'cavalry', False)}, "
               f"movement_range={regions_to_move}, path={order.path}")
@@ -895,6 +896,7 @@ class StrategicOrderProcessor:
                 print(f"[STRATEGIC] {marshal.name}: moved -> {next_region} "
                       f"(path remaining: {order.path})")
             else:
+                last_fail = result  # PF-8: preserve the reason (e.g. diplomatic block)
                 break
 
         # Transit intel: regions passed through but not ended at get PARTIAL
@@ -918,6 +920,36 @@ class StrategicOrderProcessor:
                 "message": f"{marshal.name} marches to {moves_made[-1]}. "
                            f"{remaining} region(s) to {destination}."
             }
+
+        # PF-8: a stall on a DIPLOMATIC block used to return a content-free
+        # "could not advance" and re-stall silently every turn. Say why — and
+        # stop the eternal re-stall. First try one passability-aware reroute; if
+        # that still can't take a first step, break the order with the reason.
+        if last_fail is not None and last_fail.get("blocked_diplomatic"):
+            reroute = self._get_personality_aware_path(
+                marshal, destination, world, use_weighted=True)
+            if reroute and len(reroute) > 1:
+                first_step = reroute[1] if reroute[0] == marshal.location else reroute[0]
+                if not world.get_enemies_in_region(first_step, marshal.nation) \
+                        and world._region_passable_for(first_step, marshal.nation):
+                    order.path = reroute[1:] if reroute[0] == marshal.location else reroute
+                    return {
+                        "marshal": marshal.name,
+                        "command": "MOVE_TO",
+                        "order_status": "continues",
+                        "destination": destination,
+                        "message": (f"{marshal.name} reroutes around "
+                                    f"{last_fail.get('blocked_diplomatic')} territory "
+                                    f"toward {destination}."),
+                    }
+            reason = last_fail.get("message") or (
+                f"the road to {destination} is blocked by "
+                f"{last_fail.get('blocked_diplomatic')} territory")
+            broken = self._break_order(
+                marshal, world,
+                f"{marshal.name}'s march halts — {reason} "
+                f"Secure open borders or declare war to pass.")
+            return broken
 
         return {
             "marshal": marshal.name,
@@ -1164,6 +1196,7 @@ class StrategicOrderProcessor:
         # Move up to movement_range
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
+        last_fail = None  # PF-8: remember why the last pursue step failed
 
         for _ in range(regions_to_move):
             if not path:
@@ -1291,6 +1324,7 @@ class StrategicOrderProcessor:
                     # Found target — pursuit complete
                     return self._complete_order(marshal, world,
                         f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
+                last_fail = result  # PF-8: preserve the reason (e.g. diplomatic block)
                 break
 
         # Transit intel: regions passed through but not ended at get PARTIAL
@@ -1347,6 +1381,20 @@ class StrategicOrderProcessor:
                 "message": f"{marshal.name} pursues {order.target}. "
                            f"{distance} region(s) away."
             }
+
+        # PF-8: a PURSUE stalled on a DIPLOMATIC block used to return a
+        # content-free "could not advance" and re-stall silently every turn. Say
+        # why and break the order (mirrors the MOVE_TO stall-feedback). Pursuit
+        # doesn't pick scenic reroutes, so there is no reroute step here — a
+        # closed border simply ends the chase with a clear reason.
+        if last_fail is not None and last_fail.get("blocked_diplomatic"):
+            reason = last_fail.get("message") or (
+                f"the road to {order.target} is blocked by "
+                f"{last_fail.get('blocked_diplomatic')} territory")
+            return self._break_order(
+                marshal, world,
+                f"{marshal.name}'s pursuit halts — {reason} "
+                f"Secure open borders or declare war to pass.")
 
         return {
             "marshal": marshal.name,
@@ -2727,23 +2775,33 @@ class StrategicOrderProcessor:
         """
         personality = getattr(marshal, 'personality', 'balanced')
         pathfinder = world.find_weighted_path if use_weighted else world.find_path
+        # PF-8: a PLAYER march prefers a passable (own/allied/open-border/at-war)
+        # corridor over impassable neutral land; the AI keeps omniscient routing.
+        # If no passable route exists, fall back so the order still forms and the
+        # stall-feedback path reports why (rather than silently vanishing).
+        _pf = marshal.nation if marshal.nation == world.player_nation else None
 
         if personality == "cautious":
             enemy_regions = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
             path = pathfinder(marshal.location, destination,
-                              avoid_regions=enemy_regions)
+                              avoid_regions=enemy_regions, passable_for=_pf)
             if not path:
                 # No safe route — fall back to direct path. The marshal will
                 # NOT walk through enemies: the movement loop (line 466-468)
                 # blocks entry and triggers _handle_blocked_path(), which asks
                 # the player before proceeding. This is intentional UX — the
                 # marshal starts moving and reports contact when it happens.
-                path = pathfinder(marshal.location, destination)
+                path = pathfinder(marshal.location, destination, passable_for=_pf)
         else:
             # Aggressive/literal/balanced: direct path. Movement loop at
             # _execute_move_to line 466 still blocks entry into enemy regions
             # and triggers _handle_blocked_path() for interrupt/reroute.
+            path = pathfinder(marshal.location, destination, passable_for=_pf)
+
+        if not path and _pf:
+            # PF-8 fallback: no passable corridor — form the terrain-only path so
+            # the march begins and stalls at the closed border with a reason.
             path = pathfinder(marshal.location, destination)
 
         if not path:

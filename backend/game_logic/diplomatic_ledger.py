@@ -262,14 +262,18 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             if r.controller == nation
         )
 
-        # Active treaties involving this nation
+        # PF-9: Active treaty between the PLAYER and this nation only, hidden
+        # while at WAR. Treaties are keyed by the canonical pair key, so the
+        # player<->nation treaty (if any) is exactly active_treaties[diplo_key].
+        # The old scan (`nation in treaty_nations`) leaked a THIRD-PARTY treaty
+        # (e.g. Russia<->Sweden) onto this nation's row and ignored war state,
+        # so a stale "[open_borders]" showed against a nation the player was at
+        # WAR with. `_build_treaties` (Tab 2) still lists all treaties globally.
         active_treaties = []
-        for pair_key, treaty in getattr(world, 'active_treaties', {}).items():
-            treaty_nations = treaty.get("nations", [])
-            if nation in treaty_nations or (player in treaty_nations and nation in treaty_nations):
-                treaty_type = treaty.get("type", "unknown")
-                if treaty_type not in active_treaties:
-                    active_treaties.append(treaty_type)
+        if diplomatic_state != "WAR":
+            treaty = getattr(world, 'active_treaties', {}).get(diplo_key)
+            if treaty:
+                active_treaties.append(treaty.get("type", "unknown"))
 
         # Vassal eligibility mirrors the shipped `make_vassal` command:
         # treaty path from OPEN_BORDERS+ or conquest path from WAR. The ledger

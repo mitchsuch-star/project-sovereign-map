@@ -215,7 +215,9 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 
 ---
 
-### Phase 6 — Parser & Play-Friction Cleanup *(all live-found bugs)*
+### Phase 6 — Parser & Play-Friction Cleanup *(all live-found bugs)* — ✅ LANDED July 15, 2026
+**Landing:** all ten fixes in, backend-only (**no `.gd` touched** — every display rides an existing passthrough), suite **13,314/3**, ruff clean. A 4-round adversarial verification (~30 agents) caught **8 real defects**, all fixed before landing: PF-2's printed-phrase alias gap (the literal ASK prints "observe {who}"), PF-3's strategic-execution capture-guard block + multi/cross-marshal single-slot clobber (fixed by scoping the capture to auto-secure during strategic execution with a save-and-restore of any prior `pending_capture_choice`), PF-5's weak production tests (added `_ratify_treaty` / `_process_dotation_state` mutation-verified guards) + a GR9 unowned `changed` flag (removed — the notification-rail dedup is the real fix), PF-7's `"gun"` substring colliding with region "Burgundy" (word-boundary regex), PF-8's PURSUE silent re-stall (mirrored the MOVE_TO break-with-reason). A false-positive round-2 "PF-4 charge gap" was **refuted** and reverted — `charge`/`bombard` are deliberately not in `objection_actions`, so they never raise a tactical objection and need no reachability gate (PF-4 stays scoped to `attack`). Final convergence check: CONVERGED, zero residual defects (the only remaining single-slot overwrite, attack-then-attack, is pre-existing and inherent to the one-slot/one-response design). **Notable design decisions:** PF-3 = direct move-capture pops the choice / strategic-march hop auto-secures like the AI; AI-1 = behavior-preserving *relabel* (P4.78→P7.4) not a reorder, to preserve enemy-AI precedence; PF-6 = announce the 2-AP upgrade, do not re-price (V2-58 stands). **▶ NEXT: Sweep 5 (Half B).**
+
 **Session entry:** read §3.5 + the table. Each is a small, independent fix; batch as one session.
 
 | ID | Bug (live symptom) | Location | Fix / test |
@@ -275,8 +277,8 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | EC-U3 Grande Armée surcharge | ✅ **LANDED July 14, 2026** | France absorption 36.9%→55.5% | `9d57597` |
 | **Sweep 3 (Half B)** | ✅ **RAN July 14, 2026** | Economy 5.0→6.0→**6.5** (target MET via EC-U3); 0 regressions | `SWEEP_3_2026_07_14.md` |
 | VS-1 loyalty lever / VS-2 dead code | ✅ **LANDED July 14, 2026** — event gate 3→2, recovery hint teaches invest/garrison/autonomy; war-weariness dead term deleted | Sweep 4 (Half B) pending | this session |
-| PF-1…PF-9 + AI-1 | NOT STARTED | Half B | — |
-| Sweeps 1–5 + exit sweep | NOT STARTED | full | — |
+| PF-1…PF-9 + AI-1 | ✅ **LANDED July 15, 2026** — all 10 live-found fixes; 4-round adversarial verify (8 defects caught + fixed); backend-only, no `.gd` | Sweep 5 (Half B) pending | this session |
+| Sweeps 4–5 + exit sweep | NOT STARTED | full | — |
 
 Update `docs/STATUS.md` Next Steps and CLAUDE.md Current Phase Queue when Phase 0 begins.
 

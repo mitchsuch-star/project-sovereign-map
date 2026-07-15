@@ -529,18 +529,39 @@ def build_delegation_clarification(world, match: DelegationMatch,
     Each option carries a full reissue ``command`` string the popup / typed
     answer re-parses verbatim (Golden Rule 6 — the answer is a plain re-parse,
     never an LLM call)."""
+    # PF-2: the ASK's question text offers the natural-language verbs "give
+    # battle"/"attacked" and "observe"/"observed", but a typed answer was only
+    # matched against option labels ("Attack"/"Scout") and targets — so typing
+    # the very words the question used fell through to a fresh mis-parse
+    # ("Region 'generic' not found"). Each option now declares answer aliases
+    # (consumed generically by interpret_clarification_answer) that cover both
+    # the literal and the neutral phrasings.
     options: List[Dict] = [
         {
             "label": "Attack",
             "value": "delegation_choice",
             "target": match.target,
             "command": f"{match.marshal} attack {match.target}",
+            # Include the target-qualified forms a player naturally types back
+            # ("attack Mack", "engage Mack") so the printed choice resolves.
+            "aliases": ["attack", "attacked", "give battle", "battle",
+                        "engage", "fight", "assault",
+                        f"attack {match.target_display}",
+                        f"engage {match.target_display}"],
         },
         {
             "label": "Scout",
             "value": "delegation_choice",
             "target": match.scout_target,
             "command": f"{match.marshal} scout {match.scout_target}",
+            # PF-2 review fix: the literal ASK prints "observe {who}" (e.g.
+            # "observe Mack"), so the target-qualified forms MUST be aliased or
+            # typing the printed scout choice verbatim still mis-parses —
+            # asymmetric with the attack side's bare "give battle".
+            "aliases": ["scout", "observe", "observed", "watch",
+                        "reconnoiter", "recon", "reconnaissance",
+                        f"observe {match.target_display}",
+                        f"watch {match.target_display}"],
         },
     ]
     response = _clarification_response(

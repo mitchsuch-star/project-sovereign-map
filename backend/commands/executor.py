@@ -402,6 +402,34 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
+    def _attack_target_beyond_range(self, marshal, target, world) -> bool:
+        """PF-4: True when an explicit attack `target` resolves to a location
+        the marshal cannot reach this turn (distance > movement_range).
+
+        Reuses the SAME resolution + distance primitive `_execute_attack` uses
+        (`_fuzzy_match_enemy` / `_fuzzy_match_region` -> `world.get_distance` vs
+        `marshal.movement_range`) — it does NOT re-derive any range math. Used
+        to skip a wasted, trust-costing objection over an order that
+        `_execute_attack` will instead auto-upgrade to a strategic PURSUE (which
+        raises its own, semantically-correct strategic objection), hard-fail as
+        artillery, or reject as unreachable.
+
+        Returns False for a bare/None target (nearest-enemy auto-target is left
+        to `_execute_attack`) and for an unresolvable target (so the unknown-
+        target error still surfaces) — the gate is strictly about reachability.
+        """
+        if not target:
+            return False
+        enemy_by_name, _ = self._fuzzy_match_enemy(target, world, marshal.nation)
+        if enemy_by_name is not None:
+            loc = enemy_by_name.location
+        else:
+            region, _ = self._fuzzy_match_region(target, world)
+            loc = region.name if region is not None else None
+        if not loc:
+            return False
+        return world.get_distance(marshal.location, loc) > marshal.movement_range
+
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
         # Clear transient square-break notification (set by _auto_break_square)
@@ -460,7 +488,15 @@ class CommandExecutor:
         # ============================================================
         # CAPTURE CHOICE CHECK (Phase 6.2.E): Plunder or Secure?
         # ============================================================
-        if world.pending_capture_choice is not None and not is_ai_command:
+        # PF-3 review fix: a per-hop STRATEGIC-EXECUTION move (an automated march
+        # step, not a new player command) must not be blocked here — otherwise a
+        # PF-3 move-capture on one hop sets pending_capture_choice and halts the
+        # marshal's remaining hops AND every later marshal's continuing order the
+        # same turn. Mirrors the is_ai_command exemption; the choice is still set
+        # and surfaces to the player in the turn response's popup passthrough.
+        _strat_exec = bool(parsed_command.get("command", {}).get("_strategic_execution"))
+        if (world.pending_capture_choice is not None and not is_ai_command
+                and not _strat_exec):
             _pending = world.pending_capture_choice
             if _pending.get("stage") == "estate":
                 # W6-8: the estate stage blocks with its own question.
@@ -987,6 +1023,23 @@ class CommandExecutor:
                             world, marshal, _target_marshal.nation)
                         if _refusal is not None:
                             return _refusal
+
+                # ═══════════════════════════════════════════════════════════
+                # PF-4: ATTACK REACHABILITY — Validation BEFORE objection
+                # An out-of-range 'attack <enemy>' is not a tactical fight — it
+                # becomes a strategic PURSUE (its own objection), an artillery
+                # hard-fail, or a 'cannot reach' error, all inside
+                # _execute_attack. Firing the TACTICAL objection here would make
+                # the player pay a trust-costing INSIST on an order that never
+                # engages. Skip it (leave _execute_attack in full control) when
+                # the target is resolvable but out of movement range. Scoped to
+                # 'attack': charge/bombard are deliberately NOT in
+                # objection_actions (they never raise a tactical objection), so
+                # they need no reachability gate here.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'attack' and self._attack_target_beyond_range(
+                        marshal, command.get('target'), world):
+                    should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # RECKLESSNESS STANCE CHECK — Validation BEFORE objection
@@ -1732,6 +1785,9 @@ class CommandExecutor:
         """Execute a specific order (marshal and action both specified)."""
         marshal_name = command.get("marshal")
         action = command.get("action")
+        # PF-3: an automated per-hop strategic march step carries this flag; the
+        # move-capture auto-secures instead of popping a per-hop popup.
+        is_strategic_execution = command.get("_strategic_execution", False)
         target = command.get("target")
 
         world: WorldState = game_state.get("world")
@@ -1772,7 +1828,8 @@ class CommandExecutor:
             return self._movement._execute_move(
                 marshal, target, world, game_state,
                 raw_input=(command.get("_raw_input")
-                           if isinstance(command, dict) else None))
+                           if isinstance(command, dict) else None),
+                strategic_execution=is_strategic_execution)
         elif action == "scout":
             return self._movement._execute_scout(marshal, target, world, game_state)
         elif action == "retreat":

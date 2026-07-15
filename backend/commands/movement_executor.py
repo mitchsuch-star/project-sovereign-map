@@ -107,8 +107,16 @@ class MovementExecutor:
         }
 
     def _execute_move(self, marshal, target, world: WorldState, game_state,
-                      raw_input: str = None) -> Dict:
+                      raw_input: str = None,
+                      strategic_execution: bool = False) -> Dict:
         """Execute a move order.
+
+        strategic_execution: True when this is an automated per-hop step of a
+        standing strategic order (MOVE_TO/PURSUE), not a fresh player command.
+        Used by PF-3 to AUTO-SECURE an uncontested move-capture (like the AI)
+        instead of popping a per-hop plunder/secure choice the player can't
+        answer mid-march — which also avoids clobbering the single-slot
+        pending_capture_choice across multiple captures in one turn.
 
         `raw_input` (the player's literal order, when a direct typed command)
         lets the move NAME its destination when the resolved province is not
@@ -238,6 +246,12 @@ class MovementExecutor:
                     "success": False,
                     "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "
                                f"(diplomatic state: {state}). Open borders or higher required.",
+                    # PF-8: structured flags so a strategic-march stall detects
+                    # the diplomatic block robustly (no string-matching) and can
+                    # reroute or break the order with a reason instead of
+                    # re-stalling silently every turn.
+                    "blocked_diplomatic": dest_controller,
+                    "blocked_state": state,
                 }
 
         distance = world.get_distance(marshal.location, target_name)
@@ -264,7 +278,14 @@ class MovementExecutor:
                     "actions_remaining": int(world.actions_remaining),
                     "action_summary": world.get_action_summary()
                 }
-            path = world.find_weighted_path(marshal.location, target_name)
+            # PF-8: prefer a passable corridor for a player's strategic march
+            # (AI keeps its omniscient routing). Fall back to the terrain-only
+            # path if no passable route exists so the order still forms and the
+            # stall-feedback path can report why.
+            _pf = marshal.nation if marshal.nation == world.player_nation else None
+            path = world.find_weighted_path(marshal.location, target_name, passable_for=_pf)
+            if _pf and not (path and len(path) > 1):
+                path = world.find_weighted_path(marshal.location, target_name)
             if path and len(path) > 1:
                 order = StrategicOrder(
                     command_type="MOVE_TO",
@@ -405,6 +426,47 @@ class MovementExecutor:
             move_message += f". ENEMY FORCES DISCOVERED! {', '.join(enemy_names)} present in {target_name}!"
             move_message += f" {marshal.name} is now engaged — attack or retreat."
 
+        # PF-3: uncontested occupation via MOVE now captures the province. A
+        # marshal walking onto an EMPTY, unfortified, ungarrisoned enemy province
+        # (at war, no fog-hidden defenders) previously seized nothing and gave
+        # ZERO feedback — only the ATTACK path flipped control. Reuse the SINGLE
+        # capture pipeline (no second capture path): _attempt_region_capture
+        # routes player->pending_capture_choice popup and AI->auto-decision, so
+        # this is GR5-symmetric for free. Fortified/garrisoned provinces remain a
+        # genuine ATTACK contest and are intentionally out of scope.
+        dest_region = world.get_region(target_name)
+        captured_on_move = False
+        if (dest_region is not None
+                and dest_region.controller
+                and dest_region.controller != marshal.nation
+                and world.is_at_war(marshal.nation, dest_region.controller)
+                and not discovered_enemies
+                and not dest_region.has_building("fortification")
+                and not (dest_region.garrison_strength >= 5000
+                         or (dest_region.garrison_detachment
+                             and dest_region.garrison_strength > 0))):
+            _old_controller = dest_region.controller
+            # PF-3 review fix: remember any choice ALREADY pending from an
+            # earlier marshal this turn (the single-slot pending_capture_choice
+            # is shared across all marshals in the strategic-processing loop) so
+            # this capture cannot clobber it.
+            _prior_choice = (world.pending_capture_choice
+                             if strategic_execution else None)
+            capture_result = self._executor._combat._attempt_region_capture(
+                marshal, target_name, world, game_state, had_garrison=False)
+            if capture_result and capture_result.get("captured"):
+                captured_on_move = True
+                move_message += (f". {target_name} falls to {marshal.nation}! "
+                                 f"(was {_old_controller})")
+                # During an automated strategic march, AUTO-SECURE this province
+                # (like the AI) instead of queueing a per-hop plunder/secure
+                # popup the player cannot answer mid-turn. Control has already
+                # flipped (capture_region); RESTORE whatever was pending before
+                # this capture (None if nothing) so we secure THIS province
+                # without discarding an earlier marshal's unresolved choice.
+                if strategic_execution:
+                    world.pending_capture_choice = _prior_choice
+
         events = [{
             "type": "move",
             "marshal": marshal.name,
@@ -503,6 +565,12 @@ class MovementExecutor:
             result["discovered_enemies"] = [e.name for e in discovered_enemies]
         if capture_hints:
             result["capture_hints"] = capture_hints
+        # PF-3: surface the plunder/secure popup for a player's move-capture,
+        # mirroring the attack path (the AI branch auto-decided, no popup).
+        if (captured_on_move and marshal.nation == world.player_nation
+                and getattr(world, "pending_capture_choice", None)):
+            result["pending_capture_choice"] = True
+            result["capture_data"] = world.pending_capture_choice
         return result
 
     def _execute_scout(self, marshal, target, world: WorldState, game_state) -> Dict:

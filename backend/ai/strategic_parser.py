@@ -471,6 +471,15 @@ def _clean_target_text(text: str) -> Optional[str]:
         r'^(?:' + '|'.join(re.escape(d) for d in DIRECTION_VECTORS) + r')\s+'
         r'(?:to|toward|towards|into|for|on|onto)\s+',
         '', text, flags=re.IGNORECASE)
+    # PF-1: strip a BARE leading preposition ("march on Tyrol" → "Tyrol",
+    # "at Vienna" → "Vienna"). The directional strip above only fires on a
+    # DIRECTION word FOLLOWED BY a connector; a lone connector ("on"/"at") got
+    # through and left a phantom target ("On Tyrol") that no region matched.
+    # The trailing \s+ requires a following word, so a single-token name that
+    # merely BEGINS with these letters ("Toulon", "Forez") is untouched, and a
+    # cardinal region ("East Prussia") is not in this preposition set.
+    text = re.sub(r'^(?:on|onto|to|at|toward|towards|into|for)\s+', '',
+                  text, flags=re.IGNORECASE)
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)

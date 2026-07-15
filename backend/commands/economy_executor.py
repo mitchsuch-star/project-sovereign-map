@@ -399,6 +399,23 @@ class EconomyExecutor:
         if field_regen_capped:
             base_message += f" (field levy — no depot; capped at {NEW_TROOPS:,})"
 
+        # PF-7: acknowledge a requested troop COUNT. Recruitment is drafted in
+        # fixed per-arm corps (the batch size is deliberate — honoring an
+        # arbitrary number is an escalated balance change, homed in
+        # DESIGN_REFINEMENT), so a requested amount is NOTED rather than
+        # silently dropped. AI recruits pass no raw_command, so this is
+        # player-facing only.
+        import re as _re
+        _raw_recruit = (command.get("raw_command") or "").lower()
+        _amt = _re.search(r'(\d[\d,]*)\s*(k|thousand)?', _raw_recruit)
+        if _amt:
+            _req = int(_amt.group(1).replace(",", ""))
+            if _amt.group(2):
+                _req *= 1000
+            if _req > 0 and _req != NEW_TROOPS:
+                base_message += (f" (recruitment is drafted in fixed corps of "
+                                 f"{NEW_TROOPS:,}, Sire — your {_req:,} is noted)")
+
         # Soft correction: player asked for wrong type
         soft_correction = ""
         if requested_type and requested_type != recruit_type:

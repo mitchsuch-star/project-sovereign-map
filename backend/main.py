@@ -608,6 +608,13 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
         "ACCEPT": "Accepted",
         "PENDING": "Dispatched",
     }.get(outcome, "Rejected")
+    # PF-5: at most one proposal-result notice per counterparty on the rail —
+    # each diplomatic command otherwise appended a fresh "Action Accepted/
+    # Rejected/Dispatched" that re-rendered every turn (the main pile-up source).
+    world.notifications.dismiss_by_type(
+        DIPLOMATIC_PROPOSAL_RESULT,
+        filter_fn=lambda n, t=target_nation: (
+            n.get("details", {}).get("target_nation") == t))
     world.notifications.add(create_notification(
         DIPLOMATIC_PROPOSAL_RESULT,
         NotificationPriority.NORMAL,
