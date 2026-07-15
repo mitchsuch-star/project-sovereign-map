@@ -3,14 +3,17 @@
 > **Status:** Authored July 14, 2026 as the phase that follows Combat Overhaul
 > Phase 5 (Vassals). **VS-R ✅ BUILT July 14, 2026** at the memo's recommended
 > defaults (user-directed: "code the recommendations from the vassal spec commit"),
-> landing record §2.7. **VS-3 is DEFERRED to a following session** — it routes
-> through the F1 Diplomacy Wizard (a diplo-screen slice), held out of the VS-R
-> build by the user's "leave anything that touched the diplo screen for next
-> session" instruction; §1 is spec-complete and buildable.
+> landing record §2.7. **VS-3 ✅ BLESSED TO BUILD July 15, 2026** — the user directed
+> "assure we build diplo stuff": VS-3 (give land to vassals via the F1 Diplomacy
+> Wizard) is now the **committed next vassal-depth build** at §1's recommended
+> defaults (in-band tunable; structural changes still escalate). It is the diplo-screen
+> slice Sweep 4 named as a P1 path from Vassals 6.5 → 7+. §1 is spec-complete and
+> buildable next session.
 >
-> **Owner routing:** CLAUDE.md Current Phase Queue → this spec. VS-3 sits next
-> (its own slice); "The Defection" (coalition-join) remains a separately-gated
-> GR9 follow-on (§2.7 + memo §Q7).
+> **Owner routing:** CLAUDE.md Current Phase Queue → this spec. **VS-3 is the next
+> vassal-depth slice (blessed)**; then the **Vassal Depth** follow-ons — "The Defection"
+> (coalition-join, GR9), the garrison lever wire-or-remove (VP-D1), and enemy-AI
+> grip-awareness (VP-D6) — see STATUS.md "Vassal Depth Queue".
 
 ---
 
