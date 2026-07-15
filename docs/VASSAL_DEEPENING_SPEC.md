@@ -153,7 +153,11 @@ of the Confederation of the Rhine *was* loss-of-grip → loss-of-vassals:
 The single required correction: the flagship outcome is *"the satellite joins the
 enemy coalition and its army joins the enemy order of battle."* VS-R **v1 ships
 grip-accelerated *independent* rebellion** (faithful enough, near-zero cost) and homes
-**coalition-defection ("The Defection") as a separate GR9 follow-on slice**.
+**coalition-defection ("The Defection") as a separate GR9 follow-on slice** — now designed
+as **VS-6 (§7)**: a bribed flip whose outcome is *free → war with the former lord* or *transfer
+to the bribing coalition member* (the "army joins the enemy order of battle" is the transfer/hostile
+outcome). VS-4 (§5) adds the historically-faithful precursor: a disaffected satellite withholds its
+contingent *before* it defects.
 
 ### 2.2 The signal — a derived "imperial grip" (the crux finding)
 
@@ -365,6 +369,132 @@ Full seam-by-seam map + recommended constants in the research memo
 
 ---
 
-*Prepared July 14, 2026. VS-3 spec-complete pending a bless; **VS-R research COMPLETE**
-(memo landed July 14, 2026) — §2 gate-ready with recommended numbers. No code until the
-gate blesses §2.5–2.6.*
+## 5. VS-4 — Loyalty-gated call-to-arms (loyalty has military teeth)
+
+*Added July 15, 2026 (user direction: "at low loyalty they don't send troops to help you in wars").*
+
+**The gap:** today loyalty drives *drift → rebellion* plus a few soft modifiers, but a
+wavering-but-not-yet-rebelling vassal still fights your wars at full strength. Historically a
+disaffected satellite dragged its feet or withheld its contingent long before it defected
+(Bavaria/Saxony, 1813). Loyalty should be **militarily consequential** — a low-loyalty vassal
+will not send troops to the lord's wars.
+
+**Mechanic shape (numbers escalate to the build gate, in-band tunable):**
+- A vassal is already a co-belligerent in the lord's wars (the shared-war path, `vassal.py`;
+  Puppet/Satellite marshals are assimilated, Autonomous stay AI-controlled). VS-4 gates the
+  *contribution* on loyalty, graded through a single-source helper
+  `vassal_military_contribution(world, vassal) -> tier`:
+  - **Loyal (≈ ≥ 60):** full contribution (as today).
+  - **Wavering (≈ 35–60):** reluctant — reduced / last-to-arrive (its marshals won't auto-reinforce
+    the lord's battles, or arrive later); a legible "drags its feet" state.
+  - **Disaffected (< ≈ 35):** **refuses** — withholds its contingent / declines the call-to-arms
+    even while nominally still a vassal. Its own defense is unaffected; it just won't fight *for you*.
+- GR5-symmetric (an enemy lord's disaffected satellite withholds too). Legible: the morning
+  dispatch / muster preview names it ("Bavaria will not march — loyalty 31"); the existing recovery
+  hint already surfaces in that band. This is the natural **soft precursor to VS-6 defection** — first
+  they stop fighting for you, then they flip.
+
+**Landing contract (GR9):** owner §5; slice **VS-4** (single session, independent of VS-3/VS-5);
+completion = a sub-threshold vassal's contingent is withheld from the lord's war and surfaced;
+test `test_vassal_call_to_arms.py` (tiered contribution, withhold at low loyalty, legibility, GR5).
+Verify the co-belligerent / assimilation seam at build (`vassal.py` shared-war path + the
+muster/reinforcement seams).
+
+---
+
+## 6. VS-5 — Vassal creation & transfer in peace deals (settlement vassalage)
+
+*Added July 15, 2026 (user direction: "assure vassals can transfer or be created in peace deals").*
+
+The settlement package **already supports creation** — `vassalage` / `subjugation` clauses
+(`{from: court, to: proposer_leader}`, `settlement_actions.py:1234`, with `evaluate_vassalage_eligibility`)
+— and **liberation** (free a vassal). VS-5 assures both are reachable and adds **transfer**:
+
+1. **Creation reachable in the guided flow (assure):** confirm the vassalage / subjugation /
+   liberation clauses surface on the **guided peace surface + the F1 diplomacy wizard** (not just the
+   debug/typed path), with the existing per-court eligibility.
+2. **Transfer (NEW):** a peace clause that changes a vassal's *lord* —
+   `{type: "vassal_transfer", vassal, from_lord, to_lord}` → `world.vassals[vassal]["lord"] = to_lord`
+   with marshal-assimilation re-key, tribute re-home, and a loyalty reset **toward the new lord** (a
+   transferred vassal is not instantly loyal — ties to VS-4/VS-R). This is the machinery **VS-6's
+   "become someone else's vassal" outcome reuses**, and it lets a victorious coalition re-home a
+   defeated power's satellites at the table.
+
+**Notes:** transfer rides the same control-transfer seam as territory (`settlement_ratify`); the old
+lord forfeits tribute, the new lord inherits it at the vassal's autonomy rate; GR5 AI parity (the AI
+can impose/accept creation & transfer in its own settlements).
+
+**Landing contract (GR9):** owner §6; slice **VS-5** (after/with VS-3's wizard work — shares the diplo
+surface); completion = a peace deal can create a vassal (guided-surface reachable) AND transfer an
+existing vassal's lord, both ratifying cleanly; test `test_settlement_vassalage.py` (create eligibility,
+transfer re-key, tribute/marshal re-home, loyalty reset, AI parity). Verify against
+`settlement_actions.py` clause handling + `settlement_ratify`.
+
+---
+
+## 7. VS-6 — The Defection: coalition-flip as a BRIBE (supersedes the §2.7 stub)
+
+*Added July 15, 2026 (user direction: "vassals flipping is essentially a bribe from the coalition —
+they would want something — and they either become free or someone else's vassal; if free they are
+guaranteed at war with you").*
+
+Refines the deferred "coalition-join" GR9 slice (§2.7). Today a grip-spiral rebellion resolves to
+*graceful independence* (PEACE, no war — F8b). VS-6 makes a coalition-driven flip a **transactional
+defection**: the vassal is *bribed* away, wants *something*, and the outcome is one of two — not a
+quiet neutral break.
+
+**The bribe (the vassal wants something):** a flip is NOT automatic even at rock-bottom grip — a
+coalition (or a specific coalition member) must **offer the wavering vassal a concession it values**:
+a sovereignty guarantee, land, a subsidy, a better autonomy deal, or protection of its frontier (the
+Treaty-of-Ried dynamic VS-R already models on the courting side). The offer is what tips a *courtable*
+vassal (low loyalty + lord in a grip spiral, per VS-R's `attempt_vassal_courting`) from "withholding
+troops" (VS-4) into "changing sides." **No willing/able briber → the vassal stays** (or breaks to plain
+independence via the existing path). This is the "they would want something" gate.
+
+**Two outcomes when the bribe lands:**
+1. **Becomes FREE (independent) — and GUARANTEED AT WAR with the former lord.** Unlike today's
+   graceful-PEACE break, a coalition-*freed* vassal turns **hostile**:
+   `set_diplomatic_state(vassal, old_lord, "WAR", "coalition_defection")` and (typically) joins the
+   coalition's war against the old lord. The coalition "liberated" them; they are now an enemy
+   belligerent. *(This is the deliberate contrast to F8b's neutral break.)*
+2. **Becomes SOMEONE ELSE's vassal** — transfers to the bribing coalition member as their new lord
+   (**reuses VS-5 transfer**): the new lord paid the concession, inherits the tribute, and the vassal
+   starts at low loyalty to *them* (VS-4/VS-R apply immediately — "changed masters, not necessarily
+   happier").
+
+**Which outcome:** driven by what the coalition offered — a member willing to *take responsibility*
+(and pay) gets a vassal (outcome 2); a coalition that only *frees* it (cheaper — e.g. Britain funding
+independence) yields outcome 1 (free + hostile). Branch weights / bribe costs escalate to the gate.
+**GR5-symmetric:** the *player's* coalition can bribe an *enemy's* satellites the same way (a real
+strategic lever, not just a punishment). Enemy-AI must be able to *offer* the bribe and *defend* its own
+satellites — see **VP-D6** (enemy-AI grip-awareness), sequenced alongside.
+
+**Landing contract (GR9):** owner §7; slice **VS-6 (after VS-5 — it reuses transfer)**; completion = a
+bribed defection resolves to EITHER free+war OR transfer-to-a-new-lord, driven by the coalition's offer,
+both legible; test `test_vassal_defection.py` (bribe gating, free→WAR outcome, transfer outcome,
+no-bribe→stays/plain-independence, GR5 enemy-satellite bribe). Supersedes the §2.7 "graceful
+independence is the only coalition path" note for *coalition-driven* flips; plain (non-coalition)
+collapse keeps the independent-rebellion path.
+
+---
+
+## 8. Vassal Depth — build sequence (the sensible phase-out)
+
+The dependency-ordered plan (STATUS "Vassal Depth Queue" mirrors this):
+
+1. **VS-3 — Land Grants via the diplo wizard** ✅ *blessed* — the positive grip lever; opens the diplo-surface work VS-5 shares.
+2. **VS-4 — Loyalty-gated call-to-arms** — independent; makes loyalty militarily consequential and is the soft precursor to defection (withhold troops → then flip).
+3. **VS-5 — Settlement vassalage (create + transfer)** — the create/transfer machinery; **prerequisite for VS-6's "become someone else's vassal" outcome**.
+4. **VS-6 — The Defection (coalition bribe → free+war OR transfer)** — reuses VS-5 transfer; the marquee beat that lifts Vassals past 7.
+5. **VP-D1 garrison wire-or-remove** (P0 cleanup) + **VP-D6 enemy-AI grip-awareness** — the latter also lets the AI *pay* defection bribes and *defend* its satellites (makes VS-4/VS-6 alive on both boards).
+
+Sequencing rationale: VS-4 and VS-5 are independent and each raise the floor (loyalty has teeth; the
+settlement surface is complete); VS-6 depends on VS-5's transfer and on VS-4's "wavering → withholding"
+precursor to feel earned. Runs alongside the Combat Overhaul program's Sweep 5 → exit; interleave vs
+after is the user's call at build time. Numbers throughout escalate to each slice's build gate.
+
+---
+
+*Prepared July 14, 2026; VS-4/VS-5/VS-6 + build sequence added July 15, 2026 (user design direction).
+VS-3 ✅ BLESSED to build (masthead); **VS-R research COMPLETE** (memo landed July 14, 2026) — §2
+gate-ready. Per-slice numbers escalate to each build gate.*
