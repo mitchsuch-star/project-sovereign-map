@@ -1453,8 +1453,11 @@ Autonomy-based drift (replaces flat -2):
   AUTONOMOUS (2):  +1/turn (self-governance stabilizes — loyalty slowly rises)
 
 Passive modifiers (no diplomat required):
-  Garrison in vassal capital:                     +5 (primary maintenance tool)
-  Garrison strength bonus:                        +min(garrison_troops // 5000, 3)
+  Lord's garrison in vassal capital:              +2 flat, presence-based
+    (VP-D1 wired July 16, 2026 — a lord-nation corps standing in the capital,
+     or a lord-CONTROLLED capital holding a real garrison_strength; does NOT
+     scale with size, keeps full value in the VS-R spiral band. Supersedes
+     the old +5..+8 garrison_troops ladder, which was dead code.)
   Gold investment treaty (gold/turn TO vassal):   +1 per 100 gold/turn
   Shared enemy (both at war with same nation):    +2 (common cause)
   Lord winning wars:                              +1 per battle won this turn (max +3)
@@ -1469,12 +1472,12 @@ Active modifier (costs DP, one-shot):
     Does NOT require Talleyrand to be on-mission — he handles it and returns to IDLE
 ```
 
-**PUPPET nerf (M8/E2):** PUPPET autonomy now drifts at -4/turn (doubled from -2). PUPPET extracts 100% income but requires constant garrison + investment to maintain. Without garrison: net -4/turn → rebellion in 15-25 turns from starting loyalty. With garrison (8000+): net +4/turn → stable but expensive. This prevents PUPPET from being the obvious optimal choice — SATELLITE and AUTONOMOUS are competitive alternatives that require less maintenance.
+**PUPPET nerf (M8/E2, numbers updated for VP-D1):** PUPPET autonomy drifts at -4/turn (doubled from -2). PUPPET extracts 100% income but demands constant attention: the flat +2 garrison presence only slows the bleed (net -2/turn), so investment (+10 per 3 turns ≈ +3.3/turn-equivalent) and shared wars must carry the rest. This prevents PUPPET from being the obvious optimal choice — SATELLITE and AUTONOMOUS are competitive alternatives that require less maintenance.
 
-**Multi-vassal example:** Player has 3 vassals (Saxony SATELLITE, Bavaria AUTONOMOUS, Prussia PUPPET).
-- Saxony: garrison (3k) → +5, shared enemy → +2, drift -2 = net +5/turn. Stable, cheap.
+**Multi-vassal example (VP-D1 numbers):** Player has 3 vassals (Saxony SATELLITE, Bavaria AUTONOMOUS, Prussia PUPPET).
+- Saxony: garrisoned corps → +2, shared enemy → +2, drift -2 = net +2/turn. Stable, cheap.
 - Bavaria: AUTONOMOUS drift +1, no garrison needed. Self-maintaining. Costs 50% income.
-- Prussia: PUPPET drift -4, garrison (8k) → +5+1 = net +2/turn. Requires large garrison to maintain.
+- Prussia: PUPPET drift -4, garrisoned corps +2 = net -2/turn. Needs investment on cooldown + shared wars to hold.
 - Talleyrand: FREE for missions. Can court Austria, undermine alliances, propose peace — not stuck babysitting.
 
 ### 8c. Vassal Obligations

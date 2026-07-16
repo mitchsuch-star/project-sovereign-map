@@ -23,8 +23,13 @@ class VassalExecutor:
         if not target:
             return {"success": False, "message": "Specify which vassal to invest in."}
 
+        # Slice 0 (GR5): AI lords invest through this same executor, marked
+        # with _acting_nation; the domain function validates lordship + pays
+        # from the actor's own DP/gold pools.
+        actor = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
+
         from backend.game_logic.vassal import invest_in_vassal
-        result = invest_in_vassal(world, target)
+        result = invest_in_vassal(world, target, actor=actor)
         if result.get("success"):
             result["new_state"] = game_state
         return result
@@ -45,6 +50,19 @@ class VassalExecutor:
             AUTONOMY_PUPPET, AUTONOMY_SATELLITE, AUTONOMY_AUTONOMOUS,
             change_vassal_autonomy
         )
+        # Slice 0 (GR5): AI callers and structured (wizard) payloads pass the
+        # level as a FIELD — honored before any raw-text parse so an AI order
+        # never depends on synthesizing English.
+        actor = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
+        structured_level = command.get("new_level")
+        if structured_level is None:
+            structured_level = command.get("autonomy_level")
+        if isinstance(structured_level, int) and structured_level in (
+                AUTONOMY_PUPPET, AUTONOMY_SATELLITE, AUTONOMY_AUTONOMOUS):
+            result = change_vassal_autonomy(world, target, structured_level, actor=actor)
+            if result.get("success"):
+                result["new_state"] = game_state
+            return result
         # F6 (playtest): the parser populates `raw_command`; the old chain read
         # only `raw_input`/`original_command` (never set), so the level phrase
         # was always empty and every order dead-ended on "Specify autonomy
@@ -83,7 +101,7 @@ class VassalExecutor:
                 "message": "Specify autonomy level: puppet, satellite, or autonomous."
             }
 
-        result = change_vassal_autonomy(world, target, new_level)
+        result = change_vassal_autonomy(world, target, new_level, actor=actor)
         if result.get("success"):
             result["new_state"] = game_state
         return result
@@ -99,7 +117,8 @@ class VassalExecutor:
         if not target:
             return {"success": False, "message": "Specify which nation to vassalize."}
 
-        player = getattr(world, 'player_nation', 'France')
+        # Slice 0 (GR5): the lord is the acting nation, not hardcoded-player.
+        player = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
 
         from backend.game_logic.vassal import (
             create_vassal_treaty, create_vassal_conquest,
@@ -125,8 +144,10 @@ class VassalExecutor:
                     )
             result["new_state"] = game_state
 
-            # R23: Marshal trust reactions for vassal creation
-            self._executor._diplomatic._apply_diplomatic_trust_reactions(world, "vassal_created", target)
+            # R23: Marshal trust reactions for vassal creation — the player's
+            # marshals react to the PLAYER's deed only (Slice 0 guard).
+            if player == getattr(world, 'player_nation', 'France'):
+                self._executor._diplomatic._apply_diplomatic_trust_reactions(world, "vassal_created", target)
 
         return result
 

@@ -163,53 +163,48 @@ class TestM4DynamicNationListCascade:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# m5: GARRISON BONUS DOCSTRING vs CODE
+# m5 → VP-D1 (wired July 16, 2026): presence-based flat +2 garrison lever.
+# The old class here asserted pure arithmetic identities of a pre-Fix-19
+# formula (testing nothing); replaced with the single-source predicate.
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestM5GarrisonBonusFormula:
-    """Verify garrison bonus matches corrected docstring: +2 base + min(troops//5000, 3), cap 4."""
+    """VP-D1: lord_garrison_present drives a flat GARRISON_LOYALTY_BONUS."""
 
-    def test_garrison_bonus_small(self):
-        """Small garrison: 2 + min(1000//5000, 3) = 2 + 0 = 2."""
+    def test_predicate_true_on_lord_marshal_presence(self):
+        from backend.game_logic.vassal import lord_garrison_present
+        from backend.models.marshal import Marshal
         from backend.models.region import NATION_CAPITALS
         world = _make_world()
         world.player_nation = "France"
-        world.enemy_nations = ["Britain", "Prussia", "Austria", "Saxony"]
+        capital = NATION_CAPITALS.get("Saxony")
+        assert capital and capital in world.regions
 
-        vassal_name = "Saxony"
-        capital = NATION_CAPITALS.get(vassal_name)
-        if not capital:
-            return  # Skip if no capital defined
+        m = Marshal("Ney", capital, 15000, "aggressive", nation="France")
+        world.marshals[m.name] = m
+        assert lord_garrison_present(world, "France", capital) is True
 
-        # Set garrison
-        region = world.regions.get(capital)
-        if region:
-            region.garrison_troops = 1000
-            region.controller = "France"
+    def test_predicate_false_for_captured_or_empty_marshal(self):
+        from backend.game_logic.vassal import lord_garrison_present
+        from backend.models.marshal import Marshal
+        from backend.models.region import NATION_CAPITALS
+        world = _make_world()
+        world.player_nation = "France"
+        capital = NATION_CAPITALS.get("Saxony")
+        assert capital and capital in world.regions
 
-        world.vassals = {
-            vassal_name: {
-                "lord": "France",
-                "loyalty": 50,
-                "autonomy": 1,
-                "created_turn": 1,
-            }
-        }
+        m = Marshal("Ney", capital, 15000, "aggressive", nation="France")
+        m.captured_by = "Austria"  # a prisoner garrisons nothing
+        world.marshals[m.name] = m
+        assert lord_garrison_present(world, "France", capital) is False
 
-        # The garrison bonus should be min(4, 2 + min(1000//5000, 3)) = min(4, 2) = 2
-        # We test the formula indirectly via the code
-        bonus = min(4, 2 + min(1000 // 5000, 3))
-        assert bonus == 2
+        m.captured_by = ""
+        m.strength = 0  # a corps of zero men garrisons nothing
+        assert lord_garrison_present(world, "France", capital) is False
 
-    def test_garrison_bonus_large(self):
-        """Large garrison: 2 + min(20000//5000, 3) = 2 + 3 = 5, capped at 4."""
-        bonus = min(4, 2 + min(20000 // 5000, 3))
-        assert bonus == 4, f"Expected 4 (capped), got {bonus}"
-
-    def test_garrison_bonus_medium(self):
-        """Medium garrison: 2 + min(10000//5000, 3) = 2 + 2 = 4."""
-        bonus = min(4, 2 + min(10000 // 5000, 3))
-        assert bonus == 4
+    def test_bonus_is_flat_constant(self):
+        from backend.game_logic.vassal import GARRISON_LOYALTY_BONUS
+        assert GARRISON_LOYALTY_BONUS == 2
 
 
 # ═══════════════════════════════════════════════════════════════════════════

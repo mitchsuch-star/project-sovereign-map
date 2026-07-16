@@ -3579,16 +3579,13 @@ def debug_vassal_loyalty(nation: str):
     autonomy = state.get("autonomy", 1)
     drift = AUTONOMY_DRIFT.get(autonomy, 0)
 
-    # Garrison term (unwired in production — reads `garrison_troops`, which
-    # nothing assigns; 0 in real play, but shown to mirror the pipeline).
+    # Garrison term (VP-D1 wired July 16, 2026): presence-based flat +2 via
+    # the SAME single-source predicate the loyalty pipeline uses (F7 lesson).
+    from backend.game_logic.vassal import GARRISON_LOYALTY_BONUS, lord_garrison_present
     garrison_bonus = 0
     vassal_capital = world.get_nation_capital(nation)
-    if vassal_capital:
-        region = world.regions.get(vassal_capital)
-        if region:
-            garrison_troops = getattr(region, 'garrison_troops', 0) or 0
-            if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
-                garrison_bonus = min(8, 5 + min(garrison_troops // 5000, 3))
+    if vassal_capital and lord_garrison_present(world, lord, vassal_capital):
+        garrison_bonus = GARRISON_LOYALTY_BONUS
 
     shared_enemy_bonus = 0
     all_nations = set(getattr(world, "enemy_nations", []))

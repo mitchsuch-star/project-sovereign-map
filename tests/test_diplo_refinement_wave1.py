@@ -256,36 +256,36 @@ class TestCounterOfferDPCost:
 
 
 # ═══════════════════════════════════════════════════════
-# R135: Garrison Loyalty Cap at +4
+# VP-D1 (wired July 16, 2026): flat +2 presence-based garrison lever
+# (supersedes the R135/Fix-19 +5..+8 ladder, which was dead code)
 # ═══════════════════════════════════════════════════════
 
 class TestGarrisonCap:
-    def test_small_garrison_bonus(self):
-        """5k garrison → +6 garrison bonus (Fix 19: base 5). Total includes relation modifier."""
+    def test_marshal_presence_gives_flat_bonus(self):
+        """A lord-nation corps standing in the vassal capital → flat +2."""
         world = make_world_with_vassal(loyalty=60)
         # Zero out relation to isolate garrison effect
         key = world._make_diplo_key("France", "Saxony")
         world.nation_relations[key] = 0
-        region = world.regions.get("Dresden")
-        if region:
-            region.garrison_troops = 5000
-            region.controller = "France"
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.location = "Dresden"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(8, 5+1)=6) + relation(0//20=0) = +4
-        assert world.vassals["Saxony"]["loyalty"] == 64
+        # drift(-2) + garrison(+2) + relation(0//20=0) = 0
+        assert world.vassals["Saxony"]["loyalty"] == 60
 
-    def test_large_garrison_capped(self):
-        """15k garrison → +8 garrison bonus (Fix 19: cap 8)."""
+    def test_large_garrison_still_flat(self):
+        """Detachment corner: a lord-CONTROLLED capital with a huge garrison
+        still gives the same flat +2 — the bonus does not scale with size."""
         world = make_world_with_vassal(loyalty=60)
         key = world._make_diplo_key("France", "Saxony")
         world.nation_relations[key] = 0
         region = world.regions.get("Dresden")
         if region:
-            region.garrison_troops = 15000
+            region.garrison_strength = 15000
             region.controller = "France"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(8, 5+3)=8) + relation(0) = +6
-        assert world.vassals["Saxony"]["loyalty"] == 66
+        # drift(-2) + garrison(+2, flat) + relation(0) = 0
+        assert world.vassals["Saxony"]["loyalty"] == 60
 
 
 # ═══════════════════════════════════════════════════════

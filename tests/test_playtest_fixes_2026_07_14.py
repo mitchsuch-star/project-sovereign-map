@@ -53,8 +53,9 @@ class TestRecoveryHintCopy:
         hint = recovery_hint_for_grip(80).lower()
         assert "invest" in hint
         assert "autonomy" in hint
-        # F1c: the dead "garrison their capital" lever is gone
-        assert "garrison" not in hint
+        # F1c dropped the then-dead garrison lever; VP-D1 WIRED it
+        # (July 16, 2026) so the healthy copy re-advertises it.
+        assert "garrison" in hint
         # F1: no nonexistent "subsidy" action
         assert "subsid" not in hint
 
@@ -78,18 +79,18 @@ class TestRecoveryHintCopy:
         ev = next((e for e in events if e.get("vassal") == "Saxony"), None)
         assert ev is not None
         assert ev["recovery_hint"] == recovery_hint_for_grip(100)
-        assert "garrison" not in ev["recovery_hint"].lower()
+        # VP-D1 (July 16, 2026): the wired garrison lever is advertised again
+        assert "garrison" in ev["recovery_hint"].lower()
 
-    def test_garrison_not_advertised_and_does_not_fire(self):
-        """F1c: garrison-loyalty is unwired in production (reads a field
-        nothing assigns), so it must never surface as a contributor in a
-        normal satellite's recovery event, and the hint must not name it."""
+    def test_garrison_absent_lever_does_not_fire(self):
+        """VP-D1 (wired): with NO lord presence in the vassal capital the
+        garrison term contributes nothing — it must never appear as a
+        contributor in the drift event's reason line."""
         w = _make_world(authority=100)
         _add_vassal(w, "Saxony", loyalty=80)
         events = process_vassal_loyalty(w)
         for ev in events:
             assert "garrison" not in (ev.get("reason") or "").lower()
-            assert "garrison" not in (ev.get("recovery_hint") or "").lower()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

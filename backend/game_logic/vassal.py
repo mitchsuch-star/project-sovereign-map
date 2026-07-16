@@ -46,6 +46,14 @@ INVEST_GOLD_COST = 200
 INVEST_LOYALTY_GAIN = 10
 INVEST_COOLDOWN = 3
 
+# ═══════ GARRISON LEVER (VP-D1, wired July 16, 2026) ═══════
+# Flat, presence-based. Deliberately NOT the old authored +5..+8 ladder: at a
+# -2 satellite drift that ladder made every other loyalty lever decorative
+# (a standing +8/turn dwarfs invest's +10 one-shot on a 3-turn cooldown).
+# A garrison is a deed priced in upkeep + front-line opportunity cost, so it
+# keeps FULL value in the VS-R spiral band (it is not a cheap one-shot).
+GARRISON_LOYALTY_BONUS = 2
+
 # ═══════ LOYALTY BOUNDS ═══════
 LOYALTY_MIN = 0
 LOYALTY_MAX = 100
@@ -126,9 +134,12 @@ def create_vassal_treaty(
     from backend.game_logic.diplomacy import set_diplomatic_state
     set_diplomatic_state(world, lord, vassal, "VASSAL", "treaty_vassalization")
 
-    # Coalition threat: +5 for treaty vassalization (§2a)
-    from backend.game_logic.coalition import add_threat
-    add_threat(world, 5, "treaty_vassalization")
+    # Coalition threat: +5 for treaty vassalization (§2a). Slice 0: coalition
+    # threat tracks the PLAYER's aggression — an AI lord vassalizing a minor
+    # must not raise the anti-player threat pool (GR5 asymmetry by design).
+    if lord == getattr(world, 'player_nation', 'France'):
+        from backend.game_logic.coalition import add_threat
+        add_threat(world, 5, "treaty_vassalization")
 
     # R48: Reconcile diplomatic conflicts
     _reconcile_vassal_diplomacy(world, lord, vassal)
@@ -207,9 +218,11 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     from backend.game_logic.diplomacy import set_diplomatic_state
     set_diplomatic_state(world, lord, vassal, "VASSAL", "conquest_vassalization")
 
-    # Coalition threat: +25 for conquest vassalization (§2a)
-    from backend.game_logic.coalition import add_threat
-    add_threat(world, 25, "conquest_vassalization")
+    # Coalition threat: +25 for conquest vassalization (§2a). Slice 0: threat
+    # tracks the PLAYER's aggression only — see the treaty-path note.
+    if lord == getattr(world, 'player_nation', 'France'):
+        from backend.game_logic.coalition import add_threat
+        add_threat(world, 25, "conquest_vassalization")
 
     # R48: Reconcile diplomatic conflicts
     _reconcile_vassal_diplomacy(world, lord, vassal)
@@ -261,19 +274,50 @@ def recovery_hint_for_grip(grip: int) -> str:
     satellite's drift, grip-aware. Single source for every recovery surface
     (the per-event dispatch line AND Talleyrand's <35 advisory).
 
-    Names ONLY working levers (playtest F1/F1c): the old copy recommended a
-    dead "garrison their capital" lever, the autonomy lever that VS-R itself
-    blunts in the spiral band, and a nonexistent "large subsidy" action.
-      grip >= 30 (healthy): invest and autonomy-up both pay full loyalty.
+    Names ONLY working levers (playtest F1/F1c): the old copy recommended the
+    autonomy lever that VS-R itself blunts in the spiral band and a nonexistent
+    "large subsidy" action. The garrison lever was dropped by F1c while dead
+    code, and RE-ADVERTISED when VP-D1 wired it (July 16, 2026).
+      grip >= 30 (healthy): invest and autonomy-up both pay full loyalty; a
+        garrison in their capital adds a standing +2.
       grip <  30 (spiral):  coin (invest) and concessions (autonomy-up) are
-        blunted to 40%; only winning a decisive battle (which restores grip)
-        or releasing the vassal actually holds.
+        blunted to 40%; the garrison keeps full value (a deed, not a token)
+        but +2 cannot outrun the spiral alone — only winning a decisive
+        battle (which restores grip) or releasing the vassal actually holds.
     """
     if grip < AUTHORITY_ACCELERATE_BELOW:
         return ("The Emperor's grip is slipping - coin and concessions no "
                 "longer hold them. Win a decisive battle to restore your grip, "
                 "or release them before they break away.")
-    return "Invest in them or grant them autonomy to steady them."
+    return ("Invest in them, grant them autonomy, or garrison their capital "
+            "to steady them.")
+
+
+def lord_garrison_present(world, lord: str, capital_name: str) -> bool:
+    """VP-D1: is the lord physically garrisoning this vassal capital?
+
+    True when a lord-nation marshal with strength stands in the capital
+    (the primary lever — march a corps in and keep it there), OR when the
+    lord controls the region and it holds a real garrison
+    (`garrison_strength` > 0 — the detachment corner, e.g. a carved vassal
+    whose capital the lord retained). The vassal's OWN capital garrison
+    never counts: its controller is the vassal, not the lord.
+
+    Single source for process_vassal_loyalty AND the /debug/vassal_loyalty
+    breakdown (the F7 desync lesson — the two copies must never diverge).
+    """
+    region = world.regions.get(capital_name)
+    if region is None:
+        return False
+    for marshal in world.get_marshals_in_region(capital_name):
+        if (getattr(marshal, 'nation', '') == lord
+                and getattr(marshal, 'strength', 0) > 0
+                and not getattr(marshal, 'captured_by', '')):
+            return True
+    if (getattr(region, 'controller', '') == lord
+            and getattr(region, 'garrison_strength', 0) > 0):
+        return True
+    return False
 
 
 def process_vassal_loyalty(world) -> List[dict]:
@@ -282,10 +326,8 @@ def process_vassal_loyalty(world) -> List[dict]:
 
     Modifiers:
     - Autonomy drift: PUPPET -4, SATELLITE -2, AUTONOMOUS +1
-    - Garrison in vassal capital: +5 base + min(garrison_troops//5000, 3), cap 8
-      (NOTE: unwired in production — reads `garrison_troops`, a field nothing
-      assigns; kept + tested as the intended formula. Wire-or-remove is a
-      DESIGN_REFINEMENT decision; VS-1's hint no longer advertises it — F1c.)
+    - Lord's garrison in the vassal capital: flat +2, presence-based
+      (VP-D1 wired July 16, 2026 — see lord_garrison_present)
     - Gold investment treaty: +1 per 100g/turn from active treaty clause
     - Shared enemy: +2 per shared war (lord and vassal both at WAR with same)
     - Lord winning battles: +1 per battle won this turn (max +3)
@@ -323,22 +365,15 @@ def process_vassal_loyalty(world) -> List[dict]:
                        else "autonomous confidence")
         _contribute(drift_label, drift)
 
-        # 2. Garrison in vassal capital. NOTE (playtest F1c): this reads
-        # `region.garrison_troops`, a field NOTHING in production assigns
-        # (Region has garrison_strength / garrison_detachment), and gates on
-        # `controller == lord` (false for a satellite that owns its own
-        # capital) — so it contributes 0 in real play. Kept + unit-tested as
-        # the intended formula; VS-1's recovery hint no longer advertises it.
-        # Wire-or-remove is a DESIGN_REFINEMENT decision (needs a real way for
-        # the lord to garrison a foreign-controlled vassal capital).
+        # 2. The lord's garrison in the vassal capital (VP-D1 — WIRED July 16,
+        # 2026; replaces the dead `garrison_troops` formula that nothing in
+        # production ever assigned). Presence-based: a lord-nation corps
+        # standing in the capital, or a lord-controlled capital holding a real
+        # garrison. Flat +2 — full value even in the VS-R spiral band (a deed,
+        # not a cheap one-shot; see GARRISON_LOYALTY_BONUS).
         vassal_capital = world.get_nation_capital(vassal_name)
-        if vassal_capital:
-            region = world.regions.get(vassal_capital)
-            if region:
-                garrison_troops = getattr(region, 'garrison_troops', 0) or 0
-                if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
-                    garrison_bonus = min(8, 5 + min(garrison_troops // 5000, 3))
-                    _contribute("the garrison's presence", garrison_bonus)
+        if vassal_capital and lord_garrison_present(world, lord, vassal_capital):
+            _contribute("the garrison's presence", GARRISON_LOYALTY_BONUS)
 
         # 3. Gold investment from treaty clauses
         for pair_key, treaty in getattr(world, 'active_treaties', {}).items():
@@ -679,9 +714,11 @@ def check_vassal_rebellion(world) -> List[dict]:
             if other_state["lord"] == lord:
                 other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
 
-        # Coalition threat reduction from rebellion
-        from backend.game_logic.coalition import reduce_threat
-        reduce_threat(world, 10, "vassal_rebellion")
+        # Coalition threat reduction from rebellion (Slice 0: player-scoped —
+        # threat tracks the player; an AI lord's rebellion is not our relief)
+        if lord == getattr(world, 'player_nation', 'France'):
+            from backend.game_logic.coalition import reduce_threat
+            reduce_threat(world, 10, "vassal_rebellion")
 
         # Relation -50
         world.modify_nation_relation(lord, vassal_name, -50)
@@ -833,14 +870,40 @@ def process_vassal_tribute(world) -> dict:
 # INVESTMENT
 # ═══════════════════════════════════════════════════════
 
-def invest_in_vassal(world, vassal_name: str) -> dict:
+def _charge_dp(world, nation: str, amount: int) -> dict:
+    """Slice-0 (Vassal Depth): charge diplomatic points nation-neutrally.
+
+    The player's DP live on `world.diplomatic_points`; every AI nation's on
+    `world.nation_dp[nation]` (the diplomacy.py break-treaty split). Returns
+    {"ok": bool, "available": int}; deducts only when affordable.
+    """
+    player = getattr(world, 'player_nation', 'France')
+    if nation == player:
+        dp = getattr(world, 'diplomatic_points', 0)
+        if dp < amount:
+            return {"ok": False, "available": int(dp)}
+        world.diplomatic_points = int(dp - amount)
+        return {"ok": True, "available": int(dp)}
+    nation_dp = getattr(world, 'nation_dp', {})
+    dp = nation_dp.get(nation, 0)
+    if dp < amount:
+        return {"ok": False, "available": int(dp)}
+    nation_dp[nation] = int(dp - amount)
+    world.nation_dp = nation_dp
+    return {"ok": True, "available": int(dp)}
+
+
+def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
     """
     Invest in vassal: 1 DP + 200g → +10 loyalty.
 
     Requires:
     - Vassal exists
-    - Player has DP available
-    - Player has 200+ gold
+    - The acting nation IS the vassal's lord (Slice 0: nation-neutral — an
+      AI lord invests through this same function, spending its own
+      nation_dp/nation_gold; GR5)
+    - Lord has DP available
+    - Lord has 200+ gold
     - Not on cooldown (3 turns)
 
     Returns result dict.
@@ -851,9 +914,10 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
     state = world.vassals[vassal_name]
     lord = state["lord"]
 
-    # Validate caller is the lord
-    player = getattr(world, 'player_nation', 'France')
-    if lord != player:
+    # Validate caller is the lord (defaults to the player for the typed path)
+    if actor is None:
+        actor = getattr(world, 'player_nation', 'France')
+    if lord != actor:
         return {"success": False, "message": f"Cannot invest in {vassal_name}: not your vassal."}
 
     # Check cooldown
@@ -865,20 +929,21 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
             "message": f"Investment in {vassal_name} on cooldown ({remaining} turns remaining)."
         }
 
-    # Check DP
-    dp = getattr(world, 'diplomatic_points', 0)
-    if dp < INVEST_DP_COST:
-        return {
-            "success": False,
-            "message": f"Insufficient diplomatic points ({dp}/{INVEST_DP_COST} required)."
-        }
-
-    # Check gold
+    # Check gold BEFORE charging DP (no partial spend on a two-resource cost)
     gold = world.nation_gold.get(lord, 0)
     if gold < INVEST_GOLD_COST:
         return {
             "success": False,
             "message": f"Insufficient gold ({gold}/{INVEST_GOLD_COST} required)."
+        }
+
+    # Charge DP nation-neutrally (player pool vs nation_dp)
+    dp_charge = _charge_dp(world, lord, INVEST_DP_COST)
+    if not dp_charge["ok"]:
+        return {
+            "success": False,
+            "message": (f"Insufficient diplomatic points "
+                        f"({dp_charge['available']}/{INVEST_DP_COST} required)."),
         }
 
     # Apply investment. VS-R "no cheap recovery": in the spiral band (lord grip
@@ -888,7 +953,6 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
     # identical to pre-VS-R.
     mult = get_authority_lever_multiplier(world, lord)
     gain = int(INVEST_LOYALTY_GAIN * mult)
-    world.diplomatic_points = int(dp - INVEST_DP_COST)
     world.nation_gold[lord] = int(gold - INVEST_GOLD_COST)
     old_loyalty = state["loyalty"]
     state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + gain))
@@ -913,12 +977,18 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
 # AUTONOMY CHANGES
 # ═══════════════════════════════════════════════════════
 
-def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
+def change_vassal_autonomy(world, vassal_name: str, new_level: int,
+                           actor: str = None) -> dict:
     """
     Change vassal autonomy level. Costs 1 DP.
 
     Upgrading (more autonomy): +10 loyalty
     Downgrading (less autonomy): -15 loyalty
+
+    Slice 0 (Vassal Depth): nation-neutral. Pre-fix this had NO lord gate and
+    charged `world.diplomatic_points` unconditionally — any AI path calling it
+    would have drained the PLAYER's DP for its own vassal. The actor must now
+    be the vassal's lord and pays from its own pool (GR5).
 
     Returns result dict.
     """
@@ -932,16 +1002,21 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
     lord = state.get("lord", getattr(world, 'player_nation', 'France'))
     old_level = state.get("autonomy", AUTONOMY_SATELLITE)
 
+    # Validate caller is the lord (defaults to the player for the typed path)
+    if actor is None:
+        actor = getattr(world, 'player_nation', 'France')
+    if lord != actor:
+        return {"success": False, "message": f"Cannot change {vassal_name}'s autonomy: not your vassal."}
+
     if old_level == new_level:
         return {"success": False, "message": f"{vassal_name} is already {AUTONOMY_NAMES[new_level]}."}
 
-    # Check DP
-    dp = getattr(world, 'diplomatic_points', 0)
-    if dp < 1:
-        return {"success": False, "message": f"Insufficient diplomatic points ({dp}/1 required)."}
+    # Charge 1 DP nation-neutrally (player pool vs nation_dp)
+    dp_charge = _charge_dp(world, lord, 1)
+    if not dp_charge["ok"]:
+        return {"success": False, "message": f"Insufficient diplomatic points ({dp_charge['available']}/1 required)."}
 
     # Apply change
-    world.diplomatic_points = int(dp - 1)
     state["autonomy"] = int(new_level)
     state["tribute_rate"] = TRIBUTE_RATES[new_level]
 

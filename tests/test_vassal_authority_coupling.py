@@ -389,15 +389,16 @@ class TestGuardrails:
 
     def test_healthy_band_hint_names_working_levers(self):
         """At healthy grip the hint teaches only levers that actually work
-        (playtest F1/F1c: the dead 'garrison their capital' lever and the
-        nonexistent 'subsidy' action were dropped)."""
+        (playtest F1/F1c dropped the then-dead garrison lever + nonexistent
+        'subsidy'; VP-D1 WIRED the garrison July 16, 2026, so it is
+        re-advertised — a consciously flipped pin)."""
         world = _make_world(authority=100)
         _add_vassal(world, loyalty=80)
         e = _vassal_event(process_vassal_loyalty(world))
         hint = e["recovery_hint"].lower()
         assert "invest" in hint
         assert "autonomy" in hint
-        assert "garrison" not in hint   # dead lever removed
+        assert "garrison" in hint       # VP-D1: wired lever re-advertised
         assert "subsid" not in hint     # nonexistent action removed
 
 

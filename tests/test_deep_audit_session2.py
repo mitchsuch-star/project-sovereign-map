@@ -669,64 +669,64 @@ class TestFix18DefectionCascadeSetsZero:
 
 
 # ════════════════════════════════════════════════════════════════
-# FIX 19: Garrison bonus matches spec values
+# VP-D1 (wired July 16, 2026): flat +2 presence-based garrison lever
+# (supersedes the Fix-19 base-5/cap-8 ladder, which read a field
+# nothing in production ever assigned)
 # ════════════════════════════════════════════════════════════════
 
 class TestFix19GarrisonBonusSpec:
-    """Garrison bonus should be base 5, cap 8 per spec."""
+    """VP-D1: garrison lever is presence-based and flat (+2)."""
 
-    def test_garrison_bonus_base_5(self):
-        """Minimal garrison (1 troop) should give base bonus of 5."""
+    def _zero_relation(self, world):
+        key = world._make_diplo_key("France", "Saxony")
+        world.nation_relations[key] = 0
+
+    def test_marshal_presence_gives_bonus(self):
+        """A French corps in the vassal capital → flat +2."""
         world = _make_vassal_world(loyalty=50)
+        self._zero_relation(world)
         from backend.models.region import NATION_CAPITALS
         vassal_capital = NATION_CAPITALS.get("Saxony")
+        assert vassal_capital and vassal_capital in world.regions
 
-        if vassal_capital and vassal_capital in world.regions:
-            region = world.regions[vassal_capital]
-            region.garrison_troops = 100  # Minimal troops
-            region.controller = "France"  # Lord controls capital
+        m = Marshal("Ney", vassal_capital, 20000, "aggressive", nation="France")
+        world.marshals[m.name] = m
+        process_vassal_loyalty(world)
 
-            # Process loyalty to see garrison bonus
-            process_vassal_loyalty(world)
+        # drift(-2) + garrison(+2) = 0 → 50
+        assert world.vassals["Saxony"]["loyalty"] == 50
 
-            # Base garrison bonus = 5 (+ satellite drift -2 = net +3)
-            # So loyalty should be 50 + 5 - 2 = 53
-            loyalty = world.vassals["Saxony"]["loyalty"]
-            # With old code (base 2): 50 + 2 - 2 = 50
-            # With new code (base 5): 50 + 5 - 2 = 53
-            assert loyalty >= 53  # At least base 5 bonus
-
-    def test_garrison_bonus_cap_8(self):
-        """Large garrison (20000+) should cap bonus at 8."""
+    def test_vassal_own_garrison_never_counts(self):
+        """The vassal's OWN capital garrison (controller == vassal) gives 0 —
+        the naive field swap would have credited it to the lord."""
         world = _make_vassal_world(loyalty=50)
+        self._zero_relation(world)
         from backend.models.region import NATION_CAPITALS
         vassal_capital = NATION_CAPITALS.get("Saxony")
+        assert vassal_capital and vassal_capital in world.regions
 
-        if vassal_capital and vassal_capital in world.regions:
-            region = world.regions[vassal_capital]
-            region.garrison_troops = 20000  # Large garrison
-            region.controller = "France"
+        region = world.regions[vassal_capital]
+        region.controller = "Saxony"
+        region.garrison_strength = 20000  # Saxony's own garrison
 
-            process_vassal_loyalty(world)
+        process_vassal_loyalty(world)
 
-            # Cap = 8. 5 + min(20000//5000, 3) = 5+3 = 8 = min(8,8) = 8
-            # Loyalty = 50 + 8 - 2 (drift) = 56
-            loyalty = world.vassals["Saxony"]["loyalty"]
-            assert loyalty >= 56  # Drift -2 + garrison 8 = net +6
+        # drift(-2) only → 48
+        assert world.vassals["Saxony"]["loyalty"] == 48
 
-    def test_garrison_bonus_scaling(self):
-        """5000 garrison: bonus = min(8, 5 + min(5000//5000, 3)) = min(8, 6) = 6."""
+    def test_garrison_bonus_flat_not_scaled(self):
+        """Lord-controlled capital with a big garrison detachment: still +2."""
         world = _make_vassal_world(loyalty=50)
+        self._zero_relation(world)
         from backend.models.region import NATION_CAPITALS
         vassal_capital = NATION_CAPITALS.get("Saxony")
+        assert vassal_capital and vassal_capital in world.regions
 
-        if vassal_capital and vassal_capital in world.regions:
-            region = world.regions[vassal_capital]
-            region.garrison_troops = 5000
-            region.controller = "France"
+        region = world.regions[vassal_capital]
+        region.controller = "France"
+        region.garrison_strength = 20000
 
-            process_vassal_loyalty(world)
+        process_vassal_loyalty(world)
 
-            # 5 + min(1, 3) = 6. Net with drift: +4. Loyalty = 54
-            loyalty = world.vassals["Saxony"]["loyalty"]
-            assert loyalty >= 54
+        # drift(-2) + garrison(+2, flat) = 0 → 50
+        assert world.vassals["Saxony"]["loyalty"] == 50

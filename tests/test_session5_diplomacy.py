@@ -151,16 +151,26 @@ class TestLoyaltyTicks:
         assert world.vassals["Saxony"]["loyalty"] == 61  # 60 + 1
 
     def test_garrison_bonus(self):
-        """Fix 19: Garrison base 5, cap 8. min(8, 5 + min(troops//5000, 3))."""
+        """VP-D1 (wired): a lord-nation corps in the vassal capital → flat +2."""
         world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
-        # Set garrison in Dresden (Saxony capital)
+        # Station a French marshal in Dresden (Saxony's capital)
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.location = "Dresden"
+        process_vassal_loyalty(world)
+        # drift(-2) + garrison(+2) = 0
+        assert world.vassals["Saxony"]["loyalty"] == 60
+
+    def test_garrison_bonus_absent_without_presence(self):
+        """VP-D1: no lord presence in the capital → no garrison term (the
+        vassal's OWN capital garrison never counts — controller is the vassal)."""
+        world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
         region = world.regions.get("Dresden")
         if region:
-            region.garrison_troops = 10000
-            region.controller = "France"
+            region.controller = "Saxony"
+            region.garrison_strength = 10000  # Saxony's own garrison
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(8, 5+2)=7) = -2 + 7 = +5
-        assert world.vassals["Saxony"]["loyalty"] == 65
+        # drift(-2) only
+        assert world.vassals["Saxony"]["loyalty"] == 58
 
     def test_shared_enemy_bonus(self):
         """Shared enemy: +2 per shared war."""

@@ -81,8 +81,9 @@ class TestVS1RecoveryHint:
         assert hint
         assert "invest" in hint.lower()
         assert "autonomy" in hint.lower()
-        # F1c: the dead 'garrison their capital' lever is gone
-        assert "garrison" not in hint.lower()
+        # F1c dropped the then-dead garrison lever; VP-D1 wired it
+        # (July 16, 2026) so it is advertised again — pin flipped consciously.
+        assert "garrison" in hint.lower()
         # Folded into the surfaced dispatch message too.
         assert hint in e["message"]
 
