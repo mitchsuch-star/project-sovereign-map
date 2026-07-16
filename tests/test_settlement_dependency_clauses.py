@@ -1173,7 +1173,12 @@ class TestAppliedClausesPreviewFields:
         assert isinstance(clause["loyalty_after"], int)
         assert isinstance(clause["tribute_rate_after"], float)
         assert clause["vassal_path"] == "conquest"
-        assert clause["threat_delta_for_lord"] == 25
+        # Vassal Depth Slice 0 (July 16, 2026) made coalition threat
+        # player-scoped: Britain (an AI lord) pays NO threat for subjugating
+        # France, and the preview must not claim otherwise — pin flipped
+        # consciously (post-build review C9). A PLAYER-lord subjugation
+        # still previews 25/5.
+        assert clause["threat_delta_for_lord"] == 0
         assert "marshal_assimilation_count" in clause
 
 

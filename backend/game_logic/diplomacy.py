@@ -8407,11 +8407,15 @@ def _process_war_cascade(
                             int(world.current_turn),
                         ))
                     from backend.game_logic.dispatch import queue_dispatch_event
+                    # Post-build review C3: the player_vassal fog rule checks
+                    # vassals.get(template_vars["nation"]) — it must carry the
+                    # VASSAL (like every other player_vassal emitter), not the
+                    # lord, or the player-lord arm is unconditionally invisible.
                     queue_dispatch_event(
                         world, "diplomatic_vassal_refuses_call",
                         {"vassal": vassal_nation, "lord": lord,
                          "enemy": enemy_of_lord, "loyalty": loyalty_now,
-                         "nation": lord},
+                         "nation": vassal_nation},
                         "player_vassal" if lord == getattr(world, 'player_nation', 'France') else "always",
                     )
                     continue

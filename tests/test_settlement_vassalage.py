@@ -221,6 +221,25 @@ class TestTransferEligibility:
         assert not result["eligible"]
         assert result["refusal_code"] == "dependency_direction_invalid"
 
+    def test_liberation_and_transfer_of_same_vassal_conflict(self):
+        """Post-build review C5: the generic conflict matrix cannot see the
+        collision (different subject keys) — the bespoke check rejects a
+        package that both frees and claims one vassal."""
+        world, war = self._setup()
+        with patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_OK):
+            result = validate_settlement_terms(
+                [
+                    {"type": "liberation", "vassal_nation": "Saxony",
+                     "lord_nation": "Austria", "liberator": "France"},
+                    {"type": "vassal_transfer", "from": "Austria",
+                     "to": "France", "vassal": "Saxony"},
+                ],
+                world=world, war_instance=war,
+            )
+        assert not result["valid"]
+        assert result["error"] == "dependency_same_vassal_conflict"
+
     def test_validator_routes_transfer_clause(self):
         world, war = self._setup()
         clause = {"type": "vassal_transfer", "from": "Austria",
@@ -356,6 +375,24 @@ class TestRatifyApply:
         )
         assert world.get_diplomatic_state("France", "Saxony") == "VASSAL"
         assert not world.is_at_war("France", "Saxony")
+
+    def test_stale_liberation_lord_mismatch_skipped(self):
+        """Post-build review C5: a liberation clause whose lord_nation no
+        longer matches the LIVE lord (e.g. a same-package transfer re-homed
+        the vassal first) must not release someone else's vassal."""
+        world = make_world()
+        add_vassal(world, vassal="Saxony", lord="France")  # live lord: France
+        install_war(world)
+        applied = _apply_settlement_terms(
+            world,
+            settlement_terms=[
+                {"type": "liberation", "vassal_nation": "Saxony",
+                 "lord_nation": "Austria", "liberator": "Prussia"},
+            ],
+            war_id="war_vs5",
+        )
+        assert not [c for c in applied if c.get("type") == "liberation"]
+        assert "Saxony" in world.vassals  # NOT released
 
     def test_stale_transfer_skipped(self):
         """A clause naming the wrong lord applies nothing."""

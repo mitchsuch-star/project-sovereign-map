@@ -389,6 +389,26 @@ class TestSurfaces:
         )
         assert result["success"], result["message"]
 
+    def test_executor_scan_never_matches_the_recipient_name(self):
+        """Post-build review C6: a vassal named after a region (Saxony —
+        the Hanover/Naples analog) must not have its own name scanned as
+        the province; the wizard's no-pick echo 'cede territory to saxony'
+        must fall through to the eligible list, not 'You do not control
+        Saxony'."""
+        world = make_world()
+        add_vassal(world)
+        world.diplomatic_points = 3
+        conquer(world, "Bohemia", by="France")
+        executor, game_state = self._executor(world)
+        result = executor._vassal._execute_grant_region_to_vassal(
+            {"action": "grant_region_to_vassal", "target": "Saxony",
+             "raw_command": "cede territory to saxony"},
+            game_state,
+        )
+        assert not result["success"]
+        assert "Eligible" in result["message"]  # the list, not a mis-scan
+        assert "do not control" not in result["message"]
+
     def test_executor_lists_eligibles_when_no_region(self):
         world = make_world()
         add_vassal(world)

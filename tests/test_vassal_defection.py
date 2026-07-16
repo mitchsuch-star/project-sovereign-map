@@ -299,3 +299,78 @@ class TestSymmetryAndLegibility:
             attempt_vassal_bribe(world, "Austria")
             second = attempt_vassal_bribe(world, "Austria")
         assert second == []  # defect|Austria|Saxony cooldown holds
+
+    def test_transfer_from_player_relieves_threat(self):
+        """Post-build review C8: losing a satellite to a transfer relieves
+        the anti-player threat like every other loss path."""
+        world = make_world()
+        add_vassal(world, loyalty=20)
+        set_at_war(world, "Austria", "France")
+        world.nation_gold["Austria"] = 5000
+        world.threat_level = 50
+        with patch("backend.game_logic.vassal.random.random", return_value=0.0), \
+             patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_OK):
+            events = attempt_vassal_bribe(world, "Austria")
+        assert events[0]["outcome"] == "transfer"
+        assert world.threat_level == 40
+
+
+# ═══════════════════════════════════════════════════════
+# 5. Real war-instance integration (post-build review C1 + C2 —
+#    both HIGH, reproduced live: a CASCADED-IN satellite of a wartime
+#    lord is exactly the scenario the slice was built for, and the
+#    diplomatic_states-only fixtures above never build an instance)
+# ═══════════════════════════════════════════════════════
+
+class TestBribeWithRealWarInstance:
+    def _cascaded_world(self):
+        """Austria declares a REAL war on France; loyal Saxony cascade-joins
+        France's side (an active defender participant of war_1); loyalty
+        then collapses mid-war."""
+        from backend.game_logic.diplomacy import declare_war
+        world = make_world()
+        add_vassal(world, loyalty=60)
+        world.nation_gold["Austria"] = 5000
+        result = declare_war(world, "Austria", "France")
+        assert result.get("success"), result
+        assert world.is_at_war("Saxony", "Austria")  # cascaded in
+        world.vassals["Saxony"]["loyalty"] = 10
+        return world
+
+    def _pair_in_any_active_instance(self, world, a, b):
+        key = world._make_diplo_key(a, b)
+        for inst in (getattr(world, "war_instances", {}) or {}).values():
+            if key in (inst.get("active_diplo_keys") or []):
+                return True
+        return False
+
+    def test_c1_transfer_settles_the_briber_vassal_war_pair(self):
+        """C1: the transfer must exit the Austria|Saxony pair from the war
+        instance (PEACE + cleanup) BEFORE re-homing — never force-flip
+        WAR→VASSAL leaving the pair stranded active forever."""
+        world = self._cascaded_world()
+        with patch("backend.game_logic.vassal.random.random", return_value=0.0), \
+             patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_OK):
+            events = attempt_vassal_bribe(world, "Austria")
+        assert events and events[0]["outcome"] == "transfer"
+        assert world.vassals["Saxony"]["lord"] == "Austria"
+        assert world.get_diplomatic_state("Austria", "Saxony") == "VASSAL"
+        assert not self._pair_in_any_active_instance(world, "Austria", "Saxony")
+
+    def test_c2_free_outcome_is_hostile_not_peace_fallback(self):
+        """C2: the cascaded-in satellite must exit its old (lord's-side)
+        wars first so the guaranteed-WAR outcome actually fires — the
+        pre-fix code hit the war-instance side conflict and silently fell
+        back to PEACE (still at war with its paid liberator)."""
+        world = self._cascaded_world()
+        with patch("backend.game_logic.vassal.random.random", return_value=0.0), \
+             patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_BLOCKED):
+            events = attempt_vassal_bribe(world, "Austria")
+        assert events and events[0]["outcome"] == "free_hostile"
+        assert "Saxony" not in world.vassals
+        assert world.is_at_war("Saxony", "France")       # the guarantee
+        assert not world.is_at_war("Saxony", "Austria")  # liberator peace
+        assert not self._pair_in_any_active_instance(world, "Austria", "Saxony")

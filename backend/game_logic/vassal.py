@@ -1820,6 +1820,23 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     del world.vassals[vassal_name]
     world.invalidate_active_nations_cache()
 
+    # Post-build review C7: clear any queued rebellion-imminent UI for the
+    # departing vassal (mirrors transfer_vassal/release_vassal — a loyalty-8
+    # vassal can queue the popup in the same end_turn's advance_turn, then
+    # the AI-phase bribe deletes the row → stale modal).
+    if getattr(world, 'vassal_rebellion_imminent_popup', None):
+        if world.vassal_rebellion_imminent_popup.get("nation", "") == vassal_name:
+            world.vassal_rebellion_imminent_popup = None
+    if hasattr(world, 'vassal_rebellion_imminent_popups'):
+        world.vassal_rebellion_imminent_popups = [
+            p for p in world.vassal_rebellion_imminent_popups
+            if p.get("nation") != vassal_name
+        ]
+    world.dialogue_manager.remove_matching(
+        lambda d: (d.get("type") == "vassal_rebellion_imminent"
+                   and d.get("context", {}).get("vassal_name") == vassal_name)
+    )
+
     diplo_key = world._make_diplo_key(lord, vassal_name)
     current_state = world.diplomatic_states.get(diplo_key, "PEACE")
     outcome = "free_hostile"
@@ -1829,12 +1846,37 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     else:
         from backend.game_logic.diplomacy import (
             _process_war_cascade,
+            cleanup_war_end,
             set_diplomatic_state,
         )
         from backend.game_logic.settlement_helpers import (
             CascadeContext,
             ensure_war_instance_for_pair,
         )
+        # Post-build review C2 (HIGH, reproduced live): a cascaded-in
+        # satellite is an active SAME-SIDE participant of its lord's war
+        # instance(s) — ensure_war_instance_for_pair(vassal, lord) would
+        # hard-fail on the side conflict and silently take the PEACE
+        # fallback, inverting the guaranteed-WAR contract AND leaving the
+        # "freed" nation still at war with its paid liberator. Exit the
+        # vassal from its old wars FIRST: peace out every WAR pair it holds
+        # (they were all fought FOR the lord) so resolve_pair_to_resolved
+        # retires it from the shared instances; the freed nation then opens
+        # its own war against the former lord cleanly — the historically
+        # faithful side-switch.
+        for other in list(world.get_active_nations()):
+            if other in (vassal_name, lord):
+                continue
+            if world.get_diplomatic_state(vassal_name, other) == "WAR":
+                set_diplomatic_state(
+                    world, vassal_name, other, "PEACE",
+                    "coalition_defection_realignment",
+                )
+                cleanup_war_end(
+                    world,
+                    world._make_diplo_key(vassal_name, other),
+                    conclude_objectives=True,
+                )
         war_instance_result = ensure_war_instance_for_pair(
             world, vassal_name, lord,
             entry_path="coalition_defection",
@@ -1860,8 +1902,10 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
             if reclaimed:
                 world.invalidate_active_nations_cache()
         else:
-            # F8b fallback: war-instance conflict → plain independence
-            from backend.game_logic.diplomacy import set_diplomatic_state
+            # F8b fallback: war-instance conflict → plain independence.
+            # PINNED: the graceful fallback keeps the VS-3 granted land
+            # (consistent with the rebellion path's armistice/graceful arms
+            # — reclaiming during a peaceful break would itself be hostile).
             set_diplomatic_state(world, vassal_name, lord, "PEACE",
                                  "coalition_defection_independent")
             outcome = "free_peace_fallback"
@@ -1991,8 +2035,35 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
         if can_transfer:
             world.nation_gold[nation] = int(
                 world.nation_gold.get(nation, 0) - BRIBE_TRANSFER_COST)
+            # Post-build review C1 (HIGH, reproduced live): the briber and
+            # the vassal are usually at WAR (the vassal cascade-joined its
+            # lord's war), and transfer_vassal requires that pair settled
+            # FIRST — force-flipping WAR→VASSAL would strand the pair in the
+            # war instance forever (all_pairs_resolved unreachable, prisoners
+            # never released). Mirror the settlement_ratify arm: PEACE +
+            # cleanup_war_end so resolve_pair_to_resolved exits the pair and
+            # the vassal participant cleanly.
+            if world.get_diplomatic_state(nation, vassal_name) in ("WAR", "ARMISTICE"):
+                from backend.game_logic.diplomacy import (
+                    cleanup_war_end,
+                    set_diplomatic_state,
+                )
+                set_diplomatic_state(world, nation, vassal_name, "PEACE",
+                                     "coalition_defection")
+                cleanup_war_end(
+                    world,
+                    world._make_diplo_key(nation, vassal_name),
+                    conclude_objectives=True,
+                )
             transfer_result = transfer_vassal(
                 world, vassal_name, nation, reason="coalition_defection")
+            # Post-build review C8: losing a satellite relieves the anti-
+            # player threat on every other loss path (rebellion −10, release
+            # −8, defection-free −10) — the transfer outcome is the same
+            # player loss and gets the same relief.
+            if lord == getattr(world, 'player_nation', 'France'):
+                from backend.game_logic.coalition import reduce_threat
+                reduce_threat(world, 10, "vassal_defection")
             outcome = "transfer"
             message = (
                 f"THE DEFECTION: {vassal_name} changes masters — bribed away "

@@ -452,6 +452,13 @@ def _apply_settlement_terms(
             lib_from = str(term.get("lord_nation") or term.get("to") or "")
             lib_liberator = str(term.get("liberator") or "")
             vassals = getattr(world, "vassals", {}) or {}
+            # VS-5 post-build review C5: the apply guard also requires the
+            # LIVE lord to match the clause's lord_nation — a stale clause
+            # (or one applied after a same-package transfer re-homed the
+            # vassal) must not release someone ELSE's vassal.
+            if (lib_vassal and lib_vassal in vassals and lib_from
+                    and str(vassals[lib_vassal].get("lord") or "") != lib_from):
+                continue
             if lib_vassal and lib_vassal in vassals:
                 pre_release_vassal_regions = list(world.get_nation_regions(lib_vassal))
                 from backend.game_logic.vassal import release_vassal
@@ -652,9 +659,16 @@ def _resolve_pair_state_transitions(
                     )
                     clause["vassal_path"] = str(vassal_record.get("path") or "")
                     clause["marshal_assimilation_count"] = len(assimilated_marshals)
-                    clause["threat_delta_for_lord"] = (
-                        25 if term.get("type") == "subjugation" else 5
-                    )
+                    # Post-build review C9: coalition threat is player-scoped
+                    # since Vassal Depth Slice 0 (create_vassal_* only add
+                    # threat when the lord IS the player) — the preview must
+                    # not claim +5/+25 for an AI-ally lord that paid none.
+                    if vassal_lord == getattr(world, "player_nation", None):
+                        clause["threat_delta_for_lord"] = (
+                            25 if term.get("type") == "subjugation" else 5
+                        )
+                    else:
+                        clause["threat_delta_for_lord"] = 0
                     state_clauses_applied.append(clause)
                     cleanup_war_end(world, pair_key, conclude_objectives=True)
                 else:

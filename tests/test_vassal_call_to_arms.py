@@ -197,6 +197,20 @@ class TestMarshalGates:
         assert combat._is_reinforcement_eligible(
             candidate, primary, "Saxony", "France", world) is True
 
+    def test_pursue_into_battle_region_also_overrides(self):
+        """Post-build review C4: a PURSUE whose quarry stands in the battle
+        region is also 'the written word' (byte-mirrors the Grouchy-rule
+        predicate the muster preview uses — shown must equal applied)."""
+        world = make_world()
+        primary, candidate = self._battlefield(world, loyalty=45)
+        quarry = Marshal("Quarry", "Saxony", 5000, "cautious", nation="Prussia")
+        world.marshals[quarry.name] = quarry
+        candidate.strategic_order = SimpleNamespace(
+            command_type="PURSUE", target="Quarry")
+        combat = self._executor()._combat
+        assert combat._is_reinforcement_eligible(
+            candidate, primary, "Saxony", "France", world) is True
+
     def test_gate_released_when_vassalage_ends(self):
         """original_nation of a FORMER vassal (row gone) does not gate."""
         world = make_world()
@@ -278,3 +292,18 @@ class TestLegibility:
         _process_war_cascade(world, "France", "Prussia")
         titles = [n.get("title", "") for n in world.notifications.get_pending()]
         assert any("Refuses the Call" in t for t in titles)
+
+    def test_refusal_dispatch_event_visible_under_player_vassal_rule(self):
+        """Post-build review C3: the player_vassal fog rule checks
+        vassals.get(template_vars["nation"]) — the event must carry the
+        VASSAL there (carrying the lord made the player-lord arm
+        unconditionally invisible in the Morning Dispatch)."""
+        world = make_world()
+        add_vassal(world, loyalty=30)
+        _process_war_cascade(world, "France", "Prussia")
+        events = [e for e in world.pending_dispatch_events
+                  if e.get("type") == "diplomatic_vassal_refuses_call"]
+        assert events
+        assert events[0]["template_vars"]["nation"] == "Saxony"
+        from backend.game_logic.dispatch import _is_dispatch_event_visible
+        assert _is_dispatch_event_visible(events[0], world, "France") is True

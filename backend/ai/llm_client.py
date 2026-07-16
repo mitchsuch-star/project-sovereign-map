@@ -1145,10 +1145,15 @@ class LLMClient:
         # gated on a KNOWN NATION after "to" so it can never shadow
         # grant_dotation ("grant Ney the duchy of Swabia" has no "to <nation>")
         # or change_autonomy ("grant Holland autonomy" carries "autonomy").
+        # Post-build review C10: abstract-object idioms are excluded —
+        # "grant independence to Holland" is a release phrasing, not a cede.
         elif (re.search(r'\bcede\b', command_lower)
               or (re.search(r'\bgrant\b', command_lower)
                   and "autonomy" not in command_lower
                   and not _mentions_pension(command_lower)
+                  and not any(kw in command_lower for kw in (
+                      "independence", "freedom", "passage", "access",
+                      "amnesty", "clemency", "pardon"))
                   and any(f" to {n}" in command_lower
                           for n in known_nations_lower))):
             action = "grant_region_to_vassal"

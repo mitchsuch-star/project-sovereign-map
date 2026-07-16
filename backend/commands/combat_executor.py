@@ -395,13 +395,24 @@ class CombatExecutor:
             if origin in vassals and vassals[origin].get("lord") == nation:
                 from backend.game_logic.vassal import vassal_military_contribution
                 if vassal_military_contribution(world, origin) != "loyal":
+                    # Post-build review C4: "the written word" is EITHER an
+                    # explicit SUPPORT for the primary OR a PURSUE whose
+                    # quarry stands in the battle region — byte-mirroring
+                    # the Grouchy-rule predicate the muster preview uses,
+                    # so shown always equals applied (refusal is about the
+                    # call-to-arms, never command defiance).
                     order = getattr(marshal, 'strategic_order', None)
-                    has_support_for_primary = (
-                        order is not None
-                        and order.command_type == "SUPPORT"
-                        and order.target == primary.name
-                    )
-                    if not has_support_for_primary:
+                    has_written_word = False
+                    if order is not None:
+                        if (order.command_type == "SUPPORT"
+                                and order.target == primary.name):
+                            has_written_word = True
+                        elif order.command_type == "PURSUE":
+                            pursue_target = world.marshals.get(order.target)
+                            if (pursue_target is not None
+                                    and pursue_target.location == battle_region):
+                                has_written_word = True
+                    if not has_written_word:
                         return False
         # Rule 2: Adjacent region (not same region, not distant)
         if marshal.location not in region.adjacent_regions:

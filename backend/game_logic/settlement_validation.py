@@ -1197,6 +1197,29 @@ def validate_settlement_terms(
         if conflict is not None:
             return conflict
 
+    # VS-5 post-build review C5: `liberation` and `vassal_transfer` carry
+    # different subject keys (`vassal_nation` vs `vassal`), so the generic
+    # CLAUSE_CONFLICT_MATRIX (same-key comparison) cannot see them collide.
+    # A package freeing AND claiming the same vassal is order-dependently
+    # nonsensical at ratify — reject it at validation (schema-level, no
+    # world needed).
+    liberated_vassals = {
+        str(c.get("vassal_nation") or "")
+        for c in terms
+        if c.get("type") == "liberation" and c.get("vassal_nation")
+    }
+    for idx, clause in enumerate(terms):
+        if (clause.get("type") == "vassal_transfer"
+                and str(clause.get("vassal") or "") in liberated_vassals):
+            return {
+                "valid": False,
+                "error": "dependency_same_vassal_conflict",
+                "error_index": idx,
+                "disabled_reason_display": _error_display(
+                    "dependency_same_vassal_conflict"
+                ),
+            }
+
     # SC-31 / G2-Slice-8: dependency-clause eligibility uses world state.
     # When called without a `world`+`war_instance` context (legacy callers
     # / pure schema validation), the dependency-state checks are skipped.

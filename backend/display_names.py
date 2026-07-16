@@ -700,6 +700,12 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
         "That nation is not currently a vassal of the court you would "
         "take it from."
     ),
+    # VS-5 post-build review C5: one package cannot both free a vassal and
+    # claim it.
+    "dependency_same_vassal_conflict": (
+        "These terms both liberate and claim the same vassal - strike one "
+        "of the two."
+    ),
     "dependency_power_cap_blocked": (
         "The lord lacks the national power to legally vassalize a "
         "target this large."

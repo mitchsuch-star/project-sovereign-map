@@ -178,11 +178,20 @@ class VassalExecutor:
                 or command.get("raw_command")
                 or ""
             ).lower()
-            # Longest known-region name mentioned in the order ("United
-            # Provinces" must beat a hypothetical "Provinces").
+            # Post-build review C6: the RECIPIENT's name must never be
+            # scanned as the province ("cede tyrol to hanover" — Hanover is
+            # both a nation and a region; the wizard's no-pick echo "cede
+            # territory to naples" likewise). Cut the trailing "to <target>"
+            # clause, then take the longest word-boundary region match
+            # ("United Provinces" must beat a hypothetical "Provinces").
+            import re as _re
+            scan_text = _re.sub(
+                rf'\bto\s+{_re.escape(target.lower())}\b.*$', ' ', raw_text)
+            scan_text = scan_text.replace(target.lower(), ' ')
             best = ""
             for region_name in world.regions:
-                if region_name.lower() in raw_text and len(region_name) > len(best):
+                pattern = rf'(?<![a-z]){_re.escape(region_name.lower())}(?![a-z])'
+                if _re.search(pattern, scan_text) and len(region_name) > len(best):
                     best = region_name
             region = best
 
