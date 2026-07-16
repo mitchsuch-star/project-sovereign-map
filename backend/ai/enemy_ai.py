@@ -4732,6 +4732,12 @@ class EnemyAI:
                     "type": "specific"
                 }
             }
+            # VP-D6: the vassal shore-up arms carry structured fields the
+            # shared executor reads (the VS-3 grant's region pick, the
+            # autonomy arm's explicit level) — never re-derived from text.
+            for extra_key in ("region", "new_level"):
+                if extra_key in action:
+                    command["command"][extra_key] = action[extra_key]
 
             debug_print(f"  [AI ADMIN] Attempting: {action['action']} "
                         f"(marshal={action.get('marshal')}, target={action.get('target')})")
@@ -4838,6 +4844,23 @@ class EnemyAI:
                                               skip_actions)
             if grant:
                 return grant
+
+        # Priority 1.6: VASSAL SHORE-UP (VP-D6, July 16, 2026 — GR5). A
+        # spiralling AI lord steadies its own satellites before they are
+        # courted or bribed away (VS-6): invest → cede a province (VS-3's
+        # helper) → grant autonomy, in escalating desperation. Same
+        # executor, same DP/gold prices as the player (Slice-0 nation-
+        # neutral substrate); fees are deducted in the domain functions,
+        # never here (the leftover-AP bonus double-count warning above).
+        # Latent at the 1805 boot (no enemy lord holds a satellite) — live
+        # the moment one acquires a vassal by settlement or conquest.
+        if getattr(world, 'vassals', None) and not {
+                "invest_vassal", "grant_region_to_vassal",
+                "change_autonomy"} <= skip_actions:
+            shore_up = self._find_vassal_shore_up(
+                nation, world, treasury, skip_actions)
+            if shore_up:
+                return shore_up
 
         # Priority 1.75: COMMISSION A MARSHAL (Jealousy v3.2 final phase,
         # GR5). An at-war, under-officered, solvent nation reaches for its
@@ -4958,6 +4981,76 @@ class EnemyAI:
                 }
 
         # Priority 8: Save AP for income bonus
+        return None
+
+    def _find_vassal_shore_up(self, nation: str, world, treasury: int,
+                              skip_actions: Optional[set] = None) -> Optional[Dict]:
+        """VP-D6 (July 16, 2026): keep the AI lord's satellite web from
+        unravelling. Triggers when its weakest satellite slips under 40
+        loyalty OR its own imperial grip spirals (<30 — reachable for an
+        enemy lord mainly via capital loss). Arms in escalating
+        desperation, all through the shared executor at player prices:
+
+        1. INVEST (loyalty < 40): the cheap steady lever — 1 nation-DP +
+           200g for +10 (grip-blunted like the player's).
+        2. CEDE A PROVINCE (loyalty < 30): the VS-3 land grant via the same
+           lord-neutral helper — the one lever the spiral never blunts.
+        3. GRANT AUTONOMY (loyalty < 25): last resort — a permanent tribute
+           cut to flip the drift positive.
+
+        "Subsidize" is deliberately NOT an arm — it is not an action (the
+        recovery hint stopped naming it for the same reason, playtest F1).
+        Fees are charged in the domain functions (double-count warning).
+        """
+        skip_actions = skip_actions or set()
+        vassals = getattr(world, 'vassals', {}) or {}
+        own = [(v, s) for v, s in vassals.items()
+               if s.get("lord") == nation]
+        if not own:
+            return None
+
+        from backend.models.authority import (
+            AUTHORITY_ACCELERATE_BELOW,
+            get_imperial_grip,
+        )
+        vassal_name, state = min(own, key=lambda kv: kv[1].get("loyalty", 100))
+        loyalty = int(state.get("loyalty", 100))
+        grip = get_imperial_grip(world, nation)
+        if loyalty >= 40 and grip >= AUTHORITY_ACCELERATE_BELOW:
+            return None
+
+        from backend.game_logic.vassal import (
+            AUTONOMY_AUTONOMOUS,
+            INVEST_GOLD_COST,
+            list_grantable_regions,
+        )
+        nation_dp = getattr(world, 'nation_dp', {}).get(nation, 0)
+        if nation_dp < 1:
+            return None
+
+        invest_cd = getattr(world, 'vassal_investment_cooldowns', {}).get(
+            vassal_name, 0)
+        if ("invest_vassal" not in skip_actions and invest_cd <= 0
+                and treasury >= INVEST_GOLD_COST):
+            return {"action": "invest_vassal", "target": vassal_name}
+
+        if ("grant_region_to_vassal" not in skip_actions and loyalty < 30
+                and int(state.get("grant_cooldown", 0) or 0) <= 0):
+            eligible = list_grantable_regions(world, vassal_name, actor=nation)
+            if eligible:
+                return {
+                    "action": "grant_region_to_vassal",
+                    "target": vassal_name,
+                    "region": eligible[0]["region"],
+                }
+
+        if ("change_autonomy" not in skip_actions and loyalty < 25
+                and int(state.get("autonomy", 1)) < AUTONOMY_AUTONOMOUS):
+            return {
+                "action": "change_autonomy",
+                "target": vassal_name,
+                "new_level": int(state.get("autonomy", 1)) + 1,
+            }
         return None
 
     def _find_dotation_grant(self, nation: str, world, treasury: int,

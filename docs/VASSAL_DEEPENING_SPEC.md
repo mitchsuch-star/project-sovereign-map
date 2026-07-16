@@ -589,18 +589,27 @@ flips; plain (non-coalition) collapse keeps the independent-rebellion path.
 
 ## 8. Vassal Depth — build sequence (the sensible phase-out)
 
-The dependency-ordered plan (STATUS "Vassal Depth Queue" mirrors this):
+**✅ THE WHOLE QUEUE LANDED July 16, 2026 in one session** (pre-build seam-verification →
+six slices, committed in order on master). As-built order — a **Slice 0 was promoted** at
+verification because three later slices depended on it:
 
-1. **VS-3 — Land Grants via the diplo wizard** ✅ *blessed* — the positive grip lever; opens the diplo-surface work VS-5 shares.
-2. **VS-4 — Loyalty-gated call-to-arms** — independent; makes loyalty militarily consequential and is the soft precursor to defection (withhold troops → then flip).
-3. **VS-5 — Settlement vassalage (create + transfer)** — the create/transfer machinery; **prerequisite for VS-6's "become someone else's vassal" outcome**.
-4. **VS-6 — The Defection (coalition bribe → free+war OR transfer)** — reuses VS-5 transfer; the marquee beat that lifts Vassals past 7.
-5. **VP-D1 garrison wire-or-remove** (P0 cleanup) + **VP-D6 enemy-AI grip-awareness** — the latter also lets the AI *pay* defection bribes and *defend* its satellites (makes VS-4/VS-6 alive on both boards).
+0. **Slice 0 — Nation-neutral vassal substrate + VP-D1 garrison wire** ✅ (`1082382`) —
+   lord-param on invest/change-autonomy (+the missing lord gate that let any AI path drain
+   the PLAYER's DP), player-scoped coalition threat, `_acting_nation` executor wiring;
+   VP-D1 wired presence-based flat +2 (the authored +5..+8 ladder discarded — it trivialized
+   the −2 drift economy).
+1. **VS-3 — Land Grants via the F1 diplomacy wizard** ✅ (`e2f72ad`) — §1.3 landing record.
+2. **VS-4 — Loyalty-gated call-to-arms** ✅ (`02bd773`) — §5 landing record.
+3. **VS-5 — Settlement vassalage (create assured + transfer)** ✅ (`5cdf354`) — §6 landing record.
+4. **VS-6 — The Defection (bribe → transfer OR free+war)** ✅ (`6e2bd53`) — §7 landing record.
+5. **VP-D6 — Enemy-AI grip-awareness (P1.6 shore-up rung)** ✅ — closes the loop: the AI
+   defends its satellites with the same levers (incl. VS-3 grants) the player has, and pays
+   VS-6 bribes through `attempt_vassal_bribe`. Row closed in `DESIGN_REFINEMENT.md`.
 
-Sequencing rationale: VS-4 and VS-5 are independent and each raise the floor (loyalty has teeth; the
-settlement surface is complete); VS-6 depends on VS-5's transfer and on VS-4's "wavering → withholding"
-precursor to feel earned. Runs alongside the Combat Overhaul program's Sweep 5 → exit; interleave vs
-after is the user's call at build time. Numbers throughout escalate to each slice's build gate.
+Sequencing rationale (held): VS-4 and VS-5 were independent floor-raisers; VS-6 reused VS-5's
+transfer and VS-4's "wavering → withholding" precursor. Blessed defaults remain in-band
+tunable; each landing record lists its structural deviations (all grounded in the July 16
+seam verification).
 
 ---
 
