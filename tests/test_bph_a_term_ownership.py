@@ -281,7 +281,8 @@ class TestPeaceRatifiedCampaignLog:
         # Jealousy v3.2 (July 11, 2026): +10 — grievance arc (7), ESP
         # riders (2), marshal_commissioned (1).
         # VS-4 (July 16, 2026): +1 vassal_refuses_call (call-to-arms refusal).
-        assert len(CAMPAIGN_LOG_TYPES) == 114
+        # VS-5 (July 16, 2026): +1 vassal_transferred (peace-table re-homing).
+        assert len(CAMPAIGN_LOG_TYPES) == 115
 
     def test_format_peace_oneliner(self):
         event = {

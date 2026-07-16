@@ -77,6 +77,7 @@ from backend.game_logic.settlement_validation import (
     _term_lists_equal,
     compute_gold_payer_budgets,
     evaluate_liberation_eligibility,
+    evaluate_vassal_transfer_eligibility,
     evaluate_pair_peace_substitute_eligibility,
     evaluate_subjugation_eligibility,
     evaluate_vassalage_eligibility,
@@ -782,6 +783,7 @@ SETTLEMENT_DEMAND_VERB_ACTION_IDS = (
 _DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
     "territory_cede", "gold_indemnity", "gold_per_turn",
     "vassalage", "subjugation", "forced_alliance", "liberation",
+    "vassal_transfer",  # VS-5 (July 16, 2026) — demand-only
 })
 
 
@@ -819,6 +821,9 @@ def _demand_clause_label(clause: Mapping[str, Any]) -> str:
         return f"the alliance forced upon {clause.get('from')}"
     if ttype == "liberation":
         return f"the liberation of {clause.get('vassal_nation')}"
+    if ttype == "vassal_transfer":
+        # VS-5
+        return f"the transfer of {clause.get('vassal')} to {clause.get('to')}"
     return ttype.replace("_", " ") or "the clause"
 
 
@@ -1255,6 +1260,40 @@ def _handle_settlement_demand_action(
         }
         if action_params.get("includes_continental_system"):
             clause["includes_continental_system"] = True
+    elif clause_type == "vassal_transfer":
+        # VS-5: re-home the court's vassal under the proposer leader.
+        vassals = getattr(world, "vassals", {}) or {}
+        court_vassals = sorted(
+            str(v) for v, s in vassals.items()
+            if isinstance(s, Mapping)
+            and str(s.get("lord") or s.get("lord_nation") or "") == court
+        )
+        vassal_nation = str(action_params.get("vassal_nation") or "").strip()
+        if not vassal_nation:
+            if not court_vassals:
+                return _fail(
+                    "transfer_target_not_their_vassal",
+                    f"{court} holds no vassal to yield, Sire.",
+                )
+            vassal_nation = court_vassals[0]
+        eligibility = evaluate_vassal_transfer_eligibility(
+            world,
+            war_instance=war_instance,
+            vassal_nation=vassal_nation,
+            from_lord=court,
+            to_lord=proposer_leader,
+        )
+        if not eligibility.get("eligible"):
+            return _fail(
+                str(eligibility.get("refusal_code") or "dependency_invalid"),
+                str(eligibility.get("disabled_reason_display") or ""),
+            )
+        clause = {
+            "type": "vassal_transfer",
+            "from": court,
+            "to": proposer_leader,
+            "vassal": vassal_nation,
+        }
     else:  # liberation
         vassals = getattr(world, "vassals", {}) or {}
         court_vassals = sorted(

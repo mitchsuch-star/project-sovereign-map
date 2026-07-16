@@ -105,6 +105,13 @@ CANONICAL_CLAUSE_TYPES = {
     "vassalage": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
     "subjugation": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
     "liberation": {"required": {"type", "vassal_nation", "lord_nation", "liberator"}, "optional": {"authored_by"}},
+    # VS-5 (VASSAL_DEEPENING_SPEC §6): re-home an existing vassal at the
+    # peace table. Canonical from/to = the LORDS (from = the lord losing the
+    # vassal, to = the lord receiving it) so burden partitioning, concession
+    # credit, and pair-matching work like forced_alliance; `vassal` names
+    # the transferred court (excluded from role binding like liberation's
+    # vassal_nation — it is the subject, not a bound court).
+    "vassal_transfer": {"required": {"type", "from", "to", "vassal"}, "optional": {"authored_by"}},
 }
 
 # G2-Slice-1 live MVP clause types.
@@ -116,6 +123,7 @@ SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
 # G2-Slice-1 MVP set.
 SETTLEMENT_DEPENDENCY_CLAUSE_TYPES = frozenset({
     "vassalage", "subjugation", "liberation",
+    "vassal_transfer",  # VS-5 (July 16, 2026)
 })
 
 # SC-33 / G2-Slice-9 - Recurring gold payments become editor-live. The clause
@@ -526,6 +534,7 @@ _BURDEN_TERM_TYPES = (
     "liberation",
     "vassalage",
     "subjugation",
+    "vassal_transfer",  # VS-5: burdens `from` (the lord losing the vassal)
 )
 
 
@@ -567,7 +576,8 @@ def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
         ttype = t.get("type", "")
         if ttype in _TERRITORY_TERM_TYPES and _term_regions(t):
             return True
-        if ttype in ("forced_alliance", "liberation", "vassalage", "subjugation"):
+        if ttype in ("forced_alliance", "liberation", "vassalage",
+                     "subjugation", "vassal_transfer"):
             return True
         # Any concrete numeric demand counts as non-trivial.
         if t.get("amount") or t.get("value"):
@@ -1057,6 +1067,9 @@ def _select_relevant_objective(
                 enemy_costs[from_n] += 0.3
             elif ttype == "vassalage" or ttype == "subjugation":
                 enemy_costs[from_n] += 0.5
+            elif ttype == "vassal_transfer":
+                # VS-5: losing a whole satellite prices like liberation
+                enemy_costs[from_n] += 0.3
     harshest_target: Optional[str]
     if any(v > 0 for v in enemy_costs.values()):
         harshest_target = max(enemy_costs.items(), key=lambda kv: (kv[1], kv[0]))[0]
@@ -1306,6 +1319,10 @@ def _concession_credit_for_term(
     if ttype in _TERRITORY_TERM_TYPES:
         return CONCESSION_TERRITORY_PER_REGION * len(_term_regions(term))
     if ttype in ("vassalage", "subjugation"):
+        return CONCESSION_DEPENDENCY_CREDIT
+    if ttype == "vassal_transfer":
+        # VS-5: the proposer handing its OWN satellite across the table is
+        # a major concession (a whole client state changes blocs).
         return CONCESSION_DEPENDENCY_CREDIT
     if ttype == "forced_alliance":
         return CONCESSION_FORCED_ALLIANCE_CREDIT
@@ -1592,7 +1609,9 @@ def project_balance_after_settlement(
     1. `liberation` — release vassal back to independence
     2. `forced_alliance` — set ALLIANCE pair
     3. `territory*` — move regions between nations
-    4. `vassalage` / `subjugation` — set vassal_of
+    4. `vassalage` / `subjugation` — set vassal_of (canonical from=vassal,
+       to=lord — direction bug fixed with VS-5, July 16 2026)
+    4b. `vassal_transfer` — re-home vassal_of[vassal] to the receiving lord
 
     Returns the canonical settlement-preview shape (spec line 1203):
 
@@ -1663,7 +1682,12 @@ def project_balance_after_settlement(
     for term in terms_list:
         if term.get("type") != "liberation":
             continue
-        target = _term_to_nation(term) or term.get("vassal") or term.get("nation")
+        # VS-5 drive-by fix: the canonical liberation clause carries ONLY
+        # `vassal_nation` (no to/vassal/nation keys), so this projection
+        # step never fired — every liberation priced as if the lord's bloc
+        # kept the vassal. `vassal_nation` is now read first.
+        target = (term.get("vassal_nation") or _term_to_nation(term)
+                  or term.get("vassal") or term.get("nation"))
         if target and target in vassal_of:
             del vassal_of[str(target)]
 
@@ -1693,10 +1717,25 @@ def project_balance_after_settlement(
     for term in terms_list:
         if term.get("type") not in ("vassalage", "subjugation"):
             continue
-        vassal = _term_to_nation(term) or term.get("vassal")
-        lord = _term_from_nation(term) or term.get("lord")
+        # VS-5 drive-by fix: the canonical direction is from=VASSAL,
+        # to=LORD (settlement_actions authors `{from: court, to:
+        # proposer_leader}`) — this step read it REVERSED, projecting the
+        # proposer as the new vassal of the defeated court and thereby
+        # mis-pricing every vassalage clause's hegemony effect.
+        vassal = _term_from_nation(term) or term.get("vassal")
+        lord = _term_to_nation(term) or term.get("lord")
         if vassal and lord and str(vassal) != str(lord):
             vassal_of[str(vassal)] = str(lord)
+
+    # Step 4b (VS-5): vassal_transfer re-homes an existing vassal —
+    # from/to are the LORDS, `vassal` names the transferred court.
+    for term in terms_list:
+        if term.get("type") != "vassal_transfer":
+            continue
+        moved = term.get("vassal")
+        new_lord = _term_to_nation(term)
+        if moved and new_lord and str(moved) != str(new_lord):
+            vassal_of[str(moved)] = str(new_lord)
 
     post_hegemon, post_share = _projected_max_bloc_share(
         world, nation_regions, alignments, vassal_of, actives,

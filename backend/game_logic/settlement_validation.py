@@ -678,6 +678,50 @@ def _check_vassalage_state(
     return _dependency_eligibility_payload(True)
 
 
+def evaluate_vassal_transfer_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    vassal_nation: str,
+    from_lord: str,
+    to_lord: str,
+) -> Dict[str, Any]:
+    """VS-5: whether a ``vassal_transfer`` clause may re-home
+    ``vassal_nation`` from ``from_lord`` to ``to_lord``.
+
+    Distinct from vassalage/subjugation: the target is ALREADY a vassal
+    (so `_check_vassalage_state`'s already-vassal refusal must not run),
+    and the war-side check binds the two LORDS — the vassal itself need
+    not be a war participant (like liberation's vassal_nation). Power-cap
+    still applies to the RECEIVING lord: a defeated giant's satellite
+    cannot pass to a lord too weak to hold it.
+    """
+    if (not vassal_nation or not from_lord or not to_lord
+            or len({vassal_nation, from_lord, to_lord}) != 3):
+        return _dependency_eligibility_payload(
+            False, refusal_code="dependency_direction_invalid")
+    vassals = getattr(world, "vassals", {}) or {}
+    record = vassals.get(vassal_nation)
+    if not isinstance(record, Mapping) or str(record.get("lord") or "") != from_lord:
+        return _dependency_eligibility_payload(
+            False, refusal_code="transfer_target_not_their_vassal")
+    from_side = _resolve_war_sides(war_instance, from_lord)
+    to_side = _resolve_war_sides(war_instance, to_lord)
+    if from_side is None or to_side is None or from_side == to_side:
+        return _dependency_eligibility_payload(
+            False, refusal_code="dependency_target_not_in_war")
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, to_lord, vassal_nation)
+    if not cap.get("allowed"):
+        return _dependency_eligibility_payload(
+            False,
+            refusal_code="dependency_power_cap_blocked",
+            extra={"power_pct": int(cap.get("pct", 0) or 0)},
+        )
+    return _dependency_eligibility_payload(
+        True, extra={"power_pct": int(cap.get("pct", 0) or 0)})
+
+
 def evaluate_subjugation_eligibility(
     world: Any,
     *,
@@ -1181,6 +1225,25 @@ def validate_settlement_terms(
                     war_instance=war_instance,
                     lord_nation=lord_nation,
                     target_nation=vassal_nation,
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "dependency_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "dependency_invalid")
+                        ),
+                    }
+            elif ctype == "vassal_transfer":
+                # VS-5: from/to are the LORDS; `vassal` names the court.
+                eligibility = evaluate_vassal_transfer_eligibility(
+                    world,
+                    war_instance=war_instance,
+                    vassal_nation=str(clause.get("vassal") or ""),
+                    from_lord=str(clause.get("from") or ""),
+                    to_lord=str(clause.get("to") or ""),
                 )
                 if not eligibility.get("eligible"):
                     return {

@@ -2223,6 +2223,10 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "Free {vassal} and {court} loses a servant it never paid well; "
         "the freed court will remember whose hand opened the door."
     ),
+    "settlement_guided_reason_vassal_transfer_talleyrand": (
+        "{vassal} already knows how to kneel, Sire — let it simply change "
+        "the throne it kneels to. {court} loses a servant; we gain one."
+    ),
     "settlement_guided_reason_gold_offer_talleyrand": (
         "A sweetener of {amount} gold — {court}'s resolve has a price, "
         "and it is conveniently paid in coin rather than provinces."
@@ -3648,6 +3652,10 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # demands dialect applies. Bilateral clauses never carry these
             # type names, so bilateral sums are unchanged.
             harshness += 0.5
+        elif ctype == "vassal_transfer":
+            # VS-5: losing an existing satellite weighs like liberation
+            # (the lord loses a client, but no NEW nation is subjugated).
+            harshness += 0.3
     # PL-12-B: Include demands in harshness calculation
     for demand in treaty.get("demands", []):
         if not isinstance(demand, dict):
@@ -3685,6 +3693,8 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.3
         elif dtype in ("vassalage", "subjugation"):
             harshness += 0.5
+        elif dtype == "vassal_transfer":
+            harshness += 0.3  # VS-5 — mirrors the clause branch above
     return harshness
 
 
@@ -3782,6 +3792,8 @@ _TERM_DISPLAY_LABELS = {
     "continental_system_lifted": "{from_nation} closes ports to Britain",
     "forced_alliance": "{from_nation} enters ALLIANCE with {to_nation} and joins the Continental System",
     "liberation": "{from_nation} is liberated from vassalage",
+    # VS-5: vassal re-homing — `detail` carries the transferred court's name
+    "vassal_transfer": "{from_nation} yields its vassal {detail} to {to_nation}",
     # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
     # shared label formatter only carries nation/detail/value kwargs.
     "prisoner_return": "{from_nation} releases a captured marshal to {to_nation}",
@@ -3825,6 +3837,7 @@ def _get_vassal_nation(term: Dict) -> str:
     return (
         term.get("vassal_nation")
         or term.get("vassal_name")
+        or term.get("vassal")          # VS-5: the vassal_transfer subject
         or term.get("territory_nation")
         or term.get("sovereign_nation")
         or term.get("original_owner")
@@ -3842,6 +3855,9 @@ def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
     detail = ", ".join(regions) if regions else "territory"
     if vassal_nation and clause_type in ("territory_cede", "territory", "territory_return"):
         detail = f"{detail} ({_vassal_territory_label(vassal_nation)})"
+    elif vassal_nation and clause_type == "vassal_transfer":
+        # VS-5: `detail` names the transferred court, not a region list
+        detail = vassal_nation
     return template.format(
         from_nation=from_nation, to_nation=to_nation,
         detail=detail, value=int(value),

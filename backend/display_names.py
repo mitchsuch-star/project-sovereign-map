@@ -694,6 +694,12 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
         "That nation is already someone's vassal; release them before "
         "imposing a new dependency."
     ),
+    # VS-5 (July 16, 2026): vassal_transfer refusal — the named vassal is
+    # not currently a vassal of the named losing lord.
+    "transfer_target_not_their_vassal": (
+        "That nation is not currently a vassal of the court you would "
+        "take it from."
+    ),
     "dependency_power_cap_blocked": (
         "The lord lacks the national power to legally vassalize a "
         "target this large."

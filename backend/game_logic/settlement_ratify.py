@@ -400,6 +400,53 @@ def _apply_settlement_terms(
                 clause["payment_id"] = payment_id
                 clause["ratified_turn"] = int(ratified_turn)
                 applied.append(clause)
+        elif ttype == "vassal_transfer":
+            # VS-5 (VASSAL_DEEPENING_SPEC §6): re-home an existing vassal.
+            # Package-level handler (like liberation) — the transferred
+            # vassal is typically NOT a war-participant pair member, so the
+            # per-pair ratification plan structurally cannot host it.
+            tr_vassal = str(term.get("vassal") or "")
+            tr_from = str(term.get("from") or "")
+            tr_to = str(term.get("to") or "")
+            vassals_map = getattr(world, "vassals", {}) or {}
+            record = vassals_map.get(tr_vassal)
+            if (tr_vassal and tr_to and record is not None
+                    and str(record.get("lord") or "") == tr_from):
+                # Close any live war between the RECEIVING lord and the
+                # vassal first (they sat on opposite sides) — mirror the
+                # vassalage arm's cleanup path so war data resolves cleanly.
+                pre_state = world.get_diplomatic_state(tr_to, tr_vassal)
+                if pre_state in ("WAR", "ARMISTICE"):
+                    from backend.game_logic.diplomacy import (
+                        cleanup_war_end as _cwe,
+                        set_diplomatic_state as _sds_tr,
+                    )
+                    _sds_tr(
+                        world, tr_to, tr_vassal,
+                        "PEACE", "settlement_vassal_transfer",
+                    )
+                    _cwe(
+                        world,
+                        world._make_diplo_key(tr_to, tr_vassal),
+                        conclude_objectives=True,
+                    )
+                from backend.game_logic.vassal import transfer_vassal
+                transfer_result = transfer_vassal(
+                    world, tr_vassal, tr_to,
+                    reason="settlement_vassal_transfer",
+                )
+                if transfer_result.get("success"):
+                    clause = dict(term)
+                    clause["pair_state_transition"] = (
+                        f"VASSAL of {tr_from} -> VASSAL of {tr_to}"
+                    )
+                    clause["loyalty_after"] = int(
+                        transfer_result.get("loyalty_after") or 0
+                    )
+                    clause["rekeyed_marshal_count"] = len(
+                        transfer_result.get("rekeyed_marshals") or []
+                    )
+                    applied.append(clause)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
             lib_from = str(term.get("lord_nation") or term.get("to") or "")

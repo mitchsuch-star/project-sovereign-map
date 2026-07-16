@@ -1333,6 +1333,127 @@ def grant_region_to_vassal(world, vassal_name: str, region_name: str,
 
 
 # ═══════════════════════════════════════════════════════
+# VASSAL TRANSFER (VS-5)
+# ═══════════════════════════════════════════════════════
+
+# VS-5 (VASSAL_DEEPENING_SPEC §6): a transferred vassal is not instantly
+# loyal to its new master — reset between conquest (20) and treaty (60).
+TRANSFER_LOYALTY_RESET = 30
+
+
+def transfer_vassal(world, vassal_name: str, to_lord: str,
+                    reason: str = "vassal_transfer") -> dict:
+    """VS-5: change a vassal's LORD (peace-table re-homing; also VS-6's
+    "become someone else's vassal" outcome). Unlike create/release this
+    mutates the existing row directly — the vassal never passes through
+    independence (no release cooldown, no rebellion path).
+
+    Bookkeeping:
+    - lord re-key + UNCONDITIONAL loyalty reset to TRANSFER_LOYALTY_RESET
+      (a loyalty-0 vassal must not instantly rebel against a lord who never
+      wronged it; a loyalty-90 one is not instantly devoted either);
+    - assimilated marshals re-keyed to the new lord (original_nation kept so
+      a future rebellion still returns them to the vassal);
+    - VS-3 granted_regions CLEARED (the new lord never granted them — stale
+      provenance would let a Franco-granted province "reclaim" to Britain);
+    - old pair VASSAL→PEACE, new pair →VASSAL, then the R48 reconcile runs
+      for the new lord; rebellion popups/dialogues for this vassal cleared;
+    - Continental System membership dropped when leaving the player's web;
+    - autonomy level and tribute_rate carry over unchanged.
+
+    Callers must settle any WAR between vassal and to_lord FIRST (the
+    settlement_ratify handler closes the pair via cleanup_war_end before
+    calling). GR5 lord-neutral by construction.
+    """
+    if vassal_name not in getattr(world, 'vassals', {}):
+        return {"success": False, "message": f"{vassal_name} is not a vassal."}
+    state = world.vassals[vassal_name]
+    from_lord = state.get("lord", "")
+    if not to_lord or to_lord == vassal_name:
+        return {"success": False, "message": "Invalid receiving lord."}
+    if to_lord == from_lord:
+        return {"success": False,
+                "message": f"{vassal_name} already serves {to_lord}."}
+
+    # Re-key the assimilated contingent to the new lord (VS-4's gates and
+    # the rebellion transfer-back both key off original_nation, which stays).
+    rekeyed = []
+    for marshal in list(world.marshals.values()):
+        if (getattr(marshal, 'original_nation', None) == vassal_name
+                and getattr(marshal, 'nation', '') == from_lord):
+            marshal.nation = to_lord
+            if hasattr(marshal, 'trust') and hasattr(marshal.trust, 'value'):
+                marshal.trust.modify(ASSIMILATION_TRUST - marshal.trust.value)
+            marshal.relationship_with_lord = "Professional"
+            rekeyed.append(marshal.name)
+
+    old_loyalty = int(state.get("loyalty", 0))
+    state["lord"] = to_lord
+    state["loyalty"] = int(TRANSFER_LOYALTY_RESET)
+    state.pop("granted_regions", None)   # VS-3 interlock
+    state.pop("grant_cooldown", None)
+    world.invalidate_active_nations_cache()
+
+    # Diplomatic states: old pair loses VASSAL; new pair gains it.
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    if from_lord:
+        set_diplomatic_state(world, from_lord, vassal_name, "PEACE", reason)
+    set_diplomatic_state(world, to_lord, vassal_name, "VASSAL", reason)
+    _reconcile_vassal_diplomacy(world, to_lord, vassal_name)
+
+    # Clear stale rebellion popups/dialogues (mirrors release_vassal)
+    if getattr(world, 'vassal_rebellion_imminent_popup', None):
+        if world.vassal_rebellion_imminent_popup.get("nation", "") == vassal_name:
+            world.vassal_rebellion_imminent_popup = None
+    if hasattr(world, 'vassal_rebellion_imminent_popups'):
+        world.vassal_rebellion_imminent_popups = [
+            p for p in world.vassal_rebellion_imminent_popups
+            if p.get("nation") != vassal_name
+        ]
+    world.dialogue_manager.remove_matching(
+        lambda d: (d.get("type") == "vassal_rebellion_imminent"
+                   and d.get("context", {}).get("vassal_name") == vassal_name)
+    )
+
+    # R50 mirror: leaving the player's web leaves the Continental System.
+    if from_lord == getattr(world, 'player_nation', 'France'):
+        cs_members = getattr(world, 'continental_system_members', [])
+        if isinstance(cs_members, set):
+            cs_members.discard(vassal_name)
+        elif isinstance(cs_members, list) and vassal_name in cs_members:
+            cs_members.remove(vassal_name)
+
+    if hasattr(world, "log_event"):
+        world.log_event({
+            "type": "vassal_transferred",
+            "vassal": vassal_name,
+            "from_lord": from_lord,
+            "to_lord": to_lord,
+            "loyalty_before": old_loyalty,
+            "loyalty_after": int(TRANSFER_LOYALTY_RESET),
+        })
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(
+        world, "diplomatic_vassal_transferred",
+        {"vassal": vassal_name, "from_lord": from_lord, "to_lord": to_lord,
+         "nation": from_lord},
+        "always",
+    )
+
+    return {
+        "success": True,
+        "message": (
+            f"{vassal_name} passes from {from_lord}'s suzerainty to "
+            f"{to_lord}'s (loyalty resets to {TRANSFER_LOYALTY_RESET})."
+        ),
+        "from_lord": from_lord,
+        "to_lord": to_lord,
+        "rekeyed_marshals": rekeyed,
+        "loyalty_after": int(TRANSFER_LOYALTY_RESET),
+    }
+
+
+# ═══════════════════════════════════════════════════════
 # MARSHAL ASSIMILATION (EC-K.1)
 # ═══════════════════════════════════════════════════════
 

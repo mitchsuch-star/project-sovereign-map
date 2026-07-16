@@ -88,6 +88,7 @@ from backend.game_logic.settlement_validation import (
     _side_leader,
     _term_lists_equal,
     evaluate_liberation_eligibility,
+    evaluate_vassal_transfer_eligibility,
     evaluate_open_settlement_eligibility,
     evaluate_pair_peace_substitute_eligibility,
     evaluate_subjugation_eligibility,
@@ -726,6 +727,35 @@ def _court_demand_suggestions(
             draft_key=draft_key,
             params={"vassal_nation": vassal},
             vassal_options=list(eligible_vassals),
+        ))
+    # VS-5 (VASSAL_DEEPENING_SPEC §6): claim the court's vassal as your own —
+    # transfer the lordship instead of freeing it.
+    transfer_eligible = [
+        v for v in court_vassals
+        if evaluate_vassal_transfer_eligibility(
+            world,
+            war_instance=war_instance,
+            vassal_nation=v,
+            from_lord=court,
+            to_lord=proposer_leader,
+        ).get("eligible")
+    ]
+    if transfer_eligible:
+        vassal = transfer_eligible[0]
+        demand_group.append(_guided_suggestion(
+            label=f"Claim {court}'s vassal {vassal} as your own",
+            group="demand",
+            clause_type="vassal_transfer",
+            reason_display=resolve_settlement_voice_line(
+                "settlement_guided_reason_vassal_transfer_talleyrand",
+                court=court,
+                vassal=vassal,
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={"vassal_nation": vassal},
+            vassal_options=list(transfer_eligible),
         ))
 
     # --- Offer group (France → court), the D4 sweetener lever ------------

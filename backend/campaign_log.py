@@ -100,6 +100,7 @@ CAMPAIGN_LOG_TYPES = {
     "nation_eliminated",
     "vassal_auto_join_war",
     "vassal_refuses_call",  # VS-4: disaffected vassal declines the call-to-arms
+    "vassal_transferred",   # VS-5: peace-table lord re-homing
     "coalition_member_left",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted",
@@ -268,6 +269,7 @@ CATEGORY_MAP = {
     "nation_eliminated": "diplomacy",
     "vassal_auto_join_war": "diplomacy",
     "vassal_refuses_call": "diplomacy",  # VS-4
+    "vassal_transferred": "diplomacy",   # VS-5
     "coalition_member_left": "diplomacy",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
@@ -649,11 +651,14 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Vassal auto-join / VS-4 refusal: show if player involved or PARTIAL+
-        if event_type in ("vassal_auto_join_war", "vassal_refuses_call"):
+        # Vassal auto-join / VS-4 refusal / VS-5 transfer: show if player
+        # involved or PARTIAL+
+        if event_type in ("vassal_auto_join_war", "vassal_refuses_call",
+                          "vassal_transferred"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             vassal = event.get("vassal") or event.get("nation", "")
-            overlord = event.get("overlord") or event.get("lord", "")
+            overlord = (event.get("overlord") or event.get("lord")
+                        or event.get("from_lord") or event.get("to_lord", ""))
             visible = False
             for nation in (vassal, overlord):
                 if nation == player_nation:
@@ -1378,6 +1383,14 @@ def format_event_oneliner(event: dict) -> str:
         loyalty = event.get("loyalty", "?")
         return (f"{vassal} refuses {lord}'s call to arms "
                 f"(loyalty {loyalty}).")
+
+    if event_type == "vassal_transferred":
+        # VS-5: peace-table lord re-homing
+        vassal = event.get("vassal", "Unknown")
+        from_lord = event.get("from_lord", "Unknown")
+        to_lord = event.get("to_lord", "Unknown")
+        return (f"{vassal} passes from {from_lord}'s suzerainty "
+                f"to {to_lord}'s.")
 
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")

@@ -466,5 +466,6 @@ def test_guided_terms_voice_families_hold_sc32_d5_copy_boundary():
         walked += 1
         lowered = template.lower()
         assert not any(word in lowered for word in banned), key
-    # 11 guided reasons + caution + 2 reactions + 3 recommendation variants.
-    assert walked == 17
+    # 11 guided reasons + caution + 2 reactions + 3 recommendation variants;
+    # VS-5 (July 16, 2026) added the vassal_transfer guided reason (+1 = 18).
+    assert walked == 18

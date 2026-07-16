@@ -477,11 +477,40 @@ The settlement package **already supports creation** — `vassalage` / `subjugat
 lord forfeits tribute, the new lord inherits it at the vassal's autonomy rate; GR5 AI parity (the AI
 can impose/accept creation & transfer in its own settlements).
 
-**Landing contract (GR9):** owner §6; slice **VS-5** (after/with VS-3's wizard work — shares the diplo
-surface); completion = a peace deal can create a vassal (guided-surface reachable) AND transfer an
-existing vassal's lord, both ratifying cleanly; test `test_settlement_vassalage.py` (create eligibility,
-transfer re-key, tribute/marshal re-home, loyalty reset, AI parity). Verify against
-`settlement_actions.py` clause handling + `settlement_ratify`.
+**Landing contract (GR9):** owner §6; slice **VS-5** — ✅ **LANDED July 16, 2026.**
+- **Creation ASSURED (pin-tests, zero build):** vassalage/subjugation/liberation were already
+  live end-to-end on the guided surface (suggestions → demand-add verbs → ratify); pinned in
+  `test_settlement_vassalage.py::TestRegistration`.
+- **Transfer (NEW):** clause `{type: "vassal_transfer", from: from_lord, to: to_lord, vassal}`
+  (canonical from/to = the LORDS, so burden partitioning/concession credit/pair-matching work
+  like forced_alliance; the vassal is the excluded subject, like liberation's `vassal_nation`).
+  Registered across the full clause lifecycle: schema + live dependency set + burden/non-trivial/
+  harshest-target sets + harshness 0.3 (a lord LOSING a satellite prices like liberation, not
+  like a new subjugation) + concession credit 100 + hegemony projection step 4b + validator
+  (`evaluate_vassal_transfer_eligibility`: is-their-vassal, lords on opposite war sides, WPS-B
+  power cap on the RECEIVER; new refusal code `transfer_target_not_their_vassal`) + guided
+  suggestion ("Claim {court}'s vassal {vassal} as your own", Talleyrand voice line) + demand-add
+  verb (demand-only) + display labels.
+- **Apply handler:** package-level in `_apply_settlement_terms` (next to liberation — the
+  transferred vassal is typically NOT a war-pair member, so the per-pair plan structurally
+  cannot host it; the spec's "same seam as territory" was imprecise). Closes any live WAR
+  between receiver and vassal via `cleanup_war_end` first.
+- **Shared domain helper `transfer_vassal`** (vassal.py — VS-6's outcome-2 reuses it): lord
+  re-key, UNCONDITIONAL loyalty reset to `TRANSFER_LOYALTY_RESET=30`, assimilated-marshal
+  re-key (original_nation preserved for the rebellion path), **VS-3 `granted_regions`
+  CLEARED**, old pair→PEACE / new pair→VASSAL + R48 reconcile, rebellion popups/dialogues
+  cleared, CS-membership dropped when leaving the player's web, NO release cooldown,
+  autonomy/tribute carry over. Dispatch template + log event `vassal_transferred`.
+- **Drive-by fixes (pre-existing, verified):** the hegemony projection's liberation step never
+  matched canonical clauses (read `to`/`vassal`/`nation`; canonical carries only
+  `vassal_nation`) and its vassalage step read from/to REVERSED — both fed the AI's
+  acceptance pricing. Fixed + pinned.
+- **AI parity scope-down (structural deviation, recorded):** v1 = accept-side pricing parity
+  only; AI-AUTHORED dependency clauses (an AI demanding the player's vassalage) are a new
+  fantasy → deferral row `DESIGN_REFINEMENT.md` VP-D8.
+- Test `test_settlement_vassalage.py` (29): registration/reachability pins, eligibility matrix,
+  validator routing, domain-helper bookkeeping, ratify apply (incl. WAR-pair-closed-first and
+  stale-clause no-op), hegemony-fix regressions, display surfaces.
 
 ---
 
