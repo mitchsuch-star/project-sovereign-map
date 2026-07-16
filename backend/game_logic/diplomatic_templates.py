@@ -2680,7 +2680,7 @@ NATION_DESIRE_PROFILES = {
         "weakness": "distance",
     },
     "Spain": {
-        "covets_regions": ["Lisbon", "Algarve"],
+        "covets_regions": ["Lisbon", "Morocco"],
         "values_gold": "medium",
         "values_territory": "medium",
         "values_ap": "low",

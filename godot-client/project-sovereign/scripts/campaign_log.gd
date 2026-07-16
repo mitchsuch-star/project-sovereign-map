@@ -47,6 +47,7 @@ func open_log(api_client):
 	empty_label.visible = true
 	scroll_container.scroll_vertical = 0
 	show()
+	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_campaign_log(_on_campaign_log_received)
 
 

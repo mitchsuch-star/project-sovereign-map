@@ -73,12 +73,12 @@ text = "X"
 layout_mode = 2
 
 [node name="AssessmentPanel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 80)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 bbcode_enabled = true
 text = ""
-scroll_active = false
-fit_content = true
+scroll_active = true
+fit_content = false
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 260)

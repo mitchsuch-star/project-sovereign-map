@@ -176,6 +176,7 @@ func _open_with_tab(api_client, tab_index: int, review_target: String, route_id:
 	_focus_settlement_route_id = route_id
 	_focus_settlement_war_id = war_id
 	show()
+	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
 	api_client.get_diplomatic_ledger(_on_ledger_received)
 

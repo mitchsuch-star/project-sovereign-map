@@ -263,15 +263,34 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 		var fill = TextureRect.new()
 		fill.texture = load("res://assets/ui/bars/warbar_fill.png")
 		fill.stretch_mode = TextureRect.STRETCH_SCALE
+		# EXPAND_IGNORE_SIZE is load-bearing: without it the texture's natural
+		# 72x22 px becomes the control's MINIMUM size, so any anchored span
+		# smaller than that (short bars, high UI scale, low scores) overflows
+		# past the centre and bulges out of the track.
+		fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		var fraction: float = abs(normalized) / 100.0
+		# Outer edge tucks inside the track's gold rim cap proportionally
+		# (mirrors war_status_panel.BAR_RIM_INSET).
+		var rim_inset: float = 5.0 * fraction
 		if normalized > 0:
 			fill.modulate = france_color
-			_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+			_anchor_bar_child(fill, 0.5, 0.5 + fraction * 0.5, 0.0, -rim_inset)
 		else:
 			fill.modulate = enemy_color
-			_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+			_anchor_bar_child(fill, 0.5 - fraction * 0.5, 0.5, rim_inset, 0.0)
 		fill.offset_top = 3.0
 		fill.offset_bottom = -3.0
 		container.add_child(fill)
+
+	# Slim gold centre tick — the balance point. The HUD bar marks it with the
+	# gem; here the score label owns the centre, so a 2px tick keeps the
+	# fill direction readable without fighting the text.
+	var tick = ColorRect.new()
+	tick.color = Color(0.85, 0.7, 0.3, 0.75)
+	_anchor_bar_child(tick, 0.5, 0.5, -1.0, 1.0)
+	tick.offset_top = 2.0
+	tick.offset_bottom = -2.0
+	container.add_child(tick)
 
 	# Score label. Slice 7.5 review fold: dark outline keeps the score
 	# readable over light nation fills (e.g. PapalStates white) at high scores.

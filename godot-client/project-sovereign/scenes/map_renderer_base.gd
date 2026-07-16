@@ -970,8 +970,10 @@ func _refresh_map_labels():
 	# state the owner fill renders (region_controllers) — labels can never
 	# reveal more than the fill already tints. Province tier reads the
 	# registry's label_anchor; nation tier sits at the radius^2-weighted
-	# centroid of owned provinces (multi-blob nations get a naive centroid —
-	# accepted first pass). Per-province work only; no per-pixel cost.
+	# centroid of owned provinces, SNAPPED back onto an owned province when
+	# the raw centroid falls outside every owned blob (multi-blob nations
+	# like Naples+Sicily otherwise print their name in open sea).
+	# Per-province work only; no per-pixel cost.
 	if map_label_layer == null:
 		return
 	var province_labels: Array = []
@@ -992,19 +994,44 @@ func _refresh_map_labels():
 		var radius := float(shape.get("radius", REGION_RADIUS))
 		var weight := radius * radius
 		if not nation_accum.has(controller):
-			nation_accum[controller] = [Vector2.ZERO, 0.0]
+			nation_accum[controller] = [Vector2.ZERO, 0.0, []]
 		nation_accum[controller][0] += label_pos * weight
 		nation_accum[controller][1] += weight
+		nation_accum[controller][2].append({
+			"label_pos": label_pos,
+			"center": shape.get("center", label_pos),
+			"radius": radius,
+		})
 	var nation_labels: Array = []
 	for nation in nation_accum:
 		var weight_sum: float = nation_accum[nation][1]
 		if weight_sum <= 0.0:
 			continue
+		var centroid: Vector2 = nation_accum[nation][0] / weight_sum
 		nation_labels.append({
 			"text": Utils.display_nation_name(str(nation)),
-			"position": nation_accum[nation][0] / weight_sum,
+			"position": _snap_label_to_owned_land(centroid, nation_accum[nation][2]),
 		})
 	map_label_layer.set_labels(nation_labels, province_labels)
+
+
+func _snap_label_to_owned_land(centroid: Vector2, provinces: Array) -> Vector2:
+	# Multi-blob nations (Naples + Sicily, Piedmont + Sardinia) can average
+	# their provinces to a point in open water. Province circles overlap when
+	# tiling a landmass, so a centroid inside ANY owned circle is on (or hugging)
+	# the nation's own soil and keeps its nice central placement; a centroid
+	# outside every circle is at sea and snaps to the hand-authored label
+	# anchor of the nearest owned blob instead.
+	var best_pos: Vector2 = centroid
+	var best_gap: float = INF
+	for prov in provinces:
+		var gap: float = centroid.distance_to(prov["center"]) - float(prov["radius"])
+		if gap <= 0.0:
+			return centroid
+		if gap < best_gap:
+			best_gap = gap
+			best_pos = prov["label_pos"]
+	return best_pos
 
 
 func _build_static_map_visuals():

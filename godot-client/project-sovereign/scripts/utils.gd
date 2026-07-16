@@ -37,30 +37,32 @@ const COLOR_HEADER = "B8860B"       # Same as COLOR_BERTHIER — semantic alias 
 # redefine these locally. Drift is guarded by
 # tests/test_gdscript_color_centralization.py.
 const NATION_COLORS = {
+	# Re-authored July 16, 2026 (user-directed): Paradox/EU4-convention national
+	# colors so each nation reads by its grand-strategy identity — Austria WHITE,
+	# Spain GOLD, Russia forest green, Ottoman vivid green, Prussia anthracite,
+	# Portugal teal, Hanover pale yellow, Sardinia (Savoy) dark red-brown, Papal
+	# cardinal purple. Second-tier entries keep their Slice-7.5 values where EU4
+	# identity doesn't demand a change. The SET discipline still holds (DEF-10):
+	# every edit must pass the perceptual floors in
+	# tests/test_map_slice75_presentation.py — this set measures min pairwise
+	# blended deltaE 13.4 / fogged 7.8 over the shipped terrain art.
 	"France": Color(0.255, 0.412, 0.882),
 	"Britain": Color(0.863, 0.078, 0.235),
-	"Prussia": Color(0.2, 0.2, 0.2),
-	"Austria": Color(1.0, 0.843, 0.0),
+	"Prussia": Color(0.16, 0.18, 0.22),
+	"Austria": Color(0.93, 0.93, 0.90),
 	"Saxony": Color(0.62, 0.72, 0.18),
-	"Russia": Color(0.2, 0.5, 0.2),
-	"Spain": Color(0.8, 0.6, 0.1),
-	# --- Full-Europe (126-province) roster — Map Slice 3 ---
-	# Re-authored as a SET in Map Slice 7.5 (DEF-10): the original entries
-	# clustered (5 greens, 3 reds, 2 steel blues, 6 parchment-adjacent tans)
-	# and became indistinguishable under the 0.55 owner-fill blend over the
-	# terrain art. Values are measured on the shipped art — min pairwise
-	# blended deltaE 14.4 (was 4.5). Re-verify any edit with the perceptual
-	# floor test in tests/test_map_slice75_presentation.py.
-	"Ottoman": Color(0.0, 0.5, 0.4),
+	"Russia": Color(0.16, 0.38, 0.20),
+	"Spain": Color(0.93, 0.76, 0.18),
+	"Ottoman": Color(0.0, 0.58, 0.33),
 	"Sweden": Color(0.0, 0.42, 0.65),
 	"Naples": Color(0.62, 0.15, 0.4),
-	"Portugal": Color(0.45, 0.25, 0.6),
+	"Portugal": Color(0.10, 0.42, 0.44),
 	"Denmark": Color(0.5, 0.08, 0.12),
 	"Bavaria": Color(0.62, 0.78, 0.95),
-	"Hanover": Color(0.55, 0.35, 0.15),
+	"Hanover": Color(0.90, 0.86, 0.58),
 	"Hesse": Color(0.66, 0.53, 0.82),
-	"PapalStates": Color(0.95, 0.93, 0.88),
-	"Sardinia": Color(0.6, 0.62, 0.65),
+	"PapalStates": Color(0.50, 0.28, 0.58),
+	"Sardinia": Color(0.42, 0.20, 0.24),
 	"Holland": Color(0.95, 0.44, 0.03),
 	"KingdomOfItaly": Color(0.25, 0.78, 0.35),
 	"Switzerland": Color(0.92, 0.5, 0.6),
@@ -78,10 +80,11 @@ const NATION_DISPLAY_NAMES = {
 }
 
 static func contrast_text_color(background: Color) -> Color:
-	# Slice 7.5 review fold: light palette entries (PapalStates white, Bavaria
-	# pale blue, Austria gold) made white chip text illegible. Any consumer
-	# drawing text directly over a raw NATION_COLORS fill picks its text color
-	# here so the palette can be re-authored without re-auditing every chip.
+	# Slice 7.5 review fold: light palette entries (Austria white, Bavaria
+	# pale blue, Spain gold, Hanover pale yellow) make white chip text
+	# illegible. Any consumer drawing text directly over a raw NATION_COLORS
+	# fill picks its text color here so the palette can be re-authored
+	# without re-auditing every chip.
 	if background.get_luminance() > 0.62:
 		return Color(0.12, 0.1, 0.08)
 	return Color.WHITE
@@ -240,12 +243,25 @@ static func nation_flag_path(nation: String) -> String:
 	return path
 
 
+static var _flag_aspect_cache := {}
+
 static func bb_flag(nation: String, height: int = 14) -> String:
-	"""Inline BBCode flag thumbnail (with trailing space), or '' if none."""
+	"""Inline BBCode flag thumbnail (with trailing space), or '' if none.
+	Width derives from the texture's REAL aspect ratio — a hardcoded 3:2 box
+	squashed the 2:1 Union Jack 25% and stretched the 1:1 Papal banner 50%
+	([img] with both dims hard-stretches; only width-alone preserves aspect)."""
 	var path := nation_flag_path(nation)
 	if path == "":
 		return ""
-	var width := int(height * 3 / 2)
+	var aspect: float = 1.5
+	if _flag_aspect_cache.has(path):
+		aspect = _flag_aspect_cache[path]
+	else:
+		var tex = load(path)
+		if tex != null and tex.get_height() > 0:
+			aspect = float(tex.get_width()) / float(tex.get_height())
+		_flag_aspect_cache[path] = aspect
+	var width := int(round(height * aspect))
 	return "[img width=%d height=%d]%s[/img] " % [width, height, path]
 
 
@@ -284,6 +300,36 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 		inner += bb_icon(icon_path, 18, text_hex) + " "
 	inner += "[color=#" + text_hex + "]" + label + "[/color]"
 	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
+
+
+# === Layout Helpers ===
+
+static func clamp_centered_panel(panel: Control) -> void:
+	"""Fit a centre-anchored fixed-size panel inside the CURRENT logical
+	viewport. The layer-50 screens are authored as fixed rects (e.g. 840x620)
+	that overflow small windows at high Interface Scale (content_scale_factor
+	up to 2.0 halves the logical viewport) — the header row with the close X
+	slides off-screen and becomes unclickable. Display-only: call on every
+	open; the authored rect (captured on first call) stays the ceiling, so
+	nothing changes on viewports that already fit. The 88px height reserve
+	covers the 36px top bar plus breathing room."""
+	if panel == null:
+		return
+	if not panel.has_meta("design_size"):
+		panel.set_meta("design_size", Vector2(
+			panel.offset_right - panel.offset_left,
+			panel.offset_bottom - panel.offset_top))
+	var design: Vector2 = panel.get_meta("design_size")
+	var viewport := panel.get_viewport()
+	if viewport == null:
+		return
+	var view: Vector2 = viewport.get_visible_rect().size
+	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
+	var h: float = minf(design.y, maxf(240.0, view.y - 88.0))
+	panel.offset_left = -w / 2.0
+	panel.offset_right = w / 2.0
+	panel.offset_top = -h / 2.0
+	panel.offset_bottom = h / 2.0
 
 
 # === Formatting Helpers ===

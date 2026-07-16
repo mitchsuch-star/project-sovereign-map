@@ -16,11 +16,9 @@ signal dismissed
 @onready var content_label = $PanelContainer/VBoxContainer/ContentScroll/ContentLabel
 @onready var continue_button = $PanelContainer/VBoxContainer/ContinueButton
 
-# Color palette (matching main.gd)
+# Color palette (matching main.gd). Nation header tints come from
+# Utils.NATION_COLORS (single source, all 20 nations) — see _get_nation_color.
 const COLOR_ERROR = "cd5c5c"
-const COLOR_NATION_BRITAIN = "cd5c5c"  # Red for Britain
-const COLOR_NATION_PRUSSIA = "6495ed"  # Blue for Prussia
-const COLOR_NATION_AUSTRIA = "f0e68c"  # Yellow for Austria
 
 func _ready():
 	# Connect button signal
@@ -225,11 +223,14 @@ func _format_battle(event: Dictionary) -> String:
 	result += _format_number(defender_casualties) + " casualties, "
 	result += _format_number(defender_remaining) + " remaining[/color]\n"
 
-	# Outcome
+	# Outcome — colored by WHO WON: green only when the victor fought for
+	# France. (The old check colored on "defender is a player marshal" against
+	# a hardcoded legacy roster, so Soult/Murat/Lannes victories rendered red
+	# and a player DEFEAT under Ney rendered green.)
 	var outcome_text = _get_outcome_text(outcome)
 	var outcome_color = Utils.COLOR_INFO
 	if victor:
-		outcome_color = Utils.COLOR_SUCCESS if _is_player_marshal(defender_name) else COLOR_ERROR
+		outcome_color = Utils.COLOR_SUCCESS if _victor_is_player(event, str(victor)) else COLOR_ERROR
 
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
@@ -369,33 +370,34 @@ func _get_outcome_text(outcome: String) -> String:
 			return outcome.replace("_", " ").capitalize()
 
 func _get_nation_color(nation: String) -> String:
-	"""Get color for nation name."""
-	match nation.to_lower():
-		"britain":
-			return COLOR_NATION_BRITAIN
-		"prussia":
-			return COLOR_NATION_PRUSSIA
-		"austria":
-			return COLOR_NATION_AUSTRIA
-		_:
-			return Utils.COLOR_TEXT
+	"""Nation header tint from the central 20-nation palette (Utils.NATION_COLORS,
+	Slice 7.5) instead of a private 3-nation map. Palette entries are map fills,
+	so near-black ones (Prussia) get a one-shot luminance lift to stay legible
+	on the dark panel."""
+	if not Utils.NATION_COLORS.has(nation):
+		return Utils.COLOR_TEXT
+	var c: Color = Utils.NATION_COLORS[nation]
+	var lum := c.get_luminance()
+	if lum < 0.45:
+		c = c.lightened(clampf(0.55 - lum, 0.0, 0.6))
+	return c.to_html(false)
 
-func _is_player_marshal(name: String) -> bool:
-	"""Check if marshal belongs to player (France)."""
-	var player_marshals = ["Ney", "Davout", "Grouchy", "Drouot"]
-	return name in player_marshals
+func _victor_is_player(event: Dictionary, victor: String) -> bool:
+	"""True when the battle's victor fought for France. Side nations ride the
+	battle event (attacker_nation/defender_nation) — never a hardcoded roster,
+	which broke for the 1805 marshals and Marshalate recruits."""
+	var defender_dict = event.get("defender", {})
+	var defender_name = str(defender_dict.get("name", "")) if defender_dict is Dictionary else ""
+	var side_nation = ""
+	if victor == defender_name:
+		side_nation = str(event.get("defender_nation", ""))
+	else:
+		side_nation = str(event.get("attacker_nation", ""))
+	return side_nation == "France"
 
 func _format_number(num) -> String:
-	"""Format number with comma separators."""
-	var s = str(int(num))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
+	"""Format number with comma separators (delegates to the Utils single source)."""
+	return Utils.format_number(int(num))
 
 func _on_continue_pressed():
 	"""Handle continue button press."""

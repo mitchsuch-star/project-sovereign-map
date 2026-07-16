@@ -613,16 +613,21 @@ class TestThreading:
 
     def test_dispatch_situation_carries_redirect_and_rollup(self, world):
         m = _french_marshal(world)
-        m.battles_won = 5  # expectation 200
+        # Expectation 240 sits ABOVE the highest non-capital estate income
+        # (major_city 200), so the marshal stays unmet no matter which region
+        # _conquer picks — the July 16 map-registry renames shifted the first
+        # safe pick from Algarve (city, 150) to Piedmont (major_city, 200),
+        # where an expectation of exactly 200 was silently fully met.
+        m.battles_won = 6  # expectation 240
         region = _endow(world, m, stability=100)
         situation = _build_situation(world, "France")
         assert situation["dotation_skim"] == region.get_effective_income()
         unmet = situation["unmet_marshals"]
         entry = next(u for u in unmet if u["marshal"] == m.name)
-        assert entry["expectation"] == 200
+        assert entry["expectation"] == 240
         assert entry["satisfaction"] == region.get_effective_income()
         assert entry["shortfall"] == max(
-            0, 200 - region.get_effective_income())
+            0, 240 - region.get_effective_income())
         # treasury_delta subtracts the redirect
         income_data = world.calculate_turn_income("France")
         upkeep_data = world.calculate_turn_upkeep("France")

@@ -3932,6 +3932,8 @@ class CombatExecutor:
                     "type": "battle",
                     "attacker": {"name": marshal.name},
                     "defender": {"name": enemy_marshal.name},
+                    "attacker_nation": getattr(marshal, "nation", ""),
+                    "defender_nation": getattr(enemy_marshal, "nation", ""),
                     "location": battle_region_name,
                     "outcome": "attacker_victory",
                     "auto_bombardment_kill": True,
@@ -4750,6 +4752,10 @@ class CombatExecutor:
                 "battle_name": battle_name,
                 "attacker": battle_result["attacker"],
                 "defender": battle_result["defender"],
+                # Side nations so the enemy-phase dialog can color the outcome
+                # by WHO WON (the victor's side), not a hardcoded roster guess.
+                "attacker_nation": battle_result.get("attacker_nation", ""),
+                "defender_nation": battle_result.get("defender_nation", ""),
                 "outcome": battle_result["outcome"],
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,

@@ -303,11 +303,15 @@ def test_chip_text_contrast_over_light_palette_entries():
     def luminance(rgb):
         return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 
-    for light in ["PapalStates", "Bavaria", "Austria"]:
+    # Exemplars track the live palette (EU4-convention re-author, July 16,
+    # 2026): Austria white / Bavaria pale blue / Hanover pale yellow / Spain
+    # gold are the light entries; PapalStates moved to the dark (cardinal
+    # purple) side.
+    for light in ["Austria", "Bavaria", "Hanover", "Spain"]:
         assert luminance(colors[light]) > 0.62, (
             f"{light} expected on the dark-text side of the contrast rule"
         )
-    for dark in ["France", "Britain", "Prussia", "Russia"]:
+    for dark in ["France", "Britain", "Prussia", "Russia", "PapalStates"]:
         assert luminance(colors[dark]) <= 0.62, (
             f"{dark} expected to keep white chip text"
         )

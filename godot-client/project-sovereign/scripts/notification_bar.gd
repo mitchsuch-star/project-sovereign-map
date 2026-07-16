@@ -372,11 +372,14 @@ func _show_expanded_panel(notif: Dictionary):
 	header.add_theme_constant_override("separation", 8)
 	vbox.add_child(header)
 
+	# Title must sit ABOVE the body in the type hierarchy: the body RichTextLabel
+	# inherits the theme's 16px, so a 12px title read as a sub-caption of its
+	# own paragraph. 17px keeps the heading a heading.
 	var title_label = Label.new()
 	title_label.text = Utils.humanize_nation_keys_in_text(str(notif.get("title", "Notification")))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.add_theme_color_override("font_color", accent)
-	title_label.add_theme_font_size_override("font_size", 12)
+	title_label.add_theme_font_size_override("font_size", 17)
 	header.add_child(title_label)
 
 	var turn_created = int(notif.get("turn_created", 0))
@@ -384,7 +387,7 @@ func _show_expanded_panel(notif: Dictionary):
 		var turn_label = Label.new()
 		turn_label.text = "T%d" % turn_created
 		turn_label.add_theme_color_override("font_color", Color(0.58, 0.58, 0.64, 1))
-		turn_label.add_theme_font_size_override("font_size", 10)
+		turn_label.add_theme_font_size_override("font_size", 12)
 		header.add_child(turn_label)
 
 	var body = RichTextLabel.new()
@@ -408,7 +411,6 @@ func _show_expanded_panel(notif: Dictionary):
 			var review_btn = Button.new()
 			review_btn.text = review_label
 			review_btn.custom_minimum_size = Vector2(92, 28)
-			review_btn.add_theme_font_size_override("font_size", 10)
 			review_btn.pressed.connect(_on_review_pressed.bind(
 				review_target,
 				str(details.get("route_id", "")),
@@ -419,14 +421,12 @@ func _show_expanded_panel(notif: Dictionary):
 	var keep_btn = Button.new()
 	keep_btn.text = "Keep"
 	keep_btn.custom_minimum_size = Vector2(64, 28)
-	keep_btn.add_theme_font_size_override("font_size", 10)
 	keep_btn.pressed.connect(_close_expanded_panel)
 	button_row.add_child(keep_btn)
 
 	var dismiss_btn = Button.new()
 	dismiss_btn.text = "Acknowledge"
 	dismiss_btn.custom_minimum_size = Vector2(92, 28)
-	dismiss_btn.add_theme_font_size_override("font_size", 10)
 	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(str(notif.get("id", ""))))
 	button_row.add_child(dismiss_btn)
 

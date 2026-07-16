@@ -96,6 +96,7 @@ func open(api_client):
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading ledger...[/color]"
 	current_tab = 0
 	show()
+	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
 	api_client.get_ledger(_on_ledger_received)
 

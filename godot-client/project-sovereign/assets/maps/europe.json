@@ -290,8 +290,8 @@
         "Region_009",
         "Region_120"
       ],
-      "name": "Algarve",
-      "starting_controller": "Portugal",
+      "name": "Morocco",
+      "starting_controller": "Spain",
       "terrain": "plains",
       "region_type": "city",
       "is_capital": false
@@ -489,8 +489,8 @@
         "Region_022",
         "Region_122"
       ],
-      "name": "Andalusia",
-      "starting_controller": "Spain",
+      "name": "Oran",
+      "starting_controller": "Ottoman",
       "terrain": "plains",
       "region_type": "major_city",
       "is_capital": false
@@ -1745,8 +1745,8 @@
       "adjacent": [
         "Region_073"
       ],
-      "name": "Sicily",
-      "starting_controller": "Naples",
+      "name": "Tripoli",
+      "starting_controller": "Ottoman",
       "terrain": "plains",
       "region_type": "major_city",
       "is_capital": false
@@ -3143,7 +3143,7 @@
       "adjacent": [
         "Region_039"
       ],
-      "name": "Bessarabia",
+      "name": "New Russia",
       "starting_controller": "Russia",
       "terrain": "hills",
       "region_type": "town",

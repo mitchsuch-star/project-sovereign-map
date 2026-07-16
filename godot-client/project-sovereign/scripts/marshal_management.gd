@@ -115,6 +115,7 @@ func open(api_client):
 	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
 	show()
+	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_marshal_overview(_on_data_received)
 
 

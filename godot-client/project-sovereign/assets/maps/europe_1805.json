@@ -361,7 +361,7 @@
         "Castanos": {
             "name": "Castanos",
             "nation": "Spain",
-            "location": "Andalusia",
+            "location": "La Mancha",
             "strength": 15000,
             "personality": "cautious",
             "skills": { "tactical": 4, "shock": 3, "defense": 4, "logistics": 5, "administration": 4, "command": 4 },

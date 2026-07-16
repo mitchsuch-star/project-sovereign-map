@@ -30,6 +30,7 @@ func open(api_client):
 	"""Fetch dispatch from backend and display it."""
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]Loading dispatch...[/color]"
 	show()
+	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_dispatch(_on_dispatch_received)
 
 func close_view():
@@ -182,18 +183,14 @@ func _on_dispatch_received(response):
 				_:
 					icon = "-"
 
-			# Build the line
+			# Build the line. Separator-based, NOT space-padded columns: the UI
+			# font (EB Garamond) is proportional, so char-count padding rendered
+			# as ragged staircases — the same failure the marshal card's █░ bars
+			# hit — and an exactly-full field fused into the next with no gap.
 			var line = "  " + icon + " "
-			line += m_name
-			while line.length() < 18:
-				line += " "
-			line += m_loc
-			while line.length() < 34:
-				line += " "
-			line += _format_number(m_str)
-			while line.length() < 44:
-				line += " "
-			line += m_note
+			line += m_name + " — " + m_loc + " — " + _format_number(m_str)
+			if m_note != "":
+				line += " — " + m_note
 
 			# Append trust/morale warnings
 			if m_trust_notable and m_trust < 55:
@@ -248,13 +245,9 @@ func _on_dispatch_received(response):
 				_:
 					vis_label = ""
 
-			var intel_line = "  " + i_name
-			while intel_line.length() < 18:
-				intel_line += " "
-			intel_line += i_loc
-			while intel_line.length() < 34:
-				intel_line += " "
-			intel_line += i_strength
+			# Separator-based (see the marshal table above): proportional font
+			# breaks char-count column stops.
+			var intel_line = "  " + i_name + " — " + i_loc + " — " + i_strength
 
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]\n"
 	bbcode += "\n"

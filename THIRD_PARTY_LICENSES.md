@@ -99,7 +99,11 @@ banner of arms — barry sable/or with the green crancelin bend (white-over-gree
 1815+ Kingdom bicolor). Kept-as-authored judgment calls: Switzerland's white cross on red
 (the 1803–13 Mediation era had no federal flag; the cross is the medieval confederate war
 sign), Naples' Angevin azure semé-de-lis with red label (the 1805 Bourbon state flag was
-plain white with arms — illegible at thumbnail size).
+plain white with arms — illegible at thumbnail size). **Hanover steed upgrade (July 16,
+2026):** the hand-drawn horse was replaced with the detailed heraldic Saxon Steed adapted
+from Wikimedia Commons "Flag_of_Twente.svg" (released into the public domain worldwide by
+its author; the Twente flag carries the same Saxon Steed emblem lineage), rescaled onto the
+game-palette red field in `Hanover.svg`. Public domain — no attribution required.
 
 ## Ornaments & map decor — `assets/ui/ornaments/`, `assets/ui/decor/`, `assets/textures/decor/` (CC0 / PD)
 

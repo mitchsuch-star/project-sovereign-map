@@ -162,6 +162,7 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 const GRIP_SIZE := 20.0
 const TERMINAL_ANCHOR_LEFT := 10.0    # matches BottomLeftUI offset_left in main.tscn
 const TERMINAL_ANCHOR_BOTTOM := -10.0  # matches BottomLeftUI offset_bottom in main.tscn
+const TOP_BAR_RESERVED_PX := 36.0      # matches BarContainer offset_bottom in top_bar.tscn
 var _terminal_width := UiSettings.DEFAULT_TERMINAL_WIDTH
 var _terminal_height := UiSettings.DEFAULT_TERMINAL_HEIGHT
 var resize_grip: Panel = null
@@ -912,8 +913,12 @@ func _relayout_terminal() -> void:
 	intended footprint because _terminal_width/height are left untouched here."""
 	var disp_w = clampf(_terminal_width, UiSettings.MIN_TERMINAL_WIDTH,
 			maxf(UiSettings.MIN_TERMINAL_WIDTH, size.x - TERMINAL_ANCHOR_LEFT * 2.0))
+	# Reserve the top-bar strip (CanvasLayer 75, y 0..36): without it a
+	# full-height drag slides the header row and the corner resize grip under
+	# the bar, where they are hidden and click-blocked — the grip becomes
+	# unreachable and the terminal is wedged at full height.
 	var disp_h = clampf(_terminal_height, UiSettings.MIN_TERMINAL_HEIGHT,
-			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0))
+			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0 - TOP_BAR_RESERVED_PX))
 	bottom_left_ui.offset_left = TERMINAL_ANCHOR_LEFT
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
 	bottom_left_ui.offset_right = TERMINAL_ANCHOR_LEFT + disp_w
@@ -2068,19 +2073,14 @@ func _display_morning_dispatch(data: Dictionary):
 				_:
 					icon = "-"
 
-			# Build the line
+			# Build the line. Separator-based, NOT space-padded columns: the UI
+			# font (EB Garamond) is proportional, so char-count padding rendered
+			# as ragged staircases, and an exactly-full field fused into the
+			# next with no gap. Mirrors dispatch_view.gd.
 			var line = "  " + icon + " "
-			line += m_name
-			# Pad name to ~14 chars for alignment
-			while line.length() < 18:
-				line += " "
-			line += m_loc
-			while line.length() < 34:
-				line += " "
-			line += _format_number(m_str)
-			while line.length() < 44:
-				line += " "
-			line += m_note
+			line += m_name + " — " + m_loc + " — " + _format_number(m_str)
+			if m_note != "":
+				line += " — " + m_note
 
 			# Append trust/morale warnings
 			if m_trust_notable and m_trust < 55:
@@ -2135,13 +2135,9 @@ func _display_morning_dispatch(data: Dictionary):
 				_:
 					vis_label = ""
 
-			var intel_line = "  " + i_name
-			while intel_line.length() < 18:
-				intel_line += " "
-			intel_line += i_loc
-			while intel_line.length() < 34:
-				intel_line += " "
-			intel_line += i_strength
+			# Separator-based (see MARSHAL STATUS above): proportional font
+			# breaks char-count column stops.
+			var intel_line = "  " + i_name + " — " + i_loc + " — " + i_strength
 
 			add_output("[color=#" + Utils.COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]")
 	add_output("")
@@ -2509,16 +2505,10 @@ func _update_manpower_display():
 		art_value.add_theme_color_override("font_color", Color(0.75, 0.7, 0.85))
 
 func _format_number(num) -> String:
-	"""Format number with comma separators."""
-	var s = str(int(num))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
+	"""Format number with comma separators (delegates to the Utils single
+	source — the old local loop counted the '-' sign as a digit and rendered
+	a deficit treasury as \"-,500\")."""
+	return Utils.format_number(int(num))
 
 func _add_separator():
 	"""Add a visual separator line."""

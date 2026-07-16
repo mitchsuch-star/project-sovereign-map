@@ -32,6 +32,9 @@ const COLOR_BAR_CENTER = Color(0.35, 0.35, 0.4, 0.6)
 # multiplies).
 const BAR_FRAME_CAP = 9
 const COLOR_BAR_FRAME_TINT = Color(0.72, 0.78, 1.0)
+# Max pixels the fill's OUTER edge tucks inside the track's gold rim cap at
+# |score| 100 (applied proportionally so mid-range scores stay honest).
+const BAR_RIM_INSET = 5.0
 
 # Resize constraints
 const MIN_WIDTH = 150
@@ -381,13 +384,20 @@ static func _build_tug_of_war_bar(score: int, opponent: String, bar_width: int, 
 		var fill = TextureRect.new()
 		fill.texture = load("res://assets/ui/bars/warbar_fill.png")
 		fill.stretch_mode = TextureRect.STRETCH_SCALE
+		# EXPAND_IGNORE_SIZE is load-bearing: without it the texture's natural
+		# 72x22 px becomes the control's MINIMUM size, so any anchored span
+		# smaller than that (short bars, high UI scale, low scores) overflows
+		# past the centre gem and bulges out of the track.
+		fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fraction: float = abs(normalized) / 100.0
+		var rim_inset: float = BAR_RIM_INSET * fraction
 		if normalized > 0:
 			fill.modulate = Utils.NATION_COLORS["France"]
-			_anchor_bar_child(fill, 0.5, 0.5 + (normalized / 100.0) * 0.5, 0.0, 0.0)
+			_anchor_bar_child(fill, 0.5, 0.5 + fraction * 0.5, 0.0, -rim_inset)
 		else:
 			fill.modulate = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
-			_anchor_bar_child(fill, 0.5 - (abs(normalized) / 100.0) * 0.5, 0.5, 0.0, 0.0)
+			_anchor_bar_child(fill, 0.5 - fraction * 0.5, 0.5, rim_inset, 0.0)
 		fill.offset_top = 3.0
 		fill.offset_bottom = -3.0
 		container.add_child(fill)
@@ -396,6 +406,9 @@ static func _build_tug_of_war_bar(score: int, opponent: String, bar_width: int, 
 	var gem = TextureRect.new()
 	gem.texture = load("res://assets/ui/bars/warbar_gem.png")
 	gem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Same min-size trap as the fill: the 26x26 texture must not clamp the
+	# 20x20 anchored rect or the gem drifts right/down off the true centre.
+	gem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var gem_size := float(bar_height) + 4.0
 	gem.anchor_left = 0.5
