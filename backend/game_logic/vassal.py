@@ -54,6 +54,28 @@ INVEST_COOLDOWN = 3
 # keeps FULL value in the VS-R spiral band (it is not a cheap one-shot).
 GARRISON_LOYALTY_BONUS = 2
 
+# ═══════ THE DEFECTION (VS-6, July 16, 2026 — VASSAL_DEEPENING_SPEC §7) ═══════
+# A coalition-flip is a BRIBE: a nation at war with the lord must OFFER the
+# wavering vassal a concession it values (the Treaty-of-Ried dynamic). No
+# willing, able briber → the vassal stays (or collapses via the ordinary
+# rebellion path). Two outcomes when the bribe lands:
+#   transfer — the briber takes responsibility (pays more, passes the WPS-B
+#              power cap) and becomes the new lord (reuses VS-5 transfer_vassal);
+#   free+WAR — the cheaper "liberation" purse: the vassal becomes independent
+#              and GUARANTEED HOSTILE to its former lord (deliberate contrast
+#              to the F8b graceful-PEACE fallback).
+# All numbers in-band tunable.
+BRIBE_TRANSFER_COST = 600      # gold: taking a vassal under your crown
+BRIBE_FREE_COST = 300          # gold: merely funding its "independence"
+# Deliberately equals CONTRIBUTION_DISAFFECTED_BELOW (VS-4): "first they stop
+# fighting for you, then they flip" — the bribe threshold IS the disaffected
+# line (pinned in test_vassal_defection.py).
+BRIBE_ELIGIBLE_LOYALTY = 35
+BRIBE_SPIRAL_LOYALTY = 50      # reachable when the lord's grip spirals (<30)
+BRIBE_CHANCE_PIVOT = 40        # chance = (PIVOT - loyalty) / 100, grip-scaled
+BRIBE_COOLDOWN = 5             # turns, per briber-vassal pair
+BRIBE_VASSAL_PAUSE = 1         # per-vassal latch: one bribe attempt per turn
+
 # ═══════ CALL-TO-ARMS (VS-4, July 16, 2026 — VASSAL_DEEPENING_SPEC §5) ═══════
 # Loyalty has military teeth. Tier thresholds (in-band tunable):
 #   loyal        (>= 60): full contribution, as today.
@@ -1771,5 +1793,262 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
 
         # Only court one vassal per nation per turn
         break
+
+    return events
+
+
+# ═══════════════════════════════════════════════════════
+# THE DEFECTION (VS-6)
+# ═══════════════════════════════════════════════════════
+
+def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dict:
+    """VS-6 outcome 1: the bribed vassal becomes FREE — and GUARANTEED at
+    WAR with its former lord (the deliberate contrast to F8b's graceful
+    PEACE break: the briber 'liberated' them; they are now an enemy
+    belligerent). Mirrors the rebellion WAR block incl. the VS-3 reclaim;
+    keeps the armistice + war-instance-failure fallbacks.
+    """
+    state = world.vassals[vassal_name]
+    lord = state["lord"]
+    granted_regions = list(state.get("granted_regions") or [])
+
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
+                         {"carved_name": vassal_name, "protector": lord},
+                         "always")
+
+    del world.vassals[vassal_name]
+    world.invalidate_active_nations_cache()
+
+    diplo_key = world._make_diplo_key(lord, vassal_name)
+    current_state = world.diplomatic_states.get(diplo_key, "PEACE")
+    outcome = "free_hostile"
+    if current_state == "ARMISTICE":
+        # A respected armistice is a treaty — the break is not hostile.
+        outcome = "free_armistice"
+    else:
+        from backend.game_logic.diplomacy import (
+            _process_war_cascade,
+            set_diplomatic_state,
+        )
+        from backend.game_logic.settlement_helpers import (
+            CascadeContext,
+            ensure_war_instance_for_pair,
+        )
+        war_instance_result = ensure_war_instance_for_pair(
+            world, vassal_name, lord,
+            entry_path="coalition_defection",
+            reason="attempt_vassal_bribe",
+        )
+        if war_instance_result.get("ok"):
+            set_diplomatic_state(world, vassal_name, lord, "WAR",
+                                 "coalition_defection")
+            cascade_ctx = CascadeContext(
+                war_id=war_instance_result["war_id"],
+                root_aggressor=vassal_name,
+                war_entry_entries=[],
+            )
+            _process_war_cascade(world, vassal_name, lord, ctx=cascade_ctx)
+            # VS-3 reclaim: the gift flips back when the vassal turns hostile
+            reclaimed = []
+            for granted_name in granted_regions:
+                granted_region = world.regions.get(granted_name)
+                if (granted_region is not None
+                        and getattr(granted_region, 'controller', '') == vassal_name):
+                    granted_region.controller = lord
+                    reclaimed.append(granted_name)
+            if reclaimed:
+                world.invalidate_active_nations_cache()
+        else:
+            # F8b fallback: war-instance conflict → plain independence
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            set_diplomatic_state(world, vassal_name, lord, "PEACE",
+                                 "coalition_defection_independent")
+            outcome = "free_peace_fallback"
+
+    # Marshals return to the freed nation (mirror the rebellion block)
+    for marshal in list(world.marshals.values()):
+        if (getattr(marshal, 'original_nation', None) == vassal_name
+                and getattr(marshal, 'nation', '') == lord):
+            marshal.nation = vassal_name
+            marshal.original_nation = None
+            marshal.trust = Trust()
+            if hasattr(marshal, 'relationship_with_lord'):
+                delattr(marshal, 'relationship_with_lord')
+
+    # Sibling shock + relations (mirror the rebellion block)
+    for other_vassal, other_state in world.vassals.items():
+        if other_state["lord"] == lord:
+            other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
+    world.modify_nation_relation(lord, vassal_name, -50)
+    world.modify_nation_relation(vassal_name, briber, 30)
+    if lord == getattr(world, 'player_nation', 'France'):
+        from backend.game_logic.coalition import reduce_threat
+        reduce_threat(world, 10, "vassal_defection")
+
+    return {"outcome": outcome, "lord": lord}
+
+
+def attempt_vassal_bribe(world, nation: str) -> List[dict]:
+    """VS-6: a nation at WAR with a lord tries to BRIBE one of that lord's
+    wavering satellites into defecting. Runs in the AI diplomatic phase
+    immediately after courting and RESOLVES IMMEDIATELY (the bribed vassal
+    is transferred/freed before advance_turn's cascade/rebellion chain ever
+    sees it — kills the double-fire risk structurally, zero new serialized
+    fields).
+
+    Gates (all required):
+    - briber at WAR with the lord and able to pay (BRIBE_FREE_COST minimum);
+    - vassal courtable: loyalty < 35 (the VS-4 disaffected line), or < 50
+      while the lord's grip spirals (< 30) — the Ried window;
+    - per-pair 5-turn cooldown + a per-vassal 1-turn latch (N coalition
+      members cannot pile on one vassal in a single turn);
+    - the flip is PROBABILISTIC: chance = (40 − loyalty)/100, scaled by
+      courting_effectiveness_scale(lord grip). A failed bribe still burns
+      the briber's gold half-stake and warns the lord.
+
+    Outcome when it lands: the briber becomes the NEW LORD (transfer, VS-5
+    machinery) when it passes the WPS-B power cap AND pays BRIBE_TRANSFER_COST;
+    otherwise it pays BRIBE_FREE_COST and the vassal goes FREE + HOSTILE to
+    the old lord. GR5 lord-neutral: any lord's satellites can be bribed —
+    the PLAYER-side verb is a deferred owner row (structurally latent until
+    an enemy lord holds a satellite).
+    """
+    events = []
+    treasury = world.nation_gold.get(nation, 0)
+    if treasury < BRIBE_FREE_COST:
+        return events
+
+    cooldowns_dict = getattr(world, 'ai_proposal_cooldowns', {})
+
+    for vassal_name, state in list(world.vassals.items()):
+        lord = state["lord"]
+        if lord == nation or vassal_name == nation:
+            continue
+        if not world.is_at_war(nation, lord):
+            continue
+
+        # Per-pair cooldown + per-vassal latch
+        pair_key = f"defect|{nation}|{vassal_name}"
+        latch_key = f"defect_pause|{vassal_name}"
+        if cooldowns_dict.get(pair_key, 0) > 0 or cooldowns_dict.get(latch_key, 0) > 0:
+            continue
+
+        # Courtable window (VS-4/VS-R interlock)
+        loyalty = int(state.get("loyalty", 100))
+        lord_grip = get_imperial_grip(world, lord)
+        in_spiral = lord_grip < AUTHORITY_ACCELERATE_BELOW
+        if loyalty >= BRIBE_ELIGIBLE_LOYALTY and not (
+                in_spiral and loyalty < BRIBE_SPIRAL_LOYALTY):
+            continue
+
+        # The offer is on the table — latch + cooldown regardless of outcome
+        cooldowns_dict[pair_key] = BRIBE_COOLDOWN
+        cooldowns_dict[latch_key] = BRIBE_VASSAL_PAUSE
+        world.ai_proposal_cooldowns = cooldowns_dict
+
+        # The chance pivot widens with the lord's collapse (the Ried
+        # dynamic): healthy grip flips only the disaffected (<40 pivot);
+        # a spiral makes even the merely-wavering biddable (<50 pivot).
+        pivot = BRIBE_SPIRAL_LOYALTY if in_spiral else BRIBE_CHANCE_PIVOT
+        chance = max(0.0, (pivot - loyalty) / 100.0)
+        chance *= courting_effectiveness_scale(lord_grip)
+        landed = random.random() < chance
+
+        if not landed:
+            # The approach costs half the purse and the lord's court hears
+            world.nation_gold[nation] = int(
+                world.nation_gold.get(nation, 0) - BRIBE_FREE_COST // 2)
+            if lord == getattr(world, 'player_nation', 'France'):
+                from backend.notifications import (
+                    NotificationPriority,
+                    VASSAL_COURTING_DETECTED,
+                    create_notification,
+                )
+                world.notifications.add(create_notification(
+                    VASSAL_COURTING_DETECTED,
+                    NotificationPriority.HIGH,
+                    f"{nation} Tempts {vassal_name}",
+                    (f"{nation}'s agents offered {vassal_name} terms to "
+                     f"change sides. The offer was refused — this time."),
+                    int(world.current_turn),
+                ))
+            events.append({
+                "type": "vassal_bribe_refused",
+                "nation": nation,
+                "vassal": vassal_name,
+                "lord": lord,
+                "message": (f"{nation}'s bribe is refused — {vassal_name} "
+                            f"stays with {lord}, for now."),
+            })
+            break  # one bribe per nation per turn
+
+        # The bribe lands — pick the outcome by what the briber can carry
+        from backend.game_logic.diplomacy import check_vassalage_power_cap
+        cap = check_vassalage_power_cap(world, nation, vassal_name)
+        can_transfer = (cap.get("allowed")
+                        and world.nation_gold.get(nation, 0) >= BRIBE_TRANSFER_COST)
+        if can_transfer:
+            world.nation_gold[nation] = int(
+                world.nation_gold.get(nation, 0) - BRIBE_TRANSFER_COST)
+            transfer_result = transfer_vassal(
+                world, vassal_name, nation, reason="coalition_defection")
+            outcome = "transfer"
+            message = (
+                f"THE DEFECTION: {vassal_name} changes masters — bribed away "
+                f"from {lord}, it now serves {nation}."
+            )
+        else:
+            world.nation_gold[nation] = int(
+                world.nation_gold.get(nation, 0) - BRIBE_FREE_COST)
+            free_result = _defect_vassal_free_and_hostile(
+                world, vassal_name, nation)
+            outcome = free_result["outcome"]
+            message = (
+                f"THE DEFECTION: {nation}'s gold buys {vassal_name}'s "
+                f"'independence' — it breaks with {lord} and takes the field "
+                f"against its former master."
+            ) if outcome == "free_hostile" else (
+                f"{vassal_name} breaks with {lord}, bought free by {nation}."
+            )
+
+        if hasattr(world, "log_event"):
+            world.log_event({
+                "type": "vassal_defected",
+                "vassal": vassal_name,
+                "lord": lord,
+                "briber": nation,
+                "outcome": outcome,
+            })
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(
+            world, "diplomatic_vassal_defected",
+            {"vassal": vassal_name, "lord": lord, "briber": nation,
+             "nation": lord},
+            "always",
+        )
+        if lord == getattr(world, 'player_nation', 'France'):
+            from backend.notifications import (
+                NotificationPriority,
+                VASSAL_REBELLION,
+                create_notification,
+            )
+            world.notifications.add(create_notification(
+                VASSAL_REBELLION,
+                NotificationPriority.CRITICAL,
+                f"{vassal_name} DEFECTS!",
+                message,
+                int(world.current_turn),
+            ))
+
+        events.append({
+            "type": "vassal_defected",
+            "nation": nation,
+            "vassal": vassal_name,
+            "lord": lord,
+            "outcome": outcome,
+            "message": message,
+        })
+        break  # one bribe per nation per turn
 
     return events

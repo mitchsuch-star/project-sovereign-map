@@ -465,6 +465,25 @@ class TurnManager:
                     debug_print(f"[VASSAL COURTING] {event.get('message', '')}")
 
         # ════════════════════════════════════════════════════════════
+        # THE DEFECTION (VS-6, VASSAL_DEEPENING_SPEC §7)
+        # A nation at war with a lord BRIBES a wavering satellite into
+        # changing sides. Runs immediately after courting and resolves
+        # IMMEDIATELY — the bribed vassal is transferred/freed before
+        # advance_turn's cascade/rebellion chain ever sees it (structural
+        # double-fire guard). Unlike courting's debug-print sink, defection
+        # events ride notification + dispatch + campaign log inside the
+        # domain function.
+        # ════════════════════════════════════════════════════════════
+        if world.vassals:
+            from backend.game_logic.vassal import attempt_vassal_bribe
+            for nation in enemy_nations:
+                if not world.vassals:
+                    break
+                bribe_events = attempt_vassal_bribe(world, nation)
+                for event in bribe_events:
+                    debug_print(f"[VASSAL DEFECTION] {event.get('message', '')}")
+
+        # ════════════════════════════════════════════════════════════
         # SETTLEMENT OFFER PRODUCER + UI PROMOTION
         # (SC-5 reversal / Slice G1 commit 2)
         # AI side-leaders produce incoming settlement offers for the

@@ -101,6 +101,7 @@ CAMPAIGN_LOG_TYPES = {
     "vassal_auto_join_war",
     "vassal_refuses_call",  # VS-4: disaffected vassal declines the call-to-arms
     "vassal_transferred",   # VS-5: peace-table lord re-homing
+    "vassal_defected",      # VS-6: bribed coalition-flip (transfer or free+war)
     "coalition_member_left",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted",
@@ -270,6 +271,7 @@ CATEGORY_MAP = {
     "vassal_auto_join_war": "diplomacy",
     "vassal_refuses_call": "diplomacy",  # VS-4
     "vassal_transferred": "diplomacy",   # VS-5
+    "vassal_defected": "diplomacy",      # VS-6
     "coalition_member_left": "diplomacy",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
@@ -651,10 +653,10 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Vassal auto-join / VS-4 refusal / VS-5 transfer: show if player
-        # involved or PARTIAL+
+        # Vassal auto-join / VS-4 refusal / VS-5 transfer / VS-6 defection:
+        # show if player involved or PARTIAL+
         if event_type in ("vassal_auto_join_war", "vassal_refuses_call",
-                          "vassal_transferred"):
+                          "vassal_transferred", "vassal_defected"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             vassal = event.get("vassal") or event.get("nation", "")
             overlord = (event.get("overlord") or event.get("lord")
@@ -1391,6 +1393,18 @@ def format_event_oneliner(event: dict) -> str:
         to_lord = event.get("to_lord", "Unknown")
         return (f"{vassal} passes from {from_lord}'s suzerainty "
                 f"to {to_lord}'s.")
+
+    if event_type == "vassal_defected":
+        # VS-6: the bribed coalition-flip
+        vassal = event.get("vassal", "Unknown")
+        lord = event.get("lord", "Unknown")
+        briber = event.get("briber", "Unknown")
+        outcome = event.get("outcome", "")
+        if outcome == "transfer":
+            return (f"THE DEFECTION: {briber}'s gold buys {vassal} away "
+                    f"from {lord} — it serves a new master.")
+        return (f"THE DEFECTION: {briber}'s gold turns {vassal} against "
+                f"{lord} — the freed satellite takes the field.")
 
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")

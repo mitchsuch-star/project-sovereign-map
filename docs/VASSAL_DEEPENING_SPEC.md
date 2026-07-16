@@ -520,10 +520,12 @@ can impose/accept creation & transfer in its own settlements).
 they would want something — and they either become free or someone else's vassal; if free they are
 guaranteed at war with you").*
 
-Refines the deferred "coalition-join" GR9 slice (§2.7). Today a grip-spiral rebellion resolves to
-*graceful independence* (PEACE, no war — F8b). VS-6 makes a coalition-driven flip a **transactional
-defection**: the vassal is *bribed* away, wants *something*, and the outcome is one of two — not a
-quiet neutral break.
+Refines the deferred "coalition-join" GR9 slice (§2.7). *(Baseline correction, recorded at the
+July 16 build: today's DEFAULT rebellion outcome is already WAR — `check_vassal_rebellion`'s main
+branch; the F8b graceful-PEACE break is only the war-instance-failure FALLBACK. VS-6's genuinely
+new content is therefore the bribe gate, briber attribution + payment, and the transfer outcome —
+not the war itself.)* VS-6 makes a coalition-driven flip a **transactional defection**: the vassal
+is *bribed* away, wants *something*, and the outcome is one of two — not a quiet neutral break.
 
 **The bribe (the vassal wants something):** a flip is NOT automatic even at rock-bottom grip — a
 coalition (or a specific coalition member) must **offer the wavering vassal a concession it values**:
@@ -551,12 +553,37 @@ independence) yields outcome 1 (free + hostile). Branch weights / bribe costs es
 strategic lever, not just a punishment). Enemy-AI must be able to *offer* the bribe and *defend* its own
 satellites — see **VP-D6** (enemy-AI grip-awareness), sequenced alongside.
 
-**Landing contract (GR9):** owner §7; slice **VS-6 (after VS-5 — it reuses transfer)**; completion = a
-bribed defection resolves to EITHER free+war OR transfer-to-a-new-lord, driven by the coalition's offer,
-both legible; test `test_vassal_defection.py` (bribe gating, free→WAR outcome, transfer outcome,
-no-bribe→stays/plain-independence, GR5 enemy-satellite bribe). Supersedes the §2.7 "graceful
-independence is the only coalition path" note for *coalition-driven* flips; plain (non-coalition)
-collapse keeps the independent-rebellion path.
+**Landing contract (GR9):** owner §7; slice **VS-6** — ✅ **LANDED July 16, 2026.**
+- **`attempt_vassal_bribe`** (vassal.py) runs in the AI diplomatic phase immediately AFTER
+  courting and **resolves immediately** — the bribed vassal is transferred/freed before
+  `advance_turn`'s cascade/rebellion chain sees it (structural double-fire guard; zero new
+  serialized fields — cooldowns ride `ai_proposal_cooldowns`: per-pair `defect|` 5 turns +
+  per-vassal `defect_pause|` 1-turn latch so N members can't pile on one vassal in a turn).
+- **The bribe gate:** briber at WAR with the lord + can pay; vassal courtable at loyalty <35
+  (**deliberately the VS-4 disaffected line** — "first they stop fighting for you, then they
+  flip", pinned) or <50 while the lord's grip spirals (<30, the Ried window). Probabilistic:
+  chance = (pivot − loyalty)/100 × `courting_effectiveness_scale(grip)`, pivot 40 healthy /
+  50 in spiral. A failed approach burns half the purse and warns the lord's court.
+- **Outcome (a) transfer:** briber passes the WPS-B power cap AND pays 600g → new lord via
+  **VS-5 `transfer_vassal`** (loyalty resets to 30 — "changed masters, not necessarily happier").
+- **Outcome (b) free + HOSTILE:** 300g (the cheaper "liberation" purse) →
+  `_defect_vassal_free_and_hostile`: WAR with the former lord via
+  `ensure_war_instance_for_pair(entry_path="coalition_defection")` + cascade, **VS-3 granted
+  provinces reclaimed**, marshals return, sibling −10 shock, relation −50 lord / +30 briber,
+  player-scoped threat relief; armistice-respected + F8b war-instance-failure fallbacks kept.
+- **No `coalition.members` mutation (structural deviation, recorded):** free+war grants a WAR
+  state + war instance, never coalition membership (the first-ever `members.append` would
+  ripple through posture/friction/exhaustion/dissolution consumers). Copy says "takes the
+  field", never "joins the coalition". The war is militarily nominal for marshal-less 1805
+  satellites — a deliberate, documented diplomatic beat.
+- **Legibility:** CRITICAL "{vassal} DEFECTS!" notification, dispatch template, campaign-log
+  `vassal_defected` one-liner (both outcomes' copy) — NOT courting's debug-print sink.
+- **GR5:** lord-neutral (any lord's satellite biddable — pinned with a synthetic enemy-lord
+  web); the PLAYER-side bribe verb is deferred with owner row `DESIGN_REFINEMENT.md` VP-D9.
+Test `test_vassal_defection.py` (18): gate matrix (war/loyalty/gold/latch/cooldown), spiral
+window widening, both outcomes, armistice-respected, VS-3 reclaim, sibling shock, GR5, legibility.
+Supersedes the §2.7 "graceful independence is the only coalition path" note for *coalition-driven*
+flips; plain (non-coalition) collapse keeps the independent-rebellion path.
 
 ---
 
