@@ -87,11 +87,19 @@ quill-scratch, dedicated wax-seal stamp — approximated from the RPG pack for n
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
 20 period national flags for the 1805 roster (France, Britain 1801 Union, Austria, Russia,
-Prussia, Spain, Naples, Bavaria, Sweden, Denmark, Ottoman, Portugal, Holland, Papal States,
-Sardinia, Saxony — Wikimedia PD; plus Hanover, Hesse, Kingdom of Italy, Switzerland — original
-simplified geometric renderings authored in-repo July 16, 2026, matching the set's flat style;
-simple heraldic geometry carries no copyright), named `<Nation>.svg`. Public domain — no
-attribution required.
+Prussia, Spain, Naples, Bavaria, Sweden, Denmark, Portugal, Holland, Papal States,
+Sardinia — Wikimedia PD; plus Hanover, Hesse, Kingdom of Italy, Switzerland, Ottoman, Saxony —
+original simplified geometric renderings authored in-repo July 16, 2026, matching the set's
+flat style; simple heraldic geometry carries no copyright), named `<Nation>.svg`. Public
+domain — no attribution required. **Date-accuracy pass (July 16, 2026):** Hanover redrawn as
+the Electorate's white Saxon Steed on red (the white-over-yellow bicolor is the post-1814
+Kingdom flag), Ottoman's 5-point star replaced with the 8-point star of Selim III's 1793
+naval ensign (5-point is the 1844 Tanzimat design), Saxony redrawn as the Electorate's
+banner of arms — barry sable/or with the green crancelin bend (white-over-green is the
+1815+ Kingdom bicolor). Kept-as-authored judgment calls: Switzerland's white cross on red
+(the 1803–13 Mediation era had no federal flag; the cross is the medieval confederate war
+sign), Naples' Angevin azure semé-de-lis with red label (the 1805 Bourbon state flag was
+plain white with arms — illegible at thumbnail size).
 
 ## Ornaments & map decor — `assets/ui/ornaments/`, `assets/ui/decor/`, `assets/textures/decor/` (CC0 / PD)
 

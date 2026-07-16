@@ -84,8 +84,11 @@
 > the gear honors the ESC pause-never-over-a-screen invariant; objection resolutions refresh open
 > screens; region-panel depot check fixed to the canonical `supply_depot` key; parse-harness report
 > regenerated. Boot-smoke 0 `SCRIPT ERROR` (×2); `tests/test_ui6_interaction_sweep.py` (44); suite
-> 13,521 / 3. **Open: user visual sign-off** on the new surfaces (vassal cards, region panel, flags,
-> notification glyphs, gear, two-rank piece spread) — one-line tunes, same gate family as U2/U3/U5.
+> 13,521 / 3. ~~Open: user visual sign-off~~ **✅ SIGN-OFF RECORDED July 16, 2026** (user-directed
+> self-served pass — screenshot-verified in-game at the native ≥2560 display; record in STATUS.md's
+> ⚔️ July-16 section: region panel + vassal cards w/ flags + nations-tab flags + Generals ladder/cards +
+> gear invariant + two-rank pieces + map crispness all PASS; same session redrew Hanover/Ottoman/Saxony
+> for 1805 date accuracy). The U2/U3/U5 sibling gates closed in the same pass.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -501,10 +504,9 @@ keyed to its dominant arm.
 - **Exit:** UI-3 completion definition (§4) met — panels textured (terminal/popup leather + filigree
   framing), curated icons render on their target buttons/HUD, portraits show on Generals + character-sheet
   cards with the Abdurrahman monogram fallback.
-- **⚠ open (visual sign-off, matches U2's map-crispness user gate):** boot-clean but NOT screenshot-verified
-  — please eyeball (a) the terminal leather-grain subtlety, (b) top-bar nav icon sizing (`expand_icon`),
-  (c) the Generals bottom-corner filigree placement, (d) portrait thumbnail aspect. Each is a one-line
-  tune/revert if off.
+- ~~⚠ open (visual sign-off)~~ **✅ CLOSED July 16, 2026** — self-served screenshot pass (user-directed;
+  record in STATUS.md ⚔️ July-16): leather subtlety, nav icon sizing, Generals filigree, and portrait
+  aspect all verified in-game; no tunes needed.
 - **STATUS line:** ✅ recorded — UI-3 texture/icon/portrait polish landed July 12, 2026; boot-smoke 0
   `SCRIPT ERROR`; resume at **U4** (War-Table Pieces art) or **DEF-1 voices** per the queue.
 
@@ -594,13 +596,12 @@ keyed to its dominant arm.
 - **Exit:** §7 pieces completion definition met — pieces placed + y-sorted + facing-
   flipping + tweening + faction-tinted on the map, the 2D map/zoom/labels untouched,
   0 `SCRIPT ERROR`.
-- **⚠ open (visual sign-off, matches the U2/U3 gates):** boot-clean but not
-  screenshot-verified in a live game. Please eyeball on the running map: (a) piece
-  on-map size (`WAR_PIECE_FRAME_PX=84`) and clustering (`WAR_PIECE_SLOT_SPACING=30`
-  — co-located standees overlap since they spread only in x); (b) dark-nation
-  (Prussia) tint after the value floor; (c) cavalry/artillery faction read (the hue
-  sits on a smaller mass than infantry's three coats + banner); (d) the ~0.45s move
-  tween feel. Each is a one-line tune.
+- ~~⚠ open (visual sign-off)~~ **✅ CLOSED July 16, 2026** — self-served screenshot pass on
+  the running 1805 map (record in STATUS.md ⚔️ July-16): piece size + two-rank
+  clustering + tint + grounded shadows all read well at native res. One accepted nit
+  (no tune): at minimum zoom the three ARMS are hard to tell apart — resolves on
+  zoom; strategic-glance identity (whose army, how many stacks) is carried by the
+  coat tint + name labels, which is the piece layer's actual job.
 - **STATUS line:** ✅ recorded — War-Table Pieces CODE landed July 13, 2026; the
   War-Table Pieces sub-item CLOSED. **The UI Visual Foundation Sweep is now
   U1–U5 complete** (pending the standing U2 map-crispness / U3 / U5 visual sign-offs).
@@ -657,10 +658,12 @@ systems, add clickable items when possible."
   refuted, 1 downgraded-and-fixed-anyway.
 - **Gates:** boot-smoke 0 `SCRIPT ERROR` (before and after review fixes); ruff clean;
   `tests/test_ui6_interaction_sweep.py` (44) green; full suite **13,521 passed / 3 skipped**.
-- **⚠ open (visual sign-off, same family as U2/U3/U5):** eyeball live — (a) vassal-card layout /
-  loyalty-bar tint / chip legibility, (b) region-panel placement + width, (c) flag sizing on ledger
-  rows vs war HUD, (d) notification glyph read at 38×28, (e) gear icon size, (f) the two-rank piece
-  spread on a 3+ stack. Each is a one-line tune.
+- ~~⚠ open (visual sign-off)~~ **✅ CLOSED July 16, 2026** — self-served screenshot pass (user-directed
+  "do visual check yourself for sign off"; record in STATUS.md ⚔️ July-16): vassal cards (flags +
+  loyalty bars + tribute-cut copy + call-to-arms + garrison hints + actions-blocked banner), region
+  panel (Swabia: flag, stats, honest allied-soil chips), ledger flag sizing (crisp at 14–18px incl.
+  the redrawn 8-point Ottoman), gear invariant (verified against `main.gd:3790` UI6-GD-1), war-HUD
+  flag + full-width war-score bar, and the two-rank piece spread on the 3-stack — ALL PASS, no tunes.
 
 #### U6 follow-up (same day, user live-review): full province verb set + missing flags + sprite check
 

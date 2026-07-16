@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="300">
-<rect fill="#f7d117" width="500" height="300"/>
-<rect fill="#fff" width="500" height="150"/>
+<rect fill="#c8102e" width="500" height="300"/>
+<g stroke="#ffffff" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round">
+	<path d="M232,168 L196,185 L172,160"/>
+	<path d="M245,200 L240,240 L238,272"/>
+	<path d="M315,205 L310,245 L308,274"/>
+	<path d="M340,195 L352,235 L366,268"/>
+</g>
+<path d="M350,150 C400,165 415,205 400,258" stroke="#ffffff" stroke-width="12" fill="none" stroke-linecap="round"/>
+<path fill="#ffffff" d="M208,52
+	L155,85 C149,89 146,94 146,100
+	C146,104 152,108 165,108
+	C178,108 190,104 196,96
+	C214,120 226,142 236,158
+	C242,188 250,202 264,208
+	L300,218 L318,222
+	C340,226 352,205 352,180
+	C352,168 350,158 348,150
+	C320,126 288,120 264,124
+	C246,106 222,80 208,52 Z"/>
+<polygon fill="#ffffff" points="200,55 206,32 214,52"/>
+<polygon fill="#ffffff" points="212,52 223,34 227,54"/>
+<circle cx="184" cy="80" r="4" fill="#c8102e"/>
 </svg>
