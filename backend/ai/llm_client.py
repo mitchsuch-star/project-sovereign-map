@@ -1140,6 +1140,18 @@ class LLMClient:
         # which falsely matched "invest in defenses", "release prisoners", etc.
         # CR-0: live nation names extend the legacy literals so 1805 nations
         # ("invest in bavaria") parse; precision-by-nation-name is preserved.
+        # VS-3 land grant: "cede Tyrol to Bavaria" / "grant Tyrol to Bavaria".
+        # \bcede\b is the primary verb; the "grant … to <nation>" form is
+        # gated on a KNOWN NATION after "to" so it can never shadow
+        # grant_dotation ("grant Ney the duchy of Swabia" has no "to <nation>")
+        # or change_autonomy ("grant Holland autonomy" carries "autonomy").
+        elif (re.search(r'\bcede\b', command_lower)
+              or (re.search(r'\bgrant\b', command_lower)
+                  and "autonomy" not in command_lower
+                  and not _mentions_pension(command_lower)
+                  and any(f" to {n}" in command_lower
+                          for n in known_nations_lower))):
+            action = "grant_region_to_vassal"
         elif any(kw in command_lower for kw in (
             [
                 "invest in vassal", "invest vassal",
@@ -1234,7 +1246,8 @@ class LLMClient:
         # (generic region/enemy extraction would fuzzy-drift nation names,
         # e.g. Austria → the Spanish region Asturias).
         if action in ("invest_vassal", "release_vassal", "make_vassal",
-                      "change_autonomy") and known_nations:
+                      "change_autonomy",
+                      "grant_region_to_vassal") and known_nations:
             matched_form = _match_known_name(
                 command_lower, known_nations.keys())
             if matched_form:

@@ -151,6 +151,74 @@ class VassalExecutor:
 
         return result
 
+    def _execute_grant_region_to_vassal(self, command: Dict, game_state: Dict) -> Dict:
+        """VS-3: cede a controlled province to a vassal (1 DP, no AP).
+
+        Region resolution order: structured `region` field (the wizard's
+        sub-picker / AI rung) → a known-region name in the raw text (typed
+        path, longest match wins) → no region = answer with the eligible
+        list so the typed path is discoverable.
+        """
+        from backend.models.world_state import WorldState
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        target = (command.get("target") or command.get("target_nation") or "").strip()
+        if not target:
+            return {"success": False, "message": "Specify which vassal receives the province."}
+
+        actor = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
+
+        region = (command.get("region") or "").strip()
+        if not region:
+            raw_text = (
+                command.get("raw_input")
+                or command.get("original_command")
+                or command.get("raw_command")
+                or ""
+            ).lower()
+            # Longest known-region name mentioned in the order ("United
+            # Provinces" must beat a hypothetical "Provinces").
+            best = ""
+            for region_name in world.regions:
+                if region_name.lower() in raw_text and len(region_name) > len(best):
+                    best = region_name
+            region = best
+
+        from backend.game_logic.vassal import (
+            GRANT_DP_COST,
+            grant_region_to_vassal,
+            list_grantable_regions,
+        )
+        if not region:
+            eligible = list_grantable_regions(world, target, actor=actor)
+            if not eligible:
+                return {
+                    "success": False,
+                    "message": (
+                        f"No province is eligible to cede to {target} — it must "
+                        f"be conquered land (not your homeland, not a capital, "
+                        f"not a marshal's estate) adjoining their territory."
+                    ),
+                }
+            options = "; ".join(
+                f"{e['region']} (income {e['income']}g, loyalty +{e['loyalty_gain']})"
+                for e in eligible[:6]
+            )
+            return {
+                "success": False,
+                "message": (
+                    f"Specify which province to cede to {target} "
+                    f"(costs {GRANT_DP_COST} DP). Eligible: {options}."
+                ),
+            }
+
+        result = grant_region_to_vassal(world, target, region, actor=actor)
+        if result.get("success"):
+            result["new_state"] = game_state
+        return result
+
     def _execute_release_vassal(self, command: Dict, game_state: Dict) -> Dict:
         """Release a vassal nation. Costs 1 DP."""
         from backend.models.world_state import WorldState

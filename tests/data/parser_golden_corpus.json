@@ -3306,6 +3306,41 @@
    },
    "source": "Marshal Recruitment - negative guard: 'commission' carries the _mentions_pension guard so rente phrasings fall through to the pension pair.",
    "notes": "Mirrors the ES-7sp keyword-order fix family."
+  },
+  {
+   "id": "vs3-cede-tyrol-to-bavaria",
+   "utterance": "cede tyrol to bavaria",
+   "world": "1805",
+   "expected": {
+    "success": true,
+    "action": "grant_region_to_vassal",
+    "target": "Bavaria"
+   },
+   "source": "tests/test_vassal_land_grant.py::TestTypedParse — VS-3 (VASSAL_DEEPENING_SPEC.md §1)",
+   "notes": "VS-3 land grant. The nation rides target via the vassal-family nation resolution; the province stays in raw text (executor extracts by known-region match). Checklist step 12 action-coverage row for grant_region_to_vassal."
+  },
+  {
+   "id": "vs3-grant-region-to-nation-form",
+   "utterance": "grant tyrol to bavaria",
+   "world": "1805",
+   "expected": {
+    "success": true,
+    "action": "grant_region_to_vassal",
+    "target": "Bavaria"
+   },
+   "source": "tests/test_vassal_land_grant.py::TestTypedParse — VS-3",
+   "notes": "The 'grant X to <nation>' form is gated on a KNOWN nation after 'to', so it never shadows grant_dotation ('grant Ney the duchy of Swabia' has no 'to <nation>') or change_autonomy ('grant Holland autonomy' carries 'autonomy')."
+  },
+  {
+   "id": "vs3-cede-cold-parse",
+   "utterance": "cede dresden to saxony",
+   "world": "any",
+   "expected": {
+    "success": true,
+    "action": "grant_region_to_vassal"
+   },
+   "source": "tests/test_vassal_land_grant.py::TestTypedParse — VS-3",
+   "notes": "COLD parse: bare cede keys the action even with no live nation list (target resolution then depends on world context; the executor answers with eligibility guidance)."
   }
  ]
 }

@@ -490,6 +490,39 @@ func _add_action_button(action: Dictionary):
 			war_btn.pressed.connect(_on_action_selected.bind(action_id, picker_payload))
 			content_list.add_child(war_btn)
 
+	# VS-3 (Vassal Depth, July 2026): positive-path province picker for the
+	# land grant. Unlike the multi-war rescue above (an error-path picker),
+	# this renders under an AVAILABLE action: one button per eligible
+	# province, each stating its terms (income handoff + worth-scaled
+	# loyalty + the vassal's tribute cut). Each pick clones the payload with
+	# the chosen `region`, which _structured_payload_for_action forwards as
+	# the structured POST field (CommandRequest.region).
+	var eligible_regions = action.get("eligible_regions", [])
+	if available and action_id == "grant_region_to_vassal" and eligible_regions is Array and eligible_regions.size() > 0:
+		var grant_label = RichTextLabel.new()
+		grant_label.bbcode_enabled = true
+		grant_label.fit_content = true
+		grant_label.scroll_active = false
+		grant_label.text = "  [color=#a0a0a0][i]Pick a province to cede:[/i][/color]"
+		content_list.add_child(grant_label)
+		for region_entry in eligible_regions:
+			if not (region_entry is Dictionary):
+				continue
+			var region_name = str(region_entry.get("region", ""))
+			if region_name == "":
+				continue
+			var income = int(region_entry.get("income", 0))
+			var loyalty_gain = int(region_entry.get("loyalty_gain", 0))
+			var tribute_pct = int(region_entry.get("tribute_pct", 0))
+			var region_btn = Button.new()
+			region_btn.text = "    \u21B3 %s \u2014 income %dg, loyalty +%d, they remit %d%%" % [region_name, income, loyalty_gain, tribute_pct]
+			region_btn.custom_minimum_size = Vector2(0, 30)
+			region_btn.add_theme_font_size_override("font_size", 11)
+			var region_payload = action.duplicate(true)
+			region_payload["region"] = region_name
+			region_btn.pressed.connect(_on_action_selected.bind(action_id, region_payload))
+			content_list.add_child(region_btn)
+
 
 func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 	"""Build command string and emit for main.gd to execute (§2 Step 3).
@@ -542,6 +575,18 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		if war_id != "":
 			data["war_id"] = war_id
 		return data
+	if action_id == "grant_region_to_vassal":
+		# VS-3: the sub-picker's chosen province rides the structured
+		# `region` field. Clicking the parent button without a pick sends
+		# no region — the backend answers with the eligible list.
+		var grant_region = str(action_payload.get("region", ""))
+		var grant_data = {
+			"action": "grant_region_to_vassal",
+			"target_nation": _selected_nation,
+		}
+		if grant_region != "":
+			grant_data["region"] = grant_region
+		return grant_data
 	return {}
 
 
@@ -586,6 +631,9 @@ func _build_command(action_id: String, nation: String) -> String:
 			return "decrease autonomy " + nation
 		"release_vassal":
 			return "release " + nation
+		"grant_region_to_vassal":
+			# VS-3: display echo — the structured payload carries the region
+			return "cede territory to " + nation
 		"mission_improve_relations":
 			return "improve relations with " + nation
 		"mission_court":

@@ -9819,6 +9819,36 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "disabled_reason": release_reason,
         })
 
+        # VS-3: Cede Territory (land grant). The option carries the eligible
+        # provinces (diplomacy has no fog — the full set is safe to send);
+        # the wizard renders a positive-path sub-picker and each pick states
+        # its terms (worth-scaled loyalty + income handoff at tribute rate).
+        from backend.game_logic.vassal import (
+            GRANT_DP_COST,
+            list_grantable_regions,
+        )
+        grantable = list_grantable_regions(world, target_nation, actor=player)
+        grant_cd = int(vassal_state.get("grant_cooldown", 0) or 0)
+        grant_available = True
+        grant_reason = ""
+        if grant_cd > 0:
+            grant_available = False
+            grant_reason = f"Cooldown: {grant_cd} turns"
+        elif dp < GRANT_DP_COST:
+            grant_available = False
+            grant_reason = "Insufficient DP"
+        elif not grantable:
+            grant_available = False
+            grant_reason = "No eligible province (conquered land adjoining them)"
+        actions.append({
+            "action": "grant_region_to_vassal",
+            "display_name": f"Cede Territory to {target_nation}",
+            "dp_cost": GRANT_DP_COST,
+            "available": grant_available,
+            "disabled_reason": grant_reason,
+            "eligible_regions": grantable,
+        })
+
         return actions
 
     # ── FOREIGN AFFAIRS (§2b) ──

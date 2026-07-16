@@ -106,16 +106,46 @@ province/war sub-picker pattern (`diplomacy_wizard.gd` — the `war_id` picker,
    Bavaria — loyalty +18, you forfeit 400g/turn income, Bavaria remits 75% tribute").
    Consistent with the settlement/guided-terms "every option states its terms" rule.
 
-### 1.3 Landing contract (Golden Rule 9)
+### 1.3 Landing contract (Golden Rule 9) — ✅ LANDED July 16, 2026
 
 - **Owner:** this spec §1. **Landing slice:** VS-3 (single session, post-gate).
-- **Completion definition:** a player can, from the F1 wizard, cede an eligible
+- **Completion definition — MET:** a player can, from the F1 wizard, cede an eligible
   province to a vassal; control transfers, loyalty rises by the worth-scaled bonus,
-  the lord loses the income, the vassal tributes it, cooldown arms, AI does the same.
-- **STATUS line:** added at land.
-- **Behavior test:** `test_vassal_land_grant.py` — eligibility gates, worth-scaled
-  loyalty, income/tribute handoff, cooldown, reclaim-on-rebellion, GR5 AI parity,
-  wizard payload shape, serialization (`granted_regions` if adopted).
+  the lord loses the income, the vassal tributes it, cooldown arms. (The AI's grant
+  RUNG is consolidated into VP-D6's shore-up rung, same queue — VS-3 ships the
+  lord-neutral helper + a GR5 latent-parity pin, so the rung is a consumer, not a
+  rebuild.)
+- **What landed (pre-build seam verification amendments, July 16, 2026):**
+  - `grant_region_to_vassal` + `list_grantable_regions` + `grant_loyalty_bonus`
+    in `vassal.py` — worth-scaled `min(25, 10 + income_value//200)`, **never
+    spiral-blunted** (§2.4-Q3); `granted_regions` provenance + `grant_cooldown`
+    ride the vassal row (serialize free); reclaim-on-rebellion on the **WAR branch
+    only** (armistice/graceful breaks keep the land), provenance read BEFORE the
+    row delete (GR4).
+  - **Eligibility:** lord-controlled + **conquered-land-only** (homeland excluded —
+    replaces the draft's "last N regions"; matches the ES-7 endow triangle) + no
+    capitals + not a marshal's LIVE estate (ES-7 `dotation_regions` exclusion) +
+    contiguity (waived for landless vassals and for the vassal's own lost homeland
+    — the Ried dynamic).
+  - **Cost: 1 DP, 0 AP** (deviation from the draft's 1 DP + 1 AP — the whole
+    vassal family is in `executor.py free_actions`), cooldown 3 turns per-vassal.
+  - **Wizard:** the option rides `diplomacy.py get_available_diplomatic_actions`
+    (NOT `diplomatic_advisory.py` — the spec §1.2 seam was wrong) with
+    `eligible_regions` payload; `diplomacy_wizard.gd` renders a **positive-path
+    province picker** (the multi-war rescue was error-path only) where every pick
+    states its terms; `CommandRequest.region` + overlay added in `main.py`
+    (pydantic silently dropped unknown fields — checklist gap found at
+    verification). Boot smoke clean.
+  - **Typed path:** mock-parser `\bcede\b` + nation-gated "grant X to <nation>"
+    (never shadows `grant_dotation`/`change_autonomy`); executor extracts the
+    province from raw text by longest known-region match; no region → answers
+    with the eligible list. 3 golden-corpus rows (checklist step 12).
+  - Recovery hints (healthy + spiral) now name the grant — the spiral band's one
+    unblunted lever. Help text teaches "cede Tyrol to Holland".
+- **STATUS line:** in the July 16, 2026 session entry.
+- **Behavior test:** `test_vassal_land_grant.py` (32) — eligibility gates, worth-scaled
+  loyalty, income/tribute handoff (assert-only), cooldown, reclaim matrix, GR5
+  enemy-lord grant, wizard payload shape, nested serialization round-trip.
 
 ---
 

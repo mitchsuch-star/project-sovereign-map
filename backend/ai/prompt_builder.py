@@ -204,6 +204,19 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 10,
         },
     },
+    # VS-3: land grant — the nation is the TARGET; the province stays in the
+    # raw text (the executor extracts it by known-region match).
+    {
+        "input": "cede the province to {nation}",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "grant_region_to_vassal",
+            "target": "{nation}",
+            "is_strategic": False,
+            "ambiguity": 10,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",

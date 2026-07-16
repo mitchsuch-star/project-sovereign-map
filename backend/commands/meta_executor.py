@@ -534,6 +534,9 @@ DIPLOMACY (via Talleyrand - or press F1 for the wizard):
                trade, armistice...)
   improve    - "improve relations with Prussia" (1 DP/turn)
   declare war / break treaty / ultimatum - the mailed fist (1-2 DP)
+  vassals    - "invest in Holland" (1 DP + 200g), "grant Holland
+               autonomy", "cede Tyrol to Holland" (1 DP - conquered
+               land binds a satellite by its worth), "release Holland"
 
   Press D for the Diplomatic Ledger - all twenty nations of Europe,
   treaties, wars, and the Balance of Europe.
@@ -1787,7 +1790,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         action = command.get("action", "unknown")
 
         # Check action economy
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

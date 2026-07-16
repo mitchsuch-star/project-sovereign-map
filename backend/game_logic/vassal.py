@@ -54,6 +54,19 @@ INVEST_COOLDOWN = 3
 # keeps FULL value in the VS-R spiral band (it is not a cheap one-shot).
 GARRISON_LOYALTY_BONUS = 2
 
+# ═══════ LAND GRANTS (VS-3, July 16, 2026 — VASSAL_DEEPENING_SPEC §1) ═══════
+# "Reward Bavaria for its service — cede it the province it bled for."
+# Worth-scaled: bonus = min(CAP, BASE + income_value // DIVISOR), so a rich
+# gift binds harder than a worthless moor. NEVER blunted by the VS-R spiral
+# multiplier (spec §2.4-Q3: the land grant is the premier arresting lever).
+# Cost: the land IS the cost — 1 DP, no AP (vassal-family free_actions
+# convention), no gold. In-band tunable.
+GRANT_LOYALTY_BASE = 10
+GRANT_LOYALTY_CAP = 25
+GRANT_INCOME_DIVISOR = 200
+GRANT_DP_COST = 1
+GRANT_COOLDOWN = 3  # turns, per-vassal (mirrors invest); anti land-shuffle
+
 # ═══════ LOYALTY BOUNDS ═══════
 LOYALTY_MIN = 0
 LOYALTY_MAX = 100
@@ -277,20 +290,24 @@ def recovery_hint_for_grip(grip: int) -> str:
     Names ONLY working levers (playtest F1/F1c): the old copy recommended the
     autonomy lever that VS-R itself blunts in the spiral band and a nonexistent
     "large subsidy" action. The garrison lever was dropped by F1c while dead
-    code, and RE-ADVERTISED when VP-D1 wired it (July 16, 2026).
+    code, and RE-ADVERTISED when VP-D1 wired it (July 16, 2026). The land
+    grant joined both copies when VS-3 landed (July 16, 2026) — it is the one
+    lever the spiral never blunts (spec §2.4-Q3).
       grip >= 30 (healthy): invest and autonomy-up both pay full loyalty; a
-        garrison in their capital adds a standing +2.
+        garrison in their capital adds a standing +2; a ceded province binds
+        by its worth.
       grip <  30 (spiral):  coin (invest) and concessions (autonomy-up) are
-        blunted to 40%; the garrison keeps full value (a deed, not a token)
-        but +2 cannot outrun the spiral alone — only winning a decisive
-        battle (which restores grip) or releasing the vassal actually holds.
+        blunted to 40%; the garrison keeps full value but +2 cannot outrun
+        the spiral alone — only CEDING LAND, winning a decisive battle
+        (which restores grip), or releasing the vassal actually holds.
     """
     if grip < AUTHORITY_ACCELERATE_BELOW:
         return ("The Emperor's grip is slipping - coin and concessions no "
-                "longer hold them. Win a decisive battle to restore your grip, "
-                "or release them before they break away.")
-    return ("Invest in them, grant them autonomy, or garrison their capital "
-            "to steady them.")
+                "longer hold them. Cede them a province, win a decisive "
+                "battle to restore your grip, or release them before they "
+                "break away.")
+    return ("Invest in them, grant them autonomy, garrison their capital, "
+            "or cede them a province to steady them.")
 
 
 def lord_garrison_present(world, lord: str, capital_name: str) -> bool:
@@ -475,7 +492,8 @@ def process_vassal_loyalty(world) -> List[dict]:
             # the recovery loop is discoverable BEFORE the crisis popup at <=
             # 10. Grip-aware via the single-source helper (playtest F1: the old
             # copy named a blunted lever + a nonexistent "subsidy" + the dead
-            # "garrison their capital"). Land grants join once VS-3 lands.
+            # "garrison their capital"). VP-D1 re-wired the garrison and VS-3
+            # added the land grant (both July 16, 2026).
             recovery_hint = ""
             if delta < 0 and new_loyalty >= 40:
                 recovery_hint = recovery_hint_for_grip(lord_grip)
@@ -612,6 +630,13 @@ def check_vassal_rebellion(world) -> List[dict]:
 
     for vassal_name in rebellions:
         lord = world.vassals[vassal_name]["lord"]
+        # VS-3 reclaim: read the granted-province provenance BEFORE deleting
+        # the vassal row (Golden Rule 4 — get the value, use it, THEN clear).
+        # Applied only on the WAR branch below: an armistice-respected or
+        # graceful-independence break KEEPS the land (flipping provinces back
+        # during a respected armistice would itself be a treaty violation).
+        granted_regions = list(
+            world.vassals[vassal_name].get("granted_regions") or [])
 
         # Dispatch event: vassal dissolved (Session 8D)
         from backend.game_logic.dispatch import queue_dispatch_event
@@ -670,6 +695,30 @@ def check_vassal_rebellion(world) -> List[dict]:
                     ctx=cascade_ctx,
                 )
                 events.extend(cascade_events)
+
+                # VS-3 reclaim-on-rebellion: granted provinces are the first
+                # to flip back when the vassal turns on its lord (WAR branch
+                # only — see the provenance read above).
+                reclaimed = []
+                for granted_name in granted_regions:
+                    granted_region = world.regions.get(granted_name)
+                    if (granted_region is not None
+                            and getattr(granted_region, 'controller', '') == vassal_name):
+                        granted_region.controller = lord
+                        reclaimed.append(granted_name)
+                if reclaimed:
+                    world.invalidate_active_nations_cache()
+                    events.append({
+                        "type": "vassal_grant_reclaimed",
+                        "vassal": vassal_name,
+                        "lord": lord,
+                        "regions": reclaimed,
+                        "message": (
+                            f"{lord} reclaims the granted province"
+                            f"{'s' if len(reclaimed) > 1 else ''} "
+                            f"{', '.join(reclaimed)} from the rebel {vassal_name}."
+                        ),
+                    })
             else:
                 # F8b (playtest): the vassal was already removed from
                 # world.vassals (above), so simply `continue`-ing here left the
@@ -1067,6 +1116,184 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int,
 
 
 # ═══════════════════════════════════════════════════════
+# LAND GRANTS (VS-3)
+# ═══════════════════════════════════════════════════════
+
+def grant_loyalty_bonus(income_value: int) -> int:
+    """VS-3 worth-scaled loyalty for ceding a province (see constants)."""
+    return min(GRANT_LOYALTY_CAP,
+               GRANT_LOYALTY_BASE + int(income_value) // GRANT_INCOME_DIVISOR)
+
+
+def _grant_region_eligibility(world, vassal_name: str, region_name: str,
+                              lord: str) -> str:
+    """One region's eligibility for a VS-3 grant. Returns "" if grantable,
+    else the human-readable refusal reason. Rules (single source — the
+    executor, the wizard list, and the AI rung all route here):
+
+    - the lord controls it (you can only give what you hold);
+    - CONQUERED land only — never the lord's own homeland (matches the ES-7
+      endow triangle and the historical fantasy: Napoleon gave Bavaria
+      Austrian Tyrol, not French soil);
+    - no capital of any nation (capital garrisons/capture-threat mechanics
+      must not change hands outside war/settlement — mirrors the estate rule);
+    - not a marshal's LIVE estate (ES-7 `dotation_regions`: granting away an
+      estate would silently stop paying his household — excluded, not warned);
+    - contiguous to the vassal's territory, waived when the vassal holds no
+      regions (carved vassals must not be permanently ineligible) or when the
+      province is the vassal's OWN lost homeland (returning their soil is
+      always sensible — the Ried dynamic).
+    """
+    region = world.regions.get(region_name)
+    if region is None:
+        return f"{region_name} is not a known province."
+    if getattr(region, 'controller', '') != lord:
+        return f"You do not control {region_name}."
+    homeland = set(getattr(world, 'nation_starting_regions', {}).get(lord, []))
+    if region_name in homeland:
+        return (f"{region_name} is {lord}'s own homeland — "
+                f"only conquered land may be ceded.")
+    if getattr(region, 'is_capital', False) or getattr(region, 'region_type', '') == "capital":
+        return f"{region_name} is a capital — it cannot be given away."
+    # ES-7 estate exclusion (live claims only — mirrors dotation.py)
+    from backend.game_logic.dotation import (
+        _capture_choice_pending,
+        is_estate_respected,
+    )
+    for marshal in world.marshals.values():
+        if region_name in (getattr(marshal, 'dotation_regions', []) or []):
+            claim_region = world.regions.get(region_name)
+            if claim_region is not None and (
+                    claim_region.controller == marshal.nation
+                    or is_estate_respected(world, marshal.name, region_name)
+                    or _capture_choice_pending(world, region_name)):
+                return (f"{region_name} is Marshal {marshal.name}'s estate — "
+                        f"his title cannot be given away.")
+    # Contiguity (waived for landless vassals and homeland returns)
+    vassal_regions = set(world.get_nation_regions(vassal_name))
+    if vassal_regions:
+        from backend.models.region import get_starting_controllers
+        starting_controllers = (
+            getattr(world, '_starting_controllers', None)
+            or get_starting_controllers()
+        )
+        is_homeland_return = starting_controllers.get(region_name) == vassal_name
+        adjacent = set(getattr(region, 'adjacent_regions', []) or [])
+        if not is_homeland_return and not (adjacent & vassal_regions):
+            return (f"{region_name} does not adjoin {vassal_name}'s territory.")
+    return ""
+
+
+def list_grantable_regions(world, vassal_name: str, actor: str = None) -> List[dict]:
+    """VS-3: the provinces the acting lord may cede to this vassal, sorted
+    richest-first. Each entry states its terms (the wizard's "every option
+    states its terms" rule): worth-scaled loyalty gain + the income handoff.
+
+    NOT a hot path (a UI/action seam, called on wizard open / typed grant) —
+    but still rides the cached get_nation_regions index (GR8).
+    """
+    if vassal_name not in getattr(world, 'vassals', {}):
+        return []
+    state = world.vassals[vassal_name]
+    lord = actor or getattr(world, 'player_nation', 'France')
+    if state.get("lord") != lord:
+        return []
+    out = []
+    for region_name in world.get_nation_regions(lord):
+        if _grant_region_eligibility(world, vassal_name, region_name, lord):
+            continue
+        region = world.regions[region_name]
+        income = int(getattr(region, 'income_value', 0) or 0)
+        out.append({
+            "region": region_name,
+            "income": int(region.get_effective_income()),
+            "loyalty_gain": int(grant_loyalty_bonus(income)),
+            "tribute_pct": int(state.get("tribute_rate", 0.75) * 100),
+        })
+    out.sort(key=lambda e: e["income"], reverse=True)
+    return out
+
+
+def grant_region_to_vassal(world, vassal_name: str, region_name: str,
+                           actor: str = None) -> dict:
+    """VS-3: cede a controlled province to a vassal.
+
+    Effect: controller flips to the vassal (NO stability reset — this is a
+    gift of a functioning province, not a sacking); vassal loyalty rises by
+    the worth-scaled bonus (never spiral-blunted); the lord forfeits the
+    region's income and the vassal now tributes it at its autonomy rate;
+    provenance recorded in the vassal row's `granted_regions` so a WAR-path
+    rebellion reclaims the gift. Cost: 1 DP (nation-neutral), 3-turn
+    per-vassal cooldown. GR5: AI lords grant through this same function.
+    """
+    if vassal_name not in getattr(world, 'vassals', {}):
+        return {"success": False, "message": f"{vassal_name} is not a vassal."}
+
+    state = world.vassals[vassal_name]
+    lord = state["lord"]
+    if actor is None:
+        actor = getattr(world, 'player_nation', 'France')
+    if lord != actor:
+        return {"success": False,
+                "message": f"Cannot cede territory to {vassal_name}: not your vassal."}
+
+    if state.get("grant_cooldown", 0) > 0:
+        return {
+            "success": False,
+            "message": (f"A grant to {vassal_name} is still being settled "
+                        f"({state['grant_cooldown']} turns remaining)."),
+        }
+
+    reason = _grant_region_eligibility(world, vassal_name, region_name, lord)
+    if reason:
+        return {"success": False, "message": f"Cannot cede {region_name}: {reason}"}
+
+    dp_charge = _charge_dp(world, lord, GRANT_DP_COST)
+    if not dp_charge["ok"]:
+        return {
+            "success": False,
+            "message": (f"Insufficient diplomatic points "
+                        f"({dp_charge['available']}/{GRANT_DP_COST} required)."),
+        }
+
+    region = world.regions[region_name]
+    income_value = int(getattr(region, 'income_value', 0) or 0)
+    effective_income = int(region.get_effective_income())
+
+    # Transfer control. Deliberately NOT the settlement_ratify hostile-cession
+    # idiom: no stability=50 reset (you are gifting a functioning province —
+    # resetting stability would cut the very tribute this grant advertises).
+    region.controller = vassal_name
+    world.invalidate_active_nations_cache()
+
+    # Worth-scaled loyalty — never blunted (spec §2.4-Q3: the premier
+    # arresting lever keeps full value in the spiral band).
+    bonus = grant_loyalty_bonus(income_value)
+    old_loyalty = int(state["loyalty"])
+    state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + bonus))
+
+    # Provenance + cooldown (both ride the vassal row → serialize for free)
+    granted = list(state.get("granted_regions") or [])
+    granted.append(region_name)
+    state["granted_regions"] = granted
+    state["grant_cooldown"] = GRANT_COOLDOWN
+
+    tribute_pct = int(state.get("tribute_rate", 0.75) * 100)
+    return {
+        "success": True,
+        "message": (
+            f"{region_name} is ceded to {vassal_name}. "
+            f"Loyalty +{bonus} ({old_loyalty} → {state['loyalty']}). "
+            f"You forfeit {effective_income}g/turn of income; "
+            f"{vassal_name} now remits {tribute_pct}% of it as tribute. "
+            f"Cost: {GRANT_DP_COST} DP. Cooldown: {GRANT_COOLDOWN} turns."
+        ),
+        "region": region_name,
+        "loyalty_gain": int(bonus),
+    }
+
+
+# ═══════════════════════════════════════════════════════
 # MARSHAL ASSIMILATION (EC-K.1)
 # ═══════════════════════════════════════════════════════
 
@@ -1277,6 +1504,14 @@ def decrement_vassal_cooldowns(world) -> None:
     for n in expired_r:
         del release_cds[n]
     world.vassal_release_cooldowns = release_cds
+
+    # VS-3: per-vassal grant cooldowns ride the vassal row itself
+    # (serialize for free with the vassals dict).
+    for state in getattr(world, 'vassals', {}).values():
+        if state.get("grant_cooldown", 0) > 0:
+            state["grant_cooldown"] = int(state["grant_cooldown"]) - 1
+            if state["grant_cooldown"] <= 0:
+                state.pop("grant_cooldown", None)
 
 
 # ═══════════════════════════════════════════════════════

@@ -53,6 +53,7 @@ VALID_ACTIONS: Set[str] = {
     "invest_vassal",    # Invest in vassal (+10 loyalty)
     "change_autonomy",  # Change vassal autonomy level
     "make_vassal",      # Create a vassal
+    "grant_region_to_vassal",  # VS-3: cede a province to a vassal
     # Diplomatic actions — break/downgrade (Phase 8 wiring)
     "diplomatic_break",      # Break an active treaty
     "diplomatic_downgrade",  # Voluntarily downgrade diplomatic state
@@ -106,6 +107,7 @@ META_ACTIONS: Set[str] = {
     "invest_vassal",
     "change_autonomy",
     "make_vassal",
+    "grant_region_to_vassal",  # VS-3
     # Diplomatic actions — no marshal needed
     "diplomatic_break",
     "diplomatic_downgrade",

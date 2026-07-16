@@ -857,6 +857,10 @@ class CommandRequest(BaseModel):
     action: str | None = None
     target_nation: str | None = None
     war_id: str | None = None
+    # VS-3: the diplomacy wizard's land-grant sub-picker sends the chosen
+    # province; without this field pydantic silently DROPS it (pre-build
+    # seam verification, July 16, 2026).
+    region: str | None = None
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -1250,6 +1254,8 @@ def execute_command(request: CommandRequest):
                 parsed["command"]["target_nation"] = request.target_nation
             if request.war_id:
                 parsed["command"]["war_id"] = request.war_id
+            if request.region:
+                parsed["command"]["region"] = request.region
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════

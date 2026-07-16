@@ -57,6 +57,8 @@ def _get_free_actions():
         "diplomatic_break", "diplomatic_downgrade",
         "diplomatic_declare_war", "diplomatic_ultimatum",
         "invest_vassal", "change_autonomy", "make_vassal", "release_vassal",
+        # VS-3: land grant — paid in DP (the land IS the cost), no AP
+        "grant_region_to_vassal",
         # B-B7: Make Amends — paid in DP/gold, no AP cost (spec §8.6.1)
         "make_amends",
         # Imperial Settlement — opens settlement_confirm dialogue, free.

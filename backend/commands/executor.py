@@ -602,7 +602,7 @@ class CommandExecutor:
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -1512,6 +1512,8 @@ class CommandExecutor:
             result = self._vassal._execute_make_vassal(command, game_state)
         elif action == "release_vassal":
             result = self._vassal._execute_release_vassal(command, game_state)
+        elif action == "grant_region_to_vassal":
+            result = self._vassal._execute_grant_region_to_vassal(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             # ESP-EV-4: the raw text rides on the command dict so the attack
