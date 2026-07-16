@@ -2,6 +2,9 @@ extends Control
 
 signal region_hovered(region_name)
 signal region_clicked(region_name)
+# UX pass July 16: dismiss affordances — right-click anywhere or left-click on
+# open water both read as "put the panel away" in every map game.
+signal map_dismiss_requested
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -133,6 +136,56 @@ void fragment() {
 	}
 }
 """
+# UX pass July 16: hover/selection highlight moved onto the GPU. The old path
+# allocated a full map-canvas RGBA image and CPU-stamped a CIRCLE on every
+# hover change; this shader reads the SAME lookup mask the owner fill uses and
+# lights the TRUE province silhouette — soft fill + rim at the real border —
+# for the cost of a uniform write per hover change. `selected_key` keeps the
+# clicked province lit while the Region Action Panel is open; `selected_boost`
+# is tweened 1→0 on click for a brief confirmation pulse. Sentinel vec3(-10)
+# can never match a texture key in [0,1]. Legacy circle-fixture maps (no
+# lookup image) keep the old CPU circle path.
+const HIGHLIGHT_SHADER := """
+shader_type canvas_item;
+
+uniform vec3 hover_key = vec3(-10.0);
+uniform vec3 selected_key = vec3(-10.0);
+uniform float selected_boost = 0.0;
+
+const vec4 HOVER_FILL = vec4(1.0, 0.94, 0.78, 0.10);
+const vec4 HOVER_RIM = vec4(1.0, 0.90, 0.62, 0.85);
+const vec4 SELECT_FILL = vec4(1.0, 0.87, 0.55, 0.16);
+const vec4 SELECT_RIM = vec4(1.0, 0.82, 0.40, 0.95);
+
+bool key_match(vec3 a, vec3 b) {
+	return all(lessThan(abs(a - b), vec3(0.002)));
+}
+
+void fragment() {
+	vec3 key = texture(TEXTURE, UV).rgb;
+	vec4 result = vec4(0.0);
+	if (key.r + key.g + key.b >= 0.002) {
+		bool sel = key_match(key, selected_key);
+		bool hov = key_match(key, hover_key);
+		if (sel || hov) {
+			vec2 px = TEXTURE_PIXEL_SIZE * 2.0;
+			bool rim = !key_match(texture(TEXTURE, UV + vec2(px.x, 0.0)).rgb, key)
+				|| !key_match(texture(TEXTURE, UV - vec2(px.x, 0.0)).rgb, key)
+				|| !key_match(texture(TEXTURE, UV + vec2(0.0, px.y)).rgb, key)
+				|| !key_match(texture(TEXTURE, UV - vec2(0.0, px.y)).rgb, key);
+			if (sel) {
+				result = rim ? SELECT_RIM : SELECT_FILL;
+				result.a = min(1.0, result.a + selected_boost * 0.30);
+			} else {
+				result = rim ? HOVER_RIM : HOVER_FILL;
+			}
+		}
+	}
+	COLOR = result;
+}
+"""
+const HIGHLIGHT_KEY_NONE := Vector3(-10.0, -10.0, -10.0)
+
 static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
 	"full": Color(0, 0, 0, 0),
@@ -214,6 +267,12 @@ var province_color_lookup := {}
 var province_lookup_image: Image = null
 var visual_map_texture = null
 var highlight_map_texture = null
+# UX pass July 16: shader-highlight state. _highlight_material is non-null only
+# in bitmap mode (lookup mask present); selected_region survives layer rebuilds
+# so the lit province re-applies after a topology refresh.
+var selected_region: String = ""
+var _highlight_material: ShaderMaterial = null
+var _select_pulse_tween: Tween = null
 # True iff _load_map_images() delivered artist bitmaps (vs the circle
 # fallback). The owner-fill layer only exists in bitmap mode — the legacy
 # circle map keeps its per-region Panel fills as the ownership display.
@@ -677,13 +736,54 @@ func _draw_circle_outline_on_image(image: Image, center: Vector2, radius: float,
 
 
 func _clear_highlight_texture():
+	if _highlight_material != null:
+		_highlight_material.set_shader_parameter("hover_key", HIGHLIGHT_KEY_NONE)
+		return
 	highlight_map_texture = null
 	if highlight_map_layer != null:
 		highlight_map_layer.texture = null
 
 
+func _lookup_key_for(region_name: String) -> Vector3:
+	# The shader's match key for a province: its lookup-mask color as a vec3.
+	# Unknown/empty names return the sentinel that matches nothing.
+	if region_name == "" or not province_shapes.has(region_name):
+		return HIGHLIGHT_KEY_NONE
+	var lookup = province_shapes[region_name].get("lookup_color", null)
+	if lookup == null:
+		return HIGHLIGHT_KEY_NONE
+	return Vector3(lookup.r, lookup.g, lookup.b)
+
+
+func set_selected_region(region_name: String):
+	# UX pass July 16: the clicked province stays lit while the Region Action
+	# Panel is open (cleared with ""). Bitmap-shader maps only — the legacy
+	# circle fixture keeps hover-only feedback. A fresh selection fires a brief
+	# brightness pulse so the click visibly "took".
+	selected_region = region_name if province_shapes.has(region_name) else ""
+	if _highlight_material == null:
+		return
+	_highlight_material.set_shader_parameter("selected_key", _lookup_key_for(selected_region))
+	if _select_pulse_tween != null and _select_pulse_tween.is_valid():
+		_select_pulse_tween.kill()
+	_select_pulse_tween = null
+	if selected_region == "":
+		_highlight_material.set_shader_parameter("selected_boost", 0.0)
+		return
+	_highlight_material.set_shader_parameter("selected_boost", 1.0)
+	_select_pulse_tween = create_tween()
+	_select_pulse_tween.tween_method(
+		func(v): _highlight_material.set_shader_parameter("selected_boost", v),
+		1.0, 0.0, 0.45
+	).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
 func _refresh_highlight_texture():
 	if highlight_map_layer == null:
+		return
+	# Shader path: one uniform write, no per-pixel CPU work (G4 budget shape).
+	if _highlight_material != null:
+		_highlight_material.set_shader_parameter("hover_key", _lookup_key_for(hovered_region))
 		return
 	if hovered_region == "" or not province_shapes.has(hovered_region) or map_canvas_size == Vector2.ZERO:
 		_clear_highlight_texture()
@@ -786,12 +886,26 @@ func _create_scene_layers():
 	highlight_map_layer.position = map_origin - world_bounds.position
 	highlight_map_layer.size = map_canvas_size
 	highlight_map_layer.stretch_mode = TextureRect.STRETCH_SCALE
-	highlight_map_layer.texture_filter = (
-		CanvasItem.TEXTURE_FILTER_LINEAR if _bitmap_mode
-		else CanvasItem.TEXTURE_FILTER_NEAREST
-	)
 	highlight_map_layer.z_index = -1
-	highlight_map_layer.texture = highlight_map_texture
+	_highlight_material = null
+	if _bitmap_mode and province_lookup_image != null:
+		# Shader path: the layer displays the lookup mask itself and the shader
+		# lights matching fragments. NEAREST is mandatory — filtering would
+		# blend lookup keys at borders and break the exact palette match (same
+		# rule as the owner-fill layer).
+		highlight_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		highlight_map_layer.texture = ImageTexture.create_from_image(province_lookup_image)
+		var highlight_shader = Shader.new()
+		highlight_shader.code = HIGHLIGHT_SHADER
+		_highlight_material = ShaderMaterial.new()
+		_highlight_material.shader = highlight_shader
+		_highlight_material.set_shader_parameter("hover_key", _lookup_key_for(hovered_region))
+		_highlight_material.set_shader_parameter("selected_key", _lookup_key_for(selected_region))
+		_highlight_material.set_shader_parameter("selected_boost", 0.0)
+		highlight_map_layer.material = _highlight_material
+	else:
+		highlight_map_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		highlight_map_layer.texture = highlight_map_texture
 	world_layer.add_child(highlight_map_layer)
 
 	connection_layer = MapConnectionLayer.new()
@@ -1755,6 +1869,11 @@ func _input(event):
 			pan_start_pos = event.position
 			return
 		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# Review fix: while middle-button panning, _should_handle bypasses
+			# the hovered-control guard — a click mid-pan could select/dismiss
+			# through the panel or terminal under the drifting cursor.
+			if is_panning:
+				return
 			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
 			if clicked_region == "":
 				clicked_region = hovered_region
@@ -1764,6 +1883,16 @@ func _input(event):
 				if not _is_region_wired(clicked_region):
 					return
 				region_clicked.emit(clicked_region)
+			else:
+				# UX pass July 16: clicking open water reads as "click away" —
+				# let the owner dismiss whatever the last province click opened.
+				map_dismiss_requested.emit()
+			return
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			# UX pass July 16: right-click = dismiss, the map-game convention.
+			if is_panning:
+				return
+			map_dismiss_requested.emit()
 			return
 
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -1854,6 +1983,12 @@ func _set_hovered_region(region_name: String):
 	if hovered_region == region_name:
 		return
 	hovered_region = region_name
+	# UX pass July 16: a wired province is clickable — say so with the cursor.
+	mouse_default_cursor_shape = (
+		Control.CURSOR_POINTING_HAND
+		if hovered_region != "" and _is_region_wired(hovered_region)
+		else Control.CURSOR_ARROW
+	)
 	_refresh_highlight_texture()
 	region_hovered.emit(hovered_region)
 

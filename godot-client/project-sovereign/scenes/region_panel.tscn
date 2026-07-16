@@ -8,13 +8,12 @@ visible = false
 script = ExtResource("1_rpanel")
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
 offset_left = 12.0
-offset_top = -160.0
+offset_top = 48.0
+offset_right = 356.0
+offset_bottom = 120.0
 grow_horizontal = 1
-grow_vertical = 2
+grow_vertical = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
 layout_mode = 2
@@ -36,9 +35,15 @@ layout_mode = 2
 focus_mode = 0
 text = "X"
 
-[node name="ContentArea" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
+[node name="Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(320, 40)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ContentArea" type="RichTextLabel" parent="PanelContainer/VBoxContainer/Scroll"]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 fit_content = true

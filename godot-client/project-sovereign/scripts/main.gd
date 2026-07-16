@@ -393,6 +393,10 @@ func _ready():
 	if region_panel:
 		region_panel.region_command.connect(_on_region_panel_command)
 		region_panel.negotiate_requested.connect(_on_region_negotiate_requested)
+		# UX pass July 16: the panel clamps its height above the terminal's
+		# live top edge, and closing it clears the map's selected-province glow.
+		region_panel.avoid_control = bottom_left_ui
+		region_panel.closed.connect(_on_region_panel_closed)
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
@@ -485,6 +489,9 @@ func _ready():
 	# signal existed since the cutover but nothing listened in the game path)
 	if map_area and map_area.has_signal("region_clicked"):
 		map_area.region_clicked.connect(_on_map_region_clicked)
+	# UX pass July 16: right-click / open-water click dismiss the panel.
+	if map_area and map_area.has_signal("map_dismiss_requested"):
+		map_area.map_dismiss_requested.connect(_on_map_dismiss_requested)
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -736,6 +743,15 @@ func _unhandled_input(event):
 				return
 			if top_bar and top_bar.is_screen_open():
 				top_bar.close_all_screens()
+				get_viewport().set_input_as_handled()
+				return
+			# UX pass July 16: an open Region Action Panel swallows one ESC
+			# before the pause menu OPENS — same "close the topmost thing"
+			# ladder. Review fix: never while a modal (incl. an already-open
+			# pause menu, layer 120) covers it — ESC must reach the modal, not
+			# silently close an invisible panel beneath it.
+			if region_panel and region_panel.visible and not _is_modal_dialog_open():
+				region_panel.close_panel()
 				get_viewport().set_input_as_handled()
 				return
 			if pause_menu and pause_menu.visible:
@@ -3131,6 +3147,12 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	"""Clear transient local UI state before hydrating a different campaign."""
 	if top_bar:
 		top_bar.close_all_screens()
+	# Review fix (UX pass July 16): hide_all() below does a raw hide() that
+	# skips close_panel(), so the `closed` signal would never clear the map's
+	# selected-province glow — the OLD campaign's province would stay rim-lit
+	# on the freshly loaded world. Close it properly first.
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()
 	if dialog_manager:
 		dialog_manager.hide_all()
 	if notification_bar and notification_bar.has_method("update_notifications"):
@@ -4103,12 +4125,31 @@ func _on_ledger_assess_requested():
 
 func _on_map_region_clicked(region_name: String):
 	"""Open the Region Action Panel for a clicked province. Map input is
-	already disabled while screens are open; modals block via the guard."""
+	already disabled while screens are open; modals block via the guard.
+	UX pass July 16: clicking the already-open province toggles the panel
+	closed, and the clicked province stays lit on the map while it's open."""
 	if region_panel == null or region_name == "":
 		return
 	if _is_screen_open() or _is_modal_dialog_open():
 		return
+	if region_panel.visible and region_panel.current_region() == region_name:
+		region_panel.close_panel()
+		return
 	region_panel.show_region(region_name, map_area)
+	if map_area and map_area.has_method("set_selected_region"):
+		map_area.set_selected_region(region_name)
+
+
+func _on_region_panel_closed():
+	"""The panel closed (X, ESC, right-click, toggle) — clear the glow."""
+	if map_area and map_area.has_method("set_selected_region"):
+		map_area.set_selected_region("")
+
+
+func _on_map_dismiss_requested():
+	"""Right-click or open-water click on the map — put the panel away."""
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()
 
 
 func _on_region_panel_command(command: String):

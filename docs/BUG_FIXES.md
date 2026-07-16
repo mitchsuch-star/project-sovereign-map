@@ -19,6 +19,14 @@
 > adversarial verify pass and verified **pre-existing** (none is a Sweep-5 regression).
 > The five Sweep-5 parse/UX defects found the same day were fixed in-session and are NOT
 > listed here (see the memo's Half-A section).
+>
+> **Dispositions set at 8.EVAL July 16, 2026 (`docs/audits/EVAL_8_2026_07_16.md` §1):
+> S5-1 / S5-2 / S5-3 / S5-5 → KEEP, land in the Phase-8.5 opening Batch Q ·
+> S5-4 → DEFER to the Pre-EA Dialogue Robustness row (`DESIGN_REFINEMENT.md`
+> §8.EVAL Dispositions); its one-line docstring refresh rides Batch Q. Re-verify
+> note for the builder: S5-5's copy half is INVERTED on master — the message
+> already prints the capped count; the real defect is the fixed-corps note at
+> `economy_executor.py:415-417` printing post-cap NEW_TROOPS as the corps size.**
 
 | ID | Pri | Kind | Issue | Root cause | Fix / landing |
 |----|-----|------|-------|-----------|---------------|

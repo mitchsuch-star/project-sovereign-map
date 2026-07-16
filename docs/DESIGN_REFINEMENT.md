@@ -16,8 +16,8 @@
 | War System Overhaul (EU4-inspired) | 4 | ✅ LANDED — war_objectives / power cap / forced_alliance / liberation live in code |
 | AI Diplomacy Improvements | 3 | N1 verified live; A4 historical note; A3 residual rides queue item 5 (8.EVAL) |
 | Gold Sink Options (B4) | 1 | Re-pointed → `docs/ECONOMY_REVISIT_SPEC.md` EC-2 |
-| Wave 4 — New Features | 19 | Needs per-item approval (8.EVAL); R26 → EC-5, R161 → EC-8, R162 gated behind queue items 5-6 |
-| Wave 5 — Game Review Findings | 8 | Mostly routed into the grouped spec tracks; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
+| Wave 4 — New Features | 19 | **✅ DISPOSED at 8.EVAL July 16, 2026** (`docs/audits/EVAL_8_2026_07_16.md` §2): R117/R59/R153/R154 already handled; R26 → EC-5, R161 → EC-8, R158 → CR-7, R162 stays gated behind the Nation-Agendas gate; R22/R25/R27/R35/R118/R127/R133 → the Pre-EA Diplomacy & Flavor Content Menu row; R32/power_score/R24/R33/R36 DROPPED with reasons |
+| Wave 5 — Game Review Findings | 8 | **✅ DISPOSED at 8.EVAL July 16, 2026** — routed items verified: R155/R157 residuals ride the promoted Nation-Agendas core + landed voice work; R152 residual folds into the closed queue-item-6 record; R158 → `docs/COMMAND_ROBUSTNESS_SPEC.md` CR-7 |
 | Jealousy System | 1 | Separate design gate; Marshal Content Pass MC-3 now an effective prerequisite |
 | **Wave 6 — Creative Capstone (July 10, 2026)** | 14 | **✅ APPROVED IN FULL July 10** (6 expansions + 6 escalations + 2 gate additions: Dynamic Battle Naming, Literal Doctrine); owner = `WAVE6_FUN_FACTOR_SPEC.md` (12 build slices W6-0..W6-11) |
 | **Estate Second Pass deferrals (July 11, 2026)** | 4 | **ESP-1 + ESP-2 + ESP-4 ✅ LANDED July 11, 2026 with the Jealousy v3.2 build** (ESP-4 folded per its own row's fold-in clause; record = `JEALOUSY_SPEC.md` §0.3/§0.4, tests `test_estate_riders_esp.py`); ESP-3 respect-by-treaty → diplomacy gate (unchanged) |
@@ -31,6 +31,12 @@
 > `docs/audits/SWEEP_5_2026_07_16.md` §5). CONFIRMED, adversarially verified,
 > pre-existing (not Sweep-5 regressions). Correctness-tier siblings live in
 > `BUG_FIXES.md` §Sweep-5.
+>
+> **Dispositions set at 8.EVAL July 16, 2026 (`docs/audits/EVAL_8_2026_07_16.md`):
+> S5-D1 → KEEP 8.5 behind the CR-6 mini-gate (gate questions pre-staged in the
+> record §3) · S5-D2 → KEEP 8.5 Batch Q · S5-D3 → DEFER to the next refactoring
+> slice (row in §8.EVAL Dispositions below; VS-4 single-sourcing is the priority
+> element).**
 
 | ID | Pri | Item | Design shape | Owner / landing |
 |----|-----|------|--------------|-----------------|
@@ -96,16 +102,31 @@ This queue records the April 16 diplomacy rescope. It is no longer the live impl
    **✅ LANDED — shipped as the Imperial Settlement system, complete through Slice G1 (July 2, 2026, commit `1a9da53`); see `docs/SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32 and `docs/STATUS.md`.**
    Build contribution, consultation, ally beneficiaries, and common peace as a separate wartime-flow system. **Current state:** the dedicated spec and implementation plan now own the active Slice A handoff; this item is no longer merely a later-direction draft.
 5. `Nation Agendas + Motive Legibility`
-   **OPEN — owner: the 8.EVAL evaluation gate (`docs/ROADMAP.md`). Collapsed item list unchanged.**
-   Collapse `R155`, `R156`, `A3`, `R123`, and `R124` into one agenda-driven AI diplomacy spec. **Also owns the dynamic concern system:** converting `nation_concerns` from static seeded values (shipped in Memory and Pressure) to dynamic balance-of-power evaluation driven by territory, military power, treaty opposition, and proximity — the Napoleonic "your success creates your opposition" loop. See `RELIABILITY_COMMITMENTS_SPEC.md` §7.7 for the scale architecture target and the "what breaks at 15+ nations" punch list.
+   **✅ RE-SCOPED + PROMOTED at 8.EVAL (July 16, 2026 — record `docs/audits/EVAL_8_2026_07_16.md` §1).** The motive-LEGIBILITY half is LANDED piecemeal (W6-9 war room + assess chip, W6-10 register bank + ask variety, UI-6 surfaces, DEF-1 voices; verified with file:line evidence in the gate record) and the `nation_concerns`-to-dynamic sub-item is OBSOLETE (zero code presence — superseded by the live hegemony/bloc-share machinery). **What survives is the AGENDA core — `R123` (econ-strategy triggers), `R124` (isolation/alliance-splitting plays), `A3` (enemy-AI war-vs-diplomacy choice), the `R155` residual (personality-driven timing/persistence/target choice), `R156` (diplomacy strategically optional) — and it is PROMOTED to the Phase 8.5 design-gate centerpiece** (8.5 = Events, Goals & National Identity; the agenda system IS the "Goals & National Identity" diplomacy pillar). Needs its user design gate at 8.5; propose-then-build.
 6. `Talleyrand Desk + Explanation Layer`
-   **OPEN — owner: the 8.EVAL evaluation gate (`docs/ROADMAP.md`). Collapsed item list unchanged.**
-   Collapse `R131`, `R132`, `R17d`, `R17e`, `R17f`, `R157`, and `R159` into one explanation / trend / advisory surface spec.
+   **✅ CLOSED at 8.EVAL (July 16, 2026 — DROPPED as landed; record `EVAL_8_2026_07_16.md` §1).** ~6 of the 7 collapsed items shipped piecemeal: R131 cooldown pre-check (`diplomatic_executor.py:270-286`), R132 vassal transparency (W6-3/W6-9 + the UI-6 ledger trend), R17d DP breakdown, R17e trend arrows, R17f mission projection (all in `diplomatic_ledger.py`), R157 voice depth (PL-25 + C3-lite + W6-10 + DEF-1). The sole live residual **R159 (screens should teach mechanics) is RE-HOMED to the Pre-EA Onboarding & Teaching Pass row (§8.EVAL Dispositions below)** — GR9 satisfied, no unowned promise survives.
 7. `Economic Diplomacy`
    **RE-POINTED — owner: `docs/ECONOMY_REVISIT_SPEC.md` EC-8 (economic diplomacy, incl. R161). Original text kept as historical context.**
    Collapse `R161` plus diplomacy-facing B4 candidates into one reciprocal-trade / subsidy / pressure spec.
 
-**Diplo-wide ledger rows `DWL-DIP-E7` + `DWL-DIP-METTERNICH`:** their "settlement final gate closes" trigger goes LIVE when the user confirms the Gate 4 visual half (the smoke's HTTP half ran July 2, 2026) — they enter the 8.EVAL evaluation gate at that point.
+**Diplo-wide ledger rows `DWL-DIP-E7` + `DWL-DIP-METTERNICH`:** ~~their "settlement final gate closes" trigger goes LIVE when the user confirms the Gate 4 visual half~~ **✅ BOTH DECIDED at 8.EVAL July 16, 2026 (`docs/audits/EVAL_8_2026_07_16.md` §1): E7 = authority-banded defiance floor** (the 2% floor is the effective rate for the whole early-mid campaign at boot authority 100 — the Jealousy §0.2-11b boot-dormancy precedent applies; spec §3a trust-term drift fixed in the same slice) **and Metternich = BUILD small** (rejected Schemer peace-family proposal → once-per-rejection, 5-turn-expiring war-pressure marker on the existing threat substrate; closes both the consequence-free-rejection gap and the `DIPLOMACY_SPEC.md §5c` doc debt). Both land in the 8.5 opening Batch Q.
+
+### 8.EVAL Dispositions (July 16, 2026) — the pre-EA rows this gate created
+
+> Gate record = `docs/audits/EVAL_8_2026_07_16.md` (authoritative; §4 = this list's charter). Each row is a GR9 home: owner = the named pass, landing = that pass's build session, completion = the referenced item's own definition.
+
+| Row | Contents | Completion definition |
+|-----|----------|----------------------|
+| **Pre-EA Balance Pass** | DW-2 war-score-credit calibration (bilateral ×0.3 vs settlement ×0.65 — one constant + dependent-pin retune); co-homed with the STATUS:537 Europe-balance items | Bilateral acceptance credits war dominance consistently with the settlement scorer's felt weight; G4F-9 ladder re-verified |
+| **Pre-EA AI Correctness Pass** | AUD-f `_evaluate_marshal` deferred-commit refactor (threat-responder claims + serialized `ai_refortify_cooldown` writes during candidate evaluation) | Evaluation is side-effect-free; M1–M7 harness + `test_ai_audit_2026_07.py` green |
+| **Pre-EA AI Depth Pass** | MC-V-4 cautious force-husbanding (design gate FIRST — must coexist with the anti-stagnation machinery); the ROADMAP 8c trio (AI-AI wars, AI vassalization, cross-AI threat) stays at its own 8c row | Gate-blessed design lands with liveness metrics held; **if no pass materializes pre-EA, drop cleanly — no player promise outstanding** |
+| **Pre-EA Dialogue Robustness** | S5-4 queue-cap overflow-to-mailbox (push + preempt together) | No dialogue silently dropped at cap; docstring already fixed in Batch Q |
+| **Pre-EA Onboarding & Teaching Pass** | R159 (screens teach mechanics) — companion to `TUTORIAL_SCRIPT.md` | Each core screen names the mechanic it displays; new-player path verified |
+| **Pre-EA Diplomacy Polish Pass** | AUD-d M3 territory-sweetener rebuild (reuse VS-3 worth-scaling + the BPH `territory_cede` seam; delete the 2 dead `NATION_DESIRES` territory rows either way) | AI counters can cede real regions with correct direction; ratification live-verified |
+| **Pre-EA Diplomacy & Flavor Content Menu** | R22 marriage alliances · R25 vassal personality events · R27 secret treaties · R35 player counter-offers on bilateral incoming offers · R118 acceptance preview · R127 nation-specific advisory intel · R133 point-of-no-return popup · Gneisenau Staff Work | Per-item R-row definitions; user picks the menu at the pass's gate |
+| **Next refactoring slice** | S5-D3 hygiene batch (edit-distance triplication, VS-4 predicate single-sourcing = priority, lazy-import documentation, AUD-a's dead `QUEUE_MAX_SIZE`) | Byte-identical behavior, existing VS-4/muster pins green |
+
+**DROPPED at 8.EVAL (explicit strikes, reasons in the gate record §1–§2):** DR-6/queue-item-6 as chartered (landed) · AUD-a envoy flood (fixed twice over, measured 4→7) · AUD-e behavior half (shipped sort canonized; Enemy AI 8.0 held — docs reconciled instead) · arch-plan #23 fixed nation order (canonized; harness-load-bearing) · R32 peace conferences · numeric `power_score` · R24 signing ceremonies · R33 puppet rulers · R36 personal summits · the battle/war narration toggle (narration measured 8.0).
 
 ### Still lower priority
 

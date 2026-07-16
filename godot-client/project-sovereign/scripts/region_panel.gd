@@ -14,6 +14,13 @@ extends CanvasLayer
 # Chips send the SAME typed commands a player would type — the executor owns
 # every gate (AP, gold, objections); a refused chip reports like a typed
 # refusal in the terminal. Display-only, Golden Rule 6 clean.
+#
+# UX pass July 16: docked TOP-LEFT under the top bar (the old center-left
+# anchor grew downward into the expandable terminal and covered the command
+# box). The content area lives in a ScrollContainer whose height is fitted
+# each render and CLAMPED above the terminal's live top edge (avoid_control,
+# set by main.gd) — the panel and the command box can no longer fight for the
+# same corner. Overflow scrolls.
 # =============================================================================
 
 signal region_command(command: String)
@@ -23,12 +30,44 @@ signal closed
 @onready var panel_container = $PanelContainer
 @onready var title_label = $PanelContainer/VBoxContainer/HeaderRow/TitleLabel
 @onready var close_button = $PanelContainer/VBoxContainer/HeaderRow/CloseButton
-@onready var content_area = $PanelContainer/VBoxContainer/ContentArea
+@onready var scroll = $PanelContainer/VBoxContainer/Scroll
+@onready var content_area = $PanelContainer/VBoxContainer/Scroll/ContentArea
 
 const _CHIP_BG = "233043"
 # The whole client plays France (1805 campaign); dispatch/ledger make the
 # same assumption.
 const _PLAYER_NATION = "France"
+# Panel geometry: matches the .tscn top-left dock (12, 48 — under the 36px
+# top bar) plus a breathing margin above the terminal / screen bottom.
+const _PANEL_TOP := 48.0
+const _CLAMP_MARGIN := 10.0
+# Never fit smaller than this — if the player drags the terminal to a
+# near-full-height footprint the panel keeps a usable window and (drawing on
+# layer 26) overlaps rather than collapsing to nothing.
+const _MIN_CONTENT_H := 120.0
+
+# The Control whose top edge the panel must stay above (main.gd wires the
+# terminal's BottomLeftUI here). Null = clamp to the viewport bottom only.
+# Review fix (July 16): a property setter, because the terminal moves WITHOUT
+# a viewport resize (grip drag / double-click reset / minimize / restore) —
+# the panel must refit on the avoided control's OWN rect/visibility signals
+# or its clamp goes stale and it covers the very command box it dodges.
+var avoid_control: Control = null:
+	set(value):
+		if avoid_control != null and is_instance_valid(avoid_control):
+			if avoid_control.item_rect_changed.is_connected(_on_avoid_control_changed):
+				avoid_control.item_rect_changed.disconnect(_on_avoid_control_changed)
+			if avoid_control.visibility_changed.is_connected(_on_avoid_control_changed):
+				avoid_control.visibility_changed.disconnect(_on_avoid_control_changed)
+		avoid_control = value
+		if avoid_control != null:
+			avoid_control.item_rect_changed.connect(_on_avoid_control_changed)
+			avoid_control.visibility_changed.connect(_on_avoid_control_changed)
+
+
+func _on_avoid_control_changed():
+	if visible:
+		_fit_height()
 
 var _region: String = ""
 var _map_node = null
@@ -38,17 +77,28 @@ func _ready():
 	close_button.pressed.connect(close_panel)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	content_area.meta_clicked.connect(_on_meta_clicked)
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	hide()
+
+
+func _on_viewport_resized():
+	if visible:
+		_fit_height()
 
 
 func show_region(region_name: String, map_node) -> void:
 	"""Open (or retarget) the panel for a clicked province."""
 	if region_name == "" or map_node == null:
 		return
+	var retargeted = region_name != _region
 	_region = region_name
 	_map_node = map_node
 	_render()
 	show()
+	if retargeted and scroll != null:
+		# A fresh province starts at the top; refresh_if_open (same province,
+		# post-chip re-render) keeps the player's scroll position.
+		scroll.scroll_vertical = 0
 
 
 func refresh_if_open() -> void:
@@ -56,6 +106,10 @@ func refresh_if_open() -> void:
 	(the map itself refreshes from every response's game_state.map_data)."""
 	if visible and _region != "" and _map_node != null:
 		_render()
+
+
+func current_region() -> String:
+	return _region
 
 
 func close_panel() -> void:
@@ -186,6 +240,33 @@ func _render() -> void:
 			bbcode += row + "\n"
 
 	content_area.text = bbcode
+	# fit_content needs a layout pass before get_content_height() is real.
+	call_deferred("_fit_height")
+
+
+func _fit_height() -> void:
+	# Size the scroll window to the content, capped so the panel bottom stays
+	# above the terminal's live top edge (or the viewport bottom). Runs
+	# deferred after every render and again on viewport resize.
+	if not visible or scroll == null:
+		return
+	var vp_bottom := get_viewport().get_visible_rect().size.y
+	var limit := vp_bottom
+	if avoid_control != null and is_instance_valid(avoid_control) and avoid_control.visible:
+		limit = minf(limit, avoid_control.get_global_rect().position.y)
+	var header_h := 0.0
+	var header = panel_container.get_node_or_null("VBoxContainer/HeaderRow")
+	if header != null:
+		header_h = header.size.y
+	# Panel chrome: top offset + header + separations + PanelContainer margins.
+	var available := limit - _PANEL_TOP - _CLAMP_MARGIN - header_h - 24.0
+	available = maxf(available, _MIN_CONTENT_H)
+	var content_h := float(content_area.get_content_height()) + 4.0
+	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)
+	# The PanelContainer keeps yesterday's taller size unless reset — shrink it
+	# back to its minimum so closing a long province and opening a short one
+	# doesn't leave a stretched empty frame.
+	panel_container.size = Vector2.ZERO
 
 
 # Build chip catalog: backend BUILDING_TYPES key → chip label → the typed
