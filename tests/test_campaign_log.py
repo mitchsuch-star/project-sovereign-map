@@ -106,7 +106,8 @@ class TestTypeWhitelist:
         # rivalry_confrontation / glory_crowned), the ESP riders
         # (fontainebleau_petition / rente_defaulted), and
         # marshal_commissioned (recruitment).
-        assert len(CAMPAIGN_LOG_TYPES) == 113
+        # VS-4 (July 16, 2026): +1 vassal_refuses_call (call-to-arms refusal).
+        assert len(CAMPAIGN_LOG_TYPES) == 114
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

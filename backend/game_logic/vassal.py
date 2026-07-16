@@ -54,6 +54,19 @@ INVEST_COOLDOWN = 3
 # keeps FULL value in the VS-R spiral band (it is not a cheap one-shot).
 GARRISON_LOYALTY_BONUS = 2
 
+# ═══════ CALL-TO-ARMS (VS-4, July 16, 2026 — VASSAL_DEEPENING_SPEC §5) ═══════
+# Loyalty has military teeth. Tier thresholds (in-band tunable):
+#   loyal        (>= 60): full contribution, as today.
+#   wavering     (35-59): the nation still answers the call, but its
+#                assimilated ex-marshals drag their feet — withheld from
+#                auto-reinforce/muster unless under an explicit SUPPORT
+#                order (the A-D4 hostile pattern; direct orders stay obeyed).
+#   disaffected  (< 35): refuses NEW calls-to-arms outright (war-cascade
+#                auto-join declined). Gates only NEW wars — no retroactive
+#                mid-war exit (a call-to-arms, not a desertion mechanic).
+CONTRIBUTION_LOYAL_MIN = 60
+CONTRIBUTION_DISAFFECTED_BELOW = 35
+
 # ═══════ LAND GRANTS (VS-3, July 16, 2026 — VASSAL_DEEPENING_SPEC §1) ═══════
 # "Reward Bavaria for its service — cede it the province it bled for."
 # Worth-scaled: bonus = min(CAP, BASE + income_value // DIVISOR), so a rich
@@ -1113,6 +1126,32 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int,
             f"{loyalty_msg}. {tribute_msg}."
         ),
     }
+
+
+# ═══════════════════════════════════════════════════════
+# CALL-TO-ARMS (VS-4)
+# ═══════════════════════════════════════════════════════
+
+def vassal_military_contribution(world, vassal_name: str) -> str:
+    """VS-4 single source: how much military weight a vassal throws behind
+    its lord — "loyal" / "wavering" / "disaffected" (see the tier constants).
+    Consumed at four seams: the war-cascade auto-join (both arms), the
+    reinforcement eligibility rule, the muster preview, and the dispatch
+    copy — so shown always equals applied (W6-4).
+
+    A non-vassal returns "loyal" (the gate simply doesn't apply).
+    GR5: keys off the vassal row alone, so enemy lords' satellites tier
+    identically.
+    """
+    state = getattr(world, 'vassals', {}).get(vassal_name)
+    if not state:
+        return "loyal"
+    loyalty = int(state.get("loyalty", LOYALTY_MAX))
+    if loyalty >= CONTRIBUTION_LOYAL_MIN:
+        return "loyal"
+    if loyalty >= CONTRIBUTION_DISAFFECTED_BELOW:
+        return "wavering"
+    return "disaffected"
 
 
 # ═══════════════════════════════════════════════════════

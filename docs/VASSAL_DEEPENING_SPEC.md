@@ -424,11 +424,34 @@ will not send troops to the lord's wars.
   hint already surfaces in that band. This is the natural **soft precursor to VS-6 defection** — first
   they stop fighting for you, then they flip.
 
-**Landing contract (GR9):** owner §5; slice **VS-4** (single session, independent of VS-3/VS-5);
-completion = a sub-threshold vassal's contingent is withheld from the lord's war and surfaced;
-test `test_vassal_call_to_arms.py` (tiered contribution, withhold at low loyalty, legibility, GR5).
-Verify the co-belligerent / assimilation seam at build (`vassal.py` shared-war path + the
-muster/reinforcement seams).
+**Landing contract (GR9):** owner §5; slice **VS-4** — ✅ **LANDED July 16, 2026.**
+The build verification the spec mandated ("verify the co-belligerent / assimilation seam")
+re-anchored the substrate: the "shared-war path" in vassal.py is the +2 loyalty bonus, NOT
+co-belligerence — actual co-belligerence is the war-cascade vassal auto-join in
+`diplomacy.py _process_war_cascade`, and assimilated marshals are permanently lord-nation
+(no per-war contingent object exists). What landed:
+- **Single source `vassal_military_contribution`** (loyal ≥60 / wavering 35–59 /
+  disaffected <35; constants in-band tunable) consumed at four seams so shown = applied.
+- **Disaffected → refuses NEW calls:** both war-cascade vassal arms gate; the refusal
+  emits a `vassal_refuses_call` cascade entry (carries loyalty + war_id for VS-6),
+  a `refused_disaffected` war-entry ledger row, declare-war message copy, a HIGH
+  player notification, a dispatch template, and a campaign-log one-liner.
+  **No retroactive mid-war exit** (pinned) — a call-to-arms, not desertion.
+- **Wavering → marshals withheld:** assimilated ex-vassal marshals (keyed off the
+  serialized `marshal.original_nation`) are excluded from auto-reinforcement
+  (Rule 1b in `_is_reinforcement_eligible`) and the muster preview
+  (`vassal_wavering` reason + display copy) — UNLESS under an explicit SUPPORT
+  order for the primary (the A-D4 hostile pattern; **direct orders stay obeyed**,
+  pinned — no collision with the objection/defiance hierarchy). Zero new
+  serialized fields.
+- GR5-symmetric (enemy lords' satellites tier identically). Honest caveat: at the
+  1805 boot the three satellites have zero marshals, so the marshal-level teeth are
+  latent until mid-game vassalizations; the refusal beat is live for any new war.
+- Drive-by: the `vassal_auto_join_war` one-liner read `overlord` while the emitter
+  passes `lord` (rendered "Unknown's war") — fixed.
+Test `test_vassal_call_to_arms.py` (20): tier matrix, both cascade arms, loyal/wavering
+auto-join unchanged, no-retroactive-exit pin, SUPPORT override, gate released on
+de-vassalization, muster pairing, ledger row, GR5, legibility surfaces.
 
 ---
 

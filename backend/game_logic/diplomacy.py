@@ -7914,6 +7914,12 @@ def declare_war(
                 f"{c['vassal']} follows {c['lord']} into the war against "
                 f"{c['target']}!"
             )
+        elif cascade_type == "vassal_refuses_call":
+            # VS-4: the refusal is part of the declaration's story
+            messages.append(
+                f"{c['vassal']} does not answer {c['lord']}'s call to arms "
+                f"— its court wavers (loyalty {c.get('loyalty', '?')})!"
+            )
         else:
             messages.append(
                 f"{c['defender']} enters the war against {aggressor} "
@@ -8342,6 +8348,74 @@ def _process_war_cascade(
         if vassal_nation in processed:
             continue
         lord = vassal_data.get("lord", "")
+
+        # VS-4 (VASSAL_DEEPENING_SPEC §5): a DISAFFECTED satellite refuses
+        # the call-to-arms — loyalty finally has military teeth. Gates only
+        # NEW calls (this cascade); never a retroactive mid-war exit. Both
+        # arms (lord attacked / lord attacking) refuse alike; GR5-symmetric
+        # because it keys off the vassal row, not the player.
+        if lord in (target, aggressor):
+            from backend.game_logic.vassal import vassal_military_contribution
+            if vassal_military_contribution(world, vassal_nation) == "disaffected":
+                enemy_of_lord = aggressor if lord == target else target
+                if not world.is_at_war(vassal_nation, enemy_of_lord):
+                    loyalty_now = int(vassal_data.get("loyalty", 0))
+                    processed.add(vassal_nation)
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=vassal_nation,
+                        path="refused_disaffected",
+                        side=("defender_vassal" if lord == target
+                              else "attacker_vassal"),
+                        reason=f"vassal of {lord}; loyalty {loyalty_now}",
+                        treaty_state="VASSAL",
+                    )
+                    cascade.append({
+                        "vassal": vassal_nation,
+                        "lord": lord,
+                        "target": enemy_of_lord,
+                        "cascade_type": "vassal_refuses_call",
+                        "loyalty": loyalty_now,
+                        "war_id": str(getattr(ctx, "war_id", "") or ""),
+                        # Some cascade consumers format via the generic else
+                        # branch — carry a self-contained message too.
+                        "message": (
+                            f"{vassal_nation} does not answer {lord}'s call "
+                            f"to arms — its court wavers (loyalty {loyalty_now})."
+                        ),
+                    })
+                    world.log_event({
+                        "type": "vassal_refuses_call",
+                        "vassal": vassal_nation,
+                        "lord": lord,
+                        "against": enemy_of_lord,
+                        "loyalty": loyalty_now,
+                    })
+                    if lord == getattr(world, 'player_nation', 'France'):
+                        from backend.notifications import (
+                            NotificationPriority,
+                            VASSAL_REBELLION_IMMINENT,
+                            create_notification,
+                        )
+                        world.notifications.add(create_notification(
+                            VASSAL_REBELLION_IMMINENT,
+                            NotificationPriority.HIGH,
+                            f"{vassal_nation} Refuses the Call!",
+                            (f"{vassal_nation} will not send troops to the war "
+                             f"against {enemy_of_lord} — loyalty {loyalty_now}. "
+                             f"Win them back before they slip further."),
+                            int(world.current_turn),
+                        ))
+                    from backend.game_logic.dispatch import queue_dispatch_event
+                    queue_dispatch_event(
+                        world, "diplomatic_vassal_refuses_call",
+                        {"vassal": vassal_nation, "lord": lord,
+                         "enemy": enemy_of_lord, "loyalty": loyalty_now,
+                         "nation": lord},
+                        "player_vassal" if lord == getattr(world, 'player_nation', 'France') else "always",
+                    )
+                    continue
+
         if lord == target and not world.is_at_war(vassal_nation, aggressor):
             attach_result = _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
             if not attach_result.get("ok"):

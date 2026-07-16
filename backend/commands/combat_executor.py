@@ -383,6 +383,26 @@ class CombatExecutor:
         # Rule 1: Same nation
         if marshal.nation != nation:
             return False
+        # Rule 1b (VS-4, VASSAL_DEEPENING_SPEC §5): an assimilated ex-vassal
+        # contingent whose homeland wavers (loyalty < 60) is withheld from
+        # AUTO-reinforcement — loyalty has military teeth. Mirrors the A-D4
+        # hostile pattern: an explicit SUPPORT order for the primary (a
+        # direct player order) still brings him — refusal is about the
+        # call-to-arms, never command defiance.
+        origin = getattr(marshal, 'original_nation', None)
+        if origin:
+            vassals = getattr(world, 'vassals', {})
+            if origin in vassals and vassals[origin].get("lord") == nation:
+                from backend.game_logic.vassal import vassal_military_contribution
+                if vassal_military_contribution(world, origin) != "loyal":
+                    order = getattr(marshal, 'strategic_order', None)
+                    has_support_for_primary = (
+                        order is not None
+                        and order.command_type == "SUPPORT"
+                        and order.target == primary.name
+                    )
+                    if not has_support_for_primary:
+                        return False
         # Rule 2: Adjacent region (not same region, not distant)
         if marshal.location not in region.adjacent_regions:
             return False
@@ -491,6 +511,16 @@ class CombatExecutor:
                     has_relevant_order = True
         if has_relevant_order:
             return True, "has_support_order"
+        # VS-4 (paired with reinforcement Rule 1b — shown = applied): an
+        # assimilated ex-vassal contingent whose homeland wavers will not
+        # answer the muster without the written word.
+        origin = getattr(candidate, 'original_nation', None)
+        if origin:
+            vassals = getattr(world, 'vassals', {})
+            if origin in vassals and vassals[origin].get("lord") == nation:
+                from backend.game_logic.vassal import vassal_military_contribution
+                if vassal_military_contribution(world, origin) != "loyal":
+                    return False, "vassal_wavering"
         # The Grouchy Rule: a literal marshal without the written word
         # does not march to the sound of the guns.
         if getattr(candidate, 'personality', '') == "literal":

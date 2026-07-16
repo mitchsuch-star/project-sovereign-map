@@ -558,6 +558,8 @@ MUSTER_REASON_DISPLAY = {
     "cooldown_spent": "has already marched this turn",
     "engaged": "is pinned by enemies before his own front",
     "square_formation": "stands in square and cannot march",
+    # VS-4: assimilated ex-vassal contingent whose homeland wavers
+    "vassal_wavering": "will not march — his homeland's loyalty wavers",
 }
 
 TRUST_TIER_DISPLAY = {

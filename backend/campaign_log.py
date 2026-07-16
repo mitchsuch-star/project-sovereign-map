@@ -99,6 +99,7 @@ CAMPAIGN_LOG_TYPES = {
     # V3 Session 8: missing event types
     "nation_eliminated",
     "vassal_auto_join_war",
+    "vassal_refuses_call",  # VS-4: disaffected vassal declines the call-to-arms
     "coalition_member_left",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted",
@@ -266,6 +267,7 @@ CATEGORY_MAP = {
     # V3 Session 8: missing event types
     "nation_eliminated": "diplomacy",
     "vassal_auto_join_war": "diplomacy",
+    "vassal_refuses_call": "diplomacy",  # VS-4
     "coalition_member_left": "diplomacy",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
@@ -647,11 +649,11 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Vassal auto-joining war: show if player involved or PARTIAL+
-        if event_type == "vassal_auto_join_war":
+        # Vassal auto-join / VS-4 refusal: show if player involved or PARTIAL+
+        if event_type in ("vassal_auto_join_war", "vassal_refuses_call"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             vassal = event.get("vassal") or event.get("nation", "")
-            overlord = event.get("overlord", "")
+            overlord = event.get("overlord") or event.get("lord", "")
             visible = False
             for nation in (vassal, overlord):
                 if nation == player_nation:
@@ -1364,8 +1366,18 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "vassal_auto_join_war":
         vassal = event.get("vassal") or event.get("nation", "Unknown")
-        overlord = event.get("overlord", "Unknown")
+        # Drive-by (VS-4 build): the emitter passes "lord"; the old read of
+        # only "overlord" rendered every one-liner as "Unknown's war".
+        overlord = event.get("overlord") or event.get("lord", "Unknown")
         return f"Vassal {vassal} joined {overlord}'s war."
+
+    if event_type == "vassal_refuses_call":
+        # VS-4: a disaffected satellite declines the call-to-arms
+        vassal = event.get("vassal", "Unknown")
+        lord = event.get("lord", "Unknown")
+        loyalty = event.get("loyalty", "?")
+        return (f"{vassal} refuses {lord}'s call to arms "
+                f"(loyalty {loyalty}).")
 
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")
