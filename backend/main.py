@@ -304,6 +304,17 @@ def _build_result_response(result: dict, world) -> dict:
     Used for /command early returns and endpoints that forward executor results.
     """
     extra = {k: v for k, v in result.items() if k != "new_state"}
+    # Sweep-5 P0 (live 500): an early-return result that already ran the enemy
+    # phase (e.g. a capture choice raised DURING end-turn strategic processing)
+    # carried `enemy_phase` RAW — its per-action `new_state` WorldStates hold
+    # tuple-keyed caches that crash jsonable_encoder AFTER the turn advanced
+    # (the player loses the whole turn's report to a naked 500), and the
+    # unfiltered actions leak fog besides. Route it through the same cleaner
+    # the main /command path uses.
+    if "enemy_phase" in extra:
+        cleaned_phase = _build_visible_enemy_phase(extra.pop("enemy_phase"), world)
+        if cleaned_phase is not None:
+            extra["enemy_phase"] = cleaned_phase
     return build_base_response(
         world,
         success=extra.pop("success", False),
@@ -1137,8 +1148,15 @@ def execute_command(request: CommandRequest):
                               else "attack" if "attack" in options
                               else "attack_anyway" if "attack_anyway" in options
                               else None)
-                elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on"]):
-                    choice = "continue_order" if "continue_order" in options else None
+                elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on", "push on", "push through"]):
+                    # Sweep-5 live finding: a contact_bad_odds / muster gate
+                    # offers attack_anyway but no continue_order, so a natural
+                    # "press on" fell through to a bewildered LLM parse. When
+                    # the order can only continue THROUGH the enemy, pressing
+                    # on IS attacking anyway.
+                    choice = ("continue_order" if "continue_order" in options
+                              else "attack_anyway" if "attack_anyway" in options
+                              else None)
                 elif any(kw in cmd_lower for kw in ["hold", "stay", "stop", "wait", "halt"]):
                     choice = "hold_position" if "hold_position" in options else None
                 elif any(kw in cmd_lower for kw in ["go around", "reroute", "avoid"]):

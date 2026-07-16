@@ -9,13 +9,21 @@ This layer sits between LLM response and command execution to:
 4. Block unimplemented features with friendly messages
 """
 
-from typing import List, Set
+import re
+from typing import List, Optional, Set
+
 from .schemas import ParseResult
 
 
 # =============================================================================
 # VALID GAME ENTITIES
 # =============================================================================
+
+# Movement-family actions whose unknown target must survive validation so the
+# executor's fuzzy matcher can NAME the unknown place instead of reporting a
+# missing destination (Sweep-5). Other actions keep the clear-silently
+# recovery (the executor picks a sensible co-located target).
+_TARGET_PASSTHROUGH_ACTIONS: Set[str] = {"move", "scout"}
 
 # Actions that require marshal + validation
 VALID_ACTIONS: Set[str] = {
@@ -197,11 +205,42 @@ DIPLOMATIC_DATA_ALLOWED_FIELDS: Set[str] = {
 # VALIDATION FUNCTIONS
 # =============================================================================
 
+def _edit_distance_le2(a: str, b: str) -> bool:
+    """True when Levenshtein(a, b) <= 2. Small bounded DP — validation.py is a
+    leaf module and must not import the parser's helper (circular)."""
+    if abs(len(a) - len(b)) > 2:
+        return False
+    previous = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        current = [i]
+        for j, cb in enumerate(b, 1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1,
+                               previous[j - 1] + (ca != cb)))
+        if min(current) > 2:
+            return False
+        previous = current
+    return previous[-1] <= 2
+
+
+def _marshal_mentioned(raw_text: str, marshal: str) -> bool:
+    """Word-boundary (typo-tolerant) check that the utterance actually names
+    the marshal. Tokens shorter than 4 chars must match exactly; longer ones
+    tolerate edit distance <= 2 (the fuzzy budget the parser itself uses)."""
+    name = marshal.lower()
+    for token in re.findall(r"[a-zA-Z][a-zA-Z'\-]+", raw_text.lower()):
+        if token == name:
+            return True
+        if len(token) >= 4 and len(name) >= 4 and _edit_distance_le2(token, name):
+            return True
+    return False
+
+
 def validate_parse_result(
     result: ParseResult,
     valid_marshals: List[str],
     valid_regions: List[str],
     valid_targets: List[str],  # regions + enemy marshals
+    raw_text: Optional[str] = None,
 ) -> ParseResult:
     """
     Validate and sanitize LLM parse result.
@@ -209,11 +248,15 @@ def validate_parse_result(
     Validation rules:
     - Meta actions (help, debug, etc.) → bypass validation
     - Invalid marshals → matched=False + suggestion
+    - Marshal the utterance never named → cleared (CR-4 focus / CR-2
+      clarification own the default, exactly as in mock mode)
     - Multi-marshal commands → "coming soon"
     - Strategic commands → "coming soon"
     - Invalid actions → matched=False + suggestion
     - Invalid target_stance → matched=False + suggestion
-    - Invalid targets → cleared silently (executor picks)
+    - Invalid targets → cleared silently (executor picks), EXCEPT
+      movement-family targets which pass through so the executor's fuzzy
+      matcher can name the unknown place
     - Scores → clamped 0-100
 
     Args:
@@ -221,6 +264,8 @@ def validate_parse_result(
         valid_marshals: List of marshal names in game
         valid_regions: List of region names in game
         valid_targets: Combined list of regions + enemy marshals
+        raw_text: The player's original utterance (live path only) — enables
+            the invented-marshal guard; None skips it (hand-built dicts, mock)
 
     Returns:
         Validated/corrected ParseResult (mutated in place)
@@ -286,6 +331,21 @@ def validate_parse_result(
         result.suggestion = "Multi-marshal commands coming in a future update!"
         return result
 
+    # Sweep-5 live finding: a bare order ("attack") let the live LLM INVENT a
+    # marshal — Bernadotte was picked out of thin air and his standing HOLD
+    # broken. The designed pipeline for an unnamed marshal is deterministic:
+    # CR-4 Persistent Command Focus, else the CR-2 "Which marshal, Sire?"
+    # clarification — both live at the Marshal-'None' seam downstream. Strip a
+    # marshal the utterance never named (typo-tolerant, same fuzzy budget as
+    # the parser) so live mode rejoins that designed flow instead of
+    # bypassing it.
+    if (raw_text and result.marshals and len(result.marshals) == 1
+            and result.marshals[0] in marshal_set
+            and not _marshal_mentioned(raw_text, result.marshals[0])):
+        print(f"[VALIDATION] LLM invented marshal '{result.marshals[0]}' "
+              f"for {raw_text!r} — cleared (focus/clarification owns it)")
+        result.marshals = []
+
     # Phase 5.2: Validate strategic command type if present
     VALID_STRATEGIC_TYPES = {"MOVE_TO", "PURSUE", "HOLD", "SUPPORT"}
     if getattr(result, 'is_strategic', False) or getattr(result, 'command_type', '') == "strategic":
@@ -311,8 +371,14 @@ def validate_parse_result(
             result.suggestion = f"Unknown stance: {result.target_stance}. Use: aggressive, defensive, or neutral"
             return result
 
-    # Clear invalid targets silently (let executor/personality pick)
+    # Clear invalid targets silently (let executor/personality pick) — EXCEPT
+    # movement-family actions, where a nulled target turns an honest "no such
+    # place" into a bogus "Move order requires a destination" (Sweep-5 live
+    # finding: "move to Venetia"). Passing the raw string through lets the
+    # executor's fuzzy matcher own the verdict ("Region 'Venetia' not found.
+    # Nearby: ...") and rescue near-miss spellings the strict set check kills.
     if result.target and result.target not in target_set:
-        result.target = None
+        if result.action not in _TARGET_PASSTHROUGH_ACTIONS:
+            result.target = None
 
     return result

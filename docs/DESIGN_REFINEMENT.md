@@ -25,6 +25,21 @@
 
 ---
 
+## Sweep-5 — Design Items (July 16, 2026)
+
+> From the Combat Overhaul Sweep-5 12-component review (memo
+> `docs/audits/SWEEP_5_2026_07_16.md` §5). CONFIRMED, adversarially verified,
+> pre-existing (not Sweep-5 regressions). Correctness-tier siblings live in
+> `BUG_FIXES.md` §Sweep-5.
+
+| ID | Pri | Item | Design shape | Owner / landing |
+|----|-----|------|--------------|-----------------|
+| S5-D1 | P1 | **Bare "attack" bypasses every gate** — with no marshal named, `_execute_general_attack` auto-picks a never-addressed marshal into a real battle, skipping CR-2 clarification, the W6-4 muster gate (no `command` kwarg at the resolve call), AND the objection gate (needs `marshal_name`). Long-standing WAD (pre-CR-2), but by post-CR-2/W6-4 standards the most ambiguous lethal order gets the fewest gates; four independent Sweep-5 reviews converged on the same fix | Route to `build_marshal_choice_clarification` when >1 marshal is in enemy contact; keep single-contact auto-pick; arm the muster gate on the general/auto-assign paths. Requires consciously flipping `test_auto_assign_attack.py` pins | CR-family slice — candidate for the **CR-6 design gate**; behavior test = bare "attack" with 2 marshals in contact raises the marshal-choice question |
+| S5-D2 | P2 | **PF-8 issuance-time passability honesty** — "march to Copenhagen" printed a route through neutral Prussia/Sweden; the closed-border stall fires only at the border hop, so the player spends 2 AP + a turn to learn what the game knew at issuance | Issuance rider naming the closed crossings ("via closed Prussian territory — requires open borders or war") when the formed path fails `_region_passable_for`; no pin conflicts | PF-8 follow-on row; lands with the next parser/UX batch |
+| S5-D3 | P3 | **Architecture hygiene batch** — duplicated `_edit_distance_le2` (validation.py local vs parser helper, deliberate to avoid a leaf→layer import), the byte-mirrored VS-4 withholding predicate (combat_executor ↔ muster preview), leaf→layer lazy imports (authority→diplomacy) | Consolidation pass: a shared leaf util module for edit-distance; single-source the VS-4 predicate; document-or-lift the lazy imports | Architecture hygiene row; batch with the next refactoring slice |
+
+---
+
 ## Vassal Playtest — Design Items (July 14, 2026)
 
 > Routed (not bugs) from the July 14 vassal playtest + 14-agent verification. Bug fixes landed the same session (`docs/BUG_FIXES.md` §Vassal Playtest Findings); memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`. These are intent/legibility/enhancement calls, not defects.

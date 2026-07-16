@@ -258,16 +258,22 @@ def register_pending_clarification(world, response: Dict,
     player's next typed input can answer it.
 
     Only called from main.py's player-command path (never for AI commands).
-    Skips registration when another dialogue is already active — the popup
-    still works through its reissue commands; only the typed-answer channel
-    needs the slot.
+    Skips registration only when a HARD-STOP dialogue is active (that question
+    blocks all commands, so the clarification could never be answered anyway).
+    A soft-stop / local dialogue (e.g. an incoming AI proposal riding the
+    mailbox) is PREEMPTED instead: the clarification becomes current and the
+    displaced dialogue returns through normal queue promotion once the answer
+    pops it. Sweep-5 live finding: the old any-dialogue skip killed the typed
+    answer channel behind every soft-stop, so typing the delegation ASK's own
+    words ("give battle") fell to a fresh LLM parse and mis-resolved
+    ("Region 'generic' not found") — in the terminal the typed channel is the
+    PRIMARY answer path, not a popup fallback.
     """
     if response.get("state") != "awaiting_clarification":
         return False
-    if world.dialogue_manager.peek() is not None:
-        return False
+    dm = world.dialogue_manager
     options = response.get("options") or []
-    world.dialogue_manager.push({
+    dialogue = {
         "type": CLARIFICATION_DIALOGUE_TYPE,
         "turn_created": int(world.current_turn),
         "question": response.get("message", ""),
@@ -278,7 +284,14 @@ def register_pending_clarification(world, response: Dict,
         "interpreted_target": response.get("interpreted_target"),
         "raw_input": raw_input,
         "options": [dict(o) for o in options if isinstance(o, dict)],
-    })
+    }
+    current = dm.peek()
+    if current is None:
+        dm.push(dialogue)
+        return True
+    if dm.is_hard_stop():
+        return False
+    dm.preempt(dialogue)
     return True
 
 

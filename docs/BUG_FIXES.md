@@ -3,7 +3,31 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
+> Last Updated: July 16, 2026 (**Sweep-5 Findings section added** — the P0 end-turn 500
+> FIXED in-session; 5 routed OPEN rows from the Combat Overhaul Sweep-5 12-component
+> review, memo `docs/audits/SWEEP_5_2026_07_16.md`.)
+>
 > Last Updated: July 14, 2026 (**Vassal Playtest Findings — F1/F1c/F3/F6/F8b/C1/C2/F5/F7/F4 ALL FIXED** this session from a live europe_1805 playtest + 14-agent adversarial verification; memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`, tests `tests/test_playtest_fixes_2026_07_14.py`. Prior: July 12, 2026 (**Playtest Sweep PS-1..PS-9 — 3 user-reported issues + same-family sweep + the generosity-inversion fix (PS-9: "More generous" lowered a hawk's acceptance); ALL FIXED + verified, suite 12,964/3, Godot parse-clean**). Prior: July 11, 2026 (**Estate-Second-Pass Eval Findings section added** — ESP-EV-1 muster typed-answer misroute + ESP-EV-2 expectation-note under-fire FIXED in-session; ESP-EV-3 battles_won seam inconsistency + ESP-EV-4 attack-region silent redirect ROUTED to 8.EVAL. Prior: **MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+
+---
+
+## Sweep-5 Findings — July 16, 2026 (P0 FIXED; 5 routed OPEN)
+
+> From the Combat Overhaul **Sweep 5** (Parsing/UX) 12-component adversarial review over
+> fresh live evidence — memo `docs/audits/SWEEP_5_2026_07_16.md`, live captures
+> `docs/audits/SWEEP_5_LIVE_EVIDENCE_2026_07_16.md`. All rows CONFIRMED by an
+> adversarial verify pass and verified **pre-existing** (none is a Sweep-5 regression).
+> The five Sweep-5 parse/UX defects found the same day were fixed in-session and are NOT
+> listed here (see the memo's Half-A section).
+
+| ID | Pri | Kind | Issue | Root cause | Fix / landing |
+|----|-----|------|-------|-----------|---------------|
+| S5-P0 | **P0** | crash/fog | **FIXED July 16, 2026 (same session).** End turn with a capture choice raised during strategic processing → naked HTTP 500 AFTER the turn advanced (whole end-turn report lost); the raw pass-through also leaked unfogged enemy actions | `_build_result_response` forwarded `enemy_phase` RAW — per-action `new_state` WorldStates carry tuple-keyed caches that crash `jsonable_encoder` outside the endpoint try/except | Route `enemy_phase` through `_build_visible_enemy_phase` (strip + fog-filter) in `_build_result_response`; poison reproduced then killed; exit-run re-drive: 6 end turns with pending captures, zero 500s. `tests/test_sweep5_end_turn_500.py` (4) |
+| S5-1 | P1 | AI waste | Moore's square↔fortify self-cancelling loop burns whole enemy nation-turns (live ×2: abandoned accrued +12% fortify for +7% square, then re-fortified) | P2.5 lacks a `fortified` guard (contra `TACTICAL_TRIANGLE_SPEC.md:239-240`); P3 guards `fortified` but not `square_formation`; `_auto_break_square` skips `ai_square_cooldown` | Suppress P3 fortify while `square_formation`, or set `ai_square_cooldown` on the implicit break (`tactical_executor.py:456`). Behavior test: an AI defender holds ONE stance across 3 turns |
+| S5-2 | P1 | R7 leak | Raw camelCase marshal keys in player copy, 5+ live occurrences ("ArchdukeCharles must be dealt with first", pursue/engagement copy) | `combat_executor.py:3154-3159`, `strategic_executor.py:393`, `movement_executor.py:229` bypass `display_names.humanize_entity_name`; the Godot substitution map covers only two nation keys | Route the three seams through `humanize_entity_name`; grep-sweep test for camelCase in executor message templates |
+| S5-3 | P2 | stale UI | `DOTATION_EXPECTATION` rail notice created once at shortfall-open with static grace copy — live it said "80g/turn … patience holds 2 turns" while the SAME response's dispatch said "160g/turn … loyalty is fraying" | notice never dismissed/re-added on expectation change or erosion start | Dismiss-by-type + re-add on change (the PF-5 details-filter pattern); live grace countdown |
+| S5-4 | P2 | dialogue edge | `DialogueManager.preempt` at QUEUE_CAP silently drops the displaced soft-stop; docstring still says hard-stop-only | preempt appends to a capped queue without overflow handling | Overflow to the mailbox instead of dropping; refresh the contract docstring |
+| S5-5 | P2 | gate bypass | PF-7 lows: bombard-no-guns rejection is bypassable via the post-objection route; corps-size copy prints the uncapped count under the field-levy cap | post-objection path re-executes without the guard; copy uses requested not capped size | Close the post-objection route (re-run the guard); print the capped size |
 
 ---
 

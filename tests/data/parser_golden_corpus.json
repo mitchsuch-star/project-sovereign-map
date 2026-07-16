@@ -260,12 +260,13 @@
    "id": "break-through-enemy-lines",
    "utterance": "break through enemy lines",
    "world": "any",
+   "mock_only": true,
    "expected": {
     "success": false,
     "error_contains": "Unknown action"
    },
    "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_break_through_enemy_lines_is_military",
-   "notes": "NEGATIVE assertion only: action != diplomatic_break ('break' keyword must require treaty context)."
+   "notes": "NEGATIVE assertion only: action != diplomatic_break ('break' keyword must require treaty context). mock_only (Sweep 5): the expected shape pins the FAST parser's 'Unknown action'; the live LLM legitimately interprets the utterance as a military order, and the true negative (not diplomatic_break) still holds there."
   },
   {
    "id": "talleyrand-attack-prussia",
@@ -2030,12 +2031,13 @@
    "id": "money-for-the-troops",
    "utterance": "money for the troops",
    "world": "any",
+   "mock_only": true,
    "expected": {
     "success": false,
     "error_contains": "Unknown action"
    },
    "source": "tests/test_systems_audit_v2_session5.py::TestMarshalWordBoundary::test_ney_not_matched_in_money",
-   "notes": "V2-55: 'ney' inside 'money' must not match. Loose assert (None OR != 'Ney')."
+   "notes": "V2-55: 'ney' inside 'money' must not match. Loose assert (None OR != 'Ney'). mock_only (Sweep 5): the expected shape pins the FAST parser's 'Unknown action'; the live LLM legitimately reads an economy request, and the word-boundary negative (marshal != Ney) still holds there."
   },
   {
    "id": "predavoutly-move-to-paris",

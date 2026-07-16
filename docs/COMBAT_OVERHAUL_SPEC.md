@@ -279,7 +279,8 @@ re-tuned for the deeper decisiveness hit. Suite 13,121/3, ruff clean, no `.gd`.
 | VS-1 loyalty lever / VS-2 dead code / VS-R coupling | ✅ **LANDED July 14, 2026** — event gate 3→2, grip-aware recovery hint; war-weariness dead term deleted; VS-R authority↔loyalty coupling + 10 playtest fixes | (Sweep 4 ✅ below) | `4392c30`/`9131df6`/`016bf71` |
 | **Sweep 4 (Half B)** | ✅ **RAN July 15, 2026** | Vassals 6.0→**6.5** (target MET, at the floor); UX 6.5→7.0; 0 regressions | `SWEEP_4_2026_07_15.md` |
 | PF-1…PF-9 + AI-1 | ✅ **LANDED July 15, 2026** — all 10 live-found fixes; 4-round adversarial verify (8 defects caught + fixed); backend-only, no `.gd` | Sweep 5 (Half B) pending | `3c0246a` |
-| Sweep 5 + exit sweep | NOT STARTED | full | — |
+| **Sweep 5 (Half A + Half B)** | ✅ **RAN July 16, 2026** — Parsing 7.0→**7.5** (target MET); UX 7.0 / Narration 8.0 / Diplomacy 8.5 targets held-or-raised; +0.5 marshal-system/settlement, **+1.0 vassals** (Depth track); 0 regressions; **five defects live-found AND fixed in-sweep** (clarification preempt, press-on fallback, invented-marshal guard, movement-target passthrough, mock_only corpus) + the **P0 end-turn 500** landed post-synthesis | 28 agents / ~3.7M tokens; M1–M7 byte-identical | `SWEEP_5_2026_07_16.md` + `SWEEP_5_LIVE_EVIDENCE_2026_07_16.md` |
+| **EXIT SWEEP — PROGRAM CLOSED** | ✅ **July 16, 2026** — every §1 target MET or EXCEEDED (overall 6.4→**≈7.6** vs ≥7.3); zero program regressions across all six sweeps; both Sweep-5 exit conditions honored (P0 landed + the three evidence-gap scenarios scripted: reward-economy transaction FULL, low-loyalty `vassal_rebellion` arc LIVE, settlement flow OPENED w/ wizard ratification routed to 8.EVAL) | §8 criteria all pass | `COMBAT_OVERHAUL_EXIT_SWEEP_2026_07_16.md` |
 
 Update `docs/STATUS.md` Next Steps and CLAUDE.md Current Phase Queue when Phase 0 begins.
 

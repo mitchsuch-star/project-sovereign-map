@@ -495,7 +495,8 @@ class LLMClient:
                 llm_result,
                 valid_marshals,
                 valid_regions,
-                valid_targets
+                valid_targets,
+                raw_text=command_text,
             )
 
             # Validation failed (e.g., LLM hallucinated a marshal name)
@@ -1328,6 +1329,30 @@ class LLMClient:
                 target = "Tyrol"
             elif "netherlands" in command_lower:
                 target = "Netherlands"
+
+        # Sweep-5: a MOVE order naming a place NO pass above could match must
+        # KEEP the spoken destination, so the executor's fuzzy matcher owns
+        # the verdict ("Region 'Venetia' not found. Nearby: ...") instead of
+        # the misleading "Move order requires a destination". Deliberately
+        # last (every known-name pass already had its chance), move-only
+        # (scout objects are often generic: "scout the area"), and guarded
+        # against the support family ("move to reinforce Ney") and bare
+        # directional/generic words.
+        if target is None and action == "move" and not re.search(
+                r"\b(?:support|reinforce|join|help|aid)\b", command_lower):
+            dest = re.search(
+                r"\b(?:to|towards?|into)\s+(?:the\s+)?"
+                r"([A-Za-z][A-Za-z '\-]{2,40}?)"
+                r"(?:\s+(?:via|until|then|and)\s.*)?[.!?]?\s*$",
+                command_lower)
+            if dest:
+                phrase = dest.group(1).strip()
+                generic = {"north", "south", "east", "west", "front", "rear",
+                           "enemy", "enemies", "him", "her", "them", "there",
+                           "battle", "guns", "sound of the guns", "capital",
+                           "coast", "border", "position", "positions"}
+                if phrase not in generic:
+                    target = phrase.title()
 
         # Build interpretation string
         if marshal and action != "unknown":

@@ -355,14 +355,29 @@ class TestClarificationBuilders:
         assert build_unknown_name_clarification(
             world, "Murat", ["Ney"], "charge now", "marshal_not_found") is None
 
-    def test_register_only_when_slot_empty(self):
+    def test_register_preempts_non_hard_stop(self):
+        # Pin CONSCIOUSLY FLIPPED July 16, 2026 (Sweep-5 live finding): the
+        # old any-dialogue skip killed the typed-answer channel whenever a
+        # soft-stop (e.g. a mailbox proposal) was current, so the ASK's own
+        # words mis-parsed ("Region 'generic' not found"). A newer question
+        # now PREEMPTS a non-hard-stop dialogue — most recent question wins;
+        # the displaced dialogue returns via queue promotion on pop. Only a
+        # HARD-STOP still refuses registration
+        # (test_sweep5_clarification_preempt.py owns that arm).
         world = self._world()
         response = {"state": "awaiting_clarification", "message": "q",
                     "marshal": "Berthier", "options": []}
         assert register_pending_clarification(world, response, "support ney") is True
         assert world.dialogue_manager.peek()["type"] == CLARIFICATION_DIALOGUE_TYPE
-        # Second registration is refused while a dialogue is active
-        assert register_pending_clarification(world, response, "x") is False
+        newer = {"state": "awaiting_clarification", "message": "q2",
+                 "marshal": "Berthier", "options": []}
+        assert register_pending_clarification(world, newer, "x") is True
+        top = world.dialogue_manager.peek()
+        assert top["type"] == CLARIFICATION_DIALOGUE_TYPE
+        assert top["raw_input"] == "x"
+        # The displaced question returns once the newer one pops
+        world.dialogue_manager.pop()
+        assert world.dialogue_manager.peek()["raw_input"] == "support ney"
 
     def test_strategic_reissue_matches_godot_keyword_map(self):
         assert strategic_reissue_command("Ney", "MOVE_TO", "Vienna") == "Ney march to Vienna"

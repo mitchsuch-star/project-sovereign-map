@@ -216,7 +216,7 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
         world = build_world(world_key)
         contexts[world_key] = (world, build_llm_game_state(world))
 
-    total = passed = skipped_live_only = 0
+    total = passed = skipped_live_only = skipped_mock_only = 0
     failures = []
     for entry in corpus["entries"]:
         if only_ids and entry["id"] not in only_ids:
@@ -227,6 +227,13 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
         # provider armed; skip (counted, never silent) under mock.
         if entry.get("live_only") and not use_real_llm:
             skipped_live_only += 1
+            continue
+        # mock_only mirrors live_only: the entry pins a MOCK-parser behavior
+        # (e.g. the V2-55 word-boundary "Unknown action" shape) that the live
+        # LLM legitimately resolves differently (it may interpret the whole
+        # utterance). Skip (counted, never silent) when the live provider runs.
+        if entry.get("mock_only") and use_real_llm:
+            skipped_mock_only += 1
             continue
         for world_key in worlds_for_entry(entry):
             if world_key not in contexts:
@@ -248,7 +255,8 @@ def run_corpus(corpus: Optional[Dict] = None, use_real_llm: bool = False,
                 if verbose:
                     print(f"ok   [{world_key}] {entry['id']}")
     return {"total": total, "passed": passed, "failed": len(failures),
-            "skipped_live_only": skipped_live_only, "failures": failures}
+            "skipped_live_only": skipped_live_only,
+            "skipped_mock_only": skipped_mock_only, "failures": failures}
 
 
 def main(argv=None) -> int:
@@ -280,6 +288,10 @@ def main(argv=None) -> int:
         print(f"  ({summary['skipped_live_only']} live_only entr"
               f"{'y' if summary['skipped_live_only'] == 1 else 'ies'} skipped -- "
               f"run with --live to evaluate)")
+    if summary.get("skipped_mock_only"):
+        print(f"  ({summary['skipped_mock_only']} mock_only entr"
+              f"{'y' if summary['skipped_mock_only'] == 1 else 'ies'} skipped -- "
+              f"they pin fast-parser behavior)")
     for failure in summary["failures"]:
         print(f"  FAIL [{failure['world']}] {failure['id']}: {failure['utterance']!r}")
         for m in failure["mismatches"]:
