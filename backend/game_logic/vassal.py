@@ -372,6 +372,80 @@ def lord_garrison_present(world, lord: str, capital_name: str) -> bool:
     return False
 
 
+def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
+    """Knowable steady-state next-turn loyalty delta for ONE vassal.
+
+    Mirrors process_vassal_loyalty term for term EXCEPT the battle term
+    (step 5), which is transient and unknowable before the turn resolves.
+    Single source for the ledger Vassals tab AND the wizard preview trend
+    (the F7 lesson: display forecasts that hand-copy the pipeline drift
+    apart silently — the old preview trend read autonomy drift alone and
+    could show "falling" for a garrisoned, subsidized satellite that was
+    actually climbing).
+    """
+    state = (getattr(world, 'vassals', {}) or {}).get(vassal_name) or {}
+    autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+    drift = int(AUTONOMY_DRIFT.get(autonomy, 0))
+
+    # Step 2: the lord's garrison (VP-D1 single-source predicate).
+    garrison_present = False
+    garrison_bonus = 0
+    capital = world.get_nation_capital(vassal_name)
+    if capital and lord_garrison_present(world, lord, capital):
+        garrison_present = True
+        garrison_bonus = GARRISON_LOYALTY_BONUS
+
+    # Step 3: standing gold-subsidy treaty clauses (+1 per 100g/turn).
+    subsidy_bonus = 0
+    for treaty in getattr(world, 'active_treaties', {}).values():
+        for clause in treaty.get("clauses", []):
+            if (clause.get("type") == "gold_per_turn"
+                    and clause.get("from") == lord
+                    and clause.get("to") == vassal_name):
+                subsidy_bonus += int(clause.get("amount", 0)) // 100
+
+    # Step 4: shared enemies.
+    shared_enemy_bonus = 0
+    for other in world.get_active_nations():
+        if other == lord or other == vassal_name:
+            continue
+        if (world.get_diplomatic_state(lord, other) == "WAR"
+                and world.get_diplomatic_state(vassal_name, other) == "WAR"):
+            shared_enemy_bonus += 2
+
+    # Step 6: relations with the lord.
+    relation = int(world.nation_relations.get(
+        world._make_diplo_key(vassal_name, lord), 0) or 0)
+    relation_modifier = relation // 20
+
+    # Step 7: the lord's imperial grip (VS-R).
+    grip = get_imperial_grip(world, lord)
+    grip_drift = authority_vassal_drift(grip)
+
+    forecast = (drift + garrison_bonus + subsidy_bonus + shared_enemy_bonus
+                + relation_modifier + grip_drift)
+    if forecast > 0:
+        trend = "rising"
+    elif forecast < 0:
+        trend = "falling"
+    else:
+        trend = "stable"
+
+    return {
+        "forecast": int(forecast),
+        "trend": trend,
+        "drift": int(drift),
+        "garrison_present": garrison_present,
+        "garrison_bonus": int(garrison_bonus),
+        "subsidy_bonus": int(subsidy_bonus),
+        "shared_enemy_bonus": int(shared_enemy_bonus),
+        "relation_modifier": int(relation_modifier),
+        "grip": int(grip),
+        "grip_drift": int(grip_drift),
+        "capital": str(capital or ""),
+    }
+
+
 def process_vassal_loyalty(world) -> List[dict]:
     """
     Process all vassal loyalty modifiers per turn.

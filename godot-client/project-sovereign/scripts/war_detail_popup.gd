@@ -63,6 +63,26 @@ func _close_popup():
 	hide()
 
 
+# UI-6: opponent heraldry in the popup header (untinted colored art).
+var _header_flag: TextureRect = null
+
+func _set_header_flag(nation: String) -> void:
+	if _header_flag == null:
+		_header_flag = TextureRect.new()
+		_header_flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_header_flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_header_flag.custom_minimum_size = Vector2(24, 16)
+		var header_row = header_label.get_parent()
+		header_row.add_child(_header_flag)
+		header_row.move_child(_header_flag, header_label.get_index())
+	var path = Utils.nation_flag_path(nation)
+	if path == "":
+		_header_flag.visible = false
+		return
+	_header_flag.texture = load(path)
+	_header_flag.visible = true
+
+
 func _on_overlay_input(event):
 	if event is InputEventMouseButton and event.pressed:
 		_close_popup()
@@ -75,6 +95,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_current_war_id = str(war_data.get("war_instance_id", ""))
 	_current_mode = "war"
 	header_label.text = "WAR WITH " + opponent_display.to_upper()
+	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_add_tug_of_war_bar(
 		int(float(war_data.get("war_score", 0))),
@@ -99,6 +120,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	_current_nation = str(coalition_data.get("leader", ""))
 	_current_mode = "coalition"
 	header_label.text = str(coalition_data.get("name", "COALITION")).to_upper()
+	_set_header_flag("")
 	_clear_score_bars()
 	# Add a tug-of-war bar per coalition member
 	for w in wars:
@@ -125,6 +147,7 @@ func show_armistice(war_data: Dictionary) -> void:
 	_current_nation = str(war_data.get("opponent", ""))
 	_current_mode = "armistice"
 	header_label.text = "ARMISTICE WITH " + Utils.display_nation_name(_current_nation).to_upper()
+	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_render_armistice_detail(war_data)
 	_clear_buttons()

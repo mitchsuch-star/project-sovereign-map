@@ -62,6 +62,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
     return {
         "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
+        "vassals": _build_vassals(world),
         "treaties": _build_treaties(world),
         # SC-23 legacy fields preserved for tests / save compatibility;
         # `peace_settlement_history` is the merged surface that the
@@ -387,6 +388,136 @@ def _build_nations(world) -> List[Dict[str, Any]]:
         })
 
     return nations
+
+
+# ============================================================================
+# TAB: VASSALS (client states — UI-6 interaction sweep)
+# ============================================================================
+
+def _build_vassals(world) -> Dict[str, Any]:
+    """Build the Vassals tab: the player's client states with the full
+    decision picture (loyalty / autonomy / tribute / next-turn forecast)
+    plus the SAME honest-availability action rows the F1 wizard consumes
+    (`get_available_diplomatic_actions`), so the ledger's chips can never
+    disagree with the executor gates.
+
+    Pull-only UI payload (built once per ledger open — not a hot path).
+    Foreign satellites stay on the Nations tab via the bloc stamp; this
+    tab is the player's own clients.
+    """
+    from backend.game_logic.diplomacy import get_available_diplomatic_actions
+    from backend.game_logic.vassal import (
+        AUTONOMY_NAMES,
+        CONTRIBUTION_DISAFFECTED_BELOW,
+        CONTRIBUTION_LOYAL_MIN,
+        INVEST_LOYALTY_GAIN,
+        forecast_vassal_loyalty,
+        recovery_hint_for_grip,
+    )
+    from backend.models.authority import get_authority_lever_multiplier
+
+    player = getattr(world, "player_nation", "France")
+    vassal_records = getattr(world, "vassals", {}) or {}
+
+    dm = world.dialogue_manager
+    actions_blocked = bool(
+        dm.is_hard_stop() or dm.has_current_turn_offers() or dm.is_local_planning()
+    )
+
+    # VS-R lever blunting is per-lord — hoist out of the loop. The gain
+    # fields mirror the executor math EXACTLY (invest_in_vassal /
+    # change_vassal_autonomy: int(gain * mult)) so the chips' terms copy can
+    # never promise a +10 the executor blunts to +4 in the spiral band.
+    lever_mult = get_authority_lever_multiplier(world, player)
+    invest_gain = int(INVEST_LOYALTY_GAIN * lever_mult)
+    autonomy_up_gain = int(10 * lever_mult)
+    gains_blunted = lever_mult < 1.0
+
+    rows: List[Dict[str, Any]] = []
+    total_tribute = 0
+    for name in sorted(vassal_records.keys()):
+        record = vassal_records[name]
+        if record.get("lord") != player:
+            continue
+
+        loyalty = int(record.get("loyalty", 50))
+        autonomy = int(record.get("autonomy", 1))
+        tribute_rate = float(record.get("tribute_rate", 0.75))
+        vassal_income = sum(
+            world.regions[r].get_effective_income()
+            for r in world.get_nation_regions(name)
+            if r in world.regions
+        )
+        tribute = int(vassal_income * tribute_rate)
+        total_tribute += tribute
+
+        # Next-turn loyalty forecast — the shared steady-state helper
+        # (forecast_vassal_loyalty) mirrors process_vassal_loyalty term for
+        # term minus only the transient battle term, and includes the
+        # standing gold-subsidy clause the first cut of this tab missed.
+        fc = forecast_vassal_loyalty(world, player, name)
+        forecast = fc["forecast"]
+        trend = fc["trend"]
+        garrison_present = fc["garrison_present"]
+        garrison_bonus = fc["garrison_bonus"]
+        capital = fc["capital"]
+        grip = fc["grip"]
+
+        # VS-4 contribution tier (military teeth of loyalty).
+        if loyalty >= CONTRIBUTION_LOYAL_MIN:
+            contribution = "loyal"
+        elif loyalty < CONTRIBUTION_DISAFFECTED_BELOW:
+            contribution = "disaffected"
+        else:
+            contribution = "wavering"
+
+        # Warning band mirrors get_vassal_warnings thresholds.
+        if loyalty < 10:
+            warning = "critical"
+        elif loyalty < 20:
+            warning = "urgent"
+        elif loyalty < 40:
+            warning = "warning"
+        else:
+            warning = ""
+
+        rows.append({
+            "name": name,
+            "loyalty": int(loyalty),
+            "autonomy_level": int(autonomy),
+            "autonomy_name": AUTONOMY_NAMES.get(autonomy, "Satellite"),
+            "tribute": int(tribute),
+            "tribute_rate_pct": int(round(tribute_rate * 100)),
+            "loyalty_forecast": int(forecast),
+            "loyalty_trend": trend,
+            "contribution": contribution,
+            "warning": warning,
+            "recovery_hint": (
+                recovery_hint_for_grip(grip) if loyalty < 40 else ""
+            ),
+            "garrison_present": garrison_present,
+            "garrison_bonus": int(garrison_bonus),
+            "subsidy_bonus": int(fc["subsidy_bonus"]),
+            "invest_gain": int(invest_gain),
+            "autonomy_up_gain": int(autonomy_up_gain),
+            "autonomy_down_loss": 15,
+            "gains_blunted": gains_blunted,
+            "capital": str(capital or ""),
+            "regions": int(len(world.get_nation_regions(name))),
+            "granted_regions": [
+                str(r) for r in (record.get("granted_regions") or [])
+            ],
+            "path": str(record.get("path", "treaty")),
+            "created_turn": int(record.get("created_turn", 0) or 0),
+            "actions": get_available_diplomatic_actions(world, name),
+        })
+
+    return {
+        "rows": rows,
+        "count": int(len(rows)),
+        "total_tribute": int(total_tribute),
+        "actions_blocked": actions_blocked,
+    }
 
 
 # ============================================================================

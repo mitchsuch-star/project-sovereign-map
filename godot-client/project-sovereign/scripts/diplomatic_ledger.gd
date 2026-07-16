@@ -3,13 +3,26 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Diplomatic Ledger Screen (Session 8B)
 # =============================================================================
-# 5-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS
-# Number keys 1-5 switch sub-tabs (guarded by visible check).
+# 6-section sub-tabbed screen. CanvasLayer 50.
+# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS, VASSALS
+# Number keys 1-6 switch sub-tabs (guarded by visible check).
 # Pattern follows strategic_ledger.gd.
+# UI-6: the VASSALS tab renders per-vassal cards with honest-availability
+# action chips (invest / autonomy / cede / release) — the chips send the same
+# typed commands the parser accepts, or hand off to the F1 wizard for the
+# cede province picker.
 # =============================================================================
 
 signal closed
+# UI-6: a vassal action chip — the typed command through main.gd's pipeline
+# (history + terminal echo + refresh this ledger on result).
+signal vassal_command(command: String)
+# UI-6: [Cede Province…] — open the F1 wizard at this nation (its picker
+# states each province's terms).
+signal open_diplomacy_for(nation: String)
+# UI-6: Talleyrand tab [Assess the Situation] — the W6-9 counsel verb; main.gd
+# closes the ledger first so the war room renders in the terminal.
+signal assess_requested
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -22,13 +35,14 @@ signal closed
 @onready var threat_tab = $PanelContainer/VBoxContainer/SubTabRow/ThreatTab
 @onready var talleyrand_tab = $PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab
 @onready var bargains_tab = $PanelContainer/VBoxContainer/SubTabRow/BargainsTab
+@onready var vassals_tab = $PanelContainer/VBoxContainer/SubTabRow/VassalsTab
 
 # File-specific colors (not in Utils)
 const COLOR_AMBER = "d9a520"
 const COLOR_RED = "cd5c5c"
 
 # State
-var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains
+var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
@@ -55,7 +69,7 @@ func _ready():
 	background_overlay.gui_input.connect(_on_overlay_input)
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
 
-	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab]
+	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab, vassals_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
@@ -86,7 +100,7 @@ func _ready():
 
 
 func _input(event):
-	"""Handle number keys 1-4 for sub-tab switching. Only when visible."""
+	"""Handle number keys 1-6 for sub-tab switching. Only when visible."""
 	if not visible:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -102,6 +116,8 @@ func _input(event):
 				_switch_tab(3)
 			KEY_5:
 				_switch_tab(4)
+			KEY_6:
+				_switch_tab(5)
 			_:
 				switched = false
 		if switched:
@@ -123,6 +139,20 @@ func open_to_commitments(api_client):
 func open_to_war_bargains(api_client):
 	"""Fetch diplomatic ledger and open the war bargains tab."""
 	_open_with_tab(api_client, 4, "ledger_war_bargains")
+
+
+func open_to_vassals(api_client):
+	"""Fetch diplomatic ledger and open the Vassals tab (UI-6 deep link)."""
+	_open_with_tab(api_client, 5, "ledger_vassals")
+
+
+func refresh_if_open():
+	"""Re-fetch and re-render in place after a vassal-chip command changed
+	state (loyalty, DP, autonomy). No-op when the ledger is hidden — the
+	marshal_management.refresh_if_open precedent."""
+	if not visible or _api_client_ref == null:
+		return
+	_api_client_ref.get_diplomatic_ledger(_on_ledger_received)
 
 
 func open_to_settlements(api_client, route_id: String = "", war_id: String = ""):
@@ -224,6 +254,8 @@ func _render_current_tab():
 			_render_talleyrand()
 		4:
 			_render_war_bargains()
+		5:
+			_render_vassals()
 
 
 func _format_bloc_stamp(stamp) -> String:
@@ -304,6 +336,7 @@ func _render_nations():
 		elif trend == "falling":
 			rel_text += " ↓"
 
+		bbcode += Utils.bb_flag(name, 14)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
 		bbcode += _format_bloc_stamp(n.get("bloc_stamp"))
 		bbcode += " — [color=#" + state_color + "]" + Utils.display_diplo_state(diplo_state) + "[/color]"
@@ -840,6 +873,11 @@ func _render_talleyrand():
 		bbcode += ")\n"
 	bbcode += "\n"
 
+	# UI-6: the W6-9 assessment verb as a chip — the war room + executable
+	# counsel render in the terminal, so main.gd closes the ledger first.
+	bbcode += "  " + Utils.bb_button_chip("talleyrand_assess", "Assess the Situation", Utils.COLOR_GOLD, "233043")
+	bbcode += "  [color=#" + Utils.COLOR_GREY + "]his full survey of the war, the treasury, and the courts[/color]\n\n"
+
 	# Current mission
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]CURRENT MISSION[/color]\n"
 	var mission = t.get("active_mission")
@@ -1072,6 +1110,219 @@ func _format_bargain_entry(b: Dictionary) -> String:
 
 
 # =============================================================================
+# TAB 6: VASSALS (UI-6 — client states with action chips)
+# =============================================================================
+
+const _LOYALTY_BAR_W = 150
+const _LOYALTY_BAR_H = 13
+
+func _render_vassals():
+	var vassal_data = cached_data.get("vassals", {})
+	var rows = vassal_data.get("rows", [])
+	var bbcode = ""
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ CLIENT STATES ═══[/color]\n\n"
+
+	if rows.size() == 0:
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]France holds no client states.[/color]\n\n"
+		bbcode += "[color=#" + Utils.COLOR_GREY + "]Bind a minor power to the Empire: vassalize a court marked "
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color][color=#" + Utils.COLOR_GREY + "] on the Nations tab "
+		bbcode += "('vassalize Saxony'), demand vassalage at the peace table, or propose it through Diplomacy (F1).[/color]\n"
+		content_area.text = bbcode
+		return
+
+	var total_tribute = int(vassal_data.get("total_tribute", 0))
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(rows.size()) + " client state" + ("s" if rows.size() != 1 else "")
+	bbcode += " remit [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(total_tribute) + "g/turn[/color] in tribute.[/color]\n"
+	if vassal_data.get("actions_blocked", false):
+		bbcode += "[color=#" + COLOR_AMBER + "]Envoys await your reply — vassal instruments are suspended until the matter is answered.[/color]\n"
+	bbcode += "\n"
+
+	for v in rows:
+		bbcode += _format_vassal_card(v, bool(vassal_data.get("actions_blocked", false)))
+
+	content_area.text = bbcode
+
+
+func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
+	var bbcode = ""
+	var name = str(v.get("name", "?"))
+	var loyalty = int(v.get("loyalty", 50))
+	var autonomy_name = str(v.get("autonomy_name", "Satellite"))
+	var path = str(v.get("path", "treaty"))
+	var created_turn = int(v.get("created_turn", 0))
+
+	# ── Header: flag + name + autonomy + provenance ──
+	bbcode += Utils.bb_flag(name, 18)
+	bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
+	bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + autonomy_name + "[/color]"
+	# UI-6 review fix (UI6-R1): three-way path label — the 1805 boot vassals
+	# are seeded with path "scenario" (an authoring fact, not an in-game
+	# conquest), so the old two-way branch mislabeled all three as conquests.
+	var path_label = ""
+	match path:
+		"treaty":
+			path_label = "sworn by treaty"
+		"conquest":
+			path_label = "subjugated by conquest"
+		_:
+			path_label = "client state of the Empire"
+	bbcode += "  [color=#" + Utils.COLOR_GREY + "](" + path_label
+	if created_turn > 0 and path != "scenario":
+		bbcode += ", Turn " + str(created_turn)
+	bbcode += ")[/color]\n"
+
+	# ── Loyalty bar + trend forecast ──
+	var loyalty_color = Utils.COLOR_SUCCESS
+	if loyalty < 35:
+		loyalty_color = Utils.COLOR_ERROR
+	elif loyalty < 60:
+		loyalty_color = COLOR_AMBER
+	var filled = clampi(int(round(loyalty / 10.0)), 0, 10)
+	bbcode += "  [img color=#" + loyalty_color + " width=" + str(_LOYALTY_BAR_W) + " height=" + str(_LOYALTY_BAR_H) + "]res://assets/ui/bars/bar_" + str(filled) + ".png[/img]"
+	bbcode += "  Loyalty [color=#" + loyalty_color + "]" + str(loyalty) + "/100[/color]"
+	var forecast = int(v.get("loyalty_forecast", 0))
+	var trend = str(v.get("loyalty_trend", "stable"))
+	var forecast_sign = "+" if forecast > 0 else ""
+	match trend:
+		"rising":
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]↑ " + forecast_sign + str(forecast) + "/turn[/color]"
+		"falling":
+			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]↓ " + str(forecast) + "/turn[/color]"
+		_:
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]≈ steady[/color]"
+	bbcode += "\n"
+
+	# ── Warning band + the grip-aware recovery hint ──
+	var warning = str(v.get("warning", ""))
+	if warning != "":
+		var warn_color = Utils.COLOR_ERROR if warning != "warning" else COLOR_AMBER
+		var warn_label = ""
+		match warning:
+			"critical":
+				warn_label = "REBELLION IMMINENT"
+			"urgent":
+				warn_label = "LOYALTY FAILING"
+			_:
+				warn_label = "Loyalty slipping"
+		bbcode += "  [color=#" + warn_color + "]⚠ " + warn_label + "[/color]"
+		var hint = str(v.get("recovery_hint", ""))
+		if hint != "":
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + hint + "[/color]"
+		bbcode += "\n"
+
+	# ── Tribute + contribution tier ──
+	var tribute = int(v.get("tribute", 0))
+	var tribute_pct = int(v.get("tribute_rate_pct", 75))
+	bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g/turn[/color]"
+	bbcode += " [color=#" + Utils.COLOR_GREY + "](" + str(tribute_pct) + "% of their income)[/color]"
+	var contribution = str(v.get("contribution", "loyal"))
+	match contribution:
+		"loyal":
+			bbcode += "   [color=#" + Utils.COLOR_SUCCESS + "]Answers the call to arms[/color]"
+		"wavering":
+			bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — their marshals drag their feet[/color]"
+		"disaffected":
+			bbcode += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
+	bbcode += "\n"
+
+	# ── Garrison lever (VP-D1) ──
+	var capital = str(v.get("capital", ""))
+	if v.get("garrison_present", false):
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Garrisoned — our presence in " + capital + " steadies them (+" + str(int(v.get("garrison_bonus", 2))) + "/turn)[/color]\n"
+	elif capital != "":
+		bbcode += "  [color=#" + Utils.COLOR_GREY + "]No garrison — a corps in " + capital + " would add a standing +2/turn[/color]\n"
+
+	# ── Standing subsidy (treaty gold_per_turn — a forecast term, so name it) ──
+	var subsidy = int(v.get("subsidy_bonus", 0))
+	if subsidy > 0:
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)[/color]\n"
+
+	# ── Granted provinces (VS-3 provenance) ──
+	var granted = v.get("granted_regions", [])
+	if granted is Array and granted.size() > 0:
+		var granted_strs = []
+		for g in granted:
+			granted_strs.append(str(g))
+		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ceded to them: " + ", ".join(PackedStringArray(granted_strs)) + "[/color]\n"
+
+	# ── Action chips (honest availability — the wizard's own gate rows) ──
+	var actions = v.get("actions", [])
+	if actions is Array and actions.size() > 0:
+		for a in actions:
+			bbcode += _format_vassal_action_row(a, v)
+	elif actions_blocked:
+		pass  # section-level notice already shown
+	bbcode += "\n"
+	return bbcode
+
+
+# Compact chip labels per action id. All NUMBERS in the terms come from the
+# backend payload (dp_cost/gold_cost on the action row; grip-effective
+# invest_gain/autonomy_up_gain/autonomy_down_loss on the vassal row) — the
+# UI6-R2 review fix: the first cut hardcoded the loyalty gain the executor
+# blunts to 40% in the VS-R spiral band. Shown = applied.
+const _VASSAL_ACTION_LABELS = {
+	"invest_vassal": "Invest",
+	"increase_autonomy": "Loosen Rein",
+	"decrease_autonomy": "Tighten Rein",
+	"release_vassal": "Release",
+	"grant_region_to_vassal": "Cede Province…",
+}
+
+func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
+	var action_id = str(a.get("action", ""))
+	if not _VASSAL_ACTION_LABELS.has(action_id):
+		return ""
+	var label = str(_VASSAL_ACTION_LABELS[action_id])
+	var nation = str(v.get("name", ""))
+	var dp_cost = int(a.get("dp_cost", 1))
+	var gold_cost = int(a.get("gold_cost", 0))
+	var cost_text = str(dp_cost) + " DP"
+	if gold_cost > 0:
+		cost_text = str(gold_cost) + "g · " + cost_text
+	var blunted = bool(v.get("gains_blunted", false))
+	var terms = ""
+	match action_id:
+		"invest_vassal":
+			terms = "+" + str(int(v.get("invest_gain", 10))) + " loyalty — " + cost_text
+		"increase_autonomy":
+			terms = "+" + str(int(v.get("autonomy_up_gain", 10))) + " loyalty, they keep more income — " + cost_text
+		"decrease_autonomy":
+			terms = "−" + str(int(v.get("autonomy_down_loss", 15))) + " loyalty, they remit more — " + cost_text
+			blunted = false  # a downgrade is NEVER softened (VS-R Q3)
+		"release_vassal":
+			terms = "free them honorably — " + cost_text
+			blunted = false
+		"grant_region_to_vassal":
+			terms = "bind them with land — picker states each province's terms"
+			blunted = false  # the land grant is never spiral-blunted
+	if blunted:
+		# The executor's own disclosure phrasing — chip copy and result
+		# message can never disagree.
+		terms += " (the Emperor's faltering grip blunts the gesture)"
+	var row = "  "
+	if a.get("available", false):
+		var meta = ""
+		if action_id == "grant_region_to_vassal":
+			meta = "vassal_cede:" + nation
+		else:
+			meta = "vassal:" + action_id + ":" + nation
+		var chip_bg = "233043"
+		var chip_text = Utils.COLOR_GOLD
+		if action_id == "release_vassal":
+			chip_text = Utils.COLOR_ERROR
+		row += Utils.bb_button_chip(meta, label, chip_text, chip_bg)
+		row += "  [color=#" + Utils.COLOR_GREY + "]" + terms + "[/color]"
+	else:
+		var reason = str(a.get("disabled_reason", ""))
+		row += "[color=#" + Utils.COLOR_GREY + "]" + label + " — unavailable"
+		if reason != "":
+			row += ": " + reason
+		row += "[/color]"
+	return row + "\n"
+
+
+# =============================================================================
 # CRITICAL PULSE (flashing red for CRITICAL threat tier)
 # =============================================================================
 
@@ -1103,20 +1354,6 @@ func _on_critical_pulse():
 # HELPERS
 # =============================================================================
 
-# TECH DEBT: _format_number() duplicated across screens.
-func _format_number(n: int) -> String:
-	"""Format number with comma separators (e.g. 80000 -> 80,000)."""
-	var s = str(int(n))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
-
-
 func _on_overlay_input(event):
 	"""Click on dark overlay to close."""
 	if event is InputEventMouseButton and event.pressed:
@@ -1136,6 +1373,36 @@ func _on_content_meta_clicked(meta):
 		_expanded_settlements[meta_key] = not s_expanded
 		if current_tab == 1:
 			_render_treaties()
+	elif meta_key.begins_with("vassal_cede:"):
+		# UI-6: [Cede Province…] — the wizard owns the province picker.
+		var cede_nation = meta_key.substr("vassal_cede:".length())
+		if cede_nation != "":
+			open_diplomacy_for.emit(cede_nation)
+	elif meta_key.begins_with("vassal:"):
+		# UI-6: an action chip — build the same typed command the wizard sends.
+		var parts = meta_key.split(":")
+		if parts.size() == 3:
+			var command = _vassal_chip_command(str(parts[1]), str(parts[2]))
+			if command != "":
+				vassal_command.emit(command)
+	elif meta_key == "talleyrand_assess":
+		# UI-6: the W6-9 counsel verb from the Talleyrand tab.
+		assess_requested.emit()
+
+
+func _vassal_chip_command(action_id: String, nation: String) -> String:
+	"""Typed-command echoes — byte-identical to diplomacy_wizard._build_command
+	for the same actions, so chips and wizard cannot drift apart."""
+	match action_id:
+		"invest_vassal":
+			return "invest in " + nation
+		"increase_autonomy":
+			return "increase autonomy " + nation
+		"decrease_autonomy":
+			return "decrease autonomy " + nation
+		"release_vassal":
+			return "release " + nation
+	return ""
 
 
 func _format_settlement_sections(sections) -> String:

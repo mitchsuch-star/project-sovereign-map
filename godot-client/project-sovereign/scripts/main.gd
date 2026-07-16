@@ -233,6 +233,8 @@ var diplomacy_wizard = null
 # War Status Panel (N4: HUD Layer 1 + Detail Layer 2)
 var war_status_panel = null
 var war_detail_popup = null
+# UI-6: the Region Action Panel — map provinces answer a click (layer 26)
+var region_panel = null
 var _cached_wars: Array = []
 var _seen_war_ids: Dictionary = {}
 var _cached_coalition_data = null
@@ -385,6 +387,12 @@ func _ready():
 		war_status_panel.card_clicked.connect(_on_war_card_clicked)
 		war_status_panel.coalition_header_clicked.connect(_on_coalition_header_clicked)
 
+	# UI-6: Region Action Panel — non-modal like the war HUD
+	region_panel = dialog_manager.register("region_panel", "res://scenes/region_panel.tscn", false)
+	if region_panel:
+		region_panel.region_command.connect(_on_region_panel_command)
+		region_panel.negotiate_requested.connect(_on_region_negotiate_requested)
+
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
@@ -416,6 +424,8 @@ func _ready():
 		top_bar.set_api_client(api_client)
 		top_bar.screen_changed.connect(_on_screen_changed)
 		top_bar.envoy_clicked.connect(_on_envoy_clicked)
+		if top_bar.has_signal("menu_clicked"):
+			top_bar.menu_clicked.connect(_on_top_bar_menu_clicked)
 
 	# Screens registered with top bar
 	var _screen_configs = [
@@ -446,6 +456,17 @@ func _ready():
 				# Marshal Recruitment (Jealousy v3.2): the Commission view
 				if instance.has_signal("commission_requested"):
 					instance.commission_requested.connect(_on_commission_requested)
+				# UI-6: per-card order chips (Fortify/Drill) — typed commands
+				if instance.has_signal("order_command"):
+					instance.order_command.connect(_on_reward_command)
+			elif config[0] == "diplomatic_ledger":
+				# UI-6: Vassals-tab action chips + wizard handoff + assess verb
+				if instance.has_signal("vassal_command"):
+					instance.vassal_command.connect(_on_vassal_command)
+				if instance.has_signal("open_diplomacy_for"):
+					instance.open_diplomacy_for.connect(_on_ledger_open_diplomacy_for)
+				if instance.has_signal("assess_requested"):
+					instance.assess_requested.connect(_on_ledger_assess_requested)
 
 	# Notification bar — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
@@ -458,6 +479,11 @@ func _ready():
 		notification_bar.set_api_client(api_client)
 		if notification_bar.has_signal("notification_review_requested"):
 			notification_bar.notification_review_requested.connect(_on_notification_review_requested)
+
+	# UI-6: map province click → Region Action Panel (the region_clicked
+	# signal existed since the cutover but nothing listened in the game path)
+	if map_area and map_area.has_signal("region_clicked"):
+		map_area.region_clicked.connect(_on_map_region_clicked)
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -2623,6 +2649,12 @@ func _on_objection_response(response):
 		print("OBJECTION RESPONSE: success=%s disobeyed=%s defiance=%s" % [
 			response.get("success", false), response.get("disobeyed", false), response.get("defiance", false)])
 
+	# UI-6 (review fix UI6-R4): a chip command can raise this objection while
+	# its screen stays open beneath the modal — the chip's own result callback
+	# saw only the objection prompt, so refresh open info surfaces NOW that
+	# the order actually resolved (executed, compromised, or refused).
+	_refresh_open_info_screens()
+
 	# ════════════════════════════════════════════════════════════
 	# CHECK FOR DEFIANCE (V2b): Marshal defied a direct order
 	# ════════════════════════════════════════════════════════════
@@ -3755,6 +3787,19 @@ func _on_screen_changed(screen_name: String):
 	_update_war_panel_visibility()
 
 
+func _on_top_bar_menu_clicked():
+	"""UI-6: the top-bar gear. Review fix UI6-GD-1: close any open screen
+	FIRST (the ESC invariant — pause never coexists with a screen, whose
+	_input handlers would stay live beneath the translucent overlay)."""
+	if pause_menu and pause_menu.visible:
+		pause_menu.close_menu()
+		return
+	if pause_menu and not _is_modal_dialog_open():
+		if top_bar and top_bar.is_screen_open():
+			top_bar.close_all_screens()
+		pause_menu.open_menu()
+
+
 func _on_open_envoys_button_pressed():
 	_on_envoy_clicked()
 
@@ -3982,8 +4027,9 @@ func _on_commission_requested(candidate_name: String):
 func _on_reward_command(command: String):
 	"""A reward-dialog button — same pipeline as a typed command, then
 	refresh the Generals screen so the card shows the new estate/rente."""
-	if command.is_empty():
+	if command.is_empty() or _chip_command_in_flight:
 		return
+	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
@@ -3992,11 +4038,115 @@ func _on_reward_command(command: String):
 
 
 func _on_reward_command_result(response):
+	_chip_command_in_flight = false
 	_on_command_result(response)
 	if top_bar and top_bar.screens.has("generals"):
 		var generals_screen = top_bar.screens["generals"]
 		if generals_screen and generals_screen.has_method("refresh_if_open"):
 			generals_screen.refresh_if_open()
+
+
+# ═══════ UI-6: VASSAL CHIPS + DIPLOMATIC-LEDGER ACTIONS ═══════
+
+# Review fix UI6-R2: bbcode chips have no disabled state while a command is
+# in flight — without a latch a double-click sends the typed command twice
+# (double recruit spend, double DP charge). One shared latch covers every
+# chip pipeline (reward/commission/order, vassal, region panel); it clears
+# in each result callback (which also runs on the failure path).
+var _chip_command_in_flight := false
+
+func _refresh_open_info_screens():
+	"""Re-fetch whichever info surfaces are open (Generals, diplomatic
+	ledger, region panel) after a deferred resolution changed state."""
+	for screen_name in ["generals", "diplomatic_ledger"]:
+		if top_bar and top_bar.screens.has(screen_name):
+			var node = top_bar.screens[screen_name]
+			if node and node.has_method("refresh_if_open"):
+				node.refresh_if_open()
+	if region_panel and region_panel.has_method("refresh_if_open"):
+		region_panel.refresh_if_open()
+
+
+func _on_vassal_command(command: String):
+	"""A Vassals-tab chip — same pipeline as a typed command, then refresh
+	the diplomatic ledger in place so loyalty/DP/chips update."""
+	if command.is_empty() or _chip_command_in_flight:
+		return
+	_chip_command_in_flight = true
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	set_input_enabled(false)
+	api_client.send_command(command, _on_vassal_command_result)
+
+
+func _on_vassal_command_result(response):
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("diplomatic_ledger"):
+		var ledger_screen = top_bar.screens["diplomatic_ledger"]
+		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
+			ledger_screen.refresh_if_open()
+
+
+func _on_ledger_open_diplomacy_for(nation: String):
+	"""[Cede Province…] — close the ledger, open the wizard at that nation
+	(its positive-path picker states each eligible province's terms)."""
+	if nation.is_empty() or not diplomacy_wizard:
+		return
+	if _is_modal_dialog_open():
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	diplomacy_wizard.open_for_nation(nation)
+
+
+func _on_ledger_assess_requested():
+	"""Talleyrand tab [Assess the Situation] — the war room renders in the
+	terminal, so close the ledger before sending the W6-9 verb."""
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	_on_wizard_command_selected("Talleyrand, assess our situation")
+
+
+# ═══════ UI-6: REGION ACTION PANEL (map provinces answer a click) ═══════
+
+func _on_map_region_clicked(region_name: String):
+	"""Open the Region Action Panel for a clicked province. Map input is
+	already disabled while screens are open; modals block via the guard."""
+	if region_panel == null or region_name == "":
+		return
+	if _is_screen_open() or _is_modal_dialog_open():
+		return
+	region_panel.show_region(region_name, map_area)
+
+
+func _on_region_panel_command(command: String):
+	"""A region-panel chip — the typed-command pipeline, then re-render the
+	panel from the refreshed map data."""
+	if command.is_empty() or _chip_command_in_flight:
+		return
+	_chip_command_in_flight = true
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	set_input_enabled(false)
+	api_client.send_command(command, _on_region_panel_command_result)
+
+
+func _on_region_panel_command_result(response):
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if region_panel and region_panel.has_method("refresh_if_open"):
+		region_panel.refresh_if_open()
+
+
+func _on_region_negotiate_requested(nation: String):
+	"""[Negotiate with X] on a foreign province — close the panel, open the
+	F1 wizard at that court."""
+	if region_panel:
+		region_panel.close_panel()
+	_on_ledger_open_diplomacy_for(nation)
 
 
 # ═══════ JEALOUSY v3.2: THE MARSHAL-PETITION CHANNEL (spec §0.2-10) ═══════
@@ -4054,6 +4204,10 @@ func _update_war_panel_visibility():
 		war_status_panel.visible = should_show
 	if not should_show and war_detail_popup:
 		war_detail_popup.hide()
+	# UI-6: the Region Action Panel follows the same rule — never over a
+	# screen or a modal.
+	if region_panel and region_panel.visible and (_is_screen_open() or _is_modal_dialog_open()):
+		region_panel.close_panel()
 	if notification_bar and notification_bar.has_method("set_suspended"):
 		notification_bar.set_suspended(_is_modal_dialog_open())
 

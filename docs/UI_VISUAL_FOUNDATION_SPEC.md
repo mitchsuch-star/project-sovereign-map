@@ -62,6 +62,30 @@
 > `tests/test_ui_visual_foundation.py` (+11 UI-3 assertions); suite 13,022 passed / 3 skipped. **Open:
 > user visual sign-off** on leather subtlety / top-bar icon size / filigree placement / portrait aspect
 > (§8 U3, matches the U2 map-crispness gate).
+> **Session U6 ("Interaction & Heraldry Sweep") ✅ LANDED July 16, 2026** — the clickability slice
+> (user directive: vassal buttons + UI review + clickable items everywhere): a **VASSALS tab** in the
+> diplomatic ledger (per-vassal cards — flag, loyalty bar, honest next-turn forecast via the NEW shared
+> `vassal.forecast_vassal_loyalty` helper, tribute, VS-4 contribution tier, garrison/subsidy levers —
+> plus honest-availability action chips Invest / Loosen / Tighten / Cede / Release riding the wizard's
+> own `get_available_diplomatic_actions` rows and typed-command echoes); the **Region Action Panel**
+> (`region_panel.gd/.tscn`, layer 26) — the map's dead `region_clicked` seam finally connected: click a
+> province for fog-honest info + context chips (recruit / build depot / negotiate / per-marshal
+> Fortify-Drill); **heraldry wired** (16 PD flags → ledger rows, wizard nation buttons + header, war HUD
+> cards + armistice rows, war-detail header); **notification rail glyphs** (phosphor SVGs replace the
+> 3-letter codes, legacy fallback kept); **top-bar gear button** (pause menu was ESC-only); **Generals
+> card order chips** (Fortify/Unfortify/Drill) + a Talleyrand-tab **[Assess the Situation]** chip
+> (W6-9); shared `Utils.bb_icon/bb_button_chip/nation_flag_path` helpers + `_format_number` de-duped
+> (4 copies → `Utils.format_number`); the U5 clustering residual CLOSED (`_marshal_slot_offset_2d`
+> two-rank spread for 3+ co-located standees, shared by pieces/labels/hitboxes). A 23-agent 5-lens
+> find→verify review confirmed 15 findings (9 distinct) — **ALL FIXED**: subsidy term added to the
+> loyalty forecast + wizard/ledger trend unified on the shared helper; chip terms now render
+> backend-derived grip-effective gains (never a hardcoded +10 the executor blunts); the "scenario"-path
+> boot vassals no longer mislabeled as conquests; a shared in-flight latch kills chip double-sends;
+> the gear honors the ESC pause-never-over-a-screen invariant; objection resolutions refresh open
+> screens; region-panel depot check fixed to the canonical `supply_depot` key; parse-harness report
+> regenerated. Boot-smoke 0 `SCRIPT ERROR` (×2); `tests/test_ui6_interaction_sweep.py` (44); suite
+> 13,521 / 3. **Open: user visual sign-off** on the new surfaces (vassal cards, region panel, flags,
+> notification glyphs, gear, two-rank piece spread) — one-line tunes, same gate family as U2/U3/U5.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -580,3 +604,84 @@ keyed to its dominant arm.
 - **STATUS line:** ✅ recorded — War-Table Pieces CODE landed July 13, 2026; the
   War-Table Pieces sub-item CLOSED. **The UI Visual Foundation Sweep is now
   U1–U5 complete** (pending the standing U2 map-crispness / U3 / U5 visual sign-offs).
+
+### Session U6 — Interaction & Heraldry Sweep ✅ LANDED July 16, 2026
+
+**User directive:** "add buttons for vassal interactions and do another review of the ui … streamline
+systems, add clickable items when possible."
+
+- **VASSALS tab (diplomatic ledger, tab 6 / KEY_6):** backend `_build_vassals` section on
+  `/diplomatic_ledger` — per player-vassal loyalty, autonomy, tribute (+rate), VS-4 contribution tier,
+  warning band + grip-aware recovery hint, garrison/subsidy lever lines, granted-province provenance,
+  and the **same** honest-availability `actions[]` rows the F1 wizard consumes
+  (`get_available_diplomatic_actions` is the single gate source — chips can never disagree with the
+  executor). Chips send the wizard-identical typed commands; **[Cede Province…]** hands off to the
+  wizard's positive-path province picker (`open_for_nation`). Foreign satellites stay on the Nations
+  tab. Empty state teaches the three vassalization routes.
+- **Next-turn loyalty forecast:** NEW single-source `vassal.forecast_vassal_loyalty(world, lord, name)`
+  — mirrors `process_vassal_loyalty` term for term (drift, garrison, **subsidy clauses**, shared enemy,
+  relations, grip) minus only the transient battle term; consumed by the ledger tab AND the wizard
+  preview trend (review fix UI6-VAS-1/-2 — the old wizard arrow read autonomy drift alone).
+- **Region Action Panel (`region_panel.gd/.tscn`, CanvasLayer 26, non-modal):** the game map's
+  `region_clicked` signal — emitted since the cutover, connected to nothing — now opens a fog-honest
+  side panel rendered from the map node's own filtered stores (`region_full_data` / `region_visibility`
+  / `region_marshals` / `region_garrisons`; zero extra fetch, zero fog leak). Context chips: own
+  province → Recruit Infantry / Build Depot (hidden when a `supply_depot` exists); foreign controller →
+  Negotiate (wizard handoff); own marshals → per-marshal Fortify/Unfortify/Drill gated on the
+  tactical_state flat bools. Same visibility rule as the war HUD (never over a screen/modal).
+- **Heraldry:** `Utils.nation_flag_path/bb_flag/apply_flag_icon` (cached, untinted — flags are colored
+  art, never gold-tinted) wired into ledger nation rows + vassal cards, wizard step-1 buttons + step-2
+  header, war HUD cards + armistice rows, war-detail popup header.
+- **Notification glyphs:** `TYPE_ICON_SVGS`/`ROUTE_ICON_SVGS` map every notice family to a phosphor
+  silhouette on the priority-colored pill; unmapped types keep the legacy 3-letter code. Glyph
+  existence pinned by test.
+- **Top-bar gear** (pause menu was ESC-only) honoring the ESC invariant (closes screens first);
+  **Generals order chips** (Fortify/Unfortify/Drill per standing marshal) through the reward pipeline;
+  Talleyrand-tab **[Assess the Situation]** chip (closes the ledger, sends the W6-9 verb).
+- **Streamlining:** `Utils.bb_icon`/`bb_button_chip` single-source the chip idiom;
+  `_format_number` de-duplicated (marshal_management / strategic_ledger / dispatch_view /
+  notification_bar / diplomatic_ledger → `Utils.format_number`); stale "Generals is a placeholder"
+  guard retired; nav hover style-jump fixed (flat hover/pressed styleboxes).
+- **U5 residual CLOSED:** `_marshal_slot_offset_2d` — 3+ co-located standees split into two ranks
+  (`WAR_PIECE_RANK_DEPTH=16`, y-sorted so the rear rank draws behind), shared by pieces, name labels,
+  and hover hitboxes; 1–2 pieces keep the flat line byte-identical.
+- **Adversarial review (23 agents, 5 lenses, find→verify):** 15 confirmed findings (9 distinct after
+  dedup), all fixed: subsidy forecast term + trend unification (above); chip terms derive from
+  backend fields (`dp_cost`/`gold_cost`/grip-effective `invest_gain`/`autonomy_up_gain` — never a
+  hardcoded gain the VS-R spiral blunts, with the executor's own "faltering grip" disclosure);
+  three-way path label ("scenario"-seeded 1805 vassals are "client state of the Empire", not
+  conquests); shared `_chip_command_in_flight` latch (double-click = double spend); gear
+  closes screens before pause (ESC invariant); `_on_objection_response` refreshes open info screens
+  (chip-raised objections resolved after the chip's callback); region-panel depot check fixed to
+  `supply_depot`; parse-harness report regenerated (settlement-critical .gd touched). 2 claims
+  refuted, 1 downgraded-and-fixed-anyway.
+- **Gates:** boot-smoke 0 `SCRIPT ERROR` (before and after review fixes); ruff clean;
+  `tests/test_ui6_interaction_sweep.py` (44) green; full suite **13,521 passed / 3 skipped**.
+- **⚠ open (visual sign-off, same family as U2/U3/U5):** eyeball live — (a) vassal-card layout /
+  loyalty-bar tint / chip legibility, (b) region-panel placement + width, (c) flag sizing on ledger
+  rows vs war HUD, (d) notification glyph read at 38×28, (e) gear icon size, (f) the two-rank piece
+  spread on a 3+ stack. Each is a one-line tune.
+
+#### U6 follow-up (same day, user live-review): full province verb set + missing flags + sprite check
+
+- **"clicking a province only has build depot/fortify/drill — there are more options":** the Region
+  Action Panel now carries the full region-scoped verb set — **Recruit Infantry / Cavalry / Artillery**,
+  **Build Depot / Fort / Training Ground / Market / Stables** (each hidden when built; whole row hides
+  when the fog-filtered payload shows no free slot — towns/rural report 0), **Build Watchtower**
+  (slot-exempt, own field), **Repair** (only when the payload shows damage), per-marshal **Scout** and
+  **Attack <enemy>** chips (enemies ride `region_marshals` only at FULL visibility — fog-safe; capped
+  at 2 per marshal row). Chips carry their full typed command in a generic `do:<command>` meta; the
+  executor owns every gate. Chip command words verified against `_extract_building_type` +
+  the mock-parser keyword blocks + corpus rows ("recruit cavalry at Lyon", "build market in Paris").
+- **"some flags are missing":** the roster ships 20 nations; the heraldry set had 16. Authored the
+  missing four in the set's simplified flat style (simple heraldic geometry, no license burden):
+  **Hanover** (white/yellow), **Hesse** (red/white), **KingdomOfItaly** (the 1802–05 red field /
+  white lozenge / green heart), **Switzerland** (white cross on red). `THIRD_PARTY_LICENSES.md`
+  heraldry section updated 16 → 20; test now asserts EVERY `NATION_COLORS` nation (minus Neutral)
+  has a flag on disk.
+- **"look at Blender sprites for armies":** Blender is **still not installed** on this machine
+  (checked PATH + Program Files + winget), so the §8-U4 3D-render pipeline remains unavailable —
+  installing it is a user call. The current 24-sprite carved-wood 2D set was composite-inspected
+  this session (France/Austria/Prussia tints × all three arms): coherent tabletop-mini read, clear
+  faction rings + flag/shabraque accents, dark-nation floor working. Verdict: keep; revisit only
+  if/when Blender lands (owner stays the §8-U4 deviation record).

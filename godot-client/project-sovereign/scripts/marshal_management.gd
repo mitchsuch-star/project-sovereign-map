@@ -16,6 +16,9 @@ signal reward_requested(card: Dictionary)
 # main.gd issues the typed `commission <name>` command through the same
 # pipeline the reward dialog uses.
 signal commission_requested(candidate_name: String)
+# UI-6: a per-card order chip ([Fortify]/[Drill]) — main.gd sends the typed
+# command through the reward pipeline (history + echo + Generals refresh).
+signal order_command(command: String)
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -138,6 +141,12 @@ func _on_meta_clicked(meta):
 		var candidate = meta_str.substr(11)
 		if candidate != "":
 			commission_requested.emit(candidate)
+	elif meta_str.begins_with("order:"):
+		# UI-6: order chip — "order:<verb>:<MarshalName>" → "<Name>, <verb>",
+		# the same string a player would type (marshal names carry no colons).
+		var parts = meta_str.split(":")
+		if parts.size() == 3 and str(parts[2]) != "":
+			order_command.emit(str(parts[2]) + ", " + str(parts[1]))
 
 
 func close_view():
@@ -541,6 +550,23 @@ func _render_card(m: Dictionary, index: int) -> String:
 
 	bbcode += "\n"
 
+	# ═══════ UI-6: ORDER CHIPS (target-free orders, one click) ═══════
+	# Only for a marshal who can act — the executor still owns every gate
+	# (AP, objections, terrain); a refused chip reports like a typed refusal.
+	if (not m.get("captured", false) and not m.get("is_broken", false)
+			and not m.get("is_retreating", false)):
+		var chip_name = str(m.get("name", ""))
+		if chip_name != "":
+			var order_chips = []
+			if m.get("is_fortified", false):
+				order_chips.append(Utils.bb_button_chip("order:unfortify:" + chip_name, "Unfortify", Utils.COLOR_COMMAND, "233043"))
+			else:
+				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, "Fortify", Utils.COLOR_COMMAND, "233043"))
+			if not m.get("is_drilling", false):
+				order_chips.append(Utils.bb_button_chip("order:drill:" + chip_name, "Drill", Utils.COLOR_COMMAND, "233043"))
+			if order_chips.size() > 0:
+				bbcode += "  " + "  ".join(PackedStringArray(order_chips)) + "\n"
+
 	# ═══════ UNIT SPECIFICS ═══════
 	var specifics = []
 	if m.get("cavalry", false):
@@ -601,9 +627,8 @@ func _portrait_block(name: String, w: int = _PORTRAIT_W, h: int = _PORTRAIT_H) -
 
 
 func _icon(path: String, size: int, color: String) -> String:
-	"""Inline BBCode icon, tinted (the curated sets ship as white silhouettes so
-	the [img color=...] multiply lands the intended hue)."""
-	return "[img width=%d height=%d color=#%s]%s[/img]" % [size, size, color, path]
+	"""Inline BBCode icon — delegates to the UI-6 shared helper."""
+	return Utils.bb_icon(path, size, color)
 
 
 func _unit_icon(unit_type: String, color: String) -> String:
@@ -617,29 +642,13 @@ func _unit_icon(unit_type: String, color: String) -> String:
 
 
 func _button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "") -> String:
-	"""A filled bbcode 'button' — a `bgcolor` pill with padding, an optional
-	leading icon, and a `url` covering the whole chip (icon + label click). Reads
-	as a button inside the RichTextLabel card without a real Button node."""
-	var inner = ""
-	if icon_path != "":
-		inner += _icon(icon_path, 18, text_hex) + " "
-	inner += "[color=#" + text_hex + "]" + label + "[/color]"
-	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
+	"""Filled bbcode 'button' — delegates to the UI-6 shared helper."""
+	return Utils.bb_button_chip(url_meta, label, text_hex, bg_hex, icon_path)
 
 
-# TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
-# marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.
 func _format_number(n: int) -> String:
-	"""Format number with comma separators."""
-	var s = str(int(n))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
+	"""Format number with comma separators — shared Utils helper (UI-6 dedupe)."""
+	return Utils.format_number(n)
 
 
 func _morale_colored(morale: int) -> String:

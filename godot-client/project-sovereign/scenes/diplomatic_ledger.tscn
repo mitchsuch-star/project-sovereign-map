@@ -98,6 +98,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "WAR BARGAINS"
 
+[node name="VassalsTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "VASSALS"
+
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 

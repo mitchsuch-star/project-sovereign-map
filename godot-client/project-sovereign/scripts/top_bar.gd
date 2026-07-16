@@ -23,6 +23,8 @@ signal screen_changed(screen_name: String)
 @onready var threat_label: Label = $BarContainer/BarBG/BarLayout/RightSection/ThreatLabel
 @onready var talleyrand_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
 @onready var mailbox_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MailboxButton
+# UI-6: the pause menu finally gets a clickable entry point (was ESC-only)
+@onready var menu_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MenuBtn
 
 # State tracking
 var active_screen: String = ""  # "" = none, "event_log", "ledger", "generals", "diplomatic_ledger", "dispatch"
@@ -123,6 +125,22 @@ func _ready():
 	Utils.apply_button_icon(diplo_ledger_btn, Utils.ICON_PHOSPHOR + "handshake.svg")
 	Utils.apply_button_icon(dispatch_btn, Utils.ICON_PHOSPHOR + "scroll.svg")
 
+	# UI-6: nav hover/pressed match the flat bar look — without these the
+	# theme's gold-bordered navy stylebox flashed in on hover (style-jump).
+	var nav_hover_style: StyleBoxFlat = _normal_style.duplicate()
+	nav_hover_style.bg_color = Utils.UI_ACTIVE_TAB_BG
+	var nav_pressed_style: StyleBoxFlat = _normal_style.duplicate()
+	nav_pressed_style.bg_color = Color(
+		Utils.UI_PANEL_BG.r * 0.8, Utils.UI_PANEL_BG.g * 0.8,
+		Utils.UI_PANEL_BG.b * 0.8, 1.0)
+	for nav_btn in button_map.values():
+		nav_btn.add_theme_stylebox_override("hover", nav_hover_style)
+		nav_btn.add_theme_stylebox_override("pressed", nav_pressed_style)
+
+	# UI-6: gear button → pause menu (Save/Load/Settings)
+	Utils.apply_icon_only_button(menu_btn, Utils.ICON_PHOSPHOR + "gear.svg")
+	menu_btn.pressed.connect(func(): menu_clicked.emit())
+
 	# Initialize turn label
 	turn_label.text = "Turn 1"
 
@@ -190,6 +208,8 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 		node.open_to_war_bargains(api_client)
 	elif review_target == "ledger_settlements" and node.has_method("open_to_settlements"):
 		node.open_to_settlements(api_client, route_id, war_id)
+	elif review_target == "ledger_vassals" and node.has_method("open_to_vassals"):
+		node.open_to_vassals(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:
@@ -269,8 +289,8 @@ func _close_screen(screen_name: String):
 
 func _on_button_pressed(screen_name: String):
 	"""Handle a top bar button click."""
-	# Generals is a placeholder — guard against it
-	if screen_name == "generals" and (not screens.has("generals") or screens["generals"] == null):
+	# Null-safety: never toggle a screen that failed to register.
+	if not screens.has(screen_name) or screens[screen_name] == null:
 		return
 	toggle_screen(screen_name)
 
@@ -300,6 +320,8 @@ func _update_button_highlights():
 # =============================================================================
 
 signal envoy_clicked
+# UI-6: gear button — main.gd toggles the pause menu (mirrors ESC)
+signal menu_clicked
 
 func update_diplomatic_fields(data: Dictionary):
 	"""Update all diplomatic top bar fields from /test poll data."""
@@ -371,7 +393,7 @@ func update_mailbox_count(envoy_count: int):
 		mailbox_btn.tooltip_text = "No pending envoys."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
-		mailbox_btn.add_theme_color_override("font_color", Color(0.72, 0.72, 0.76, 1.0))
+		mailbox_btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 
 
 func _start_threat_pulse():

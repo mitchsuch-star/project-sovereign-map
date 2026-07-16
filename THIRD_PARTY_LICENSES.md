@@ -84,11 +84,14 @@ parchment open/close WAVs. Covers click/hover/confirm/error, coins, cloth, dista
 panel open/close. Gaps (deferred, not blocking): a drum/fife turn-start sting, dedicated
 quill-scratch, dedicated wax-seal stamp — approximated from the RPG pack for now.
 
-## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia)
+## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
-16 period national flags for the 1805 roster (France, Britain 1801 Union, Austria, Russia,
+20 period national flags for the 1805 roster (France, Britain 1801 Union, Austria, Russia,
 Prussia, Spain, Naples, Bavaria, Sweden, Denmark, Ottoman, Portugal, Holland, Papal States,
-Sardinia, Saxony), named `<Nation>.svg`. Public domain — no attribution required.
+Sardinia, Saxony — Wikimedia PD; plus Hanover, Hesse, Kingdom of Italy, Switzerland — original
+simplified geometric renderings authored in-repo July 16, 2026, matching the set's flat style;
+simple heraldic geometry carries no copyright), named `<Nation>.svg`. Public domain — no
+attribution required.
 
 ## Ornaments & map decor — `assets/ui/ornaments/`, `assets/ui/decor/`, `assets/textures/decor/` (CC0 / PD)
 

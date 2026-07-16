@@ -236,6 +236,17 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	name_row.add_theme_constant_override("separation", 4)
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+	# UI-6: opponent heraldry ahead of the name (untinted colored art)
+	var flag_path = Utils.nation_flag_path(opponent)
+	if flag_path != "":
+		var flag_rect = TextureRect.new()
+		flag_rect.texture = load(flag_path)
+		flag_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		flag_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		flag_rect.custom_minimum_size = Vector2(16, 11)
+		flag_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_row.add_child(flag_rect)
+
 	var name_label = Label.new()
 	var indent = "  " if is_coalition_member else ""
 	name_label.text = indent + opponent_display
@@ -325,6 +336,8 @@ func _add_armistice_card(war_data: Dictionary):
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.add_theme_font_size_override("font_size", 9)
 	btn.add_theme_color_override("font_color", COLOR_DIMMED)
+	# UI-6: opponent heraldry on the truce row too
+	Utils.apply_flag_icon(btn, opponent)
 	# G4F-17: the HUD card whispers the expiry fork — tooltip names where
 	# the truce is heading (peace vs collapse) without growing the card.
 	var projected = str(war_data.get("armistice_projected_outcome", ""))

@@ -221,6 +221,71 @@ static func apply_button_icon(btn, icon_path: String) -> void:
 	btn.add_theme_color_override("icon_focus_color", UI_GOLD_BRIGHT)
 
 
+# === UI-6 Heraldry Helpers ===
+# 16 period national flag SVGs (PD, assets/ui/heraldry/<Nation>.svg) — wired
+# into the diplomatic ledger, wizard, and war surfaces. Flags are colored art:
+# NEVER tint them gold (that is the silhouette-icon pattern above). Lookups
+# are cached so bbcode re-renders do not re-probe ResourceLoader.
+const FLAG_DIR := "res://assets/ui/heraldry/"
+static var _flag_path_cache := {}
+
+static func nation_flag_path(nation: String) -> String:
+	"""Path to a nation's flag SVG, or '' when no flag asset exists."""
+	if _flag_path_cache.has(nation):
+		return _flag_path_cache[nation]
+	var path := FLAG_DIR + nation + ".svg"
+	if not ResourceLoader.exists(path):
+		path = ""
+	_flag_path_cache[nation] = path
+	return path
+
+
+static func bb_flag(nation: String, height: int = 14) -> String:
+	"""Inline BBCode flag thumbnail (with trailing space), or '' if none."""
+	var path := nation_flag_path(nation)
+	if path == "":
+		return ""
+	var width := int(height * 3 / 2)
+	return "[img width=%d height=%d]%s[/img] " % [width, height, path]
+
+
+static func apply_flag_icon(btn, nation: String) -> void:
+	"""Add a nation flag as a button's leading icon (untinted — flags are
+	colored art, unlike the white-silhouette icon sets)."""
+	if btn == null:
+		return
+	var path := nation_flag_path(nation)
+	if path == "":
+		return
+	var tex = load(path)
+	if tex == null:
+		return
+	btn.icon = tex
+	btn.expand_icon = true
+
+
+# === Shared BBCode Widget Helpers (UI-6) ===
+# Single source for the inline-icon and button-chip idioms that grew up in
+# marshal_management.gd — any RichTextLabel surface builds chips through
+# these instead of re-authoring the pattern.
+
+static func bb_icon(path: String, size: int, color: String) -> String:
+	"""Inline BBCode icon, tinted (the curated sets ship as white silhouettes
+	so the [img color=...] multiply lands the intended hue)."""
+	return "[img width=%d height=%d color=#%s]%s[/img]" % [size, size, color, path]
+
+
+static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "") -> String:
+	"""A filled bbcode 'button' — a `bgcolor` pill with padding, an optional
+	leading icon, and a `url` covering the whole chip. Reads as a button
+	inside a RichTextLabel without a real Button node."""
+	var inner := ""
+	if icon_path != "":
+		inner += bb_icon(icon_path, 18, text_hex) + " "
+	inner += "[color=#" + text_hex + "]" + label + "[/color]"
+	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
+
+
 # === Formatting Helpers ===
 
 static func bbcode_color(text: String, color: String) -> String:

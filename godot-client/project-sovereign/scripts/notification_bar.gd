@@ -59,6 +59,58 @@ const TYPE_ICONS = {
 	"defeat_imminent_warning": "DNG",
 }
 
+# UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
+# colored pill). Types absent here fall back to the legacy 3-letter code.
+const TYPE_ICON_SVGS = {
+	"coalition_declared": "sword",
+	"balance_of_europe_shifted": "scales",
+	"amends_offered": "handshake",
+	"hard_reject_posture_triggered": "x-circle",
+	"hard_reject_posture_cleared": "check-circle",
+	"diplomatic_treaty_broken": "warning",
+	"commitment_paradox": "warning-circle",
+	"commitment_paradox_resolved": "check-circle",
+	"witness_strike_recorded": "eye",
+	"call_to_arms_refused_offensive": "flag-banner",
+	"call_to_arms_refused_defensive": "flag-banner",
+	"call_to_arms_honored_costly": "flag-banner",
+	"bargain_fulfilled": "check-circle",
+	"bargain_breached": "warning",
+	"bargain_voided": "hourglass",
+	"bargain_ratified": "scroll",
+	"bargain_triggered": "bell",
+	"diplomatic_proposal": "scroll",
+	"diplomatic_proposal_result": "info",
+	"treaty_signed": "check",
+	"treaty_broken": "warning",
+	"war_declared": "sword",
+	"vassal_rebellion": "castle-turret",
+	"vassal_rebellion_imminent": "warning",
+	"dp_insufficient": "coins",
+	"turn_limit_warning": "hourglass-high",
+	"defeat_imminent_warning": "warning-circle",
+}
+
+const ROUTE_ICON_SVGS = {
+	"icon_balance_of_europe": "scales",
+	"icon_amends_offered": "handshake",
+	"icon_hard_reject": "x-circle",
+	"icon_chancery_reopened": "check-circle",
+	"icon_treaty_broken": "warning",
+	"icon_treaty_dragged": "clock",
+	"icon_paradox": "warning-circle",
+	"icon_paradox_resolved": "check-circle",
+	"icon_witness_strike": "eye",
+	"icon_call_refused_offensive": "flag-banner",
+	"icon_call_refused_defensive": "flag-banner",
+	"icon_call_honored_costly": "flag-banner",
+	"icon_bargain_honoured": "check-circle",
+	"icon_bargain_broken": "warning",
+	"icon_bargain_lapsed": "hourglass",
+	"icon_bargain_sealed": "scroll",
+	"icon_bargain_activated": "bell",
+}
+
 const ROUTE_ICON_TEXT = {
 	"icon_balance_of_europe": "BOE",
 	"icon_amends_offered": "AMD",
@@ -166,6 +218,19 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.focus_mode = Control.FOCUS_NONE
 
+	# UI-6: a real glyph when one is mapped — white phosphor silhouette on the
+	# priority-colored pill; unmapped types keep the legacy 3-letter code.
+	var icon_svg = _icon_svg_for(notif)
+	if icon_svg != "":
+		var icon_tex = load(Utils.ICON_PHOSPHOR + icon_svg + ".svg")
+		if icon_tex != null:
+			btn.text = ""
+			btn.icon = icon_tex
+			btn.expand_icon = true
+			btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			for icon_state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+				btn.add_theme_color_override(icon_state, Color(1, 1, 1, 1))
+
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(color.r, color.g, color.b, 0.88)
 	style.border_width_left = 1
@@ -201,6 +266,19 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	btn.set_meta("notification_data", notif)
 	btn.pressed.connect(_on_icon_pressed.bind(btn))
 	return btn
+
+
+func _icon_svg_for(notif: Dictionary) -> String:
+	"""Phosphor glyph name for a notification, '' when unmapped."""
+	var notif_type = str(notif.get("type", ""))
+	if TYPE_ICON_SVGS.has(notif_type):
+		return TYPE_ICON_SVGS[notif_type]
+	var details = notif.get("details", {})
+	if details is Dictionary:
+		var icon_key = str(details.get("icon", ""))
+		if ROUTE_ICON_SVGS.has(icon_key):
+			return ROUTE_ICON_SVGS[icon_key]
+	return ""
 
 
 func _icon_text_for(notif: Dictionary) -> String:
@@ -371,7 +449,7 @@ func _build_detail_text(notif: Dictionary) -> String:
 				text += "[color=#e0c060]Posture:[/color] %s\n" % str(details.get("posture", "Unknown")).capitalize()
 				var combined_strength = int(details.get("combined_strength", 0))
 				if combined_strength > 0:
-					text += "[color=#e0c060]Combined Strength:[/color] %s\n" % _format_number(combined_strength)
+					text += "[color=#e0c060]Combined Strength:[/color] %s\n" % Utils.format_number(combined_strength)
 				var members = details.get("members", [])
 				if members is Array and not members.is_empty():
 					var member_names: Array = []
@@ -389,18 +467,6 @@ func _build_detail_text(notif: Dictionary) -> String:
 				text += "\n[color=#8faed6]The diplomatic packet waits in Envoys for review.[/color]\n"
 
 	return text.strip_edges()
-
-
-func _format_number(value: int) -> String:
-	var s = str(int(value))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
 
 
 func _position_expanded_panel():

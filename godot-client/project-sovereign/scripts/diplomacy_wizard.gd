@@ -288,6 +288,8 @@ func _add_nation_button(nation_data: Dictionary):
 	btn.text = text
 	btn.custom_minimum_size = Vector2(0, 36)
 	btn.add_theme_font_size_override("font_size", 13)
+	# UI-6: period heraldry as the leading icon (untinted — colored art)
+	Utils.apply_flag_icon(btn, nation_name)
 	btn.pressed.connect(_on_nation_selected.bind(nation_name))
 	content_list.add_child(btn)
 
@@ -345,6 +347,7 @@ func _render_preview(data: Dictionary):
 			state_color = Utils.COLOR_BLUE
 
 	var bbcode = ""
+	bbcode += Utils.bb_flag(_selected_nation, 16)
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + "[/color]\n"
 	bbcode += "Status: [color=#" + state_color + "]" + state_display + "[/color]"
 	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"

@@ -21,6 +21,10 @@ const MARSHAL_ICON_Y_OFFSET: float = -50.0
 # 84 -> 64 so standees in neighbouring provinces stop overlapping (July 13 feedback).
 const WAR_PIECE_FRAME_PX: float = 64.0
 const WAR_PIECE_SLOT_SPACING: float = 30.0
+# UI-6 (U5 residual): 3+ co-located standees split into two ranks — the rear
+# rank steps back by this many map px (pieces_layer y-sorts, so rear draws
+# behind) instead of stretching one overlapping x-line across the province.
+const WAR_PIECE_RANK_DEPTH: float = 16.0
 const WAR_PIECE_MOVE_DURATION: float = 0.45
 const GARRISON_SIZE := Vector2(26, 18)
 const GARRISON_Y_OFFSET: float = 38.0
@@ -1165,11 +1169,27 @@ func _rebuild_dynamic_nodes():
 
 
 func _marshal_slot_offset(i: int, count: int) -> float:
-	# Symmetric horizontal spread for co-located marshals — shared by the standee
-	# layer and the name labels so a name rests over its own piece (the label is
-	# rebuilt at the destination each refresh; during a march the piece tweens up
-	# to it over WAR_PIECE_MOVE_DURATION, so they briefly separate then re-align).
-	return (float(i) - float(count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING
+	# x component of the shared slot math (legacy callers).
+	return _marshal_slot_offset_2d(i, count).x
+
+
+func _marshal_slot_offset_2d(i: int, count: int) -> Vector2:
+	# Symmetric spread for co-located marshals — shared by the standee layer,
+	# the name labels, and the hover hitboxes so a name rests over its own
+	# piece (the label is rebuilt at the destination each refresh; during a
+	# march the piece tweens up to it over WAR_PIECE_MOVE_DURATION).
+	# UI-6 (U5 residual): 1-2 pieces keep the flat x-line; 3+ split into two
+	# ranks (even indexes front, odd indexes a rank back) so a massed
+	# province stops drawing as one overlapping smear.
+	if count <= 2:
+		return Vector2((float(i) - float(count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING, 0.0)
+	var rank := i % 2
+	var idx := int(i / 2.0)
+	var front_count := int(ceil(count / 2.0))
+	var rank_count := front_count if rank == 0 else count - front_count
+	var x := (float(idx) - float(rank_count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING
+	var y := 0.0 if rank == 0 else -WAR_PIECE_RANK_DEPTH
+	return Vector2(x, y)
 
 
 func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
@@ -1196,13 +1216,13 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			# _update_war_table_pieces, spread by the same slot math). Skip the
 			# colored square; float the name above the standee and size the hover
 			# box to its footprint.
-			var slot_x := _marshal_slot_offset(i, marshals.size())
+			var slot := _marshal_slot_offset_2d(i, marshals.size())
 			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0 + i * 13.0)
-			label_anchor_world = region_pos + Vector2(slot_x - name_width / 2.0, name_y)
+			label_anchor_world = region_pos + Vector2(slot.x - name_width / 2.0, name_y)
 			var box_w := maxf(WAR_PIECE_SLOT_SPACING, 34.0)
 			var box_h := WAR_PIECE_FRAME_PX * 0.62
 			hitbox_rect = Rect2(
-				region_pos + Vector2(slot_x - box_w / 2.0, -box_h),
+				region_pos + Vector2(slot.x - box_w / 2.0, slot.y - box_h),
 				Vector2(box_w, box_h)
 			)
 		else:
@@ -1275,7 +1295,7 @@ func _update_war_table_pieces() -> void:
 			var mname := str(marshal.get("name", ""))
 			if mname == "":
 				continue
-			var world_anchor := region_pos + Vector2(_marshal_slot_offset(i, count), 0.0)
+			var world_anchor := region_pos + _marshal_slot_offset_2d(i, count)
 			desired[mname] = {
 				"anchor": _world_to_layer_position(world_anchor),
 				"region": region_name,

@@ -10374,20 +10374,22 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     }
 
     if is_vassal:
-        from backend.game_logic.vassal import AUTONOMY_NAMES, AUTONOMY_DRIFT
+        from backend.game_logic.vassal import (
+            AUTONOMY_NAMES,
+            forecast_vassal_loyalty,
+        )
         v = vassals[target_nation]
         loyalty = v.get("loyalty", 50)
         autonomy = v.get("autonomy", 1)
-        drift = AUTONOMY_DRIFT.get(autonomy, 0)
-        if drift > 0:
-            trend = "rising"
-        elif drift < 0:
-            trend = "falling"
-        else:
-            trend = "stable"
+        # UI-6 review fix (UI6-VAS-2): the old trend read autonomy drift
+        # ALONE, so the wizard could show "falling" for a garrisoned,
+        # subsidized satellite the pipeline was actually raising — and
+        # contradict the ledger's Vassals tab. Both surfaces now share
+        # forecast_vassal_loyalty (steady-state terms, battle term excluded).
+        fc = forecast_vassal_loyalty(world, player, target_nation)
         response["vassal_loyalty"] = int(loyalty)
         response["vassal_autonomy"] = AUTONOMY_NAMES.get(autonomy, "Satellite")
-        response["vassal_loyalty_trend"] = trend
+        response["vassal_loyalty_trend"] = fc["trend"]
         tribute_rate = v.get("tribute_rate", 0.5)
         # Golden Rule 8 + value fix: the estimate must mirror what
         # process_vassal_tribute actually collects (effective income via the

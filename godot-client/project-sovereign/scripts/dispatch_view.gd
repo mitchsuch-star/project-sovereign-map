@@ -349,19 +349,9 @@ func _on_dispatch_received(response):
 
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
-# TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
-# marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.
 func _format_number(n: int) -> String:
-	"""Format number with comma separators (e.g. 80000 -> 80,000)."""
-	var s = str(int(n))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	return result
+	"""Format number with comma separators — shared Utils helper (UI-6 dedupe)."""
+	return Utils.format_number(n)
 
 func _on_overlay_input(event):
 	"""Click on dark overlay to close."""
