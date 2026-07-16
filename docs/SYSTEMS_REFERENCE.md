@@ -3468,7 +3468,7 @@ Nations can become vassals via treaty (requires OPEN_BORDERS+) or conquest. Sing
 
 ### Loyalty Formula (per turn)
 
-Base drift (autonomy level) + garrison bonus (+5 + min(troops//5000, 3)) + gold investment clause (amount//100) + shared enemy (+2 per shared war) + lord winning battles (+1/win, max +3) + lord losing battles (-2/loss, max -6) + relation modifier (relation//20). Clamped [0, 100].
+Base drift (autonomy level) + **lord's garrison presence (flat +2 — VP-D1 wired July 16, 2026: a lord-nation corps standing in the vassal capital, or a lord-CONTROLLED capital with real `garrison_strength`, via single-source `lord_garrison_present`; never scales, full value in the VS-R spiral)** + gold investment clause (amount//100) + shared enemy (+2 per shared war) + lord winning battles (+1/win, max +3) + lord losing battles (-2/loss, max -6) + relation modifier (relation//20) + VS-R imperial-grip term (−2 when the lord's grip < 30). Clamped [0, 100].
 
 ### Rebellion
 
@@ -3496,17 +3496,27 @@ Requires war_score > 80. Reduces target nation's `nation_actions` by amount per 
 
 ### Enemy Vassal Courting
 
-AI nations with 2+ DP can court player's vassals (loyalty < 50). Cost: 2 DP. Loyalty reduction: -15 (positive relation) or -5 (negative). 3-turn cooldown.
+AI nations with 2+ DP can court player's vassals (loyalty < 50; the VS-R spiral widens the unlock and scales the bite ×1.5). Cost: 2 DP. Loyalty reduction: -15 (positive relation) or -5 (negative). 3-turn cooldown.
+
+### Vassal Depth (July 16, 2026 — `VASSAL_DEEPENING_SPEC.md` §8 build record)
+
+- **Land grants (VS-3):** `grant_region_to_vassal` — cede a conquered, non-capital, non-estate province adjoining the vassal (contiguity waived for landless vassals + homeland returns). Loyalty `min(25, 10 + income_value//200)`, NEVER spiral-blunted; 1 DP, 3-turn per-vassal cooldown; `granted_regions` provenance reclaims on a WAR-path rebellion/defection. F1-wizard province picker + typed "cede X to Y". GR5 lord-neutral.
+- **Call-to-arms tiers (VS-4):** `vassal_military_contribution` — loyal ≥60 full; wavering 35–59 = assimilated ex-vassal marshals (`original_nation`) withheld from auto-reinforce/muster unless SUPPORT-ordered; disaffected <35 = refuses NEW war-cascade auto-joins (`vassal_refuses_call` family; never a mid-war exit).
+- **Settlement vassalage (VS-5):** creation (`vassalage`/`subjugation`) + `liberation` are guided-surface live; NEW `vassal_transfer` clause `{from: from_lord, to: to_lord, vassal}` re-homes a satellite at the peace table via shared `transfer_vassal` (loyalty resets to 30, marshals re-key, granted_regions cleared, no release cooldown).
+- **The Defection (VS-6):** `attempt_vassal_bribe` (AI diplomatic phase, post-courting, resolves immediately) — a nation at WAR with the lord bribes a satellite at loyalty <35 (or <50 in the lord's grip spiral). Outcomes: transfer to the briber (600g + WPS-B cap) or FREE + guaranteed WAR with the former lord (300g). Probabilistic, grip-scaled; per-pair 5-turn cooldown + per-vassal 1-turn latch.
+- **AI shore-up (VP-D6):** enemy-AI admin rung P1.6 — a lord with a slipping satellite (loyalty <40 or grip <30) invests → cedes a province → grants autonomy, through the shared executor at player prices (nation_dp/nation_gold).
 
 ### Key Files
 
 | File | Purpose |
 |------|---------|
-| `vassal.py` | Core engine: creation, loyalty, rebellion, cascade, tribute, investment, autonomy, assimilation, warnings |
-| `world_state.py` | Fields (vassals, cooldowns, cascade_triggered, continental_system_members), advance_turn steps 5-7, AP/turn clause |
-| `diplomacy.py` | AP clause validation, Continental System application |
-| `turn_manager.py` | Enemy vassal courting phase |
-| `dispatch.py` | Vassal loyalty warnings (Trigger 3) |
+| `vassal.py` | Core engine: creation, loyalty (incl. garrison presence + grip term), rebellion (+VS-3 reclaim), cascade, tribute, investment, autonomy, land grants, transfer, defection bribe, assimilation, warnings, contribution tiers |
+| `world_state.py` | Fields (vassals incl. nested granted_regions/grant_cooldown, cooldowns, cascade_triggered, continental_system_members), advance_turn steps 5-7, AP/turn clause |
+| `diplomacy.py` | AP clause validation, Continental System application, war-cascade vassal auto-join + VS-4 refusal, wizard vassal actions (incl. Cede Territory) |
+| `turn_manager.py` | Enemy vassal courting + VS-6 bribe phases |
+| `enemy_ai.py` | P1.6 vassal shore-up rung (VP-D6) |
+| `settlement_*.py` | Vassalage/subjugation/liberation clauses + VS-5 vassal_transfer lifecycle |
+| `dispatch.py` | Vassal loyalty warnings (Trigger 3) + refusal/transfer/defection templates |
 
 ---
 
