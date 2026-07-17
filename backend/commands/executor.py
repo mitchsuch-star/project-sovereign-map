@@ -687,6 +687,47 @@ class CommandExecutor:
                         "suggestion": f"Try: '{strat_marshal_name}, unfortify' to abandon fortified position"
                     }
 
+        # ════════════════════════════════════════════════════════════
+        # CR-6 / S5-D1: BARE-ATTACK GATING (blessed CR-6 mini-gate, July 16,
+        # 2026). A player "attack" with no marshal named (general_attack /
+        # auto_assign_attack) auto-picked a marshal into a REAL battle,
+        # skipping CR-2 clarification, the W6-4 muster gate, and the objection
+        # gate — the most ambiguous lethal order had the fewest safeguards.
+        # Resolve the marshal HERE (after the AP pre-check, before the
+        # objection block) so the picked marshal flows through the SAME
+        # named-attack pipeline everyone else does:
+        #   (a) >1 commandable marshal in enemy contact for a bare "attack" →
+        #       "Which marshal shall lead the attack, Sire?" (single-contact
+        #       keeps the instant pick);
+        #   (b) the rewritten named attack carries `command`, so the W6-4
+        #       muster preview + bad-odds gate arm;
+        #   (c) action="attack" + a resolved marshal → the objection block
+        #       below evaluates the auto-picked marshal like any named order.
+        # GR5: AI / strategic-execution / autonomous callers never issue these
+        # command types and are guarded out regardless.
+        # ════════════════════════════════════════════════════════════
+        if (command.get("type") in ("general_attack", "auto_assign_attack")
+                and not is_ai_command
+                and not is_strategic_execution
+                and not command.get("_autonomous_execution")):
+            _auto = self._combat.resolve_auto_attack(
+                command, world,
+                raw_input=parsed_command.get("raw_input", ""))
+            if _auto["kind"] == "clarify":
+                return _auto["response"]
+            elif _auto["kind"] == "named":
+                # The auto-pick chose the marshal; from here the order is
+                # indistinguishable from a typed "<marshal>, attack <enemy>".
+                command["type"] = "specific"
+                command["action"] = "attack"
+                command["marshal"] = _auto["marshal"]
+                command["target"] = _auto["target"]
+                command["_auto_assigned"] = True
+                command["_auto_assign_explanation"] = _auto.get("explanation", "")
+                action = "attack"
+            # "passthrough": leave the command untouched — the existing general/
+            # auto-assign executor handles move-toward / no-enemies / errors.
+
         # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
@@ -1636,6 +1677,23 @@ class CommandExecutor:
         if mild_message and result.get("success"):
             result["message"] = mild_message + result.get("message", "")
             result["mild_objection"] = True
+
+        # CR-6 / S5-D1: a bare "attack" rewritten to a named attack carries its
+        # auto-pick provenance. Tag events so the UI still marks them
+        # auto-assigned, and prepend the selection note to a RESOLVED battle
+        # only — a muster/objection interrupt already names the marshal in its
+        # own copy (an objection returns earlier and never reaches here).
+        if command.get("_auto_assigned") and isinstance(result, dict):
+            for _ev in (result.get("events") or []):
+                if isinstance(_ev, dict):
+                    _ev["auto_assigned"] = True
+            _expl = command.get("_auto_assign_explanation")
+            if (_expl and result.get("message")
+                    and not result.get("requires_input")
+                    and not result.get("pending_glorious_charge")
+                    and result.get("state") not in (
+                        "awaiting_player_choice", "awaiting_clarification")):
+                result["message"] = _expl + result["message"]
 
         # Prepend square-break notification if auto-break fired (Session 67 fix)
         if self._pending_square_break_msg and result.get("success") and result.get("message"):

@@ -165,6 +165,48 @@ def build_marshal_choice_clarification(world, parsed: Dict,
     )
 
 
+def build_contact_attack_clarification(world, candidates, raw_input: str) -> Optional[Dict]:
+    """CR-6 / S5-D1: the "Which marshal shall lead the attack, Sire?" question
+    for a bare "attack" (no marshal named) when MORE THAN ONE player marshal is
+    in enemy contact. Single-contact keeps the instant auto-pick — this fires
+    only for genuine ambiguity, so the most lethal lazy order stops being the
+    only one with no gate.
+
+    ``candidates`` is a list of ``(marshal, enemy)`` pairs — each an alive
+    player marshal adjacent to that enemy. Every option reissues a fully-formed
+    ``"<marshal>, attack <enemy>"`` so the answer resolves through the ordinary
+    named-attack pipeline (W6-4 muster gate + objection included). Returns None
+    when fewer than two candidates survive, or no answer could afford the
+    attack (AP pre-validation before clarification — same rule as the other
+    emitters).
+    """
+    pairs = [(m, e) for (m, e) in candidates
+             if m is not None and e is not None
+             and getattr(m, "strength", 0) > 0]
+    if len(pairs) < 2:
+        return None
+    if not _answer_is_affordable(world, "attack"):
+        return None
+
+    options: List[Dict] = []
+    for m, enemy in pairs[:8]:
+        options.append({
+            "label": m.name,
+            "value": "assign_marshal",
+            "target": m.name,
+            "command": f"{m.name}, attack {enemy.name}",
+        })
+
+    return _clarification_response(
+        world,
+        question="Which marshal shall lead the attack, Sire?",
+        options=options,
+        clarification_kind="marshal_choice",
+        strategic_type=None,
+        raw_input=raw_input,
+    )
+
+
 def build_unknown_name_clarification(world, unknown_name: str,
                                      candidates: List[str], raw_input: str,
                                      kind: str,

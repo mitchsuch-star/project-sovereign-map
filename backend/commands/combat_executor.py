@@ -3208,7 +3208,14 @@ class CombatExecutor:
         # guessed target can never drag France into a war.
         # ════════════════════════════════════════════════════════════
         _raw_attack_text = str((command or {}).get("_raw_input") or "").lower()
-        if _raw_attack_text and target and not _target_auto_resolved:
+        # CR-6 / S5-D1: a bare/auto "attack" resolved its target
+        # DETERMINISTICALLY (the game picked it, the player did not type it), so
+        # — exactly like an explicit delegation ("attack the nearest enemy") —
+        # the guessed-target guard must stand down. Without this exemption
+        # "attack them all" / "attack <typo-region>" would be falsely refused
+        # because the raw words never ground the resolver-picked target.
+        if (_raw_attack_text and target and not _target_auto_resolved
+                and not (command or {}).get("_auto_assigned")):
             from backend.display_names import humanize_entity_name
 
             # The player's OWN target words: the raw order stripped of the
@@ -5760,27 +5767,20 @@ class CombatExecutor:
     # Extracted from executor.py in R10B (Architecture Refactoring Session 10B).
     # ════════════════════════════════════════════════════════════════════════════════
 
-    def _execute_general_attack(self, command: Dict, game_state: Dict) -> Dict:
+    def _scan_general_attack_candidates(self, world, player_marshals=None):
+        """Single-source scan for a bare "attack": partition player marshals
+        into ``combat_ready`` [(marshal, enemy, distance<=1)], ``out_of_range``
+        [(marshal, enemy, distance)], and ``filtered_out`` (explanation
+        strings for the dead/weak/fortified/drill-locked). Shared by
+        ``_execute_general_attack`` AND the CR-6 dispatch resolver
+        (``resolve_auto_attack``) so the two never diverge (S5-D3).
         """
-        Execute general attack - finds nearest enemy automatically.
+        if player_marshals is None:
+            player_marshals = world.get_player_marshals()
 
-        If no marshal can attack (all out of range), moves the closest
-        marshal toward the nearest enemy instead.
-        """
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {"success": False, "message": "Error: No world state"}
-
-        player_marshals = world.get_player_marshals()
-
-        if not player_marshals:
-            return {"success": False, "message": "No marshals available to attack"}
-
-        # Track all combat-ready marshals and their nearest enemies
-        combat_ready = []  # [(marshal, enemy, distance)]
-        out_of_range = []  # [(marshal, enemy, distance)] - for fallback move
-        filtered_out = []  # Explanations for non-combat-ready
+        combat_ready = []   # [(marshal, enemy, distance)]
+        out_of_range = []   # [(marshal, enemy, distance)] - for fallback move
+        filtered_out = []   # Explanations for non-combat-ready
 
         for marshal in player_marshals:
             # Filter out dead/weak marshals
@@ -5814,6 +5814,34 @@ class CombatExecutor:
                     combat_ready.append((marshal, enemy, distance))
                 else:  # Out of range but can move toward
                     out_of_range.append((marshal, enemy, distance))
+
+        return combat_ready, out_of_range, filtered_out
+
+    def _execute_general_attack(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute general attack - finds nearest enemy automatically.
+
+        If no marshal can attack (all out of range), moves the closest
+        marshal toward the nearest enemy instead.
+
+        NOTE: for a PLAYER command this is reached only via the CR-6 resolver's
+        "passthrough" verdict (nobody in contact → move-toward / no-enemies);
+        the in-contact case is rewritten to a named attack upstream so it flows
+        through clarification / muster / objection. Direct callers and tests
+        still get the full instant-pick behavior below.
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        player_marshals = world.get_player_marshals()
+
+        if not player_marshals:
+            return {"success": False, "message": "No marshals available to attack"}
+
+        combat_ready, out_of_range, filtered_out = \
+            self._scan_general_attack_candidates(world, player_marshals)
 
         # ════════════════════════════════════════════════════════════════
         # CASE 1: Someone can attack - execute the attack
@@ -5935,56 +5963,69 @@ class CombatExecutor:
 
         return attack_result
 
+    def _resolve_auto_assign_attacker(self, command: Dict, world) -> Dict:
+        """Single-source resolution for "attack <target>" (auto_assign_attack):
+        resolve the target (enemy marshal name first, then region) and pick the
+        nearest player marshal. Shared by ``_execute_auto_assign_attack`` AND
+        the CR-6 dispatch resolver so the two never diverge (S5-D3). Returns:
+          {"kind": "named", "marshal": <name>, "target": <display>}
+          {"kind": "error", "error": <response dict>}  — destroyed target / no
+              marshal in range / unresolvable region (exact copy preserved).
+        """
+        target = command.get("target")
+        if not world or not target:
+            return {"kind": "error", "error": {
+                "success": False,
+                "message": "Error: No target or world state"}}
+
+        # FIRST: Try to find target as enemy marshal name
+        enemy = world.get_enemy_by_name(target)
+        if enemy:
+            if enemy.strength <= 0:
+                return {"kind": "error", "error": {
+                    "success": False,
+                    "message": f"{target} has already been destroyed!"}}
+            result = world.find_nearest_marshal_to_region(enemy.location)
+            if not result:
+                return {"kind": "error", "error": {
+                    "success": False,
+                    "message": f"No marshals in range of {target}"}}
+            nearest_marshal, _distance = result
+            return {"kind": "named", "marshal": nearest_marshal.name,
+                    "target": target}
+
+        # SECOND: Check if target is a region name with fuzzy matching
+        target_region, error = self._executor._fuzzy_match_region(target, world)
+        if error:
+            return {"kind": "error", "error": error}
+        target_name = target_region.name if hasattr(target_region, 'name') else target
+        result = world.find_nearest_marshal_to_region(target_name)
+        if not result:
+            return {"kind": "error", "error": {
+                "success": False,
+                "message": f"No marshals in range of {target_name}"}}
+        nearest_marshal, _distance = result
+        return {"kind": "named", "marshal": nearest_marshal.name,
+                "target": target_name}
+
     def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
         """
         Execute attack with auto-assigned marshal.
         Example: "Attack Wellington" or "Attack Rhine"
         Delegates to _execute_attack() after finding nearest marshal (Building Blocks).
+
+        NOTE: for a PLAYER command the CR-6 resolver rewrites this to a named
+        attack upstream (muster gate + objection apply); this method is reached
+        directly (tests / internal callers) or via the resolver's "passthrough"
+        error verdict, and keeps its full instant behavior below.
         """
-        target = command.get("target")
         world: WorldState = game_state.get("world")
+        resolution = self._resolve_auto_assign_attacker(command, world)
+        if resolution["kind"] == "error":
+            return resolution["error"]
 
-        if not world or not target:
-            return {"success": False, "message": "Error: No target or world state"}
-
-        # FIRST: Try to find target as enemy marshal name
-        enemy = world.get_enemy_by_name(target)
-
-        if enemy:
-            if enemy.strength <= 0:
-                return {
-                    "success": False,
-                    "message": f"{target} has already been destroyed!"
-                }
-            # Found enemy marshal — find nearest player marshal to attack
-            result = world.find_nearest_marshal_to_region(enemy.location)
-            if not result:
-                return {"success": False, "message": f"No marshals in range of {target}"}
-            nearest_marshal, distance = result
-
-            # Delegate to _execute_attack with full coordination support
-            attack_result = self._execute_attack(nearest_marshal, target, world, game_state)
-            # Tag as auto-assigned for UI display
-            if attack_result.get("events"):
-                for ev in attack_result["events"]:
-                    ev["auto_assigned"] = True
-            return attack_result
-
-        # SECOND: Check if target is a region name with fuzzy matching
-        target_region, error = self._executor._fuzzy_match_region(target, world)
-
-        if error:
-            return error
-
-        target_name = target_region.name if hasattr(target_region, 'name') else target
-
-        # Find nearest marshal to this region
-        result = world.find_nearest_marshal_to_region(target_name)
-
-        if not result:
-            return {"success": False, "message": f"No marshals in range of {target_name}"}
-
-        nearest_marshal, distance = result
+        nearest_marshal = world.get_marshal(resolution["marshal"])
+        target_name = resolution["target"]
 
         # Delegate to _execute_attack with full coordination support
         attack_result = self._execute_attack(nearest_marshal, target_name, world, game_state)
@@ -5993,6 +6034,63 @@ class CombatExecutor:
             for ev in attack_result["events"]:
                 ev["auto_assigned"] = True
         return attack_result
+
+    def resolve_auto_attack(self, command: Dict, world, raw_input: str = "") -> Dict:
+        """CR-6 / S5-D1 dispatch resolver (blessed CR-6 mini-gate, July 16,
+        2026). A player bare "attack" (general_attack) or "attack <target>"
+        (auto_assign_attack) auto-picked a marshal into a real battle, skipping
+        CR-2 clarification, the W6-4 muster gate, and the objection gate — the
+        most ambiguous lethal order had the fewest safeguards. This resolves
+        the marshal so the pick can flow through the ordinary named-attack
+        pipeline. Returns one of:
+          {"kind": "clarify", "response": <dict>}  — >1 commandable marshal in
+              enemy contact for a bare attack; ask which one (a).
+          {"kind": "named", "marshal", "target", "explanation"}  — rewrite to a
+              specific named attack; muster gate (b) + objection (c) apply.
+          {"kind": "passthrough"}  — nobody in contact (move-toward /
+              no-enemies) or a resolution error; leave the original command for
+              _execute_general_attack / _execute_auto_assign_attack.
+        Caller (executor.execute) guards this to player commands only (GR5).
+        """
+        ctype = command.get("type")
+
+        if ctype == "general_attack":
+            combat_ready, _out, filtered_out = \
+                self._scan_general_attack_candidates(world)
+            if not combat_ready:
+                return {"kind": "passthrough"}
+            combat_ready.sort(key=lambda x: (x[2], -x[0].strength))
+            # Prefer a commandable marshal — an autonomous marshal would be
+            # blocked downstream, so a bare "attack" reaches for whoever CAN be
+            # ordered when one is in contact.
+            pool = [c for c in combat_ready
+                    if not getattr(c[0], 'autonomous', False)] or combat_ready
+            if len(pool) > 1:
+                from backend.commands.clarification import (
+                    build_contact_attack_clarification,
+                )
+                resp = build_contact_attack_clarification(
+                    world, [(m, e) for m, e, _ in pool], raw_input)
+                if resp is not None:
+                    return {"kind": "clarify", "response": resp}
+                # Affordability guard failed → fall through to instant pick.
+            best_marshal, best_enemy, _d = pool[0]
+            explanation = ""
+            if filtered_out:
+                explanation = f"[NOTE: {', '.join(filtered_out)}]\n"
+            explanation += (f"{best_marshal.name} "
+                            f"({best_marshal.strength:,} troops) attacks!\n\n")
+            return {"kind": "named", "marshal": best_marshal.name,
+                    "target": best_enemy.name, "explanation": explanation}
+
+        if ctype == "auto_assign_attack":
+            resolution = self._resolve_auto_assign_attacker(command, world)
+            if resolution["kind"] == "named":
+                return {"kind": "named", "marshal": resolution["marshal"],
+                        "target": resolution["target"], "explanation": ""}
+            return {"kind": "passthrough"}
+
+        return {"kind": "passthrough"}
 
     def _execute_auto_assign_bombardment(self, command: Dict, game_state: Dict) -> Dict:
         """
