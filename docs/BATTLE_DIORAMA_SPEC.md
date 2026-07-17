@@ -1,11 +1,15 @@
 # Battle Diorama Popup — PRELIMINARY SPEC (for Fable review)
 
-> **STATUS: PRELIMINARY / UNBLESSED.** This is a jumping-off document drafted from a
-> July 17, 2026 design conversation, not an approved slice. It exists so **Fable can
-> review the concept, the asset strategy, and the effort tiers before any build**, and
-> so a later USER DESIGN GATE has something concrete to bless or cut. Nothing here is
-> committed to the queue except "Fable reviews this after the econ research pass."
-> Numbers, art choices, and layout are illustrative, not blessed.
+> **STATUS: ✅ REVIEWED + QUEUED July 17, 2026 — sequenced AFTER Nation Agendas.** The Fable
+> review this masthead once waited on RAN July 17, 2026 (**evaluation of record =
+> `docs/audits/BATTLE_DIORAMA_EVAL_2026_07_17.md`, authoritative wherever it and this spec
+> disagree — verdict BUILD-IT, fun 7/10**), and the queue decision was made the same day
+> (user-directed): **the Tier-A slice is IN the queue, slotted AFTER the 8.5 Nation Agendas
+> design gate** — no longer competing for the centerpiece slot. Named landing = ROADMAP
+> §Current Phase Queue row **BD** + the STATUS tracking line. **Scope of record = eval §6**
+> (the bounded slice: the medium backend `contingents[]` half + the significance-gated Godot
+> tableau; the eval §5 cuts stand; completion = eval §6 DoD + `tests/test_battle_diorama.py`).
+> Numbers, art choices, and layout below remain illustrative where the eval has not pinned them.
 
 ## 1. The idea in one line
 
@@ -325,7 +329,8 @@ against live source → synthesis). Where it and this spec disagree, **the memo 
   figure counts, per-corps cascade in v1, untreated raw-JPG portraits, the Battle Gallery, all of Tier
   B/C. Memo §5 has the full list; §6 has the gate-ready bounded slice + the one test; §8 has the
   carved-wood-tray art-brief.
-- **Named landing** (does not exist yet): a `Battle Diorama (Tier A)` row in ROADMAP Current Phase Queue
-  + a STATUS line, behind a USER DESIGN GATE after the Fable econ pass, **weighed against Nation Agendas.**
+- **Named landing — ✅ CREATED July 17, 2026:** ROADMAP §Current Phase Queue row **BD** + the STATUS
+  tracking line. The weigh-against-Nation-Agendas question was **DECIDED the same day (user-directed):
+  Nation Agendas keeps the 8.5 centerpiece slot; the diorama is QUEUED as the follow-on Tier-A slice.**
 
 The interactive hero mockup (spec §6) implements most of the art-brief as a feel-of-the-thing proof.
