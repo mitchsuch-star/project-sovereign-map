@@ -1679,6 +1679,24 @@ def process_coalition_turn(world) -> List[Dict]:
     # ────────── 3. War exhaustion per-turn (§10a) ──────────
     for nation in _get_all_nations(world):
         if nation == france:
+            # EC-W2: France wearies of war like everyone else (GR5) — the
+            # same +8/−5 constants, keyed on being at war with ANYONE (the
+            # AI rows below are France-relative because their consumers
+            # are). Feeds calculate_war_effort_cost — the treasury-fraction
+            # war spending (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3).
+            # Europe-scoped (N1): the legacy fixture world BOOTS at war, so
+            # an ungated tick would drift its pinned economy (France WE →
+            # infantry-regen scaling) — review finding #1.
+            if getattr(world, "sovereign_map", "legacy") != "europe":
+                continue
+            at_war = bool(world.get_nations_at_war_with(france))
+            current_we = world.war_exhaustion.get(france, 0)
+            if at_war:
+                new_we = min(current_we + 8, WAR_EXHAUSTION_MAX)
+            else:
+                new_we = max(current_we - 5, 0)
+            if new_we != current_we:
+                world.war_exhaustion[france] = int(new_we)
             continue
         state = _get_diplo_state(world, france, nation)
         current_we = world.war_exhaustion.get(nation, 0)

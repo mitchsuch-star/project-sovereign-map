@@ -368,6 +368,16 @@ func _render_economy():
 	var occupation = int(econ.get("occupation", 0))
 	if occupation > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Occupation: -" + str(occupation) + "g[/color]\n"
+	# EC-W1 (Econ War-Coupling): income suspended by hostile armies standing
+	# on our provinces — its own signed Net component (SC-33 contract).
+	var contributions = int(econ.get("contributions", 0))
+	if contributions > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Contributions: -" + str(contributions) + "g[/color]\n"
+	# EC-W2 (Econ War-Coupling): war-effort spending drawn from the war
+	# chest, scaled by war exhaustion — its own signed Net component.
+	var war_effort = int(econ.get("war_effort", 0))
+	if war_effort > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]War Effort: -" + str(war_effort) + "g[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).

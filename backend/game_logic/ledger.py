@@ -223,6 +223,13 @@ def _build_economy(world, player: str) -> dict:
     # signed Net component (income stays GROSS), rendered as an
     # "Occupation" line so the visible lines still sum to Net (SC-33).
     occupation = int(income_data.get("occupation", 0))
+    # EC-W1: income suspended by hostile armies standing on our provinces —
+    # its own signed Net component, rendered as a "Contributions" line
+    # (SC-33 contract; NET_GOLD_COMPONENTS-guarded).
+    contributions = int(income_data.get("contributions", 0))
+    # EC-W2: war-effort spending from the chest — its own signed Net
+    # component, rendered as a "War Effort" line (same contract).
+    war_effort = int(income_data.get("war_effort", 0))
     # ES-7 (S7): full income of endowed provinces redirected to marshals'
     # estates — its own signed Net component, rendered as a "Dotations"
     # line (SC-33 both-halves; forced by the NET_GOLD_COMPONENTS guard).
@@ -256,15 +263,20 @@ def _build_economy(world, player: str) -> dict:
     # Vassal tribute income
     # Golden Rule 8: mirror process_vassal_tribute's cached-index derivation —
     # a per-vassal full region scan here was O(vassals × regions) per request.
+    # EC-W1: mirror the disruption skip too (a vassal province with a hostile
+    # army on it pays nobody), so the shown tribute matches the applied one.
     vassal_tribute = 0
-    for vassal_name, state in world.vassals.items():
-        if state.get("lord") == player:
-            tribute_rate = state.get("tribute_rate", 0.5)
-            v_income = sum(
-                world.regions[name].get_effective_income()
-                for name in world.get_nation_regions(vassal_name)
-            )
-            vassal_tribute += int(v_income * tribute_rate)
+    if world.vassals:
+        tribute_disrupted = world.get_disrupted_regions()
+        for vassal_name, state in world.vassals.items():
+            if state.get("lord") == player:
+                tribute_rate = state.get("tribute_rate", 0.5)
+                v_income = sum(
+                    world.regions[name].get_effective_income()
+                    for name in world.get_nation_regions(vassal_name)
+                    if name not in tribute_disrupted
+                )
+                vassal_tribute += int(v_income * tribute_rate)
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the
     # ratified gold_per_turn obligations the income phase actually moves —
@@ -302,7 +314,8 @@ def _build_economy(world, player: str) -> dict:
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold - occupation - dotation_skim - rente_cost
+        + settlement_gold - occupation - contributions - war_effort
+        - dotation_skim - rente_cost
         - infrastructure - upkeep_base - upkeep_surcharge
     )
 
@@ -340,6 +353,8 @@ def _build_economy(world, player: str) -> dict:
         "settlement_gold": settlement_gold,
         "settlement_streams": settlement_streams,
         "occupation": occupation,
+        "contributions": contributions,
+        "war_effort": war_effort,
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,

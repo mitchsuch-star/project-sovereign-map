@@ -3,11 +3,30 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
+> Last Updated: July 17, 2026 (**EC-W Review Findings section added** — 2 routed OPEN
+> rows from the Econ War-Coupling pre-push find→verify review; the review's other 7
+> confirmed findings were FIXED in-session before the commit, memo
+> `docs/audits/ECON_WAR_COUPLING_RESEARCH_2026_07_17.md` §6.)
+>
 > Last Updated: July 16, 2026 (**Sweep-5 Findings section added** — the P0 end-turn 500
 > FIXED in-session; 5 routed OPEN rows from the Combat Overhaul Sweep-5 12-component
 > review, memo `docs/audits/SWEEP_5_2026_07_16.md`.)
 >
 > Last Updated: July 14, 2026 (**Vassal Playtest Findings — F1/F1c/F3/F6/F8b/C1/C2/F5/F7/F4 ALL FIXED** this session from a live europe_1805 playtest + 14-agent adversarial verification; memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`, tests `tests/test_playtest_fixes_2026_07_14.py`. Prior: July 12, 2026 (**Playtest Sweep PS-1..PS-9 — 3 user-reported issues + same-family sweep + the generosity-inversion fix (PS-9: "More generous" lowered a hawk's acceptance); ALL FIXED + verified, suite 12,964/3, Godot parse-clean**). Prior: July 11, 2026 (**Estate-Second-Pass Eval Findings section added** — ESP-EV-1 muster typed-answer misroute + ESP-EV-2 expectation-note under-fire FIXED in-session; ESP-EV-3 battles_won seam inconsistency + ESP-EV-4 attack-region silent redirect ROUTED to 8.EVAL. Prior: **MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+
+---
+
+## EC-W Review Findings — July 17, 2026 (2 routed OPEN)
+
+> From the Econ War-Coupling pre-push find→verify review (memo
+> `docs/audits/ECON_WAR_COUPLING_RESEARCH_2026_07_17.md` §6 holds the full
+> disposition — findings #1/#2/#3/#4/#6/#9/#10h were FIXED or recorded-with-pins
+> in-session; these two carry real design work and are routed with owners).
+
+| ID | Pri | Finding | Fix design | Owner / landing |
+|----|-----|---------|-----------|-----------------|
+| EWC-F1 | P2 | **A winning-arm settlement offer can stage un-ratifiable:** the AI's purse-priced indemnity (it pays the player) is scored as accepting-side HARSHNESS at ratification (saturating −45 at ≥1,875g), so a marginal court can refuse the AI's own offer after the player accepts — a dead-end click. Pre-existing at the old 2,000 cap; EC-W4's bigger amounts hit it more often. Mitigant: the PROPOSE surface lets the player edit the amount down. | Pre-score the offer package at emission and step the indemnity down until the payer court carries it (`_emit_settlement_offer_for_war` seam); add a winning-direction ratifiability test | Next diplomacy/settlement batch |
+| EWC-F2 | P3 | **Rente face can size against disruption-zeroed estate income:** `grant_pension` auto-sizes face = expectation − estate income; a one-turn hostile presence on the estate at grant time (EC-W1) locks an oversized pension, double-counting after liberation. AI auto-grant rungs can trigger it. Pre-existing for captured estates; EC-W1 makes it transient-triggerable. | `ignore_disruption` flag on `get_estate_income` for FACE COMPUTATION only (satisfaction display keeps the disruption rule) | Next econ tuning gate (with EWC-D1) |
 
 ---
 

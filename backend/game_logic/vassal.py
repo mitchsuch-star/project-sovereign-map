@@ -1000,8 +1000,14 @@ def process_vassal_tribute(world) -> dict:
         # Calculate vassal's base income (respects stability and war damage).
         # Golden Rule 8: per-vassal per-turn — use the cached region index
         # instead of a raw O(R) controller scan (Slice 8 audit).
+        # EC-W1 (review finding #9): a vassal province with a hostile army
+        # standing on it pays NOBODY — the lord cannot tithe revenues the
+        # invader is eating (same rule as calculate_turn_income).
+        disrupted = world.get_disrupted_regions()
         vassal_income = 0
         for region_name in world.get_nation_regions(vassal_name):
+            if region_name in disrupted:
+                continue
             vassal_income += world.regions[region_name].get_effective_income()
 
         tribute_amount = int(vassal_income * tribute_rate)

@@ -2388,6 +2388,18 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 - **Dead-zone fix:** eligibility honors only LIVE claims (controller match / respected / **capture-choice pending** — the W6-8 question keeps its claim alive); grants eagerly strip dead foreign claims through the shared `log_estate_lost` path.
 - **UI:** the Generals card `[Reward…]` bbcode link (meta_clicked) opens the **Marshal's Reward dialog** (`reward_dialog.gd`, layer 109) — estate buttons with income/coverage/investiture, the rente offer with face AND true cost, revoke; buttons issue the standard typed commands; the screen refreshes in place. Serialized: `Marshal.pension`, `Marshal.last_expectation_seen`. Tests: `test_estate_second_pass.py` (66).
 
+### War-Coupling (EC-W pass 3, July 17, 2026)
+
+**Europe worlds only (N1); all four mechanics BOOT-ZERO by construction; GR5-symmetric through the shared income/battle/settlement seams; zero new serialized fields.** Gate record: `docs/audits/ECON_WAR_COUPLING_RESEARCH_2026_07_17.md` §3 (user-delegated). Fixes the July-17 playtest defect (treasury +7,500% while the army fell −66% and Britain stood in Orleanais). Upkeep stays billed on live fielded strength (user steer: "salaries") — these are the missing expenses:
+
+- **EC-W1 "Contributions of War":** a region whose controller is at war with a present enemy-nation marshal (`strength ≥ DISRUPTION_MIN_STRENGTH 1000`, not captured) yields NOTHING to its owner that turn — `WorldState.get_disrupted_regions()` (one marshal pass, GR8), consumed in `calculate_turn_income` as the signed `contributions` Net component ("Contributions" line). A disrupted ESTATE feeds nobody (`get_estate_income` applies the same rule → the marshal's satisfaction falls with his lands); ES-2 occupation + infrastructure still bill. The region bleeds `DISRUPTION_STABILITY_DRAIN 2`/turn instead of growing (`process_stability_growth`). Suspension only — occupier-side extraction is DESIGN_REFINEMENT EWC-D1. Boot case: Mack@Swabia disrupts Bavaria (the real Sept-1805 occupation; pinned solvent).
+- **EC-W2 "The War Effort":** France enters the WE system — +8/turn while at war with anyone / −5 decay (coalition.py §10a France arm), plus the missing battle arm (France loses as DEFENDER → `casualties//1000` cap 20, both the executor pipeline and the auto-charge copy). Every nation with WE pays `int(max(0, treasury) × WE // WAR_EFFORT_DIVISOR 2500)`/turn (`calculate_war_effort_cost`, single source; WE 200 → 8%/turn of the chest) — the signed `war_effort` Net component ("War Effort" line). Treasury-fraction, NOT flat: a poor nation pays ~nothing (Austria's +18 boot margin is structurally safe), the term can never push a treasury negative by itself, and it attacks the passive hoard directly. R49 already guards partial peace (WE resets only with no remaining wars).
+- **EC-W3 "The Butcher's Bill":** every resolved non-bombardment battle charges each side `int(own_casualties × MATERIEL_RATE 0.05)` at once (50g/1,000 — below the 60g/1,000 war recruit price, hierarchy pinned). One-time flow OUTSIDE Net (plunder precedent) in `_post_combat_pipeline` step 13b + the auto-charge copy; surfaced as the "[Materiel]" battle-message line.
+- **EC-W4 "Peace with Teeth":** AI settlement offers price the indemnity to the payer's purse — `min(base 500 + 50×war_age + |war_score|×40 + treasury×0.15, treasury×0.40)`; an empty chest degrades to white peace (`_settlement_offer_build_terms`, both directions). The player-ask baseline scales too: `max(300, court_balance×0.25)`, still capacity-capped (settlement_baseline).
+- **EC-W5 fixes:** AI personality auto-plunder now pays the same ×1.75 as the player (single source `world_state.PLUNDER_GOLD_MULTIPLIER`); the treasury report's net includes infrastructure (was silently omitted).
+
+Tests: `test_econ_war_coupling.py` (33) + re-blessed EC-W4 pins in `test_settlement_incoming_offers.py`.
+
 **Bankruptcy:** `nation_bankruptcy_turns` tracks consecutive turns with negative gold. Turn 1-2: warnings + halved upkeep. Turn 3+: desertion (5% strength loss per marshal).
 
 **Admin AP:** 2/turn, recruit uses admin AP (not CP). Unused admin AP * 25 = gold bonus.
@@ -3659,8 +3671,15 @@ When a coalition forms, any in-transit proposal to a joining nation is voided. T
 
 | Condition | Change |
 |-----------|--------|
-| Nation at war with France | +5/turn |
-| Nation at peace with France | -5/turn |
+| AI nation at war with France | +8/turn (R11; was +5) |
+| AI nation at peace with France | -5/turn |
+| **France at war with anyone (EC-W2, July 17, 2026)** | **+8/turn (same constants — GR5)** |
+| France at full peace | -5/turn |
+
+Battle WE: the LOSER of every France-involved battle accrues `casualties//1000`
+(cap +20/battle) — EC-W2 added the missing "France loses as defender" arm.
+WE now has an ECONOMIC consumer: `calculate_war_effort_cost` (§8 War-Coupling).
+Peace resets a nation's WE only when it has NO other active wars (R49).
 
 ### Key Files
 

@@ -43,6 +43,10 @@ from backend.models.world_state import WorldState
 # EC-U2 (Combat Overhaul Phase 4): infrastructure maintenance is its own
 # signed component — declared here so the guard forces the "Infrastructure"
 # render line.
+# EC-W1/EC-W2 (Econ War-Coupling pass 3, memo ECON_WAR_COUPLING_RESEARCH_
+# 2026_07_17): income suspended by hostile armies ("Contributions") and the
+# war-exhaustion treasury drain ("War Effort") are their own signed
+# components — declared here so the guard forces both render lines.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -51,6 +55,8 @@ NET_GOLD_COMPONENTS = {
     "vassal_tribute": +1,
     "settlement_gold": +1,
     "occupation": -1,
+    "contributions": -1,
+    "war_effort": -1,
     "dotation_skim": -1,
     "rente_cost": -1,
     "infrastructure": -1,

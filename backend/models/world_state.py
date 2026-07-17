@@ -159,6 +159,35 @@ GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
 # is 0 at turn 1 and cannot break the E1 boot-solvency band. Sweep-tunable.
 EUROPE_INFRASTRUCTURE_UPKEEP = 40      # g per turn per built structure
 
+# ═══ EC-W (Econ War-Coupling pass 3, memo docs/audits/ECON_WAR_COUPLING_
+# RESEARCH_2026_07_17.md §3) — the July-17 playtest defect: France's treasury
+# snowballed while its army was destroyed and Britain stood on home soil.
+# Upkeep stays billed on live fielded strength (user steer: "salaries");
+# these terms add the MISSING war expenses. All boot-zero by construction
+# (presence-/WE-/battle-gated), Europe-scoped (N1), GR5-symmetric.
+#
+# EC-W1 "Contributions of War": an enemy army standing on a province eats its
+# revenues in place — the owner collects nothing that turn and the province
+# bleeds stability instead of growing. Suspension only (no transfer to the
+# invader — that rider is EWC-D1, owned by the next econ tuning gate).
+DISRUPTION_MIN_STRENGTH = 1000         # men; smaller remnants don't disrupt
+DISRUPTION_STABILITY_DRAIN = 2         # stability lost per turn under hostile presence
+# EC-W2 "The War Effort": a nation at war consumes its own war chest —
+# int(max(0, treasury) × war_exhaustion // divisor) per turn (WE 200 → 8% of
+# the hoard, WE 50 → 2%). A fraction of a POSITIVE treasury only: a poor
+# nation pays ~nothing (Austria's +18 boot margin is safe by construction)
+# and the term can never push a treasury negative by itself. Sweep-tunable.
+WAR_EFFORT_DIVISOR = 2500
+# EC-W3 "The Butcher's Bill": one-time materiel charge per battle — the guns,
+# horses and stores lost with each side's casualties. 0.05 g/man = 50g per
+# 1,000, deliberately BELOW the war recruit price (60g/1,000) so replacing
+# men still costs more than replacing kit (hierarchy pinned in tests).
+MATERIEL_RATE = 0.05
+# EC-W5a: plunder pays 175% of base income — single source shared by the
+# player path (combat_executor._apply_plunder) and the AI personality
+# auto-decide path below (was a GR5 violation: AI plunder paid ×1.0).
+PLUNDER_GOLD_MULTIPLIER = 1.75
+
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
     "France":  {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
@@ -2908,6 +2937,16 @@ class WorldState:
             if nation in parts and len(parts) == 2:
                 set_diplomatic_state(self, parts[0], parts[1], "PEACE", "nation_eliminated")
 
+        # EC-W2 (review finding #2): elimination ends wars WITHOUT the
+        # cleanup_war_end path, so mirror the R49 rule here — any nation the
+        # teardown just left with NO remaining active wars sheds its war
+        # exhaustion (otherwise the War Effort drain decays over ~30 peace
+        # turns after the last belligerent falls, while a negotiated peace
+        # resets instantly).
+        for we_nation in list(self.war_exhaustion.keys()):
+            if not self.get_nations_at_war_with(we_nation):
+                self.war_exhaustion.pop(we_nation, None)
+
         # Remove from coalition if member
         from backend.game_logic.coalition import remove_coalition_member
         remove_coalition_member(nation, self)
@@ -2963,7 +3002,9 @@ class WorldState:
                 region.stability = 10
                 region.apply_war_damage(0.35)
                 region.plundered = True
-                gold_gained = region.income_value
+                # EC-W5a: same 175% plunder rate as the player path (GR5 —
+                # was ×1.0, a silent AI discount on the same choice).
+                gold_gained = int(region.income_value * PLUNDER_GOLD_MULTIPLIER)
                 self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
                 region.buildings = []
                 region.building_under_construction = None
@@ -3778,6 +3819,53 @@ class WorldState:
     # INCOME CALCULATION
     # ========================================
 
+    def get_disrupted_regions(self) -> set:
+        """EC-W1: names of regions with a hostile army standing on them.
+
+        A region whose controller is AT WAR with a present enemy-nation
+        marshal (strength >= DISRUPTION_MIN_STRENGTH, not captured) yields
+        nothing to its owner this turn and bleeds stability instead of
+        growing. ONE pass over world.marshals (GR8 — never a region scan);
+        recomputed per call so mid-turn movement is reflected in reports.
+        Europe-scoped (N1: the legacy fixture world's economy pins stand).
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return set()
+        disrupted = set()
+        for marshal in self.marshals.values():
+            if marshal.strength < DISRUPTION_MIN_STRENGTH:
+                continue
+            if getattr(marshal, "captured_by", ""):
+                continue
+            region = self.regions.get(marshal.location)
+            if region is None or not region.controller:
+                continue
+            if region.controller == marshal.nation:
+                continue
+            if self.is_at_war(region.controller, marshal.nation):
+                disrupted.add(region.name)
+        return disrupted
+
+    def calculate_war_effort_cost(self, nation: str) -> int:
+        """EC-W2: per-turn war spending drawn from the treasury.
+
+        int(max(0, treasury) × war_exhaustion // WAR_EFFORT_DIVISOR) — a
+        fraction of a POSITIVE chest only, so a poor nation pays ~nothing
+        and the term can never push a treasury negative by itself. Computed
+        on the pre-income treasury; the SINGLE source for the income phase,
+        the treasury report and the ledger (shown = applied). Europe-scoped
+        (N1). Bankruptcy mercy not needed — the term is self-limiting.
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return 0
+        we = int(getattr(self, "war_exhaustion", {}).get(nation, 0) or 0)
+        if we <= 0:
+            return 0
+        gold = int(self.nation_gold.get(nation, 0))
+        if gold <= 0:
+            return 0
+        return int(gold * we // WAR_EFFORT_DIVISOR)
+
     def calculate_turn_income(self, nation: str = None) -> Dict:
         """Calculate income for a nation. Defaults to player_nation.
 
@@ -3808,10 +3896,16 @@ class WorldState:
             from backend.game_logic.dotation import get_nation_dotation_map
             dotation_map = get_nation_dotation_map(self, nation)
 
+        # EC-W1: regions with a hostile army standing on them yield NOTHING
+        # to their owner this turn — `income` stays GROSS, the suspension
+        # rides the separate signed `contributions` key (ES-2 pattern).
+        disrupted = self.get_disrupted_regions() if europe else set()
+
         # Effective income from regions (after stability + war damage modifiers)
         total_income = 0
         occupation_cost = 0
         dotation_skim = 0
+        contributions_cost = 0  # EC-W1: income suspended by hostile presence
         infrastructure_cost = 0  # EC-U2: per-turn maintenance of built structures
         region_breakdown = []
         for region_name in nation_regions:
@@ -3821,7 +3915,20 @@ class WorldState:
             estate_of = dotation_map.get(region_name)
             occ_cost = 0
             dot_cost = 0
-            if estate_of is not None:
+            contrib_cost = 0
+            if region_name in disrupted:
+                # EC-W1: the enemy army eats this province's revenues in
+                # place — nothing reaches the treasury OR an estate's
+                # household (get_estate_income applies the same rule, so
+                # the marshal's satisfaction falls with his lands). The
+                # ES-2 occupation cost still bills on non-homeland,
+                # non-estate soil: being contested relieves nothing.
+                contrib_cost = effective
+                contributions_cost += contrib_cost
+                if estate_of is None and region_name not in homeland:
+                    occ_cost = int(region.income_value * region.get_occupation_fraction())
+                    occupation_cost += occ_cost
+            elif estate_of is not None:
                 dot_cost = effective
                 dotation_skim += dot_cost
             elif europe and region_name not in homeland:
@@ -3845,6 +3952,9 @@ class WorldState:
                 "occupation_cost": occ_cost,
                 "dotation_cost": dot_cost,
                 "estate_of": estate_of,
+                # EC-W1: hostile-presence suspension detail
+                "contributions_cost": int(contrib_cost),
+                "disrupted": region_name in disrupted,
             })
 
         # E6: bankruptcy mercy halves the occupation total (per-region
@@ -3879,10 +3989,21 @@ class WorldState:
             from backend.game_logic.dotation import get_nation_rente_bill
             rente_cost = get_nation_rente_bill(self, nation)
 
+        # EC-W2: war-effort spending — single-source helper (0 off-Europe,
+        # 0 at WE 0 or an empty chest). No bankruptcy mercy needed: the term
+        # is a fraction of a positive treasury, self-limiting by construction.
+        war_effort = self.calculate_war_effort_cost(nation)
+
         return {
             "income": total_income,
             "occupation": int(occupation_cost),
             "occupation_halved": occupation_halved,
+            # EC-W1: income suspended by hostile armies standing on our
+            # provinces. Not a bill the nation pays — income physically not
+            # collected — so bankruptcy mercy does not apply.
+            "contributions": int(contributions_cost),
+            # EC-W2: the war consuming the war chest.
+            "war_effort": int(war_effort),
             # ES-7: full-income redirect to marshals' estates. No bankruptcy
             # mercy needed (E6) — it redirects income the nation is earning,
             # so it structurally floors the estate's net contribution at 0.
@@ -3898,6 +4019,8 @@ class WorldState:
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
                 "naval_income": naval_income,
                 "occupation": int(occupation_cost),
+                "contributions": int(contributions_cost),
+                "war_effort": int(war_effort),
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
                 "infrastructure": int(infrastructure_cost),
@@ -4136,6 +4259,10 @@ class WorldState:
         # nation pays through this same seam (GR5), player and AI alike.
         occupation = int(income_data.get("occupation", 0))
 
+        # EC-W1: income suspended by hostile armies — same seam both sides.
+        contributions = int(income_data.get("contributions", 0))
+        # EC-W2: war-effort spending from the chest — same seam both sides.
+        war_effort = int(income_data.get("war_effort", 0))
         # ES-7 (S7): full income of endowed provinces is redirected to the
         # marshals' estates — same seam for player and AI (GR5).
         dotation_skim = int(income_data.get("dotation_skim", 0))
@@ -4144,7 +4271,8 @@ class WorldState:
         # EC-U2: infrastructure maintenance — same seam both sides (GR5).
         infrastructure = int(income_data.get("infrastructure", 0))
 
-        net = (income_data["income"] - occupation - dotation_skim - rente_cost
+        net = (income_data["income"] - occupation - contributions - war_effort
+               - dotation_skim - rente_cost
                - infrastructure - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
@@ -4153,6 +4281,9 @@ class WorldState:
         # so nations don't go bankrupt when trade income would cover costs.
 
         occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
+        contributions_str = (f", -{contributions} contributions"
+                             if contributions > 0 else "")
+        war_effort_str = f", -{war_effort} war effort" if war_effort > 0 else ""
         dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
         rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
         infrastructure_str = (f", -{infrastructure} infrastructure"
@@ -4161,6 +4292,8 @@ class WorldState:
             "nation": nation,
             "income": income_data["income"],
             "occupation": occupation,
+            "contributions": contributions,
+            "war_effort": war_effort,
             "dotation_skim": dotation_skim,
             "rente_cost": rente_cost,
             "infrastructure": infrastructure,
@@ -4173,7 +4306,8 @@ class WorldState:
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
                        f"+{income_data['income']} income"
-                       f"{occupation_str}{dotation_str}{rente_str}"
+                       f"{occupation_str}{contributions_str}{war_effort_str}"
+                       f"{dotation_str}{rente_str}"
                        f"{infrastructure_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
@@ -4448,9 +4582,18 @@ class WorldState:
         """
         from backend.game_logic.dotation import get_estate_steward_map
         steward_map = get_estate_steward_map(self)
+        # EC-W1: a province with a hostile army standing on it bleeds instead
+        # of growing — multi-turn occupations degrade its income tier and the
+        # damage lingers after liberation (recovery via the normal growth
+        # below). Empty set off-Europe (N1: legacy stability pins stand).
+        disrupted = self.get_disrupted_regions()
         for region in self.regions.values():
             if region.controller is None:
                 continue  # Neutral/unclaimed regions don't grow
+            if region.name in disrupted:
+                region.stability = max(
+                    0, region.stability - DISRUPTION_STABILITY_DRAIN)
+                continue
             base_growth = 5
             garrison_bonus = 5 if self._has_marshal_in_region(region.name, region.controller) else 0
             steward = steward_map.get(region.name, 0)
@@ -9409,12 +9552,39 @@ class WorldState:
                         if cr and getattr(cr, 'is_capital', False):
                             add_threat(self, 15, "capital_capture")
                     add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
+                elif (combat_result.get("victor") == marshal.name
+                        and enemy.nation == france
+                        and getattr(self, "sovereign_map", "legacy") == "europe"):
+                    # EC-W2: France mauled as DEFENDER — the missing
+                    # loser-accrues arm (memo §3; mirrors the executor
+                    # pipeline's new branch). Europe-scoped (N1).
+                    add_war_exhaustion_from_battle(france, ac_def_cas, self)
                 elif combat_result.get("victor") == enemy.name:
                     if marshal.nation == france:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
                     if enemy.nation == france:
                         add_threat(self, 3, "battle_win")
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
+
+                # EC-W3: The Butcher's Bill — each side pays at once for the
+                # guns, horses and stores lost with its men (one-time flow
+                # outside Net, plunder-gold precedent; Europe-scoped N1).
+                ac_materiel_msg = ""
+                if getattr(self, "sovereign_map", "legacy") == "europe":
+                    from backend.display_names import humanize_entity_name
+                    ac_materiel_parts = []
+                    for _m_nation, _m_cas in ((marshal.nation, ac_atk_cas),
+                                              (enemy.nation, ac_def_cas)):
+                        _bill = int(_m_cas * MATERIEL_RATE)
+                        if _bill > 0 and _m_nation:
+                            self.nation_gold[_m_nation] = int(
+                                self.nation_gold.get(_m_nation, 0) - _bill)
+                            ac_materiel_parts.append(
+                                f"{humanize_entity_name(_m_nation)} -{_bill}g")
+                    if ac_materiel_parts:
+                        ac_materiel_msg = (
+                            "\n[Materiel] Guns, horses and stores lost with "
+                            "the fallen: " + ", ".join(ac_materiel_parts) + ".")
 
                 if charge_blocked:
                     terrain_name = auto_charge_terrain.replace("_", " ").title()
@@ -9430,7 +9600,8 @@ class WorldState:
                 event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}"
-                            f"{forced_retreat_msg}{conquest_msg}\n\n"
+                            f"{forced_retreat_msg}{conquest_msg}"
+                            f"{ac_materiel_msg}\n\n"
                             f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
                 # Strip combat_result from the tactical event sent to Godot.

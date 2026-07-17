@@ -6,7 +6,10 @@ Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
 import re
 from typing import Dict, Optional
-from backend.models.world_state import WorldState
+from backend.models.world_state import (
+    PLUNDER_GOLD_MULTIPLIER as WS_PLUNDER_GOLD_MULTIPLIER,
+    WorldState,
+)
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 
@@ -1540,6 +1543,14 @@ class CombatExecutor:
                         add_threat(world, 15, "capital_capture")
                 add_war_exhaustion_from_battle(defender_nation, int(def_casualties), world)
 
+            elif (attacker_won and defender_nation == france
+                    and getattr(world, "sovereign_map", "legacy") == "europe"):
+                # EC-W2: France mauled as DEFENDER — the missing loser-accrues
+                # arm (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3). Before
+                # this, France losing battles on home soil accrued NOTHING —
+                # the exact July-17 playtest shape. Europe-scoped (N1).
+                add_war_exhaustion_from_battle(france, int(def_casualties), world)
+
             elif defender_won:
                 if attacker.nation == france:
                     add_war_exhaustion_from_battle(attacker.nation, int(atk_casualties), world)
@@ -1561,6 +1572,31 @@ class CombatExecutor:
                 # Garrison hold — war exhaustion for attacking nation
                 from backend.game_logic.coalition import add_war_exhaustion_from_battle as add_we
                 add_we(attacker.nation, int(atk_casualties), world)
+
+            # ── 13b. EC-W3: The Butcher's Bill ──
+            # Each side pays at once for the guns, horses and stores lost
+            # with its men (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3).
+            # One-time flow OUTSIDE Net (plunder-gold precedent); rate sits
+            # below the war recruit price so men still cost more than kit.
+            # Europe-scoped (N1: legacy combat gold pins stand); bombardment
+            # excluded with the whole step-13 block (ammunition expenditure
+            # is not field-army materiel loss).
+            if getattr(world, "sovereign_map", "legacy") == "europe":
+                from backend.display_names import humanize_entity_name
+                from backend.models.world_state import MATERIEL_RATE
+                materiel_parts = []
+                for m_nation, m_cas in ((attacker.nation, int(atk_casualties)),
+                                        (defender_nation, int(def_casualties))):
+                    bill = int(m_cas * MATERIEL_RATE)
+                    if bill > 0 and m_nation:
+                        world.nation_gold[m_nation] = int(
+                            world.nation_gold.get(m_nation, 0) - bill)
+                        materiel_parts.append(
+                            f"{humanize_entity_name(m_nation)} -{bill}g")
+                if materiel_parts:
+                    pipeline_out['materiel_msg'] = (
+                        "\n[Materiel] Guns, horses and stores lost with the "
+                        "fallen: " + ", ".join(materiel_parts) + ".")
 
         # ── 14. Exhaustion tracking ──
         if not ctx.get('skip_exhaustion'):
@@ -1658,7 +1694,7 @@ class CombatExecutor:
             target_region.garrison_detachment = False
             old_controller = target_region.controller
             # R1 Pipeline: centralized post-combat recording
-            self._post_combat_pipeline({
+            garrison_pipeline_out = self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
                 'defender_nation': old_controller,
@@ -1707,6 +1743,10 @@ class CombatExecutor:
             )
             if attrition_info["total_losses"] > 0:
                 msg += f" ({attrition_info['total_losses']:,} lost to march)"
+            # EC-W3 (review finding #4): the materiel bill was applied by the
+            # pipeline but never SHOWN on garrison assaults — shown = applied.
+            if garrison_pipeline_out.get('materiel_msg'):
+                msg += garrison_pipeline_out['materiel_msg']
 
             if capture_result["occupation_started"]:
                 msg += f" {capture_result['message']}"
@@ -1766,7 +1806,7 @@ class CombatExecutor:
                 msg += " Fortifications bolster the defense."
 
             # R1 Pipeline: centralized post-combat recording
-            self._post_combat_pipeline({
+            hold_pipeline_out = self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
                 'defender_nation': target_region.controller,
@@ -1787,6 +1827,9 @@ class CombatExecutor:
                 'skip_war_damage': True,
                 'skip_exhaustion': True,
             }, world)
+            # EC-W3 (review finding #4): shown = applied on the hold path too.
+            if hold_pipeline_out.get('materiel_msg'):
+                msg += hold_pipeline_out['materiel_msg']
 
             # Custom garrison authority (uses garrison_effective)
             if marshal.nation == world.player_nation:
@@ -3948,10 +3991,13 @@ class CombatExecutor:
                 'is_auto_bombardment_kill': True,
             }, world)
 
+            # EC-W3 (review finding #4): shown = applied on the auto-kill path.
+            auto_kill_materiel = pipeline_out.get('materiel_msg', '')
+
             result = {
                 "success": True,
                 "action": "attack",
-                "message": f"{preamble}\n\n{main_msg}{advance_msg}{conquest_msg}",
+                "message": f"{preamble}\n\n{main_msg}{advance_msg}{conquest_msg}{auto_kill_materiel}",
                 "auto_bombardment": True,
                 "auto_bombardment_results": [
                     r.get("bombardment_result", {}) for r in auto_bombardment_results
@@ -4751,6 +4797,8 @@ class CombatExecutor:
 
         vindication_msg = pipeline_out.get('vindication_msg', '')
         vindication_result = pipeline_out.get('vindication_result')
+        # EC-W3: the materiel bill line (both sides' losses named)
+        materiel_msg = pipeline_out.get('materiel_msg', '')
 
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
@@ -4758,7 +4806,7 @@ class CombatExecutor:
             auto_bombard_preamble = "\n".join(auto_bombardment_messages) + "\n\n"
 
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
-        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
+        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
         # W6-4: the muster block rides every resolved player attack —
@@ -5515,6 +5563,9 @@ class CombatExecutor:
             charge_message += conquest_msg
         if vindication_msg:
             charge_message += vindication_msg
+        # EC-W3: the materiel bill line
+        if pipeline_out.get('materiel_msg'):
+            charge_message += pipeline_out['materiel_msg']
         charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
         charge_result = {
@@ -5614,7 +5665,10 @@ class CombatExecutor:
                 result["message"] = f"[{pending_marshal.name} is restrained - normal attack]\n\n" + result.get("message", "")
             return result
 
-    PLUNDER_GOLD_MULTIPLIER = 1.75
+    # EC-W5a: single source lives in world_state.py so the AI personality
+    # auto-decide path (world_state capture handling) pays the SAME rate
+    # (GR5 — it silently paid ×1.0 before). Class attr kept for tests.
+    PLUNDER_GOLD_MULTIPLIER = WS_PLUNDER_GOLD_MULTIPLIER
 
     def _apply_plunder(self, region, world, nation: str = None) -> Dict:
         """Apply plunder effects to a captured region.

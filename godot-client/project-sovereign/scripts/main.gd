@@ -1971,12 +1971,23 @@ func _display_turn_change(event: Dictionary):
 	var rente_str = ""
 	if rente_cost > 0:
 		rente_str = " | Rentes: -" + str(int(rente_cost)) + "g"
+	# EC-W1/EC-W2 (Econ War-Coupling): the presence-suspension and war-effort
+	# drains are separate Net components — without them the wartime banner's
+	# visible lines would not sum toward Net
+	var contributions = int(event.get("contributions", 0))
+	var contributions_str = ""
+	if contributions > 0:
+		contributions_str = " | Contributions: -" + str(int(contributions)) + "g"
+	var war_effort = int(event.get("war_effort", 0))
+	var war_effort_str = ""
+	if war_effort > 0:
+		war_effort_str = " | War Effort: -" + str(int(war_effort)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + contributions_str + war_effort_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

@@ -556,6 +556,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # ES-2 (S6): occupation cost on non-homeland provinces — a separate
     # Net component (income above is GROSS), so the projection subtracts it
     occupation = int(income_data.get("occupation", 0))
+    # EC-W1: income suspended by hostile armies — same treatment
+    contributions = int(income_data.get("contributions", 0))
+    # EC-W2: war-effort spending from the chest — same treatment
+    war_effort = int(income_data.get("war_effort", 0))
     # ES-7 (S7): income redirected to marshals' estates — same treatment
     dotation_skim = int(income_data.get("dotation_skim", 0))
     # ES-7 second pass (§0.6.8): the rente bill — same treatment
@@ -568,7 +572,8 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player_nation, 0))
 
-    treasury_delta = int(income + trade_income - occupation - dotation_skim
+    treasury_delta = int(income + trade_income - occupation - contributions
+                         - war_effort - dotation_skim
                          - rente_cost - infrastructure - upkeep)
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
@@ -650,6 +655,10 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # ES-2 (S6): occupation detail rides the dispatch like the ES-3
         # surcharge — the morning projection can explain the drain
         "occupation": occupation,
+        # EC-W1/EC-W2: the war-coupling drains ride the dispatch too, so
+        # the morning projection can explain a wartime treasury squeeze
+        "contributions": contributions,
+        "war_effort": war_effort,
         # ES-7 (S7): estate redirect + the Unmet Marshals roll-up — the
         # morning briefing names whose loyalty is at stake, not just a number
         "dotation_skim": dotation_skim,

@@ -122,11 +122,19 @@ def get_estate_income(marshal, world) -> int:
     W6-8: an occupied estate whose TITLE the occupier chose to respect still
     sustains the marshal's household — the courtesy is precisely that his
     revenues keep flowing, so no shortfall opens and no erosion begins.
+
+    EC-W1: an estate with a hostile army STANDING on it (pre-capture) feeds
+    nobody — the invader eats its revenues in place, the household collects
+    nothing, and the marshal's satisfaction falls with his lands (the same
+    rule calculate_turn_income applies to the nation's treasury).
     """
+    disrupted = world.get_disrupted_regions()
     total = 0
     for region_name in getattr(marshal, "dotation_regions", []):
         region = world.regions.get(region_name)
         if region is None:
+            continue
+        if region_name in disrupted:
             continue
         if (region.controller == marshal.nation
                 or is_estate_respected(world, marshal.name, region_name)):

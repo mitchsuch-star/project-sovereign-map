@@ -76,11 +76,20 @@ class EconomyExecutor:
 
         # ES-2 (S6): occupation cost is a separate Net component (income is gross)
         occupation = int(income_data.get("occupation", 0))
+        # EC-W1: income suspended by hostile armies — separate Net component
+        contributions = int(income_data.get("contributions", 0))
+        # EC-W2: war-effort spending from the chest — separate Net component
+        war_effort = int(income_data.get("war_effort", 0))
         # ES-7 (S7): estate redirect is a separate Net component too
         dotation_skim = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill
         rente_cost = int(income_data.get("rente_cost", 0))
-        net = (income_data["income"] - occupation - dotation_skim - rente_cost
+        # EC-W5b: infrastructure maintenance was MISSING from this report's
+        # net (the applied net in process_income_phase subtracts it), so the
+        # projection lied whenever structures existed.
+        infrastructure = int(income_data.get("infrastructure", 0))
+        net = (income_data["income"] - occupation - contributions - war_effort
+               - dotation_skim - rente_cost - infrastructure
                - upkeep_data["total"] + admin_bonus)
         treasury = world.nation_gold.get(nation, 0)
 
@@ -119,6 +128,24 @@ class EconomyExecutor:
                     f"({rd['stability_label'].lower()})"
                 )
 
+        # EC-W1: hostile armies standing on our provinces — revenues eaten
+        # in place, named by province
+        if contributions > 0:
+            disrupted_rows = [rd for rd in region_details if rd.get("disrupted")]
+            lines.append(f"\n  Contributions: -{contributions}g  "
+                         f"({len(disrupted_rows)} provinces under enemy occupation)")
+            for rd in disrupted_rows:
+                lines.append(
+                    f"    {rd['region']}: -{rd['contributions_cost']}g "
+                    f"(enemy army on our soil)"
+                )
+
+        # EC-W2: the war consuming the war chest (scaled by war exhaustion)
+        if war_effort > 0:
+            we_val = int(getattr(world, "war_exhaustion", {}).get(nation, 0) or 0)
+            lines.append(f"\n  War Effort: -{war_effort}g  "
+                         f"(war exhaustion {we_val} drains the war chest)")
+
         # ES-7 (S7): estate endowments — full income redirected to marshals
         if dotation_skim > 0:
             estates = [rd for rd in region_details if rd.get("estate_of")]
@@ -144,6 +171,12 @@ class EconomyExecutor:
                     f"    Marshal {m.name}: {int(m.pension)}g/turn face "
                     f"-> -{get_rente_cost(int(m.pension))}g with fees"
                 )
+
+        # EC-W5b: infrastructure maintenance line (was missing entirely —
+        # the cost applied every turn but the report never named it)
+        if infrastructure > 0:
+            lines.append(f"\n  Infrastructure: -{infrastructure}g  "
+                         f"(structure maintenance)")
 
         # Upkeep breakdown
         upkeep_breakdown = upkeep_data["breakdown"]
@@ -212,8 +245,11 @@ class EconomyExecutor:
                 "type": "economy_report",
                 "income": int(income_data["income"]),
                 "occupation": int(occupation),
+                "contributions": int(contributions),
+                "war_effort": int(war_effort),
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
+                "infrastructure": int(infrastructure),
                 "upkeep": int(upkeep_data["total"]),
                 "admin_bonus": int(admin_bonus),
                 "net": int(net),

@@ -92,6 +92,15 @@ CONCESSION_BASELINE_GOLD_HARD_CAP = 1500
 CONCESSION_BASELINE_GOLD_FLOOR = 300
 
 
+# EC-W4 "Peace with Teeth" (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3):
+# a demanded indemnity scales with the paying court's purse instead of the
+# flat 300g floor — a rich loser can finally be dunned at all. Still
+# capacity-capped by `court_balance - RESERVE` and self-limited by the
+# `_stays_acceptable` gate, so the ask never exceeds what the court would
+# actually sign. Sweep-tunable.
+CONCESSION_BASELINE_TREASURY_FRACTION = 0.25
+
+
 CONCESSION_BASELINE_BFS_MAX_DEPTH = 6
 
 
@@ -1651,11 +1660,16 @@ def _demand_terms_for_court(
             }]
             if _stays_acceptable(candidate):
                 kept = candidate
-    # Modest affordable indemnity from the court. Kept only if acceptable.
+    # Affordable indemnity from the court, priced to its purse (EC-W4 —
+    # was a flat CONCESSION_BASELINE_GOLD_FLOOR cap regardless of wealth).
+    # Kept only if acceptable.
     court_balance = _concession_baseline_payer_balance(world, court)
     gold_candidate = min(
         court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
-        CONCESSION_BASELINE_GOLD_FLOOR,
+        max(
+            CONCESSION_BASELINE_GOLD_FLOOR,
+            int(court_balance * CONCESSION_BASELINE_TREASURY_FRACTION),
+        ),
     )
     if gold_candidate > 0 and len(kept) < budget_remaining:
         candidate = kept + [{
@@ -1666,6 +1680,24 @@ def _demand_terms_for_court(
         }]
         if _stays_acceptable(candidate):
             kept = candidate
+        else:
+            # EC-W4 (review finding #10h): the purse-scaled ask can exceed
+            # what a marginal court tolerates — retry at the pre-EC-W4 floor
+            # so a rich-but-reluctant court still yields the modest indemnity
+            # it always did, instead of all-or-nothing dropping to zero.
+            floor_amount = min(
+                court_balance - CONCESSION_BASELINE_TREASURY_RESERVE,
+                CONCESSION_BASELINE_GOLD_FLOOR,
+            )
+            if 0 < floor_amount < gold_candidate:
+                fallback = kept + [{
+                    "type": "gold_indemnity",
+                    "from": court,
+                    "to": proposer_side_leader,
+                    "amount": int(floor_amount),
+                }]
+                if _stays_acceptable(fallback):
+                    kept = fallback
     return kept
 
 

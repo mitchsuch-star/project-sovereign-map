@@ -45,9 +45,12 @@ import pytest
 from backend.game_logic.ai_diplomacy import (
     SETTLEMENT_OFFER_BASE_GOLD_AMOUNT,
     SETTLEMENT_OFFER_COOLDOWN_TURNS,
+    SETTLEMENT_OFFER_MAX_TREASURY_FRACTION,
     SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS,
     SETTLEMENT_OFFER_MULTI_PARTY_MIN_PARTICIPANTS,
     SETTLEMENT_OFFER_PER_DURATION_BONUS,
+    SETTLEMENT_OFFER_PER_WAR_SCORE,
+    SETTLEMENT_OFFER_TREASURY_FRACTION,
     process_settlement_offer_phase,
 )
 from backend.game_logic.settlement_preview import (
@@ -272,9 +275,13 @@ def test_producer_assigns_stable_offer_id_per_war_turn_seq():
 
 
 def test_producer_offer_terms_amount_scales_with_war_age():
-    """Older wars produce higher-stakes offers."""
+    """EC-W4 re-bless: the amount prices to the payer's PURSE and still
+    scales with war age. Payer = France (losing, score -30); with a rich
+    staged treasury the additive form is exact:
+    base + age*bonus + |score|*PER_SCORE + treasury*FRACTION (under the cap)."""
     world = _world_at_turn(5)
     _install_multi_party_war(world, created_turn=1)
+    world.nation_gold["France"] = 20000
     young = process_settlement_offer_phase(world)
     young_amount = next(
         clause["amount"]
@@ -284,12 +291,15 @@ def test_producer_offer_terms_amount_scales_with_war_age():
     expected_young = (
         SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
         + (5 - 1) * SETTLEMENT_OFFER_PER_DURATION_BONUS
+        + 30 * SETTLEMENT_OFFER_PER_WAR_SCORE
+        + int(20000 * SETTLEMENT_OFFER_TREASURY_FRACTION)
     )
     assert young_amount == expected_young
 
-    # An older war produces a higher amount.
+    # An older war produces a higher amount (same purse, longer grind).
     world2 = _world_at_turn(15)
     _install_multi_party_war(world2, created_turn=1)
+    world2.nation_gold["France"] = 20000
     old = process_settlement_offer_phase(world2)
     old_amount = next(
         clause["amount"]
@@ -297,6 +307,28 @@ def test_producer_offer_terms_amount_scales_with_war_age():
         if clause["type"] == "gold_indemnity"
     )
     assert old_amount > young_amount
+
+
+def test_producer_offer_amount_capped_by_payer_purse():
+    """EC-W4: a poor payer is never dunned past MAX_TREASURY_FRACTION of its
+    chest, and an empty chest degrades the offer to a white peace."""
+    world = _world_at_turn(5)
+    _install_multi_party_war(world, created_turn=1)
+    world.nation_gold["France"] = 800  # the boot chest
+    produced = process_settlement_offer_phase(world)
+    amount = next(
+        clause["amount"]
+        for clause in produced[0]["settlement_terms"]
+        if clause["type"] == "gold_indemnity"
+    )
+    assert amount == int(800 * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
+
+    world2 = _world_at_turn(5)
+    _install_multi_party_war(world2, created_turn=1)
+    world2.nation_gold["France"] = 0
+    produced2 = process_settlement_offer_phase(world2)
+    types2 = [c["type"] for c in produced2[0]["settlement_terms"]]
+    assert types2 == ["peace"], "an empty chest cannot be squeezed — white peace"
 
 
 def test_producer_offer_indemnity_direction_player_losing():

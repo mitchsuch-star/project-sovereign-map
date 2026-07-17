@@ -25,6 +25,22 @@
 
 ---
 
+## Econ War-Coupling — Deferred Riders (July 17, 2026)
+
+> From the EC-W research pass + build (gate record `docs/audits/ECON_WAR_COUPLING_RESEARCH_2026_07_17.md` §5;
+> the build landed EC-W1..W5 the same session). These riders were considered and
+> consciously deferred with owners — not silent scope.
+
+| ID | Pri | Item | Design shape | Owner / landing |
+|----|-----|------|--------------|-----------------|
+| EWC-D1 | P2 | **Occupier-side extraction** — EC-W1 suspends a disrupted province's income to its owner but credits the invader nothing ("consumed in place"). The historical rider: a fraction flows to the occupier's treasury ("la guerre doit nourrir la guerre") | One constant (e.g. 30% of base income) + a positive "Contributions" ledger component on the invader's side, riding the same `get_disrupted_regions` substrate; deliberately NOT in v1 because crediting the winner accelerates the offensive snowball the pass was correcting | Next econ tuning gate; test = transfer sums both directions |
+| EWC-D2 | P2 | **Casualty→manpower-pool drain** — battle deaths never touch the pools (root-cause 5), so a nation bled white re-raises its army from an untouched reserve | Battle casualties drain the loser's (or both) infantry/cavalry pools at some fraction; needs an AI-impact study first (P1 recruit + P1.75 commission rungs must keep functioning at low pools) | Pre-EA Balance Pass; test = pool depletion + AI-rung survival |
+| EWC-D3 | P3 | **Captured-marshal ransom** — Bernadotte sat captured with zero economic consequence; historically ransom/exchange negotiations carried real prices | A ransom demand event on the W6-7 capture substrate (petition/notification channel), priced to the captor's leverage | Future diplomacy/drama gate |
+
+**Cut with reasons (memo §5):** loans/inflation spiral (anti-sandbox), a separate battle-devastation slice (battles already write `war_damage`), home-front stability drag keyed on war score (double-dips EC-W2 illegibly), flat `WE × rate` drain (Austria's +18 boot margin — superseded by the treasury-fraction form), recurring-rails indemnity restructuring (lump + existing recurring presets suffice).
+
+---
+
 ## Sweep-5 — Design Items (July 16, 2026)
 
 > From the Combat Overhaul Sweep-5 12-component review (memo

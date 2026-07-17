@@ -243,6 +243,10 @@ class MetaExecutor:
         upkeep_val = upkeep_data["total"]
         # ES-2 (S6): occupation is its own Net component (income is gross)
         occupation_val = int(income_data.get("occupation", 0))
+        # EC-W1: hostile-presence suspension is its own Net component
+        contributions_val = int(income_data.get("contributions", 0))
+        # EC-W2: war-effort spending is its own Net component
+        war_effort_val = int(income_data.get("war_effort", 0))
         # ES-7 (S7): estate redirect is its own Net component too
         dotation_val = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill is its own Net component
@@ -253,10 +257,11 @@ class MetaExecutor:
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
-        # so Income - Occupation - Dotations - Rentes - Infrastructure - Upkeep
-        # + Other == Net == the real treasury delta.
+        # so Income - Occupation - Contributions - War Effort - Dotations -
+        # Rentes - Infrastructure - Upkeep + Other == Net == the real delta.
         net_val = treasury - treasury_before_turn
-        other_val = net_val - (income_val - occupation_val - dotation_val
+        other_val = net_val - (income_val - occupation_val - contributions_val
+                               - war_effort_val - dotation_val
                                - rente_val - infrastructure_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
@@ -264,6 +269,8 @@ class MetaExecutor:
         if other_val != 0:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
         occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
+        contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
+        war_effort_str = f" | War Effort: -{war_effort_val}g" if war_effort_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
@@ -283,7 +290,7 @@ class MetaExecutor:
             surcharge_str = f" (incl. {surcharge_val}g over-limit)"
         else:
             surcharge_str = ""
-        message += f"\n\nIncome: {income_val}g{occupation_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str}{contributions_str}{war_effort_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -297,6 +304,8 @@ class MetaExecutor:
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
             "occupation": int(occupation_val),
+            "contributions": int(contributions_val),
+            "war_effort": int(war_effort_val),
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),
             "upkeep": int(upkeep_val),

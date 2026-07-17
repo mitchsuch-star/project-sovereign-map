@@ -1903,6 +1903,17 @@ SETTLEMENT_OFFER_MULTI_PARTY_MIN_PARTICIPANTS = 3
 SETTLEMENT_OFFER_BASE_GOLD_AMOUNT = 500
 SETTLEMENT_OFFER_PER_DURATION_BONUS = 50
 SETTLEMENT_OFFER_MAX_GOLD_AMOUNT = 2000
+# EC-W4 "Peace with Teeth" (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3):
+# indemnities price to the LOSER'S PURSE — Pressburg/Tilsit-style terms
+# measured against the treasury, not a flat cap. The July-17 playtest saw
+# Britain (+24 war score) demand 600g of a 61,000g French hoard (~1%).
+# demand = min(base + duration + |war_score|×PER_SCORE + treasury×FRACTION,
+#              treasury × MAX_FRACTION)
+# The old flat SETTLEMENT_OFFER_MAX_GOLD_AMOUNT cap survives only as the
+# fallback when the payer's treasury is unreadable. Sweep-tunable.
+SETTLEMENT_OFFER_TREASURY_FRACTION = 0.15
+SETTLEMENT_OFFER_MAX_TREASURY_FRACTION = 0.40
+SETTLEMENT_OFFER_PER_WAR_SCORE = 40
 # AUD-c (8.EVAL Batch Q, July 16 2026): the incoming multi-party settlement
 # offer used to hard-code the indemnity direction (player ALWAYS pays), so a
 # player who was clearly WINNING still got dunned for reparations. The offer is
@@ -2007,13 +2018,11 @@ def _settlement_offer_build_terms(
     proposer_nation: str,
     war_age_turns: int,
     player_war_score: int = 0,
+    world=None,
 ) -> List[Dict]:
     """Deterministic peace + (war-score-directed) gold_indemnity package.
 
-    Amount scales modestly with war age so longer wars produce
-    higher-stakes offers, capped at `SETTLEMENT_OFFER_MAX_GOLD_AMOUNT`.
-
-    AUD-c: the indemnity DIRECTION now follows the war score from the player's
+    AUD-c: the indemnity DIRECTION follows the war score from the player's
     perspective against the opposing leader (`proposer_nation`):
     - player winning by >= the decisive band → the losing AI pays the player
       (concession); the player finally sees a favourable offer.
@@ -2021,31 +2030,48 @@ def _settlement_offer_build_terms(
       "settle now, pay to end it" framing; unchanged from before).
     - inside the band → a white peace: the `peace` clause with no indemnity.
     The player can still reject or counter through the editor.
+
+    EC-W4: the AMOUNT prices to the payer's purse (memo §3) — base + war-age
+    + |war_score|×PER_SCORE + treasury×FRACTION, capped at treasury×
+    MAX_FRACTION so a court is never dunned past what it can plausibly pay
+    (a bankrupt payer → white peace). GR5: both directions read the actual
+    payer's treasury through the same math. Without `world` (legacy direct
+    calls) the pre-EC-W4 flat sizing is preserved.
     """
     duration_bonus = max(0, war_age_turns) * SETTLEMENT_OFFER_PER_DURATION_BONUS
-    amount = min(
-        SETTLEMENT_OFFER_MAX_GOLD_AMOUNT,
-        SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus,
-    )
-    terms: List[Dict] = [{"type": "peace"}]
+    base_amount = SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus
+
     if player_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
-        # Player is winning — the losing court buys peace with a concession.
-        terms.append({
-            "type": "gold_indemnity",
-            "from": proposer_nation,
-            "to": player,
-            "amount": int(amount),
-        })
+        payer, payee = proposer_nation, player
     elif player_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
-        # Player is losing — reparations flow to the winning AI leader.
-        terms.append({
+        payer, payee = player, proposer_nation
+    else:
+        # An even war settles as a clean white peace (no indemnity clause).
+        return [{"type": "peace"}]
+
+    if world is not None:
+        payer_treasury = int(getattr(world, "nation_gold", {}).get(payer, 0))
+        scaled = (base_amount
+                  + abs(int(player_war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE
+                  + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
+        cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
+        amount = max(0, min(scaled, cap))
+        if amount <= 0:
+            # A payer with an empty (or negative) chest cannot be squeezed —
+            # the offer degrades to a white peace.
+            return [{"type": "peace"}]
+    else:
+        amount = min(SETTLEMENT_OFFER_MAX_GOLD_AMOUNT, base_amount)
+
+    return [
+        {"type": "peace"},
+        {
             "type": "gold_indemnity",
-            "from": player,
-            "to": proposer_nation,
+            "from": payer,
+            "to": payee,
             "amount": int(amount),
-        })
-    # else: an even war settles as a clean white peace (no indemnity clause).
-    return terms
+        },
+    ]
 
 
 def _settlement_offer_eligible_for_war(
@@ -2142,6 +2168,7 @@ def _emit_settlement_offer_for_war(
         proposer_nation=proposer_nation,
         war_age_turns=war_age_turns,
         player_war_score=player_war_score,
+        world=world,
     )
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,

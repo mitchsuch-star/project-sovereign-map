@@ -4346,7 +4346,9 @@ def cleanup_war_end(world, diplo_key: str, *,
 
     Called on WAR→ARMISTICE/PEACE transitions.
     - Clears battle_records, decisive_battles, war_scores for the pair
-    - Resets war_exhaustion for both nations to 0
+    - Resets war_exhaustion to 0 only for pair nations with NO other active
+      wars (R49 — and load-bearing for EC-W2: a multi-front France keeps
+      its exhaustion until the LAST war ends)
     - Cancels PURSUE/MOVE_TO strategic orders targeting the now-peaceful nation's marshals
     """
     # R1b: Clear war data
