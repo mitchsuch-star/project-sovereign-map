@@ -24,6 +24,7 @@ from backend.commands.diplomatic_defiance import (
     get_override_dispatch_note,
     calculate_proposal_harshness,
     SCHEMER_FLOOR,
+    STRONG_EMPEROR_DEFIANCE_FLOOR,
 )
 from backend.commands.objection_v2 import ConcernLevel
 from backend.game_logic.diplomatic_templates import (
@@ -60,22 +61,23 @@ class TestDefianceProbability:
     """Gate 1: Defiance probability at each authority bracket (trust removed)."""
 
     def test_high_authority_hits_floor(self):
-        """Authority=85 → floor of 0.02 (Schemer minimum)."""
+        """E7: Authority=85 → the authority-BANDED floor of 0.05 (not the old 2%).
+
+        base 0.05 + auth(-0.05) = 0.00 → E7 strong-emperor floor 0.05."""
         world = make_world()
         set_authority(world, 85)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
-        assert chance == SCHEMER_FLOOR  # 0.02
+        assert chance == STRONG_EMPEROR_DEFIANCE_FLOOR  # 0.05 (E7 — arc stays live)
 
     def test_game_start_baseline(self):
-        """Authority=100 → floor of 0.02."""
+        """E7: Authority=100 (boot) → banded floor of 0.05, so the sabotage arc
+        is reachable at boot instead of near-dead at the old 2%."""
         world = make_world()
         set_authority(world, 100)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
-        assert chance == SCHEMER_FLOOR
+        assert chance == STRONG_EMPEROR_DEFIANCE_FLOOR
 
     def test_weakening_authority(self):
         """Authority=40 → 0.10."""
@@ -105,13 +107,22 @@ class TestDefianceProbability:
         assert abs(chance - 0.05) < 0.001
 
     def test_floor_enforcement(self):
-        """Even max authority cannot go below 2% floor."""
+        """E7: even max authority cannot go below the banded floor (0.05 at >=70)."""
         world = make_world()
         set_authority(world, 100)
         talleyrand = get_talleyrand(world)
         chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
-        # base 0.05 + auth(-0.05) = 0.00 → floor 0.02
-        assert chance == SCHEMER_FLOOR
+        # base 0.05 + auth(-0.05) = 0.00 → E7 strong-emperor floor 0.05
+        assert chance == STRONG_EMPEROR_DEFIANCE_FLOOR
+
+    def test_e7_sub_band_floor_is_curve_not_lifted(self):
+        """E7: below the 70 band, the ordinary 2% floor applies — but the base
+        curve is already >= 0.05 there, so the sub-band behaviour is unchanged."""
+        world = make_world()
+        set_authority(world, 65)  # [60,80) bracket: base 0.05, floor 0.02
+        talleyrand = get_talleyrand(world)
+        chance = calculate_diplomatic_defiance_chance_deterministic(talleyrand, world)
+        assert abs(chance - 0.05) < 0.001  # curve dominates; not lifted to a higher floor
 
     def test_cap_enforcement(self):
         """Even worst authority cannot exceed 30% cap."""

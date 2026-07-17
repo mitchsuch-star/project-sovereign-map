@@ -510,3 +510,118 @@ class TestDisplaySurfaces:
         from backend.game_logic.settlement_routes import _error_display
         copy = _error_display("transfer_target_not_their_vassal")
         assert "vassal" in copy.lower()
+
+
+# ═══════════════════════════════════════════════════════
+# 6. VS5-LIVE-RATIFY — the 8.EVAL Batch Q live exercise
+# ═══════════════════════════════════════════════════════
+#
+# The `vassal_transfer` seam shipped with 31 tests but had NEVER been driven
+# end-to-end from an ENEMY-held vassal, because 1805 boots zero enemy vassals
+# and the cheat `create_vassal` hard-coded lord=France. This class stages the
+# recipe: debug `create_vassal <vassal> <lord>` (the new lord arg) → a winning
+# France-vs-Austria war → ratify a `vassal_transfer` clause through the real
+# `_apply_settlement_terms` seam → assert the recipe checklist holds and no
+# exception escapes.
+
+class TestVS5LiveRatificationExercise:
+    def _stage_enemy_vassal_via_cheat(self):
+        """Stage Bavaria as Austria's vassal through the NEW debug lord cheat.
+
+        The power cap is patched (orthogonal to the lord-routing under test — a
+        bare legacy fixture gives the minor no regions); everything else is the
+        real cheat path through the executor."""
+        from backend.commands.executor import CommandExecutor
+        world = make_world()
+        world.current_turn = 6
+        # The treaty path requires OPEN_BORDERS+ between lord and vassal.
+        ob_key = world._make_diplo_key("Austria", "Bavaria")
+        world.diplomatic_states[ob_key] = "OPEN_BORDERS"
+        ex = CommandExecutor()
+        with patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_OK):
+            result = ex._execute_cheat(
+                {"cheat_type": "create_vassal", "cheat_args": ["Bavaria", "Austria"]},
+                {"world": world, "debug_mode": True},
+            )
+        return world, result
+
+    def test_debug_lord_cheat_stages_enemy_vassal(self):
+        world, result = self._stage_enemy_vassal_via_cheat()
+        assert result["success"], result.get("message")
+        row = world.vassals.get("Bavaria")
+        assert row is not None
+        assert row["lord"] == "Austria"  # NOT France — the new lord arg took effect
+
+    def test_default_lord_still_france(self):
+        """Regression: omitting the lord arg keeps the historical France lord."""
+        from backend.commands.executor import CommandExecutor
+        world = make_world()
+        world.diplomatic_states[world._make_diplo_key("France", "Saxony")] = "OPEN_BORDERS"
+        ex = CommandExecutor()
+        with patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
+                   return_value=_CAP_OK):
+            result = ex._execute_cheat(
+                {"cheat_type": "create_vassal", "cheat_args": ["Saxony"]},
+                {"world": world, "debug_mode": True},
+            )
+        assert result["success"], result.get("message")
+        assert world.vassals["Saxony"]["lord"] == "France"
+
+    def test_full_ratification_rehomes_the_vassal(self):
+        """The recipe checklist: re-key to France / loyalty 30 / tribute carried
+        / dispatch-worthy log event / no exception, driven from the cheat-staged
+        enemy vassal through the real ratify seam."""
+        world, staged = self._stage_enemy_vassal_via_cheat()
+        assert staged["success"]
+        # A winning France-vs-Austria war (France attacker leader, +50 war score).
+        install_war(world)
+        # The vassal carried Austria-set tribute; capture it to prove carry-over.
+        tribute_before = world.vassals["Bavaria"]["tribute_rate"]
+        autonomy_before = world.vassals["Bavaria"]["autonomy"]
+
+        applied = _apply_settlement_terms(
+            world,
+            settlement_terms=[
+                {"type": "peace"},
+                {"type": "vassal_transfer",
+                 "from": "Austria", "to": "France", "vassal": "Bavaria"},
+            ],
+            war_id="war_vs5",
+        )
+
+        # No exception + the clause applied.
+        rows = [c for c in applied if c.get("type") == "vassal_transfer"]
+        assert len(rows) == 1
+        assert rows[0]["pair_state_transition"] == "VASSAL of Austria -> VASSAL of France"
+        assert rows[0]["loyalty_after"] == TRANSFER_LOYALTY_RESET
+        row = world.vassals["Bavaria"]
+        assert row["lord"] == "France", "vassal re-keyed to the winning lord"
+        assert row["loyalty"] == TRANSFER_LOYALTY_RESET == 30, "loyalty reset to 30"
+        assert row["tribute_rate"] == tribute_before, "tribute rate carried over"
+        assert row["autonomy"] == autonomy_before, "autonomy carried over"
+
+    def test_ratification_logs_and_dispatches_transfer(self):
+        """The transfer records a `vassal_transferred` event AND queues the
+        `diplomatic_vassal_transferred` morning-dispatch line (the recipe's
+        'dispatch line' check)."""
+        world, _ = self._stage_enemy_vassal_via_cheat()
+        install_war(world)
+        _apply_settlement_terms(
+            world,
+            settlement_terms=[
+                {"type": "vassal_transfer",
+                 "from": "Austria", "to": "France", "vassal": "Bavaria"},
+            ],
+            war_id="war_vs5",
+        )
+        # event_log record.
+        events = getattr(world, "event_log", []) or []
+        assert any(e.get("type") == "vassal_transferred" for e in events)
+        # Morning-dispatch line queued (vassal rides template_vars).
+        dispatch_events = getattr(world, "pending_dispatch_events", []) or []
+        assert any(
+            e.get("type") == "diplomatic_vassal_transferred"
+            and (e.get("template_vars") or {}).get("vassal") == "Bavaria"
+            for e in dispatch_events
+        ), "the transfer must queue a morning-dispatch line"

@@ -73,6 +73,19 @@ def _set_war_score(world, nation, score):
     world.war_scores[key] = score
 
 
+def _record_pair_battle(world, nation):
+    """AUD-b: mark that the France|nation pair has actually fought a battle, so
+    the P2 stalemate armistice uses the normal patience window (a never-fought
+    pair uses the much longer no-contact escape)."""
+    key = world._make_diplo_key("France", nation)
+    world.battle_records.setdefault(key, []).append({
+        "turn": world.current_turn, "winner": None,
+        "attacker": "France", "defender": nation,
+        "attacker_casualties": 3000, "defender_casualties": 3000,
+        "location": "Contested",
+    })
+
+
 def _make_test_proposal(nation="Prussia", proposal_type="armistice_losing", priority=1):
     """Build a proposal dict matching the format from _make_proposal."""
     return {
@@ -130,7 +143,7 @@ class TestAIDiplomacyTriggers:
         assert proposal is None
 
     def test_p2_trigger_stalemate_5_plus_turns(self):
-        """P2: stalemate 5+ turns (war_score -10..+10) -> armistice proposal."""
+        """P2: stalemate 5+ turns (war_score -10..+10) AFTER real combat -> armistice."""
         world = make_war_world("Prussia")
         # War score in stalemate range: France|Prussia = 5 => Prussia at -5
         _set_war_score(world, "Prussia", 5)
@@ -138,12 +151,40 @@ class TestAIDiplomacyTriggers:
         # base(40) + war_score_mod(-1.5) + relation_mod(+5) = 43.5 >= 20
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10
+        # AUD-b: the pair must have actually fought for the fast stalemate exit.
+        _record_pair_battle(world, "Prussia")
         # Pre-set stalemate counter to 4 (process_diplomatic_phase will increment to 5)
         world.ai_stalemate_counters = {"Prussia": 4}
         proposal = process_diplomatic_phase("Prussia", world)
         assert proposal is not None
         assert proposal["source"] == "Prussia"
         # P2 maps to "armistice" proposal_type
+        assert "armistice" in proposal["proposal_type"]
+
+    def test_p2_no_fire_without_combat_at_normal_window(self):
+        """AUD-b: a war that has NEVER seen a battle does NOT sue at the normal
+        5-turn stalemate window — a coalition can't peace out with zero combat."""
+        world = make_war_world("Prussia")
+        _set_war_score(world, "Prussia", 5)
+        key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[key] = 10
+        # No battle recorded on the pair.
+        world.ai_stalemate_counters = {"Prussia": 4}  # -> 5 after increment
+        proposal = process_diplomatic_phase("Prussia", world)
+        # 5 turns of contactless stalemate is below the no-contact escape (15).
+        assert proposal is None or "armistice" not in proposal.get("proposal_type", "")
+
+    def test_p2_no_contact_escape_eventually_fires(self):
+        """AUD-b: a genuinely contactless war still gets an exit — after the
+        much longer no-contact escape window (15 turns), not at turn 5."""
+        world = make_war_world("Prussia")
+        _set_war_score(world, "Prussia", 5)
+        key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[key] = 10
+        # No battle on the pair; counter one below the escape threshold.
+        world.ai_stalemate_counters = {"Prussia": 14}  # -> 15 after increment
+        proposal = process_diplomatic_phase("Prussia", world)
+        assert proposal is not None
         assert "armistice" in proposal["proposal_type"]
 
     def test_p4_trigger_relation_above_30_at_peace(self):

@@ -698,6 +698,71 @@ def reduce_threat(world, amount: int, source_key: str) -> int:
     return int(world.threat_level)
 
 
+# ════════════════════════════════════════════════════════════════
+# DD8 — Metternich's Armed Mediation (DWL-DIP-METTERNICH)
+# ════════════════════════════════════════════════════════════════
+#
+# The never-built §5c "+5 coalition bonus" concept is re-specced (8.EVAL Batch Q,
+# July 16 2026) onto the existing expiring-threat substrate: rejecting a
+# Schemer-authored PEACE-family proposal (armistice / peace only — never a
+# subsidy/trade/alliance ask) plants a once-per-rejection, N-turn war-pressure
+# marker for that nation on the coalition-threat scalar. This closes the
+# consequence-free-rejection gap — a scorned Schemer (Metternich at Dresden)
+# turns a failed peace overture into a casus belli. AI-only, anti-stacking
+# (one active marker per nation; a repeat rejection refreshes, never stacks).
+# Balance numbers escalate to the gate.
+SCHEMER_PEACE_REJECTION_PRESSURE_TURNS = 5    # marker lifetime
+SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT = 2   # per-turn threat while a marker is active
+SCHEMER_PEACE_REJECTION_PRESSURE_CAP = 4      # total cap across all active markers
+
+PEACE_FAMILY_PROPOSAL_TYPES = frozenset({
+    "peace", "harsh_peace",
+    "armistice", "armistice_losing", "armistice_winning", "armistice_stalemate",
+})
+
+
+def record_schemer_peace_rejection(world, nation: str, proposal_type: str) -> bool:
+    """DD8: plant a war-pressure marker when the player rejects a Schemer-authored
+    peace/armistice overture. Returns True iff a marker was planted/refreshed.
+
+    Guards (all must hold): the proposal is peace-family (never a subsidy/trade
+    ask), the proposing `nation` is a non-player nation, and its diplomat is a
+    Schemer. Anti-stacking: the marker dict is keyed by nation, so a repeat
+    rejection merely refreshes the single active marker's expiry.
+    """
+    if not nation or nation == getattr(world, "player_nation", "France"):
+        return False
+    if proposal_type not in PEACE_FAMILY_PROPOSAL_TYPES:
+        return False
+    diplomat = (getattr(world, "diplomats", None) or {}).get(nation)
+    if diplomat is None or getattr(diplomat, "personality", "") != "schemer":
+        return False
+    current_turn = int(getattr(world, "current_turn", 0))
+    markers = getattr(world, "schemer_rejection_pressure", None)
+    if not isinstance(markers, dict):
+        markers = {}
+        world.schemer_rejection_pressure = markers
+    markers[nation] = current_turn + SCHEMER_PEACE_REJECTION_PRESSURE_TURNS
+    return True
+
+
+def _calculate_schemer_peace_rejection_threat(world) -> int:
+    """Standing DD8 threat from active Schemer-rejection markers. Prunes expired
+    markers in place; contribution is capped so repeated rejections can't runaway."""
+    current_turn = int(getattr(world, "current_turn", 0))
+    markers = getattr(world, "schemer_rejection_pressure", None)
+    if not isinstance(markers, dict) or not markers:
+        return 0
+    expired = [n for n, exp in markers.items() if int(exp) <= current_turn]
+    for n in expired:
+        markers.pop(n, None)
+    active = len(markers)
+    return int(min(
+        SCHEMER_PEACE_REJECTION_PRESSURE_CAP,
+        active * SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT,
+    ))
+
+
 def _calculate_defensive_refusal_memory_threat(world) -> int:
     """Standing DG-4 threat from active defensive-refusal episodes.
 
@@ -1593,6 +1658,12 @@ def process_coalition_turn(world) -> List[Dict]:
     refusal_memory_threat = _calculate_defensive_refusal_memory_threat(world)
     if refusal_memory_threat > 0:
         add_threat(world, refusal_memory_threat, "defensive_refusal_memory")
+
+    # DD8: standing war-pressure from rejected Schemer peace overtures (prunes
+    # expired markers as a side effect).
+    schemer_rejection_threat = _calculate_schemer_peace_rejection_threat(world)
+    if schemer_rejection_threat > 0:
+        add_threat(world, schemer_rejection_threat, "schemer_peace_rejection")
 
     decay = _calculate_threat_decay(world)
     if decay > 0:

@@ -55,6 +55,16 @@ QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
 # R126: Urgent re-proposal when situation changes drastically
 URGENT_REPROPO_DELTA = 20       # War score drop of 20+ bypasses nation cooldown
 
+# AUD-b (8.EVAL Batch Q, July 16 2026): the P2 "stalemate" armistice used to
+# fire purely on turns-since-war-start with NO combat requirement, so an entire
+# coalition would sue for peace by turn ~5-7 having never fought a battle. The
+# stalemate exit now requires the pair to have actually FOUGHT (>=1 war-score
+# battle recorded in world.battle_records for the pair). A genuinely contactless
+# war (declared, never engaged) still gets an eventual exit — but only after a
+# much longer patience window, so it never pre-empts real combat. Balance number
+# (escalates to the gate): 15 turns before a never-fought war may sue.
+P2_NO_CONTACT_ESCAPE_TURNS = 15
+
 # Per-nation desire table for counter-offers (§9b)
 # Ordered by preference (most desired first).
 #
@@ -838,11 +848,24 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 proposal = _make_proposal(nation, ptype, 1, terms, world)
 
     # ── P2: Stalemate (war_score -10..+10 for N+ turns, R149: fire when not clearly winning) ──
-    if proposal is None and is_at_war and stalemate_turns >= effective_stalemate_turns and war_score <= 10:
-        ptype = "armistice_stalemate"
-        if not _is_on_cooldown(nation, "armistice", world, war_score):
-            terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
-            proposal = _make_proposal(nation, "armistice", 2, terms, world)
+    # AUD-b: gate the stalemate exit on ACTUAL combat. A pair that has recorded
+    # >=1 war-score battle uses the normal patience window; a pair that has never
+    # fought must wait the much longer no-contact escape so a coalition can't sue
+    # for peace by turn ~5-7 without a shot fired. `battle_records[diplo_key]` is
+    # non-empty iff a >=1000-casualty battle (the war-score contact threshold)
+    # occurred on the pair — so uninvolved coalition members correctly hold.
+    if proposal is None and is_at_war and war_score <= 10:
+        has_fought = bool(getattr(world, 'battle_records', {}).get(diplo_key))
+        p2_threshold = (
+            effective_stalemate_turns
+            if has_fought
+            else max(effective_stalemate_turns, P2_NO_CONTACT_ESCAPE_TURNS)
+        )
+        if stalemate_turns >= p2_threshold:
+            ptype = "armistice_stalemate"
+            if not _is_on_cooldown(nation, "armistice", world, war_score):
+                terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
+                proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
     # ── P3: Threat > 60 AND not allied → seek shelter (R106, DLF-9) ──
     # W6-10 anti-monotony: the hegemony-pressure ask varies by relation
@@ -1880,6 +1903,15 @@ SETTLEMENT_OFFER_MULTI_PARTY_MIN_PARTICIPANTS = 3
 SETTLEMENT_OFFER_BASE_GOLD_AMOUNT = 500
 SETTLEMENT_OFFER_PER_DURATION_BONUS = 50
 SETTLEMENT_OFFER_MAX_GOLD_AMOUNT = 2000
+# AUD-c (8.EVAL Batch Q, July 16 2026): the incoming multi-party settlement
+# offer used to hard-code the indemnity direction (player ALWAYS pays), so a
+# player who was clearly WINNING still got dunned for reparations. The offer is
+# now war-score-aware. When the player leads the opposing leader by at least this
+# band the losing AI offers CONCESSIONS (it pays the player); when the player
+# trails by the band the player pays reparations (the historical framing); a war
+# inside the band settles as a white peace (peace clause, no indemnity). Balance
+# number (escalates to the gate).
+SETTLEMENT_OFFER_DECISIVE_WAR_SCORE = 20
 
 # SC-30 / Slice G1 — the Request Terms lifecycle. A player request is
 # answered on the next AI diplomatic phase: GRANTED (the answering leader
@@ -1974,29 +2006,46 @@ def _settlement_offer_build_terms(
     player: str,
     proposer_nation: str,
     war_age_turns: int,
+    player_war_score: int = 0,
 ) -> List[Dict]:
-    """Deterministic peace + gold_indemnity package.
+    """Deterministic peace + (war-score-directed) gold_indemnity package.
 
     Amount scales modestly with war age so longer wars produce
     higher-stakes offers, capped at `SETTLEMENT_OFFER_MAX_GOLD_AMOUNT`.
-    Direction: player pays the AI side leader, matching the typical
-    "settle now, pay reparations" framing. The player can still reject
-    or counter through the editor.
+
+    AUD-c: the indemnity DIRECTION now follows the war score from the player's
+    perspective against the opposing leader (`proposer_nation`):
+    - player winning by >= the decisive band → the losing AI pays the player
+      (concession); the player finally sees a favourable offer.
+    - player losing by >= the band → the player pays reparations (the historical
+      "settle now, pay to end it" framing; unchanged from before).
+    - inside the band → a white peace: the `peace` clause with no indemnity.
+    The player can still reject or counter through the editor.
     """
     duration_bonus = max(0, war_age_turns) * SETTLEMENT_OFFER_PER_DURATION_BONUS
     amount = min(
         SETTLEMENT_OFFER_MAX_GOLD_AMOUNT,
         SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus,
     )
-    return [
-        {"type": "peace"},
-        {
+    terms: List[Dict] = [{"type": "peace"}]
+    if player_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        # Player is winning — the losing court buys peace with a concession.
+        terms.append({
+            "type": "gold_indemnity",
+            "from": proposer_nation,
+            "to": player,
+            "amount": int(amount),
+        })
+    elif player_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        # Player is losing — reparations flow to the winning AI leader.
+        terms.append({
             "type": "gold_indemnity",
             "from": player,
             "to": proposer_nation,
             "amount": int(amount),
-        },
-    ]
+        })
+    # else: an even war settles as a clean white peace (no indemnity clause).
+    return terms
 
 
 def _settlement_offer_eligible_for_war(
@@ -2078,10 +2127,21 @@ def _emit_settlement_offer_for_war(
     ]
     war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
 
+    # AUD-c: war score from the player's perspective vs the opposing leader
+    # decides whether the offer demands or grants an indemnity.
+    from backend.game_logic.diplomacy import get_war_score_for
+    player_war_score = 0
+    if proposer_nation:
+        try:
+            player_war_score = int(get_war_score_for(world, player, proposer_nation))
+        except Exception:
+            player_war_score = 0
+
     terms = _settlement_offer_build_terms(
         player=player,
         proposer_nation=proposer_nation,
         war_age_turns=war_age_turns,
+        player_war_score=player_war_score,
     )
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,

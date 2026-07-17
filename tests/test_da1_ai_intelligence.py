@@ -254,8 +254,21 @@ class TestA3P2PatienceWE:
     """War exhaustion reduces stalemate patience (P2 fires sooner)."""
 
     def _setup_stalemate(self, world, nation, turns):
-        """Set up stalemate counter for a nation."""
+        """Set up stalemate counter for a nation.
+
+        AUD-b: a real stalemate presupposes real combat — record a battle on the
+        pair so the P2 exit uses the normal patience window (a never-fought war
+        holds for the much longer no-contact escape). These A3 tests exercise the
+        patience-window math, so they represent a war that has been fought.
+        """
         world.ai_stalemate_counters = {nation: turns}
+        key = world._make_diplo_key("France", nation)
+        world.battle_records.setdefault(key, []).append({
+            "turn": world.current_turn, "winner": None,
+            "attacker": "France", "defender": nation,
+            "attacker_casualties": 3000, "defender_casualties": 3000,
+            "location": "Contested",
+        })
 
     def test_we_0_baseline(self):
         """WE=0: P2 needs 5 stalemate turns (loyalist). Counter at 3 bumps to 4 < 5."""
@@ -533,6 +546,11 @@ class TestA2CoalitionGuard:
         set_relation(world, "France", "Prussia", 20)
         set_war_score(world, "Prussia", "France", 0)  # Stalemate range
         world.ai_stalemate_counters = {"Prussia": 4}
+        # AUD-b: a real stalemate presupposes real combat on the pair.
+        world.battle_records.setdefault(
+            world._make_diplo_key("France", "Prussia"), []
+        ).append({"turn": 1, "attacker": "France", "defender": "Prussia",
+                  "attacker_casualties": 3000, "defender_casualties": 3000})
         self._setup_coalition(world, ["Prussia", "Austria"])
         result = process_diplomatic_phase("Prussia", world)
         # stalemate_turns will be bumped to 5, fires P2
@@ -1071,6 +1089,11 @@ class TestIntegration:
         # P2 patience: max(2, 5 - 2) = 3
         set_war_score(world, "Prussia", "France", 0)  # Stalemate
         world.ai_stalemate_counters = {"Prussia": 2}
+        # AUD-b: a real stalemate presupposes real combat on the pair.
+        world.battle_records.setdefault(
+            world._make_diplo_key("France", "Prussia"), []
+        ).append({"turn": 1, "attacker": "France", "defender": "Prussia",
+                  "attacker_casualties": 3000, "defender_casualties": 3000})
         # After update: stalemate=3 >= 3, P2 fires
         result = process_diplomatic_phase("Prussia", world)
         assert result is not None

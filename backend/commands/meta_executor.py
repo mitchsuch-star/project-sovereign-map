@@ -2171,10 +2171,16 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         if cheat_type == "create_vassal":
             if not cheat_args:
-                return {"success": False, "message": "Usage: cheat create_vassal <nation>"}
+                return {"success": False, "message": "Usage: cheat create_vassal <nation> [lord]"}
             nation = cheat_args[0]
+            # VS-5 staging: a second (debug-only) arg overrides the lord so an
+            # ENEMY-held vassal can be staged — 1805 boots zero enemy vassals, so
+            # the settlement `vassal_transfer` ratification path had no way to be
+            # driven live. Default lord stays France. The treaty still requires
+            # OPEN_BORDERS+ between lord and vassal (set it up first).
+            lord = cheat_args[1] if len(cheat_args) >= 2 else "France"
             from backend.game_logic.vassal import create_vassal_treaty
-            result = create_vassal_treaty(world, "France", nation, 0)
+            result = create_vassal_treaty(world, lord, nation, 0)
             return result
 
         if cheat_type == "set_vassal_loyalty":

@@ -25,8 +25,30 @@ from backend.nation_config import get_player_nation
 # §3a — DEFIANCE PROBABILITY CURVE
 # ════════════════════════════════════════════════════════════════════════════
 
-SCHEMER_FLOOR = 0.02  # 2% — Schemer minimum, never fully tamed
+SCHEMER_FLOOR = 0.02  # 2% — the absolute Schemer minimum (low authority; curve dominates)
 DEFIANCE_CAP = 0.30   # 30% hard cap
+
+# E7 (8.EVAL Batch Q, July 16 2026): at high authority the base curve collapses
+# to 0.00, so the flat 2% floor left the ENTIRE sabotage/discovery/confrontation
+# /redemption arc + its two shipped popups as near-dead content — at boot
+# authority 100 a Schemer defied barely 1-in-50 proposals. A strong Emperor
+# should still meet OCCASIONAL Talleyrand mischief. The floor is now authority-
+# BANDED (the Jealousy §0.2-11b boot-dormancy precedent — a banded floor, NOT a
+# flat curve raise): lifted at high authority, easing to the ordinary curve below
+# it (where the curve already exceeds the floor, so nothing changes). Balance
+# numbers (escalate to the gate).
+STRONG_EMPEROR_AUTHORITY_BAND = 70    # authority >= this uses the lifted floor
+STRONG_EMPEROR_DEFIANCE_FLOOR = 0.05  # 5% — a strong Emperor still sees mischief
+
+
+def _defiance_floor_for_authority(authority: int) -> float:
+    """E7: the banded lower bound on the defiance chance. Lifted to 5% for a
+    strong Emperor (authority >= 70) so the sabotage arc is reachable; the
+    ordinary 2% Schemer floor applies below the band, where the base curve is
+    already well above it (so the floor is moot — the curve dominates)."""
+    if authority >= STRONG_EMPEROR_AUTHORITY_BAND:
+        return STRONG_EMPEROR_DEFIANCE_FLOOR
+    return SCHEMER_FLOOR
 
 
 def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
@@ -72,9 +94,9 @@ def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
     variance = random.uniform(-0.05, 0.05)
     final = base + variance
 
-    # Hard cap and Schemer floor
+    # Hard cap and E7 authority-banded floor
     final = min(DEFIANCE_CAP, final)
-    final = max(SCHEMER_FLOOR, final)
+    final = max(_defiance_floor_for_authority(authority), final)
 
     return final
 
@@ -106,7 +128,7 @@ def calculate_diplomatic_defiance_chance_deterministic(talleyrand, world) -> flo
 
     # PL-23: Trust removed — authority is sole driver
 
-    return min(DEFIANCE_CAP, max(SCHEMER_FLOOR, base))
+    return min(DEFIANCE_CAP, max(_defiance_floor_for_authority(authority), base))
 
 
 # ════════════════════════════════════════════════════════════════════════════

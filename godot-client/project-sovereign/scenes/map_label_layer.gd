@@ -44,9 +44,26 @@ const AVOID_RECT_PADDING: float = 2.0
 # A label may be nudged at most this many font-heights before it is dropped.
 const MAX_AVOID_NUDGE_FONT_HEIGHTS: float = 2.5
 
+# Period-cartographic label faces (Task 1, July 16, 2026). The map previously
+# drew ALL labels with ThemeDB.fallback_font (a plain sans), ignoring the
+# game's own serifs. Two DISTINCT faces give the antique-atlas hierarchy:
+#   - nations: Marcellus SC — a Roman SMALL-CAPS serif, the classic country
+#     tier ("Fʀᴀɴᴄᴇ"); nation display names are Title Case so the small-cap
+#     two-height effect renders. Highly legible even at NATION_FONT_MIN (22px).
+#   - provinces/cities: Spectral — a lighter serif drawn for screen legibility
+#     at small sizes, distinct from both the nation tier and the EB-Garamond
+#     UI default. Reads cleanly at PROVINCE_FONT_MIN (14px).
+# Both are static regulars already on disk + OFL-credited (THIRD_PARTY_LICENSES).
+const NATION_FONT_PATH := "res://assets/fonts/MarcellusSC-Regular.ttf"
+const PROVINCE_FONT_PATH := "res://assets/fonts/Spectral-Regular.ttf"
+
 # The owning renderer (map_renderer_base.gd) — source of the SubViewport
 # canvas transform used to project world anchors to screen.
 var _renderer = null
+# Resolved label faces (loaded in setup(); each falls back to the ThemeDB
+# fallback face so a missing asset degrades to the old look, never a crash).
+var _nation_font: Font = null
+var _province_font: Font = null
 # [{"text": String, "position": Vector2 (WORLD coords)}]
 var _nation_labels: Array = []
 var _province_labels: Array = []
@@ -61,6 +78,18 @@ var _projected_avoid_rects: Array = []
 
 func setup(renderer) -> void:
 	_renderer = renderer
+	_nation_font = _load_label_font(NATION_FONT_PATH)
+	_province_font = _load_label_font(PROVINCE_FONT_PATH)
+
+
+func _load_label_font(path: String) -> Font:
+	"""Load a label face, falling back to the ThemeDB fallback font so a
+	missing/unimported asset degrades gracefully instead of crashing _draw()."""
+	var f = load(path)
+	if f is Font:
+		return f
+	push_warning("MapLabelLayer: could not load label font %s — using fallback" % path)
+	return ThemeDB.fallback_font
 
 
 func set_labels(nation_labels: Array, province_labels: Array) -> void:
@@ -89,8 +118,13 @@ func clear_labels() -> void:
 
 
 func _draw():
-	var font: Font = ThemeDB.fallback_font
-	if font == null or _renderer == null or _renderer.map_viewport == null:
+	if _renderer == null or _renderer.map_viewport == null:
+		return
+	# Per-tier serif faces (setup() guarantees non-null via fallback). Guard
+	# once more in case _draw() ever fires before setup().
+	var nation_font: Font = _nation_font if _nation_font != null else ThemeDB.fallback_font
+	var province_font: Font = _province_font if _province_font != null else ThemeDB.fallback_font
+	if nation_font == null or province_font == null:
 		return
 	# UI-2 Part 2: the map SubViewport now renders at PHYSICAL resolution, so its
 	# canvas_transform maps world -> physical viewport px and the camera zoom is
@@ -108,13 +142,13 @@ func _draw():
 	if logical_zoom >= PROVINCE_LABEL_MIN_ZOOM:
 		_projected_avoid_rects = _project_avoid_rects(xform)
 		_draw_label_tier(
-			font, _province_labels, xform,
+			province_font, _province_labels, xform,
 			clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)
 		)
 	else:
 		_projected_avoid_rects = []
 		_draw_label_tier(
-			font, _nation_labels, xform,
+			nation_font, _nation_labels, xform,
 			clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)
 		)
 

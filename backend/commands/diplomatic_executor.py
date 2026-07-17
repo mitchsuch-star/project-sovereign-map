@@ -5665,6 +5665,12 @@ class DiplomaticExecutor:
 
         if source_nation:
             apply_rejection_cooldowns(source_nation, proposal_type, world)
+            # DD8 (DWL-DIP-METTERNICH): a scorned Schemer turns a rejected peace
+            # overture into war pressure — plant an expiring coalition-threat
+            # marker (no-op unless the proposer is a Schemer and it was a
+            # peace/armistice proposal). AI-only; anti-stacking in the recorder.
+            from backend.game_logic.coalition import record_schemer_peace_rejection
+            record_schemer_peace_rejection(world, source_nation, proposal_type)
 
         world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification

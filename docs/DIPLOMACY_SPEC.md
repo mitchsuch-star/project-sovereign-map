@@ -491,7 +491,7 @@ Same pattern as combat defiance (V2b). Talleyrand doesn't betray France — he d
 ### 3a. Defiance Probability Curve
 
 ```
-defiance_chance = base + authority_mod + trust_mod + variance
+defiance_chance = base + authority_mod + variance   # PL-23: trust term retired — authority is the sole driver
 
 Base:          0.05 (5% — rare by default)
 
@@ -501,27 +501,26 @@ Authority modifier:
   authority >= 40:  +0.05 (Weakening → Talleyrand "helps")
   authority < 40:   +0.15 (Weak Emperor → Talleyrand takes charge)
 
-Trust modifier (Talleyrand's personal trust):
-  trust >= 80:  -0.05 (High loyalty)
-  trust >= 50:  +0.00 (Neutral)
-  trust >= 30:  +0.05 (Growing independence)
-  trust < 30:   +0.10 (Acting on own judgment)
-
 Variance: random.uniform(-0.05, 0.05)
 
-Hard cap: 0.30 (30% maximum — even at lowest authority+trust)
-Floor:    0.02 (Schemer minimum — Talleyrand is NEVER fully tamed)
+Hard cap: 0.30 (30% maximum — even at lowest authority)
+Floor (E7 authority-banded):
+  authority >= 70:  0.05 (Strong Emperor still meets OCCASIONAL mischief — the sabotage arc stays reachable)
+  authority <  70:  0.02 (absolute Schemer minimum; the base curve is already >= 0.05 here, so the floor is moot)
 ```
 
-**Schemer minimum (E4 fix):** Unlike combat marshals (who CAN reach 0% defiance), Talleyrand always has a 2% baseline. This is the Schemer personality expressing itself — he's the greatest diplomat of his era and always reserves the right to "adjust" your proposals. A player who maxes authority AND trust still faces a 1-in-50 chance of sabotage. This prevents the exploit of trivially neutralizing defiance through high stats.
+**PL-23 (trust retired):** the earlier trust-modifier term was removed — Talleyrand's independence is driven by **authority alone**. Any older text referencing a `trust_mod` bracket is stale.
 
-**E7 defiance floor redesign (`DWL-DIP-E7`):** The audit recommended considering raising the floor to 5% for more gameplay visibility. This is an `ACTIVE_DEFERRED` balance decision owned by the Deferred Work Landing Ledger in `STATUS.md`, not an unowned next-design-session placeholder. The Pre-8.5 War LLM + Diplomacy Refinement Evaluation must decide whether to keep 2%, raise to 5%, retune the curve, or remove the follow-up; implementation requires formula docs, Talleyrand defiance tests, and balance notes. For now, 2% remains the spec value.
+**Schemer minimum:** Unlike combat marshals (who CAN reach 0% defiance), Talleyrand is never fully tamed — the Schemer personality always reserves the right to "adjust" your proposals. This prevents trivially neutralizing defiance by maxing authority.
+
+**E7 defiance floor — LANDED (`DWL-DIP-E7`, 8.EVAL Batch Q, July 16 2026):** the flat 2% floor left the ENTIRE sabotage/discovery/confrontation/redemption arc as near-dead content — at boot authority 100 the base curve collapses to 0.00 and a Schemer defied barely 1-in-50 proposals. The floor is now **authority-banded** (the Jealousy §0.2-11b boot-dormancy precedent — a banded floor, NOT a flat curve raise): **5% at authority ≥ 70**, easing to the ordinary 2% below the band (where the base curve already dominates). Single source `diplomatic_defiance._defiance_floor_for_authority`; numbers in-band tunable. So a strong Emperor now sees ~1-in-20 proposals nudged, keeping the arc alive without ceding control.
 
 **Example scenarios:**
-- Authority 85, Trust 75: 0.05 - 0.05 - 0.05 = -0.05 → Floor 0.02 (2% — Schemer minimum)
-- Authority 60, Trust 55 (game start): 0.05 + 0.00 + 0.00 = 0.05 → 5% baseline (Talleyrand at trust 55 is right on the edge — one bad turn drops him to the +0.05 bracket)
-- Authority 50, Trust 45: 0.05 + 0.00 + 0.05 = 0.10 → 10% (trust dropped below 50 — Schemer activates)
-- Authority 35, Trust 25: 0.05 + 0.15 + 0.10 = 0.30 → Maximum (30%)
+- Authority 100 (boot): 0.05 - 0.05 = 0.00 → E7 floor 0.05 (5% — the arc stays live for a strong Emperor)
+- Authority 85: 0.05 - 0.05 = 0.00 → E7 floor 0.05 (5%)
+- Authority 60 (weakening): 0.05 + 0.00 = 0.05 → 5% baseline (curve == floor at the band edge)
+- Authority 45: 0.05 + 0.05 = 0.10 → 10% (the base curve now dominates; sub-70 floor is moot)
+- Authority 35: 0.05 + 0.15 = 0.20 (+variance, cap 0.30) → up to 30% at the low end
 
 ### 3b. What Talleyrand Changes
 
@@ -808,7 +807,7 @@ Declaring war on a neutral/friendly nation:
 **Casus Belli (reduces penalties):**
 If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, but threat is always +20 — casus belli does not reduce threat). Casus belli is tracked automatically from treaty breaks and attacks.
 
-**Metternich's Armed Mediation (DD8 — Schemer-specific AI behavior):** When Metternich (Schemer personality) proposes peace to France and the proposal is REJECTED, Austria gains +5 to their next war declaration's coalition bonus (if they declare war within 5 turns). This captures Metternich's historical tactic of using failed peace talks as a casus belli — his "armed mediation" at Dresden (1813) presented deliberately harsh terms, and when Napoleon rejected them, Metternich used the rejection to justify joining the Sixth Coalition. This is an AI-only behavior — it does not apply to Talleyrand (who doesn't declare wars on France's behalf).
+**Metternich's Armed Mediation (DD8 — Schemer-specific AI behavior) — LANDED (`DWL-DIP-METTERNICH`, 8.EVAL Batch Q, July 16 2026):** When a **Schemer** diplomat (Metternich for Austria, or any Schemer-led court) authors a **peace-family** proposal to France (armistice / peace only — never a subsidy, trade, or alliance ask) and the player REJECTS it, that nation plants a **once-per-rejection, 5-turn-expiring war-pressure marker** on the existing coalition-threat scalar (`coalition._calculate_schemer_peace_rejection_threat` contributes `SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT` per active marker each turn, capped at `SCHEMER_PEACE_REJECTION_PRESSURE_CAP`). This captures Metternich's historical tactic of using failed peace talks as a casus belli — his "armed mediation" at Dresden (1813) presented deliberately harsh terms, and when Napoleon rejected them, Metternich used the rejection to justify joining the Sixth Coalition. Anti-stacking: markers are keyed by nation, so a repeated rejection refreshes the single active marker rather than piling up threat. AI-only — it does not apply to Talleyrand (who doesn't declare wars on France's behalf). The earlier "+5 next-war coalition bonus" framing was never built and is superseded by this threat-substrate implementation.
 
 **In-transit proposal cancellation on war cascade:** When a war declaration cascade (via defensive alliance trigger) creates a WAR state with a nation that has an in-transit proposal (player proposal being carried by Talleyrand), the in-transit proposal is auto-cancelled immediately:
 - DP refunded to the player.

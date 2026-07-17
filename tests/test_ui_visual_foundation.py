@@ -489,3 +489,50 @@ def test_war_table_pieces_only_in_bitmap_mode():
     assert re.search(
         r"if _bitmap_mode and WarTablePiece\.pieces_available\(\):", src
     ), "pieces_layer must be created only in bitmap mode with assets present"
+
+
+# ── Map label serif faces (Task 1, July 16, 2026) ───────────────────────────
+# The map previously drew ALL labels with ThemeDB.fallback_font (Open Sans, a
+# plain sans). It now uses two distinct on-disk serifs: nations in Marcellus SC
+# (small caps), provinces/cities in Spectral. Both are already OFL-credited.
+MAP_LABEL_GD = SCENES_DIR / "map_label_layer.gd"
+MAP_LABEL_NATION_TTF = FONTS_DIR / "MarcellusSC-Regular.ttf"
+MAP_LABEL_PROVINCE_TTF = FONTS_DIR / "Spectral-Regular.ttf"
+
+
+def test_map_label_font_assets_present():
+    """Both label faces (and their committed .import sidecars) ship on disk."""
+    for ttf in (MAP_LABEL_NATION_TTF, MAP_LABEL_PROVINCE_TTF):
+        assert ttf.exists(), f"missing map-label font {ttf}"
+        assert ttf.with_suffix(".ttf.import").exists(), (
+            f"missing committed Godot .import sidecar for {ttf.name} "
+            "(load() would fail on a fresh checkout)"
+        )
+
+
+def test_map_labels_use_distinct_nonfallback_serifs():
+    """The two tiers draw with the loaded serif faces, NOT ThemeDB.fallback_font.
+
+    Guards the whole point of the change: a regression that reverts _draw_label_tier
+    to the fallback font, or collapses the two tiers to one face, fails here.
+    """
+    assert MAP_LABEL_GD.exists(), f"missing {MAP_LABEL_GD}"
+    src = _read(MAP_LABEL_GD)
+    # Both face paths are referenced and loaded into per-tier fields.
+    assert 'res://assets/fonts/MarcellusSC-Regular.ttf' in src, "nation face path"
+    assert 'res://assets/fonts/Spectral-Regular.ttf' in src, "province face path"
+    assert "_load_label_font(" in src, "faces load through the guarded helper"
+    # The province tier draws with province_font and the nation tier with
+    # nation_font — the distinct-hierarchy contract.
+    assert re.search(r"_draw_label_tier\(\s*province_font,", src), (
+        "province tier must draw with the province face"
+    )
+    assert re.search(r"_draw_label_tier\(\s*nation_font,", src), (
+        "nation tier must draw with the nation face"
+    )
+    # The fallback face survives ONLY as the graceful-degradation path inside
+    # _load_label_font / the _draw() null-guard — never as the primary draw font.
+    # (i.e. no bare `var font: Font = ThemeDB.fallback_font` feeding both tiers.)
+    assert not re.search(
+        r"_draw_label_tier\(\s*font,", src
+    ), "neither tier may draw with the shared fallback `font` var (pre-Task-1 shape)"

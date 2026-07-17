@@ -73,6 +73,7 @@ def _install_multi_party_war(
     attacker_leader: str = "France",
     defender_leader: str = "Austria",
     created_turn: int = 1,
+    player_war_score: int = -30,
 ) -> Dict:
     war = make_synthetic_war_instance(
         war_id,
@@ -88,7 +89,22 @@ def _install_multi_party_war(
         for dfd in defenders:
             key = "|".join(sorted([atk, dfd]))
             world.diplomatic_states[key] = "WAR"
+    # AUD-c: stamp the war score from the player's (attacker_leader) perspective
+    # vs the opposing leader so the offer's indemnity DIRECTION is exercised.
+    # Default -30 keeps the historical "player pays reparations" framing (player
+    # losing) for the presence/amount tests; direction tests pass an override.
+    _stamp_player_war_score(
+        world, attacker_leader, defender_leader, player_war_score
+    )
     return war
+
+
+def _stamp_player_war_score(world, player, opponent, player_score):
+    """Store a war score that reads back as `player_score` from `player`'s
+    perspective via `get_war_score_for` (alpha-first storage convention)."""
+    key = world._make_diplo_key(player, opponent)
+    parts = key.split("|")
+    world.war_scores[key] = player_score if parts[0] == player else -player_score
 
 
 def _world_at_turn(turn: int) -> WorldState:
@@ -281,6 +297,43 @@ def test_producer_offer_terms_amount_scales_with_war_age():
         if clause["type"] == "gold_indemnity"
     )
     assert old_amount > young_amount
+
+
+def test_producer_offer_indemnity_direction_player_losing():
+    """AUD-c: a LOSING player is asked to pay reparations (player -> AI)."""
+    world = _world_at_turn(6)
+    _install_multi_party_war(world, player_war_score=-30)
+    produced = process_settlement_offer_phase(world)
+    indemnity = next(
+        c for c in produced[0]["settlement_terms"] if c["type"] == "gold_indemnity"
+    )
+    assert indemnity["from"] == "France"
+    assert indemnity["to"] == "Austria"
+
+
+def test_producer_offer_indemnity_direction_player_winning():
+    """AUD-c: a WINNING player sees CONCESSIONS — the losing AI pays the player."""
+    world = _world_at_turn(6)
+    _install_multi_party_war(world, player_war_score=35)
+    produced = process_settlement_offer_phase(world)
+    indemnity = next(
+        c for c in produced[0]["settlement_terms"] if c["type"] == "gold_indemnity"
+    )
+    assert indemnity["from"] == "Austria", "the losing AI leader pays the winning player"
+    assert indemnity["to"] == "France"
+
+
+def test_producer_offer_white_peace_when_even():
+    """AUD-c: an even war (within the decisive band) settles as a white peace —
+    the peace clause with NO indemnity in either direction."""
+    world = _world_at_turn(6)
+    _install_multi_party_war(world, player_war_score=0)
+    produced = process_settlement_offer_phase(world)
+    terms = produced[0]["settlement_terms"]
+    assert any(c.get("type") == "peace" for c in terms)
+    assert not any(c.get("type") == "gold_indemnity" for c in terms), (
+        "an even war must not demand OR grant an indemnity"
+    )
 
 
 def test_producer_constants_are_named_and_sane():

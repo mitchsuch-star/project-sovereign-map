@@ -691,6 +691,10 @@ class WorldState:
         # ============================================================
         self.threat_level: int = 0                       # 0-100 clamped
         self.threat_sources_this_turn: list = []         # [{"source": str, "amount": int}]
+        # Metternich / DD8 armed mediation (DWL-DIP-METTERNICH): {nation: expires_on_turn}.
+        # A rejected Schemer-authored peace/armistice proposal plants a 5-turn
+        # war-pressure marker for that nation on the coalition-threat substrate.
+        self.schemer_rejection_pressure: Dict[str, int] = {}
         self.active_coalition: Optional[Dict] = None     # Dict or None (COALITION_SPEC §10b)
         self.coalition_brewing: Optional[Dict] = None    # Dict or None (COALITION_SPEC §10c)
         self.coalition_cooldown: int = 0                 # 5-turn post-dissolution
@@ -4963,6 +4967,9 @@ class WorldState:
             # ═══════ COALITION SYSTEM (Session 7) ═══════
             "threat_level": int(self.threat_level),
             "threat_sources_this_turn": [s.copy() for s in self.threat_sources_this_turn],
+            "schemer_rejection_pressure": {
+                str(k): int(v) for k, v in self.schemer_rejection_pressure.items()
+            },
             "active_coalition": copy.deepcopy(self.active_coalition) if self.active_coalition else None,
             "coalition_brewing": copy.deepcopy(self.coalition_brewing) if self.coalition_brewing else None,
             "coalition_cooldown": int(self.coalition_cooldown),
@@ -5474,6 +5481,10 @@ class WorldState:
 
         # ═══════ COALITION SYSTEM (Session 7) ═══════
         world.threat_level = int(data.get("threat_level", 0))
+        world.schemer_rejection_pressure = {
+            str(k): int(v)
+            for k, v in (data.get("schemer_rejection_pressure") or {}).items()
+        }
         world.threat_sources_this_turn = [s.copy() for s in data.get("threat_sources_this_turn", [])]
         raw_coalition = data.get("active_coalition", None)
         world.active_coalition = copy.deepcopy(raw_coalition) if isinstance(raw_coalition, dict) else None
