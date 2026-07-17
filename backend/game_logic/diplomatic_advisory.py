@@ -206,6 +206,51 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 "text": (f"the war with {opponent} turns against us — "
                          f"open talks before the price of peace rises."),
             }
+    # 1.5 (NA-1): a belligerent's design could be satisfied at the table —
+    # the Pressburg counsel. Cede what their court actually wants and their
+    # reason to fight (or the coalition's cohesion) goes with it. A
+    # coalition row carries every participant in `opponents`; satisfying a
+    # NON-leader member is exactly how coalitions crack.
+    from backend.display_names import display_nation
+    from backend.game_logic.agendas import (
+        agenda_satisfiable_by_player, build_agenda_payload,
+    )
+    for row in war_rows:
+        participants = [n for n in (row.get("opponents")
+                                    or [row.get("opponent", "")]) if n]
+        for opponent in participants:
+            if not agenda_satisfiable_by_player(opponent, world):
+                continue
+            payload = build_agenda_payload(opponent, world) or {}
+            title = payload.get("title", "their design")
+            display = display_nation(opponent)
+            terms_state = (row.get("request_terms_state") or {}).get("state", "")
+            # The terms route belongs to the row's leader; other members
+            # get the proposal menu (expand_options is always reachable).
+            if opponent == row.get("opponent") and terms_state == "available":
+                return {
+                    "kind": "request_terms",
+                    "target_nation": opponent,
+                    "label": f"Satisfy their design ({display})",
+                    "description": (f"Their court fights for '{title}' — "
+                                    f"ask them to name terms (1 DP)."),
+                    "text": (f"{display}'s war has a purpose we can "
+                             f"price — '{title}'. We hold what their "
+                             f"court wants; satisfy the design at the "
+                             f"table and their reason to fight goes "
+                             f"with it."),
+                }
+            return {
+                "kind": "open_proposal",
+                "target_nation": opponent,
+                "label": f"Satisfy their design ({display})",
+                "description": (f"Their court fights for '{title}' — open "
+                                f"talks and put it on the table."),
+                "text": (f"{display}'s war has a purpose we can price — "
+                         f"'{title}'. We hold what their court wants; "
+                         f"offer it at the table and their reason to "
+                         f"fight goes with it."),
+            }
     # 2. An aggressive coalition bearing down → shore the weakest friend.
     if posture == "aggressive" and int(getattr(world, "threat_level", 0)) > 60:
         ally = _weakest_ally(world, player)
@@ -313,8 +358,23 @@ def _assess_situation(world) -> Dict:
                 f"  Against {opponent}: the war {phrase} ({score:+d}) — "
                 f"{battles} battle{'s' if battles != 1 else ''} across "
                 f"{duration} turn{'s' if duration != 1 else ''}.")
+            # NA-1: name each belligerent's design so the war has a WHY —
+            # a coalition row carries every participant in `opponents`.
+            from backend.display_names import display_nation
+            from backend.game_logic.agendas import build_agenda_payload
+            participants = [n for n in (row.get("opponents")
+                                        or [row.get("opponent", "")]) if n]
+            agenda_payloads = {}
+            for participant in participants:
+                payload = build_agenda_payload(participant, world)
+                if payload:
+                    agenda_payloads[participant] = payload
+                    lines.append(
+                        f"    {display_nation(participant)}'s design: "
+                        f"{payload['title']} — {payload['stance_line']}")
             wars_context.append({"opponent": row.get("opponent", ""),
-                                 "war_score": score, "trend": trend})
+                                 "war_score": score, "trend": trend,
+                                 "agendas": agenda_payloads})
     else:
         lines.append("  France wages no war — a rare and precious quiet.")
     for row in armistice_rows:

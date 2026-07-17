@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Set
 
+from backend.game_logic.agendas import AGENDA_TYPES
 from backend.models.personality import IMPLEMENTED_PERSONALITIES
 from backend.models.region import NATION_CAPITALS
 from backend.nation_config import EUROPE_NATION_CAPITALS, validate_scenario_runtime_support
@@ -566,6 +567,109 @@ def validate_scenario(
                             f"regions.{region_name}.adjacent_regions",
                             f"'{adj}' doesn't list '{region_name}' as adjacent (non-bidirectional)"
                         )
+
+    # Validate agendas (Nation Agendas NA-0, docs/NATION_AGENDAS_SPEC.md §3.2)
+    # {nation: [entry, ...]} — deck order = priority. Runs after the regions
+    # section so `all_region_names` is populated for the cross-check; the
+    # region/nation cross-checks are skipped when the file carries no
+    # `regions` block (raw CLI validation of a registry-injected scenario).
+    if "agendas" in data:
+        if not isinstance(data["agendas"], dict):
+            result.add_error(
+                "agendas",
+                f"Must be an object, got {type(data['agendas']).__name__}")
+        else:
+            region_typed = ("acquire_regions", "deny_regions", "guard_neutrality")
+            known_nations: Set[str] = set()
+            if "regions" in data and isinstance(data["regions"], dict):
+                for region_data in data["regions"].values():
+                    if isinstance(region_data, dict):
+                        # Scenario region dicts carry `controller`; the raw
+                        # registry uses `starting_controller` — accept both.
+                        controller = (region_data.get("controller")
+                                      or region_data.get("starting_controller"))
+                        if controller:
+                            known_nations.add(controller)
+            if isinstance(data.get("marshals"), dict):
+                for marshal_data in data["marshals"].values():
+                    if isinstance(marshal_data, dict) and marshal_data.get("nation"):
+                        known_nations.add(marshal_data["nation"])
+            if data.get("player_nation"):
+                known_nations.add(data["player_nation"])
+            for nation, deck in data["agendas"].items():
+                # Unknown nations warn, never error (the `relationships`
+                # forward-compat stance) — the deck simply never activates.
+                if known_nations and nation not in known_nations:
+                    result.add_warning(
+                        f"agendas.{nation}",
+                        f"References unknown nation '{nation}' - the deck "
+                        f"will never activate")
+                if not isinstance(deck, list):
+                    result.add_error(
+                        f"agendas.{nation}",
+                        f"Must be a list, got {type(deck).__name__}")
+                    continue
+                seen_ids: Set[str] = set()
+                for index, entry in enumerate(deck):
+                    path = f"agendas.{nation}[{index}]"
+                    if not isinstance(entry, dict):
+                        result.add_error(path, "Agenda must be an object")
+                        continue
+                    agenda_id = entry.get("id")
+                    if not agenda_id or not isinstance(agenda_id, str):
+                        result.add_error(path, "Agenda requires an 'id'")
+                    elif agenda_id == "survival":
+                        result.add_error(
+                            f"{path}.id",
+                            "'survival' is the built-in override's reserved "
+                            "id — author a different one")
+                    elif agenda_id in seen_ids:
+                        result.add_error(
+                            f"{path}.id",
+                            f"Duplicate agenda id '{agenda_id}' in this deck")
+                    else:
+                        seen_ids.add(agenda_id)
+                    agenda_type = entry.get("type")
+                    if agenda_type not in AGENDA_TYPES:
+                        result.add_error(
+                            f"{path}.type",
+                            f"Invalid agenda type '{agenda_type}'. "
+                            f"Valid: {sorted(AGENDA_TYPES)}")
+                        continue
+                    title = entry.get("title")
+                    if not title or not isinstance(title, str):
+                        result.add_error(path, "Agenda requires a 'title'")
+                    if agenda_type in region_typed:
+                        regions = entry.get("regions")
+                        if not isinstance(regions, list) or not regions:
+                            result.add_error(
+                                f"{path}.regions",
+                                f"'{agenda_type}' requires a non-empty "
+                                f"'regions' list")
+                        elif all_region_names:
+                            for region_name in regions:
+                                if region_name not in all_region_names:
+                                    result.add_error(
+                                        f"{path}.regions",
+                                        f"References non-existent region "
+                                        f"'{region_name}'")
+                    # `in entry` not `is not None`: an explicit null must
+                    # fail here rather than surprise the runtime reader.
+                    if agenda_type == "contain_hegemon" and "share_floor" in entry:
+                        floor = entry.get("share_floor")
+                        if (not isinstance(floor, (int, float))
+                                or isinstance(floor, bool)
+                                or not 0 < float(floor) <= 1):
+                            result.add_error(
+                                f"{path}.share_floor",
+                                f"Must be a number in (0, 1], got {floor!r}")
+                    if agenda_type == "paymaster" and "treasury_floor" in entry:
+                        floor = entry.get("treasury_floor")
+                        if (not isinstance(floor, int)
+                                or isinstance(floor, bool) or floor < 0):
+                            result.add_error(
+                                f"{path}.treasury_floor",
+                                f"Must be a non-negative integer, got {floor!r}")
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

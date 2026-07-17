@@ -620,5 +620,119 @@
                 "relationships": {}
             }
         ]
+    },
+    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only.",
+    "agendas": {
+        "Austria": [
+            {
+                "id": "redeem_italy",
+                "type": "acquire_regions",
+                "title": "Redeem Italy",
+                "regions": ["Milan", "Piedmont", "Savoy"],
+                "blurb": "The priority theater of 1805 - Charles holds the main army in Italy; the losses of Campo Formio and Luneville must be undone."
+            },
+            {
+                "id": "primacy_germany",
+                "type": "acquire_regions",
+                "title": "Primacy in Germany",
+                "regions": ["Munich", "Swabia"],
+                "blurb": "Mack's thrust to the Iller - Bavaria's defection to France must be punished and the German lands held for the Habsburg crown."
+            }
+        ],
+        "Prussia": [
+            {
+                "id": "hanoverian_prize",
+                "type": "acquire_regions",
+                "title": "The Hanoverian Prize",
+                "regions": ["Hanover"],
+                "blurb": "Napoleon dangles the Electorate at Schoenbrunn; Berlin covets it openly. The buy-Prussia lever."
+            },
+            {
+                "id": "armed_neutrality",
+                "type": "guard_neutrality",
+                "title": "Armed Neutrality",
+                "regions": ["Hanover", "Westphalia", "Brunswick", "Berlin", "Brandenburg"],
+                "blurb": "North Germany is Prussia's yard - a belligerent marching through it, as at Ansbach, enrages Berlin."
+            }
+        ],
+        "Britain": [
+            {
+                "id": "low_countries",
+                "type": "deny_regions",
+                "title": "The Low Countries",
+                "regions": ["Flanders", "Brabant", "Amsterdam"],
+                "blurb": "The Scheldt obsession - the invasion coast may not stay in French hands. London will not rest while the bloc holds it."
+            },
+            {
+                "id": "paymaster",
+                "type": "paymaster",
+                "title": "The Paymaster of Coalitions",
+                "treasury_floor": 2000,
+                "blurb": "Pitt's gold - 1.25 million pounds per hundred thousand men, the subsidy conventions of 1805."
+            }
+        ],
+        "Russia": [
+            {
+                "id": "arbiter_of_europe",
+                "type": "contain_hegemon",
+                "title": "Arbiter of Europe",
+                "share_floor": 0.33,
+                "blurb": "Alexander campaigns as the guardian of the European order - the Tsar fights the hegemon while the coalition stands."
+            }
+        ],
+        "Sweden": [
+            {
+                "id": "scourge_of_the_usurper",
+                "type": "contain_hegemon",
+                "title": "Scourge of the Usurper",
+                "share_floor": 0.33,
+                "blurb": "Gustav IV's personal anti-Napoleon zeal - the King of Sweden treats the Emperor as a usurper to be unmade."
+            }
+        ],
+        "Ottoman": [
+            {
+                "id": "guard_the_straits",
+                "type": "guard_neutrality",
+                "title": "Guard the Straits",
+                "regions": ["Constantinople", "Rumelia"],
+                "blurb": "The Porte stays neutral; the Straits are inviolate."
+            }
+        ],
+        "Sardinia": [
+            {
+                "id": "house_of_savoy_restored",
+                "type": "acquire_regions",
+                "title": "The House of Savoy Restored",
+                "regions": ["Piedmont", "Savoy"],
+                "blurb": "The court in Cagliari wants its mainland back."
+            }
+        ],
+        "Denmark": [
+            {
+                "id": "neutrality_of_the_north",
+                "type": "guard_neutrality",
+                "title": "Neutrality of the North",
+                "regions": ["Jutland", "Copenhagen"],
+                "blurb": "Armed neutrality - the fleet is the state."
+            }
+        ],
+        "KingdomOfItaly": [
+            {
+                "id": "risorgimento",
+                "type": "acquire_regions",
+                "title": "Risorgimento",
+                "regions": ["Milan", "Piedmont", "Savoy", "Naples", "Rome"],
+                "blurb": "The dream the vassal wakes with - a free Italian crown gathering the peninsula. Dormant while Milan answers to Paris."
+            }
+        ],
+        "Holland": [
+            {
+                "id": "the_seventeen_provinces",
+                "type": "acquire_regions",
+                "title": "The Seventeen Provinces",
+                "regions": ["Flanders"],
+                "blurb": "A free Holland reaching for the Austrian-Netherlands inheritance. Dormant while Amsterdam answers to Paris."
+            }
+        ]
     }
 }

@@ -443,7 +443,11 @@ class TurnManager:
             proposal = process_diplomatic_phase(nation, world)
             if not proposal:
                 continue
-            if proposal.get("decision_reason") == "hegemony_pressure":
+            # NA-1: agenda_pursuit outranks hegemony_pressure in the reason
+            # ladder but is the same pressure-driven flood shape — both
+            # count against the bandwagon throttle.
+            if proposal.get("decision_reason") in ("hegemony_pressure",
+                                                   "agenda_pursuit"):
                 if bandwagon_delivered >= MAX_BANDWAGON_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} bandwagon proposal deferred (per-turn cap)")
                     continue

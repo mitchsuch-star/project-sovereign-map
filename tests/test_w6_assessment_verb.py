@@ -95,7 +95,9 @@ class TestWarRoom:
         # The 1805 boot has wars — trajectory rows present
         assert len(ctx["wars"]) >= 1
         for row in ctx["wars"]:
-            assert set(row) == {"opponent", "war_score", "trend"}
+            # NA-1 (July 17, 2026): each war row now carries the
+            # belligerents' agenda payloads for the design lines.
+            assert set(row) == {"opponent", "war_score", "trend", "agendas"}
         # ONE recommendation, never a list, ending in an executable option
         assert ctx["recommendation"] is not None
         executable = dialogue["options"][0]
@@ -218,8 +220,13 @@ class TestExecutableOption:
         world.diplomatic_points = 3
         world.nation_gold["France"] = 1000
         # Quiet the higher-priority rules: the 1805 boot legitimately runs
-        # threat > 60 with an aggressive posture (rule 2 would win).
+        # threat > 60 with an aggressive posture (rule 2 would win), and
+        # NA-1's rung 1.5 legitimately counsels satisfying Austria's
+        # design at the boot coalition war (strip the decks so the
+        # invest rung is reachable).
         world.threat_level = 0
+        world.agendas = {}
+        world._agenda_cache = None
         dialogue = generate_advisory(None, "assess_situation", world)
         assert dialogue["options"][0]["action"] == "execute_suggestion"
         world.dialogue_manager.replace(dialogue)

@@ -1773,6 +1773,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # reaches the player only with intel on that court (partial_on_nation).
     "enemy_marshal_commissioned": "Intelligence reports {nation} has raised {marshal} to high command.",
     "balance_of_europe_shifted": "The balance of Europe shifts around {label}.",
+    # Nation Agendas NA-1: the once-per-shift court-intent beat (values
+    # arrive fully humanized — display nation + agenda title; the colon
+    # shape survives verb-phrase titles like "Redeem Italy").
+    "agenda_shift": "The court of {nation} takes up a new design: {focus}.",
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
@@ -1836,6 +1840,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
 _DIPLOMATIC_EVENT_PRIORITY = {
     "enemy_marshal_commissioned": "MEDIUM",
+    "agenda_shift": "MEDIUM",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

@@ -578,6 +578,7 @@ DECISION_REASON_DISPLAY = {
     "counterparty_reversal": "counterparty reversal",
     "distrust_promiser": "remembered betrayals",
     "hegemony_pressure": "hegemony pressure",
+    "agenda_pursuit": "national design",
     "rival_pressure": "hegemony pressure",
     "route_blocked": "route blocked",
     "shared_enemy_survival": "shared-enemy survival",

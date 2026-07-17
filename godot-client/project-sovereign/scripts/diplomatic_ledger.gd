@@ -377,6 +377,17 @@ func _render_nations():
 		else:
 			bbcode += "  Treaties: [color=#" + Utils.COLOR_GREY + "]None[/color]\n"
 
+		# NA-1: the nation's active design (omit when null — bloc_stamp contract)
+		var agenda = n.get("agenda")
+		if agenda != null and agenda is Dictionary:
+			var agenda_title = str(agenda.get("title", ""))
+			var agenda_stance = str(agenda.get("stance_line", ""))
+			if agenda_title != "":
+				bbcode += "  Design: [color=#" + Utils.COLOR_GOLD + "]" + agenda_title + "[/color]"
+				if agenda_stance != "":
+					bbcode += " [color=#" + Utils.COLOR_GREY + "]— " + agenda_stance + "[/color]"
+				bbcode += "\n"
+
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:

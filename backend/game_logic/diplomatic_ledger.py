@@ -14,6 +14,7 @@ from backend.models.intel import (
     FULL, PARTIAL, STALE, UNKNOWN,
     VISIBILITY_PRIORITY,
 )
+from backend.game_logic.agendas import build_agenda_payload
 from backend.game_logic.diplomatic_templates import get_treaty_harshness_for_consumer
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
@@ -385,6 +386,9 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "proposal_cooldowns": proposal_cooldowns if proposal_cooldowns else None,
             "trade_income": trade_income,
             "bloc_stamp": _build_bloc_stamp(nation, world, bloc_stamp_context),
+            # NA-1: the nation's active design — un-fogged like relations
+            # (DPF-1); None when no agenda is live (renderers omit).
+            "agenda": build_agenda_payload(nation, world),
         })
 
     return nations

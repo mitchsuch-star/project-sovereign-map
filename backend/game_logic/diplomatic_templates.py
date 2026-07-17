@@ -89,6 +89,10 @@ _INCOMING_MOTIVE_LINES = {
         "{nation} judges the moment favorable and moves plainly.",
         "{nation} wastes no words on sentiment; the offer is the argument.",
     ],
+    ("hawk", "agenda_pursuit"): [
+        "What {nation} wants it has named before all Europe — and it will have it by treaty or by war.",
+        "{nation} presses its design without apology; the papers merely march ahead of the columns.",
+    ],
     ("schemer", "war_overload"): [
         "{nation} finds the war… no longer economical.",
         "The ledgers of {nation} have voted for peace, whatever their generals say.",
@@ -104,6 +108,10 @@ _INCOMING_MOTIVE_LINES = {
     ("schemer", "unknown_baseline"): [
         "{nation} offers no reason, which is itself a reason.",
         "{nation} moves quietly; the terms will say what the letter does not.",
+    ],
+    ("schemer", "agenda_pursuit"): [
+        "{nation} advances a design of long standing — the ink is merely its quietest instrument.",
+        "Every court has its wants; {nation} has folded its own into this offer, neatly.",
     ],
     ("dove", "war_overload"): [
         "{nation} begs an end to the bleeding, for both our peoples.",
@@ -121,6 +129,10 @@ _INCOMING_MOTIVE_LINES = {
         "{nation} extends the offer in evident good faith.",
         "{nation} hopes, most respectfully, that we will hear them out.",
     ],
+    ("dove", "agenda_pursuit"): [
+        "{nation} asks for what its court has always wanted — and would far rather sign for it than bleed for it.",
+        "{nation}'s desire is old and openly held; they pray a treaty may serve where armies need not.",
+    ],
     ("chancery", "war_overload"): [
         "Their chancery writes that the war serves {nation} no longer.",
         "The court of {nation} counts its losses and asks for quiet.",
@@ -136,6 +148,10 @@ _INCOMING_MOTIVE_LINES = {
     ("chancery", "unknown_baseline"): [
         "Their chancery conveys the offer without further comment.",
         "The court of {nation} lets the terms speak for themselves.",
+    ],
+    ("chancery", "agenda_pursuit"): [
+        "Their chancery pursues the court's declared design; this instrument is drafted in its service.",
+        "The court of {nation} advances its stated ambitions — the present offer follows from them directly.",
     ],
     # DEF-1 Roster Voices — the LOYALIST register (the dutiful servant of
     # the Crown). He speaks for his sovereign, not himself: every position
@@ -159,6 +175,10 @@ _INCOMING_MOTIVE_LINES = {
         "His Majesty's servant lays {nation}'s offer before France, exactly as instructed.",
         "By the Crown's command, {nation} sets these terms before France for her consideration.",
     ],
+    ("loyalist", "agenda_pursuit"): [
+        "My master's design is known to all Europe; {nation} sends this offer in its pursuit.",
+        "As his sovereign has long willed, {nation} moves toward what the Crown desires.",
+    ],
 }
 
 # Named-cast motive overrides — the Voice Bible's register distinctions.
@@ -179,6 +199,10 @@ _NAMED_MOTIVE_LINES = {
         "His Majesty's Government transmits the following for France's consideration.",
         "London announces its terms; it does not explain them.",
     ],
+    ("Castlereagh", "agenda_pursuit"): [
+        "His Majesty's Government pursues stated objects, not adventures; the present terms serve those objects.",
+        "London's requirements in this matter are of record. The offer follows from them.",
+    ],
     ("Hardenberg", "war_overload"): [
         "Prussia has bled enough for other men's quarrels.",
         "Prussia counts her dead and finds the ledger unacceptable.",
@@ -195,6 +219,10 @@ _NAMED_MOTIVE_LINES = {
         "Prussia says what she means: here is the offer.",
         "Prussia does not dress her asks in ribbons. Read the terms.",
     ],
+    ("Hardenberg", "agenda_pursuit"): [
+        "Prussia wants what Prussia is owed. This paper says so plainly.",
+        "Berlin does not disguise its object. Read the terms; the object is there.",
+    ],
     ("Metternich", "war_overload"): [
         "Austria finds the war has outlived its arguments.",
         "Vienna observes, with some weariness, that the fighting no longer serves even its winners.",
@@ -210,6 +238,10 @@ _NAMED_MOTIVE_LINES = {
     ("Metternich", "unknown_baseline"): [
         "Austria offers terms; Vienna trusts France will find them — considered.",
         "Vienna sends papers, not explanations. The papers are thorough.",
+    ],
+    ("Metternich", "agenda_pursuit"): [
+        "Austria's designs are not secrets; they are policies — and policies, unlike secrets, may be purchased.",
+        "Vienna has wanted the same things for a decade; one merely finds this the convenient season to put them in writing.",
     ],
     ("Einsiedel", "war_overload"): [
         "His Majesty asks most respectfully that the suffering be brought to an end.",
@@ -524,7 +556,8 @@ _INCOMING_ASK_LINES = {
 
 # Legacy/response decision reasons collapse to the generic motive.
 _MOTIVE_REASONS = {"war_overload", "shared_enemy_survival",
-                   "hegemony_pressure", "unknown_baseline"}
+                   "hegemony_pressure", "agenda_pursuit",
+                   "unknown_baseline"}
 
 
 def compose_incoming_diplomat_line(

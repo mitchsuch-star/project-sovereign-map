@@ -17,6 +17,7 @@ from backend.models.intel import FULL, PARTIAL
 from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
 from backend.display_names import diplomatic_decision_reason_display
+from backend.display_names import display_nation
 from backend.game_logic.commitments_routing import (
     COMMITMENTS_ROUTES,
     format_commitments_notice,
@@ -205,6 +206,8 @@ CAMPAIGN_LOG_TYPES = {
     "rente_defaulted",
     # Marshal recruitment
     "marshal_commissioned",
+    # Nation Agendas NA-1 (docs/NATION_AGENDAS_SPEC.md)
+    "agenda_shift",
 }
 
 # ============================================================================
@@ -275,6 +278,7 @@ CATEGORY_MAP = {
     "coalition_member_left": "diplomacy",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
+    "agenda_shift": "diplomacy",
     "ai_proposal_counter_failed": "diplomacy",
     "ai_proposal_rejected": "diplomacy",
     "auto_downgrade": "diplomacy",
@@ -705,6 +709,12 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # Nation Agendas: agenda shifts are open court knowledge — always
+        # show (diplomacy has no fog).
+        if event_type == "agenda_shift":
+            filtered.append(event)
+            continue
+
         # Garrison placed: show if player or region PARTIAL+
         if event_type == "garrison_placed":
             garrison_region = event.get("region", "")
@@ -1031,6 +1041,11 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the capital")
         return (f"{_name_tag(marshal, nation)} commissioned to the "
                 f"marshalate — raises his corps at {location}")
+
+    if event_type == "agenda_shift":
+        nation = display_nation(event.get("nation", "Unknown"))
+        focus = event.get("focus", "new ambitions")
+        return f"The court of {nation} takes up a new design: {focus}"
 
     if event_type == "dotation_granted":
         marshal = event.get("marshal", "Unknown")

@@ -7188,6 +7188,12 @@ def determine_ai_offer_decision_reason(
     player = getattr(world, "player_nation", "France")
     if proposal_type in ("armistice_losing", "armistice", "peace", "harsh_peace"):
         return "war_overload"
+    # NA-1: a court whose active design is aimed at the player's holdings
+    # voices its ask as agenda pursuit — outranks the generic survival/
+    # pressure fallbacks, never the peace-family war_overload override.
+    from backend.game_logic.agendas import agenda_concerns_player_bloc
+    if agenda_concerns_player_bloc(nation, world):
+        return "agenda_pursuit"
     if _shared_enemy_exists(world, nation, player):
         return "shared_enemy_survival"
     wars_against_player = sum(

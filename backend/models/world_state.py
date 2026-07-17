@@ -309,6 +309,16 @@ class WorldState:
         # removed as they are commissioned. Empty = no recruitment.
         self.marshal_pool: Dict[str, list] = {}
 
+        # Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md): the authored
+        # deck per nation — scenario key `agendas`. Deck order = priority;
+        # the ACTIVE agenda is derived per turn (never stored). Empty = no
+        # designs (survival override only).
+        self.agendas: Dict[str, list] = {}
+        # NA-1: last-announced agenda id per nation — powers the dispatch
+        # shift beat's dedup across save/load (the last_expectation_seen
+        # idiom). "" records an observed no-agenda state.
+        self.nation_agenda_seen: Dict[str, str] = {}
+
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
@@ -1647,6 +1657,12 @@ class WorldState:
         """
         self._bloc_members_cache = {}
         self._bloc_members_cache_turn = -1
+        # NA-0: agenda activation reads region control, vassalage, AND
+        # war/alliance geometry — this seam is the one all three mutation
+        # families reach (set_diplomatic_state calls it directly; the
+        # active-nations invalidation chains into it), so the derived-agenda
+        # cache flushes here.
+        self._agenda_cache = None
 
     def _top_overlord(self, nation: str) -> str:
         """Walk the vassal `lord` chain until it terminates. Return top overlord.
@@ -4963,6 +4979,9 @@ class WorldState:
             "manpower_pools": {k: v.copy() for k, v in self.manpower_pools.items()},
             "marshal_pool": {k: [dict(c) for c in v]
                              for k, v in self.marshal_pool.items()},
+            "agendas": copy.deepcopy(self.agendas),
+            "nation_agenda_seen": {str(k): str(v)
+                                   for k, v in self.nation_agenda_seen.items()},
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -5366,6 +5385,20 @@ class WorldState:
         world.marshal_pool = {
             k: [dict(c) for c in (v or [])]
             for k, v in (data.get("marshal_pool", {}) or {}).items()
+        }
+
+        # ═══════ NATION AGENDAS (NA-0, docs/NATION_AGENDAS_SPEC.md) ═══════
+        # Authored decks (scenario data) + the seen map (state). Absent on
+        # pre-NA saves = no decks / fresh announcement bookkeeping.
+        # deepcopy: entries nest region LISTS — shallow dict() copies would
+        # alias them across save/load clones (the Region.__init__ bug class).
+        world.agendas = {
+            k: copy.deepcopy(list(v or []))
+            for k, v in (data.get("agendas", {}) or {}).items()
+        }
+        world.nation_agenda_seen = {
+            str(k): str(v)
+            for k, v in (data.get("nation_agenda_seen") or {}).items()
         }
 
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
@@ -7090,6 +7123,15 @@ class WorldState:
         # R9: Rebuild index before final visibility calc (marshals may have moved
         # during tactical processing, retreats, auto-charges, reckless cavalry, etc.)
         self._build_marshal_index()
+
+        # ════════════════════════════════════════════════════════════
+        # NATION AGENDAS (NA-1) — the once-per-turn shift poll
+        # After all territorial/diplomatic systems settle so the announced
+        # agenda reflects the new turn's state; enemy-phase flips surface
+        # on the following turn's dispatch (seen-map dedup absorbs the lag).
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.agendas import process_agenda_shifts
+        process_agenda_shifts(self)
 
         # ════════════════════════════════════════════════════════════
         # FOG OF WAR - Recalculate visibility (Phase 6 Session 33)

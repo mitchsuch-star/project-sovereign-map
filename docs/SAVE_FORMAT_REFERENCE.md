@@ -193,6 +193,8 @@ A future save/load system should use this as the specification.
 | `rivalry_transitions_seen` | list[str] | [] | §6b transitions already fired (`"A\|B@-1"` keys — once per transition per pair). |
 | `fontainebleau_last_turn` | int | -999 | ESP-1 cooldown anchor (last collective-petition turn). |
 | `marshal_pool` | dict | {} | **Marshal Recruitment:** authored candidate bench per nation `{nation: [entries]}` — entries removed as commissioned (`MARSHAL_RECRUITMENT_SPEC.md`). |
+| `agendas` | dict | {} | **Nation Agendas (NA-0):** authored deck per nation `{nation: [entries]}` — scenario data; the ACTIVE agenda is derived per turn, never stored (`NATION_AGENDAS_SPEC.md`). |
+| `nation_agenda_seen` | dict | {} | **Nation Agendas (NA-1):** last-announced agenda id per nation — the dispatch shift beat's dedup across save/load ("" = observed no-agenda state). |
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
