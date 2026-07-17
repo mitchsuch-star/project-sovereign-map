@@ -27,6 +27,13 @@
 > note for the builder: S5-5's copy half is INVERTED on master — the message
 > already prints the capped count; the real defect is the fixed-corps note at
 > `economy_executor.py:415-417` printing post-cap NEW_TROOPS as the corps size.**
+>
+> **✅ BATCH Q CHUNK 1 LANDED July 16, 2026 — S5-1 / S5-2 / S5-3 / S5-5 FIXED,
+> plus the S5-4 docstring refresh (the overflow-to-mailbox fix stays deferred).
+> `tests/test_batch_q_fixes.py`. Also in the same chunk: AUD-g band realignment,
+> AUD-e doc reconciliation. Remaining Batch Q (next chunk): the VS-5 live
+> ratification exercise, AUD-b armistice guard, AUD-c war-score-aware offers,
+> and the E7 / Metternich small builds.**
 
 | ID | Pri | Kind | Issue | Root cause | Fix / landing |
 |----|-----|------|-------|-----------|---------------|

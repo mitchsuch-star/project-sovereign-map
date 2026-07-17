@@ -4222,6 +4222,44 @@ class WorldState:
         # sees an accurate honored-titles set.
         prune_respected_estates(self)
 
+        def _post_expectation_notice(m, expectation, satisfaction, shortfall,
+                                     remaining_grace):
+            # S5-3: keep the reward-expectation rail notice LIVE. It was
+            # created once at shortfall-open with static numbers + a frozen
+            # grace copy, so it drifted from the same-response dispatch (rail
+            # "80g/turn … holds 2 turns" vs dispatch "160g/turn … fraying").
+            # Dismiss-by-type + re-add with current numbers and a live
+            # countdown (PF-5 details-filter pattern). Player-only.
+            from backend.notifications import (
+                DOTATION_EXPECTATION, NotificationPriority, create_notification,
+            )
+            self.notifications.dismiss_by_type(
+                DOTATION_EXPECTATION,
+                filter_fn=lambda n, mn=m.name: (
+                    n.get("details", {}).get("marshal") == mn))
+            if remaining_grace <= 1:
+                patience = "His patience holds one more turn"
+            else:
+                patience = f"His patience holds {remaining_grace} turns"
+            self.notifications.add(create_notification(
+                notification_type=DOTATION_EXPECTATION,
+                priority=NotificationPriority.NORMAL,
+                title=f"Marshal {m.name} expects reward",
+                message=(
+                    f"Marshal {m.name} looks for {expectation}g/turn and holds "
+                    f"{satisfaction}g. {patience} — open the Generals screen "
+                    f"(press G) and use [ Reward… ] on his card to endow an "
+                    f"estate (a Duchy) or grant a rente."
+                ),
+                turn_created=int(self.current_turn),
+                details={"marshal": m.name,
+                         "expectation": int(expectation),
+                         "satisfaction": int(satisfaction),
+                         "shortfall": int(shortfall),
+                         "grace_turns": int(GRACE_TURNS),
+                         "remaining_grace": int(max(0, remaining_grace))},
+            ))
+
         for marshal in self.marshals.values():
             # W6-7: a captured marshal's expectations are FROZEN — his
             # estates do not erode his loyalty while he sits in a foreign
@@ -4258,6 +4296,16 @@ class WorldState:
                 # Met (or no expectation): the grace clock resets — paying
                 # stops the bleed. It never buys trust (no bump here).
                 marshal.expectation_grace_turn = -1
+                # S5-3: symmetric with the open/erosion branches — once the
+                # player rewards him, drop the stale "reward him" rail notice
+                # so it never contradicts the grant confirmation ("his
+                # expectation is met"). Was previously only dismissed on erosion.
+                if marshal.nation == self.player_nation:
+                    from backend.notifications import DOTATION_EXPECTATION
+                    self.notifications.dismiss_by_type(
+                        DOTATION_EXPECTATION,
+                        filter_fn=lambda n, mn=marshal.name: (
+                            n.get("details", {}).get("marshal") == mn))
                 continue
 
             if marshal.expectation_grace_turn < 0:
@@ -4265,41 +4313,30 @@ class WorldState:
                 marshal.expectation_grace_turn = int(self.current_turn)
                 # §0.6.8 item 4b: the grace window IS the player's action
                 # window — announce it when it opens (one per episode).
+                # PF-5: at most one live reward-expectation notice per marshal.
                 if marshal.nation == self.player_nation:
-                    from backend.notifications import (
-                        DOTATION_EXPECTATION, NotificationPriority,
-                        create_notification,
-                    )
-                    # PF-5: keep at most one live reward-expectation notice per
-                    # marshal (a met->unmet re-open otherwise stacks a duplicate).
-                    self.notifications.dismiss_by_type(
-                        DOTATION_EXPECTATION,
-                        filter_fn=lambda n, mn=marshal.name: (
-                            n.get("details", {}).get("marshal") == mn))
-                    self.notifications.add(create_notification(
-                        notification_type=DOTATION_EXPECTATION,
-                        priority=NotificationPriority.NORMAL,
-                        title=f"Marshal {marshal.name} expects reward",
-                        message=(
-                            f"Marshal {marshal.name} looks for "
-                            f"{expectation}g/turn and holds {satisfaction}g. "
-                            f"His patience holds {GRACE_TURNS} turns — open the "
-                            f"Generals screen (press G) and use [ Reward… ] on "
-                            f"his card to endow an estate (a Duchy) or grant a "
-                            f"rente."
-                        ),
-                        turn_created=int(self.current_turn),
-                        details={"marshal": marshal.name,
-                                 "expectation": int(expectation),
-                                 "satisfaction": int(satisfaction),
-                                 "shortfall": int(shortfall),
-                                 "grace_turns": int(GRACE_TURNS)},
-                    ))
+                    _post_expectation_notice(marshal, expectation, satisfaction,
+                                             shortfall, GRACE_TURNS)
                 continue
 
             elapsed = self.current_turn - marshal.expectation_grace_turn
             if elapsed < GRACE_TURNS:
+                # S5-3: still within grace — refresh the rail notice so its
+                # numbers and countdown track the live shortfall.
+                if marshal.nation == self.player_nation:
+                    _post_expectation_notice(marshal, expectation, satisfaction,
+                                             shortfall, GRACE_TURNS - elapsed)
                 continue
+
+            # S5-3: grace has elapsed — the DOTATION_EROSION (HIGH) notice now
+            # owns the "loyalty is fraying" narrative; drop the stale NORMAL
+            # expectation notice so the rail never contradicts it.
+            if marshal.nation == self.player_nation:
+                from backend.notifications import DOTATION_EXPECTATION
+                self.notifications.dismiss_by_type(
+                    DOTATION_EXPECTATION,
+                    filter_fn=lambda n, mn=marshal.name: (
+                        n.get("details", {}).get("marshal") == mn))
 
             # Erosion: self-limiting (magnitude never grows with the gap),
             # trust's native floor at 0 is the only floor.

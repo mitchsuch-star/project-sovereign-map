@@ -1178,13 +1178,23 @@ class EnemyAI:
         failed_actions: set = None
     ) -> Tuple[Optional[Marshal], Optional[Dict], int]:
         """
-        Select the next marshal to act using priority + round-robin fairness.
+        Select the next marshal to act using round-robin fairness + turn order.
 
-        Selection logic:
-        1. Sort marshals by priority (lower = acts first)
-        2. Critical situations (priority <= 60) override fairness
-        3. Otherwise, prefer marshals with fewer actions used
-        4. Tiebreaker: alphabetical by name
+        Selection logic (AUD-e canonized — this is the SHIPPED sort, held Enemy
+        AI at 8.0 across five sweeps; the sort key is ``sort_key`` below):
+        1. PAID actions (attack/move/fortify/…) sort before FREE ones
+           (wait/status/help) — a marshal who can make progress beats a waiter.
+        2. Within a tier: round-robin fairness — fewer actions-used first.
+        3. Then marshal_priority (lower = more urgent — "great powers move
+           first" + survival situations, from _get_marshal_priority_for_turn_order).
+        4. Tiebreaker: alphabetical by name.
+
+        NOTE: ``action_priority`` (the second element _evaluate_marshal returns)
+        is passed back to the caller for its own gating/logging, but is
+        deliberately NOT a sort key — the paid/free tier + round-robin +
+        marshal_priority ordering is authoritative. A marshal is skipped for
+        the rest of the turn only after it waits twice or takes the survival
+        defend-once fallback (see _marshals_done_this_turn).
 
         Args:
             marshals: List of this nation's marshals
@@ -2233,7 +2243,11 @@ class EnemyAI:
                     # Artillery should bombard, not fortify — let P4 handle
                     if getattr(marshal, 'artillery', False):
                         return None
-                    if not getattr(marshal, 'fortified', False):
+                    # S5-1: never fortify while holding square — breaking a valid
+                    # square to fortify (then re-forming next turn) is a
+                    # self-cancelling loop that burns nation-turns.
+                    if (not getattr(marshal, 'fortified', False)
+                            and not getattr(marshal, 'square_formation', False)):
                         return {
                             "marshal": marshal.name,
                             "action": "fortify"
@@ -3475,6 +3489,13 @@ class EnemyAI:
 
     def _consider_fortify(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
         """Consider fortifying (cautious marshals prefer this)."""
+        # S5-1: a marshal already in square formation must NOT fortify. The two
+        # are mutually-exclusive defensive postures (TACTICAL_TRIANGLE_SPEC
+        # §239-240); fortifying auto-breaks the square, and P2.5 re-forms it the
+        # next turn vs the same cavalry — a self-cancelling loop (Moore, live).
+        # Hold the square that P2.5 already chose.
+        if getattr(marshal, 'square_formation', False):
+            return None
         # Don't fortify if already fortified
         if getattr(marshal, 'fortified', False):
             from backend.models.personality_modifiers import get_max_fortify_bonus
@@ -4103,7 +4124,10 @@ class EnemyAI:
                 marshal.name in getattr(self, '_unfortified_this_turn', set())
                 or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
             )
-            if not getattr(marshal, 'fortified', False) and not refortify_blocked:
+            if (not getattr(marshal, 'fortified', False)
+                    and not refortify_blocked
+                    and not getattr(marshal, 'square_formation', False)):
+                # S5-1: hold the square rather than churn into fortification.
                 ai_debug("  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,

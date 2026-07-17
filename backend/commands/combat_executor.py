@@ -2193,6 +2193,23 @@ class CombatExecutor:
         from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
 
         # ════════════════════════════════════════════════════════════
+        # S5-5: NO-GUNS GUARD (single source). Every bombardment caller —
+        # the normal attack route, the strategic/defiant re-exec, and the
+        # meta post-objection route — funnels through here, so a marshal
+        # with no artillery can never open a bombardment. Previously the
+        # post-objection path (meta_executor) re-ran this unguarded.
+        # ════════════════════════════════════════════════════════════
+        if not getattr(marshal, 'artillery', False):
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal.name} commands no artillery — there are no guns "
+                    f"to open a bombardment. Order an assault to close with the "
+                    f"enemy instead."
+                ),
+            }
+
+        # ════════════════════════════════════════════════════════════
         # BOMBARDMENT LIMIT CHECK: max 2 per turn
         # ════════════════════════════════════════════════════════════
         if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
@@ -3151,12 +3168,16 @@ class CombatExecutor:
                     break
 
             if not target_in_same_region:
+                # S5-2: humanize marshal keys for the player-facing copy so a
+                # camelCase name ("ArchdukeCharles") never leaks into prose.
+                from backend.display_names import humanize_entity_name
                 enemy_names = [e.name for e in enemies_here]
+                enemy_display = [humanize_entity_name(n) for n in enemy_names]
                 return {
                     "success": False,
-                    "message": f"Cannot attack elsewhere while engaged with enemy forces! {', '.join(enemy_names)} must be dealt with first.",
+                    "message": f"Cannot attack elsewhere while engaged with enemy forces! {', '.join(enemy_display)} must be dealt with first.",
                     "engaged_with": enemy_names,
-                    "suggestion": f"Attack {enemies_here[0].name} in {marshal.location} first"
+                    "suggestion": f"Attack {humanize_entity_name(enemies_here[0].name)} in {marshal.location} first"
                 }
 
         # Find enemy marshal - either by name or at target location

@@ -1009,7 +1009,9 @@ def _get_military_advantage(nation: str, world) -> str:
         return "unknown"
 
     if player_strength == 0:
-        return "overwhelming" if nation_strength > 0 else "even"
+        # AUD-g: "comparable" for the both-annihilated case (vocabulary parity
+        # with the full bands; "even" was ungrammatical in the templates).
+        return "overwhelming" if nation_strength > 0 else "comparable"
 
     ratio = nation_strength / player_strength
 
@@ -1022,17 +1024,25 @@ def _get_military_advantage(nation: str, world) -> str:
         else:
             return "modest"
 
-    # PARTIAL or FULL: full detail
+    # PARTIAL or FULL: full detail.
+    # AUD-g: a symmetric ladder CENTRED on parity (ratio 1.0). The old bands
+    # were shifted so "even" landed at ratio 0.5-0.75 (a real DISadvantage,
+    # never true parity — the dead "even" tier), true parity was labelled
+    # "slight", and "disadvantage" was ungrammatical in the sentence templates
+    # ("their military strength is disadvantage relative to ours"). Every word
+    # now reads correctly as "is {X} relative to ours" and "their {X} military
+    # position". Thresholds are multiplicatively symmetric (0.87 ≈ 1/1.15,
+    # 0.67 ≈ 1/1.5).
     if ratio > 1.5:
         return "overwhelming"
-    elif ratio > 1.1:
-        return "significant"
-    elif ratio > 0.75:
-        return "slight"
-    elif ratio > 0.5:
-        return "even"
+    elif ratio > 1.15:
+        return "superior"
+    elif ratio > 0.87:
+        return "comparable"
+    elif ratio > 0.67:
+        return "inferior"
     else:
-        return "disadvantage"
+        return "overmatched"
 
 
 def _get_nation_summary(nation: str, world) -> str:

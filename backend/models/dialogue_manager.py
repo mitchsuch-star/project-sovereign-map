@@ -220,10 +220,20 @@ class DialogueManager:
     def preempt(self, dialogue: dict) -> None:
         """Make a dialogue current while preserving the displaced one.
 
-        Use when a newly-created hard-stop must surface immediately but
-        an existing soft/local dialogue should not be dropped. The
-        displaced dialogue returns through normal queue promotion after
-        the preempting dialogue is resolved.
+        Use when a newly-created dialogue must surface immediately while an
+        existing one should not be dropped — either a hard-stop that must
+        interrupt, OR the Sweep-5 typed-answer clarification that preempts a
+        non-hard-stop soft dialogue so the player can answer inline (the
+        docstring formerly claimed hard-stop-only; that is no longer true).
+        The displaced dialogue returns through normal queue promotion once the
+        preempting dialogue is resolved.
+
+        S5-4 known limitation (owner: Pre-EA Dialogue Robustness row in
+        DESIGN_REFINEMENT.md §8.EVAL Dispositions): if the queue is already at
+        QUEUE_CAP the displaced dialogue is DROPPED rather than overflowed to
+        the mailbox. Requires a pathological 20-deep queue; push() has the
+        identical pre-existing drop. The overflow-to-mailbox fix is deferred;
+        only this contract refresh rides Batch Q.
         """
         self._assign_mailbox_metadata(dialogue)
         self._assign_dialogue_id(dialogue)

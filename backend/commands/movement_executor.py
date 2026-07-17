@@ -223,12 +223,16 @@ class MovementExecutor:
                 can_see_enemies = dest_intel.visibility in (FULL, PARTIAL)
 
             if can_see_enemies:
+                # S5-2: humanize marshal keys for player-facing copy.
+                from backend.display_names import humanize_entity_name
                 enemy_names = [e.name for e in enemies_at_dest]
+                enemy_display = [humanize_entity_name(n) for n in enemy_names]
+                m_display = humanize_entity_name(marshal.name)
                 return {
                     "success": False,
-                    "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_names)}.",
+                    "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_display)}.",
                     "enemies_at_destination": enemy_names,
-                    "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}'"
+                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}'"
                 }
             # Fogged: marshal walks in blind — will discover enemies on arrival
 

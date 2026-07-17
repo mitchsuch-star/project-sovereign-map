@@ -124,7 +124,7 @@ class EnemyAI:
 
 ### Priority System
 
-The AI evaluates each marshal and assigns a **priority score** (lower = more urgent). The action with the lowest priority across all marshals is executed.
+The AI evaluates each marshal and assigns a **priority score** (lower = more urgent) via `_evaluate_marshal`. This per-marshal score gates and logs the decision, but it is **not** the cross-marshal sort key. `_select_next_marshal_action` picks WHO acts by the shipped sort (AUD-e canonized July 16, 2026): **paid actions before free ones → round-robin fairness (fewer actions-used first) → `marshal_priority` (turn order; lower = more urgent) → name**. A marshal is dropped for the rest of the turn only after it waits twice or takes the survival defend-once fallback.
 
 | Priority | Name | Score | Trigger Condition |
 |----------|------|-------|-------------------|
@@ -208,9 +208,9 @@ Enhanced existing ally support with relationship awareness.
 - Applied as tiebreaker alongside combined arms awareness (+20 for completing triangle)
 - Works for same-nation and coalition allies (not player nation)
 
-### Priority 4.78: Defensive Reinforcement Positioning (Session 63)
+### Priority 7.4: Defensive Reinforcement Positioning (Session 63; relabelled from P4.78 by Phase-6 AI-1)
 
-Moves adjacent to a threatened ally for reinforcement readiness. Fires after P7, before P7.5.
+Moves adjacent to a threatened ally for reinforcement readiness. Fires after P7, before P7.5 — the label matches its true post-P7 evaluation position (behavior-preserving; the returned `action_priority` is unchanged).
 
 **Trigger:** Ally with relationship >= Rival is threatened (enemy in or adjacent to their region) AND marshal is NOT already adjacent to or co-located with that ally.
 
@@ -615,18 +615,20 @@ self.nation_actions = {"Britain": 4, "Prussia": 4}
 
 ## Round-Robin System
 
-Prevents single marshal monopolizing actions.
+Prevents a single marshal monopolizing actions. Fairness lives in the
+`_select_next_marshal_action` sort (AUD-e canonized): within an action tier,
+candidates with **fewer actions-used act first** (`used` is the second sort
+key). There is no `priority <= 60` bypass — the ordering is paid/free tier →
+`used` → `marshal_priority` → name.
 
 ```python
-_marshals_done_this_turn: set  # Tracks who acted
+_marshals_done_this_turn: set  # marshals skipped for the rest of the turn
 
-# After marshal takes non-critical action:
-if priority > 60:  # Not survival-critical
-    _marshals_done_this_turn.add(marshal.name)
-    # Skip this marshal until others have acted
-
-# Critical override (priority <= 60):
-# Survival actions bypass round-robin
+# A marshal is added to the done-set (and skipped thereafter) only when it:
+#   • waits twice in one turn ("nothing useful to do"), or
+#   • takes the survival defend-once fallback.
+# Everyone else stays eligible; round-robin fairness keeps any one marshal
+# from grabbing every action via the `used` sort key above.
 ```
 
 ---

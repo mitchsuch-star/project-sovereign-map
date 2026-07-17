@@ -387,12 +387,18 @@ class StrategicExecutor:
                 )
             )
             if not holding_here and not pursuing_local:
+                # S5-2: humanize marshal keys so player copy never shows a raw
+                # camelCase name; the spaced form still resolves on re-issue
+                # (CR-5 _resolve_target handles spaced names).
+                from backend.display_names import humanize_entity_name
                 enemy_names = [e.name for e in enemies_here]
+                enemy_display = [humanize_entity_name(n) for n in enemy_names]
+                m_display = humanize_entity_name(marshal.name)
                 return {
                     "success": False,
-                    "message": f"{marshal.name} is engaged with {', '.join(enemy_names)} and cannot begin a strategic march. Deal with the engagement first.",
+                    "message": f"{m_display} is engaged with {', '.join(enemy_display)} and cannot begin a strategic march. Deal with the engagement first.",
                     "engaged_with": enemy_names,
-                    "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}' or '{marshal.name}, retreat'"
+                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}' or '{m_display}, retreat'"
                 }
 
         # ── Self-targeting validation ────────────────────────────────
@@ -583,6 +589,39 @@ class StrategicExecutor:
                     }
                 # Strip start location
                 path = [r for r in path if r != marshal.location]
+
+                # ── S5-D2: issuance-time passability honesty ──────────────
+                # The route above ignores diplomacy. PF-8's per-turn march
+                # prefers passable corridors and, failing that, stalls at the
+                # closed border and reroutes-or-breaks — but by then the player
+                # has already paid 2 AP. If NO passable corridor reaches the
+                # destination (an intermediate neutral we may not cross with no
+                # way around), say so NOW and charge nothing. Diplomacy is
+                # un-fogged, so this is safe to surface. The stall handoff for
+                # reachable/partial routes is unchanged.
+                if (marshal.nation == world.player_nation and path
+                        and any(
+                            r != dest
+                            and not world._region_passable_for(r, marshal.nation)
+                            for r in path)):
+                    if not pathfinder(marshal.location, dest,
+                                      passable_for=marshal.nation):
+                        blocker = next(
+                            r for r in path
+                            if r != dest
+                            and not world._region_passable_for(r, marshal.nation))
+                        blk = world.regions.get(blocker)
+                        blk_ctrl = blk.controller if blk else "neutral"
+                        return {
+                            "success": False,
+                            "message": (
+                                f"There is no open road to {dest}, Sire — every "
+                                f"route crosses {blk_ctrl}'s closed frontier at "
+                                f"{blocker}. Secure passage (open borders, or "
+                                f"war) or name a province we can reach."
+                            ),
+                            "variable_action_cost": 0,
+                        }
 
         # ── Strategic objection check (V2a) ───────────────────────────
         # Check if marshal objects to this strategic command BEFORE creating order

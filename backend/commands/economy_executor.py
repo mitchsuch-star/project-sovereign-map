@@ -360,6 +360,13 @@ class EconomyExecutor:
         else:
             NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
 
+        # S5-5: the TRUE fixed corps size, captured before the CO-4 field cap
+        # may lower NEW_TROOPS. The PF-7 "drafted in fixed corps of N" note must
+        # cite the batch, not the capped delivery (else a field-capped levy
+        # misreports the corps size as, e.g., 3,000 when infantry corps are
+        # 10,000).
+        full_corps_size = NEW_TROOPS
+
         # CO-4 (Combat Overhaul Phase 2): the SYMMETRIC field-regen cap. A corps
         # reinforcing in the field — away from a friendly supply depot or
         # capital — cannot raise a full batch; the levy is capped to
@@ -412,9 +419,9 @@ class EconomyExecutor:
             _req = int(_amt.group(1).replace(",", ""))
             if _amt.group(2):
                 _req *= 1000
-            if _req > 0 and _req != NEW_TROOPS:
+            if _req > 0 and _req != full_corps_size:
                 base_message += (f" (recruitment is drafted in fixed corps of "
-                                 f"{NEW_TROOPS:,}, Sire — your {_req:,} is noted)")
+                                 f"{full_corps_size:,}, Sire — your {_req:,} is noted)")
 
         # Soft correction: player asked for wrong type
         soft_correction = ""
