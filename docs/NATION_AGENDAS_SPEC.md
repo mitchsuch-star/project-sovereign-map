@@ -1,6 +1,6 @@
 # Nation Agendas — "The Designs of the Powers"
 
-**Status:** v1.0 — ✅ **DESIGN GATE HELD July 17, 2026.** The user answered the three gate questions at the recommended defaults (§0). This spec is the gate record AND the build contract for the Phase 8.5 centerpiece.
+**Status:** v1.1 — ✅ **DESIGN GATE HELD July 17, 2026.** The user answered the three gate questions at the recommended defaults (§0). This spec is the gate record AND the build contract for the Phase 8.5 centerpiece. **v1.1 amendment (July 17, 2026, same day — user-blessed):** dormant satellite decks (KingdomOfItaly, Holland) authored at NA-0 (§4), the owned follow-on slice **NA-6 "Formable Dreams"** (§11 — formation rewards + post-formation goals + the Duchy-of-Warsaw new-tag creation pathfinder), **Free Ireland homed to DEF-5** (naval phase; §9/§11.5), and the player-France Victory-Pass seed note (§9).
 
 **Owner queue position:** Phase 8.5 "Events, Goals & National Identity" — the re-scoped Nation Agendas core promoted at 8.EVAL (`docs/audits/EVAL_8_2026_07_16.md` §1/§3). Consumes: **R123** (econ-strategy triggers), **R124** (isolation/alliance-splitting), **A3** (enemy-AI war-vs-diplomacy choice), **R155 residual** (personality-driven timing/persistence/target choice), **R156** (diplomacy strategic optionality). **R162** (AI ultimatums) is owned here as the follow-on slice NA-5 (§8) — its gate questions are answered in this document; no further gate.
 
@@ -58,7 +58,7 @@ A small closed set of parameterized types in a new `backend/game_logic/agendas.p
 
 ### §3.2 Authoring & validation
 
-New scenario key `agendas` in `europe_1805.json`: `{nation: [{id, type, title, blurb, regions?/params…}, …]}`. **Deck order = priority order** — first agenda whose predicate holds is ACTIVE (exactly one active per nation; the rest are latent and visible via the war room). Validator support in `backend/modding/validator.py` on the `marshal_pool` precedent (`validator.py:436-513`): type-check the container, enum-check `type`, cross-validate `regions` against the region registry and nations against the roster (warning-not-error for unknown nations, matching the `relationships` forward-compat stance). New `MODDING_FORMAT.md` row. Nations without authored decks (minors, satellites) get no deck — survival override only; vassals never activate agendas while vassalized.
+New scenario key `agendas` in `europe_1805.json`: `{nation: [{id, type, title, blurb, regions?/params…}, …]}`. **Deck order = priority order** — first agenda whose predicate holds is ACTIVE (exactly one active per nation; the rest are latent and visible via the war room). Validator support in `backend/modding/validator.py` on the `marshal_pool` precedent (`validator.py:436-513`): type-check the container, enum-check `type`, cross-validate `regions` against the region registry and nations against the roster (warning-not-error for unknown nations, matching the `relationships` forward-compat stance). New `MODDING_FORMAT.md` row. Nations without authored decks (minors, satellites) get no deck — survival override only; vassals never activate agendas while vassalized. **A satellite MAY carry an authored deck that lies dormant under that rule and wakes on independence — the v1.1 formable hooks (KingdomOfItaly, Holland; §4, §11).**
 
 ### §3.3 Derivation & caching (GR8)
 
@@ -94,8 +94,10 @@ Region names verified against the live registry (there is no "Lombardy"/"Venetia
 | **Ottoman** | 1 | `guard_the_straits` | guard_neutrality | Constantinople, Rumelia | Porte neutrality; the Straits inviolate. |
 | **Sardinia** | 1 | `house_of_savoy_restored` | acquire | Piedmont, Savoy | The court in Cagliari wants its mainland back — instant flavor for a minor. |
 | **Denmark** | 1 | `neutrality_of_the_north` | guard_neutrality | Jutland, Copenhagen | Armed neutrality; the fleet is the state. |
+| **KingdomOfItaly** *(dormant satellite deck — v1.1)* | 1 | `risorgimento` | acquire | Milan, Piedmont, Savoy, Naples, Rome | Latent while vassalized (§3.2 rule); WAKES on independence (rebellion or VS-6 defection) — the freed vassal marches with a national dream. NA-6 formation entry: satisfying it while free forms **Italy** (§11). |
+| **Holland** *(dormant satellite deck — v1.1)* | 1 | `the_seventeen_provinces` | acquire | Flanders | Latent while vassalized. A free Holland reaching for the Austrian-Netherlands inheritance. Deliberate interplay: an INDEPENDENT Netherlands holding Flanders *satisfies* Britain's `low_countries` deny agenda (the province leaves the hegemon's bloc) — freeing Holland is a diplomatic lever against London's war. NA-6 formation entry → **United Netherlands** (§11). |
 
-**No decks (survival override only):** France (player — Victory Pass owns player goals), Spain/Naples/Portugal and all minors not listed, and the satellites (Holland, KingdomOfItaly, Switzerland, Bavaria, Saxony, Hesse, Hanover, PapalStates) — vassals never activate agendas while vassalized. **Cut with owner:** Russia `eastern_question` (Constantinople/Rumelia — needs AI-AI war declaration; § 9 → ROADMAP 8c).
+**No decks (survival override only):** France (player — Victory Pass owns player goals; v1.1 seed note §9), Spain/Naples/Portugal and all minors not listed, and the satellites Switzerland/Bavaria/Saxony/Hesse/Hanover/PapalStates. **KingdomOfItaly and Holland carry authored DORMANT decks (v1.1, rows above)** — vassals never activate agendas while vassalized, so both lie latent until independence; the formation layer on top of them is NA-6 (§11). **Cut with owner:** Russia `eastern_question` (Constantinople/Rumelia — needs AI-AI war declaration; § 9 → ROADMAP 8c).
 
 ---
 
@@ -183,11 +185,12 @@ Per the standing slice-review cadence: **land NA-0 + NA-1, then pause for user r
 
 | Slice | Content | Completion definition |
 |-------|---------|----------------------|
-| **NA-0 Substrate** | `agendas.py` (types, predicates, cached `get_active_agenda`, resolve/acceptance/bias helpers as pure functions), scenario `agendas` key + authored §4 decks, validator block, `MODDING_FORMAT.md` row, `nation_agenda_seen` serialization (+ SAVE_FORMAT_REFERENCE). No consumer changes. | Boot pins green: Austria active=`redeem_italy`, Prussia=`hanoverian_prize`→`armed_neutrality` (peace predicate), Britain=`low_countries`, Russia=`arbiter_of_europe`; survival override pin (capital lost → override); cache-invalidation pin; serialization round-trip. |
+| **NA-0 Substrate** | `agendas.py` (types, predicates, cached `get_active_agenda`, resolve/acceptance/bias helpers as pure functions), scenario `agendas` key + authored §4 decks **incl. the v1.1 dormant satellite decks (KingdomOfItaly `risorgimento`, Holland `the_seventeen_provinces`)**, validator block, `MODDING_FORMAT.md` row, `nation_agenda_seen` serialization (+ SAVE_FORMAT_REFERENCE). No consumer changes. | Boot pins green: Austria active=`redeem_italy`, Prussia=`hanoverian_prize`→`armed_neutrality` (peace predicate), Britain=`low_countries`, Russia=`arbiter_of_europe`; survival override pin (capital lost → override); cache-invalidation pin; serialization round-trip; **v1.1 dormancy pins: both satellite decks INACTIVE while vassalized, ACTIVE the turn the nation is free (unit-level independence flip — no formation layer yet).** |
 | **NA-1 Legibility** | §5.1 in full: ledger row + `.gd` render, war-room lines + recommendation branch, `agenda_pursuit` motive reason + register bank, dispatch shift beat + campaign-log type. Touches `.gd` → **boot the engine, grep `SCRIPT ERROR`** before landing. | Ledger/war-room/motive/dispatch tests; live curl of `/diplomatic_ledger`; the standing new-dialogue rules do NOT apply (no new popup — existing surfaces only). |
 | **NA-2 Diplomacy teeth** | §5.2 `agenda_mod` + full component/label/feedback wiring; covets unification + dead `NATION_DESIRES` territory-row deletion; §5.3 R155 cadence; §5.4 Pressburg arm + courting bias. | Acceptance-component pins both directions; preview shows the term; hawk-persistence pin; coalition-member separate-peace pin; corpus untouched (no new player verbs). |
 | **NA-3 War coupling** | §5.5 resolve deltas; §5.6 target bias + `ENEMY_AI_REFERENCE.md` update (incl. drift fixes); §5.7 paymaster generalization + tiers; §5.8 grudge contributor; §5.9 violation trap. | M1–M7 sweep harness **byte-identical or consciously re-blessed** (the harness roster's agenda exposure must be checked first); resolve pins (advancing fights longer / satisfied sues); target-bias pin (Austria corps prefers Milan-ward valid target); paymaster tier pin; grudge + violation pins both sides (GR5). |
 | **NA-5 Ultimatums (follow-on)** | §8, built only after NA-0..3 are verified in a live playtest. | §8 completion definition. |
+| **NA-6 Formable Dreams (follow-on, v1.1)** | §11: the formation layer — Class T transforms (KingdomOfItaly→**Italy**, Holland→**United Netherlands**: identity + one-time reward + post-formation goals via deck order) + the Class C creation pathfinder (**Duchy of Warsaw** carved from Posen by settlement clause). Built after NA-5. | §11 completion definition; `tests/test_nation_agendas_formables.py`. |
 
 Every slice: ruff clean, full suite green, `tests/test_nation_agendas.py` grows with the slice; NA-1's `.gd` touch follows the XR-1 boot-smoke rule. Docs: SYSTEMS_REFERENCE gains §28 Nation Agendas at NA-3; STATUS/ROADMAP per landing.
 
@@ -212,7 +215,9 @@ Answered here so NA-5 needs no further gate:
 | AI-AI war declaration driven by agendas | Not built — agendas only bias existing wars | ROADMAP 8c |
 | Britain naval-flavored agendas (blockade, Trafalgar) | Not authorable pre-naval | DEF-5 naval spec |
 | Trade pressure (R123's second half) | Not built | `ECONOMY_REVISIT_SPEC.md` EC-8 economic diplomacy |
-| Player-France agendas / goals | None — sandbox stays open-ended | Pre-Ship Victory & Objectives Pass |
+| Player-France agendas / goals | None — sandbox stays open-ended. **v1.1 seed note for the owner pass:** build France's goals ON the agenda substrate (GR5 — France simply has no deck today). Two CHAINED paths ride deck-priority for free (satisfy #1 → #2 activates natively); the only new machinery France needs is **branching** (a player *choice* between mutually-exclusive paths — not a predicate) + player-facing rewards (reuse the NA-6 §11.3 reward shape). The anti-Britain path ("Break Perfidious Albion") is unauthorable pre-naval — design the pass after DEF-5 lands, mirroring the Britain naval-agenda cut. | Pre-Ship Victory & Objectives Pass |
+| **Free Ireland** (naval liberation → created Irish client + authored deck) | Deferred to the naval phase (user-directed July 17, 2026) — the invasion is unreachable without naval movement | **DEF-5 rider** in `MAP_IMPLEMENTATION_PLAN.md` (owner row updated July 17, 2026); reuses NA-6 Class C machinery (§11.5); test named in the rider |
+| A "Unite Germany" formable | **REJECTED** — post-period (1871; no 1805–1815 actor pursued a unified Germany — the Confederation of the Rhine is French *clientage*, already modeled by vassalage) | re-open only via a future user gate |
 | Dynamic agenda *generation* (post-authored decks) | Explicitly rejected at G1 | re-open only via a future user gate |
 | Agenda-driven AI settlement-term authoring (beyond direction/indemnity) | Not in pass 1 | Pre-EA Diplomacy Polish Pass (with AUD-d rebuild) |
 
@@ -220,4 +225,57 @@ Answered here so NA-5 needs no further gate:
 
 ## §10 Test plan (summary)
 
-`tests/test_nation_agendas.py` (NA-0..3) + `test_nation_agendas_ultimatums.py` (NA-5). Pillars: boot-state pins for every authored deck (§7 NA-0); predicate unit tests per type incl. vassal-dormancy and elimination; cache/invalidation + serialization round-trip; acceptance component both signs + preview visibility; resolve deltas at the P1 seam (advancing/satisfied/irrelevant); coalition Pressburg arm; target-bias preference without gate changes; paymaster tiers + GR5 (non-Britain paymaster); derived grudge (fires, caps, expires, disappears when targets returned — the R156 payoff pin: *returning Milan to Austria removes the grudge AND the acceptance penalty*); Ansbach trap both directions (player violator + AI violator); M1–M7 harness stability check at NA-3. Suite + ruff green per slice; the golden corpus gains rows only if NA-5 adds typed responses.
+`tests/test_nation_agendas.py` (NA-0..3) + `test_nation_agendas_ultimatums.py` (NA-5) + `test_nation_agendas_formables.py` (NA-6, §11.6). Pillars: boot-state pins for every authored deck (§7 NA-0) **incl. the v1.1 dormancy pins (satellite decks latent while vassalized, live on independence)**; predicate unit tests per type incl. vassal-dormancy and elimination; cache/invalidation + serialization round-trip; acceptance component both signs + preview visibility; resolve deltas at the P1 seam (advancing/satisfied/irrelevant); coalition Pressburg arm; target-bias preference without gate changes; paymaster tiers + GR5 (non-Britain paymaster); derived grudge (fires, caps, expires, disappears when targets returned — the R156 payoff pin: *returning Milan to Austria removes the grudge AND the acceptance penalty*); Ansbach trap both directions (player violator + AI violator); M1–M7 harness stability check at NA-3. Suite + ruff green per slice; the golden corpus gains rows only if NA-5 adds typed responses.
+
+---
+
+## §11 NA-6 — "Formable Dreams" (v1.1 amendment; owned follow-on slice)
+
+**User direction (July 17, 2026):** more formables with *rewards for forming* and *their own goals when formed*; plus a possibility for a **free Ireland**, deferred to the naval phase. Blessed same day as the gate; this section is the build contract. **Sequenced after NA-5** (single-threaded queue discipline; NA-0..3 must be live-verified first).
+
+### §11.1 The mechanic
+
+A deck entry may carry an optional **`forms` key**: `{display_name, flag, blurb}` (validator-checked like the rest of the `agendas` schema). When that entry's satisfaction condition holds **while the nation is free** (not vassalized — the §3.2 dormancy rule already guarantees a vassal can't reach this), formation fires ONCE:
+
+1. **Identity transform.** The internal nation tag **never changes** (serialization/save safety, GR-hard). The *display* name resolves through the existing R7 chokepoints — `backend/display_names.py` + `Utils.display_nation_name()` — keyed off the formation record; the flag swaps to the formation asset. "Kingdom of Italy" becomes **Italy** on every player surface; the save file never notices.
+2. **One-time reward** (§11.3).
+3. **Formation beat.** Notification + dispatch line + campaign-log event (new type per the checklist steps 10–11). Deliberately **NO new popup/dialogue surface** — formation is usually an AI-side event (Italy forms *after escaping the player*), and the recurring dialogue-wiring bug class stays untouched.
+4. **Post-formation goals for free.** The nation's *own goals when formed* are simply the deck entries authored AFTER the forming entry — once the forming agenda satisfies, deck-priority activates the next entry natively (§3.2). **Zero new goal machinery.**
+
+**ONE new serialized world field:** `world.nation_formations: Dict[str, str]` (tag → formation id; full serialization checklist + SAVE_FORMAT_REFERENCE). Formation is permanent — losing provinces later does not un-form (the grudge/resolve machinery handles decline).
+
+### §11.2 The v1 roster
+
+| Class | Nation | Forming entry | Forms | Post-formation deck (authored after it) | Grounding |
+|-------|--------|---------------|-------|------------------------------------------|-----------|
+| **T** (transform) | KingdomOfItaly | `risorgimento` (§4: Milan, Piedmont, Savoy, Naples, Rome) | **Italy** | `guard_the_peninsula` — guard_neutrality [Milan, Piedmont, Savoy, Naples, Rome] | The dream the vassal wakes with; a formed Italy consolidates and guards, it doesn't rampage. |
+| **T** | Holland | `the_seventeen_provinces` (§4: Flanders) | **United Netherlands** | `merchants_peace` — guard_neutrality [Amsterdam, Brabant, Flanders] | The 1815 kingdom, reachable early by a Holland that frees itself; its formation *satisfies* Britain's `low_countries` deny agenda. |
+| **C** (create) | — (new tag `DuchyOfWarsaw`) | created, not formed (§11.4) | **Duchy of Warsaw** | `commonwealth_restored` — acquire [Lithuania, Volhynia] (dormant while a client, §3.2 — it marches on the old Commonwealth lands only if it wins independence) | Tilsit 1807: Napoleon carves the Duchy from Prussia's Polish partition (Posen here); 1812 was declared the "Second Polish War." (No Austrian Galicia exists on this map — the registry's Galicia is Spanish.) |
+| **C** | — (new tag `Ireland`) | created via naval liberation | **Ireland** | `erin_free` — guard_neutrality [Ulster, Munster] | Bantry Bay 1796, the 1798 expedition, Emmet 1803. **NOT built in NA-6 — the DEF-5 rider owns it (§11.5).** |
+
+**Bounded roster.** "Unite Germany" REJECTED (§9 — post-period); Iberia has no in-window formation dream. The `forms` key is scenario data, so modders can author their own formables — the validator, not this roster, is the boundary.
+
+### §11.3 Rewards for forming (in-band tunable)
+
+| Constant | Value | Rationale |
+|----------|-------|-----------|
+| `FORMATION_GOLD` | +2,000 one-time treasury grant | the consolidation windfall — meaningful vs the §6 subsidy scale, below war-indemnity scale |
+| `FORMATION_STABILITY_BONUS` | +2 stability, every owned region, one-shot (capped at max) | the national moment |
+
+Plus the identity transform itself and the post-formation deck activation (§11.1). Applied through existing mutation paths (treasury add, stability setter) — no new economy plumbing.
+
+### §11.4 Class C — new-tag creation (the Duchy of Warsaw pathfinder)
+
+Creation is the heavier half and is **the machinery Ireland reuses**, so Warsaw builds it once, on land:
+
+- **Route:** a settlement/vassalage clause — the lord (France OR any AI lord, GR5) cedes **Posen** into the new client tag via the VS-5 `transfer_vassal`/creation seam precedent (`vassal.py`). Player surface = the existing F1 wizard settlement flow; no new verbs.
+- **Machinery:** dynamic roster addition (nations dict, relations rows, DP/treasury seed), flag asset, scenario `formable_nations` template block (validator-checked), and — per the standing Don't-Do rule — `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` rows for every creatable tag, authored up front.
+- **Boot-zero by construction:** Warsaw does not exist at boot; Italy/Holland boot vassalized. **Nothing can form or be created at boot — pinned.**
+
+### §11.5 Free Ireland — DEF-5 rider (deferred to the naval phase, user-directed)
+
+Owner row = `MAP_IMPLEMENTATION_PLAN.md` DEF-5 (updated July 17, 2026). At war with Britain, a naval expedition into Ulster/Munster (both British at boot) creates the `Ireland` client tag via §11.4 machinery, with the `erin_free` deck. Unreachable pre-naval — that's the whole deferral reason. Completion + behavior test (`test_naval_free_ireland.py`) live in the DEF-5 row.
+
+### §11.6 Completion definition
+
+Class T lands first, Class C second, each with pins. DONE when: both T-formables form live (Italy: freed + peninsula held → renamed on ledger/map/diplomacy surfaces, reward applied once, `guard_the_peninsula` active next turn; Netherlands mirror incl. the Britain-deny satisfaction pin); formation is once-only + save/load-stable (`nation_formations` round-trip); no formation while vassalized (dormancy pin); Warsaw creatable via settlement clause by player AND AI lord (GR5), boots as client with dormant `commonwealth_restored`; boot-zero pin; Don't-Do rows exist for every creatable tag; `tests/test_nation_agendas_formables.py` green; suite + ruff green.
