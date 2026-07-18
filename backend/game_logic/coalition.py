@@ -13,7 +13,7 @@ All coalition logic lives in this file. Functions are called from:
   - enemy_ai.py (convergence bias, friction, is_coalition_member)
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from backend.notifications import (
     create_notification, NotificationPriority,
@@ -225,19 +225,29 @@ def _identify_max_bloc_share(world):
     alphabetical nation name. Deterministic under 13+ nations where
     two blocs may tie exactly.
     """
+    return identify_ranked_bloc_shares(world)[0]
+
+
+def identify_ranked_bloc_shares(world) -> List[Tuple[str, float]]:
+    """Every major's bloc share, highest first — the ranked form of
+    `_identify_max_bloc_share`, which is now its `[0]`.
+
+    Extracted for NA-6's court-relative hegemon resolution: an
+    anti-hegemon design must be able to ask "the largest bloc I am NOT
+    in", which the max-only form cannot answer. Same basis, same
+    deterministic tie-break — the max-only caller is byte-identical.
+    """
     active = world.get_active_nations()
     if not active:
-        return (None, 0.0)
+        return [(None, 0.0)]
     european_power = sum(power_score(n, world) for n in active)
     if european_power == 0:
-        return (None, 0.0)
+        return [(None, 0.0)]
     majors = [n for n in active if world.get_power_tier(n) == "major"]
     if not majors:
-        # Defensive fallback — per §7.3. Use canonical 5-major safe-list
-        # intersected with actives, not the full actives pool.
         majors = [n for n in _CANONICAL_MAJORS if n in active]
         if not majors:
-            majors = list(active)  # last-resort safety for unknown rosters
+            majors = list(active)
     bloc_shares = {
         leader: bloc_power(leader, world) / european_power
         for leader in majors
@@ -247,7 +257,7 @@ def _identify_max_bloc_share(world):
         bloc_shares.items(),
         key=lambda kv: (-kv[1], -bloc_power(kv[0], world), kv[0]),
     )
-    return (ordered[0][0], float(ordered[0][1]))
+    return [(leader, float(share)) for leader, share in ordered]
 
 
 def _calculate_hegemony_pressure(world) -> Dict[str, int]:

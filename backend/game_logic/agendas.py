@@ -97,11 +97,42 @@ def _controlled_by_self_or_vassal(world, nation: str, region_name: str) -> bool:
     return world._top_overlord(controller) == nation
 
 
-def _hegemon(world) -> Tuple[Optional[str], float]:
-    """(leader, share) of the largest bloc — the shared hegemon-identity
-    helper. Local import: coalition pulls in the wider diplomacy stack."""
-    from backend.game_logic.coalition import _identify_max_bloc_share
-    return _identify_max_bloc_share(world)
+def _hegemon(world, nation: Optional[str] = None) -> Tuple[Optional[str], float]:
+    """(leader, share) of the hegemon a court fears.
+
+    Without `nation`: the raw largest bloc — the global view shared with
+    coalition/diplomacy.
+
+    With `nation`: the largest bloc that court is NOT part of. The raw
+    helper answers "who is biggest", which is the wrong question for an
+    anti-hegemon design. When the coalition Britain funds finally
+    out-masses France, the raw answer becomes Britain's OWN ALLY, and
+    every deny/contain/paymaster predicate silently switches off — the
+    designs delete themselves at the moment they start succeeding. Worse,
+    the deny satisfaction check then reads TRUE while France still holds
+    the Scheldt (France's holdings are no longer "in the hegemon's
+    bloc"), handing Britain +10 resolve and an early separate peace
+    precisely because France is winning the thing Britain denies.
+
+    Court-relative resolution keeps a design pointed at the power it was
+    authored against. Boot-identical on the shipped scenario: France is
+    the largest bloc and no anti-France court sits inside it, so the two
+    forms agree until the geometry inverts.
+
+    Local import: coalition pulls in the wider diplomacy stack.
+    """
+    from backend.game_logic.coalition import (
+        _identify_max_bloc_share, identify_ranked_bloc_shares,
+    )
+    if nation is None:
+        return _identify_max_bloc_share(world)
+    for leader, share in identify_ranked_bloc_shares(world):
+        if leader is None:
+            return (None, 0.0)
+        if nation == leader or nation in set(world.get_bloc_members(leader)):
+            continue        # one's own bloc is never one's hegemon
+        return (leader, share)
+    return (None, 0.0)
 
 
 def survival_override_active(world, nation: str) -> bool:
@@ -136,7 +167,7 @@ def _deny_active(world, nation: str, regions) -> bool:
     """Active while >=1 target is controlled by the hegemon's bloc
     (share >= floor). A nation is never threatened by its own bloc —
     inactive when self IS the hegemon or sits inside the hegemon's bloc."""
-    hegemon, share = _hegemon(world)
+    hegemon, share = _hegemon(world, nation)
     if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
         return False
     bloc = set(world.get_bloc_members(hegemon))
@@ -148,7 +179,7 @@ def _deny_active(world, nation: str, regions) -> bool:
 def _contain_active(world, nation: str, share_floor: float) -> bool:
     """Active while the hegemon bloc share >= floor AND self is outside
     that bloc."""
-    hegemon, share = _hegemon(world)
+    hegemon, share = _hegemon(world, nation)
     if hegemon is None or share < share_floor:
         return False
     return nation not in set(world.get_bloc_members(hegemon))
@@ -157,7 +188,7 @@ def _contain_active(world, nation: str, share_floor: float) -> bool:
 def _paymaster_active(world, nation: str, treasury_floor: int) -> bool:
     """Posture: at war with the hegemon OR member of an active coalition
     against the hegemon, AND treasury above the authored floor."""
-    hegemon, _share = _hegemon(world)
+    hegemon, _share = _hegemon(world, nation)
     if hegemon is None or hegemon == nation:
         return False
     treasury = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0))
@@ -266,18 +297,37 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
         # Exact complement: all targets self-or-vassal controlled.
         return not _acquire_active(world, nation, list(entry.get("regions") or []))
     if agenda_type == "deny_regions":
-        # "No target in hegemon bloc hands" — trivially true when no bloc
-        # reaches the floor (the hegemon fell: the design achieved its aim).
-        hegemon, share = _hegemon(world)
-        if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
-            return True
+        # §3.1 verbatim: "no target in hegemon bloc hands". TWO guards,
+        # both learned from defects:
+        #
+        # 1. Sitting inside the DOMINANT bloc is dormancy, never
+        #    satisfaction — allying into the hegemon's camp does not put
+        #    the Scheldt out of its hands. This also covers the inverted
+        #    geometry: when the coalition Britain funds out-masses France,
+        #    Britain is inside the new largest bloc, and without this
+        #    guard its design read SATISFIED (its targets are not in
+        #    *Austria's* hands) while France still held Flanders — worth
+        #    +10 resolve and an early separate peace, for winning nothing.
+        # 2. The share FLOOR governs ACTIVATION, never SATISFACTION. An
+        #    earlier cut returned True below the floor ("the hegemon
+        #    fell"), which is false while the cut-down power still holds
+        #    the targets. Britain's design is the Scheldt, not France's
+        #    overall size.
+        raw_hegemon, _raw_share = _hegemon(world)
+        if raw_hegemon is not None and (
+                nation == raw_hegemon
+                or nation in set(world.get_bloc_members(raw_hegemon))):
+            return False
+        hegemon, _share = _hegemon(world, nation)
+        if hegemon is None:
+            return True     # no rival bloc at all — nothing left to deny
         bloc = set(world.get_bloc_members(hegemon))
         return not any(_region_controller(world, r) in bloc
                        for r in (entry.get("regions") or []))
     if agenda_type == "contain_hegemon":
         # "share < floor" — regardless of where self sits.
         floor = float(entry.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, nation)
         return hegemon is None or share < floor
     return False
 
@@ -318,7 +368,7 @@ def _war_advances_agenda(view: AgendaView, opponent: str, world) -> bool:
                 return True
         return False
     if view.type == "deny_regions":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, view.nation)
         if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
             return False
         bloc = set(world.get_bloc_members(hegemon))
@@ -326,7 +376,7 @@ def _war_advances_agenda(view: AgendaView, opponent: str, world) -> bool:
             return False
         return any(_region_controller(world, r) in bloc for r in view.regions)
     if view.type == "contain_hegemon":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, view.nation)
         floor = float(view.params.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
         if hegemon is None or share < floor:
             return False
@@ -404,7 +454,7 @@ def agenda_concerns_player_bloc(nation: str, world) -> bool:
                 return True
         return False
     if view.type == "deny_regions":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, nation)
         if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
             return False
         bloc = set(world.get_bloc_members(hegemon))
@@ -412,7 +462,7 @@ def agenda_concerns_player_bloc(nation: str, world) -> bool:
             return False
         return any(_region_controller(world, r) in bloc for r in view.regions)
     if view.type == "contain_hegemon":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, nation)
         floor = float(view.params.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
         return hegemon == player and share >= floor
     return False
@@ -420,16 +470,32 @@ def agenda_concerns_player_bloc(nation: str, world) -> bool:
 
 def agenda_satisfiable_by_player(nation: str, world) -> bool:
     """True when the nation's active agenda could be satisfied AT THE TABLE
-    by the player — an acquire/deny design whose unmet targets sit in the
-    player's bloc (cession would satisfy it). contain/paymaster/guard
-    postures are never table-satisfiable. Feeds the war-room
-    "satisfy their design" recommendation (spec §5.1)."""
+    by the player — an acquire/deny design whose unmet targets the player
+    can actually SIGN AWAY. contain/paymaster/guard postures are never
+    table-satisfiable. Feeds the war-room "satisfy their design"
+    recommendation (spec §5.1).
+
+    Gated on player-DIRECT control, not bloc control (phase review, July
+    18, 2026). The counsel promises "we hold what their court wants —
+    offer it at the table", but `generate_suggested_terms` filters
+    coveted regions to `world.get_nation_regions(player)`, i.e. what the
+    player's own crown holds. A target sitting with a VASSAL made the
+    counsel fire, cost an action, open talks, and then offer an unrelated
+    province — scoring the design term at ENTRENCH, strictly worse than
+    ignoring the advice. This mirrors the narrowing §16 already applied
+    to NA-5's ultimatum trigger for the same reason: the cession arms can
+    only transfer what `region.controller` says the signer owns.
+    """
     view = get_active_agenda(nation, world)
     if view is None or view.survival:
         return False
     if view.type not in ("acquire_regions", "deny_regions"):
         return False
-    return agenda_concerns_player_bloc(nation, world)
+    if not agenda_concerns_player_bloc(nation, world):
+        return False
+    player = getattr(world, "player_nation", "France")
+    direct = set(world.get_nation_regions(player))
+    return any(region in direct for region in get_agenda_covets(nation, world))
 
 
 # ═══════════════════ DIPLOMACY TEETH (NA-2, spec §5.2–§5.4) ═══════════════
@@ -508,7 +574,7 @@ def agenda_acceptance_mod(proposal: Dict, world) -> int:
             if not _controlled_by_self_or_vassal(world, target, region_name):
                 return AGENDA_ACCEPT_ADVANCE
     elif view.type == "deny_regions":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, target)
         if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR:
             bloc = set(world.get_bloc_members(hegemon))
             for region_name in ceded_targets:
@@ -544,7 +610,7 @@ def get_agenda_covets(nation: str, world) -> List[str]:
     if view.type == "acquire_regions":
         return _unmet_targets(view, world)
     if view.type == "deny_regions":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, nation)
         if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
             return []
         bloc = set(world.get_bloc_members(hegemon))
@@ -764,7 +830,7 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     targets_lower = {r.lower(): r for r in view.regions}
     terms = [t for t in (settlement_terms or []) if isinstance(t, dict)]
 
-    hegemon, share = _hegemon(world)
+    hegemon, share = _hegemon(world, court)
     bloc = (set(world.get_bloc_members(hegemon))
             if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR
             else set())
@@ -968,7 +1034,7 @@ def _stance_line(view: AgendaView, world) -> str:
                     f"lies in foreign hands.")
         return "Their court's design stands fulfilled."
     if view.type == "deny_regions":
-        hegemon, _share = _hegemon(world)
+        hegemon, _share = _hegemon(world, view.nation)
         bloc = set(world.get_bloc_members(hegemon)) if hegemon else set()
         held = [r for r in view.regions
                 if _region_controller(world, r) in bloc]
@@ -979,7 +1045,7 @@ def _stance_line(view: AgendaView, world) -> str:
                     f"in {held[0]}.")
         return f"They watch {hegemon_display}'s reach with suspicion."
     if view.type == "contain_hegemon":
-        hegemon, share = _hegemon(world)
+        hegemon, share = _hegemon(world, view.nation)
         hegemon_display = (_live_nation_name(world, hegemon)
                            if hegemon else "the hegemon")
         return (f"They stand against {hegemon_display}'s dominion over "

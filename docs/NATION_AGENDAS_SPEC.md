@@ -1,6 +1,6 @@
 # Nation Agendas — "The Designs of the Powers"
 
-**Status:** v1.3 — ✅ **DESIGN GATE HELD July 17, 2026; NA-0 + NA-1 LANDED July 17, 2026** (landing record §12); ✅ **NA-2 Diplomacy Teeth LANDED July 17, 2026** (landing record §13); ✅ **NA-3 War Coupling LANDED July 17, 2026** (landing record §14); ✅ **NA-0..3 live verification PASSED July 17, 2026** (§15); ✅ **NA-5 Ultimatums LANDED July 18, 2026** (landing record §16); ✅ **NA-6a formation core + NA-6b The Proclamation LANDED July 18, 2026 — the build PAUSES for user review before NA-6c/NA-6d** (landing record **§17**, authoritative where it records conscious deviations from §11.10). **v1.3 amendment (July 18, 2026):** §11.10 — the **NA-6 build plan of record** (sub-slices NA-6a..NA-6d, seam map, pinned decisions), added so the build session can execute §11 without design judgment calls; plus the §7 numbering note (there is no NA-4). The user answered the three gate questions at the recommended defaults (§0). This spec is the gate record AND the build contract for the Phase 8.5 centerpiece. **v1.1 amendment (July 17, 2026, same day — user-blessed):** dormant satellite decks (KingdomOfItaly, Holland) authored at NA-0 (§4), the owned follow-on slice **NA-6 "Formable Dreams"** (§11 — formation rewards + post-formation goals + the Duchy-of-Warsaw new-tag creation pathfinder), **Free Ireland homed to DEF-5** (naval phase; §9/§11.5), and the player-France Victory-Pass seed note (§9). **v1.2 amendment (July 17, 2026, user-directed with the NA-0/NA-1 landing):** the Warsaw→**Poland** formation chain WITH political implications (§11.2 row + §11.9 aggrieved-powers contract), the **Roman Republic** formable (§11.2 row — the 1798 carve from the Papal States, with the risorgimento interplay and the one-province-elimination pin), and the assured **Formables button for France** (§11.6-8). All three are NA-6 scope — documented here per the phasing, not built at NA-0/NA-1.
+**Status:** v1.3 — ✅ **DESIGN GATE HELD July 17, 2026; NA-0 + NA-1 LANDED July 17, 2026** (landing record §12); ✅ **NA-2 Diplomacy Teeth LANDED July 17, 2026** (landing record §13); ✅ **NA-3 War Coupling LANDED July 17, 2026** (landing record §14); ✅ **NA-0..3 live verification PASSED July 17, 2026** (§15); ✅ **NA-5 Ultimatums LANDED July 18, 2026** (landing record §16); ✅ **NA-6a formation core + NA-6b The Proclamation LANDED July 18, 2026 — the build PAUSES for user review before NA-6c/NA-6d** (landing record **§17**, authoritative where it records conscious deviations from §11.10); ✅ **WHOLE-PHASE REVIEW HELD July 18, 2026 — record §18**: a 21-agent arc-level sweep found ONE P1 that three slice-scoped reviews had all missed (the anti-hegemon designs deleted themselves the moment the coalition out-massed France) plus two P2/P3, all FIXED. **v1.3 amendment (July 18, 2026):** §11.10 — the **NA-6 build plan of record** (sub-slices NA-6a..NA-6d, seam map, pinned decisions), added so the build session can execute §11 without design judgment calls; plus the §7 numbering note (there is no NA-4). The user answered the three gate questions at the recommended defaults (§0). This spec is the gate record AND the build contract for the Phase 8.5 centerpiece. **v1.1 amendment (July 17, 2026, same day — user-blessed):** dormant satellite decks (KingdomOfItaly, Holland) authored at NA-0 (§4), the owned follow-on slice **NA-6 "Formable Dreams"** (§11 — formation rewards + post-formation goals + the Duchy-of-Warsaw new-tag creation pathfinder), **Free Ireland homed to DEF-5** (naval phase; §9/§11.5), and the player-France Victory-Pass seed note (§9). **v1.2 amendment (July 17, 2026, user-directed with the NA-0/NA-1 landing):** the Warsaw→**Poland** formation chain WITH political implications (§11.2 row + §11.9 aggrieved-powers contract), the **Roman Republic** formable (§11.2 row — the 1798 carve from the Papal States, with the risorgimento interplay and the one-province-elimination pin), and the assured **Formables button for France** (§11.6-8). All three are NA-6 scope — documented here per the phasing, not built at NA-0/NA-1.
 
 **Owner queue position:** Phase 8.5 "Events, Goals & National Identity" — the re-scoped Nation Agendas core promoted at 8.EVAL (`docs/audits/EVAL_8_2026_07_16.md` §1/§3). Consumes: **R123** (econ-strategy triggers), **R124** (isolation/alliance-splitting), **A3** (enemy-AI war-vs-diplomacy choice), **R155 residual** (personality-driven timing/persistence/target choice), **R156** (diplomacy strategic optionality). **R162** (AI ultimatums) is owned here as the follow-on slice NA-5 (§8) — its gate questions are answered in this document; no further gate.
 
@@ -582,3 +582,102 @@ provinces directly; the formed nation has never been used as a diplomatic counte
 (it cannot be addressed by its new name — the name→tag resolver is unpatched, homed to
 NA-6c with the carve tags); and `deny_regions` / `contain_hegemon` formables are blessed
 by the validator and documented for modders but never authored or run.
+
+---
+
+## §18 Phase review — the whole arc, NA-0 → NA-6b (July 18, 2026)
+
+A 21-agent phase-level review (10 lenses → independent refuters → synthesis) over
+`712550b..564bd9b`, scoped to the ARC rather than any one slice: cross-slice
+interaction, accumulated drift, and whether the phase delivers what §0 promised.
+It found **one P1 root defect that three slice-scoped reviews had all missed**, because
+it only manifests in a geometry no single slice owns.
+
+### P1 — the anti-hegemon designs deleted themselves at the moment they succeeded
+
+`agendas._hegemon` consumed `coalition._identify_max_bloc_share` raw — "who is the
+largest bloc". That is the wrong question for an ANTI-hegemon design. Coalition
+formation produces real `ALLIANCE` states, so once the anti-France bloc out-massed
+France, the raw answer became **Britain's own ally**, and every predicate keyed on it
+inverted at once:
+
+- `_deny_active` / `_contain_active` short-circuit on `nation in bloc` → **Britain's
+  `low_countries` and Russia's `arbiter_of_europe` went inactive for the rest of the
+  war they were being fought over.** Every §5 consumer went silent with them: the
+  ledger Design row, the war-room line, the rung-1.5 counsel, `agenda_acceptance_mod`,
+  `get_agenda_covets`, the `agenda_pursuit` voicing.
+- `_paymaster_active` needs at-war-with-the-hegemon; the hegemon was now Britain's own
+  ally, so **the subsidy stopped exactly when the coalition it funds existed** — a
+  regression against the NA-3 Britain literal it replaced, which would have kept paying.
+- Worst: the deny SATISFACTION check then read **TRUE while France still held the
+  Scheldt** (France's provinces are not "in Austria's bloc"), handing Britain
+  `AGENDA_RESOLVE_SATISFIED` (+10) and `agenda_separate_peace_ready` — **an early
+  separate peace for Britain because France was winning the thing Britain denies.**
+
+Reproduced from the shipped scenario, then fixed and re-verified across four
+geometries (boot / Britain allies France / coalition out-masses France / Britain takes
+the Scheldt).
+
+**The fix, in two parts, both contained:**
+
+1. `coalition.identify_ranked_bloc_shares` — the ranked form of
+   `_identify_max_bloc_share`, which becomes its `[0]`. Same basis, same tie-break;
+   the max-only caller and its two non-agenda consumers are byte-identical.
+2. `agendas._hegemon(world, nation=None)` — **court-relative resolution**: with a
+   court, the largest bloc that court is NOT in. Threaded through all 14 anti-hegemon
+   call sites. Boot-identical on the shipped scenario, because France is the largest
+   bloc and no anti-France court sits inside it; the two forms only diverge once the
+   geometry inverts.
+
+Plus a satisfaction correction with two guards, each earned from a defect: sitting
+inside the DOMINANT bloc is dormancy and never satisfaction (this preserves the
+existing "allying into the hegemon's camp does not fulfil the design" pin AND covers
+the inverted geometry), and **the share floor gates ACTIVATION, never SATISFACTION** —
+an earlier arm returned satisfied below the floor ("the hegemon fell"), which is false
+while the cut-down power still holds the targets. Britain's design is the Scheldt, not
+France's overall size.
+
+### P2 — the war room advised a cession the player could not make
+
+`agenda_satisfiable_by_player` gated on BLOC control while `generate_suggested_terms`
+filters coveted regions to `world.get_nation_regions(player)` — the player's DIRECT
+holdings. With every target sitting in a VASSAL's hands, the phase's single executable
+agenda recommendation still fired: it cost an action, opened talks, offered an
+unrelated province, and scored the design term at ENTRENCH — **strictly worse than
+ignoring the advice.** Now gated on direct control, mirroring the narrowing §16 had
+already applied to NA-5's ultimatum trigger for exactly this reason. Textbook
+cross-slice drift: the same lesson learned in one slice and not carried back.
+
+### P3 — AI ultimatum prose named the issuer `Unknown`
+
+`generate_ultimatum_terms` was the one AI proposal builder that did not stamp
+`proposer_nation`, so the fallback prose read *"Unknown demands 300 gold per turn"*.
+Latent behind the structured payload, but one guard from a live surface.
+
+### What the review did NOT find — worth recording
+
+- **GR8 is clean.** Measured on the real 126-province world: `advance_turn` 9–24 ms/turn
+  with agenda work ≈1 ms of it; the per-turn cache runs 837 hits / 179 misses over 10
+  turns with no thrash. The substrate carries six slices of consumers without strain.
+- **Serialization is clean** across all six phase fields — round-trip, pre-phase
+  defaults, doc rows, and no cross-save contamination on either the backend or the
+  Godot static stores.
+- **No duplicated-with-divergent-semantics defect** in the display-identity set, and no
+  constant defined twice. The satisfaction-helper family (`_entry_satisfied` /
+  `_court_design_satisfied` / `is_agenda_satisfied` / `entry_satisfied`) is layered, not
+  drifted.
+- All six §0 G2 "full coupling" pillars have real production call sites and are
+  reachable in the shipped campaign.
+
+### Known limitation, recorded rather than papered over
+
+A court that is INSIDE the dominant bloc reads its deny design as not-satisfied even
+when it holds the targets itself (Britain takes the Scheldt while leading the winning
+coalition). This is **pre-existing behavior, unchanged by this fix** — under the old
+code the targets counted as "in hegemon bloc hands" because Britain was in that bloc.
+Correcting it means deciding what deny satisfaction means when the denier and the
+hegemon are allies, which is an authoring decision rather than a defect. **Homed to
+NA-6c**, which touches the same predicates for the carve tags.
+
+Suite **14,011 → 14,017/3** (+6: `TestInvertedHegemonyGeometry`, plus the counsel-honesty
+pin). ruff clean, M1–M7 byte-identical.

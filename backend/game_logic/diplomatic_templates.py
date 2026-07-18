@@ -2996,6 +2996,13 @@ def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
         "sweeteners": [],
         "clauses": [],
         "type": "ultimatum_demand",
+        # Phase review (July 18, 2026): every other AI proposal builder
+        # stamps the issuer; this one did not, so the fallback prose
+        # rendered "Unknown demands 300 gold per turn" for an AI-issued
+        # ultimatum. `issuer` already defaults to the player above, so the
+        # player-issued path keeps its previous value rather than gaining
+        # a surprise one.
+        "proposer_nation": issuer,
     }
 
 

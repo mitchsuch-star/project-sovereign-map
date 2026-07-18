@@ -295,6 +295,120 @@ class TestCacheAndSerialization:
 
 # ═══════════════════════ NA-0: RESOLVE FEEDERS (pure) ═════════════════════
 
+class TestInvertedHegemonyGeometry:
+    """PHASE REGRESSION (phase review, July 18, 2026).
+
+    `_hegemon` consumed `coalition._identify_max_bloc_share` raw — "who is
+    biggest" — which is the wrong question for an ANTI-hegemon design.
+    Coalition formation produces real ALLIANCE states, so once the
+    anti-France bloc out-massed France the raw answer became Britain's own
+    ally, and every deny/contain/paymaster predicate switched off: the
+    designs deleted themselves at the moment they began to succeed, the
+    subsidy that funds the coalition stopped, and Britain's deny even read
+    SATISFIED while France held the Scheldt — worth +10 resolve and an
+    early separate peace for winning nothing.
+
+    Court-relative resolution (the largest bloc the court is NOT in) keeps
+    a design pointed at the power it was authored against.
+    """
+
+    def _coalition_outmasses_france(self, world):
+        """Grow the coalition from NEUTRAL soil, never from France.
+
+        France therefore keeps its boot share (still a hegemon by the
+        §3.1 floor, so deny/contain stay legitimately ACTIVE) while the
+        allied bloc grows past it — isolating the inverted-geometry
+        variable from the unrelated below-the-floor dormancy rule.
+        """
+        for a, b in (("Austria", "Britain"), ("Austria", "Russia"),
+                     ("Britain", "Russia")):
+            world.diplomatic_states[world._make_diplo_key(a, b)] = "ALLIANCE"
+        protected = set(world.get_bloc_members("France")) | {
+            "Austria", "Britain", "Russia",
+        }
+        taken = 0
+        for name, region in list(world.regions.items()):
+            # France keeps every province; so do the coalition members
+            # (losing their own homeland would trip the survival override
+            # and mask the behavior under test).
+            if region.controller in protected:
+                continue
+            if taken < 40:
+                region.controller = "Austria"
+                taken += 1
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+        world._agenda_cache = None
+        return world
+
+    def test_setup_actually_inverts_the_raw_hegemon(self, world):
+        """Guard the guard: if this stops flipping, the tests below go
+        vacuous. France must ALSO stay above the §3.1 floor, or the
+        designs would be dormant for an unrelated (authored) reason."""
+        from backend.game_logic.agendas import HEGEMON_BLOC_SHARE_FLOOR
+        from backend.game_logic.coalition import _identify_max_bloc_share
+        assert _identify_max_bloc_share(world)[0] == "France"
+        self._coalition_outmasses_france(world)
+        assert _identify_max_bloc_share(world)[0] == "Austria"
+        from backend.game_logic.agendas import _hegemon
+        assert _hegemon(world, "Britain")[1] >= HEGEMON_BLOC_SHARE_FLOOR
+
+    def test_the_court_still_fears_the_power_it_was_authored_against(self, world):
+        from backend.game_logic.agendas import _hegemon
+        self._coalition_outmasses_france(world)
+        assert _hegemon(world)[0] == "Austria", "raw view unchanged"
+        assert _hegemon(world, "Britain")[0] == "France"
+        assert _hegemon(world, "Russia")[0] == "France"
+
+    def test_the_designs_survive_their_own_success(self, world):
+        self._coalition_outmasses_france(world)
+        britain = get_active_agenda("Britain", world)
+        assert britain is not None and britain.id == "low_countries", (
+            "Britain lost its design the moment its coalition out-massed France"
+        )
+        russia = get_active_agenda("Russia", world)
+        assert russia is not None and russia.id == "arbiter_of_europe", (
+            "Russia lost its design the moment its coalition out-massed France"
+        )
+
+    def test_the_paymaster_keeps_paying_the_coalition_it_funds(self, world):
+        from backend.game_logic.agendas import get_paymaster_nation
+        world.nation_gold["Britain"] = 9000
+        self._coalition_outmasses_france(world)
+        assert get_paymaster_nation(world) == "Britain"
+
+    def test_deny_is_not_satisfied_while_the_denied_power_holds_the_targets(
+            self, world):
+        """The sharpest arm: France still holds the Scheldt."""
+        from backend.game_logic.agendas import (
+            agenda_separate_peace_ready, entry_satisfied,
+        )
+        self._coalition_outmasses_france(world)
+        assert world.regions["Flanders"].controller == "France"
+        low_countries = world.agendas["Britain"][0]
+        assert low_countries["id"] == "low_countries"
+        assert not entry_satisfied(world, "Britain", low_countries)
+        assert get_agenda_resolve_delta("Britain", "Russia", world) == 0
+        assert not agenda_separate_peace_ready("Britain", world)
+
+    def test_the_share_floor_gates_activation_not_satisfaction(self, world):
+        """An earlier cut returned satisfied below the floor ("the hegemon
+        fell"), which is false while the cut-down power holds the targets."""
+        from backend.game_logic.agendas import entry_satisfied
+        # Cut France below the floor WITHOUT taking the Low Countries.
+        keep = {"Flanders", "Brabant", "Amsterdam"}
+        taken = 0
+        for name, region in list(world.regions.items()):
+            if region.controller == "France" and name not in keep and taken < 26:
+                region.controller = "Austria"
+                taken += 1
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+        world._agenda_cache = None
+        assert world.regions["Flanders"].controller == "France"
+        assert not entry_satisfied(world, "Britain", world.agendas["Britain"][0])
+
+
 class TestResolveFeeders:
     def test_war_advancing_agenda_hardens_resolve(self, world):
         # France's bloc holds Milan — Austria's war against France advances
@@ -327,6 +441,34 @@ class TestResolveFeeders:
         assert agenda_satisfiable_by_player("Austria", world)
         # contain_hegemon is never table-satisfiable.
         assert not agenda_satisfiable_by_player("Russia", world)
+
+    def test_counsel_requires_a_province_the_player_can_actually_cede(
+            self, world):
+        """PHASE REGRESSION: the counsel gated on BLOC control while
+        `generate_suggested_terms` filters to the player's DIRECT holdings.
+        With every target sitting in a VASSAL's hands the counsel still
+        fired — costing an action, opening talks, and then offering an
+        unrelated province that scored the design term at ENTRENCH, i.e.
+        strictly worse than ignoring the advice. Mirrors the §16 narrowing
+        already applied to NA-5's ultimatum trigger."""
+        from backend.game_logic.agendas import get_agenda_covets
+        player = world.player_nation
+        direct = set(world.get_nation_regions(player))
+        assert "Savoy" in direct, "boot control: France holds Savoy directly"
+        assert agenda_satisfiable_by_player("Austria", world)
+
+        # Hand the one direct target to a vassal — nothing Austria wants is
+        # now France's to sign away.
+        world.regions["Savoy"].controller = "KingdomOfItaly"
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+        world._agenda_cache = None
+        assert get_agenda_covets("Austria", world), "still coveted, just unsignable"
+        assert not set(get_agenda_covets("Austria", world)) & set(
+            world.get_nation_regions(player))
+        assert not agenda_satisfiable_by_player("Austria", world), (
+            "the war room promised a cession the player cannot make"
+        )
 
     def test_vassal_never_has_resolve_voice(self, world):
         # KoI's capital (Milan) falls — survival would fire, but the
