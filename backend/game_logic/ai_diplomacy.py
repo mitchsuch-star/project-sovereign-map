@@ -1374,13 +1374,18 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     from backend.notifications import (
         create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
     )
+    # §11.8 stage 3 — compose on the CURRENT name. The client cannot repair a
+    # single-token formable tag here: humanize_nation_keys_in_text skips any
+    # key failing _is_prose_safe_nation_key, which names "Holland" outright.
+    from backend.game_logic.formations import formed_display_name
+    sender = formed_display_name(world, nation)
     if proposal.get("proposal_type") == "ultimatum":
         # NA-5 §8: an ultimatum announces itself as one.
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"Ultimatum from {nation}",
-            f"An envoy from {nation} has arrived with an ultimatum. "
+            f"Ultimatum from {sender}",
+            f"An envoy from {sender} has arrived with an ultimatum. "
             f"Yield, or defy them.",
             int(world.current_turn),
         ))
@@ -1388,8 +1393,8 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"Envoy from {nation}",
-            f"An envoy from {nation} has arrived with a proposal.",
+            f"Envoy from {sender}",
+            f"An envoy from {sender} has arrived with a proposal.",
             int(world.current_turn),
         ))
 

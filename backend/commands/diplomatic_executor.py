@@ -217,13 +217,16 @@ class DiplomaticExecutor:
         if not target_nation:
             # No target — ask which nation
             from backend.display_names import display_nation
+            # §11.8 stage 3 — a formed nation is addressed by its NEW name on
+            # the very surface the player uses to talk to it.
+            from backend.game_logic.formations import formed_display_name
             known_nations = sorted(get_known_nations(world))
             player_nation = get_player_nation(world)
             target_options = []
             for known_nation in known_nations:
                 state_label = world.get_diplomatic_state(player_nation, known_nation).replace("_", " ").title()
                 target_options.append({
-                    "label": display_nation(known_nation),
+                    "label": formed_display_name(world, known_nation),
                     "description": f"Current state: {state_label}.",
                     "action": "expand_options",
                     "terms": {"target_nation": known_nation},
@@ -234,7 +237,7 @@ class DiplomaticExecutor:
                 "target_nation": "",
                 "talleyrand_text": (
                     "Sire, which nation shall I approach? Our diplomatic landscape includes "
-                    + ", ".join(display_nation(n) for n in known_nations)
+                    + ", ".join(formed_display_name(world, n) for n in known_nations)
                     + "."
                 ),
                 "options": target_options,

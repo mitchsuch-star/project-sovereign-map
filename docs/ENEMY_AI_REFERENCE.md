@@ -138,7 +138,9 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest available marshal to recapture (capital=priority 2, range 6/unlimited, deathball split, enemy pathfinding for capitals) |
 | P3.8 | Liberation Priority | 75 | Coalition member with a liberation objective — attacks vassal capitals held by the target nation (WPS-D §13.5) |
 | P3.9 | Jealousy Glory Attack | 75 | Jealous AGGRESSIVE marshal, not fortified/drilling — attacks the weakest adjacent at-war enemy (Jealousy v3.2 §9b; +15% solo buff) |
-| P4 | Attack (standard) | 75 | Valid target + meets threshold; NA-3 agenda bias — equal-ratio ties break toward, and nearest-picks credit 2 hops to, the nation's active design targets (agendas.get_agenda_covets) |
+| P4 | Attack (standard) | 75 | Valid target + meets threshold; NA-3 agenda bias — equal-ratio ties break toward, and nearest-picks credit 2 hops to, the nation's active design targets (agendas.get_agenda_military_targets — the acquire-only,
+never-self-conquest narrowing; NOT get_agenda_covets, which is the wider
+diplomacy-facing set and is non-empty for deny/contain courts) |
 | P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
 | P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
