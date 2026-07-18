@@ -898,8 +898,8 @@ def process_agenda_violations(world) -> List[Dict]:
             violator, holder, AGENDA_VIOLATION_RELATION_PENALTY)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "agenda_violation", {
-            "violator": display_nation(violator),
-            "guard_holder": display_nation(holder),
+            "violator": _live_nation_name(world, violator),
+            "guard_holder": _live_nation_name(world, holder),
             "region": marshal.location,
         }, fog_rule="always")
         world.log_event({
@@ -927,6 +927,24 @@ def _unmet_targets(view: AgendaView, world) -> List[str]:
     ]
 
 
+def _live_nation_name(world, nation: str) -> str:
+    """Display name for backend-composed PROSE, formation-aware (NA-6).
+
+    `display_nation` is static, so a formed nation would be baked into the
+    sentence under its DEAD name — and because the result is already
+    humanized ("Kingdom of Italy", no longer the raw tag), Godot's
+    prose substitution cannot repair it downstream. Caught live on the
+    ledger: "their court will not rest while Kingdom of Italy holds Milan"
+    survived Italy's proclamation. §11.8 stage 3: no surface may show the
+    dead name. Local import — formations reads this module.
+    """
+    try:
+        from backend.game_logic.formations import formed_display_name
+    except ImportError:      # pragma: no cover — cycle guard
+        return display_nation(nation)
+    return formed_display_name(world, nation)
+
+
 def _stance_line(view: AgendaView, world) -> str:
     """One deterministic live-posture sentence per type (spec §5.1).
     All nation keys resolve through display_nation (R7)."""
@@ -937,7 +955,7 @@ def _stance_line(view: AgendaView, world) -> str:
         if unmet:
             holder = _region_controller(world, unmet[0])
             if holder:
-                holder_display = display_nation(holder)
+                holder_display = _live_nation_name(world, holder)
                 # Degenerate holder==region case ("Hanover holds Hanover" —
                 # live wart, July 17 2026 in-game review): an eponymous
                 # minor holding its own land reads as coveting, not war.
@@ -954,14 +972,16 @@ def _stance_line(view: AgendaView, world) -> str:
         bloc = set(world.get_bloc_members(hegemon)) if hegemon else set()
         held = [r for r in view.regions
                 if _region_controller(world, r) in bloc]
-        hegemon_display = display_nation(hegemon) if hegemon else "the hegemon"
+        hegemon_display = (_live_nation_name(world, hegemon)
+                           if hegemon else "the hegemon")
         if held:
             return (f"They will not suffer {hegemon_display}'s bloc "
                     f"in {held[0]}.")
         return f"They watch {hegemon_display}'s reach with suspicion."
     if view.type == "contain_hegemon":
         hegemon, share = _hegemon(world)
-        hegemon_display = display_nation(hegemon) if hegemon else "the hegemon"
+        hegemon_display = (_live_nation_name(world, hegemon)
+                           if hegemon else "the hegemon")
         return (f"They stand against {hegemon_display}'s dominion over "
                 f"Europe ({int(share * 100)}% of its weight).")
     if view.type == "paymaster":
@@ -1034,7 +1054,7 @@ def process_agenda_shifts(world) -> List[Dict]:
             continue
 
         focus = view.title if not view.survival else "its own survival"
-        nation_display = display_nation(nation)
+        nation_display = _live_nation_name(world, nation)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "agenda_shift", {
             "nation": nation_display,

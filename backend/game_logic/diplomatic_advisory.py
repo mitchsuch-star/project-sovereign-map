@@ -215,6 +215,9 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
     from backend.game_logic.agendas import (
         agenda_satisfiable_by_player, build_agenda_payload,
     )
+    # NA-6 §11.8 stage 3: a FORMED nation must never be named by its dead
+    # name in composed prose (display_nation is static).
+    from backend.game_logic.formations import formed_display_name
     for row in war_rows:
         participants = [n for n in (row.get("opponents")
                                     or [row.get("opponent", "")]) if n]
@@ -223,7 +226,7 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 continue
             payload = build_agenda_payload(opponent, world) or {}
             title = payload.get("title", "their design")
-            display = display_nation(opponent)
+            display = formed_display_name(world, opponent)
             terms_state = (row.get("request_terms_state") or {}).get("state", "")
             # The terms route belongs to the row's leader; other members
             # get the proposal menu (expand_options is always reachable).
@@ -360,8 +363,10 @@ def _assess_situation(world) -> Dict:
                 f"{duration} turn{'s' if duration != 1 else ''}.")
             # NA-1: name each belligerent's design so the war has a WHY —
             # a coalition row carries every participant in `opponents`.
-            from backend.display_names import display_nation
             from backend.game_logic.agendas import build_agenda_payload
+            # NA-6 §11.8 stage 3: never name a FORMED nation by its dead
+            # name — display_nation is static.
+            from backend.game_logic.formations import formed_display_name
             participants = [n for n in (row.get("opponents")
                                         or [row.get("opponent", "")]) if n]
             agenda_payloads = {}
@@ -370,7 +375,7 @@ def _assess_situation(world) -> Dict:
                 if payload:
                     agenda_payloads[participant] = payload
                     lines.append(
-                        f"    {display_nation(participant)}'s design: "
+                        f"    {formed_display_name(world, participant)}'s design: "
                         f"{payload['title']} — {payload['stance_line']}")
             wars_context.append({"opponent": row.get("opponent", ""),
                                  "war_score": score, "trend": trend,

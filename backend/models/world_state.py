@@ -1455,6 +1455,15 @@ class WorldState:
     def vassal_rebellion_imminent_popup(self, value: Optional[Dict]):
         self._popup_queue.set("vassal_rebellion_imminent_popup", value)
 
+    # NA-6 §11.8 stage 2: The Proclamation — a choice-less landmark card.
+    @property
+    def nation_proclamation_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("proclamation_popup")
+
+    @nation_proclamation_popup.setter
+    def nation_proclamation_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("proclamation_popup", value)
+
     # PL-23: talleyrand_redemption_popup property removed (trust system deleted)
 
     @property
@@ -5338,6 +5347,7 @@ class WorldState:
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
             "vassal_rebellion_imminent_popups": [p.copy() for p in self.vassal_rebellion_imminent_popups],
+            "nation_proclamation_popup": self.nation_proclamation_popup,
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
             "proposal_result_popup": self.proposal_result_popup,
@@ -5988,6 +5998,7 @@ class WorldState:
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
         world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]
+        world.nation_proclamation_popup = data.get("nation_proclamation_popup", None)
         # PL-23: talleyrand_redemption_popup removed (silently ignored from old saves)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)

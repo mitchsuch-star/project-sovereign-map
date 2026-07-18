@@ -90,7 +90,33 @@ static func contrast_text_color(background: Color) -> Color:
 	return Color.WHITE
 
 
+# === NA-6 Formable Dreams: the formation identity override ===
+# A formed nation keeps its internal TAG forever (save safety) and changes
+# only its DISPLAY identity. The backend ships the whole map on every
+# response (`nation_display_overrides` / `nation_flag_overrides`); both R7
+# chokepoints below consult it FIRST, so "no surface may show the dead
+# name" is a two-function property rather than an N-call-site sweep.
+static var formation_overrides := {}      # tag -> new display name
+static var formation_flag_overrides := {}  # tag -> heraldry asset tag
+
+static func set_formation_overrides(names: Dictionary, flags: Dictionary) -> void:
+	"""Adopt the backend's override maps. Flushes the nation-keyed flag
+	path cache, which is otherwise NEVER invalidated and caches the
+	negative result — without this a single lookup taken before the new
+	asset resolved would serve the dead flag for the rest of the session."""
+	if names == formation_overrides and flags == formation_flag_overrides:
+		return
+	formation_overrides = names.duplicate(true)
+	formation_flag_overrides = flags.duplicate(true)
+	_flag_path_cache.clear()
+
+
 static func display_nation_name(nation: String) -> String:
+	# The override outranks the static map: a formed nation must not fall
+	# through to its authored name, nor to the camelCase split below
+	# (which would render "DuchyOfWarsaw" as "Duchy Of Warsaw").
+	if formation_overrides.has(nation):
+		return formation_overrides[nation]
 	if NATION_DISPLAY_NAMES.has(nation):
 		return NATION_DISPLAY_NAMES[nation]
 	# The camelCase split only applies to strict single-token alphabetic keys.
@@ -136,10 +162,46 @@ const PROSE_NATION_KEY_SUBSTITUTIONS = {
 
 static func humanize_nation_keys_in_text(text: String) -> String:
 	var result := text
+	# NA-6: the formation overrides run FIRST and shadow the static map.
+	# Order is load-bearing: PROSE_NATION_KEY_SUBSTITUTIONS rewrites
+	# "KingdomOfItaly" -> "Kingdom of Italy", after which the raw token is
+	# gone and the override below could never match — which made the whole
+	# formation branch dead for the entire v1 formable set.
+	for key in formation_overrides:
+		if _is_prose_safe_nation_key(key) and result.contains(key):
+			result = result.replace(key, formation_overrides[key])
 	for key in PROSE_NATION_KEY_SUBSTITUTIONS:
+		# A live override already renamed this tag — never re-apply the
+		# authored (now dead) name over it.
+		if formation_overrides.has(key):
+			continue
 		if result.contains(key):
 			result = result.replace(key, PROSE_NATION_KEY_SUBSTITUTIONS[key])
+	# ONLY prose-safe tags are substituted above — that is, tags that
+	# are safe to substring-replace. A tag that is also a province name on
+	# this map (Normandy, Rome) or valid standalone prose would corrupt
+	# every sentence containing the word; that is the documented `Ottoman`
+	# exclusion above, and the NA-6c carve tags hit it head-on. Multi-token
+	# camelCase tags ("KingdomOfItaly") never occur in correct prose, so
+	# they are safe. Single-word tags are skipped and rely on the exact-key
+	# display_nation_name() path instead.
 	return result
+
+
+static func _is_prose_safe_nation_key(key: String) -> bool:
+	"""True when a nation tag can never appear as ordinary prose — i.e. it
+	is a multi-token camelCase key like "KingdomOfItaly". Single words
+	("Holland", "Normandy", "Rome") are NOT safe to substring-replace."""
+	var seen_lower := false
+	for i in range(key.length()):
+		var ch := key[i]
+		if ch.to_upper() == ch.to_lower():
+			return false   # space, hyphen or digit — already display text
+		if i > 0 and ch == ch.to_upper() and seen_lower:
+			return true    # a second capitalised token
+		if ch == ch.to_lower():
+			seen_lower = true
+	return false
 
 # === Map Connection Line Color ===
 # Slice 7.5 fold (user report: lines blend in with the map): sea-link routes
@@ -236,7 +298,13 @@ static func nation_flag_path(nation: String) -> String:
 	"""Path to a nation's flag SVG, or '' when no flag asset exists."""
 	if _flag_path_cache.has(nation):
 		return _flag_path_cache[nation]
-	var path := FLAG_DIR + nation + ".svg"
+	# NA-6: a formed nation flies its NEW colours. The cache is keyed by
+	# the incoming tag, and set_formation_overrides() clears it, so the
+	# swap takes effect on the response that carries the override.
+	var asset := nation
+	if formation_flag_overrides.has(nation):
+		asset = str(formation_flag_overrides[nation])
+	var path := FLAG_DIR + asset + ".svg"
 	if not ResourceLoader.exists(path):
 		path = ""
 	_flag_path_cache[nation] = path

@@ -36,7 +36,7 @@ from typing import Dict, List, Optional
 
 from backend.display_names import display_nation
 from backend.game_logic.agendas import (
-    AGENDA_GRUDGE_CAP, _is_vassal, entry_satisfied,
+    AGENDA_GRUDGE_CAP, _is_vassal, entry_satisfied, survival_override_active,
 )
 
 logger = logging.getLogger(__name__)
@@ -313,11 +313,49 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
     return payload
 
 
-def _announce(world, payload: dict) -> None:
-    """Dispatch beat + campaign log + notification (§11.8 stages 1 and 4).
+def build_proclamation_card(world, payload: dict) -> dict:
+    """The §11.8 stage-2 card payload — content only, no choices.
 
-    The Proclamation CARD itself is NA-6b; until it lands these three are
-    the whole beat, and they remain the click-past recovery afterwards.
+    Perspective-aware subtitle: the player who ratified the carve or holds
+    the sponsorship reads "By your hand"; everyone else witnesses a new
+    power taking its seat. Every number is int() for Godot (GR2), and the
+    stability line is omitted when the cap swallowed the lift so the card
+    never claims a reward the world did not receive.
+    """
+    player = getattr(world, "player_nation", "France")
+    authored = payload.get("sponsor") == player
+    lines = [f"+{int(payload['gold'])} gold to its treasury"]
+    if int(payload.get("regions_lifted", 0)) > 0:
+        lines.append(
+            f"its provinces exult (+{int(payload['stability_bonus'])} "
+            f"stability in {int(payload['regions_lifted'])} provinces)")
+    fury = ""
+    if payload.get("aggrieved_display"):
+        courts = " and ".join(payload["aggrieved_display"])
+        fury = f"{courts} receive the news as a declaration."
+    return {
+        "nation": payload["nation"],
+        "old_display_name": payload["old_display_name"],
+        "display_name": payload["display_name"],
+        "flag_tag": payload["flag_tag"],
+        "proclamation": payload["blurb"] or (
+            f"{payload['old_display_name']} is no more. "
+            f"{payload['display_name']} stands."),
+        "terms": lines,
+        "next_design": payload.get("next_design") or "",
+        "fury_line": fury,
+        "subtitle": ("By your hand." if authored
+                     else "A new power takes its seat in Europe."),
+        "turn": int(payload["turn"]),
+    }
+
+
+def _announce(world, payload: dict) -> None:
+    """Dispatch beat + campaign log + notification (§11.8 stages 1 and 4)
+    plus The Proclamation card on the PopupQueue (§11.8 stage 2).
+
+    The notification is deliberately raised alongside the card: it is the
+    stage-4 recovery for a player who clicks past the moment.
     """
     from backend.game_logic.dispatch import queue_dispatch_event
     from backend.notifications import (
@@ -353,6 +391,11 @@ def _announce(world, payload: dict) -> None:
         "sponsor": payload["sponsor"],
     })
 
+    # §11.8 stage 2 — the one ceremonial card. Transport-independent: the
+    # queue survives the tick AND the ratify path, where a dispatch line
+    # would not. Choice-less, so it carries no response endpoint.
+    world.nation_proclamation_popup = build_proclamation_card(world, payload)
+
 
 def process_formations(world) -> List[Dict]:
     """The once-per-formation poll (§11.10 decision 2).
@@ -376,6 +419,15 @@ def process_formations(world) -> List[Dict]:
             continue            # once-only; formation is permanent (§11.1)
         if _is_vassal(world, nation):
             continue            # a client cannot proclaim (§3.2 dormancy)
+        if survival_override_active(world, nation):
+            # The Knife at the Throat outranks the deck in `get_active_agenda`
+            # (agendas.py). The raw-deck scan deliberately bypasses that
+            # chokepoint — but the survival override must NOT be collateral
+            # damage: a rump state that happens to hold one listed province
+            # would otherwise proclaim a triumph, bank the windfall, and
+            # then take up "Survival" on the very same card. Formation is
+            # permanent, so this can never be undone afterwards.
+            continue
         for entry in _deck(world, nation):
             forms = get_forms_block(entry)
             if forms is None:

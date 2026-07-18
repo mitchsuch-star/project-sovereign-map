@@ -200,6 +200,8 @@ var glorious_charge_dialog = null
 var capture_choice_dialog = null
 var reward_dialog = null  # ES-7 second pass (§0.6.8): the Marshal's Reward dialog
 var marshal_petition_dialog = null  # Jealousy v3.2: the marshal-petition channel (layer 114)
+var proclamation_popup = null  # NA-6b: The Proclamation, a formation landmark (layer 117)
+var pending_proclamation_data = null  # NA-6b: stashed card, shown when control returns
 
 # Load Game Dialog (Phase 6: Save/Load)
 var load_dialog = null
@@ -324,6 +326,14 @@ func _ready():
 	marshal_petition_dialog = dialog_manager.register("marshal_petition", "res://scenes/marshal_petition_dialog.tscn")
 	if marshal_petition_dialog:
 		marshal_petition_dialog.petition_choice.connect(_on_marshal_petition_choice)
+
+	# NA-6b (spec §11.8 stage 2): The Proclamation. Choice-less, so there is
+	# no backend response to send — but `dismissed` MUST still be connected:
+	# the card is shown from a control-returning seam that deliberately does
+	# not re-enable input, and this handler is what hands it back.
+	proclamation_popup = dialog_manager.register("proclamation", "res://scenes/proclamation_popup.tscn")
+	if proclamation_popup:
+		proclamation_popup.dismissed.connect(_on_proclamation_dismissed)
 
 	load_dialog = dialog_manager.register("load", "res://scenes/load_dialog.tscn")
 	if load_dialog:
@@ -1194,6 +1204,35 @@ func _response_has_marshal_petition_route(response: Dictionary) -> bool:
 func _route_marshal_petition_response(response: Dictionary):
 	marshal_petition_dialog.show_petition(response.marshal_petition)
 
+# NA-6b: The Proclamation is deliberately NOT a pre-empting route.
+# A formation fires inside advance_turn, so its response is the one
+# carrying `enemy_phase` — and every entry in `_post_hud_response_routes`
+# returns from `_on_command_result` BEFORE the enemy-phase dialog, the
+# turn result text, strategic reports and the Morning Dispatch are shown,
+# and without re-enabling input. Routing the card there swallowed the
+# whole end-turn tail and soft-locked the terminal.
+#
+# Instead the card is STASHED the moment the response arrives — ahead of
+# all routing, so a higher-precedence modal (capture choice, objection)
+# cannot destroy it either — and shown at the points where the player
+# would otherwise regain control.
+func _stash_proclamation(response: Dictionary) -> void:
+	if response.has("nation_proclamation") and response.nation_proclamation != null:
+		pending_proclamation_data = response.nation_proclamation
+
+func _show_pending_proclamation() -> bool:
+	"""Show a stashed Proclamation. True when shown — the caller must then
+	NOT re-enable input; `_on_proclamation_dismissed` owns that."""
+	if pending_proclamation_data == null or proclamation_popup == null:
+		return false
+	var data = pending_proclamation_data
+	pending_proclamation_data = null
+	proclamation_popup.show_proclamation(data)
+	return true
+
+func _on_proclamation_dismissed():
+	set_input_enabled(true)
+
 func _response_has_diplomatic_objection_route(response: Dictionary) -> bool:
 	return (
 		response.has("diplomatic_objection")
@@ -1307,6 +1346,13 @@ func _route_redemption_response(response: Dictionary):
 
 func _on_command_result(response):
 	"""Handle command execution result."""
+	# NA-6b: stash a Proclamation BEFORE any routing or early return — the
+	# backend already popped it off the PopupQueue, so anything that drops
+	# the response here loses the moment permanently (the formation latch
+	# never re-fires it).
+	if typeof(response) == TYPE_DICTIONARY:
+		_stash_proclamation(response)
+
 	# ═══════════════════════════════════════════════════════════
 	# DEBUG TRACE: Exact step-by-step debugging
 	# ═══════════════════════════════════════════════════════════
@@ -1353,6 +1399,14 @@ func _on_command_result(response):
 
 	if _route_response_ui(response, _post_hud_response_routes):
 		return  # Don't re-enable input until choice made
+
+	# NA-6b: a formation completed at the settlement table (not on the tick)
+	# lands here. GUARDED on enemy_phase: this seam sits ABOVE the
+	# enemy-phase / turn-result / dispatch block, so firing it on an
+	# end-turn response would swallow exactly the tail it was meant to
+	# preserve. The tick path shows the card from _on_enemy_phase_dismissed.
+	if not response.has("enemy_phase") and _show_pending_proclamation():
+		return  # _on_proclamation_dismissed re-enables input
 
 	# Re-enable input
 	set_input_enabled(true)
@@ -3015,6 +3069,13 @@ func _on_enemy_phase_dismissed():
 
 	# Morning Dispatch — displayed last, right before player gets control
 	_show_pending_dispatch()
+
+	# NA-6b (§11.8 stage 2): the landmark comes after the turn resolution
+	# the player was already watching, and after the dispatch that
+	# announced it — the last thing before control returns. This is the
+	# DOMINANT path: formations fire inside advance_turn.
+	if _show_pending_proclamation():
+		return  # _on_proclamation_dismissed re-enables input
 
 	set_input_enabled(true)
 	command_input.grab_focus()

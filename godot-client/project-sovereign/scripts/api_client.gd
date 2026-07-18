@@ -245,6 +245,7 @@ func _on_request_completed(result, response_code, _headers, body):
 		var json = JSON.new()
 		var parse_result = json.parse(response_text)
 		if parse_result == OK:
+			_adopt_formation_overrides(json.data)
 			if callback:
 				callback.call(json.data)
 		else:
@@ -257,3 +258,25 @@ func _on_request_completed(result, response_code, _headers, body):
 			callback.call({"success": false, "message": "Server error (code " + str(response_code) + ")"})
 
 	_start_next_request()
+
+
+# === NA-6 Formable Dreams: the identity chokepoint ===
+# ONE function sees every 200-OK JSON body from every endpoint, GET and
+# POST alike, and it runs BEFORE the callback — so the very response that
+# proclaims a nation already renders under its new name. Deliberately
+# placed here rather than in main.gd's _on_command_result, which only
+# sees the /command family and sits after two early-return routes.
+func _adopt_formation_overrides(data) -> void:
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	# Absent key = a response shape that predates the field (or an error
+	# envelope) — leave the store alone rather than wrongly clearing it.
+	if not data.has("nation_display_overrides"):
+		return
+	var names = data.get("nation_display_overrides")
+	var flags = data.get("nation_flag_overrides")
+	if typeof(names) != TYPE_DICTIONARY:
+		return
+	if typeof(flags) != TYPE_DICTIONARY:
+		flags = {}
+	Utils.set_formation_overrides(names, flags)

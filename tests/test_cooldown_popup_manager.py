@@ -443,12 +443,14 @@ class TestCooldownPopupEnforcement:
         assert mgr._registered_scalars == {"talleyrand_defiance", "ultimatum_global"}
 
     def test_popup_priority_order_length(self):
-        """PopupQueue tracks 10 keys: 9 canonical slots plus one legacy alias.
+        """PopupQueue tracks 11 keys: 10 canonical slots plus one legacy alias.
         SC-5 reversal commit 2 added `incoming_settlement_offer_popup`;
         Jealousy v3.2 added `pending_marshal_petition` (the marshal-petition
-        channel — confrontations, rivalry events, Fontainebleau)."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 10
-        assert len(PopupQueue.RESPONSE_KEYS) == 10
+        channel — confrontations, rivalry events, Fontainebleau);
+        NA-6b (July 18, 2026) added `proclamation_popup` (The Proclamation —
+        a formation landmark, spec §11.8 stage 2)."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 11
+        assert len(PopupQueue.RESPONSE_KEYS) == 11
         assert PopupQueue.RESPONSE_KEYS["commitment_paradox_popup"] == "commitment_paradox_popup"
         assert PopupQueue.RESPONSE_KEYS["alliance_paradox_popup"] == "commitment_paradox_popup"
         assert "incoming_settlement_offer_popup" in PopupQueue.PRIORITY_ORDER

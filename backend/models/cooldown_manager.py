@@ -146,6 +146,10 @@ class PopupQueue:
         "coalition_popup",
         "diplomatic_sabotage_popup",
         "vassal_rebellion_imminent_popup",
+        # NA-6 §11.10-5: The Proclamation. A landmark outranks routine
+        # mail and marshal drama, and yields to the crises above it —
+        # a nation being born can wait for a rebellion, not for an envoy.
+        "proclamation_popup",
         "diplomatic_objection_popup",
         # Jealousy v3.2: the marshal-petition channel (confrontations,
         # rivalry events, Fontainebleau) — marshal drama outranks routine
@@ -163,6 +167,7 @@ class PopupQueue:
         "coalition_popup": "coalition_popup",
         "diplomatic_sabotage_popup": "diplomatic_sabotage",
         "vassal_rebellion_imminent_popup": "vassal_rebellion_imminent",
+        "proclamation_popup": "nation_proclamation",
         "diplomatic_objection_popup": "diplomatic_objection",
         "pending_marshal_petition": "marshal_petition",
         "incoming_proposal_popup": "incoming_proposal",

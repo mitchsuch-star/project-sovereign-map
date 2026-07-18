@@ -262,6 +262,29 @@ class TestRawDeckScan:
         assert len(proclamations) == 1
         assert proclamations[0]["display_name"] == "Alpha"
 
+    def test_a_rump_state_cannot_proclaim_a_triumph(self, world):
+        """REGRESSION (P2): the raw-deck scan bypasses `get_active_agenda`,
+        which ranks the survival override ABOVE the deck — so the override
+        must be re-applied here or a rump that happens to hold one listed
+        province proclaims a triumph, banks the windfall, and takes up
+        "Survival" on the same card. Formation is permanent, so it can
+        never be undone. Holland's forming entry needs exactly ONE
+        non-homeland province (Flanders), which makes this reachable."""
+        from backend.game_logic.agendas import survival_override_active
+        _free(world, "Holland")
+        _hand_over(world, "Holland", ["Flanders"])
+        # ...but the homeland is gone: Amsterdam (its capital) and Brabant.
+        _hand_over(world, "Austria", ["Amsterdam", "Brabant"])
+        assert survival_override_active(world, "Holland"), "setup control"
+
+        assert process_formations(world) == []
+        assert world.nation_formations == {}
+
+        # Recover the homeland and the proclamation becomes legitimate.
+        _hand_over(world, "Holland", ["Amsterdam", "Brabant"])
+        assert not survival_override_active(world, "Holland")
+        assert len(process_formations(world)) == 1
+
     def test_postures_never_form(self, world):
         """guard_neutrality/paymaster never satisfy, so a `forms` block on
         one can never fire — the validator rejects it, and the runtime
@@ -801,3 +824,441 @@ class TestResponsePayload:
             assert "_attach_nation_identity_overrides" in body, (
                 f"{endpoint} does not stamp the NA-6 identity overrides"
             )
+
+
+# ═══════════════════ NA-6b: THE PROCLAMATION (§11.8 stage 2) ══════════════
+
+class TestProclamationCard:
+    def test_the_card_is_queued_on_formation(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        card = world.nation_proclamation_popup
+        assert card is not None
+        assert card["display_name"] == "Italy"
+        assert card["old_display_name"] == "Kingdom of Italy"
+        assert card["flag_tag"] == "Italy"
+        assert "ITALY stands" in card["proclamation"]
+
+    def test_the_card_states_only_rewards_actually_received(self, world):
+        """The cap can swallow the stability lift — the card must not
+        claim a reward the world did not get."""
+        _free_italy_with_the_peninsula(world)
+        for name in ITALY_PROVINCES:
+            world.regions[name].stability = 100
+        process_formations(world)
+        terms = world.nation_proclamation_popup["terms"]
+        assert any("gold" in t for t in terms)
+        assert not any("stability" in t for t in terms)
+
+        world2 = WorldState.from_dict(world.to_dict())
+        world2.nation_formations = {}
+        world2.nation_proclamation_popup = None
+        for name in ITALY_PROVINCES:
+            world2.regions[name].stability = 50
+        process_formations(world2)
+        assert any("stability" in t
+                   for t in world2.nation_proclamation_popup["terms"])
+
+    def test_subtitle_is_perspective_aware(self, world):
+        """§11.8 stage 2: witness vs author — same card, one line differs."""
+        from backend.game_logic.formations import build_proclamation_card
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        assert world.nation_proclamation_popup["subtitle"] == (
+            "A new power takes its seat in Europe."
+        )
+        authored = build_proclamation_card(world, {
+            "nation": "KingdomOfItaly", "old_display_name": "Kingdom of Italy",
+            "display_name": "Italy", "flag_tag": "Italy", "blurb": "",
+            "sponsor": world.player_nation, "aggrieved_display": [],
+            "next_design": "", "gold": 2000, "stability_bonus": 2,
+            "regions_lifted": 3, "turn": 1,
+        })
+        assert authored["subtitle"] == "By your hand."
+
+    def test_the_card_carries_the_fury_line(self, world):
+        _author_aggrieved_formable(world, aggrieved=("Prussia", "Russia"))
+        process_formations(world)
+        fury = world.nation_proclamation_popup["fury_line"]
+        assert "Prussia" in fury and "Russia" in fury
+        assert "declaration" in fury
+
+    def test_no_fury_line_without_aggrieved_courts(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        assert world.nation_proclamation_popup["fury_line"] == ""
+
+    def test_the_turn_is_an_int_for_godot(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        turn = world.nation_proclamation_popup["turn"]
+        assert isinstance(turn, int) and not isinstance(turn, bool)
+
+
+class TestPopupQueueSlot:
+    def test_the_slot_and_its_response_key_exist(self):
+        from backend.models.cooldown_manager import PopupQueue
+        assert "proclamation_popup" in PopupQueue.PRIORITY_ORDER
+        assert PopupQueue.RESPONSE_KEYS["proclamation_popup"] == (
+            "nation_proclamation"
+        )
+
+    def test_a_landmark_outranks_mail_and_yields_to_crises(self):
+        """§11.10-5: directly below vassal_rebellion_imminent_popup."""
+        from backend.models.cooldown_manager import PopupQueue
+        order = PopupQueue.PRIORITY_ORDER
+        assert order.index("vassal_rebellion_imminent_popup") < order.index(
+            "proclamation_popup")
+        for lower in ("diplomatic_objection_popup", "pending_marshal_petition",
+                      "incoming_proposal_popup"):
+            assert order.index("proclamation_popup") < order.index(lower)
+
+    def test_the_card_pops_under_its_response_key(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        ptype, key, data = world._popup_queue.pop_highest()
+        assert ptype == "proclamation_popup"
+        assert key == "nation_proclamation"
+        assert data["display_name"] == "Italy"
+
+    def test_the_card_survives_save_load(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert reloaded.nation_proclamation_popup["display_name"] == "Italy"
+
+    def test_no_response_endpoint_exists(self):
+        """Choice-less by design — Acknowledge is a client-side dismiss."""
+        import inspect
+        from backend import main as main_module
+        source = inspect.getsource(main_module)
+        assert "/nation_proclamation_response" not in source
+        assert "/proclamation_response" not in source
+
+
+class TestEnemyPhaseCarveOut:
+    def test_the_card_is_not_deferred_behind_enemy_phase(self, world):
+        """A formation almost always fires on the turn tick — the response
+        carrying enemy_phase. Deferred, the Proclamation would surface a
+        whole command later, long after the dispatch announced it."""
+        from backend import main as main_module
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        response = {"enemy_phase": {"events": []}}
+        main_module._apply_command_popup_contract(response, {}, world)
+        assert response["nation_proclamation"]["display_name"] == "Italy"
+        assert world.nation_proclamation_popup is None, (
+            "the card must be consumed, not left to re-fire"
+        )
+
+    def test_nothing_is_attached_when_no_formation_happened(self, world):
+        from backend import main as main_module
+        response = {"enemy_phase": {"events": []}}
+        main_module._apply_command_popup_contract(response, {}, world)
+        assert "nation_proclamation" not in response
+
+
+# ═══════════════ NA-6b: NO DEAD NAME IN COMPOSED PROSE (§11.8-3) ══════════
+
+class TestNoDeadNameInProse:
+    """Found LIVE on the diplomatic ledger during the NA-6b visual check:
+    Austria's design line still read "while Kingdom of Italy holds Milan"
+    after Italy was proclaimed.
+
+    The class of bug: `display_nation` is STATIC, so the backend bakes the
+    dead name into the sentence — and because the result is already
+    humanized (no raw `KingdomOfItaly` token survives), Godot's prose
+    substitution cannot repair it downstream. Composed prose must resolve
+    through `formations.formed_display_name`.
+    """
+
+    def _form_italy(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        world._agenda_cache = None
+
+    def test_agenda_stance_line_names_the_formed_nation(self, world):
+        before = build_agenda_payload("Austria", world)["stance_line"]
+        assert "Kingdom of Italy" in before, "boot control"
+        self._form_italy(world)
+        after = build_agenda_payload("Austria", world)["stance_line"]
+        assert "Kingdom of Italy" not in after
+        assert "Italy holds Milan" in after
+
+    def _at_peace(self, world, nation):
+        for other in list(world.get_active_nations()):
+            if other != nation:
+                world.diplomatic_states[
+                    world._make_diplo_key(nation, other)] = "PEACE"
+        world.invalidate_bloc_members_cache()
+        world._agenda_cache = None
+
+    def test_the_shift_beat_names_the_formed_nation(self, world):
+        from backend.game_logic.agendas import process_agenda_shifts
+        self._form_italy(world)
+        # A formed Italy still at war has NO active agenda (its post-
+        # formation design is a peace posture), and the beat is correctly
+        # silent then — peace is what makes the shift observable.
+        self._at_peace(world, "KingdomOfItaly")
+        world.nation_agenda_seen["KingdomOfItaly"] = "__stale__"
+        world.pending_dispatch_events = []
+        process_agenda_shifts(world)
+        beats = [e for e in world.pending_dispatch_events
+                 if e.get("type") == "agenda_shift"
+                 and e["template_vars"].get("nation") in
+                 ("Italy", "Kingdom of Italy")]
+        assert beats, "no shift beat fired for the formed nation"
+        assert beats[0]["template_vars"]["nation"] == "Italy"
+
+    def test_the_violation_beat_names_the_formed_nation(self, world):
+        """A formed Italy's own guard regions are the NA-3 trap surface."""
+        from backend.game_logic.agendas import process_agenda_violations
+        self._form_italy(world)
+        self._at_peace(world, "KingdomOfItaly")   # activates the guard posture
+        assert get_active_agenda("KingdomOfItaly", world).id == (
+            "guard_the_peninsula")
+        world.marshals["Ney"].location = "Rome"
+        world.pending_dispatch_events = []
+        process_agenda_violations(world)
+        beats = [e for e in world.pending_dispatch_events
+                 if e.get("type") == "agenda_violation"]
+        assert beats, "the guard violation did not fire"
+        assert beats[0]["template_vars"]["guard_holder"] == "Italy"
+
+    def test_the_war_room_design_lines_name_the_formed_nation(self, world):
+        from backend.game_logic.diplomatic_advisory import generate_advisory
+        self._form_italy(world)
+        advisory = generate_advisory(None, "assess_situation", world)
+        blob = str(advisory)
+        assert "Kingdom of Italy" not in blob, (
+            "the war room still names the dead nation"
+        )
+
+    def test_the_helper_is_a_no_op_for_unformed_nations(self, world):
+        from backend.game_logic.formations import formed_display_name
+        from backend.display_names import display_nation
+        for nation in ("Austria", "KingdomOfItaly", "PapalStates", "Ottoman"):
+            assert formed_display_name(world, nation) == display_nation(nation)
+
+
+# ═══════════════════ NA-6b: THE GODOT SURFACES (source pins) ══════════════
+
+GODOT = (
+    Path(__file__).resolve().parents[1]
+    / "godot-client" / "project-sovereign"
+)
+
+
+def _read(relative: str) -> str:
+    return (GODOT / relative).read_text(encoding="utf-8")
+
+
+class TestGodotWiring:
+    def test_the_scene_and_script_exist_on_the_free_layer(self):
+        scene = _read("scenes/proclamation_popup.tscn")
+        assert "layer = 117" in scene
+        assert "res://scripts/proclamation_popup.gd" in scene
+        assert "AcknowledgeButton" in scene
+
+    def test_layer_117_is_not_double_booked(self):
+        """Measured at build time, not trusted from the spec."""
+        import re
+        layers = {}
+        for path in (GODOT / "scenes").glob("*.tscn"):
+            for match in re.finditer(r"^layer = (\d+)$",
+                                     path.read_text(encoding="utf-8"),
+                                     re.MULTILINE):
+                layers.setdefault(int(match.group(1)), []).append(path.name)
+        assert layers[117] == ["proclamation_popup.tscn"]
+
+    def test_the_script_extends_popup_base_and_re_enables_its_button(self):
+        script = _read("scripts/proclamation_popup.gd")
+        assert script.startswith("extends PopupBase")
+        assert "acknowledge_btn.disabled = false" in script, (
+            "PopupBase.close_popup() permanently disables buttons — without "
+            "the re-enable the SECOND proclamation opens uncloseable"
+        )
+
+    def test_the_script_routes_names_through_the_r7_chokepoints(self):
+        script = _read("scripts/proclamation_popup.gd")
+        assert "Utils.humanize_nation_keys_in_text" in script
+        assert "Utils.nation_flag_path" in script
+
+    def test_main_registers_the_popup_and_connects_dismissed(self):
+        """`dismissed` MUST be connected even though the card is
+        choice-less: it is shown from a seam that deliberately does not
+        re-enable input, and this handler is what hands control back.
+        Without it the terminal soft-locks on the first formation."""
+        main_gd = _read("scripts/main.gd")
+        assert 'dialog_manager.register("proclamation"' in main_gd
+        assert "proclamation_popup.dismissed.connect(_on_proclamation_dismissed)" in main_gd
+        assert "func _on_proclamation_dismissed" in main_gd
+        handler = main_gd.index("func _on_proclamation_dismissed")
+        assert "set_input_enabled(true)" in main_gd[handler:handler + 200]
+
+    def test_the_card_is_not_a_pre_empting_route(self):
+        """REGRESSION (two confirmed P1s): every entry in
+        `_post_hud_response_routes` returns from `_on_command_result`
+        BEFORE the enemy-phase dialog, the turn result text, strategic
+        reports and the Morning Dispatch — and without re-enabling input.
+        A formation fires inside advance_turn, so its response is exactly
+        the one carrying `enemy_phase`. Routing the card there swallowed
+        the whole end-turn tail AND soft-locked the terminal."""
+        main_gd = _read("scripts/main.gd")
+        start = main_gd.index("_post_hud_response_routes = [")
+        table = main_gd[start:main_gd.index("]", start)]
+        assert "proclamation" not in table, (
+            "the Proclamation must never be a pre-empting response route"
+        )
+        assert "_route_proclamation_response" not in main_gd
+
+    def test_the_card_is_stashed_before_any_routing(self):
+        """The backend already popped the card off the PopupQueue, and the
+        formation latch never re-fires it — so anything that drops the
+        response loses the moment permanently. Stashing ahead of all
+        routing also survives a higher-precedence modal (capture choice)
+        winning the same response."""
+        main_gd = _read("scripts/main.gd")
+        assert "func _stash_proclamation" in main_gd
+        assert "func _show_pending_proclamation" in main_gd
+        result_fn = main_gd.index("func _on_command_result")
+        stash = main_gd.index("_stash_proclamation(response)", result_fn)
+        route = main_gd.index("_route_response_ui(response", result_fn)
+        assert stash < route, "the stash must precede all routing"
+
+    def test_the_card_is_shown_when_control_returns(self):
+        """Both resume points: the enemy-phase dismissal (the dominant
+        path — formations fire on the tick) and the plain command tail
+        (the settlement-ratify path)."""
+        main_gd = _read("scripts/main.gd")
+        assert main_gd.count("_show_pending_proclamation()") >= 2
+        dismissed = main_gd.index("func _on_enemy_phase_dismissed")
+        body = main_gd[dismissed:dismissed + 2600]
+        assert "_show_pending_proclamation()" in body, (
+            "the enemy-phase path never shows the stashed card"
+        )
+        # ...and it must come AFTER the dispatch, per §11.8 stage ordering.
+        assert body.index("_show_pending_dispatch()") < body.index(
+            "_show_pending_proclamation()")
+
+    def test_the_early_seam_is_guarded_on_enemy_phase(self):
+        """REGRESSION (caught live): the command-tail seam sits ABOVE the
+        enemy-phase / turn-result / dispatch block, so firing it on an
+        end-turn response swallows exactly the tail it exists to preserve.
+        The enemy-phase dialog never appeared until this guard landed."""
+        main_gd = _read("scripts/main.gd")
+        result_fn = main_gd.index("func _on_command_result")
+        early = main_gd.index("_show_pending_proclamation()", result_fn)
+        line_start = main_gd.rindex("\n", 0, early)
+        guard_region = main_gd[line_start - 200:early]
+        assert 'not response.has("enemy_phase")' in guard_region, (
+            "the pre-enemy-phase seam must be guarded on enemy_phase"
+        )
+
+    def test_the_popup_is_not_added_to_the_dialogue_dtype_whitelist(self):
+        """§11.10-5 makes it a PopupQueue popup, NOT a dialogue — §11.7's
+        'dtype whitelist' completion line is stale for this surface."""
+        main_gd = _read("scripts/main.gd")
+        start = main_gd.index("PROPOSAL_CONFIRM_DIALOGUE_TYPES")
+        assert "proclamation" not in main_gd[start:start + 1400]
+
+    def test_dialog_manager_records_the_layer(self):
+        assert "117: proclamation_popup" in _read("scripts/dialog_manager.gd")
+
+
+class TestGodotIdentityChokepoints:
+    def test_utils_consults_the_override_first(self):
+        utils = _read("scripts/utils.gd")
+        assert "static var formation_overrides" in utils
+        assert "static func set_formation_overrides" in utils
+        # The override must be checked BEFORE the static map and before the
+        # camelCase split, or a formed tag renders its authored name.
+        start = utils.index("static func display_nation_name")
+        body = utils[start:start + 400]
+        assert body.index("formation_overrides.has(nation)") < body.index(
+            "NATION_DISPLAY_NAMES.has(nation)")
+
+    def test_the_flag_cache_is_flushed_when_the_store_changes(self):
+        """utils.gd's _flag_path_cache is nation-keyed, caches the NEGATIVE
+        result, and is otherwise never invalidated anywhere."""
+        utils = _read("scripts/utils.gd")
+        start = utils.index("static func set_formation_overrides")
+        assert "_flag_path_cache.clear()" in utils[start:start + 700]
+
+    def test_flag_lookup_resolves_the_formation_asset(self):
+        utils = _read("scripts/utils.gd")
+        start = utils.index("static func nation_flag_path")
+        assert "formation_flag_overrides.has(nation)" in utils[start:start + 600]
+
+    def test_the_formation_override_is_not_shadowed_by_the_static_map(self):
+        """REGRESSION (P2): PROSE_NATION_KEY_SUBSTITUTIONS contains the
+        literal key `KingdomOfItaly`. Running it first rewrites the token
+        to "Kingdom of Italy", after which the formation loop's
+        `contains(key)` can never match — which made the override branch
+        DEAD for the entire v1 formable set. Order is load-bearing."""
+        utils = _read("scripts/utils.gd")
+        start = utils.index("static func humanize_nation_keys_in_text")
+        body = utils[start:utils.index("static func _is_prose_safe_nation_key")]
+        assert body.index("for key in formation_overrides") < body.index(
+            "for key in PROSE_NATION_KEY_SUBSTITUTIONS"), (
+            "the formation loop must run BEFORE the static prose map"
+        )
+        assert "if formation_overrides.has(key):" in body, (
+            "a tag with a live override must be skipped by the static map"
+        )
+        assert body.count("for key in formation_overrides") == 1, (
+            "duplicate override loop left behind"
+        )
+
+    def test_prose_substitution_skips_unsafe_single_word_tags(self):
+        """`Normandy` and `Rome` are PROVINCE names on this map — a blind
+        substring replace would corrupt every sentence naming them. This is
+        the documented `Ottoman` exclusion, and NA-6c walks into it."""
+        utils = _read("scripts/utils.gd")
+        assert "_is_prose_safe_nation_key" in utils
+        start = utils.index("static func humanize_nation_keys_in_text")
+        assert "_is_prose_safe_nation_key(key)" in utils[start:start + 900]
+
+    def test_api_client_adopts_overrides_before_the_callback(self):
+        """One chokepoint sees every 200-OK body from every endpoint, and
+        it must run BEFORE the callback so the response that proclaims a
+        nation already renders under the new name."""
+        api = _read("scripts/api_client.gd")
+        assert "func _adopt_formation_overrides" in api
+        assert api.index("_adopt_formation_overrides(json.data)") < api.index(
+            "callback.call(json.data)")
+        assert "Utils.set_formation_overrides" in api
+
+    def test_absent_field_does_not_clear_the_store(self):
+        api = _read("scripts/api_client.gd")
+        start = api.index("func _adopt_formation_overrides")
+        assert 'if not data.has("nation_display_overrides")' in api[start:start + 900]
+
+    def test_the_new_flag_assets_are_importable_by_godot(self):
+        """A .svg with no .import sibling does NOT resolve through
+        ResourceLoader.exists(), so the flag silently fails to draw — found
+        live: the first Proclamation opened with an empty flag frame."""
+        for asset in ("Italy", "UnitedNetherlands"):
+            base = GODOT / "assets" / "ui" / "heraldry" / f"{asset}.svg"
+            assert base.exists(), f"missing {asset}.svg"
+            assert base.with_suffix(".svg.import").exists(), (
+                f"{asset}.svg has no .import sibling — Godot cannot load it"
+            )
+
+    def test_every_authored_formation_flag_has_an_asset(self):
+        """No formable may proclaim under a missing flag."""
+        world = WorldState.from_scenario(str(SCENARIO_PATH))
+        seen = 0
+        for deck in world.agendas.values():
+            for entry in deck:
+                block = get_forms_block(entry)
+                if block is None:
+                    continue
+                seen += 1
+                path = (GODOT / "assets" / "ui" / "heraldry"
+                        / f"{block['flag']}.svg")
+                assert path.exists(), (
+                    f"{block['display_name']} forms with no flag asset "
+                    f"({block['flag']}.svg)"
+                )
+        assert seen == 2   # Italy + United Netherlands

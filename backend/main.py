@@ -571,6 +571,17 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         response["proposal_result"] = proposal_result
         world.proposal_result_popup = None
 
+    # NA-6 §11.8 stage 2 — the SAME carve-out, for the same reason. A
+    # formation almost always fires during the turn tick, which is exactly
+    # the response carrying `enemy_phase`; deferred, the Proclamation would
+    # surface a full command later, long after the dispatch already
+    # announced it. The card is choice-less and informational, so it is
+    # safe beside enemy_phase on the PL-5A/PL-30 rationale.
+    proclamation = world.nation_proclamation_popup
+    if proclamation is not None:
+        response["nation_proclamation"] = proclamation
+        world.nation_proclamation_popup = None
+
 
 def _finalize_command_notifications(response: dict, world) -> None:
     """Drain informational notices into the persistent notification rail."""

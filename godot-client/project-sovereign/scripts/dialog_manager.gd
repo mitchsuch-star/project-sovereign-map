@@ -23,9 +23,12 @@ class_name DialogManager
 #   112: incoming_proposal_popup
 #   113: talleyrand_objection_popup
 #   114: marshal_petition_dialog (Jealousy v3.2 — the petition channel)
-#   115: vassal_rebellion_popup
+#   115: vassal_rebellion_popup + proposal_result_popup (orphan scene, never
+#        registered or routed — recorded so the slot is not re-used blind)
 #   116: sabotage_discovery_popup
+#   117: proclamation_popup (NA-6b — The Proclamation, spec §11.8 stage 2)
 #   118: enemy_phase_dialog
+#   119: mailbox_panel
 #   120: pause_menu (always on top)
 # =============================================================================
 
