@@ -55,6 +55,13 @@ QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
 # R126: Urgent re-proposal when situation changes drastically
 URGENT_REPROPO_DELTA = 20       # War score drop of 20+ bypasses nation cooldown
 
+# NA-5 §8 (R162): the AI ultimatum rung — "satisfy their design or fight".
+# Fires between P7 opportunism and P8 for a court whose active ACQUIRE
+# design targets player-bloc soil while its army towers over the player's.
+# Balance numbers in-band tunable; structure escalates to a gate.
+AI_ULTIMATUM_STRENGTH_RATIO = 1.25   # fog-free national strength gate (ledger basis)
+AI_ULTIMATUM_COOLDOWN_TURNS = 15     # per-nation re-issue cooldown (set at ISSUE)
+
 # AUD-b (8.EVAL Batch Q, July 16 2026): the P2 "stalemate" armistice used to
 # fire purely on turns-since-war-start with NO combat requirement, so an entire
 # coalition would sue for peace by turn ~5-7 having never fought a battle. The
@@ -769,6 +776,111 @@ def _hegemony_ask_candidates(nation: str, diplo_state: str, relation: int,
 # P7: OPPORTUNISM CHECK
 # ═══════════════════════════════════════════════════════════════
 
+def _national_strength(nation: str, world) -> int:
+    """Fog-free national strength on the diplomatic-ledger basis (sum of
+    standing marshal strengths — diplomatic_ledger.py's army_strength sum).
+    The ledger fogs only the DISPLAY formatting; this is the raw number."""
+    return int(sum(m.strength for m in world.marshals.values()
+                   if m.nation == nation and m.strength > 0))
+
+
+def _has_live_ultimatum(world) -> bool:
+    """NA-5 §8: max ONE live ultimatum world-wide — scan the active slot
+    and the mailbox queue for an undecided incoming_ultimatum dialogue."""
+    dm = world.dialogue_manager
+    current = dm.peek()
+    if current and current.get("type", "") == "incoming_ultimatum":
+        return True
+    return any(item.get("type", "") == "incoming_ultimatum"
+               for item in dm._queue)
+
+
+def _ultimatum_demandable_regions(nation: str, world) -> List[str]:
+    """Unmet ACQUIRE-design targets the player DIRECTLY controls, minus the
+    player's capital. The demand must be cedeable by the player's own hand —
+    a target held by a player vassal concerns the bloc but cannot ride a
+    cession clause the player can sign, and the capital is never demandable
+    (conscious tightening of §8's "player-bloc" wording, pinned in tests)."""
+    from backend.game_logic.agendas import get_active_agenda
+    view = get_active_agenda(nation, world)
+    if view is None or view.survival or view.type != "acquire_regions":
+        return []
+    player = getattr(world, "player_nation", "France")
+    player_capital = world.get_nation_capital(player)
+    demandable = []
+    for region_name in view.regions:
+        if region_name == player_capital:
+            continue
+        region = world.regions.get(region_name)
+        if region is not None and getattr(region, "controller", None) == player:
+            demandable.append(region_name)
+    return demandable
+
+
+def _generate_agenda_ultimatum(nation: str, world) -> Optional[Dict]:
+    """NA-5 §8 (R162): the ultimatum rung body — the caller has already
+    established at-peace and relation < 0. The remaining gates (each one
+    falsified in test_nation_agendas_ultimatums.py): per-nation 15-turn
+    cooldown clear, no live ultimatum anywhere, outside the player's bloc,
+    an active acquire design with a player-held unmet target, and fog-free
+    national strength >= AI_ULTIMATUM_STRENGTH_RATIO x the player's.
+
+    Building Blocks: terms via the player's own generate_ultimatum_terms
+    with the direction inverted (issuer=the AI court, target=the player)
+    and the design target as the territory demand. `_force_send` bypasses
+    the player-side acceptance filter — ultimatum demands score terribly
+    by construction; the send is the point. The cooldown starts at ISSUE,
+    so an ignored (lapsed) ultimatum does not return next turn.
+    """
+    from backend.game_logic.diplomatic_templates import generate_ultimatum_terms
+
+    player = getattr(world, "player_nation", "France")
+
+    cooldowns = _get_cooldowns(world)
+    if cooldowns.get(f"{nation}|ultimatum", 0) > 0:
+        return None
+    if _has_live_ultimatum(world):
+        return None
+    if nation in set(world.get_bloc_members(player)):
+        return None
+    demandable = _ultimatum_demandable_regions(nation, world)
+    if not demandable:
+        return None
+    own_strength = _national_strength(nation, world)
+    if own_strength <= 0:
+        return None  # a court with no army in the field cannot menace
+    if own_strength < _national_strength(player, world) * AI_ULTIMATUM_STRENGTH_RATIO:
+        return None
+
+    terms = generate_ultimatum_terms(
+        player, world, issuer=nation, demand_regions=demandable)
+    if not any(d.get("type") == "territory_cede"
+               for d in terms.get("demands", [])):
+        return None  # the design target must actually ride the demand
+
+    proposal = _make_proposal(nation, "ultimatum", 7, terms, world)
+    proposal["_force_send"] = True
+    cooldowns[f"{nation}|ultimatum"] = int(AI_ULTIMATUM_COOLDOWN_TURNS)
+    _set_cooldowns(world, cooldowns)
+    return proposal
+
+
+def apply_ultimatum_rejection_cooldowns(nation: str, world) -> None:
+    """NA-5: rejection re-arms the nation cooldown and FLOORS the ultimatum
+    type key at the full AI_ULTIMATUM_COOLDOWN_TURNS. Ultimatums get their
+    own applier because apply_rejection_cooldowns OVERWRITES the type key
+    with TYPE_REJECTION_COOLDOWN — which would shorten the issue-time 15
+    down to 6 (the documented cooldown-overwrite trap, inverted)."""
+    cooldowns = _get_cooldowns(world)
+    cooldowns[f"{nation}|nation"] = max(
+        int(cooldowns.get(f"{nation}|nation", 0)),
+        int(NATION_REJECTION_COOLDOWN))
+    cooldowns[f"{nation}|ultimatum"] = max(
+        int(cooldowns.get(f"{nation}|ultimatum", 0)),
+        int(AI_ULTIMATUM_COOLDOWN_TURNS))
+    _set_cooldowns(world, cooldowns)
+
+
 def _count_nations_at_war_with_france(world) -> int:
     """Count how many nations France is currently at war with."""
     player = getattr(world, 'player_nation', 'France')
@@ -952,6 +1064,16 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
                 proposal = _make_proposal(nation, ptype, 7, terms, world)
 
+    # ── NA-5 §8 (R162): The Ultimatum — between P7 and P8 ──
+    # A court whose active ACQUIRE design targets player-held soil, at peace,
+    # hostile (relation < 0), outside the player's bloc, with an army >=1.25x
+    # the player's, demands the design target instead of declaring a war it
+    # cannot yet have (no unilateral AI declare-war path in NA-5 — the
+    # coalition system remains the war-maker; rejection feeds it via the
+    # coalition.py pressure marker).
+    if proposal is None and not is_at_war and relation < 0:
+        proposal = _generate_agenda_ultimatum(nation, world)
+
     # ── P8: Aggressive Dominance — AI winning badly (war_score > 40) ──
     # R116: When AI is dominating, demand harsh peace terms
     if proposal is None and is_at_war and war_score > 40:
@@ -1081,8 +1203,73 @@ def _make_proposal(
 # DELIVERY: deliver_ai_proposal
 # ═══════════════════════════════════════════════════════════════
 
+def _build_ai_ultimatum_dialogue(proposal: Dict, world) -> Dict:
+    """NA-5 §8: the incoming-ultimatum dialogue — same mailbox transport as
+    incoming_proposal but its OWN dtype (the popup renders the ultimatum
+    register: struck header, no bargaining), and Yield/Defy only — an
+    ultimatum is not a negotiation, so there is no counter-offer arm."""
+    nation = proposal["source"]
+    terms = proposal["terms"]
+    decision_reason = proposal.get("decision_reason", "")
+
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(nation)
+    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+
+    proposal_summary = _format_proposal_summary(terms)
+    assessment = (
+        "Talleyrand: \"They believe their army makes the argument, Sire. "
+        "Yield, and the design is theirs without a shot; defy them, and "
+        "their court will press the next coalition the harder.\""
+    )
+    popup_payload = build_pending_envoy_popup_from_terms(
+        world,
+        nation=nation,
+        terms=terms,
+        assessment=assessment,
+        decision_reason=decision_reason,
+    )
+    popup_payload["is_ultimatum"] = True
+
+    return {
+        "type": "incoming_ultimatum",
+        "target_nation": nation,
+        "talleyrand_text": (
+            f"Sire, {diplomat_name} delivers an ULTIMATUM from {nation}:"
+            f"\n\n  {proposal_summary}"
+            f"\n\n{assessment}"
+        ),
+        "options": [
+            {
+                "label": "Yield",
+                "description": f"Concede {nation}'s demands in full.",
+                "action": "accept_ai_ultimatum",
+            },
+            {
+                "label": "Defy",
+                "description": f"Refuse the demands. {nation}'s court will not forget.",
+                "action": "reject_ai_ultimatum",
+            },
+        ],
+        "context": {
+            "proposal": terms,
+            "source_nation": nation,
+            "acceptance_score": 0,
+            "decision_reason": decision_reason,
+            # Stable P-rule label (the documented cooldown-key rule).
+            "proposal_type": "ultimatum",
+        },
+        "turn_created": int(world.current_turn),
+        "blocking": False,
+        "popup_payload": popup_payload,
+    }
+
+
 def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     """Build a mailbox-aware incoming proposal dialogue without side effects."""
+    # NA-5 §8: ultimatums ride the same transport under their own dtype.
+    if proposal.get("proposal_type") == "ultimatum":
+        return _build_ai_ultimatum_dialogue(proposal, world)
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
@@ -1187,13 +1374,24 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     from backend.notifications import (
         create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
     )
-    world.notifications.add(create_notification(
-        DIPLOMATIC_PROPOSAL,
-        NotificationPriority.HIGH,
-        f"Envoy from {nation}",
-        f"An envoy from {nation} has arrived with a proposal.",
-        int(world.current_turn),
-    ))
+    if proposal.get("proposal_type") == "ultimatum":
+        # NA-5 §8: an ultimatum announces itself as one.
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"Ultimatum from {nation}",
+            f"An envoy from {nation} has arrived with an ultimatum. "
+            f"Yield, or defy them.",
+            int(world.current_turn),
+        ))
+    else:
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"Envoy from {nation}",
+            f"An envoy from {nation} has arrived with a proposal.",
+            int(world.current_turn),
+        ))
 
     # Keep the current active popup available for Godot. Queued mailbox items
     # carry their own popup payload on the dialogue itself.

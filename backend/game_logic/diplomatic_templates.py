@@ -552,6 +552,8 @@ _INCOMING_ASK_LINES = {
     "peace": "Let there be peace.",
     "harsh_peace": "Weigh their terms.",
     "trade_agreement": "Open the trade.",
+    # NA-5 §8: the ultimatum's ask, spoken plainly.
+    "ultimatum_demand": "Grant what is demanded, or the cannon will collect it.",
 }
 
 # Legacy/response decision reasons collapse to the generic motive.
@@ -2907,16 +2909,23 @@ TALLEYRAND_COMMENTARY = {
 
 # ═══════ ULTIMATUM TERMS GENERATION (PL-14 §2) ═══════
 
-def generate_ultimatum_terms(target_nation: str, world) -> Dict:
+def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
+                             demand_regions: list = None) -> Dict:
     """Generate coercive demands based on military advantage.
 
     Returns: {"demands": [...], "sweeteners": [], "clauses": [], "type": "ultimatum_demand"}
     No AP demands (requires war_score > 80, impossible in peacetime).
     No sweeteners ever — ultimatums are pure extortion.
     No proposal_type key — uses "type" only (PL-13 lesson).
+
+    NA-5 §8 (Building Blocks): the AI ultimatum rung reuses this SAME
+    generator with `issuer=<AI nation>` and `demand_regions=<agenda
+    targets>` — the territory demand becomes exactly the issuer's design
+    targets (pre-gated by the rung), replacing the adjacency scan. With
+    both kwargs omitted the player-issued output is byte-identical.
     """
     demands = []
-    player = get_player_nation(world)
+    issuer = issuer or get_player_nation(world)
 
     # ── Gold demand: capped at 50% of target income (AM-15.7: use get_nation_regions) ──
     target_income = 0
@@ -2935,18 +2944,28 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
         gold_lump = min(500, max(50, int(target_gold * 0.3)))
         demands.append({"type": "gold_lump", "value": int(gold_lump)})
 
-    # ── Territory demand: coveted regions if France controls adjacent (AM-15.7) ──
-    france_regions = set(world.get_nation_regions(player))
+    # ── Territory demand: coveted regions if issuer controls adjacent (AM-15.7) ──
+    issuer_regions = set(world.get_nation_regions(issuer))
     target_regions = set(world.get_nation_regions(target_nation))
 
     # Calculate military superiority
     marshals = getattr(world, 'marshals', {})
-    player_strength = sum(m.strength for m in marshals.values() if m.nation == player and m.strength > 0)
+    issuer_strength = sum(m.strength for m in marshals.values() if m.nation == issuer and m.strength > 0)
     target_strength = sum(m.strength for m in marshals.values() if m.nation == target_nation and m.strength > 0)
-    has_military_superiority = player_strength > target_strength * 1.2
+    has_military_superiority = issuer_strength > target_strength * 1.2
 
-    if has_military_superiority and len(target_regions) > 2:
-        # Prefer regions adjacent to France-controlled territory
+    if demand_regions:
+        # NA-5: the agenda target IS the demand. Filter to what the target
+        # actually controls minus its capital (never demand the seat of the
+        # crown — the elimination guard's little sibling).
+        capital = world.get_nation_capital(target_nation)
+        named = [r for r in demand_regions
+                 if r in target_regions and r != capital]
+        if named:
+            demands.append({"type": "territory_cede", "value": 1,
+                            "regions": named[:1]})
+    elif has_military_superiority and len(target_regions) > 2:
+        # Prefer regions adjacent to issuer-controlled territory
         adjacent_targets = []
         for t_name in target_regions:
             t_region = regions.get(t_name)
@@ -2956,13 +2975,13 @@ def generate_ultimatum_terms(target_nation: str, world) -> Dict:
             if t_name == world.get_nation_capital(target_nation):
                 continue
             connections = getattr(t_region, 'adjacent_regions', [])
-            if any(c in france_regions for c in connections):
+            if any(c in issuer_regions for c in connections):
                 adjacent_targets.append(t_name)
         if adjacent_targets:
             demands.append({"type": "territory_cede", "value": 1, "regions": adjacent_targets[:1]})
 
     # ── Manpower demand: proportional to troop advantage ──
-    troop_advantage = player_strength - target_strength
+    troop_advantage = issuer_strength - target_strength
     if troop_advantage > 5000:
         manpower_demand = min(5000, int(troop_advantage * 0.1))
         if manpower_demand >= 500:

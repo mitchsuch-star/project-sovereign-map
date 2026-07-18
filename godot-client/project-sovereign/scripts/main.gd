@@ -3923,7 +3923,7 @@ func _on_pending_envoy_result(response: Dictionary):
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
 		return
 	var dtype = response.get("dialogue_type", "")
-	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response"]:
+	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:
 		var proposal_data = response.get("incoming_proposal", {})
 		if incoming_proposal_popup and proposal_data.size() > 0:
 			set_input_enabled(false)
@@ -3966,7 +3966,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 		))
 		return
 	var dtype = str(response.get("dialogue_type", ""))
-	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response"]:
+	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:
 		var proposal_data = response.get("incoming_proposal", {})
 		if incoming_proposal_popup and proposal_data.size() > 0:
 			set_input_enabled(false)

@@ -763,6 +763,57 @@ def _calculate_schemer_peace_rejection_threat(world) -> int:
     ))
 
 
+# ════════════════════════════════════════════════════════════════
+# NA-5 §8 — Ultimatum defiance pressure (R162)
+# ════════════════════════════════════════════════════════════════
+#
+# Rejecting an AI ultimatum plants a bounded, expiring war-pressure marker
+# on the DD8 substrate — the aggrieved court pushes the next coalition
+# harder. Deliberately NOT a unilateral declare-war path (ROADMAP 8c owns
+# that); the coalition system remains the war-maker. Issuing an ultimatum
+# never reduces the player's threat (an AI demand is not exculpatory —
+# pinned). Anti-stacking: one marker per nation, repeats refresh.
+# Balance numbers in-band tunable (a defied ultimatum outlasts a scorned
+# Schemer peace overture: 8 turns vs DD8's 5).
+ULTIMATUM_REJECTION_PRESSURE_TURNS = 8    # marker lifetime
+ULTIMATUM_REJECTION_PRESSURE_AMOUNT = 2   # per-turn threat while active
+ULTIMATUM_REJECTION_PRESSURE_CAP = 4      # total cap across all markers
+
+
+def record_ultimatum_rejection(world, nation: str) -> bool:
+    """NA-5: plant the defiance marker when the player rejects `nation`'s
+    ultimatum. Returns True iff a marker was planted/refreshed. Unlike the
+    DD8 recorder there is no diplomat-personality gate — any court that
+    issues an ultimatum is invested enough to resent its defiance."""
+    if not nation or nation == getattr(world, "player_nation", "France"):
+        return False
+    current_turn = int(getattr(world, "current_turn", 0))
+    markers = getattr(world, "ultimatum_rejection_pressure", None)
+    if not isinstance(markers, dict):
+        markers = {}
+        world.ultimatum_rejection_pressure = markers
+    markers[nation] = current_turn + ULTIMATUM_REJECTION_PRESSURE_TURNS
+    return True
+
+
+def _calculate_ultimatum_rejection_threat(world) -> int:
+    """Standing NA-5 threat from active defied-ultimatum markers. Prunes
+    expired markers in place; contribution capped so serial defiance can't
+    runaway (the DD8 shape)."""
+    current_turn = int(getattr(world, "current_turn", 0))
+    markers = getattr(world, "ultimatum_rejection_pressure", None)
+    if not isinstance(markers, dict) or not markers:
+        return 0
+    expired = [n for n, exp in markers.items() if int(exp) <= current_turn]
+    for n in expired:
+        markers.pop(n, None)
+    active = len(markers)
+    return int(min(
+        ULTIMATUM_REJECTION_PRESSURE_CAP,
+        active * ULTIMATUM_REJECTION_PRESSURE_AMOUNT,
+    ))
+
+
 def _calculate_agenda_grudge_threat(world) -> int:
     """NA-3 §5.8 — the post-peace grudge. Nations at peace with the player
     whose active acquire/deny design stays denied by the player's bloc,
@@ -1700,6 +1751,12 @@ def process_coalition_turn(world) -> List[Dict]:
     agenda_grudge_threat = _calculate_agenda_grudge_threat(world)
     if agenda_grudge_threat > 0:
         add_threat(world, agenda_grudge_threat, "agenda_grudge")
+
+    # NA-5 §8: defied ultimatums — the fifth standing contributor (prunes
+    # expired markers as a side effect, the DD8 shape).
+    ultimatum_rejection_threat = _calculate_ultimatum_rejection_threat(world)
+    if ultimatum_rejection_threat > 0:
+        add_threat(world, ultimatum_rejection_threat, "ultimatum_defied")
 
     decay = _calculate_threat_decay(world)
     if decay > 0:

@@ -2634,11 +2634,21 @@ class DiplomaticExecutor:
     # ULTIMATUM DEMAND APPLICATION (PL-14 §7)
     # ════════════════════════════════════════════════════════════════════════════════
 
-    def _apply_ultimatum_demands(self, demands: list, target_nation: str, world) -> list:
-        """Apply ultimatum demands immediately. Returns list of transfer descriptions."""
+    def _apply_ultimatum_demands(self, demands: list, target_nation: str, world,
+                                 beneficiary: str = None) -> list:
+        """Apply ultimatum demands immediately. Returns list of transfer descriptions.
+
+        NA-5 §8 (GR5): the SAME applier serves both directions. Default
+        (beneficiary omitted) is the player-issued path, byte-identical.
+        The AI-issued accept path calls it with target_nation=the player and
+        beneficiary=the issuing court — gold/territory/manpower flow player
+        to AI through the same arms. The add_threat calls fire only when the
+        player is the beneficiary: the threat scalar is France-targeted, and
+        an AI annexing FRENCH soil is not French aggression."""
         from backend.game_logic.coalition import add_threat
 
-        player = world.player_nation
+        player = beneficiary or world.player_nation
+        beneficiary_is_player = player == world.player_nation
         descriptions = []
 
         for demand in demands:
@@ -2687,7 +2697,8 @@ class DiplomaticExecutor:
                         transferred.append(rname)
                 if transferred:
                     world.invalidate_active_nations_cache()
-                    add_threat(world, 8 * len(transferred), "ultimatum_annex")
+                    if beneficiary_is_player:
+                        add_threat(world, 8 * len(transferred), "ultimatum_annex")
                     descriptions.append(f"{', '.join(transferred)} annexed")
 
             elif dtype in ("manpower", "manpower_infantry", "manpower_cavalry", "manpower_artillery"):
@@ -2995,7 +3006,7 @@ class DiplomaticExecutor:
                         # other option is dismiss.
                         "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war", "execute_suggestion"],
                         "do it": ["execute_suggestion"],
-                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "force_declare_war", "execute_suggestion"],
+                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "accept_ai_ultimatum", "force_declare_war", "execute_suggestion"],
                         "reconsider": ["back_out_settlement", "reconsider"], "no": ["back_out_settlement", "reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
                         "adjust": ["adjust_terms", "expand_options"],
@@ -3007,9 +3018,14 @@ class DiplomaticExecutor:
                         "start over": ["ultimatum_start_over"],
                         "less": ["ultimatum_less_gold", "ultimatum_less_manpower"],
                         "begin": ["start_mission"], "start": ["start_mission"],
-                        "accept": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
-                        "agree": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
-                        "reject": ["reject_ai_proposal"], "decline": ["reject_ai_proposal"],
+                        "accept": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "accept_ai_ultimatum", "execute_proposal"],
+                        "agree": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "accept_ai_ultimatum", "execute_proposal"],
+                        "reject": ["reject_ai_proposal", "reject_ai_ultimatum"], "decline": ["reject_ai_proposal", "reject_ai_ultimatum"],
+                        # NA-5 §8: the ultimatum's own register — typed
+                        # "yield"/"defy" resolve only on the ultimatum
+                        # dialogue (no other dialogue carries these actions).
+                        "yield": ["accept_ai_ultimatum"],
+                        "defy": ["reject_ai_ultimatum"], "refuse": ["reject_ai_ultimatum"],
                         "counter": ["counter_ai_proposal"],
                         "thank": ["dismiss"],
                         "customize": ["ultimatum_customize"],
@@ -4417,6 +4433,12 @@ class DiplomaticExecutor:
         elif action == "counter_ai_proposal":
             return self._handle_counter_ai_proposal(dialogue, world)
 
+        elif action == "accept_ai_ultimatum":
+            return self._handle_accept_ai_ultimatum(dialogue, world)
+
+        elif action == "reject_ai_ultimatum":
+            return self._handle_reject_ai_ultimatum(dialogue, world)
+
         elif action == "expand_to_proposal":
             # Advisory drill-down: re-route to proposal dialogue for a nation
             expand_target = dialogue.get("target_nation", target_nation)
@@ -5691,6 +5713,93 @@ class DiplomaticExecutor:
                 f"Talleyrand will convey your decision."
             ),
         }
+
+    def _handle_accept_ai_ultimatum(self, dialogue: Dict, world) -> Dict:
+        """NA-5 §8: the player YIELDS to an AI ultimatum. The demands
+        transfer player→issuer through the shared _apply_ultimatum_demands
+        arms (same clause machinery as the player-issued path, direction
+        inverted — GR5). No diplomatic-state change: yielding preserves the
+        peace; that is the point of yielding. The issuer's acquire design
+        then derives as satisfied on its own (resolve/grudge follow)."""
+        from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
+
+        context = dialogue.get("context", {})
+        terms = context.get("proposal", {})
+        source_nation = context.get("source_nation", "")
+
+        if not source_nation or not terms:
+            world.dialogue_manager.pop()
+            return {"success": False, "message": "Error: ultimatum data missing."}
+
+        transfers = self._apply_ultimatum_demands(
+            terms.get("demands", []), world.player_nation, world,
+            beneficiary=source_nation)
+        world.dialogue_manager.pop()
+        from backend.notifications import DIPLOMATIC_PROPOSAL
+        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        apply_acceptance_cooldown(source_nation, world)
+
+        transfer_text = "; ".join(transfers) if transfers else "no transferable demands"
+        message = (
+            f"You have yielded to {source_nation}'s ultimatum. "
+            f"Conceded: {transfer_text}. The peace holds — at a price."
+        )
+        world.log_event({
+            "type": "ai_ultimatum_accepted",
+            "source": source_nation,
+            "turn": int(world.current_turn),
+        })
+        world.proposal_result_popup = {
+            "target_nation": source_nation,
+            "proposal_type": "Ultimatum",
+            "outcome": "accepted",
+            "message": message,
+            "feedback": "",
+            "decision_reason": context.get("decision_reason", ""),
+        }
+        return {"success": True, "message": message}
+
+    def _handle_reject_ai_ultimatum(self, dialogue: Dict, world) -> Dict:
+        """NA-5 §8: the player DEFIES an AI ultimatum. No war fires here —
+        there is no unilateral AI declare-war path in NA-5; the coalition
+        system remains the war-maker. Defiance plants the bounded expiring
+        pressure marker (coalition.record_ultimatum_rejection) and re-arms
+        the issue cooldown, and the player's threat level is deliberately
+        untouched (an AI demand is not exculpatory — pinned)."""
+        from backend.game_logic.ai_diplomacy import (
+            apply_ultimatum_rejection_cooldowns,
+        )
+        from backend.game_logic.coalition import record_ultimatum_rejection
+
+        context = dialogue.get("context", {})
+        source_nation = context.get("source_nation", "")
+
+        world.dialogue_manager.pop()
+        from backend.notifications import DIPLOMATIC_PROPOSAL
+        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+
+        if source_nation:
+            apply_ultimatum_rejection_cooldowns(source_nation, world)
+            record_ultimatum_rejection(world, source_nation)
+
+        message = (
+            f"You have defied {source_nation}'s ultimatum. Their court will "
+            f"not forget it — expect their weight behind the next coalition."
+        )
+        world.log_event({
+            "type": "ai_ultimatum_rejected",
+            "source": source_nation,
+            "turn": int(world.current_turn),
+        })
+        world.proposal_result_popup = {
+            "target_nation": source_nation,
+            "proposal_type": "Ultimatum",
+            "outcome": "rejected",
+            "message": message,
+            "feedback": "",
+            "decision_reason": context.get("decision_reason", ""),
+        }
+        return {"success": True, "message": message}
 
     def _handle_counter_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Generate and present a counter-offer to an AI proposal."""

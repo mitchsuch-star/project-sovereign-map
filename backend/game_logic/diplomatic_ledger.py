@@ -41,6 +41,9 @@ _THREAT_SOURCE_LABELS = {
     "region_control_60": "Controls 60%+ of map",
     # NA-3 §5.8: the post-peace grudge names itself on the threat panel
     "agenda_grudge": "Denied national designs",
+    # NA-5 §8: a defied ultimatum names itself too
+    "ultimatum_defied": "Defied an ultimatum",
+    "schemer_peace_rejection": "Scorned a peace overture",
 }
 
 

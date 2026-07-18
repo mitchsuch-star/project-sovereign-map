@@ -697,14 +697,16 @@ def _include_popup_passthroughs(response: dict, world) -> None:
             # Special case: incoming_proposal safety valve from pending dialogue
             if (response_key == "incoming_proposal"
                     and world.pending_diplomatic_dialogue
-                    and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"
+                    and world.pending_diplomatic_dialogue.get("type")
+                    in ("incoming_proposal", "incoming_ultimatum")
                     and winner_attr is not None):
                 # A higher-priority popup won — don't derive incoming_proposal from dialogue
                 response[response_key] = None
             elif (response_key == "incoming_proposal"
                     and winner_attr is None
                     and world.pending_diplomatic_dialogue
-                    and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"):
+                    and world.pending_diplomatic_dialogue.get("type")
+                    in ("incoming_proposal", "incoming_ultimatum")):
                 # BUGFIX: Safety valve — derive clauses from dialogue context
                 # instead of hardcoding []. Empty clauses cause blank popup
                 # in Godot. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
@@ -2875,7 +2877,11 @@ def get_pending_envoy():
                 popup = build_ally_settlement_petition_popup(current)
                 current["popup_payload"] = popup
             result["diplomatic_dialogue"] = popup
-        elif dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
+        elif dtype in ("incoming_proposal", "counter_offer",
+                       "counter_offer_response", "incoming_ultimatum"):
+            # NA-5: ultimatums recover through the same popup transport —
+            # the payload carries is_ultimatum so the popup renders the
+            # ultimatum register.
             result["has_pending"] = True
             result["dialogue_type"] = dtype
             result["incoming_proposal"] = _build_pending_envoy_popup_from_dialogue(
@@ -2955,7 +2961,8 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         "count": int(dm.get_mailbox_count()),
     }
 
-    if dtype in ("incoming_proposal", "counter_offer", "counter_offer_response"):
+    if dtype in ("incoming_proposal", "counter_offer",
+                 "counter_offer_response", "incoming_ultimatum"):
         popup = _build_pending_envoy_popup_from_dialogue(world, dialogue)
         dialogue["popup_payload"] = popup.copy()
         world.incoming_proposal_popup = popup

@@ -446,8 +446,13 @@ class TurnManager:
             # NA-1: agenda_pursuit outranks hegemony_pressure in the reason
             # ladder but is the same pressure-driven flood shape — both
             # count against the bandwagon throttle.
-            if proposal.get("decision_reason") in ("hegemony_pressure",
-                                                   "agenda_pursuit"):
+            # NA-5 §8: ultimatums are EXEMPT — the rung already caps them at
+            # one live world-wide + a 15-turn per-nation cooldown SET AT
+            # ISSUE, so a throttle deferral here would silently eat the
+            # court's one ultimatum for 15 turns.
+            if (proposal.get("decision_reason") in ("hegemony_pressure",
+                                                    "agenda_pursuit")
+                    and proposal.get("proposal_type") != "ultimatum"):
                 if bandwagon_delivered >= MAX_BANDWAGON_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} bandwagon proposal deferred (per-turn cap)")
                     continue

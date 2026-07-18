@@ -125,6 +125,9 @@ CAMPAIGN_LOG_TYPES = {
     "ultimatum_issued",
     "ultimatum_accepted",
     "ultimatum_rejected",
+    # NA-5 §8: incoming AI ultimatum resolution (arrival rides proposal_arrived)
+    "ai_ultimatum_accepted",
+    "ai_ultimatum_rejected",
     # PL-27/PL-34: Proposal queue visibility events
     "proposal_arrived",
     "proposal_expired_unseen",
@@ -301,6 +304,9 @@ CATEGORY_MAP = {
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
     "ultimatum_rejected": "diplomacy",
+    # NA-5 §8: incoming AI ultimatum resolution
+    "ai_ultimatum_accepted": "diplomacy",
+    "ai_ultimatum_rejected": "diplomacy",
     # PL-27/PL-34: Proposal queue visibility events
     "proposal_arrived": "diplomacy",
     "proposal_expired_unseen": "diplomacy",
@@ -692,8 +698,10 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             continue
 
         # AI proposal responses to player: always show (player is target)
+        # NA-5: the ultimatum pair is the same shape — the player answered.
         if event_type in ("ai_proposal_accepted", "ai_proposal_rejected",
-                          "ai_proposal_counter_failed"):
+                          "ai_proposal_counter_failed",
+                          "ai_ultimatum_accepted", "ai_ultimatum_rejected"):
             filtered.append(event)
             continue
 
@@ -1454,6 +1462,16 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "ai_proposal_counter_failed":
         source = event.get("source", "Unknown")
         return f"{source} rejected our counter-offer{_decision_reason_suffix(event)}"
+
+    # NA-5 §8: incoming AI ultimatum resolution (same direction rule as the
+    # ai_proposal pair — `source` issued the demand, WE answered it).
+    if event_type == "ai_ultimatum_accepted":
+        source = event.get("source", "Unknown")
+        return f"We yielded to {source}'s ultimatum — their demands conceded"
+
+    if event_type == "ai_ultimatum_rejected":
+        source = event.get("source", "Unknown")
+        return f"We defied {source}'s ultimatum — their court will not forget"
 
     if event_type == "auto_downgrade":
         nation_a = event.get("nation_a", "Unknown")

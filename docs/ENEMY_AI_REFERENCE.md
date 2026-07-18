@@ -787,6 +787,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | P3 | Threat > 60 AND not allied | Hegemony ask (live since W6-10) |
 | P4 | Relation > +30 AND at peace | Relationship upgrade |
 | P7 | Opportunism — France at war with 2+ nations, this nation at peace | Favorable terms |
+| **NA-5 ultimatum** (between P7 and P8) | At peace · relation < 0 · active ACQUIRE design with a player-DIRECT-held unmet target · outside the player's bloc · fog-free strength ≥ 1.25× the player's · 15-turn per-nation cooldown (set at ISSUE) · max ONE live world-wide | `incoming_ultimatum` — the design target as the demand (player's own `generate_ultimatum_terms`, direction inverted); Defy plants the coalition pressure marker; exempt from the bandwagon throttle |
 | P8 | Aggressive dominance — AI winning badly (war_score > 40) | Harsh peace demands (A1 iterative reduction) |
 
 **P1 effective threshold:** `effective_p1_threshold = -40 + personality delta (hawk -20 / dove +20) + war_exhaustion//20 + ticking pressure (±10) + NA-3 agenda resolve delta` — where the agenda resolve delta is: advancing design −8 (fights longer); satisfied design or survival override +10 (sues sooner) — `agendas.get_agenda_resolve_delta`.

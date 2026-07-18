@@ -54,6 +54,11 @@ class DialogueManager:
         "incoming_proposal",
         "counter_offer",
         "counter_offer_response",
+        # NA-5 §8: AI ultimatums ride the same lapse-at-end-of-turn
+        # transport. A lapse is NOT a rejection — no pressure marker; the
+        # issue-time 15-turn cooldown keeps an ignored demand from
+        # returning next season (pinned in test_nation_agendas_ultimatums).
+        "incoming_ultimatum",
     })
     # Persistent mailbox types: AI-initiated offers that persist across turns
     # until accepted, rejected, or the producer cooldown / one-active-offer
@@ -122,6 +127,9 @@ class DialogueManager:
         "incoming_settlement_offer": 2,
         "ally_settlement_petition": 4,
         "sabotage_confrontation": 2,
+        # NA-5 §8: an ultimatum outranks routine proposals in the mailbox —
+        # same tier as settlement offers (it touches war and peace).
+        "incoming_ultimatum": 2,
         "incoming_proposal": 3,
         "counter_offer": 3,
         "counter_offer_response": 3,
@@ -132,6 +140,7 @@ class DialogueManager:
         "counter_offer_response": "Counter response",
         "incoming_settlement_offer": "Settlement offer",
         "ally_settlement_petition": "Ally settlement petition",
+        "incoming_ultimatum": "Ultimatum",
     }
 
     def __init__(self):

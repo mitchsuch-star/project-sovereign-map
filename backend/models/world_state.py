@@ -734,6 +734,10 @@ class WorldState:
         # A rejected Schemer-authored peace/armistice proposal plants a 5-turn
         # war-pressure marker for that nation on the coalition-threat substrate.
         self.schemer_rejection_pressure: Dict[str, int] = {}
+        # NA-5 §8 (R162): {nation: expires_on_turn}. Rejecting an AI
+        # ultimatum plants an 8-turn war-pressure marker on the same
+        # coalition-threat substrate (coalition.record_ultimatum_rejection).
+        self.ultimatum_rejection_pressure: Dict[str, int] = {}
         self.active_coalition: Optional[Dict] = None     # Dict or None (COALITION_SPEC §10b)
         self.coalition_brewing: Optional[Dict] = None    # Dict or None (COALITION_SPEC §10c)
         self.coalition_cooldown: int = 0                 # 5-turn post-dissolution
@@ -5132,6 +5136,9 @@ class WorldState:
             "schemer_rejection_pressure": {
                 str(k): int(v) for k, v in self.schemer_rejection_pressure.items()
             },
+            "ultimatum_rejection_pressure": {
+                str(k): int(v) for k, v in self.ultimatum_rejection_pressure.items()
+            },
             "active_coalition": copy.deepcopy(self.active_coalition) if self.active_coalition else None,
             "coalition_brewing": copy.deepcopy(self.coalition_brewing) if self.coalition_brewing else None,
             "coalition_cooldown": int(self.coalition_cooldown),
@@ -5660,6 +5667,10 @@ class WorldState:
         world.schemer_rejection_pressure = {
             str(k): int(v)
             for k, v in (data.get("schemer_rejection_pressure") or {}).items()
+        }
+        world.ultimatum_rejection_pressure = {
+            str(k): int(v)
+            for k, v in (data.get("ultimatum_rejection_pressure") or {}).items()
         }
         world.threat_sources_this_turn = [s.copy() for s in data.get("threat_sources_this_turn", [])]
         raw_coalition = data.get("active_coalition", None)

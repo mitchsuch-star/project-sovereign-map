@@ -44,6 +44,8 @@ func show_proposal(data: Dictionary):
 	var reject_hint = data.get("rejection_hint", "")
 	var decision_reason = str(data.get("decision_reason", ""))
 	var is_counter = data.get("is_counter_offer", false)
+	# NA-5 §8: incoming AI ultimatum — its own register (never a counter)
+	var is_ultimatum = data.get("is_ultimatum", false)
 	var decision_reason_display = str(data.get("decision_reason_display", ""))
 	# W6-10: the diplomat's own spoken line (voices the motive in-register)
 	var diplomat_line = str(data.get("diplomat_line", ""))
@@ -51,7 +53,14 @@ func show_proposal(data: Dictionary):
 	var type_display = str(proposal_type_display)
 	var bbcode = ""
 
-	if is_counter:
+	if is_ultimatum:
+		# Ultimatum: struck header, crimson border, demands not terms
+		bbcode += "[center][color=#e04040][b]ULTIMATUM[/b][/color][/center]\n"
+		var ult_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, ult_pers_str, from_display]
+		bbcode += "[b]Demands:[/b]\n"
+		panel_style.border_color = Color(0.878, 0.251, 0.251, 1.0)  # Crimson
+	elif is_counter:
 		# Counter-offer: distinct header + context
 		bbcode += "[center][color=#7eb8da][b]COUNTER-OFFER[/b][/color][/center]\n"
 		var pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
@@ -96,7 +105,9 @@ func show_proposal(data: Dictionary):
 		bbcode += "\n[color=red]Key obstacle: %s[/color]" % reject_hint
 
 	# Lapse warning
-	if is_counter:
+	if is_ultimatum:
+		bbcode += "\n[color=#e0c060][i]This demand will lapse at end of turn.[/i][/color]"
+	elif is_counter:
 		bbcode += "\n[color=#e0c060][i]This response will lapse at end of turn.[/i][/color]"
 	else:
 		bbcode += "\n[color=#e0c060][i]This offer will lapse at end of turn.[/i][/color]"
@@ -107,15 +118,20 @@ func show_proposal(data: Dictionary):
 	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
 
 	# Enable buttons — hide Counter for counter-offers (no counter-counter)
+	# and for ultimatums (an ultimatum is not a negotiation — NA-5 §8)
 	accept_btn.disabled = false
-	counter_btn.visible = not is_counter
-	counter_btn.disabled = is_counter
+	counter_btn.visible = not is_counter and not is_ultimatum
+	counter_btn.disabled = is_counter or is_ultimatum
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = "Not Now"
 	# Button labels adapt to context
-	accept_btn.text = "Accept Terms" if is_counter else "Accept"
-	reject_btn.text = "Reject Terms" if is_counter else "Reject"
+	if is_ultimatum:
+		accept_btn.text = "Yield"
+		reject_btn.text = "Defy"
+	else:
+		accept_btn.text = "Accept Terms" if is_counter else "Accept"
+		reject_btn.text = "Reject Terms" if is_counter else "Reject"
 	show()
 
 func _on_accept():

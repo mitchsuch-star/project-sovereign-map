@@ -111,7 +111,8 @@ class TestTypeWhitelist:
         # VS-6 (July 16, 2026): +1 vassal_defected (the bribed coalition-flip).
         # NA-1 (July 17, 2026): +1 agenda_shift (the court-intent beat).
         # NA-3 (July 17, 2026): +1 agenda_violation (the Ansbach trap).
-        assert len(CAMPAIGN_LOG_TYPES) == 118
+        # NA-5 (July 18, 2026): +2 ai_ultimatum_accepted / ai_ultimatum_rejected.
+        assert len(CAMPAIGN_LOG_TYPES) == 120
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""
