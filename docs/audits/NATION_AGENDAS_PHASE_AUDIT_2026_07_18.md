@@ -11,18 +11,36 @@ default-REFUTED) → completeness critic → synthesis.
 This is the fifth review of the phase; the four prior rounds' findings were
 excluded up front and are not re-reported here.
 
-## Disposition
+## Disposition — ALL FIXED July 18, 2026
+
+The user directed "fix all, make decision and inform me … sensitive to the golden
+rule and history and fun." Every finding was landed; the semantics calls were made
+rather than deferred. Fix record = `NATION_AGENDAS_SPEC.md` §19.
 
 | Item | Disposition |
 |---|---|
-| P1 deny-satisfaction anchored on bloc membership | **ESCALATED — semantics call, not landed** |
+| P1 deny satisfaction anchored on bloc membership | ✅ FIXED — satisfaction is a statement about the PROVINCES |
 | P2 diplomatic nation-picker dead name | ✅ LANDED `e44c5db` |
-| P2 ultimatum yield after the peace lapses | **ESCALATED — needs a behavior decision** |
-| P3 armistice both arms and disarms the Ansbach trap | **ESCALATED — spec §5.9 predicate changes too** |
+| P2 ultimatum yield after the peace lapses | ✅ FIXED — `_ultimatum_void_reason` gates both arms |
+| P3 armistice both arms and disarms the Ansbach trap | ✅ FIXED — an armistice is belligerency; §5.9 predicate amended |
 | P3 incoming-proposal notification dead name | ✅ LANDED `e44c5db` |
 | P3 ENEMY_AI_REFERENCE P4 helper citation | ✅ LANDED `e44c5db` |
-| Coherence: satisfied court cannot be priced ENTRENCH | **ESCALATED — owner's ruling** |
-| Coherence: §11.9 sponsor machinery | Assessed GR9-compliant. No action. |
+| Coherence: satisfied court cannot be priced ENTRENCH | ✅ FIXED — and wider than reported (see below) |
+| Coherence: §11.9 sponsor machinery | Assessed GR9-compliant. No action, by design. |
+
+**Two findings in this memo proved narrower than the truth.** The ENTRENCH item said
+a satisfied court has no active view; in fact it often has a *different* one (Austria
+holding Milan flies `primacy_germany`), so fixing only the `None` case would have left
+the real case broken. And a court that wins its *whole* deck needed every satisfied
+entry, not just the first.
+
+**The P1 fix itself re-opened the P1 twice before it was right**, both caught by a
+37-agent pre-push review: once by building the exclusion set from the RAW hegemon
+gated on the share floor, and once by reading the LITERAL `region.controller`, which
+let a French satellite pass as a neutral buffer. Recorded in §19 because the
+generalizable lesson is worth more than the fix: **any predicate asking "who holds
+this province" must resolve `_top_overlord`; any predicate asking "who is the threat"
+must be court-relative.**
 
 ## Independent verification of the P1 (auditor, not subagent)
 

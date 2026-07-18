@@ -49,7 +49,7 @@ A small closed set of parameterized types in a new `backend/game_logic/agendas.p
 | Type | Params | Active while… | Satisfied when… | Primary expressions |
 |------|--------|---------------|-----------------|---------------------|
 | `acquire_regions` | `regions[]` | ≥1 target not controlled by self (and holder is not self's vassal) | all targets self-controlled | target bias, acceptance, resolve, ultimatum subject |
-| `deny_regions` | `regions[]` | ≥1 target controlled by the hegemon's bloc (share ≥ 0.33) | no target in hegemon bloc hands | resolve, acceptance, subsidy targeting — never self-conquest |
+| `deny_regions` | `regions[]` | ≥1 target controlled by the hegemon's bloc (share ≥ 0.33) | every target held by self/own client, **or** by a below-major power outside the hegemon's bloc (§19) | resolve, acceptance, subsidy targeting — never self-conquest |
 | `contain_hegemon` | `share_floor` (default 0.33) | hegemon bloc share ≥ floor AND self outside that bloc | share < floor | coalition resolve (fights longer in coalition wars), proposal motive |
 | `paymaster` | `treasury_floor` | at war with the hegemon OR active coalition vs hegemon, AND treasury > floor | — (posture, not a quest) | subsidy escalation (§5.7), gold-flavored asks |
 | `guard_neutrality` | `regions[]` (the guard set) | self at peace | — (posture) | cheap refusal of coalition asks; the violation trap (§5.9) |
@@ -155,7 +155,7 @@ A nation at peace with France whose active `acquire`/`deny` agenda remains denie
 
 ### §5.9 The neutrality violation — the Ansbach trap (NA-3)
 
-For an active `guard_neutrality` agenda: a belligerent nation (at war with anyone, not at war with the guard-holder, not its ally/lord) with a marshal standing in a guard region triggers a one-time violation: relation `AGENDA_VIOLATION_RELATION_PENALTY` between violator and guard-holder + a dispatch/campaign-log beat ("Berlin seethes: foreign columns cross Ansbach."). Latch = bounded event-log lookback (the `_calculate_defensive_refusal_memory_threat` idiom) keyed (violator, guard-holder) — fires once per pair per `AGENDA_VIOLATION_COOLDOWN` turns. Applies to the player and AI alike (GR5): marching the Grande Armée through north Germany costs Prussia's goodwill, exactly as it did Napoleon.
+For an active `guard_neutrality` agenda: a belligerent nation (at war with anyone, **not at war *or armistice* with the guard-holder** — §19 amendment; an armistice is a pause in a war, not a restoration of neutrality, so it neither wakes the paused opponent's guard nor strips the exemption from the army standing there because of that war — not its ally/lord) with a marshal standing in a guard region triggers a one-time violation: relation `AGENDA_VIOLATION_RELATION_PENALTY` between violator and guard-holder + a dispatch/campaign-log beat ("Berlin seethes: foreign columns cross Ansbach."). Latch = bounded event-log lookback (the `_calculate_defensive_refusal_memory_threat` idiom) keyed (violator, guard-holder) — fires once per pair per `AGENDA_VIOLATION_COOLDOWN` turns. Applies to the player and AI alike (GR5): marching the Grande Armée through north Germany costs Prussia's goodwill, exactly as it did Napoleon.
 
 ---
 
@@ -596,10 +596,19 @@ it only manifests in a geometry no single slice owns.
 ### P1 — the anti-hegemon designs deleted themselves at the moment they succeeded
 
 `agendas._hegemon` consumed `coalition._identify_max_bloc_share` raw — "who is the
-largest bloc". That is the wrong question for an ANTI-hegemon design. Coalition
-formation produces real `ALLIANCE` states, so once the anti-France bloc out-massed
-France, the raw answer became **Britain's own ally**, and every predicate keyed on it
-inverted at once:
+largest bloc". That is the wrong question for an ANTI-hegemon design. Once the
+anti-France bloc out-massed France the raw answer became **a co-belligerent**, and
+every predicate keyed on it inverted at once:
+
+> ⚠️ **CORRECTION (July 18, 2026, §19).** This section originally read "Coalition
+> formation produces real `ALLIANCE` states, so … the raw answer became Britain's own
+> *ally*." **That is factually false** and it was load-bearing: it is the entire
+> justification for scoping deny satisfaction to bloc membership.
+> `coalition.form_coalition` writes `active_coalition`, calls `declare_war`, and
+> nudges relations +10 — and **no diplomatic states at all**. The boot Third Coalition
+> is allied only because `europe_1805.json` authors those rows. A coalition formed in
+> play therefore left the denier in a bloc of one, the guard below silent, and the
+> design reading SATISFIED. Pinned by `TestCoalitionIsNotABloc`.
 
 - `_deny_active` / `_contain_active` short-circuit on `nation in bloc` → **Britain's
   `low_countries` and Russia's `arbiter_of_europe` went inactive for the rest of the
@@ -679,5 +688,132 @@ Correcting it means deciding what deny satisfaction means when the denier and th
 hegemon are allies, which is an authoring decision rather than a defect. **Homed to
 NA-6c**, which touches the same predicates for the carve tags.
 
+> **CLOSED July 18, 2026 by §19.** The phase audit ruled the semantics: own soil is
+> denied outright, whatever the bloc rankings say. The "held by the hegemon's bloc"
+> arm no longer sees a court's own provinces at all.
+
 Suite **14,011 → 14,017/3** (+6: `TestInvertedHegemonyGeometry`, plus the counsel-honesty
 pin). ruff clean, M1–M7 byte-identical.
+
+---
+
+## §19 Phase-audit fixes — the whole arc re-reviewed (July 18, 2026)
+
+Fifth review of the phase, 112 agents, 29 raw findings → 8 survived triple
+adversarial refutation. Memo: `docs/audits/NATION_AGENDAS_PHASE_AUDIT_2026_07_18.md`
+(authoritative). Four fix families landed; the memo's §11.9 assessment
+(GR9-compliant deferral) and its six-pillar observability arithmetic stand
+unchanged as findings, not work.
+
+### P1 — deny satisfaction was anchored on bloc membership; a coalition is not a bloc
+
+§18's fix resolved the hegemon **court-relatively** — necessary, but it left the
+satisfaction question keyed on `get_bloc_members`, which admits only vassal chains and
+formal `ALLIANCE`/`DEFENSIVE_ALLIANCE` states. **`coalition.form_coalition` writes no
+diplomatic states at all.** A coalition formed in play left the denier in a bloc of
+one, the "am I inside the dominant bloc" guard silent, and — once any third bloc
+out-massed the holder — the design reading SATISFIED while the enemy held every listed
+province: `+10` resolve, `agenda_separate_peace_ready` True, and no player-facing
+surface able to explain it (active view `None` ⇒ no covets, no acceptance term, no
+ledger Design row).
+
+**The ruling: satisfaction is a statement about the provinces, not about bloc
+rankings.** A province counts as denied when, and only when, it is held by
+
+1. **self or one's own client** — outright, whatever the geometry, *or*
+2. **a power below the `major` tier that is not inside the hegemon's bloc** — the
+   buffer state.
+
+Any other great power holding it denies nothing. This is the doctrine the design was
+always written in: Britain tolerated the Dutch Republic and the Austrian Netherlands
+on the Scheldt, and would not tolerate France there.
+
+Four recorded rulings had to survive simultaneously, and do:
+
+| Ruling | Status |
+|---|---|
+| §11.2 — the formed United Netherlands **satisfies** Britain's design | **preserved** by arm 2. Deny means "not theirs", never "mine". Two earlier drafts broke this: one keyed on own-bloc membership, one on "at war with the holder" (Britain is still at WAR with the freed Dutch). |
+| D68 — allying **into** the camp that holds the Scheldt is dormancy | **preserved**. An allied great power is still a great power. |
+| guard 2 — a cut-down France still holding the targets satisfies nothing | **preserved** by keying on tier rather than share. A beaten great power is still a great power. |
+| D70 — a court holding its **own** targets read not-satisfied | **FIXED** by arm 1, and the §18 known-limitation paragraph is closed above. |
+
+Boot is byte-unchanged: Flanders (France, major) and Brabant/Amsterdam (Holland, a
+French client inside the hegemon bloc) all fail both arms.
+
+**Two mistakes were made inside this fix and caught by its own pre-push review — both
+re-opened the P1, and both are now pinned:**
+
+1. The exclusion set was built from the **raw** hegemon and gated on the share floor.
+   The floor governs ACTIVATION, never SATISFACTION, and the raw form is exactly the
+   question §18 proved wrong. Now court-relative, ungated.
+2. The **literal** `region.controller` was read where arm (a) two lines above resolves
+   the vassal chain. A French *satellite* is a minor power on paper, so
+   Holland-holding-Amsterdam passed as a neutral buffer while it was still Napoleon's
+   client — the P1 through the back door, reproduced on boot-adjacent state (Britain
+   takes Flanders, coalition out-masses France → satisfied, +10, separate peace).
+   Both the effective overlord and the literal controller are now tested.
+
+`test_a_french_satellite_is_not_a_buffer_state` pins it. The lesson generalizes: any
+predicate that asks "who holds this province" in a world with vassals must resolve
+`_top_overlord`, and any predicate that asks "who is the threat" must be court-relative.
+
+### Coherence — a won design could not be priced at ENTRENCH
+
+Both acceptance scorers gated on the ACTIVE view, which for a satisfied acquire is
+`None` (activation is its complement) — **or is a different, later deck entry**:
+Austria holding Milan flies `primacy_germany`, so a demand for Milan matched no
+target at all. More complete success bought *less* defence of the very province won,
+and line 39's "sues to lock its gains" shipped its "sues" half (+10 resolve,
+Pressburg) with nothing delivering "lock".
+
+New `_satisfied_views()` returns **every** satisfied deck entry (not just the first —
+a court that wins its *whole* deck otherwise let the later design's provinces fall out
+of the strip arm entirely: Austria holding all five design provinces priced Milan at
+−8 and Munich at 0, and Munich had priced −8 before Swabia was taken). Both
+ENTRENCH-strip arms now price against the live design **and** every won one. ADVANCE
+deliberately still fires only from the live design — paying +12 for handing a court
+what it already holds is free acceptance for nothing.
+
+### P3 — an armistice is a pause in a war, not a restoration of neutrality
+
+An armistice simultaneously **woke** the paused opponent's `guard_neutrality` design
+(`_guard_active` read only `get_nations_at_war_with`, strict `WAR`) and **stripped**
+the war exemption from the army standing on that soil because of that very war —
+outrage priced at −25 for holding still, and −70 relation crosses
+`ARMISTICE_AUTO_PEACE_RELATION`, resuming the war instead of maturing it to peace.
+The codebase already disagreed with itself here: `diplomacy.py` states the doctrine
+outright and the NA-2 entrench arm already pairs `("WAR", "ARMISTICE")`.
+
+New `_belligerent` / `_has_belligerency` helpers; `_guard_active` and the violation
+exemption both consume them. §5.9's written predicate is amended above — the code had
+matched the spec, so this was a shared gap rather than an implementation slip.
+
+### P2 — a demand overtaken by war is not a bargain
+
+The ultimatum dialogue is non-blocking and lapses only at the *start* of the next
+`end_turn`, so it survived arbitrary state change across the whole of the player's
+turn. Yielding after the pair fell to WAR still transferred the province, wrote a
+perpetual tribute treaty, marched off the conscripts and reported *"The peace holds"*;
+yielding to an issuer eliminated during the turn **resurrected** it. Reachable with
+zero player action — a third party's alliance cascade drags the issuer into an
+existing war between the AI diplomatic phase and the player's answer.
+
+`_ultimatum_void_reason` gates both arms. Yield transfers nothing and says so; defy
+plants no pressure marker and re-arms no cooldown — a court cannot bank a grievance
+for a refusal that cost nothing. New campaign-log type `ai_ultimatum_void` (both count
+pins 121 → 122). Three dead-name repairs rode the same handlers.
+
+The pre-push review caught the defy arm still logging `ai_ultimatum_rejected`
+unconditionally: the popup read *"the demand has lapsed of its own accord"* while the
+campaign log, same turn, read *"we defied them — their court will not forget"*. The
+**durable record has to agree with the popup**, or the fix only moves the
+contradiction somewhere less visible. Both void paths now log the lapse, and
+`test_the_live_arms_still_log_their_own_types` guards the ordinary path.
+
+### Landed with
+
+`tests/test_nation_agendas_phase_audit.py` (27) — including `TestCoalitionIsNotABloc`,
+which pins the false premise itself so it cannot silently become true again. The
+inverted-geometry arms deliberately leave co-belligerents at PEACE rather than
+hand-writing ALLIANCE rows: hand-writing them is exactly what hid this geometry from
+three prior slice reviews. Suite **14,018 → 14,047/3**, ruff clean. Falsifiability verified by reverting both production files: 17 of the 27 fail against pre-fix code.

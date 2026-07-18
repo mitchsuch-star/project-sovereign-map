@@ -106,13 +106,19 @@ def _hegemon(world, nation: Optional[str] = None) -> Tuple[Optional[str], float]
     With `nation`: the largest bloc that court is NOT part of. The raw
     helper answers "who is biggest", which is the wrong question for an
     anti-hegemon design. When the coalition Britain funds finally
-    out-masses France, the raw answer becomes Britain's OWN ALLY, and
-    every deny/contain/paymaster predicate silently switches off — the
-    designs delete themselves at the moment they start succeeding. Worse,
-    the deny satisfaction check then reads TRUE while France still holds
-    the Scheldt (France's holdings are no longer "in the hegemon's
-    bloc"), handing Britain +10 resolve and an early separate peace
-    precisely because France is winning the thing Britain denies.
+    out-masses France, the raw answer becomes a CO-BELLIGERENT, and every
+    deny/contain/paymaster predicate silently switches off — the designs
+    delete themselves at the moment they start succeeding. Worse, the deny
+    satisfaction check then read TRUE while France still held the Scheldt,
+    handing Britain +10 resolve and an early separate peace precisely
+    because France was winning the thing Britain denies.
+
+    NOTE (phase audit, §19): the raw form must NEVER be used for a deny
+    question. `coalition.form_coalition` writes no ALLIANCE rows, so the
+    denier is routinely in a bloc of ONE and the raw answer points at a
+    co-belligerent's camp. The share floor likewise governs ACTIVATION
+    only — gating the satisfaction exclusion set on it re-opened the same
+    P1. Both mistakes were made and caught inside this fix.
 
     Court-relative resolution keeps a design pointed at the power it was
     authored against. Boot-identical on the shipped scenario: France is
@@ -202,9 +208,41 @@ def _paymaster_active(world, nation: str, treasury_floor: int) -> bool:
     return False
 
 
+def _belligerent(world, a: str, b: str) -> bool:
+    """WAR *or* ARMISTICE. An armistice is a pause in a war, not peace.
+
+    `diplomacy.py` already states the doctrine ("ARMISTICE is
+    belligerent-adjacent and deliberately excluded; it is treated like WAR
+    for this check") and the NA-2 entrench arm already pairs
+    ("WAR", "ARMISTICE"). The neutrality machinery has to agree, or an
+    armistice both WAKES the paused opponent's guard design and STRIPS the
+    war exemption from the army standing on its soil because of that very
+    war — outrage priced at -25 for holding still.
+    """
+    return world.get_diplomatic_state(a, b) in ("WAR", "ARMISTICE")
+
+
+def _has_belligerency(world, nation: str) -> bool:
+    """True while the nation is a belligerent anywhere — WAR or ARMISTICE.
+
+    Scans `diplomatic_states` exactly as `get_nations_at_war_with` does
+    (a sparse ~n^2-bounded dict over the roster, not a region scan — GR8).
+    """
+    if world.get_nations_at_war_with(nation):
+        return True
+    for key, state in (getattr(world, "diplomatic_states", {}) or {}).items():
+        if state == "ARMISTICE" and nation in key.split("|"):
+            return True
+    return False
+
+
 def _guard_active(world, nation: str) -> bool:
-    """Posture: active while self is at peace (no wars)."""
-    return not world.get_nations_at_war_with(nation)
+    """Posture: active while self is a non-belligerent.
+
+    An armistice does not restore neutrality — a power that has paused its
+    war is not a neutral whose neutrality can be violated.
+    """
+    return not _has_belligerency(world, nation)
 
 
 def _entry_active(world, nation: str, entry: dict) -> bool:
@@ -297,33 +335,75 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
         # Exact complement: all targets self-or-vassal controlled.
         return not _acquire_active(world, nation, list(entry.get("regions") or []))
     if agenda_type == "deny_regions":
-        # §3.1 verbatim: "no target in hegemon bloc hands". TWO guards,
-        # both learned from defects:
+        # SATISFACTION IS A STATEMENT ABOUT THE PROVINCES, NOT ABOUT BLOC
+        # RANKINGS. Britain's design is the Scheldt; whether Austria has
+        # grown larger than France is not an answer to "is the Scheldt in
+        # French hands".
         #
-        # 1. Sitting inside the DOMINANT bloc is dormancy, never
-        #    satisfaction — allying into the hegemon's camp does not put
-        #    the Scheldt out of its hands. This also covers the inverted
-        #    geometry: when the coalition Britain funds out-masses France,
-        #    Britain is inside the new largest bloc, and without this
-        #    guard its design read SATISFIED (its targets are not in
-        #    *Austria's* hands) while France still held Flanders — worth
-        #    +10 resolve and an early separate peace, for winning nothing.
-        # 2. The share FLOOR governs ACTIVATION, never SATISFACTION. An
-        #    earlier cut returned True below the floor ("the hegemon
-        #    fell"), which is false while the cut-down power still holds
-        #    the targets. Britain's design is the Scheldt, not France's
-        #    overall size.
-        raw_hegemon, _raw_share = _hegemon(world)
-        if raw_hegemon is not None and (
-                nation == raw_hegemon
-                or nation in set(world.get_bloc_members(raw_hegemon))):
-            return False
+        # The earlier cut asked "is any target in the hands of the largest
+        # bloc I am not in", with a guard for sitting inside the dominant
+        # bloc. Both halves keyed on bloc membership, and `get_bloc_members`
+        # admits only vassal chains and formal ALLIANCE/DEFENSIVE_ALLIANCE
+        # states — but `coalition.form_coalition` writes NO alliance rows
+        # (it writes `active_coalition`, declares war, and nudges relations).
+        # A coalition formed in play therefore left Britain in a bloc of
+        # one, the guard silent, and the design reading SATISFIED while
+        # France and Holland held all three targets: +10 resolve and an
+        # early separate peace, for winning nothing, with no player-facing
+        # surface able to explain it (active view None => no covets, no
+        # acceptance term, no ledger Design row).
+        #
+        # Deny does NOT mean "mine". It means "not THEIRS" — a free Dutch
+        # buffer is the British war aim, not a British possession, which is
+        # why §11.2's authored mirror has the United Netherlands SATISFY
+        # this design without a province changing hands to London. So the
+        # question per province is: is the power holding it one this court
+        # regards as a threat?
+        #
+        # A province counts as DENIED when, and only when, it is held by:
+        #   (a) ourselves or our own client — denied outright, whatever the
+        #       geometry. This is the D70 false-negative fix: a court holding
+        #       its own targets is satisfied even while allied to the hegemon.
+        #   (b) a power below the great-power tier that is NOT inside the
+        #       hegemon's bloc — the buffer state. This is why §11.2's
+        #       United Netherlands satisfies the design without a province
+        #       ever passing to London, and why a French SATELLITE holding
+        #       Amsterdam does not (the authored blurb is literally "London
+        #       will not rest while the bloc holds it").
+        # Any other great power holding it denies nothing — which preserves
+        # D68 (allying INTO the camp that holds the Scheldt is DORMANCY, not
+        # fulfilment) and guard 2's ruling that a cut-down France still
+        # holding the targets satisfies nothing: a beaten great power is
+        # still a great power, and the design was never about France's size.
+        # Unknown hands never claim success.
+        regions = list(entry.get("regions") or [])
+        if not regions:
+            return False          # a design with no provinces never lands
+        # Court-relative, and NO share-floor gate: the floor governs
+        # ACTIVATION (is the design urgent), never SATISFACTION. Reading the
+        # RAW largest bloc here re-opened the very P1 this arm exists to
+        # close — once a co-belligerent out-masses France the exclusion set
+        # points at the wrong camp entirely.
         hegemon, _share = _hegemon(world, nation)
-        if hegemon is None:
-            return True     # no rival bloc at all — nothing left to deny
-        bloc = set(world.get_bloc_members(hegemon))
-        return not any(_region_controller(world, r) in bloc
-                       for r in (entry.get("regions") or []))
+        hegemon_bloc = (set(world.get_bloc_members(hegemon))
+                        if hegemon is not None else set())
+        for region_name in regions:
+            if _controlled_by_self_or_vassal(world, nation, region_name):
+                continue                                        # (a)
+            controller = _region_controller(world, region_name)
+            if controller is None:
+                return False
+            # Resolve the vassal chain exactly as arm (a) does. A French
+            # SATELLITE is a minor power on paper — reading the literal
+            # controller let Holland-holding-Amsterdam pass as a neutral
+            # buffer while it was still Napoleon's client, which is the P1
+            # again through the back door.
+            effective = world._top_overlord(controller) or controller
+            if world.get_power_tier(effective) == "major":
+                return False
+            if effective in hegemon_bloc or controller in hegemon_bloc:
+                return False
+        return True                                             # (b)
     if agenda_type == "contain_hegemon":
         # "share < floor" — regardless of where self sits.
         floor = float(entry.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
@@ -342,6 +422,44 @@ def entry_satisfied(world, nation: str, entry: dict) -> bool:
     is unobtainable at exactly that moment.
     """
     return _entry_satisfied(world, nation, entry)
+
+
+def _satisfied_views(world, nation: str) -> List[AgendaView]:
+    """EVERY satisfied deck entry, highest-priority first.
+
+    All of them, not just the first: a court that wins its WHOLE deck has no
+    active view and only one "won" entry, so the later design's provinces
+    fell out of both ENTRENCH arms — Austria holding all five design
+    provinces priced a demand for Milan at -8 and one for Munich at 0, and
+    Munich had priced -8 before Swabia was taken. That is this fix's own
+    stated pathology surviving in the fully-satisfied case.
+
+    A court that has WON its design has no ACTIVE agenda: activation is the
+    complement of satisfaction for acquire, and a deny goes quiet the moment
+    the provinces are safe. Both acceptance scorers gate on the active view,
+    so the court that just took Milan priced a demand for Milan at 0 while
+    the court still fighting for it priced the same demand at -8 — more
+    complete success bought LESS defence of the very province won, and spec
+    line 39's "sues to lock its gains" shipped its "sues" half (+10 resolve,
+    Pressburg) with nothing delivering "lock".
+
+    ENTRENCH arms fall back here so that success cannot make a court cheaper
+    to rob. Deliberately NOT offered to the ADVANCE arms: a design already
+    satisfied cannot be advanced, and paying +12 for handing a court what it
+    already holds would be free acceptance for nothing.
+
+    Gated exactly like `get_active_agenda` — a vassalized, eliminated, or
+    survival-overridden court has no design voice.
+    """
+    if _is_vassal(world, nation) or nation not in world.get_active_nations():
+        return []
+    if survival_override_active(world, nation):
+        return []
+    return [
+        _view_from_entry(nation, entry)
+        for entry in ((getattr(world, "agendas", {}) or {}).get(nation) or [])
+        if _entry_satisfied(world, nation, entry)
+    ]
 
 
 def is_agenda_satisfied(view: AgendaView, world) -> bool:
@@ -555,36 +673,46 @@ def agenda_acceptance_mod(proposal: Dict, world) -> int:
     if not target:
         return 0
     view = get_active_agenda(target, world)
-    if view is None or view.survival:
+    if view is not None and view.survival:
+        return 0
+    # A WON design still defends itself. Both the no-active-design case AND
+    # the case where a LATER deck entry has since activated: Austria that
+    # holds Milan is flying primacy_germany, and pricing the demand for
+    # Milan against THAT entry found no match at all (see _satisfied_view).
+    won = _satisfied_views(world, target)
+    if view is None and not won:
         return 0
 
     ceded, demanded = _proposal_territory_content(proposal)
-    targets_lower = {r.lower(): r for r in view.regions}
 
-    def _match(names: set) -> List[str]:
-        return [targets_lower[n.lower()] for n in names
-                if n.lower() in targets_lower]
+    def _match(names: set, of_view) -> List[str]:
+        lower = {r.lower(): r for r in of_view.regions}
+        return [lower[n.lower()] for n in names if n.lower() in lower]
 
-    ceded_targets = _match(ceded)
-    demanded_targets = _match(demanded)
-
-    # ── ADVANCE ──
-    if view.type == "acquire_regions":
-        for region_name in ceded_targets:
-            if not _controlled_by_self_or_vassal(world, target, region_name):
-                return AGENDA_ACCEPT_ADVANCE
-    elif view.type == "deny_regions":
-        hegemon, share = _hegemon(world, target)
-        if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR:
-            bloc = set(world.get_bloc_members(hegemon))
+    # ── ADVANCE ── (only the LIVE design; a won one has nothing to advance,
+    # and paying +12 for handing a court what it already holds is free
+    # acceptance for nothing)
+    if view is not None:
+        ceded_targets = _match(ceded, view)
+        if view.type == "acquire_regions":
             for region_name in ceded_targets:
-                if _region_controller(world, region_name) in bloc:
+                if not _controlled_by_self_or_vassal(world, target, region_name):
                     return AGENDA_ACCEPT_ADVANCE
+        elif view.type == "deny_regions":
+            hegemon, share = _hegemon(world, target)
+            if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR:
+                bloc = set(world.get_bloc_members(hegemon))
+                for region_name in ceded_targets:
+                    if _region_controller(world, region_name) in bloc:
+                        return AGENDA_ACCEPT_ADVANCE
 
-    # ── ENTRENCH ──
-    for region_name in demanded_targets:
-        if _controlled_by_self_or_vassal(world, target, region_name):
-            return AGENDA_ACCEPT_ENTRENCH
+    # ── ENTRENCH ── priced against the live design AND every won one
+    for candidate in ([view] if view is not None else []) + won:
+        for region_name in _match(demanded, candidate):
+            if _controlled_by_self_or_vassal(world, target, region_name):
+                return AGENDA_ACCEPT_ENTRENCH
+    if view is None:
+        return 0
     # The formal-peace arm fires from WAR *or* ARMISTICE — the designed
     # armistice-first route still ends in "the peace that does not return
     # Milan"; only the armistice itself (a pause) is exempt.
@@ -815,7 +943,11 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     that does not return Milan. First match wins; never additive.
     """
     view = get_active_agenda(court, world)
-    if view is None or view.survival:
+    if view is not None and view.survival:
+        return 0
+    # A WON design still defends itself — see agenda_acceptance_mod.
+    won = _satisfied_views(world, court)
+    if view is None and not won:
         return 0
 
     territory_kinds = ("territory", "territory_cede", "territory_return")
@@ -827,7 +959,7 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
         region = str(term.get("region") or "")
         return [region] if region else []
 
-    targets_lower = {r.lower(): r for r in view.regions}
+    targets_lower = {r.lower(): r for r in (view.regions if view else ())}
     terms = [t for t in (settlement_terms or []) if isinstance(t, dict)]
 
     hegemon, share = _hegemon(world, court)
@@ -835,8 +967,8 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
             if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR
             else set())
 
-    # ── ADVANCE ──
-    for term in terms:
+    # ── ADVANCE ── (only the LIVE design — nothing left to advance on a won one)
+    for term in terms if view is not None else ():
         if term.get("type") not in territory_kinds:
             continue
         to_nation = term.get("to_nation") or term.get("to")
@@ -856,7 +988,10 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
                     if _region_controller(world, region_name) in bloc:
                         return AGENDA_ACCEPT_ADVANCE
 
-    # ── ENTRENCH: a term strips a HELD design region from the court ──
+    # ── ENTRENCH: a term strips a HELD design region — live design OR won ──
+    strip_lower = dict(targets_lower)
+    for won_view in won:
+        strip_lower.update({r.lower(): r for r in won_view.regions})
     for term in terms:
         if term.get("type") not in territory_kinds:
             continue
@@ -864,10 +999,13 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
         if from_nation != court:
             continue
         for name in _regions_of(term):
-            region_name = targets_lower.get(name.lower())
+            region_name = strip_lower.get(name.lower())
             if (region_name is not None
                     and _controlled_by_self_or_vassal(world, court, region_name)):
                 return AGENDA_ACCEPT_ENTRENCH
+
+    if view is None:
+        return 0
 
     # ── ENTRENCH: the peace ends an advancing war, returning nothing ──
     for opponent in (proposer_side_participants or []):
@@ -948,8 +1086,8 @@ def process_agenda_violations(world) -> List[Dict]:
             continue  # one's own soil cannot be "crossed" — a garrison on
             # a legally-held (e.g. treaty-ceded) province is no transit,
             # however loudly the old owner's guard covers it (review fix)
-        if world.is_at_war(violator, holder):
-            continue  # open war supersedes outrage
+        if _belligerent(world, violator, holder):
+            continue  # open war — or its armistice — supersedes outrage
         if world.are_allies(violator, holder):
             continue
         if ((vassals.get(violator) or {}).get("lord") == holder

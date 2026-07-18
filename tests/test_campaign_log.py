@@ -113,7 +113,10 @@ class TestTypeWhitelist:
         # NA-3 (July 17, 2026): +1 agenda_violation (the Ansbach trap).
         # NA-5 (July 18, 2026): +2 ai_ultimatum_accepted / ai_ultimatum_rejected.
         # NA-6a (July 18, 2026): +1 nation_formed (the Proclamation).
-        assert len(CAMPAIGN_LOG_TYPES) == 121
+        # Phase audit (July 18, 2026): +1 ai_ultimatum_void — a demand
+        # overtaken by war, or outliving the court that made it, lapses
+        # instead of executing.
+        assert len(CAMPAIGN_LOG_TYPES) == 122
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

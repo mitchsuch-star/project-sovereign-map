@@ -5717,6 +5717,28 @@ class DiplomaticExecutor:
             ),
         }
 
+    def _ultimatum_void_reason(self, world, source_nation: str) -> str:
+        """Why a live ultimatum no longer has anything to bargain over — or "".
+
+        The ultimatum dialogue is non-blocking and lapses only at the START
+        of the next end_turn, so it survives arbitrary state change across
+        the whole of the player's turn. An ultimatum is a demand made under
+        threat of war: once the war has come — or the issuer is gone — the
+        bargain is void. Without this check, yielding still transferred the
+        province, wrote a perpetual tribute treaty, marched off the
+        conscripts and reported "The peace holds" while the two were at WAR,
+        and yielding to an issuer eliminated during the turn RESURRECTED it.
+
+        Reachable with zero player action: the issuer is dragged into an
+        existing war by a third party's alliance cascade, between the AI
+        diplomatic phase that issues and the player's answer.
+        """
+        if source_nation not in world.get_active_nations():
+            return "gone"
+        if world.is_at_war(world.player_nation, source_nation):
+            return "war"
+        return ""
+
     def _handle_accept_ai_ultimatum(self, dialogue: Dict, world) -> Dict:
         """NA-5 §8: the player YIELDS to an AI ultimatum. The demands
         transfer player→issuer through the shared _apply_ultimatum_demands
@@ -5734,6 +5756,35 @@ class DiplomaticExecutor:
             world.dialogue_manager.pop()
             return {"success": False, "message": "Error: ultimatum data missing."}
 
+        from backend.game_logic.formations import formed_display_name
+        void = self._ultimatum_void_reason(world, source_nation)
+        if void:
+            issuer = formed_display_name(world, source_nation)
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            message = (
+                f"There is nothing left to yield to, Sire — {issuer} is no "
+                f"longer a power in Europe. The demand dies with their court."
+                if void == "gone" else
+                f"The demand is void, Sire. {issuer} chose the sword before "
+                f"we could answer — one does not buy off a war already begun."
+            )
+            world.log_event({
+                "type": "ai_ultimatum_void",
+                "source": source_nation,
+                "reason": void,
+                "turn": int(world.current_turn),
+            })
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": "Ultimatum",
+                "outcome": "rejected",
+                "message": message,
+                "feedback": "",
+            }
+            return {"success": True, "message": message}
+
         transfers = self._apply_ultimatum_demands(
             terms.get("demands", []), world.player_nation, world,
             beneficiary=source_nation)
@@ -5744,8 +5795,8 @@ class DiplomaticExecutor:
 
         transfer_text = "; ".join(transfers) if transfers else "no transferable demands"
         message = (
-            f"You have yielded to {source_nation}'s ultimatum. "
-            f"Conceded: {transfer_text}. The peace holds — at a price."
+            f"You have yielded to {formed_display_name(world, source_nation)}'s "
+            f"ultimatum. Conceded: {transfer_text}. The peace holds — at a price."
         )
         world.log_event({
             "type": "ai_ultimatum_accepted",
@@ -5777,19 +5828,37 @@ class DiplomaticExecutor:
         context = dialogue.get("context", {})
         source_nation = context.get("source_nation", "")
 
+        from backend.game_logic.formations import formed_display_name
         world.dialogue_manager.pop()
         from backend.notifications import DIPLOMATIC_PROPOSAL
         world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
 
-        if source_nation:
+        # A demand nobody is left to press is not defiance — it lapsed.
+        # Planting the pressure marker here would let a dead or already-
+        # warring court bank a grievance for a refusal that cost nothing.
+        void = self._ultimatum_void_reason(world, source_nation) if source_nation else "gone"
+        if source_nation and not void:
             apply_ultimatum_rejection_cooldowns(source_nation, world)
             record_ultimatum_rejection(world, source_nation)
 
+        issuer = formed_display_name(world, source_nation) if source_nation else "their court"
         message = (
-            f"You have defied {source_nation}'s ultimatum. Their court will "
+            f"You have defied {issuer}'s ultimatum. Their court will "
             f"not forget it — expect their weight behind the next coalition."
+            if not void else
+            f"The demand has lapsed of its own accord, Sire. "
+            f"{issuer} is in no position to press it."
         )
+        # The DURABLE record has to agree with the popup. Logging "we defied
+        # them — their court will not forget" for a demand that lapsed would
+        # assert in the campaign log exactly the coalition grievance the
+        # branch above deliberately refused to bank.
         world.log_event({
+            "type": "ai_ultimatum_void",
+            "source": source_nation,
+            "reason": void,
+            "turn": int(world.current_turn),
+        } if void else {
             "type": "ai_ultimatum_rejected",
             "source": source_nation,
             "turn": int(world.current_turn),

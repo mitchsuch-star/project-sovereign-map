@@ -128,6 +128,7 @@ CAMPAIGN_LOG_TYPES = {
     # NA-5 §8: incoming AI ultimatum resolution (arrival rides proposal_arrived)
     "ai_ultimatum_accepted",
     "ai_ultimatum_rejected",
+    "ai_ultimatum_void",
     # PL-27/PL-34: Proposal queue visibility events
     "proposal_arrived",
     "proposal_expired_unseen",
@@ -310,6 +311,7 @@ CATEGORY_MAP = {
     # NA-5 §8: incoming AI ultimatum resolution
     "ai_ultimatum_accepted": "diplomacy",
     "ai_ultimatum_rejected": "diplomacy",
+    "ai_ultimatum_void": "diplomacy",
     # PL-27/PL-34: Proposal queue visibility events
     "proposal_arrived": "diplomacy",
     "proposal_expired_unseen": "diplomacy",
@@ -704,7 +706,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # NA-5: the ultimatum pair is the same shape — the player answered.
         if event_type in ("ai_proposal_accepted", "ai_proposal_rejected",
                           "ai_proposal_counter_failed",
-                          "ai_ultimatum_accepted", "ai_ultimatum_rejected"):
+                          "ai_ultimatum_accepted", "ai_ultimatum_rejected",
+                          "ai_ultimatum_void"):
             filtered.append(event)
             continue
 
@@ -1484,6 +1487,12 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "ai_ultimatum_rejected":
         source = event.get("source", "Unknown")
         return f"We defied {source}'s ultimatum — their court will not forget"
+
+    if event_type == "ai_ultimatum_void":
+        source = event.get("source", "Unknown")
+        if event.get("reason") == "gone":
+            return f"{source}'s ultimatum died with their court"
+        return f"{source}'s ultimatum was overtaken by war — the demand is void"
 
     if event_type == "auto_downgrade":
         nation_a = event.get("nation_a", "Unknown")
