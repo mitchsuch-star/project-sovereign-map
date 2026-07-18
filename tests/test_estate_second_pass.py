@@ -796,10 +796,38 @@ class TestGuessedTargetGuard:
             "target": "ArchdukeJohn", "type": "specific",
             "_raw_input": "Massena, attack Venetia",
         })
-        assert result["success"] is False
+        # PIN CONSCIOUSLY FLIPPED July 18, 2026. The guard used to end in a
+        # flat terminal refusal that listed the visible enemies as prose and
+        # offered nothing to click or type back — the playtest dead end
+        # ("it just gives options" and nothing happens). It now raises the
+        # answerable attack-target clarification instead. The load-bearing
+        # invariants are unchanged and asserted below: no battle is fought,
+        # and no interrupt is staged.
+        assert result["state"] == "awaiting_clarification"
+        assert result["clarification_kind"] == "attack_target"
         assert "will not charge at a guess" in result["message"]
         assert john.strength == strength_before  # nobody fought
         assert result.get("pending_interrupt") is None
+        # Every option must reissue a fully-formed named attack, so answering
+        # runs the ordinary pipeline rather than re-entering the refused guess.
+        assert result["options"]
+        for option in result["options"]:
+            assert option["command"].startswith("Massena, attack ")
+            assert option["target"] in world.marshals
+
+    def test_guessed_target_refusal_is_answerable_by_typing(self, world):
+        """The typed channel is the PRIMARY answer path in the terminal — the
+        printed choices must resolve when typed back verbatim."""
+        from backend.commands.clarification import interpret_clarification_answer
+
+        result = _execute(world, {
+            "marshal": "Massena", "action": "attack",
+            "target": "ArchdukeJohn", "type": "specific",
+            "_raw_input": "Massena, attack Venetia",
+        })
+        dialogue = {"options": result["options"]}
+        answer = interpret_clarification_answer(dialogue, "ArchdukeJohn")
+        assert answer.get("command") == "Massena, attack ArchdukeJohn"
 
     def test_target_named_by_location_passes_the_guard(self, world):
         # "the force at Tyrol" — the resolved enemy's LOCATION appears in

@@ -44,6 +44,8 @@ from typing import Dict, List, Optional
 
 import re
 
+from backend.ai.attack_vocabulary import targeting_anchor_words
+
 # Actions that are not a repeatable field "order" — "again"/"not you" skip
 # past them to the last real command (checking status then typing "again"
 # should repeat the attack, not the status read).
@@ -132,12 +134,16 @@ _PLACE_DEIXIS_RE = re.compile(r'\bthere\b', re.IGNORECASE)
 # the expletive/partitive/phrasal false positives the substitution would
 # otherwise mangle ("is there time" -> "is <region> time"; "all of them" ->
 # "all of <enemy>"; "hold them off" -> "hold <enemy> off").
-_TARGETING_ANCHORS = frozenset({
-    "attack", "charge", "engage", "assault", "storm", "pursue", "hunt",
-    "chase", "hound", "intercept", "bombard", "shell", "cannonade", "scout",
-    "hit", "strike", "rout", "ambush", "flank", "harry", "smash", "crush",
-    "destroy", "defeat", "against", "at", "on", "upon", "toward", "towards",
-})
+#
+# Single-sourced from backend/ai/attack_vocabulary.py (July 18, 2026). This
+# set used to be an independent literal, and it had silently drifted WIDER
+# than the fast parser's keyword table: it listed smash/crush/destroy/engage/
+# assault/storm/rout, none of which the parser could route. So "Ney, attack
+# Mack" then "Ney, crush him" resolved the pronoun perfectly and still
+# produced a Berthier shrug. Deriving both from one vocabulary makes the
+# anchor set a superset BY CONSTRUCTION — it can never again promise a
+# reference the parser cannot act on.
+_TARGETING_ANCHORS = targeting_anchor_words()
 _MOVEMENT_ANCHORS = frozenset({
     "move", "march", "go", "head", "advance", "retreat", "deploy", "sail",
     "ride", "redeploy", "reinforce", "station", "hold", "defend", "garrison",
@@ -158,6 +164,32 @@ _COLLECTIVE_RE = re.compile(
     r'|(?:whole|entire)\s+army'
     r')\b',
     re.IGNORECASE)
+
+
+# "give" is DITRANSITIVE: in "give them hell" the pronoun is the indirect
+# object and refers to the enemy, but in "give them autonomy" / "give them
+# back their land" it refers to a vassal NATION. A preceding-word anchor is
+# structurally the wrong instrument — adding a bare "give" to
+# _TARGETING_ANCHORS rewrites "give them autonomy" into "give <enemy marshal>
+# autonomy", injecting an enemy name into the vassal slot UPSTREAM of the
+# parser guard that exists to prevent exactly that contamination.
+#
+# So the idiom is gated on its TAIL instead: only the combat senses resolve.
+_GIVE_VERB_RE = re.compile(r"^giv(?:e|es|ing)$", re.IGNORECASE)
+_GIVE_COMBAT_TAIL_RE = re.compile(
+    r"^\s*(?:hell|no\s+quarter|the\s+bayonet|battle|a\s+thrashing|"
+    r"a\s+bloody\s+nose)\b",
+    re.IGNORECASE)
+
+
+def _is_give_combat_idiom(preceding: Optional[str], tail: str) -> bool:
+    """True for the combat sense of "give <pronoun> <object>" only.
+
+    "give them hell" -> the pronoun IS the enemy, resolve it.
+    "give them autonomy" / "give them back their land" -> a vassal order,
+    leave the pronoun alone (the vassal family owns it)."""
+    return bool(preceding and _GIVE_VERB_RE.match(preceding)
+                and _GIVE_COMBAT_TAIL_RE.match(tail))
 
 
 def _preceding_word(text: str, index: int) -> Optional[str]:
@@ -381,7 +413,9 @@ def resolve_context_references(command_text: str, world) -> Dict:
     # finding-5) and only in object position after a targeting verb/preposition
     # (finding-2: not "all of them", "hold them off", "get them all").
     for person_match in _PERSON_PRONOUN_RE.finditer(working):
-        if _preceding_word(working, person_match.start()) in _TARGETING_ANCHORS:
+        _prev = _preceding_word(working, person_match.start())
+        if _prev in _TARGETING_ANCHORS or _is_give_combat_idiom(
+                _prev, working[person_match.end():]):
             enemy = _last_enemy_target(world)
             if enemy:
                 working = (working[:person_match.start()] + enemy

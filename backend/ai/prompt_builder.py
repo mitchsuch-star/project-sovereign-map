@@ -796,6 +796,36 @@ def _format_geography(game_state: Dict[str, Any]) -> Optional[str]:
 # BERTHIER PARSE RECOVERY
 # =============================================================================
 
+# F5 (playtest): Berthier must never recite raw internal action ids. The
+# meta/debug/internal verbs a player never types are dropped outright.
+_RECOVERY_HIDDEN_ACTIONS = frozenset({
+    "cheat", "debug", "unknown", "status", "help",
+    "diplomatic_error", "diplomatic_downgrade", "diplomatic_break",
+})
+
+
+def recovery_action_vocabulary(style: str = "typed"):
+    """Single source for the Berthier-recovery action vocabulary.
+
+    ``style="narrated"`` -> display-name conjugations, for the LIVE prompt's
+    input (what the LLM is told the army can do).
+    ``style="typed"``    -> imperative, typeable forms, for the MOCK template's
+    player-facing copy (what the player is told to type).
+
+    Two surface forms, one filter. The live prompt was fixed for the raw-id
+    leak in the F5 playtest pass; the mock template was not, so mock mode (and
+    live mode after any API failure) still printed
+    "Valid orders include: attack, break_square, build, cancel,
+    change_autonomy, charge." — internal ids, underscores and all, straight to
+    the player. Sharing the filter keeps the two from drifting again.
+    """
+    from backend.display_names import action_display_name
+    actions = (a for a in VALID_ACTIONS if a not in _RECOVERY_HIDDEN_ACTIONS)
+    if style == "narrated":
+        return sorted(action_display_name(a) for a in actions)
+    return sorted(a.replace("_", " ") for a in actions)
+
+
 def build_berthier_recovery_prompt(
     raw_input: str,
     game_state: Dict[str, Any],
@@ -819,20 +849,7 @@ def build_berthier_recovery_prompt(
 
     marshals_info = _format_marshals(game_state)
     enemies_info = _format_enemies(game_state)
-    # F5 (playtest): feed Berthier HUMAN-READABLE verbs, not raw ids. The old
-    # code injected `sorted(VALID_ACTIONS)` verbatim, so the LLM echoed raw ids
-    # like "Invest_vassal" straight to the player (R7 leak). Map through the
-    # display names and drop the meta/debug/internal verbs a player never types.
-    from backend.display_names import action_display_name
-    _RECOVERY_HIDDEN_ACTIONS = {
-        "cheat", "debug", "unknown", "status", "help",
-        "diplomatic_error", "diplomatic_downgrade", "diplomatic_break",
-    }
-    actions_list = ", ".join(sorted(
-        action_display_name(a)
-        for a in VALID_ACTIONS
-        if a not in _RECOVERY_HIDDEN_ACTIONS
-    ))
+    actions_list = ", ".join(recovery_action_vocabulary("narrated"))
 
     system_prompt = (
         "You are Berthier, Napoleon's meticulous chief of staff. "

@@ -31,6 +31,7 @@ from dotenv import load_dotenv
 from .schemas import ParseResult
 from .providers import get_provider, PROVIDERS
 from .validation import validate_parse_result
+from .attack_vocabulary import mentions_attack
 
 # Load environment variables
 load_dotenv()
@@ -211,6 +212,38 @@ def _mentions_pension(command_lower: str) -> bool:
     the "build parsed as drill" defect class)."""
     return ("pension" in command_lower or "rente" in command_lower
             or "annuity" in command_lower)
+
+
+def _mentions_screening_idiom(command_lower: str) -> bool:
+    """July 18, 2026 playtest sweep: "cover the retreat" / "screen the
+    withdrawal" order a marshal to SHIELD someone else's withdrawal — they do
+    not order HIM to run.
+
+    The retreat branch fired on the bare substring "retreat"/"withdraw" and
+    stamped confidence 0.9, which is above the LLM-fallback gate, so live mode
+    could never correct it: the player asked Ney to screen the army and Ney
+    retreated, spending the AP. Falling through to unknown is the correct
+    outcome (Berthier asks) — screening is not a modelled action.
+
+    Same shape as the _mentions_pension guard above (mock keyword order rule)."""
+    return bool(re.search(
+        r"\b(?:cover|screen|protect|shield)\s+(?:the|our|his|their|her)\s+"
+        r"(?:retreat|withdrawal|rear|army|corps|flank)\b",
+        command_lower))
+
+
+def _mentions_abstract_restore(command_lower: str) -> bool:
+    """The abstract senses of "restore" — none of which is a repair order.
+
+    "restore order in Vienna" / "restore discipline" / "restore morale" all
+    matched the repair branch's bare "restore " substring and executed a
+    masonry repair at confidence 0.9. The concrete sense ("restore the fort",
+    "restore the walls at Ulm") still routes to repair."""
+    return bool(re.search(
+        r"\brestore\s+(?:the\s+|our\s+|his\s+|their\s+)?"
+        r"(?:order|discipline|morale|calm|peace|honou?r|confidence|"
+        r"the\s+line|the\s+situation)\b",
+        command_lower))
 
 
 class LLMClient:
@@ -612,7 +645,7 @@ class LLMClient:
         Uses real marshal/enemy names from game_state for immersion.
         Three template categories: marshal recognised, target recognised, nothing recognised.
         """
-        from .validation import VALID_ACTIONS
+        from .prompt_builder import recovery_action_vocabulary
 
         # Extract real names for templates
         marshal_names = list(game_state.get("marshals", {}).keys())
@@ -620,7 +653,16 @@ class LLMClient:
         first_marshal = marshal_names[0] if marshal_names else "Ney"
         first_enemy = enemy_names[0] if enemy_names else "Wellington"
 
-        actions_sample = ", ".join(sorted(VALID_ACTIONS)[:6])
+        # July 18, 2026: was `sorted(VALID_ACTIONS)[:6]`, which recited raw
+        # internal ids to the player ("break_square, change_autonomy"). The
+        # live prompt had been fixed for this in the F5 pass; the mock template
+        # had not. Now both draw from one filtered, surfaced vocabulary — and
+        # the sample leads with the verbs a stuck player actually needs.
+        _vocab = recovery_action_vocabulary("typed")
+        _lead = [a for a in ("attack", "move", "scout", "defend", "fortify",
+                             "recruit") if a in _vocab]
+        actions_sample = ", ".join(
+            _lead + [a for a in _vocab if a not in _lead][:max(0, 6 - len(_lead))])
 
         recognized_marshal = partial_parse.get("recognized_marshal")
         recognized_target = partial_parse.get("recognized_target")
@@ -1003,6 +1045,21 @@ class LLMClient:
             "intercept", "give chase", "go after", "harry", "hound", "shadow",
         ]):
             action = "attack"
+        # Colloquial battle vocabulary (July 18, 2026 playtest fix). Everything
+        # a player types that MEANS "give battle" but carries none of the four
+        # keywords above: crush/smash/destroy/engage/assault/storm/rout/defeat,
+        # the capture verbs (capture/seize — "occupy" is already handled), and
+        # the whole-phrase idioms ("give them hell", "give battle", "no
+        # quarter", "put them to the sword"). Vocabulary is single-sourced in
+        # backend/ai/attack_vocabulary.py; see that module for the deliberate
+        # exclusions ("take", "secure", "march"/"advance").
+        #
+        # ORDERING RULE (see the comment at the charge branch above): this sits
+        # AFTER the pursue block so "pursue Wellington until destroyed" is still
+        # claimed by the pursue family and keeps its strategic PURSUE upgrade,
+        # and AFTER the artillery block so "bombard" keeps its own branch.
+        elif mentions_attack(command_lower):
+            action = "attack"
         elif "wait" in command_lower or "stand by" in command_lower or re.search(r'\bpass\b', command_lower):
             action = "wait"  # Free action - marshal passes turn
         elif any(kw in command_lower for kw in [
@@ -1019,7 +1076,11 @@ class LLMClient:
         # ES-7 second pass (§0.6.8) review fix: "withdraw Ney's rente" is a
         # pension verb, not an army order — the rente family yields to the
         # pension branches further down the chain (mock keyword order rule).
-        elif "retreat" in command_lower or ("fall back" in command_lower and " to " not in command_lower) or ("withdraw" in command_lower and " to " not in command_lower and not _mentions_pension(command_lower)):
+        elif (("retreat" in command_lower and not _mentions_screening_idiom(command_lower))
+              or ("fall back" in command_lower and " to " not in command_lower)
+              or ("withdraw" in command_lower and " to " not in command_lower
+                  and not _mentions_pension(command_lower)
+                  and not _mentions_screening_idiom(command_lower))):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -1031,9 +1092,32 @@ class LLMClient:
             "make for", "travel to", "campaign to", "campaign toward",
             "sweep toward", "press toward", "drive toward",
             "journey to", "relocate to", "deploy to",
-        ]) or re.search(r'\bmove\b', command_lower):
+            # July 18, 2026 playtest sweep: destination-bearing forms whose
+            # only difference from a working phrasing is a preposition the
+            # player cannot see is significant ("head FOR Vienna" shrugged
+            # while "head TO Vienna" marched).
+            "head for", "ride for", "ride to", "set off for", "set out for",
+            "set off to", "set out to", "make haste to", "make haste for",
+        ]) or re.search(r'\bmove\b', command_lower) or re.search(
+            # Possessive-object forms: "take your corps to Ulm", "bring your
+            # men to Vienna". Anchored on the corps noun + a destination
+            # preposition so they cannot shadow the reinforce/SUPPORT family
+            # below ("send reinforcements to Davout" must stay SUPPORT).
+            r'\b(?:take|bring|lead|march)\s+(?:your|the|his|our)\s+'
+            r'(?:corps|men|army|troops|division|command|column)\s+'
+            r'(?:to|toward|towards|for)\b',
+            command_lower):
             action = "move"
-        elif "scout" in command_lower or "reconnaissance" in command_lower or "recon" in command_lower or "acout" in command_lower or "scou" in command_lower:
+        # July 18, 2026 playtest sweep: the delegation ASK the game itself
+        # prints offers "observe {target}" as a choice, but typing it back on a
+        # later turn shrugged. A bare "watch" is deliberately NOT added — it
+        # would swallow "build a watchtower" and the corpus's negative pin
+        # "the warden watches" (which must stay Unknown action).
+        elif ("scout" in command_lower or "reconnaissance" in command_lower
+              or "recon" in command_lower or "acout" in command_lower
+              or "scou" in command_lower
+              or re.search(r'\bobserv(?:e|es|ing)\b', command_lower)
+              or re.search(r'\bkeep\s+watch\b', command_lower)):
             action = "scout"
         # F4 fix: recruit MUST be checked before reinforce/support — the noun
         # "reinforcements" contains the substring "reinforce", so "recruit
@@ -1110,7 +1194,17 @@ class LLMClient:
         elif re.search(r'\bneutral\b', command_lower):
             # "neutral" alone or "stance neutral" (compound phrases already caught above)
             action = "stance_change"
-        elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
+        # July 18, 2026 playtest sweep: "fix " and a bare "restore " were
+        # silently WRONG at confidence 0.9 — above the LLM-fallback gate, so
+        # live mode could never correct them. "Ney, fix bayonets" is not a
+        # repair order and "restore order in Vienna" is not masonry. "fix" is
+        # dropped outright (zero corpus rows, no legitimate game phrasing);
+        # "restore" keeps its concrete-object sense and yields the abstract
+        # ones, which now fall through to unknown → Berthier asks. Mirrors the
+        # _mentions_pension guard idiom on the retreat/recruit branches.
+        elif "repair " in command_lower or (
+                "restore " in command_lower
+                and not _mentions_abstract_restore(command_lower)):
             action = "repair"
         # Economy info command (Phase 6.2.G)
         # ES-7 second pass review fix: "grant Ney a pension from the

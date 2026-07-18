@@ -12,6 +12,7 @@ from backend.ai.llm_client import (
     SUPPORT_OBJECT_PREFIX_RE,
     CONDITION_CLAUSE_RE,
 )
+from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
 from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
@@ -655,8 +656,18 @@ class CommandParser:
             # suggest/error on both sides: leave the typed target unchanged
             # (pre-CR-0 behavior — the executor reports it helpfully)
 
-        # If target is still None, try to extract it from command text
-        elif not llm_result.get("target"):
+        # If target is still None, try to extract it from command text.
+        #
+        # July 18, 2026 playtest sweep: gated on the action being RESOLVABLE. A
+        # failed parse has no action to hang a target on, and scanning anyway
+        # fuzzy-matched arbitrary sentence words into real provinces ("hell" →
+        # Algiers, "deal" → Bordelais). That fabricated province then rode into
+        # `partial_target` and was fed to Berthier's live recovery prompt as a
+        # fact the Emperor had stated, so his suggested rephrasing could name a
+        # province 1,500km from the marshal. The marshal-less path already
+        # skips this via the meta_actions early return; this restores the
+        # symmetry when a marshal binds.
+        elif not llm_result.get("target") and llm_result.get("action") != "unknown":
             # Build skip list: common words + action words + marshal name
             skip_words = [
                 "to", "the", "at", "in", "on", "and", "or", "a", "an",
@@ -675,6 +686,11 @@ class CommandParser:
                 "someone", "somebody", "anyone", "anybody", "whoever",
                 "enemy", "enemies", "foe", "foes", "target", "yourself",
             ]
+            # July 18, 2026: the same rule for combat-idiom filler. "Ney, give
+            # them hell" now parses as an attack, so the gate above no longer
+            # protects it — and "hell" auto-corrects into the province Algiers.
+            # Single-sourced with the vocabulary that introduced the idioms.
+            skip_words.extend(IDIOM_FILLER_WORDS)
             # Also skip the marshal name if identified
             if llm_result.get("marshal"):
                 skip_words.append(llm_result["marshal"].lower())

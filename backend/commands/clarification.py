@@ -207,6 +207,58 @@ def build_contact_attack_clarification(world, candidates, raw_input: str) -> Opt
     )
 
 
+def build_attack_target_clarification(world, marshal, enemies,
+                                      raw_input: str) -> Optional[Dict]:
+    """ESP-EV-4: "Which foe, Sire?" — the answer surface for an attack order
+    whose target the player named but our maps do not know.
+
+    The guard used to end in a flat terminal refusal that listed the visible
+    enemies as prose and offered nothing to click or type back. The July 18,
+    2026 playtest report is exactly that dead end: "Ney, give them hell" printed
+    a list and did nothing, while "Ney, give Charles hell" — a name resolution
+    happened to ground — opened a popup. Same intent, two unrelated surfaces,
+    and only one of them was answerable.
+
+    Every option reissues a fully-formed ``"<marshal>, attack <enemy>"`` so the
+    answer resolves through the ordinary named-attack pipeline (muster preview,
+    fortification-aware bad-odds gate and objection block all included) rather
+    than re-entering the guess that was just refused. Returns None when nothing
+    is visible to offer or no answer could afford the attack, so the caller
+    keeps its plain refusal for the genuinely empty case.
+    """
+    if marshal is None:
+        return None
+    visible = [e for e in (enemies or []) if getattr(e, "strength", 0) > 0]
+    if not visible:
+        return None
+    if not _answer_is_affordable(world, "attack"):
+        return None
+
+    options: List[Dict] = []
+    for enemy in visible[:6]:
+        options.append({
+            "label": f"{enemy.name} at {enemy.location}",
+            "value": "attack_target_choice",
+            "target": enemy.name,
+            "command": f"{marshal.name}, attack {enemy.name}",
+            # The typed channel is the PRIMARY answer path in the terminal, so
+            # the bare name and the target-qualified form must both resolve.
+            "aliases": [enemy.name, enemy.location,
+                        f"attack {enemy.name}", f"attack {enemy.location}"],
+        })
+
+    return _clarification_response(
+        world,
+        question=(f"Your order names no foe our maps know, Sire — "
+                  f"{marshal.name} will not charge at a guess. Whom shall "
+                  f"he engage?"),
+        options=options,
+        clarification_kind="attack_target",
+        strategic_type=None,
+        raw_input=raw_input,
+    )
+
+
 def build_unknown_name_clarification(world, unknown_name: str,
                                      candidates: List[str], raw_input: str,
                                      kind: str,

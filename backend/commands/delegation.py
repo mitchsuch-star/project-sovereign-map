@@ -132,31 +132,54 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
 
     best = None  # (length, raw_name, scout_target)
 
-    def _consider(name: str, scout_target: str):
+    def _match(candidates: Dict[str, str]):
+        """Pick the longest matching needle across ``candidates`` (raw name ->
+        scout target). Full names match as substrings (landed behavior);
+        single-word tokens match WORD-BOUNDED and only when the token is
+        UNIQUE across the candidate set."""
         nonlocal best
-        if not name:
-            return
-        # Match the raw KEY ("ArchdukeCharles") OR its humanized spaced form
-        # ("Archduke Charles"), so a player who types the natural spaced name the
-        # UI shows resolves too (not just the exact camelCase token). The winner
-        # is still keyed by the RAW name — display humanization happens on return.
-        for needle in {name.lower(), humanize_entity_name(name).lower()}:
-            if needle in hay and (best is None or len(needle) > best[0]):
-                best = (len(needle), name, scout_target)
+        # A partial token ("charles") is admissible only if exactly ONE
+        # candidate owns it — "archduke" belongs to both Archdukes and must
+        # keep today's behavior (no match) rather than silently picking one.
+        token_owners: Dict[str, set] = {}
+        for name in candidates:
+            for token in re.findall(r"[a-z]+",
+                                    humanize_entity_name(name).lower()):
+                if len(token) >= 4:
+                    token_owners.setdefault(token, set()).add(name)
 
-    for m in world.get_enemy_marshals():
-        if getattr(m, "strength", 0) > 0:
-            # Scout the marshal's LOCATION (a reachable region); attack the
-            # marshal himself.
-            _consider(m.name, getattr(m, "location", m.name) or m.name)
+        for name, scout_target in candidates.items():
+            if not name:
+                continue
+            # Match the raw KEY ("ArchdukeCharles") OR its humanized spaced
+            # form ("Archduke Charles"), so a player who types the natural
+            # spaced name the UI shows resolves too. The winner is still keyed
+            # by the RAW name — display humanization happens on return.
+            for needle in {name.lower(), humanize_entity_name(name).lower()}:
+                if needle in hay and (best is None or len(needle) > best[0]):
+                    best = (len(needle), name, scout_target)
+            # July 18, 2026: the last-name gap. "Ney, deal with Charles" lost
+            # the delegation entirely (no popup, a generic Berthier shrug)
+            # while "deal with ArchdukeCharles" produced the correct CR-5 ASK
+            # — the same marshal, verb and enemy, two different surfaces.
+            # Word-bounded so a token can never match inside another name.
+            for token, owners in token_owners.items():
+                if owners != {name}:
+                    continue
+                if re.search(r"\b" + re.escape(token) + r"\b", hay) and (
+                        best is None or len(token) > best[0]):
+                    best = (len(token), name, scout_target)
+
+    _match({m.name: (getattr(m, "location", m.name) or m.name)
+            for m in world.get_enemy_marshals()
+            if getattr(m, "strength", 0) > 0})
     if best is not None:
         # target/scout_target stay RAW (executor + reissue keys); the display is
         # humanized so no camelCase key ever reaches player copy (R7).
         return best[1], best[2], humanize_entity_name(best[1])
 
     # No enemy matched — try a region objective (attack == scout == region).
-    for region_name in getattr(world, "regions", {}):
-        _consider(region_name, region_name)
+    _match({r: r for r in getattr(world, "regions", {})})
     if best is not None:
         return best[1], best[2], humanize_entity_name(best[1])
     return None

@@ -15,6 +15,132 @@ from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# ESP-EV-4 guessed-target guard (July 11, 2026; hoisted + re-surfaced July 18,
+# 2026)
+#
+# A LETHAL order never fires at a parser-GUESSED target. Live-LLM parses can
+# substitute a real enemy or region for a name the player wrote that our maps
+# do not know ("attack Venetia" -> Archduke John at Tyrol, live). When the raw
+# text is available (direct typed player attacks only — AI, strategic execution
+# and muster re-issues carry no raw text) and it names NEITHER the parsed target
+# NOR anything the resolution produced, the target is a guess: ask, never
+# default-scan (the BUG-CA-3 / W6-1 rule, applied to the attack path).
+#
+# July 18, 2026 — WHY THIS IS A FUNCTION NOW. It used to be an inline block
+# sitting AFTER the range-check / PURSUE-upgrade block, which returns early. So
+# a guessed target that happened to be out of range was silently converted into
+# a strategic PURSUE and marched off before the guard ever ran — the playtest
+# report ("Ney, give Charles hell" opened a bad-odds popup over Mack, an enemy
+# the player never named") is exactly that hole. Extracting it lets the SAME
+# implementation run at both lethal seams (the cavalry-recklessness early
+# return and the main resolution path) without a second copy drifting.
+# ════════════════════════════════════════════════════════════════════════════
+
+_GUARD_FILLER_WORDS = frozenset({
+    "the", "a", "an", "at", "on", "to", "of", "and", "with", "his",
+    "her", "their", "them", "him", "near", "nearest", "closest",
+    "nearby", "enemy", "enemies", "foe", "foes", "force", "forces",
+    "army", "armies", "troops", "whoever", "whatever", "that",
+    "is", "in", "range", "guns", "sound", "adjacent", "position",
+    "garrison", "defenders", "defender", "corps", "sire", "please",
+    "go", "now", "immediately", "there", "yonder",
+})
+
+
+def guessed_target_refusal(world, marshal, command, target,
+                           resolved_target=None, enemy_candidates=(),
+                           auto_resolved: bool = False) -> Optional[Dict]:
+    """Return a refusal/clarification response when the attack target is a
+    parser guess the player never named, else None.
+
+    ``enemy_candidates`` are the marshals resolution produced (any may be
+    None); their name/location/nation all count as grounding.
+    """
+    raw = str((command or {}).get("_raw_input") or "").lower()
+    # CR-6 / S5-D1: a bare/auto "attack" resolved its target DETERMINISTICALLY
+    # (the game picked it, the player did not type it), so — exactly like an
+    # explicit delegation ("attack the nearest enemy") — the guard stands down.
+    if not raw or not target or auto_resolved:
+        return None
+    if (command or {}).get("_auto_assigned"):
+        return None
+
+    from backend.display_names import humanize_entity_name
+    from backend.ai.attack_vocabulary import (
+        guard_attack_verbs, IDIOM_FILLER_WORDS)
+
+    # The player's OWN target words: the raw order stripped of the marshal's
+    # name, attack verbs and generic filler. If nothing specific remains
+    # ("Ney, attack the nearest enemy"), the player DELEGATED the choice —
+    # never a guess. The guard only defends against a SPECIFIC name the player
+    # typed that resolution silently overrode.
+    #
+    # IDIOM_FILLER_WORDS is included so the colloquial attack idioms landed
+    # July 18, 2026 read as delegation rather than as a named target: in
+    # "Ney, give them hell" the words "give"/"hell" name no foe, so the order
+    # is a delegated attack, not a guess at a province called Hell.
+    skip = (guard_attack_verbs() | _GUARD_FILLER_WORDS | IDIOM_FILLER_WORDS
+            | {marshal.name.lower()})
+    raw_target_words = [
+        w for w in re.findall(r"[a-z']+", raw)
+        if w not in skip and len(w) >= 3
+    ]
+
+    def _named_in_raw(token) -> bool:
+        token = str(token or "")
+        if not token:
+            return False
+        tl = token.lower()
+        hum = humanize_entity_name(token).lower()
+        if tl in raw or hum in raw:
+            return True
+        # Word-level grounding: a partial name or title the player DID type
+        # stands in for the resolved token ("John" / "the Archduke" ground
+        # "Archduke John") — but a full substitution ("Venetia") grounds none
+        # of Archduke John / Tyrol / Austria.
+        for w in raw_target_words:
+            if len(w) >= 4 and (w in tl or w in hum):
+                return True
+        return False
+
+    # Only fire when the player named SOMETHING specific and none of it matches
+    # the parse. No specific words => delegated => let it fly.
+    if not raw_target_words or _named_in_raw(target):
+        return None
+
+    resolved_tokens = []
+    if resolved_target and resolved_target != target:
+        resolved_tokens.append(resolved_target)
+    for enemy in enemy_candidates:
+        if enemy is not None:
+            resolved_tokens += [enemy.name, enemy.location, enemy.nation]
+    if any(_named_in_raw(t) for t in resolved_tokens):
+        return None
+
+    visible = world.get_visible_enemies(marshal.nation)
+    # Prefer the answerable clarification (options the player can click OR type
+    # back). It reissues a fully-formed named attack, so the answer runs the
+    # ordinary pipeline instead of re-entering the guess just refused.
+    from backend.commands.clarification import build_attack_target_clarification
+    ask = build_attack_target_clarification(world, marshal, visible,
+                                            (command or {}).get("_raw_input") or "")
+    if ask is not None:
+        return ask
+
+    # Nothing visible to offer (or the answer is unaffordable) — keep the
+    # honest refusal rather than an empty question.
+    seen = ", ".join(f"{e.name} at {e.location}" for e in visible[:6]) or "none in sight"
+    return {
+        "success": False,
+        "message": (
+            f"Your order names no foe or province our maps know, Sire — "
+            f"{marshal.name} will not charge at a guess. "
+            f"Visible enemies: {seen}."
+        ),
+    }
+
+
 def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
     """A blocked-attack result when the target is our OWN nation, an ally, or a
     vassal — else None (the target is a valid enemy / attackable neutral, so the
@@ -2801,6 +2927,25 @@ class CombatExecutor:
                         if dist <= marshal.movement_range:
                             resolved_target = enemy.name
 
+                # ESP-EV-4: this block returns early (charge popup / auto-
+                # charge), so it is a lethal seam of its own and must consult
+                # the SAME guessed-target guard the main path uses — otherwise
+                # a reckless cavalry marshal charges a target the player never
+                # named. `_target_auto_resolved` is not set yet here; a target
+                # the engine picked at :2797 is passed as auto-resolved so the
+                # guard correctly stands down on a delegated charge.
+                _charge_guess = guessed_target_refusal(
+                    world, marshal, command, target,
+                    resolved_target=resolved_target,
+                    enemy_candidates=(
+                        world.get_enemy_by_name_for_nation(
+                            resolved_target, marshal.nation),
+                    ),
+                    auto_resolved=not target,
+                ) if resolved_target else None
+                if _charge_guess is not None:
+                    return _charge_guess
+
                 # Only trigger recklessness popup/auto-charge if we have a valid target
                 # If no target in range, let normal attack flow handle it (move toward enemy)
                 if resolved_target:
@@ -3105,6 +3250,29 @@ class CombatExecutor:
                     "message": f"Cannot attack {enemy_by_name.name} — {enemy_by_name.nation} is a coalition ally."
                 }
 
+        # ════════════════════════════════════════════════════════════
+        # ESP-EV-4 guessed-target guard — see guessed_target_refusal().
+        #
+        # Runs HERE, immediately after resolution and BEFORE the range check,
+        # because the range check returns early with a strategic PURSUE. Until
+        # July 18, 2026 the guard sat after that block, so a guessed target
+        # that happened to be out of range marched off unguarded. Placed before
+        # auto-war-declaration too, so a guess can never drag France into a war.
+        # ════════════════════════════════════════════════════════════
+        _guess_refusal = guessed_target_refusal(
+            world, marshal, command, target,
+            resolved_target=resolved_target,
+            enemy_candidates=(
+                enemy_by_name,
+                world.get_enemy_by_name_for_nation(target, marshal.nation),
+                world.get_enemy_at_location_for_nation(resolved_target,
+                                                       marshal.nation),
+            ),
+            auto_resolved=_target_auto_resolved,
+        )
+        if _guess_refusal is not None:
+            return _guess_refusal
+
         # ============================================================
         # RANGE CHECK: Verify target is within marshal's attack range
         # ============================================================
@@ -3239,101 +3407,6 @@ class CombatExecutor:
         if not enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
             enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
-
-        # ════════════════════════════════════════════════════════════
-        # ESP-EV-4 (July 11, 2026): a LETHAL order never fires at a
-        # parser-GUESSED target. Live-LLM parses can substitute a real
-        # enemy or region for a name the player wrote that our maps do
-        # not know ("attack Venetia" → Archduke John at Tyrol, live).
-        # When the raw text is available (direct typed player attacks
-        # only — AI, strategic execution, and muster re-issues carry no
-        # raw text) and it names NEITHER the parsed target NOR anything
-        # the resolution produced (enemy name / location / nation,
-        # resolved region — raw or humanized), the target is a guess:
-        # ask, never default-scan (the BUG-CA-3 / W6-1 rule, applied to
-        # the attack path). Placed BEFORE auto-war-declaration so a
-        # guessed target can never drag France into a war.
-        # ════════════════════════════════════════════════════════════
-        _raw_attack_text = str((command or {}).get("_raw_input") or "").lower()
-        # CR-6 / S5-D1: a bare/auto "attack" resolved its target
-        # DETERMINISTICALLY (the game picked it, the player did not type it), so
-        # — exactly like an explicit delegation ("attack the nearest enemy") —
-        # the guessed-target guard must stand down. Without this exemption
-        # "attack them all" / "attack <typo-region>" would be falsely refused
-        # because the raw words never ground the resolver-picked target.
-        if (_raw_attack_text and target and not _target_auto_resolved
-                and not (command or {}).get("_auto_assigned")):
-            from backend.display_names import humanize_entity_name
-
-            # The player's OWN target words: the raw order stripped of the
-            # marshal's name, attack verbs, and generic filler. If nothing
-            # specific remains ("Ney, attack the nearest enemy" / "attack the
-            # enemy"), the player DELEGATED the choice — that is never a guess,
-            # so the guard must stand down. The guard only defends against a
-            # SPECIFIC name the player typed that resolution silently overrode
-            # ("attack Venetia" → Archduke John, the BUG-CA-3 live case).
-            _attack_verbs = {
-                "attack", "attacks", "attacking", "charge", "charges",
-                "assault", "assaults", "engage", "engages", "strike",
-                "strikes", "hit", "take", "storm", "storms", "smash",
-                "crush", "destroy", "fight", "march", "advance", "rout",
-            }
-            _filler_words = {
-                "the", "a", "an", "at", "on", "to", "of", "and", "with", "his",
-                "her", "their", "them", "him", "near", "nearest", "closest",
-                "nearby", "enemy", "enemies", "foe", "foes", "force", "forces",
-                "army", "armies", "troops", "whoever", "whatever", "that",
-                "is", "in", "range", "guns", "sound", "adjacent", "position",
-                "garrison", "defenders", "defender", "corps", "sire", "please",
-                "go", "now", "immediately", "there", "yonder", "them",
-            }
-            _mn = marshal.name.lower()
-            _raw_target_words = [
-                w for w in re.findall(r"[a-z']+", _raw_attack_text)
-                if w not in _attack_verbs and w not in _filler_words
-                and w != _mn and len(w) >= 3
-            ]
-
-            def _named_in_raw(token) -> bool:
-                token = str(token or "")
-                if not token:
-                    return False
-                tl = token.lower()
-                hum = humanize_entity_name(token).lower()
-                if tl in _raw_attack_text or hum in _raw_attack_text:
-                    return True
-                # Word-level grounding: a partial name or title the player DID
-                # type stands in for the resolved token ("John" / "the
-                # Archduke" ground "Archduke John") — but a full substitution
-                # ("Venetia") grounds none of Archduke John / Tyrol / Austria.
-                for w in _raw_target_words:
-                    if len(w) >= 4 and (w in tl or w in hum):
-                        return True
-                return False
-
-            # Only fire when the player named SOMETHING specific and none of it
-            # matches the parse. No specific words => delegated => let it fly.
-            if _raw_target_words and not _named_in_raw(target):
-                _resolved_tokens = []
-                if resolved_target and resolved_target != target:
-                    _resolved_tokens.append(resolved_target)
-                if enemy_marshal is not None:
-                    _resolved_tokens += [enemy_marshal.name,
-                                         enemy_marshal.location,
-                                         enemy_marshal.nation]
-                if not any(_named_in_raw(t) for t in _resolved_tokens):
-                    visible = world.get_visible_enemies(marshal.nation)
-                    seen = ", ".join(
-                        f"{e.name} at {e.location}" for e in visible[:6]
-                    ) or "none in sight"
-                    return {
-                        "success": False,
-                        "message": (
-                            f"Your order names no foe or province our maps "
-                            f"know, Sire — {marshal.name} will not charge "
-                            f"at a guess. Visible enemies: {seen}."
-                        ),
-                    }
 
         # ════════════════════════════════════════════════════════════
         # AUTO WAR DECLARATION (Phase 8 Session 2)
