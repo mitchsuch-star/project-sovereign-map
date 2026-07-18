@@ -836,6 +836,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if is_at_war:
         ticking_pressure = _calculate_ticking_pressure(nation, player, diplo_key, world)
         effective_p1_threshold += ticking_pressure
+        # NA-3 §5.5: agenda resolve — a war that advances the court's
+        # design hardens resolve (-8, fights longer); a satisfied design
+        # or the survival override sues sooner (+10); an irrelevant war
+        # deliberately changes nothing (AUD-b/P2 armistice tuning holds).
+        from backend.game_logic.agendas import get_agenda_resolve_delta
+        effective_p1_threshold += get_agenda_resolve_delta(nation, player, world)
 
     effective_stalemate_turns = max(2, 5 + mods["patience_bonus"] - we // 30)
 

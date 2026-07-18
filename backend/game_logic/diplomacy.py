@@ -10464,6 +10464,22 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     response["recommendation"] = _build_recommendation(world, target_nation, actions, dp, is_vassal, vassals)
 
     # W3: Acceptance preview — top 3 positive/negative factors for best proposal
+    # NA-3 §7 rider (b): peace-class previews are scored on the SUGGESTED
+    # terms (generate_suggested_terms injects the design cession), so the
+    # "+12 Advances their design" positive row is reachable — the bare mock
+    # could never carry territorial content. One memo serves both this
+    # block and the BPH-B snapshot loop below: the terms pipeline jitters
+    # gold ±20% per call, and the preview row must not disagree with the
+    # snapshot the same response carries.
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms
+    _suggested_terms_memo: Dict[str, Dict] = {}
+
+    def _suggested_terms_for(ptype: str) -> Dict:
+        if ptype not in _suggested_terms_memo:
+            _suggested_terms_memo[ptype] = generate_suggested_terms(
+                target_nation, ptype, world)
+        return _suggested_terms_memo[ptype]
+
     acceptance_preview = None
     best_proposal_action = None
     best_score = -999
@@ -10494,6 +10510,11 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "demands": [],
                 "clauses": [],
             }
+            if best_proposal_action["action"] in PEACE_CLASS_ACTIONS:
+                suggested = _suggested_terms_for(ptype)
+                mock_proposal["sweeteners"] = suggested.get("sweeteners", [])
+                mock_proposal["demands"] = suggested.get("demands", [])
+                mock_proposal["clauses"] = suggested.get("clauses", [])
             result = calculate_acceptance(mock_proposal, world)
             components = result.get("components", {})
 
@@ -10547,9 +10568,10 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     response["acceptance_preview"] = acceptance_preview
 
     # BPH-B: Attach war context snapshots for peace-class actions
+    # (NA-3 rider b: terms come from the shared memo above, so the R17d
+    # preview row and this snapshot describe the same suggested bargain.)
     if state in ("WAR", "ARMISTICE"):
         peace_snapshots = {}
-        from backend.game_logic.diplomatic_templates import generate_suggested_terms
         for a in actions:
             action_id = a.get("action", "")
             if action_id in PEACE_CLASS_ACTIONS and a.get("available"):
@@ -10559,7 +10581,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 }
                 ptype = ptype_map.get(action_id, "peace")
                 try:
-                    terms = generate_suggested_terms(target_nation, ptype, world)
+                    terms = _suggested_terms_for(ptype)
                     snapshot = build_war_context_snapshot(
                         world, player, target_nation, ptype, terms=terms,
                     )

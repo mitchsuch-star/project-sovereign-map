@@ -793,6 +793,8 @@ ACCEPTANCE_COMPONENT_DISPLAY = {
     "concession_credit": "Concession credit",
     "war_exhaustion": "War exhaustion",
     "abandoned_by_ally_acceptance_mod": "Abandoned ally grievance",
+    # NA-3 §7 rider (a): the per-court agenda term on the settlement scorer
+    "agenda_settlement_mod": "National design",
 }
 
 

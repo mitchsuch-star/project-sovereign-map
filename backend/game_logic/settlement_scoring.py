@@ -2163,6 +2163,21 @@ def calculate_common_peace_acceptance(
         current_turn=int(current_turn),
     )
 
+    # Step 12b (NA-3 §7 rider a): the per-court agenda term — the same
+    # bounded ±ADVANCE/ENTRENCH pricing the bilateral chokepoint carries
+    # (a common-peace package ceding Milan prices Austria's satisfaction).
+    # Zero on deckless worlds by construction — every legacy fixture pin
+    # is byte-stable.
+    from backend.game_logic.agendas import agenda_settlement_mod
+    agenda_mod_value = int(agenda_settlement_mod(
+        accepting_leader, list(settlement_terms or []), world,
+        proposer_side_participants=proposer_participants,
+    ))
+    agenda_debug = {
+        "score": agenda_mod_value,
+        "accepting_leader": accepting_leader,
+    }
+
     # Step 13: aggregate.
     components = {
         "base_side_pressure": int(base_debug["score"]),
@@ -2175,6 +2190,7 @@ def calculate_common_peace_acceptance(
         "concession_credit": int(concession_debug["score"]),
         "war_exhaustion": int(exhaustion_debug["score"]),
         "abandoned_by_ally_acceptance_mod": int(abandoned_debug["score"]),
+        "agenda_settlement_mod": agenda_mod_value,
     }
     raw_total = sum(components.values())
     score = _clamp(int(raw_total), ACCEPTANCE_FINAL_CLAMP)
@@ -2220,6 +2236,7 @@ def calculate_common_peace_acceptance(
         "concession_credit": dict(concession_debug),
         "war_exhaustion": dict(exhaustion_debug),
         "abandoned_by_ally": dict(abandoned_debug),
+        "agenda_settlement_mod": dict(agenda_debug),
     }
 
     return {

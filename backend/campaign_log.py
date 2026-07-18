@@ -208,6 +208,8 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_commissioned",
     # Nation Agendas NA-1 (docs/NATION_AGENDAS_SPEC.md)
     "agenda_shift",
+    # Nation Agendas NA-3 §5.9 — the Ansbach trap
+    "agenda_violation",
 }
 
 # ============================================================================
@@ -279,6 +281,7 @@ CATEGORY_MAP = {
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
     "agenda_shift": "diplomacy",
+    "agenda_violation": "diplomacy",
     "ai_proposal_counter_failed": "diplomacy",
     "ai_proposal_rejected": "diplomacy",
     "auto_downgrade": "diplomacy",
@@ -709,9 +712,9 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
-        # Nation Agendas: agenda shifts are open court knowledge — always
-        # show (diplomacy has no fog).
-        if event_type == "agenda_shift":
+        # Nation Agendas: agenda shifts and neutrality violations are open
+        # court knowledge — always show (diplomacy has no fog).
+        if event_type in ("agenda_shift", "agenda_violation"):
             filtered.append(event)
             continue
 
@@ -1046,6 +1049,13 @@ def format_event_oneliner(event: dict) -> str:
         nation = display_nation(event.get("nation", "Unknown"))
         focus = event.get("focus", "new ambitions")
         return f"The court of {nation} takes up a new design: {focus}"
+
+    if event_type == "agenda_violation":
+        violator = display_nation(event.get("violator", "Unknown"))
+        holder = display_nation(event.get("guard_holder", "Unknown"))
+        region = event.get("region", "its guarded lands")
+        return (f"{holder} seethes: {violator}'s columns cross {region} "
+                f"in defiance of its neutrality")
 
     if event_type == "dotation_granted":
         marshal = event.get("marshal", "Unknown")

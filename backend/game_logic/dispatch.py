@@ -1777,6 +1777,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # arrive fully humanized — display nation + agenda title; the colon
     # shape survives verb-phrase titles like "Redeem Italy").
     "agenda_shift": "The court of {nation} takes up a new design: {focus}.",
+    # Nation Agendas NA-3 §5.9 — the Ansbach trap (values arrive humanized).
+    "agenda_violation": (
+        "{guard_holder} seethes: {violator}'s columns cross {region} "
+        "in defiance of its declared neutrality."
+    ),
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
@@ -1841,6 +1846,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
 _DIPLOMATIC_EVENT_PRIORITY = {
     "enemy_marshal_commissioned": "MEDIUM",
     "agenda_shift": "MEDIUM",
+    "agenda_violation": "HIGH",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

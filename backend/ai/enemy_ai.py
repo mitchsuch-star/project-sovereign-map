@@ -595,8 +595,47 @@ class EnemyAI:
             if not world.is_at_war(nation, controller):
                 continue
             regions.extend(world.get_nation_regions(controller))
+        # NA-3 §5.6: agenda target regions first — min-by-distance callers
+        # resolve ties to first-seen, so the court's design wins equal-hop
+        # picks (deckless worlds: covets empty, order byte-identical).
+        covets = self._agenda_covet_set(nation, world)
+        if covets:
+            regions.sort(key=lambda region_name: region_name not in covets)
         self._strategic_enemy_regions_cache = {"key": key, "regions": regions}
         return list(regions)
+
+    def _agenda_covet_set(self, nation: str, world: WorldState) -> frozenset:
+        """NA-3 §5.6 — the nation's active design's MILITARY targets
+        (agendas.get_agenda_military_targets: acquire-type unmet targets
+        ONLY — §3.1 pins deny to "never self-conquest", so a deny court's
+        listed regions never bias its own corps). Empty on deckless/legacy
+        worlds and for posture/deny agendas — every bias below degrades
+        to a no-op.
+
+        Memoized per (nation, turn) on the _strategic_enemy_regions_cache
+        idiom (GR8): the P4/P7 pick keys consult this per candidate.
+        Same staleness contract as the region index — within one
+        nation-turn a momentarily stale covet list is acceptable."""
+        cache = getattr(self, '_agenda_covet_cache', None)
+        key = (nation, world.current_turn)
+        if cache is not None and cache.get("key") == key:
+            return cache["covets"]
+        from backend.game_logic.agendas import get_agenda_military_targets
+        covets = frozenset(get_agenda_military_targets(nation, world))
+        self._agenda_covet_cache = {"key": key, "covets": covets}
+        return covets
+
+    def _agenda_biased_distance(self, from_region: str, to_region: str,
+                                nation: str, world: WorldState) -> int:
+        """NA-3 §5.6 — hop distance minus AGENDA_TARGET_DISTANCE_BONUS when
+        the destination is an agenda covet. Used ONLY inside target-CHOICE
+        keys; the P7 hop loop's must-reduce-distance gate keeps reading the
+        real distance to the chosen target (credit never fakes a hop)."""
+        from backend.game_logic.agendas import AGENDA_TARGET_DISTANCE_BONUS
+        distance = world.get_distance(from_region, to_region)
+        if to_region in self._agenda_covet_set(nation, world):
+            return distance - AGENDA_TARGET_DISTANCE_BONUS
+        return distance
 
     # ═══════════════════════════════════════════════════════════════════
     # FAILED ACTION COOLDOWN HELPERS
@@ -2555,11 +2594,9 @@ class EnemyAI:
                     target = None  # No exposed artillery found, fall through to normal selection
 
                 if target is None:
-                    # Normal cavalry target selection
-                    if personality == "aggressive":
-                        target = max(attackable, key=lambda x: x[2])[0]
-                    else:
-                        target = min(attackable, key=lambda x: x[3])[0]
+                    # Normal cavalry target selection (NA-3: agenda-biased)
+                    target = self._pick_personality_target(
+                        attackable, personality, nation, world)
 
             # ════════════════════════════════════════════════════════════
             # ARTILLERY SORT: Prefer fortified > dense > open-terrain targets
@@ -2596,13 +2633,9 @@ class EnemyAI:
                 target = attackable[0][0]
                 ai_debug(f"    P4: Artillery {marshal.name} selected bombardment target {target.name}")
             else:
-                # Select target based on personality
-                if personality == "aggressive":
-                    # Prefer weakest enemy (easy kill) - use effective ratio
-                    target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
-                else:
-                    # Prefer nearest enemy with acceptable odds
-                    target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
+                # Select target based on personality (NA-3: agenda-biased)
+                target = self._pick_personality_target(
+                    attackable, personality, nation, world)
 
         # Check if should switch to aggressive stance first
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
@@ -2629,6 +2662,31 @@ class EnemyAI:
             "action": "attack",
             "target": target.name
         }
+
+    def _pick_personality_target(self, attackable, personality: str,
+                                 nation: str, world: WorldState):
+        """P4 personality pick over threshold-cleared candidates, with the
+        NA-3 §5.6 agenda target bias. The ratio/threshold gates already ran
+        — this only orders VALID targets, never admits an invalid one:
+
+        - aggressive: highest effective ratio; an agenda-target location
+          breaks exact-ratio ties (pure tiebreak).
+        - otherwise: nearest, with AGENDA_TARGET_DISTANCE_BONUS hops of
+          distance-equivalent credit for an enemy standing on a region the
+          court's design wants — Austria's corps drift toward Milan.
+        """
+        from backend.game_logic.agendas import AGENDA_TARGET_DISTANCE_BONUS
+        covets = self._agenda_covet_set(nation, world)
+        if personality == "aggressive":
+            return max(
+                attackable,
+                key=lambda x: (x[2], x[0].location in covets),
+            )[0]
+        return min(
+            attackable,
+            key=lambda x: x[3] - (AGENDA_TARGET_DISTANCE_BONUS
+                                  if x[0].location in covets else 0),
+        )[0]
 
     # ═══════════════════════════════════════════════════════════════════
     # P3.7: HOMELAND DEFENSE (Balance Patch)
@@ -3770,12 +3828,18 @@ class EnemyAI:
 
         if personality == "aggressive":
             # Move toward nearest enemy contact or hostile-controlled region
+            # (NA-3 §5.6: agenda targets get distance-equivalent credit).
             if enemies:
-                target_region = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location)).location
+                target_region = min(
+                    enemies,
+                    key=lambda e: self._agenda_biased_distance(
+                        marshal.location, e.location, nation, world),
+                ).location
             else:
                 target_region = min(
                     strategic_targets,
-                    key=lambda region_name: world.get_distance(marshal.location, region_name),
+                    key=lambda region_name: self._agenda_biased_distance(
+                        marshal.location, region_name, nation, world),
                 )
 
             # Find adjacent region closest to enemy, with P4.77 + combined arms tiebreakers
@@ -3895,15 +3959,20 @@ class EnemyAI:
                 is_fortified = getattr(marshal, 'fortified', False)
 
                 if not is_fortified and stagnation >= 1:
+                    # NA-3 §5.6: the same agenda distance credit as the
+                    # aggressive arm — a cautious court still advances on
+                    # its design when hops are otherwise comparable.
                     if enemies:
                         target_region = min(
                             enemies,
-                            key=lambda e: world.get_distance(marshal.location, e.location),
+                            key=lambda e: self._agenda_biased_distance(
+                                marshal.location, e.location, nation, world),
                         ).location
                     else:
                         target_region = min(
                             strategic_targets,
-                            key=lambda region_name: world.get_distance(marshal.location, region_name),
+                            key=lambda region_name: self._agenda_biased_distance(
+                                marshal.location, region_name, nation, world),
                         )
                     current_dist = world.get_distance(marshal.location, target_region)
 
@@ -5819,7 +5888,7 @@ class EnemyAI:
         return None
 
     def _find_defensive_reinforcement_position(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
-        """P4.78: Move adjacent to threatened ally for reinforcement readiness.
+        """P7.4 (historically P4.78): Move adjacent to threatened ally for reinforcement readiness.
 
         Fires when:
         - Ally with relationship >= Rival is threatened (enemy adjacent)
@@ -5923,7 +5992,7 @@ class EnemyAI:
                     best_move = adj_name
 
         if best_move:
-            ai_debug(f"    P4.78: {marshal.name} moving to {best_move} for defensive reinforcement")
+            ai_debug(f"    P7.4: {marshal.name} moving to {best_move} for defensive reinforcement")
             return {
                 "marshal": marshal.name,
                 "action": "move",

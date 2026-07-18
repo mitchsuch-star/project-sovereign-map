@@ -333,8 +333,18 @@ def test_third_coalition_seeded(world1805):
 
 
 def test_british_subsidy_flows_to_austria(world1805):
-    # Lowest Britain-relation coalition member above -20: Austria (60) vs Russia (70).
-    assert get_british_subsidy_recipient(world1805) == "Austria"
+    """NA-3 §5.7 re-bless (July 17, 2026): the subsidy now keys off the
+    paymaster POSTURE — Britain boots at EXACTLY its authored 2,000-gold
+    treasury floor (`> floor` is exclusive, the NA-0 pin), so the boot
+    turn itself pays nothing; one turn of income across the floor and
+    Pitt's gold flows to the lowest-relation partner: Austria (60) vs
+    Russia (70)."""
+    from backend.models.world_state import WorldState
+    assert get_british_subsidy_recipient(world1805) is None
+
+    world = WorldState.from_dict(world1805.to_dict())
+    world.nation_gold["Britain"] = 2001
+    assert get_british_subsidy_recipient(world) == "Austria"
 
 
 def test_satellite_vassals_survive_scenario_load(world1805):

@@ -1632,13 +1632,19 @@ def resolve_treaty_clause_support_war_id(
 
 
 def resolve_british_subsidy_war_id(
-    world: Any, *, recipient: str,
+    world: Any, *, recipient: str, supporter: str = "Britain",
 ) -> Tuple[Optional[str], str]:
     """Deterministic war attribution for `_process_british_subsidy()`.
 
+    NA-3 §5.7 (adversarial-review fix): the eligibility check is keyed on
+    the actual paying `supporter` — historically the Britain literal, which
+    silently dropped every non-Britain paymaster's contribution accrual
+    (and could mis-select a war Britain fought but the payer did not).
+    The default preserves every legacy call byte-identically.
+
     Per impl plan B2 §British subsidy (mirrored at spec §9.2 line 676):
 
-    1. Unique eligible war (Britain + recipient same-side participants in
+    1. Unique eligible war (supporter + recipient same-side participants in
        exactly one active war_instance) → return that war_id with detail
        ``"unique_eligible"``.
     2. Multiple eligible wars: prefer one whose `objective_target` matches
@@ -1662,13 +1668,13 @@ def resolve_british_subsidy_war_id(
         if not isinstance(instance, dict):
             continue
         side_by_nation = instance.get("side_by_nation") or {}
-        b_side = side_by_nation.get("Britain")
+        b_side = side_by_nation.get(supporter)
         r_side = side_by_nation.get(recipient)
         if not b_side or not r_side or b_side != r_side:
             continue
         active_participants = set(instance.get("active_participants") or [])
         if active_participants and (
-            "Britain" not in active_participants
+            supporter not in active_participants
             or recipient not in active_participants
         ):
             continue

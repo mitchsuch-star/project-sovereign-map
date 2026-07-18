@@ -7129,8 +7129,14 @@ class WorldState:
         # After all territorial/diplomatic systems settle so the announced
         # agenda reflects the new turn's state; enemy-phase flips surface
         # on the following turn's dispatch (seen-map dedup absorbs the lag).
+        # NA-3 §5.9 rides the same slot: the neutrality-violation pass runs
+        # FIRST (both sides' marshals have made their final moves; a fired
+        # violation never changes activation, so shift-poll order is free).
         # ════════════════════════════════════════════════════════════
-        from backend.game_logic.agendas import process_agenda_shifts
+        from backend.game_logic.agendas import (
+            process_agenda_shifts, process_agenda_violations,
+        )
+        process_agenda_violations(self)
         process_agenda_shifts(self)
 
         # ════════════════════════════════════════════════════════════

@@ -1234,3 +1234,671 @@ class TestStanceLineCopy:
         assert payload is not None
         assert payload["stance_line"] == (
             "Their court will not rest while Kingdom of Italy holds Milan.")
+
+
+# ═══════════════════ NA-3: RESOLVE WIRING (§5.5) ══════════════════════════
+
+def _set_war_score(world, nation, opponent, score_for_nation):
+    """Store a war score expressed from `nation`'s perspective."""
+    key = world._make_diplo_key(nation, opponent)
+    first = key.split("|")[0]
+    world.war_scores[key] = (int(score_for_nation) if first == nation
+                             else -int(score_for_nation))
+
+
+class TestResolveWiring:
+    """§5.5 — get_agenda_resolve_delta is CONSUMED at the P1 seam.
+    Austria's diplomat is a schemer (peace_threshold_delta 0), boot WE 0,
+    no war objectives → the stock effective threshold is exactly -40."""
+
+    def test_advancing_design_holds_the_court_in_the_war(self, world):
+        """France's bloc holds Milan — the war ADVANCES redeem_italy, so
+        the threshold hardens -40 → -48 and Austria at -45 fights on.
+        Deleting the §5.5 wiring fails the second half: the same score
+        with the deck stripped sues immediately."""
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+        world.active_coalition = None  # isolate P1 from the loyalty gate
+        _set_war_score(world, "Austria", "France", -45)
+        result = process_diplomatic_phase("Austria", world)
+        assert result is None or result.get("proposal_type") not in (
+            "peace", "armistice_losing")
+
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        result = process_diplomatic_phase("Austria", world)
+        assert (result is not None
+                and result["proposal_type"] == "armistice_losing")
+
+    def test_satisfied_design_sues_sooner_and_breaks_ranks(self, world):
+        """Austria holding all of redeem_italy sues at -35 (threshold
+        -40 → -30) THROUGH the boot coalition — the Pressburg arm
+        (-35 < -30) unlocks the loyalty gate the same turn the resolve
+        delta opens the P1 gate: §5.4's 'completed by NA-3' note."""
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+        _set_war_score(world, "Austria", "France", -35)
+        result = process_diplomatic_phase("Austria", world)
+        assert result is None  # advancing design: -35 is nowhere near -48
+
+        for region in ("Milan", "Piedmont", "Savoy"):
+            _conquer(world, region, "Austria")
+        world.invalidate_bloc_members_cache()
+        result = process_diplomatic_phase("Austria", world)
+        assert (result is not None
+                and result["proposal_type"] == "armistice_losing")
+
+
+# ═══════════════════ NA-3: ENEMY TARGET BIAS (§5.6) ═══════════════════════
+
+class TestTargetBias:
+    @pytest.fixture
+    def ai(self):
+        from backend.ai.enemy_ai import EnemyAI
+        from backend.commands.executor import CommandExecutor
+        return EnemyAI(CommandExecutor())
+
+    def test_covet_set_derives_from_the_active_design(self, ai, world):
+        covets = ai._agenda_covet_set("Austria", world)
+        assert covets == {"Milan", "Piedmont", "Savoy"}
+        assert ai._agenda_covet_set("France", world) == frozenset()
+
+    def test_deny_design_never_drives_self_conquest(self, ai, world):
+        """§3.1 contract (review fix): deny's expressions are resolve/
+        acceptance/subsidy targeting — NEVER self-conquest. Britain's
+        low_countries deny is boot-active, its diplomatic covets are
+        live, but its corps get NO military pull toward Flanders."""
+        from backend.game_logic.agendas import (
+            get_active_agenda, get_agenda_covets,
+        )
+        assert get_active_agenda("Britain", world).type == "deny_regions"
+        assert get_agenda_covets("Britain", world)  # diplomacy still sees it
+        assert ai._agenda_covet_set("Britain", world) == frozenset()
+
+    def test_strategic_enemy_regions_order_agenda_targets_first(
+            self, ai, world):
+        """§5.6 — min-by-distance callers resolve ties to first-seen, so
+        the design's provinces lead the coarse target list."""
+        _war(world, "Austria", "KingdomOfItaly")
+        regions = ai._get_strategic_enemy_regions("Austria", world)
+        assert "Milan" in regions
+        covets = ai._agenda_covet_set("Austria", world)
+        first_non_covet = next(
+            (i for i, r in enumerate(regions) if r not in covets),
+            len(regions))
+        assert all(r in covets for r in regions[:first_non_covet])
+        assert not any(r in covets for r in regions[first_non_covet:])
+
+    def test_p4_aggressive_tiebreak_prefers_the_design(self, ai, world):
+        """Equal effective ratio: the enemy standing on Milan wins the
+        pick; a strictly better ratio elsewhere still wins (gates and
+        strict orderings untouched)."""
+        from types import SimpleNamespace
+        on_covet = SimpleNamespace(name="A", location="Milan")
+        elsewhere = SimpleNamespace(name="B", location="Paris")
+        attackable = [(elsewhere, 1.5, 1.5, 1), (on_covet, 1.5, 1.5, 1)]
+        pick = ai._pick_personality_target(
+            attackable, "aggressive", "Austria", world)
+        assert pick is on_covet
+        attackable = [(elsewhere, 1.6, 1.6, 1), (on_covet, 1.5, 1.5, 1)]
+        pick = ai._pick_personality_target(
+            attackable, "aggressive", "Austria", world)
+        assert pick is elsewhere
+
+    def test_p4_nearest_pick_gets_two_hops_of_credit(self, ai, world):
+        from types import SimpleNamespace
+        from backend.game_logic.agendas import AGENDA_TARGET_DISTANCE_BONUS
+        assert AGENDA_TARGET_DISTANCE_BONUS == 2
+        on_covet = SimpleNamespace(name="A", location="Milan")
+        nearer = SimpleNamespace(name="B", location="Paris")
+        # Milan at 3 hops beats a non-design target at 2 (3-2 < 2)…
+        attackable = [(nearer, 1.5, 1.5, 2), (on_covet, 1.5, 1.5, 3)]
+        pick = ai._pick_personality_target(
+            attackable, "cautious", "Austria", world)
+        assert pick is on_covet
+        # …but never one engaged in the same region (credit is bounded).
+        attackable = [(nearer, 1.5, 1.5, 0), (on_covet, 1.5, 1.5, 3)]
+        pick = ai._pick_personality_target(
+            attackable, "cautious", "Austria", world)
+        assert pick is nearer
+
+    def test_p7_distance_credit_only_for_covets(self, ai, world):
+        real = world.get_distance("Vienna", "Milan")
+        biased = ai._agenda_biased_distance("Vienna", "Milan", "Austria", world)
+        assert biased == real - 2
+        assert (ai._agenda_biased_distance("Vienna", "Milan", "France", world)
+                == world.get_distance("Vienna", "Milan"))
+
+    def test_deckless_world_is_byte_identical(self, ai, world):
+        """Legacy guard: no decks → empty covets → every bias inert."""
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        assert ai._agenda_covet_set("Austria", world) == frozenset()
+        assert (ai._agenda_biased_distance("Vienna", "Milan", "Austria", world)
+                == world.get_distance("Vienna", "Milan"))
+
+    def test_p4_flow_routes_through_the_biased_pick(
+            self, ai, world, monkeypatch):
+        """Review fix pin: the P4 CALL-SITE — reverting the pick site to
+        the pre-NA-3 inline max/min fails here, whatever the helpers do."""
+        from backend.ai.enemy_ai import EnemyAI
+        calls = []
+        original = EnemyAI._pick_personality_target
+
+        def spy(self, attackable, personality, nation, w):
+            calls.append(nation)
+            return original(self, attackable, personality, nation, w)
+
+        monkeypatch.setattr(EnemyAI, "_pick_personality_target", spy)
+        mack = world.marshals["Mack"]
+        ney = world.marshals["Ney"]
+        ney.location = "Bavaria"          # adjacent to Mack@Swabia
+        ney.strength = 1000               # easy odds for the Austrian
+        mack.strength = 60000
+        action = ai._find_attack_opportunity(mack, "Austria", world)
+        assert calls, "P4 must route its pick through the NA-3 helper"
+        assert action is not None and action["action"] == "attack"
+
+    def test_p7_flow_routes_through_the_biased_distance(
+            self, ai, world, monkeypatch):
+        """Review fix pin: the P7 CALL-SITE — the aggressive nearest-
+        target choice must consult the agenda-biased distance."""
+        from backend.ai.enemy_ai import EnemyAI
+        calls = []
+        original = EnemyAI._agenda_biased_distance
+
+        def spy(self, from_region, to_region, nation, w):
+            calls.append((from_region, to_region))
+            return original(self, from_region, to_region, nation, w)
+
+        monkeypatch.setattr(EnemyAI, "_agenda_biased_distance", spy)
+        # Massena@Milan: aggressive, un-fortified, and NOT co-located
+        # (the P4.76 guard bails for paired corps like Murat+Lannes).
+        massena = world.marshals["Massena"]
+        result = ai._consider_strategic_move(massena, "France", world)
+        assert calls, "P7 must route target choice through the NA-3 helper"
+        assert result is None or result.get("action") in ("move", "attack")
+
+
+# ═══════════════════ NA-3: PAYMASTER TIERS (§5.7) ═════════════════════════
+
+class TestPaymasterTiers:
+    def test_boot_sits_exactly_at_the_floor(self, world1805):
+        """Britain boots at 2,000 — the authored floor is EXCLUSIVE
+        (the NA-0 pin), so the boot turn pays nothing; the first gold
+        above the floor opens Pitt's purse."""
+        from backend.game_logic.agendas import get_paymaster_nation
+        assert get_paymaster_nation(world1805) is None
+
+    def test_tier_ladder_and_cap(self, world):
+        from backend.game_logic.agendas import (
+            get_paymaster_nation, get_paymaster_subsidy_amount,
+        )
+        for treasury, expected in ((2001, 200), (4000, 200), (4001, 300),
+                                   (8000, 300), (8001, 400), (999999, 400)):
+            world.nation_gold["Britain"] = treasury
+            assert get_paymaster_nation(world) == "Britain"
+            assert get_paymaster_subsidy_amount(world, "Britain") == expected
+
+    def test_subsidy_event_carries_the_tiered_amount(self, world):
+        from backend.game_logic.coalition import _process_british_subsidy
+        world.nation_gold["Britain"] = 8001
+        events = _process_british_subsidy(world)
+        assert events and events[0]["type"] == "british_subsidy"
+        assert events[0]["payer"] == "Britain"
+        assert events[0]["recipient"] == "Austria"
+        assert events[0]["amount"] == 400
+        assert world.nation_gold["Britain"] == 8001 - 400
+
+    def test_gr5_any_authored_paymaster_pays(self, world):
+        """A non-Britain paymaster works through the same seam — the
+        Britain literal is gone."""
+        from backend.game_logic.coalition import _process_british_subsidy
+        world.nation_gold["Britain"] = 100   # below floor AND solvency
+        world.agendas["Russia"] = [{
+            "id": "war_chest", "type": "paymaster",
+            "title": "The War Chest", "treasury_floor": 1000,
+        }]
+        world.nation_gold["Russia"] = 5000
+        world.invalidate_bloc_members_cache()
+        events = _process_british_subsidy(world)
+        assert events and events[0]["payer"] == "Russia"
+        assert events[0]["amount"] == 300
+
+    def test_gr5_paymaster_contribution_attributes_to_the_payer(self, world):
+        """Review fix pin: the war-attribution resolver is keyed on the
+        actual SUPPORTER — a non-Britain paymaster's war_support_delivered
+        accrues against the war IT shares with the recipient (the old
+        Britain literal silently dropped it)."""
+        from backend.game_logic.coalition import _process_british_subsidy
+        world.nation_gold["Britain"] = 100
+        world.agendas["Russia"] = [{
+            "id": "war_chest", "type": "paymaster",
+            "title": "The War Chest", "treasury_floor": 1000,
+        }]
+        world.nation_gold["Russia"] = 5000
+        world.invalidate_bloc_members_cache()
+        events = _process_british_subsidy(world)
+        # Russia and Austria share the boot Third-Coalition defenders'
+        # side of war_1 — the transfer must attribute there.
+        assert events and events[0]["war_id"] == "war_1"
+        assert events[0]["subsidy_source_detail"] != "unattributed_subsidy"
+
+    def test_survival_override_closes_the_purse(self, world):
+        """A paymaster fighting for its life ships no gold abroad."""
+        from backend.game_logic.agendas import get_paymaster_nation
+        world.nation_gold["Britain"] = 9000
+        capital = world.get_nation_capital("Britain")
+        _conquer(world, capital, "France")
+        world.invalidate_bloc_members_cache()
+        assert get_paymaster_nation(world) is None
+
+    def test_legacy_world_keeps_the_britain_literal(self):
+        """Deckless worlds ride the historical arm byte-identically:
+        Britain literal, 500-gold gate, flat 200."""
+        from backend.game_logic.agendas import (
+            get_paymaster_nation, get_paymaster_subsidy_amount,
+        )
+        legacy = WorldState()
+        legacy.active_coalition = {
+            "members": ["Britain", "Austria"], "target_nation": "France",
+        }
+        legacy.nation_gold["Britain"] = 501
+        assert get_paymaster_nation(legacy) == "Britain"
+        assert get_paymaster_subsidy_amount(legacy, "Britain") == 200
+        legacy.nation_gold["Britain"] = 500
+        assert get_paymaster_nation(legacy) is None
+
+
+# ═══════════════════ NA-3: THE POST-PEACE GRUDGE (§5.8) ═══════════════════
+
+def _end_war_with_france(world, nation, turns_ago):
+    """Plant an ENDED war instance between France and `nation` in the
+    PRODUCTION shape (review fix): the war-end path strips side_by_nation
+    as participants exit, so an ended instance carries its sides only in
+    participant_meta (with per-nation exited_turn stamped). The pair is
+    set back to PEACE (the settlement package's post-ratify state)."""
+    key = world._make_diplo_key("France", nation)
+    world.diplomatic_states[key] = "PEACE"
+    world.invalidate_bloc_members_cache()
+    end = int(world.current_turn) - int(turns_ago)
+    world.war_instances[f"war_grudge_{nation}"] = {
+        "war_id": f"war_grudge_{nation}",
+        "ended_turn": end,
+        "side_by_nation": {},   # stripped on end — the production shape
+        "active_participants": [],
+        "participant_meta": {
+            "France": {"side": "attackers", "exited_turn": end,
+                       "exit_path": "war_ended"},
+            nation: {"side": "defenders", "exited_turn": end,
+                     "exit_path": "war_ended"},
+        },
+    }
+
+
+class TestAgendaGrudge:
+    def test_denied_design_after_peace_feeds_threat(self, world):
+        from backend.game_logic.agendas import get_agenda_grudge_nations
+        _end_war_with_france(world, "Austria", 1)
+        assert get_agenda_grudge_nations(world) == ["Austria"]
+
+    def test_contributor_reaches_the_threat_panel(self, world):
+        from backend.game_logic.coalition import process_coalition_turn
+        _end_war_with_france(world, "Austria", 1)
+        world.threat_sources_this_turn = []
+        process_coalition_turn(world)
+        sources = {s["source"]: s["amount"]
+                   for s in world.threat_sources_this_turn}
+        assert sources.get("agenda_grudge") == 1
+
+    def test_cap_across_nations(self, world):
+        from backend.game_logic.agendas import (
+            AGENDA_GRUDGE_CAP, get_agenda_grudge_nations,
+        )
+        from backend.game_logic.coalition import (
+            _calculate_agenda_grudge_threat,
+        )
+        for nation in ("Austria", "Britain", "Sardinia"):
+            _end_war_with_france(world, nation, 1)
+        assert len(get_agenda_grudge_nations(world)) == 3
+        assert _calculate_agenda_grudge_threat(world) == AGENDA_GRUDGE_CAP
+
+    def test_grudge_expires_with_the_horizon(self, world):
+        from backend.game_logic.agendas import (
+            AGENDA_GRUDGE_TURNS, get_agenda_grudge_nations,
+        )
+        world.current_turn = 20
+        _end_war_with_france(world, "Austria", AGENDA_GRUDGE_TURNS)
+        assert get_agenda_grudge_nations(world) == []
+
+    def test_returning_the_targets_dissolves_the_grudge(self, world):
+        """The R156 payoff: cede the design and the grudge is gone the
+        same turn (Sardinia's single-entry deck goes quiet once Piedmont
+        and Savoy come home)."""
+        from backend.game_logic.agendas import get_agenda_grudge_nations
+        _end_war_with_france(world, "Sardinia", 1)
+        assert "Sardinia" in get_agenda_grudge_nations(world)
+        for region in ("Piedmont", "Savoy"):
+            _conquer(world, region, "Sardinia")
+        world.invalidate_bloc_members_cache()
+        assert "Sardinia" not in get_agenda_grudge_nations(world)
+
+    def test_live_or_resumed_war_is_not_a_grudge(self, world):
+        from backend.game_logic.agendas import get_agenda_grudge_nations
+        # Unended instance (armistice-shaped): no grudge.
+        world.war_instances["war_x"] = {
+            "war_id": "war_x", "ended_turn": None,
+            "side_by_nation": {"France": "attackers", "Austria": "defenders"},
+        }
+        assert get_agenda_grudge_nations(world) == []
+        # Ended-but-back-at-war: the grudge IS the war now.
+        _end_war_with_france(world, "Austria", 1)
+        _war(world, "France", "Austria")
+        assert get_agenda_grudge_nations(world) == []
+
+    def _separate_peace_austria(self, world):
+        """Resolve every one of Austria's pairs on the BOOT Third-
+        Coalition instance (war_1) — what a real separate peace does:
+        Austria settles with the whole French bloc and exits."""
+        from backend.game_logic.settlement_helpers import (
+            resolve_pair_to_resolved,
+        )
+        instance = world.war_instances["war_1"]
+        for other in ("France", "Bavaria", "KingdomOfItaly"):
+            pair = world._make_diplo_key("Austria", other)
+            if pair in (instance.get("active_diplo_keys") or []):
+                resolve_pair_to_resolved(world, pair)
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "PEACE"
+        world.invalidate_bloc_members_cache()
+        return instance
+
+    def test_separate_peace_exit_grudges_while_the_war_burns_on(self, world):
+        """The Pressburg/1809 case (review P1/P2 fix pin) on the REAL
+        boot instance and the REAL exit path: Austria separate-peaces
+        out of the live Third Coalition — resolve_pair_to_resolved pops
+        it from side_by_nation and stamps participant_meta exited_turn
+        while the instance fights on. The grudge fires from Austria's
+        OWN exit, not the whole war's distant end."""
+        from backend.game_logic.agendas import get_agenda_grudge_nations
+        instance = self._separate_peace_austria(world)
+        assert instance["ended_turn"] is None       # Britain/Russia fight on
+        assert "Austria" not in instance["side_by_nation"]  # the strip
+        meta = instance["participant_meta"]["Austria"]
+        assert meta["exited_turn"] is not None
+        assert meta["side"] == "defenders"          # side survives exit
+        grudged = get_agenda_grudge_nations(world)
+        assert "Austria" in grudged
+        assert "Britain" not in grudged  # still fighting — no grudge
+
+    def test_production_war_end_path_fires_the_grudge(self, world):
+        """Review P1 fix pin: resolving the LAST pair stamps ended_turn
+        and strips side_by_nation EMPTY — the derivation must read
+        participant_meta or the grudge is structurally dead on every
+        real resolution path."""
+        from backend.game_logic.agendas import get_agenda_grudge_nations
+        from backend.game_logic.settlement_helpers import (
+            resolve_pair_to_resolved,
+        )
+        instance = world.war_instances["war_1"]
+        for pair in list(instance.get("active_diplo_keys") or []):
+            resolve_pair_to_resolved(world, pair)
+        assert instance["ended_turn"] is not None
+        assert instance["side_by_nation"] == {}     # the production strip
+        for nation in ("Austria", "Britain", "Russia"):
+            key = world._make_diplo_key("France", nation)
+            world.diplomatic_states[key] = "PEACE"
+        world.invalidate_bloc_members_cache()
+        assert "Austria" in get_agenda_grudge_nations(world)
+
+
+# ═══════════════════ NA-3: THE ANSBACH TRAP (§5.9) ════════════════════════
+
+class TestNeutralityViolation:
+    def _relation(self, world, a, b):
+        return world.nation_relations.get(world._make_diplo_key(a, b), 0)
+
+    def test_player_columns_offend_copenhagen(self, world):
+        """GR5 canonical case: belligerent France's marshal in Jutland
+        (Denmark's ACTIVE guard) → one-time -25 + dispatch + campaign log."""
+        from backend.game_logic.agendas import (
+            AGENDA_VIOLATION_RELATION_PENALTY, process_agenda_violations,
+        )
+        before = self._relation(world, "France", "Denmark")
+        world.marshals["Ney"].location = "Jutland"
+        events = process_agenda_violations(world)
+        assert [(e["violator"], e["guard_holder"]) for e in events] == [
+            ("France", "Denmark")]
+        assert (self._relation(world, "France", "Denmark")
+                == max(-100, before + AGENDA_VIOLATION_RELATION_PENALTY))
+        assert any(e.get("type") == "agenda_violation"
+                   for e in world.event_log)
+        assert any(e.get("type") == "agenda_violation"
+                   for e in world.pending_dispatch_events)
+
+    def test_latch_fires_once_per_pair_per_cooldown(self, world):
+        from backend.game_logic.agendas import (
+            AGENDA_VIOLATION_COOLDOWN, process_agenda_violations,
+        )
+        world.marshals["Ney"].location = "Jutland"
+        # Two French corps in two guard regions: still ONE beat per pair.
+        world.marshals["Davout"].location = "Copenhagen"
+        assert len(process_agenda_violations(world)) == 1
+        assert process_agenda_violations(world) == []
+        world.current_turn += AGENDA_VIOLATION_COOLDOWN
+        assert len(process_agenda_violations(world)) == 1
+
+    def test_ai_violator_pays_the_same(self, world):
+        """GR5 mirror: a British column in Jutland (Britain at war with
+        France, at peace with Denmark) offends Copenhagen identically."""
+        from backend.game_logic.agendas import process_agenda_violations
+        british = [m for m in world.marshals.values()
+                   if m.nation == "Britain"]
+        assert british, "1805 roster should field a British marshal"
+        british[0].location = "Jutland"
+        events = process_agenda_violations(world)
+        assert [(e["violator"], e["guard_holder"]) for e in events] == [
+            ("Britain", "Denmark")]
+
+    def test_exemptions_hold(self, world):
+        from backend.game_logic.agendas import process_agenda_violations
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        world.marshals["Ney"].location = "Jutland"
+        # Ally: France allied to Denmark → its columns are no outrage.
+        set_diplomatic_state(world, "France", "Denmark", "ALLIANCE", "test")
+        assert process_agenda_violations(world) == []
+        # Open war with the holder supersedes outrage (and deactivates
+        # the guard itself — _guard_active requires peace).
+        set_diplomatic_state(world, "France", "Denmark", "WAR", "test")
+        assert process_agenda_violations(world) == []
+
+    def test_peaceful_nation_never_offends(self, world):
+        """Only a belligerent's columns violate — France at peace with
+        the whole world may cross Jutland freely."""
+        from backend.game_logic.agendas import process_agenda_violations
+        for nation in list(world.get_nations_at_war_with("France")):
+            key = world._make_diplo_key("France", nation)
+            world.diplomatic_states[key] = "PEACE"
+        world.invalidate_bloc_members_cache()
+        world.marshals["Ney"].location = "Jutland"
+        assert process_agenda_violations(world) == []
+
+    def test_latent_guard_prices_nothing(self, world):
+        """Prussia's armed_neutrality is deck-LATENT behind the
+        hanoverian_prize — Berlin is not yet a priced guard region."""
+        from backend.game_logic.agendas import process_agenda_violations
+        world.marshals["Ney"].location = "Berlin"
+        assert process_agenda_violations(world) == []
+
+    def test_courier_remnants_do_not_trigger(self, world):
+        from backend.game_logic.agendas import process_agenda_violations
+        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].strength = 999
+        assert process_agenda_violations(world) == []
+
+    def test_own_soil_is_never_a_violation(self, world):
+        """Review fix pin: a garrison on a legally-held (treaty-ceded)
+        province is no transit — Denmark's reactivated guard over a now-
+        FRENCH Jutland cannot bleed France -25 forever."""
+        from backend.game_logic.agendas import process_agenda_violations
+        _conquer(world, "Jutland", "France")
+        world.invalidate_bloc_members_cache()
+        world.marshals["Ney"].location = "Jutland"
+        assert process_agenda_violations(world) == []
+        # The other guard region is still Danish — crossing IT violates.
+        world.marshals["Ney"].location = "Copenhagen"
+        assert len(process_agenda_violations(world)) == 1
+
+    def test_rolled_event_log_fails_safe(self, world):
+        """Review fix pin: when the 500-entry rolling cap has evicted
+        events INSIDE the cooldown window, the latch cannot prove a
+        prior firing was absent — it suppresses rather than re-fires."""
+        from backend.game_logic.agendas import process_agenda_violations
+        world.marshals["Ney"].location = "Jutland"
+        cap = world.MAX_EVENT_LOG_SIZE
+        world.event_log = [
+            {"type": "noise", "turn": int(world.current_turn)}
+            for _ in range(cap)
+        ]
+        assert process_agenda_violations(world) == []
+        # Old traffic (outside the window) proves nothing was evicted
+        # in-window — the trap fires normally.
+        world.event_log = [
+            {"type": "noise", "turn": int(world.current_turn) - 50}
+            for _ in range(cap)
+        ]
+        assert len(process_agenda_violations(world)) == 1
+
+    def test_advance_turn_runs_the_violation_pass(self, world):
+        """Review fix pin: the world_state wiring itself — deleting the
+        process_agenda_violations call from _advance_turn_internal must
+        fail HERE, not just in the helper tests."""
+        world.marshals["Ney"].location = "Jutland"
+        key = world._make_diplo_key("France", "Denmark")
+        before = world.nation_relations.get(key, 0)
+        world.advance_turn()
+        assert any(e.get("type") == "agenda_violation"
+                   for e in world.event_log)
+        assert world.nation_relations.get(key, 0) <= before - 25
+
+
+# ═══════════════════ NA-3 RIDER (a): SETTLEMENT TERM ══════════════════════
+
+class TestSettlementAgendaTerm:
+    def _score(self, world, terms, accepting_leader="Austria"):
+        from backend.game_logic import settlement_scoring
+        from tests.helpers.full_europe_settlement_fixtures import (
+            make_synthetic_war_instance,
+        )
+        instance = make_synthetic_war_instance(
+            "war_na3", attackers=["France"], defenders=["Austria"],
+            attacker_leader="France", defender_leader="Austria",
+        )
+        return settlement_scoring.calculate_common_peace_acceptance(
+            world,
+            war_id="war_na3",
+            war_instance=instance,
+            proposer_side="attackers",
+            accepting_side="defenders",
+            accepting_leader=accepting_leader,
+            covered_enemy_participants=["Austria"],
+            settlement_terms=terms,
+        )
+
+    def test_ceding_the_design_target_raises_the_court(self, world):
+        """The §7 rider-(a) pin: a settlement clause ceding a design
+        target raises that court's acceptance by AGENDA_ACCEPT_ADVANCE."""
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ADVANCE
+        _set_war_score(world, "France", "Austria", 50)
+        result = self._score(world, [{
+            "type": "territory", "from": "France", "to": "Austria",
+            "regions": ["Savoy"],
+        }])
+        assert (result["components"]["agenda_settlement_mod"]
+                == AGENDA_ACCEPT_ADVANCE)
+        assert "agenda_settlement_mod" in result["component_debug"]
+
+    def test_the_peace_that_returns_nothing_entrenches(self, world):
+        """France's bloc holds Milan and the package returns no design
+        region — the common peace prices Austria's denial at -8."""
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ENTRENCH
+        _set_war_score(world, "France", "Austria", 50)
+        result = self._score(world, [])
+        assert (result["components"]["agenda_settlement_mod"]
+                == AGENDA_ACCEPT_ENTRENCH)
+
+    def test_stripping_a_held_design_region_entrenches(self, world):
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ENTRENCH
+        _set_war_score(world, "France", "Austria", 50)
+        _conquer(world, "Milan", "Austria")
+        world.invalidate_bloc_members_cache()
+        result = self._score(world, [{
+            "type": "territory_cede", "from": "Austria", "to": "France",
+            "regions": ["Milan"],
+        }])
+        assert (result["components"]["agenda_settlement_mod"]
+                == AGENDA_ACCEPT_ENTRENCH)
+
+    def test_deckless_court_scores_zero(self, world):
+        _set_war_score(world, "France", "Austria", 50)
+        result = self._score(world, [], accepting_leader="Spain")
+        assert result["components"]["agenda_settlement_mod"] == 0
+
+    def test_component_has_a_display_label(self):
+        from backend.display_names import ACCEPTANCE_COMPONENT_DISPLAY
+        assert (ACCEPTANCE_COMPONENT_DISPLAY["agenda_settlement_mod"]
+                == "National design")
+
+
+# ═══════════════════ NA-3 RIDER (b): PREVIEW POSITIVE ROW ═════════════════
+
+class TestPreviewPositiveRow:
+    def _armistice_fixture(self, world):
+        """The designed armistice-first route (the Pressburg shape): the
+        pause holds, relations recover, and the peace on the table cedes
+        Savoy — a live design target France itself controls."""
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "ARMISTICE"
+        world.invalidate_bloc_members_cache()
+        _set_war_score(world, "France", "Austria", -10)
+        world.nation_relations[key] = 40
+
+    def test_suggested_peace_reaches_the_positive_row(self, world):
+        """The §7 rider-(b) pin: the peace-class preview scores the
+        SUGGESTED terms (which inject the design cession), so '+12
+        Advances their design' finally appears among the positives —
+        unreachable on the pre-NA-3 bare mock."""
+        from backend.game_logic.diplomacy import get_diplomatic_preview
+        self._armistice_fixture(world)
+        preview = get_diplomatic_preview(world, "Austria")
+        acceptance = preview.get("acceptance_preview") or {}
+        positives = acceptance.get("positive") or []
+        agenda_rows = [e for e in positives if e["key"] == "agenda_mod"]
+        assert agenda_rows, f"agenda_mod missing from positives: {positives}"
+        assert agenda_rows[0]["label"] == "Advances their design"
+        assert agenda_rows[0]["value"] == 12
+
+    def test_preview_and_snapshot_describe_the_same_bargain(
+            self, world, monkeypatch):
+        """The memo pin (review-hardened): ONE generate_suggested_terms
+        call serves both the R17d score and the BPH-B snapshot — the
+        counting wrapper fails on a memo revert (clause identity alone is
+        deterministic and could not detect two independent jitter rolls)."""
+        import backend.game_logic.diplomatic_templates as templates
+        from backend.game_logic.diplomacy import get_diplomatic_preview
+        self._armistice_fixture(world)
+        calls = []
+        original = templates.generate_suggested_terms
+
+        def counting(target, ptype, w):
+            calls.append(ptype)
+            return original(target, ptype, w)
+
+        monkeypatch.setattr(
+            templates, "generate_suggested_terms", counting)
+        preview = get_diplomatic_preview(world, "Austria")
+        snapshot = (preview.get("war_context_snapshots") or {}).get(
+            "propose_peace")
+        assert snapshot is not None
+        clauses = snapshot["proposal_terms"].get("clauses", [])
+        assert "territory_savoy" in clauses
+        assert calls.count("peace") == 1, (
+            f"memo broken — generate_suggested_terms ran {calls}")

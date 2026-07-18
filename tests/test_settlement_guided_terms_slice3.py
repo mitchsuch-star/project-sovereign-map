@@ -54,6 +54,9 @@ _TEN_COMPONENTS = {
     "concession_credit",
     "war_exhaustion",
     "abandoned_by_ally_acceptance_mod",
+    # NA-3 §7 rider (a) — July 17, 2026: the per-court agenda term joined
+    # the scorer (0 on agenda-less fixtures; the name is now historical).
+    "agenda_settlement_mod",
 }
 
 

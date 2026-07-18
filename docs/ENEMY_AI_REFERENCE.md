@@ -131,11 +131,14 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P0 | Combat Engagement | 50 | Enemy in SAME region — MUST fight/retreat/wait |
 | P1 | Retreat Recovery | 60 | `retreat_recovery > 0` |
 | P2 | Critical Survival | 70 | `strength < 25% of starting` |
+| P2.5 | Square Formation | — | Cavalry threat + no artillery → form square; threat gone → break square |
 | P3 | Threat Response / Attack | 75 | Meets personality threshold |
 | P3.25 | Counter-punch | — | Cautious: free attack after defense |
 | P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
 | P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest available marshal to recapture (capital=priority 2, range 6/unlimited, deathball split, enemy pathfinding for capitals) |
-| P4 | Attack (standard) | 75 | Valid target + meets threshold |
+| P3.8 | Liberation Priority | 75 | Coalition member with a liberation objective — attacks vassal capitals held by the target nation (WPS-D §13.5) |
+| P3.9 | Jealousy Glory Attack | 75 | Jealous AGGRESSIVE marshal, not fortified/drilling — attacks the weakest adjacent at-war enemy (Jealousy v3.2 §9b; +15% solo buff) |
+| P4 | Attack (standard) | 75 | Valid target + meets threshold; NA-3 agenda bias — equal-ratio ties break toward, and nearest-picks credit 2 hops to, the nation's active design targets (agendas.get_agenda_covets) |
 | P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
 | P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
@@ -145,8 +148,8 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P6 | Drilling | 90 | Aggressive + position secure |
 | P6.5 | Supply Awareness | 91 | Supply excess > 50% — mildly relocate to better-supplied region |
 | P6.75 | Garrison Placement | 91 | Place capital garrison (max 1 per nation per turn) |
-| P7 | Strategic Movement | 92 | Can advance toward enemy (P4.76 co-location guard, P4.77 cross-nation scoring) |
-| P4.78 | Defensive Reinforcement | 92 | Move adjacent to threatened Rival+ ally for reinforcement readiness |
+| P7 | Strategic Movement | 92 | Can advance toward enemy (P4.76 co-location guard, P4.77 cross-nation scoring); NA-3 agenda bias — target choice credits design regions 2 hops (gates unchanged) |
+| P7.4 | Defensive Reinforcement | 92 | Move adjacent to threatened Rival+ ally for reinforcement readiness |
 | P7.5 | Stagnation Breaker | 93 | Graduated escalation: Turn 2 unfortify, Turn 3+ lowered attack threshold |
 | P8 | Default | 95 | Stance adjustment or wait |
 
@@ -740,13 +743,17 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | Priority | Action | Details |
 |----------|--------|---------|
 | 1 | Urgent recruit | Marshals below 50% starting strength — critical reinforcement |
+| 1.5 | Estate endowment / rente | ES-7 reward rung — endow an expectation-shortfall marshal with an estate, falling back to a rente when no province is endowable (Economy Revisit S7 + §0.6.8) |
+| 1.6 | Vassal shore-up | VP-D6 — bleeding vassal: invest → cede province (VS-3 grant) → grant autonomy, through the shared executor |
+| 1.75 | Commission a marshal | The Marshalate — at war + standing roster < 3 + treasury >= cost+1000 (`recruitment.find_ai_commission`) |
 | 2 | Build market | At highest-income region |
 | 3 | Build supply depot | At capital or major city; within each tier, prefers regions adjacent to enemy territory (forward logistics, Phase 6.2.H) |
 | 4 | Build fortification | At border regions |
 | 5 | Repair damaged buildings | Restore buildings damaged by war |
 | 6 | Repair war damage | Fix war damage on regions |
+| 6.5 | Build watchtower | At border regions — intel coverage |
 | 7 | Rebuild recruit | Marshals at 50%-100% starting strength — enemies can reach full strength |
-| 8 | Save AP | +75g per unused admin AP |
+| 8 | Save AP | +25g per unused admin AP (V2-96 — aligned with the player rate) |
 
 **Notes:**
 - The AI uses the same admin commands as the player (Building Blocks principle)
@@ -769,6 +776,27 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 
 ---
 
+## Diplomatic proposal triggers (`ai_diplomacy.py` — a separate P1–P8 namespace)
+
+`process_diplomatic_phase()` runs once per AI nation per turn (before the Morning Dispatch) and decides whether the nation proposes something to France. **Its P-numbers are a DIFFERENT namespace from the marshal decision tree above** — "P3" here has nothing to do with P3 Threat Response.
+
+| Trigger | Condition | Proposal |
+|---------|-----------|----------|
+| P1 | Losing badly (war_score below the effective threshold, base −40) | Armistice / peace |
+| P2 | Stalemate — war_score −10..+10 for 5+ turns | Armistice |
+| P3 | Threat > 60 AND not allied | Hegemony ask (live since W6-10) |
+| P4 | Relation > +30 AND at peace | Relationship upgrade |
+| P7 | Opportunism — France at war with 2+ nations, this nation at peace | Favorable terms |
+| P8 | Aggressive dominance — AI winning badly (war_score > 40) | Harsh peace demands (A1 iterative reduction) |
+
+**P1 effective threshold:** `effective_p1_threshold = -40 + personality delta (hawk -20 / dove +20) + war_exhaustion//20 + ticking pressure (±10) + NA-3 agenda resolve delta` — where the agenda resolve delta is: advancing design −8 (fights longer); satisfied design or survival override +10 (sues sooner) — `agendas.get_agenda_resolve_delta`.
+
+- **NA-2 Pressburg arm:** a satisfied coalition member (or one under the survival override) may sue at war_score < −30 instead of the stock −50.
+- **NA-2 hawk agenda-persistence:** hawks get a −2-turn cooldown discount on design-advancing ask types (check-time).
+- **NA-3 paymaster generalization** lives in `coalition.py` §4e (any coalition member with a live authored paymaster posture pays, treasury-tiered 200/300/400 cap 400) — pointer only; this doc covers `enemy_ai.py`/`ai_diplomacy.py`.
+
+---
+
 ## TODOs and Future Work
 
 All TODOs are tied to specific ROADMAP.md phases. Nothing is orphaned.
@@ -782,12 +810,13 @@ All TODOs are tied to specific ROADMAP.md phases. Nothing is orphaned.
 | Round-robin action distribution | DONE (partial) | `_marshals_done_this_turn` prevents monopolization |
 | Defending key regions | DONE | P3.7 homeland defense + capital elevation |
 | Allied coordination (basic) | DONE (partial) | P4.6/P4.75/P4.77 cross-nation (Session 63) |
+| Square formation AI (P2.5) | DONE | Session 67 — cavalry threat → form square; threat gone → break square |
+| Coalition trigger awareness | DONE | Live via `ai_diplomacy.py` P3 hegemony ask (since W6-10) |
 
 ### Phase 7b (Tactical Triangle)
 
 | Item | Roadmap | Notes |
 |------|---------|-------|
-| Square formation AI (P2.5) | Session 67 | AI forms square when cavalry threatens |
 | Auto-bombardment + overwatch AI | Session 68 | AI SUPPORT artillery auto-bombards |
 
 ### Phase 8 (Diplomacy)
@@ -796,13 +825,12 @@ All TODOs are tied to specific ROADMAP.md phases. Nothing is orphaned.
 |------|---------|-------|
 | Full alliance coordination | Phase 8: Alliances | Britain/Prussia share intel, coordinate strategy |
 | Nation surrender conditions | Phase 8: Peace Treaties | Nations sue for peace when losing |
-| Coalition trigger awareness | Phase 8: Coalition Trigger | AI reacts to threat level |
 
 ### Phase 8.5 (Events & National Identity)
 
 | Item | Roadmap | Notes |
 |------|---------|-------|
-| Strategic objectives | Phase 8.5: National Goals | "Capture Belgium" drives multiple marshals |
+| Strategic objectives | Phase 8.5: National Goals | Largely discharged by Nation Agendas (`docs/NATION_AGENDAS_SPEC.md`) — NA-3 target bias makes authored designs drive marshal targeting |
 | LLM-enhanced decisions | Phase 8.5: Marshal Voice Tier 2 | LLM for high-drama AI moments |
 
 ### 1805 Campaign
@@ -898,5 +926,5 @@ for r in results:
 
 ---
 
-*Last updated: February 2026*
-*Recent additions: P3.7 homeland defense, P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P4.78 defensive positioning, +8% coordination estimate, artillery stagnation override, stagnation fortify fix, cautious advance fallback*
+*Last updated: July 17, 2026 (NA-3)*
+*Recent additions: P3.7 homeland defense, P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P7.4 defensive positioning, +8% coordination estimate, artillery stagnation override, stagnation fortify fix, cautious advance fallback*

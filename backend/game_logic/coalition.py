@@ -763,6 +763,23 @@ def _calculate_schemer_peace_rejection_threat(world) -> int:
     ))
 
 
+def _calculate_agenda_grudge_threat(world) -> int:
+    """NA-3 §5.8 — the post-peace grudge. Nations at peace with the player
+    whose active acquire/deny design stays denied by the player's bloc,
+    and whose war with the player ended within AGENDA_GRUDGE_TURNS, feed
+    +1/turn each into coalition threat, capped at AGENDA_GRUDGE_CAP total.
+
+    Fully derived (agendas.get_agenda_grudge_nations reads war_instances
+    `ended_turn` + live agenda state — zero new fields). This is 1809 in
+    machinery: the peace that denies the design feeds the next coalition.
+    """
+    from backend.game_logic.agendas import (
+        AGENDA_GRUDGE_CAP, get_agenda_grudge_nations,
+    )
+    grudged = get_agenda_grudge_nations(world)
+    return int(min(AGENDA_GRUDGE_CAP, len(grudged)))
+
+
 def _calculate_defensive_refusal_memory_threat(world) -> int:
     """Standing DG-4 threat from active defensive-refusal episodes.
 
@@ -1000,36 +1017,37 @@ def _get_leader_personality(nation: str, world) -> str:
 
 
 # ════════════════════════════════════════════════════════════════
-# §4e. BRITISH SUBSIDY
+# §4e. COALITION SUBSIDY (the paymaster — NA-3 §5.7 generalization)
 # ════════════════════════════════════════════════════════════════
 
 def get_british_subsidy_recipient(world) -> Optional[str]:
-    """Find the coalition partner to receive British subsidy (§4e).
+    """Find the coalition partner to receive the paymaster's subsidy (§4e).
 
-    Lowest relation to Britain, minimum > -20, Britain gold > 500.
-    Returns nation name or None.
+    NA-3 §5.7: the payer is resolved via `agendas.get_paymaster_nation` —
+    any coalition member with a live authored `paymaster` posture (GR5;
+    deckless legacy worlds keep the historical Britain literal + 500-gold
+    gate byte-identically). Recipient = the member with the lowest relation
+    to the payer, minimum > -20. Function name kept for its import surface.
     """
     coalition = world.active_coalition
     if not coalition:
         return None
 
+    from backend.game_logic.agendas import get_paymaster_nation
+    payer = get_paymaster_nation(world)
+    if payer is None:
+        return None
+
     members = coalition.get("members", [])
-    if "Britain" not in members:
-        return None
 
-    # Check Britain has enough gold
-    britain_gold = world.nation_gold.get("Britain", 0)
-    if britain_gold <= 500:
-        return None
-
-    # Find partner with lowest relation to Britain (min > -20)
+    # Find partner with lowest relation to the payer (min > -20)
     best = None
     best_relation = 200  # Higher than any possible relation
 
     for member in members:
-        if member == "Britain":
+        if member == payer:
             continue
-        rel = _get_relation(world, "Britain", member)
+        rel = _get_relation(world, payer, member)
         if rel > -20 and rel < best_relation:
             best = member
             best_relation = rel
@@ -1038,43 +1056,53 @@ def get_british_subsidy_recipient(world) -> Optional[str]:
 
 
 def _process_british_subsidy(world) -> List[Dict]:
-    """Process British subsidy payment (§4e). 200g/turn to lowest-relation partner.
+    """Process the paymaster subsidy (§4e / NA-3 §5.7): base 200g/turn to
+    the lowest-relation partner, treasury-escalated on deck worlds
+    (300 above 4,000 / 400 above 8,000, cap 400 — Pitt's hoard finds its
+    historical outlet; EC-W2 makes sitting on it expensive).
 
     Imperial Settlement B2: emits one `war_support_delivered` event per
     qualifying transfer with `source="coalition_subsidy"`, attributed to a
     deterministic war_id via `resolve_british_subsidy_war_id` (impl plan B2
     §British subsidy bullets / spec §9.2 line 676). When no eligible war can
     be resolved, the support event is logged unattributed (no contribution
-    accrual).
+    accrual). The event `type` stays "british_subsidy" for wire-compat; the
+    payer rides the new `payer` field and the message copy.
     """
     events = []
+    from backend.game_logic.agendas import (
+        get_paymaster_nation, get_paymaster_subsidy_amount,
+    )
+    payer = get_paymaster_nation(world)
+    if payer is None:
+        return events
     recipient = get_british_subsidy_recipient(world)
     if not recipient:
         return events
 
-    subsidy = 200
-    britain_gold = world.nation_gold.get("Britain", 0)
-    if britain_gold < subsidy:
+    subsidy = get_paymaster_subsidy_amount(world, payer)
+    payer_gold = world.nation_gold.get(payer, 0)
+    if payer_gold < subsidy:
         return events
 
-    world.nation_gold["Britain"] = int(britain_gold - subsidy)
+    world.nation_gold[payer] = int(payer_gold - subsidy)
     recipient_gold = world.nation_gold.get(recipient, 0)
     world.nation_gold[recipient] = int(recipient_gold + subsidy)
 
-    # +5 relation between Britain and recipient
-    world.modify_nation_relation("Britain", recipient, 5)
+    # +5 relation between payer and recipient
+    world.modify_nation_relation(payer, recipient, 5)
 
     from backend.game_logic.war_contribution import (
         accrue_support_event,
         resolve_british_subsidy_war_id,
     )
     war_id, source_detail = resolve_british_subsidy_war_id(
-        world, recipient=recipient,
+        world, recipient=recipient, supporter=payer,
     )
     accrue_support_event(
         world,
         war_id=war_id,
-        supporter="Britain",
+        supporter=payer,
         recipient=recipient,
         support_kind="subsidy",
         value=int(subsidy),
@@ -1086,10 +1114,11 @@ def _process_british_subsidy(world) -> List[Dict]:
     events.append({
         "type": "british_subsidy",
         "recipient": recipient,
+        "payer": payer,
         "amount": int(subsidy),
         "war_id": war_id,
         "subsidy_source_detail": source_detail,
-        "message": f"Britain subsidizes {recipient} with {subsidy} gold.",
+        "message": f"{payer} subsidizes {recipient} with {subsidy} gold.",
     })
     return events
 
@@ -1664,6 +1693,13 @@ def process_coalition_turn(world) -> List[Dict]:
     schemer_rejection_threat = _calculate_schemer_peace_rejection_threat(world)
     if schemer_rejection_threat > 0:
         add_threat(world, schemer_rejection_threat, "schemer_peace_rejection")
+
+    # NA-3 §5.8: the post-peace grudge — denied designs feed the next
+    # coalition (the fourth standing contributor beside hegemony pressure,
+    # defensive-refusal memory, and the DD8 markers).
+    agenda_grudge_threat = _calculate_agenda_grudge_threat(world)
+    if agenda_grudge_threat > 0:
+        add_threat(world, agenda_grudge_threat, "agenda_grudge")
 
     decay = _calculate_threat_decay(world)
     if decay > 0:

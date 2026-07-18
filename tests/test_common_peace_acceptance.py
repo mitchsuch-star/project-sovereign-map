@@ -1164,6 +1164,9 @@ def test_one_covered_enemy_common_peace_uses_full_formula():
         "concession_credit",
         "war_exhaustion",
         "abandoned_by_ally_acceptance_mod",
+        # NA-3 §7 rider (a): the per-court agenda term (0 on this
+        # agenda-less fixture — every exact-number pin above is untouched).
+        "agenda_settlement_mod",
     }
     assert set(result["components"].keys()) == expected
 

@@ -567,6 +567,345 @@ def vassal_holds_agenda_target(courter: str, vassal_nation: str, world) -> bool:
     )
 
 
+# ═══════════════════ WAR COUPLING (NA-3, spec §5.5–§5.9 + §7 riders) ══════
+
+def get_paymaster_nation(world) -> Optional[str]:
+    """NA-3 §5.7 — resolve the coalition member funding the war chest.
+
+    Deck worlds: the first coalition member (member order, deterministic)
+    whose authored deck carries a `paymaster` entry with its POSTURE
+    predicate live (`_paymaster_active` — at war with the hegemon or in
+    the active coalition against it, treasury above the authored floor),
+    not vassalized/eliminated, survival override quiet. The posture is
+    deliberately read independently of deck priority: §3.1 marks paymaster
+    "posture, not a quest" — Britain's gold flowed WHILE the Low Countries
+    design (its deck #1) stayed active, so the announced agenda and the
+    subsidy posture coexist.
+
+    Deckless worlds (legacy fixtures): the historical Britain literal with
+    its 500-gold solvency gate — byte-identical legacy behavior (N1).
+    """
+    coalition = getattr(world, "active_coalition", None)
+    if not coalition:
+        return None
+    members = list(coalition.get("members") or [])
+    decks = getattr(world, "agendas", {}) or {}
+    if not decks:
+        # Legacy arm — the pre-NA-3 Britain literal, gates preserved.
+        if "Britain" not in members:
+            return None
+        if int((getattr(world, "nation_gold", {}) or {}).get("Britain", 0)) <= 500:
+            return None
+        return "Britain"
+    for member in members:
+        if _is_vassal(world, member):
+            continue
+        if member not in world.get_active_nations():
+            continue
+        if survival_override_active(world, member):
+            continue
+        for entry in decks.get(member) or []:
+            if entry.get("type") != "paymaster":
+                continue
+            floor = int(entry.get("treasury_floor") or 0)
+            if _paymaster_active(world, member, floor):
+                return member
+    return None
+
+
+def get_paymaster_subsidy_amount(world, payer: str) -> int:
+    """NA-3 §5.7 — the treasury-escalated subsidy. Base 200/turn;
+    AGENDA_SUBSIDY_TIER_2 above 4,000 treasury; AGENDA_SUBSIDY_TIER_3
+    above 8,000; capped at AGENDA_SUBSIDY_CAP. Deckless worlds pay the
+    historical flat 200 (legacy byte-compat rides the same base)."""
+    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0))
+    if not (getattr(world, "agendas", {}) or {}):
+        return 200
+    if treasury > 8000:
+        amount = AGENDA_SUBSIDY_TIER_3
+    elif treasury > 4000:
+        amount = AGENDA_SUBSIDY_TIER_2
+    else:
+        amount = 200
+    return int(min(AGENDA_SUBSIDY_CAP, amount))
+
+
+def get_agenda_grudge_nations(world) -> List[str]:
+    """NA-3 §5.8 — the post-peace grudge: nations at peace with the player
+    whose active acquire/deny design remains denied by the player's bloc
+    and whose war with the player ENDED within AGENDA_GRUDGE_TURNS.
+
+    "Ended" is PER-NATION (adversarial-review fix): the durable side
+    record on a war instance is `participant_meta[nation]["side"]` — the
+    war-end path strips `side_by_nation` as participants exit, so a
+    production-ended instance reaches this scan with side_by_nation
+    empty. A separate-peace exiter's own war ends at its
+    `exited_turn` while the instance fights on (the Pressburg court
+    grudges from ITS peace, not the whole war's end); everyone else's
+    ends at the instance `ended_turn`. side_by_nation stays a fallback
+    for hand-authored instances.
+
+    Fully derived: `war_instances` retains ended instances for exactly
+    ARCHIVE_RETENTION_TURNS == AGENDA_GRUDGE_TURNS (10), and a
+    separate-peace exit turn always precedes the instance end, so the
+    live store covers every per-nation window — no archive scan, zero
+    new fields. Returning the design's targets (they leave the player's
+    bloc, or the court takes them) dissolves the grudge the same turn —
+    the R156 payoff.
+    """
+    player = getattr(world, "player_nation", "France")
+    current_turn = int(getattr(world, "current_turn", 0))
+    instances = getattr(world, "war_instances", None) or {}
+
+    recently_ended_with_player = set()
+    for instance in instances.values():
+        if not isinstance(instance, dict):
+            continue
+        meta = instance.get("participant_meta") or {}
+        side_by_nation = instance.get("side_by_nation") or {}
+
+        def _side_of(nation: str) -> Optional[str]:
+            record = meta.get(nation)
+            if isinstance(record, dict) and record.get("side"):
+                return record.get("side")
+            return side_by_nation.get(nation)
+
+        player_side = _side_of(player)
+        if not player_side:
+            continue
+        instance_end = instance.get("ended_turn")
+        for nation in set(meta.keys()) | set(side_by_nation.keys()):
+            if nation == player:
+                continue
+            side = _side_of(nation)
+            if not side or side == player_side:
+                continue
+            record = meta.get(nation) or {}
+            nation_end = record.get("exited_turn")
+            if nation_end is None:
+                nation_end = instance_end
+            if nation_end is None:
+                continue  # still fighting — the war IS the grievance
+            if current_turn - int(nation_end) >= AGENDA_GRUDGE_TURNS:
+                continue
+            recently_ended_with_player.add(nation)
+
+    grudged = []
+    for nation in recently_ended_with_player:
+        if nation not in world.get_active_nations():
+            continue
+        if _is_vassal(world, nation):
+            continue
+        if world.is_at_war(nation, player):
+            continue  # back at war — the grudge is the war now
+        view = get_active_agenda(nation, world)
+        if view is None or view.survival:
+            continue
+        if view.type not in ("acquire_regions", "deny_regions"):
+            continue
+        if agenda_concerns_player_bloc(nation, world):
+            grudged.append(nation)
+    return sorted(grudged)
+
+
+def get_agenda_military_targets(nation: str, world) -> List[str]:
+    """NA-3 §5.6 — the MILITARY half of the covets source: only an
+    acquire-type design turns into the court's own conquest doctrine.
+    §3.1 pins deny's expressions to resolve/acceptance/subsidy targeting —
+    "never self-conquest" — so a deny court's listed regions never bias
+    its corps (Britain does not storm Flanders to deny it; it pays,
+    refuses, and fights longer instead). Diplomatic consumers keep the
+    full get_agenda_covets (adversarial-review fix, §14)."""
+    view = get_active_agenda(nation, world)
+    if view is None or view.survival or view.type != "acquire_regions":
+        return []
+    return _unmet_targets(view, world)
+
+
+def agenda_settlement_mod(court: str, settlement_terms, world,
+                          proposer_side_participants=None) -> int:
+    """NA-3 §7 rider (a) — the per-court agenda term for the multilateral
+    settlement scorer, mirroring `agenda_acceptance_mod`'s ±ADVANCE/ENTRENCH
+    semantics on the SETTLEMENT term vocabulary (`type` in territory kinds,
+    `from`/`from_nation`, `to`/`to_nation`, `region`/`regions`).
+
+    ADVANCE (+12): a term cedes an unmet design-target region TO the court
+    (acquire), or moves a listed region OUT of the hegemon's bloc (deny).
+    ENTRENCH (-8): a term strips a HELD design region FROM the court; or
+    the package ends a war that was advancing the court's design (any
+    opposing participant) without returning anything — the common peace
+    that does not return Milan. First match wins; never additive.
+    """
+    view = get_active_agenda(court, world)
+    if view is None or view.survival:
+        return 0
+
+    territory_kinds = ("territory", "territory_cede", "territory_return")
+
+    def _regions_of(term) -> List[str]:
+        regions = term.get("regions")
+        if isinstance(regions, (list, tuple)) and regions:
+            return [str(r) for r in regions]
+        region = str(term.get("region") or "")
+        return [region] if region else []
+
+    targets_lower = {r.lower(): r for r in view.regions}
+    terms = [t for t in (settlement_terms or []) if isinstance(t, dict)]
+
+    hegemon, share = _hegemon(world)
+    bloc = (set(world.get_bloc_members(hegemon))
+            if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR
+            else set())
+
+    # ── ADVANCE ──
+    for term in terms:
+        if term.get("type") not in territory_kinds:
+            continue
+        to_nation = term.get("to_nation") or term.get("to")
+        matched = [targets_lower[n.lower()] for n in _regions_of(term)
+                   if n.lower() in targets_lower]
+        if not matched:
+            continue
+        if view.type == "acquire_regions" and to_nation == court:
+            for region_name in matched:
+                if not _controlled_by_self_or_vassal(world, court, region_name):
+                    return AGENDA_ACCEPT_ADVANCE
+        elif view.type == "deny_regions" and bloc:
+            from_nation = term.get("from_nation") or term.get("from")
+            if (from_nation in bloc and to_nation
+                    and to_nation not in bloc):
+                for region_name in matched:
+                    if _region_controller(world, region_name) in bloc:
+                        return AGENDA_ACCEPT_ADVANCE
+
+    # ── ENTRENCH: a term strips a HELD design region from the court ──
+    for term in terms:
+        if term.get("type") not in territory_kinds:
+            continue
+        from_nation = term.get("from_nation") or term.get("from")
+        if from_nation != court:
+            continue
+        for name in _regions_of(term):
+            region_name = targets_lower.get(name.lower())
+            if (region_name is not None
+                    and _controlled_by_self_or_vassal(world, court, region_name)):
+                return AGENDA_ACCEPT_ENTRENCH
+
+    # ── ENTRENCH: the peace ends an advancing war, returning nothing ──
+    for opponent in (proposer_side_participants or []):
+        if opponent == court:
+            continue
+        if _war_advances_agenda(view, opponent, world):
+            return AGENDA_ACCEPT_ENTRENCH
+    return 0
+
+
+def process_agenda_violations(world) -> List[Dict]:
+    """NA-3 §5.9 — the Ansbach trap. One pass over `world.marshals`
+    (the EC-W1 get_disrupted_regions idiom — never a region scan): a
+    belligerent nation's marshal standing in an ACTIVE guard_neutrality
+    region triggers a one-time violation — relation penalty between
+    violator and guard-holder plus a dispatch/campaign-log beat.
+
+    Latch = bounded event-log lookback keyed (violator, guard-holder),
+    refiring only after AGENDA_VIOLATION_COOLDOWN turns (the
+    defensive-refusal-memory idiom; `log_event` auto-stamps `turn`).
+    GR5: the player's columns crossing Jutland offend Copenhagen exactly
+    as Bernadotte's crossing of Ansbach offended Berlin.
+    """
+    # Guard map: region -> holder, from ACTIVE guard agendas only (the
+    # deck-priority chokepoint — a latent guard prices nothing).
+    guard_holder_by_region: Dict[str, str] = {}
+    for nation in world.get_active_nations():
+        view = get_active_agenda(nation, world)
+        if view is None or view.type != "guard_neutrality":
+            continue
+        for region_name in view.regions:
+            guard_holder_by_region[region_name] = nation
+    if not guard_holder_by_region:
+        return []
+
+    from backend.models.world_state import DISRUPTION_MIN_STRENGTH
+
+    current_turn = int(getattr(world, "current_turn", 0))
+
+    def _on_cooldown(violator: str, holder: str) -> bool:
+        log = getattr(world, "event_log", []) or []
+        # Rolling-cap guard (adversarial-review fix): if the capped log
+        # has evicted events INSIDE the cooldown window, a prior latch
+        # may be gone — fail SAFE and suppress rather than re-fire the
+        # penalty (a missed violation is benign; a duplicate -25 is not).
+        max_size = int(getattr(world, "MAX_EVENT_LOG_SIZE", 500) or 500)
+        if len(log) >= max_size:
+            oldest_turn = int((log[0] or {}).get("turn", 0) or 0)
+            if oldest_turn > current_turn - AGENDA_VIOLATION_COOLDOWN:
+                return True
+        for event in log:
+            if event.get("type") != "agenda_violation":
+                continue
+            if (event.get("violator") == violator
+                    and event.get("guard_holder") == holder
+                    and int(event.get("turn", 0) or 0)
+                    > current_turn - AGENDA_VIOLATION_COOLDOWN):
+                return True
+        return False
+
+    events: List[Dict] = []
+    fired_pairs = set()
+    vassals = getattr(world, "vassals", {}) or {}
+    for marshal in world.marshals.values():
+        holder = guard_holder_by_region.get(marshal.location)
+        if holder is None:
+            continue
+        violator = marshal.nation
+        if violator == holder:
+            continue
+        if getattr(marshal, "captured_by", ""):
+            continue
+        if marshal.strength < DISRUPTION_MIN_STRENGTH:
+            continue  # a courier is not an army
+        if not world.get_nations_at_war_with(violator):
+            continue  # only a belligerent's columns offend
+        if _controlled_by_self_or_vassal(world, violator, marshal.location):
+            continue  # one's own soil cannot be "crossed" — a garrison on
+            # a legally-held (e.g. treaty-ceded) province is no transit,
+            # however loudly the old owner's guard covers it (review fix)
+        if world.is_at_war(violator, holder):
+            continue  # open war supersedes outrage
+        if world.are_allies(violator, holder):
+            continue
+        if ((vassals.get(violator) or {}).get("lord") == holder
+                or (vassals.get(holder) or {}).get("lord") == violator):
+            continue  # one's own lord or client is no foreign column
+        pair = (violator, holder)
+        if pair in fired_pairs or _on_cooldown(violator, holder):
+            continue
+        fired_pairs.add(pair)
+
+        world.modify_nation_relation(
+            violator, holder, AGENDA_VIOLATION_RELATION_PENALTY)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "agenda_violation", {
+            "violator": display_nation(violator),
+            "guard_holder": display_nation(holder),
+            "region": marshal.location,
+        }, fog_rule="always")
+        world.log_event({
+            "type": "agenda_violation",
+            "violator": violator,
+            "guard_holder": holder,
+            "region": marshal.location,
+            "penalty": AGENDA_VIOLATION_RELATION_PENALTY,
+        })
+        events.append({
+            "type": "agenda_violation",
+            "violator": violator,
+            "guard_holder": holder,
+            "region": marshal.location,
+        })
+    return events
+
+
 # ═══════════════════════ LEGIBILITY (NA-1 single source) ══════════════════
 
 def _unmet_targets(view: AgendaView, world) -> List[str]:
