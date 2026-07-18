@@ -29,6 +29,7 @@ from backend.game_logic.settlement_presentation import (
     is_settlement_event_visible,
     settlement_priority,
 )
+from backend.game_logic.formations import formed_display_name
 
 
 # ============================================================================
@@ -126,7 +127,7 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                     _add("home_captured", region=region)
                 elif prev == player_nation or prev in vassals_of_player:
                     _add("region_lost", region=region,
-                         captor=humanize_entity_name(captor))
+                         captor=formed_display_name(world, captor))
         elif etype == "marshal_captured":
             _add("marshal_captured",
                  marshal=humanize_entity_name(e.get("marshal", "?")),
@@ -162,7 +163,7 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             if player_nation in (aggressor, target):
                 other = target if aggressor == player_nation else aggressor
                 _add("war_touches_us",
-                     line=f"{humanize_entity_name(other)} and France are at war.")
+                     line=f"{formed_display_name(world, other)} and France are at war.")
         elif etype in ("coalition_formed", "coalition_brewing_started"):
             if etype == "coalition_formed":
                 _add("war_touches_us",

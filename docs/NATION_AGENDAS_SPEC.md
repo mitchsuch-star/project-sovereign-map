@@ -503,3 +503,82 @@ Defects 4 and 5 were found by the pre-ship adversarial review (8 lenses → 2 in
 Per-formation threat label ("The Polish Question") → **NA-6d**. The §11.6-5 watcher payload (`get_formation_watch` incl. `blocked_by_vassalage`, and the `agenda.forms` progress marker) is computed and pinned but has no `.gd` consumer yet → **NA-6d**, which lands the Formables button that renders it. Five further mid-turn region-control transfer paths (bilateral `_ratify_treaty`, `_apply_ultimatum_demands`, VS-3 grant and reclaim ×2) resolve formations on the NEXT tick rather than same-turn; the spec names only settlement ratification, and extending the set is **NA-6c** scope (it adds the carve clause those paths would interact with).
 
 **▶ NEXT: user reviews NA-6a + NA-6b in-game, then NA-6c (Class C carve creation) → NA-6d (the Poland chain + the Formables button).**
+
+### §17.1 Addendum — the in-game review + second adversarial sweep (July 18, 2026)
+
+The §11.10 review pause was run as a delegated in-game review plus a second 19-agent
+adversarial sweep (9 lenses → 2 independent refuters each). Between them they found
+**one P1 and five P2s, all fixed**. Two were caught by driving the game, four by the sweep.
+
+**P1 — the Proclamation was 100% undeliverable on the settlement-ratify path.**
+`_respond_to_dialogue_sync`'s PL-14 safety net REBUILDS the response to pick up a
+newly-set `proposal_result_popup`. The first build had already run
+`_include_popup_passthroughs`, which POPS the winning popup off the queue *and clears
+the world field* — so the rebind destroyed it, and the formation latch guaranteed it
+could never fire again. The ratify call site exists solely to serve this beat and
+delivered it zero percent of the time. Fixed generically with
+`_capture_popup_passthroughs` / `_restore_popup_passthroughs`: the defect silently ate
+**any** popup type, not just this one.
+
+**P2 — two formations on one tick lost the second card.** Found by driving a staged
+double formation: both nations formed for real (latch, rewards, overrides, campaign log,
+notification) but the PopupQueue holds ONE slot per type, so the second landmark was
+swallowed. Overflow now rides `nation_proclamation_popups`, the
+`vassal_rebellion_imminent_popups` precedent, drained one per response at both delivery
+seams; `_on_proclamation_dismissed` chains so the second card follows the first
+immediately rather than waiting for an unrelated command.
+
+**P2 — the card was stranded on the DOMINANT path whenever the tick produced strategic
+reports.** `_on_enemy_phase_dismissed` returns early for `strategic_reports` and
+`redemption_event`, both *above* the seam the first sweep had added. Formations are
+triggered by conquest — i.e. by marshals under standing orders — which is exactly what
+populates `strategic_reports`, so this was the normal shape, not an edge case. The tail
+is now factored into ONE `_return_control_to_player()` called from all four
+control-returning seams. Hanging a landmark off a single hand-picked seam was the
+mistake; the helper is the fix.
+
+**P2 — the command-tail seam swallowed the whole response.** The first sweep's fix sat
+above `_display_result`, `_process_active_wars` and the dispatch, so a player who
+ratified a settlement saw the Proclamation and never learned the settlement had been
+ratified, with the ended war still in the HUD. The card now comes LAST, after everything
+has rendered.
+
+**P2 — five more dead-name seams.** `display_nation` and `humanize_entity_name` are both
+formation-blind, and the client cannot repair them because the strings are already
+humanized. Fixed at the battle Materiel line (`combat_executor`), the `region_lost` and
+`war_touches_us` dispatch beats, and the coalition war-HUD row (`war_status`) — the last
+being permanently on screen. `humanize_entity_name` was additionally *mangling* the name
+("Kingdom Of Italy", capital O) via its camelCase split.
+
+**P2 — the campaign log rendered post-formation events under the dead name.** Found in
+the review: turn 3 read *"The court of Kingdom of Italy takes up a new design"* after the
+turn-2 proclamation. The log re-derives names from the stored raw tag with the static
+`display_nation`. Fixed at the one endpoint chokepoint with
+`apply_formation_names_to_history`, which **respects history**: only events at or after
+the formation turn are renamed, and the `nation_formed` entry is exempt entirely —
+renaming its first half would turn *"Kingdom of Italy is no more — Italy is proclaimed"*
+into nonsense.
+
+**Verified live after the fixes** (fresh backend — an earlier pass read a stale server
+process that had outlived a failed restart, briefly showing an already-fixed leak):
+a full dead-name sweep over `/status`, `/ledger`, `/diplomatic_ledger`,
+`/marshal_overview`, `/dispatch` and `/campaign_log` three turns past the formation
+returns **no present-tense dead names** — the only surviving mention is the proclamation
+line that is supposed to carry it. The end-to-end sequence re-verified in the client:
+enemy-phase report → Morning Dispatch → The Proclamation → Acknowledge → terminal
+accepts commands.
+
+**Also confirmed by the review, working as designed:** Britain retook Flanders and
+Amsterdam during the enemy phase of the double-formation run, so Holland lost both its
+target province and its capital and correctly did **not** form — organically exercising
+the survival-override gate added by the first sweep.
+
+Suite **13,997 → 14,011/3**. ruff clean, M1–M7 byte-identical, parse harness EXIT=0,
+headless boot 0 `SCRIPT ERROR`.
+
+**Residual risk, stated plainly (unchanged by these fixes):** no formation has yet
+occurred *organically* through played conquest — every exercise to date has staged the
+provinces directly; the formed nation has never been used as a diplomatic counterparty
+(it cannot be addressed by its new name — the name→tag resolver is unpatched, homed to
+NA-6c with the carve tags); and `deny_regions` / `contain_hegemon` formables are blessed
+by the validator and documented for modders but never authored or run.

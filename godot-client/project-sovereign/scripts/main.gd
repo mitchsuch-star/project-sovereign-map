@@ -1231,7 +1231,27 @@ func _show_pending_proclamation() -> bool:
 	return true
 
 func _on_proclamation_dismissed():
+	# A second formation on the same tick queues behind the first.
+	if _show_pending_proclamation():
+		return
 	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _return_control_to_player() -> void:
+	"""The single tail EVERY control-returning seam must end with.
+
+	The Proclamation is shown from here rather than from one hand-picked
+	seam: `_on_enemy_phase_dismissed` returns early for strategic reports
+	and redemption events — and formations are TRIGGERED BY CONQUEST, i.e.
+	by marshals under standing orders, which is exactly what populates
+	`strategic_reports`. Hanging the card off one seam stranded it on the
+	normal case, not an edge case.
+	"""
+	if _show_pending_proclamation():
+		return  # _on_proclamation_dismissed re-enables input
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 func _response_has_diplomatic_objection_route(response: Dictionary) -> bool:
 	return (
@@ -1400,14 +1420,6 @@ func _on_command_result(response):
 	if _route_response_ui(response, _post_hud_response_routes):
 		return  # Don't re-enable input until choice made
 
-	# NA-6b: a formation completed at the settlement table (not on the tick)
-	# lands here. GUARDED on enemy_phase: this seam sits ABOVE the
-	# enemy-phase / turn-result / dispatch block, so firing it on an
-	# end-turn response would swallow exactly the tail it was meant to
-	# preserve. The tick path shows the card from _on_enemy_phase_dismissed.
-	if not response.has("enemy_phase") and _show_pending_proclamation():
-		return  # _on_proclamation_dismissed re-enables input
-
 	# Re-enable input
 	set_input_enabled(true)
 
@@ -1508,6 +1520,13 @@ func _on_command_result(response):
 	_process_active_wars(response)
 
 	add_output("")
+
+	# NA-6b: the landmark comes LAST, after the whole response has
+	# rendered — never above it. An earlier version returned before this
+	# tail and the player ratified a settlement, saw the Proclamation, and
+	# never learned the settlement had been ratified.
+	if _show_pending_proclamation():
+		return  # _on_proclamation_dismissed re-enables input
 
 	# Auto-focus input
 	command_input.grab_focus()
@@ -2991,8 +3010,7 @@ func _on_redemption_response(response):
 
 	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
-	set_input_enabled(true)
-	command_input.grab_focus()
+	_return_control_to_player()
 
 
 func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
@@ -3070,15 +3088,7 @@ func _on_enemy_phase_dismissed():
 	# Morning Dispatch — displayed last, right before player gets control
 	_show_pending_dispatch()
 
-	# NA-6b (§11.8 stage 2): the landmark comes after the turn resolution
-	# the player was already watching, and after the dispatch that
-	# announced it — the last thing before control returns. This is the
-	# DOMINANT path: formations fire inside advance_turn.
-	if _show_pending_proclamation():
-		return  # _on_proclamation_dismissed re-enables input
-
-	set_input_enabled(true)
-	command_input.grab_focus()
+	_return_control_to_player()
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -3507,8 +3517,7 @@ func _on_strategic_report_dismissed():
 	# Morning Dispatch — displayed last, right before player gets control
 	_show_pending_dispatch()
 
-	set_input_enabled(true)
-	command_input.grab_focus()
+	_return_control_to_player()
 
 
 func _show_interrupt_popup(interrupt_data: Dictionary):

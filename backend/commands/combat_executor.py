@@ -12,6 +12,7 @@ from backend.models.world_state import (
 )
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
+from backend.game_logic.formations import formed_display_name
 
 
 def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
@@ -1591,8 +1592,11 @@ class CombatExecutor:
                     if bill > 0 and m_nation:
                         world.nation_gold[m_nation] = int(
                             world.nation_gold.get(m_nation, 0) - bill)
+                        # NA-6 §11.8-3: a FORMED nation must not be
+                        # billed under its dead name (and the camelCase
+                        # split also mangles it to "Kingdom Of Italy").
                         materiel_parts.append(
-                            f"{humanize_entity_name(m_nation)} -{bill}g")
+                            f"{formed_display_name(world, m_nation)} -{bill}g")
                 if materiel_parts:
                     pipeline_out['materiel_msg'] = (
                         "\n[Materiel] Guns, horses and stores lost with the "

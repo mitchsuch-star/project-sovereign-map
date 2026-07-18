@@ -241,6 +241,35 @@ def _get_talleyrand_mission_summary(w) -> str:
     return "None"
 
 
+def _capture_popup_passthroughs(response: dict) -> dict:
+    """Non-None PopupQueue keys already delivered into `response`.
+
+    `_include_popup_passthroughs` POPS its winner off the queue and clears
+    the world field, so a response that is later discarded takes the popup
+    with it — irrecoverably, for any one-shot event.
+    """
+    from backend.models.cooldown_manager import PopupQueue
+    return {
+        key: response[key]
+        for key in set(PopupQueue.RESPONSE_KEYS.values())
+        if response.get(key) is not None
+    }
+
+
+def _restore_popup_passthroughs(response: dict, carried: dict) -> None:
+    """Re-stamp carried popups onto a rebuilt response, never clobbering a
+    popup the rebuild legitimately delivered."""
+    for key, value in carried.items():
+        if response.get(key) is None:
+            response[key] = value
+
+
+def _formations_history_names(world, text: str, event: dict) -> str:
+    """Thin door onto formations.apply_formation_names_to_history."""
+    from backend.game_logic.formations import apply_formation_names_to_history
+    return apply_formation_names_to_history(world, text, event)
+
+
 def _attach_nation_identity_overrides(response: dict, world) -> None:
     """NA-6 §11.10-3 — stamp the formed-nation display/flag overrides.
 
@@ -581,6 +610,11 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
     if proclamation is not None:
         response["nation_proclamation"] = proclamation
         world.nation_proclamation_popup = None
+        # Refill the slot from the overflow so a second formation on the
+        # same tick is delivered on the very next response rather than
+        # stranded behind an empty slot.
+        if getattr(world, "nation_proclamation_popups", None):
+            world.nation_proclamation_popup = world.nation_proclamation_popups.pop(0)
 
 
 def _finalize_command_notifications(response: dict, world) -> None:
@@ -696,6 +730,12 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     if (world.vassal_rebellion_imminent_popup is None
             and getattr(world, 'vassal_rebellion_imminent_popups', None)):
         world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
+
+    # NA-6: same auto-pop for the Proclamation overflow — two nations can
+    # form on one tick and the queue slot holds one.
+    if (world.nation_proclamation_popup is None
+            and getattr(world, 'nation_proclamation_popups', None)):
+        world.nation_proclamation_popup = world.nation_proclamation_popups.pop(0)
 
     # R6: Pop highest-priority popup from queue (clears from world automatically)
     winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
@@ -2128,12 +2168,25 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None):
                         "peace_ratification_summary"
                     ]
                 world.proposal_result_popup = proposal_result
-                # Rebuild response to pick up the newly-set popup
+                # Rebuild response to pick up the newly-set popup.
+                # The first build already ran _include_popup_passthroughs,
+                # which POPS the winning popup off the queue and clears it
+                # from the world — so anything it delivered is destroyed by
+                # a naive rebind. Carry those keys across.
+                #
+                # Found on the NA-6 settlement-ratify path, where it made
+                # the Proclamation 100% undeliverable: the card was popped
+                # into `response`, the response was thrown away, and the
+                # formation latch guarantees it can never fire again. The
+                # bug is not NA-6-specific — it hits every popup type — so
+                # the carry is generic.
+                carried = _capture_popup_passthroughs(response)
                 response = build_base_response(
                     world,
                     success=result.get("success", False),
                     message=result.get("message", "Response processed"),
                 )
+                _restore_popup_passthroughs(response, carried)
 
         _include_peace_ratification_summary(response, result)
         if result.get("settlement_result_feedback"):
@@ -2730,7 +2783,12 @@ def get_campaign_log():
         turns[t].append({
             **{k: (int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v)
                for k, v in event.items() if k != "battle_report"},
-            "display": format_event_oneliner(event),
+            # NA-6 §11.8 stage 3: the log re-derives names from the stored
+            # raw tag via the STATIC display_nation, so a POST-formation
+            # entry would read under the dead name. History before the
+            # proclamation is left alone (see the helper's docstring).
+            "display": _formations_history_names(
+                world, format_event_oneliner(event), event),
             "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
         })
 

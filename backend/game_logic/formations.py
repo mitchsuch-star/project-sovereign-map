@@ -151,6 +151,42 @@ def build_nation_flag_overrides(world) -> Dict[str, str]:
     return overrides
 
 
+def apply_formation_names_to_history(world, text: str, event: dict) -> str:
+    """Formation-aware rendering for an already-formatted HISTORICAL line.
+
+    The campaign log re-derives nation names from the stored raw tag via
+    the STATIC `display_nation`, so a post-formation event renders under
+    the dead name ("The court of Kingdom of Italy takes up a new design"
+    on a turn AFTER Italy was proclaimed — found live).
+
+    History is respected rather than rewritten: only events at or after
+    the formation turn are renamed. An entry from before the proclamation
+    keeps the name the nation actually bore, and the `nation_formed`
+    entry itself is exempt entirely — "Kingdom of Italy is no more —
+    Italy is proclaimed" is the whole point of that line, and renaming
+    its first half would make it incoherent.
+    """
+    if not text:
+        return text
+    if event.get("type") == "nation_formed":
+        return text
+    event_turn = event.get("turn")
+    for nation, record in _formation_records(world).items():
+        if not isinstance(record, dict):
+            continue
+        identity = get_display_identity(world, nation)
+        if identity is None:
+            continue
+        formed_turn = record.get("turn")
+        if (event_turn is not None and formed_turn is not None
+                and int(event_turn) < int(formed_turn)):
+            continue        # it was still the old nation back then
+        dead = display_nation(nation)
+        if dead and dead != identity["display_name"] and dead in text:
+            text = text.replace(dead, identity["display_name"])
+    return text
+
+
 def formed_display_name(world, nation: str) -> str:
     """The nation's CURRENT display name — formed name if it has one, else
     the standard R7 rendering. The backend-composed-prose repair (§11.8
@@ -394,7 +430,18 @@ def _announce(world, payload: dict) -> None:
     # §11.8 stage 2 — the one ceremonial card. Transport-independent: the
     # queue survives the tick AND the ratify path, where a dispatch line
     # would not. Choice-less, so it carries no response endpoint.
-    world.nation_proclamation_popup = build_proclamation_card(world, payload)
+    #
+    # TWO nations can form on ONE tick (free both satellites, win in Italy
+    # and Flanders the same turn) and the PopupQueue holds a single slot
+    # per type — so the overflow rides a list, exactly like
+    # `vassal_rebellion_imminent_popups`. The delivery seams auto-pop it.
+    # Without this the second nation forms for real (latch, rewards,
+    # overrides, campaign log) but its landmark is silently swallowed.
+    card = build_proclamation_card(world, payload)
+    if world.nation_proclamation_popup is None:
+        world.nation_proclamation_popup = card
+    else:
+        world.nation_proclamation_popups.append(card)
 
 
 def process_formations(world) -> List[Dict]:

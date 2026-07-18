@@ -936,6 +936,125 @@ class TestPopupQueueSlot:
         assert "/proclamation_response" not in source
 
 
+class TestPopupCarryAcrossRebuild:
+    """REGRESSION (second sweep, P1): the PL-14 safety net in
+    `_respond_to_dialogue_sync` REBUILDS the response to pick up a
+    newly-set proposal_result popup. The first build already ran
+    `_include_popup_passthroughs`, which POPS the winning popup off the
+    queue AND clears the world field — so the rebind destroyed it.
+
+    That made the Proclamation 100% undeliverable on the settlement-ratify
+    path, which is the ONE reason §11.10 decision 2 mandates that call
+    site; and because the formation latch is permanent, it could never
+    fire again. The defect is not NA-6-specific — it silently ate any
+    popup type — so the carry is generic.
+    """
+
+    def test_a_popped_popup_survives_the_rebuild(self, world):
+        from backend import main as main_module
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+
+        first = {}
+        main_module._include_popup_passthroughs(first, world)
+        assert first["nation_proclamation"]["display_name"] == "Italy"
+        assert world.nation_proclamation_popup is None, (
+            "the pop must have cleared the world slot — that is the trap"
+        )
+
+        carried = main_module._capture_popup_passthroughs(first)
+        rebuilt = main_module.build_base_response(world)
+        assert rebuilt.get("nation_proclamation") is None, "setup control"
+        main_module._restore_popup_passthroughs(rebuilt, carried)
+        assert rebuilt["nation_proclamation"]["display_name"] == "Italy"
+
+    def test_the_carry_never_clobbers_a_fresh_popup(self, world):
+        from backend import main as main_module
+        carried = {"nation_proclamation": {"display_name": "STALE"}}
+        response = {"nation_proclamation": {"display_name": "FRESH"}}
+        main_module._restore_popup_passthroughs(response, carried)
+        assert response["nation_proclamation"]["display_name"] == "FRESH"
+
+    def test_the_dialogue_path_carries_popups(self):
+        import inspect
+        from backend import main as main_module
+        source = inspect.getsource(main_module._respond_to_dialogue_sync)
+        assert "_capture_popup_passthroughs" in source
+        assert "_restore_popup_passthroughs" in source
+        capture = source.index("_capture_popup_passthroughs")
+        rebuild = source.index("response = build_base_response", capture)
+        restore = source.index("_restore_popup_passthroughs")
+        assert capture < rebuild < restore, (
+            "capture must precede the rebuild and restore must follow it"
+        )
+
+    def test_capture_only_takes_real_popup_keys(self, world):
+        from backend import main as main_module
+        from backend.models.cooldown_manager import PopupQueue
+        captured = main_module._capture_popup_passthroughs({
+            "nation_proclamation": {"a": 1},
+            "incoming_proposal": None,
+            "message": "not a popup",
+        })
+        assert set(captured) == {"nation_proclamation"}
+        assert set(captured) <= set(PopupQueue.RESPONSE_KEYS.values())
+
+
+class TestTwoFormationsOneTick:
+    """REGRESSION (found live during the NA-6b in-game review): a player
+    who frees BOTH satellites and wins in Italy and Flanders on the same
+    turn forms two nations in one tick — and the PopupQueue holds ONE slot
+    per type. The second nation formed for real (latch, rewards, display
+    override, campaign log, notification) while its once-per-campaign
+    landmark was silently swallowed. Overflow rides a list, exactly like
+    `vassal_rebellion_imminent_popups`."""
+
+    def _form_both(self, world):
+        _free(world, "KingdomOfItaly")
+        _hand_over(world, "KingdomOfItaly", ITALY_PROVINCES)
+        _free(world, "Holland")
+        _hand_over(world, "Holland", DUTCH_PROVINCES)
+        return process_formations(world)
+
+    def test_both_nations_actually_form(self, world):
+        assert len(self._form_both(world)) == 2
+        assert sorted(world.nation_formations) == ["Holland", "KingdomOfItaly"]
+
+    def test_the_second_card_lands_in_the_overflow(self, world):
+        self._form_both(world)
+        assert world.nation_proclamation_popup is not None
+        assert len(world.nation_proclamation_popups) == 1
+        shown = {world.nation_proclamation_popup["display_name"]}
+        shown |= {c["display_name"] for c in world.nation_proclamation_popups}
+        assert shown == {"Italy", "United Netherlands"}
+
+    def test_both_cards_reach_the_player_across_two_responses(self, world):
+        from backend import main as main_module
+        self._form_both(world)
+
+        first = {"enemy_phase": {"events": []}}
+        main_module._apply_command_popup_contract(first, {}, world)
+        second = {}
+        main_module._include_popup_passthroughs(second, world)
+
+        delivered = [first["nation_proclamation"]["display_name"],
+                     second["nation_proclamation"]["display_name"]]
+        assert sorted(delivered) == ["Italy", "United Netherlands"]
+        assert world.nation_proclamation_popups == []
+        assert world.nation_proclamation_popup is None
+
+    def test_the_overflow_survives_save_load(self, world):
+        self._form_both(world)
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert len(reloaded.nation_proclamation_popups) == 1
+        assert reloaded.nation_proclamation_popup is not None
+
+    def test_the_overflow_is_empty_for_a_lone_formation(self, world):
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        assert world.nation_proclamation_popups == []
+
+
 class TestEnemyPhaseCarveOut:
     def test_the_card_is_not_deferred_behind_enemy_phase(self, world):
         """A formation almost always fires on the turn tick — the response
@@ -1034,6 +1153,59 @@ class TestNoDeadNameInProse:
             "the war room still names the dead nation"
         )
 
+    def test_the_campaign_log_renames_only_post_formation_entries(self, world):
+        """REGRESSION (found live in the in-game review): the campaign log
+        re-derives names from the stored raw tag via the STATIC
+        display_nation, so a POST-formation entry read "The court of
+        Kingdom of Italy takes up a new design" on a turn AFTER the
+        proclamation. History before the formation must be left alone —
+        the nation really was the Kingdom of Italy then — and the
+        nation_formed line itself must keep BOTH names or it turns
+        incoherent."""
+        from backend.game_logic.formations import (
+            apply_formation_names_to_history as rename,
+        )
+        world.current_turn = 5
+        self._form_italy(world)
+        formed_turn = world.nation_formations["KingdomOfItaly"]["turn"]
+        assert formed_turn == 5
+
+        after = rename(world, "The court of Kingdom of Italy takes up a "
+                              "new design: Guard the Peninsula",
+                       {"type": "agenda_shift", "turn": 7})
+        assert "Kingdom of Italy" not in after
+        assert "The court of Italy" in after
+
+        before = rename(world, "The court of Kingdom of Italy takes up a "
+                               "new design: Risorgimento",
+                        {"type": "agenda_shift", "turn": 2})
+        assert before.count("Kingdom of Italy") == 1, "history was rewritten"
+
+        proclamation = rename(
+            world, "Kingdom of Italy is no more - Italy is proclaimed",
+            {"type": "nation_formed", "turn": 5})
+        assert proclamation == "Kingdom of Italy is no more - Italy is proclaimed"
+
+        # A generic post-formation line renames too, not just agenda arms.
+        assert rename(world, "Milan captured by Kingdom of Italy",
+                      {"type": "region_captured", "turn": 6}) == (
+            "Milan captured by Italy")
+
+    def test_the_campaign_log_endpoint_uses_the_history_helper(self):
+        import inspect
+        from backend import main as main_module
+        source = inspect.getsource(main_module)
+        start = source.index('@app.get("/campaign_log")')
+        body = source[start:start + 2400]
+        assert "_formations_history_names" in body
+
+    def test_history_rename_is_inert_with_no_formations(self, world):
+        from backend.game_logic.formations import (
+            apply_formation_names_to_history as rename,
+        )
+        line = "The court of Kingdom of Italy takes up a new design"
+        assert rename(world, line, {"type": "agenda_shift", "turn": 9}) == line
+
     def test_the_helper_is_a_no_op_for_unformed_nations(self, world):
         from backend.game_logic.formations import formed_display_name
         from backend.display_names import display_nation
@@ -1126,34 +1298,56 @@ class TestGodotWiring:
         route = main_gd.index("_route_response_ui(response", result_fn)
         assert stash < route, "the stash must precede all routing"
 
-    def test_the_card_is_shown_when_control_returns(self):
-        """Both resume points: the enemy-phase dismissal (the dominant
-        path — formations fire on the tick) and the plain command tail
-        (the settlement-ratify path)."""
+    def test_every_control_returning_seam_routes_through_one_tail(self):
+        """REGRESSION (second sweep): hanging the card off ONE seam
+        stranded it on the normal case. `_on_enemy_phase_dismissed`
+        returns early for strategic reports and redemption events — and
+        formations are TRIGGERED BY CONQUEST, i.e. by marshals under
+        standing orders, which is exactly what populates
+        `strategic_reports`. Every seam that hands control back must end
+        with the shared tail."""
         main_gd = _read("scripts/main.gd")
-        assert main_gd.count("_show_pending_proclamation()") >= 2
-        dismissed = main_gd.index("func _on_enemy_phase_dismissed")
-        body = main_gd[dismissed:dismissed + 2600]
-        assert "_show_pending_proclamation()" in body, (
-            "the enemy-phase path never shows the stashed card"
-        )
-        # ...and it must come AFTER the dispatch, per §11.8 stage ordering.
-        assert body.index("_show_pending_dispatch()") < body.index(
-            "_show_pending_proclamation()")
+        assert "func _return_control_to_player" in main_gd
+        for handler in ("func _on_enemy_phase_dismissed",
+                        "func _on_strategic_report_dismissed",
+                        "func _on_redemption_response"):
+            start = main_gd.index(handler)
+            end = main_gd.index("\nfunc ", start + 10)
+            assert "_return_control_to_player()" in main_gd[start:end], (
+                f"{handler} does not end with the shared control-return tail"
+            )
 
-    def test_the_early_seam_is_guarded_on_enemy_phase(self):
-        """REGRESSION (caught live): the command-tail seam sits ABOVE the
-        enemy-phase / turn-result / dispatch block, so firing it on an
-        end-turn response swallows exactly the tail it exists to preserve.
-        The enemy-phase dialog never appeared until this guard landed."""
+    def test_the_shared_tail_shows_the_card_before_re_enabling_input(self):
+        main_gd = _read("scripts/main.gd")
+        start = main_gd.index("func _return_control_to_player")
+        body = main_gd[start:main_gd.index("\nfunc ", start + 10)]
+        assert body.index("_show_pending_proclamation()") < body.index(
+            "set_input_enabled(true)")
+
+    def test_the_command_tail_seam_is_last_not_first(self):
+        """REGRESSION (second sweep): the seam used to sit ABOVE
+        `_display_result`, the enemy-phase block, the dispatch and
+        `_process_active_wars` — so a player who ratified a settlement saw
+        the Proclamation and never learned the settlement was ratified,
+        with the ended war still in the HUD. The card comes LAST."""
         main_gd = _read("scripts/main.gd")
         result_fn = main_gd.index("func _on_command_result")
-        early = main_gd.index("_show_pending_proclamation()", result_fn)
-        line_start = main_gd.rindex("\n", 0, early)
-        guard_region = main_gd[line_start - 200:early]
-        assert 'not response.has("enemy_phase")' in guard_region, (
-            "the pre-enemy-phase seam must be guarded on enemy_phase"
-        )
+        end = main_gd.index("\nfunc _display_result", result_fn)
+        body = main_gd[result_fn:end]
+        seam = body.index("_show_pending_proclamation()")
+        for earlier in ("_display_result(response)", "_process_active_wars(response)",
+                        '_show_pending_dispatch()'):
+            assert body.index(earlier) < seam, (
+                f"the Proclamation seam runs before {earlier}"
+            )
+
+    def test_a_queued_second_card_follows_the_first(self):
+        """The dismissal handler chains, so two formations on one tick do
+        not need an unrelated command to surface the second."""
+        main_gd = _read("scripts/main.gd")
+        start = main_gd.index("func _on_proclamation_dismissed")
+        body = main_gd[start:main_gd.index("\nfunc ", start + 10)]
+        assert "_show_pending_proclamation()" in body
 
     def test_the_popup_is_not_added_to_the_dialogue_dtype_whitelist(self):
         """§11.10-5 makes it a PopupQueue popup, NOT a dialogue — §11.7's

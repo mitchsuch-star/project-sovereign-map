@@ -323,6 +323,10 @@ class WorldState:
         # changes (serialization safety), only the display identity.
         # Empty at boot by construction — nothing can form at boot.
         self.nation_formations: Dict[str, dict] = {}
+        # NA-6: overflow for the single Proclamation popup slot — two
+        # nations CAN form on one tick (the vassal_rebellion_imminent_popups
+        # precedent). Drained one per response by the delivery seams.
+        self.nation_proclamation_popups: List[Dict] = []
 
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
@@ -5348,6 +5352,7 @@ class WorldState:
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
             "vassal_rebellion_imminent_popups": [p.copy() for p in self.vassal_rebellion_imminent_popups],
             "nation_proclamation_popup": self.nation_proclamation_popup,
+            "nation_proclamation_popups": [p.copy() for p in self.nation_proclamation_popups],
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
             "proposal_result_popup": self.proposal_result_popup,
@@ -5999,6 +6004,9 @@ class WorldState:
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
         world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]
         world.nation_proclamation_popup = data.get("nation_proclamation_popup", None)
+        world.nation_proclamation_popups = [
+            p.copy() for p in (data.get("nation_proclamation_popups") or [])
+        ]
         # PL-23: talleyrand_redemption_popup removed (silently ignored from old saves)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
