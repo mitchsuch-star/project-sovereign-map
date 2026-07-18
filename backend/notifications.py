@@ -60,6 +60,7 @@ SABOTAGE_DISCOVERED = "sabotage_discovered"                    # HIGH: Talleyran
 VASSAL_REBELLION_IMMINENT = "vassal_rebellion_imminent"         # HIGH: loyalty critical
 ALLIANCE_CASCADE_WAR = "alliance_cascade_war"                  # HIGH: nation entered war via alliance
 WAR_DECLARED = "war_declared"                                  # HIGH: nation declared war
+NATION_FORMED = "nation_formed"                                # HIGH: a nation was proclaimed (NA-6)
 VASSAL_COURTING_DETECTED = "vassal_courting_detected"          # MEDIUM: enemy courting vassal
 DP_INSUFFICIENT = "dp_insufficient"                            # MEDIUM: not enough DP
 DEFECTION_CASCADE = "defection_cascade"                        # HIGH: multiple vassals wavering

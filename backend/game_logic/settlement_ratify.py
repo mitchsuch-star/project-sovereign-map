@@ -1328,6 +1328,19 @@ def ratify_settlement_confirm(
     if hasattr(world, "invalidate_active_nations_cache"):
         world.invalidate_active_nations_cache()
 
+    # NA-6 §11.10-2, the SECOND formation call site: a cession or carve
+    # completed at the table proclaims the turn it happens (§11.8 stage 1),
+    # not on the next tick. Runs AFTER the three invalidations above
+    # because agenda activation reads region control AND war/alliance
+    # geometry, both of which the clauses just moved. Idempotent via the
+    # `nation_formations` latch, so the tick-side poll is a harmless no-op
+    # afterwards. NOTE: a dispatch line queued here would be discarded —
+    # `pending_dispatch_events` is cleared at the top of the next tick — so
+    # the beat's durable surfaces are the campaign log, the notification
+    # rail, and (NA-6b) the Proclamation card.
+    from backend.game_logic.formations import process_formations
+    process_formations(world)
+
     war_instance_after = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
     war_ended = war_instance_after.get("ended_turn") is not None
 

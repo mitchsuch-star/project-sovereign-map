@@ -43,6 +43,11 @@ _THREAT_SOURCE_LABELS = {
     "agenda_grudge": "Denied national designs",
     # NA-5 §8: a defied ultimatum names itself too
     "ultimatum_defied": "Defied an ultimatum",
+    # NA-6 §11.9: the standing wound left by a sponsored proclamation.
+    # The per-formation label ("The Polish Question") needs a dynamic-key
+    # mechanism this static map cannot express — owned by NA-6d, which
+    # lands the Poland chain the label exists to name.
+    "formation_grudge": "Nations raised from their lands",
     "schemer_peace_rejection": "Scorned a peace overture",
 }
 

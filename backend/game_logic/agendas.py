@@ -282,6 +282,18 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
     return False
 
 
+def entry_satisfied(world, nation: str, entry: dict) -> bool:
+    """Public wrapper over the per-type satisfaction predicate.
+
+    NA-6 needs satisfaction for a RAW deck entry, not for the active view:
+    an acquire entry is active only while UNMET, so a formable entry is
+    already inactive on the tick it satisfies (see formations.py's module
+    docstring). `is_agenda_satisfied` cannot serve — it takes a view that
+    is unobtainable at exactly that moment.
+    """
+    return _entry_satisfied(world, nation, entry)
+
+
 def is_agenda_satisfied(view: AgendaView, world) -> bool:
     if view is None or view.survival:
         return False
@@ -969,11 +981,28 @@ def build_agenda_payload(nation: str, world) -> Optional[dict]:
     view = get_active_agenda(nation, world)
     if view is None:
         return None
-    return {
+    payload = {
         "id": view.id,
         "title": view.title,
         "stance_line": _stance_line(view, world),
     }
+    # NA-6 §11.6-5 / §11.8 stage 0 — "the dream is visible". An ACTIVE
+    # entry carrying a `forms` block advertises what it would become and
+    # how close it stands, so no formation ever ambushes the player.
+    # Local import: formations reads this module (one-way dependency).
+    from backend.game_logic.formations import get_forms_block
+    forms = get_forms_block({"forms": view.params.get("forms")})
+    if forms is not None:
+        held = [r for r in view.regions
+                if _controlled_by_self_or_vassal(world, nation, r)]
+        payload["forms"] = {
+            "display_name": forms["display_name"],
+            "held": int(len(held)),
+            "required": int(len(view.regions)),
+            "progress": (f"{int(len(held))} of {int(len(view.regions))} "
+                         f"provinces held" if view.regions else ""),
+        }
+    return payload
 
 
 # ═══════════════════════ THE SHIFT BEAT (NA-1) ════════════════════════════

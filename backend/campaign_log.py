@@ -213,6 +213,8 @@ CAMPAIGN_LOG_TYPES = {
     "agenda_shift",
     # Nation Agendas NA-3 §5.9 — the Ansbach trap
     "agenda_violation",
+    # Nation Agendas NA-6 §11.8 — a nation is proclaimed
+    "nation_formed",
 }
 
 # ============================================================================
@@ -285,6 +287,7 @@ CATEGORY_MAP = {
     "ai_proposal_accepted": "diplomacy",
     "agenda_shift": "diplomacy",
     "agenda_violation": "diplomacy",
+    "nation_formed": "diplomacy",
     "ai_proposal_counter_failed": "diplomacy",
     "ai_proposal_rejected": "diplomacy",
     "auto_downgrade": "diplomacy",
@@ -722,7 +725,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # Nation Agendas: agenda shifts and neutrality violations are open
         # court knowledge — always show (diplomacy has no fog).
-        if event_type in ("agenda_shift", "agenda_violation"):
+        if event_type in ("agenda_shift", "agenda_violation",
+                          "nation_formed"):
             filtered.append(event)
             continue
 
@@ -1064,6 +1068,14 @@ def format_event_oneliner(event: dict) -> str:
         region = event.get("region", "its guarded lands")
         return (f"{holder} seethes: {violator}'s columns cross {region} "
                 f"in defiance of its neutrality")
+
+    if event_type == "nation_formed":
+        formed = event.get("display_name") or display_nation(
+            event.get("nation", "Unknown"))
+        old = event.get("old_display_name") or ""
+        if old and old != formed:
+            return f"{old} is no more — {formed} is proclaimed"
+        return f"{formed} is proclaimed"
 
     if event_type == "dotation_granted":
         marshal = event.get("marshal", "Unknown")

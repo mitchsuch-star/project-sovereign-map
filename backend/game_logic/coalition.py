@@ -831,6 +831,19 @@ def _calculate_agenda_grudge_threat(world) -> int:
     return int(min(AGENDA_GRUDGE_CAP, len(grudged)))
 
 
+def _calculate_formation_grudge_threat(world, budget: int) -> int:
+    """NA-6 §11.9 — the standing wound left by a proclamation.
+
+    Sibling of `_calculate_agenda_grudge_threat`, sharing its cap through
+    an explicit remaining-budget parameter rather than a joint clamp, so
+    the agenda family's emitted amount (and its two NA-3 pins) never move.
+    Derivation lives in formations.py — including the France-scoped-scalar
+    caveat that only a player-sponsored formation feeds this scalar.
+    """
+    from backend.game_logic.formations import get_formation_grudge_threat
+    return get_formation_grudge_threat(world, budget)
+
+
 def _calculate_defensive_refusal_memory_threat(world) -> int:
     """Standing DG-4 threat from active defensive-refusal episodes.
 
@@ -1751,6 +1764,20 @@ def process_coalition_turn(world) -> List[Dict]:
     agenda_grudge_threat = _calculate_agenda_grudge_threat(world)
     if agenda_grudge_threat > 0:
         add_threat(world, agenda_grudge_threat, "agenda_grudge")
+
+    # NA-6 §11.9: the standing formation wound — aggrieved courts nursing
+    # a proclamation the player sponsored. §11.10 decision 8 pins that the
+    # two grudge families never stack past AGENDA_GRUDGE_CAP; implemented
+    # as a deterministic split (agenda first, formation takes the
+    # remainder) so BOTH keep their own source key and the threat panel
+    # can still NAME each grievance — see formations.get_formation_grudge_threat.
+    from backend.game_logic.agendas import (
+        AGENDA_GRUDGE_CAP as _GRUDGE_CAP,
+    )
+    formation_grudge_threat = _calculate_formation_grudge_threat(
+        world, budget=_GRUDGE_CAP - agenda_grudge_threat)
+    if formation_grudge_threat > 0:
+        add_threat(world, formation_grudge_threat, "formation_grudge")
 
     # NA-5 §8: defied ultimatums — the fifth standing contributor (prunes
     # expired markers as a side effect, the DD8 shape).

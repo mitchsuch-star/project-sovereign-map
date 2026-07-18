@@ -241,6 +241,26 @@ def _get_talleyrand_mission_summary(w) -> str:
     return "None"
 
 
+def _attach_nation_identity_overrides(response: dict, world) -> None:
+    """NA-6 §11.10-3 — stamp the formed-nation display/flag overrides.
+
+    Empty dicts at boot by construction (nothing can form at boot), so
+    this is zero behavior change until the first proclamation.
+
+    Deliberately applied to the hand-rolled GET payloads too, not just
+    `build_base_response`: the ledgers, dispatch, campaign log, marshal
+    overview and map topology all render nation names, and a player who
+    LOADS a save with formations and opens a ledger before issuing any
+    command would otherwise read the dead name (§11.8 stage 3: "no
+    surface may show the dead name"). One helper, every door.
+    """
+    from backend.game_logic.formations import (
+        build_nation_display_overrides, build_nation_flag_overrides,
+    )
+    response["nation_display_overrides"] = build_nation_display_overrides(world)
+    response["nation_flag_overrides"] = build_nation_flag_overrides(world)
+
+
 def build_base_response(world, success: bool = True, message: str = "",
                         events: list = None,
                         include_popup_passthroughs: bool = True,
@@ -282,6 +302,12 @@ def build_base_response(world, success: bool = True, message: str = "",
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }
     response.update(extra)
+    # NA-6 §11.10-3: the identity override map rides EVERY response so the
+    # Godot R7 chokepoints can resolve a formed nation's new name and flag
+    # without N payload builders each adopting a helper. Set AFTER
+    # `update(extra)` — `_build_result_response` forwards every executor
+    # result key into **extra and could otherwise clobber it.
+    _attach_nation_identity_overrides(response, world)
     if include_popup_passthroughs:
         _include_popup_passthroughs(response, world)
     if queue_informational_notices:
@@ -1005,11 +1031,13 @@ def get_map_topology():
             "starting_controller": starting_controllers.get(name),
             "grid_position": [int(grid[0]), int(grid[1])],
         }
-    return {
+    payload = {
         "success": True,
         "regions": regions,
         "nation_capitals": dict(world.nation_capitals),
     }
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
 
 
 @app.post("/command")
@@ -1831,6 +1859,7 @@ def get_status():
     report = generate_intel_report(world)
     report["game_state"] = world.get_filtered_game_state_summary()
     report["active_wars"] = build_active_wars(world)
+    _attach_nation_identity_overrides(report, world)   # NA-6 §11.8 stage 3
     return report
 
 
@@ -2698,7 +2727,10 @@ def get_campaign_log():
     sorted_turns = [{"turn": int(t), "events": evts}
                     for t, evts in sorted(turns.items(), reverse=True)
                     if evts]
-    return {"success": True, "turns": sorted_turns, "current_turn": int(world.current_turn)}
+    payload = {"success": True, "turns": sorted_turns,
+               "current_turn": int(world.current_turn)}
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
 
 
 # ════════════════════════════════════════════════════════════
@@ -2711,9 +2743,9 @@ def get_dispatch():
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     dispatch = world.last_morning_dispatch
-    if not dispatch:
-        return {"success": True, "dispatch": {}}
-    return {"success": True, "dispatch": dispatch}
+    payload = {"success": True, "dispatch": dispatch or {}}
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
 
 
 # ════════════════════════════════════════════════════════════
@@ -2727,7 +2759,9 @@ def get_ledger():
         return {"success": False, "message": "No active game"}
     from backend.game_logic.ledger import build_strategic_ledger
     ledger = build_strategic_ledger(world)
-    return {"success": True, "ledger": ledger}
+    payload = {"success": True, "ledger": ledger}
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
 
 
 # ════════════════════════════════════════════════════════════
@@ -3191,7 +3225,9 @@ def get_diplomatic_ledger():
     try:
         from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
         ledger = build_diplomatic_ledger(world)
-        return {"success": True, "ledger": ledger}
+        payload = {"success": True, "ledger": ledger}
+        _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+        return payload
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -3251,7 +3287,7 @@ def get_marshal_overview():
     from backend.game_logic.jealousy import build_glory_ladder_payload
     from backend.game_logic.recruitment import build_recruitment_payload
     overview = build_marshal_overview(world)
-    return {
+    payload = {
         "success": True,
         "marshals": overview,
         # Jealousy v3.2: the player's glory ladder (Generals screen header)
@@ -3259,6 +3295,8 @@ def get_marshal_overview():
         # Marshal recruitment: the commissionable candidate pool
         "recruitment": build_recruitment_payload(world),
     }
+    _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
 
 
 # ════════════════════════════════════════════════════════════

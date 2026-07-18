@@ -318,6 +318,11 @@ class WorldState:
         # shift beat's dedup across save/load (the last_expectation_seen
         # idiom). "" records an observed no-agenda state.
         self.nation_agenda_seen: Dict[str, str] = {}
+        # NA-6 §11.1/§11.10-1: the formation latch — tag -> {id, sponsor,
+        # turn}. Formation is PERMANENT and once-only; the tag never
+        # changes (serialization safety), only the display identity.
+        # Empty at boot by construction — nothing can form at boot.
+        self.nation_formations: Dict[str, dict] = {}
 
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
@@ -4986,6 +4991,10 @@ class WorldState:
             "agendas": copy.deepcopy(self.agendas),
             "nation_agenda_seen": {str(k): str(v)
                                    for k, v in self.nation_agenda_seen.items()},
+            # deepcopy, NOT the flat str() arm above: NA-6 records are
+            # dicts and would stringify (the §11.1 Dict[str, str] shape
+            # was amended to Dict[str, dict] by §11.10 decision 1).
+            "nation_formations": copy.deepcopy(self.nation_formations),
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -5406,6 +5415,12 @@ class WorldState:
         world.nation_agenda_seen = {
             str(k): str(v)
             for k, v in (data.get("nation_agenda_seen") or {}).items()
+        }
+        # NA-6: the formation latch. Absent on pre-NA-6 saves = nothing has
+        # formed. deepcopy for the same aliasing reason as `agendas`.
+        world.nation_formations = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("nation_formations") or {}).items()
         }
 
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
@@ -7147,7 +7162,14 @@ class WorldState:
         from backend.game_logic.agendas import (
             process_agenda_shifts, process_agenda_violations,
         )
+        from backend.game_logic.formations import process_formations
         process_agenda_violations(self)
+        # NA-6 §11.10-2: formations resolve BEFORE the shift poll, so the
+        # shift beat announces the POST-formation deck entry rather than
+        # the dead forming one. Return value is deliberately discarded —
+        # every surface is emitted inside the poll (this call site has no
+        # event channel; `_last_tactical_events` froze further up).
+        process_formations(self)
         process_agenda_shifts(self)
 
         # ════════════════════════════════════════════════════════════

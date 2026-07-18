@@ -722,7 +722,19 @@
                 "type": "acquire_regions",
                 "title": "Risorgimento",
                 "regions": ["Milan", "Piedmont", "Savoy", "Naples", "Rome"],
-                "blurb": "The dream the vassal wakes with - a free Italian crown gathering the peninsula. Dormant while Milan answers to Paris."
+                "blurb": "The dream the vassal wakes with - a free Italian crown gathering the peninsula. Dormant while Milan answers to Paris.",
+                "forms": {
+                    "display_name": "Italy",
+                    "flag": "Italy",
+                    "blurb": "By the will of the nation and the fortune of arms - the KINGDOM OF ITALY is no more. ITALY stands."
+                }
+            },
+            {
+                "id": "guard_the_peninsula",
+                "type": "guard_neutrality",
+                "title": "Guard the Peninsula",
+                "regions": ["Milan", "Piedmont", "Savoy", "Naples", "Rome"],
+                "blurb": "A nation that has just made itself consolidates. The peninsula is gathered; now it is held - and a foreign column crossing it is an insult to a country that exists."
             }
         ],
         "Holland": [
@@ -731,7 +743,19 @@
                 "type": "acquire_regions",
                 "title": "The Seventeen Provinces",
                 "regions": ["Flanders"],
-                "blurb": "A free Holland reaching for the Austrian-Netherlands inheritance. Dormant while Amsterdam answers to Paris."
+                "blurb": "A free Holland reaching for the Austrian-Netherlands inheritance. Dormant while Amsterdam answers to Paris.",
+                "forms": {
+                    "display_name": "United Netherlands",
+                    "flag": "UnitedNetherlands",
+                    "blurb": "The inheritance of Burgundy is gathered under one crown - the UNITED NETHERLANDS is proclaimed at Amsterdam."
+                }
+            },
+            {
+                "id": "merchants_peace",
+                "type": "guard_neutrality",
+                "title": "The Merchants' Peace",
+                "regions": ["Amsterdam", "Brabant", "Flanders"],
+                "blurb": "The counting houses want the sea lanes open and the armies elsewhere. A Netherlands at peace is a Netherlands that trades."
             }
         ]
     }

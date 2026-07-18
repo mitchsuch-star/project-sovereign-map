@@ -1782,6 +1782,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{guard_holder} seethes: {violator}'s columns cross {region} "
         "in defiance of its declared neutrality."
     ),
+    # Nation Agendas NA-6 §11.8 stage 1 — the dispatch LEADS with a
+    # proclamation (values arrive humanized: both display names).
+    "nation_formed": (
+        "By the will of the nation and the fortune of arms — "
+        "{old_nation} is no more. {nation} stands."
+    ),
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
@@ -1847,6 +1853,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "enemy_marshal_commissioned": "MEDIUM",
     "agenda_shift": "MEDIUM",
     "agenda_violation": "HIGH",
+    "nation_formed": "HIGH",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

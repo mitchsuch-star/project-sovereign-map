@@ -345,6 +345,72 @@ def validate_region(data: Dict[str, Any], path: str = "region") -> ValidationRes
 # SCENARIO VALIDATION
 # ============================================================================
 
+# NA-6 §11.1: only agenda types with a real SATISFACTION condition can ever
+# fire a formation. `paymaster` and `guard_neutrality` are postures — they
+# never satisfy (agendas._entry_satisfied returns False), so a `forms` block
+# on one is a formable that can never fire. That is precisely the silent
+# dead promise Golden Rule 9 forbids, so it is an ERROR, not a warning.
+FORMABLE_AGENDA_TYPES = ("acquire_regions", "deny_regions", "contain_hegemon")
+
+
+def _validate_forms_block(result, path: str, forms: Any,
+                          agenda_type: str) -> None:
+    """Validate an agenda entry's optional NA-6 `forms` block."""
+    forms_path = f"{path}.forms"
+    if not isinstance(forms, dict):
+        result.add_error(
+            forms_path,
+            f"Must be an object, got {type(forms).__name__}")
+        return
+
+    display_name = forms.get("display_name")
+    if not display_name or not isinstance(display_name, str):
+        result.add_error(
+            forms_path,
+            "Requires a non-empty 'display_name' — the whole point of a "
+            "formable is the new name on every surface")
+
+    for optional_key in ("flag", "blurb"):
+        value = forms.get(optional_key)
+        if optional_key in forms and not isinstance(value, str):
+            result.add_error(
+                f"{forms_path}.{optional_key}",
+                f"Must be a string, got {type(value).__name__}")
+
+    if agenda_type not in FORMABLE_AGENDA_TYPES:
+        result.add_error(
+            forms_path,
+            f"'{agenda_type}' is a posture and never reaches a satisfied "
+            f"state, so this formation could never fire. Formable types: "
+            f"{sorted(FORMABLE_AGENDA_TYPES)}")
+
+    aggrieved = forms.get("aggrieved")
+    if "aggrieved" in forms:
+        if not isinstance(aggrieved, list):
+            result.add_error(
+                f"{forms_path}.aggrieved",
+                f"Must be a list, got {type(aggrieved).__name__}")
+        else:
+            for power in aggrieved:
+                if not isinstance(power, str) or not power:
+                    result.add_error(
+                        f"{forms_path}.aggrieved",
+                        f"Entries must be non-empty nation names, "
+                        f"got {power!r}")
+                    continue
+                # Roster-shaped WARNING (the `relationships` forward-compat
+                # stance). Deliberately checked against VALID_NATIONS, NOT
+                # the locally-derived `known_nations` — the latter is built
+                # from region controllers + marshal nations, so a landless
+                # or marshal-less court (exactly the kind most likely to be
+                # aggrieved) would warn spuriously.
+                if power not in VALID_NATIONS:
+                    result.add_warning(
+                        f"{forms_path}.aggrieved",
+                        f"References unknown nation '{power}' - it will "
+                        f"never take the formation penalty")
+
+
 def validate_scenario(
     scenario_path_or_data: Any,
     check_adjacency: bool = True
@@ -670,6 +736,13 @@ def validate_scenario(
                             result.add_error(
                                 f"{path}.treasury_floor",
                                 f"Must be a non-negative integer, got {floor!r}")
+                    # NA-6 §11.1 — the optional `forms` block. Present but
+                    # malformed is an ERROR (a silent no-op formable is the
+                    # worst outcome: the player watches a dream that can
+                    # never fire); absent is the norm.
+                    if "forms" in entry:
+                        _validate_forms_block(
+                            result, path, entry.get("forms"), agenda_type)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

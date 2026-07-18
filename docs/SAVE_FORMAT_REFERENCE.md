@@ -195,6 +195,7 @@ A future save/load system should use this as the specification.
 | `marshal_pool` | dict | {} | **Marshal Recruitment:** authored candidate bench per nation `{nation: [entries]}` — entries removed as commissioned (`MARSHAL_RECRUITMENT_SPEC.md`). |
 | `agendas` | dict | {} | **Nation Agendas (NA-0):** authored deck per nation `{nation: [entries]}` — scenario data; the ACTIVE agenda is derived per turn, never stored (`NATION_AGENDAS_SPEC.md`). |
 | `nation_agenda_seen` | dict | {} | **Nation Agendas (NA-1):** last-announced agenda id per nation — the dispatch shift beat's dedup across save/load ("" = observed no-agenda state). |
+| `nation_formations` | dict | {} | **Nation Agendas (NA-6):** the formation latch `{tag: {id, sponsor, turn}}` — `id` = the `forms`-carrying agenda entry, `sponsor` = the lord/carver at proclamation ("" = it freed itself), `turn` = when. Formation is PERMANENT and once-only; the internal tag NEVER changes (only the display identity, re-derived from the authored `forms` block). Absent on pre-NA-6 saves = nothing has formed. |
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
