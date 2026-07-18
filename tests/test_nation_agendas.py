@@ -605,9 +605,14 @@ class TestMotiveLines:
         # ...but never outranks the peace-family war_overload override.
         assert determine_ai_offer_decision_reason(
             "Austria", "peace", world) == "war_overload"
-        # A court whose design is elsewhere keeps the stock ladder.
+        # NA-2 §5.3 (conscious flip of the NA-1 negative control): the
+        # guard court's non_aggression ask now voices agenda_pursuit — the
+        # pact IS its design. An ask that does NOT advance the design
+        # keeps the stock ladder.
         assert determine_ai_offer_decision_reason(
-            "Denmark", "non_aggression", world) != "agenda_pursuit"
+            "Denmark", "non_aggression", world) == "agenda_pursuit"
+        assert determine_ai_offer_decision_reason(
+            "Denmark", "open_borders", world) != "agenda_pursuit"
 
     def test_display_row_exists(self):
         from backend.display_names import diplomatic_decision_reason_display
@@ -698,3 +703,534 @@ class TestCampaignLog:
         text = _DIPLOMATIC_EVENT_TEMPLATES["agenda_shift"].format(
             nation="Austria", focus="Redeem Italy")
         assert "Austria" in text and "Redeem Italy" in text
+
+
+# ═══════════════════ NA-2: THE ACCEPTANCE TERM (§5.2) ═════════════════════
+
+def _bilateral(ptype, proposer, target, sweeteners=None, demands=None,
+               clauses=None):
+    return {
+        "type": ptype,
+        "proposer_nation": proposer,
+        "target_nation": target,
+        "sweeteners": list(sweeteners or []),
+        "demands": list(demands or []),
+        "clauses": list(clauses or []),
+    }
+
+
+class TestAgendaAcceptanceMod:
+    """agenda_acceptance_mod — both directions, exclusivity, dormancy."""
+
+    def test_bare_peace_entrenches_denial(self, world):
+        """Austria refuses the peace that does not return Milan (-8)."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ENTRENCH, agenda_acceptance_mod,
+        )
+        proposal = _bilateral("peace", "France", "Austria")
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ENTRENCH
+
+    def test_cession_of_design_target_advances(self, world):
+        """Ceding Savoy (a redeem_italy target France holds) scores +12."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ADVANCE, agenda_acceptance_mod,
+        )
+        proposal = _bilateral(
+            "peace", "France", "Austria",
+            sweeteners=[{"type": "territory_cede", "value": 1,
+                         "regions": ["Savoy"]}],
+        )
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ADVANCE
+
+    def test_string_clause_form_advances(self, world):
+        """The territory_<lower> clause form (generate_suggested_terms
+        shape) is recognized as a cession to the target."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ADVANCE, agenda_acceptance_mod,
+        )
+        proposal = _bilateral("peace", "France", "Austria",
+                              clauses=["territory_savoy"])
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ADVANCE
+
+    def test_advance_wins_over_entrench(self, world):
+        """A war-ending peace WITH a design cession is an advance, not an
+        entrenchment — the two arms are mutually exclusive."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ADVANCE, agenda_acceptance_mod,
+        )
+        proposal = _bilateral(
+            "peace", "France", "Austria",
+            sweeteners=[{"type": "territory_cede", "value": 1,
+                         "regions": ["Milan"]}],
+        )
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ADVANCE
+
+    def test_bare_armistice_never_entrenches(self, world):
+        """A BARE pause legitimizes nothing (protects AUD-b armistice
+        tuning — AUD-b armistices carry no design content)."""
+        from backend.game_logic.agendas import agenda_acceptance_mod
+        for ptype in ("armistice", "armistice_losing", "armistice_winning"):
+            proposal = _bilateral(ptype, "France", "Austria")
+            assert agenda_acceptance_mod(proposal, world) == 0, ptype
+
+    def test_armistice_with_design_strip_demand_entrenches(self, world):
+        """DELIBERATE (adversarial-review pin): an armistice DEMANDING a
+        held design region is a real ask with real content — the
+        demand-strip arm prices it on any proposal type."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ENTRENCH, agenda_acceptance_mod,
+        )
+        _conquer(world, "Milan", "Austria")
+        world.invalidate_bloc_members_cache()
+        proposal = _bilateral(
+            "armistice_winning", "France", "Austria",
+            demands=[{"type": "territory_cede", "value": 1,
+                      "regions": ["Milan"]}],
+        )
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ENTRENCH
+
+    def test_peace_from_armistice_state_still_entrenches(self, world):
+        """The armistice-first route still ends in 'the peace that does
+        not return Milan' — the formal peace entrenches from ARMISTICE
+        state exactly as from WAR (adversarial-review fix)."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ENTRENCH, agenda_acceptance_mod,
+        )
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "ARMISTICE"
+        world.invalidate_bloc_members_cache()
+        proposal = _bilateral("peace", "France", "Austria")
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ENTRENCH
+
+    def test_demand_stripping_held_target_entrenches(self, world):
+        """Demanding a HELD design region asks the court to legitimize the
+        loss — entrench, on any proposal type."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ENTRENCH, agenda_acceptance_mod,
+        )
+        _conquer(world, "Milan", "Austria")  # held target; Piedmont unmet
+        world.invalidate_bloc_members_cache()
+        proposal = _bilateral(
+            "open_borders", "France", "Austria",
+            demands=[{"type": "territory_cede", "value": 1,
+                      "regions": ["Milan"]}],
+        )
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ENTRENCH
+
+    def test_deny_agenda_cession_out_of_bloc_advances(self, world):
+        """France ceding Flanders to Britain takes it out of the hegemon's
+        bloc — Britain's low_countries design advances (+12)."""
+        from backend.game_logic.agendas import (
+            AGENDA_ACCEPT_ADVANCE, agenda_acceptance_mod,
+        )
+        proposal = _bilateral(
+            "peace", "France", "Britain",
+            sweeteners=[{"type": "territory_cede", "value": 1,
+                         "regions": ["Flanders"]}],
+        )
+        assert agenda_acceptance_mod(proposal, world) == AGENDA_ACCEPT_ADVANCE
+
+    def test_deckless_target_scores_zero(self, world):
+        """France (no deck) and a deckless world score 0 by construction."""
+        from backend.game_logic.agendas import agenda_acceptance_mod
+        to_france = _bilateral("peace", "Austria", "France")
+        assert agenda_acceptance_mod(to_france, world) == 0
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        bare = _bilateral("peace", "France", "Austria")
+        assert agenda_acceptance_mod(bare, world) == 0
+
+    def test_survival_override_scores_zero(self, world):
+        """A court fighting for its life has no design term."""
+        from backend.game_logic.agendas import (
+            agenda_acceptance_mod, get_active_agenda,
+        )
+        _conquer(world, "Vienna", "France")  # capital lost -> survival
+        world.invalidate_bloc_members_cache()
+        view = get_active_agenda("Austria", world)
+        assert view is not None and view.survival
+        proposal = _bilateral("peace", "France", "Austria")
+        assert agenda_acceptance_mod(proposal, world) == 0
+
+
+class TestAcceptanceWiring:
+    """The term rides calculate_acceptance: components, sum, feedback,
+    preview labels."""
+
+    def test_component_and_sum_negative(self, world):
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ENTRENCH
+        from backend.game_logic.diplomacy import calculate_acceptance
+        result = calculate_acceptance(
+            _bilateral("peace", "France", "Austria"), world)
+        assert result["components"]["agenda_mod"] == AGENDA_ACCEPT_ENTRENCH
+
+    def test_component_positive_with_cession(self, world):
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ADVANCE
+        from backend.game_logic.diplomacy import calculate_acceptance
+        result = calculate_acceptance(
+            _bilateral(
+                "peace", "France", "Austria",
+                sweeteners=[{"type": "territory_cede", "value": 1,
+                             "regions": ["Savoy"]}]),
+            world)
+        assert result["components"]["agenda_mod"] == AGENDA_ACCEPT_ADVANCE
+
+    def test_term_moves_the_score(self, world):
+        """+12 vs -8: the same peace differs by exactly the two constants
+        on the agenda component — pin the component delta, not the whole
+        formula (deal balance moves too when a cession is added)."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+        bare = calculate_acceptance(
+            _bilateral("peace", "France", "Austria"), world)
+        ceded = calculate_acceptance(
+            _bilateral(
+                "peace", "France", "Austria",
+                sweeteners=[{"type": "territory_cede", "value": 1,
+                             "regions": ["Savoy"]}]),
+            world)
+        assert (ceded["components"]["agenda_mod"]
+                - bare["components"]["agenda_mod"]) == 20
+
+    def test_legacy_world_component_zero(self, world):
+        """No authored decks -> 0 (legacy fixture pins byte-identical)."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        result = calculate_acceptance(
+            _bilateral("peace", "France", "Austria"), world)
+        assert result["components"]["agenda_mod"] == 0
+
+    def test_term_is_coupled_into_the_score(self, world):
+        """Adversarial-review pin: the SAME bare peace scored with and
+        without the deck differs by exactly the entrench constant at the
+        SCORE level — deleting '+ agenda_mod_value' from raw_score fails
+        here, not just in the components dict."""
+        from backend.game_logic.agendas import AGENDA_ACCEPT_ENTRENCH
+        from backend.game_logic.diplomacy import calculate_acceptance
+        proposal = _bilateral("peace", "France", "Austria")
+        with_deck = calculate_acceptance(proposal, world)
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        without_deck = calculate_acceptance(proposal, world)
+        assert (with_deck["score"] - without_deck["score"]
+                ) == AGENDA_ACCEPT_ENTRENCH
+
+    def test_confirm_snapshot_labels_the_term(self, world):
+        """The crafted-terms confirm popup (build_war_context_snapshot)
+        renders direction-aware copy, never the raw 'Agenda Mod' key.
+        With relations recovered (relation_mod 0), the bare-peace agenda
+        entrenchment (-8) is deterministically the largest obstacle."""
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+        key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[key] = 0
+        terms = {"type": "peace", "sweeteners": [], "demands": [],
+                 "clauses": []}
+        snapshot = build_war_context_snapshot(
+            world, "France", "Austria", "peace", terms=terms)
+        preview = snapshot.get("acceptance_preview") or {}
+        assert preview.get("largest_negative") == "Entrenches their denial"
+        assert "Agenda Mod" not in (preview.get("largest_positive", ""),
+                                    preview.get("largest_negative", ""))
+
+    def test_feedback_string_reachable(self):
+        """agenda_mod is trackable and its FEEDBACK_STRINGS row resolves."""
+        from backend.display_names import FEEDBACK_STRINGS
+        from backend.game_logic.diplomacy import _generate_feedback
+        assert "agenda_mod" in FEEDBACK_STRINGS
+        components = {"agenda_mod": -8}
+        text = _generate_feedback("REJECT", components)
+        assert FEEDBACK_STRINGS["agenda_mod"]["negative"] in text
+
+    def test_preview_shows_entrench_label(self, world):
+        """The R17d top-3 breakdown names the term by direction. The
+        armistice pair-cooldown (a real post-armistice war state) makes
+        propose_peace the scored best action, so the peace entrenchment
+        surfaces."""
+        from backend.game_logic.diplomacy import get_diplomatic_preview
+        key = world._make_diplo_key("France", "Austria")
+        world.armistice_cooldowns = dict(
+            getattr(world, "armistice_cooldowns", {}) or {})
+        world.armistice_cooldowns[key] = 3
+        preview = get_diplomatic_preview(world, "Austria")
+        acceptance = preview.get("acceptance_preview") or {}
+        negatives = acceptance.get("negative") or []
+        agenda_rows = [e for e in negatives if e["key"] == "agenda_mod"]
+        assert agenda_rows, f"agenda_mod missing from preview: {negatives}"
+        assert agenda_rows[0]["label"] == "Entrenches their denial"
+
+
+# ═══════════════════ NA-2: COVETS UNIFICATION (§5.2) ══════════════════════
+
+class TestCovetsUnification:
+    def test_agenda_covets_by_type(self, world):
+        from backend.game_logic.agendas import get_agenda_covets
+        assert get_agenda_covets("Austria", world) == [
+            "Milan", "Piedmont", "Savoy"]
+        # deny: listed regions in the hegemon bloc's hands (vassal-held
+        # Brabant/Amsterdam count — Holland sits in France's bloc)
+        assert get_agenda_covets("Britain", world) == [
+            "Flanders", "Brabant", "Amsterdam"]
+        assert get_agenda_covets("Prussia", world) == ["Hanover"]
+        # postures yield nothing (profile fallback territory)
+        assert get_agenda_covets("Russia", world) == []
+        assert get_agenda_covets("France", world) == []
+
+    def test_bargain_interest_reads_live_agendas_first(self, world):
+        """Milan is nobody's authored profile covet but IS Austria's live
+        design target — the claim now has an authored basis."""
+        from backend.game_logic.diplomacy import _has_bargain_strategic_interest
+        assert _has_bargain_strategic_interest(world, "Britain", "Milan")
+
+    def test_bargain_interest_profile_fallback_still_works(self, world):
+        """Bohemia rides only Austria's static profile row — fallback."""
+        from backend.game_logic.diplomacy import _has_bargain_strategic_interest
+        assert _has_bargain_strategic_interest(world, "Britain", "Bohemia")
+
+    def test_bargain_interest_uncoveted_region_false(self, world):
+        from backend.game_logic.diplomacy import _has_bargain_strategic_interest
+        assert not _has_bargain_strategic_interest(
+            world, "Britain", "Andalusia")
+
+    def test_suggested_terms_prefer_agenda_target(self, world):
+        """Losing the war, the suggested sweetener is a live DESIGN target.
+        (Austria's profile covets stay as fallback data: Tyrol and Bohemia
+        ARE 126-map regions — just not French-held at boot; only "Bavaria"
+        is a nation name, not a province. The agenda source is consulted
+        first regardless.)"""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+        key = world._make_diplo_key("France", "Austria")
+        # sign: positive = first-alphabetically (Austria) winning
+        world.war_scores[key] = 30
+        terms = generate_suggested_terms("Austria", "peace", world)
+        cessions = [s for s in terms.get("sweeteners", [])
+                    if s.get("type") == "territory_cede"]
+        assert cessions, f"no cession suggested: {terms}"
+        assert cessions[0]["regions"][0] in ("Milan", "Piedmont", "Savoy")
+
+    def test_dead_nation_desires_territory_rows_deleted(self):
+        """The unreachable counter-offer territory rows are gone (8.EVAL
+        AUD-d disposition)."""
+        from backend.game_logic.ai_diplomacy import NATION_DESIRES
+        for nation, desires in NATION_DESIRES.items():
+            for desire in desires:
+                assert desire.get("type") != "territory", nation
+
+    def test_commentary_names_the_agenda_region(self, world):
+        """Adversarial-review fix: Talleyrand's commentary names the
+        region his own terms just offered (Savoy), not the stale profile
+        row ('Bavaria is Austria's natural sphere...')."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+        key = world._make_diplo_key("France", "Austria")
+        world.war_scores[key] = 30  # Austria winning -> France sweetens
+        terms = generate_suggested_terms("Austria", "peace", world)
+        cessions = [s for s in terms.get("sweeteners", [])
+                    if s.get("type") == "territory_cede"]
+        assert cessions
+        offered = cessions[0]["regions"][0]
+        commentary = terms.get("talleyrand_commentary", "")
+        assert offered in commentary
+        assert "Bavaria" not in commentary
+
+    def test_commentary_conquer_hint_names_live_covet(self, world):
+        """The conquer-this-first hint points at the LIVE design covet
+        (Hanover), not the dead profile advice ('Hardenberg dreams of
+        Saxony... Conquer it first')."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+        terms = generate_suggested_terms("Prussia", "non_aggression", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        assert "Hanover" in commentary
+        assert "Saxony" not in commentary
+
+
+# ═══════════════════ NA-2: R155 CADENCE (§5.3) ════════════════════════════
+
+class TestHawkPersistence:
+    def _activate_guard(self, world):
+        """Prussia takes Hanover -> hanoverian_prize satisfied ->
+        armed_neutrality (guard) active while at peace."""
+        _conquer(world, "Hanover", "Prussia")
+        world.invalidate_bloc_members_cache()
+        from backend.game_logic.agendas import get_active_agenda
+        view = get_active_agenda("Prussia", world)
+        assert view is not None and view.id == "armed_neutrality"
+
+    def test_ask_advances_agenda_pins(self, world):
+        from backend.game_logic.agendas import ask_advances_agenda
+        # acquire active at boot: nothing in the ask vocabulary advances it
+        assert not ask_advances_agenda("Prussia", "non_aggression", world)
+        self._activate_guard(world)
+        assert ask_advances_agenda("Prussia", "non_aggression", world)
+        assert not ask_advances_agenda("Prussia", "open_borders", world)
+        assert not ask_advances_agenda("Britain", "non_aggression", world)
+
+    def test_hawk_reasks_agenda_type_sooner(self, world):
+        """Hardenberg (hawk) ignores the last 2 turns of the TYPE cooldown
+        for the ask his court's design IS."""
+        from backend.game_logic.ai_diplomacy import _is_on_cooldown
+        self._activate_guard(world)
+        world.ai_proposal_cooldowns = {"Prussia|non_aggression": 2}
+        assert not _is_on_cooldown("Prussia", "non_aggression", world)
+        world.ai_proposal_cooldowns = {"Prussia|non_aggression": 3}
+        assert _is_on_cooldown("Prussia", "non_aggression", world)
+
+    def test_dove_keeps_full_wait(self, world):
+        """Personality stays the governor — dove asks once."""
+        from backend.game_logic.ai_diplomacy import _is_on_cooldown
+        self._activate_guard(world)
+        world.diplomats["Prussia"].personality = "dove"
+        world.ai_proposal_cooldowns = {"Prussia|non_aggression": 2}
+        assert _is_on_cooldown("Prussia", "non_aggression", world)
+
+    def test_non_matching_type_keeps_full_wait(self, world):
+        from backend.game_logic.ai_diplomacy import _is_on_cooldown
+        self._activate_guard(world)
+        world.ai_proposal_cooldowns = {"Prussia|open_borders": 2}
+        assert _is_on_cooldown("Prussia", "open_borders", world)
+
+    def test_nation_cooldown_untouched(self, world):
+        from backend.game_logic.ai_diplomacy import _is_on_cooldown
+        self._activate_guard(world)
+        world.ai_proposal_cooldowns = {"Prussia|nation": 1}
+        assert _is_on_cooldown("Prussia", "non_aggression", world)
+
+    def test_p3_candidates_lead_with_design_ask(self, world):
+        """The guard court's shelter ask leads with its own pact; the boot
+        acquire court keeps the stock ladder-first order."""
+        from backend.game_logic.ai_diplomacy import _hegemony_ask_candidates
+        boot = _hegemony_ask_candidates("Prussia", "PEACE", 40, world)
+        assert boot and boot[0] == "open_borders"  # ladder from PEACE
+        self._activate_guard(world)
+        guard = _hegemony_ask_candidates("Prussia", "PEACE", 40, world)
+        assert guard and guard[0] == "non_aggression"
+
+    def test_design_ask_voices_agenda_pursuit(self, world):
+        from backend.game_logic.diplomacy import (
+            determine_ai_offer_decision_reason,
+        )
+        self._activate_guard(world)
+        reason = determine_ai_offer_decision_reason(
+            "Prussia", "non_aggression", world)
+        assert reason == "agenda_pursuit"
+
+
+# ═══════════════════ NA-2: PRESSBURG + COURTING (§5.4) ════════════════════
+
+class TestPressburgArm:
+    def _satisfy_austria(self, world):
+        for region_name in ("Milan", "Piedmont", "Savoy"):
+            _conquer(world, region_name, "Austria")
+        world.invalidate_bloc_members_cache()
+
+    def test_separate_peace_ready_pins(self, world):
+        from backend.game_logic.agendas import agenda_separate_peace_ready
+        assert not agenda_separate_peace_ready("Austria", world)
+        self._satisfy_austria(world)
+        assert agenda_separate_peace_ready("Austria", world)
+
+    def test_survival_also_ready(self, world):
+        from backend.game_logic.agendas import (
+            agenda_separate_peace_ready, survival_override_active,
+        )
+        _conquer(world, "Vienna", "France")  # capital lost -> survival
+        world.invalidate_bloc_members_cache()
+        assert survival_override_active(world, "Austria")
+        assert agenda_separate_peace_ready("Austria", world)
+
+    def test_vassalized_never_ready(self, world):
+        from backend.game_logic.agendas import agenda_separate_peace_ready
+        self._satisfy_austria(world)
+        world.vassals["Austria"] = {"lord": "France", "loyalty": 50,
+                                    "autonomy": 1}
+        world.invalidate_bloc_members_cache()
+        assert not agenda_separate_peace_ready("Austria", world)
+
+    def test_deckless_survival_still_ready(self, world):
+        """DELIBERATE (adversarial-review pin): the survival arm needs no
+        authored deck — the Knife at the Throat (§3.1) is universal, so a
+        capital-lost coalition member on ANY world (legacy fixtures
+        included) may break ranks to save the dynasty. A deckless nation
+        with its capital HELD is never ready."""
+        from backend.game_logic.agendas import agenda_separate_peace_ready
+        world.agendas = {}
+        world.invalidate_bloc_members_cache()
+        assert not agenda_separate_peace_ready("Austria", world)
+        _conquer(world, "Vienna", "France")
+        world.invalidate_bloc_members_cache()
+        assert agenda_separate_peace_ready("Austria", world)
+
+    def test_satisfied_member_breaks_ranks(self, world):
+        """The Pressburg pin pair: at war_score -49 (past the P1 threshold,
+        NOT past the stock -50 coalition gate) a satisfied Austria sues for
+        a separate armistice; the boot (denied) Austria stays loyal."""
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+        key = world._make_diplo_key("Austria", "France")
+        world.war_scores[key] = -49  # Austria (first in key) losing 49
+
+        blocked = process_diplomatic_phase("Austria", world)
+        assert blocked is None, (
+            f"denied coalition member should stay loyal: {blocked}")
+
+        self._satisfy_austria(world)
+        proposal = process_diplomatic_phase("Austria", world)
+        assert proposal is not None
+        assert proposal["proposal_type"] == "armistice_losing"
+        assert proposal["source"] == "Austria"
+
+
+class TestCourtingBias:
+    def test_vassal_holds_agenda_target_pins(self, world):
+        from backend.game_logic.agendas import vassal_holds_agenda_target
+        # Austria's redeem_italy targets Milan/Piedmont — Kingdom of Italy soil
+        assert vassal_holds_agenda_target("Austria", "KingdomOfItaly", world)
+        assert not vassal_holds_agenda_target("Austria", "Holland", world)
+        # Russia's contain posture wants no province of anyone
+        assert not vassal_holds_agenda_target("Russia", "KingdomOfItaly", world)
+
+    def test_austria_courts_the_kingdom_of_italy_first(self, world):
+        """Dict order alone would court Holland (first vassal); the bias
+        courts the vassal holding the design targets."""
+        from backend.game_logic.vassal import attempt_vassal_courting
+        assert list(world.vassals.keys())[0] == "Holland"
+        for state in world.vassals.values():
+            state["loyalty"] = 40
+        world.nation_dp["Austria"] = 4
+        events = attempt_vassal_courting(world, "Austria")
+        courted = [e for e in events if e["type"] == "vassal_courting"]
+        assert courted and courted[0]["vassal"] == "KingdomOfItaly"
+
+    def test_unconcerned_courter_keeps_stock_order(self, world):
+        """Russia (contain posture) has no territorial design — the bias
+        is inert and dict order stands."""
+        from backend.game_logic.vassal import attempt_vassal_courting
+        for state in world.vassals.values():
+            state["loyalty"] = 40
+        world.nation_dp["Russia"] = 4
+        events = attempt_vassal_courting(world, "Russia")
+        courted = [e for e in events if e["type"] == "vassal_courting"]
+        assert courted and courted[0]["vassal"] == "Holland"
+
+
+# ═══════════════════ NA-2: STANCE-LINE COPY FIX ═══════════════════════════
+
+class TestStanceLineCopy:
+    def test_eponymous_holder_reads_as_coveting(self, world):
+        """The live wart from the July 17 in-game review: 'Their court will
+        not rest while Hanover holds Hanover.'"""
+        payload = build_agenda_payload("Prussia", world)
+        assert payload is not None
+        assert "Hanover holds Hanover" not in payload["stance_line"]
+        assert payload["stance_line"] == (
+            "Their court will not rest while Hanover remains beyond "
+            "their grasp.")
+
+    def test_distinct_holder_copy_unchanged(self, world):
+        payload = build_agenda_payload("Austria", world)
+        assert payload is not None
+        assert payload["stance_line"] == (
+            "Their court will not rest while Kingdom of Italy holds Milan.")

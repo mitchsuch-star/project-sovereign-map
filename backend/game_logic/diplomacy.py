@@ -3737,12 +3737,23 @@ def build_war_context_snapshot(
         largest_pos_key = ""
         largest_neg_key = ""
 
+    # NA-2 (adversarial-review fix): the crafted-terms confirm popup renders
+    # these as "Key advantage/obstacle: <label>" — agenda_mod would leak the
+    # raw key as "Agenda Mod". Direction-aware copy here is also the LIVE
+    # surface for the positive arm ("Advances their design" on a peace that
+    # cedes a design region), which the bare-mock R17d preview can't reach.
+    def _snapshot_factor_label(key: str, positive: bool) -> str:
+        if key == "agenda_mod":
+            return ("Advances their design" if positive
+                    else "Entrenches their denial")
+        return key.replace("_", " ").title()
+
     acceptance_preview = {
         "score": int(acceptance_score),
         "outcome": acceptance_outcome,
         "outcome_display": acceptance_outcome_display,
-        "largest_positive": largest_pos_key.replace("_", " ").title() if largest_pos_key else "",
-        "largest_negative": largest_neg_key.replace("_", " ").title() if largest_neg_key else "",
+        "largest_positive": _snapshot_factor_label(largest_pos_key, True) if largest_pos_key else "",
+        "largest_negative": _snapshot_factor_label(largest_neg_key, False) if largest_neg_key else "",
     }
 
     # Annotated terms
@@ -4635,6 +4646,17 @@ def _has_bargain_strategic_interest(world, promiser: str, claim_region: str) -> 
         adjacent = world.regions.get(adjacent_name)
         if adjacent and getattr(adjacent, "controller", "") == promiser:
             return True
+
+    # NA-2 §5.2 covets unification: live agenda targets are the
+    # authoritative first source; the static desire profiles remain
+    # the fallback (same any-nation semantics as the profile loop).
+    try:
+        from backend.game_logic.agendas import get_agenda_covets
+        for nation in world.get_active_nations():
+            if claim_region in get_agenda_covets(nation, world):
+                return True
+    except Exception:
+        pass
 
     try:
         from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
@@ -6846,6 +6868,22 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     except Exception:
         respected_estate_value = 0
 
+    # ── National design (NA-2 §5.2 — the agenda acceptance term) ──
+    # Standalone additive term OUTSIDE the composite floor (the
+    # respected_estate shape): +12 when the offer ADVANCES the target's
+    # active design (cedes/returns a design region), -8 when it ENTRENCHES
+    # the denial (strips a held design region, or a peace that ends the
+    # war without returning anything). One active agenda per nation caps
+    # exposure at ±12. Worlds without authored decks (legacy fixtures)
+    # score 0 by construction.
+    try:
+        from backend.game_logic.agendas import (
+            agenda_acceptance_mod as _agenda_acceptance_mod,
+        )
+        agenda_mod_value = int(_agenda_acceptance_mod(proposal, world))
+    except Exception:
+        agenda_mod_value = 0
+
     # ── Sum ──
     raw_score = (
         base
@@ -6856,6 +6894,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + political_subtotal_clamped
         + settlement_gratitude_value
         + respected_estate_value
+        + agenda_mod_value
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -6937,6 +6976,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "composite_floor_adjustment": int(composite_floor_adjustment),
         "settlement_gratitude_mod": int(settlement_gratitude_value),
         "respected_estate_mod": int(respected_estate_value),
+        "agenda_mod": int(agenda_mod_value),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -6986,6 +7026,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "grievance_modifier",
         "settlement_gratitude_mod",
         "respected_estate_mod",
+        "agenda_mod",
         "bargain_value_mod", "bargain_conflict_penalty",
         "harshness_penalty", "harshness_bonus", "reliability_modifier",
         "military_supremacy", "battlefield_diplomacy", "military_pressure",
@@ -7191,8 +7232,14 @@ def determine_ai_offer_decision_reason(
     # NA-1: a court whose active design is aimed at the player's holdings
     # voices its ask as agenda pursuit — outranks the generic survival/
     # pressure fallbacks, never the peace-family war_overload override.
-    from backend.game_logic.agendas import agenda_concerns_player_bloc
-    if agenda_concerns_player_bloc(nation, world):
+    # NA-2 §5.3: an ask TYPE that itself advances the active design (the
+    # guard_neutrality court asking for its non-aggression pact) voices
+    # the same reason — the register bank says WHY.
+    from backend.game_logic.agendas import (
+        agenda_concerns_player_bloc, ask_advances_agenda,
+    )
+    if (agenda_concerns_player_bloc(nation, world)
+            or ask_advances_agenda(nation, proposal_type, world)):
         return "agenda_pursuit"
     if _shared_enemy_exists(world, nation, player):
         return "shared_enemy_survival"
@@ -10475,7 +10522,13 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
             for key, val in components.items():
                 if not val:
                     continue
-                label = _COMPONENT_LABELS.get(key, key.replace("_", " ").title())
+                # NA-2 §5.2: the agenda term labels by direction so the
+                # player reads WHY ("Advances their design: +12").
+                if key == "agenda_mod":
+                    label = ("Advances their design" if val > 0
+                             else "Entrenches their denial")
+                else:
+                    label = _COMPONENT_LABELS.get(key, key.replace("_", " ").title())
                 entry = {"key": key, "label": label, "value": int(round(val or 0))}
                 if val > 0:
                     positives.append(entry)

@@ -1809,7 +1809,18 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
     unlock_bonus = courting_unlock_bonus(player_grip)
     eff_scale = courting_effectiveness_scale(player_grip)
 
-    for vassal_name, state in world.vassals.items():
+    # NA-2 §5.4 courting bias: a court whose acquire/deny design lies in a
+    # player-vassal's territory courts THAT vassal first (Austria courts
+    # the Kingdom of Italy that holds Milan). Bias only — eligibility,
+    # cost, cooldowns, and the one-per-turn cap below are unchanged;
+    # sorted() is stable, so non-target vassals keep their original order.
+    from backend.game_logic.agendas import vassal_holds_agenda_target
+    courting_candidates = sorted(
+        world.vassals.items(),
+        key=lambda kv: 0 if vassal_holds_agenda_target(nation, kv[0], world) else 1,
+    )
+
+    for vassal_name, state in courting_candidates:
         if state["lord"] != player:
             continue
         if state["loyalty"] >= 50 + unlock_bonus:

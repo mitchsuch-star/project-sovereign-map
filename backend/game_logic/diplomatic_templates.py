@@ -3004,18 +3004,27 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     context_tags = []
     profile = NATION_DESIRE_PROFILES.get(target_nation, {})
 
-    # 2a. Territory sweeteners: prefer coveted regions
+    # 2a. Territory sweeteners: prefer coveted regions.
+    # NA-2 §5.2 covets unification: the target's ACTIVE agenda targets are
+    # the authoritative first source (Austria's live design wants Milan,
+    # not the authored Bavaria row); the static profile remains the
+    # fallback when the agenda yields no territorial wants.
     has_territory_sweetener = any(
         s.get("type") == "territory_cede" for s in terms.get("sweeteners", []))
-    coveted = [r for r in profile.get("covets_regions", [])
+    try:
+        from backend.game_logic.agendas import get_agenda_covets
+        agenda_covets = get_agenda_covets(target_nation, world)
+    except Exception:
+        agenda_covets = []
+    all_coveted = agenda_covets or profile.get("covets_regions", [])
+    coveted = [r for r in all_coveted
                if r in world.get_nation_regions(player_nation)]
     target_holds_all_coveted = all(
         r in world.get_nation_regions(target_nation)
-        for r in profile.get("covets_regions", [])
-    ) if profile.get("covets_regions") else True
+        for r in all_coveted
+    ) if all_coveted else True
 
     # Check if target covets regions France doesn't control (hint to conquer first)
-    all_coveted = profile.get("covets_regions", [])
     coveted_unavailable = [r for r in all_coveted
                            if r not in world.get_nation_regions(player_nation)
                            and r not in world.get_nation_regions(target_nation)]
@@ -3146,7 +3155,28 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             else:
                 context_tags.append("neutral_deal")
 
-    commentary = _get_smart_commentary(target_nation, context_tags[0])
+    # NA-2 (adversarial-review fix): when the coveted region came from the
+    # LIVE AGENDA source, the bespoke TALLEYRAND_COMMENTARY rows — authored
+    # against the static profile covets (Austria=Bavaria, Prussia=Saxony) —
+    # would name the wrong region and give dead conquer-this-first advice.
+    # Agenda-sourced tags compose a region-accurate line instead; profile-
+    # sourced tags keep the authored voice unchanged (legacy worlds).
+    commentary = None
+    if agenda_covets and context_tags:
+        from backend.display_names import display_nation
+        lead_tag = context_tags[0]
+        if lead_tag == "coveted_territory_offered" and coveted:
+            commentary = (
+                f"{coveted[0]} is the very object of "
+                f"{display_nation(target_nation)}'s design. Returning it "
+                f"costs us little and buys their court's goodwill.")
+        elif lead_tag == "coveted_unavailable" and coveted_unavailable:
+            commentary = (
+                f"Their court's design fixes on {coveted_unavailable[0]}, "
+                f"Sire — which we do not hold. Secure it first, and these "
+                f"negotiations transform entirely.")
+    if commentary is None:
+        commentary = _get_smart_commentary(target_nation, context_tags[0])
 
     # PL-25: Append situational flavor from recent events (AM-25.5/25.6)
     flavor = _get_situational_flavor(target_nation, world)

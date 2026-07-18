@@ -346,6 +346,12 @@ FEEDBACK_STRINGS = {
         "negative": "no honored titles between our courts",
         "positive": "the marshal's title we chose to respect",
     },
+    # NA-2 (Nation Agendas §5.2) — the offer advanced or entrenched the
+    # denial of the target court's active national design.
+    "agenda_mod": {
+        "negative": "the design of their court our terms deny",
+        "positive": "the design of their court our terms advance",
+    },
     "bargain_conflict_penalty": {
         "negative": "existing bargain conflicts with this nation",
         "positive": "no bargain conflicts",

@@ -322,9 +322,19 @@ def _war_advances_agenda(view: AgendaView, opponent: str, world) -> bool:
     return False
 
 
+def _court_design_satisfied(world, nation: str) -> bool:
+    """The Pressburg shape (§5.4/§5.5): the survival override is active OR
+    the deck's HIGHEST-PRIORITY entry is satisfied — the court got what it
+    most wanted (or is fighting for its life) and peace locks it in."""
+    if survival_override_active(world, nation):
+        return True
+    deck = (getattr(world, "agendas", {}) or {}).get(nation) or []
+    return bool(deck and _entry_satisfied(world, nation, deck[0]))
+
+
 def get_agenda_resolve_delta(nation: str, opponent: str, world) -> int:
     """Pure NA-3 feeder for effective_p1_threshold (spec §5.5) — NOT yet
-    consumed at NA-0/NA-1 (no consumer changes before NA-3).
+    consumed at NA-0..NA-2 (no consumer changes before NA-3).
 
     Survival override, or the deck's HIGHEST-PRIORITY entry satisfied
     (the court got what it most wanted — the Pressburg shape), pushes
@@ -337,15 +347,28 @@ def get_agenda_resolve_delta(nation: str, opponent: str, world) -> int:
     """
     if _is_vassal(world, nation) or nation not in world.get_active_nations():
         return 0
-    if survival_override_active(world, nation):
-        return AGENDA_RESOLVE_SATISFIED
-    deck = (getattr(world, "agendas", {}) or {}).get(nation) or []
-    if deck and _entry_satisfied(world, nation, deck[0]):
+    if _court_design_satisfied(world, nation):
         return AGENDA_RESOLVE_SATISFIED
     view = get_active_agenda(nation, world)
     if view is not None and _war_advances_agenda(view, opponent, world):
         return AGENDA_RESOLVE_ADVANCING
     return 0
+
+
+def agenda_separate_peace_ready(nation: str, world) -> bool:
+    """NA-2 §5.4 — the Pressburg arm's predicate for the P1 coalition-
+    loyalty override: a coalition member whose court's design is SATISFIED
+    (or whose survival override is active) may sue for a separate peace at
+    `war_score < AGENDA_SEPARATE_PEACE_SCORE` instead of the stock -50.
+
+    Vassal/elimination dormancy gates apply like every other entry point.
+    The SURVIVAL arm deliberately needs no authored deck — the Knife at
+    the Throat (§3.1) is universal, so a capital-lost coalition member on
+    ANY world (legacy fixtures included) may break ranks to save the
+    dynasty. Pinned in test_deckless_survival_still_ready."""
+    if _is_vassal(world, nation) or nation not in world.get_active_nations():
+        return False
+    return _court_design_satisfied(world, nation)
 
 
 def agenda_concerns_player_bloc(nation: str, world) -> bool:
@@ -397,6 +420,153 @@ def agenda_satisfiable_by_player(nation: str, world) -> bool:
     return agenda_concerns_player_bloc(nation, world)
 
 
+# ═══════════════════ DIPLOMACY TEETH (NA-2, spec §5.2–§5.4) ═══════════════
+
+def _proposal_territory_content(proposal: Dict) -> Tuple[set, set]:
+    """(ceded_to_target, demanded_from_target) region-name sets from a
+    bilateral proposal's territorial vocabulary: sweetener/demand dicts of
+    type territory_cede/territory (with `regions` list or `region` key)
+    plus the string `territory_<lower>` clause form, which always rides a
+    cession to the target (the generate_suggested_terms shape). String
+    clauses are matched case-insensitively at the call site."""
+    def _regions_of(item) -> List[str]:
+        if not isinstance(item, dict):
+            return []
+        if item.get("type") not in ("territory_cede", "territory"):
+            return []
+        names = list(item.get("regions") or [])
+        single = item.get("region")
+        if single:
+            names.append(single)
+        return [str(n) for n in names if n]
+
+    ceded = set()
+    demanded = set()
+    for sweetener in (proposal.get("sweeteners") or []):
+        ceded.update(_regions_of(sweetener))
+    for demand in (proposal.get("demands") or []):
+        demanded.update(_regions_of(demand))
+    for clause in (proposal.get("clauses") or []):
+        if isinstance(clause, str) and clause.startswith("territory_"):
+            ceded.add(clause[len("territory_"):])
+    return ceded, demanded
+
+
+def agenda_acceptance_mod(proposal: Dict, world) -> int:
+    """NA-2 §5.2 — the bounded agenda acceptance term, computed in
+    calculate_acceptance as a standalone additive term OUTSIDE the
+    composite floor (the respected_estate shape). One active agenda per
+    nation caps exposure at +ADVANCE / ENTRENCH.
+
+    ADVANCE (+12): the offer's territorial content moves an unmet design
+    target into satisfaction position — acquire: a target region ceded TO
+    the nation; deny: a listed region ceded OUT of the hegemon's bloc.
+
+    ENTRENCH (-8): the offer asks the court to accept the loss of its
+    design — a demand stripping a HELD design region (priced on ANY
+    proposal type: an armistice that takes Milan is a real ask with real
+    content), or a formal PEACE — from WAR or ARMISTICE state — that ends
+    a conflict which was advancing the design without returning anything
+    (Austria refuses the peace that does not return Milan — and the
+    breakdown says so). A BARE armistice deliberately does NOT entrench:
+    the pause itself legitimizes nothing (protects the freshly-tuned
+    AUD-b armistice behavior — AUD-b armistices carry no design content).
+    """
+    target = proposal.get("target_nation", "")
+    proposer = proposal.get("proposer_nation", "")
+    if not target:
+        return 0
+    view = get_active_agenda(target, world)
+    if view is None or view.survival:
+        return 0
+
+    ceded, demanded = _proposal_territory_content(proposal)
+    targets_lower = {r.lower(): r for r in view.regions}
+
+    def _match(names: set) -> List[str]:
+        return [targets_lower[n.lower()] for n in names
+                if n.lower() in targets_lower]
+
+    ceded_targets = _match(ceded)
+    demanded_targets = _match(demanded)
+
+    # ── ADVANCE ──
+    if view.type == "acquire_regions":
+        for region_name in ceded_targets:
+            if not _controlled_by_self_or_vassal(world, target, region_name):
+                return AGENDA_ACCEPT_ADVANCE
+    elif view.type == "deny_regions":
+        hegemon, share = _hegemon(world)
+        if hegemon is not None and share >= HEGEMON_BLOC_SHARE_FLOOR:
+            bloc = set(world.get_bloc_members(hegemon))
+            for region_name in ceded_targets:
+                if _region_controller(world, region_name) in bloc:
+                    return AGENDA_ACCEPT_ADVANCE
+
+    # ── ENTRENCH ──
+    for region_name in demanded_targets:
+        if _controlled_by_self_or_vassal(world, target, region_name):
+            return AGENDA_ACCEPT_ENTRENCH
+    # The formal-peace arm fires from WAR *or* ARMISTICE — the designed
+    # armistice-first route still ends in "the peace that does not return
+    # Milan"; only the armistice itself (a pause) is exempt.
+    if (proposal.get("type") == "peace"
+            and proposer
+            and world.get_diplomatic_state(proposer, target)
+            in ("WAR", "ARMISTICE")
+            and _war_advances_agenda(view, proposer, world)):
+        return AGENDA_ACCEPT_ENTRENCH
+    return 0
+
+
+def get_agenda_covets(nation: str, world) -> List[str]:
+    """NA-2 §5.2 covets unification — the live-agenda half of the covets
+    source: the nation's ACTIVE design's outstanding territorial wants,
+    in authored order. acquire: unmet targets; deny: listed regions
+    currently in the hegemon bloc's hands (taking them IS the design).
+    Postures and dormant/absent decks return [] — consumers fall back to
+    the static NATION_DESIRE_PROFILES row."""
+    view = get_active_agenda(nation, world)
+    if view is None or view.survival:
+        return []
+    if view.type == "acquire_regions":
+        return _unmet_targets(view, world)
+    if view.type == "deny_regions":
+        hegemon, share = _hegemon(world)
+        if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
+            return []
+        bloc = set(world.get_bloc_members(hegemon))
+        return [r for r in view.regions
+                if _region_controller(world, r) in bloc]
+    return []
+
+
+def ask_advances_agenda(nation: str, proposal_type: str, world) -> bool:
+    """NA-2 §5.3 — does an AI->player ask of this proposal type ADVANCE the
+    nation's active agenda? In the current ask vocabulary only one pairing
+    qualifies: a guard_neutrality court asking for non_aggression (the pact
+    IS its design — Prussia's armed neutrality seeks the guarantee).
+    Territorial asks don't exist pre-NA-5 (R162 ultimatums own them);
+    postures aimed at the hegemon are never advanced by treating with it."""
+    view = get_active_agenda(nation, world)
+    if view is None or view.survival:
+        return False
+    return view.type == "guard_neutrality" and proposal_type == "non_aggression"
+
+
+def vassal_holds_agenda_target(courter: str, vassal_nation: str, world) -> bool:
+    """NA-2 §5.4 courting-bias rider — does this vassal's territory contain
+    a region the courter's active design WANTS, per the unified covets
+    definition (get_agenda_covets: acquire = unmet targets, deny = targets
+    in the hegemon bloc's hands — a listed region outside the bloc is not
+    a live want, so peeling its holder buys nothing)? Bias only: the
+    courting machinery's eligibility, cost, and cooldowns are untouched."""
+    return any(
+        _region_controller(world, region_name) == vassal_nation
+        for region_name in get_agenda_covets(courter, world)
+    )
+
+
 # ═══════════════════════ LEGIBILITY (NA-1 single source) ══════════════════
 
 def _unmet_targets(view: AgendaView, world) -> List[str]:
@@ -416,8 +586,15 @@ def _stance_line(view: AgendaView, world) -> str:
         if unmet:
             holder = _region_controller(world, unmet[0])
             if holder:
+                holder_display = display_nation(holder)
+                # Degenerate holder==region case ("Hanover holds Hanover" —
+                # live wart, July 17 2026 in-game review): an eponymous
+                # minor holding its own land reads as coveting, not war.
+                if holder_display == unmet[0]:
+                    return (f"Their court will not rest while {unmet[0]} "
+                            f"remains beyond their grasp.")
                 return (f"Their court will not rest while "
-                        f"{display_nation(holder)} holds {unmet[0]}.")
+                        f"{holder_display} holds {unmet[0]}.")
             return (f"Their court will not rest while {unmet[0]} "
                     f"lies in foreign hands.")
         return "Their court's design stands fulfilled."

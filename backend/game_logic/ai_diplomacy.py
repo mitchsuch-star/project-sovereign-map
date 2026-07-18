@@ -74,12 +74,13 @@ P2_NO_CONTACT_ESCAPE_TURNS = 15
 # this table and adds items as sweeteners (proposer → target = AI → France),
 # which increases France's acceptance score toward the ≥50 threshold.
 # This is intentional — the M3 algorithm optimizes for France's acceptance.
+## NA-2 (§5.2): the dead "territory" rows are DELETED — unreachable since the
+## July-2026 AI audit removed the territory branch from _try_add_desired_clauses
+## (see the design note there); live territorial desire now flows from the
+## agenda substrate (agendas.get_agenda_covets), with these profiles as the
+## non-territorial counter-offer vocabulary.
 NATION_DESIRES = {
     "Prussia": [
-        {"type": "territory", "value": 1, "clause": "territory_saxony",
-         "description": "Territory (Saxony)"},
-        {"type": "territory", "value": 1,
-         "description": "Territory (any)"},
         {"type": "gold_lump", "value": 500,
          "description": "Gold lump sum"},
     ],
@@ -96,8 +97,6 @@ NATION_DESIRES = {
          "description": "Gold lump sum (Continental System lifted)"},
         {"type": "gold_lump", "value": 500,
          "description": "Gold lump sum"},
-        {"type": "territory", "value": 1,
-         "description": "Territory"},
     ],
     "Saxony": [
         {"type": "protection", "value": 1, "clause": "protection_promised",
@@ -251,8 +250,25 @@ def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) 
         # R126: Bypass nation cooldown if situation is urgent
         if not _is_situation_urgent(nation, war_score, world):
             return True
-    if cooldowns.get(type_key, 0) > 0:
-        return True
+    type_remaining = int(cooldowns.get(type_key, 0))
+    if type_remaining > 0:
+        # NA-2 §5.3 hawk persistence: a HAWK court re-asks an agenda-
+        # advancing type sooner — the last |AGENDA_PERSISTENCE_COOLDOWN_
+        # DELTA| turns of the TYPE cooldown don't block it (derived at
+        # check time, so it covers rejection AND lapse cooldowns without
+        # touching the stored counter). Nation cooldown is untouched;
+        # doves/loyalists keep the full wait — personality stays the
+        # governor (hawk persists, dove asks once).
+        reduction = 0
+        diplomat = getattr(world, 'diplomats', {}).get(nation)
+        if getattr(diplomat, 'personality', '') == "hawk":
+            from backend.game_logic.agendas import (
+                AGENDA_PERSISTENCE_COOLDOWN_DELTA, ask_advances_agenda,
+            )
+            if ask_advances_agenda(nation, proposal_type, world):
+                reduction = -int(AGENDA_PERSISTENCE_COOLDOWN_DELTA)
+        if type_remaining > reduction:
+            return True
     return False
 
 
@@ -735,6 +751,17 @@ def _hegemony_ask_candidates(nation: str, diplo_state: str, relation: int,
             continue
         if ptype not in result:
             result.append(ptype)
+
+    # NA-2 §5.3: an ask that ADVANCES the court's active design leads the
+    # list — a guard_neutrality court asks first for the pact its agenda
+    # IS (Prussia's armed neutrality seeks the non-aggression guarantee).
+    # Legality/relation gates above are unchanged; this is order only.
+    from backend.game_logic.agendas import ask_advances_agenda
+    for ptype in list(result):
+        if ask_advances_agenda(nation, ptype, world):
+            result.remove(ptype)
+            result.insert(0, ptype)
+            break
     return result
 
 
@@ -833,7 +860,20 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         if is_coalition_member(nation, world):
             war_duration = world.current_turn - world.war_start_turns.get(diplo_key, world.current_turn)
             nation_we = world.war_exhaustion.get(nation, 0)
-            if not (war_score < -50 or nation_we > 80 or (war_duration >= 8 and war_score < -60)):
+            # NA-2 §5.4 the Pressburg arm: a member whose court's design is
+            # SATISFIED (or fighting for survival) breaks ranks earlier —
+            # war_score < AGENDA_SEPARATE_PEACE_SCORE (-30) instead of the
+            # stock -50. A nation that got what it wanted sues to lock it.
+            from backend.game_logic.agendas import (
+                AGENDA_SEPARATE_PEACE_SCORE, agenda_separate_peace_ready,
+            )
+            pressburg_ready = (
+                war_score < AGENDA_SEPARATE_PEACE_SCORE
+                and agenda_separate_peace_ready(nation, world)
+            )
+            if not (war_score < -50 or nation_we > 80
+                    or (war_duration >= 8 and war_score < -60)
+                    or pressburg_ready):
                 coalition_blocked = True
 
         if not coalition_blocked:
