@@ -35,6 +35,7 @@ from backend.game_logic.formations import (
     get_formation_grudge_threat,
     get_formation_record,
     get_formation_watch,
+    apply_formation_names_to_history,
     get_forms_block,
     process_formations,
 )
@@ -1493,6 +1494,9 @@ from backend.game_logic.formations import (            # noqa: E402
 from backend.game_logic.settlement_ratify import (     # noqa: E402
     _apply_settlement_terms,
 )
+from backend.game_logic.settlement_presentation import (  # noqa: E402
+    build_settlement_review,
+)
 from backend.game_logic.settlement_validation import (  # noqa: E402
     evaluate_create_client_eligibility,
     validate_settlement_terms,
@@ -1818,12 +1822,31 @@ class TestCarveThroughRatification:
         assert "Duchy of Warsaw" in carve[0]["pair_state_transition"]
         assert world.regions["Posen"].controller == "DuchyOfWarsaw"
 
-    def test_carving_a_one_province_polity_eliminates_it_in_one_ratification(
+    def test_carving_a_one_province_polity_composes_with_its_elimination(
             self, world):
-        """§11.2's pinned interplay: Rome IS the Papal capital and their
-        only province, so the carve is also their elimination — both must
-        happen in one ratification, with both events logged."""
-        _carve_ready(world, "RomanRepublic", "PapalStates", "France")
+        """Section 11.2's pinned interplay: Rome IS the Papal capital and
+        their only province, so taking it erases the Papal States - and the
+        Roman Republic must still be erected on the same soil in the same
+        settlement, with the elimination announced EXACTLY ONCE.
+
+        Driven through `capture_region`, the real conquest path. The earlier
+        version of this test wrote `region.controller` directly, which
+        bypassed `capture_region`'s own R81 elimination - so it "passed"
+        only by making the carve arm do work that in a real campaign has
+        already happened, and it hid a duplicate-announcement bug. Carve
+        eligibility REQUIRES the carver to already hold every template
+        province, so by construction the court is landless BEFORE the carve:
+        the elimination belongs to the conquest, and the carve must compose
+        with it rather than re-fire it.
+        """
+        _at_war(world, "France", "PapalStates")
+        world.capture_region("Rome", "France")
+        assert "PapalStates" not in world.get_active_nations()
+        eliminations = [e for e in world.event_log
+                        if e.get("type") == "nation_eliminated"
+                        and e.get("nation") == "PapalStates"]
+        assert len(eliminations) == 1
+
         world.war_scores[world._make_diplo_key("France", "PapalStates")] = 95
         terms = [{"type": "create_client", "from": "PapalStates",
                   "to": "France", "tag": "RomanRepublic",
@@ -1834,9 +1857,29 @@ class TestCarveThroughRatification:
         assert world.regions["Rome"].controller == "RomanRepublic"
         assert "RomanRepublic" in world.get_active_nations()
         assert "PapalStates" not in world.get_active_nations()
-        types = [e.get("type") for e in world.event_log]
-        assert "nation_formed" in types
-        assert "nation_eliminated" in types
+        # The landmark fired; the elimination did NOT fire a second time.
+        assert any(e.get("type") == "nation_formed" for e in world.event_log)
+        eliminations = [e for e in world.event_log
+                        if e.get("type") == "nation_eliminated"
+                        and e.get("nation") == "PapalStates"]
+        assert len(eliminations) == 1, (
+            "the carve re-announced an elimination that the conquest had "
+            "already reported")
+
+    def test_a_carve_never_re_announces_an_existing_elimination(self, world):
+        """The duplicate-announcement regression, isolated: a package that
+        both finishes off a court and carves a client out of soil taken from
+        it must report the elimination once, not twice."""
+        _at_war(world, "France", "PapalStates")
+        world.capture_region("Rome", "France")
+        before = len([e for e in world.event_log
+                      if e.get("type") == "nation_eliminated"])
+        _apply_settlement_terms(world, settlement_terms=[
+            {"type": "create_client", "from": "PapalStates", "to": "France",
+             "tag": "RomanRepublic", "provinces": ["Rome"]}])
+        after = len([e for e in world.event_log
+                     if e.get("type") == "nation_eliminated"])
+        assert after == before
 
     def test_a_province_cannot_be_both_ceded_and_carved(self, world):
         """GAP G1: a carve's soil rides the TEMPLATE, so the region
@@ -2209,3 +2252,294 @@ class TestCarveGodotWiring:
         block = source.split(
             "func _fire_suggestion", 1)[1].split("\nfunc ", 1)[0]
         assert 'sugg.has("available")' in block
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# NA-6c REVIEW FIXES (July 19, 2026)
+#
+# Every test below pins a defect a 136-agent adversarial review confirmed
+# against the first cut. Each names the failure it would have caught.
+# ═════════════════════════════════════════════════════════════════════════
+
+class TestCarveReviewFixes:
+    def test_the_carved_capital_gets_a_real_garrison(self, world):
+        """Review #1 (P1). Both capital-garrison seams key off the REGION
+        flag, not `world.nation_capitals` — so a carved client whose capital
+        carried no `is_capital` sat at garrison 0 forever, skipped by the
+        regen loop: an undefended province the enemy retakes for free,
+        destroying the tribute the carve was bought for."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        capital = world.regions["Posen"]
+        assert capital.is_capital is True
+        assert capital.garrison_strength == world.get_capital_garrison_target(
+            "DuchyOfWarsaw")
+        # Parity with a boot-authored peer minor.
+        assert world.regions["Milan"].is_capital is True
+
+    def test_a_newborn_client_is_not_announced_as_eliminated(self, world):
+        """Review #3 (P2). The turn tick announces any marshal-less nation
+        as eliminated unless it is pre-seeded into
+        `eliminated_nations_notified` — which `from_scenario` does for
+        army-less boot courts and the carve did not. The first end turn
+        after a Proclamation reported the brand-new nation destroyed."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        assert "DuchyOfWarsaw" in world.eliminated_nations_notified
+        assert not world.get_nation_marshals("DuchyOfWarsaw") \
+            if hasattr(world, "get_nation_marshals") else True
+        world.advance_turn()
+        killed = [e for e in world.event_log
+                  if e.get("type") == "nation_eliminated"
+                  and e.get("nation") == "DuchyOfWarsaw"]
+        assert killed == []
+
+    def test_a_province_named_tag_never_rewrites_history_prose(self, world):
+        """Review #2 (P2). `apply_formation_names_to_history` did a naked
+        substring replace. NA-6c makes `Normandy` the first formation key
+        that is ALSO a province, so a carved Duchy of Normandy rewrote
+        "Ney was broken at Normandy" into "...at Duchy of Normandy" — a
+        province line corrupted into a nation's name, permanently, on every
+        entry after the formation turn. Godot has carried this guard since
+        NA-6b; the backend twin did not."""
+        _carve_ready(world, "Normandy", "France", "Britain")
+        create_client_nation(world, "Normandy", "Britain", ceded_from="France")
+        world.current_turn = 25
+        event = {"type": "battle", "turn": 25}
+        line = apply_formation_names_to_history(
+            world, "Ney was broken at Normandy", event)
+        assert line == "Ney was broken at Normandy"
+
+    def test_a_multi_word_dead_name_is_still_renamed(self, world):
+        """The guard must not disarm the feature it protects: an
+        unambiguous multi-token name still gets the formation rename."""
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        world.current_turn = int(world.current_turn) + 1
+        line = apply_formation_names_to_history(
+            world, "The court of Kingdom of Italy takes up a new design",
+            {"type": "agenda_shift", "turn": world.current_turn})
+        assert "Italy takes up" in line
+        assert "Kingdom of Italy" not in line
+
+    def test_a_carve_burdens_the_court_it_takes_soil_from(self, world):
+        """Review #6 (P2). Adding the types to `_MATERIAL_LOSS_TYPES` was a
+        NO-OP: that frozenset is only the early-out gate, and the per-type
+        ladder that returns a reason was never extended. A carve prices
+        HARSHER than a cession (0.45 vs 0.30) yet generated no
+        `sold_out_by_war_leader` fallout at all."""
+        from backend.game_logic.settlement_reactions import (
+            _term_burdens_participant,
+        )
+        carve = {"type": "create_client", "from": "Prussia", "to": "France",
+                 "tag": "DuchyOfWarsaw", "provinces": ["Posen"]}
+        burdened, reason = _term_burdens_participant(carve, "Prussia")
+        assert burdened is True and reason
+        # not the carver, and not a bystander
+        assert _term_burdens_participant(carve, "France")[0] is False
+        assert _term_burdens_participant(carve, "Austria")[0] is False
+        # VS-5's own gap, closed alongside.
+        transfer = {"type": "vassal_transfer", "from": "Prussia",
+                    "to": "France", "vassal": "Saxony"}
+        assert _term_burdens_participant(transfer, "Prussia")[0] is True
+
+    def test_a_bankrupt_loser_can_still_be_carved(self, world):
+        """Review #7 (P2). The EC-W4 empty-purse arm returned a white peace
+        BEFORE the carve gate, coupling a territorial clause to the payer's
+        coin balance. The most decisively beaten France — exactly the state
+        section 11.4 models with the Duchy of Normandy — was the one state
+        immune to being carved, and got gentler terms than a solvent loser."""
+        _at_war(world, "Britain", "France")
+        _hand_over(world, "Britain", ["Normandy"])
+        for treasury in (0, -500):
+            world.nation_gold["France"] = treasury
+            terms = _settlement_offer_build_terms(
+                player="France", proposer_nation="Britain", war_age_turns=6,
+                player_war_score=-80, world=world)
+            types = [t["type"] for t in terms]
+            assert "create_client" in types, treasury
+            # ...and an empty chest still owes no indemnity.
+            assert "gold_indemnity" not in types, treasury
+
+    def test_the_add_verb_actually_builds_a_carve_clause(self):
+        """Review #8 (P2). Every ratification test hand-built the clause
+        dict, so the PLAYER'S ACTUAL CLICK PATH had zero coverage — and the
+        add-verb chain ends in a bare `else: # liberation`, so a
+        create_client arm that is moved, lost, or never reached silently
+        stages a LIBERATION instead: ratification would free a Prussian
+        vassal and erect no Duchy at all.
+
+        Driven through the real dialogue harness (the same one the
+        GT-Slice-1 verb tests use), not a hand-built dialogue dict.
+        """
+        from tests.test_settlement_guided_terms_slice1 import (
+            _demand_verb, _stage_propose, _three_court_world,
+        )
+        world, _ = _three_court_world()
+        # The harness builds the LEGACY fixture world, so the template is
+        # authored against a legacy Prussian province (Rhineland) rather
+        # than the 1805 map's Posen. The seam under test is the add verb,
+        # not the shipped catalogue.
+        world.formable_nations = {
+            "DuchyOfWarsaw": {
+                "display_name": "Duchy of Warsaw",
+                "provinces": ["Rhineland"],
+                "seeds": {"gold": 500},
+            }
+        }
+        world.regions["Rhineland"].controller = "France"
+        world.invalidate_active_nations_cache()
+        dialogue = _stage_propose(world, terms=[{"type": "peace"}])
+        result = _demand_verb(
+            world, dialogue, "settlement_demand_add",
+            {"nation": "Prussia", "group": "demand",
+             "clause_type": "create_client", "tag": "DuchyOfWarsaw"})
+        assert result.get("success"), result
+        staged = [t for t in
+                  (result["diplomatic_dialogue"].get("settlement_terms") or [])]
+        carves = [t for t in staged if t.get("type") == "create_client"]
+        assert len(carves) == 1, staged
+        assert carves[0]["tag"] == "DuchyOfWarsaw"
+        assert carves[0]["from"] == "Prussia"
+        assert carves[0]["to"] == "France"
+        assert carves[0]["provinces"] == ["Rhineland"]
+        # ...and it must NOT have fallen through to the liberation branch.
+        assert not [t for t in staged if t.get("type") == "liberation"]
+
+    def test_the_creation_dispatch_beat_never_says_is_no_more(self, world):
+        """Review #12. The `nation_created` dispatch template exists solely
+        so a creation does not render the formation line with an empty
+        {old_nation} — "By the will of the nation... is no more. Duchy of
+        Warsaw stands." Nothing asserted the branch was taken."""
+        from backend.game_logic.dispatch import (
+            _DIPLOMATIC_EVENT_PRIORITY, _DIPLOMATIC_EVENT_TEMPLATES,
+        )
+        assert "nation_created" in _DIPLOMATIC_EVENT_TEMPLATES
+        assert _DIPLOMATIC_EVENT_PRIORITY["nation_created"] == "HIGH"
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        queued = [e for e in (world.pending_dispatch_events or [])
+                  if e.get("type") == "nation_created"]
+        assert queued, "the carve queued no nation_created beat"
+        rendered = _DIPLOMATIC_EVENT_TEMPLATES["nation_created"].format(
+            **queued[0]["template_vars"])
+        assert "is no more" not in rendered
+        assert "Duchy of Warsaw" in rendered
+        assert queued[0].get("fog_rule") == "always"
+
+    def test_the_vassal_transfer_row_also_reads_as_prose(self, world):
+        """Review #12. The slice fixed VS-5's missing `_guided_line_display`
+        arm alongside the carve arm, but only the carve arm was pinned —
+        deleting the VS-5 elif left the table showing the literal
+        "vassal transfer" and nothing failed."""
+        from backend.game_logic.settlement_staging import _guided_line_display
+        tag, display = _guided_line_display(
+            {"type": "vassal_transfer", "from": "Prussia", "to": "France",
+             "vassal": "Saxony"}, "Prussia")
+        assert tag == "Demanded"
+        assert display == "Yield Saxony"
+        assert "vassal transfer" not in display
+
+    def test_a_malformed_template_fails_before_it_mutates_anything(self, world):
+        """Review #9 (P3). Only `provinces` was pre-checked; the rest of
+        `seeds` was consumed at mutation time, so a diplomat block missing
+        its `skill` raised KeyError out of ratification AFTER the tag was
+        already in `enemy_nations` — leaving a phantom nation that
+        serializes."""
+        world.formable_nations["DuchyOfWarsaw"]["seeds"] = {
+            "gold": 500, "diplomat": {"name": "X", "personality": "dove"},
+        }
+        before = list(world.enemy_nations)
+        with pytest.raises(ValueError, match="skill"):
+            create_client_nation(world, "DuchyOfWarsaw", "France")
+        assert world.enemy_nations == before, "a half-built nation survived"
+        assert "DuchyOfWarsaw" not in world.nation_capitals
+
+    def test_bad_seed_scalars_are_refused(self, world):
+        for bad in ({"gold": -5}, {"actions": "three"},
+                    {"manpower": {"infantry": "many"}}):
+            fresh = WorldState.from_dict(world.to_dict())
+            fresh.formable_nations["DuchyOfWarsaw"]["seeds"] = bad
+            with pytest.raises(ValueError):
+                create_client_nation(fresh, "DuchyOfWarsaw", "France")
+
+    def test_capital_re_derivation_never_writes_the_legacy_global(self):
+        """Review #10 (P3). The from_dict re-derivation lacked the
+        copy-on-write guard its creation-time twin has. On a legacy world
+        `nation_capitals` IS the module global, so loading a legacy save
+        carrying a catalogue poisoned every world built afterwards in the
+        process — the shared-REGIONS_DATA pollution bug class."""
+        from backend.models.region import NATION_CAPITALS
+        before = dict(NATION_CAPITALS)
+        legacy = WorldState()
+        data = legacy.to_dict()
+        data["formable_nations"] = {
+            "Ruritania": {"display_name": "Ruritania", "provinces": ["Bavaria"]}
+        }
+        data["nation_formations"] = {
+            "Ruritania": {"id": "Ruritania", "template": "Ruritania",
+                          "sponsor": "France", "turn": 1}
+        }
+        rebuilt = WorldState.from_dict(data)
+        assert rebuilt.nation_capitals.get("Ruritania") == "Bavaria"
+        assert NATION_CAPITALS == before, (
+            "the module-global capital table was mutated")
+        assert "Ruritania" not in WorldState().nation_capitals
+
+    def test_the_preview_states_loyalty_and_tribute_before_commitment(self, world):
+        """Review #11 (P3). Section 11.6-2 requires the confirm step to name
+        the client's loyalty seed and tribute expectations BEFORE the player
+        commits. Both first appeared at ratification and on the Proclamation
+        card — strictly post-decision."""
+        from backend.game_logic.settlement_presentation import (
+            build_applied_clauses_preview,
+        )
+        rows = build_applied_clauses_preview([
+            {"type": "create_client", "from": "Prussia", "to": "France",
+             "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+             "client_display_name": "Duchy of Warsaw"}])
+        row = [r for r in rows if r.get("type") == "create_client"][0]
+        assert row["loyalty_after"] == CARVE_LOYALTY
+        assert row["tribute_rate"] > 0
+        assert str(CARVE_LOYALTY) in row["client_terms_display"]
+        assert "tribute" in row["client_terms_display"]
+
+    def test_a_carve_warns_about_a_stripped_estate_exactly_like_a_cession(
+            self, world):
+        """Review #5 (P2). Three separate estate-warning loops opened with
+        `!= "territory_cede"`, and a carve's soil rides `provinces`, so a
+        carve stripped a marshal's estate with no warning on ANY surface —
+        a direct violation of section 11.6-2. The three loops had already
+        diverged before NA-6c gave them a fourth shape to miss, so the fix
+        is one shared extractor, not three patches."""
+        from backend.game_logic.settlement_scoring import (
+            CESSION_SHAPED_CLAUSE_TYPES, cession_shaped_regions,
+        )
+        assert "create_client" in CESSION_SHAPED_CLAUSE_TYPES
+        carve = {"type": "create_client", "from": "Prussia", "to": "France",
+                 "tag": "DuchyOfWarsaw", "provinces": ["Posen"]}
+        cede = {"type": "territory_cede", "from": "Prussia", "to": "France",
+                "region": "Posen"}
+        assert cession_shaped_regions(carve) == cession_shaped_regions(cede)
+        assert cession_shaped_regions({"type": "peace"}) == []
+
+        world.regions["Posen"].controller = "France"
+        world.marshals["Ney"].dotation_regions = ["Posen"]
+        world.invalidate_active_nations_cache()
+
+        def _warnings(terms):
+            payload = build_settlement_review(
+                war_id="war_1", war_label="the war", proposer_side=["France"],
+                accepting_side=["Prussia"],
+                covered_enemy_participants=["Prussia"], terms=terms,
+                allies=[], warnings=[], acceptance={}, world=world)
+            return [r.get("detail") for r in
+                    (payload["sections"]["warnings"].get("inline") or [])]
+
+        cede_warnings = _warnings([cede])
+        carve_warnings = _warnings([carve])
+        assert any("Ney" in str(t) for t in cede_warnings)
+        assert carve_warnings == cede_warnings

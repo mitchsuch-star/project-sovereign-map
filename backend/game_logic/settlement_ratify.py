@@ -473,6 +473,14 @@ def _apply_settlement_terms(
                             "controller", "")) in cc_bloc
                 for p in cc_provinces
             )
+            # Who held each template province immediately BEFORE the carve —
+            # the only honest basis for "did this clause take soil from the
+            # court being carved".
+            cc_prior_controllers = {
+                str(getattr((getattr(world, "regions", {}) or {}).get(p),
+                            "controller", "") or "")
+                for p in cc_provinces
+            }
             if (cc_tag and cc_from and cc_to and cc_template is not None
                     and cc_held
                     and cc_tag not in set(world.get_active_nations())):
@@ -499,8 +507,17 @@ def _apply_settlement_terms(
                     # and `_eliminate_nation` frees a lord's vassals with a
                     # bare `del`, so the row written above must already
                     # belong to the CARVER, never to the court dying here.
+                    #
+                    # Gated on soil having ACTUALLY moved away from cc_from
+                    # in this clause. Eligibility requires the carver to
+                    # already hold every template province, so the usual
+                    # case is that the court was landless BEFORE the carve
+                    # and `capture_region` already eliminated it — an
+                    # ungated re-check then fired a second, duplicate
+                    # announcement for a court this clause never touched.
                     if (cc_from
                             and cc_from != getattr(world, "player_nation", None)
+                            and cc_from in cc_prior_controllers
                             and not world.get_nation_regions(cc_from)):
                         world._eliminate_nation(cc_from)
         elif ttype == "liberation":

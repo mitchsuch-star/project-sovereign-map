@@ -2178,10 +2178,10 @@ def build_incoming_settlement_offer_popup(
     # singular `region` and plural `regions` clause shapes (review fix).
     from backend.game_logic.dotation import estate_cession_warning
     _estate_warned = set()
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
     for term in settlement_terms:
-        if str(term.get("type") or "") != "territory_cede":
-            continue
-        for _raw_name in [term.get("region")] + list(term.get("regions") or []):
+        # NA-6c: carves strip estates too, and their soil rides `provinces`.
+        for _raw_name in cession_shaped_regions(term):
             _region_name = str(_raw_name or "")
             if not _region_name or _region_name in _estate_warned:
                 continue

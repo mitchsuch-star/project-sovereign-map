@@ -2305,22 +2305,24 @@ def _settlement_offer_build_terms(
                   + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
         cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
         amount = max(0, min(scaled, cap))
-        if amount <= 0:
-            # A payer with an empty (or negative) chest cannot be squeezed —
-            # the offer degrades to a white peace.
-            return [{"type": "peace"}]
     else:
         amount = min(SETTLEMENT_OFFER_MAX_GOLD_AMOUNT, base_amount)
 
-    terms: List[Dict] = [
-        {"type": "peace"},
-        {
+    terms: List[Dict] = [{"type": "peace"}]
+    # A payer with an empty (or negative) chest cannot be squeezed, so the
+    # INDEMNITY is dropped — but control must fall through to the carve gate
+    # below rather than returning. Returning here coupled a TERRITORIAL
+    # clause to the payer's coin balance: the most decisively beaten France,
+    # exactly the state §11.4 models with the Duchy of Normandy, was the one
+    # state immune to being carved, and was offered gentler terms than a
+    # solvent loser.
+    if amount > 0:
+        terms.append({
             "type": "gold_indemnity",
             "from": payer,
             "to": payee,
             "amount": int(amount),
-        },
-    ]
+        })
 
     # NA-6c §11.6-6 (the Normandy mirror): when the AI is the DECISIVE
     # victor, it may also erect a client state out of the player's soil —

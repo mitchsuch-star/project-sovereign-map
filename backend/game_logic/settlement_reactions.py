@@ -303,6 +303,18 @@ def _term_burdens_participant(
             return True, "subject_liberated"
     if ttype == "continental_system_join" and from_nation == participant:
         return True, "forced_continental_system"
+    # NA-6c: losing soil AND gaining a foreign client erected on it is at
+    # least as material as a plain cession — it prices HARSHER in the
+    # acceptance accumulator (0.45 vs 0.30), so generating LESS diplomatic
+    # fallout than the milder clause was strictly backwards. Adding the
+    # types to `_MATERIAL_LOSS_TYPES` alone was a no-op: that frozenset is
+    # only the early-out gate above; this ladder is what returns a reason.
+    if ttype == "create_client" and from_nation == participant:
+        return True, "territory_loss"
+    # VS-5's own gap, closed alongside: the lord that loses a satellite at
+    # someone else's peace table is sold out exactly as a ceding court is.
+    if ttype == "vassal_transfer" and from_nation == participant:
+        return True, "subject_liberated"
     return False, ""
 
 

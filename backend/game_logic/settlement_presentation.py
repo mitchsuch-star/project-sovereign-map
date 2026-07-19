@@ -993,6 +993,23 @@ def build_applied_clauses_preview(
             row["from"] = str(term.get("from") or "")
             row["to"] = str(term.get("to") or "")
             row["pair_state_transition"] = "WAR -> CLIENT ERECTED"
+            # Section 11.6-2: the confirm step must state the FULL bargain
+            # before the player commits — including the client's loyalty
+            # seed and what it will owe. Both were previously first shown
+            # at ratification and on the Proclamation card, i.e. strictly
+            # AFTER the decision. A client boots at 30, already inside the
+            # under-35 band VS-6's defection check reads, so a player is
+            # entitled to know it in advance.
+            from backend.game_logic.formations import CARVE_LOYALTY
+            from backend.game_logic.vassal import (
+                AUTONOMY_SATELLITE, TRIBUTE_RATES,
+            )
+            row["loyalty_after"] = int(CARVE_LOYALTY)
+            row["tribute_rate"] = float(TRIBUTE_RATES[AUTONOMY_SATELLITE])
+            row["client_terms_display"] = (
+                f"boots as a satellite at loyalty {int(CARVE_LOYALTY)}, "
+                f"paying {int(TRIBUTE_RATES[AUTONOMY_SATELLITE] * 100)}% tribute"
+            )
         elif ttype == "peace":
             row["pair_state_transition"] = "WAR -> PEACE"
         else:
@@ -1296,14 +1313,18 @@ def build_settlement_review(
     if world is not None:
         from backend.game_logic.dotation import estate_cession_warning
         seen_regions: set = set()
+        from backend.game_logic.settlement_scoring import (
+            cession_shaped_regions,
+        )
         for term in terms:
-            if str(term.get("type", "")) != "territory_cede":
+            # NA-6c: one shared extractor across every cession-shaped clause
+            # (singular `region`, plural `regions`, and a carve's
+            # `provinces`). A carve strips an estate exactly as a cession
+            # does, and section 11.6-2 requires the warning on every
+            # territory surface.
+            clause_regions = cession_shaped_regions(term)
+            if not clause_regions:
                 continue
-            # Review fix: territory clauses carry EITHER the singular
-            # `region` or the plural `regions` shape — cover both, like
-            # the ratify-time normalization does.
-            clause_regions = [term.get("region")] + list(
-                term.get("regions") or [])
             for raw_name in clause_regions:
                 region_name = str(raw_name or "")
                 if not region_name or region_name in seen_regions:

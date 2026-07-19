@@ -599,6 +599,37 @@ def _term_regions(term: Mapping[str, Any]) -> List[str]:
     return []
 
 
+# NA-6c: every clause type that MOVES SOIL out of a court's control, and so
+# must be treated as a cession by the estate-warning surfaces. A carve is a
+# cession that happens to erect a flag on the way out; `create_client` keys
+# its provinces as `provinces` rather than `region`/`regions`, which is why
+# three separate `!= "territory_cede"` guards silently skipped it.
+CESSION_SHAPED_CLAUSE_TYPES = frozenset({"territory_cede", "create_client"})
+
+
+def cession_shaped_regions(term: Mapping[str, Any]) -> List[str]:
+    """Provinces a term takes out of the `from` court's control, across
+    every clause dialect (`region` singular, `regions` plural, and NA-6c's
+    `provinces`). Empty for a term that moves no soil.
+
+    ONE source, deliberately: the estate-cession warning was previously
+    re-derived at three call sites, and they had already diverged before
+    NA-6c added a fourth shape for them to miss.
+    """
+    if str(term.get("type") or "") not in CESSION_SHAPED_CLAUSE_TYPES:
+        return []
+    names: List[str] = []
+    single = term.get("region")
+    if single:
+        names.append(str(single))
+    for key in ("regions", "provinces"):
+        value = term.get(key)
+        if isinstance(value, (list, tuple)):
+            names.extend(str(v) for v in value if v)
+    seen: set = set()
+    return [n for n in names if n and not (n in seen or seen.add(n))]
+
+
 def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
     """Spec line 1114: white_peace + any non-trivial term exceeds ceiling."""
     for t in terms:

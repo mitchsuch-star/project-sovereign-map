@@ -6,6 +6,63 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🏛 NATION AGENDAS BUILD — NA-6c CLASS C CARVE-OUT CREATION ✅ LANDED July 19, 2026 — ▶ NEXT: NA-6d
+
+**A conquering side can now carve a NEW client state out of the defeated party's soil at the peace
+table** — the player erecting the Duchy of Warsaw out of Prussia, and (GR5, and the point) a coalition
+victor erecting the Duchy of Normandy out of the player's own homeland. Landing record =
+**`NATION_AGENDAS_SPEC.md` §20, authoritative**; commit `6e87654`. Suite **14,218 → 14,293/3**, ruff
+clean, M1–M7 byte-identical 11/11, Godot parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`,
+live-verified over HTTP.
+
+- **Two structural facts shaped the whole slice.** (1) `process_formations` can NEVER announce a
+  creation — it skips every vassal, and a carved client is one from its first instant — so the carve
+  emits its own Proclamation. (2) `_forms_block_for_record` resolves identity by scanning the nation's
+  DECK, and two of the three templates are deckless; without the new template arm, Normandy and the
+  Roman Republic would have had no name, no flag and no standing grudge, and every one of those
+  failures is a silent `None`.
+- **Authored catalogue** (`formable_nations`, serialized like `agendas` because it is read at runtime):
+  DuchyOfWarsaw [Posen] carrying the dormant `commonwealth_restored` deck that forms **Poland**
+  (aggrieved Prussia + Russia — the C→T chain NA-6d completes); Normandy [Normandy]; RomanRepublic
+  [Rome] (aggrieved Austria + Spain). Four heraldry SVGs authored + imported.
+- **One predicate carries the whole §11.4 rule**: every template province held by the carver's bloc AND
+  its registry `starting_controller` equal to the court being carved — which is simultaneously "carve
+  the defeated", "never an ally's soil" and "never your own homeland".
+- **The Papal pin holds**: carving Rome eliminates the Papal States and creates the Republic in ONE
+  ratification, both events logged — gated on a decisive war score, refused OUT LOUD at the authoring
+  seam rather than silently dropped at ratification the way `territory_cede` does it.
+- **§11.6 honest availability arrives on the settlement surface for the first time**: the carve row is
+  SHOWN when unavailable with its gate terms ("requires Posen"), rendered as inert text rather than a
+  link. That surface's own rule had been "ineligible options simply do not appear" — wrong for a
+  standing campaign ambition, which then reads as "this game has no such thing".
+- **Fixed in passing:** the region double-promise check could not see a carve's template-resolved soil
+  (a carve + a cession of the same province both validated); `agenda_settlement_mod` scored a
+  carved-away design province as a white peace; `_MATERIAL_LOSS_TYPES` was missing VS-5's
+  `vassal_transfer`; the literal 90 in `settlement_ratify` became the shared
+  `TOTAL_ANNEXATION_WAR_SCORE`.
+- **A 12-lens adversarial review then ran against the commit — 136 agents, 41 candidates, 24
+  refuted, 17 survivors merged to 12 distinct defects, ALL FIXED** (addendum `NATION_AGENDAS_SPEC.md`
+  §20.1). **No lens came back clean**, and the slice's own tests plus a live HTTP drive had both
+  passed — which is the argument for running it. Headline P1: **a carved capital had no garrison,
+  forever** (both garrison seams key off `region.is_capital`, the carve set only the world map, so
+  the newborn client was an undefended province the enemy retakes for free). Then: a carved Duchy of
+  Normandy **rewrote history prose** ("Ney was broken at Normandy" → "...at Duchy of Normandy",
+  permanently — Godot had the guard since NA-6b, the backend twin did not); the first end turn
+  **announced the new nation as eliminated**; duplicate elimination announcements — and the §11.2
+  Papal pin turned out **untestable in play**, passing only because its helper bypassed
+  `capture_region`; a carve **stripped a marshal's estate with no ES-7 warning on any surface**;
+  `_MATERIAL_LOSS_TYPES` was **a no-op** (the frozenset is only the early-out gate); a **bankrupt
+  loser could never be carved** (the empty-purse arm returned above the carve gate, so the most
+  beaten France was the one immune); and **the player's actual click path had zero coverage**.
+  Falsifiability verified by reverting four fixes — exactly the four matching tests fail.
+- **⚠ Open: user visual sign-off** on the four new flags (Polish white-over-red, the Norman
+  gules-with-two-leopards-or in a bold simplification meant to read at chip size, the 1798 Republic's
+  black-white-red tricolour) and on the greyed unavailable carve row.
+- **Session hazard worth remembering:** a review subagent ran `git stash` to "compare against baseline"
+  and destroyed the entire uncommitted tree (23 files, 2,167 insertions). Recovered intact from
+  `stash@{0}`. Standing lessons: commit a large slice BEFORE handing it to a review fleet, and hand
+  review agents a pre-snapshotted diff plus an explicit read-only prohibition.
+
 ### 🔍 WHY "give them hell" FAILED IN LLM MODE — the `generic` sentinel ✅ FIXED July 19, 2026
 
 **User pushback: "my concern was why give them hell was failing in llm and if similar fails exist".** Fair — the July 18 fix made the FAST parser handle the idiom, which *bypasses* the LLM. That fixed the symptom and never answered the question. Probing the live model directly (bypassing the 0.7 gate) gave the real answer.

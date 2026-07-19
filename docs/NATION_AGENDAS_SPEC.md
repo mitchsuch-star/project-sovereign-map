@@ -817,3 +817,146 @@ which pins the false premise itself so it cannot silently become true again. The
 inverted-geometry arms deliberately leave co-belligerents at PEACE rather than
 hand-writing ALLIANCE rows: hand-writing them is exactly what hid this geometry from
 three prior slice reviews. Suite **14,018 → 14,047/3**, ruff clean. Falsifiability verified by reverting both production files: 17 of the 27 fail against pre-fix code.
+
+
+---
+
+## §20 Landing record — NA-6c Class C carve-out creation (July 19, 2026)
+
+Commit `6e87654`. Suite **14,218 → 14,278/3**, ruff clean, M1–M7 sweep harness
+byte-identical 11/11 before AND after, Godot parse harness `EXIT=0`, headless boot
+**0 `SCRIPT ERROR`**, live-verified over HTTP. `tests/test_nation_agendas_formables.py`
+105 → **179**.
+
+### The structural fact that shaped the slice
+
+**`process_formations` can never announce a creation.** The poll skips every vassal
+(`formations.py` — `if _is_vassal(world, nation): continue`, the §3.2 dormancy gate), and a
+Class C client is a vassal from its first instant. So the carve emits its own Proclamation
+rather than waiting for a tick that would never fire. NA-6a's `_resolve_sponsor` docstring
+had already anticipated exactly this ("the lord arm is dead for Class T today and lives for
+the NA-6c creation record").
+
+The second structural fact, and the one most likely to have shipped silently:
+**`_forms_block_for_record` resolves identity by scanning the nation's DECK**, and two of the
+three authored templates are deckless. Without the new template arm, Normandy and the Roman
+Republic would have had no display name, no flag, and no standing §11.9 grudge — and every
+one of those failures is a silent `None`, not an error. The template arm is checked FIRST for
+that reason, and `test_deckless_client_still_has_an_identity` is the pin.
+
+### What landed
+
+- **The catalogue.** Scenario key `formable_nations` (validator-checked) + `world.formable_nations`,
+  serialized like `agendas` because it is read at RUNTIME: the carve eligibility predicate needs
+  `provinces`, and a created client re-derives its identity from its template on every load.
+  Authored: **DuchyOfWarsaw** [Posen] with a dormant `commonwealth_restored` deck whose `forms`
+  block makes it POLAND (aggrieved Prussia + Russia — the C→T chain NA-6d completes);
+  **Normandy** [Normandy], the coalition-side mirror; **RomanRepublic** [Rome], aggrieved
+  Austria + Spain.
+- **`formations.create_client_nation`** — the first code in the project to add a nation at
+  RUNTIME. `world.enemy_nations` had only ever been built in `__init__` and restored from save.
+  Shape parity is a test **derived from the live boot world** (every dict/list where the
+  boot-authored satellite `KingdomOfItaly` appears), so the pin cannot drift as new
+  nation-keyed state is added — and it immediately earned its keep by catching a missing
+  `nation_authority` row.
+- **The `create_client` clause** through all seven settlement layers, priced in **both**
+  harshness dialects (`0.3 × provinces + 0.15`: above a plain cession `0.3`, below vassalage
+  `0.5`). Registering the type in only one dialect is the shipped G4F-1 bug class and is
+  pinned against.
+- **Eligibility** (`evaluate_create_client_eligibility`) encodes the whole §11.4 rule in ONE
+  predicate: every template province currently held by the carver's bloc **AND** its registry
+  `starting_controller` equal to the court being carved. The second half is what makes it
+  honest — holding a province is not enough, the soil must have *belonged* to the court paying
+  the price, which is simultaneously the "never an ally's soil" and "never your own homeland"
+  rule.
+- **The Proclamation** for creations, sharing §11.8 stages 2–4 with the Class T beat, with the
+  author/witness subtitle arm already GR5-symmetric from NA-6b.
+- **§11.6 honest availability** — the carve row is SHOWN when unavailable, carrying its gate
+  terms ("requires Posen") and the refusal's own reason string, rendered as **inert text rather
+  than a link** so it is structurally un-clickable. This is the FIRST option on the settlement
+  authoring surface to do this: that surface's own documented rule was "ineligible options
+  simply do not appear", which is wrong for a formable specifically — a standing ambition of
+  the campaign that silently vanishes reads as "this game has no such thing".
+
+### Conscious decisions (the spec left these open)
+
+| # | Decision | Why |
+|---|----------|-----|
+| Q2 | Total annexation obeys the same war-score-90 rule as `territory_cede`, but as a **LOUD refusal at the authoring seam** rather than `territory_cede`'s silent `continue` at ratification. | Rome IS the Papal capital and their only province, so the Papal carve is also their elimination — allowed, and pinned, but only at a decisive score. A silent skip is the wrong feedback shape either way. The literal `90` became the shared `TOTAL_ANNEXATION_WAR_SCORE`. |
+| Q3 | Carved provinces take `stability = 50` (the hostile-cession idiom), not VS-3's stability-preserving grant idiom. | The soil changes hands under duress at a settlement table. |
+| Q5 | The three tags are authored into `NATION_POWER_TIERS` as `minor`. | Decision 6 rules out a *runtime writable* tier map; it does not rule out authoring known tags in the authored one. Unauthored, a one-province client would enter coalition threat math at `secondary` — Spain's weight. |
+| Q6 | **Revised during the build**: the carved provinces DO seed `nation_starting_regions`. | Measured rather than assumed: with home `[Posen]` and Posen held, `capital_held` is True and `held*2 >= len(home)`, so `survival_override_active` stays False and a newborn never proclaims Survival over its own erection. If the client is later overrun, survival firing is exactly right. Also gives clean shape parity with zero exemptions. |
+| Q8 | Clause shape follows VS-5: `from` = the carved court, `to` = the carver, `tag` = the template. Joins `_CROSS_SIDE_TRANSFER_CLAUSE_TYPES`. | Preserves every burden/coverage/straddle assumption and buys the cross-side check free. |
+| Q10 | Carved capitals are **re-derived in `from_dict`** from `formable_nations` + `nation_formations`. | `nation_capitals` is project-wide unserialized (rebuilt at construction, hence its `KNOWN_EXCLUSIONS` entry). Re-deriving matches that philosophy without adding a field or touching the enforcement gate. Left unfixed, a carved client silently pays −1 DP every turn forever. |
+| Q13 | The AI authoring arm is IN scope, unlike VS-5's accept-side-only scope-down (VP-D8). | §11.7's completion bar explicitly names "AI lord (GR5)" and "an AI victor offers the carve against France". |
+
+### Fixed in passing (in blast radius)
+
+- **GAP G1** — the region double-promise check could not see a carve's template-resolved soil,
+  so a `create_client` of Posen plus a `territory_cede` of Posen both validated and whichever
+  apply-step ran second silently won. New refusal code `carve_region_double_promised`.
+- **GAP G2** — `agenda_settlement_mod` gated on the territory family, so a court whose design
+  province was *carved* away scored the package as indifferently as a white peace. Now scores
+  identically to the cession it effectively is (pinned as an equality, not just `< 0`).
+- **`_MATERIAL_LOSS_TYPES`** was missing VS-5's `vassal_transfer` as well as the new
+  `create_client`; both added, so an ally sold out either way gets its
+  `sold_out_by_war_leader` reaction.
+- **Refusal-ordering fix found by a test**: "whose soil is this" is a STATIC map property and is
+  now checked BEFORE "do you hold it". Checked second, a template belonging to an entirely
+  different country refused with `carve_provinces_not_held` — indistinguishable from a real,
+  one-conquest-away opportunity, which put the Roman Republic on Prussia's negotiation row.
+- **Validator refactor**: the per-entry agenda validation was extracted to `_validate_agenda_deck`
+  so a template's `deck` is held to the identical schema as an authored `agendas` deck (it IS
+  one; it merely lies dormant), and the `aggrieved` checker to `_validate_aggrieved_list`.
+
+### Recorded, not fixed
+
+- The intra-package elimination **ordering** hazard (a later clause returning a province to a
+  nation an earlier clause eliminated, resurrecting it as a landholding ghost with no teardown
+  reversal) is **pre-existing for `territory_cede`** and out of this slice's scope. A carve
+  inherits it. A generalized post-loop elimination sweep would fix it for all clause types and
+  is the obvious future shape.
+- The player is exempt from elimination, so an AI carve taking France's last region would leave
+  a zero-region player. Unreachable with the v1 roster (Normandy is 1 of ~28 French provinces).
+- `_eliminate_nation` has no idempotence latch.
+
+### Session hazard worth recording
+
+A review subagent ran `git stash` to "compare against baseline" and **destroyed the entire
+uncommitted working tree** (23 files, 2,167 insertions). It was recovered intact from
+`stash@{0}`. Two standing lessons: land a large slice to a commit BEFORE handing it to a
+review fleet, and give review agents a pre-snapshotted diff plus an explicit read-only
+prohibition rather than letting them reach for git themselves.
+
+### §20.1 Addendum — the adversarial review and its 12 fixes (July 19, 2026)
+
+A 12-lens find→refute review ran against commit `6e87654`: **136 agents, 41 candidate
+findings, 24 refuted, 17 survivors** (2-of-3 refuters, default REFUTED), merged to **12 distinct
+defects**. Every one was verified by hand before fixing. Suite **14,278 → 14,293/3**; M1–M7
+byte-identical throughout.
+
+**No lens came back clean.** The slice's own tests were green and the live HTTP drive passed —
+the review found what both missed, which is the argument for running it.
+
+| # | Sev | Defect | Fix |
+|---|-----|--------|-----|
+| 1 | P1 | **A carved capital had no garrison, forever.** Both garrison seams key off `region.is_capital`, not `world.nation_capitals` — the carve set only the map. Posen sat at 0 while every peer minor held 10,000, and the regen loop skipped it permanently: an undefended province the enemy retakes for free, destroying the tribute the carve was bought for. | `_seed_client_roster` sets the region flag and seeds straight to `get_capital_garrison_target`, matching the boot seeder. |
+| 2 | P2 | **A carved Duchy of Normandy rewrote history prose.** `apply_formation_names_to_history` did a naked substring replace; NA-6c makes `Normandy` the first formation key that is also a PROVINCE. "Ney was broken at Normandy" became "...at Duchy of Normandy" on every entry after the formation turn, permanently. Godot has carried this guard since NA-6b — the backend twin did not. | New `_is_prose_safe_name` (multi-token AND not a live region key). Multi-word renames still fire, pinned both ways. |
+| 3 | P2 | **The first end turn after a Proclamation announced the new nation as eliminated.** The tick reports any marshal-less nation gone unless pre-seeded into `eliminated_nations_notified`; `from_scenario` does this for army-less boot courts, the carve did not. | Seeded at birth. |
+| 4 | P2 | **Duplicate elimination announcements** — and the §11.2 pin was untestable in play. The carve arm re-checked "is this court landless" unconditionally, but eligibility *requires* the carver to already hold every template province, so the court is landless BEFORE the carve and `capture_region` already eliminated it. The old test only passed because its helper wrote `region.controller` directly, bypassing that path. | Session-scoped re-entry latch on `_eliminate_nation` (deliberately NOT `eliminated_nations_notified`, which means "already announced marshal-less" and is pre-seeded for exactly the Papal States); carve-arm elimination gated on soil actually having moved from the carved court. The pin was **rewritten through `capture_region`** and now asserts the elimination fires exactly ONCE. |
+| 5 | P2 | **A carve stripped a marshal's estate with no ES-7 warning on any surface** — a direct §11.6-2 violation. Three separate loops guarded on `!= "territory_cede"`, and a carve's soil rides `provinces`. | One shared `cession_shaped_regions` + `CESSION_SHAPED_CLAUSE_TYPES` in `settlement_scoring`, consumed by all sites. Patching the three loops separately was rejected: **the divergence was the bug** — they had already drifted before NA-6c gave them a fourth shape to miss. Parity is pinned by asserting carve warnings == cede warnings. |
+| 6 | P2 | **Adding the types to `_MATERIAL_LOSS_TYPES` was a complete no-op.** That frozenset is only the early-out gate; the per-type ladder that returns a reason was never extended. The strictly harsher clause (0.45 vs 0.30) produced strictly *less* diplomatic fallout than the milder one, and the first commit message's claim about the reaction was false as shipped. | Ladder extended for `create_client` **and** `vassal_transfer` (a live VS-5 gap). |
+| 7 | P2 | **A bankrupt losing player could never be carved.** The EC-W4 empty-purse arm returned a white peace ABOVE the carve gate, coupling a territorial clause to the payer's coin balance — so the most decisively beaten France, exactly the state §11.4 models with the Duchy of Normandy, was the one state immune, and got gentler terms than a solvent loser. | The indemnity now appends conditionally instead of returning; control falls through to the carve gate. Pinned at treasury 0 and −500. |
+| 8 | P2 | **The player's actual click path had zero coverage.** Every ratification test hand-built the clause dict. The add-verb chain ends in a bare `else: # liberation`, so a create_client arm that is moved or unreached silently stages a LIBERATION — ratification would free a Prussian vassal and erect no Duchy. | A test driving the real `settlement_demand_add` verb through the GT-Slice-1 dialogue harness, asserting the staged clause is a carve and that nothing fell through to liberation. |
+| 9 | P3 | **A malformed template crashed mid-mutation and left a phantom nation.** Only `provinces` was pre-checked; `seeds` was consumed at mutation time, so a diplomat block missing `skill` raised `KeyError` out of ratification *after* the tag was in `enemy_nations` — and `enemy_nations` serializes. | Total `_validate_seeds` hoisted into the pre-mutation block, honouring the docstring's existing promise. |
+| 10 | P3 | **The `from_dict` capital re-derivation wrote through the legacy module global.** Its creation-time twin has a copy-on-write guard; this one relied on "the catalogue is empty on a legacy world", which is an assumption about DATA, not a guard. | Shared `_ensure_owned_capitals`, called from both sites; pinned by a test asserting `region.NATION_CAPITALS` is unmutated. |
+| 11 | P3 | **The pre-commit preview omitted the loyalty seed and tribute** §11.6-2 enumerates. Both first appeared at ratification and on the Proclamation card — strictly after the decision. A client boots at loyalty 30, already inside the under-35 band VS-6's defection check reads. | `loyalty_after`, `tribute_rate` and a `client_terms_display` line on the preview row. |
+| 12 | P3 | **Three untested seams**: the `nation_created` dispatch beat (flip the branch and the suite stayed green while the line rendered "— is no more."), the VS-5 `vassal_transfer` guided-line arm, and #8. | Pinned, including the rendered dispatch text and its `fog_rule`. |
+
+**Falsifiability verified**: reverting fixes 1, 2, 3 and 6 fails exactly the four corresponding
+new tests and nothing else.
+
+**Left unfixed, deliberately** (recorded in §20 already): the pre-existing intra-package
+elimination *ordering* hazard, the player's exemption from elimination, and the AI's ongoing
+treatment of a carved client as a diplomatic actor beyond turn 1 — the last is the natural
+subject of the NA-6d live verification rather than a code change here.

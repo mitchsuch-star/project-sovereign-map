@@ -248,9 +248,36 @@ def apply_formation_names_to_history(world, text: str, event: dict) -> str:
                 and int(event_turn) < int(formed_turn)):
             continue        # it was still the old nation back then
         dead = display_nation(nation)
-        if dead and dead != identity["display_name"] and dead in text:
-            text = text.replace(dead, identity["display_name"])
+        if not dead or dead == identity["display_name"] or dead not in text:
+            continue
+        # NA-6c: a naked substring replace is only safe when the dead name
+        # can NEVER appear as ordinary prose. `Normandy` and `Rome` are
+        # PROVINCE names on this map, so replacing them would rewrite
+        # "Ney was broken at Normandy" into "...at Duchy of Normandy" — a
+        # province line corrupted into a nation's name, permanently, on
+        # every historical entry after the formation turn. Godot's
+        # `_is_prose_safe_nation_key` has carried this guard since NA-6b;
+        # the backend twin did not, and NA-6c is what makes a formation key
+        # collide with a region for the first time.
+        if not _is_prose_safe_name(world, dead):
+            continue
+        text = text.replace(dead, identity["display_name"])
     return text
+
+
+def _is_prose_safe_name(world, name: str) -> bool:
+    """True when `name` can never occur as ordinary prose, so a whole-text
+    substring replacement of it is safe.
+
+    Mirrors Godot's `Utils._is_prose_safe_nation_key`, plus a live
+    region-collision check the client cannot make: any name that is also a
+    province on this map is unsafe by construction.
+    """
+    if name in (getattr(world, "regions", {}) or {}):
+        return False
+    # A multi-token display name ("Duchy of Warsaw") is unambiguous; a bare
+    # single word ("Normandy", "Holland", "Rome") is not.
+    return len(name.split()) > 1
 
 
 def formed_display_name(world, nation: str) -> str:
@@ -574,6 +601,63 @@ def process_formations(world) -> List[Dict]:
 
 # ═══════════════ NA-6c — CLASS C CARVE-OUT CREATION (§11.4) ═══════════════
 
+def _validate_seeds(template_id: str, seeds) -> None:
+    """Raise ValueError for any `seeds` shape the birth mutation would
+    choke on. Total, and called before the FIRST mutation."""
+    if seeds is None:
+        return
+    if not isinstance(seeds, dict):
+        raise ValueError(
+            f"formable template {template_id!r}: `seeds` must be an object, "
+            f"got {type(seeds).__name__}")
+    for key in ("gold", "actions", "authority"):
+        if key in seeds:
+            value = seeds[key]
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(
+                    f"formable template {template_id!r}: `seeds.{key}` must be "
+                    f"a non-negative integer, got {value!r}")
+    if "manpower" in seeds:
+        pool = seeds["manpower"]
+        if not isinstance(pool, dict) or not all(
+                isinstance(v, int) and not isinstance(v, bool) and v >= 0
+                for v in pool.values()):
+            raise ValueError(
+                f"formable template {template_id!r}: `seeds.manpower` must map "
+                f"pool names to non-negative integers, got {pool!r}")
+    if "diplomat" in seeds:
+        defn = seeds["diplomat"]
+        if not isinstance(defn, dict):
+            raise ValueError(
+                f"formable template {template_id!r}: `seeds.diplomat` must be "
+                f"an object, got {type(defn).__name__}")
+        # `create_diplomat_from_data` direct-indexes all three.
+        for key in ("name", "personality", "skill"):
+            if key not in defn:
+                raise ValueError(
+                    f"formable template {template_id!r}: `seeds.diplomat` is "
+                    f"missing the required key {key!r}")
+
+
+def _ensure_owned_capitals(world) -> None:
+    """Guarantee `world.nation_capitals` is this world's OWN dict.
+
+    On a LEGACY world it is an ALIAS to the `region.NATION_CAPITALS` module
+    global (world_state.py — contrast the Europe branch's `dict(...)`), so
+    writing a carved tag through it poisons every world built later in the
+    process: the shared-REGIONS_DATA pollution bug class, and
+    order-dependent under pytest-randomly.
+
+    Single source, called from BOTH write sites — this helper and the
+    `from_dict` capital re-derivation. The re-derivation loop originally
+    relied on "formable_nations is empty on a legacy world", which is an
+    assumption about DATA, not a guard: nothing Europe-gates the catalogue.
+    """
+    from backend.models.region import NATION_CAPITALS
+    if getattr(world, "nation_capitals", None) is NATION_CAPITALS:
+        world.nation_capitals = dict(NATION_CAPITALS)
+
+
 def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
     """Register a brand-new nation tag in every world-level structure a
     boot-authored satellite occupies (§11.10 decision 6, shape parity).
@@ -584,7 +668,6 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
     `get_active_nations()`, the whole enemy phase, DP regen, the formation
     poll, and the §11.9 aggrieved blow, so it goes first and loudly.
     """
-    from backend.models.region import NATION_CAPITALS
     from backend.models.diplomat import create_diplomat_from_data
     from backend.nation_config import DEFAULT_NATION_DEFAULTS
     from backend.game_logic.vassal import AUTONOMY_SATELLITE, TRIBUTE_RATES
@@ -595,14 +678,39 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
     # 1. Roster membership — everything else is dead without this.
     if tag != getattr(world, "player_nation", None) and tag not in world.enemy_nations:
         world.enemy_nations.append(tag)
+    # A carved client is born deliberately ARMY-LESS, and the turn tick
+    # announces any marshal-less nation as eliminated unless it is in this
+    # set. `from_scenario` pre-seeds it for the same reason (boot nations
+    # like Hanover field no marshals) — without it the first end turn after
+    # a Proclamation reports the brand-new nation destroyed.
+    notified = getattr(world, "eliminated_nations_notified", None)
+    if notified is not None:
+        notified.add(tag)
 
     # 2. Capital. On a LEGACY world `nation_capitals` is an ALIAS to the
     # module global (world_state.py:241, contrast the Europe branch's
     # dict(...)) — writing through it would poison every later world in the
     # process. Copy-on-write rather than refusing to run.
-    if world.nation_capitals is NATION_CAPITALS:
-        world.nation_capitals = dict(NATION_CAPITALS)
+    _ensure_owned_capitals(world)
     world.nation_capitals[tag] = provinces[0]
+
+    # ...and the REGION FLAG, which is what actually gates a capital
+    # garrison. Both garrison seams (`world_state._process_capital_garrisons`
+    # and the boot seeder) key off `region.is_capital`, NOT the world map —
+    # so a carved client whose capital carried no flag would sit at garrison
+    # 0 forever, skipped by the regen loop, an undefended province the enemy
+    # retakes for free. Seeded straight to target, matching the boot seeder,
+    # rather than left to crawl up from nothing.
+    capital_region = world.regions.get(provinces[0])
+    if capital_region is not None:
+        capital_region.is_capital = True
+        try:
+            target = int(world.get_capital_garrison_target(tag))
+        except Exception:
+            target = 0
+        if target > 0:
+            capital_region.garrison_strength = max(
+                int(getattr(capital_region, "garrison_strength", 0) or 0), target)
 
     # 3. Homeland. The carved provinces ARE its homeland: this is what lets
     # "The Knife at the Throat" fire honestly if the client is later
@@ -703,6 +811,14 @@ def create_client_nation(world, template_id: str, carver: str,
         raise ValueError(
             f"formable template {template_id!r} names province(s) that do not "
             f"exist in this world: {missing or 'none authored'}")
+    # Everything the mutation will consume is checked BEFORE step 1. The
+    # docstring promises "failing loudly at the one moment it matters beats
+    # a silent half-built nation" — but only `provinces` was actually
+    # pre-checked, so a template with (say) a `seeds.diplomat` missing its
+    # `skill` raised KeyError out of settlement ratification AFTER the tag
+    # was already in `enemy_nations`, leaving a phantom nation that
+    # serializes.
+    _validate_seeds(template_id, template.get("seeds"))
 
     _seed_client_roster(world, tag, template, carver)
     if ceded_from:

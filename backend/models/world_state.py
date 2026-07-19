@@ -2939,6 +2939,27 @@ class WorldState:
         if nation == self.player_nation:
             return  # Player elimination = game-over, handled elsewhere
 
+        # NA-6c: re-entry latch. This is imperative teardown with no
+        # idempotence of its own, and it has several callers (capture, the
+        # territory_cede ratify arm, the carve arm) that can fire in the
+        # same tick for the same court — the player saw "Prussia
+        # Eliminated!" twice, with two identical campaign-log events.
+        #
+        # Deliberately NOT `eliminated_nations_notified`: that set means
+        # "already announced as MARSHAL-LESS" (the turn tick's no-army
+        # notice) and is pre-seeded at boot for army-less courts like the
+        # Papal States, so reusing it would make exactly those courts
+        # un-eliminatable. Session-scoped by design — the latch only has to
+        # stop a double fire within one tick, and a re-loaded save re-derives
+        # elimination from territory anyway.
+        latched = getattr(self, "_eliminated_teardown_done", None)
+        if latched is None:
+            latched = set()
+            self._eliminated_teardown_done = latched
+        if nation in latched:
+            return
+        latched.add(nation)
+
         # Remove all marshals
         to_remove = [name for name, m in self.marshals.items() if m.nation == nation]
         for name in to_remove:
@@ -5463,8 +5484,14 @@ class WorldState:
         # `_process_dp_regen`, and blinding `survival_override_active`).
         # Re-derive it here from the template, matching the existing
         # rebuilt-at-construction philosophy rather than adding a field.
-        # Naturally inert on a legacy world: `formable_nations` is empty
-        # there, so this never writes through the aliased module global.
+        # The copy-on-write guard is EXPLICIT, not inferred from the
+        # catalogue being empty on a legacy world — nothing Europe-gates
+        # `formable_nations`, so "inert on legacy" was an assumption about
+        # data rather than a guard. Shared single source with the creation
+        # path (`formations._ensure_owned_capitals`).
+        if world.nation_formations and world.formable_nations:
+            from backend.game_logic.formations import _ensure_owned_capitals
+            _ensure_owned_capitals(world)
         for tag, record in world.nation_formations.items():
             template_id = str((record or {}).get("template") or "")
             if not template_id:
