@@ -56,10 +56,13 @@ live-verified over HTTP.
   beaten France was the one immune); and **the player's actual click path had zero coverage**.
   Falsifiability verified by reverting four fixes — exactly the four matching tests fail.
 - **✅ Visual check HELD July 19, 2026 (spec §20.2) — both sign-off rows CLOSED.** Three flags passed
-  first look; **Normandy FAILED and was redrawn** (the first cut's two leopards rendered as
-  *centipedes* — rectangular bodies with leg-stubs and no readable head). The redraw gives each charge
-  a proper guardant head, an arched body, a raised foreleg and a tail curled over the back; all four
-  stay distinguishable at 44px chip size. The greyed carve row was rendered from the live payload
+  first look; **Normandy FAILED and took five drafts** — centipede, cartoon cub (with a *smile*),
+  spiky-sun mane, housecat, then the shipped lean maneless leopard. What shipped is correct in
+  tincture, charge count and attitude and is clean at 44px, but **reads as a lioness rather than as
+  heraldry** — hand-authored figurative heraldry is the edge of what raw path data reliably reaches.
+  The path to actually-good is the **Hanover precedent** (adapt a PD Wikimedia heraldic lion, credit
+  row in `THIRD_PARTY_LICENSES.md`); flagged rather than taken, since it means bringing in an
+  external asset. The greyed carve row was rendered from the live payload
   through the exact BBCode the client builds: it carries the gate ("requires Posen"), names what is
   missing, and contains **no `[url=`** — un-clickable by construction, not a dead button.
 - **Session hazard worth remembering:** a review subagent ran `git stash` to "compare against baseline"

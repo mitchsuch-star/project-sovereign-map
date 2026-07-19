@@ -969,12 +969,34 @@ U2/U3/U5 sign-offs used.
 **The four heraldry assets.** Rendered at full size and at in-game chip size. Three passed
 first look — Warsaw (white over red), Poland (the same bicolour under a gold crown, so the
 C→T chain reads as a promotion rather than a different country), and the Roman Republic
-(the 1798 black-white-red vertical tricolour). **Normandy FAILED and was redrawn.** The first
-cut's "two leopards passant guardant" rendered as centipedes: a rectangular body with
-leg-stubs and an unreadable head blob. Redrawn with a proper guardant head (ears, eyes,
-muzzle), an arched body, a raised foreleg for the passant gait, and a tail curled forward
-over the back; both charges now read as animals at full size and as gold-on-red charges at
-44px. All four remain distinguishable from each other at chip size.
+(the 1798 black-white-red vertical tricolour). **Normandy FAILED and went through five
+drafts**, each rejected on sight for a different reason worth recording, because the failure
+modes are general to hand-authored figurative heraldry:
+
+1. *centipede* — blocky body, identical bar legs, unreadable head blob;
+2. *cartoon cub* — everything built from circles: round head, dot eyes, a **smile**;
+3. *spiky sun* — a literal mane rendered as a regular star, and the raised forepaw reading
+   as a trunk hanging off the chest;
+4. *housecat* — coherent at last (maneless, four articulated legs, thick curled tail, a
+   forward-REACHING foreleg rather than a dangling one) but unmistakably domestic;
+5. **shipped** — broader jaw, small rounded ears set low and wide (tall triangular ears on a
+   round skull are the single strongest "cat" tell), deeper chest, scalloped ruff.
+
+The technique that finally produced a coherent figure is worth keeping: paint the whole
+animal TWICE — a fattened dark pass for the outline, then solid gold on top — so overlapping
+sub-shapes leave no internal seams and no hairline element can vanish at chip size.
+Deliberately **maneless**: in French heraldry a *léopard* IS a lion passant guardant, and the
+medieval Norman rendering is routinely drawn without one; draft 3 proves what adding a mane
+costs.
+
+**Honest assessment of what shipped:** correct tincture, correct charge count, correct
+attitude, clean at 44px, and distinguishable from the other three. It reads as a *lioness*
+rather than as heraldry. Hand-authored figurative heraldry is at the edge of what is
+reliably achievable in raw path data, and five drafts is where the returns flattened.
+**The path to actually-good is the Hanover precedent** — adapt a public-domain heraldic lion
+from Wikimedia the way `Hanover.svg` adapted `Flag_of_Twente.svg`, with the credit row in
+`THIRD_PARTY_LICENSES.md`. That needs a decision to bring in an external asset, so it is
+flagged rather than taken.
 
 **The honest-availability carve row.** Rendered from the live `_court_demand_suggestions`
 payload through the exact BBCode `_build_suggestion_lines` builds:

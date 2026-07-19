@@ -1,33 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="300">
-<!-- Duchy of Normandy: gules, two leopards passant guardant or. Original
-     geometric rendering for this project (Public Domain). Deliberately bold
-     and simplified: the charges must still read as animals at chip size,
-     where the fine-line artwork used for Hanover collapses into a smudge. -->
+<!-- Duchy of Normandy: gules, two leopards passant guardant or.
+     Original geometric rendering for this project (Public Domain).
+
+     Painted twice - a fattened dark pass for the outline, then solid gold on
+     top - so overlapping sub-shapes leave no internal seams and no hairline
+     element can vanish at chip size.
+
+     Deliberately MANELESS. In French heraldry a leopard IS a lion passant
+     guardant, and the medieval Norman rendering is routinely drawn without a
+     mane; earlier drafts that added one read as a spiky sun with a cat
+     behind it. Long body, small forward-facing head, four clearly separate
+     legs - the forward one reaching rather than dangling, which is what
+     makes the gait read as passant instead of as a hanging appendage. -->
 <rect fill="#c8102e" width="500" height="300"/>
+
 <defs>
-  <g id="leopard" fill="#e8b923" stroke="#7a5c0c" stroke-width="3.5" stroke-linejoin="round">
-    <!-- tail: up from the haunch and curled forward over the back -->
-    <path d="M-84,-6 C-112,-16 -122,-52 -100,-66 C-86,-74 -72,-62 -78,-52
-             C-82,-46 -92,-48 -90,-56"
-          fill="none" stroke-width="9" stroke-linecap="round"/>
-    <!-- body with four legs -->
-    <path d="M-86,2 C-86,-20 -70,-32 -44,-32 L20,-32 C40,-32 52,-22 56,-8
-             L56,12 L40,12 L40,44 L26,44 L26,12 L2,12 L2,44 L-12,44 L-12,12
-             L-42,12 L-42,44 L-56,44 L-56,12 L-72,12 L-72,44 L-86,44 Z"/>
-    <!-- raised foreleg, the passant gait -->
-    <path d="M52,4 C66,6 74,18 70,32 L56,30 C58,20 56,12 48,10 Z"/>
-    <!-- head, turned to face the viewer (guardant) -->
-    <path d="M42,-58 L48,-76 L60,-62 Z"/>
-    <path d="M78,-62 L90,-76 L92,-56 Z"/>
-    <circle cx="66" cy="-40" r="26"/>
-    <!-- muzzle -->
-    <circle cx="66" cy="-30" r="9" fill="#7a5c0c" stroke="none"/>
-    <!-- eyes -->
-    <circle cx="56" cy="-48" r="4" fill="#7a5c0c" stroke="none"/>
-    <circle cx="76" cy="-48" r="4" fill="#7a5c0c" stroke="none"/>
+  <g id="leopard">
+    <!-- tail: thick, off the haunch, curling up and forward over the back -->
+    <path d="M-104,-24 C-136,-38 -152,-80 -128,-100 C-110,-115 -84,-105 -83,-87
+             C-82,-72 -95,-63 -106,-69 C-113,-73 -113,-83 -107,-87
+             L-119,-96 C-132,-79 -122,-55 -96,-42 Z"/>
+    <!-- body: one long lean mass, arched back, tucked belly, deep haunch -->
+    <path d="M-112,-8 C-112,-38 -96,-52 -70,-52
+             C-30,-58 20,-56 54,-44
+             C74,-38 84,-26 82,-6
+             L74,10 C40,22 -10,26 -60,20
+             C-92,16 -112,10 -112,-8 Z"/>
+    <!-- neck, rising forward to a guardant head -->
+    <path d="M52,-44 C64,-62 84,-72 104,-70 L112,-34 L62,-20 Z"/>
+    <!-- head: small, rounded-triangular, facing the viewer -->
+    <path d="M98,-98 C122,-98 138,-84 138,-64 C138,-48 132,-34 122,-26
+             C116,-21 100,-21 94,-26 C84,-34 78,-48 78,-64
+             C78,-84 86,-98 98,-98 Z"/>
+    <!-- ears -->
+    <path d="M80,-84 C70,-94 72,-106 84,-104 C94,-102 98,-94 96,-86 Z"/>
+    <path d="M136,-86 C146,-96 146,-108 134,-106 C124,-104 120,-96 122,-88 Z"/>
+    <!-- a scalloped ruff down the neck and chest: reads as a heraldic
+         beast without the spiky-sun failure an actual mane produced -->
+    <path d="M64,-24 C74,-34 76,-48 70,-58 C82,-56 88,-44 84,-32
+             C94,-38 98,-50 94,-60 C104,-54 106,-40 98,-28
+             C92,-20 76,-16 64,-24 Z"/>
+    <!-- three legs planted, tapering, with claw notches at the paw -->
+    <path d="M-102,6 L-74,6 L-68,58 L-64,70 L-72,72 L-76,64 L-82,72 L-88,64
+             L-94,72 L-102,70 L-100,58 Z"/>
+    <path d="M-56,14 L-30,14 L-26,60 L-22,72 L-30,74 L-34,66 L-40,74 L-46,66
+             L-52,74 L-60,72 L-58,60 Z"/>
+    <path d="M24,14 L50,14 L52,60 L56,72 L48,74 L44,66 L38,74 L32,66 L26,74
+             L18,72 L18,60 Z"/>
+    <!-- the forward-reaching foreleg: PASSANT, planted ahead of the body -->
+    <path d="M62,2 L86,-6 L104,44 L110,56 L102,60 L96,52 L92,62 L84,56
+             L78,64 L70,60 L72,48 Z"/>
   </g>
 </defs>
-<use href="#leopard" transform="translate(250,96) scale(0.85)"/>
-<use href="#leopard" transform="translate(250,236) scale(0.85)"/>
+
+<g transform="translate(222,98) scale(0.62)">
+  <use href="#leopard" fill="#6b5009" stroke="#6b5009" stroke-width="13" stroke-linejoin="round"/>
+  <use href="#leopard" fill="#e8b923"/>
+  <!-- face cut back into the gold: eyes and a nose, closed muzzle -->
+  <circle cx="97" cy="-66" r="6" fill="#6b5009"/>
+  <circle cx="122" cy="-66" r="6" fill="#6b5009"/>
+  <path d="M102,-44 L118,-44 L110,-34 Z" fill="#6b5009"/>
+</g>
+<g transform="translate(222,242) scale(0.62)">
+  <use href="#leopard" fill="#6b5009" stroke="#6b5009" stroke-width="13" stroke-linejoin="round"/>
+  <use href="#leopard" fill="#e8b923"/>
+  <circle cx="97" cy="-66" r="6" fill="#6b5009"/>
+  <circle cx="122" cy="-66" r="6" fill="#6b5009"/>
+  <path d="M102,-44 L118,-44 L110,-34 Z" fill="#6b5009"/>
+</g>
 </svg>
