@@ -386,6 +386,18 @@ func _render_nations():
 				bbcode += "  Design: [color=#" + Utils.COLOR_GOLD + "]" + agenda_title + "[/color]"
 				if agenda_stance != "":
 					bbcode += " [color=#" + Utils.COLOR_GREY + "]— " + agenda_stance + "[/color]"
+				# NA-6d §11.6-5: the watcher marker — a design carrying a
+				# `forms` block advertises the nation it would become, with
+				# live progress, so no formation ever ambushes the player.
+				var agenda_forms = agenda.get("forms")
+				if agenda_forms != null and agenda_forms is Dictionary:
+					var forms_name = str(agenda_forms.get("display_name", ""))
+					if forms_name != "":
+						var forms_line = "forms: " + forms_name
+						var forms_progress = str(agenda_forms.get("progress", ""))
+						if forms_progress != "":
+							forms_line += " (" + forms_progress + ")"
+						bbcode += " [color=#" + Utils.COLOR_GOLD + "]→ " + forms_line + "[/color]"
 				bbcode += "\n"
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)

@@ -6,6 +6,45 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🏛 NA-6d — THE POLAND CHAIN + THE FORMABLES BUTTON ✅ LANDED July 19, 2026 — THE NA-6 ARC IS BUILD-COMPLETE
+
+**Landing record = `NATION_AGENDAS_SPEC.md` §21, authoritative.** Suite green
+(`test_nation_agendas_formables.py` 196 → **225**), ruff clean, M1–M7 byte-identical 11/11, Godot
+parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`, `GET /formables` live-verified over HTTP.
+
+- **The structural finding: a created client could never proclaim.** `process_formations` skipped
+  ANY nation with a `nation_formations` record, and NA-6c's creation writes one at birth — the C→T
+  chain was structurally dead, and the same latch blinded the §11.6-5 watcher for created clients.
+  Fixed as a QUARTET in `formations.py` keyed on new `_is_creation_record` (birth ≠ formation):
+  the poll skips only FORMED records; `_proclaim` preserves the record's `template` key (the
+  `from_dict` capital re-derivation depends on it); `_forms_block_for_record` resolves the
+  deck-entry arm FIRST (a template-first read would resolve formed Poland back to "Duchy of
+  Warsaw"); `get_formation_watch` retires only on FORMED records. `_resolve_sponsor`'s
+  prior-record arm went live: **Berlin blames Paris** — Prussia+Russia take the −30 blow vs BOTH
+  Poland and sponsor France, exactly once.
+- **"The Polish Question" lands on the threat panel** (the NA-6a deferred row): authored
+  `grudge_label` on the forms block/template ("The Polish Question", "The Roman Question");
+  `get_formation_grudge_contributions` emits per-formation source keys
+  (`formation_grudge:<tag>`, court-deduped inside the shared `AGENDA_GRUDGE_CAP` remainder —
+  conscious source-key flip, merged-key emission pinned dead); label arm
+  `diplomatic_ledger._threat_source_label` shared with the advisory.
+- **The Formables button** (§11.6-8): `GET /formables` → `build_formables_payload` — every Class C
+  template + Class T watcher, `gate_terms [{text, met}]`, availability = the REAL settlement
+  predicate per active war (drift-pinned against `_carve_templates_for_court`), deep_link into the
+  qualifying court; never hidden, never dead. The player's own-soil Normandy row renders the
+  MIRROR term ("a clause only a victorious enemy may put before you") — found in the live HTTP
+  check. `diplomacy_wizard.gd` step-1 gains "Formable Nations — states that could yet exist" →
+  step 3 chip rows; deep link lands on the court's action list (`_on_nation_selected`).
+- **The watcher's `.gd` consumer** (the NA-6b deferred row): the ledger Design line appends
+  "→ forms: Poland (1 of 2 provinces held)"; the war-room per-belligerent design lines carry the
+  same marker backend-side.
+- **§11.7 final sweep:** the risorgimento-block pin added (a standing Roman Republic holding Rome
+  keeps Italy unformed, watcher honestly 4 of 5); one-province watcher copy fixed. Remaining
+  live-verify note (§20.1): the AI's treatment of a carved client beyond turn 1 — next played
+  session, no code owed.
+
+**▶ NEXT: user in-game review of NA-6c + NA-6d (the §11.10 cadence), then Battle Diorama (Tier A) per ROADMAP row BD.**
+
 ### 🏛 NATION AGENDAS BUILD — NA-6c CLASS C CARVE-OUT CREATION ✅ LANDED July 19, 2026 — ▶ NEXT: NA-6d
 
 **A conquering side can now carve a NEW client state out of the defeated party's soil at the peace

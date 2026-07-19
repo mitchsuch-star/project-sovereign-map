@@ -31,7 +31,7 @@ var _request_id: int = 0  # Monotonic ID to discard stale responses
 var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 
 # State
-var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions
+var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=formables (NA-6d)
 var _selected_nation: String = ""
 var _dp_available: int = 0
 
@@ -119,7 +119,7 @@ func _close_wizard():
 
 func _go_back():
 	"""Return to previous step."""
-	if _current_step == 2:
+	if _current_step == 2 or _current_step == 3:
 		_current_step = 1
 		_selected_nation = ""
 		back_button.visible = false
@@ -166,6 +166,18 @@ func _fetch_preview(nation: String):
 		_show_error("Failed to fetch diplomatic preview.")
 
 
+func _fetch_formables():
+	"""Fetch the formable-world browser for Step 3 (NA-6d §11.6-8)."""
+	_http.cancel_request()
+	_request_id += 1
+	_pending_request = "formables"
+	_request_in_flight = true
+	var error = _http.request(API_URL + "/formables")
+	if error != OK:
+		_request_in_flight = false
+		_show_error("Failed to fetch the formable nations.")
+
+
 func _on_http_completed(result, response_code, headers, body):
 	_request_in_flight = false
 	if not visible:
@@ -193,6 +205,8 @@ func _on_http_completed(result, response_code, headers, body):
 		_render_nations(data)
 	elif _pending_request == "preview":
 		_render_preview(data)
+	elif _pending_request == "formables":
+		_render_formables(data)
 
 
 func _show_error(msg: String):
@@ -225,6 +239,10 @@ func _render_nations(data: Dictionary):
 	if dialogue_pending:
 		_add_dialogue_gate_notice(pending_envoy_count)
 		return
+
+	# NA-6d §11.6-8: the Formables button — the assured, always-reachable
+	# browser for the formable world. Top of the list, never hidden.
+	_add_formables_button()
 
 	var categories = data.get("categories", {})
 	var has_any = false
@@ -311,6 +329,90 @@ func _on_nation_selected(nation: String):
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_preview(nation)
+
+
+# =============================================================================
+# STEP 3: FORMABLE NATIONS (NA-6d §11.6-8 — the Formables button)
+# =============================================================================
+
+func _add_formables_button():
+	var btn = Button.new()
+	btn.text = "Formable Nations — states that could yet exist"
+	btn.custom_minimum_size = Vector2(0, 36)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	btn.pressed.connect(_on_formables_pressed)
+	content_list.add_child(btn)
+
+
+func _on_formables_pressed():
+	_current_step = 3
+	_selected_nation = ""
+	back_button.visible = true
+	title_label.text = "DIPLOMACY — FORMABLE NATIONS"
+	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"The map of Europe is not finished, Sire. These states could yet exist — each names what its existence would require.\"[/color]"
+	_clear_content_list()
+	_add_loading_label()
+	_fetch_formables()
+
+
+func _render_formables(data: Dictionary):
+	"""One row per formable — §11.6-8: never hidden, never dead. An
+	unavailable row states exactly what is missing; an available row
+	deep-links into the settlement flow for the qualifying war."""
+	_clear_content_list()
+	scroll_container.scroll_vertical = 0
+	var rows = data.get("formables", [])
+	if not (rows is Array) or rows.size() == 0:
+		_show_error("No formable nations are authored in this campaign.")
+		return
+	for row in rows:
+		if row is Dictionary:
+			_add_formable_row(row)
+
+
+func _add_formable_row(row: Dictionary):
+	var display_name = str(row.get("display_name", "?"))
+	var flag = str(row.get("flag", ""))
+	var cls = str(row.get("cls", ""))
+	var available = row.get("available", false)
+	var progress = str(row.get("progress", ""))
+
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+
+	var name_color = Utils.COLOR_GOLD if available else Utils.COLOR_HEADER
+	var kind = "client state at the settlement table" if cls == "C" else "forms by conquest"
+	var bbcode = Utils.bb_flag(flag, 16)
+	bbcode += "[color=#" + name_color + "][b]" + display_name + "[/b][/color]"
+	bbcode += " [color=#" + Utils.COLOR_GREY + "]— " + kind + "[/color]"
+	if progress != "":
+		bbcode += " [color=#" + Utils.COLOR_INFO + "](" + progress + ")[/color]"
+	for term in row.get("gate_terms", []):
+		if not (term is Dictionary):
+			continue
+		var met = term.get("met", false)
+		var mark = "✓" if met else "•"
+		var term_color = Utils.COLOR_SUCCESS if met else Utils.COLOR_GREY
+		bbcode += "\n    [color=#" + term_color + "]" + mark + " " + str(term.get("text", "")) + "[/color]"
+	lbl.text = bbcode
+	content_list.add_child(lbl)
+
+	# The honest deep link: an available carve lands on the defeated
+	# court's action list, where Open Settlement authors the clause.
+	var deep_link = row.get("deep_link")
+	if available and deep_link is Dictionary:
+		var court = str(deep_link.get("nation", ""))
+		if court != "":
+			var btn = Button.new()
+			btn.text = "    ↳ Open negotiations — " + Utils.display_nation_name(court)
+			btn.custom_minimum_size = Vector2(0, 32)
+			btn.add_theme_font_size_override("font_size", 12)
+			btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+			btn.pressed.connect(_on_nation_selected.bind(court))
+			content_list.add_child(btn)
 
 
 # =============================================================================

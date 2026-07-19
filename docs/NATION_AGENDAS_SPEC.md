@@ -500,9 +500,9 @@ Defects 4 and 5 were found by the pre-ship adversarial review (8 lenses → 2 in
 
 ### Deferred with owners
 
-Per-formation threat label ("The Polish Question") → **NA-6d**. The §11.6-5 watcher payload (`get_formation_watch` incl. `blocked_by_vassalage`, and the `agenda.forms` progress marker) is computed and pinned but has no `.gd` consumer yet → **NA-6d**, which lands the Formables button that renders it. Five further mid-turn region-control transfer paths (bilateral `_ratify_treaty`, `_apply_ultimatum_demands`, VS-3 grant and reclaim ×2) resolve formations on the NEXT tick rather than same-turn; the spec names only settlement ratification, and extending the set is **NA-6c** scope (it adds the carve clause those paths would interact with).
+~~Per-formation threat label ("The Polish Question") → **NA-6d**~~ ✅ CLOSED July 19, 2026 (§21). ~~The §11.6-5 watcher payload (`get_formation_watch` incl. `blocked_by_vassalage`, and the `agenda.forms` progress marker) is computed and pinned but has no `.gd` consumer yet → **NA-6d**~~ ✅ CLOSED July 19, 2026 (§21 — ledger Design-line marker + war-room marker + the Formables browser). Five further mid-turn region-control transfer paths (bilateral `_ratify_treaty`, `_apply_ultimatum_demands`, VS-3 grant and reclaim ×2) resolve formations on the NEXT tick rather than same-turn; the spec names only settlement ratification, and extending the set is **NA-6c** scope (it adds the carve clause those paths would interact with).
 
-**▶ NEXT: user reviews NA-6a + NA-6b in-game, then NA-6c (Class C carve creation) → NA-6d (the Poland chain + the Formables button).**
+**✅ THE NA-6 ARC IS BUILD-COMPLETE (July 19, 2026): NA-6a + NA-6b + NA-6c + NA-6d all landed — landing records §17, §20, §21. Next per ROADMAP: user in-game review of NA-6c+NA-6d, then the Battle Diorama (Tier A) slice.**
 
 ### §17.1 Addendum — the in-game review + second adversarial sweep (July 18, 2026)
 
@@ -1024,3 +1024,107 @@ AVAILABLE    [url=sugg:0:0][color=#80b0e0]Erect Duchy of Warsaw from Prussia's l
 
 The unavailable arm contains **no `[url=`** — structurally un-clickable rather than a dead
 button, which is the §11.6-1 requirement. Both sign-off rows opened in §20 are CLOSED.
+
+---
+
+## §21 Landing record — NA-6d The Poland chain + the Formables button (July 19, 2026)
+
+**THE NA-6 FORMABLE DREAMS ARC IS BUILD-COMPLETE** — NA-6a → NA-6b → NA-6c → NA-6d all landed.
+Suite green (`tests/test_nation_agendas_formables.py` 196 → **225**), ruff clean, M1–M7 sweep
+harness byte-identical 11/11, Godot parse harness `EXIT=0`, headless boot **0 `SCRIPT ERROR`**,
+`GET /formables` live-verified over HTTP against the boot 1805 world.
+
+### The structural finding the slice turned on
+
+**A created client could never proclaim.** `process_formations` skipped ANY nation carrying a
+`nation_formations` record ("once-only"), and NA-6c's creation writes one at birth — so the C→T
+chain was structurally dead: a freed Duchy of Warsaw holding Lithuania + Volhynia would sit
+silent forever. The same latch also killed the §11.6-5 watcher for created clients
+(`get_formation_watch` returned None on any record), so the dormant Poland dream was invisible
+too. Every failure silent, none reachable by NA-6c's tests because no test freed a client.
+
+**The fix is a QUARTET in `formations.py`, all keyed on one distinction** — new
+`_is_creation_record` (a creation stamps `id == template`; a formation stamps the forming deck
+entry's id):
+
+1. `process_formations` skips only NON-creation records — birth is not formation.
+2. `_proclaim` PRESERVES the record's `template` key across the formation — the `from_dict`
+   capital re-derivation (§20 Q10) keys off it, and dropping it would cost a reloaded Duchy its
+   capital (−1 DP forever, garrison seams intact only until the next load).
+3. `_forms_block_for_record` resolves the DECK-entry arm FIRST (by record `id`), template arm as
+   fallback — with `template` now preserved, a template-first read would have resolved a formed
+   Poland back to "Duchy of Warsaw". A pure creation record's id matches no deck entry, so
+   deckless clients (Normandy, Roman Republic) keep their identity — the NA-6c pin holds.
+4. `get_formation_watch` retires the watch only for FORMED records — a carved Duchy's dormant
+   dream is precisely what the watcher exists to show.
+
+`_resolve_sponsor`'s prior-record arm (dead code since NA-6a, written for exactly this) went
+live: the freed Duchy has no lord at proclamation, so **Berlin blames Paris** through the stored
+creation sponsor — pinned as the double relation blow (Prussia+Russia −30 vs BOTH Poland and
+France, exactly once, no re-fire on save/load).
+
+### "The Polish Question" (§11.9 per-formation threat label — the NA-6a deferred row CLOSED)
+
+- `get_forms_block` gains optional **`grudge_label`**; authored: "The Polish Question"
+  (`commonwealth_restored.forms`), "The Roman Question" (RomanRepublic template). Validator
+  string-shape check both places; MODDING_FORMAT rows.
+- New `get_formation_grudge_contributions(world, budget)` → `[{source:
+  "formation_grudge:<tag>", label, amount}]` — per-formation source keys, court-deduped across
+  formations in (formation turn, tag) order, clamped inside the SHARED `AGENDA_GRUDGE_CAP`
+  remainder. `get_formation_grudge_nations`/`get_formation_grudge_threat` are now views over it
+  (every NA-6a pin byte-green).
+- `process_coalition_turn` step 2 emits per-formation keys (**conscious source-key flip**:
+  `formation_grudge` → `formation_grudge:<tag>`; pinned that the merged key is never emitted).
+- Label resolution: new `diplomatic_ledger._threat_source_label(world, key)` — the
+  `formation_grudge:` prefix arm resolves the authored label via
+  `formations.formation_grudge_source_label`, generic "Nations raised from their lands" as
+  fallback; the advisory's what-stirred-Europe list shares the same helper. The France-scoped
+  scalar caveat (§11.10-8) is re-pinned on the REAL carve path: a Britain-erected Roman Republic
+  costs the relation blows but feeds no France-targeted threat.
+
+### The Formables button (§11.6-8 / decision 9)
+
+- `formations.build_formables_payload(world)` + **`GET /formables`**: one row per Class C
+  template AND Class T watcher — `{tag, display_name, flag, cls, gate_terms[{text, met}],
+  available, progress, deep_link}`. Availability is the REAL settlement predicate
+  (`evaluate_create_client_eligibility` per active war — a drift pin asserts row availability
+  equals `_carve_templates_for_court`'s answer for the same war). Rows never hidden, never
+  dead: boot Warsaw states "at war with Prussia" + "Posen held at the settlement table
+  (currently Prussia-held)", both unmet; an erected Duchy's C row reads "already stands" while
+  a NEW T watcher row appears for its dormant Poland dream ("0 of 2 provinces held", "currently
+  a vassal of France"); a formed Italy reads "Italy already stands". **The player's own-soil
+  row (Normandy, from_court == player) renders the MIRROR term** — "a clause only a victorious
+  enemy may put before you" — rather than the absurd "at war with France" (found in the live
+  HTTP check).
+- `diplomacy_wizard.gd`: step-1 top button **"Formable Nations — states that could yet exist"**
+  → step 3 (`_fetch_formables`/`_render_formables`, own `_pending_request` arm, back-button
+  returns to step 1), rows in the U6 chip idiom (flag via `Utils.bb_flag` on the row's flag
+  TAG, ✓/• met marks, gold-vs-header name by availability); an available row's deep link is a
+  gold "↳ Open negotiations — <court>" button into `_on_nation_selected(court)` — the honest
+  landing is the defeated court's action list where Open Settlement authors the clause.
+
+### The watcher's `.gd` consumer (§11.6-5 — the NA-6b deferred row CLOSED)
+
+- `diplomatic_ledger.gd` Nations tab: the Design line now appends
+  **"→ forms: Poland (1 of 2 provinces held)"** from the agenda payload's `forms` block.
+- The war room (`_assess_situation` per-belligerent design lines) appends the same marker
+  backend-side — "(forms: Danubia — 1 of 2 provinces held)" pinned through a real boot-war
+  opponent.
+
+### Also closed here (the §11.7 final sweep)
+
+- **The risorgimento-block pin** (§11.7 v1.2): a standing Roman Republic holding Rome keeps
+  Italy unformed and the watcher honestly reads 4 of 5 — derived behavior, now pinned.
+- Watcher copy: a one-province claim reads "holds its claimed province", not "all 1".
+- §20.1's "AI treatment of a carved client beyond turn 1" note stays a live-verification item
+  for the next played session (no code owed).
+
+**Tests (+29):** the C→T chain (creation-record non-latch, identity transform, vassal dormancy,
+permanent latch + save/load, template-key preservation + capital re-derivation, Berlin-blames-
+Paris double blow, post-formation `guard_the_vistula`, Duchy-era history respected), the §11.9
+list (named contribution, panel label resolution + fallback + static-arm, coalition source-key
+emission, wound ends on vassalization/elimination, shared cap, AI-erected no-France-threat,
+forms-block normalization, validator), the Formables payload (5 boot rows, never-hidden/never-
+dead, honest boot gates, mirror row, qualifying-war deep link + drift pin, erected-and-watching
+double row, formed row, endpoint source pin), and the watcher consumers (war-room marker,
+nations-tab payload, both `.gd` source-scrapes).

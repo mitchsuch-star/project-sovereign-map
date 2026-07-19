@@ -3418,6 +3418,21 @@ def get_marshal_overview():
     return payload
 
 
+@app.get("/formables")
+def get_formables():
+    """NA-6d §11.6-8 — the Formables button payload: every Class C template
+    and Class T watcher with honest gate terms (never hidden, never dead).
+    Rendered by the F1 diplomacy wizard's "Formable Nations" entry."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    from backend.game_logic.formations import build_formables_payload
+    active_world = game_state["world"]
+    payload = build_formables_payload(active_world)
+    payload["success"] = True
+    _attach_nation_identity_overrides(payload, active_world)
+    return payload
+
+
 # ════════════════════════════════════════════════════════════
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════

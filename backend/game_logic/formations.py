@@ -90,6 +90,10 @@ def get_forms_block(entry: dict) -> Optional[dict]:
         "flag": flag,
         "blurb": str(forms.get("blurb") or ""),
         "aggrieved": [str(n) for n in (forms.get("aggrieved") or []) if n],
+        # NA-6d §11.9 — the authored threat-panel name for the standing
+        # wound ("The Polish Question"). Empty = the panel's generic
+        # formation label; only meaningful beside a non-empty `aggrieved`.
+        "grudge_label": str(forms.get("grudge_label") or "").strip(),
     }
 
 
@@ -105,6 +109,21 @@ def _formation_records(world) -> Dict[str, dict]:
 def get_formation_record(world, nation: str) -> Optional[dict]:
     record = _formation_records(world).get(nation)
     return record if isinstance(record, dict) else None
+
+
+def _is_creation_record(record: Optional[dict]) -> bool:
+    """True for a Class C CREATION record that has not yet FORMED (NA-6d).
+
+    A creation stamps `{"id": <template>, "template": <template>, ...}`;
+    a formation stamps the forming DECK ENTRY's id. The distinction is the
+    C→T chain's hinge: a created Duchy of Warsaw must still be able to
+    proclaim Poland (its creation was a birth, not its formation), while a
+    FORMED nation is latched forever (§11.1 — formation is permanent).
+    """
+    if not isinstance(record, dict):
+        return False
+    template = str(record.get("template") or "")
+    return bool(template) and str(record.get("id") or "") == template
 
 
 def get_template(world, template_id: str) -> Optional[dict]:
@@ -157,19 +176,30 @@ def _forms_block_for_record(world, nation: str, record: dict) -> Optional[dict]:
     through its own deck entry. Without the template arm a deckless
     carved client would silently have no display name, no flag, and no
     standing §11.9 grudge — the failure would be invisible rather than
-    loud, which is why the template arm is checked FIRST.
+    loud.
+
+    NA-6d re-ordered the arms: the DECK-ENTRY arm now goes first, keyed
+    on the record's `id`. The C→T chain preserves the `template` key
+    across the Poland formation (the `from_dict` capital re-derivation
+    needs it forever), so a template-first read would resolve a FORMED
+    Poland back to "Duchy of Warsaw". A pure creation record's `id` IS
+    the template id, which no deck entry carries, so it falls through to
+    the template arm untouched — deckless clients keep their identity
+    (the NA-6c pin holds).
     """
+    wanted = str((record or {}).get("id") or "")
+    if wanted:
+        for entry in _deck(world, nation):
+            if str(entry.get("id") or "") == wanted:
+                block = get_forms_block(entry)
+                if block is not None:
+                    return block
+                break
     template_id = str((record or {}).get("template") or "")
     if template_id:
         identity = get_template_identity(get_template(world, template_id))
         if identity is not None:
             return identity
-    wanted = str((record or {}).get("id") or "")
-    if not wanted:
-        return None
-    for entry in _deck(world, nation):
-        if str(entry.get("id") or "") == wanted:
-            return get_forms_block(entry)
     return None
 
 
@@ -301,8 +331,13 @@ def get_formation_watch(world, nation: str) -> Optional[dict]:
     vassal's dormant dream approach is exactly the "player as ex-lord"
     case §11.6-5 names — but `blocked_by_vassalage` states the truth so
     no surface can imply it is one province away when it is not free.
+
+    NA-6d: a Class C CREATION record does not end the watch — a carved
+    Duchy of Warsaw's dormant Poland dream is precisely what the watcher
+    exists to show. Only a FORMED record retires it.
     """
-    if get_formation_record(world, nation) is not None:
+    record = get_formation_record(world, nation)
+    if record is not None and not _is_creation_record(record):
         return None
     from backend.game_logic.agendas import _controlled_by_self_or_vassal
     for entry in _deck(world, nation):
@@ -314,6 +349,7 @@ def get_formation_watch(world, nation: str) -> Optional[dict]:
                 if _controlled_by_self_or_vassal(world, nation, r)]
         return {
             "forms": forms["display_name"],
+            "flag": forms["flag"],
             "entry_id": str(entry.get("id") or ""),
             "held": int(len(held)),
             "required": int(len(regions)),
@@ -405,6 +441,7 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
     if records is None:
         world.nation_formations = {}
         records = world.nation_formations
+    prior = records.get(nation) if isinstance(records.get(nation), dict) else {}
     records[nation] = {
         "id": str(entry.get("id") or ""),
         "sponsor": sponsor,
@@ -413,6 +450,13 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
         # (the dispatch QUEUE is cleared at the top of the next tick).
         "turn": turn,
     }
+    # NA-6d C→T: a created client that later FORMS (Warsaw → Poland) keeps
+    # its birth template on the record forever — the `from_dict` capital
+    # re-derivation (Q10) and the shape-parity contract key off it. The id
+    # changing to the deck entry's is what latches the poll; identity
+    # resolution reads the deck arm first, so the name still moves.
+    if prior and str(prior.get("template") or ""):
+        records[nation]["template"] = str(prior["template"])
 
     rewards = _apply_formation_rewards(world, nation)
     struck = _apply_aggrieved_blow(world, nation, forms, sponsor)
@@ -575,8 +619,12 @@ def process_formations(world) -> List[Dict]:
 
     proclamations: List[Dict] = []
     for nation in sorted(world.get_active_nations()):
-        if get_formation_record(world, nation) is not None:
+        record = get_formation_record(world, nation)
+        if record is not None and not _is_creation_record(record):
             continue            # once-only; formation is permanent (§11.1)
+        # A pure CREATION record does NOT latch the poll (NA-6d): being
+        # carved into existence was the nation's birth, not its formation
+        # — a freed Duchy of Warsaw must still be able to proclaim Poland.
         if _is_vassal(world, nation):
             continue            # a client cannot proclaim (§3.2 dormancy)
         if survival_override_active(world, nation):
@@ -896,13 +944,18 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
 
 # ═══════════════════ §11.9 THE STANDING WOUND (formation_grudge) ══════════
 
-def get_formation_grudge_nations(world) -> List[str]:
-    """Aggrieved courts still nursing a standing formation grievance.
+def _formation_grudges(world) -> List[dict]:
+    """Per-formation standing grievances: [{tag, label, courts}].
 
     Fully derived from `world.nation_formations` + the authored `aggrieved`
     list — zero new serialized fields. The grievance ends only via the
     aggrieved power's own elimination or vassalization; the formation
     itself is permanent (§11.1), so nothing else dissolves it.
+
+    Deterministic order (formation turn, then tag) and court-level dedup
+    across formations: a court aggrieved by two proclamations grieves
+    ONCE — the earlier formation claims it, so amounts never double-count
+    within the shared cap.
 
     v0.1 France-scoped-scalar caveat (§11.10 decision 8, the D2 pattern —
     recorded, not fought): coalition threat is a single France-targeted
@@ -915,8 +968,13 @@ def get_formation_grudge_nations(world) -> List[str]:
     active = set(world.get_active_nations())
     vassals = getattr(world, "vassals", {}) or {}
 
-    grudged: set = set()
-    for nation, record in _formation_records(world).items():
+    grudges: List[dict] = []
+    claimed: set = set()
+    ordered = sorted(
+        _formation_records(world).items(),
+        key=lambda kv: (int((kv[1] or {}).get("turn") or 0) if isinstance(kv[1], dict) else 0,
+                        kv[0]))
+    for nation, record in ordered:
         if not isinstance(record, dict):
             continue
         sponsor = str(record.get("sponsor") or "")
@@ -931,11 +989,55 @@ def get_formation_grudge_nations(world) -> List[str]:
         forms = _forms_block_for_record(world, nation, record)
         if forms is None:
             continue
-        for power in forms.get("aggrieved") or []:
-            if power == player or power not in active or power in vassals:
-                continue
-            grudged.add(power)
+        courts = [power for power in (forms.get("aggrieved") or [])
+                  if power != player and power in active
+                  and power not in vassals and power not in claimed]
+        if not courts:
+            continue
+        claimed.update(courts)
+        grudges.append({
+            "tag": nation,
+            "label": forms.get("grudge_label") or "",
+            "courts": courts,
+        })
+    return grudges
+
+
+def get_formation_grudge_nations(world) -> List[str]:
+    """Aggrieved courts still nursing a standing formation grievance
+    (the NA-6a API — now a view over `_formation_grudges`)."""
+    grudged: set = set()
+    for grudge in _formation_grudges(world):
+        grudged.update(grudge["courts"])
     return sorted(grudged)
+
+
+def get_formation_grudge_contributions(world, budget: int) -> List[dict]:
+    """Per-formation threat contributions inside the SHARED §5.8 budget:
+    [{source: "formation_grudge:<tag>", label, amount}] (NA-6d).
+
+    §11.9 pins that the threat panel NAMES each grievance ("The Polish
+    Question" for Warsaw/Poland) — so each formation emits under its own
+    source key rather than one merged `formation_grudge` row. The budget
+    split with `agenda_grudge` is unchanged: that family emits first at
+    its own value and the formations share only the remainder, earlier
+    formations first (the `_formation_grudges` order).
+    """
+    room = int(max(0, min(AGENDA_GRUDGE_CAP, budget)))
+    contributions: List[dict] = []
+    for grudge in _formation_grudges(world):
+        if room <= 0:
+            break
+        amount = int(min(room, len(grudge["courts"])))
+        if amount <= 0:
+            continue
+        room -= amount
+        contributions.append({
+            "source": f"formation_grudge:{grudge['tag']}",
+            "label": grudge["label"],
+            "amount": amount,
+        })
+    return contributions
 
 
 def get_formation_grudge_threat(world, budget: int) -> int:
@@ -951,7 +1053,201 @@ def get_formation_grudge_threat(world, budget: int) -> int:
     do not move). Order-dependence is real and deliberate; documented here
     because it is the one thing a reader would otherwise call a bug.
     """
-    room = int(max(0, min(AGENDA_GRUDGE_CAP, budget)))
-    if room <= 0:
-        return 0
-    return int(min(room, len(get_formation_grudge_nations(world))))
+    return int(sum(c["amount"]
+                   for c in get_formation_grudge_contributions(world, budget)))
+
+
+def formation_grudge_source_label(world, source_key: str) -> str:
+    """The threat-panel display name for a `formation_grudge:<tag>` source
+    key — the authored `grudge_label` ("The Polish Question"), else ""
+    so callers fall back to the generic formation label. Resolves through
+    the formation record so a serialized threat row keeps its name across
+    save/load without storing it."""
+    if ":" not in (source_key or ""):
+        return ""
+    tag = source_key.split(":", 1)[1]
+    record = get_formation_record(world, tag)
+    if record is None:
+        return ""
+    forms = _forms_block_for_record(world, tag, record)
+    if forms is None:
+        return ""
+    return str(forms.get("grudge_label") or "")
+
+
+# ═══════════════ NA-6d — THE FORMABLES BUTTON (§11.6-8 / decision 9) ══════
+
+def build_formables_payload(world) -> dict:
+    """One row per Class C template AND per Class T watcher — the assured,
+    always-reachable browser for the formable world (`GET /formables`).
+
+    §11.6-8 contract: rows are NEVER hidden and NEVER dead. An unavailable
+    row states exactly what is missing in its `gate_terms`; an available
+    Class C row carries a `deep_link {nation, war_id}` into the settlement
+    flow that can author the clause. Class T rows are informational by
+    construction (a formation happens by conquest, not authoring) and a
+    formed row says the dream already stands.
+
+    Availability is the REAL settlement predicate
+    (`evaluate_create_client_eligibility`) run per active war — never a
+    re-derivation that could drift from the authoring surface.
+    """
+    from backend.game_logic.settlement_validation import (
+        evaluate_create_client_eligibility,
+    )
+    from backend.models.region import get_starting_controllers
+
+    player = getattr(world, "player_nation", "France")
+    active = set(world.get_active_nations())
+    starting = (getattr(world, "_starting_controllers", None)
+                or get_starting_controllers())
+    war_instances = getattr(world, "war_instances", None) or {}
+    regions = getattr(world, "regions", {}) or {}
+    rows: List[dict] = []
+
+    # ── Class C templates (authored order — dict preserves insertion) ──
+    catalogue = getattr(world, "formable_nations", None) or {}
+    for template_id, template in catalogue.items():
+        identity = get_template_identity(template)
+        if identity is None:
+            continue
+        provinces = template_provinces(template)
+        from_court = str(starting.get(provinces[0], "")) if provinces else ""
+        court_display = formed_display_name(world, from_court) if from_court else ""
+
+        if template_id in active:
+            rows.append({
+                "tag": template_id,
+                "display_name": identity["display_name"],
+                "flag": identity["flag"],
+                "cls": "C",
+                "available": False,
+                "progress": "",
+                "gate_terms": [
+                    {"text": f"{identity['display_name']} already stands",
+                     "met": True},
+                ],
+                "deep_link": None,
+            })
+            continue
+
+        # The player's OWN soil: France can never carve Normandy — the
+        # eligibility predicate refuses from_court == carver by design.
+        # The row still shows (§11.6-8: never hidden), but its honest gate
+        # term is the mirror threat, not a war-with-yourself absurdity.
+        if from_court == player:
+            rows.append({
+                "tag": template_id,
+                "display_name": identity["display_name"],
+                "flag": identity["flag"],
+                "cls": "C",
+                "available": False,
+                "progress": "",
+                "gate_terms": [{
+                    "text": (f"carved from {formed_display_name(world, player)}'s "
+                             f"own provinces — a clause only a victorious "
+                             f"enemy may put before you"),
+                    "met": False,
+                }],
+                "deep_link": None,
+            })
+            continue
+
+        # The real predicate, per active war — first qualifying war wins.
+        deep_link = None
+        for war_id in sorted(war_instances):
+            war = war_instances.get(war_id)
+            if not isinstance(war, dict):
+                continue
+            verdict = evaluate_create_client_eligibility(
+                world, war_instance=war, template_id=template_id,
+                from_court=from_court, carver=player)
+            if verdict.get("eligible"):
+                deep_link = {"nation": from_court, "war_id": str(war_id)}
+                break
+
+        # Honest gate terms, composed from world state the player can act on.
+        pair_state = ""
+        if from_court:
+            pair_state = str((getattr(world, "diplomatic_states", {}) or {})
+                             .get(world._make_diplo_key(player, from_court), ""))
+        at_war = pair_state in ("WAR", "ARMISTICE")
+        bloc = set(world.get_bloc_members(player)) | {player}
+        terms = [{
+            "text": f"at war with {court_display or 'the owning court'}",
+            "met": bool(at_war),
+        }]
+        for province in provinces:
+            holder = str(getattr(regions.get(province), "controller", "") or "")
+            held = holder in bloc
+            text = f"{province} held at the settlement table"
+            if not held and holder:
+                text += f" (currently {formed_display_name(world, holder)}-held)"
+            terms.append({"text": text, "met": bool(held)})
+
+        rows.append({
+            "tag": template_id,
+            "display_name": identity["display_name"],
+            "flag": identity["flag"],
+            "cls": "C",
+            "available": deep_link is not None,
+            "progress": "",
+            "gate_terms": terms,
+            "deep_link": deep_link,
+        })
+
+    # ── Class T watchers (every deck with an unfired `forms` entry) ──
+    for nation in sorted((getattr(world, "agendas", {}) or {})):
+        if nation not in active:
+            continue
+        record = get_formation_record(world, nation)
+        if record is not None and not _is_creation_record(record):
+            # Formed — the dream already stands; say so, never hide it.
+            identity = get_display_identity(world, nation)
+            if identity is None:
+                continue
+            rows.append({
+                "tag": nation,
+                "display_name": identity["display_name"],
+                "flag": identity["flag_tag"],
+                "cls": "T",
+                "available": False,
+                "progress": "",
+                "gate_terms": [
+                    {"text": f"{identity['display_name']} already stands",
+                     "met": True},
+                ],
+                "deep_link": None,
+            })
+            continue
+        watch = get_formation_watch(world, nation)
+        if watch is None:
+            continue
+        holder_display = formed_display_name(world, nation)
+        required = int(watch["required"])
+        claim = ("its claimed province" if required == 1
+                 else f"all {required} of its claimed provinces")
+        terms = [{
+            "text": f"forms when a free {holder_display} holds {claim}",
+            "met": int(watch["held"]) >= required,
+        }]
+        if watch["blocked_by_vassalage"]:
+            lord = str(((getattr(world, "vassals", {}) or {})
+                        .get(nation) or {}).get("lord") or "")
+            lord_display = formed_display_name(world, lord) if lord else "a foreign power"
+            terms.append({
+                "text": f"currently a vassal of {lord_display}",
+                "met": False,
+            })
+        rows.append({
+            "tag": nation,
+            "display_name": watch["forms"],
+            "flag": watch["flag"],
+            "cls": "T",
+            "available": False,
+            "progress": watch["progress"],
+            "gate_terms": terms,
+            "deep_link": None,
+        })
+
+    return {"formables": rows, "count": int(len(rows))}

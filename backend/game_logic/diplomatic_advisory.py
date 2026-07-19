@@ -335,7 +335,7 @@ def _assess_situation(world) -> Dict:
     from backend.game_logic.coalition import (
         get_coalition_posture, get_threat_tier,
     )
-    from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
+    from backend.game_logic.diplomatic_ledger import _threat_source_label
     from backend.game_logic.war_status import build_active_wars
 
     player = get_player_nation(world)
@@ -374,9 +374,19 @@ def _assess_situation(world) -> Dict:
                 payload = build_agenda_payload(participant, world)
                 if payload:
                     agenda_payloads[participant] = payload
-                    lines.append(
+                    design_line = (
                         f"    {formed_display_name(world, participant)}'s design: "
                         f"{payload['title']} — {payload['stance_line']}")
+                    # NA-6d §11.6-5: the war room carries the "forms:"
+                    # watcher with live progress — the dream is visible.
+                    forms_marker = payload.get("forms")
+                    if isinstance(forms_marker, dict) and forms_marker.get("display_name"):
+                        design_line += (
+                            f" (forms: {forms_marker['display_name']}"
+                            + (f" — {forms_marker['progress']}"
+                               if forms_marker.get("progress") else "")
+                            + ")")
+                    lines.append(design_line)
             wars_context.append({"opponent": row.get("opponent", ""),
                                  "war_score": score, "trend": trend,
                                  "agendas": agenda_payloads})
@@ -422,8 +432,7 @@ def _assess_situation(world) -> Dict:
         for s in sources:
             key = str(s.get("source", ""))
             amount = int(s.get("amount", 0))
-            label = _THREAT_SOURCE_LABELS.get(
-                key, key.replace("_", " ").title())
+            label = _threat_source_label(world, key)
             sign = "+" if amount >= 0 else ""
             rendered.append(f"{label} ({sign}{amount})")
             sources_context.append(

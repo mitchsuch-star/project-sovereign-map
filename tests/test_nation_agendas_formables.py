@@ -2584,3 +2584,386 @@ class TestCarveReviewFixes:
         carve_warnings = _warnings([carve])
         assert any("Ney" in str(t) for t in cede_warnings)
         assert carve_warnings == cede_warnings
+
+
+# ═══════════════════ NA-6d — THE POLAND CHAIN (§11.7 C→T pin) ═════════════
+#
+# The hinge the whole slice turns on: a Class C CREATION record must not
+# latch the formation poll. Being carved into existence was the Duchy's
+# BIRTH, not its formation — a freed Duchy of Warsaw taking Lithuania and
+# Volhynia proclaims POLAND through the same §11.1 machinery every Class T
+# formable uses, and only THAT latches it forever.
+
+def _erect_the_duchy(world):
+    _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+    create_client_nation(world, "DuchyOfWarsaw", "France", ceded_from="Prussia")
+
+
+def _the_poland_chain(world):
+    """Create the Duchy, free it, hand it the Commonwealth lands, poll."""
+    _erect_the_duchy(world)
+    _free(world, "DuchyOfWarsaw")
+    _hand_over(world, "DuchyOfWarsaw", ["Lithuania", "Volhynia"])
+    return process_formations(world)
+
+
+class TestPolandChain:
+    def test_a_creation_record_does_not_latch_the_poll(self, world):
+        proclamations = _the_poland_chain(world)
+        assert len(proclamations) == 1
+        payload = proclamations[0]
+        assert payload["nation"] == "DuchyOfWarsaw"
+        assert payload["display_name"] == "Poland"
+        assert payload["old_display_name"] == "Duchy of Warsaw"
+        assert payload["entry_id"] == "commonwealth_restored"
+
+    def test_the_identity_transforms_to_poland(self, world):
+        _the_poland_chain(world)
+        assert get_display_identity(world, "DuchyOfWarsaw") == {
+            "display_name": "Poland", "flag_tag": "Poland"}
+        assert build_nation_display_overrides(
+            world)["DuchyOfWarsaw"] == "Poland"
+        assert build_nation_flag_overrides(world)["DuchyOfWarsaw"] == "Poland"
+
+    def test_a_vassal_duchy_cannot_proclaim(self, world):
+        """§3.2 dormancy still holds — the chain requires FREEDOM first."""
+        _erect_the_duchy(world)
+        _hand_over(world, "DuchyOfWarsaw", ["Lithuania", "Volhynia"])
+        assert process_formations(world) == []
+        record = get_formation_record(world, "DuchyOfWarsaw")
+        assert record["id"] == "DuchyOfWarsaw"     # still the birth record
+
+    def test_poland_is_latched_forever(self, world):
+        _the_poland_chain(world)
+        assert process_formations(world) == []
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert process_formations(reloaded) == []
+        assert get_display_identity(reloaded, "DuchyOfWarsaw") == {
+            "display_name": "Poland", "flag_tag": "Poland"}
+
+    def test_the_record_keeps_its_birth_template(self, world):
+        """The `from_dict` capital re-derivation (Q10) keys off the record's
+        `template` — the Poland formation must preserve it or a reloaded
+        Duchy silently loses its capital and pays −1 DP forever."""
+        _the_poland_chain(world)
+        record = get_formation_record(world, "DuchyOfWarsaw")
+        assert record["id"] == "commonwealth_restored"
+        assert record["template"] == "DuchyOfWarsaw"
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert reloaded.nation_capitals.get("DuchyOfWarsaw") == "Posen"
+
+    def test_berlin_blames_paris(self, world):
+        """§11.10 decision 8: the freed Duchy has no lord at proclamation,
+        so the sponsor comes from the stored CREATION record — and the
+        aggrieved blow lands on BOTH Poland and France, exactly once."""
+        _erect_the_duchy(world)
+        _free(world, "DuchyOfWarsaw")
+        keys = {
+            (power, target): world._make_diplo_key(power, target)
+            for power in ("Prussia", "Russia")
+            for target in ("DuchyOfWarsaw", "France")
+        }
+        before = {k: world.nation_relations.get(key, 0)
+                  for k, key in keys.items()}
+        _hand_over(world, "DuchyOfWarsaw", ["Lithuania", "Volhynia"])
+        payload = process_formations(world)[0]
+        assert payload["sponsor"] == "France"
+        assert sorted(payload["aggrieved"]) == ["Prussia", "Russia"]
+        for k, key in keys.items():
+            assert world.nation_relations[key] == max(
+                -100, before[k] + FORMATION_AGGRIEVED_RELATION_PENALTY)
+        after = {key: world.nation_relations[key] for key in keys.values()}
+        process_formations(world)
+        for key, value in after.items():
+            assert world.nation_relations[key] == value
+
+    def test_the_post_formation_goal_is_guard_the_vistula(self, world):
+        """§11.1-4 — deck priority natively activates the next entry."""
+        _the_poland_chain(world)
+        view = get_active_agenda("DuchyOfWarsaw", world)
+        assert view is not None
+        assert view.id == "guard_the_vistula"
+
+    def test_a_standing_roman_republic_keeps_italy_unformed(self, world):
+        """The §11.7 v1.2 risorgimento-block pin: Rome under a carved Roman
+        Republic is Rome NOT under the Kingdom of Italy or its vassals, so
+        the peninsula's dream stays one province short — derived, no code."""
+        _carve_ready(world, "RomanRepublic", "PapalStates", "France")
+        world.war_scores[world._make_diplo_key("France", "PapalStates")] = 95
+        create_client_nation(world, "RomanRepublic", "France",
+                             ceded_from="PapalStates")
+        _free(world, "KingdomOfItaly")
+        _hand_over(world, "KingdomOfItaly",
+                   [p for p in ITALY_PROVINCES if p != "Rome"])
+        assert world.regions["Rome"].controller == "RomanRepublic"
+        assert process_formations(world) == []
+        assert get_formation_record(world, "KingdomOfItaly") is None
+        watch = get_formation_watch(world, "KingdomOfItaly")
+        assert watch["held"] == 4 and watch["required"] == 5
+
+    def test_history_respects_the_duchy_era(self, world):
+        """`apply_formation_names_to_history` renames only at/after the
+        formation turn — and "Duchy of Warsaw" is multi-token, so the
+        prose-safety guard permits the rename that "Normandy" is denied."""
+        _erect_the_duchy(world)
+        _free(world, "DuchyOfWarsaw")
+        world.current_turn = 12
+        _hand_over(world, "DuchyOfWarsaw", ["Lithuania", "Volhynia"])
+        process_formations(world)
+        early = apply_formation_names_to_history(
+            world, "Duchy of Warsaw musters its corps.", {"turn": 5})
+        late = apply_formation_names_to_history(
+            world, "Duchy of Warsaw musters its corps.", {"turn": 12})
+        assert early == "Duchy of Warsaw musters its corps."
+        assert late == "Poland musters its corps."
+
+
+# ═══════════ NA-6d — "THE POLISH QUESTION" (§11.9 named wound) ════════════
+
+class TestPolishQuestion:
+    def test_the_standing_wound_names_itself(self, world):
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        _the_poland_chain(world)
+        contributions = get_formation_grudge_contributions(world, budget=2)
+        assert contributions == [{
+            "source": "formation_grudge:DuchyOfWarsaw",
+            "label": "The Polish Question",
+            "amount": 2,       # Prussia + Russia, inside the shared cap
+        }]
+
+    def test_the_threat_panel_resolves_the_label(self, world):
+        from backend.game_logic.diplomatic_ledger import (
+            _THREAT_SOURCE_LABELS, _threat_source_label,
+        )
+        _the_poland_chain(world)
+        assert _threat_source_label(
+            world, "formation_grudge:DuchyOfWarsaw") == "The Polish Question"
+        # Unknown tag / unformed world → the generic formation row.
+        assert _threat_source_label(
+            world, "formation_grudge:Ruritania"
+        ) == _THREAT_SOURCE_LABELS["formation_grudge"]
+        # The static arm is untouched.
+        assert _threat_source_label(world, "battle_win") == "Won a battle"
+
+    def test_coalition_step_two_emits_the_named_source(self, world):
+        """The wiring pin: `process_coalition_turn` step 2 must emit the
+        per-formation key, not one merged `formation_grudge`."""
+        from backend.game_logic.coalition import process_coalition_turn
+        _the_poland_chain(world)
+        world.threat_sources_this_turn = []
+        process_coalition_turn(world)
+        named = [s for s in world.threat_sources_this_turn
+                 if s.get("source") == "formation_grudge:DuchyOfWarsaw"]
+        assert len(named) == 1
+        assert int(named[0]["amount"]) >= 1
+        assert not any(s.get("source") == "formation_grudge"
+                       for s in world.threat_sources_this_turn)
+
+    def test_the_wound_ends_with_the_aggrieved_courts(self, world):
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        _the_poland_chain(world)
+        world.vassals["Prussia"] = {"lord": "France", "loyalty": 50}
+        world.invalidate_bloc_members_cache()
+        contributions = get_formation_grudge_contributions(world, budget=2)
+        assert contributions[0]["amount"] == 1     # Russia alone grieves
+        world.enemy_nations.remove("Russia")
+        world.invalidate_active_nations_cache()
+        assert get_formation_grudge_contributions(world, budget=2) == []
+
+    def test_the_cap_is_shared_with_the_agenda_family(self, world):
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        _the_poland_chain(world)
+        assert get_formation_grudge_contributions(world, budget=0) == []
+        one = get_formation_grudge_contributions(world, budget=1)
+        assert one[0]["amount"] == 1               # only the remainder
+
+    def test_an_ai_erected_formation_feeds_no_france_threat(self, world):
+        """The v0.1 France-scoped-scalar caveat, on the REAL carve path:
+        Britain erecting the Roman Republic costs the relation blows but
+        never feeds the France-targeted scalar."""
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        _carve_ready(world, "RomanRepublic", "PapalStates", "Britain")
+        key = world._make_diplo_key("Britain", "PapalStates")
+        world.war_scores[key] = 95
+        create_client_nation(world, "RomanRepublic", "Britain",
+                             ceded_from="PapalStates")
+        assert get_formation_grudge_contributions(world, budget=2) == []
+
+    def test_grudge_label_rides_the_forms_block(self):
+        block = get_forms_block({"forms": {
+            "display_name": "Poland",
+            "aggrieved": ["Prussia"],
+            "grudge_label": "The Polish Question",
+        }})
+        assert block["grudge_label"] == "The Polish Question"
+        bare = get_forms_block({"forms": {"display_name": "Poland"}})
+        assert bare["grudge_label"] == ""
+
+    def test_validator_accepts_the_shipped_labels_and_rejects_junk(self):
+        import json
+        data = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+        result = validate_scenario(data)
+        assert not [e for e in result.errors if "grudge_label" in e.path]
+        data["formable_nations"]["RomanRepublic"]["grudge_label"] = 7
+        result = validate_scenario(data)
+        assert [e for e in result.errors if "grudge_label" in e.path]
+
+
+# ═══════════ NA-6d — THE FORMABLES BUTTON (§11.6-8 / decision 9) ══════════
+
+class TestFormablesPayload:
+    def test_every_template_and_watcher_has_a_row(self, world):
+        from backend.game_logic.formations import build_formables_payload
+        payload = build_formables_payload(world)
+        rows = {(r["cls"], r["tag"]): r for r in payload["formables"]}
+        assert ("C", "DuchyOfWarsaw") in rows
+        assert ("C", "Normandy") in rows
+        assert ("C", "RomanRepublic") in rows
+        assert ("T", "KingdomOfItaly") in rows
+        assert ("T", "Holland") in rows
+        assert payload["count"] == len(payload["formables"]) == 5
+
+    def test_rows_are_never_hidden_and_never_dead(self, world):
+        """§11.6-8: an unavailable row states exactly what is missing."""
+        from backend.game_logic.formations import build_formables_payload
+        for row in build_formables_payload(world)["formables"]:
+            assert row["gate_terms"], row["tag"]
+            assert row["display_name"]
+            assert row["flag"]
+            for term in row["gate_terms"]:
+                assert term["text"]
+                assert isinstance(term["met"], bool)
+
+    def test_boot_warsaw_row_states_its_gates_honestly(self, world):
+        from backend.game_logic.formations import build_formables_payload
+        row = next(r for r in build_formables_payload(world)["formables"]
+                   if r["tag"] == "DuchyOfWarsaw")
+        assert row["available"] is False
+        assert row["deep_link"] is None
+        texts = [t["text"] for t in row["gate_terms"]]
+        assert any("at war with Prussia" in t for t in texts)
+        assert any("Posen" in t for t in texts)
+        met = {t["text"]: t["met"] for t in row["gate_terms"]}
+        assert not any(met.values())       # boot France holds none of it
+
+    def test_the_players_own_soil_row_is_the_mirror_threat(self, world):
+        """Normandy's from_court IS the player — the honest gate term is
+        the coalition-side mirror, never "at war with France"."""
+        from backend.game_logic.formations import build_formables_payload
+        row = next(r for r in build_formables_payload(world)["formables"]
+                   if r["tag"] == "Normandy")
+        assert row["available"] is False
+        assert row["deep_link"] is None
+        assert "only a victorious enemy" in row["gate_terms"][0]["text"]
+
+    def test_a_qualifying_war_makes_the_row_available_with_a_deep_link(
+            self, world):
+        from backend.game_logic.formations import build_formables_payload
+        from backend.game_logic.settlement_actions import (
+            _carve_templates_for_court,
+        )
+        war_instance = _at_war(world, "France", "Prussia")
+        # `set_diplomatic_state` alone registers no war INSTANCE, and the
+        # payload's availability scan walks `world.war_instances` — the
+        # same store the settlement surface reads.
+        world.war_instances.setdefault("war_na6d_test", war_instance)
+        world._war_instance_indexes_dirty = True
+        _hand_over(world, "France", ["Posen"])
+        row = next(r for r in build_formables_payload(world)["formables"]
+                   if r["tag"] == "DuchyOfWarsaw")
+        assert row["available"] is True
+        assert row["deep_link"]["nation"] == "Prussia"
+        assert row["deep_link"]["war_id"]
+        assert all(t["met"] for t in row["gate_terms"])
+        # Drift pin: availability here must equal the settlement surface's
+        # own answer for the same war — one predicate, two consumers.
+        assert "DuchyOfWarsaw" in _carve_templates_for_court(
+            world, war_instance=war_instance, court="Prussia",
+            carver="France")
+
+    def test_an_erected_duchy_stands_and_its_dream_watches(self, world):
+        """After the carve the C row says the client stands — and a NEW
+        Class T watcher row appears for the dormant Poland dream."""
+        from backend.game_logic.formations import build_formables_payload
+        _erect_the_duchy(world)
+        rows = {(r["cls"], r["tag"]): r
+                for r in build_formables_payload(world)["formables"]}
+        c_row = rows[("C", "DuchyOfWarsaw")]
+        assert c_row["available"] is False
+        assert c_row["gate_terms"][0]["text"] == "Duchy of Warsaw already stands"
+        assert c_row["gate_terms"][0]["met"] is True
+        t_row = rows[("T", "DuchyOfWarsaw")]
+        assert t_row["display_name"] == "Poland"
+        assert t_row["flag"] == "Poland"
+        assert t_row["progress"] == "0 of 2 provinces held"
+        assert any("vassal of France" in t["text"]
+                   for t in t_row["gate_terms"])
+
+    def test_a_formed_dream_says_it_stands(self, world):
+        from backend.game_logic.formations import build_formables_payload
+        _free_italy_with_the_peninsula(world)
+        process_formations(world)
+        rows = {(r["cls"], r["tag"]): r
+                for r in build_formables_payload(world)["formables"]}
+        italy = rows[("T", "KingdomOfItaly")]
+        assert italy["display_name"] == "Italy"
+        assert italy["gate_terms"][0]["text"] == "Italy already stands"
+        assert italy["available"] is False
+
+    def test_the_endpoint_exists_and_serves_the_payload(self):
+        """Source pin on the route + builder — the wizard's fetch target."""
+        main_py = (
+            Path(__file__).resolve().parents[1] / "backend" / "main.py"
+        ).read_text(encoding="utf-8")
+        assert '@app.get("/formables")' in main_py
+        assert "build_formables_payload" in main_py
+
+
+# ═══════════ NA-6d — THE WATCHER'S CONSUMERS (§11.6-5 markers) ════════════
+
+class TestWatcherConsumers:
+    def test_the_war_room_names_the_forming_dream(self, world):
+        """The per-belligerent design line carries the "forms:" marker with
+        live progress — the §11.8 stage-0 'dream is visible' surface."""
+        from backend.game_logic.diplomatic_advisory import _assess_situation
+        # Austria is a REAL boot-war opponent; give its active design an
+        # unmet `forms` block so the marker must ride its design line.
+        world.agendas["Austria"] = [{
+            "id": "the_dream", "type": "acquire_regions",
+            "title": "The Dream", "regions": ["Milan", "Vienna"],
+            "forms": {"display_name": "Danubia"},
+        }]
+        world._agenda_cache = None
+        assessment = _assess_situation(world)
+        text = str(assessment)
+        assert "forms: Danubia" in text
+        assert "1 of 2 provinces held" in text
+
+    def test_the_nations_tab_payload_carries_the_marker(self, world):
+        """The agenda payload's `forms` block (NA-6a) — re-pinned here as
+        the contract the diplomatic_ledger.gd consumer renders."""
+        _free(world, "KingdomOfItaly")
+        payload = build_agenda_payload("KingdomOfItaly", world)
+        assert payload["forms"]["display_name"] == "Italy"
+        assert "provinces held" in payload["forms"]["progress"]
+
+    def test_the_ledger_gd_renders_the_forms_marker(self):
+        ledger_gd = _read("scripts/diplomatic_ledger.gd")
+        assert 'agenda.get("forms")' in ledger_gd
+        assert "forms: " in ledger_gd
+
+    def test_the_wizard_gd_has_the_formables_entry(self):
+        wizard_gd = _read("scripts/diplomacy_wizard.gd")
+        assert "/formables" in wizard_gd
+        assert "Formable Nations" in wizard_gd
+        assert "gate_terms" in wizard_gd
+        assert "deep_link" in wizard_gd
+        assert "open_for_nation" in wizard_gd

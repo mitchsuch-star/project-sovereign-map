@@ -44,12 +44,26 @@ _THREAT_SOURCE_LABELS = {
     # NA-5 §8: a defied ultimatum names itself too
     "ultimatum_defied": "Defied an ultimatum",
     # NA-6 §11.9: the standing wound left by a sponsored proclamation.
-    # The per-formation label ("The Polish Question") needs a dynamic-key
-    # mechanism this static map cannot express — owned by NA-6d, which
-    # lands the Poland chain the label exists to name.
+    # Since NA-6d each formation emits under its own source key
+    # (`formation_grudge:<tag>`) resolved by `_threat_source_label` below;
+    # this generic row is the fallback for a formation with no authored
+    # `grudge_label` (and for any pre-NA-6d serialized threat row).
     "formation_grudge": "Nations raised from their lands",
     "schemer_peace_rejection": "Scorned a peace overture",
 }
+
+
+def _threat_source_label(world, source_key: str) -> str:
+    """Panel label for one threat source key — the static map, plus the
+    NA-6d dynamic arm: `formation_grudge:<tag>` resolves the formation's
+    authored `grudge_label` ("The Polish Question"), falling back to the
+    generic formation row, so the panel names each grievance (§11.9)."""
+    if source_key.startswith("formation_grudge:"):
+        from backend.game_logic.formations import formation_grudge_source_label
+        label = formation_grudge_source_label(world, source_key)
+        return label or _THREAT_SOURCE_LABELS["formation_grudge"]
+    return _THREAT_SOURCE_LABELS.get(
+        source_key, source_key.replace("_", " ").title())
 
 
 def build_diplomatic_ledger(world) -> Dict[str, Any]:
@@ -804,7 +818,7 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         if isinstance(s, dict):
             source_key = s.get("source", "")
             amount = int(s.get("amount") or 0)
-            label = _THREAT_SOURCE_LABELS.get(source_key, source_key.replace("_", " ").title())
+            label = _threat_source_label(world, source_key)
             sign = "+" if amount >= 0 else ""
             threat_sources.append({
                 "source": source_key,

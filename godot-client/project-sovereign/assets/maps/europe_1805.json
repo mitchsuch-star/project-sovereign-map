@@ -786,7 +786,8 @@
                         "display_name": "Poland",
                         "flag": "Poland",
                         "blurb": "The partitions are undone by the fortune of arms - the DUCHY OF WARSAW is no more. The KINGDOM OF POLAND stands.",
-                        "aggrieved": ["Prussia", "Russia"]
+                        "aggrieved": ["Prussia", "Russia"],
+                        "grudge_label": "The Polish Question"
                     }
                 },
                 {
@@ -827,7 +828,8 @@
                     "biography": "A consul of the restored Republic, ruling from the city of the Popes and answerable to bayonets."
                 }
             },
-            "aggrieved": ["Austria", "Spain"]
+            "aggrieved": ["Austria", "Spain"],
+            "grudge_label": "The Roman Question"
         }
     }
 }

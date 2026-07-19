@@ -1780,14 +1780,22 @@ def process_coalition_turn(world) -> List[Dict]:
     # two grudge families never stack past AGENDA_GRUDGE_CAP; implemented
     # as a deterministic split (agenda first, formation takes the
     # remainder) so BOTH keep their own source key and the threat panel
-    # can still NAME each grievance — see formations.get_formation_grudge_threat.
+    # can still NAME each grievance. NA-6d: each formation emits under its
+    # OWN source key (`formation_grudge:<tag>`) so the panel can name
+    # "The Polish Question" beside "The Roman Question" — the label arm
+    # lives in diplomatic_ledger/_advisory via
+    # formations.formation_grudge_source_label.
     from backend.game_logic.agendas import (
         AGENDA_GRUDGE_CAP as _GRUDGE_CAP,
     )
-    formation_grudge_threat = _calculate_formation_grudge_threat(
-        world, budget=_GRUDGE_CAP - agenda_grudge_threat)
-    if formation_grudge_threat > 0:
-        add_threat(world, formation_grudge_threat, "formation_grudge")
+    from backend.game_logic.formations import (
+        get_formation_grudge_contributions,
+    )
+    for _contribution in get_formation_grudge_contributions(
+            world, budget=_GRUDGE_CAP - agenda_grudge_threat):
+        if int(_contribution.get("amount", 0)) > 0:
+            add_threat(world, int(_contribution["amount"]),
+                       str(_contribution["source"]))
 
     # NA-5 §8: defied ultimatums — the fifth standing contributor (prunes
     # expired markers as a side effect, the DD8 shape).

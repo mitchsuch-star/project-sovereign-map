@@ -376,7 +376,9 @@ def _validate_forms_block(result, path: str, forms: Any,
             "Requires a non-empty 'display_name' — the whole point of a "
             "formable is the new name on every surface")
 
-    for optional_key in ("flag", "blurb"):
+    # `grudge_label` (NA-6d §11.9): the authored threat-panel name for the
+    # standing wound ("The Polish Question"). Optional; string-shaped.
+    for optional_key in ("flag", "blurb", "grudge_label"):
         value = forms.get(optional_key)
         if optional_key in forms and not isinstance(value, str):
             result.add_error(
@@ -806,7 +808,7 @@ def validate_scenario(
                         path,
                         "Requires a non-empty 'display_name' - the tag is "
                         "never shown to the player")
-                for optional_key in ("flag", "blurb"):
+                for optional_key in ("flag", "blurb", "grudge_label"):
                     value = template.get(optional_key)
                     if optional_key in template and not isinstance(value, str):
                         result.add_error(
