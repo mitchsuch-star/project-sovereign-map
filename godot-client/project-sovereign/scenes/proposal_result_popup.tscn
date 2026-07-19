@@ -47,13 +47,21 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 layout_mode = 2
 theme_override_constants/separation = 8
 
+; July 18, 2026 viewport sweep (pre-commit review finding): a fit_content
+; RichTextLabel outside any ScrollContainer imposes height through its RENDERED
+; TEXT, which is a minimum the viewport clamp cannot see or relax. Adding the
+; clamp call alone therefore made this popup LOOK covered while a long notice
+; could still carry its buttons off the bottom edge. Bounded like ContentLabel
+; in proposal_confirm_popup: a real budget with its own scrollbar, and
+; SIZE_EXPAND_FILL so it re-expands whenever the viewport allows.
 [node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
 text = ""
-scroll_active = false
-fit_content = true
+scroll_active = true
+fit_content = false
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2

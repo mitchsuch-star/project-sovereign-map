@@ -45,23 +45,54 @@ _GUARD_FILLER_WORDS = frozenset({
     "is", "in", "range", "guns", "sound", "adjacent", "position",
     "garrison", "defenders", "defender", "corps", "sire", "please",
     "go", "now", "immediately", "there", "yonder",
+    # Quantifiers / collectives: these name no FOE, so an order carrying only
+    # these is still a delegation ("attack them all" — pinned by CR-6).
+    #
+    # Kept deliberately SHORT. Words like "any"/"both"/"each"/"one"/"rest"/
+    # "else" were tried and removed: the parser fuzzy-matches several of them
+    # into real map entities, so listing them here disarms the guard on exactly
+    # the inputs where a province was fabricated from them.
+    "all", "every", "everyone", "them", "anything", "everything",
 })
 
 
 def guessed_target_refusal(world, marshal, command, target,
                            resolved_target=None, enemy_candidates=(),
                            auto_resolved: bool = False) -> Optional[Dict]:
-    """Return a refusal/clarification response when the attack target is a
-    parser guess the player never named, else None.
+    """Decide what to do when the player's own words ground NOTHING the
+    resolution produced.
+
+    Returns a clarification/refusal response to return instead of attacking,
+    or None to proceed. When it proceeds after an ungrounded ENGINE pick it
+    stamps ``command["_target_disclosure"]`` so the caller can tell the player
+    which foe was chosen.
 
     ``enemy_candidates`` are the marshals resolution produced (any may be
     None); their name/location/nation all count as grounding.
+
+    ``auto_resolved`` is the load-bearing distinction, and the July 18, 2026
+    adversarial review is why it is back after a first cut deleted it:
+
+      auto_resolved=False — the PARSER produced a concrete target and the
+        player's words ground none of it ("attack Venetia" -> Archduke John).
+        A silent substitution of one real foe for another. ASK. This is the
+        original ESP-EV-4 case and it is unchanged.
+
+      auto_resolved=True — the parse handed down target=None and the ENGINE
+        picked the nearest visible enemy. Refusing here was a REGRESSION the
+        review caught before it shipped: "Ney, attack the weakest enemy",
+        "attack the enemy vanguard" and "attack the British army" are ordinary
+        delegations whose descriptive words happen not to be on any filler
+        list, and they would all have been bounced to a popup. The set of
+        words a player might use to describe a foe is not enumerable, so the
+        guard must not depend on enumerating it. Instead the order PROCEEDS
+        and the choice is DISCLOSED — which also covers the live-probe case
+        that prompted the change ("give Charles hell" mustering against Mack):
+        the attack is no longer silent, so the player is never misled, and no
+        legitimate order is ever blocked.
     """
     raw = str((command or {}).get("_raw_input") or "").lower()
-    # CR-6 / S5-D1: a bare/auto "attack" resolved its target DETERMINISTICALLY
-    # (the game picked it, the player did not type it), so — exactly like an
-    # explicit delegation ("attack the nearest enemy") — the guard stands down.
-    if not raw or not target or auto_resolved:
+    if not raw or not target:
         return None
     if (command or {}).get("_auto_assigned"):
         return None
@@ -104,8 +135,8 @@ def guessed_target_refusal(world, marshal, command, target,
                 return True
         return False
 
-    # Only fire when the player named SOMETHING specific and none of it matches
-    # the parse. No specific words => delegated => let it fly.
+    # No specific words at all => a plain delegation ("Ney, attack", "attack
+    # them all", "give them hell") => let it fly, silently. CR-6 / S5-D1.
     if not raw_target_words or _named_in_raw(target):
         return None
 
@@ -118,6 +149,29 @@ def guessed_target_refusal(world, marshal, command, target,
     if any(_named_in_raw(t) for t in resolved_tokens):
         return None
 
+    # The player said something specific and it grounds nothing.
+    if auto_resolved:
+        # The ENGINE picked. Proceed, but say so — see the docstring for why
+        # refusing here is wrong. Disclosure is stamped on the command so the
+        # attack path can prepend it to whatever it produces (muster preview,
+        # battle report, block message), rather than manufacturing a second
+        # response shape here.
+        chosen = None
+        for enemy in enemy_candidates:
+            if enemy is not None:
+                chosen = enemy
+                break
+        if command is not None and chosen is not None:
+            command["_target_disclosure"] = (
+                f"Your words named no foe our maps know, Sire — "
+                f"{marshal.name} marches on "
+                f"{humanize_entity_name(chosen.name)} at "
+                f"{humanize_entity_name(chosen.location)}, the nearest in "
+                f"sight. Name another and he will turn."
+            )
+        return None
+
+    # The PARSER substituted one real foe for the name the player typed. Ask.
     visible = world.get_visible_enemies(marshal.nation)
     # Prefer the answerable clarification (options the player can click OR type
     # back). It reissues a fully-formed named attack, so the answer runs the
@@ -130,7 +184,10 @@ def guessed_target_refusal(world, marshal, command, target,
 
     # Nothing visible to offer (or the answer is unaffordable) — keep the
     # honest refusal rather than an empty question.
-    seen = ", ".join(f"{e.name} at {e.location}" for e in visible[:6]) or "none in sight"
+    # R7: humanized for player copy — no raw camelCase key reaches the terminal.
+    seen = ", ".join(
+        f"{humanize_entity_name(e.name)} at {humanize_entity_name(e.location)}"
+        for e in visible[:6]) or "none in sight"
     return {
         "success": False,
         "message": (
@@ -2931,9 +2988,9 @@ class CombatExecutor:
                 # charge), so it is a lethal seam of its own and must consult
                 # the SAME guessed-target guard the main path uses — otherwise
                 # a reckless cavalry marshal charges a target the player never
-                # named. `_target_auto_resolved` is not set yet here; a target
-                # the engine picked at :2797 is passed as auto-resolved so the
-                # guard correctly stands down on a delegated charge.
+                # named. The guard decides delegation-vs-guess from the raw
+                # words alone, so a target the engine picked just above (for an
+                # order that named no foe) correctly stands it down.
                 _charge_guess = guessed_target_refusal(
                     world, marshal, command, target,
                     resolved_target=resolved_target,

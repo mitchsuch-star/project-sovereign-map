@@ -3,6 +3,12 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
+> Last Updated: July 18, 2026 (**July-18 Playtest Sweep section added — ALL 25 rows FIXED**:
+> the two user-reported issues ("give them hell" did nothing; the settle-a-war window ran off
+> the screen) plus their families, found by a 34-agent find→verify workflow and hardened by a
+> 50-agent pre-commit review that caught a P1 regression before it shipped. Record:
+> `docs/STATUS.md` top entry.)
+>
 > Last Updated: July 17, 2026 (**EC-W Review Findings section added** — 2 routed OPEN
 > rows from the Econ War-Coupling pre-push find→verify review; the review's other 7
 > confirmed findings were FIXED in-session before the commit, memo
@@ -13,6 +19,54 @@
 > review, memo `docs/audits/SWEEP_5_2026_07_16.md`.)
 >
 > Last Updated: July 14, 2026 (**Vassal Playtest Findings — F1/F1c/F3/F6/F8b/C1/C2/F5/F7/F4 ALL FIXED** this session from a live europe_1805 playtest + 14-agent adversarial verification; memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`, tests `tests/test_playtest_fixes_2026_07_14.py`. Prior: July 12, 2026 (**Playtest Sweep PS-1..PS-9 — 3 user-reported issues + same-family sweep + the generosity-inversion fix (PS-9: "More generous" lowered a hawk's acceptance); ALL FIXED + verified, suite 12,964/3, Godot parse-clean**). Prior: July 11, 2026 (**Estate-Second-Pass Eval Findings section added** — ESP-EV-1 muster typed-answer misroute + ESP-EV-2 expectation-note under-fire FIXED in-session; ESP-EV-3 battles_won seam inconsistency + ESP-EV-4 attack-region silent redirect ROUTED to 8.EVAL. Prior: **MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+
+---
+
+## July-18 Playtest Sweep — ALL FIXED July 18, 2026
+
+Two user-reported issues, both real, both with a family behind them. Found by a
+34-agent find→adversarially-verify workflow (28 confirmed of 30 raw), fixed, then
+put through a 50-agent pre-commit review of the fix itself (15 confirmed of 23,
+each double-refuted). Full session record: `docs/STATUS.md` top entry. Tests:
+`tests/test_playtest_command_and_ui_2026_07_18.py`, `tests/test_ui_visual_foundation.py`.
+
+**REPORTED (verbatim):** *"when is ay ney give them hell he doesnt do anything it
+just give options then i said ney gives charlkes hell and a popup appeared. also
+the dplo window is too big for the screen when in settle a war."*
+
+| ID | Severity | Issue | Status |
+|----|----------|-------|--------|
+| PS18-1 | P1 | **The reported divergence.** The ESP-EV-4 guessed-target guard sat AFTER the range-check block, which returns early with a strategic PURSUE — so an out-of-range guessed target marched off unguarded and opened a bad-odds popup over an enemy the player never named, while a target that grounded nothing got a flat terminal refusal. Same intent, two surfaces, one a dead end. | ✅ FIXED — guard extracted to `guessed_target_refusal` and hoisted above the range/PURSUE block; the reckless-cavalry early return (a second lethal seam) consults the same implementation |
+| PS18-2 | P1 | **"give … hell" was unrecognized by every parse layer** — absent from the fast-parser keyword chain, the CR-5 delegation verb allowlist and the golden corpus. It fell to the live LLM to freelance a lethal order. | ✅ FIXED — new single source `backend/ai/attack_vocabulary.py`; 14 golden-corpus rows |
+| PS18-3 | P1 | **Colloquial attack idioms all resolved to `unknown`** — crush/smash/destroy/engage/assault/storm/rout/defeat, no quarter, put them to the sword, wipe them out, finish him, and **"give battle"**, which is copy the game itself prints in the CR-5 delegation ASK. | ✅ FIXED |
+| PS18-4 | P1 | **The vocabulary had drifted three ways.** `_TARGETING_ANCHORS` listed smash/crush/destroy/engage/assault/storm/rout — verbs the parser had no branch for — so "Ney, attack Mack" then "Ney, crush him" resolved the pronoun perfectly and still shrugged. | ✅ FIXED — the anchor set is now a superset of the routed vocabulary **by construction** |
+| PS18-5 | P1 | **Silently WRONG actions at confidence 0.9** — above the LLM-fallback gate, so live mode could never correct them. "cover/screen the retreat" ordered the marshal himself to retreat and spent the AP; "fix bayonets" and "restore order in Vienna" executed masonry repairs. | ✅ FIXED — `_mentions_screening_idiom` / `_mentions_abstract_restore` guards, mirroring the existing `_mentions_pension` idiom |
+| PS18-6 | P2 | **Junk words fabricated real provinces.** "hell" auto-corrected into the province **Algiers**, which rode into Berthier's live recovery prompt as a fact the Emperor had stated — so his suggested rephrasing could name a province 1,500km from the marshal. | ✅ FIXED — extraction gated on a resolvable action + idiom filler skip-listed |
+| PS18-7 | P2 | **"Ney, deal with Charles" lost the delegation entirely** (generic Berthier shrug) while "deal with ArchdukeCharles" produced the correct CR-5 ASK. Same marshal, verb and enemy; two surfaces. | ✅ FIXED — uniqueness-gated last-name tokens; an ambiguous token ("archduke", owned by two Archdukes) is declined, never guessed |
+| PS18-8 | P2 | **"head FOR Vienna" shrugged while "head TO Vienna" marched** — a one-word difference the player cannot see is significant. | ✅ FIXED — destination-bearing + possessive-object forms, anchored so they cannot shadow the SUPPORT family |
+| PS18-9 | P3 | **Berthier recited raw internal action ids** ("break_square, change_autonomy"). The live prompt was fixed for this in the F5 pass; the mock template was not. | ✅ FIXED — one filtered vocabulary, two surface forms |
+| PS18-10 | P1 | **The settle-a-war window ran off the screen.** `proposal_confirm_popup`'s `FooterLabel` was `fit_content=true` outside any ScrollContainer — the one unbounded contributor. Centre-anchored with `grow_vertical=2`, so overflow split across both edges and carried the action buttons away. | ✅ FIXED — footer bounded, tier-2 affordance rail moved to its own bounded scroll, per-court floor made viewport-derived, panel clamped |
+| PS18-11 | P1 | **No ESC and no overlay click-to-close on that popup**, and `main.gd`'s ESC ladder refuses to act while a modal is open — off-screen buttons meant an **unrecoverable soft-lock**. | ✅ FIXED — option-derived escape hatch (`dismiss` is a proposal-family action with no settlement arm; hard-coding it would desync the dialogue) |
+| PS18-12 | P1 | **`Utils.clamp_centered_panel` reached only 5 of ~30 surfaces**, and adding the call alone fixes nothing: Godot clamps a Container's size UP to `get_combined_minimum_size()`, so rewriting offsets is inert until the content is bounded. | ✅ FIXED — both halves applied across the sweep; clamp on all 27 centre-anchored surfaces, derived (not hand-listed) in the test |
+| PS18-13 | P1 | **`proclamation_popup` authored no offsets at all** — only a 680px `custom_minimum_size` — so it had no design rect to clamp against and a hard width floor that defeated the clamp. A blocking modal whose single [Acknowledge] can leave the screen is unrecoverable. | ✅ FIXED — body scrolled, flag + button pinned outside, offsets authored, minimum released |
+| PS18-14 | P2 | **`reward_dialog`'s ES-7 explainer** was unbounded `fit_content`; a marshal with both a shortfall and an active rente pushed "Not now" off the bottom. | ✅ FIXED |
+| PS18-15 | P2 | **The diplomacy wizard's own minimum chain (~543px) exceeded its authored 520px box** before any content. | ✅ FIXED — floors lowered, expand flags do the work, both open paths clamp |
+| PS18-16 | P3 | **`war_detail_popup`'s button row grew LEFT off the viewport** — an HBox's minimum width is the SUM of its children, one ~130px Target button per coalition member, on a right-anchored panel with `grow_horizontal=0`. | ✅ FIXED — HFlowContainer wraps instead; the clamp deliberately skips this panel (anchor guard), so bounding its content was the only lever |
+| PS18-17 | P3 | **`enemy_phase_dialog` / `strategic_report_popup` had no non-mouse dismissal**; both are modal, so a clipped [Continue] cost the player the turn. | ✅ FIXED — floors lowered + `ui_accept`/`ui_cancel` routed through the existing handler |
+
+### Caught by the pre-commit review, before shipping
+
+| ID | Severity | Issue | Status |
+|----|----------|-------|--------|
+| PS18-R1 | P1 | **A regression the first cut introduced.** The guard rewrite refused any order whose descriptive words grounded nothing — "attack the weakest enemy", "attack the enemy vanguard", "attack the British army" would all have bounced to a popup. The set of words a player may use to describe a foe **is not enumerable**, so a filler denylist is the wrong instrument. | ✅ FIXED — split on WHO chose the target: a PARSER substitution still ASKS (the original ESP-EV-4 case, unchanged); an ENGINE pick **proceeds and DISCLOSES** |
+| PS18-R2 | P1 | **`_relax_child_minimums` was a one-way ratchet** — it measured against the already-shrunk minimums it left last time and never wrote back, so one open at Interface Scale 2.0 pinned the per-court table near the floor for the rest of the session. | ✅ FIXED — restore-then-measure (a pure function of viewport and content), then iterate, because one proportional pass under-delivers when a share lands on a text-derived minimum |
+| PS18-R3 | P2 | **The clamp cache clobbered a caller that re-derives its own floor** — `proposal_confirm_popup` recomputes the per-court floor from the live viewport every open, and a write-once cache would replace it with a stale value, undoing the scene-level half of the fix. | ✅ FIXED — the pass records its own output (`relaxed_min_y`) so a caller's re-derivation is recognised and adopted |
+| PS18-R4 | P2 | **Six modals got the clamp call while keeping an unbounded `fit_content` label** — covered-looking, not covered. A `fit_content` label imposes height through rendered text, a minimum the clamp cannot see. | ✅ FIXED — all bounded; the ten remaining `fit_content` labels are all inside ScrollContainers (verified) |
+| PS18-R5 | P2 | **The settlement preamble laid out at height ZERO** once the relax pass ran — it was the only zero-minimum expanding sibling, so the regions that declare minimums exactly filled the budget. | ✅ FIXED — given a real floor, so the pass's 48px floor protects it like every sibling |
+| PS18-R6 | P2 | **R7 leak:** raw camelCase keys ("ArchdukeJohn at Tyrol") in the clarification's player-facing labels, on a surface this change makes far more reachable. | ✅ FIXED — labels humanized; `target`/`command` stay raw (machine fields); both forms ride `aliases` so a player who types back what he READ resolves by design, not by luck |
+| PS18-R7 | P2 | **Three new tests were vacuous — proved by mutation.** Deleting the relax call site left all three green. | ✅ FIXED — rewritten to pin the WIRING, scoped to the function body; whole set re-mutation-tested, **all 14 mutants caught** |
+| PS18-R8 | P3 | **The clamp coverage list was hand-maintained** and named 12 of the 22 touched scripts. | ✅ FIXED — derived from the scenes (27 surfaces), with a paired negative pinning the two deliberately-excluded edge-anchored panels |
+
 
 ---
 

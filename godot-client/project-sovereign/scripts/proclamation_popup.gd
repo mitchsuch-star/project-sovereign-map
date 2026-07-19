@@ -18,7 +18,7 @@ extends PopupBase
 signal dismissed
 
 @onready var new_flag = $PanelContainer/VBoxContainer/FlagRow/NewFlag
-@onready var content_label = $PanelContainer/VBoxContainer/ContentLabel
+@onready var content_label = $PanelContainer/VBoxContainer/ContentScroll/ContentLabel
 @onready var acknowledge_btn = $PanelContainer/VBoxContainer/ButtonContainer/AcknowledgeButton
 
 
@@ -90,6 +90,10 @@ func show_proclamation(data: Dictionary):
 	# proclamation would open with a dead Acknowledge — re-enable on show.
 	acknowledge_btn.disabled = false
 	show()
+	# Fit to the CURRENT logical viewport (Interface Scale can halve it).
+	# A blocking modal whose only dismiss button leaves the screen is
+	# unrecoverable, so this runs after show(), once layout has settled.
+	Utils.clamp_centered_panel($PanelContainer)
 
 
 func _on_acknowledge_pressed():

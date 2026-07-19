@@ -24,6 +24,8 @@ Design contract:
 import re
 from typing import Dict, List, Optional
 
+from backend.display_names import humanize_entity_name
+
 CLARIFICATION_DIALOGUE_TYPE = "command_clarification"
 
 # Mirrors main.gd's keyword_map so backend-built reissue commands and the
@@ -234,17 +236,26 @@ def build_attack_target_clarification(world, marshal, enemies,
     if not _answer_is_affordable(world, "attack"):
         return None
 
+    # R7: the LABEL is player-facing copy, so it must never carry a raw
+    # camelCase key ("ArchdukeJohn at Tyrol"). The `target` and `command`
+    # fields stay RAW — they are machine fields, and the reissue has to resolve
+    # through the ordinary named-attack pipeline. Both forms ride `aliases` so
+    # a player who types back what he READ resolves by design, not by luck.
     options: List[Dict] = []
     for enemy in visible[:6]:
+        name_display = humanize_entity_name(enemy.name)
+        location_display = humanize_entity_name(enemy.location)
         options.append({
-            "label": f"{enemy.name} at {enemy.location}",
+            "label": f"{name_display} at {location_display}",
             "value": "attack_target_choice",
             "target": enemy.name,
             "command": f"{marshal.name}, attack {enemy.name}",
             # The typed channel is the PRIMARY answer path in the terminal, so
             # the bare name and the target-qualified form must both resolve.
             "aliases": [enemy.name, enemy.location,
-                        f"attack {enemy.name}", f"attack {enemy.location}"],
+                        name_display, location_display,
+                        f"attack {enemy.name}", f"attack {enemy.location}",
+                        f"attack {name_display}", f"attack {location_display}"],
         })
 
     return _clarification_response(

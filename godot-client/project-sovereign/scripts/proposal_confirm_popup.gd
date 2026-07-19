@@ -20,6 +20,11 @@ signal choice_made(action: String, data: Dictionary)
 @onready var per_court_scroll = $PanelContainer/VBoxContainer/PerCourtScroll
 @onready var per_court_table = $PanelContainer/VBoxContainer/PerCourtScroll/PerCourtTable
 @onready var footer_label = $PanelContainer/VBoxContainer/FooterLabel
+# July 18, 2026: the uncapped tier-2 affordance buttons moved out of the
+# primary rail into their own bounded scroll, so Submit/Back Out can never be
+# pushed off-screen by court count.
+@onready var tier2_scroll = $PanelContainer/VBoxContainer/Tier2Scroll
+@onready var tier2_button_container = $PanelContainer/VBoxContainer/Tier2Scroll/Tier2ButtonContainer
 
 var current_data: Dictionary = {}
 # GT-Slice-3 client-side expansion state for the guided per-court rows.
@@ -41,6 +46,46 @@ func _ready():
 	hide()
 	if per_court_table:
 		per_court_table.meta_clicked.connect(_on_per_court_meta_clicked)
+
+# July 18, 2026: a last-resort escape hatch. This popup had no ESC handler and
+# no overlay click-to-close, and main.gd's ESC ladder deliberately refuses to
+# act while a modal is open — so when the geometry pushed the action buttons
+# off-screen the player was soft-locked with no way out at all. The geometry
+# fixes above are the real fix; this is the belt-and-braces so a future theme
+# or font regression can never re-open an unrecoverable state.
+#
+# It is OPTION-DERIVED, never a hard-coded action: `dismiss` is a proposal-
+# family action with no settlement arm, so emitting it on a settlement_confirm
+# would send the backend an option its dialogue does not define. If no safe
+# exit option is present, ESC deliberately does nothing rather than desync the
+# dialogue — the buttons ARE the decision contract for a staged settlement.
+const _SAFE_EXIT_ACTIONS = ["dismiss", "reconsider", "back_out", "cancel",
+		"not_now", "close"]
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if not event.is_action_pressed("ui_cancel"):
+		return
+	var exit_action := _find_safe_exit_action()
+	if exit_action == "":
+		return
+	get_viewport().set_input_as_handled()
+	_on_option_selected(exit_action)
+
+func _find_safe_exit_action() -> String:
+	var options = current_data.get("options", [])
+	if not (options is Array):
+		return ""
+	for opt in options:
+		if not (opt is Dictionary):
+			continue
+		if not bool(opt.get("available", true)):
+			continue
+		var action_str := str(opt.get("action", ""))
+		if action_str in _SAFE_EXIT_ACTIONS:
+			return action_str
+	return ""
 
 func _should_label_ask_later(dtype: String, action_str: String, original_label: String) -> bool:
 	if dtype not in ["proposal_confirm", "proposal_execute", "proposal_options", "pushback_confirm"]:
@@ -108,8 +153,22 @@ func show_dialogue(data: Dictionary):
 	_suggestion_options_expanded = {}
 	if per_court_scroll:
 		per_court_scroll.visible = is_settlement_table
+		# The authored 320px floor is a CEILING, not a promise: on a small
+		# logical viewport (the Interface Scale slider divides it by up to 2.0)
+		# a fixed 320 floor plus the footer and button rows already exceeds the
+		# screen. Derive it from the live viewport so the table keeps visual
+		# priority when there is room and yields when there is not.
+		# get_visible_rect() is already in LOGICAL units, so no scale math.
+		var _vp := get_viewport()
+		if _vp:
+			per_court_scroll.custom_minimum_size.y = minf(
+				320.0, maxf(120.0, _vp.get_visible_rect().size.y * 0.35))
 	if footer_label:
 		footer_label.visible = is_settlement_table
+	# Hidden by default; _add_settlement_tier2_buttons turns it on only when it
+	# actually mints affordances (it early-returns outside PROPOSE mode).
+	if tier2_scroll:
+		tier2_scroll.visible = false
 	if is_settlement_table:
 		# Gate-4 G4F-3: the treasury / narration / advisory / voice-beat
 		# preamble renders in the HEADER (above the scroll), so the scroll
@@ -170,6 +229,12 @@ func show_dialogue(data: Dictionary):
 		_add_settlement_tier2_buttons(data)
 
 	show()
+	# Fit the panel to the CURRENT logical viewport. Must run AFTER show() so
+	# the container has been laid out; bounding the content above is what makes
+	# this bite, since Godot clamps a Control's size UP to its combined minimum
+	# regardless of offsets. This popup is the settle-a-war surface the July 18,
+	# 2026 report flagged as "too big for the screen".
+	Utils.clamp_centered_panel($PanelContainer)
 
 func _add_settlement_tier2_buttons(data: Dictionary):
 	# UX-2 (GT-Slice-3): REVIEW is a frozen staged-decision surface — no
@@ -210,7 +275,9 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 		btn.add_theme_font_size_override("font_size", 13)
 		btn.add_theme_color_override("font_color", Color("#80b0e0"))
 		btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
-		button_container.add_child(btn)
+		tier2_button_container.add_child(btn)
+	if tier2_scroll:
+		tier2_scroll.visible = not affordances.is_empty()
 
 func _build_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
@@ -1632,3 +1699,8 @@ func _on_settlement_tier2_affordance(affordance: Dictionary):
 func _clear_buttons():
 	for child in button_container.get_children():
 		child.queue_free()
+	# The tier-2 rail is a second container now — clearing only the primary one
+	# would stack last turn's Press/Ease buttons on top of this turn's.
+	if tier2_button_container:
+		for child in tier2_button_container.get_children():
+			child.queue_free()

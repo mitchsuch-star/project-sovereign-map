@@ -94,6 +94,12 @@ func show_redemption(redemption_data: Dictionary):
 	# Show the dialog
 	print("REDEMPTION DIALOG: Showing dialog...")
 	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
+	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
+	# viewport, so a fixed authored rect can carry the action row off-screen
+	# and leave a modal undismissable. The helper is a no-op wherever the
+	# panel already fits, and returns early for non-centre-anchored panels.
+	Utils.clamp_centered_panel($PanelContainer)
 	print("REDEMPTION DIALOG: visible = ", visible)
 
 func _on_autonomy_pressed():

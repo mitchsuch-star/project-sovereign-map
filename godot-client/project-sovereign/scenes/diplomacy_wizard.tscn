@@ -72,16 +72,25 @@ text = "X"
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
+; July 18, 2026 viewport sweep: the fixed minimum chain (150 + 260 + header +
+; separators + button row + 32px style margins) summed to ~543px against an
+; authored 520px box — the panel was ALREADY larger than its own design rect
+; before any content, and overflowed outright at high Interface Scale. The
+; floors are lowered and the expand flags do the work instead, so the visual
+; proportion at scale 1.0 is unchanged while the chain now fits the clamp's
+; worst case. Both already scroll internally, so no content is lost.
 [node name="AssessmentPanel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.5
 bbcode_enabled = true
 text = ""
 scroll_active = true
 fit_content = false
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 260)
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_vertical = 3
 

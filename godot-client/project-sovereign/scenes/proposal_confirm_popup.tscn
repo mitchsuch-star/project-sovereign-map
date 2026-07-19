@@ -48,7 +48,14 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 layout_mode = 2
 theme_override_constants/separation = 8
 
+; Needs a real floor of its own. It was the only zero-minimum expanding sibling,
+; so once the relax pass distributed the shortfall across the regions that DO
+; declare minimums, those exactly filled the budget and the preamble laid out at
+; height ZERO — the treasury / narration / advisory block rendering as an
+; invisible strip with no scrollbar and no truncation hint. A floor puts it in
+; the flexible set, where the pass's 48px floor protects it like every sibling.
 [node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
@@ -72,13 +79,44 @@ text = ""
 scroll_active = false
 fit_content = true
 
+; July 18, 2026 playtest fix: FooterLabel was fit_content=true / scroll_active=false
+; with no custom_minimum_size, sitting as a DIRECT VBox child outside any
+; ScrollContainer — an unbounded contributor to the panel's combined minimum
+; height. A real multi-court settlement (ally petitions + warnings + ES-7
+; estate-cession notices) drove the panel far past the screen, and since the
+; panel is centre-anchored with grow_vertical=2 the overflow split across BOTH
+; edges and carried the action buttons off the bottom. Now bounded exactly like
+; ContentLabel above: a real height budget with its own internal scrollbar.
 [node name="FooterLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
 visible = false
+custom_minimum_size = Vector2(0, 90)
 layout_mode = 2
+size_flags_vertical = 3
 bbcode_enabled = true
 text = ""
-scroll_active = false
-fit_content = true
+scroll_active = true
+fit_content = false
+
+; The per-court tier-2 affordances (Press/Ease dials, holdout Ease/Drop,
+; coverage suggestions) are UNCAPPED — one button per court per affordance —
+; and used to share the primary button grid, so a 4-court war grew the rail to
+; 7-8 rows and pushed Submit/Back Out off-screen. They now live in their own
+; bounded scroll; the primary rail below stays unscrolled and always visible.
+; SIZE_FILL (1) not EXPAND_FILL (3) deliberately: it must not compete with
+; PerCourtScroll for slack.
+[node name="Tier2Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_vertical = 1
+horizontal_scroll_mode = 0
+
+[node name="Tier2ButtonContainer" type="GridContainer" parent="PanelContainer/VBoxContainer/Tier2Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
+columns = 3
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2

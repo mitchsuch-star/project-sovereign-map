@@ -78,6 +78,12 @@ func show_interrupt(interrupt_data: Dictionary):
 		button_container.add_child(btn)
 
 	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
+	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
+	# viewport, so a fixed authored rect can carry the action row off-screen
+	# and leave a modal undismissable. The helper is a no-op wherever the
+	# panel already fits, and returns early for non-centre-anchored panels.
+	Utils.clamp_centered_panel($PanelContainer)
 
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""

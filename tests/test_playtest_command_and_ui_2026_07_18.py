@@ -20,6 +20,7 @@ whole set. Sibling UI-side fixes are pinned in test_ui_visual_foundation.py.
 """
 
 import os
+import re
 
 import pytest
 
@@ -307,6 +308,93 @@ class TestGuardRunsBeforeTheLethalBranches:
         assert result.get("strategic_type") != "PURSUE"
         assert getattr(ney, "strategic_order", None) is None
         assert "will not charge at a guess" in str(result.get("message", ""))
+
+    def test_unresolvable_name_is_disclosed_not_silently_substituted(self):
+        """Found by the July 18, 2026 LIVE probe, then CORRECTED by the
+        pre-commit adversarial review — both halves matter.
+
+        The probe: "Ney, give Charles hell" and "Ney, attack Venetia" both
+        MUSTERED AGAINST MACK. Neither name resolved (Charles was fogged;
+        Venetia is not a province), so the parse handed down target=None,
+        auto-targeting picked the nearest enemy, and the substitution was
+        silent.
+
+        The first cut made that ASK. The review proved that wrong: the set of
+        words a player may use to describe a foe is not enumerable, so a guard
+        keyed on a filler denylist bounces ordinary delegations — "attack the
+        weakest enemy", "attack the enemy vanguard", "attack the British army"
+        would all have hit a popup.
+
+        The contract is therefore DISCLOSURE, not refusal: the order proceeds
+        and names the foe it chose. No legitimate order is ever blocked, and
+        no substitution is ever silent.
+        """
+        world = self._world()
+        executor = CommandExecutor()
+        result = executor.execute({"command": {
+            "marshal": "Ney", "action": "attack", "target": None,
+            "type": "specific",
+            "_raw_input": "Ney, attack Venetia",
+        }}, {"world": world})
+        assert result.get("state") != "awaiting_clarification", (
+            "an engine-picked target must not be refused — that bounces "
+            "ordinary delegations")
+        assert "named no foe our maps know" in str(result.get("message", "")), (
+            "the substitution must be disclosed, never silent")
+
+    @pytest.mark.parametrize("raw", [
+        "Ney, attack the weakest enemy",
+        "Ney, attack the enemy vanguard",
+        "Ney, attack the British army",
+        "Ney, attack the enemy in front of you",
+        "Ney, attack the rest",
+        "Ney, attack anyone nearby",
+    ])
+    def test_descriptive_delegations_are_never_blocked(self, raw):
+        """The regression the review caught before it shipped. None of these
+        names a foe our maps know, and none of their adjectives is on any
+        filler list — but every one of them is an ordinary delegation and must
+        engage rather than bounce to a popup."""
+        world = self._world()
+        executor = CommandExecutor()
+        result = executor.execute({"command": {
+            "marshal": "Ney", "action": "attack", "target": None,
+            "type": "specific", "_raw_input": raw,
+        }}, {"world": world})
+        assert result.get("state") != "awaiting_clarification", raw
+        assert "will not charge at a guess" not in str(result.get("message", "")), raw
+
+    def test_parser_substitution_still_asks(self):
+        """The ORIGINAL ESP-EV-4 case is unchanged: when the PARSER produced a
+        concrete foe and the player's words ground none of it, that is one real
+        enemy silently swapped for another, and it must still ask."""
+        world = self._world()
+        executor = CommandExecutor()
+        enemy = next(e for e in world.get_enemy_marshals() if e.strength > 0)
+        result = executor.execute({"command": {
+            "marshal": "Ney", "action": "attack", "target": enemy.name,
+            "type": "specific", "_raw_input": "Ney, attack Venetia",
+        }}, {"world": world})
+        assert result.get("state") == "awaiting_clarification"
+        assert result.get("clarification_kind") == "attack_target"
+
+    def test_clarification_labels_carry_no_internal_keys(self):
+        """R7: the option LABEL is player-facing copy. `target` and `command`
+        stay raw so the reissue resolves; both forms ride `aliases` so a player
+        who types back what he READ resolves by design, not by luck."""
+        world = self._world()
+        executor = CommandExecutor()
+        enemy = next(e for e in world.get_enemy_marshals() if e.strength > 0)
+        result = executor.execute({"command": {
+            "marshal": "Ney", "action": "attack", "target": enemy.name,
+            "type": "specific", "_raw_input": "Ney, attack Venetia",
+        }}, {"world": world})
+        for option in result["options"]:
+            assert not re.search(r"[a-z][A-Z]", option["label"]), (
+                f"camelCase key leaked into player copy: {option['label']!r}")
+            assert option["label"] in " ".join(option["aliases"]) or any(
+                option["label"].startswith(a) for a in option["aliases"]), (
+                "the printed label must be answerable as typed")
 
     def test_guard_still_stands_down_on_a_delegated_target(self):
         """Bare/auto attacks resolved their target deterministically — the game

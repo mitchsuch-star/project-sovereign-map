@@ -1695,6 +1695,22 @@ class CommandExecutor:
                         "awaiting_player_choice", "awaiting_clarification")):
                 result["message"] = _expl + result["message"]
 
+        # ESP-EV-4 disclosure (July 18, 2026 adversarial review). The player
+        # named something specific, it grounded nothing, and the ENGINE picked
+        # the nearest visible enemy instead. Refusing a delegation like that was
+        # a regression — the words a player might use to describe a foe are not
+        # enumerable — so the order proceeds and the substitution is DISCLOSED
+        # rather than made silently. Same prepend shape and same suppression set
+        # as the _auto_assigned note above: an interrupt or clarification
+        # already owns its copy.
+        _disclosure = command.get("_target_disclosure")
+        if (_disclosure and isinstance(result, dict) and result.get("message")
+                and not result.get("requires_input")
+                and not result.get("pending_glorious_charge")
+                and result.get("state") not in (
+                    "awaiting_player_choice", "awaiting_clarification")):
+            result["message"] = _disclosure + "\n\n" + result["message"]
+
         # Prepend square-break notification if auto-break fired (Session 67 fix)
         if self._pending_square_break_msg and result.get("success") and result.get("message"):
             result["message"] = self._pending_square_break_msg + "\n" + result["message"]

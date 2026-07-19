@@ -74,12 +74,26 @@ custom_minimum_size = Vector2(0, 200)
 bbcode_enabled = true
 text = ""
 scroll_active = true
-fit_content = true
+fit_content = false
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonRow" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+; July 18, 2026 viewport sweep: HBoxContainer -> HFlowContainer. This row mints
+; one ~130px Target button per coalition member, and an HBox's minimum width is
+; the SUM of its children — so a Third-Coalition-sized bloc (Austria, Russia,
+; Britain, Prussia, Sweden, Naples) drove the minimum past the viewport. The
+; panel is RIGHT-anchored with grow_horizontal=0, so it grew LEFT and the
+; leftmost buttons went off-screen and became unclickable.
+;
+; HFlowContainer caps the minimum width at the WIDEST SINGLE child instead of
+; the sum, so the buttons wrap to a second row and the panel grows DOWN. No
+; script change is needed: war_detail_popup.gd addresses the node by path and
+; uses only add_child/get_children/remove_child, and HFlowContainer supports
+; `alignment` so the centring is preserved. Utils.clamp_centered_panel is NOT
+; applicable here (it asserts a centre anchor and returns early for this panel).
+[node name="ButtonRow" type="HFlowContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 8
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6

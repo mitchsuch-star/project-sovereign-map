@@ -536,3 +536,344 @@ def test_map_labels_use_distinct_nonfallback_serifs():
     assert not re.search(
         r"_draw_label_tier\(\s*font,", src
     ), "neither tier may draw with the shared fallback `font` var (pre-Task-1 shape)"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# July 18, 2026 playtest sweep — viewport overflow
+#
+# REPORTED: "the dplo window is too big for the screen when in settle a war."
+#
+# Confirmed and generalised. Every modal is a centre-anchored PanelContainer
+# with fixed offsets and grow_horizontal/vertical = 2. Because PanelContainer
+# is a Container, its size floor is get_combined_minimum_size() — so when the
+# custom_minimum_size chain (or an unbounded fit_content RichTextLabel) exceeds
+# the authored box, the panel grows SYMMETRICALLY and spills off both edges,
+# carrying the action buttons out of reach. Interface Scale amplifies it: the
+# logical viewport is physical/scale, and the slider runs to 2.0.
+#
+# Two things are therefore required together, and each is pinned below:
+#   (1) BOUND the content, so the panel's minimum can actually shrink.
+#   (2) CLAMP to the live viewport (Utils.clamp_centered_panel).
+# The clamp alone is inert — Godot clamps size UP to the combined minimum.
+# ═══════════════════════════════════════════════════════════════════════════
+
+UTILS_GD = GODOT_PROJ / "scripts" / "utils.gd"
+
+
+def _scene(name: str) -> str:
+    path = SCENES_DIR / f"{name}.tscn"
+    assert path.exists(), f"missing scene {path}"
+    return _read(path)
+
+
+def _script(name: str) -> str:
+    path = GODOT_PROJ / "scripts" / f"{name}.gd"
+    assert path.exists(), f"missing script {path}"
+    return _read(path)
+
+
+def _node_block(src: str, node_name: str) -> str:
+    """The property block of a single [node name="X" ...] declaration."""
+    match = re.search(
+        r'^\[node name="%s"[^\]]*\]\n(.*?)(?=^\[node |\Z)' % re.escape(node_name),
+        src, re.M | re.S)
+    assert match, f"node {node_name!r} not found"
+    return match.group(1)
+
+
+def test_settlement_footer_is_bounded():
+    """The reported window. FooterLabel was fit_content=true / scroll_active=
+    false with no minimum, as a DIRECT VBox child outside any ScrollContainer —
+    the single unbounded contributor to the settlement popup's height."""
+    block = _node_block(_scene("proposal_confirm_popup"), "FooterLabel")
+    assert "fit_content = true" not in block, (
+        "FooterLabel must not size itself to its content — that is the "
+        "unbounded growth vector that pushed the buttons off-screen")
+    assert "scroll_active = true" in block, "it needs its own scrollbar instead"
+    assert "custom_minimum_size" in block, "it needs a real height budget"
+
+
+def test_settlement_tier2_buttons_have_their_own_bounded_rail():
+    """Per-court affordances are uncapped (one button per court per action), so
+    they must not share the primary rail — Submit / Back Out has to stay put."""
+    src = _scene("proposal_confirm_popup")
+    tier2 = _node_block(src, "Tier2Scroll")
+    assert "custom_minimum_size" in tier2, "the tier-2 rail must be bounded"
+    assert 'name="Tier2ButtonContainer"' in src
+    gd = _script("proposal_confirm_popup")
+    assert "tier2_button_container.add_child(btn)" in gd, (
+        "tier-2 affordances must mount in the scrolled container, not the "
+        "primary rail")
+    # The primary rail must stay OUTSIDE any scroll region.
+    assert re.search(
+        r'\[node name="ButtonContainer" type="GridContainer" '
+        r'parent="PanelContainer/VBoxContainer"\]', src), (
+        "the primary button rail must remain a direct VBox child so it is "
+        "always visible")
+    # Both rails must be cleared, or last turn's buttons stack on this turn's.
+    clear = gd[gd.index("func _clear_buttons"):]
+    assert "tier2_button_container" in clear[:400]
+
+
+def test_settlement_popup_has_an_escape_hatch():
+    """main.gd's ESC ladder refuses to act while a modal is open, so an
+    off-screen button row was an unrecoverable soft-lock."""
+    gd = _script("proposal_confirm_popup")
+    assert "_unhandled_input" in gd
+    assert "ui_cancel" in gd
+    # It must be OPTION-DERIVED: `dismiss` is a proposal-family action with no
+    # settlement arm, so hard-coding it would desync the backend dialogue.
+    assert "_find_safe_exit_action" in gd
+    body = gd.split("func _unhandled_input")[1].split("func _find_safe_exit_action")[0]
+    assert '"dismiss"' not in body, "the escape action must be derived, not literal"
+
+
+def _panel_anchor(scene_src: str):
+    """(anchor_left, anchor_right) of the root PanelContainer, or None."""
+    try:
+        block = _node_block(scene_src, "PanelContainer")
+    except AssertionError:
+        return None
+    left = re.search(r"^anchor_left = ([\d.]+)", block, re.M)
+    right = re.search(r"^anchor_right = ([\d.]+)", block, re.M)
+    if not left or not right:
+        return None
+    return float(left.group(1)), float(right.group(1))
+
+
+def _centre_anchored_surfaces():
+    """Derived, not hand-maintained. A hand-written list silently under-covers:
+    the first version named 12 of the 22 scripts the sweep actually touched, so
+    a refactor could drop the clamp from any of the other 10 unnoticed."""
+    out = []
+    for scene in sorted(SCENES_DIR.glob("*.tscn")):
+        anchors = _panel_anchor(_read(scene))
+        if anchors == (0.5, 0.5) and (
+                GODOT_PROJ / "scripts" / f"{scene.stem}.gd").exists():
+            out.append(scene.stem)
+    return out
+
+
+def test_the_derived_clamp_set_is_not_silently_empty():
+    surfaces = _centre_anchored_surfaces()
+    assert len(surfaces) >= 25, (
+        f"only {len(surfaces)} centre-anchored surfaces found — the derivation "
+        f"has probably drifted and is under-covering: {surfaces}")
+
+
+@pytest.mark.parametrize("script_name", _centre_anchored_surfaces())
+def test_centre_anchored_surfaces_clamp_to_the_viewport(script_name):
+    """EVERY centre-anchored PanelContainer surface must consult the live
+    viewport on open — the modals this sweep touched AND the five layer-50
+    ledger screens that already did. Before the sweep the helper existed in
+    utils.gd but reached only those five; none of the ~20 modals called it."""
+    assert "Utils.clamp_centered_panel($PanelContainer)" in _script(script_name), (
+        f"{script_name}.gd never clamps; at Interface Scale 2.0 the logical "
+        f"viewport halves and its action row can leave the screen")
+
+
+def test_edge_anchored_panels_are_deliberately_excluded():
+    """The paired negative. clamp_centered_panel writes SYMMETRIC offsets about
+    the midpoint, so applying it to an edge-anchored panel would teleport it to
+    mid-screen. These two must stay out — and the helper guards them
+    structurally rather than trusting each caller to remember."""
+    for name in ("war_detail_popup", "war_status_panel"):
+        anchors = _panel_anchor(_scene(name))
+        assert anchors is not None and anchors != (0.5, 0.5), (
+            f"{name} is expected to be edge-anchored; if it became "
+            f"centre-anchored it must join the clamped set")
+    body = _utils_func_body("clamp_centered_panel")
+    # Pin the guard's SHAPE, not just that the words appear: a mutation to
+    # `if false and (...)` left every earlier version of this test green while
+    # the guard no longer fired.
+    guard = re.search(
+        r"if not \(is_equal_approx\(panel\.anchor_left,\s*0\.5\)\s*\n"
+        r"\s*and is_equal_approx\(panel\.anchor_right,\s*0\.5\)\):\s*\n"
+        r"\s*return\b",
+        body)
+    assert guard, (
+        "clamp_centered_panel must guard BOTH anchors and RETURN — guarding "
+        "on anchor_left alone misses a half-centre-anchored panel, and a "
+        "guard that does not return protects nothing")
+    cache_at = body.find('has_meta("design_size")')
+    assert cache_at != -1
+    assert guard.start() < cache_at, (
+        "the anchor guard must RETURN before the design_size cache is written, "
+        "or an edge-anchored panel gets a bogus cached rect")
+
+
+def test_clamp_runs_after_show_so_layout_has_settled():
+    for name in ("proposal_confirm_popup", "reward_dialog", "diplomacy_wizard"):
+        gd = _script(name)
+        show_at = gd.index("\tshow()\n")
+        clamp_at = gd.index("Utils.clamp_centered_panel")
+        assert clamp_at > show_at, f"{name}: clamp must follow show()"
+
+
+def _utils_func_body(name: str) -> str:
+    """The source of one static func in utils.gd, up to the next top-level
+    `static func`. Scoping assertions to a body is what stops them being
+    satisfied by an unrelated occurrence elsewhere in the file."""
+    src = _read(UTILS_GD)
+    start = src.index(f"static func {name}")
+    rest = src[start + 10:]
+    end = rest.find("\nstatic func ")
+    return src[start:] if end == -1 else src[start:start + 10 + end]
+
+
+def test_clamp_helper_relaxes_child_minimums():
+    """The load-bearing half. Rewriting offsets alone is INERT: Godot clamps a
+    Container's size UP to get_combined_minimum_size(), so a panel whose
+    children declare fixed minimums ignores the clamped offsets entirely.
+
+    Pins the WIRING, not the vocabulary. The first version of this test asserted
+    only that the string "_relax_child_minimums" appeared somewhere in the file
+    — which stayed true when the pass was orphaned as dead code. The
+    pre-commit review proved that by mutation: deleting the call site left all
+    three clamp tests green.
+    """
+    body = _utils_func_body("clamp_centered_panel")
+    assert re.search(r"_relax_child_minimums\(\s*panel\s*,", body), (
+        "the second pass must be CALLED from clamp_centered_panel; rewriting "
+        "offsets alone is inert")
+    relax = _utils_func_body("_relax_child_minimums")
+    assert "authored_min_y" in relax, (
+        "authored minimums must be cached so they stay the CEILING and "
+        "viewports that already fit are byte-unchanged")
+    assert "get_combined_minimum_size" in relax, (
+        "the pass must measure the real combined minimum, not guess")
+
+
+def test_relax_pass_restores_before_measuring():
+    """The one-way-ratchet fix. Measuring against the ALREADY-SHRUNK minimums
+    left by a previous open meant the pass could only ever shrink: open the
+    settlement popup once at Interface Scale 2.0 and the per-court table stayed
+    pinned near the floor for the rest of the session, on a full-size screen."""
+    relax = _utils_func_body("_relax_child_minimums")
+    restore_at = relax.find('custom_minimum_size.y = float(control.get_meta("authored_min_y"))')
+    # The CALL, not the docstring's mention of the concept.
+    measure_at = relax.find("panel.get_combined_minimum_size()")
+    assert restore_at != -1, "the pass must restore authored minimums"
+    assert measure_at != -1, "the pass must measure the real combined minimum"
+    assert restore_at < measure_at, (
+        "restore must happen BEFORE the excess is measured, or the pass is a "
+        "one-way ratchet that never grows content back")
+
+
+def test_relax_pass_iterates_instead_of_under_delivering():
+    """A single proportional pass systematically stops short: a share handed to
+    a control whose real minimum is text-derived buys no actual reduction."""
+    relax = _utils_func_body("_relax_child_minimums")
+    assert "for _round in range(_RELAX_ROUNDS)" in relax, (
+        "the pass must re-measure and redistribute, not distribute once")
+    # A literal `range(1)` would satisfy the loop text while restoring the very
+    # single-pass behavior this guards against, so pin the bound itself.
+    rounds = re.search(r"const _RELAX_ROUNDS\s*:=\s*(\d+)", _read(UTILS_GD))
+    assert rounds and int(rounds.group(1)) >= 2, (
+        "one round systematically under-delivers — a share handed to a control "
+        "whose real minimum is text-derived buys no reduction")
+    # The excess must be re-read INSIDE the loop, not hoisted above it.
+    loop_body = relax[relax.index("for _round in range(_RELAX_ROUNDS)"):]
+    assert "panel.get_combined_minimum_size()" in loop_body, (
+        "each round must re-measure; a hoisted measurement is a single pass "
+        "wearing a loop")
+
+
+def test_relax_cache_follows_a_caller_that_re_derives_its_floor():
+    """proposal_confirm_popup re-derives PerCourtScroll's floor from the live
+    viewport on EVERY open. A write-once cache would let a later relax clobber
+    that fresh value with a stale, smaller one, silently undoing the
+    scene-level half of the fix."""
+    collect = _utils_func_body("_collect_flexible")
+    assert "relaxed_min_y" in collect, (
+        "the pass must be able to tell its OWN output apart from a value the "
+        "caller re-derived")
+    relax = _utils_func_body("_relax_child_minimums")
+    assert 'set_meta("relaxed_min_y"' in relax
+    # And the caller must actually still re-derive it.
+    assert "per_court_scroll.custom_minimum_size.y = minf(" in _script(
+        "proposal_confirm_popup")
+
+
+
+
+def test_clamp_helper_never_shrinks_a_click_target():
+    """Buttons declare their minimum as a click target; shrinking those to make
+    room is the opposite of the goal."""
+    src = _read(UTILS_GD)
+    assert "is Button" in src
+
+
+def test_proclamation_body_is_scrollable_and_the_button_is_pinned():
+    """A blocking modal whose single [Acknowledge] can leave the screen is
+    unrecoverable — the worst case in the sweep."""
+    src = _scene("proclamation_popup")
+    assert 'name="ContentScroll" type="ScrollContainer"' in src
+    assert 'parent="PanelContainer/VBoxContainer/ContentScroll"' in src, (
+        "the variable-length body must live inside the scroll")
+    assert 'name="ButtonContainer" type="HBoxContainer" ' \
+           'parent="PanelContainer/VBoxContainer"' in src, (
+        "[Acknowledge] must stay OUTSIDE the scroll so it is always reachable")
+    panel = _node_block(src, "PanelContainer")
+    assert "offset_bottom" in panel, (
+        "the panel needs an authored design rect for the clamp to capture")
+    assert "custom_minimum_size = Vector2(680, 0)" not in panel, (
+        "a 680px hard width floor defeats the clamp horizontally")
+    # The script must follow the re-parent.
+    assert "ContentScroll/ContentLabel" in _script("proclamation_popup")
+
+
+def test_reward_dialog_explainer_is_bounded():
+    block = _node_block(_scene("reward_dialog"), "InfoLabel")
+    assert "fit_content = false" in block
+    assert "scroll_active = true" in block
+
+
+def test_war_detail_button_row_wraps_instead_of_growing_left():
+    """One ~130px Target button per coalition member; an HBox's minimum width
+    is the SUM of its children, and this panel is right-anchored with
+    grow_horizontal = 0, so it grew LEFT off the viewport."""
+    src = _scene("war_detail_popup")
+    assert '[node name="ButtonRow" type="HFlowContainer"' in src, (
+        "must be an HFlowContainer so the minimum is the widest single child")
+    block = _node_block(src, "ButtonRow")
+    assert "h_separation" in block and "v_separation" in block, (
+        "HFlowContainer uses h/v separation, not the HBox `separation` key")
+    assert "alignment = 1" in block, "centring must be preserved"
+
+
+@pytest.mark.parametrize("name", ["enemy_phase_dialog", "strategic_report_popup"])
+def test_report_dialogs_are_dismissable_without_a_mouse(name):
+    """Both are registered modal=true, and main.gd's ESC ladder refuses to act
+    while a modal is open — so before this there was no non-mouse way out and a
+    clipped [Continue] cost the player the turn."""
+    gd = _script(name)
+    assert "_unhandled_input" in gd
+    assert "ui_accept" in gd and "ui_cancel" in gd
+    # Route through the existing handler so hide()+dismissed stays single-source.
+    handler = gd[gd.index("func _unhandled_input"):]
+    assert "_on_continue_pressed()" in handler[:700]
+
+
+def test_diplomacy_wizard_fixed_chain_fits_its_authored_box():
+    """The wizard's own minimum chain (150 + 260 + header + separators + button
+    row + margins) exceeded its authored 520px box before any content."""
+    src = _scene("diplomacy_wizard")
+    assessment = _node_block(src, "AssessmentPanel")
+    scroll = _node_block(src, "ScrollContainer")
+    both = assessment + scroll
+    fixed = [int(m) for m in re.findall(
+        r"custom_minimum_size = Vector2\(0, (\d+)\)", both)]
+    assert fixed, "expected authored height floors"
+    assert sum(fixed) <= 200, (
+        f"fixed floors sum to {sum(fixed)}px; they must stay small enough that "
+        f"the panel fits the clamp's worst case (a halved logical viewport)")
+    assert "size_flags_vertical = 3" in assessment, (
+        "the assessment panel must expand to fill available height instead of "
+        "reserving it")
+
+
+def test_both_wizard_open_paths_clamp():
+    """The wizard is reachable from F1 AND from the war-panel handoff."""
+    assert _script("diplomacy_wizard").count(
+        "Utils.clamp_centered_panel($PanelContainer)") == 2

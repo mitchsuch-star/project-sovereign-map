@@ -29,13 +29,23 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0.82)
 
+; July 18, 2026 viewport sweep. This panel authored NO offsets at all — only a
+; custom_minimum_size of (680, 0) — so it had no design rect to clamp against
+; and a 680px hard width floor that defeated any horizontal clamp. The 680
+; design width now rides the offsets (where the clamp can see and shrink it)
+; and the minimum is released. A blocking modal whose single [Acknowledge]
+; button can leave the screen is unrecoverable, so this matters more here than
+; almost anywhere else.
 [node name="PanelContainer" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(680, 0)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -260.0
+offset_right = 340.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -54,8 +64,21 @@ layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
+; The proclamation body (terms list + the §11.9 partition-fury line) is
+; variable-length and was fit_content=true outside any ScrollContainer, so it
+; imposed unbounded height on the panel. Wrapped now, with FlagRow and the
+; button row deliberately left OUTSIDE so the new flag and [Acknowledge] stay
+; pinned and visible however long the text runs.
+[node name="ContentScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer/ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 bbcode_enabled = true
 text = ""
 scroll_active = false

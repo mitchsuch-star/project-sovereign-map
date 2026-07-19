@@ -84,6 +84,11 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 	# Show the dialog
 	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
+	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
+	# viewport, so a fixed authored rect can push the action row off-screen.
+	# Runs AFTER show() so layout has settled.
+	Utils.clamp_centered_panel($PanelContainer)
 
 func _format_action(action: Dictionary) -> String:
 	"""Format a single action with full details."""
@@ -398,6 +403,19 @@ func _victor_is_player(event: Dictionary, victor: String) -> bool:
 func _format_number(num) -> String:
 	"""Format number with comma separators (delegates to the Utils single source)."""
 	return Utils.format_number(int(num))
+
+# July 18, 2026 viewport sweep: a keyboard escape hatch. main.gd's ESC ladder
+# deliberately refuses to act while a modal is open, and dialog_manager
+# registers this dialog as modal=true — so if a geometry, theme or font change
+# ever pushes [Continue] off the bottom, there is literally no way out and the
+# turn is lost. Routing through _on_continue_pressed keeps hide()+dismissed
+# single-source, so the dismissal is identical to clicking the button.
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_continue_pressed()
 
 func _on_continue_pressed():
 	"""Handle continue button press."""

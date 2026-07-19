@@ -80,6 +80,10 @@ func open():
 	_clear_content_list()
 	_add_loading_label()
 	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
+	# open paths clamp — the wizard is reachable from F1 and from the war
+	# panel handoff, and only clamping one would leave the other overflowing.
+	Utils.clamp_centered_panel($PanelContainer)
 	_fetch_nations()
 
 
@@ -97,6 +101,10 @@ func open_for_nation(nation: String):
 	_clear_content_list()
 	_add_loading_label()
 	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
+	# open paths clamp — the wizard is reachable from F1 and from the war
+	# panel handoff, and only clamping one would leave the other overflowing.
+	Utils.clamp_centered_panel($PanelContainer)
 	_fetch_preview(nation)
 
 

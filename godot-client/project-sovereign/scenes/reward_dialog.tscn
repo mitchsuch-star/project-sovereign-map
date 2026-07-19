@@ -57,15 +57,25 @@ horizontal_alignment = 1
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
+; July 18, 2026 viewport sweep: the ES-7 explainer was fit_content=true /
+; scroll_active=false outside any ScrollContainer, so a marshal with BOTH a
+; shortfall clause and an active rente rendered enough text to push the
+; "Not now" button off the bottom. The 150 is now a real budget with its own
+; scrollbar (same shape as the wizard's AssessmentPanel).
 [node name="InfoLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_vertical = 3
 bbcode_enabled = true
-fit_content = true
-scroll_active = false
+fit_content = false
+scroll_active = true
 
+; Lowered 200 -> 120: it already carries SIZE_EXPAND_FILL, so it re-expands
+; whenever the viewport allows. The only effect is that the panel's fixed
+; minimum drops far enough for the clamp to actually bite on a halved logical
+; viewport — without this the clamp is cosmetic.
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_vertical = 3
 

@@ -374,23 +374,54 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 
 static func clamp_centered_panel(panel: Control) -> void:
 	"""Fit a centre-anchored fixed-size panel inside the CURRENT logical
-	viewport. The layer-50 screens are authored as fixed rects (e.g. 840x620)
-	that overflow small windows at high Interface Scale (content_scale_factor
-	up to 2.0 halves the logical viewport) — the header row with the close X
-	slides off-screen and becomes unclickable. Display-only: call on every
-	open; the authored rect (captured on first call) stays the ceiling, so
-	nothing changes on viewports that already fit. The 88px height reserve
-	covers the 36px top bar plus breathing room."""
+	viewport. The layer-50 screens and every modal popup are authored as fixed
+	rects (e.g. 840x620) that overflow small windows at high Interface Scale
+	(content_scale_factor up to 2.0 halves the logical viewport) — the header
+	row with the close X slides off-screen and becomes unclickable. Display-
+	only: call on every open; the authored rect (captured on first call) stays
+	the ceiling, so nothing changes on viewports that already fit. The 88px
+	height reserve covers the 36px top bar plus breathing room.
+
+	IMPORTANT (July 18, 2026): rewriting the offsets is NOT sufficient on its
+	own. Godot clamps a Container's size UP to get_combined_minimum_size(), so
+	a panel whose children declare fixed custom_minimum_size heights ignores
+	the clamped offsets entirely — which is why the settlement popup ran off
+	the screen. The second pass below therefore relaxes descendant height
+	minimums to fit the budget, caching each authored value once so it stays
+	the CEILING and viewports that already fit are byte-unchanged.
+
+	Content that is genuinely unbounded (a fit_content RichTextLabel outside
+	any ScrollContainer) still cannot be clamped by this function — such a
+	label imposes height through its rendered text, not through a minimum this
+	pass can see. Bound it at the scene level (scroll_active + fit_content
+	false, or wrap it in a ScrollContainer) as well as calling this."""
 	if panel == null:
 		return
-	if not panel.has_meta("design_size"):
-		panel.set_meta("design_size", Vector2(
-			panel.offset_right - panel.offset_left,
-			panel.offset_bottom - panel.offset_top))
-	var design: Vector2 = panel.get_meta("design_size")
+	# Anchor guard: this function assumes a CENTRE anchor (it writes symmetric
+	# offsets about the midpoint). Edge-anchored panels — war_detail_popup
+	# (right-anchored), war_status_panel — would be teleported by it, so they
+	# are structurally excluded here rather than relying on each caller to
+	# remember to skip.
+	if not (is_equal_approx(panel.anchor_left, 0.5)
+			and is_equal_approx(panel.anchor_right, 0.5)):
+		return
 	var viewport := panel.get_viewport()
 	if viewport == null:
 		return
+	if not panel.has_meta("design_size"):
+		var authored := Vector2(
+			panel.offset_right - panel.offset_left,
+			panel.offset_bottom - panel.offset_top)
+		# Degenerate-rect guard: a scene that authors no offsets (only a
+		# custom_minimum_size, as proclamation_popup did) would otherwise cache
+		# (0,0) forever and every later clamp would compute w=h=0.
+		var floor_size := panel.get_combined_minimum_size()
+		if authored.x <= 1.0:
+			authored.x = maxf(floor_size.x, 320.0)
+		if authored.y <= 1.0:
+			authored.y = maxf(floor_size.y, 240.0)
+		panel.set_meta("design_size", authored)
+	var design: Vector2 = panel.get_meta("design_size")
 	var view: Vector2 = viewport.get_visible_rect().size
 	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
 	var h: float = minf(design.y, maxf(240.0, view.y - 88.0))
@@ -398,6 +429,86 @@ static func clamp_centered_panel(panel: Control) -> void:
 	panel.offset_right = w / 2.0
 	panel.offset_top = -h / 2.0
 	panel.offset_bottom = h / 2.0
+	_relax_child_minimums(panel, h)
+
+
+
+const _RELAX_FLOOR := 48.0
+const _RELAX_ROUNDS := 4
+
+
+static func _relax_child_minimums(panel: Control, budget: float) -> void:
+	"""Second pass: shrink descendant height minimums so the clamped offsets
+	are not overridden by get_combined_minimum_size(). Never shrinks below a
+	usable floor, and never shrinks a Button (its minimum is a click target).
+
+	RESTORE FIRST, THEN MEASURE. The first cut measured the excess against the
+	ALREADY-SHRUNK minimums left by the previous open and never wrote anything
+	back, which made it a one-way ratchet: open the settlement popup once at
+	Interface Scale 2.0 and the per-court table stayed pinned near the floor for
+	the rest of the session, on a full-size screen, with no way to recover short
+	of a restart. Restoring the cached authored values before measuring makes
+	the result a pure function of (viewport, content) instead of a function of
+	the previous call's writes — so it is genuinely idempotent, and it grows
+	back when the player enlarges the window or lowers Interface Scale.
+
+	ITERATE. One proportional pass systematically under-delivers, because a
+	share handed to a control whose REAL minimum is text-derived (a fit_content
+	label) or scroll-internal buys no actual reduction. Re-measuring each round
+	and redistributing only among controls that still have room converges on the
+	budget instead of stopping short of it."""
+	var flexible: Array = []
+	_collect_flexible(panel, flexible)
+	if flexible.is_empty():
+		return
+	for control in flexible:
+		control.custom_minimum_size.y = float(control.get_meta("authored_min_y"))
+
+	for _round in range(_RELAX_ROUNDS):
+		var excess: float = panel.get_combined_minimum_size().y - budget
+		if excess <= 0.0:
+			break
+		# Only controls that can still give something up take a share.
+		var room: float = 0.0
+		var givers: Array = []
+		for control in flexible:
+			var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+			if headroom > 0.5:
+				givers.append(control)
+				room += headroom
+		if givers.is_empty() or room <= 0.0:
+			break
+		var take: float = minf(excess, room)
+		for control in givers:
+			var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+			var share: float = take * (headroom / room)
+			control.custom_minimum_size.y = maxf(
+				_RELAX_FLOOR, control.custom_minimum_size.y - share)
+			# Record our OWN output, so the next open can tell a value this pass
+			# wrote apart from one the caller re-derived (see _collect_flexible).
+			control.set_meta("relaxed_min_y", control.custom_minimum_size.y)
+
+
+static func _collect_flexible(node: Node, out: Array) -> void:
+	for child in node.get_children():
+		if child is Control and child.visible and child.custom_minimum_size.y > 0.0:
+			# The cached ceiling must FOLLOW the caller. proposal_confirm_popup
+			# re-derives PerCourtScroll's floor from the live viewport on every
+			# open, so a write-once cache would let a later relax clobber that
+			# fresh value with a stale, smaller one. A value this pass wrote is
+			# always smaller than the authored ceiling, so recognising our own
+			# output (relaxed_min_y) is what keeps the two apart.
+			var live: float = child.custom_minimum_size.y
+			var ours: bool = (child.has_meta("relaxed_min_y")
+					and is_equal_approx(live, float(child.get_meta("relaxed_min_y"))))
+			if not ours and (not child.has_meta("authored_min_y")
+					or not is_equal_approx(live, float(child.get_meta("authored_min_y")))):
+				child.set_meta("authored_min_y", live)
+			# A Button's minimum is its click target — shrinking it makes the
+			# control harder to hit, which is the opposite of the goal.
+			if not (child is Button):
+				out.append(child)
+		_collect_flexible(child, out)
 
 
 # === Formatting Helpers ===
