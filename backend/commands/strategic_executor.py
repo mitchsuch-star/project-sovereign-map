@@ -6,6 +6,7 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import random
 from typing import Dict, List, Optional
+from backend.ai.generic_targets import is_generic_target
 from backend.models.world_state import WorldState
 from backend.commands.objection_v2 import (
     ConcernLevel, evaluate_strategic_situation, apply_mood_variance,
@@ -409,18 +410,12 @@ class StrategicExecutor:
             }
 
         # ── Resolve generic/vague targets for ALL strategic types ────
-        GENERIC_TARGETS = {
-            "generic", "the enemy", "enemy", "enemies", "them",
-            "the marshal", "marshal", "the general", "general",
-            "the commander", "commander",
-            "the region", "someone", "somebody", "anyone",
-            "whoever", "nearest", "closest",
-        }
-        is_generic = (
-            not target
-            or target.lower() in GENERIC_TARGETS
-            or target_type == "generic"
-        )
+        # The sentinel set is shared with the parser seam (backend/ai/
+        # generic_targets.py) so the tactical and strategic paths cannot
+        # disagree about what "no specific target" means — they did, and the
+        # tactical side rejected the very value the prompt tells the model to
+        # produce.
+        is_generic = is_generic_target(target) or target_type == "generic"
         if is_generic:
             resolution = self._resolve_generic_target(
                 marshal, strategic_type, target, world, parsed_command

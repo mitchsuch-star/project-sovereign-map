@@ -14,6 +14,7 @@ TODO (Future): Multi-Army Battles
 - Coordinated attacks with flanking bonuses
 """
 from typing import Dict, Optional, Tuple
+from backend.ai.generic_targets import is_generic_target
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
@@ -442,6 +443,20 @@ class CommandExecutor:
                 "success": False,
                 "message": "Error: No world state available"
             }
+
+        # July 19, 2026 — collapse the "no specific target" sentinels to None
+        # at the LAST gate as well as the first (the parser seam already does
+        # it). Defence in depth is warranted here specifically: the original
+        # defect WAS one layer assuming another had handled "generic", and any
+        # caller that builds a command dict without going through the parser
+        # would otherwise reach an executor that rejects the very value the
+        # parse prompt asks the model to produce. Both paths already treat a
+        # missing target as "resolve it for me", so this only ever converts a
+        # dead end into that behaviour.
+        for _scope in (parsed_command, parsed_command.get("command")):
+            if isinstance(_scope, dict) and _scope.get("target") is not None \
+                    and is_generic_target(_scope.get("target")):
+                _scope["target"] = None
 
         # C3: Clear auto-advance flag when player takes any non-end-turn action.
         # This allows "end turn" to work normally on subsequent turns after auto-advance.

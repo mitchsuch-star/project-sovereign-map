@@ -21,6 +21,7 @@ whole set. Sibling UI-side fixes are pinned in test_ui_visual_foundation.py.
 
 import os
 import re
+from pathlib import Path
 
 import pytest
 
@@ -43,6 +44,10 @@ def mock_client():
 @pytest.fixture(scope="module")
 def parser():
     return CommandParser(use_real_llm=False)
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
 def _action(mock_client, text):
@@ -591,3 +596,140 @@ def test_new_idioms_are_pinned_in_the_golden_corpus():
     utterances = " ".join(e.get("utterance", "") for e in corpus["entries"]).lower()
     for idiom in ("hell", "crush", "capture", "head for", "cover the retreat"):
         assert idiom in utterances, f"corpus has no row for {idiom!r}"
+
+
+# ═══════════════ 8. THE "generic" TARGET — WHY IT FAILED IN LLM MODE ═══════
+#
+# Follow-up, July 19, 2026. The fast-parser fix made "give them hell" resolve
+# without the LLM — which fixed the symptom but never answered the question
+# actually asked: why did it fail IN LIVE MODE?
+#
+# Probing the live model directly (bypassing the 0.7 gate) showed the LLM was
+# RIGHT. It returned action=attack, target="generic", ambiguity 65 — correctly
+# saying "attack, but you named no foe I can resolve". It invented nothing.
+#
+# The break was downstream, and it was a three-layer contract failure:
+#   - prompt_builder INSTRUCTS the model to emit "generic" for a vague order
+#     ("If you cannot determine the specific region, set target to 'generic'")
+#   - PARSE_TOOL advertises it, and _extract_valid_targets BLESSES it
+#   - ...and the tactical executor REJECTED it: "Unknown target: generic",
+#     "Region 'generic' not found."
+#
+# The strategic executor had handled the whole sentinel family all along. The
+# tactical path never learned. Since vagueness is exactly what sends a command
+# to the LLM, EVERY vague live command shared the fault.
+
+
+class TestGenericTargetSentinel:
+    """The sentinel the prompt asks for must not die at the executor."""
+
+    def test_sentinels_normalize_to_none(self):
+        from backend.ai.generic_targets import normalize_target
+        for sentinel in ("generic", "the enemy", "enemy", "enemies", "them",
+                         "whoever", "nearest", "closest", "someone"):
+            assert normalize_target(sentinel) is None, sentinel
+
+    def test_real_targets_pass_through(self):
+        from backend.ai.generic_targets import normalize_target
+        for real in ("Mack", "Vienna", "Swabia", "ArchdukeCharles"):
+            assert normalize_target(real) == real
+
+    def test_the_prompt_still_asks_for_the_sentinel(self):
+        """If the prompt ever stops teaching "generic", this normalization is
+        dead weight — and if it keeps teaching it while the executor forgets
+        again, we are back to the original bug. Pin the pair together."""
+        from backend.ai import prompt_builder
+        src = _read(Path(prompt_builder.__file__))
+        assert '"generic"' in src or "'generic'" in src, (
+            "the parse prompt must still instruct the model to answer a vague "
+            "order with the generic sentinel")
+
+    def test_strategic_and_tactical_share_one_sentinel_set(self):
+        """The two paths disagreed about what "no target" means, and the
+        tactical side lost. One source now."""
+        from backend.commands import strategic_executor
+        src = _read(Path(strategic_executor.__file__))
+        assert "is_generic_target" in src
+        assert "GENERIC_TARGETS = {" not in src, (
+            "the strategic path must consume the shared set, not a private copy")
+
+    @pytest.mark.parametrize("action", ["attack", "move", "scout"])
+    def test_a_vague_order_no_longer_dead_ends(self, action):
+        """Before: attack -> "Unknown target: generic"; move/scout ->
+        "Region 'generic' not found". All three were un-actionable."""
+        world = build_world("1805")
+        world.opening_attack_guidance_shown = True
+        result = CommandExecutor().execute({"command": {
+            "marshal": "Ney", "action": action,
+            "target": "generic", "type": "specific",
+            "_raw_input": "Ney, give them hell",
+        }}, {"world": world})
+        message = str(result.get("message") or "")
+        assert "Unknown target" not in message, message
+        assert "'generic' not found" not in message, message
+
+    def test_parser_normalizes_before_dispatch(self):
+        """The normalization lives at the parser seam, so it protects every
+        action at once rather than per-executor."""
+        from backend.ai.parser_eval import build_llm_game_state
+
+        world = build_world("1805")
+        state = build_llm_game_state(world)
+        parsed = CommandParser(use_real_llm=False).parse(
+            "Ney, attack the enemy", state, world)
+        if parsed.get("success"):
+            assert (parsed.get("command") or {}).get("target") != "generic"
+
+
+class TestMoveWithoutDestinationAsks:
+    """The same shape, one action over. An attack with no target auto-resolves
+    to the nearest enemy; a move CANNOT — there is no nearest destination — so
+    it dead-ended on "Move order requires a destination", which is true,
+    unhelpful and un-actionable. It asks now."""
+
+    def test_move_with_no_destination_raises_a_clarification(self):
+        world = build_world("1805")
+        result = CommandExecutor().execute({"command": {
+            "marshal": "Ney", "action": "move", "target": None,
+            "type": "specific",
+            "_raw_input": "Ney, take up a better position",
+        }}, {"world": world})
+        assert result.get("state") == "awaiting_clarification"
+        assert result.get("clarification_kind") == "move_destination"
+        assert result["options"], "must offer somewhere to go"
+
+    def test_the_offered_destinations_are_reachable_neighbours(self):
+        world = build_world("1805")
+        ney = world.marshals["Ney"]
+        neighbours = set(world.get_region(ney.location).adjacent_regions)
+        result = CommandExecutor().execute({"command": {
+            "marshal": "Ney", "action": "move", "target": None,
+            "type": "specific", "_raw_input": "Ney, reposition",
+        }}, {"world": world})
+        for option in result["options"]:
+            assert option["target"] in neighbours, (
+                f"{option['target']} is not adjacent — a one-step move cannot "
+                f"reach it")
+            assert option["command"] == f"Ney, move to {option['target']}"
+
+    def test_labels_carry_no_internal_keys(self):
+        world = build_world("1805")
+        result = CommandExecutor().execute({"command": {
+            "marshal": "Ney", "action": "move", "target": None,
+            "type": "specific", "_raw_input": "Ney, reposition",
+        }}, {"world": world})
+        for option in result["options"]:
+            assert not re.search(r"[a-z][A-Z]", option["label"]), option["label"]
+
+    def test_automated_strategic_hops_never_ask(self):
+        """A per-hop step of a standing order is the ENGINE moving him. There
+        is nobody at the keyboard to answer a question."""
+        from backend.commands.movement_executor import MovementExecutor
+        import inspect
+        src = inspect.getsource(MovementExecutor._execute_move)
+        branch = src.split("if not target:", 1)[1]
+        # Up to the clarification call — the stand-down must come FIRST.
+        head = branch.split("build_move_destination_clarification", 1)[0]
+        assert "strategic_execution" in head, (
+            "the no-destination branch must stand down for automated hops "
+            "BEFORE it tries to ask the player a question")

@@ -6,6 +6,32 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🔍 WHY "give them hell" FAILED IN LLM MODE — the `generic` sentinel ✅ FIXED July 19, 2026
+
+**User pushback: "my concern was why give them hell was failing in llm and if similar fails exist".** Fair — the July 18 fix made the FAST parser handle the idiom, which *bypasses* the LLM. That fixed the symptom and never answered the question. Probing the live model directly (bypassing the 0.7 gate) gave the real answer.
+
+**The LLM was never wrong.** On `"Ney, give them hell"` it returned `action=attack, target="generic", ambiguity=65` — correctly saying *"attack, but you named no foe I can resolve"*. It invented nothing. (Same for `"give Charles hell"`: Charles is FOGGED at boot, so refusing to name him was right.)
+
+**The break was a three-layer contract failure downstream:**
+- `prompt_builder` **instructs** the model to emit it — *"If you cannot determine the specific region, set target to `generic` and ambiguity to 60+"*, plus the `pursue the enemy` / `support whoever needs it` examples.
+- `PARSE_TOOL` **advertises** it (*"Enemy commander, region name, or 'generic'"*) and `_extract_valid_targets` puts it in the valid-target list, so validation **blesses** it.
+- The tactical executor **rejected** it: `attack` → *"Unknown target: generic"*, `move`/`scout` → *"Region 'generic' not found. Nearby: Guyenne, Nivernais, Balearics"*.
+
+Three layers agreeing to produce a value the fourth refuses. And since **vagueness is precisely what sends a command to the LLM**, every vague live command shared the fault — this was systemic, not one idiom. The STRATEGIC executor had carried the correct sentinel set privately all along (`generic`/`the enemy`/`them`/`whoever`/`nearest`…); the tactical path never learned.
+
+**Fix:** hoisted that set into one shared source (`backend/ai/generic_targets.py`), consumed by the strategic path and by a new normalization at the parser seam that collapses the sentinels to `None` — where the executor's existing, well-exercised auto-resolve path takes over. Plus a defence-in-depth normalization at `executor.execute`, deliberately: the original defect *was* one layer assuming another had handled it.
+
+**"Do similar fails exist?" — measured, not assumed.** A live sweep of 10 vague phrasings that genuinely reach the LLM found 2 more hard failures beyond the reported one:
+- **`"Ney, take up a better position"` / `"Ney, reposition"`** → *"Move order requires a destination"*. Same shape, one action over: an attack with no target auto-resolves to the nearest enemy, but a move **cannot** — there is no nearest destination. Now raises a `move_destination` clarification offering the marshal's adjacent regions, each reissuing a fully-formed `"<marshal>, move to <region>"`. Stands down for automated strategic hops (nobody is at the keyboard).
+- **`"Ney, we need more troops"` → "treasury cannot support this"** — investigated and **NOT a defect**: France boots with 800 gold and a recruit costs 1003; an explicit `"Ney, recruit infantry"` gets the identical refusal. My probe's crude pass/fail had miscounted a correct in-game answer as a failure.
+
+Post-fix live re-run: **6/6 clean** — the idiom musters, the vague attacks muster, the vague moves ask where, the scouts scout.
+
+**Residual, noted not fixed:** the LLM occasionally returns a marshal name as a `recruit` target (observed `target=Moore`). Functionally inert — `_execute_recruit` uses `marshal.location` and ignores the target — but it is a wrong value passing validation.
+
+Suite 14,206 → **14,218/3**, corpus 453/453, ruff clean, live-verified in `LLM_MODE=anthropic`.
+
+
 ### 🤖 LLM LAYER HEALTH PASS ✅ HELD July 18, 2026 — SDK migration + 7 confirmed fixes
 
 **User direction: "make sue llm is in good shape commi and push".** A 28-agent audit of the whole LLM integration (4 lenses → skeptic refuters) plus a hands-on review against the current Anthropic API reference. **24 raw findings → 7 confirmed**, all fixed. Suite **14,204 → 14,206/3**, corpus 453/453, ruff clean, live-verified in `LLM_MODE=anthropic`.

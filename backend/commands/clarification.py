@@ -270,6 +270,59 @@ def build_attack_target_clarification(world, marshal, enemies,
     )
 
 
+def build_move_destination_clarification(world, marshal,
+                                         raw_input: str) -> Optional[Dict]:
+    """"Where shall he march, Sire?" — the answer surface for a move order
+    with no nameable destination.
+
+    Sibling of build_attack_target_clarification, and the same lesson: the
+    parse prompt tells the model to answer a vague order with a "generic"
+    target, which normalizes to None. An attack can auto-resolve that (the
+    nearest visible enemy); a move cannot — there is no nearest destination —
+    so it used to dead-end on "Move order requires a destination", which is
+    true, unhelpful, and un-actionable.
+
+    Offers the marshal's ADJACENT regions, because that is where a move can
+    actually go in one step, and each option reissues a fully-formed
+    "<marshal>, move to <region>" so the answer runs the ordinary move
+    pipeline. Returns None when neighbours cannot be determined or the answer
+    would be unaffordable, so the caller keeps a plain prompt.
+    """
+    if marshal is None:
+        return None
+    region = world.get_region(getattr(marshal, "location", None) or "")
+    if region is None:
+        return None
+    neighbours = [r for r in (getattr(region, "adjacent_regions", None) or [])
+                  if world.get_region(r) is not None]
+    if not neighbours:
+        return None
+    if not _answer_is_affordable(world, "move"):
+        return None
+
+    options: List[Dict] = []
+    for name in neighbours[:6]:
+        display = humanize_entity_name(name)
+        options.append({
+            "label": display,
+            "value": "move_destination_choice",
+            "target": name,
+            "command": f"{marshal.name}, move to {name}",
+            "aliases": [name, display,
+                        f"move to {name}", f"move to {display}"],
+        })
+
+    return _clarification_response(
+        world,
+        question=(f"Where shall {marshal.name} march, Sire? He stands at "
+                  f"{humanize_entity_name(marshal.location)}."),
+        options=options,
+        clarification_kind="move_destination",
+        strategic_type=None,
+        raw_input=raw_input,
+    )
+
+
 def build_unknown_name_clarification(world, unknown_name: str,
                                      candidates: List[str], raw_input: str,
                                      kind: str,

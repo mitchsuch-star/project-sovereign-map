@@ -147,9 +147,34 @@ class MovementExecutor:
                 drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         if not target:
+            # July 19, 2026 — same shape as the "give them hell" defect, one
+            # action over. The prompt instructs the model to answer a vague
+            # order with no nameable destination by setting target to
+            # "generic"; that normalizes to None here. Unlike an attack, a
+            # move CANNOT auto-resolve — there is no "nearest destination" —
+            # so the honest move is to ASK rather than dead-end on a flat
+            # error the player can do nothing with.
+            # Never ask on an automated per-hop step of a standing strategic
+            # order — that is the engine moving him, not the player, and there
+            # is nobody at the keyboard to answer. Checked FIRST, before the
+            # clarification is even built.
+            if strategic_execution:
+                return {
+                    "success": False,
+                    "message": "Move order requires a destination",
+                }
+
+            from backend.commands.clarification import (
+                build_move_destination_clarification)
+
+            ask = build_move_destination_clarification(
+                world, marshal, str(raw_input or ""))
+            if ask is not None:
+                return ask
             return {
                 "success": False,
-                "message": "Move order requires a destination"
+                "message": (f"Where shall {marshal.name} march, Sire? "
+                            f"Name a destination.")
             }
 
         # Use fuzzy matching for region lookup

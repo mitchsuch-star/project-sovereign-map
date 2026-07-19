@@ -13,6 +13,7 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
+from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
 from backend.utils.fuzzy_matcher import FuzzyMatcher
@@ -914,7 +915,16 @@ class CommandParser:
                 command_dict = {
                     "marshal": llm_result.get("marshal"),  # Can be None for general orders
                     "action": llm_result["action"],
-                    "target": llm_result.get("target"),
+                    # July 19, 2026: collapse the "no specific target" sentinels
+                    # to None. The prompt INSTRUCTS the model to answer a vague
+                    # order with target="generic", PARSE_TOOL advertises it and
+                    # validation blesses it — but the tactical executor rejected
+                    # it outright ("Unknown target: generic" / "Region 'generic'
+                    # not found"), so every vague command that reached the LLM
+                    # died on arrival. With None, the executor's existing
+                    # auto-resolve path handles it, which is what the strategic
+                    # path has always done with the very same sentinel set.
+                    "target": normalize_target(llm_result.get("target")),
                     "confidence": llm_result.get("confidence", 0.9),
                     "type": command_type,
                     "raw_command": llm_result.get("raw_command", command_text),
