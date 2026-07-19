@@ -115,24 +115,85 @@ def _name_match_patterns(name: str) -> List[str]:
     return patterns
 
 
-def _match_known_name(command_lower: str, names) -> Optional[str]:
+def unique_name_tokens(names) -> Dict[str, str]:
+    """Map each single-word token that identifies EXACTLY ONE candidate to that
+    candidate's canonical key. Tokens shorter than 4 characters are ignored.
+
+    People address a general by his last name. "Ney, attack Charles" and
+    "Ney, deal with Charles" both meant ArchdukeCharles, and neither resolved —
+    the full-name patterns only cover "archdukecharles" / "archduke charles".
+
+    The uniqueness gate is the whole safety argument, so it is computed over the
+    candidate SET, never per name: "charles" and "john" identify exactly one
+    Archduke each and are admitted, while "archduke" belongs to BOTH and is
+    dropped. A shared token keeps today's behavior (no match, and the caller
+    asks) rather than silently picking one of two real armies to attack.
+
+    Only the FINAL word of a name is offered — the surname, never a leading
+    title. That restriction is load-bearing, and the golden corpus caught its
+    absence: ArchdukeCharles is fogged at the 1805 boot, which left "archduke"
+    uniquely owned by ArchdukeJohn among the VISIBLE enemies, so
+    "attack archduke charles" resolved to the wrong Archduke. Titles identify a
+    rank, not a man; surnames identify a man.
+
+    Single source: delegation._resolve_target consumes this too, so the CR-5
+    delegation ASK and the fast parser cannot drift on who "Charles" is — the
+    exact class of three-way divergence that made the July 18 report possible.
+    """
+    owners: Dict[str, set] = {}
+    for name in names:
+        if not name:
+            continue
+        spaced = _CAMEL_SPLIT_RE.sub(' ', str(name)).replace('-', ' ').lower()
+        tokens = re.findall(r"[a-z']+", spaced)
+        if not tokens:
+            continue
+        surname = tokens[-1]
+        if len(surname) >= 4:
+            owners.setdefault(surname, set()).add(name)
+    return {token: next(iter(holders))
+            for token, holders in owners.items() if len(holders) == 1}
+
+
+def _match_known_name(command_lower: str, names,
+                      allow_last_name: bool = False) -> Optional[str]:
     """Find the best roster-name match in the command (word-boundary).
 
     Position-aware: a match right after a movement preposition ("to X")
     wins, then the EARLIEST match, then the longest at the same position —
     so "move to Paris via Champagne" targets Paris, not the longest name
-    in the sentence. Returns the canonical roster key, or None."""
+    in the sentence. Returns the canonical roster key, or None.
+
+    ``allow_last_name`` additionally admits uniqueness-gated single-word tokens
+    (see unique_name_tokens). Opt-in, and deliberately used ONLY for the enemy
+    roster: a bare surname is how players address a general, but applying the
+    same rule to the province list would let "move to russia" silently resolve
+    to White Russia. Full-name matches always outrank tokens, so nothing that
+    resolves today can change.
+    """
     best_key = None
     best_name = None
+
+    def _offer(name, pattern, start, is_token):
+        nonlocal best_key, best_name
+        after_to = bool(re.search(r'\b(?:to|at|toward|towards)\s+$',
+                                  command_lower[:start]))
+        # `is_token` leads the sort key, so a full-name match at ANY position
+        # beats a surname token — landed resolutions are byte-unchanged.
+        key = (1 if is_token else 0, 0 if after_to else 1, start, -len(pattern))
+        if best_key is None or key < best_key:
+            best_key = key
+            best_name = name
+
+    names = list(names)
     for name in names:
         for pattern in _name_match_patterns(name):
             for m in re.finditer(r'\b' + re.escape(pattern) + r'\b', command_lower):
-                after_to = bool(re.search(r'\b(?:to|at|toward|towards)\s+$',
-                                          command_lower[:m.start()]))
-                key = (0 if after_to else 1, m.start(), -len(pattern))
-                if best_key is None or key < best_key:
-                    best_key = key
-                    best_name = name
+                _offer(name, pattern, m.start(), False)
+    if best_name is None and allow_last_name:
+        for token, owner in unique_name_tokens(names).items():
+            for m in re.finditer(r'\b' + re.escape(token) + r'\b', command_lower):
+                _offer(owner, token, m.start(), True)
     return best_name
 
 
@@ -1358,8 +1419,14 @@ class LLMClient:
         # regions. game_state["enemies"] is already fog-filtered (R5);
         # undiscovered enemies fall through to parser.py's world-side pass.
         if target is None and game_state:
+            # allow_last_name: "attack Charles" must find ArchdukeCharles. The
+            # enemy roster only — see _match_known_name for why regions are not
+            # given the same latitude. game_state["enemies"] is already
+            # fog-filtered (R5), so a surname can never name a general the
+            # player cannot see.
             target = _match_known_name(
-                command_lower, _game_state_dict(game_state, "enemies").keys())
+                command_lower, _game_state_dict(game_state, "enemies").keys(),
+                allow_last_name=True)
             if target is None:
                 target = _match_known_name(
                     command_lower, _game_state_dict(game_state, "map_data").keys())

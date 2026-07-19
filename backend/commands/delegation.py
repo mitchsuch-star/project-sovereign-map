@@ -34,6 +34,7 @@ double-ownership guard).
 import re
 from typing import Dict, List, Optional
 
+from backend.ai.llm_client import unique_name_tokens
 from backend.ai.validation import VALID_ACTIONS
 from backend.commands.clarification import _clarification_response
 from backend.display_names import humanize_entity_name
@@ -138,15 +139,11 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
         single-word tokens match WORD-BOUNDED and only when the token is
         UNIQUE across the candidate set."""
         nonlocal best
-        # A partial token ("charles") is admissible only if exactly ONE
-        # candidate owns it — "archduke" belongs to both Archdukes and must
-        # keep today's behavior (no match) rather than silently picking one.
-        token_owners: Dict[str, set] = {}
-        for name in candidates:
-            for token in re.findall(r"[a-z]+",
-                                    humanize_entity_name(name).lower()):
-                if len(token) >= 4:
-                    token_owners.setdefault(token, set()).add(name)
+        # The uniqueness rule is SINGLE-SOURCED with the fast parser: the CR-5
+        # delegation ASK and a typed "attack Charles" must agree on who
+        # "Charles" is. Three independently-authored copies of a matching rule
+        # is precisely what produced the July 18 report.
+        token_owner = unique_name_tokens(candidates.keys())
 
         for name, scout_target in candidates.items():
             if not name:
@@ -163,8 +160,8 @@ def _resolve_target(world, remainder: str) -> Optional[tuple]:
             # while "deal with ArchdukeCharles" produced the correct CR-5 ASK
             # — the same marshal, verb and enemy, two different surfaces.
             # Word-bounded so a token can never match inside another name.
-            for token, owners in token_owners.items():
-                if owners != {name}:
+            for token, owner in token_owner.items():
+                if owner != name:
                     continue
                 if re.search(r"\b" + re.escape(token) + r"\b", hay) and (
                         best is None or len(token) > best[0]):

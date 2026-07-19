@@ -490,6 +490,49 @@ class TestDelegationResolvesShortNames:
         # R7: no camelCase key ever reaches player copy.
         assert "ArchdukeCharles" not in match.target_display
 
+    def test_last_name_resolves_at_the_parse_seam_too(self):
+        """Follow-up (same day): fixing the delegation path alone was not
+        enough. "Ney, attack Charles" — the same surname, the ordinary attack
+        verb — still resolved to NOTHING, and because the idiom now scores 0.9
+        the live LLM no longer gets a chance to rescue it. Both seams draw from
+        one uniqueness map now."""
+        from backend.ai.parser_eval import build_llm_game_state
+        from backend.models.intel import FULL
+
+        world = build_world("1805")
+        charles = world.marshals.get("ArchdukeCharles")
+        if charles is None:
+            pytest.skip("scenario has no ArchdukeCharles")
+        world.get_region_intel(charles.location).visibility = FULL
+        state = build_llm_game_state(world)
+        parser_ = CommandParser(use_real_llm=False)
+        for utterance in ("Ney, attack Charles", "Ney, give Charles hell"):
+            result = parser_.parse(utterance, state, world)
+            target = (result.get("command") or {}).get("target")
+            assert target == "ArchdukeCharles", f"{utterance!r} -> {target!r}"
+
+    def test_a_title_is_not_a_surname(self):
+        """The golden corpus caught this. ArchdukeCharles is FOGGED at the 1805
+        boot, which left "archduke" uniquely owned by ArchdukeJohn among the
+        VISIBLE enemies — so a first cut that admitted any unique token
+        resolved "attack archduke charles" to the WRONG Archduke. Titles
+        identify a rank; surnames identify a man."""
+        from backend.ai.llm_client import unique_name_tokens
+
+        tokens = unique_name_tokens(["ArchdukeJohn", "Mack", "Brunswick"])
+        assert "archduke" not in tokens, (
+            "a leading title must never stand in for a man, even when it is "
+            "unique among the currently-visible enemies")
+        assert tokens.get("john") == "ArchdukeJohn"
+        assert tokens.get("brunswick") == "Brunswick"
+
+    def test_shared_surname_is_declined(self):
+        from backend.ai.llm_client import unique_name_tokens
+
+        tokens = unique_name_tokens(["ArchdukeCharles", "PrinceCharles", "Mack"])
+        assert "charles" not in tokens, (
+            "a surname shared by two commanders must resolve to neither")
+
     def test_ambiguous_token_is_declined_not_guessed(self):
         """"archduke" belongs to more than one Archduke — the matcher must keep
         today's behavior (no match) rather than silently picking one."""
