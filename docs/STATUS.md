@@ -55,9 +55,13 @@ live-verified over HTTP.
   loser could never be carved** (the empty-purse arm returned above the carve gate, so the most
   beaten France was the one immune); and **the player's actual click path had zero coverage**.
   Falsifiability verified by reverting four fixes — exactly the four matching tests fail.
-- **⚠ Open: user visual sign-off** on the four new flags (Polish white-over-red, the Norman
-  gules-with-two-leopards-or in a bold simplification meant to read at chip size, the 1798 Republic's
-  black-white-red tricolour) and on the greyed unavailable carve row.
+- **✅ Visual check HELD July 19, 2026 (spec §20.2) — both sign-off rows CLOSED.** Three flags passed
+  first look; **Normandy FAILED and was redrawn** (the first cut's two leopards rendered as
+  *centipedes* — rectangular bodies with leg-stubs and no readable head). The redraw gives each charge
+  a proper guardant head, an arched body, a raised foreleg and a tail curled over the back; all four
+  stay distinguishable at 44px chip size. The greyed carve row was rendered from the live payload
+  through the exact BBCode the client builds: it carries the gate ("requires Posen"), names what is
+  missing, and contains **no `[url=`** — un-clickable by construction, not a dead button.
 - **Session hazard worth remembering:** a review subagent ran `git stash` to "compare against baseline"
   and destroyed the entire uncommitted tree (23 files, 2,167 insertions). Recovered intact from
   `stash@{0}`. Standing lessons: commit a large slice BEFORE handing it to a review fleet, and hand

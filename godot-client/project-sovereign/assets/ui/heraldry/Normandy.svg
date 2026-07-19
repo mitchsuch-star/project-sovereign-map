@@ -1,24 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="300">
 <!-- Duchy of Normandy: gules, two leopards passant guardant or. Original
-     geometric rendering for this project (Public Domain) - deliberately bold
-     and simplified so the charges still read at chip size, where the sourced
-     fine-line artwork used for Hanover would collapse into a smudge. -->
+     geometric rendering for this project (Public Domain). Deliberately bold
+     and simplified: the charges must still read as animals at chip size,
+     where the fine-line artwork used for Hanover collapses into a smudge. -->
 <rect fill="#c8102e" width="500" height="300"/>
-<g fill="#e8b923" stroke="#7a5c0c" stroke-width="4" stroke-linejoin="round">
-  <!-- upper leopard -->
-  <g transform="translate(250,88)">
-    <path d="M-96,26 L-96,4 C-96,-8 -84,-16 -70,-16 L34,-16 C46,-16 56,-8 56,4 L56,26 L40,26 L40,12 L26,12 L26,26 L10,26 L10,12 L-4,12 L-4,26 L-20,26 L-20,12 L-34,12 L-34,26 L-50,26 L-50,12 L-64,12 L-64,26 Z"/>
-    <path d="M56,4 C56,-14 70,-28 88,-28 C98,-28 96,-16 92,-10 L98,-4 L88,2 L92,12 L78,10 C68,14 56,12 56,4 Z"/>
-    <circle fill="#7a5c0c" stroke="none" cx="84" cy="-16" r="4"/>
-    <path d="M-96,10 L-116,-14 L-104,-16 L-96,-4 Z"/>
+<defs>
+  <g id="leopard" fill="#e8b923" stroke="#7a5c0c" stroke-width="3.5" stroke-linejoin="round">
+    <!-- tail: up from the haunch and curled forward over the back -->
+    <path d="M-84,-6 C-112,-16 -122,-52 -100,-66 C-86,-74 -72,-62 -78,-52
+             C-82,-46 -92,-48 -90,-56"
+          fill="none" stroke-width="9" stroke-linecap="round"/>
+    <!-- body with four legs -->
+    <path d="M-86,2 C-86,-20 -70,-32 -44,-32 L20,-32 C40,-32 52,-22 56,-8
+             L56,12 L40,12 L40,44 L26,44 L26,12 L2,12 L2,44 L-12,44 L-12,12
+             L-42,12 L-42,44 L-56,44 L-56,12 L-72,12 L-72,44 L-86,44 Z"/>
+    <!-- raised foreleg, the passant gait -->
+    <path d="M52,4 C66,6 74,18 70,32 L56,30 C58,20 56,12 48,10 Z"/>
+    <!-- head, turned to face the viewer (guardant) -->
+    <path d="M42,-58 L48,-76 L60,-62 Z"/>
+    <path d="M78,-62 L90,-76 L92,-56 Z"/>
+    <circle cx="66" cy="-40" r="26"/>
+    <!-- muzzle -->
+    <circle cx="66" cy="-30" r="9" fill="#7a5c0c" stroke="none"/>
+    <!-- eyes -->
+    <circle cx="56" cy="-48" r="4" fill="#7a5c0c" stroke="none"/>
+    <circle cx="76" cy="-48" r="4" fill="#7a5c0c" stroke="none"/>
   </g>
-  <!-- lower leopard -->
-  <g transform="translate(250,212)">
-    <path d="M-96,26 L-96,4 C-96,-8 -84,-16 -70,-16 L34,-16 C46,-16 56,-8 56,4 L56,26 L40,26 L40,12 L26,12 L26,26 L10,26 L10,12 L-4,12 L-4,26 L-20,26 L-20,12 L-34,12 L-34,26 L-50,26 L-50,12 L-64,12 L-64,26 Z"/>
-    <path d="M56,4 C56,-14 70,-28 88,-28 C98,-28 96,-16 92,-10 L98,-4 L88,2 L92,12 L78,10 C68,14 56,12 56,4 Z"/>
-    <circle fill="#7a5c0c" stroke="none" cx="84" cy="-16" r="4"/>
-    <path d="M-96,10 L-116,-14 L-104,-16 L-96,-4 Z"/>
-  </g>
-</g>
+</defs>
+<use href="#leopard" transform="translate(250,96) scale(0.85)"/>
+<use href="#leopard" transform="translate(250,236) scale(0.85)"/>
 </svg>

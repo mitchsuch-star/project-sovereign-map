@@ -960,3 +960,31 @@ new tests and nothing else.
 elimination *ordering* hazard, the player's exemption from elimination, and the AI's ongoing
 treatment of a carved client as a diplomatic actor beyond turn 1 — the last is the natural
 subject of the NA-6d live verification rather than a code change here.
+
+### §20.2 Visual check — held July 19, 2026
+
+Self-served against the rendered assets and the real backend payload, in the pattern the
+U2/U3/U5 sign-offs used.
+
+**The four heraldry assets.** Rendered at full size and at in-game chip size. Three passed
+first look — Warsaw (white over red), Poland (the same bicolour under a gold crown, so the
+C→T chain reads as a promotion rather than a different country), and the Roman Republic
+(the 1798 black-white-red vertical tricolour). **Normandy FAILED and was redrawn.** The first
+cut's "two leopards passant guardant" rendered as centipedes: a rectangular body with
+leg-stubs and an unreadable head blob. Redrawn with a proper guardant head (ears, eyes,
+muzzle), an arched body, a raised foreleg for the passant gait, and a tail curled forward
+over the back; both charges now read as animals at full size and as gold-on-red charges at
+44px. All four remain distinguishable from each other at chip size.
+
+**The honest-availability carve row.** Rendered from the live `_court_demand_suggestions`
+payload through the exact BBCode `_build_suggestion_lines` builds:
+
+```
+UNAVAILABLE  [color=#808080]Erect Duchy of Warsaw from Prussia's lands — unavailable (requires Posen)[/color]
+               [i][color=#909098]— Your armies do not hold every province the new state would be made of.[/color][/i]
+AVAILABLE    [url=sugg:0:0][color=#80b0e0]Erect Duchy of Warsaw from Prussia's lands[/color][/url]
+               [i][color=#909098]— Do not annex it, Sire - erect it. …[/color][/i]
+```
+
+The unavailable arm contains **no `[url=`** — structurally un-clickable rather than a dead
+button, which is the §11.6-1 requirement. Both sign-off rows opened in §20 are CLOSED.

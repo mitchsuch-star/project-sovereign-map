@@ -2507,6 +2507,47 @@ class TestCarveReviewFixes:
         assert str(CARVE_LOYALTY) in row["client_terms_display"]
         assert "tribute" in row["client_terms_display"]
 
+    def test_the_validator_schemas_the_whole_seeds_block(self):
+        """Review #9(a), the half of the fix the runtime guard does not
+        cover. Section 11.4 assigns this boundary to the validator
+        ("templates are data - the validator is the boundary"), so a mod
+        must fail at validation rather than at ratification. Note the
+        original `elif`: with `gold` absent, nothing below it ran at all."""
+        import copy as _copy
+        import json as _json
+        base = _json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+
+        def _errors(mutate, needle):
+            data = _copy.deepcopy(base)
+            mutate(data)
+            result = validate_scenario(data)
+            return [e for e in result.errors if needle in e.path]
+
+        assert _errors(
+            lambda d: d["formable_nations"]["DuchyOfWarsaw"]["seeds"][
+                "diplomat"].pop("skill"), "seeds.diplomat")
+        assert _errors(
+            lambda d: d["formable_nations"]["DuchyOfWarsaw"]["seeds"][
+                "diplomat"].update(skill=99), "seeds.diplomat.skill")
+        assert _errors(
+            lambda d: d["formable_nations"]["Normandy"]["seeds"].update(
+                actions=-1), "seeds.actions")
+        assert _errors(
+            lambda d: d["formable_nations"]["Normandy"]["seeds"].update(
+                manpower={"infantry": "lots"}), "seeds.manpower")
+        # An unknown personality degrades rather than breaks -> WARN.
+        data = _copy.deepcopy(base)
+        data["formable_nations"]["RomanRepublic"]["seeds"]["diplomat"][
+            "personality"] = "grumpy"
+        result = validate_scenario(data)
+        assert not [e for e in result.errors if "personality" in e.path]
+        assert [w for w in result.warnings if "personality" in w.path]
+
+    def test_the_shipped_catalogue_passes_the_seeds_schema(self):
+        result = validate_scenario(str(SCENARIO_PATH))
+        assert not [e for e in result.errors if "seeds" in e.path], [
+            str(e) for e in result.errors]
+
     def test_a_carve_warns_about_a_stripped_estate_exactly_like_a_cession(
             self, world):
         """Review #5 (P2). Three separate estate-warning loops opened with

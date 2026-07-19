@@ -81,6 +81,12 @@ VALID_STANCES = {"neutral", "defensive", "aggressive"}
 # `validate_scenario_runtime_support`) — covers both rosters so Europe-scenario
 # marshals don't spam warnings. 1805 Loader pre-slice.
 VALID_NATIONS = set(NATION_CAPITALS.keys()) | set(EUROPE_NATION_CAPITALS.keys())
+
+# NA-6c: diplomat personalities a `formable_nations` template may seed.
+# Warning-not-error (the roster-miss stance) — the runtime accepts any
+# string, so an unknown value degrades to flat behaviour rather than
+# breaking; the author still deserves to be told.
+VALID_DIPLOMAT_PERSONALITIES = {"schemer", "loyalist", "hawk", "dove"}
 VALID_SKILLS = {"tactical", "shock", "defense", "logistics", "administration", "command"}
 
 MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
@@ -830,20 +836,84 @@ def validate_scenario(
                                 f"References non-existent region "
                                 f"'{province}'")
 
+                # The WHOLE `seeds` block is schemed, not just `gold`. Every
+                # key here is consumed unguarded by the birth mutation
+                # (`formations._seed_client_roster`), and that mutation runs
+                # DURING settlement ratification — a malformed value there
+                # raises after the tag is already in `enemy_nations`,
+                # leaving a phantom nation that serializes. §11.4 assigns
+                # this boundary to the validator ("templates are data - the
+                # validator is the boundary"), so it has to actually exist.
+                # (Note the earlier `elif`: with `gold` absent, nothing
+                # below it was checked at all.)
                 if "seeds" in template:
                     seeds = template.get("seeds")
                     if not isinstance(seeds, dict):
                         result.add_error(
                             f"{path}.seeds",
                             f"Must be an object, got {type(seeds).__name__}")
-                    elif "gold" in seeds:
-                        gold = seeds.get("gold")
-                        if (not isinstance(gold, int)
-                                or isinstance(gold, bool) or gold < 0):
-                            result.add_error(
-                                f"{path}.seeds.gold",
-                                f"Must be a non-negative integer, "
-                                f"got {gold!r}")
+                    else:
+                        for key in ("gold", "actions", "authority"):
+                            if key not in seeds:
+                                continue
+                            value = seeds.get(key)
+                            if (not isinstance(value, int)
+                                    or isinstance(value, bool) or value < 0):
+                                result.add_error(
+                                    f"{path}.seeds.{key}",
+                                    f"Must be a non-negative integer, "
+                                    f"got {value!r}")
+                        if "manpower" in seeds:
+                            pool = seeds.get("manpower")
+                            if not isinstance(pool, dict):
+                                result.add_error(
+                                    f"{path}.seeds.manpower",
+                                    f"Must be an object, got "
+                                    f"{type(pool).__name__}")
+                            else:
+                                for arm, count in pool.items():
+                                    if (not isinstance(count, int)
+                                            or isinstance(count, bool)
+                                            or count < 0):
+                                        result.add_error(
+                                            f"{path}.seeds.manpower.{arm}",
+                                            f"Must be a non-negative integer, "
+                                            f"got {count!r}")
+                        if "diplomat" in seeds:
+                            defn = seeds.get("diplomat")
+                            if not isinstance(defn, dict):
+                                result.add_error(
+                                    f"{path}.seeds.diplomat",
+                                    f"Must be an object, got "
+                                    f"{type(defn).__name__}")
+                            else:
+                                # `create_diplomat_from_data` direct-indexes
+                                # all three — a missing key is a KeyError at
+                                # ratification time, not a soft default.
+                                for key in ("name", "personality", "skill"):
+                                    if key not in defn:
+                                        result.add_error(
+                                            f"{path}.seeds.diplomat",
+                                            f"Requires '{key}' - the runtime "
+                                            f"reads it without a default")
+                                skill = defn.get("skill")
+                                if "skill" in defn and (
+                                        not isinstance(skill, int)
+                                        or isinstance(skill, bool)
+                                        or not 1 <= skill <= 10):
+                                    result.add_error(
+                                        f"{path}.seeds.diplomat.skill",
+                                        f"Must be an integer 1-10, "
+                                        f"got {skill!r}")
+                                personality = defn.get("personality")
+                                if ("personality" in defn
+                                        and personality not in
+                                        VALID_DIPLOMAT_PERSONALITIES):
+                                    result.add_warning(
+                                        f"{path}.seeds.diplomat.personality",
+                                        f"Unknown diplomat personality "
+                                        f"'{personality}'. Known: "
+                                        f"{sorted(VALID_DIPLOMAT_PERSONALITIES)}")
 
                 if "aggrieved" in template:
                     _validate_aggrieved_list(
