@@ -989,14 +989,28 @@ Deliberately **maneless**: in French heraldry a *léopard* IS a lion passant gua
 medieval Norman rendering is routinely drawn without one; draft 3 proves what adding a mane
 costs.
 
-**Honest assessment of what shipped:** correct tincture, correct charge count, correct
-attitude, clean at 44px, and distinguishable from the other three. It reads as a *lioness*
-rather than as heraldry. Hand-authored figurative heraldry is at the edge of what is
-reliably achievable in raw path data, and five drafts is where the returns flattened.
-**The path to actually-good is the Hanover precedent** — adapt a public-domain heraldic lion
-from Wikimedia the way `Hanover.svg` adapted `Flag_of_Twente.svg`, with the credit row in
-`THIRD_PARTY_LICENSES.md`. That needs a decision to bring in an external asset, so it is
-flagged rather than taken.
+**Resolution — the Hanover precedent was taken (user-directed, same day).** All five drafts
+were discarded. `Normandy.svg` now adapts **"Flag of Normandie.svg"** (Wikimedia Commons,
+uploaded 2009-04-02 by Saebhiar, released into the **public domain worldwide** — PD-self),
+exactly as `Hanover.svg` adapts the PD `Flag_of_Twente.svg` Saxon Steed. Licence verified
+against the live source page before fetching; credit row in `THIRD_PARTY_LICENSES.md`.
+
+Adapted for this project: the source 3:2 canvas re-fitted to the set's 500×300 (centred,
+scale 1.889764, dx 25), the source's own field rect replaced by one in the game palette red
+`#c8102e`, and the gold recoloured `#fcd41c` → `#e8b923` to match the rest of the heraldry
+set. The **azure tongue and dark outline are kept** — "armed and langued azure" is the
+correct blazon, and the outline is precisely what lets the charge read at 44px. The source's
+`<g id="a">` + `<use>` structure is preserved, so the second leopard is still one reference
+rather than a duplicated path.
+
+The result is real heraldry: manes, claws, tongues, articulated paws, correct passant
+guardant attitude — and it still reads cleanly at chip size, distinct from Warsaw's and
+Poland's bicolours and Rome's tricolour.
+
+**The lesson worth keeping:** the five drafts were not wasted so much as diagnostic. Coherent
+figurative heraldry is past what hand-authored path data reaches reliably, and the project
+already had a documented answer for that. When an asset class has a sourcing precedent in
+`THIRD_PARTY_LICENSES.md`, reach for it before the fifth redraw, not after.
 
 **The honest-availability carve row.** Rendered from the live `_court_demand_suggestions`
 payload through the exact BBCode `_build_suggestion_lines` builds:

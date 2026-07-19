@@ -88,10 +88,22 @@ quill-scratch, dedicated wax-seal stamp — approximated from the RPG pack for n
 
 26 period national flags, named `<Nation>.svg` — the 20 for the 1805 boot roster, plus 6
 for nations that can only come into existence during a campaign (NA-6a/6b's Italy and United
-Netherlands; NA-6c's Duchy of Warsaw, Poland, Duchy of Normandy and Roman Republic, all four
-original simplified geometric renderings authored in-repo July 19, 2026 — Polish white-over-
-red, the Norman gules-with-two-leopards-or in a deliberately bold simplification that still
-reads at chip size, and the 1798 Republic's black-white-red vertical tricolour).
+Netherlands; NA-6c's Duchy of Warsaw, Poland, Duchy of Normandy and Roman Republic).
+
+Of the NA-6c four, three are original simplified geometric renderings authored in-repo
+July 19, 2026 — Polish white-over-red, the same bicolour under a gold crown for Poland, and
+the 1798 Roman Republic's black-white-red vertical tricolour (simple heraldic geometry
+carries no copyright). **`Normandy.svg` is adapted from a public-domain source**, following
+the same provenance pattern as `Hanover.svg`: the two leopards passant guardant are taken
+from **"Flag of Normandie.svg"** (Wikimedia Commons, uploaded 2009-04-02 by **Saebhiar**,
+released into the **public domain worldwide** by the copyright holder — PD-self;
+`https://commons.wikimedia.org/wiki/File:Flag_of_Normandie.svg`). Adapted for this project:
+the source 3:2 canvas re-fitted to the set's 500×300, its own field rect replaced by one in
+the game palette red, and the gold recoloured `#fcd41c` → `#e8b923` to match the rest of the
+set; the azure tongue and dark outline are kept, since "armed and langued azure" is the
+correct blazon and the outline is what lets the charge read at 44px. Public domain — no
+attribution required, credited here as a matter of record. (Five hand-authored drafts
+preceded it; see `NATION_AGENDAS_SPEC.md` §20.2 for why sourcing won.)
 
 The boot roster (France, Britain 1801 Union, Austria, Russia,
 Prussia, Spain, Naples, Bavaria, Sweden, Denmark, Portugal, Holland, Papal States,

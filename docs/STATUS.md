@@ -57,12 +57,13 @@ live-verified over HTTP.
   Falsifiability verified by reverting four fixes — exactly the four matching tests fail.
 - **✅ Visual check HELD July 19, 2026 (spec §20.2) — both sign-off rows CLOSED.** Three flags passed
   first look; **Normandy FAILED and took five drafts** — centipede, cartoon cub (with a *smile*),
-  spiky-sun mane, housecat, then the shipped lean maneless leopard. What shipped is correct in
-  tincture, charge count and attitude and is clean at 44px, but **reads as a lioness rather than as
-  heraldry** — hand-authored figurative heraldry is the edge of what raw path data reliably reaches.
-  The path to actually-good is the **Hanover precedent** (adapt a PD Wikimedia heraldic lion, credit
-  row in `THIRD_PARTY_LICENSES.md`); flagged rather than taken, since it means bringing in an
-  external asset. The greyed carve row was rendered from the live payload
+  spiky-sun mane, housecat, then the shipped lean maneless leopard. All five were then **discarded**: user-directed
+  same day, `Normandy.svg` now adapts the **public-domain "Flag of Normandie.svg"** (Wikimedia,
+  Saebhiar, PD-self — licence verified against the live source page), exactly as `Hanover.svg` adapts
+  the PD Saxon Steed, re-fitted to 500×300 and recoloured to the game palette with the azure tongue
+  and dark outline kept. Real heraldry at last — manes, claws, tongues, correct passant guardant —
+  and still clean at 44px. **Lesson:** when an asset class already has a sourcing precedent in
+  `THIRD_PARTY_LICENSES.md`, reach for it before the fifth redraw, not after. The greyed carve row was rendered from the live payload
   through the exact BBCode the client builds: it carries the gate ("requires Posen"), names what is
   missing, and contains **no `[url=`** — un-clickable by construction, not a dead button.
 - **Session hazard worth remembering:** a review subagent ran `git stash` to "compare against baseline"
