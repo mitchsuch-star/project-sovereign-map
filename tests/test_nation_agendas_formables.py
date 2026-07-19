@@ -1456,3 +1456,756 @@ class TestGodotIdentityChokepoints:
                     f"({block['flag']}.svg)"
                 )
         assert seen == 2   # Italy + United Netherlands
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# NA-6c — CLASS C CARVE-OUT CLIENT CREATION (spec §11.4 / §11.10 dec. 6-7)
+#
+# The structural facts these tests exist to protect:
+#   1. `process_formations` skips every vassal, and a carved client IS a
+#      vassal from its first instant — so the carve must emit its own
+#      Proclamation. `test_carve_proclaims_without_the_poll` is the pin.
+#   2. Identity for a DECKLESS client resolves through the template, not a
+#      deck entry. Without the template arm in `_forms_block_for_record`,
+#      Normandy and the Roman Republic would silently have no display name,
+#      no flag, and no standing §11.9 grudge — invisibly.
+#      `test_deckless_client_still_has_an_identity` is the pin.
+#   3. `nation_capitals` is NOT serialized; a carved capital is re-derived
+#      on load. `test_carved_capital_survives_save_load` is the pin.
+# ═════════════════════════════════════════════════════════════════════════
+
+from backend.game_logic.ai_diplomacy import (          # noqa: E402
+    _settlement_offer_build_terms,
+)
+from backend.game_logic.diplomatic_templates import (  # noqa: E402
+    NATION_DESIRE_PROFILES,
+    TALLEYRAND_COMMENTARY,
+    annotate_peace_terms,
+    calculate_raw_treaty_harshness,
+)
+from backend.game_logic.formations import (            # noqa: E402
+    CARVE_LOYALTY,
+    create_client_nation,
+    get_template,
+    get_template_identity,
+    template_provinces,
+)
+from backend.game_logic.settlement_ratify import (     # noqa: E402
+    _apply_settlement_terms,
+)
+from backend.game_logic.settlement_validation import (  # noqa: E402
+    evaluate_create_client_eligibility,
+    validate_settlement_terms,
+)
+from backend.nation_config import NATION_POWER_TIERS   # noqa: E402
+
+CARVE_TAGS = ("DuchyOfWarsaw", "Normandy", "RomanRepublic")
+
+
+def _war(world, a, b):
+    """A war instance placing `a` and `b` on opposite sides."""
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, dict):
+            continue
+        att = set(instance.get("attackers") or [])
+        dfd = set(instance.get("defenders") or [])
+        if (a in att and b in dfd) or (a in dfd and b in att):
+            return instance
+    return {
+        "attackers": [a], "defenders": [b],
+        "diplo_key_meta": {world._make_diplo_key(a, b): {"pair_status": "war"}},
+    }
+
+
+def _at_war(world, a, b):
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    if world.get_diplomatic_state(a, b) != "WAR":
+        set_diplomatic_state(world, a, b, "WAR", "test_na6c")
+    world.invalidate_active_nations_cache()
+    return _war(world, a, b)
+
+
+def _carve_ready(world, template_id, court, carver):
+    """Put `carver` in a position to carve `template_id` out of `court`."""
+    war_instance = _at_war(world, carver, court)
+    _hand_over(world, carver,
+               template_provinces(get_template(world, template_id)))
+    return war_instance
+
+
+class TestCarveBootZero:
+    def test_no_template_tag_exists_at_boot(self, world):
+        """§11.4: 'no template tag exists at boot — pinned.'"""
+        active = set(world.get_active_nations())
+        for tag in CARVE_TAGS:
+            assert tag not in active
+            assert tag not in world.vassals
+            assert tag not in world.nation_capitals
+
+    def test_the_catalogue_is_authored_but_inert(self, world):
+        assert set(world.formable_nations) == set(CARVE_TAGS)
+        assert world.nation_formations == {}
+
+    def test_catalogue_survives_save_load(self, world):
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert set(reloaded.formable_nations) == set(CARVE_TAGS)
+        assert (template_provinces(get_template(reloaded, "DuchyOfWarsaw"))
+                == ["Posen"])
+
+
+class TestCarveEligibility:
+    def test_the_player_may_carve_the_defeated(self, world):
+        war_instance = _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        result = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="DuchyOfWarsaw",
+            from_court="Prussia", carver="France")
+        assert result["eligible"] is True
+
+    def test_soil_must_be_HELD_before_it_can_be_carved(self, world):
+        war_instance = _at_war(world, "France", "Prussia")
+        assert world.regions["Posen"].controller == "Prussia"
+        result = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="DuchyOfWarsaw",
+            from_court="Prussia", carver="France")
+        assert result["eligible"] is False
+        assert result["refusal_code"] == "carve_provinces_not_held"
+        assert result["disabled_reason_display"]
+
+    def test_you_cannot_carve_a_client_out_of_a_THIRD_partys_soil(self, world):
+        """§11.4's second half: holding the province is not enough — it must
+        have BELONGED to the court paying the price. France holding Posen
+        cannot carve it out of AUSTRIA."""
+        war_instance = _at_war(world, "France", "Austria")
+        _hand_over(world, "France", ["Posen"])
+        result = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="DuchyOfWarsaw",
+            from_court="Austria", carver="France")
+        assert result["eligible"] is False
+        assert result["refusal_code"] == "carve_not_defeated_soil"
+
+    def test_you_cannot_carve_your_own_homeland(self, world):
+        """Normandy starts FRENCH, so France can never be the carver of it —
+        the same predicate that blocks an ally's soil."""
+        war_instance = _at_war(world, "France", "Austria")
+        result = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="Normandy",
+            from_court="Austria", carver="France")
+        assert result["eligible"] is False
+        assert result["refusal_code"] == "carve_not_defeated_soil"
+
+    def test_a_tag_already_standing_cannot_be_erected_twice(self, world):
+        war_instance = _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        result = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="DuchyOfWarsaw",
+            from_court="Prussia", carver="France")
+        assert result["eligible"] is False
+        assert result["refusal_code"] == "carve_tag_already_exists"
+
+    def test_erasing_a_state_needs_a_decisive_victory(self, world):
+        """Q2 / §11.10 dec. 7: Rome is the Papal States' ONLY province, so
+        the carve is also their elimination. That is allowed — but only at
+        the same war score `territory_cede` demands, and stated OUT LOUD
+        here rather than silently dropped at ratification."""
+        war_instance = _carve_ready(
+            world, "RomanRepublic", "PapalStates", "France")
+        key = world._make_diplo_key("France", "PapalStates")
+        world.war_scores[key] = 40
+        blocked = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="RomanRepublic",
+            from_court="PapalStates", carver="France")
+        assert blocked["eligible"] is False
+        assert blocked["refusal_code"] == "carve_total_annexation_blocked"
+        assert "decisive" in blocked["disabled_reason_display"].lower()
+        world.war_scores[key] = 95
+        allowed = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id="RomanRepublic",
+            from_court="PapalStates", carver="France")
+        assert allowed["eligible"] is True
+
+
+class TestCarveCreatesANation:
+    def test_the_full_birth(self, world):
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        assert "DuchyOfWarsaw" in world.get_active_nations()
+        assert world.regions["Posen"].controller == "DuchyOfWarsaw"
+        row = world.vassals["DuchyOfWarsaw"]
+        assert row["lord"] == "France"
+        assert row["loyalty"] == CARVE_LOYALTY
+        assert row["carved_from"] == "Prussia"
+        assert world.get_nation_capital("DuchyOfWarsaw") == "Posen"
+        assert world.nation_gold["DuchyOfWarsaw"] == 500
+        assert world.diplomatic_states[
+            world._make_diplo_key("DuchyOfWarsaw", "France")] == "VASSAL"
+
+    def test_shape_parity_with_a_boot_authored_satellite(self, world):
+        """§11.10 dec. 6: the new tag must appear in every world-level
+        structure the boot-authored satellite KingdomOfItaly appears in.
+        Derived from the LIVE boot world so the pin cannot drift as new
+        nation-keyed state is added."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        missing = []
+        for attr in sorted(vars(world)):
+            if attr.startswith("_"):
+                continue
+            value = getattr(world, attr)
+            if isinstance(value, (dict, list)) and "KingdomOfItaly" in value:
+                if "DuchyOfWarsaw" not in value:
+                    missing.append(attr)
+        assert missing == [], (
+            f"carved client absent from world state a boot satellite "
+            f"occupies: {missing}"
+        )
+
+    def test_the_newborn_does_not_proclaim_survival_over_its_own_erection(
+            self, world):
+        """Its provinces ARE its homeland, so `survival_override_active`
+        has real input — but holding its capital keeps it False."""
+        from backend.game_logic.agendas import survival_override_active
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        assert world.nation_starting_regions["DuchyOfWarsaw"] == ["Posen"]
+        assert survival_override_active(world, "DuchyOfWarsaw") is False
+        world.regions["Posen"].controller = "Prussia"
+        world.invalidate_active_nations_cache()
+        assert survival_override_active(world, "DuchyOfWarsaw") is True
+
+    def test_a_missing_template_province_fails_LOUDLY(self, world):
+        world.formable_nations["DuchyOfWarsaw"]["provinces"] = ["Atlantis"]
+        with pytest.raises(ValueError, match="Atlantis"):
+            create_client_nation(world, "DuchyOfWarsaw", "France")
+
+    def test_unknown_template_is_a_no_op_not_a_crash(self, world):
+        assert create_client_nation(world, "Ruritania", "France") is None
+
+
+class TestCarveIdentity:
+    def test_deckless_client_still_has_an_identity(self, world):
+        """The PREFLIGHT trap: `_forms_block_for_record` resolves identity
+        by scanning the nation's DECK. Normandy has no deck at all, so
+        without the template arm this returns None and the client silently
+        has no name, no flag and no grudge."""
+        _carve_ready(world, "Normandy", "France", "Britain")
+        create_client_nation(world, "Normandy", "Britain", ceded_from="France")
+        assert world.agendas.get("Normandy") in (None, [])
+        identity = get_display_identity(world, "Normandy")
+        assert identity == {"display_name": "Duchy of Normandy",
+                            "flag_tag": "Normandy"}
+        assert build_nation_display_overrides(
+            world)["Normandy"] == "Duchy of Normandy"
+        assert build_nation_flag_overrides(world)["Normandy"] == "Normandy"
+
+    def test_carved_capital_survives_save_load(self, world):
+        """`nation_capitals` is not serialized (it is rebuilt at
+        construction and excluded from the enforcement gate). A carved
+        capital must be re-derived on load or the client silently pays -1
+        DP every turn forever."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert reloaded.get_nation_capital("DuchyOfWarsaw") == "Posen"
+        assert get_display_identity(reloaded, "DuchyOfWarsaw") == {
+            "display_name": "Duchy of Warsaw", "flag_tag": "DuchyOfWarsaw"}
+
+    def test_the_client_deck_is_installed_but_dormant(self, world):
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        assert [e["id"] for e in world.agendas["DuchyOfWarsaw"]] == [
+            "commonwealth_restored", "guard_the_vistula"]
+        # §3.2: a client never activates its deck while it answers to a lord.
+        assert get_active_agenda("DuchyOfWarsaw", world) is None
+
+
+class TestCarveProclamation:
+    def test_carve_proclaims_without_the_poll(self, world):
+        """A carved client is a vassal, and `process_formations` skips every
+        vassal — so the poll can NEVER announce a creation. The carve emits
+        the landmark itself."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        card = world.nation_proclamation_popup
+        assert card is not None
+        assert card["display_name"] == "Duchy of Warsaw"
+        # The poll, run afterwards, must add nothing and re-fire nothing.
+        assert process_formations(world) == []
+
+    def test_nothing_is_no_more_when_a_nation_is_CREATED(self, world):
+        """A carve kills nothing. Every 'X is no more' surface must branch
+        on the empty `old_display_name` — the card, the notification, and
+        the campaign-log one-liner."""
+        from backend.campaign_log import format_event_oneliner
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        card = world.nation_proclamation_popup
+        assert card["old_display_name"] == ""
+        assert "is no more" not in card["proclamation"]
+        notices = [n for n in world.notifications.get_pending()
+                   if "Proclaimed" in str(n.get("title", ""))]
+        assert notices, "the Proclamation raised no notification"
+        assert "is no more" not in str(notices[0].get("message", ""))
+        event = [e for e in world.event_log
+                 if e.get("type") == "nation_formed"][-1]
+        assert "is no more" not in format_event_oneliner(event)
+
+    def test_the_author_reads_by_your_hand(self, world):
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        assert world.nation_proclamation_popup["subtitle"] == "By your hand."
+
+    def test_the_witness_reads_a_new_power(self, world):
+        """GR5: an AI erecting a client against another AI still proclaims —
+        diplomacy has no fog — but the player is a witness, not the author."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "Austria")
+        create_client_nation(world, "DuchyOfWarsaw", "Austria",
+                             ceded_from="Prussia")
+        card = world.nation_proclamation_popup
+        assert card["subtitle"] == "A new power takes its seat in Europe."
+
+    def test_the_card_states_the_terms_of_dependence(self, world):
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        create_client_nation(world, "DuchyOfWarsaw", "France",
+                             ceded_from="Prussia")
+        terms = " ".join(world.nation_proclamation_popup["terms"])
+        assert "500 gold" in terms
+        assert "satellite" in terms and str(CARVE_LOYALTY) in terms
+
+    def test_the_aggrieved_courts_are_struck_and_named(self, world):
+        """§11.9 for a Class C template: the blow reads the TEMPLATE's
+        aggrieved list, and strikes both the new state and its sponsor."""
+        _carve_ready(world, "RomanRepublic", "PapalStates", "France")
+        world.war_scores[world._make_diplo_key("France", "PapalStates")] = 95
+        before = world.nation_relations.get(
+            world._make_diplo_key("Austria", "France"), 0)
+        create_client_nation(world, "RomanRepublic", "France",
+                             ceded_from="PapalStates")
+        card = world.nation_proclamation_popup
+        assert "Austria" in card["fury_line"] and "Spain" in card["fury_line"]
+        assert world.nation_relations[
+            world._make_diplo_key("Austria", "RomanRepublic")
+        ] == FORMATION_AGGRIEVED_RELATION_PENALTY
+        after = world.nation_relations[
+            world._make_diplo_key("Austria", "France")]
+        assert after == max(-100, before + FORMATION_AGGRIEVED_RELATION_PENALTY)
+        assert "Austria" in get_formation_grudge_nations(world)
+
+
+class TestCarveThroughRatification:
+    def test_the_player_carve_lands_through_the_real_apply_path(self, world):
+        war_instance = _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        terms = [
+            {"type": "peace"},
+            {"type": "create_client", "from": "Prussia", "to": "France",
+             "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+             "client_display_name": "Duchy of Warsaw"},
+        ]
+        assert validate_settlement_terms(
+            terms, world=world, war_instance=war_instance)["valid"] is True
+        applied = _apply_settlement_terms(world, settlement_terms=terms)
+        carve = [c for c in applied if c["type"] == "create_client"]
+        assert len(carve) == 1
+        assert carve[0]["loyalty_after"] == CARVE_LOYALTY
+        assert "Duchy of Warsaw" in carve[0]["pair_state_transition"]
+        assert world.regions["Posen"].controller == "DuchyOfWarsaw"
+
+    def test_carving_a_one_province_polity_eliminates_it_in_one_ratification(
+            self, world):
+        """§11.2's pinned interplay: Rome IS the Papal capital and their
+        only province, so the carve is also their elimination — both must
+        happen in one ratification, with both events logged."""
+        _carve_ready(world, "RomanRepublic", "PapalStates", "France")
+        world.war_scores[world._make_diplo_key("France", "PapalStates")] = 95
+        terms = [{"type": "create_client", "from": "PapalStates",
+                  "to": "France", "tag": "RomanRepublic",
+                  "provinces": ["Rome"],
+                  "client_display_name": "Roman Republic"}]
+        applied = _apply_settlement_terms(world, settlement_terms=terms)
+        assert [c["type"] for c in applied] == ["create_client"]
+        assert world.regions["Rome"].controller == "RomanRepublic"
+        assert "RomanRepublic" in world.get_active_nations()
+        assert "PapalStates" not in world.get_active_nations()
+        types = [e.get("type") for e in world.event_log]
+        assert "nation_formed" in types
+        assert "nation_eliminated" in types
+
+    def test_a_province_cannot_be_both_ceded_and_carved(self, world):
+        """GAP G1: a carve's soil rides the TEMPLATE, so the region
+        double-promise check could not see it. Whichever apply-step ran
+        second used to silently win."""
+        war_instance = _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        terms = [
+            {"type": "create_client", "from": "Prussia", "to": "France",
+             "tag": "DuchyOfWarsaw", "provinces": ["Posen"]},
+            {"type": "territory_cede", "from": "Prussia", "to": "France",
+             "region": "Posen"},
+        ]
+        result = validate_settlement_terms(
+            terms, world=world, war_instance=war_instance)
+        assert result["valid"] is False
+        assert result["error"] == "carve_region_double_promised"
+        assert result["disabled_reason_display"]
+
+    def test_the_apply_arm_re_verifies_live_control(self, world):
+        """VS-5's lesson: clauses apply in submitted order with no per-type
+        phasing, so an earlier clause can move the soil out from under the
+        carve. The arm must re-check rather than trust validation."""
+        _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        terms = [
+            {"type": "territory_cede", "from": "France", "to": "Austria",
+             "region": "Posen"},
+            {"type": "create_client", "from": "Prussia", "to": "France",
+             "tag": "DuchyOfWarsaw", "provinces": ["Posen"]},
+        ]
+        applied = _apply_settlement_terms(world, settlement_terms=terms)
+        assert [c["type"] for c in applied] == ["territory_cede"]
+        assert "DuchyOfWarsaw" not in world.get_active_nations()
+
+
+class TestCarveGR5TheNormandyMirror:
+    def test_an_ai_victor_offers_to_carve_the_players_homeland(self, world):
+        """§11.7: 'an AI victor offers the carve against France and the
+        player can accept/reject through the normal incoming surface.'"""
+        _at_war(world, "Britain", "France")
+        _hand_over(world, "Britain", ["Normandy"])
+        terms = _settlement_offer_build_terms(
+            player="France", proposer_nation="Britain", war_age_turns=6,
+            player_war_score=-80, world=world)
+        carve = [t for t in terms if t.get("type") == "create_client"]
+        assert len(carve) == 1
+        assert carve[0]["from"] == "France"
+        assert carve[0]["to"] == "Britain"
+        assert carve[0]["tag"] == "Normandy"
+        assert carve[0]["client_display_name"] == "Duchy of Normandy"
+
+    def test_an_even_war_never_carries_a_carve(self, world):
+        _at_war(world, "Britain", "France")
+        _hand_over(world, "Britain", ["Normandy"])
+        terms = _settlement_offer_build_terms(
+            player="France", proposer_nation="Britain", war_age_turns=6,
+            player_war_score=0, world=world)
+        assert not [t for t in terms if t.get("type") == "create_client"]
+
+    def test_a_losing_ai_never_carves(self, world):
+        """The player winning must not hand the AI a client state."""
+        _at_war(world, "Britain", "France")
+        _hand_over(world, "Britain", ["Normandy"])
+        terms = _settlement_offer_build_terms(
+            player="France", proposer_nation="Britain", war_age_turns=6,
+            player_war_score=80, world=world)
+        assert not [t for t in terms if t.get("type") == "create_client"]
+
+    def test_the_ai_cannot_offer_soil_it_does_not_hold(self, world):
+        _at_war(world, "Britain", "France")
+        assert world.regions["Normandy"].controller == "France"
+        terms = _settlement_offer_build_terms(
+            player="France", proposer_nation="Britain", war_age_turns=6,
+            player_war_score=-80, world=world)
+        assert not [t for t in terms if t.get("type") == "create_client"]
+
+    def test_the_ai_carve_lands_against_the_player(self, world):
+        _carve_ready(world, "Normandy", "France", "Britain")
+        terms = [{"type": "create_client", "from": "France", "to": "Britain",
+                  "tag": "Normandy", "provinces": ["Normandy"],
+                  "client_display_name": "Duchy of Normandy"}]
+        _apply_settlement_terms(world, settlement_terms=terms)
+        assert world.regions["Normandy"].controller == "Normandy"
+        assert world.vassals["Normandy"]["lord"] == "Britain"
+        # The player is the VICTIM here, never the author.
+        assert world.nation_proclamation_popup["subtitle"] != "By your hand."
+
+
+class TestCarveIsPricedAndLegible:
+    def test_a_carve_is_never_free_to_the_ai(self, world):
+        """The G4F-1 bug class: an unregistered clause type falls through
+        the harshness accumulator unmatched and prices at ZERO."""
+        clause = {"type": "create_client", "from": "Prussia", "to": "France",
+                  "tag": "DuchyOfWarsaw", "provinces": ["Posen"]}
+        assert calculate_raw_treaty_harshness({"clauses": [clause]}) > 0
+
+    def test_a_carve_costs_more_than_a_cession_and_less_than_vassalage(self):
+        carve = calculate_raw_treaty_harshness({"clauses": [
+            {"type": "create_client", "from": "a", "to": "b", "tag": "X",
+             "provinces": ["P"]}]})
+        cession = calculate_raw_treaty_harshness({"clauses": [
+            {"type": "territory_cede", "from": "a", "to": "b",
+             "region": "P"}]})
+        vassalage = calculate_raw_treaty_harshness({"clauses": [
+            {"type": "vassalage", "from": "a", "to": "b"}]})
+        assert cession < carve < vassalage
+
+    def test_harshness_scales_with_the_provinces_taken(self):
+        one = calculate_raw_treaty_harshness({"clauses": [
+            {"type": "create_client", "from": "a", "to": "b", "tag": "X",
+             "provinces": ["P"]}]})
+        three = calculate_raw_treaty_harshness({"clauses": [
+            {"type": "create_client", "from": "a", "to": "b", "tag": "X",
+             "provinces": ["P", "Q", "R"]}]})
+        assert three > one
+
+    def test_both_harshness_dialects_price_the_carve(self):
+        """Registering only the clauses dialect leaves the demands dialect
+        pricing at zero — exactly the shipped G4F-1 gold_indemnity bug."""
+        demand = {"type": "create_client", "from": "a", "to": "b",
+                  "tag": "X", "provinces": ["P"]}
+        assert calculate_raw_treaty_harshness({"demands": [demand]}) > 0
+
+    def test_the_incoming_clause_line_names_the_client_and_the_soil(self):
+        """§11.6-3: 'Britain proposes to erect the Duchy of Normandy from
+        your provinces: Normandy' — never a raw template tag."""
+        clause = {"type": "create_client", "from": "France", "to": "Britain",
+                  "tag": "Normandy", "provinces": ["Normandy"],
+                  "client_display_name": "Duchy of Normandy"}
+        label = annotate_peace_terms(
+            {"clauses": [clause]}, "Britain", "France")[0]["display_label"]
+        assert "Britain erects" in label
+        assert "Duchy of Normandy" in label
+        assert "Normandy" in label
+        assert "out of France" in label
+
+    def test_the_clause_line_direction_is_read_from_the_clause(self):
+        """The generic annotate fallback passes proposer/target positionally
+        and printed the sentence BACKWARDS for a carve."""
+        clause = {"type": "create_client", "from": "Prussia", "to": "France",
+                  "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+                  "client_display_name": "Duchy of Warsaw"}
+        row = annotate_peace_terms(
+            {"clauses": [clause]}, "France", "Prussia")[0]
+        assert row["from_nation"] == "Prussia"
+        assert row["to_nation"] == "France"
+        assert row["display_label"].startswith("France erects")
+
+    def test_no_raw_template_tag_reaches_the_player(self):
+        from backend.game_logic.settlement_presentation import _term_display
+        clause = {"type": "create_client", "from": "Prussia", "to": "France",
+                  "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+                  "client_display_name": "Duchy of Warsaw"}
+        line = _term_display(clause)
+        assert "DuchyOfWarsaw" not in line
+        assert "Duchy of Warsaw" in line and "Posen" in line
+
+    def test_the_carved_court_scores_it_as_a_loss_not_a_white_peace(
+            self, world):
+        """GAP G2: `agenda_settlement_mod` gated on the territory family, so
+        a court whose design province was CARVED away scored the package as
+        indifferently as a white peace."""
+        from backend.game_logic.agendas import agenda_settlement_mod
+        # Austria's live design is `redeem_italy` [Milan, Piedmont, Savoy].
+        # Give it Milan so the design is HELD-but-unmet, then carve Milan
+        # away: that is the ENTRENCH case.
+        _hand_over(world, "Austria", ["Milan"])
+        carve = {"type": "create_client", "from": "Austria", "to": "France",
+                 "tag": "DuchyOfWarsaw", "provinces": ["Milan"]}
+        cede = {"type": "territory_cede", "from": "Austria", "to": "France",
+                "region": "Milan"}
+        # The whole point of GAP G2: a carve must score like the cession it
+        # effectively is, not like a white peace.
+        assert agenda_settlement_mod("Austria", [carve], world) < 0
+        assert (agenda_settlement_mod("Austria", [carve], world)
+                == agenda_settlement_mod("Austria", [cede], world))
+
+
+class TestCarveAuthoringSurface:
+    def _rows(self, world, court, carver="France"):
+        from backend.game_logic.settlement_staging import (
+            _court_demand_suggestions,
+        )
+        war_instance = _at_war(world, carver, court)
+        rows = _court_demand_suggestions(
+            world,
+            court=court,
+            direction="demand",
+            war_id="w",
+            draft_key="d",
+            war_instance=war_instance,
+            proposer_side_participants=[carver],
+            proposer_holdings=set(world.get_nation_regions(carver)),
+            proposer_leader=carver,
+            settlement_terms=[],
+            promised_regions=set(),
+            treasury_remaining=int(world.nation_gold.get(carver, 0)),
+            income_cache={},
+        )
+        flat = rows[0] if isinstance(rows, tuple) else rows
+        return [s for s in flat if s.get("clause_type") == "create_client"]
+
+    def test_an_unavailable_carve_is_SHOWN_with_its_gate_terms(self, world):
+        """§11.6-1 honest availability: never a silent absence. France does
+        not hold Posen, so the row appears greyed with what is missing."""
+        rows = self._rows(world, "Prussia")
+        warsaw = [r for r in rows
+                  if r["action_params"]["tag"] == "DuchyOfWarsaw"]
+        assert len(warsaw) == 1
+        assert warsaw[0]["available"] is False
+        assert "Posen" in warsaw[0]["gate_terms"]
+        assert warsaw[0]["disabled_reason_display"]
+
+    def test_an_available_carve_becomes_actionable(self, world):
+        _hand_over(world, "France", ["Posen"])
+        rows = self._rows(world, "Prussia")
+        warsaw = [r for r in rows
+                  if r["action_params"]["tag"] == "DuchyOfWarsaw"]
+        assert warsaw[0]["available"] is True
+        assert warsaw[0]["reason_display"]
+
+    def test_irrelevant_templates_are_not_noise_on_this_court(self, world):
+        """A template whose soil never belonged to THIS court is a different
+        country's business — showing it would be noise, not honesty."""
+        rows = self._rows(world, "Prussia")
+        tags = {r["action_params"]["tag"] for r in rows}
+        assert "RomanRepublic" not in tags
+        assert "Normandy" not in tags
+
+    def test_the_add_verb_finds_the_eligible_template(self, world):
+        from backend.game_logic.settlement_actions import (
+            _carve_templates_for_court,
+        )
+        war_instance = _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
+        assert _carve_templates_for_court(
+            world, war_instance=war_instance, court="Prussia",
+            carver="France") == ["DuchyOfWarsaw"]
+
+    def test_the_staged_row_never_shows_the_literal_type_name(self):
+        from backend.game_logic.settlement_staging import _guided_line_display
+        clause = {"type": "create_client", "from": "Prussia", "to": "France",
+                  "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+                  "client_display_name": "Duchy of Warsaw"}
+        tag, display = _guided_line_display(clause, "Prussia")
+        assert tag == "Demanded"
+        assert display == "Erect Duchy of Warsaw (Posen)"
+        assert "create client" not in display
+
+
+class TestCarveCompanionRows:
+    def test_every_carve_tag_has_its_dont_do_rows(self):
+        """CLAUDE.md standing rule: never add a nation without
+        NATION_DESIRE_PROFILES + TALLEYRAND_COMMENTARY. These degrade
+        SILENTLY (empty dict / default ladder), so nothing else catches it."""
+        for tag in CARVE_TAGS:
+            assert tag in NATION_DESIRE_PROFILES, tag
+            assert any(key[0] == tag for key in TALLEYRAND_COMMENTARY), tag
+
+    def test_every_carve_tag_is_tiered_as_a_minor(self):
+        """Unauthored tags take the `secondary` default — a one-province
+        client would enter coalition threat math at Spain's weight."""
+        for tag in CARVE_TAGS:
+            assert NATION_POWER_TIERS.get(tag) == "minor", tag
+
+    def test_every_carve_tag_has_a_colour_and_a_display_name(self):
+        from backend.display_names import NATION_DISPLAY
+        utils = (GODOT / "scripts" / "utils.gd").read_text(encoding="utf-8")
+        colors = utils.split(
+            "const NATION_COLORS = {", 1)[1].split("\n}", 1)[0]
+        for tag in CARVE_TAGS:
+            assert f'"{tag}"' in colors, f"{tag} would paint bug-magenta"
+        # DuchyOfWarsaw would camelCase-split to "Duchy Of Warsaw".
+        assert NATION_DISPLAY["DuchyOfWarsaw"] == "Duchy of Warsaw"
+        assert '"DuchyOfWarsaw": "Duchy of Warsaw"' in utils
+
+    def test_normandy_stays_out_of_both_prose_substitution_maps(self):
+        """`Normandy` and `Rome` are PROVINCE names on this map — a blind
+        substring replace would corrupt every sentence naming them."""
+        from backend.display_names import NATION_DISPLAY
+        assert "Normandy" not in NATION_DISPLAY
+        utils = (GODOT / "scripts" / "utils.gd").read_text(encoding="utf-8")
+        prose = utils.split(
+            "PROSE_NATION_KEY_SUBSTITUTIONS", 1)[1].split("}", 1)[0]
+        assert "Normandy" not in prose
+        assert "RomanRepublic" not in prose
+
+    def test_every_carve_flag_ships_with_its_import_sibling(self):
+        """A `.svg` with no `.svg.import` fails ResourceLoader.exists() and
+        the flag silently does not draw — found live at NA-6b."""
+        for asset in ("DuchyOfWarsaw", "Normandy", "RomanRepublic", "Poland"):
+            base = GODOT / "assets" / "ui" / "heraldry" / f"{asset}.svg"
+            assert base.exists(), f"missing {asset}.svg"
+            assert base.with_suffix(".svg.import").exists(), asset
+
+    def test_every_template_flag_resolves_to_an_asset(self, world):
+        for tag, template in world.formable_nations.items():
+            identity = get_template_identity(template)
+            assert identity is not None, tag
+            path = (GODOT / "assets" / "ui" / "heraldry"
+                    / f"{identity['flag']}.svg")
+            assert path.exists(), f"{tag} has no flag asset"
+
+    def test_the_c_to_t_chain_flag_exists(self, world):
+        """The Duchy's dormant deck forms POLAND (NA-6d builds the chain,
+        but the asset it will need is authored now rather than promised)."""
+        entry = world.formable_nations["DuchyOfWarsaw"]["deck"][0]
+        block = get_forms_block(entry)
+        assert block["display_name"] == "Poland"
+        assert (GODOT / "assets" / "ui" / "heraldry" / "Poland.svg").exists()
+
+
+class TestCarveValidator:
+    def _scenario(self):
+        import json
+        return json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+
+    def test_the_shipped_catalogue_validates(self):
+        result = validate_scenario(str(SCENARIO_PATH))
+        assert not [e for e in result.errors
+                    if "formable_nations" in e.path], [
+            str(e) for e in result.errors]
+
+    def test_a_template_shadowing_a_live_nation_is_an_error(self):
+        data = self._scenario()
+        data["formable_nations"]["Austria"] = {
+            "display_name": "Austria", "provinces": ["Posen"]}
+        result = validate_scenario(data)
+        assert any("already a nation" in e.message for e in result.errors)
+
+    def test_a_template_without_provinces_is_an_error(self):
+        data = self._scenario()
+        data["formable_nations"]["DuchyOfWarsaw"]["provinces"] = []
+        result = validate_scenario(data)
+        assert any("provinces" in e.path for e in result.errors)
+
+    def test_a_template_without_a_display_name_is_an_error(self):
+        data = self._scenario()
+        del data["formable_nations"]["Normandy"]["display_name"]
+        result = validate_scenario(data)
+        assert any("display_name" in e.message for e in result.errors)
+
+    def test_a_template_deck_is_held_to_the_agenda_schema(self):
+        data = self._scenario()
+        data["formable_nations"]["DuchyOfWarsaw"]["deck"][0]["type"] = "junk"
+        result = validate_scenario(data)
+        assert any("Invalid agenda type" in e.message for e in result.errors)
+
+    def test_a_template_aggrieved_roster_miss_only_warns(self):
+        data = self._scenario()
+        data["formable_nations"]["RomanRepublic"]["aggrieved"] = ["Ruritania"]
+        result = validate_scenario(data)
+        assert not [e for e in result.errors if "aggrieved" in e.path]
+        assert any("Ruritania" in w.message for w in result.warnings)
+
+
+class TestCarveGodotWiring:
+    def test_the_renderer_emits_unavailable_rows_as_plain_text(self):
+        """§11.6-1: never hidden, never a dead button. The unavailable arm
+        must not emit a [url], or it becomes clickable-but-broken."""
+        source = _read(GODOT / "scripts" / "proposal_confirm_popup.gd")
+        block = source.split("func _build_suggestion_lines", 1)[1].split(
+            "\nfunc ", 1)[0]
+        guard = block.split("var bbcode", 1)[0]
+        assert 'sugg.has("available")' in guard
+        assert "unavailable" in guard
+        assert "[url=" not in guard, (
+            "the unavailable arm emits a link — it must be inert text")
+
+    def test_the_fire_path_refuses_an_unavailable_suggestion(self):
+        source = _read(GODOT / "scripts" / "proposal_confirm_popup.gd")
+        block = source.split(
+            "func _fire_suggestion", 1)[1].split("\nfunc ", 1)[0]
+        assert 'sugg.has("available")' in block

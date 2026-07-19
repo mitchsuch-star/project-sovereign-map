@@ -67,6 +67,18 @@ const NATION_COLORS = {
 	"KingdomOfItaly": Color(0.25, 0.78, 0.35),
 	"Switzerland": Color(0.92, 0.5, 0.6),
 	"Neutral": Color(0.565, 0.933, 0.565),
+	# NA-6c (July 19, 2026): the three Class C carve-out client states. None
+	# exists at boot — these paint only once a settlement erects one — but an
+	# unauthored tag falls through to COLOR_ENEMY_DEFAULT magenta, which is
+	# deliberately "a bug to be seen" and would be exactly wrong for a state
+	# the player just created on purpose. Chosen by searching the palette
+	# space for the nearest colour to each nation's own heraldry that still
+	# clears both perceptual floors: Polish crimson, Norman russet (gold on
+	# gules), republican slate. Measured with the set present: min pairwise
+	# blended deltaE 13.4 -> 13.35, fogged 7.8 -> 7.66 (floors 12.0 / 7.0).
+	"DuchyOfWarsaw": Color(0.8, 0.275, 0.35),
+	"Normandy": Color(0.725, 0.425, 0.175),
+	"RomanRepublic": Color(0.4, 0.425, 0.475),
 }
 
 # === Nation Display Names (map labels / player-facing surfaces) ===
@@ -77,6 +89,14 @@ const NATION_DISPLAY_NAMES = {
 	"Ottoman": "Ottoman Empire",
 	"PapalStates": "Papal States",
 	"KingdomOfItaly": "Kingdom of Italy",
+	# NA-6c: the carve tags. "DuchyOfWarsaw" would otherwise camelCase-split
+	# to "Duchy Of Warsaw" (capital O). RomanRepublic splits correctly by
+	# luck — authored anyway so the rendering is intentional rather than
+	# incidental. "Normandy" needs no row (single token, already correct)
+	# and deliberately gets none: it is also a PROVINCE name on this map,
+	# and prose substitution must keep skipping it.
+	"DuchyOfWarsaw": "Duchy of Warsaw",
+	"RomanRepublic": "Roman Republic",
 }
 
 static func contrast_text_color(background: Color) -> Color:

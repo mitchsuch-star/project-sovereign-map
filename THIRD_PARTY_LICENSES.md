@@ -86,11 +86,18 @@ quill-scratch, dedicated wax-seal stamp — approximated from the RPG pack for n
 
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
-20 period national flags for the 1805 roster (France, Britain 1801 Union, Austria, Russia,
+26 period national flags, named `<Nation>.svg` — the 20 for the 1805 boot roster, plus 6
+for nations that can only come into existence during a campaign (NA-6a/6b's Italy and United
+Netherlands; NA-6c's Duchy of Warsaw, Poland, Duchy of Normandy and Roman Republic, all four
+original simplified geometric renderings authored in-repo July 19, 2026 — Polish white-over-
+red, the Norman gules-with-two-leopards-or in a deliberately bold simplification that still
+reads at chip size, and the 1798 Republic's black-white-red vertical tricolour).
+
+The boot roster (France, Britain 1801 Union, Austria, Russia,
 Prussia, Spain, Naples, Bavaria, Sweden, Denmark, Portugal, Holland, Papal States,
 Sardinia — Wikimedia PD; plus Hanover, Hesse, Kingdom of Italy, Switzerland, Ottoman, Saxony —
 original simplified geometric renderings authored in-repo July 16, 2026, matching the set's
-flat style; simple heraldic geometry carries no copyright), named `<Nation>.svg`. Public
+flat style; simple heraldic geometry carries no copyright). Public
 domain — no attribution required. **Date-accuracy pass (July 16, 2026):** Hanover redrawn as
 the Electorate's white Saxon Steed on red (the white-over-yellow bicolor is the post-1814
 Kingdom flag), Ottoman's 5-point star replaced with the 8-point star of Selim III's 1793

@@ -487,6 +487,17 @@ def _term_display(term: Mapping[str, Any]) -> str:
         if amount > 0:
             return f"{base}: {amount} gold from {t_from} to {t_to}"
         return f"{base}: {t_from} to {t_to}"
+    # NA-6c: the generic fallbacks below read from/to/region only, so a
+    # carve would render "Client state erected: France to Britain" — the
+    # client and its soil, the only things that matter, invisible.
+    if ttype == "create_client":
+        client = str(term.get("client_display_name") or term.get("tag") or "")
+        provinces = [str(p) for p in (term.get("provinces") or []) if p]
+        detail = f"{client} ({', '.join(provinces)})" if provinces else client
+        if detail and t_from and t_to:
+            return f"{base}: {t_to} erects {detail} out of {t_from}"
+        if detail:
+            return f"{base}: {detail}"
     if region and t_from and t_to:
         return f"{base}: {region} from {t_from} to {t_to}"
     if t_from and t_to:
@@ -970,6 +981,18 @@ def build_applied_clauses_preview(
             row["lord_nation"] = row["lord"]
             row["liberator"] = str(term.get("liberator") or term.get("to") or "")
             row["pair_state_transition"] = "VASSALAGE -> SOVEREIGN"
+        elif ttype == "create_client":
+            # NA-6c: the generic fallback below whitelists neither `tag` nor
+            # `provinces`, so a carve routed through it would lose its only
+            # payload — the row would say a client was erected without ever
+            # naming which one, or out of what.
+            row["tag"] = str(term.get("tag") or "")
+            row["client"] = str(
+                term.get("client_display_name") or term.get("tag") or "")
+            row["provinces"] = list(term.get("provinces") or [])
+            row["from"] = str(term.get("from") or "")
+            row["to"] = str(term.get("to") or "")
+            row["pair_state_transition"] = "WAR -> CLIENT ERECTED"
         elif ttype == "peace":
             row["pair_state_transition"] = "WAR -> PEACE"
         else:

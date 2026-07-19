@@ -758,5 +758,76 @@
                 "blurb": "The counting houses want the sea lanes open and the armies elsewhere. A Netherlands at peace is a Netherlands that trades."
             }
         ]
+    },
+    "_formable_nations_comment": "Nation Agendas NA-6c (docs/NATION_AGENDAS_SPEC.md section 11.4): Class C carve-out templates. A conquering side may carve one of these client states out of the DEFEATED party's soil at the settlement table, via the create_client clause. NONE of these tags exist at boot - the block is a catalogue of what MAY be erected, not a roster. Any side may carve (GR5): the Duchy of Normandy is the coalition-side mirror, carved from French home soil. 'provinces' must ALL be held by the carving side and must ALL have belonged to the defeated party. 'deck' is the client's agenda deck, dormant while it remains a client (section 3.2); a deck entry carrying a 'forms' block makes the client itself formable later (the C-to-T chain). 'aggrieved' is the section 11.9 list of courts enraged by the erection itself.",
+    "formable_nations": {
+        "DuchyOfWarsaw": {
+            "display_name": "Duchy of Warsaw",
+            "flag": "DuchyOfWarsaw",
+            "provinces": ["Posen"],
+            "blurb": "Out of Prussia's Polish partition, a Polish state stands again - the DUCHY OF WARSAW is erected.",
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Chancery of Warsaw",
+                    "personality": "loyalist",
+                    "skill": 4,
+                    "biography": "Speaks for a Polish state that exists at a patron's pleasure, and remembers that it did not always."
+                }
+            },
+            "deck": [
+                {
+                    "id": "commonwealth_restored",
+                    "type": "acquire_regions",
+                    "title": "The Commonwealth Restored",
+                    "regions": ["Lithuania", "Volhynia"],
+                    "blurb": "A Duchy is not a kingdom. The old Commonwealth lands lie east - dormant while Warsaw answers to a foreign patron, and a red line for every court that partitioned her.",
+                    "forms": {
+                        "display_name": "Poland",
+                        "flag": "Poland",
+                        "blurb": "The partitions are undone by the fortune of arms - the DUCHY OF WARSAW is no more. The KINGDOM OF POLAND stands.",
+                        "aggrieved": ["Prussia", "Russia"]
+                    }
+                },
+                {
+                    "id": "guard_the_vistula",
+                    "type": "guard_neutrality",
+                    "title": "Guard the Vistula",
+                    "regions": ["Posen", "Lithuania", "Volhynia"],
+                    "blurb": "A country that was erased once holds what it has regathered. A foreign column on the Vistula is not a march - it is a memory."
+                }
+            ]
+        },
+        "Normandy": {
+            "display_name": "Duchy of Normandy",
+            "flag": "Normandy",
+            "provinces": ["Normandy"],
+            "blurb": "The old duchy is severed from the French crown - the DUCHY OF NORMANDY is erected.",
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Chancery of Rouen",
+                    "personality": "dove",
+                    "skill": 3,
+                    "biography": "A duchy resurrected by France's enemies, and quietly aware of what that makes it."
+                }
+            }
+        },
+        "RomanRepublic": {
+            "display_name": "Roman Republic",
+            "flag": "RomanRepublic",
+            "provinces": ["Rome"],
+            "blurb": "The temporal power is ended and the tree of liberty planted on the Capitol - the ROMAN REPUBLIC is proclaimed.",
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Chancery of the Capitol",
+                    "personality": "loyalist",
+                    "skill": 4,
+                    "biography": "A consul of the restored Republic, ruling from the city of the Popes and answerable to bayonets."
+                }
+            },
+            "aggrieved": ["Austria", "Spain"]
+        }
     }
 }

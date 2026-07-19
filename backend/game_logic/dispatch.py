@@ -1789,6 +1789,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "By the will of the nation and the fortune of arms — "
         "{old_nation} is no more. {nation} stands."
     ),
+    # NA-6c §11.4 — a CREATION, not a transformation. Nothing died to make
+    # this nation, so it gets its own line rather than the formation
+    # template with an empty `{old_nation}` ("— is no more.").
+    "nation_created": (
+        "By the fortune of arms and the pen at the table — "
+        "{nation} is erected upon the map, a client of {sponsor}."
+    ),
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
@@ -1855,6 +1862,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "agenda_shift": "MEDIUM",
     "agenda_violation": "HIGH",
     "nation_formed": "HIGH",
+    "nation_created": "HIGH",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

@@ -950,12 +950,24 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     if view is None and not won:
         return 0
 
-    territory_kinds = ("territory", "territory_cede", "territory_return")
+    # NA-6c: a `create_client` carve moves SOIL, so it belongs in the
+    # territory family here. Without it, a court whose design province is
+    # carved away into a foreign client scored the package as a white
+    # peace — more indifferent to losing Posen to a new Duchy of Warsaw
+    # than to ceding it outright, which is exactly backwards.
+    territory_kinds = ("territory", "territory_cede", "territory_return",
+                       "create_client")
 
     def _regions_of(term) -> List[str]:
         regions = term.get("regions")
         if isinstance(regions, (list, tuple)) and regions:
             return [str(r) for r in regions]
+        # A carve keys its soil as `provinces` (deliberately, so it does not
+        # silently join every generic region-driven component).
+        if term.get("type") == "create_client":
+            provinces = term.get("provinces")
+            if isinstance(provinces, (list, tuple)) and provinces:
+                return [str(p) for p in provinces]
         region = str(term.get("region") or "")
         return [region] if region else []
 

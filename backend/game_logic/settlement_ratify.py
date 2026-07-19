@@ -19,7 +19,9 @@ from backend.game_logic.diplomatic_templates import (
 from backend.game_logic.settlement_scoring import (
     CANONICAL_CLAUSE_TYPES,
     SETTLEMENT_HARD_STOP_CODES,
+    TOTAL_ANNEXATION_WAR_SCORE,
 )
+from backend.game_logic.formations import CARVE_LOYALTY
 from typing import (
     Any,
     Dict,
@@ -255,7 +257,7 @@ def _apply_settlement_terms(
                 if len(cede_from_regions - set(regions)) == 0:
                     ws_key = world._make_diplo_key(from_nation, to_nation)
                     ws = abs(int(getattr(world, "war_scores", {}).get(ws_key, 0) or 0))
-                    if ws < 90:
+                    if ws < TOTAL_ANNEXATION_WAR_SCORE:
                         continue
             transferred: List[str] = []
             for region_name in regions:
@@ -447,6 +449,60 @@ def _apply_settlement_terms(
                         transfer_result.get("rekeyed_marshals") or []
                     )
                     applied.append(clause)
+        elif ttype == "create_client":
+            # NA-6c (NATION_AGENDAS_SPEC §11.4): erect a new client state
+            # out of the defeated court's soil. Package-level handler like
+            # vassal_transfer — the erected tag is not a war participant,
+            # so the per-pair plan cannot host it.
+            cc_tag = str(term.get("tag") or "")
+            cc_from = str(term.get("from") or "")
+            cc_to = str(term.get("to") or "")
+            from backend.game_logic.formations import (
+                create_client_nation, get_template, template_provinces,
+            )
+            cc_template = get_template(world, cc_tag)
+            cc_provinces = template_provinces(cc_template or {})
+            # Re-verify against LIVE state rather than trusting the
+            # validation-time snapshot — the VS-5 lesson: clauses apply in
+            # submitted order with no per-type phasing, so an earlier
+            # clause in this very package may have moved one of these
+            # provinces out from under the carve.
+            cc_bloc = set(world.get_bloc_members(cc_to)) | {cc_to}
+            cc_held = bool(cc_provinces) and all(
+                str(getattr((getattr(world, "regions", {}) or {}).get(p),
+                            "controller", "")) in cc_bloc
+                for p in cc_provinces
+            )
+            if (cc_tag and cc_from and cc_to and cc_template is not None
+                    and cc_held
+                    and cc_tag not in set(world.get_active_nations())):
+                # The court being carved may be left with nothing — that is
+                # the Papal case and it is intended (validation already
+                # required a decisive war score for it). Snapshot BEFORE
+                # the carve so the elimination check reads the real result.
+                cc_payload = create_client_nation(
+                    world, cc_tag, cc_to, ceded_from=cc_from,
+                )
+                if cc_payload is not None:
+                    clause = dict(term)
+                    clause["provinces"] = list(cc_provinces)
+                    clause["client_display_name"] = str(
+                        cc_payload.get("display_name") or cc_tag)
+                    clause["loyalty_after"] = int(CARVE_LOYALTY)
+                    clause["pair_state_transition"] = (
+                        f"{cc_payload.get('display_name') or cc_tag} erected "
+                        f"as a client of {cc_to}"
+                    )
+                    applied.append(clause)
+                    # Elimination LAST, and only once the client tag owns
+                    # the soil — carving a one-province polity erases it,
+                    # and `_eliminate_nation` frees a lord's vassals with a
+                    # bare `del`, so the row written above must already
+                    # belong to the CARVER, never to the court dying here.
+                    if (cc_from
+                            and cc_from != getattr(world, "player_nation", None)
+                            and not world.get_nation_regions(cc_from)):
+                        world._eliminate_nation(cc_from)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
             lib_from = str(term.get("lord_nation") or term.get("to") or "")

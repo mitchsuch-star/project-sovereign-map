@@ -112,6 +112,24 @@ CANONICAL_CLAUSE_TYPES = {
     # the transferred court (excluded from role binding like liberation's
     # vassal_nation — it is the subject, not a bound court).
     "vassal_transfer": {"required": {"type", "from", "to", "vassal"}, "optional": {"authored_by"}},
+    # NA-6c (NATION_AGENDAS_SPEC §11.4): erect a NEW client state out of the
+    # defeated party's soil. Canonical from/to follow vassal_transfer — from
+    # = the court whose provinces are carved away, to = the carver who gains
+    # the client — so burden partitioning, concession credit, cross-side
+    # straddle and pair-matching all work unchanged. `tag` names the
+    # `formable_nations` TEMPLATE; the provinces are template-resolved, not
+    # carried on the clause (a template is the single source for which soil
+    # a given client is made of).
+    # `provinces` is a DENORMALIZED copy of the template's province list,
+    # stamped by the authoring seam (which has `world`) so that the three
+    # world-less consumers can do their job: harshness pricing, the region
+    # double-promise check, and display. It is never the authority —
+    # ratification re-resolves the live template and re-verifies control
+    # (the VS-5 "re-check inside the apply arm" pattern).
+    "create_client": {
+        "required": {"type", "from", "to", "tag"},
+        "optional": {"provinces", "client_display_name", "authored_by"},
+    },
 }
 
 # G2-Slice-1 live MVP clause types.
@@ -124,6 +142,7 @@ SETTLEMENT_MVP_CLAUSE_TYPES = frozenset({
 SETTLEMENT_DEPENDENCY_CLAUSE_TYPES = frozenset({
     "vassalage", "subjugation", "liberation",
     "vassal_transfer",  # VS-5 (July 16, 2026)
+    "create_client",    # NA-6c (July 19, 2026)
 })
 
 # SC-33 / G2-Slice-9 - Recurring gold payments become editor-live. The clause
@@ -160,6 +179,15 @@ CLAUSE_CONTROL_SCHEMA = {
 }
 
 MAX_SETTLEMENT_CLAUSE_COUNT = 8
+
+# The war score below which a settlement may NOT take a court's last
+# province — a state is not erased from the map short of a decisive
+# victory. Long a literal inside `settlement_ratify`'s territory_cede arm;
+# named here at NA-6c so the carve path (which can annex a one-province
+# polity outright — Rome IS the Papal capital) applies the identical rule
+# from one source, and states it out loud at the authoring seam instead of
+# silently dropping the clause at ratification.
+TOTAL_ANNEXATION_WAR_SCORE = 90
 
 # SC-1: clause conflict matrix. Each entry is (type_a, type_b, match_keys)
 # where the pair conflicts when both exist and the match_keys values agree.
@@ -535,6 +563,7 @@ _BURDEN_TERM_TYPES = (
     "vassalage",
     "subjugation",
     "vassal_transfer",  # VS-5: burdens `from` (the lord losing the vassal)
+    "create_client",    # NA-6c: burdens `from` (the court whose soil is carved)
 )
 
 
@@ -577,7 +606,7 @@ def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
         if ttype in _TERRITORY_TERM_TYPES and _term_regions(t):
             return True
         if ttype in ("forced_alliance", "liberation", "vassalage",
-                     "subjugation", "vassal_transfer"):
+                     "subjugation", "vassal_transfer", "create_client"):
             return True
         # Any concrete numeric demand counts as non-trivial.
         if t.get("amount") or t.get("value"):
@@ -1070,6 +1099,16 @@ def _select_relevant_objective(
             elif ttype == "vassal_transfer":
                 # VS-5: losing a whole satellite prices like liberation
                 enemy_costs[from_n] += 0.3
+            elif ttype == "create_client":
+                # NA-6c: mirrors the harshness accumulator (territory
+                # parity per province + the state-erection premium), so the
+                # court that lost soil to a carve is correctly identified
+                # as the harshest-treated party.
+                provinces = term.get("provinces")
+                count = (len(provinces)
+                         if isinstance(provinces, (list, tuple)) and provinces
+                         else 1)
+                enemy_costs[from_n] += (0.3 * count) + 0.15
     harshest_target: Optional[str]
     if any(v > 0 for v in enemy_costs.values()):
         harshest_target = max(enemy_costs.items(), key=lambda kv: (kv[1], kv[0]))[0]
@@ -1324,6 +1363,16 @@ def _concession_credit_for_term(
         # VS-5: the proposer handing its OWN satellite across the table is
         # a major concession (a whole client state changes blocs).
         return CONCESSION_DEPENDENCY_CREDIT
+    if ttype == "create_client":
+        # NA-6c: the proposer carving a client out of its OWN soil for the
+        # accepting side is a concession on the same scale — territory
+        # credit for the provinces surrendered, plus the dependency credit
+        # for handing over a whole client state.
+        provinces = term.get("provinces")
+        count = (len(provinces)
+                 if isinstance(provinces, (list, tuple)) and provinces else 1)
+        return (CONCESSION_TERRITORY_PER_REGION * count
+                + CONCESSION_DEPENDENCY_CREDIT)
     if ttype == "forced_alliance":
         return CONCESSION_FORCED_ALLIANCE_CREDIT
     return 0

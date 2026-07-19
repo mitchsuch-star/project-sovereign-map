@@ -88,6 +88,7 @@ from backend.game_logic.settlement_validation import (
     _side_leader,
     _term_lists_equal,
     evaluate_liberation_eligibility,
+    evaluate_create_client_eligibility,
     evaluate_vassal_transfer_eligibility,
     evaluate_open_settlement_eligibility,
     evaluate_pair_peace_substitute_eligibility,
@@ -95,6 +96,11 @@ from backend.game_logic.settlement_validation import (
     evaluate_vassalage_eligibility,
     get_coverable_enemy_participants,
     validate_settlement_terms,
+)
+from backend.game_logic.formations import (
+    get_template,
+    get_template_identity,
+    template_provinces,
 )
 
 
@@ -397,6 +403,18 @@ def _guided_line_display(term: Mapping[str, Any], court: str) -> Tuple[str, str]
         display = "Forced alliance" + (
             " (Continental System)" if term.get("includes_continental_system") else ""
         )
+    elif ttype == "create_client":
+        # NA-6c: the `else` below renders the literal string "create client"
+        # on the player's own table of terms.
+        client = str(term.get("client_display_name") or term.get("tag") or "")
+        provinces = [str(p) for p in (term.get("provinces") or []) if p]
+        soil = f" ({', '.join(provinces)})" if provinces else ""
+        display = (f"Erect {client}{soil}" if frm == court
+                   else f"{frm} yields {client}{soil}")
+    elif ttype == "vassal_transfer":
+        # VS-5 never added its arm either — same literal-string leak.
+        display = (f"Yield {term.get('vassal')}" if frm == court
+                   else f"{frm} yields {term.get('vassal')}")
     else:
         display = ttype.replace("_", " ") or "Clause"
     return tag, display
@@ -757,6 +775,72 @@ def _court_demand_suggestions(
             params={"vassal_nation": vassal},
             vassal_options=list(transfer_eligible),
         ))
+
+    # NA-6c §11.6-1: erect a client state out of this court's soil.
+    #
+    # This is the FIRST option on the settlement authoring surface to follow
+    # the U6 honest-availability idiom rather than the surface's existing
+    # "ineligible options simply do not appear" rule. That rule is wrong for
+    # a carve specifically: a formable is a standing ambition of the
+    # campaign, and a player who has taken four of five provinces must be
+    # able to SEE that the fifth is what stands between them and the Duchy.
+    # A silent absence reads as "this game has no such thing".
+    #
+    # Unavailable rows carry `available: False` + the refusal's own
+    # `disabled_reason_display`; the renderer emits those as plain text, so
+    # the row is structurally un-clickable rather than a dead button.
+    carve_catalogue = getattr(world, "formable_nations", None) or {}
+    if carve_catalogue:
+        carve_rows = []
+        for template_id in carve_catalogue:
+            eligibility = evaluate_create_client_eligibility(
+                world,
+                war_instance=war_instance,
+                template_id=template_id,
+                from_court=court,
+                carver=proposer_leader,
+            )
+            # A template whose soil never belonged to THIS court is not a
+            # missed opportunity, it is simply a different country's
+            # business — showing it here would be noise, not honesty.
+            if str(eligibility.get("refusal_code") or "") in (
+                    "carve_not_defeated_soil", "carve_template_unknown",
+                    "dependency_target_not_in_war", "carve_tag_already_exists"):
+                continue
+            carve_rows.append((template_id, eligibility))
+        for template_id, eligibility in carve_rows:
+            template = get_template(world, template_id)
+            identity = get_template_identity(template) or {}
+            client = str(identity.get("display_name") or template_id)
+            provinces = template_provinces(template)
+            available = bool(eligibility.get("eligible"))
+            gate_terms = (
+                f"requires {', '.join(provinces)}"
+                if provinces else "requires held provinces"
+            )
+            demand_group.append(_guided_suggestion(
+                label=f"Erect {client} from {court}'s lands",
+                group="demand",
+                clause_type="create_client",
+                reason_display=(
+                    resolve_settlement_voice_line(
+                        "settlement_guided_reason_create_client_talleyrand",
+                        court=court, client=client,
+                    )
+                    if available else ""
+                ),
+                court=court,
+                war_id=war_id,
+                draft_key=draft_key,
+                params={"tag": template_id},
+                available=available,
+                disabled_reason_display=(
+                    "" if available
+                    else str(eligibility.get("disabled_reason_display") or "")
+                ),
+                gate_terms=gate_terms,
+                provinces=list(provinces),
+            ))
 
     # --- Offer group (France → court), the D4 sweetener lever ------------
     gold_offer_default = _guided_gold_offer_default(

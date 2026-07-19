@@ -983,6 +983,23 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	# One Talleyrand-suggested, fully-formed option (§3.1): the act link, the
 	# OQ-1 dropdown toggle when several candidates are valid, and the
 	# GT-Slice-V in-character reason line.
+	# NA-6c: honest availability (§11.6-1). A suggestion may now ship with
+	# `available: false` — shown, with its gate terms, but structurally
+	# un-clickable: the unavailable arm emits PLAIN TEXT, never a [url], so
+	# it cannot become a dead button. Options without the key keep the old
+	# always-live behaviour, so every pre-NA-6c suggestion is unchanged.
+	if sugg.has("available") and not bool(sugg.get("available", true)):
+		var gate = _safe_str(sugg.get("gate_terms"))
+		var why = _safe_str(sugg.get("disabled_reason_display"))
+		var line = "          [color=#%s]%s — unavailable" % [
+			Utils.COLOR_GREY, _safe_str(sugg.get("label")),
+		]
+		if gate != "" and gate != "null":
+			line += " (%s)" % gate
+		line += "[/color]\n"
+		if why != "" and why != "null":
+			line += "            [i][color=#909098]— %s[/color][/i]\n" % why
+		return line
 	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 		court_index, sugg_index, _safe_str(sugg.get("label")),
 	]
@@ -1081,6 +1098,13 @@ func _fire_suggestion(row: Dictionary, sugg_index: int, op: String, parts: Packe
 		return
 	var sugg = suggestions[sugg_index]
 	if not (sugg is Dictionary):
+		return
+	# NA-6c defence-in-depth: the renderer already emits an unavailable
+	# suggestion as un-clickable plain text, but a stale index (the table
+	# repaints on every response) must not be able to fire one anyway. The
+	# original `generic`-sentinel defect in this codebase was precisely one
+	# layer trusting that another had handled it.
+	if sugg.has("available") and not bool(sugg.get("available", true)):
 		return
 	var params = sugg.get("action_params", {})
 	var payload = params.duplicate(true) if params is Dictionary else {}

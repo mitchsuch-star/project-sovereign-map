@@ -63,6 +63,13 @@ _MATERIAL_LOSS_TYPES: frozenset = frozenset(
         "forced_alliance",
         "liberation",
         "continental_system_join",
+        # NA-6c: losing soil AND gaining a foreign client on your frontier
+        # is as material as any cession — an ally sold out this way must
+        # get its `sold_out_by_war_leader` reaction. (VS-5's
+        # `vassal_transfer` was never added here; it is added alongside,
+        # since losing a satellite to the enemy is the same category.)
+        "create_client",
+        "vassal_transfer",
     }
 )
 

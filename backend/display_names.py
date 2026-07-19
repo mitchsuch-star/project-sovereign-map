@@ -60,6 +60,14 @@ NATION_DISPLAY = {
     "Ottoman": "Ottoman Empire",
     "PapalStates": "Papal States",
     "KingdomOfItaly": "Kingdom of Italy",
+    # NA-6c: the Class C carve tags. Unlike Godot, this chokepoint has no
+    # camelCase fallback — an unauthored tag passes through RAW, so
+    # "DuchyOfWarsaw" would reach the player verbatim in backend prose.
+    "DuchyOfWarsaw": "Duchy of Warsaw",
+    "RomanRepublic": "Roman Republic",
+    # "Normandy" is deliberately ABSENT, mirroring Godot: it is also a
+    # PROVINCE name on this map, and a carved Normandy always resolves its
+    # player-facing name through the formation identity override anyway.
 }
 
 
@@ -233,6 +241,12 @@ CLAUSE_TYPE_DISPLAY = {
     "manpower_artillery": "Artillery reserves",
     "artillery_manpower": "Artillery reserves",
     "war_bargain": "War bargain",
+    # VS-5 / NA-6c: the two dependency clauses that mint or move a court.
+    # Both were reaching the title-case fallback ("Vassal Transfer" /
+    # "Create Client") — flat, non-diegetic, and in NA-6c's case actively
+    # misleading about what happens.
+    "vassal_transfer": "Vassal transferred",
+    "create_client": "Client state erected",
 }
 
 PROPOSAL_TYPE_SUMMARY_DISPLAY = {
@@ -712,6 +726,32 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "dependency_same_vassal_conflict": (
         "These terms both liberate and claim the same vassal - strike one "
         "of the two."
+    ),
+    # NA-6c (July 19, 2026): carve-out refusals. Every one names what is
+    # missing, so the honest-availability chip can state its gate terms
+    # rather than simply vanishing (§11.6-1).
+    "carve_template_unknown": (
+        "No such client state can be erected - the scenario authors no "
+        "template by that name."
+    ),
+    "carve_tag_already_exists": (
+        "That state already stands on the map; it cannot be erected twice."
+    ),
+    "carve_provinces_not_held": (
+        "Your armies do not hold every province the new state would be "
+        "made of."
+    ),
+    "carve_not_defeated_soil": (
+        "A client state is carved from the soil of the court that is "
+        "paying - not from land taken elsewhere, and never from your own."
+    ),
+    "carve_total_annexation_blocked": (
+        "This would take their last province and erase them from the map. "
+        "Only a decisive victory can do that."
+    ),
+    "carve_region_double_promised": (
+        "A province cannot both be ceded and be made part of a new client "
+        "state - strike one of the two."
     ),
     "dependency_power_cap_blocked": (
         "The lord lacks the national power to legally vassalize a "

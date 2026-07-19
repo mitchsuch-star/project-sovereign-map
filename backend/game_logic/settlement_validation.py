@@ -16,6 +16,7 @@ from backend.game_logic.settlement_scoring import (
     GOLD_PER_TURN_MIN_AMOUNT,
     GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
+    TOTAL_ANNEXATION_WAR_SCORE,
 )
 from typing import (
     Any,
@@ -722,6 +723,115 @@ def evaluate_vassal_transfer_eligibility(
         True, extra={"power_pct": int(cap.get("pct", 0) or 0)})
 
 
+def evaluate_create_client_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    template_id: str,
+    from_court: str,
+    carver: str,
+) -> Dict[str, Any]:
+    """NA-6c (§11.4 / §11.10 decision 7): whether a `create_client` clause
+    may erect ``template_id`` out of ``from_court``'s soil for ``carver``.
+
+    ONE predicate encodes the whole §11.4 rule — *carve the defeated,
+    never an ally's soil, never your own homeland*:
+
+      every template province is CURRENTLY held by the carver's bloc
+      AND its registry `starting_controller` is the court being carved.
+
+    The second half is what makes it honest. Holding a province is not
+    enough: the soil must have BELONGED to the court paying the price, so
+    a victor cannot carve a client out of land it took from a third party
+    (or out of its own homeland, which never starts under an enemy).
+
+    Deliberately NO capital guard — the asymmetry with NA-5's ultimatum
+    capital guard is pinned in §11.10 decision 7: the settlement table may
+    do what a peacetime demand may not, and Rome IS the Papal capital.
+    The total-annexation rule still applies (below), but as a LOUD refusal
+    here rather than `territory_cede`'s silent skip at ratification.
+    """
+    from backend.game_logic.formations import get_template, template_provinces
+
+    if (not template_id or not from_court or not carver
+            or from_court == carver):
+        return _dependency_eligibility_payload(
+            False, refusal_code="dependency_direction_invalid")
+
+    template = get_template(world, template_id)
+    if template is None:
+        return _dependency_eligibility_payload(
+            False, refusal_code="carve_template_unknown")
+
+    # Erecting a state that already exists is incoherent — and would
+    # silently re-home a live court's regions.
+    if template_id in set(world.get_active_nations()):
+        return _dependency_eligibility_payload(
+            False, refusal_code="carve_tag_already_exists")
+
+    from_side = _resolve_war_sides(war_instance, from_court)
+    carver_side = _resolve_war_sides(war_instance, carver)
+    if from_side is None or carver_side is None or from_side == carver_side:
+        return _dependency_eligibility_payload(
+            False, refusal_code="dependency_target_not_in_war")
+
+    provinces = template_provinces(template)
+    if not provinces:
+        return _dependency_eligibility_payload(
+            False, refusal_code="carve_template_unknown")
+
+    from backend.models.region import get_starting_controllers
+    starting_controllers = (
+        getattr(world, "_starting_controllers", None)
+        or get_starting_controllers()
+    )
+    carver_bloc = set(world.get_bloc_members(carver)) | {carver}
+
+    # "Whose soil is this?" is a STATIC property of the map and is checked
+    # FIRST, deliberately: it decides whether this template has anything to
+    # do with this court at all. Checked second, a template belonging to an
+    # entirely different country would refuse with `carve_provinces_not_held`
+    # — indistinguishable from a real, one-conquest-away opportunity, which
+    # would put the Roman Republic on Prussia's negotiation row.
+    not_theirs = [p for p in provinces
+                  if starting_controllers.get(p) != from_court]
+    if not_theirs:
+        return _dependency_eligibility_payload(
+            False, refusal_code="carve_not_defeated_soil",
+            extra={"provinces": list(provinces),
+                   "missing_provinces": not_theirs})
+
+    unheld = [
+        p for p in provinces
+        if str(getattr((getattr(world, "regions", {}) or {}).get(p), "controller", ""))
+        not in carver_bloc
+    ]
+    if unheld:
+        return _dependency_eligibility_payload(
+            False, refusal_code="carve_provinces_not_held",
+            extra={"provinces": list(provinces), "missing_provinces": unheld})
+
+    # The total-annexation rule (`settlement_ratify`'s territory_cede gate,
+    # §11.10 decision 7 / Q2): a carve that leaves the court with nothing
+    # ERASES it, and a state is not erased short of a decisive victory.
+    # Rome is exactly this case — the Papal States are a one-province
+    # polity — so the refusal is stated out loud rather than silently
+    # dropping the clause at ratification.
+    remaining = set(world.get_nation_regions(from_court)) - set(provinces)
+    if not remaining:
+        ws_key = world._make_diplo_key(from_court, carver)
+        war_score = abs(int(
+            (getattr(world, "war_scores", {}) or {}).get(ws_key, 0) or 0))
+        if war_score < TOTAL_ANNEXATION_WAR_SCORE:
+            return _dependency_eligibility_payload(
+                False, refusal_code="carve_total_annexation_blocked",
+                extra={"provinces": list(provinces),
+                       "war_score": war_score})
+
+    return _dependency_eligibility_payload(
+        True, extra={"provinces": list(provinces)})
+
+
 def evaluate_subjugation_eligibility(
     world: Any,
     *,
@@ -913,7 +1023,12 @@ def evaluate_open_settlement_eligibility(
 # the line). Dependency clauses (vassalage/subjugation/liberation) carry their
 # own cross-side eligibility checks and are excluded here.
 _CROSS_SIDE_TRANSFER_CLAUSE_TYPES = frozenset(
-    {"territory_cede", "gold_indemnity", "gold_per_turn", "forced_alliance"}
+    {"territory_cede", "gold_indemnity", "gold_per_turn", "forced_alliance",
+     # NA-6c: a carve moves SOIL across the war, so it straddles exactly
+     # like a cession. Unlike the other dependency clauses its from/to are
+     # both ordinary courts (the carved and the carver), so the generic
+     # check applies unmodified — the new tag is never a bound party.
+     "create_client"}
 )
 
 
@@ -1089,22 +1204,39 @@ def validate_settlement_terms(
     # Re-front Slice 3 §12 V1: no region promised to two courts. Each region may
     # appear in at most one `territory_cede` clause regardless of from/to. This
     # is structural (no world/war_instance needed) so it always runs.
+    # NA-6c closes this check's carve-shaped blind spot: a `create_client`
+    # implies province transfers too, but they ride the template rather
+    # than a `region` key, so a carve of Posen plus a territory_cede of
+    # Posen both validated and whichever apply-step ran second silently
+    # won. The denormalized `provinces` copy is what makes the collision
+    # visible to this world-less structural check.
     seen_regions: Dict[str, int] = {}
     for idx, clause in enumerate(terms):
-        if clause.get("type") != "territory_cede":
+        ctype = clause.get("type")
+        if ctype == "territory_cede":
+            regions = [str(clause.get("region") or "")]
+        elif ctype == "create_client":
+            raw = clause.get("provinces")
+            regions = ([str(r) for r in raw]
+                       if isinstance(raw, (list, tuple)) else [])
+        else:
             continue
-        region = str(clause.get("region") or "")
-        if not region:
-            continue
-        if region in seen_regions:
-            return {
-                "valid": False,
-                "error": "region_double_promised",
-                "error_index": idx,
-                "conflicting_index": seen_regions[region],
-                "disabled_reason_display": _error_display("region_double_promised"),
-            }
-        seen_regions[region] = idx
+        for region in regions:
+            if not region:
+                continue
+            if region in seen_regions:
+                code = ("carve_region_double_promised"
+                        if "create_client" in (
+                            ctype, terms[seen_regions[region]].get("type"))
+                        else "region_double_promised")
+                return {
+                    "valid": False,
+                    "error": code,
+                    "error_index": idx,
+                    "conflicting_index": seen_regions[region],
+                    "disabled_reason_display": _error_display(code),
+                }
+            seen_regions[region] = idx
 
     # Re-front Slice 3 §12 V2/V3: cross-court binding + war-side validity. Both
     # need the live `war_instance` to resolve sides; bare schema-only callers
@@ -1267,6 +1399,26 @@ def validate_settlement_terms(
                     vassal_nation=str(clause.get("vassal") or ""),
                     from_lord=str(clause.get("from") or ""),
                     to_lord=str(clause.get("to") or ""),
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "dependency_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "dependency_invalid")
+                        ),
+                    }
+            elif ctype == "create_client":
+                # NA-6c: from = the court whose soil is carved, to = the
+                # carver, `tag` = the formable template.
+                eligibility = evaluate_create_client_eligibility(
+                    world,
+                    war_instance=war_instance,
+                    template_id=str(clause.get("tag") or ""),
+                    from_court=str(clause.get("from") or ""),
+                    carver=str(clause.get("to") or ""),
                 )
                 if not eligibility.get("eligible"):
                     return {

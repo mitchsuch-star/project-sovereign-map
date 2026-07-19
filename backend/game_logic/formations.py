@@ -48,6 +48,22 @@ FORMATION_STABILITY_BONUS = 2            # the national moment, every owned regi
 FORMATION_AGGRIEVED_RELATION_PENALTY = -30   # §11.9, one-time, per aggrieved court
 FORMATION_STABILITY_CAP = 100            # the world-wide stability ceiling
 
+# ══════════════════ NA-6c — CLASS C CARVE-OUT (spec §11.4) ═══════════════
+# Deliberately NOT `vassal.TRANSFER_LOYALTY_RESET`, which numerically equals
+# this today: that constant carries a TRANSFER semantic (a satellite changing
+# hands keeps its grievances). A carved client is BORN owing its existence to
+# the carver — same number, different meaning, so it gets its own name and
+# may be tuned independently.
+CARVE_LOYALTY = 30
+CARVE_SEED_GOLD_DEFAULT = 500
+# A newborn client's reserve — below PapalStates (the smallest authored
+# Europe pool, 8000/1000/500), because it is a province with a flag on it.
+CARVE_MANPOWER_DEFAULT = {"infantry": 6000, "cavalry": 800, "artillery": 400}
+# The carved province changes hands under duress at a settlement table, so it
+# takes the hostile-cession reset (`settlement_ratify`'s territory_cede idiom)
+# rather than VS-3's stability-preserving grant idiom.
+CARVE_STABILITY = 50
+
 
 # ═══════════════════════ THE AUTHORED `forms` BLOCK ═══════════════════════
 
@@ -91,13 +107,63 @@ def get_formation_record(world, nation: str) -> Optional[dict]:
     return record if isinstance(record, dict) else None
 
 
-def _forms_block_for_record(world, nation: str, record: dict) -> Optional[dict]:
-    """Re-derive the authored `forms` block behind a formation record.
+def get_template(world, template_id: str) -> Optional[dict]:
+    """The authored NA-6c `formable_nations` template, or None.
 
-    Fully derived (§11.9: "zero new serialized fields") — the record
-    stores only the entry id, and the authored deck entry survives
-    formation untouched, so the block is always re-readable.
+    The catalogue is scenario data serialized on the world (like
+    `agendas`), so a carve's identity survives save/load without the
+    scenario file being present.
     """
+    if not template_id:
+        return None
+    catalogue = getattr(world, "formable_nations", None) or {}
+    template = catalogue.get(template_id)
+    return template if isinstance(template, dict) else None
+
+
+def get_template_identity(template: dict) -> Optional[dict]:
+    """Normalize a Class C template into the SAME identity shape a Class T
+    `forms` block yields, so every downstream consumer (display override,
+    flag override, aggrieved blow, the Proclamation card) is class-blind.
+
+    Deliberately reuses `get_forms_block`'s normalization by shape rather
+    than by copy: `display_name` is mandatory, `flag` defaults to the
+    display name with spaces stripped (the U6 heraldry convention), and
+    `aggrieved` absent means the erection offends nobody.
+    """
+    if not isinstance(template, dict):
+        return None
+    return get_forms_block({"forms": template})
+
+
+def template_provinces(template: dict) -> List[str]:
+    """The template's province list — the whole carve eligibility
+    predicate, so it is read through one helper everywhere."""
+    if not isinstance(template, dict):
+        return []
+    return [str(p) for p in (template.get("provinces") or []) if p]
+
+
+def _forms_block_for_record(world, nation: str, record: dict) -> Optional[dict]:
+    """Re-derive the authored identity block behind a formation record.
+
+    Fully derived (§11.9: "zero new serialized fields" beyond the record
+    itself) — the record stores only an id, and the authored source
+    survives untouched, so the block is always re-readable.
+
+    TWO arms, because NA-6c mints nations that have no deck at all:
+    a CREATED client (record carries `template`) resolves through the
+    `formable_nations` catalogue; a FORMED nation (Class T) resolves
+    through its own deck entry. Without the template arm a deckless
+    carved client would silently have no display name, no flag, and no
+    standing §11.9 grudge — the failure would be invisible rather than
+    loud, which is why the template arm is checked FIRST.
+    """
+    template_id = str((record or {}).get("template") or "")
+    if template_id:
+        identity = get_template_identity(get_template(world, template_id))
+        if identity is not None:
+            return identity
     wanted = str((record or {}).get("id") or "")
     if not wanted:
         return None
@@ -360,7 +426,16 @@ def build_proclamation_card(world, payload: dict) -> dict:
     """
     player = getattr(world, "player_nation", "France")
     authored = payload.get("sponsor") == player
+    created = bool(payload.get("created"))
     lines = [f"+{int(payload['gold'])} gold to its treasury"]
+    if created:
+        # A carved client's terms are its DEPENDENCE, not a windfall — the
+        # §11.6-2 "preview states the full bargain" contract, restated at
+        # the moment it becomes true.
+        sponsor_display = payload.get("sponsor_display") or ""
+        if sponsor_display:
+            lines.append(f"it answers to {sponsor_display} as a satellite "
+                         f"(loyalty {int(CARVE_LOYALTY)})")
     if int(payload.get("regions_lifted", 0)) > 0:
         lines.append(
             f"its provinces exult (+{int(payload['stability_bonus'])} "
@@ -375,8 +450,9 @@ def build_proclamation_card(world, payload: dict) -> dict:
         "display_name": payload["display_name"],
         "flag_tag": payload["flag_tag"],
         "proclamation": payload["blurb"] or (
-            f"{payload['old_display_name']} is no more. "
-            f"{payload['display_name']} stands."),
+            f"{payload['display_name']} stands." if not payload.get("old_display_name")
+            else f"{payload['old_display_name']} is no more. "
+                 f"{payload['display_name']} stands."),
         "terms": lines,
         "next_design": payload.get("next_design") or "",
         "fury_line": fury,
@@ -401,12 +477,22 @@ def _announce(world, payload: dict) -> None:
     new_display = payload["display_name"]
     old_display = payload["old_display_name"]
 
-    queue_dispatch_event(world, "nation_formed", {
-        "old_nation": old_display,
-        "nation": new_display,
-    }, fog_rule="always")
+    if payload.get("created"):
+        queue_dispatch_event(world, "nation_created", {
+            "nation": new_display,
+            "sponsor": payload.get("sponsor_display") or "a foreign power",
+        }, fog_rule="always")
+    else:
+        queue_dispatch_event(world, "nation_formed", {
+            "old_nation": old_display,
+            "nation": new_display,
+        }, fog_rule="always")
 
-    message = f"{old_display} is no more. {new_display} stands."
+    # A CREATION kills nothing — `old_display_name` is empty by construction
+    # for a carve, so the "is no more" half must not be printed. The
+    # campaign-log one-liner already branches the same way on the same key.
+    message = (f"{old_display} is no more. {new_display} stands."
+               if old_display else f"{new_display} stands.")
     if payload["aggrieved_display"]:
         courts = " and ".join(payload["aggrieved_display"])
         message += f" {courts} receive the news as a declaration."
@@ -484,6 +570,212 @@ def process_formations(world) -> List[Dict]:
             proclamations.append(_proclaim(world, nation, entry, forms))
             break               # one formation per nation per pass
     return proclamations
+
+
+# ═══════════════ NA-6c — CLASS C CARVE-OUT CREATION (§11.4) ═══════════════
+
+def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
+    """Register a brand-new nation tag in every world-level structure a
+    boot-authored satellite occupies (§11.10 decision 6, shape parity).
+
+    This is the first code in the project that adds a nation at RUNTIME —
+    `enemy_nations` has only ever been built once in `__init__` and
+    restored from save. A tag missing from it is invisible to
+    `get_active_nations()`, the whole enemy phase, DP regen, the formation
+    poll, and the §11.9 aggrieved blow, so it goes first and loudly.
+    """
+    from backend.models.region import NATION_CAPITALS
+    from backend.models.diplomat import create_diplomat_from_data
+    from backend.nation_config import DEFAULT_NATION_DEFAULTS
+    from backend.game_logic.vassal import AUTONOMY_SATELLITE, TRIBUTE_RATES
+
+    provinces = template_provinces(template)
+    seeds = template.get("seeds") if isinstance(template.get("seeds"), dict) else {}
+
+    # 1. Roster membership — everything else is dead without this.
+    if tag != getattr(world, "player_nation", None) and tag not in world.enemy_nations:
+        world.enemy_nations.append(tag)
+
+    # 2. Capital. On a LEGACY world `nation_capitals` is an ALIAS to the
+    # module global (world_state.py:241, contrast the Europe branch's
+    # dict(...)) — writing through it would poison every later world in the
+    # process. Copy-on-write rather than refusing to run.
+    if world.nation_capitals is NATION_CAPITALS:
+        world.nation_capitals = dict(NATION_CAPITALS)
+    world.nation_capitals[tag] = provinces[0]
+
+    # 3. Homeland. The carved provinces ARE its homeland: this is what lets
+    # "The Knife at the Throat" fire honestly if the client is later
+    # overrun. Measured safe at birth — holding its capital keeps
+    # `survival_override_active` False, so a newborn never proclaims
+    # Survival over its own erection.
+    world.nation_starting_regions[tag] = list(provinces)
+
+    # 4. Treasury / reserves / turn budget. `base_nation_actions` AND
+    # `nation_actions` both — the per-turn reset loop iterates the former
+    # and skips any nation absent from the latter, so writing one key
+    # silently freezes the client's AP forever.
+    world.nation_gold[tag] = int(seeds.get("gold", CARVE_SEED_GOLD_DEFAULT))
+    world.manpower_pools[tag] = dict(
+        seeds.get("manpower") or CARVE_MANPOWER_DEFAULT)
+    actions = int(seeds.get("actions", DEFAULT_NATION_DEFAULTS["actions"]))
+    world.nation_actions[tag] = actions
+    world.base_nation_actions[tag] = actions
+    # Authority reads default to 60 anyway, but the boot world carries an
+    # explicit row for EVERY nation — the shape-parity gate is what caught
+    # the omission, and an explicit row costs nothing.
+    authority = getattr(world, "nation_authority", None)
+    if authority is not None and tag not in authority:
+        authority[tag] = int(
+            seeds.get("authority", DEFAULT_NATION_DEFAULTS["authority"]))
+
+    # 5. A voice. Absent, `_process_dp_regen` calls calculate_dp(None, ...)
+    # and the chancery-fallback idiom is the Voice Bible's answer for a
+    # court with no authored diplomat.
+    diplomats = getattr(world, "diplomats", None)
+    if diplomats is not None and tag not in diplomats:
+        identity = get_template_identity(template) or {}
+        authored = seeds.get("diplomat")
+        # The default composes readable prose for a bare template; the
+        # authored arm exists because "Chancery of Duchy of Warsaw" is what
+        # the naive composition produces.
+        defn = dict(authored) if isinstance(authored, dict) else {
+            "name": f"Chancery of {identity.get('display_name') or tag}",
+            "personality": "loyalist",
+            "skill": 3,
+            "biography": "The chancery of a state erected by a foreign "
+                         "victory, and dependent on it.",
+        }
+        diplomats[tag] = create_diplomat_from_data(tag, defn)
+
+    # 6. Its dream, if the template authored one. Dormant while a client
+    # (§3.2 is already the law) — it wakes only on independence.
+    deck = template.get("deck")
+    if isinstance(deck, list) and deck:
+        world.agendas[tag] = [dict(entry) for entry in deck
+                              if isinstance(entry, dict)]
+
+    # 7. Vassalage under the carver + the pair's diplomatic stamp. Written
+    # directly rather than through `create_vassal_treaty`/`_conquest`:
+    # those gate on the power cap and release cooldowns (neither meaningful
+    # for a state that did not exist a moment ago) and grant loyalty 60/20.
+    world.vassals[tag] = {
+        "lord": carver,
+        "loyalty": int(CARVE_LOYALTY),
+        "autonomy": int(AUTONOMY_SATELLITE),
+        "path": "carve",
+        "created_turn": int(getattr(world, "current_turn", 0)),
+        "tribute_rate": TRIBUTE_RATES[AUTONOMY_SATELLITE],
+        "carved_from": None,     # set by the caller, which knows the court
+        "regions": list(provinces),
+    }
+    world.diplomatic_states[world._make_diplo_key(tag, carver)] = "VASSAL"
+
+
+def create_client_nation(world, template_id: str, carver: str,
+                         ceded_from: str = "") -> Optional[dict]:
+    """Erect a Class C client state out of a defeated party's soil (§11.4).
+
+    Returns the Proclamation payload, or None when the template is
+    unknown. GR5 throughout: `carver` is a parameter, so a coalition
+    victor erects the Duchy of Normandy against France by the identical
+    path the player uses to erect the Duchy of Warsaw against Prussia.
+
+    Raises ValueError when a template province is absent from the world —
+    an unauthored or misspelled province is a template that can never be
+    carved, and failing loudly at the one moment it matters beats a silent
+    half-built nation.
+    """
+    template = get_template(world, template_id)
+    if template is None:
+        logger.warning("create_client_nation: unknown template %r", template_id)
+        return None
+    identity = get_template_identity(template)
+    if identity is None:
+        logger.warning(
+            "create_client_nation: template %r has no display_name", template_id)
+        return None
+
+    tag = template_id
+    provinces = template_provinces(template)
+    missing = [p for p in provinces if p not in getattr(world, "regions", {})]
+    if not provinces or missing:
+        raise ValueError(
+            f"formable template {template_id!r} names province(s) that do not "
+            f"exist in this world: {missing or 'none authored'}")
+
+    _seed_client_roster(world, tag, template, carver)
+    if ceded_from:
+        world.vassals[tag]["carved_from"] = ceded_from
+
+    # The soil changes hands LAST of the mutations, so the tag already
+    # exists when `get_nation_regions` is next derived.
+    for province in provinces:
+        region = world.regions[province]
+        region.controller = tag
+        region.stability = CARVE_STABILITY
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+
+    return _proclaim_creation(world, tag, template_id, identity, carver)
+
+
+def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
+                       carver: str) -> dict:
+    """The Proclamation for a CREATION (§11.8 stages 1-3, shared with the
+    Class T formation beat).
+
+    A creation cannot reach `process_formations` — that poll skips every
+    vassal (§3.2 dormancy), and a carved client is a vassal from its first
+    instant — so the carve emits its own landmark rather than waiting for
+    a tick that will never announce it.
+    """
+    turn = int(getattr(world, "current_turn", 0))
+
+    # The latch first, exactly as `_proclaim` does: a raise inside the beat
+    # must never leave a tag able to proclaim twice (§11.8 never-do #1).
+    records = getattr(world, "nation_formations", None)
+    if records is None:
+        world.nation_formations = {}
+        records = world.nation_formations
+    records[tag] = {
+        # A creation has no forming DECK ENTRY, so `id` records the
+        # template and `template` is what identity resolution keys off.
+        "id": template_id,
+        "template": template_id,
+        "sponsor": carver,
+        "turn": turn,
+    }
+
+    struck = _apply_aggrieved_blow(world, tag, identity, carver)
+    gold = int((getattr(world, "nation_gold", {}) or {}).get(tag, 0))
+
+    payload = {
+        "type": "nation_formed",
+        "nation": tag,
+        # Deliberately EMPTY: nothing died to make this nation. The
+        # campaign-log one-liner, the card and the notification all branch
+        # on this, so "Prussia is no more" can never be printed for a carve
+        # that took one province from a living Prussia.
+        "old_display_name": "",
+        "display_name": identity["display_name"],
+        "flag_tag": identity["flag"],
+        "blurb": identity["blurb"],
+        "entry_id": template_id,
+        "template": template_id,
+        "created": True,
+        "sponsor": carver,
+        "sponsor_display": display_nation(carver) if carver else "",
+        "aggrieved": struck,
+        "aggrieved_display": [display_nation(p) for p in struck],
+        "next_design": "",   # a client's deck lies dormant (§3.2)
+        "gold": gold,
+        "stability_bonus": 0,
+        "regions_lifted": 0,
+        "turn": turn,
+    }
+    _announce(world, payload)
+    return payload
 
 
 # ═══════════════════ §11.9 THE STANDING WOUND (formation_grudge) ══════════

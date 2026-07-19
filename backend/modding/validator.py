@@ -384,31 +384,119 @@ def _validate_forms_block(result, path: str, forms: Any,
             f"state, so this formation could never fire. Formable types: "
             f"{sorted(FORMABLE_AGENDA_TYPES)}")
 
-    aggrieved = forms.get("aggrieved")
     if "aggrieved" in forms:
-        if not isinstance(aggrieved, list):
+        _validate_aggrieved_list(
+            result, f"{forms_path}.aggrieved", forms.get("aggrieved"))
+
+
+def _validate_aggrieved_list(result, path: str, aggrieved: Any) -> None:
+    """Validate a §11.9 `aggrieved` list (shared: agenda `forms` blocks and
+    NA-6c `formable_nations` templates both carry one).
+
+    Roster-shaped WARNING (the `relationships` forward-compat stance).
+    Deliberately checked against VALID_NATIONS, NOT the locally-derived
+    `known_nations` — the latter is built from region controllers +
+    marshal nations, so a landless or marshal-less court (exactly the kind
+    most likely to be aggrieved) would warn spuriously.
+    """
+    if not isinstance(aggrieved, list):
+        result.add_error(
+            path, f"Must be a list, got {type(aggrieved).__name__}")
+        return
+    for power in aggrieved:
+        if not isinstance(power, str) or not power:
             result.add_error(
-                f"{forms_path}.aggrieved",
-                f"Must be a list, got {type(aggrieved).__name__}")
+                path,
+                f"Entries must be non-empty nation names, got {power!r}")
+            continue
+        if power not in VALID_NATIONS:
+            result.add_warning(
+                path,
+                f"References unknown nation '{power}' - it will "
+                f"never take the formation penalty")
+
+
+def _validate_agenda_deck(result, key_path: str, deck: Any,
+                          all_region_names: Any) -> None:
+    """Validate ONE agenda deck (an ordered list of entries).
+
+    Extracted at NA-6c so the `formable_nations` template `deck` is held
+    to the exact same schema as an authored `agendas` deck — a carved
+    client's dormant deck is a real deck, and a second hand-rolled
+    validation would drift from this one the first time either changed.
+    """
+    if not isinstance(deck, list):
+        result.add_error(key_path, f"Must be a list, got {type(deck).__name__}")
+        return
+    region_typed = ("acquire_regions", "deny_regions", "guard_neutrality")
+    seen_ids: Set[str] = set()
+    for index, entry in enumerate(deck):
+        path = f"{key_path}[{index}]"
+        if not isinstance(entry, dict):
+            result.add_error(path, "Agenda must be an object")
+            continue
+        agenda_id = entry.get("id")
+        if not agenda_id or not isinstance(agenda_id, str):
+            result.add_error(path, "Agenda requires an 'id'")
+        elif agenda_id == "survival":
+            result.add_error(
+                f"{path}.id",
+                "'survival' is the built-in override's reserved "
+                "id — author a different one")
+        elif agenda_id in seen_ids:
+            result.add_error(
+                f"{path}.id",
+                f"Duplicate agenda id '{agenda_id}' in this deck")
         else:
-            for power in aggrieved:
-                if not isinstance(power, str) or not power:
-                    result.add_error(
-                        f"{forms_path}.aggrieved",
-                        f"Entries must be non-empty nation names, "
-                        f"got {power!r}")
-                    continue
-                # Roster-shaped WARNING (the `relationships` forward-compat
-                # stance). Deliberately checked against VALID_NATIONS, NOT
-                # the locally-derived `known_nations` — the latter is built
-                # from region controllers + marshal nations, so a landless
-                # or marshal-less court (exactly the kind most likely to be
-                # aggrieved) would warn spuriously.
-                if power not in VALID_NATIONS:
-                    result.add_warning(
-                        f"{forms_path}.aggrieved",
-                        f"References unknown nation '{power}' - it will "
-                        f"never take the formation penalty")
+            seen_ids.add(agenda_id)
+        agenda_type = entry.get("type")
+        if agenda_type not in AGENDA_TYPES:
+            result.add_error(
+                f"{path}.type",
+                f"Invalid agenda type '{agenda_type}'. "
+                f"Valid: {sorted(AGENDA_TYPES)}")
+            continue
+        title = entry.get("title")
+        if not title or not isinstance(title, str):
+            result.add_error(path, "Agenda requires a 'title'")
+        if agenda_type in region_typed:
+            regions = entry.get("regions")
+            if not isinstance(regions, list) or not regions:
+                result.add_error(
+                    f"{path}.regions",
+                    f"'{agenda_type}' requires a non-empty "
+                    f"'regions' list")
+            elif all_region_names:
+                for region_name in regions:
+                    if region_name not in all_region_names:
+                        result.add_error(
+                            f"{path}.regions",
+                            f"References non-existent region "
+                            f"'{region_name}'")
+        # `in entry` not `is not None`: an explicit null must
+        # fail here rather than surprise the runtime reader.
+        if agenda_type == "contain_hegemon" and "share_floor" in entry:
+            floor = entry.get("share_floor")
+            if (not isinstance(floor, (int, float))
+                    or isinstance(floor, bool)
+                    or not 0 < float(floor) <= 1):
+                result.add_error(
+                    f"{path}.share_floor",
+                    f"Must be a number in (0, 1], got {floor!r}")
+        if agenda_type == "paymaster" and "treasury_floor" in entry:
+            floor = entry.get("treasury_floor")
+            if (not isinstance(floor, int)
+                    or isinstance(floor, bool) or floor < 0):
+                result.add_error(
+                    f"{path}.treasury_floor",
+                    f"Must be a non-negative integer, got {floor!r}")
+        # NA-6 §11.1 — the optional `forms` block. Present but
+        # malformed is an ERROR (a silent no-op formable is the
+        # worst outcome: the player watches a dream that can
+        # never fire); absent is the norm.
+        if "forms" in entry:
+            _validate_forms_block(
+                result, path, entry.get("forms"), agenda_type)
 
 
 def validate_scenario(
@@ -645,7 +733,6 @@ def validate_scenario(
                 "agendas",
                 f"Must be an object, got {type(data['agendas']).__name__}")
         else:
-            region_typed = ("acquire_regions", "deny_regions", "guard_neutrality")
             known_nations: Set[str] = set()
             if "regions" in data and isinstance(data["regions"], dict):
                 for region_data in data["regions"].values():
@@ -670,79 +757,106 @@ def validate_scenario(
                         f"agendas.{nation}",
                         f"References unknown nation '{nation}' - the deck "
                         f"will never activate")
-                if not isinstance(deck, list):
+                _validate_agenda_deck(
+                    result, f"agendas.{nation}", deck, all_region_names)
+
+    # Validate formable_nations (NA-6c, docs/NATION_AGENDAS_SPEC.md §11.4)
+    # {tag: template} — the CATALOGUE of client states a conquering side may
+    # carve out of a defeated party's soil. None of these tags exist at boot,
+    # so unlike `agendas` there is no roster cross-check to make: the whole
+    # point is that the tag is NOT yet a nation. A tag that COLLIDES with a
+    # live nation is an ERROR (the marshal_pool precedent) — erecting a state
+    # that already exists is incoherent, and the carve would silently re-home
+    # a live court's regions.
+    if "formable_nations" in data:
+        if not isinstance(data["formable_nations"], dict):
+            result.add_error(
+                "formable_nations",
+                f"Must be an object, got "
+                f"{type(data['formable_nations']).__name__}")
+        else:
+            for tag, template in data["formable_nations"].items():
+                path = f"formable_nations.{tag}"
+                if not isinstance(tag, str) or not tag.strip():
                     result.add_error(
-                        f"agendas.{nation}",
-                        f"Must be a list, got {type(deck).__name__}")
+                        "formable_nations",
+                        f"Template keys must be non-empty nation tags, "
+                        f"got {tag!r}")
                     continue
-                seen_ids: Set[str] = set()
-                for index, entry in enumerate(deck):
-                    path = f"agendas.{nation}[{index}]"
-                    if not isinstance(entry, dict):
-                        result.add_error(path, "Agenda must be an object")
-                        continue
-                    agenda_id = entry.get("id")
-                    if not agenda_id or not isinstance(agenda_id, str):
-                        result.add_error(path, "Agenda requires an 'id'")
-                    elif agenda_id == "survival":
+                if tag in VALID_NATIONS:
+                    result.add_error(
+                        path,
+                        f"'{tag}' is already a nation in the roster - a "
+                        f"formable template must mint a NEW tag")
+                if not isinstance(template, dict):
+                    result.add_error(
+                        path,
+                        f"Must be an object, got {type(template).__name__}")
+                    continue
+
+                display_name = template.get("display_name")
+                if not display_name or not isinstance(display_name, str):
+                    result.add_error(
+                        path,
+                        "Requires a non-empty 'display_name' - the tag is "
+                        "never shown to the player")
+                for optional_key in ("flag", "blurb"):
+                    value = template.get(optional_key)
+                    if optional_key in template and not isinstance(value, str):
                         result.add_error(
-                            f"{path}.id",
-                            "'survival' is the built-in override's reserved "
-                            "id — author a different one")
-                    elif agenda_id in seen_ids:
+                            f"{path}.{optional_key}",
+                            f"Must be a string, got {type(value).__name__}")
+
+                # `provinces` is the whole eligibility predicate — an empty
+                # or malformed list is a template that can never be carved,
+                # the silent dead promise GR9 forbids.
+                provinces = template.get("provinces")
+                if not isinstance(provinces, list) or not provinces:
+                    result.add_error(
+                        f"{path}.provinces",
+                        "Requires a non-empty 'provinces' list - it is the "
+                        "carve eligibility predicate")
+                else:
+                    for province in provinces:
+                        if not isinstance(province, str) or not province:
+                            result.add_error(
+                                f"{path}.provinces",
+                                f"Entries must be non-empty region names, "
+                                f"got {province!r}")
+                        elif (all_region_names
+                                and province not in all_region_names):
+                            result.add_error(
+                                f"{path}.provinces",
+                                f"References non-existent region "
+                                f"'{province}'")
+
+                if "seeds" in template:
+                    seeds = template.get("seeds")
+                    if not isinstance(seeds, dict):
                         result.add_error(
-                            f"{path}.id",
-                            f"Duplicate agenda id '{agenda_id}' in this deck")
-                    else:
-                        seen_ids.add(agenda_id)
-                    agenda_type = entry.get("type")
-                    if agenda_type not in AGENDA_TYPES:
-                        result.add_error(
-                            f"{path}.type",
-                            f"Invalid agenda type '{agenda_type}'. "
-                            f"Valid: {sorted(AGENDA_TYPES)}")
-                        continue
-                    title = entry.get("title")
-                    if not title or not isinstance(title, str):
-                        result.add_error(path, "Agenda requires a 'title'")
-                    if agenda_type in region_typed:
-                        regions = entry.get("regions")
-                        if not isinstance(regions, list) or not regions:
+                            f"{path}.seeds",
+                            f"Must be an object, got {type(seeds).__name__}")
+                    elif "gold" in seeds:
+                        gold = seeds.get("gold")
+                        if (not isinstance(gold, int)
+                                or isinstance(gold, bool) or gold < 0):
                             result.add_error(
-                                f"{path}.regions",
-                                f"'{agenda_type}' requires a non-empty "
-                                f"'regions' list")
-                        elif all_region_names:
-                            for region_name in regions:
-                                if region_name not in all_region_names:
-                                    result.add_error(
-                                        f"{path}.regions",
-                                        f"References non-existent region "
-                                        f"'{region_name}'")
-                    # `in entry` not `is not None`: an explicit null must
-                    # fail here rather than surprise the runtime reader.
-                    if agenda_type == "contain_hegemon" and "share_floor" in entry:
-                        floor = entry.get("share_floor")
-                        if (not isinstance(floor, (int, float))
-                                or isinstance(floor, bool)
-                                or not 0 < float(floor) <= 1):
-                            result.add_error(
-                                f"{path}.share_floor",
-                                f"Must be a number in (0, 1], got {floor!r}")
-                    if agenda_type == "paymaster" and "treasury_floor" in entry:
-                        floor = entry.get("treasury_floor")
-                        if (not isinstance(floor, int)
-                                or isinstance(floor, bool) or floor < 0):
-                            result.add_error(
-                                f"{path}.treasury_floor",
-                                f"Must be a non-negative integer, got {floor!r}")
-                    # NA-6 §11.1 — the optional `forms` block. Present but
-                    # malformed is an ERROR (a silent no-op formable is the
-                    # worst outcome: the player watches a dream that can
-                    # never fire); absent is the norm.
-                    if "forms" in entry:
-                        _validate_forms_block(
-                            result, path, entry.get("forms"), agenda_type)
+                                f"{path}.seeds.gold",
+                                f"Must be a non-negative integer, "
+                                f"got {gold!r}")
+
+                if "aggrieved" in template:
+                    _validate_aggrieved_list(
+                        result, f"{path}.aggrieved",
+                        template.get("aggrieved"))
+
+                # The client's own deck - held to the identical schema as an
+                # authored `agendas` deck (it IS one; it simply lies dormant
+                # while the client answers to a lord, §3.2).
+                if "deck" in template:
+                    _validate_agenda_deck(
+                        result, f"{path}.deck", template.get("deck"),
+                        all_region_names)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

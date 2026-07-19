@@ -2312,7 +2312,7 @@ def _settlement_offer_build_terms(
     else:
         amount = min(SETTLEMENT_OFFER_MAX_GOLD_AMOUNT, base_amount)
 
-    return [
+    terms: List[Dict] = [
         {"type": "peace"},
         {
             "type": "gold_indemnity",
@@ -2321,6 +2321,80 @@ def _settlement_offer_build_terms(
             "amount": int(amount),
         },
     ]
+
+    # NA-6c §11.6-6 (the Normandy mirror): when the AI is the DECISIVE
+    # victor, it may also erect a client state out of the player's soil —
+    # the same clause, the same executor, the same UX the player uses to
+    # erect the Duchy of Warsaw. GR5 is the whole point of this arm: a
+    # carve must be something the player can SUFFER, not only inflict.
+    #
+    # Gated on the AI winning decisively (payer == player) so a carve never
+    # rides an even peace, and on the shared eligibility predicate so the
+    # AI can never propose soil it does not hold.
+    if world is not None and payer == player:
+        carve = _settlement_offer_carve_clause(
+            world, player=player, proposer_nation=proposer_nation)
+        if carve is not None:
+            terms.append(carve)
+    return terms
+
+
+def _settlement_offer_carve_clause(world, *, player: str,
+                                   proposer_nation: str) -> Optional[Dict]:
+    """The first client state ``proposer_nation`` may erect out of the
+    PLAYER's soil, as a ready `create_client` clause — or None.
+
+    Routes through the identical `evaluate_create_client_eligibility` the
+    player's own authoring seam uses, so the two directions can never drift
+    apart (GR5). Stamps the same denormalized display/pricing fields the
+    player's add-verb stamps, so the incoming-offer surfaces render a real
+    sentence rather than a bare template id.
+    """
+    catalogue = getattr(world, "formable_nations", None) or {}
+    if not catalogue:
+        return None
+    from backend.game_logic.settlement_validation import (
+        evaluate_create_client_eligibility,
+    )
+    from backend.game_logic.formations import (
+        get_template, get_template_identity, template_provinces,
+    )
+    war_instance = _find_war_instance_for_pair(world, proposer_nation, player)
+    if war_instance is None:
+        return None
+    for template_id in catalogue:
+        eligibility = evaluate_create_client_eligibility(
+            world, war_instance=war_instance, template_id=template_id,
+            from_court=player, carver=proposer_nation,
+        )
+        if not eligibility.get("eligible"):
+            continue
+        template = get_template(world, template_id)
+        identity = get_template_identity(template) or {}
+        return {
+            "type": "create_client",
+            "from": player,
+            "to": proposer_nation,
+            "tag": template_id,
+            "provinces": list(template_provinces(template)),
+            "client_display_name": str(
+                identity.get("display_name") or template_id),
+        }
+    return None
+
+
+def _find_war_instance_for_pair(world, nation_a: str, nation_b: str) -> Optional[Dict]:
+    """The live war instance placing ``nation_a`` and ``nation_b`` on
+    opposite sides, or None."""
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, dict):
+            continue
+        attackers = set(instance.get("attackers") or [])
+        defenders = set(instance.get("defenders") or [])
+        if ((nation_a in attackers and nation_b in defenders)
+                or (nation_a in defenders and nation_b in attackers)):
+            return instance
+    return None
 
 
 def _settlement_offer_eligible_for_war(

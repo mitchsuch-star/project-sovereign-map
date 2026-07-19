@@ -91,6 +91,17 @@ NATION_POWER_TIERS: Dict[str, str] = {
     "Holland": "minor",           # Batavian Republic (French satellite)
     "KingdomOfItaly": "minor",    # French satellite (Napoleon as King)
     "Switzerland": "minor",       # Helvetic Confederation (French satellite)
+    # ── NA-6c Class C carve-out clients (July 19, 2026) ──
+    # None of these tags exists at boot; they are minted only when a
+    # settlement erects one. Authored HERE rather than left to the
+    # `secondary` fallback: a one-province client rated `secondary` would
+    # enter coalition threat math at weight 2 — the same weight as Spain
+    # and the Ottomans. Authoring the known tags in the authored map is the
+    # taxonomy working as designed; it does NOT create the runtime
+    # `world.nation_power_tiers` map the header rules out.
+    "DuchyOfWarsaw": "minor",
+    "Normandy": "minor",
+    "RomanRepublic": "minor",
 }
 
 # Fallback when `NATION_POWER_TIERS` lacks an explicit authored entry —

@@ -2262,6 +2262,11 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{vassal} already knows how to kneel, Sire — let it simply change "
         "the throne it kneels to. {court} loses a servant; we gain one."
     ),
+    "settlement_guided_reason_create_client_talleyrand": (
+        "Do not annex it, Sire - erect it. {client} on {court}'s frontier "
+        "is a friend that costs us nothing to garrison, and a grievance "
+        "they can never quite forget."
+    ),
     "settlement_guided_reason_gold_offer_talleyrand": (
         "A sweetener of {amount} gold — {court}'s resolve has a price, "
         "and it is conveniently paid in coin rather than provinces."
@@ -2794,6 +2799,38 @@ NATION_DESIRE_PROFILES = {
         "diplomatic_lever": "legitimacy",
         "weakness": "defenselessness",
     },
+    # ── NA-6c: the Class C carve-out clients (CLAUDE.md Don't-Do rule —
+    # "never add a nation without updating NATION_DESIRE_PROFILES +
+    # TALLEYRAND_COMMENTARY"). None of these tags exists at boot; they are
+    # authored ahead of the settlement that erects them, because a missing
+    # profile degrades SILENTLY to an empty dict — no covets, no territory
+    # sweeteners, no "conquer it first" hint.
+    "DuchyOfWarsaw": {
+        # The old Commonwealth lands - the same regions its dormant
+        # `commonwealth_restored` deck names, so agenda and profile agree.
+        "covets_regions": ["Lithuania", "Volhynia"],
+        "values_gold": "medium",
+        "values_territory": "high",
+        "values_ap": "low",
+        "diplomatic_lever": "restoration",
+        "weakness": "partition",
+    },
+    "Normandy": {
+        "covets_regions": [],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "survival",
+        "weakness": "illegitimacy",
+    },
+    "RomanRepublic": {
+        "covets_regions": [],
+        "values_gold": "low",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "revolution",
+        "weakness": "sacrilege",
+    },
     "Sardinia": {
         "covets_regions": ["Piedmont"],
         "values_gold": "medium",
@@ -2873,6 +2910,16 @@ TALLEYRAND_COMMENTARY = {
     ("Spain", "neutral_deal"): "Godoy binds Spain to our star for now. A clean arrangement keeps that convenient loyalty intact.",
     ("Ottoman", "neutral_deal"): "The Porte answers slowly and forgets nothing. I've made the terms plain, so nothing is lost in the delay.",
     ("Ottoman", "gold_for_poor"): "Constantinople's coffers are hollow. Gold, discreetly offered, opens doors that armies cannot.",
+    # --- NA-6c: the carve-out clients. Three lines each is enough to give
+    # a state we erected ourselves a voice of its own; everything else
+    # resolves through the ("_default", …) ladder like any minor court. ---
+    ("DuchyOfWarsaw", "neutral_deal"): "Warsaw owes us its existence, Sire, and knows it. But do not mistake gratitude for contentment - they are looking east.",
+    ("DuchyOfWarsaw", "coveted_unavailable"): "The Duchy dreams of Vilna and Volhynia. They are Russia's, and until they are ours to give, Warsaw's loyalty is a lease rather than a purchase.",
+    ("DuchyOfWarsaw", "hostile_deal"): "We made this country and it has learned to resent us for the smallness of the gift. A Duchy asked for a kingdom.",
+    ("Normandy", "neutral_deal"): "A duchy conjured out of French soil, Sire. It exists because someone wished to embarrass us, and it knows how thin that makes it.",
+    ("Normandy", "hostile_deal"): "Rouen will not deal warmly with the crown it was carved from. Expect the coldness of a creature that fears reabsorption.",
+    ("RomanRepublic", "neutral_deal"): "The Republic sits on the Pope's chair and finds it uncomfortable. It wants recognition more than it wants gold.",
+    ("RomanRepublic", "hostile_deal"): "Rome answers coldly - and every Catholic court in Europe is watching how we treat what we put in the Holy Father's place.",
     # --- Coveted unavailable (France doesn't control what they want) ---
     ("Prussia", "coveted_unavailable"): "Hardenberg dreams of Saxony, but it is not yet ours to offer. Conquer it first, Sire, and he will come to the table eagerly.",
     ("Austria", "coveted_unavailable"): "Metternich yearns for Bavaria, but we do not hold it. Secure it first, and these negotiations transform entirely.",
@@ -3688,6 +3735,21 @@ def resolve_enemy_response_text(template: Dict, world, target_nation: str) -> st
     return resolve_template_text(text, world, target_nation)
 
 
+def _create_client_province_count(clause: Dict) -> int:
+    """Provinces a NA-6c `create_client` clause carves away.
+
+    Reads the denormalized `provinces` copy the authoring seam stamps —
+    this accumulator has no `world`, so it cannot resolve the template
+    itself. Falls back to 1 rather than 0: a carve always takes at least
+    one province, and pricing an unstamped clause at zero would recreate
+    the G4F-1 free-clause bug this branch exists to prevent.
+    """
+    provinces = clause.get("provinces")
+    if isinstance(provinces, (list, tuple)) and provinces:
+        return len(provinces)
+    return 1
+
+
 def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
     """Sum the raw clause + demand harshness weights without any clamp.
 
@@ -3745,6 +3807,14 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # VS-5: losing an existing satellite weighs like liberation
             # (the lord loses a client, but no NEW nation is subjugated).
             harshness += 0.3
+        elif ctype == "create_client":
+            # NA-6c: the soil is lost exactly as in a cession (territory
+            # parity, per province) PLUS the standing insult of an enemy
+            # client erected on it. Lands a 1-province carve at 0.45 —
+            # above a plain cession (0.3), below losing your own
+            # sovereignty to vassalage (0.5) — and scales honestly for a
+            # multi-province template.
+            harshness += (0.3 * _create_client_province_count(clause)) + 0.15
     # PL-12-B: Include demands in harshness calculation
     for demand in treaty.get("demands", []):
         if not isinstance(demand, dict):
@@ -3784,6 +3854,11 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             harshness += 0.5
         elif dtype == "vassal_transfer":
             harshness += 0.3  # VS-5 — mirrors the clause branch above
+        elif dtype == "create_client":
+            # NA-6c — mirrors the clause branch above. Registering the type
+            # in only ONE dialect is the G4F-1 bug class: the other dialect
+            # falls through unmatched and prices the demand at zero.
+            harshness += (0.3 * _create_client_province_count(demand)) + 0.15
     return harshness
 
 
@@ -3883,6 +3958,11 @@ _TERM_DISPLAY_LABELS = {
     "liberation": "{from_nation} is liberated from vassalage",
     # VS-5: vassal re-homing — `detail` carries the transferred court's name
     "vassal_transfer": "{from_nation} yields its vassal {detail} to {to_nation}",
+    # NA-6c §11.6-3: the incoming-offer line the spec writes out in full —
+    # "Britain proposes to erect the Duchy of Normandy from your provinces:
+    # Normandy". `detail` is overridden to the client's DISPLAY name plus
+    # its province list in `_build_display_label`.
+    "create_client": "{to_nation} erects {detail} out of {from_nation}",
     # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
     # shared label formatter only carries nation/detail/value kwargs.
     "prisoner_return": "{from_nation} releases a captured marshal to {to_nation}",
@@ -3920,6 +4000,24 @@ def _vassal_territory_label(vassal_nation: str) -> str:
     return f"{adjective} territory"
 
 
+def _coerce_display_regions(term: Dict) -> list:
+    """Regions a term should DISPLAY.
+
+    NA-6c: a `create_client` clause deliberately keys its soil as
+    `provinces`, not `regions` — naming it `regions` would silently opt the
+    carve into every generic region-driven scoring component, several of
+    which have never been audited against a clause that mints a nation.
+    Display, however, genuinely wants the list ("from your provinces:
+    Normandy"), so the fallback lives here and nowhere else.
+    """
+    if not isinstance(term, dict):
+        return []
+    regions = term.get("regions")
+    if not regions and term.get("type") == "create_client":
+        regions = term.get("provinces")
+    return _coerce_regions(regions or [])
+
+
 def _get_vassal_nation(term: Dict) -> str:
     if not isinstance(term, dict):
         return ""
@@ -3927,6 +4025,11 @@ def _get_vassal_nation(term: Dict) -> str:
         term.get("vassal_nation")
         or term.get("vassal_name")
         or term.get("vassal")          # VS-5: the vassal_transfer subject
+        # NA-6c: the create_client subject is the client being erected.
+        # `client_display_name` is the denormalized display copy the
+        # authoring seam stamps; `tag` is the raw template id fallback.
+        or term.get("client_display_name")
+        or (term.get("tag") if term.get("type") == "create_client" else "")
         or term.get("territory_nation")
         or term.get("sovereign_nation")
         or term.get("original_owner")
@@ -3947,6 +4050,12 @@ def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
     elif vassal_nation and clause_type == "vassal_transfer":
         # VS-5: `detail` names the transferred court, not a region list
         detail = vassal_nation
+    elif clause_type == "create_client":
+        # NA-6c §11.6-3: name the client AND the soil it is made of — the
+        # province list is the whole point of the warning ("from your
+        # provinces: Normandy").
+        client = vassal_nation or "a client state"
+        detail = (f"{client} ({', '.join(regions)})" if regions else client)
     return template.format(
         from_nation=from_nation, to_nation=to_nation,
         detail=detail, value=int(value),
@@ -3977,7 +4086,7 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
         if not isinstance(sweetener, dict):
             continue
         stype = sweetener.get("type", "")
-        regions = _coerce_regions(sweetener.get("regions", []))
+        regions = _coerce_display_regions(sweetener)
         value = _safe_int(sweetener.get("value", 0))
         vassal_nation = _get_vassal_nation(sweetener)
         annotated.append({
@@ -3995,7 +4104,7 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
         if not isinstance(demand, dict):
             continue
         dtype = demand.get("type", "")
-        regions = _coerce_regions(demand.get("regions", []))
+        regions = _coerce_display_regions(demand)
         value = _safe_int(demand.get("value", 0))
         vassal_nation = _get_vassal_nation(demand)
         annotated.append({
@@ -4017,7 +4126,7 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             vassal_nation = ""
         elif isinstance(clause, dict):
             ctype = clause.get("type", "")
-            regions = _coerce_regions(clause.get("regions", []))
+            regions = _coerce_display_regions(clause)
             value = _safe_int(clause.get("value", 0))
             vassal_nation = _get_vassal_nation(clause)
         else:
@@ -4052,6 +4161,28 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                 "term_direction": "demand",
                 "sweetener_value": 0,
                 "display_label": _build_display_label(ctype, target_nation, proposer_nation, [], 0),
+            })
+        elif ctype == "create_client":
+            # NA-6c: a carve carries AUTHORITATIVE direction on the clause
+            # (from = the court whose soil is taken, to = the carver). The
+            # generic `else` below passes proposer/target positionally and
+            # would print the sentence backwards — "France erects the Duchy
+            # of Normandy out of Britain" for an offer Britain made against
+            # France. Read the clause, like `military_access` does.
+            carved = str(clause.get("from") or target_nation) if isinstance(clause, dict) else target_nation
+            carver = str(clause.get("to") or proposer_nation) if isinstance(clause, dict) else proposer_nation
+            annotated.append({
+                "clause_type": ctype,
+                "from_nation": carved,
+                "to_nation": carver,
+                "regions": regions,
+                # A carve BURDENS the court being carved: it is a demand
+                # when the proposer is the one gaining the client.
+                "term_direction": ("demand" if carver == proposer_nation
+                                   else "concession"),
+                "sweetener_value": 0,
+                "display_label": _build_display_label(
+                    ctype, carved, carver, regions, value, vassal_nation),
             })
         elif ctype == "military_access":
             granting = proposer_nation

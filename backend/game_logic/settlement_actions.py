@@ -76,6 +76,7 @@ from backend.game_logic.settlement_validation import (
     _side_leader,
     _term_lists_equal,
     compute_gold_payer_budgets,
+    evaluate_create_client_eligibility,
     evaluate_liberation_eligibility,
     evaluate_vassal_transfer_eligibility,
     evaluate_pair_peace_substitute_eligibility,
@@ -784,6 +785,7 @@ _DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
     "territory_cede", "gold_indemnity", "gold_per_turn",
     "vassalage", "subjugation", "forced_alliance", "liberation",
     "vassal_transfer",  # VS-5 (July 16, 2026) — demand-only
+    "create_client",    # NA-6c (July 19, 2026) — demand-only
 })
 
 
@@ -798,6 +800,28 @@ _DEMAND_OFFERABLE_CLAUSE_TYPES = frozenset({
 _DEMAND_GOLD_MAGNITUDE_CLAUSE_TYPES = frozenset({
     "gold_indemnity", "gold_per_turn",
 })
+
+
+def _carve_templates_for_court(world: Any, *, war_instance: Mapping[str, Any],
+                               court: str, carver: str) -> list:
+    """NA-6c: every `formable_nations` template ``carver`` may erect out of
+    ``court``'s soil right now, in stable authored order.
+
+    Shared by the add-verb (which needs a default when the player names no
+    template) and the guided-suggestion builder (which needs the full list
+    for the sub-picker, plus the knowledge that the list is EMPTY so it can
+    still show the row with honest gate terms).
+    """
+    catalogue = getattr(world, "formable_nations", None) or {}
+    out = []
+    for template_id in catalogue:
+        eligibility = evaluate_create_client_eligibility(
+            world, war_instance=war_instance,
+            template_id=template_id, from_court=court, carver=carver,
+        )
+        if eligibility.get("eligible"):
+            out.append(template_id)
+    return out
 
 
 def _demand_clause_label(clause: Mapping[str, Any]) -> str:
@@ -824,6 +848,10 @@ def _demand_clause_label(clause: Mapping[str, Any]) -> str:
     if ttype == "vassal_transfer":
         # VS-5
         return f"the transfer of {clause.get('vassal')} to {clause.get('to')}"
+    if ttype == "create_client":
+        # NA-6c — name the client, not the template id.
+        client = str(clause.get("client_display_name") or clause.get("tag") or "")
+        return f"the erection of {client}" if client else "the new client state"
     return ttype.replace("_", " ") or "the clause"
 
 
@@ -1293,6 +1321,51 @@ def _handle_settlement_demand_action(
             "from": court,
             "to": proposer_leader,
             "vassal": vassal_nation,
+        }
+    elif clause_type == "create_client":
+        # NA-6c: erect a client state out of the court's soil. MUST sit
+        # above the trailing `else` — an allowlisted type that reaches it
+        # is silently built as a liberation clause.
+        from backend.game_logic.formations import (
+            get_template, get_template_identity, template_provinces,
+        )
+        template_id = str(action_params.get("tag") or "").strip()
+        if not template_id:
+            candidates = _carve_templates_for_court(
+                world, war_instance=war_instance,
+                court=court, carver=proposer_leader,
+            )
+            if not candidates:
+                return _fail(
+                    "carve_provinces_not_held",
+                    f"No client state can be erected from {court}'s soil "
+                    f"on the terms your armies have won, Sire.",
+                )
+            template_id = candidates[0]
+        eligibility = evaluate_create_client_eligibility(
+            world,
+            war_instance=war_instance,
+            template_id=template_id,
+            from_court=court,
+            carver=proposer_leader,
+        )
+        if not eligibility.get("eligible"):
+            return _fail(
+                str(eligibility.get("refusal_code") or "dependency_invalid"),
+                str(eligibility.get("disabled_reason_display") or ""),
+            )
+        identity = get_template_identity(get_template(world, template_id)) or {}
+        clause = {
+            "type": "create_client",
+            "from": court,
+            "to": proposer_leader,
+            "tag": template_id,
+            # Denormalized so the world-less consumers (harshness pricing,
+            # the region double-promise check, every display seam) can do
+            # their job. Ratification re-resolves the template as the
+            # authority.
+            "provinces": list(template_provinces(get_template(world, template_id))),
+            "client_display_name": str(identity.get("display_name") or template_id),
         }
     else:  # liberation
         vassals = getattr(world, "vassals", {}) or {}

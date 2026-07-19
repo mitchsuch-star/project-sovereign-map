@@ -323,6 +323,14 @@ class WorldState:
         # changes (serialization safety), only the display identity.
         # Empty at boot by construction — nothing can form at boot.
         self.nation_formations: Dict[str, dict] = {}
+        # NA-6c §11.4: the Class C carve-out CATALOGUE — scenario key
+        # `formable_nations`, tag -> {display_name, flag, provinces, deck,
+        # seeds, aggrieved}. Authored data, not a roster: none of these tags
+        # exists until a settlement carves one. Serialized (like `agendas`)
+        # because it is read at RUNTIME — the carve eligibility predicate
+        # needs `provinces`, and a created client re-derives its display
+        # identity from its template on every load.
+        self.formable_nations: Dict[str, dict] = {}
         # NA-6: overflow for the single Proclamation popup slot — two
         # nations CAN form on one tick (the vassal_rebellion_imminent_popups
         # precedent). Drained one per response by the delivery seams.
@@ -5008,6 +5016,9 @@ class WorldState:
             # dicts and would stringify (the §11.1 Dict[str, str] shape
             # was amended to Dict[str, dict] by §11.10 decision 1).
             "nation_formations": copy.deepcopy(self.nation_formations),
+            # NA-6c: the carve catalogue. deepcopy for the same aliasing
+            # reason as `agendas` — templates nest province LISTS and decks.
+            "formable_nations": copy.deepcopy(self.formable_nations),
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -5437,6 +5448,31 @@ class WorldState:
             str(k): copy.deepcopy(dict(v or {}))
             for k, v in (data.get("nation_formations") or {}).items()
         }
+        # NA-6c: the carve catalogue (scenario data, same shape either way —
+        # `from_scenario` funnels through here, so the scenario key and the
+        # save key are one).
+        world.formable_nations = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("formable_nations") or {}).items()
+        }
+        # NA-6c §11.10 decision 6 / seam-map L1: `nation_capitals` is
+        # deliberately NOT serialized — it is rebuilt from the authored
+        # table at construction, which is why the enforcement test excludes
+        # it. A CARVED client is not in that table, so its capital would
+        # vanish on every load (costing it -1 DP/turn forever via
+        # `_process_dp_regen`, and blinding `survival_override_active`).
+        # Re-derive it here from the template, matching the existing
+        # rebuilt-at-construction philosophy rather than adding a field.
+        # Naturally inert on a legacy world: `formable_nations` is empty
+        # there, so this never writes through the aliased module global.
+        for tag, record in world.nation_formations.items():
+            template_id = str((record or {}).get("template") or "")
+            if not template_id:
+                continue
+            template = world.formable_nations.get(template_id) or {}
+            provinces = [str(p) for p in (template.get("provinces") or []) if p]
+            if provinces and tag not in world.nation_capitals:
+                world.nation_capitals[tag] = provinces[0]
 
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         raw_pools = data.get("manpower_pools", {})
