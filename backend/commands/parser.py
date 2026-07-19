@@ -13,6 +13,7 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
+from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
@@ -862,8 +863,13 @@ class CommandParser:
             # proved the fast parse wrong. One deliberate LLM retry before
             # surfacing the error (no-op in mock mode).
             if fuzzy_error and llm_result.get("mode", "mock") == "mock":
-                retried = self.llm.reparse_with_llm(
+                retried, retry_llm_error = self.llm.reparse_with_llm(
                     effective_text, game_state, llm_result)
+                # Carry the RETRY's own API-failure signal onto the result
+                # dict, so the failure branch below can stamp it and Berthier
+                # recovery does not stack a third blocking call.
+                if retry_llm_error:
+                    llm_result["llm_error"] = True
                 if retried is not None:
                     retried, retry_error = self._apply_fuzzy_matching(
                         retried, effective_text, world=world,
@@ -926,6 +932,18 @@ class CommandParser:
                 # M2 FIX: Propagate requested recruit type for soft correction message
                 if llm_result.get("requested_type"):
                     command_dict["requested_type"] = llm_result["requested_type"]
+                elif llm_result.get("action") == "recruit":
+                    # July 18, 2026: derive it from the player's own words when
+                    # the upstream parse carries none. PARSE_TOOL has no
+                    # `requested_type` property and the prompt never asks for
+                    # one, so on the LIVE path this was always None — a recruit
+                    # phrasing the fast parser could not classify silently lost
+                    # the arm and the soft-correction message never fired.
+                    # Deterministic, so it is GR6-safe and also repairs the
+                    # case where a live re-parse discarded a fast-parsed arm.
+                    _arm = extract_requested_arm(command_text)
+                    if _arm:
+                        command_dict["requested_type"] = _arm
 
                 # CR-5b Flavor Echoing: carry the LLM's delegation flavor line to
                 # the RESPONSE seam. command_dict is hand-built from named .get()s,

@@ -345,9 +345,57 @@ class TestSaveFilenameValidation:
 class TestThreadingLock:
 
     def test_state_lock_exists(self):
-        """The state_lock should be defined in main.py."""
-        from backend.main import state_lock
-        assert isinstance(state_lock, type(threading.Lock()))
+        """The POST serialization lock should be defined in main.py.
+
+        PIN CONSCIOUSLY FLIPPED July 18, 2026: this asserted a
+        `threading.Lock`, which is precisely the defect. The one and only
+        acquisition site is an `async def` middleware, so a threading.Lock was
+        taken on the event-loop thread and held across `await call_next` —
+        blocking the entire server for the duration of every POST, most
+        visibly while a live LLM parse was in flight.
+        """
+        import asyncio
+
+        from backend.main import get_state_lock
+
+        async def _probe():
+            return get_state_lock()
+
+        lock = asyncio.run(_probe())
+        assert isinstance(lock, asyncio.Lock), (
+            "the lock is acquired inside an async middleware — a "
+            "threading.Lock there blocks the event loop")
+
+    def test_state_lock_is_per_event_loop(self):
+        """An asyncio.Lock binds to the first loop that awaits it and raises
+        on any other. Each TestClient creates a fresh loop, so a single
+        module-level lock breaks every endpoint test after the first client —
+        and the same hazard exists for any production loop restart."""
+        import asyncio
+
+        from backend.main import get_state_lock
+
+        async def _probe():
+            lock = get_state_lock()
+            async with lock:          # bind it to THIS loop
+                pass
+            return lock
+
+        first = asyncio.run(_probe())
+        second = asyncio.run(_probe())
+        assert first is not second, (
+            "a lock reused across event loops raises 'bound to a different "
+            "event loop'")
+
+    def test_state_lock_is_acquired_asynchronously(self):
+        """The middleware must `async with` it. A plain `with` on an
+        asyncio.Lock raises at runtime, so this pins the pair together."""
+        import inspect
+
+        from backend import main as main_module
+        src = inspect.getsource(main_module.serialize_state_mutations)
+        assert "async with get_state_lock()" in src, (
+            "an asyncio.Lock must be acquired with `async with`")
 
     def test_concurrent_commands_no_crash(self):
         """Two concurrent POST /command calls should not crash."""

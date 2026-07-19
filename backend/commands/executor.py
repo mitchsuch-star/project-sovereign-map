@@ -1528,7 +1528,16 @@ class CommandExecutor:
                         "diplomatic_downgrade", "diplomatic_declare_war",
                         "diplomatic_ultimatum",
                         # B-B7 Make Amends — spec §8.6.1
-                        "make_amends"):
+                        "make_amends",
+                        # WB-C explicit bargain repudiation (WAR_BARGAIN_SPEC §C).
+                        # Missing here since it landed: the parser routed it
+                        # (llm_client._parse_repudiate_bargain), validation
+                        # passed it, and diplomatic_executor has dispatched it
+                        # all along — but this tuple never listed it, so every
+                        # "repudiate the bargain with Austria" fell through to
+                        # the unknown-action tail and died as
+                        # "Unknown command", in BOTH mock and live mode.
+                        "repudiate_bargain"):
             result = self._diplomatic._execute_diplomatic(command, game_state)
         # WPS-A: Set war purpose (defensive war objective, 0 AP)
         elif action == "set_war_purpose":

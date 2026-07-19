@@ -74,7 +74,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Tuple
 
-import httpx
+import anthropic
 
 from .schemas import ParseResult, ProviderConfig
 from .prompt_builder import build_parse_prompt, build_system_prompt
@@ -84,10 +84,12 @@ from .prompt_builder import build_parse_prompt, build_system_prompt
 # API CONFIGURATION
 # =============================================================================
 
-# Anthropic API endpoint (Messages API)
+# Anthropic API endpoint (Messages API). Retained as documentation of the
+# endpoint the SDK targets; the SDK owns URL construction.
 ANTHROPIC_API_ENDPOINT = "https://api.anthropic.com/v1/messages"
 
-# API version header required by Anthropic
+# API version header required by Anthropic. The SDK sets this itself; kept so
+# the constant stays available to anything that reports on the integration.
 ANTHROPIC_API_VERSION = "2023-06-01"
 
 # Request timeout in seconds.
@@ -95,6 +97,22 @@ ANTHROPIC_API_VERSION = "2023-06-01"
 # live parse calls complete in 1-3s, so 5s keeps comfortable headroom
 # while still bounding how long a parse can block the game loop.
 REQUEST_TIMEOUT_SECONDS = 5.0
+
+# Retries for TRANSIENT failures only (July 18, 2026). The SDK retries
+# connection errors, 408, 409, 429 and 5xx with exponential backoff, and
+# honors the `retry-after` header on a 429; it never retries a 4xx we caused.
+#
+# Before this, a single hiccup — one 429, one 529 overload, one dropped
+# connection — degraded the command straight to the fast parser, which for a
+# low-confidence parse means the player gets a Berthier shrug and retypes.
+# That is the exact failure the retry exists to absorb.
+#
+# ONE retry, deliberately: the parse call is INSIDE the player's command
+# round-trip, so the worst case is a latency budget, not just a cost. At
+# timeout 5s and one retry the ceiling is ~11s including backoff — noticeable
+# but survivable. Raising this trades player-perceived latency for resilience;
+# do not raise it without re-measuring that ceiling.
+MAX_RETRIES = 1
 
 
 # =============================================================================
@@ -285,6 +303,23 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
     """
     Convert parsed JSON from LLM into ParseResult.
 
+    This is a faithful mapper: it carries across whatever the JSON holds and
+    makes no judgement about reachability. Six of the fields it reads —
+    ``standing_order``, ``condition``, ``dialogue``, ``requested_type``,
+    ``cheat_type``, ``cheat_args`` — are NOT PARSE_TOOL properties, so a
+    well-behaved model does not produce them. They are read anyway because the
+    schema is deliberately non-strict (extra properties are possible) and
+    because dropping them here would silently diverge the mapper from the
+    ParseResult shape the rest of the pipeline round-trips. GR6 is enforced
+    downstream, not here: ``validate_parse_result`` discards any parse claiming
+    a ``cheat`` action outright (it is absent from VALID_ACTIONS), so none of
+    these fields can reach a mechanical effect on the strength of this mapping.
+
+    ``requested_type`` in particular is NOT sourced from the model in practice
+    — it is derived deterministically from the raw text at the parser seam
+    (``backend/ai/recruit_arm.py``), which is what makes the recruit
+    soft-correction work on the live path at all.
+
     Args:
         json_data: Parsed JSON dict from LLM response
         raw_command: Original command text
@@ -323,7 +358,10 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
         dialogue=json_data.get("dialogue"),
         flavor=json_data.get("flavor"),  # CR-5b Flavor Echoing (delegation-only)
         suggestion=json_data.get("suggestion"),
-        confidence=0.85,  # LLM results get moderate confidence
+        # Telemetry only — there is no downstream confidence gate on an LLM
+        # result. The 0.7 threshold is consulted BEFORE the call, against the
+        # FAST parse, so this value can never loop back into routing.
+        confidence=0.85,
         mode=mode,
         raw_command=raw_command,
         requested_type=json_data.get("requested_type"),
@@ -342,6 +380,9 @@ class BaseProvider(ABC):
     def __init__(self, config: Optional[ProviderConfig] = None):
         self.config = config
         self._api_key: Optional[str] = None
+        # Lazily-built SDK client (Anthropic provider only). Declared here so
+        # every provider has the attribute and `getattr` guards stay honest.
+        self._sdk_client = None
 
     @property
     def name(self) -> str:
@@ -448,6 +489,44 @@ class AnthropicProvider(BaseProvider):
             print(f"Warning: {self.config.api_key_env} not found in environment")
             return False
         return True
+
+    def _client(self) -> "anthropic.Anthropic":
+        """The official SDK client, built once per provider instance.
+
+        July 18, 2026: this replaced a hand-rolled ``httpx`` POST. The SDK was
+        ALREADY a declared and installed dependency (requirements.txt) — the
+        raw-HTTP path was paying for it and using none of it. What the swap
+        buys, in order of how much it matters here:
+
+          1. RETRIES with exponential backoff on exactly the transient
+             failures (connection, 408/409/429/5xx), honoring `retry-after`.
+             This is the real win — see MAX_RETRIES.
+          2. TYPED exceptions, so the log names which failure occurred instead
+             of a status-code ladder we maintain ourselves.
+          3. The request id, for tracing a failure with Anthropic support.
+          4. Header and URL construction owned by the SDK, so an API version
+             change is an upgrade rather than an edit here.
+
+        The API key is passed explicitly rather than left to the SDK's ambient
+        resolution: this project supports BYOK, so the key must be the one
+        `get_api_key` resolved for THIS provider, never a stray environment
+        credential the SDK might otherwise pick up.
+        """
+        if getattr(self, "_sdk_client", None) is None:
+            self._sdk_client = anthropic.Anthropic(
+                api_key=self.get_api_key(),
+                # A SPLIT budget, not a single number. A bare timeout applies
+                # PER OPERATION (connect, then read, then pool), so "5s" was
+                # really up to ~15-20s on a flaky network — while the code and
+                # its comments asserted a 5s game-loop ceiling. Bounding
+                # connect and pool separately makes the documented ceiling
+                # true. Read stays at the measured 5.0 (CR-3 measured 1-3s
+                # live, so that keeps the intended headroom).
+                timeout=anthropic.Timeout(
+                    REQUEST_TIMEOUT_SECONDS, connect=2.0, pool=1.0),
+                max_retries=MAX_RETRIES,
+            )
+        return self._sdk_client
 
     def parse(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
         """
@@ -589,77 +668,86 @@ class AnthropicProvider(BaseProvider):
                 - Success: (response_json, None)
                 - Failure: (None, error_description)
         """
-        api_key = self.get_api_key()
-
-        headers = {
-            "x-api-key": api_key,
-            "content-type": "application/json",
-            "anthropic-version": ANTHROPIC_API_VERSION,
-        }
-
-        # Log request (without API key!)
-        print(f"AnthropicProvider: POST {ANTHROPIC_API_ENDPOINT}")
-        print(f"AnthropicProvider: model={body.get('model')}, "
+        print(f"AnthropicProvider: messages.create model={body.get('model')}, "
               f"max_tokens={body.get('max_tokens')}, "
               f"tool_mode={'tools' in body}")
 
         try:
-            # Make request with timeout
-            with httpx.Client(timeout=REQUEST_TIMEOUT_SECONDS) as client:
-                response = client.post(
-                    ANTHROPIC_API_ENDPOINT,
-                    headers=headers,
-                    json=body
-                )
+            message = self._client().messages.create(**body)
 
-            # Log response status
-            print(f"AnthropicProvider: Response status={response.status_code}")
+        # Ordered most-specific first. Each 4xx is a distinct, actionable
+        # cause, and collapsing them into one branch would tell an operator
+        # only that "the LLM failed" — the whole point of the typed
+        # exceptions is that the log names WHICH failure.
+        except anthropic.AuthenticationError:
+            print("AnthropicProvider: ERROR 401 - Invalid API key")
+            return None, "Invalid API key"
 
-            # Handle HTTP errors
-            if response.status_code == 401:
-                print("AnthropicProvider: ERROR 401 - Invalid API key")
-                return None, "Invalid API key"
+        except anthropic.PermissionDeniedError:
+            print("AnthropicProvider: ERROR 403 - API key lacks permission")
+            return None, "API key lacks permission for this model"
 
-            if response.status_code == 429:
-                print("AnthropicProvider: ERROR 429 - Rate limited")
-                return None, "Rate limited - too many requests"
+        except anthropic.NotFoundError:
+            # Almost always a bad/retired model id — name the pin, since that
+            # is the one thing an operator has to change.
+            print(f"AnthropicProvider: ERROR 404 - unknown model "
+                  f"'{body.get('model')}'")
+            return None, f"Unknown model '{body.get('model')}'"
 
-            if response.status_code >= 500:
-                print(f"AnthropicProvider: ERROR {response.status_code} - Server error")
-                return None, f"Server error ({response.status_code})"
+        except anthropic.BadRequestError as e:
+            # A request WE built is malformed — a parameter the pinned model
+            # rejects, or a schema the API refused. Surface the message: this
+            # is the failure a model migration produces, and a generic string
+            # would send the reader hunting.
+            print(f"AnthropicProvider: ERROR 400 - {e}")
+            return None, "Invalid request (see server log)"
 
-            if response.status_code != 200:
-                print(f"AnthropicProvider: ERROR {response.status_code} - {response.text[:200]}")
-                return None, f"HTTP {response.status_code}"
+        except anthropic.RateLimitError:
+            # Already retried with backoff by the SDK, honoring `retry-after`.
+            print("AnthropicProvider: ERROR 429 - Rate limited (retries exhausted)")
+            return None, "Rate limited - too many requests"
 
-            # Parse response JSON
-            try:
-                response_json = response.json()
-            except json.JSONDecodeError as e:
-                print(f"AnthropicProvider: Failed to parse response JSON: {e}")
-                return None, "Invalid JSON in response"
-
-            # Log token usage if available
-            usage = response_json.get("usage", {})
-            if usage:
-                input_tokens = usage.get("input_tokens", 0)
-                output_tokens = usage.get("output_tokens", 0)
-                print(f"AnthropicProvider: Tokens used - input={input_tokens}, output={output_tokens}")
-
-            return response_json, None
-
-        except httpx.TimeoutException:
-            print(f"AnthropicProvider: ERROR - Request timed out after {REQUEST_TIMEOUT_SECONDS}s")
+        except anthropic.APITimeoutError:
+            print(f"AnthropicProvider: ERROR - Timed out after "
+                  f"{REQUEST_TIMEOUT_SECONDS}s (retries exhausted)")
             return None, f"Request timed out after {REQUEST_TIMEOUT_SECONDS}s"
 
-        except httpx.ConnectError as e:
+        except anthropic.APIConnectionError as e:
             print(f"AnthropicProvider: ERROR - Connection failed: {e}")
             return None, "Connection failed - check internet"
 
+        except anthropic.APIStatusError as e:
+            # Any other non-2xx, including 5xx and 529 overloaded — both
+            # already retried by the SDK.
+            print(f"AnthropicProvider: ERROR {e.status_code} - server error")
+            return None, f"Server error ({e.status_code})"
+
         except Exception as e:
-            # Catch-all for unexpected errors
+            # The provider contract is absolute: NEVER raise to the caller.
+            # A parse failure degrades to the fast parser; an exception here
+            # would 500 the player's whole command.
             print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
             return None, f"Unexpected error: {type(e).__name__}"
+
+        # Downstream (_make_api_request / _make_parse_request) reads the plain
+        # wire shape, and the test suite mocks THIS method with dicts — so the
+        # typed Message is converted back to a dict here. That keeps the
+        # transport swap invisible to every caller and every existing mock.
+        response_json = message.to_dict()
+
+        request_id = getattr(message, "_request_id", None)
+        if request_id:
+            # Log it: this is the one value Anthropic support needs to trace a
+            # request end-to-end, and it is unrecoverable after the fact.
+            print(f"AnthropicProvider: request_id={request_id}")
+
+        usage = response_json.get("usage") or {}
+        if usage:
+            print(f"AnthropicProvider: Tokens used - "
+                  f"input={usage.get('input_tokens', 0)}, "
+                  f"output={usage.get('output_tokens', 0)}")
+
+        return response_json, None
 
     def _make_api_request(
         self,
@@ -747,6 +835,27 @@ class AnthropicProvider(BaseProvider):
         response_json, error = self._post_messages(body)
         if error:
             return None, error
+
+        # July 18, 2026: check stop_reason BEFORE reading the tool input.
+        #
+        # A forced tool call truncated at max_tokens still arrives as a
+        # well-formed tool_use block — the SDK reconstructs the partial JSON —
+        # so a truncated parse is INDISTINGUISHABLE from a complete one by
+        # inspection. It would sail through as a confident order with fields
+        # silently missing or half-written. The only signal is stop_reason,
+        # and nothing was reading it.
+        #
+        # Treated as no-parse rather than an API error: the provider is
+        # reachable and the request was valid, so the fast parser's result
+        # stands and the player is not told the network failed.
+        stop_reason = response_json.get("stop_reason")
+        if stop_reason == "max_tokens":
+            print(f"AnthropicProvider: parse TRUNCATED at max_tokens="
+                  f"{body.get('max_tokens')} — discarding partial tool call")
+            return None, None
+        if stop_reason == "refusal":
+            print("AnthropicProvider: model refused the parse request")
+            return None, None
 
         content = response_json.get("content", [])
         if not isinstance(content, list):

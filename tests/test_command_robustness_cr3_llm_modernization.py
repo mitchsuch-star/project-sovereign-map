@@ -322,10 +322,13 @@ class TestLLMErrorSignal:
         client = self._live_client()
         with patch.object(client.provider, "parse",
                           side_effect=AssertionError("second LLM call fired")):
-            retried = client.reparse_with_llm(
+            retried, retry_llm_error = client.reparse_with_llm(
                 "Murat, charge", COLD_STATE,
                 {"action": "charge", "mode": "mock", "llm_error": True})
         assert retried is None
+        # The pre-existing llm_error short-circuits BEFORE any call, so this
+        # retry made none of its own — the flag reports THIS call, not history.
+        assert retry_llm_error is False
 
     def test_berthier_skip_llm_uses_template_without_api_call(self):
         client = self._live_client()

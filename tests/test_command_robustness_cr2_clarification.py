@@ -263,7 +263,10 @@ class TestMarshalAwareConfidence:
 class TestLLMRetryOnFuzzyError:
     def test_reparse_returns_none_in_mock_mode(self, parser, legacy_ctx):
         _, gs = legacy_ctx
-        assert parser.llm.reparse_with_llm("Murat, attack Wellington", gs, {}) is None
+        # Returns (parse_or_None, llm_error) since July 18, 2026 — the retry's own
+        # API-failure signal used to be dropped on the floor.
+        assert parser.llm.reparse_with_llm(
+            "Murat, attack Wellington", gs, {}) == (None, False)
 
     def test_retry_rescues_confidently_wrong_parse(self, legacy_ctx, monkeypatch):
         world, gs = legacy_ctx
@@ -276,7 +279,7 @@ class TestLLMRetryOnFuzzyError:
                 "marshal": "Ney", "action": "attack", "target": "Wellington",
                 "confidence": 0.9, "mode": "live", "raw_command": command_text,
                 "ambiguity": 5, "strategic_score": 10,
-            }
+            }, False
 
         monkeypatch.setattr(retry_parser.llm, "reparse_with_llm", fake_reparse)
         result = retry_parser.parse("Murat, attack Wellington", gs, world=world)
@@ -289,7 +292,7 @@ class TestLLMRetryOnFuzzyError:
         world, gs = legacy_ctx
         retry_parser = CommandParser(use_real_llm=False)
         monkeypatch.setattr(retry_parser.llm, "reparse_with_llm",
-                            lambda *a, **k: None)
+                            lambda *a, **k: (None, False))
         result = retry_parser.parse("Murat, attack Wellington", gs, world=world)
         assert result["success"] is False
         assert "Murat" in result["error"]

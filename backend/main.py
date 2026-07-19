@@ -4,7 +4,8 @@ Connects Godot frontend to Python game logic
 """
 
 import os
-import threading  # noqa: E402 - 3A-1: needed for state_lock
+import asyncio  # noqa: E402 - 3A-1: state_lock (async middleware)
+import weakref  # noqa: E402 - 3A-1: per-event-loop state locks
 from pathlib import Path
 from typing import Optional
 
@@ -49,7 +50,36 @@ parser = CommandParser()  # Uses LLM_MODE from environment
 executor = CommandExecutor()
 world = None
 game_state = {"world": None, "debug_mode": DEBUG_MODE}
-state_lock = threading.Lock()  # 3A-1: Protects state-mutating endpoints
+# 3A-1: Protects state-mutating endpoints. asyncio, NOT threading (July 18,
+# 2026): the middleware that takes it is `async def`, so a threading.Lock held
+# across `await call_next` blocks the whole event loop for the request's
+# duration — see serialize_state_mutations. The handlers themselves are sync
+# (`def`), so FastAPI runs them in a threadpool; the ONLY acquisition site is
+# that one middleware, on the loop thread.
+#
+# PER-LOOP, not module-level. An asyncio.Lock binds to the first event loop
+# that awaits it and raises "bound to a different event loop" on any other —
+# and each `TestClient` spins up a fresh loop, so a single module-level lock
+# broke 21 endpoint tests the moment a second client was constructed. The same
+# hazard exists in production for any loop restart. Keyed by the running loop,
+# which is exactly the scope over which mutual exclusion is meaningful: two
+# different loops cannot be concurrently serving the same in-process world.
+# Keyed by the loop OBJECT in a WeakKeyDictionary, not by id(loop). CPython
+# reuses memory addresses, so an id-keyed map hands a brand-new loop the lock
+# belonging to a collected one — which then raises the very
+# "bound to a different event loop" error this indirection exists to prevent.
+# The weak keys also mean entries retire with their loop instead of leaking.
+_state_locks: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()
+
+
+def get_state_lock() -> asyncio.Lock:
+    """The state lock for the CURRENT running event loop."""
+    loop = asyncio.get_running_loop()
+    lock = _state_locks.get(loop)
+    if lock is None:
+        lock = asyncio.Lock()
+        _state_locks[loop] = lock
+    return lock
 
 
 def _resolve_sovereign_map() -> str:
@@ -934,11 +964,31 @@ app.add_middleware(
 # 3A-1: Serialize state-mutating requests to prevent concurrent corruption
 @app.middleware("http")
 async def serialize_state_mutations(request: Request, call_next):
-    """Acquire state_lock for all POST requests (state-mutating)."""
+    """Serialize all POST requests (state-mutating) behind one lock.
+
+    July 18, 2026 — this used a `threading.Lock` acquired with a plain `with`
+    inside an `async def`. That blocks the EVENT LOOP, not just the request:
+    the lock is taken on the loop thread and held across `await call_next`, so
+    while one POST is in flight nothing else on the server can make progress —
+    not another endpoint, not a health check, not the response of the request
+    that already finished.
+
+    Ordinarily that is invisible, because the handlers are fast and declared
+    with plain `def` (so FastAPI runs them in a threadpool). It stops being
+    invisible when a POST blocks on the live LLM parse: a stalled Anthropic
+    call could freeze the entire server for the whole timeout, and the client
+    double-send pattern the UI-6 chip latch exists to defend against is
+    exactly the input that produces a second POST during that window.
+
+    `asyncio.Lock` gives the same mutual exclusion — one POST mutates world
+    state at a time — while yielding the loop to other tasks. The lock still
+    wraps the whole request rather than a narrower critical section: the
+    protection covers ~14 mutating endpoints, and narrowing it to the command
+    path alone would leave the rest racing the world object.
+    """
     if request.method == "POST":
-        with state_lock:
-            response = await call_next(request)
-            return response
+        async with get_state_lock():
+            return await call_next(request)
     return await call_next(request)
 
 

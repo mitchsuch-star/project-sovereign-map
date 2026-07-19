@@ -25,13 +25,14 @@ See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 6 for keywords to add:
 import os
 import random
 import re
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
 from .schemas import ParseResult
 from .providers import get_provider, PROVIDERS
 from .validation import validate_parse_result
 from .attack_vocabulary import mentions_attack
+from .recruit_arm import extract_requested_arm
 
 # Load environment variables
 load_dotenv()
@@ -516,30 +517,48 @@ class LLMClient:
         return self._parse_with_mock(command_text, game_state)
 
     def reparse_with_llm(self, command_text: str, game_state: Optional[Dict],
-                         fast_result_dict: Optional[Dict]) -> Optional[Dict]:
+                         fast_result_dict: Optional[Dict]
+                         ) -> Tuple[Optional[Dict], bool]:
         """CR-2: one forced LLM re-parse after a confident fast parse
         hard-failed downstream (fuzzy-pass error).
 
         The normal gate short-circuits at confidence >= 0.7, so the LLM
         never saw the "confidently wrong" parse — this is the deliberate
-        second consultation. Returns a validated parse dict, or None when
-        live parsing is unavailable or returned nothing better. Mock mode
-        always returns None (mock stays fully playable without an LLM).
+        second consultation. Mock mode always declines (mock stays fully
+        playable without an LLM).
+
+        Returns ``(parse_dict_or_None, llm_error)``.
+
+        The second element is why the signature widened (July 18, 2026). This
+        used to return only the dict, so when the RETRY itself failed at the
+        API layer that fact died here: ``_parse_with_live_provider`` stamps
+        ``llm_error`` on the local ParseResult built by ``from_dict``, which is
+        a fresh object the caller never sees. The caller therefore could not
+        stamp ``llm_error`` onto its failure dict, and main.py's Berthier
+        recovery — which reads exactly that flag to avoid stacking blocking
+        calls — would fire a THIRD live call on a request whose first two had
+        already timed out.
+
+        Returned as an explicit tuple rather than mutating ``fast_result_dict``
+        in place: an input argument that quietly becomes an output is the same
+        implicit seam that let the signal go missing here in the first place.
         """
         if self.provider_name == "mock" or not self.api_key:
-            return None
+            return None, False
         if not isinstance(game_state, dict):
-            return None
+            return None, False
         # CR-3(c): the parse-stage LLM call for this request already failed
         # at the API layer — the forced retry would stack another blocking
         # ~5s timeout and almost certainly fail the same way.
         if (fast_result_dict or {}).get("llm_error"):
-            return None
+            return None, False
         fast_result = ParseResult.from_dict(fast_result_dict or {})
         retried = self._parse_with_live_provider(command_text, game_state, fast_result)
         if retried is fast_result or retried.mode == "mock":
-            return None
-        return retried.to_dict()
+            # Declined. `fast_result` is the local object the provider stamped,
+            # so its llm_error is this retry's own API-failure signal.
+            return None, bool(getattr(fast_result, "llm_error", False))
+        return retried.to_dict(), bool(getattr(retried, "llm_error", False))
 
     def _parse_with_live_provider(
         self,
@@ -1199,22 +1218,11 @@ class LLMClient:
             action = "recruit_marshal"
         elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
             action = "recruit"
-            # Optional: extract what the player ASKED for (for soft correction message)
-            # Cavalry is checked FIRST so "horse artillery" stays cavalry. PF-7:
-            # "artillery" was previously unrecognized, so requesting an arm a
-            # marshal doesn't command was dropped silently — the artillery arm
-            # now feeds the existing soft-correction seam in _execute_recruit.
-            if any(kw in command_lower for kw in ["cavalry", "horse", "rider", "horsemen"]):
-                requested_type = "cavalry"
-            elif re.search(r'\b(?:artillery|cannons?|guns?|batter(?:y|ies)|artillerie)\b', command_lower):
-                # PF-7 review fix: WORD-BOUNDARY match — the bare substring "gun"
-                # collided with the region name "Burgundy" (bur-GUN-dy), firing a
-                # spurious soft-correction on "recruit infantry at Burgundy".
-                requested_type = "artillery"
-            elif "infantry" in command_lower or "foot" in command_lower:
-                requested_type = "infantry"
-            else:
-                requested_type = None
+            # What arm the player ASKED for (feeds the soft-correction message
+            # in _execute_recruit). Single-sourced in backend/ai/recruit_arm.py
+            # since July 18, 2026 so the LIVE path can derive it too — it has
+            # no PARSE_TOOL field and was structurally unreachable there.
+            requested_type = extract_requested_arm(command_lower)
         elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
             action = "move"  # Strategic parser upgrades to SUPPORT
         # Tactical state actions (Phase 2.6)

@@ -302,17 +302,39 @@ def validate_parse_result(
                 if k in DIPLOMATIC_DATA_ALLOWED_FIELDS
             }
 
-    # Meta actions bypass validation
-    if result.action in META_ACTIONS:
-        return result
-
-    # Clamp scores to valid range
-    result.ambiguity = max(0, min(100, result.ambiguity))
-    result.strategic_score = max(0, min(100, result.strategic_score))
-
     # Convert valid lists to sets for O(1) lookup
     marshal_set = set(valid_marshals)
     target_set = set(valid_targets)
+
+    # ── Applies to EVERY parse, including META actions ──────────────────────
+    # July 18, 2026: the META bypass below used to sit ABOVE these two, so a
+    # META parse skipped both. That was too wide a hole:
+    #
+    #   • the score clamp is what guarantees ambiguity/strategic_score are
+    #     in-range integers, and downstream feedback does arithmetic on them;
+    #   • the Sweep-5 invented-marshal guard exists precisely because the live
+    #     LLM will name a marshal the player never uttered — a META action is
+    #     no less able to invent one, and the deterministic focus/clarification
+    #     flow should own that case here too.
+    #
+    # What legitimately stays BELOW the bypass: the marshal-set membership
+    # check, the multi-marshal check and the VALID_ACTIONS check. META actions
+    # are nation-level, carry no marshal, and are deliberately absent from
+    # VALID_ACTIONS — so those three would reject them wrongly.
+    result.ambiguity = max(0, min(100, result.ambiguity))
+    result.strategic_score = max(0, min(100, result.strategic_score))
+
+    if (raw_text and result.marshals and len(result.marshals) == 1
+            and result.marshals[0] in marshal_set
+            and not _marshal_mentioned(raw_text, result.marshals[0])):
+        print(f"[VALIDATION] LLM invented marshal '{result.marshals[0]}' "
+              f"for {raw_text!r} — cleared (focus/clarification owns it)")
+        result.marshals = []
+
+    # Meta actions bypass the REMAINING validation (see above for what they
+    # no longer bypass).
+    if result.action in META_ACTIONS:
+        return result
 
     # Validate marshals exist
     if result.marshals:
@@ -331,20 +353,9 @@ def validate_parse_result(
         result.suggestion = "Multi-marshal commands coming in a future update!"
         return result
 
-    # Sweep-5 live finding: a bare order ("attack") let the live LLM INVENT a
-    # marshal — Bernadotte was picked out of thin air and his standing HOLD
-    # broken. The designed pipeline for an unnamed marshal is deterministic:
-    # CR-4 Persistent Command Focus, else the CR-2 "Which marshal, Sire?"
-    # clarification — both live at the Marshal-'None' seam downstream. Strip a
-    # marshal the utterance never named (typo-tolerant, same fuzzy budget as
-    # the parser) so live mode rejoins that designed flow instead of
-    # bypassing it.
-    if (raw_text and result.marshals and len(result.marshals) == 1
-            and result.marshals[0] in marshal_set
-            and not _marshal_mentioned(raw_text, result.marshals[0])):
-        print(f"[VALIDATION] LLM invented marshal '{result.marshals[0]}' "
-              f"for {raw_text!r} — cleared (focus/clarification owns it)")
-        result.marshals = []
+    # (Sweep-5 invented-marshal guard hoisted above the META bypass — see the
+    # block near the top of this function. It is a live-LLM hallucination
+    # guard, and a META parse hallucinates just as readily.)
 
     # Phase 5.2: Validate strategic command type if present
     VALID_STRATEGIC_TYPES = {"MOVE_TO", "PURSUE", "HOLD", "SUPPORT"}

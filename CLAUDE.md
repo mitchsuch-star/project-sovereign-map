@@ -409,4 +409,13 @@ CLAUDE.md "Current Phase" must always list remaining items. Completed items get 
 
 ## Environment
 
+**LLM layer:** the Anthropic path goes through the official `anthropic` SDK
+(`providers.py`), NOT raw HTTP — that migration July 18, 2026 is what gives it
+retries with backoff, typed errors and the request id. Model pin
+`claude-haiku-4-5`; forced tool-use structured output at temperature 0; a `stop_reason`
+check catches a `max_tokens`-truncated tool call (which is otherwise
+indistinguishable from a complete parse). The LLM is consulted ONLY for
+fast-parse results below the 0.7 confidence gate. Prompt caching is
+deliberately NOT used — see STATUS.md for why, so it is not re-litigated.
+
 `.env`: `LLM_MODE=mock|anthropic|groq` (`groq` is an unimplemented stub — degrades to fast-parser-only; Pre-EA item), `ANTHROPIC_API_KEY` if anthropic. Server: `127.0.0.1:8005`, CORS enabled.
