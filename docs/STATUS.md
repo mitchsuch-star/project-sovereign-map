@@ -6,6 +6,44 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🧠 AI INTENT DESIGN GATE ✅ HELD July 20, 2026 — `AI_INTENT_SPEC.md` v1.0, §6 authoritative
+
+**Docs-only session.** The v0.1 spec's six open questions were decided under the user's delegated
+gate ("make decisions — we want this to play fun and historically"), and the spec's code claims were
+**re-verified against master `12636a6`** by two read-only mapping passes. Four claims did not survive
+and each one changes the build — recorded in §0.1 rather than quietly edited.
+
+**Decisions (§6):** **D1** cap 2 simultaneous AI-initiated wars, 40-turn acceptance band 1–4 (1805–15
+opened ~one non-French war every 18–24 months; three parallel AI wars is a different century) ·
+**D2** AI wars may eliminate minors but a great power's last capital never falls to one — Venice and
+the HRE died in this period, Prussia and Austria survived *because the hegemon chose to keep them*,
+and here the hegemon is the player · **D3** France stays the gravitational centre: the machinery
+generalises, but a coalition forms against a non-player hegemon only once that power's hegemony share
+exceeds France's — the player can genuinely be eclipsed, but ambient AI noise cannot dilute the
+campaign's central pressure · **D4** the ladder is fully open (this project's diplomacy has no fog, and
+v0.1's own "soften the rung by relations" would have introduced it); only *timing* is uncertain ·
+**D5** three counter-instruments ship **with** AI-2, not after it — compensation (Schönbrunn 1805),
+sponsorship (Tilsit 1807; Britain's whole foreign policy), guarantee — and per §3.3 a bought-off
+design becomes a **standing expectation** in the ES-7 idiom whose breach is the strongest casus belli
+in the game, which is the road from Schönbrunn to Jena · **D6** build order **BD → AI-0/1/2 → user
+re-check → AI-3 → AI-4 → AI-5/6 → AI-V**; the re-check is the phase's only remaining gate.
+
+**The four corrections (§0.1):**
+
+| | v0.1 said | Verified | Consequence |
+|---|---|---|---|
+| A | the AI-vs-AI `war_objective` branch is dead, no caller | `combat_executor.py:3482`/`:3532` and the `meta_executor.py:2108` cheat reach it; no *production AI* caller exists because `enemy_ai.py` targeting is `is_at_war`-gated end to end | **AI-3 shrinks a lot.** It decides and announces; the declaration seam already works. **No new PEACE→WAR edge is created** — now a DoD line |
+| B | generalising threat is a "small wire" | `add_threat` has **no target param**; one serialized clamped int read in **16 backend modules (73 refs) + 10 `.gd`** | AI-4 gets an **additive migration contract** (§4.4a): `threat_by_target` map + `threat_level` as a property over the player's slot, byte-identical pin green *before* any non-player target is passed. The phase's long pole |
+| C | build a bandwagon rung; generalise proposals to AI-vs-AI | **both already exist** — P-Bandwagon `ai_diplomacy.py:1094`; `process_ai_ai_diplomatic_phase:1954`, whose ladder can never return a war and which had **never ratified a treaty** until a July 2026 fix | Generalise, don't invent — and budget for bugs in a near-unexercised path |
+| D | cache intent "on the agenda idiom" | `_agenda_cache` is **not** cleared by `invalidate_active_nations_cache` despite its own docstring (`world_state.py:1682`); only `formations.py:488` clears it | Intent would inherit a live staleness defect → new prerequisite slice **AI-0** |
+
+**Also added:** the price ladder gains `bandwagon` and a `sponsor` *branch* (a nation with weight but
+not force hires a proxy) plus an **opportunism term** so AI wars land while France is committed
+elsewhere rather than at random; three new pins in §5 (derived-intent save/load determinism — the
+ladder's *history* must be serialized or "no cold-open wars" becomes a lie on load; and "the AI must
+not solve the player's problems"); a concrete narration budget (**2 intent lines per dispatch**,
+fore-warnings exempt); and AI-5 finally gets its own test file instead of "folded into the above".
+
 ### 🎭 CREATIVE AUDIT (post-NA-6d) ✅ HELD July 19, 2026 — 9 defects fixed; 2 items escalated to gates
 
 **Memo = `docs/audits/CREATIVE_AUDIT_2026_07_19.md`, authoritative** (§9 = the landing record).
