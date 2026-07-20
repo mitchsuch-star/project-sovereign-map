@@ -796,6 +796,28 @@ def validate_scenario(
                         path,
                         f"'{tag}' is already a nation in the roster - a "
                         f"formable template must mint a NEW tag")
+                # A formation record distinguishes "created, not yet formed"
+                # from "formed" partly by `id == template`. A deck entry id
+                # that collides with a template tag therefore makes a FORMED
+                # record read as a creation record: the poll never latches
+                # and the nation re-proclaims EVERY turn - +2,000 gold, a
+                # fresh -30 to every aggrieved court, and a Proclamation
+                # popup, without bound. `_proclaim` now stamps an explicit
+                # `formed` marker so the inference is only a fallback, but
+                # the collision is still incoherent authoring and the
+                # validator is where it should be caught.
+                for deck_nation, deck in (data.get("agendas") or {}).items():
+                    if not isinstance(deck, list):
+                        continue
+                    for entry in deck:
+                        if (isinstance(entry, dict)
+                                and str(entry.get("id") or "") == tag):
+                            result.add_error(
+                                path,
+                                f"'{tag}' collides with the agenda deck entry "
+                                f"agendas.{deck_nation} id '{tag}' - a deck "
+                                f"entry id must never equal a formable "
+                                f"template tag")
                 if not isinstance(template, dict):
                     result.add_error(
                         path,

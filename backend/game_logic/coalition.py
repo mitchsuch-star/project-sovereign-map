@@ -841,19 +841,6 @@ def _calculate_agenda_grudge_threat(world) -> int:
     return int(min(AGENDA_GRUDGE_CAP, len(grudged)))
 
 
-def _calculate_formation_grudge_threat(world, budget: int) -> int:
-    """NA-6 §11.9 — the standing wound left by a proclamation.
-
-    Sibling of `_calculate_agenda_grudge_threat`, sharing its cap through
-    an explicit remaining-budget parameter rather than a joint clamp, so
-    the agenda family's emitted amount (and its two NA-3 pins) never move.
-    Derivation lives in formations.py — including the France-scoped-scalar
-    caveat that only a player-sponsored formation feeds this scalar.
-    """
-    from backend.game_logic.formations import get_formation_grudge_threat
-    return get_formation_grudge_threat(world, budget)
-
-
 def _calculate_defensive_refusal_memory_threat(world) -> int:
     """Standing DG-4 threat from active defensive-refusal episodes.
 

@@ -498,15 +498,24 @@ class TestFormationGrudge:
             emitted = get_formation_grudge_threat(world, budget=budget)
             assert emitted + (AGENDA_GRUDGE_CAP - budget) <= AGENDA_GRUDGE_CAP
 
-    def test_coalition_step_two_emits_a_named_source(self, world):
-        """§11.9 requires the threat panel to NAME the grievance — one
-        merged add_threat would destroy that, so both keys must survive."""
-        from backend.game_logic.coalition import _calculate_formation_grudge_threat
-        from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
-        self._form_under_player_sponsorship(world)
-        assert _calculate_formation_grudge_threat(world, budget=2) == 1
+    def test_the_generic_label_row_survives_for_pre_na6d_saves(self, world):
+        """A save written before the per-formation source keys carries a
+        bare `formation_grudge` row; the static fallback must still name it.
+
+        (This replaces a test that asserted on `coalition.
+        _calculate_formation_grudge_threat` — a wrapper NA-6d left with no
+        production caller, so the assertion pinned nothing. The real
+        wiring pin is `test_coalition_step_two_emits_the_named_source`,
+        which drives `process_coalition_turn` and reads the source key
+        that actually reached `world.threat_sources_this_turn`.)
+        """
+        from backend.game_logic.diplomatic_ledger import (
+            _THREAT_SOURCE_LABELS, _threat_source_label,
+        )
         assert "formation_grudge" in _THREAT_SOURCE_LABELS
         assert "agenda_grudge" in _THREAT_SOURCE_LABELS
+        assert (_threat_source_label(world, "formation_grudge")
+                == "Nations raised from their lands")
 
     def test_agenda_grudge_amount_is_unchanged_by_the_split(self, world):
         """The NA-3 pins must not move: `_calculate_agenda_grudge_threat`
@@ -668,10 +677,15 @@ class TestSerialization:
         _free_italy_with_the_peninsula(world)
         process_formations(world)
         record = world.nation_formations["KingdomOfItaly"]
-        assert set(record) == {"id", "sponsor", "turn"}
+        # `formed` is the explicit permanence latch: it declares what the
+        # id/template inequality used to only imply, so an authoring
+        # collision between a deck entry id and a formable template tag
+        # can no longer un-latch a formation.
+        assert set(record) == {"id", "sponsor", "turn", "formed"}
         assert record["id"] == "risorgimento"
         assert record["sponsor"] == ""
         assert record["turn"] == int(world.current_turn)
+        assert record["formed"] is True
 
 
 # ═══════════════════════ THE `forms` BLOCK + VALIDATOR ════════════════════

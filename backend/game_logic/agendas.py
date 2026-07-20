@@ -1226,7 +1226,7 @@ def build_agenda_payload(nation: str, world) -> Optional[dict]:
     # entry carrying a `forms` block advertises what it would become and
     # how close it stands, so no formation ever ambushes the player.
     # Local import: formations reads this module (one-way dependency).
-    from backend.game_logic.formations import get_forms_block
+    from backend.game_logic.formations import format_progress, get_forms_block
     forms = get_forms_block({"forms": view.params.get("forms")})
     if forms is not None:
         held = [r for r in view.regions
@@ -1235,8 +1235,7 @@ def build_agenda_payload(nation: str, world) -> Optional[dict]:
             "display_name": forms["display_name"],
             "held": int(len(held)),
             "required": int(len(view.regions)),
-            "progress": (f"{int(len(held))} of {int(len(view.regions))} "
-                         f"provinces held" if view.regions else ""),
+            "progress": format_progress(len(held), len(view.regions)),
         }
     return payload
 

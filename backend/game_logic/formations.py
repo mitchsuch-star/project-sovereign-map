@@ -25,8 +25,14 @@ WHOLE deck — a formable authored at index >= 1 must still fire.)
 The internal nation TAG never changes (GR-hard: serialization safety).
 Only the display identity moves, through the two R7 chokepoints.
 
-GR5: every helper takes a nation parameter; nothing is nation-hardcoded —
-an AI court forms exactly as the player's does.
+GR5: every MECHANICS helper takes a nation parameter; nothing in the
+formation, creation or grudge machinery is nation-hardcoded — an AI court
+forms exactly as the player's does. The two deliberate player-scoped
+exceptions are DISPLAY builders, named here so the contract above stays
+literally true: `build_formables_payload` (a UI payload for the player's
+own browser, like `build_marshal_overview`) and `_formation_grudges`
+(bounded by the v0.1 France-scoped threat scalar — §11.10 decision 8, the
+D2 pattern, recorded and not fought).
 GR6: satisfaction is a deterministic pure read; the LLM never sees it.
 GR8: no per-region scan outside the one-shot reward pass.
 """
@@ -121,6 +127,16 @@ def _is_creation_record(record: Optional[dict]) -> bool:
     FORMED nation is latched forever (§11.1 — formation is permanent).
     """
     if not isinstance(record, dict):
+        return False
+    # An EXPLICIT formed marker outranks the id/template inference. The
+    # inference alone couples two independent authoring namespaces: a deck
+    # entry whose `id` happened to equal a `formable_nations` key made a
+    # FORMED record read as "created", so `process_formations` never
+    # latched and the nation re-proclaimed every turn — +2,000 gold and a
+    # fresh -30 aggrieved blow per tick, unbounded (audit, verified live).
+    # `_proclaim` stamps this key, so a formed record is now self-declaring
+    # and the equality below is only the pre-marker fallback.
+    if record.get("formed"):
         return False
     template = str(record.get("template") or "")
     return bool(template) and str(record.get("id") or "") == template
@@ -322,6 +338,21 @@ def formed_display_name(world, nation: str) -> str:
 
 # ═══════════════════════ THE WATCHER (§11.6-5 progress) ═══════════════════
 
+def format_progress(held: int, required: int) -> str:
+    """"3 of 5 provinces held" / "0 of 1 province held".
+
+    Single source for the watcher marker, shared by the raw-deck watcher
+    here and `agendas.build_agenda_payload`'s active-design copy — both
+    render on player-facing surfaces (the Formables browser, the ledger
+    Design line, the war room), and both hardcoded the plural, so a
+    one-province claim read "0 of 1 provinces held" at boot.
+    """
+    if required <= 0:
+        return ""
+    noun = "province" if required == 1 else "provinces"
+    return f"{int(held)} of {int(required)} {noun} held"
+
+
 def get_formation_watch(world, nation: str) -> Optional[dict]:
     """The "forms: Italy (3 of 5 provinces held)" marker (§11.6-5 /
     §11.8 stage 0) for a nation with an UNFIRED formable entry.
@@ -354,8 +385,7 @@ def get_formation_watch(world, nation: str) -> Optional[dict]:
             "held": int(len(held)),
             "required": int(len(regions)),
             "blocked_by_vassalage": bool(_is_vassal(world, nation)),
-            "progress": (f"{int(len(held))} of {int(len(regions))} provinces held"
-                         if regions else ""),
+            "progress": format_progress(len(held), len(regions)),
         }
     return None
 
@@ -368,8 +398,13 @@ def _resolve_sponsor(world, nation: str) -> str:
     keeps its creator — a freed Duchy proclaiming Poland has no lord, but
     Berlin still blames Paris), else "" (it freed itself and owes nobody).
 
-    Formation is gated on NOT being a vassal, so the lord arm is dead for
-    Class T today and lives for the NA-6c creation record.
+    The lord arm is UNCONDITIONALLY dead today, and the comment that said
+    it "lives for the NA-6c creation record" was wrong: the only caller is
+    `_proclaim`, reached only through `process_formations`, which has
+    already refused every vassal — and the creation path never comes here
+    at all (`_proclaim_creation` uses `carver` directly). The arm is kept
+    because a future non-poll caller would need it; the STORED-sponsor arm
+    below is the one that fires, and it is what makes Berlin blame Paris.
     """
     vassal_row = (getattr(world, "vassals", {}) or {}).get(nation) or {}
     lord = str(vassal_row.get("lord") or "")
@@ -449,6 +484,11 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
         # audit trail, and the durable stamp the ratify-path beat needs
         # (the dispatch QUEUE is cleared at the top of the next tick).
         "turn": turn,
+        # The explicit latch (audit). Formation is permanent (§11.1), so a
+        # formed record says so in its own words rather than leaving
+        # `_is_creation_record` to infer it from an id/template inequality
+        # that authoring can collide.
+        "formed": True,
     }
     # NA-6d C→T: a created client that later FORMS (Warsaw → Poland) keeps
     # its birth template on the record forever — the `from_dict` capital
@@ -902,6 +942,8 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
     if records is None:
         world.nation_formations = {}
         records = world.nation_formations
+    prior = records.get(tag) if isinstance(records.get(tag), dict) else {}
+    prior_formed = bool(prior) and not _is_creation_record(prior)
     records[tag] = {
         # A creation has no forming DECK ENTRY, so `id` records the
         # template and `template` is what identity resolution keys off.
@@ -910,6 +952,17 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
         "sponsor": carver,
         "turn": turn,
     }
+    # ...unless this tag ALREADY formed once. A carved client can be
+    # conquered out of `get_active_nations()`, and the settlement gate only
+    # refused a tag that is currently ACTIVE — so a re-carve of the same
+    # soil overwrote a FORMED record with a fresh creation record,
+    # un-latching a formation the spec calls permanent (§11.1): the nation
+    # proclaimed a second time, banked a second windfall, and struck every
+    # aggrieved court a second -30 (audit, traced live). The creation is
+    # still allowed — the state really is being erected again — but the
+    # formation latch it already earned survives it.
+    if prior_formed:
+        records[tag]["formed"] = True
 
     struck = _apply_aggrieved_blow(world, tag, identity, carver)
     gold = int((getattr(world, "nation_gold", {}) or {}).get(tag, 0))
@@ -1092,6 +1145,8 @@ def build_formables_payload(world) -> dict:
     (`evaluate_create_client_eligibility`) run per active war — never a
     re-derivation that could drift from the authoring surface.
     """
+    from backend.game_logic.settlement_helpers import _iter_active_war_instances
+    from backend.game_logic.settlement_scoring import TOTAL_ANNEXATION_WAR_SCORE
     from backend.game_logic.settlement_validation import (
         evaluate_create_client_eligibility,
     )
@@ -1101,9 +1156,11 @@ def build_formables_payload(world) -> dict:
     active = set(world.get_active_nations())
     starting = (getattr(world, "_starting_controllers", None)
                 or get_starting_controllers())
-    war_instances = getattr(world, "war_instances", None) or {}
     regions = getattr(world, "regions", {}) or {}
     rows: List[dict] = []
+    # Tags already rendered by the Class C pass, so the Class T pass never
+    # emits a duplicate row for the same nation.
+    emitted: set = set()
 
     # ── Class C templates (authored order — dict preserves insertion) ──
     catalogue = getattr(world, "formable_nations", None) or {}
@@ -1116,16 +1173,27 @@ def build_formables_payload(world) -> dict:
         court_display = formed_display_name(world, from_court) if from_court else ""
 
         if template_id in active:
+            # The CURRENT identity, never the birth literal. A carved
+            # Duchy of Warsaw that went on to proclaim Poland was rendering
+            # its own dead name here (the template arm is frozen at birth)
+            # while `Utils.bb_flag` resolved the override — so the row drew
+            # Poland's flag beside the label "Duchy of Warsaw", and the
+            # Class T branch below emitted a SECOND row for the same tag.
+            # §11.8 stage 3: no surface may show the dead name.
+            standing = get_display_identity(world, template_id)
+            stands_name = (standing or {}).get(
+                "display_name") or identity["display_name"]
+            stands_flag = (standing or {}).get("flag_tag") or identity["flag"]
+            emitted.add(template_id)
             rows.append({
                 "tag": template_id,
-                "display_name": identity["display_name"],
-                "flag": identity["flag"],
+                "display_name": stands_name,
+                "flag": stands_flag,
                 "cls": "C",
                 "available": False,
                 "progress": "",
                 "gate_terms": [
-                    {"text": f"{identity['display_name']} already stands",
-                     "met": True},
+                    {"text": f"{stands_name} already stands", "met": True},
                 ],
                 "deep_link": None,
             })
@@ -1153,12 +1221,18 @@ def build_formables_payload(world) -> dict:
             })
             continue
 
-        # The real predicate, per active war — first qualifying war wins.
+        # The real predicate, per ACTIVE war — first qualifying war wins.
+        # `war_instances` retains CONCLUDED wars for ARCHIVE_RETENTION_TURNS
+        # and the predicate's side resolution is pure membership, so an
+        # archived war used to hand back `available: true` with a deep link
+        # the settlement layer then refuses as `war_archived` — a dead
+        # route beside its own "at war: ✗" gate term, for up to 10 turns
+        # after any peace where the player kept the template soil. Every
+        # other settlement consumer filters through
+        # `_iter_active_war_instances`; so does this one now.
         deep_link = None
-        for war_id in sorted(war_instances):
-            war = war_instances.get(war_id)
-            if not isinstance(war, dict):
-                continue
+        for war_id, war in sorted(_iter_active_war_instances(world),
+                                  key=lambda kv: str(kv[0])):
             verdict = evaluate_create_client_eligibility(
                 world, war_instance=war, template_id=template_id,
                 from_court=from_court, carver=player)
@@ -1177,6 +1251,22 @@ def build_formables_payload(world) -> dict:
             "text": f"at war with {court_display or 'the owning court'}",
             "met": bool(at_war),
         }]
+        # Whose soil is this? A template may only be carved from the court
+        # that STARTED with every one of its provinces
+        # (`carve_not_defeated_soil`). Single-province templates satisfy it
+        # by construction — `from_court` is derived from provinces[0] — but
+        # a multi-province template spanning two courts refuses forever,
+        # and without this term every other row would read ✓ while the
+        # button never appeared.
+        wrong_soil = [p for p in provinces
+                      if str(starting.get(p, "")) != from_court]
+        if wrong_soil:
+            terms.append({
+                "text": (f"{', '.join(wrong_soil)} never belonged to "
+                         f"{court_display or 'that court'} — this state "
+                         f"cannot be raised from their lands"),
+                "met": False,
+            })
         for province in provinces:
             holder = str(getattr(regions.get(province), "controller", "") or "")
             held = holder in bloc
@@ -1185,6 +1275,28 @@ def build_formables_payload(world) -> dict:
                 text += f" (currently {formed_display_name(world, holder)}-held)"
             terms.append({"text": text, "met": bool(held)})
 
+        # The total-annexation rule. A carve that leaves the court with
+        # NOTHING erases it, and a state is not erased short of a decisive
+        # victory — the Papal States are a one-province polity, so the
+        # Roman Republic trips this for almost the whole war. Unstated, the
+        # row showed every term ✓ and still offered no button: the §11.6-8
+        # "never dead" contract broken by silence, on the one template the
+        # rule exists for.
+        remaining = set(world.get_nation_regions(from_court)) - set(provinces)
+        if from_court and not remaining:
+            ws_key = world._make_diplo_key(from_court, player)
+            war_score = abs(int(
+                (getattr(world, "war_scores", {}) or {}).get(ws_key, 0) or 0))
+            terms.append({
+                "text": (f"a decisive victory over "
+                         f"{court_display or 'that court'} — erasing a state "
+                         f"entirely needs war score "
+                         f"{int(TOTAL_ANNEXATION_WAR_SCORE)} "
+                         f"(currently {int(war_score)})"),
+                "met": war_score >= TOTAL_ANNEXATION_WAR_SCORE,
+            })
+
+        emitted.add(template_id)
         rows.append({
             "tag": template_id,
             "display_name": identity["display_name"],
@@ -1203,6 +1315,15 @@ def build_formables_payload(world) -> dict:
         record = get_formation_record(world, nation)
         if record is not None and not _is_creation_record(record):
             # Formed — the dream already stands; say so, never hide it.
+            # ...unless the Class C pass already said exactly that for this
+            # tag. A carved client that went on to form (Warsaw → Poland)
+            # owns BOTH a template row and a deck, and both arms render
+            # "already stands" — one nation, one row. Note this suppresses
+            # only the redundant FORMED arm: a created client whose dream
+            # is still unfired keeps its watcher row beside the C row,
+            # which is the §11.6-5 "the dream is visible" case.
+            if nation in emitted:
+                continue
             identity = get_display_identity(world, nation)
             if identity is None:
                 continue

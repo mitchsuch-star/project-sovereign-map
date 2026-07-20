@@ -33,6 +33,14 @@ var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 # State
 var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=formables (NA-6d)
 var _selected_nation: String = ""
+# The war a Formables deep link qualified on. `build_formables_payload` runs
+# the real eligibility predicate PER WAR and knows exactly which one the
+# carve is available in — that answer used to be discarded at the button, so
+# a player in two wars with the same court fell into the multi-war ambiguity
+# picker and could choose the war where the clause is refused, right after a
+# row promised it was available. Carried here and used as the `war_id`
+# fallback for `open_settlement`; cleared on any other route into step 2.
+var _formable_war_id: String = ""
 var _dp_available: int = 0
 
 # Color palette
@@ -322,6 +330,7 @@ func _add_nation_button(nation_data: Dictionary):
 
 func _on_nation_selected(nation: String):
 	_selected_nation = nation
+	_formable_war_id = ""   # a plain nation pick carries no qualifying war
 	_current_step = 2
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
@@ -363,8 +372,19 @@ func _render_formables(data: Dictionary):
 	_clear_content_list()
 	scroll_container.scroll_vertical = 0
 	var rows = data.get("formables", [])
+	# An empty catalogue is a legitimate world (the SOVEREIGN_MAP=legacy
+	# rollback authors none), not an error. `_show_error` resets to step 1
+	# and hides Back, which stranded the player on a step-3 screen still
+	# titled FORMABLE NATIONS with no way back — so say it in place and
+	# leave the Back button working.
 	if not (rows is Array) or rows.size() == 0:
-		_show_error("No formable nations are authored in this campaign.")
+		var empty_lbl = RichTextLabel.new()
+		empty_lbl.bbcode_enabled = true
+		empty_lbl.fit_content = true
+		empty_lbl.scroll_active = false
+		empty_lbl.text = ("[color=#" + Utils.COLOR_GREY
+			+ "]No formable nations are authored in this campaign.[/color]")
+		content_list.add_child(empty_lbl)
 		return
 	for row in rows:
 		if row is Dictionary:
@@ -390,7 +410,13 @@ func _add_formable_row(row: Dictionary):
 	bbcode += " [color=#" + Utils.COLOR_GREY + "]— " + kind + "[/color]"
 	if progress != "":
 		bbcode += " [color=#" + Utils.COLOR_INFO + "](" + progress + ")[/color]"
-	for term in row.get("gate_terms", []):
+	# `.get(k, default)` returns the default only for a MISSING key — a
+	# present-but-null `gate_terms` would come back null and `for term in
+	# null` is a runtime error. Match the file's own defensive idiom.
+	var gate_terms = row.get("gate_terms")
+	if not (gate_terms is Array):
+		gate_terms = []
+	for term in gate_terms:
 		if not (term is Dictionary):
 			continue
 		var met = term.get("met", false)
@@ -411,8 +437,16 @@ func _add_formable_row(row: Dictionary):
 			btn.custom_minimum_size = Vector2(0, 32)
 			btn.add_theme_font_size_override("font_size", 12)
 			btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
-			btn.pressed.connect(_on_nation_selected.bind(court))
+			btn.pressed.connect(_on_formable_deep_link.bind(
+				court, str(deep_link.get("war_id", ""))))
 			content_list.add_child(btn)
+
+
+func _on_formable_deep_link(court: String, war_id: String):
+	"""Follow a formables row into the settlement flow, KEEPING the war the
+	eligibility predicate actually qualified on (§11.6-8: never dead)."""
+	_on_nation_selected(court)
+	_formable_war_id = war_id
 
 
 # =============================================================================
@@ -672,6 +706,10 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 	not a parser dependency."""
 	if action_id == "open_settlement":
 		var war_id = str(action_payload.get("war_id", ""))
+		# NA-6d: a Formables deep link already resolved the qualifying war.
+		# An explicit pick (the ambiguity picker) still wins.
+		if war_id == "" and _formable_war_id != "":
+			war_id = _formable_war_id
 		var data = {
 			"action": "propose_common_peace",
 			"target_nation": _selected_nation,

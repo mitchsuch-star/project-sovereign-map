@@ -1128,3 +1128,73 @@ forms-block normalization, validator), the Formables payload (5 boot rows, never
 dead, honest boot gates, mirror row, qualifying-war deep link + drift pin, erected-and-watching
 double row, formed row, endpoint source pin), and the watcher consumers (war-room marker,
 nations-tab payload, both `.gd` source-scrapes).
+
+---
+
+## §21.1 Post-landing audit — NA-6d (July 19, 2026)
+
+A six-lens adversarial review of commit `1055a02`, held immediately after
+landing on the user's instruction ("audit NA-6d commit and push fixes").
+Lenses: the C→T chain, the grudge source-key flip, the Formables payload,
+the Godot client, test falsifiability, and cross-cutting Golden-Rule
+compliance. **Ten defects confirmed and FIXED; every one was reproduced
+live against the 1805 boot world before the fix and re-verified after.**
+Regression pins: `tests/test_na6d_audit.py` (23), mutation-checked — each
+headline pin was confirmed to FAIL against the pre-fix behavior.
+
+### Fixed
+
+| # | Sev | Defect | Fix |
+|---|-----|--------|-----|
+| A1 | P2 | The availability scan walked ALL `war_instances`, including CONCLUDED ones (retained `ARCHIVE_RETENTION_TURNS`). For up to 10 turns after any peace where the player kept the template soil, the row read `available: true` with a deep link the settlement layer refuses as `war_archived` — beside its own "at war ✗" gate term. The §11.6-8 "never dead" contract, broken. | Filter through the shared `_iter_active_war_instances`, as every other settlement consumer does. |
+| A2 | P2 | The total-annexation refusal had **no gate term**. The Papal States are a one-province polity, so the Roman Republic row showed two green ✓ and no button, naming nothing the player could act on. | New gate term stating the war-score floor and the current score. Also added the soil-provenance term (`carve_not_defeated_soil`) for multi-province templates. |
+| A3 | P2 | The Class C row rendered the template's BIRTH identity, so a Duchy of Warsaw that had gone on to proclaim Poland showed the **dead name** — while `Utils.bb_flag` DID resolve the override, drawing Poland's flag beside the label "Duchy of Warsaw" — and the Class T pass emitted a **second row for the same tag**. | Resolve through `get_display_identity`; dedup the redundant formed arm (the unformed watcher row is deliberately kept). |
+| A4 | P2 | **A re-carve un-latched a "permanent" formation.** A carved client conquered out of `get_active_nations()` could be re-carved; `_proclaim_creation` overwrote the FORMED record with a creation record, so the nation proclaimed a SECOND time — second card, second +2,000 gold, doubled −30 against every aggrieved court. | `_proclaim_creation` preserves the `formed` marker across re-erection. |
+| A5 | P3→ | **Unbounded reward loop.** `_is_creation_record` inferred "created" from `id == template`, coupling the `agendas` and `formable_nations` namespaces. A deck entry id equal to a formable tag made a FORMED record read as a creation record: the poll never latched and the nation re-proclaimed **every turn** — +2,000 gold and a fresh −30 per tick, forever (verified live: 500 → 2,500 → 4,500 → 6,500). | Explicit `formed: true` marker stamped by `_proclaim` (the equality is now only a pre-marker fallback) **plus** a validator error on the collision. |
+| A6 | P3 | `coalition._calculate_formation_grudge_threat` lost its only production caller in this commit; the test that "pinned the wiring" called the dead wrapper and would have stayed green if coalition step 2 were deleted outright. | Helper deleted; the stale test replaced with a pre-NA-6d-save label-fallback pin. (The real wiring pin, `test_coalition_step_two_emits_the_named_source`, drives `process_coalition_turn` and stands.) |
+| A7 | P3 | `progress` hardcoded the plural in two places, both newly rendered by this slice: **"0 of 1 provinces held"** for Holland→United Netherlands, live at boot, on the Formables browser, the ledger Design line and the war room. §21 had claimed this copy fix landed — it landed only in the gate-term composition. | Single source `formations.format_progress`, shared by the watcher and `agendas.build_agenda_payload`. |
+| A8 | P3 | The wizard iterated `row.get("gate_terms", [])` with no `is Array` guard — the project's own documented `.get()`-returns-null footgun, and the one spot in the new code breaking the file's idiom. | Type-guarded. |
+| A9 | P3 | An empty catalogue (the maintained `SOVEREIGN_MAP=legacy` rollback authors none) routed through `_show_error`, which resets to step 1 and hides Back — stranding the player on a screen still titled FORMABLE NATIONS with no way back. | Render the empty state in place; Back keeps working. |
+| A10 | P3 | `build_formables_payload` computed the exact qualifying `war_id` per row and the wizard **discarded it**, so a player in two wars with the same court fell into the multi-war ambiguity picker and could choose the war where the clause is refused — right after a row promised availability. | Threaded as `_formable_war_id` into `open_settlement`'s structured payload; an explicit pick still wins. |
+
+Documentation defects fixed in the same pass: `SAVE_FORMAT_REFERENCE.md`
+described the `template` key's ownership and the identity-resolution order
+**backwards** (NA-6d inverted both), and `SYSTEMS_REFERENCE.md` §28 still
+documented a `formation_grudge` threat key that is no longer emitted. The
+`formations.py` module docstring's "nothing is nation-hardcoded" claim was
+narrowed to the mechanics helpers (the two display builders are named
+exceptions), and `_resolve_sponsor`'s comment corrected — its lord arm is
+unconditionally dead, not "live for the creation record".
+
+### Verified clean under adversarial probing
+
+Save compatibility across the source-key flip (threat sources are per-turn
+display telemetry only — no accumulation store, no per-source decay);
+`AGENDA_GRUDGE_CAP` arithmetic (cannot be exceeded, negative budgets
+degrade to zero); `add_threat` in a loop being total-identical to one
+merged call; the court-level dedup and its `(turn, tag)` ordering; fog (a
+province's controller is public political knowledge per
+`FOG_OF_WAR_SPEC.md` §2, consistent with `region_panel.gd`); crashes on
+legacy / `SOVEREIGN_SCENARIO=none` / attribute-less worlds; GR2 `int()`;
+GR8 (no new region scans; `/formables` is on-demand, measured 3.84 ms);
+serialization round-trip; R7 display names; the GET-endpoint convention.
+
+### Escalated, NOT fixed — design calls for the user
+
+1. **The per-formation named grievance is single-slot in practice.**
+   `AGENDA_GRUDGE_CAP = 2` and each authored formation aggrieves exactly
+   two courts, so the first formation consumes the whole remainder and the
+   second emits `amount = 0` and is dropped. "The Polish Question" and
+   "The Roman Question" can never render side by side — the motivating
+   example of the key flip. Raising the cap is a blessed-number change
+   that moves NA-3 pins, so it is left to the gate.
+2. **A re-erected client is frozen under its birth name.** The A4 fix
+   takes the conservative arm — formation is permanent, so the nation
+   cannot proclaim twice. The consequence is that a re-carved Duchy of
+   Warsaw displays as the Duchy forever with no path back to Poland.
+   Whether a state erased and re-erected should be allowed to dream again
+   is a design question, not a defect.
+3. **`Normandy` authors no `aggrieved` list.** The coalition-side mirror
+   carved from French soil offends nobody, while the Roman Republic
+   aggrieves Austria and Spain. Possibly deliberate; flagged as an
+   asymmetry with its sibling templates.
