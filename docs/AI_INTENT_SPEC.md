@@ -270,7 +270,17 @@ the power prefers**, **which instrument it reaches for first**, **how it answers
 | **Austria** | `redeem_italy` / German primacy | The **aggrieved patient revanchist.** Twice-beaten (1797, 1800); will wait years for the right partner and is very hard to make quit. Fights inside a coalition, rarely alone. | `align` / build a bloc | **Hardens** — coercion confirms the grievance | The Third Coalition; Metternich's patience |
 | **Prussia** | `hanoverian_prize` / north-German primacy | The **hesitant opportunist.** Terrified of choosing the wrong side; sells its neutrality, takes compensation, joins the strong — and defects when the wind turns. The archetypal `bandwagon`er. | `buy` / `bandwagon` | **Folds, then resents** — the reneged bargain (§3.3) is its one true casus belli | Neutrality 1795–1806 → Schönbrunn → Jena |
 | **Russia** | `arbiter_of_europe` | The **distant arbiter.** Chases prestige and the balance of Europe, not land next to home; intervenes far from its own borders on principle, and leads or `sponsor`s coalitions. Withdraws sharply once prestige is served or catastrophe strikes. | `sponsor` / lead a coalition | **Escalates on honour**, then reverses hard | Austerlitz → Tilsit reversal (the 1.1 honour bias, already live) |
-| **Britain** | `low_countries` deny | The **paymaster behind the moat.** Never wants a land war of its own; funds everyone who will march, denies the Scheldt, and is relentless and unreachable. Almost never climbs to `fight` on land. | `sponsor` (the branch, not the rung) | **Never coerced** — it is not in reach; answers with more gold | Pitt's subsidy system |
+| **Britain** | `low_countries` deny | The **paymaster behind the Channel.** Never wants a land war of its own; funds everyone who will march and denies the Scheldt. Its field armies and continental gains are as beatable as anyone's — its *core* (the treasury, the will to keep paying) is what sits behind the moat. | `sponsor` (the branch, not the rung) | **Reached by the lever, not the ultimatum** — a land threat cannot touch the core, so it answers with more gold; but the Continental System strangles its trade *now*, and Ireland/invasion reach it once naval (DEF-5) lands | Pitt's subsidy system; the Berlin & Milan Decrees answering it |
+
+**Britain is reachable — through the right lever, not the front door.** This matters enough to state
+plainly, because a Britain that *cannot* be coerced is an unbeatable paymaster with no counter-play,
+which breaks principle 7. Britain is hard, not impossible: you beat its expeditionary corps and strip
+its continental holdings on land like any power, and you reach the *core* it hides behind the Channel
+by **cutting its trade** (the Continental System the game already models) — and, once the DEF-5 naval
+layer lands, by **Ireland and the invasion threat**. Its `statecraft` answers a land ultimatum with
+gold precisely so the player learns the front door is the wrong door; the reward for finding the
+economic lever is that the gold finally stops. Until then Britain keeps paying, which is the correct
+and historical frustration, not a dead end.
 
 The secondary powers (Sardinia, Ottoman, Sweden, Denmark) get *lighter* profiles — a preferred rung
 and a coercion reaction, no more — because they are texture, not protagonists; over-characterising

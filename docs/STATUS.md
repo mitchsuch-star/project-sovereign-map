@@ -50,7 +50,13 @@ and it must not perturb the 1805 boot. The contract's teeth are in AI-V: an **in
 first-instrument distribution — identical AIs fail), a **legible-from-ledger** assertion (the player
 can name each *style*, not just its target), and §5 pin 10 (the majors stay in character under stress,
 not just at peace). New owner row AI-2c; two new DoD lines (distinct statesmen + politics-with-each-
-other witnessed). Docs-only; principle 8 added to §2.
+other witnessed). Docs-only; principle 8 added to §2. **Correction folded same day (user: "britain is
+in reach"):** the Britain cell's "never coerced / unreachable" overstated it and would have broken
+principle 7 (a paymaster with no counter-play). Britain is hard, not impossible — its field armies and
+continental holdings are beatable on land, and its *core* behind the Channel is reached by **cutting
+its trade (the Continental System, already modelled)** now and by **Ireland/invasion once DEF-5 naval
+lands**. It answers a land ultimatum with gold precisely to teach that the front door is the wrong
+door; the reward for the economic lever is the gold stops.
 
 **Also added (v1.0):** the price ladder gains `bandwagon` and a `sponsor` *branch* (a nation with weight but
 not force hires a proxy) plus an **opportunism term** so AI wars land while France is committed
