@@ -37,7 +37,22 @@ re-check → AI-3 → AI-4 → AI-5/6 → AI-V**; the re-check is the phase's on
 | C | build a bandwagon rung; generalise proposals to AI-vs-AI | **both already exist** — P-Bandwagon `ai_diplomacy.py:1094`; `process_ai_ai_diplomatic_phase:1954`, whose ladder can never return a war and which had **never ratified a treaty** until a July 2026 fix | Generalise, don't invent — and budget for bugs in a near-unexercised path |
 | D | cache intent "on the agenda idiom" | `_agenda_cache` is **not** cleared by `invalidate_active_nations_cache` despite its own docstring (`world_state.py:1682`); only `formations.py:488` clears it | Intent would inherit a live staleness defect → new prerequisite slice **AI-0** |
 
-**Also added:** the price ladder gains `bandwagon` and a `sponsor` *branch* (a nation with weight but
+**v1.1 amendment (same day, user-directed — "assure major powers feel alive and goal-oriented and
+engage in politics like IRL"):** added §3.4, the **great-power aliveness contract**. Each major gets a
+distinct *derived* `statecraft` style — **Austria** the patient aggrieved coalition-builder (hardens
+under coercion), **Prussia** the hesitant bandwagoner who sells neutrality and goes to war only over a
+reneged bargain (Schönbrunn→Jena), **Russia** the distant honour-driven arbiter who intervenes far
+from home then reverses (Tilsit), **Britain** the paymaster behind the moat who funds everyone and
+never marches. It generalises `NATION_DESIRE_PROFILES` + the live Russia 1.1 honour bias into a
+per-nation weighting over the *same* ladder — **no LLM (GR6), no new serialized personality object**,
+and it must not perturb the 1805 boot. The contract's teeth are in AI-V: an **in-character** assertion
+(each major exhibits its signature move ≥1×), a **homogeneity guard** (no two majors share a
+first-instrument distribution — identical AIs fail), a **legible-from-ledger** assertion (the player
+can name each *style*, not just its target), and §5 pin 10 (the majors stay in character under stress,
+not just at peace). New owner row AI-2c; two new DoD lines (distinct statesmen + politics-with-each-
+other witnessed). Docs-only; principle 8 added to §2.
+
+**Also added (v1.0):** the price ladder gains `bandwagon` and a `sponsor` *branch* (a nation with weight but
 not force hires a proxy) plus an **opportunism term** so AI wars land while France is committed
 elsewhere rather than at random; three new pins in §5 (derived-intent save/load determinism — the
 ladder's *history* must be serialized or "no cold-open wars" becomes a lie on load; and "the AI must

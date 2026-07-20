@@ -1,8 +1,12 @@
-# AI Intent — Phase Spec (v1.0, gate record)
+# AI Intent — Phase Spec (v1.1, gate record + aliveness contract)
 
 > **Status:** **DESIGN GATE HELD July 20, 2026.** The six open questions of v0.1 are decided and
 > recorded in **§6, which is authoritative**. Nothing is built yet; the build may begin against this
 > document without a further gate, except where §6 names a re-check.
+> **v1.1 (July 20, 2026):** adds §3.4, the **great-power aliveness contract** — the assurance that
+> Austria, Prussia, Russia and Britain feel like distinct political actors pursuing their own designs
+> and conducting real politics *with each other*, not just posturing toward France. Additive to the
+> gate; it hardens the DoD and AI-V acceptance, it does not reopen §6.
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, **re-verified against master at `12636a6`** for this
 > revision (§0.1 records two corrections the re-verification forced).
@@ -164,6 +168,11 @@ true. §3 encodes the other modes.
    opening; the historically-correct opening must not shift because the engine grew a new appetite.
 7. **Counter-play before consequence.** No intent mechanic lands without the instrument that answers
    it landing in the same slice. A war the player could not have prevented is a cutscene.
+8. **Great powers have character, not just targets.** A living Europe is not five nations running the
+   same ladder at different provinces. Each major power must climb the ladder *its own way* — the
+   instrument it reaches for first, how it answers coercion, whether it fights alone or builds a bloc.
+   This is the difference between "the AI wants Hanover" and "*that is exactly what Prussia would
+   do.*" It is the aliveness contract of §3.4, and it is derived, not LLM-voiced (principle 2 holds).
 
 ---
 
@@ -237,6 +246,48 @@ casus belli in the game** and may skip ladder rungs.
 
 That is precisely the road from Schönbrunn to Jena, and it means the buy-off instrument has teeth in
 both directions: it is a real solution *and* a hostage the player has given.
+
+### 3.4 The great-power aliveness contract
+
+Everything above describes the *machinery*. This section is the **assurance that the machinery
+produces recognisable political actors** — that Austria, Prussia, Russia and Britain feel alive,
+goal-oriented, and engaged in real statecraft *with each other*, not merely nineteen postures aimed
+at France. It is the answer to the audit's core wound (a diorama of one player and inert nations) and
+it is the thing most likely to fail silently: the intent layer could ship, every court could climb
+the same ladder correctly, and Europe could still feel like a spreadsheet because every power plays
+identically. This contract exists to make that outcome a **failing test**.
+
+**Each major power gets a `statecraft` profile** — a small, per-nation, *derived* weighting over the
+same ladder and instrument-selection every nation uses. It is not a new personality system and it
+carries no LLM (principle 2, principle 8). It generalises what the codebase already gestures at —
+`NATION_DESIRE_PROFILES` and `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py`, and Russia's
+existing 1.1 honour bias — into a full statecraft weighting. It biases four things only: **which rung
+the power prefers**, **which instrument it reaches for first**, **how it answers being coerced**, and
+**a `weight` modifier on its design**. Nothing else.
+
+| Power | Its design | Statecraft — *how* it pursues it | Reaches first for | Under coercion | Historical anchor |
+|---|---|---|---|---|---|
+| **Austria** | `redeem_italy` / German primacy | The **aggrieved patient revanchist.** Twice-beaten (1797, 1800); will wait years for the right partner and is very hard to make quit. Fights inside a coalition, rarely alone. | `align` / build a bloc | **Hardens** — coercion confirms the grievance | The Third Coalition; Metternich's patience |
+| **Prussia** | `hanoverian_prize` / north-German primacy | The **hesitant opportunist.** Terrified of choosing the wrong side; sells its neutrality, takes compensation, joins the strong — and defects when the wind turns. The archetypal `bandwagon`er. | `buy` / `bandwagon` | **Folds, then resents** — the reneged bargain (§3.3) is its one true casus belli | Neutrality 1795–1806 → Schönbrunn → Jena |
+| **Russia** | `arbiter_of_europe` | The **distant arbiter.** Chases prestige and the balance of Europe, not land next to home; intervenes far from its own borders on principle, and leads or `sponsor`s coalitions. Withdraws sharply once prestige is served or catastrophe strikes. | `sponsor` / lead a coalition | **Escalates on honour**, then reverses hard | Austerlitz → Tilsit reversal (the 1.1 honour bias, already live) |
+| **Britain** | `low_countries` deny | The **paymaster behind the moat.** Never wants a land war of its own; funds everyone who will march, denies the Scheldt, and is relentless and unreachable. Almost never climbs to `fight` on land. | `sponsor` (the branch, not the rung) | **Never coerced** — it is not in reach; answers with more gold | Pitt's subsidy system |
+
+The secondary powers (Sardinia, Ottoman, Sweden, Denmark) get *lighter* profiles — a preferred rung
+and a coercion reaction, no more — because they are texture, not protagonists; over-characterising
+them is how the narration budget (§4.6) blows.
+
+**Politics with each other, witnessed.** Aliveness is not only *toward* the player. The contract
+requires the majors to conduct the AI-vs-AI game legibly: Austria courting Russia into a bloc,
+Britain's gold appearing in a war it never joined, Prussia bandwagoning to the strong and later
+defecting, two powers exhausting each other while France rearms. AI-4's third-party settlements and
+the converged AI-vs-AI diplomacy path (AI-2) are what make this real; §3.4 is the assurance that when
+they run, they run *in character* and the player can *read* the character from the ledger and from
+Talleyrand — not just infer a target.
+
+**Where it must not go.** No LLM in the choice (principle 2). No new serialized personality object —
+`statecraft` is a per-nation constant table read by the ladder, derived. It must not perturb the 1805
+boot (§5 pin 1). And it must not collapse under stress into "every power defends its capital
+identically" — the homogeneity guard below is the pin that forbids exactly that.
 
 ---
 
@@ -388,7 +439,17 @@ cap; a second pin asserts the exemption.
   reachable by the player's own systems.
 - **The falsifying run:** the 40-turn AI-only simulation that produced `formations: NONE` and no
   agenda shift is the phase's acceptance test. Acceptance numbers in §7.
-- A live scored creative pass in the `docs/audits/` idiom.
+- **The §3.4 aliveness assertions**, run against that same simulation:
+  - **In-character, once each.** Over the run, each major exhibits its signature move at least once —
+    Austria builds or joins a bloc rather than fighting alone; Prussia bandwagons *and* later reneges
+    or defects; Russia intervenes in a war not on its own border; Britain funds a war it never joins.
+  - **The homogeneity guard.** No two majors reduce to the same instrument distribution. Concretely:
+    the per-power histogram of first-instrument choices (`ask`/`buy`/`align`/`bandwagon`/`sponsor`/
+    `coerce`/`fight`) must differ between every pair of majors by a fixed floor. Identical AIs fail.
+  - **Legible from the ledger.** For each major, the Intent row + Talleyrand read together name its
+    *style*, not only its target — a scripted assertion, not a vibe.
+- A live scored creative pass in the `docs/audits/` idiom, which must speak to whether the majors felt
+  like distinct statesmen — the pillar this contract exists to raise.
 
 ---
 
@@ -418,6 +479,12 @@ Pins to write before the first behaviour change:
    opportunism term (§3.2) must not aim AI wars at the player's own active war targets without the
    player having a say — the `sponsor` branch is how that is *supposed* to happen, with France paying
    for it.
+10. **The majors stay in character under stress** (§3.4). The `statecraft` profile must not collapse
+    to a uniform "defend the capital" the moment a power is threatened — a Prussia that bandwagons in
+    peace but plays identically to Austria in a crisis is not alive, it is a facade. Pin: a major's
+    behaviour under threat still reflects its profile (Britain still reaches for gold not a levy;
+    Austria still seeks a partner before fighting alone), and the homogeneity guard (§4.7) holds in
+    wartime, not only at peace.
 
 ---
 
@@ -510,6 +577,14 @@ its own byte-identical pin, and it is the phase's long pole.
   PEACE→WAR edge in the codebase**.
 - The player can buy off, aim, or deter a design (D5), and can be offered the same.
 - Wars can happen, **and end**, between powers that are not France.
+- **The majors feel like distinct statesmen (§3.4).** The player can name each major power's *style*
+  from the ledger and Talleyrand — not just its target — and over a run each behaves in character:
+  Austria the patient coalition-builder, Prussia the bandwagoner who reneges, Russia the distant
+  arbiter, Britain the paymaster who never marches. The §4.7 homogeneity guard and in-character
+  assertions are green.
+- **The great powers conduct politics with each other, witnessed.** At least one bloc formed, one
+  betrayal or defection, and one third-party war fought and settled among non-France powers appear in
+  the campaign log across the run — the player sees a living balance of power, not a hub.
 - **The 40-turn AI-only acceptance run** produces: ≥1 and ≤4 AI-initiated wars (D1), every one of
   them carrying a reason the ledger renders; ≥1 third-party settlement; ≥1 agenda shift; and **≥1
   formation, or a written explanation of the specific predicate that blocked it** (formation is the
@@ -529,6 +604,7 @@ its own byte-identical pin, and it is the phase's long pole.
 | AI-1 Intent layer | §4.1 | `intent.py` + `build_intent_payload` + ledger row | STATUS + `test_ai_intent_layer.py` |
 | AI-2 Peacetime pursuit | §4.2 | `ai_diplomacy` rung rework | `test_ai_intent_peacetime.py` |
 | AI-2b Counter-instruments (D5) | §6 D5, §3.3 | compensation / sponsorship / guarantee through the wizard + settlement seams | `test_ai_intent_counterplay.py` |
+| AI-2c Great-power statecraft (§3.4) | §3.4 aliveness contract | per-nation `statecraft` weighting over the ladder/instrument choice (generalises `NATION_DESIRE_PROFILES`); authored the majors, light for secondaries | `test_ai_intent_aliveness.py` (in-character + homogeneity guard) |
 | AI-3 Decision for war | §4.3 | war-intent marker + widened targeting into the existing declare seam | `test_ai_intent_war_decision.py` |
 | AI-4a Threat migration | §4.4a | `threat_by_target` + `threat_level` property, byte-identical | `test_ai_intent_threat_migration.py` |
 | AI-4b De-France-centering | §4.4 | targeted coalitions + third-party settlement | `test_ai_intent_third_party.py` |
