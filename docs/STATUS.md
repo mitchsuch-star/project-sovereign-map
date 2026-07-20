@@ -42,6 +42,38 @@ M1–M7 byte-identical 11/11, live-verified on a restarted backend.
   was "never surfaced". It is surfaced (`requires_input: True`, queued by `main.gd`); the harness
   simply never printed `strategic_reports`. The memo shows the correction rather than hiding it.
 
+### 🧭 AI INTENT — next-phase spec DRAFTED July 19, 2026 ⏸ AWAITING A USER DESIGN GATE
+
+**Spec = `docs/AI_INTENT_SPEC.md` v0.1 (intent-focused), ROADMAP row AI.** Written straight out of
+the creative audit, after mapping the AI decision architecture at `b4b6326`. The finding that
+motivates the whole phase is larger than the one the audit went looking for:
+
+> **No AI nation can decide to go to war. About anything. Ever.**
+
+Every `PEACE → WAR` edge is a cascade, a vassal auto-join, a negotiated entry, an armistice expiry, a
+rebellion — or `coalition.form_coalition()`, which is a **global anti-France threat scalar**, not a
+decision any nation makes. `enemy_ai.py` never imports `declare_war`; agendas bias target *choice*
+only, downstream of the ratio/threshold gates (`enemy_ai.py:2669`); `ai_diplomacy.py:1070-1073`
+states the absence as deliberate ("the coalition system remains the war-maker"); and `declare_war`
+already pre-provisions the AI-vs-AI `"conquest"` objective (`diplomacy.py:7577`) with **no caller** —
+the seam was built and never connected. The France-centricity is explicit too: the war-declaration
+threat bump fires only when `aggressor == world.player_nation` (`diplomacy.py:7659`) and
+`hegemony_passive` skips when the hegemon is not the player (`coalition.py:1738`).
+
+**Scope:** a derived **Intent layer** (want / against / weight / **price**) whose spine is a ladder —
+`ask → buy → align → coerce → fight` — so war is the *bottom* of a ladder rather than a dice roll,
+and every rung is something the player can counter. Then peacetime pursuit (five idle courts become
+active with no new wars), the war decision itself with a **stated reason** and fore-warning,
+de-France-centering threat/coalitions/settlements so wars can happen *and end* between third parties,
+wiring into NA formations / vassals / econ / jealousy proxy / NA-5 ultimatums (which become the
+`coerce` rung), and legibility as the deliverable rather than the polish.
+
+**Six open gate questions (§6)** — headline: how much world-motion is wanted, and whether France
+stays the gravitational centre. Recommended sequencing in §6.6: **Battle Diorama (row BD) first** as
+a contained slice, then AI-1/AI-2 as a playable increment before committing to AI-3. The phase's
+acceptance test is the audit's own falsifying run — the 40-turn AI-only campaign must stop being
+static, with the 1805 opening and M1–M7 unmoved.
+
 ### 🏛 NA-6d — THE POLAND CHAIN + THE FORMABLES BUTTON ✅ LANDED July 19, 2026 — THE NA-6 ARC IS BUILD-COMPLETE
 
 **Landing record = `NATION_AGENDAS_SPEC.md` §21, authoritative.** Suite green

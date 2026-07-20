@@ -379,6 +379,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD; audit evidence in `docs/audits/CREATIVE_AUDIT_2026_07_10.md`) |
 | **Open bugs (consolidated)** | **`docs/BUG_FIXES.md`** |
 | **Design refinement items** | **`docs/DESIGN_REFINEMENT.md`** |
+| **AI Intent (next phase — ⏸ spec drafted July 19, 2026, awaiting a user design gate)** | **`docs/AI_INTENT_SPEC.md`** (ROADMAP row AI; motivating evidence `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1/§3 — **no AI nation can decide to go to war, ever**: the coalition is a global anti-France threat scalar, not a decision, and `declare_war`'s AI-vs-AI objective branch has no caller) |
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |

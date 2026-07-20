@@ -91,6 +91,14 @@ is display-only text forever.
 This is the single highest-leverage gap in the arc. It is also *why* the answer to the second
 question is no.
 
+> **Followed up.** A post-audit map of the AI decision architecture found the gap is wider than the
+> agenda layer: **no AI nation can decide to go to war about anything, ever.** Every `PEACE → WAR`
+> edge is a cascade, a vassal auto-join, a negotiated entry, an armistice expiry, a rebellion, or
+> `coalition.form_coalition()` — which is a *global anti-France threat scalar* rather than a decision
+> any nation makes. `declare_war` even pre-provisions an AI-vs-AI `"conquest"` objective
+> (`diplomacy.py:7577`) that **no caller reaches**. This became the next-phase spec:
+> **`docs/AI_INTENT_SPEC.md`** (ROADMAP row **AI**), awaiting a user design gate.
+
 ---
 
 ## 3. Do any formables happen? — No, and two of the five cannot
