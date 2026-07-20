@@ -270,19 +270,29 @@ class TestFormationPermanence:
         assert get_display_identity(world, "DuchyOfWarsaw")["display_name"] == (
             "Poland")
 
-    def test_but_the_world_pays_only_once(self, world):
-        """...and that is the whole point of the `rewarded` latch. Before
-        the audit the re-carve path overwrote the record wholesale, so the
-        second proclamation banked a second +2,000 gold and struck every
-        aggrieved court a second −30. Now the moment repeats and the
-        payment does not."""
+    def test_but_the_treasury_is_filled_only_once(self, world):
+        """The `rewarded` latch. Before the audit the re-carve path
+        overwrote the record wholesale, so the second proclamation banked
+        a second +2,000 gold — a farm at 2,000 a lap."""
         self._lose_and_recarve(world)
         before = world.nation_gold["DuchyOfWarsaw"]
         payload = process_formations(world)[0]
         assert payload["gold"] == 0
-        assert payload["aggrieved"] == []
         assert payload["regions_lifted"] == 0
         assert world.nation_gold["DuchyOfWarsaw"] == before
+
+    def test_and_the_offended_courts_are_offended_again(self, world):
+        """The blow DOES re-fire, and must: §11.9 stands the wound up
+        only "while the formation stands", so a Poland conquered out of
+        existence ANSWERS Berlin and St Petersburg. Proclaiming it a
+        second time is a second outrage. This costs the player relations
+        rather than paying them, so it is never farmable — and the
+        alternative (a silent second proclamation) would leave the
+        partitioning powers indifferent to the thing they went to war
+        over."""
+        self._lose_and_recarve(world)
+        payload = process_formations(world)[0]
+        assert sorted(payload["aggrieved"]) == ["Prussia", "Russia"]
 
     def test_the_card_claims_no_reward_it_did_not_pay(self, world):
         """"+0 gold to its treasury" would read as a bug; the line is
@@ -403,15 +413,19 @@ class TestThreatLabelCallSites:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# D1 — the named grievance is multi-slot (floor-first fair share)
+# D1 — one grievance, one voice: the flat +1 §11.9 actually blesses
 # ══════════════════════════════════════════════════════════════════════════
 
-class TestGrudgeFairShare:
-    """Greedy allocation made §11.9's whole point unreachable in shipped
-    data: `AGENDA_GRUDGE_CAP` is 2 and each authored formation aggrieves
-    exactly two courts, so the earliest formation swallowed the entire
-    remainder and every later one emitted 0 and was dropped. Fixed by
-    allocation, not by moving the blessed cap."""
+class TestGrudgeFlatAmount:
+    """§11.9: "a derived threat contributor `formation_grudge` adds
+    `+1/turn`". NA-6a scaled the amount by aggrieved-court count, which
+    was never blessed and let the earliest formation swallow the whole
+    `AGENDA_GRUDGE_CAP` — so "The Polish Question" and "The Roman
+    Question" could never render together, defeating the per-formation
+    source key. A first fix made allocation a floor-first fair share,
+    which restored the naming but left the amount context-dependent (a
+    lone Poland showed +2 and dropped to +1 when an unrelated republic
+    was erected). Flat +1 is the spec-literal reading and holds still."""
 
     def _two_formations(self, monkeypatch):
         from backend.game_logic import formations as mod
@@ -431,8 +445,9 @@ class TestGrudgeFairShare:
         rows = get_formation_grudge_contributions(world, AGENDA_GRUDGE_CAP)
         assert [r["label"] for r in rows] == [
             "The Polish Question", "The Roman Question"]
-        assert all(r["amount"] >= 1 for r in rows), (
-            "a named grievance that emits 0 is dropped and never seen")
+        assert [r["amount"] for r in rows] == [1, 1], (
+            "one grievance, one voice — and a row that emits 0 is dropped "
+            "and never seen")
 
     def test_the_shared_cap_still_holds(self, world, monkeypatch):
         from backend.game_logic.agendas import AGENDA_GRUDGE_CAP
@@ -443,17 +458,45 @@ class TestGrudgeFairShare:
             assert emitted <= budget
             assert emitted + (AGENDA_GRUDGE_CAP - budget) <= AGENDA_GRUDGE_CAP
 
-    def test_a_lone_formation_is_unchanged(self, world, monkeypatch):
-        """Regression guard: the floor then tops straight back up, so the
-        single-formation amounts the slice pinned do not move."""
+    def test_the_amount_never_depends_on_court_count(self, world, monkeypatch):
+        """The context-dependence guard. A grievance against four courts
+        weighs the same as one against a single court — otherwise the
+        panel shows a number moving for reasons the player cannot see."""
+        from backend.game_logic import formations as mod
+        for courts in (["Prussia"], ["Prussia", "Russia"],
+                       ["Prussia", "Russia", "Austria", "Spain"]):
+            monkeypatch.setattr(mod, "_formation_grudges", lambda _w, c=courts: [
+                {"tag": "DuchyOfWarsaw", "label": "The Polish Question",
+                 "courts": list(c)}])
+            rows = mod.get_formation_grudge_contributions(world, 2)
+            assert [r["amount"] for r in rows] == [1], courts
+
+    def test_a_lone_formation_holds_still_across_budgets(
+            self, world, monkeypatch):
         from backend.game_logic import formations as mod
         monkeypatch.setattr(mod, "_formation_grudges", lambda _w: [
             {"tag": "DuchyOfWarsaw", "label": "The Polish Question",
              "courts": ["Prussia", "Russia"]}])
-        expected = {0: [], 1: [1], 2: [2], 3: [2]}
+        expected = {0: [], 1: [1], 2: [1], 3: [1]}
         for budget, amounts in expected.items():
             rows = mod.get_formation_grudge_contributions(world, budget)
             assert [r["amount"] for r in rows] == amounts, budget
+
+    def test_grievances_beyond_the_cap_are_dropped_not_silently_merged(
+            self, world, monkeypatch):
+        """`AGENDA_GRUDGE_CAP` now reads as what it is: how many named
+        questions can weigh on Europe at once. A third emits nothing —
+        real and deliberate, and debug-logged rather than merged into a
+        neighbour's number."""
+        from backend.game_logic import formations as mod
+        monkeypatch.setattr(mod, "_formation_grudges", lambda _w: [
+            {"tag": "A", "label": "First", "courts": ["Prussia"]},
+            {"tag": "B", "label": "Second", "courts": ["Russia"]},
+            {"tag": "C", "label": "Third", "courts": ["Austria"]},
+        ])
+        rows = mod.get_formation_grudge_contributions(world, 2)
+        assert [r["label"] for r in rows] == ["First", "Second"]
+        assert sum(r["amount"] for r in rows) == 2
 
     def test_allocation_is_deterministic(self, world, monkeypatch):
         """Order comes from `_formation_grudges` ((turn, tag)), so the
@@ -465,3 +508,194 @@ class TestGrudgeFairShare:
         first = get_formation_grudge_contributions(world, 2)
         for _ in range(5):
             assert get_formation_grudge_contributions(world, 2) == first
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The formables war_id carry-over must never leak between flows
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestNoInertWarIdCarryOver:
+    """The first audit pass threaded the Formables deep link's qualifying
+    `war_id` into `open_settlement`, believing it closed a multi-war
+    mis-pick. The audit-of-the-audit proved it INERT: an AVAILABLE
+    `open_settlement` always carries its own `war_id`, because
+    `diplomacy.py` forces `available: false` for BOTH the
+    multi-war-ambiguity and no-common-war cases — so the fallback could
+    never reach the POST. It was removed rather than left looking like a
+    fix; it was pure leakable state (it had already needed three separate
+    clears to stay safe). The real gap is routed as NAD-4.
+    """
+
+    def test_the_inert_carry_over_is_gone(self):
+        from tests.test_nation_agendas_formables import _read
+        assert "_formable_war_id" not in _read("scripts/diplomacy_wizard.gd")
+
+    def test_the_backend_invariant_that_makes_it_inert_still_holds(self):
+        """The removal is only safe while an available open_settlement
+        always carries a war_id. Pin the two branches that guarantee it."""
+        import inspect
+
+        from backend.game_logic import diplomacy
+        source = inspect.getsource(diplomacy)
+        block = source[source.index("multi_war_ambiguity = False"):]
+        block = block[:block.index("elif settlement_war_id:")]
+        assert '"error": "multi_war_ambiguity"' in block
+        assert '"available": False' in block, (
+            "multi-war ambiguity must disable the action, or a deep link "
+            "could post a settlement with no war_id")
+
+    def test_the_deep_link_still_routes_to_the_court(self):
+        from tests.test_nation_agendas_formables import _read
+        wizard = _read("scripts/diplomacy_wizard.gd")
+        assert "_on_nation_selected.bind(court)" in wizard
+        assert "NAD-4" in wizard, "the routed gap keeps its pointer"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# §11.9 "while the formation STANDS" — no grievance for a dead nation
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestTheWoundLapsesWithTheNation:
+    """`_eliminate_nation` deliberately does NOT prune `nation_formations`
+    (the record is the permanent historical latch), so the grudge
+    derivation has to carry the liveness check itself. Without it a Poland
+    conquered out of existence kept pushing "The Polish Question" +1/turn
+    forever — a dead-name grievance on the very panel this slice cleaned.
+    """
+
+    def test_a_standing_formation_grieves(self, world):
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions, get_formation_grudge_nations,
+        )
+        _the_poland_chain(world)
+        assert get_formation_grudge_contributions(world, 2)
+        assert get_formation_grudge_nations(world) == ["Prussia", "Russia"]
+
+    def test_a_conquered_formation_grieves_no_longer(self, world):
+        """Berlin and St Petersburg got what they wanted."""
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions, get_formation_grudge_nations,
+        )
+        _the_poland_chain(world)
+        _hand_over(world, "Prussia", ["Posen", "Lithuania", "Volhynia"])
+        assert "DuchyOfWarsaw" not in set(world.get_active_nations())
+        assert get_formation_grudge_contributions(world, 2) == []
+        assert get_formation_grudge_nations(world) == []
+
+    def test_the_record_itself_survives_the_conquest(self, world):
+        """The wound lapses; the HISTORY does not. The record is what
+        keeps the pay-once latch honest across a later re-erection."""
+        _the_poland_chain(world)
+        _hand_over(world, "Prussia", ["Posen", "Lithuania", "Volhynia"])
+        record = get_formation_record(world, "DuchyOfWarsaw")
+        assert record is not None
+        assert record["rewarded"] is True
+
+    def test_the_panel_stops_naming_the_dead(self, world):
+        """End to end: the threat panel drops the row entirely."""
+        from backend.game_logic.coalition import process_coalition_turn
+        from backend.game_logic.diplomatic_ledger import (
+            _build_balance_of_europe,
+        )
+        _the_poland_chain(world)
+        process_coalition_turn(world)
+        assert any("Polish Question" in s["label"] for s
+                   in _build_balance_of_europe(world)["threat_sources_this_turn"])
+        _hand_over(world, "Prussia", ["Posen", "Lithuania", "Volhynia"])
+        world.threat_sources_this_turn = []
+        process_coalition_turn(world)
+        assert not any("Polish Question" in s["label"] for s
+                       in _build_balance_of_europe(world)["threat_sources_this_turn"])
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The record-shape truth table (every shape any commit ever wrote)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestRecordShapeTruthTable:
+    """Two independent questions are read off one record: "may this tag
+    still proclaim?" and "has its treasury already been filled?". They are
+    answered by `_is_creation_record` and `_has_been_rewarded`, and they
+    must agree for every record shape ANY version of this code has
+    written — including the one-commit-wide `4c78284` intermediate, which
+    stamped `formed` without `rewarded` under a design reversed the same
+    day."""
+
+    SHAPES = [
+        # (name, record, is_creation, been_rewarded)
+        ("HEAD formed",
+         {"id": "risorgimento", "sponsor": "", "turn": 3,
+          "formed": True, "rewarded": True}, False, True),
+        ("HEAD creation",
+         {"id": "DuchyOfWarsaw", "template": "DuchyOfWarsaw",
+          "sponsor": "France", "turn": 1}, True, False),
+        ("HEAD C->T formed",
+         {"id": "commonwealth_restored", "template": "DuchyOfWarsaw",
+          "formed": True, "rewarded": True}, False, True),
+        ("pre-audit formed",
+         {"id": "risorgimento", "sponsor": "", "turn": 3}, False, True),
+        ("pre-audit C->T formed",
+         {"id": "commonwealth_restored", "template": "DuchyOfWarsaw"},
+         False, True),
+        ("pre-audit creation",
+         {"id": "DuchyOfWarsaw", "template": "DuchyOfWarsaw"}, True, False),
+        # The one-commit-wide `4c78284` intermediate. Reads as FORMED:
+        # deliberately NOT migrated, because "formed on a creation-shaped
+        # record" is indistinguishable from the id/template COLLISION the
+        # marker exists to defeat. Such a save keeps that commit's own
+        # intended freeze rather than re-opening Proclamation spam.
+        ("4c78284 intermediate",
+         {"id": "DuchyOfWarsaw", "template": "DuchyOfWarsaw",
+          "formed": True}, False, True),
+    ]
+
+    @pytest.mark.parametrize("name,record,creation,rewarded", SHAPES)
+    def test_the_two_questions_agree(self, name, record, creation, rewarded):
+        from backend.game_logic.formations import (
+            _has_been_rewarded, _is_creation_record,
+        )
+        assert _is_creation_record(record) is creation, name
+        assert _has_been_rewarded(record) is rewarded, name
+
+    def test_no_shape_can_both_dream_and_be_unpaid_after_forming(self):
+        """The dangerous combination: a record that reads as "may still
+        proclaim" AND "never paid" when a formation already happened would
+        re-open the windfall farm."""
+        from backend.game_logic.formations import (
+            _has_been_rewarded, _is_creation_record,
+        )
+        for name, record, _c, _r in self.SHAPES:
+            if record.get("formed") or record.get("rewarded"):
+                assert _has_been_rewarded(record), name
+            if _is_creation_record(record) and not _has_been_rewarded(record):
+                # Legitimate only for a tag that has NEVER formed: no
+                # `formed` marker anywhere in its history.
+                assert not record.get("formed"), name
+
+
+class TestCreationPathAggrievedBlow:
+    """The creation path re-strikes too, and consistently with the
+    formation path — found by the audit-of-the-audit, which caught the
+    comment there claiming the opposite. The Roman Republic is the only
+    shipped template with a template-level `aggrieved` list, so it is the
+    only one that exercises this."""
+
+    def _carve_rome(self, world):
+        _carve_ready(world, "RomanRepublic", "PapalStates", "France")
+        return create_client_nation(world, "RomanRepublic", "France",
+                                    ceded_from="PapalStates")
+
+    def test_the_first_erection_offends_the_catholic_courts(self, world):
+        payload = self._carve_rome(world)
+        assert sorted(payload["aggrieved"]) == ["Austria", "Spain"]
+
+    def test_a_re_erection_offends_them_again(self, world):
+        """Consistent with `_proclaim`: the §11.9 wound lapses when the
+        client is conquered away, so raising it again is a fresh
+        sacrilege. Never a farm — it costs the CARVER relations."""
+        self._carve_rome(world)
+        _free(world, "RomanRepublic")
+        _hand_over(world, "Austria", ["Rome"])
+        assert "RomanRepublic" not in set(world.get_active_nations())
+        again = self._carve_rome(world)
+        assert sorted(again["aggrieved"]) == ["Austria", "Spain"]

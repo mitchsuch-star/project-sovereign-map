@@ -33,14 +33,6 @@ var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 # State
 var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=formables (NA-6d)
 var _selected_nation: String = ""
-# The war a Formables deep link qualified on. `build_formables_payload` runs
-# the real eligibility predicate PER WAR and knows exactly which one the
-# carve is available in — that answer used to be discarded at the button, so
-# a player in two wars with the same court fell into the multi-war ambiguity
-# picker and could choose the war where the clause is refused, right after a
-# row promised it was available. Carried here and used as the `war_id`
-# fallback for `open_settlement`; cleared on any other route into step 2.
-var _formable_war_id: String = ""
 var _dp_available: int = 0
 
 # Color palette
@@ -330,7 +322,6 @@ func _add_nation_button(nation_data: Dictionary):
 
 func _on_nation_selected(nation: String):
 	_selected_nation = nation
-	_formable_war_id = ""   # a plain nation pick carries no qualifying war
 	_current_step = 2
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
@@ -437,16 +428,17 @@ func _add_formable_row(row: Dictionary):
 			btn.custom_minimum_size = Vector2(0, 32)
 			btn.add_theme_font_size_override("font_size", 12)
 			btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
-			btn.pressed.connect(_on_formable_deep_link.bind(
-				court, str(deep_link.get("war_id", ""))))
+			# The row's `deep_link.war_id` is deliberately NOT threaded on.
+			# An AVAILABLE open_settlement always carries its own war_id
+			# (diplomacy.py forces `available: false` for both the
+			# multi-war-ambiguity and no-common-war cases), so a carried
+			# value could never reach the POST — it would be state that
+			# only risks leaking. The genuine gap it was meant to close,
+			# a deep link landing on the ambiguity picker where the
+			# player can choose the war the carve does NOT qualify in,
+			# is routed as DESIGN_REFINEMENT NAD-4.
+			btn.pressed.connect(_on_nation_selected.bind(court))
 			content_list.add_child(btn)
-
-
-func _on_formable_deep_link(court: String, war_id: String):
-	"""Follow a formables row into the settlement flow, KEEPING the war the
-	eligibility predicate actually qualified on (§11.6-8: never dead)."""
-	_on_nation_selected(court)
-	_formable_war_id = war_id
 
 
 # =============================================================================
@@ -706,10 +698,6 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 	not a parser dependency."""
 	if action_id == "open_settlement":
 		var war_id = str(action_payload.get("war_id", ""))
-		# NA-6d: a Formables deep link already resolved the qualifying war.
-		# An explicit pick (the ambiguity picker) still wins.
-		if war_id == "" and _formable_war_id != "":
-			war_id = _formable_war_id
 		var data = {
 			"action": "propose_common_peace",
 			"target_nation": _selected_nation,

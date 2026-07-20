@@ -549,6 +549,103 @@ Filed at the ES-7 second-pass build (`ECONOMY_REVISIT_SPEC.md` §0.6.8 — the e
 - **Files:** `backend/models/world_state.py` (income/bankruptcy seam), `backend/game_logic/dotation.py`, `backend/notifications.py`.
 - **Est. sessions:** 0.5
 
+
+## §NA-6d Audit — routed behaviours (July 19, 2026)
+
+Surfaced by the design-coherence lens of the NA-6d audit-of-the-audit
+(record `NATION_AGENDAS_SPEC.md` §21.1). Both are KNOWN, deliberate v1
+behaviours homed here so neither is an unowned loose end (GR9).
+
+### NAD-1: Named grievances starved to zero by the shared cap
+- **Summary:** `formation_grudge:<tag>` rows share `AGENDA_GRUDGE_CAP` (2)
+  with `agenda_grudge`, which emits FIRST at its own value. Two denied
+  post-peace courts therefore take the whole budget and **every** named
+  question ("The Polish Question", "The Roman Question") vanishes from the
+  threat panel with no explanation — the turn after the player watched
+  them accrue. This is the same legibility failure the audit's D1 fixed,
+  one level up, and it is more reachable than the multi-formation case.
+  The mechanical split is correct (the cap is a real ceiling); what is
+  missing is the player-facing account of WHY a named row disappeared.
+- **When to land:** the next diplomacy/coalition legibility pass, or
+  alongside NAD-2 (same surface, same fix shape).
+- **Completion definition:** a starved-out contributor is either rendered
+  at 0 with an honest "outweighed this turn" note, or named in a single
+  overflow line; the panel never silently drops a grievance the player
+  has already been shown. Test: build a world with `agenda_grudge` at the
+  cap plus one standing formation, assert the panel still accounts for the
+  formation.
+- **Files:** `backend/game_logic/coalition.py` (step 2 budget split),
+  `backend/game_logic/diplomatic_ledger.py` (`_build_balance_of_europe`),
+  `godot-client/.../diplomatic_ledger.gd`.
+- **Est. sessions:** 0.5
+
+### NAD-2: A third formation emits nothing, silently
+- **Summary:** With the cap at 2 and a flat +1 per standing formation, a
+  campaign carrying three or more live formations drops the surplus. It is
+  debug-logged and pinned
+  (`test_grievances_beyond_the_cap_are_dropped_not_silently_merged`), so
+  the behaviour is deliberate and not a merge-into-a-neighbour bug — but
+  the player sees no trace. Unreachable in shipped data (only Poland and
+  the Roman Republic author `aggrieved`), so this is a modding-surface and
+  future-content row rather than a live defect.
+- **When to land:** with NAD-1 (identical surface), or when a scenario
+  authors a third `aggrieved` formable — whichever comes first.
+- **Completion definition:** either a validator warning when authored
+  `aggrieved` formables exceed `AGENDA_GRUDGE_CAP`, or the NAD-1 overflow
+  line covering it. Test: three standing formations, assert the third is
+  accounted for on the panel rather than absent.
+- **Files:** `backend/game_logic/formations.py`
+  (`get_formation_grudge_contributions`), `backend/modding/validator.py`.
+- **Est. sessions:** 0.25
+
+### NAD-3: The Duchy of Normandy is a flag with no story
+- **Summary:** The coalition-side mirror carve lands on the most
+  emotionally loaded moment in the campaign — the player's own homeland
+  dismembered — and then the game never mentions it again. Its sibling
+  templates both carry more: Warsaw has `commonwealth_restored` (→ Poland)
+  plus `guard_the_vistula`; the Roman Republic blocks Italy's risorgimento
+  and drags two great powers. Normandy has no deck, no `aggrieved`, no
+  follow-on. Related: §11.8 authors WITNESS and AUTHOR subtitles for the
+  Proclamation, but the Normandy path creates a third perspective —
+  VICTIM — with no authored arm, so a player watching a duchy carved out
+  of France reads "A new power takes its seat in Europe."
+  (The empty `aggrieved` list itself is CORRECT and settled — §21.1 D3.)
+- **When to land:** the next content/authoring pass on NA-6, or whenever
+  the naval phase brings DEF-5's Free Ireland carve in (same machinery,
+  same victim-perspective gap).
+- **Completion definition:** a one-entry Normandy deck authored in
+  `europe_1805.json` (pure data, no code) AND a victim-perspective
+  subtitle arm on `build_proclamation_card` for a carve from the viewing
+  player's own soil; both pinned.
+- **Files:** `godot-client/project-sovereign/assets/maps/europe_1805.json`,
+  `backend/game_logic/formations.py` (`build_proclamation_card` subtitle).
+- **Est. sessions:** 0.5
+
+
+### NAD-4: A Formables deep link can land on the wrong war
+- **Summary:** `build_formables_payload` runs the real eligibility
+  predicate PER WAR and knows exactly which war a carve qualifies in
+  (`deep_link.war_id`). When the player has TWO OR MORE wars with that
+  court, following the link lands on step 2 where `open_settlement` is
+  disabled with `multi_war_ambiguity` and a per-war picker — and the
+  player can pick the war where the carve is refused, immediately after a
+  row told them it was available. The NA-6d audit's first attempt threaded
+  the qualifying `war_id` through as a fallback; the audit-of-the-audit
+  proved that INERT (an available `open_settlement` always carries its own
+  war_id, so the fallback never fires) and the dead machinery was removed.
+  The gap itself is untouched and real.
+- **When to land:** the next diplomacy-wizard pass, or whenever the
+  ambiguity picker is next opened for other reasons.
+- **Completion definition:** the ambiguity picker, when reached from a
+  Formables deep link, MARKS the qualifying war (or orders it first) so
+  the player cannot silently pick a war the carve is refused in. Test:
+  two live wars with one court, deep link followed, assert the qualifying
+  war is distinguishable in the picker payload.
+- **Files:** `godot-client/.../diplomacy_wizard.gd` (picker render),
+  `backend/game_logic/formations.py` (`deep_link` already carries it).
+- **Est. sessions:** 0.5
+
+
 ---
 
 ## Source Documents (Archived Reference)

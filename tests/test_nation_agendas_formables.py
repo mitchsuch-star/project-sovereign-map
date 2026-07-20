@@ -2747,7 +2747,13 @@ class TestPolishQuestion:
         assert contributions == [{
             "source": "formation_grudge:DuchyOfWarsaw",
             "label": "The Polish Question",
-            "amount": 2,       # Prussia + Russia, inside the shared cap
+            # FLAT +1 — the amount §11.9 actually blesses ("adds
+            # `+1/turn`"), one grievance one voice. This pin previously
+            # read 2 (Prussia + Russia): NA-6a scaled by court count,
+            # which was never blessed and let one formation swallow the
+            # whole cap, so no second grievance could ever be named.
+            # Consciously flipped in the audit-of-the-audit.
+            "amount": 1,
         }]
 
     def test_the_threat_panel_resolves_the_label(self, world):

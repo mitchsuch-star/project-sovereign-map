@@ -244,7 +244,7 @@ A deck entry may carry an optional **`forms` key**: `{display_name, flag, blurb}
 3. **Formation beat — "The Proclamation" (§11.8).** *Amended July 17, 2026 (user-directed "what would forming a new country look like"):* a nation forming is a once-per-campaign landmark, so the moment gets ONE ceremonial popup card (§11.8 stage 2) **plus** notification + dispatch line + campaign-log event (new type per the checklist steps 10–11). The original "no new popup" caution is retired **consciously**, with the full dialogue-wiring checklist pinned in §11.8 — the recurring wiring-bug class is handled by following the standing pattern, not by avoiding the surface.
 4. **Post-formation goals for free.** The nation's *own goals when formed* are simply the deck entries authored AFTER the forming entry — once the forming agenda satisfies, deck-priority activates the next entry natively (§3.2). **Zero new goal machinery.**
 
-**ONE new serialized world field:** `world.nation_formations: Dict[str, str]` (tag → formation id; full serialization checklist + SAVE_FORMAT_REFERENCE). Formation is permanent — losing provinces later does not un-form (the grudge/resolve machinery handles decline).
+**ONE new serialized world field:** `world.nation_formations: Dict[str, str]` (tag → formation id; full serialization checklist + SAVE_FORMAT_REFERENCE). Formation is permanent — losing provinces later does not un-form (the grudge/resolve machinery handles decline). **Amended by the §21.1 audit (D2):** permanence binds the LIVING state — a tag erased from the map entirely and genuinely re-carved may proclaim again, but the windfall is once per tag ever (`rewarded`).
 
 ### §11.2 The v1 roster
 
@@ -297,7 +297,7 @@ The creation flow must be *good*, not merely reachable. Binding requirements, al
 
 ### §11.7 Completion definition
 
-Class T lands first, Class C second, each with pins. DONE when: both T-formables form live (Italy: freed + peninsula held → renamed on ledger/map/diplomacy surfaces, reward applied once, `guard_the_peninsula` active next turn; Netherlands mirror incl. the Britain-deny satisfaction pin); formation is once-only + save/load-stable (`nation_formations` round-trip); no formation while vassalized (dormancy pin); **Warsaw creatable via the wizard settlement clause by player AND AI lord (GR5), boots as client with dormant `commonwealth_restored`; the Normandy mirror exercised — an AI victor offers the carve against France and the player can accept/reject through the normal incoming surface**; **every §11.6 UX requirement pinned (honest-availability clause chip + gate terms, preview names provinces/loyalty/tribute + estate warnings, incoming clause line in display language, immediate flag/ledger/dispatch, the "forms:" progress marker)**; **The Proclamation wired per the standing dialogue checklist** (§11.8 stage 2: backend field passthrough, `main.gd` dtype whitelist, dialog_manager registration, PopupQueue slot, engine boot-smoke 0 `SCRIPT ERROR` — the slice touches `.gd`, so the XR-1 rule applies) and fired in test for a player-observed formation AND a player-authored creation; boot-zero pin; Don't-Do rows exist for every creatable tag; `tests/test_nation_agendas_formables.py` green; suite + ruff green.
+Class T lands first, Class C second, each with pins. DONE when: both T-formables form live (Italy: freed + peninsula held → renamed on ledger/map/diplomacy surfaces, reward applied once, `guard_the_peninsula` active next turn; Netherlands mirror incl. the Britain-deny satisfaction pin); formation is once-only + save/load-stable (`nation_formations` round-trip) — **as amended by §21.1 D2: once-only per LIVING state; a re-carved tag may proclaim again but banks the windfall once**; no formation while vassalized (dormancy pin); **Warsaw creatable via the wizard settlement clause by player AND AI lord (GR5), boots as client with dormant `commonwealth_restored`; the Normandy mirror exercised — an AI victor offers the carve against France and the player can accept/reject through the normal incoming surface**; **every §11.6 UX requirement pinned (honest-availability clause chip + gate terms, preview names provinces/loyalty/tribute + estate warnings, incoming clause line in display language, immediate flag/ledger/dispatch, the "forms:" progress marker)**; **The Proclamation wired per the standing dialogue checklist** (§11.8 stage 2: backend field passthrough, `main.gd` dtype whitelist, dialog_manager registration, PopupQueue slot, engine boot-smoke 0 `SCRIPT ERROR` — the slice touches `.gd`, so the XR-1 rule applies) and fired in test for a player-observed formation AND a player-authored creation; boot-zero pin; Don't-Do rows exist for every creatable tag; `tests/test_nation_agendas_formables.py` green; suite + ruff green.
 
 **v1.2 additions to DONE:** the free Duchy of Warsaw taking Lithuania+Volhynia proclaims **Poland** through the same §11.1 machinery (C→T chain pin) with the §11.9 political implications live (Prussia+Russia one-time relation blow + the named "Polish Question" grudge contributor, both GR5); the **Roman Republic** carve exercised against the Papal States incl. the one-province **elimination-and-creation-in-one-ratification pin** and the **risorgimento-block pin** (a standing Roman Republic holding Rome keeps Italy unformed); the **§11.6-8 Formables button** exists at the F1 wizard top level, lists every template + watcher with honest gate terms and live progress, and has NO hidden or dead rows (source-scrape + payload pins); §11.9's own test list.
 
@@ -339,7 +339,7 @@ A formation is not just a reward moment — for some powers it is a **casus foed
 
 **Pinned decisions (authoritative — deviations must be recorded as conscious, like every landing record):**
 
-1. **The formation record.** `world.nation_formations: Dict[tag → {"id": <forming entry/template id>, "sponsor": <lord-or-carver tag at the moment, "" if freestanding>}]` — a **conscious v1.3 amendment of §11.1's `Dict[str, str]`**: §11.9's standing grudge must know the sponsor AFTER the lord link dissolves (a freed Duchy that proclaims Poland has no current lord, but Berlin blames Paris), and sponsorship is not derivable later. Still ONE serialized key; full serialization checklist + SAVE_FORMAT_REFERENCE row. Formation is permanent — the record is the once-only latch (§11.8 never-do: no double fire, no boot fire).
+1. **The formation record.** `world.nation_formations: Dict[tag → {"id": <forming entry/template id>, "sponsor": <lord-or-carver tag at the moment, "" if freestanding>}]` — a **conscious v1.3 amendment of §11.1's `Dict[str, str]`**: §11.9's standing grudge must know the sponsor AFTER the lord link dissolves (a freed Duchy that proclaims Poland has no current lord, but Berlin blames Paris), and sponsorship is not derivable later. Still ONE serialized key; full serialization checklist + SAVE_FORMAT_REFERENCE row. Formation is permanent — the record is the once-only latch (§11.8 never-do: no double fire, no boot fire). **Amended by the §21.1 audit (D2):** permanence binds the LIVING state — a tag erased from the map entirely and genuinely re-carved may proclaim again, but the windfall is once per tag ever (`rewarded`).
 2. **The poll.** New `backend/game_logic/formations.py` owns everything in this plan (formation + creation + identity + payloads — keep `agendas.py` pure derivation). `process_formations(world)` runs from `_advance_turn_internal` immediately **before** `process_agenda_shifts` (so the shift beat announces the POST-formation deck entry, never the dead forming entry) **and** is called a second time from the settlement-ratification apply path after territory clauses land (§11.8 stage 1: a carve/cession-completed formation proclaims **the turn it happens**, not next tick). Idempotent via the latch; both call sites pinned by test (the NA-3 `advance_turn`-wiring-pin pattern).
 3. **Identity (the R7 mechanism, both sides).** Backend: `formations.get_display_identity(world, tag) → {display_name, flag_tag} | None` reading the authored `forms`/template block through the latch; `display_names.display_nation_name` **stays static** — payload builders do NOT individually adopt the helper. Instead the base response / world summary gains ONE field `nation_display_overrides: {tag: display_name}` (empty dict = zero behavior change, boot-zero by construction). Godot: `Utils` gains a static `formation_overrides` store set from that field each response; `Utils.display_nation_name()`, `humanize_nation_keys_in_text()`, and `nation_flag_path()` *(measured: `utils.gd` — `nation_flag_path`/`bb_flag`/`apply_flag_icon` with `_flag_path_cache`)* consult it FIRST (flag lookup resolves `flag_tag`, e.g. `Italy.svg`; **the caches must be flushed when the override store changes** — the path cache is keyed by nation string and would otherwise serve the dead flag forever). This makes "no surface may show the dead name" (§11.8 stage 3) a two-chokepoint property instead of an N-call-site sweep. Flag assets: author SVGs in the U6 authored-flag pattern (`assets/ui/heraldry/`) for **Italy, UnitedNetherlands, Poland, DuchyOfWarsaw, Normandy, RomanRepublic**; credit rows if sourced.
 4. **Rewards.** §11.3 constants live in `formations.py`. One-shot at proclamation: `nation_gold[tag] += FORMATION_GOLD`; every currently-owned region `stability = min(cap, stability + FORMATION_STABILITY_BONUS)` (single pass, existing mutation paths, never per-turn). Post-formation goals are FREE via deck priority (§11.1-4) — pin only, no code.
@@ -1155,7 +1155,7 @@ headline pin was confirmed to FAIL against the pre-fix behavior.
 | A7 | P3 | `progress` hardcoded the plural in two places, both newly rendered by this slice: **"0 of 1 provinces held"** for Holland→United Netherlands, live at boot, on the Formables browser, the ledger Design line and the war room. §21 had claimed this copy fix landed — it landed only in the gate-term composition. | Single source `formations.format_progress`, shared by the watcher and `agendas.build_agenda_payload`. |
 | A8 | P3 | The wizard iterated `row.get("gate_terms", [])` with no `is Array` guard — the project's own documented `.get()`-returns-null footgun, and the one spot in the new code breaking the file's idiom. | Type-guarded. |
 | A9 | P3 | An empty catalogue (the maintained `SOVEREIGN_MAP=legacy` rollback authors none) routed through `_show_error`, which resets to step 1 and hides Back — stranding the player on a screen still titled FORMABLE NATIONS with no way back. | Render the empty state in place; Back keeps working. |
-| A10 | P3 | `build_formables_payload` computed the exact qualifying `war_id` per row and the wizard **discarded it**, so a player in two wars with the same court fell into the multi-war ambiguity picker and could choose the war where the clause is refused — right after a row promised availability. | Threaded as `_formable_war_id` into `open_settlement`'s structured payload; an explicit pick still wins. |
+| A10 | P3 | `build_formables_payload` computed the exact qualifying `war_id` per row and the wizard **discarded it**, so a player in two wars with the same court fell into the multi-war ambiguity picker and could choose the war where the clause is refused — right after a row promised availability. | **WITHDRAWN — the fix was inert and was removed.** It threaded the war_id in as a fallback for an empty `action_payload["war_id"]`, but `diplomacy.py` forces `available: false` for BOTH the multi-war-ambiguity and no-common-war cases, so an available `open_settlement` always carries its own war_id and the fallback could never fire. It was pure leakable state (it had already needed three separate clears to stay safe), so it was deleted rather than left looking like a fix. The underlying gap is real and untouched: routed as `DESIGN_REFINEMENT` **NAD-4**, with the backend invariant that makes removal safe pinned by `test_the_backend_invariant_that_makes_it_inert_still_holds`. |
 
 Documentation defects fixed in the same pass: `SAVE_FORMAT_REFERENCE.md`
 described the `template` key's ownership and the identity-resolution order
@@ -1184,33 +1184,59 @@ serialization round-trip; R7 display names; the GET-endpoint convention.
 Escalated at first report, then delegated back ("fix things and make own
 calls"). All three are settled; no blessed number moved.
 
-**D1 — the named grievance is now genuinely multi-slot. FIXED, cap
-untouched.** The diagnosis was right but the proposed remedy (raise
-`AGENDA_GRUDGE_CAP`) was the wrong lever — it would have moved two NA-3
-pins to buy something the allocation could give for free. The real fault
-was *greedy* allocation: the earliest formation took `min(room, courts)`
-and swallowed the whole remainder. `get_formation_grudge_contributions`
-now allocates **floor-first**: pass 1 gives every formation 1, pass 2 tops
-each up toward its court count with what remains. Two live formations at
-cap 2 therefore emit 1 each and **"The Polish Question" renders beside
-"The Roman Question"** — the feature the source-key flip was built for —
-while the total is still exactly 2. A single live formation takes its
-floor then tops straight back up to the greedy total, so every existing
-amount pin is byte-identical.
+**D1 — one grievance, one voice: the flat +1 §11.9 already blessed.
+FIXED, cap untouched.** The diagnosis was right, and both proposed
+remedies were wrong. Raising `AGENDA_GRUDGE_CAP` would have moved two
+NA-3 pins to buy what allocation gives free. A first fix made allocation a
+floor-first fair share — which restored the naming but left the amount
+**context-dependent**: a lone Poland showed +2 and silently dropped to +1
+the moment an unrelated republic was erected, on a panel whose entire job
+is explaining grievances. Re-reading §11.9 settled it: the spec blesses
+`+1/turn` per contributor, flat. NA-6a's per-aggrieved-court scaling was
+never blessed at all, and it was the actual root cause — one formation
+with two courts consumed the whole cap. `get_formation_grudge_contributions`
+now emits a flat **+1 per standing formation**, so `AGENDA_GRUDGE_CAP`
+reads as what it is: how many named questions can weigh on Europe at
+once. **"The Polish Question" renders beside "The Roman Question"**,
+verified live on real data. Consciously flipped pin:
+`test_the_standing_wound_names_itself` 2 → 1. Grievances beyond the
+budget emit nothing and are debug-logged — real, deliberate, and pinned,
+because a silent drop on this surface is the failure mode the slice
+exists to remove.
+
+**D1b — the wound now lapses with the nation it names. FIXED.** §11.9
+stands the grievance up "**while the formation stands**", but the
+derivation never checked that the formed nation was still alive, and
+`_eliminate_nation` deliberately does not prune `nation_formations` (the
+record is the permanent historical latch). A Poland conquered out of
+existence therefore kept pushing "The Polish Question" +1/turn forever,
+naming a country no longer on the map — a dead-name defect on the very
+panel this slice was cleaning. `_formation_grudges` now skips a formed
+nation absent from `get_active_nations()`. Berlin and St Petersburg got
+what they wanted; the grievance is answered.
 
 **D2 — a state raised twice may dream twice, but the world pays once.
 FIXED.** The audit's own A4 patch took the conservative arm (latch the
 formation shut forever), which removed the exploit but left a real wart: a
 Poland liberated, lost to reconquest, and liberated again would read
 "Duchy of Warsaw" forever with no path back — a dead name by a different
-route. Re-formation is now ALLOWED; what does not repeat is the payment.
+route. Re-formation is now ALLOWED; what does not repeat is the **windfall**.
 A new `rewarded` record key (serialized, pay-once, carried across
-re-erection) makes `_proclaim` skip both `_apply_formation_rewards` and
-the one-time `_apply_aggrieved_blow` on a repeat. The §11.9 standing wound
-is unaffected because it is DERIVED from the authored `aggrieved` list —
-it never lapsed, so re-striking it would have been double-counting. The
-second Proclamation still fires (it is a real moment) and the card omits
-the gold line entirely rather than claiming "+0 gold".
+re-erection, read through the single source `_has_been_rewarded` so both
+proclamation paths agree) makes `_proclaim` skip
+`_apply_formation_rewards` on a repeat. The second Proclamation still
+fires — it is a real moment — and the card omits the gold line entirely
+rather than claiming "+0 gold".
+
+The **aggrieved blow, by contrast, DOES re-fire**, on both the formation
+and the creation path. This is the direct consequence of D1b: the wound
+lapses when the nation dies, so a Poland raised a second time is a second
+outrage and Berlin is entitled to feel it. The first cut of D2 suppressed
+the repeat blow on the reasoning that the wound "never lapsed" — which
+was true of the code as it then stood and false of the spec; fixing D1b
+inverted it. Never farmable: the blow costs the carver relations rather
+than paying them, and `modify_nation_relation` clamps at −100, so a
+re-carve loop damages only the player who runs it.
 
 **D3 — `Normandy`'s empty `aggrieved` list is CORRECT. No change.** The
 original finding compared Normandy to the Roman Republic and called the
