@@ -926,7 +926,8 @@
         "Region_060",
         "Region_065",
         "Region_101",
-        "Region_115"
+        "Region_115",
+        "Region_119"
       ],
       "name": "Piedmont",
       "starting_controller": "KingdomOfItaly",
@@ -5770,6 +5771,7 @@
       "wired": true,
       "interactive": true,
       "adjacent": [
+        "Region_018",
         "Region_052",
         "Region_069"
       ],

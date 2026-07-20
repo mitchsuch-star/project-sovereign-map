@@ -214,6 +214,25 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         return None
 
     candidates.sort(key=lambda c: c["weight"], reverse=True)
+
+    # Creative audit July 19 2026: several candidates are STATE-based
+    # (estate_eroding, enemy_on_our_soil) rather than event-based, so a standing
+    # condition re-won the lead every turn and the briefing opened with a
+    # verbatim repeat — "Marshal Ney's household goes unpaid" led two turns
+    # running, which reads as a frozen screen rather than a standing crisis.
+    # When the top candidate repeats yesterday's headline, lead with the next
+    # DISTINCT candidate and demote the repeat to a sub-beat: the news changes,
+    # the standing crisis is still reported, nothing is lost. Reads the prior
+    # dispatch (already serialized, and only overwritten AFTER this returns), so
+    # no new state is introduced.
+    _prev = (getattr(world, "last_morning_dispatch", None) or {})
+    _prev_text = ((_prev.get("headline") or {}).get("text") or "")
+    if _prev_text and len(candidates) > 1 and candidates[0]["text"] == _prev_text:
+        for _i, _c in enumerate(candidates):
+            if _c["text"] != _prev_text:
+                candidates.insert(0, candidates.pop(_i))
+                break
+
     top = candidates[0]
     seen_texts = {top["text"]}
     sub_beats = []
@@ -814,6 +833,21 @@ def _derive_marshal_status(marshal, world) -> tuple:
         order = marshal.strategic_order
         cmd = order.command_type
         target = order.target
+        # Creative audit July 19 2026: a marshal holding a pending interrupt is
+        # NOT marching — his order is frozen until the player answers. Reporting
+        # "Moving to Swabia" for a man standing still awaiting a decision made
+        # the dispatch lie about the one thing it exists to report. The pending
+        # decision outranks the order it suspends.
+        _pending = getattr(marshal, "pending_interrupt", None)
+        if _pending:
+            enemy = humanize_entity_name(_pending.get("enemy", "") or "")
+            where = _pending.get("location", "") or marshal.location
+            if enemy:
+                return ("awaiting_decision",
+                        f"HALTED at {where} — {enemy} bars the way. Awaiting your "
+                        f"word.")
+            return ("awaiting_decision",
+                    f"HALTED at {where} — awaiting your word.")
         # W6-5 §7.2.3: a literal marshal's active order carries the doctrine
         # tell — he is doing exactly this, and only this.
         letter = (" (to the letter)"
@@ -957,7 +991,6 @@ _DISPATCH_EVENT_TYPES = {
     # escalation, resolution, and the glory crown changing heads.
     "jealousy_restlessness",
     "jealousy_fired",
-    "jealousy_target_notice",
     "jealousy_autonomous_warning",
     "jealousy_autonomous_attack",
     "jealousy_escalation",

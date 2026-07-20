@@ -1249,8 +1249,19 @@ def execute_command(request: CommandRequest):
                     # hasn't answered: a cornered marshal's last stand or an
                     # unconfirmed muster. Dropping those would strand the
                     # marshal (un-retreated forever / attack abandoned).
-                    if pending.get("interrupt_type", "") not in (
-                            "last_stand", "muster_confirm"):
+                    #
+                    # Creative audit July 19 2026: the exemption list was an
+                    # allow-list of two, so EVERY contact/blocked-path decision
+                    # was silently discarded the moment the player addressed a
+                    # different marshal — ordering "Davout, support Ney" threw
+                    # away the question Ney had just asked. Those are decisions
+                    # by the comment's own definition. The rule is now derived
+                    # rather than a hand-kept name list (which is what drifted):
+                    # an interrupt that OFFERS THE PLAYER OPTIONS is a pending
+                    # decision and is preserved; one with no options is pure
+                    # information and may be dropped. New interrupt types get
+                    # the right behaviour without touching this seam.
+                    if not pending.get("options"):
                         m.pending_interrupt = None
                     continue
 

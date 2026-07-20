@@ -487,6 +487,16 @@ def _clean_target_text(text: str) -> Optional[str]:
     # target resolves to the marshal or region name rather than the whole phrase:
     # "Soult with fresh troops" → "Soult", "Davout using the cavalry" → "Davout".
     text = re.sub(r'\s+(with|using)\s+.*$', '', text, flags=re.IGNORECASE)
+    # Creative audit July 19 2026: cut a trailing PURPOSE clause. "Murat, march
+    # to Milan to reinforce Massena" kept the whole tail as the destination and
+    # title-cased it into the phantom region "Milan To Reinforce Massena" —
+    # which then rendered as the order's target in the Strategic Ledger. The
+    # infinitive must be followed by a word so a region whose name merely ends
+    # in "to" is untouched, and the leading-preposition strip above has already
+    # consumed the "to" of "march to Milan" before this runs.
+    text = re.sub(
+        r'\s+(?:in\s+order\s+to|so\s+as\s+to|so\s+that|to)\s+\w+.*$',
+        '', text, flags=re.IGNORECASE)
     return text.strip() if text.strip() else None
 
 

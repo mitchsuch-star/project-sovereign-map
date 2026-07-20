@@ -6,6 +6,42 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🎭 CREATIVE AUDIT (post-NA-6d) ✅ HELD July 19, 2026 — 9 defects fixed; 2 items escalated to gates
+
+**Memo = `docs/audits/CREATIVE_AUDIT_2026_07_19.md`, authoritative** (§9 = the landing record).
+Method: a live 10-turn France campaign (`LLM_MODE=anthropic`) + a 40-turn AI-only run through the
+real `TurnManager.end_turn` + an agenda/war-status probe. Suite **14,374 → 14,409/3**, ruff clean,
+M1–M7 byte-identical 11/11, live-verified on a restarted backend.
+
+- **The headline answer to "do nations act differently now": YES for belligerents, NO for everyone
+  else.** Turn 1 alone, Britain drove straight at the Low Countries (`low_countries`) and Austria
+  massed Charles+John on Milan (`redeem_italy`); by turn 3 Britain sent a **status-quo settlement
+  offer to bank its design**. But **an agenda can only influence a nation already at war** — every
+  reference in `enemy_ai.py` is target-*choice* biasing downstream of the ratio/threshold gates, and
+  there are **zero `declare_war` call sites** in `enemy_ai.py` / `ai_diplomacy.py`. Five of ten
+  nations with decks boot at war with nobody; two hold *acquisitive* designs (Prussia
+  `hanoverian_prize`, Sardinia `house_of_savoy_restored`) with no path to pursue them.
+- **"Do any formables happen": NO.** 40 turns of real AI: `formations/creations: NONE`, no deck ever
+  advanced. `/formables` itself is honest and well-built — it is reporting on a chain whose first
+  link is missing for the neutral half of Europe.
+- **Milan was severed from Italy** — its only land neighbours were Munich and Tyrol, both across the
+  Alps. Italy's `risorgimento` was unreachable by conquest and a retreat from Milan toward Piedmont
+  was redirected to Munich, *deeper into Austria*. Fixed: symmetric **Milan ↔ Piedmont** edge; all
+  five claimed provinces now form a connected sub-graph.
+- **9 defects fixed** (memo §9 table): the pending-decision discard at `main.py:1240` (guard inverted
+  from a drifted type allow-list to a derived "offers options = is a decision" rule); the dispatch
+  reporting a halted marshal as `en_route` (new `awaiting_decision` status); the purpose clause
+  swallowed into an order target (`Milan To Reinforce Massena`); camelCase marshal keys leaking via
+  `_name_tag` **and** the outcome clause that bypassed it; `"he has restless for glory"`; the
+  duplicate `jealousy_target_notice` line; verbatim headline repeats across turns; a missing space in
+  the mild-concern prefix; and the Milan adjacency.
+- **Escalated, NOT built** (GR9): agenda-driven war entry for neutral acquisitive designs (a new AI
+  mechanic) and the war-economy constants (measured treasury 800 → 20,131 while the army fell
+  189,000 → 143,089 — but from a *passive* run, so re-measure from an actively-spending one first).
+- **One correction recorded in place:** the first pass of this audit claimed the re-raised interrupt
+  was "never surfaced". It is surfaced (`requires_input: True`, queued by `main.gd`); the harness
+  simply never printed `strategic_reports`. The memo shows the correction rather than hiding it.
+
 ### 🏛 NA-6d — THE POLAND CHAIN + THE FORMABLES BUTTON ✅ LANDED July 19, 2026 — THE NA-6 ARC IS BUILD-COMPLETE
 
 **Landing record = `NATION_AGENDAS_SPEC.md` §21, authoritative.** Suite green

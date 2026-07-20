@@ -18,6 +18,7 @@ from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
 from backend.display_names import diplomatic_decision_reason_display
 from backend.display_names import display_nation
+from backend.display_names import humanize_entity_name
 from backend.game_logic.commitments_routing import (
     COMMITMENTS_ROUTES,
     format_commitments_notice,
@@ -789,10 +790,19 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
 
 def _name_tag(name: str, nation: str) -> str:
-    """Format 'Name (Nation)' when nation is available, else just 'Name'."""
+    """Format 'Name (Nation)' when nation is available, else just 'Name'.
+
+    Creative audit July 19 2026: enemy marshal keys are camelCase internally
+    ("ArchdukeCharles"), and this is the single chokepoint every campaign-log
+    marshal line renders through — so the raw key reached the player as
+    "ArchdukeCharles (Austria) attacked Massena", one line away from the same
+    event's correctly-spaced `enemy_voice`. Humanized here so every call site
+    is fixed at once (R7).
+    """
+    display = humanize_entity_name(name)
     if nation:
-        return f"{name} ({nation})"
-    return name
+        return f"{display} ({display_nation(nation)})"
+    return display
 
 
 def format_event_oneliner(event: dict) -> str:
@@ -847,9 +857,13 @@ def format_event_oneliner(event: dict) -> str:
         return f"Commitment paradox resolved: chose {chosen} over {spurned}"
 
     if event_type == "battle":
-        attacker = event.get("attacker", "Unknown")
+        # Humanized at binding, not only at _name_tag: the outcome clause
+        # ("ArchdukeCharles tactical victory") interpolates these directly and
+        # leaked the raw key past the tag chokepoint (creative audit July 19
+        # 2026). _name_tag is idempotent on an already-spaced name.
+        attacker = humanize_entity_name(event.get("attacker", "Unknown"))
         atk_nation = event.get("attacker_nation", "")
-        defender = event.get("defender", "Unknown")
+        defender = humanize_entity_name(event.get("defender", "Unknown"))
         def_nation = event.get("defender_nation", "")
         location = event.get("location", "unknown location")
         outcome = event.get("outcome", "")

@@ -34,6 +34,7 @@ loops only (GR8).
 import random
 from typing import Dict, List, Optional, Tuple
 
+from backend.display_names import humanize_entity_name
 from backend.game_logic import dotation
 # One grip = one module (VS-R gate Open Q#5): the shared authority breakpoints
 # live in the leaf so jealousy AND vassal anchor on the SAME two lines. Used
@@ -513,11 +514,14 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
     marshal.jealousy_history.setdefault(target.name, []).append(turn)
 
     is_player = marshal.nation == world.player_nation
+    # Creative audit July 19 2026: these fill the slot "he has {expression}",
+    # so every entry must be a past participle. "restless for glory" is an
+    # adjective phrase and produced the live line "he has restless for glory."
     expression = {
-        "aggressive": "restless for glory",
+        "aggressive": "grown restless for glory",
         "cautious": "grown cold and withholding",
         "literal": "thrown himself into his post with obsessive diligence",
-    }.get(marshal.personality, "resentful")
+    }.get(marshal.personality, "grown resentful")
 
     world.log_event({
         "type": "jealousy_fired",
@@ -527,24 +531,23 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         "personality": marshal.personality,
     })
     if is_player:
+        _envious = humanize_entity_name(marshal.name)
+        _envied = humanize_entity_name(target.name)
+        # Creative audit July 19 2026: this fired alongside a
+        # `jealousy_target_notice` that restated the SAME grievance from the
+        # target's side, so one grievance cost the dispatch two near-identical
+        # lines — with 2-3 live grievances the briefing was 6+ lines of the
+        # same news. The target's perspective (spec §5 v3, informational only)
+        # is folded into this one line: it already names both men and who
+        # holds the laurels, which is all the notice ever carried.
         events.append({
             "type": "jealousy_fired",
             "message": (
-                f"Berthier reports that {marshal.name} appears envious of "
-                f"{target.name}'s laurels — he has {expression}."),
+                f"Berthier reports that {_envious} appears envious of "
+                f"{_envied}'s laurels — he has {expression}."),
             "nation": marshal.nation,
             "marshal": marshal.name,
             "target": target.name,
-        })
-        # Target notification (spec §5 v3) — informational, no penalty.
-        events.append({
-            "type": "jealousy_target_notice",
-            "message": (
-                f"Berthier notes that {target.name}'s recent victories have "
-                f"attracted... attention among the marshals. {marshal.name} "
-                f"in particular seems restless."),
-            "nation": marshal.nation,
-            "marshal": target.name,
         })
 
     _check_escalation(world, marshal, target, events, forced=forced)
@@ -1524,7 +1527,8 @@ def process_turn(world) -> List[Dict]:
         warning_given = True
         events.append({
             "type": "jealousy_autonomous_warning",
-            "message": (f"{marshal.name} is eyeing {enemy.name}'s position "
+            "message": (f"{humanize_entity_name(marshal.name)} is eyeing "
+                        f"{humanize_entity_name(enemy.name)}'s position "
                         f"at {region_name}. I cannot guarantee he will wait "
                         f"for orders, Sire — any command would restrain him."),
             "nation": marshal.nation,
@@ -1636,8 +1640,10 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         events = _pending_events(world)
         events.append({
             "type": "jealousy_autonomous_attack",
-            "message": (f"{marshal.name}, hungry for glory, has attacked "
-                        f"{enemy.name} on his own initiative."),
+            "message": (f"{humanize_entity_name(marshal.name)}, hungry for "
+                        f"glory, has attacked "
+                        f"{humanize_entity_name(enemy.name)} on his own "
+                        f"initiative."),
             "nation": marshal.nation,
             "marshal": marshal.name,
         })

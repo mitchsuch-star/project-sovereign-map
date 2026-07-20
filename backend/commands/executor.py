@@ -1697,9 +1697,15 @@ class CommandExecutor:
                     result["message"] = (result.get("message", "")
                                          + "\n" + _stand_down)
 
-        # FIX: Prepend mild objection message if there was one
+        # FIX: Prepend mild objection message if there was one.
+        # Creative audit July 19 2026: the two strings were butted together with
+        # no separator, so the player read "Massena bristles at the retreat order
+        # but obeys.Massena retreats from Milan". The mild lines all end in a
+        # full stop, so a single space is the right join.
         if mild_message and result.get("success"):
-            result["message"] = mild_message + result.get("message", "")
+            _rest = result.get("message", "")
+            result["message"] = (f"{mild_message} {_rest}".rstrip()
+                                 if _rest else mild_message)
             result["mild_objection"] = True
 
         # CR-6 / S5-D1: a bare "attack" rewritten to a named attack carries its
