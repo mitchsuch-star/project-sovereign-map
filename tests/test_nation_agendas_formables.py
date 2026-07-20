@@ -680,12 +680,15 @@ class TestSerialization:
         # `formed` is the explicit permanence latch: it declares what the
         # id/template inequality used to only imply, so an authoring
         # collision between a deck entry id and a formable template tag
-        # can no longer un-latch a formation.
-        assert set(record) == {"id", "sponsor", "turn", "formed"}
+        # can no longer un-latch a formation. `rewarded` is the pay-once
+        # latch — it survives a re-erection so a state raised twice
+        # proclaims twice but banks the windfall once.
+        assert set(record) == {"id", "sponsor", "turn", "formed", "rewarded"}
         assert record["id"] == "risorgimento"
         assert record["sponsor"] == ""
         assert record["turn"] == int(world.current_turn)
         assert record["formed"] is True
+        assert record["rewarded"] is True
 
 
 # ═══════════════════════ THE `forms` BLOCK + VALIDATOR ════════════════════

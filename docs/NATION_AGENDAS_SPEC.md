@@ -1179,22 +1179,49 @@ legacy / `SOVEREIGN_SCENARIO=none` / attribute-less worlds; GR2 `int()`;
 GR8 (no new region scans; `/formables` is on-demand, measured 3.84 ms);
 serialization round-trip; R7 display names; the GET-endpoint convention.
 
-### Escalated, NOT fixed — design calls for the user
+### The three design calls — DECIDED July 19, 2026
 
-1. **The per-formation named grievance is single-slot in practice.**
-   `AGENDA_GRUDGE_CAP = 2` and each authored formation aggrieves exactly
-   two courts, so the first formation consumes the whole remainder and the
-   second emits `amount = 0` and is dropped. "The Polish Question" and
-   "The Roman Question" can never render side by side — the motivating
-   example of the key flip. Raising the cap is a blessed-number change
-   that moves NA-3 pins, so it is left to the gate.
-2. **A re-erected client is frozen under its birth name.** The A4 fix
-   takes the conservative arm — formation is permanent, so the nation
-   cannot proclaim twice. The consequence is that a re-carved Duchy of
-   Warsaw displays as the Duchy forever with no path back to Poland.
-   Whether a state erased and re-erected should be allowed to dream again
-   is a design question, not a defect.
-3. **`Normandy` authors no `aggrieved` list.** The coalition-side mirror
-   carved from French soil offends nobody, while the Roman Republic
-   aggrieves Austria and Spain. Possibly deliberate; flagged as an
-   asymmetry with its sibling templates.
+Escalated at first report, then delegated back ("fix things and make own
+calls"). All three are settled; no blessed number moved.
+
+**D1 — the named grievance is now genuinely multi-slot. FIXED, cap
+untouched.** The diagnosis was right but the proposed remedy (raise
+`AGENDA_GRUDGE_CAP`) was the wrong lever — it would have moved two NA-3
+pins to buy something the allocation could give for free. The real fault
+was *greedy* allocation: the earliest formation took `min(room, courts)`
+and swallowed the whole remainder. `get_formation_grudge_contributions`
+now allocates **floor-first**: pass 1 gives every formation 1, pass 2 tops
+each up toward its court count with what remains. Two live formations at
+cap 2 therefore emit 1 each and **"The Polish Question" renders beside
+"The Roman Question"** — the feature the source-key flip was built for —
+while the total is still exactly 2. A single live formation takes its
+floor then tops straight back up to the greedy total, so every existing
+amount pin is byte-identical.
+
+**D2 — a state raised twice may dream twice, but the world pays once.
+FIXED.** The audit's own A4 patch took the conservative arm (latch the
+formation shut forever), which removed the exploit but left a real wart: a
+Poland liberated, lost to reconquest, and liberated again would read
+"Duchy of Warsaw" forever with no path back — a dead name by a different
+route. Re-formation is now ALLOWED; what does not repeat is the payment.
+A new `rewarded` record key (serialized, pay-once, carried across
+re-erection) makes `_proclaim` skip both `_apply_formation_rewards` and
+the one-time `_apply_aggrieved_blow` on a repeat. The §11.9 standing wound
+is unaffected because it is DERIVED from the authored `aggrieved` list —
+it never lapsed, so re-striking it would have been double-counting. The
+second Proclamation still fires (it is a real moment) and the card omits
+the gold line entirely rather than claiming "+0 gold".
+
+**D3 — `Normandy`'s empty `aggrieved` list is CORRECT. No change.** The
+original finding compared Normandy to the Roman Republic and called the
+difference an asymmetry. The right comparison is the Duchy of Warsaw:
+both are "carve a client from a great power's soil", and **neither
+aggrieves anyone at creation** — the ceded-from court signed the clause at
+the table; the outrage comes later, if and when the client proclaims
+something bigger (Warsaw → Poland aggrieves Prussia and Russia). The Roman
+Republic is the deliberate exception for an authored reason: a *republic*
+in Rome is an ideological affront to Catholic monarchies, so Austria and
+Spain resent its existence itself. France is not a third party to the
+Normandy carve — it is the victim, already at war with the carver and
+already paying the territorial loss; adding it to `aggrieved` would
+double-count. Recorded here so the question is not re-raised.

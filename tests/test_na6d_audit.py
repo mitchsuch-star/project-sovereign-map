@@ -27,6 +27,7 @@ from backend.game_logic.formations import (
 from backend.game_logic.settlement_validation import (
     evaluate_create_client_eligibility,
 )
+from backend.models.world_state import WorldState
 from backend.modding.validator import validate_scenario
 
 from tests.test_nation_agendas_formables import (  # noqa: F401 (fixtures)
@@ -245,28 +246,59 @@ class TestNoDeadNameOnTheFormablesSurface:
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestFormationPermanence:
-    def test_a_recarve_does_not_un_latch_a_formation(self, world):
-        """A carved client can be conquered out of `get_active_nations()`,
-        and the settlement gate only refused a tag that is currently
-        ACTIVE — so re-carving the same soil overwrote a FORMED record with
-        a fresh creation record. The nation then proclaimed a SECOND time:
-        a second card, a second +2,000 gold, a doubled −30 to every
-        aggrieved court."""
+    def _lose_and_recarve(self, world):
+        """Poland forms, Prussia takes it all back, France raises the
+        Duchy again on the same soil."""
         _the_poland_chain(world)
-        assert get_formation_record(world, "DuchyOfWarsaw")["formed"] is True
-
         _hand_over(world, "Prussia", ["Posen", "Lithuania", "Volhynia"])
         assert "DuchyOfWarsaw" not in set(world.get_active_nations())
-
         _carve_ready(world, "DuchyOfWarsaw", "Prussia", "France")
         create_client_nation(world, "DuchyOfWarsaw", "France",
                              ceded_from="Prussia")
-        assert get_formation_record(world, "DuchyOfWarsaw")["formed"] is True
-
         _free(world, "DuchyOfWarsaw")
         _hand_over(world, "DuchyOfWarsaw", ["Lithuania", "Volhynia"])
-        assert process_formations(world) == [], (
-            "the latch must survive conquest and re-erection")
+
+    def test_a_state_raised_twice_may_dream_twice(self, world):
+        """The design call: a state erased from the map and genuinely
+        re-erected is NOT frozen under its birth name. Freezing it would
+        leave a liberated-then-lost Poland reading "Duchy of Warsaw"
+        forever, with no path back."""
+        self._lose_and_recarve(world)
+        again = process_formations(world)
+        assert [p["display_name"] for p in again] == ["Poland"]
+        from backend.game_logic.formations import get_display_identity
+        assert get_display_identity(world, "DuchyOfWarsaw")["display_name"] == (
+            "Poland")
+
+    def test_but_the_world_pays_only_once(self, world):
+        """...and that is the whole point of the `rewarded` latch. Before
+        the audit the re-carve path overwrote the record wholesale, so the
+        second proclamation banked a second +2,000 gold and struck every
+        aggrieved court a second −30. Now the moment repeats and the
+        payment does not."""
+        self._lose_and_recarve(world)
+        before = world.nation_gold["DuchyOfWarsaw"]
+        payload = process_formations(world)[0]
+        assert payload["gold"] == 0
+        assert payload["aggrieved"] == []
+        assert payload["regions_lifted"] == 0
+        assert world.nation_gold["DuchyOfWarsaw"] == before
+
+    def test_the_card_claims_no_reward_it_did_not_pay(self, world):
+        """"+0 gold to its treasury" would read as a bug; the line is
+        omitted entirely."""
+        from backend.game_logic.formations import build_proclamation_card
+        self._lose_and_recarve(world)
+        card = build_proclamation_card(world, process_formations(world)[0])
+        assert not any("gold" in term for term in card["terms"])
+        assert card["proclamation"], "the moment still gets its blurb"
+
+    def test_the_pay_once_latch_survives_the_round_trip(self, world):
+        """It gates real gold, so it has to serialize."""
+        self._lose_and_recarve(world)
+        process_formations(world)
+        reloaded = WorldState.from_dict(world.to_dict())
+        assert reloaded.nation_formations["DuchyOfWarsaw"]["rewarded"] is True
 
     def test_an_id_template_collision_cannot_re_fire_the_beat(self, world):
         """`_is_creation_record` inferred "created" from `id == template`,
@@ -368,3 +400,68 @@ class TestThreatLabelCallSites:
         _the_poland_chain(world)
         process_coalition_turn(world)
         assert "The Polish Question" in str(_assess_situation(world))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# D1 — the named grievance is multi-slot (floor-first fair share)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestGrudgeFairShare:
+    """Greedy allocation made §11.9's whole point unreachable in shipped
+    data: `AGENDA_GRUDGE_CAP` is 2 and each authored formation aggrieves
+    exactly two courts, so the earliest formation swallowed the entire
+    remainder and every later one emitted 0 and was dropped. Fixed by
+    allocation, not by moving the blessed cap."""
+
+    def _two_formations(self, monkeypatch):
+        from backend.game_logic import formations as mod
+        monkeypatch.setattr(mod, "_formation_grudges", lambda _w: [
+            {"tag": "DuchyOfWarsaw", "label": "The Polish Question",
+             "courts": ["Prussia", "Russia"]},
+            {"tag": "RomanRepublic", "label": "The Roman Question",
+             "courts": ["Austria", "Spain"]},
+        ])
+
+    def test_two_questions_render_together(self, world, monkeypatch):
+        from backend.game_logic.agendas import AGENDA_GRUDGE_CAP
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        self._two_formations(monkeypatch)
+        rows = get_formation_grudge_contributions(world, AGENDA_GRUDGE_CAP)
+        assert [r["label"] for r in rows] == [
+            "The Polish Question", "The Roman Question"]
+        assert all(r["amount"] >= 1 for r in rows), (
+            "a named grievance that emits 0 is dropped and never seen")
+
+    def test_the_shared_cap_still_holds(self, world, monkeypatch):
+        from backend.game_logic.agendas import AGENDA_GRUDGE_CAP
+        from backend.game_logic.formations import get_formation_grudge_threat
+        self._two_formations(monkeypatch)
+        for budget in range(0, AGENDA_GRUDGE_CAP + 1):
+            emitted = get_formation_grudge_threat(world, budget)
+            assert emitted <= budget
+            assert emitted + (AGENDA_GRUDGE_CAP - budget) <= AGENDA_GRUDGE_CAP
+
+    def test_a_lone_formation_is_unchanged(self, world, monkeypatch):
+        """Regression guard: the floor then tops straight back up, so the
+        single-formation amounts the slice pinned do not move."""
+        from backend.game_logic import formations as mod
+        monkeypatch.setattr(mod, "_formation_grudges", lambda _w: [
+            {"tag": "DuchyOfWarsaw", "label": "The Polish Question",
+             "courts": ["Prussia", "Russia"]}])
+        expected = {0: [], 1: [1], 2: [2], 3: [2]}
+        for budget, amounts in expected.items():
+            rows = mod.get_formation_grudge_contributions(world, budget)
+            assert [r["amount"] for r in rows] == amounts, budget
+
+    def test_allocation_is_deterministic(self, world, monkeypatch):
+        """Order comes from `_formation_grudges` ((turn, tag)), so the
+        same world always splits the budget the same way."""
+        from backend.game_logic.formations import (
+            get_formation_grudge_contributions,
+        )
+        self._two_formations(monkeypatch)
+        first = get_formation_grudge_contributions(world, 2)
+        for _ in range(5):
+            assert get_formation_grudge_contributions(world, 2) == first

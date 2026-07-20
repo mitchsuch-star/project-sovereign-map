@@ -477,6 +477,11 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
         world.nation_formations = {}
         records = world.nation_formations
     prior = records.get(nation) if isinstance(records.get(nation), dict) else {}
+    # Has this tag ALREADY been paid for a proclamation? A state that was
+    # erased from the map and re-erected may dream again (below), but the
+    # windfall and the one-time aggrieved blow are once per tag, ever —
+    # otherwise the re-carve loop is a gold farm.
+    already_paid = bool(prior.get("rewarded"))
     records[nation] = {
         "id": str(entry.get("id") or ""),
         "sponsor": sponsor,
@@ -489,6 +494,8 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
         # `_is_creation_record` to infer it from an id/template inequality
         # that authoring can collide.
         "formed": True,
+        # The pay-once latch, carried across any later re-erection.
+        "rewarded": True,
     }
     # NA-6d C→T: a created client that later FORMS (Warsaw → Poland) keeps
     # its birth template on the record forever — the `from_dict` capital
@@ -498,8 +505,17 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
     if prior and str(prior.get("template") or ""):
         records[nation]["template"] = str(prior["template"])
 
-    rewards = _apply_formation_rewards(world, nation)
-    struck = _apply_aggrieved_blow(world, nation, forms, sponsor)
+    if already_paid:
+        # The re-proclamation of a state that was erased and raised again.
+        # It is a real moment and gets its card — but the treasury was
+        # filled once, and the courts it offended are still offended: the
+        # §11.9 standing wound is DERIVED from the authored `aggrieved`
+        # list, so it never lapsed and must not be re-struck.
+        rewards = {"gold": 0, "regions_lifted": 0}
+        struck = []
+    else:
+        rewards = _apply_formation_rewards(world, nation)
+        struck = _apply_aggrieved_blow(world, nation, forms, sponsor)
     new_display = forms["display_name"]
     next_design = _post_formation_agenda_title(world, nation)
 
@@ -538,7 +554,11 @@ def build_proclamation_card(world, payload: dict) -> dict:
     player = getattr(world, "player_nation", "France")
     authored = payload.get("sponsor") == player
     created = bool(payload.get("created"))
-    lines = [f"+{int(payload['gold'])} gold to its treasury"]
+    # No gold line at all when nothing was paid — a RE-proclamation (a
+    # state erased and raised again) banks nothing, and "+0 gold to its
+    # treasury" would read as a bug rather than as a deliberate silence.
+    lines = ([f"+{int(payload['gold'])} gold to its treasury"]
+             if int(payload.get("gold", 0)) > 0 else [])
     if created:
         # A carved client's terms are its DEPENDENCE, not a windfall — the
         # §11.6-2 "preview states the full bargain" contract, restated at
@@ -943,7 +963,8 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
         world.nation_formations = {}
         records = world.nation_formations
     prior = records.get(tag) if isinstance(records.get(tag), dict) else {}
-    prior_formed = bool(prior) and not _is_creation_record(prior)
+    prior_paid = bool(prior.get("rewarded")) or (
+        bool(prior) and not _is_creation_record(prior))
     records[tag] = {
         # A creation has no forming DECK ENTRY, so `id` records the
         # template and `template` is what identity resolution keys off.
@@ -952,17 +973,18 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
         "sponsor": carver,
         "turn": turn,
     }
-    # ...unless this tag ALREADY formed once. A carved client can be
-    # conquered out of `get_active_nations()`, and the settlement gate only
-    # refused a tag that is currently ACTIVE — so a re-carve of the same
-    # soil overwrote a FORMED record with a fresh creation record,
-    # un-latching a formation the spec calls permanent (§11.1): the nation
-    # proclaimed a second time, banked a second windfall, and struck every
-    # aggrieved court a second -30 (audit, traced live). The creation is
-    # still allowed — the state really is being erected again — but the
-    # formation latch it already earned survives it.
-    if prior_formed:
-        records[tag]["formed"] = True
+    # A carved client can be conquered out of `get_active_nations()`, and
+    # the settlement gate only refuses a tag that is currently ACTIVE — so
+    # the same soil can be carved twice. Deliberately NOT latched shut:
+    # the state really was erased and really is being erected again, and
+    # freezing it under its birth name would leave a liberated-then-lost
+    # Poland reading "Duchy of Warsaw" forever with no path back. What
+    # does NOT repeat is the PAYMENT: the windfall and the one-time
+    # aggrieved blow are once per tag (`rewarded`), so the re-carve loop
+    # buys a second Proclamation and nothing else. Before the audit this
+    # path overwrote the record wholesale and paid out every time.
+    if prior_paid:
+        records[tag]["rewarded"] = True
 
     struck = _apply_aggrieved_blow(world, tag, identity, carver)
     gold = int((getattr(world, "nation_gold", {}) or {}).get(tag, 0))
@@ -1073,24 +1095,48 @@ def get_formation_grudge_contributions(world, budget: int) -> List[dict]:
     Question" for Warsaw/Poland) — so each formation emits under its own
     source key rather than one merged `formation_grudge` row. The budget
     split with `agenda_grudge` is unchanged: that family emits first at
-    its own value and the formations share only the remainder, earlier
-    formations first (the `_formation_grudges` order).
+    its own value and the formations share only the remainder.
+
+    Allocation is a FLOOR-FIRST fair share, not first-come-takes-all.
+    Greedy allocation made the naming feature unreachable in the shipped
+    data: `AGENDA_GRUDGE_CAP` is 2 and each authored formation aggrieves
+    exactly two courts, so the earliest formation swallowed the whole
+    remainder and every later one emitted 0 and was dropped — "The Polish
+    Question" and "The Roman Question" could never appear together, which
+    is the entire reason the per-formation source key exists.
+
+    Pass 1 gives every formation 1 (in `_formation_grudges` order, so the
+    allocation is deterministic); pass 2 tops each up toward its court
+    count with whatever is left. A SINGLE live formation is unaffected —
+    it takes its floor then immediately tops up to the same total the
+    greedy version produced — so the existing amount pins do not move.
     """
     room = int(max(0, min(AGENDA_GRUDGE_CAP, budget)))
-    contributions: List[dict] = []
-    for grudge in _formation_grudges(world):
+    grudges = [g for g in _formation_grudges(world) if g["courts"]]
+    if room <= 0 or not grudges:
+        return []
+
+    allotted = {}
+    order = []
+    for grudge in grudges:                       # pass 1 — the floor
         if room <= 0:
             break
-        amount = int(min(room, len(grudge["courts"])))
-        if amount <= 0:
-            continue
-        room -= amount
-        contributions.append({
-            "source": f"formation_grudge:{grudge['tag']}",
-            "label": grudge["label"],
-            "amount": amount,
-        })
-    return contributions
+        allotted[grudge["tag"]] = 1
+        order.append(grudge)
+        room -= 1
+    for grudge in order:                         # pass 2 — top up
+        if room <= 0:
+            break
+        want = int(len(grudge["courts"])) - allotted[grudge["tag"]]
+        take = int(min(room, max(0, want)))
+        allotted[grudge["tag"]] += take
+        room -= take
+
+    return [{
+        "source": f"formation_grudge:{grudge['tag']}",
+        "label": grudge["label"],
+        "amount": int(allotted[grudge["tag"]]),
+    } for grudge in order]
 
 
 def get_formation_grudge_threat(world, budget: int) -> int:
