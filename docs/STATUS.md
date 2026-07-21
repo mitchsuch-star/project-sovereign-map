@@ -130,10 +130,46 @@ function, and D1's cap would have been tuned against an anecdote. AI-V now runs 
 seed at zero) — the same sweep that **falsifies §3.8**: if every seed produces the same wars on the
 same turns, the variance slice failed. New pin 14 (turn-0 intent byte-identical across seeds;
 save/load reproduces its own campaign; all existing byte-identical pins green with the seed fixed),
-new DoD line, new row **AI-0b**. **One gate question raised and deliberately NOT decided:** whether
-the 1805 *opening itself* should vary (starting relations/grudges/deck order) — the strongest lever,
-but it collides with pin 1 and would need to be an opt-in "historical vs varied" opening, which is a
-decision about what the campaign *is* → the user, at the D6 re-check.
+new DoD line, new row **AI-0b**.
+
+**✅ D7 DECIDED same session (user: "yes this should be seeded but within bounds of history") — the
+1805 OPENING is seeded too.** The question §3.8 raised and declined to answer is now a gate decision:
+**`AI_INTENT_SPEC.md` §6 D7 (authoritative) + §3.8.1 (the historical envelope)**. Without it the phase
+would still have shipped a script — Tier-3 divergence only begins once the player has forked the
+world, so the first ~10 turns of every campaign would have been identical. **The governing structural
+choice: the bounds are AUTHORED CONTENT, NOT A FORMULA** — every varying value carries an authored
+range beside it in `europe_1805.json` (the file already holds `nation_relations` ×29,
+`diplomatic_states`, `starting_wars`, `agendas`, `threat_level`), and **no authored band → no
+variance**. That makes historical fidelity *reviewable by reading the scenario file*, enforceable in
+`modding/validator.py` like any other block, free for modders, and it makes ahistorical drift
+**structurally impossible** rather than merely unlikely: the engine cannot invent a range it was not
+given, so no future slice widens the opening by accident. **Tier 1 — FIXED on every seed:** province
+ownership, roster, capitals, `starting_wars` (the Third Coalition *is* the scenario), **deck
+CONTENT**, the marshals with their MC-2/3/4 skills+personalities+relationships, treasury/manpower/
+force (the blessed E1 band), and the §3.4 statecraft profiles — Austria is Austria. **Tier 2 —
+BANDED** (what was genuinely contingent): `nation_relations` per pair (Prussia's disposition is *the*
+definitional contingency of 1805 — Haugwitz carried something near an ultimatum to Vienna and arrived
+to congratulate Napoleon after Austerlitz), deck **ORDER** among equally-live designs, initial ladder
+readiness, small grudges **drawn from real ones** (Austria–Prussia over Germany, Russia–Ottoman over
+the straits), **the minors' lean** (Bavaria/Baden/Württemberg were genuinely up for grabs, and §3.4
+says a minor's aliveness *is* its timing — the band that matters most), Britain's first subsidy
+client, and `threat_level` narrowly (blessed number; **widening escalates**). **Tier 3 — derived**
+(intent, coalition posture, advisories, the §3.5 mirror). **The historian test = the pin that makes it
+falsifiable:** on EVERY seed the Third Coalition exists, France is at war with Austria/Britain/Russia
+and **at peace with Prussia** (Prussia's entry is a thing that *happens*, never a boot state), every
+turn-0 active design comes from that nation's own authored deck, nobody boots eliminated or holding a
+province it did not hold in 1805, no minor boots at war. **Migration = zero test churn:**
+`SOVEREIGN_SEED` joins the documented `main.py` boot-precedence chain; **unset or `=historical`
+reproduces today's boot byte-for-byte** (every band collapses to its authored centre) and `conftest`
+pins it suite-wide exactly as it already pins `SOVEREIGN_SCENARIO=none` — so all **14,409** existing
+tests, the E1 band, M1–M7 and §4.4a's threat series keep their numbers unedited. **§5 pin 1 is
+NARROWED, not deleted** ("the historical seed is byte-identical"), and its original intent is actually
+*strengthened*: an appetite must now be written into the scenario file to exist at all. Pin 14
+amended (its first draft asserted turn-0 intent identical across seeds — D7 overturns that) into a
+three-part pin: historical-seed byte-identity · the historian test on every seed · save/load
+reproducing its own campaign. The seed is **shown and shareable** (ledger + save) so a good opening
+can be replayed or reported against. New row **AI-0c** (authoring + validator schema + `MODDING_FORMAT`
+row + the historian test), **order-constrained to the front with AI-0b**.
 
 **Also folded:** the §4.6 narration cap **amended** — it governs *routine ladder movement only*; the
 beats are events and are exempt (as written it could have suppressed the phase's best content, the

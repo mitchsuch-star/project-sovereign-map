@@ -26,6 +26,13 @@
 > it may perturb (the bars, never the choices); **§5 pin 14** fences it; and the AI-V acceptance run
 > becomes an **N-seed sweep**, because every §7 number had been specified against a single
 > deterministic trace.
+> **§3.8 left one question open and the user decided it the same day: ✅ D7 — the *opening* is seeded
+> too, within authored historical bounds.** **§6 D7** is the gate record and **§3.8.1** is the
+> envelope that makes "within bounds of history" falsifiable: the bounds are **authored content, not a
+> formula** (a value with no authored band never varies), the map/roster/`starting_wars`/deck-content/
+> marshals/statecraft are **fixed on every seed** while **dispositions** vary, the **historian test**
+> is a hard pin on all seeds, and `SOVEREIGN_SEED=historical` reproduces today's boot byte-for-byte so
+> the existing suite needs no edit. Pins 1 and 14 are narrowed, not deleted.
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, **re-verified against master at `12636a6`** for this
 > revision (§0.1 records four corrections the re-verification forced).
@@ -484,13 +491,73 @@ weight — they simply cannot carry last campaign's *timings* into this one. The
 written against "the" deterministic trace has to be revisited, and the phase would pay for it twice.
 It is a small slice with an outsized ordering constraint.
 
-> **Open gate question — not decided here.** *Should the 1805 **opening** itself vary* (starting
-> relations, grudges, deck order within historical bounds)? It is the strongest variance lever and it
-> collides head-on with §5 pin 1, so it would need to be an explicit opt-in — a "historical" versus
-> "varied" opening — rather than a default. That is a design decision about what the campaign *is*,
-> which under GR9 belongs to the user at the D6 re-check, not to the build. **§3.8's seed is scoped to
-> the jitter and tie-breaks above, which do not touch the boot**; a per-nation intent state on turn 0
-> is byte-identical regardless of seed, and that is a pin (§5 pin 14).
+> **✅ DECIDED July 20, 2026 — the opening varies too, within authored historical bounds** (user:
+> *"yes this should be seeded but within bounds of history"*). The gate decision is **§6 D7**,
+> authoritative; the envelope that makes "within bounds of history" a *test* rather than an intention
+> is **§3.8.1**. §5 pin 1 is narrowed accordingly, not deleted.
+
+### 3.8.1 The historical envelope — what "within bounds of history" means, concretely
+
+D7 raises the obvious risk: "seeded opening" is one bad afternoon away from Prussia booting at war
+with Spain over Sicily. The envelope is what forbids that, and its governing principle is a single
+structural choice:
+
+> **The bounds are authored content, not a formula.** Every seeded value is an authored range sitting
+> beside the value it varies, in `europe_1805.json` — the same file that already carries
+> `nation_relations` (29 pairs), `diplomatic_states`, `starting_wars`, `agendas` and `threat_level`.
+> **No authored band → no variance.** A designer opts each dimension in by writing its range.
+
+That makes historical fidelity **reviewable by reading the scenario file**, enforceable by
+`modding/validator.py` like every other scenario block, and free for modders. It also makes
+ahistorical drift *structurally impossible* rather than merely unlikely: the engine cannot invent a
+range it was not given, so no future slice can widen the opening by accident.
+
+**Tier 1 — fixed. The identity of the scenario; never varies on any seed.**
+
+Province ownership and the nation roster · capitals · `starting_wars` (the Third Coalition *is* the
+scenario) · **deck *content*** — which designs a nation holds, because those designs are the history ·
+the marshal roster with its MC-2/MC-3/MC-4 skills, personalities and relationships · treasury,
+manpower and force levels (the E1 band is blessed and calibrated; §5 pin 1 keeps them) · the §3.4
+`statecraft` profiles, because Austria is Austria.
+
+**Tier 2 — banded. What was genuinely contingent in 1805, and only where authored.**
+
+| Dimension | Why it is historically fair game |
+|---|---|
+| `nation_relations`, per pair, ±band | **Prussia's disposition is the definitional contingency of the period** — Haugwitz was sent to Vienna with something close to an ultimatum and arrived to congratulate Napoleon after Austerlitz. A 1805 in which Berlin is a little warmer or a little colder is 1805. |
+| **Deck *order*** among equally-live designs | Which of a court's authored designs is live *first*. Never which designs it holds. |
+| **Initial ladder readiness** (`weight`, starting rung) | How close a court begins to acting on a design it demonstrably held. This is §3.8's jitter applied at turn 0. |
+| **Starting grudges**, small and drawn from real ones | Austria–Prussia over Germany, Russia–Ottoman over the straits, Prussia–Hanover. Never invented ones. |
+| **The minors' lean** — bandwagon readiness | Bavaria, Baden and Württemberg genuinely were up for grabs, and §3.4 says a minor's aliveness *is* its timing. This is the band that matters most. |
+| **Britain's first subsidy client** | Pitt was shopping. |
+| `threat_level` (85), narrow band | Blessed balance number and the campaign's central pressure (D3) — a small band only; **widening it escalates**. |
+
+**Tier 3 — derived.** Everything downstream follows and is never separately seeded: intent, coalition
+posture, advisories, the §3.5 mirror.
+
+**The historian test — the pin that makes this falsifiable.** Across the N-seed sweep, *every* seed
+must satisfy: the Third Coalition exists and France is at war with Austria, Britain and Russia ·
+**France is at peace with Prussia** (Prussia's entry is a thing that *happens*, never a boot state) ·
+every nation's turn-0 active design is drawn from its own authored deck · no nation boots eliminated,
+or holding a province it did not hold in 1805 · no minor boots at war. A seed that fails any of these
+is a build failure, not a colourful opening.
+
+**The `historical` seed — the migration contract, and why this costs no test churn.** `SOVEREIGN_SEED`
+joins the documented boot-precedence chain in `main.py` alongside `SOVEREIGN_SCENARIO` /
+`SOVEREIGN_MAP`. **Unset, or `SOVEREIGN_SEED=historical`, reproduces today's boot byte-for-byte** —
+every band collapses to its authored centre. `conftest` pins it suite-wide exactly as it already pins
+`SOVEREIGN_SCENARIO=none`, so all 14,409 existing tests, the E1 economic band, M1–M7 and the §4.4a
+threat series keep their exact numbers with no edit. §5 pin 1 is **narrowed** to "the historical seed
+is byte-identical," which is the same additive pattern §4.4a uses and which this project has already
+run successfully once.
+
+**The seed is shown and shareable** — rendered in the ledger and written into the save, so a good
+opening can be replayed or reported against. One string, real value.
+
+*Reconciliation with §3.8's "weighted late":* that guidance stands with a nuance D7 forces. Turn 1
+still *looks* like 1805 on every seed — Tier 1 guarantees the tableau — and what varies at boot is
+**dispositions, not the map**. The two levers are complementary: Tier 2 supplies the spread in initial
+conditions, the §3.8 jitter supplies the compounding that turns it into a different mid-game.
 
 ---
 
@@ -775,7 +842,14 @@ is the standing brewing-crisis limit, and it is a blessed number tunable in-band
 
 Pins to write before the first behaviour change:
 
-1. **The 1805 opening is byte-identical at boot.** No nation acquires an appetite on turn 0.
+1. **The 1805 opening is byte-identical at boot** on the `historical` seed. No nation acquires an
+   appetite on turn 0. *(Narrowed by D7, not weakened: `SOVEREIGN_SEED` unset or `=historical`
+   reproduces today's boot byte-for-byte and is pinned suite-wide in `conftest`, so this pin and every
+   number resting on it — the E1 band, M1–M7, §4.4a's threat series — hold unedited. On any other seed
+   the guarantee is the §3.8.1 **historian test**: Tier-1 values identical, Tier-2 values inside their
+   authored bands, and the five hard conditions true on every seed. The original intent of this pin —
+   "the engine must not grow an appetite the scenario did not author" — is strengthened by D7, because
+   the appetite now has to be written down in the scenario file to exist at all.)*
 2. **M1–M7 byte-identical** (`tests/test_combat_sweep_metrics.py`).
 3. **The player is never a spectator.** AI-vs-AI war must not resolve the campaign around France; the
    D1 cap, the D2 elimination floor and the fore-warning surface are the guards.
@@ -817,19 +891,22 @@ Pins to write before the first behaviour change:
     gravity condition, the §4.6a tempo rule and the §4.6 relevance weighting — and measured, not
     assumed: the acceptance run reports what share of dispatch column-inches were spent on events
     France was not party to.
-14. **The seed varies the campaign, never the boot or the save** (§3.8). Turn-0 intent is
-    byte-identical across every seed — the 1805 opening is the 1805 opening — and a save reloads to
-    the same Europe it was saved from, because the seed is serialized rather than re-rolled. Pin:
-    identical turn-0 intent across N seeds; a mid-campaign save/load round-trip reproducing the same
-    subsequent 5 turns; and every existing byte-identical pin (boot, M1–M7, the §4.4a threat series)
-    still green with the seed fixed to a constant.
+14. **The seed varies dispositions, never the map, the roster, or the save** (§3.8, D7). *(Amended by
+    D7 — the first draft of this pin asserted turn-0 intent byte-identical across every seed, which
+    D7 overturns.)* Pin, in three parts: **(a)** the `historical` seed reproduces today's boot
+    byte-for-byte and every existing byte-identical pin is green with it fixed; **(b)** the §3.8.1
+    **historian test** passes on every seed of the N-seed sweep — Tier-1 values identical, Tier-2
+    inside their authored bands, and a value with no authored band never varies; **(c)** a
+    mid-campaign save/load round-trip reproduces the same subsequent 5 turns, because the seed is
+    serialized rather than re-rolled.
 
 ---
 
 ## 6. Gate record — decisions (authoritative)
 
-Held July 20, 2026. The six questions of v0.1 §6 are answered below. Where a decision names a
-re-check, that re-check is the only remaining gate in the phase.
+Held July 20, 2026. The six questions of v0.1 §6 are answered in **D1–D6**; **D7** was raised by the
+v1.2 gameflow pass (§3.8) and decided the same day. Where a decision names a re-check, that re-check
+is the only remaining gate in the phase.
 
 ### D1 — World motion: **calibrated, not maximal.**
 
@@ -896,7 +973,12 @@ can offer them to the player and to each other. Together with §3.3 they turn AI
 *to* the player into something played *against*: every war the AI starts is one the player could have
 bought, aimed elsewhere, or deterred — and chose not to.
 
-### D6 — Sequencing: **BD → AI-1 → AI-2 → re-check → AI-3 → AI-4 → AI-5/6 → AI-V.**
+### D6 — Sequencing: **BD → AI-0/0b/0c → AI-1 → AI-2 → re-check → AI-3 → AI-4 → AI-5/6 → AI-V.**
+
+*(Header updated by D7. The three AI-0 rows are the front block: **AI-0** the agenda-cache
+invalidation fix (§0.1 Correction D), **AI-0b** the campaign seed and **AI-0c** the historical bands
+(§3.8, D7). All three are prerequisites rather than features — each one, landed late, invalidates
+pins written before it.)*
 
 Battle Diorama (ROADMAP row BD) keeps its place first: it is contained, visual, already scoped, and
 a deliberate palate cleanser between two large systems arcs.
@@ -909,6 +991,34 @@ thing most likely to need adjusting, and it will be adjustable from data instead
 
 AI-4's §4.4a migration may begin in parallel with AI-2 — it is a no-behaviour-change refactor with
 its own byte-identical pin, and it is the phase's long pole.
+
+### D7 — Variance: **seeded, and the opening is seeded too — within authored historical bounds.**
+
+Decided July 20, 2026, on the question §3.8 raised and declined to answer itself (user: *"yes this
+should be seeded but within bounds of history"*).
+
+The phase ships a **serialized campaign seed** (§3.8), and its reach extends to the **1805 opening**,
+not merely to in-campaign thresholds. Without this the phase would have shipped a very good script:
+the AI layer contains no randomness at all — `agendas.py`, `ai_diplomacy.py` and `coalition.py` have
+zero `random` calls between them — so every campaign would have opened identically and diverged only
+as the player forked it.
+
+**The bound is authored, not computed** (§3.8.1). Every varying value carries an authored range in
+`europe_1805.json`; no band means no variance. Province ownership, the roster, `starting_wars`, deck
+*content*, the marshals and the §3.4 statecraft profiles are **fixed on every seed** — what varies is
+**dispositions**: relations within a per-pair band, deck *order* among equally-live designs, initial
+ladder readiness, small grudges drawn from real ones, the minors' lean, Britain's first client. The
+historian test in §3.8.1 is a hard pin: on every seed the Third Coalition exists, France is at war
+with Austria/Britain/Russia and **at peace with Prussia**, and no nation holds a province it did not
+hold in 1805.
+
+**`SOVEREIGN_SEED` unset or `=historical` reproduces today's boot byte-for-byte**, pinned suite-wide
+in `conftest` like `SOVEREIGN_SCENARIO=none`. So §5 pin 1 is **narrowed rather than deleted**, and the
+existing suite, the E1 economic band, M1–M7 and the §4.4a threat series keep their numbers unedited.
+
+*Consequence for the build:* **AI-0b (seed) and AI-0c (historical bands) land at the front**, with
+AI-0/AI-1. A seed retrofitted after the pins are written is paid for twice. `threat_level`'s band is a
+blessed number tunable in-band; **widening the envelope — adding a new Tier-2 dimension — escalates.**
 
 ---
 
@@ -941,9 +1051,12 @@ its own byte-identical pin, and it is the phase's long pole.
   a player who does nothing drifts down the perceived ladder.
 - **At least one genuine surprise is structurally possible and none of them is a lie** (§3.6, §5 pins
   11–12): a sealed article that was discoverable, an emergent design, or a volte-face.
-- **Two campaigns are not the same campaign** (§3.8). Across the N-seed acceptance sweep, war counts,
-  the turns wars begin, and which courts reach `fight` all vary — while turn-0 intent is
-  byte-identical on every seed and a save/load reproduces its own campaign exactly.
+- **Two campaigns are not the same campaign** (§3.8, D7). Across the N-seed acceptance sweep, the
+  opening dispositions, war counts, the turns wars begin and which courts reach `fight` all vary —
+  while the **§3.8.1 historian test passes on every seed**, the `historical` seed reproduces today's
+  boot byte-for-byte, and a save/load reproduces its own campaign exactly.
+- **Every seed is a 1805 a historian would recognise** (§3.8.1). Tier-1 fixed on all seeds, Tier-2
+  inside authored bands, and no dimension varies that a designer did not write a band for.
 - The 1805 opening is byte-identical, M1–M7 unmoved, and the pre/post anti-France threat series
   measured and reported (§5.5).
 - Scored creative pass recorded in `docs/audits/`.
@@ -992,7 +1105,8 @@ slice slipping — those are explanations; "it didn't come up" is not.
 
 | Row | Owner | Landing | Tracking |
 |---|---|---|---|
-| **AI-0b Campaign seed** | §3.8 | serialized world seed + threshold jitter + tie-breaks; **must land with AI-0/AI-1** or every pin written against the deterministic trace is revisited | `test_ai_intent_variance.py` |
+| **AI-0b Campaign seed** | §3.8 | serialized world seed + `SOVEREIGN_SEED` on the boot chain + threshold jitter + tie-breaks; **must land with AI-0/AI-1** or every pin written against the deterministic trace is revisited | `test_ai_intent_variance.py` |
+| **AI-0c Historical bands (D7)** | §6 D7, §3.8.1 | authored per-dimension ranges in `europe_1805.json` + validator schema + `MODDING_FORMAT.md` row; the `historical` seed collapses every band to its centre; the seed shown in ledger + save | `test_ai_intent_historical_envelope.py` (the historian test) |
 | **AI-1b The mirror** | §3.5 | France's own ledger row = Europe's derived reading of France; restraint drifts it down | folded into `test_ai_intent_layer.py` |
 | **AI-2d Participation surface** | §4.2b | sell-neutrality + sponsor arms with AI-2; join / broker / third-party war-exhaustion display with AI-3/AI-4 — **one row so neither half orphans** | `test_ai_intent_participation.py` |
 | **AI-2e Subsidy contest** | §3.7 | subsidy recipient + amount made visible; France may outbid or remove a client, through `get_paymaster_nation` / `get_british_subsidy_recipient` | folded into `test_ai_intent_counterplay.py` |
@@ -1006,9 +1120,11 @@ otherwise would be the failure mode this project has a rule against. Their dispo
 - **Core — must ship with the phase**, because without them AI-3 is something done *to* the player:
   **AI-2d** (participation) and **AI-6b** (beats + tempo). AI-2d is the single item most likely to
   decide whether the phase is fun.
-- **Core *and* order-constrained: AI-0b** (§3.8). Small, but it must land at the front. A phase whose
-  every campaign opens identically has built a very good script, and retrofitting a seed after the
-  pins are written costs more than writing it first.
+- **Core *and* order-constrained: AI-0b + AI-0c** (§3.8, D7). Small, but they must land at the front.
+  A phase whose every campaign opens identically has built a very good script, and retrofitting a seed
+  after the pins are written costs more than writing it first. AI-0c is mostly *authoring* — ranges
+  beside values in a JSON the scenario system already loads — plus a validator block and the historian
+  test.
 - **Cheap and high-yield — take them where they sit:** **AI-1b** (one derived row) and **AI-2e**
   (a comparison in an existing function plus a display).
 - **May slip past the phase with a named landing, and say so if they do:** **AI-3b** sealed articles
@@ -1060,6 +1176,7 @@ not** — and §5 pins 11–12 fence it so it can never become the fog D4 correc
 | 11 | Historical fidelity was asserted in prose but never made falsifiable | **§7a** the seven scenes |
 | 12 | *(added on review)* Surprise-within-a-playthrough was mistaken for variance-across-playthroughs. The AI layer has **zero** randomness and the project has **no campaign seed** — every campaign opens identically and diverges only as the player forks it | **§3.8** + **AI-0b**, order-constrained to the front; pin 14 |
 | 13 | *(added on review)* Every §7 acceptance number was measured on a **single** 40-turn trace — against a deterministic layer that is one point of an unsampled function, and D1's cap would have been tuned against an anecdote | AI-V amendment: N-seed sweep, band stated as a distribution; the same sweep falsifies §3.8 |
+| 14 | *(decided by the user, July 20)* §3.8 scoped the seed to in-campaign thresholds and left the **opening** as an open gate question. Left there, the first ~10 turns of every campaign are still a script | **§6 D7** + **§3.8.1** the historical envelope: the opening is seeded too, bounded by **authored** ranges (no band → no variance), with the historian test as the pin and the `historical` seed as the zero-churn migration. Row **AI-0c**; pins 1 and 14 narrowed |
 
 **What the review did *not* touch.** §6 is untouched — every decision D1–D6 survives the read intact,
 and the pass produced no argument against any of them. §0.1's four corrections and the §4.4a
