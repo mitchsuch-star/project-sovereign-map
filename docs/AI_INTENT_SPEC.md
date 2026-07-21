@@ -1,4 +1,4 @@
-# AI Intent — Phase Spec (v1.1, gate record + aliveness contract)
+# AI Intent — Phase Spec (v1.2, gate record + aliveness contract + gameflow pass)
 
 > **Status:** **DESIGN GATE HELD July 20, 2026.** The six open questions of v0.1 are decided and
 > recorded in **§6, which is authoritative**. Nothing is built yet; the build may begin against this
@@ -7,6 +7,17 @@
 > Austria, Prussia, Russia and Britain feel like distinct political actors pursuing their own designs
 > and conducting real politics *with each other*, not just posturing toward France. Additive to the
 > gate; it hardens the DoD and AI-V acceptance, it does not reopen §6.
+> **v1.2 (July 20, 2026) — the gameflow pass.** A creative review asking one question the first two
+> revisions did not: *what does the player actually do, turn to turn, once this ships, and what can
+> still astonish them?* v1.1 is a correct simulation spec and an incomplete game spec. Five additions,
+> all additive, none reopening §6: **§3.5** the mirror (Europe's reading of France, shown to France) ·
+> **§3.6** where the surprises live — the fog boundary sharpened from "no fog" to *no fog on
+> dispositions, fog on agreements and timing*, plus emergent designs and the volte-face · **§3.7**
+> Britain as a contested auction rather than a wall · **§4.2b** the participation surface, which turns
+> pin 3 ("the player is never a spectator") from a limit into a mechanic · **§4.6a** the named beats
+> and the tempo rule. **§7a** adds the seven historical scenes as a falsifiable acceptance list, and
+> **§9** records the review's own dispositions and the honest scope cost. Where v1.2 amends v1.1 it
+> says so in place.
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, **re-verified against master at `12636a6`** for this
 > revision (§0.1 records two corrections the re-verification forced).
@@ -61,10 +72,11 @@ unpursued, until the sun burns out.
 
 That is why no formable ever fires. It is also why the world feels like a diorama.
 
-### 0.1 Two corrections from re-verification (v1.0)
+### 0.1 Four corrections from re-verification (v1.0)
 
-v0.1 made two claims that did not survive a second pass. Both are recorded rather than quietly
-edited, and **both change the build**.
+v0.1 made four claims that did not survive a second pass. All are recorded rather than quietly
+edited, and **each one changes the build**. *(The heading read "Two corrections" through v1.1 while
+listing A–D; corrected in v1.2.)*
 
 **Correction A — `war_objective = "conquest"` is not a dead branch with no caller.** It is at
 `diplomacy.py:7577-7580` as described, and it fires when *neither* party is the player. But there are
@@ -299,6 +311,121 @@ Talleyrand — not just infer a target.
 boot (§5 pin 1). And it must not collapse under stress into "every power defends its capital
 identically" — the homogeneity guard below is the pin that forbids exactly that.
 
+**The minors are alive through *timing*, not character.** Bavaria, Saxony, Denmark, Sweden and the
+rest get light profiles on purpose, and that is not a compromise — a minor power's drama in this
+period was never its statecraft, it was **the moment it chose a side**. Bavaria in 1805, Saxony in
+1806, Bernadotte's Sweden in 1812: the little states decided campaigns not by having designs of their
+own but by flipping at the hinge. So the assurance for a minor is not "does it have a style" but
+**"can it flip, late, and does the flip matter?"** — which is `bandwagon` plus the vassalage on-ramp
+(§4.5), and it costs no narration budget because a flip is a beat (§4.6a), not a line.
+
+### 3.5 The mirror — France has an intent too, and the player should see the version Europe reads
+
+Everything above describes what the player can learn about *other* courts. The cheapest and most
+transformative surface in the phase is the inverse: **the player's own row, filled in with Europe's
+reading of France.** What do the courts believe Napoleon wants? Who do they think he is coming for?
+Where do they place him on the price ladder?
+
+It costs almost nothing — once `threat_by_target` exists (§4.4a) and intent derives from observable
+facts, France's perceived intent derives from the *same* function reading the *same* observables:
+conquests taken, armies standing near whose border, asks refused, bargains kept or broken, coalitions
+provoked. No new machinery, one more call.
+
+What it buys is out of all proportion:
+
+- It converts the ledger from a spreadsheet about foreigners into a **mirror**. "Why is Prussia
+  arming?" acquires an answer, and the answer is something the player did.
+- It makes the counter-instruments legible as *reputation management*, not just as purchases.
+- **The player can be wrong about how they are seen.** Perception is derived from deeds, not
+  intentions — a defensive massing on the Rhine reads as a threat to Hanover whether or not it was
+  meant as one. That gap between what France means and what Europe reads is a surprise engine that
+  costs a single derived row, and it is the most historically honest thing in the phase: the road to
+  the Third Coalition ran through exactly that misreading.
+
+*Pin:* France's perceived intent is derived from observable French actions only. It never reads the
+player's plans — there are none to read (GR6) — and a player who does nothing must drift *down* the
+perceived ladder over time, so that restraint is a legible strategy and not merely an absence.
+
+### 3.6 Where the surprises live
+
+D4 makes the ladder fully open, and that is right: this project has a standing rule that diplomacy
+has no fog, and hiding a court's disposition would be the one place a hidden number could make the
+ledger lie. But a world with no fog and no uncertainty is a train timetable, and a phase whose entire
+output is *legible* runs a real risk of being *predictable* — which is a worse failure than the
+diorama it replaces, because at least a diorama does not pretend. Surprise has to come from
+somewhere legitimate. There are four sources, and none of them requires the ledger to lie.
+
+**1. Timing.** Already decided in D4, and it carries more weight than it looks: you know Prussia will
+coerce, you never know that this is the turn. §3.2's opportunism is what makes the answer *dramatic*
+rather than random — the moment arrives when France is committed elsewhere.
+
+**2. The sealed article — the fog boundary, sharpened.** "Diplomacy has no fog" is a rule about
+**dispositions**: what a court wants, who it wants it from, what it will pay. It has never meant that
+France is a party to every bilateral treaty in Europe, and it should not. When two AI courts strike a
+bargain — a sponsorship, a compensation, an understanding about a third party's provinces — the
+**fact of the meeting is public and the article may be sealed.** The player sees that Russia's envoy
+was in Berlin; they do not automatically see what was agreed.
+
+This is not a fog exception smuggled in; it is the fog boundary drawn in the historically correct
+place. The secret article is *the* characteristic diplomatic instrument of this period — Tilsit's
+secret articles, the Reichenbach conventions, the partition understandings — and modelling its
+absence is a bigger distortion than modelling it. It also finally gives intelligence and Talleyrand a
+job in the diplomatic layer: a sealed bargain is **discoverable** (rumour, a diplomat's read, a
+defection, the payment showing up in someone's ledger), and §5 pin 12 requires that every sealed
+article have at least one route to being learned *before* it bites. A surprise the player could not
+possibly have seen coming is not a surprise, it is a cheat.
+
+**3. Emergent designs — the world writes content the author did not.** Every design in the game today
+is authored in a deck. The most interesting designs in history were not: they were *acquired*, by
+being humiliated. Prussia's design after Jena was not Prussia's design before it. So a nation that is
+partitioned, stripped of a capital, forced into a punitive settlement, or has a standing compensation
+bargain broken (§3.3) may **promote a grievance into a design** — entering the deck like any other,
+so every downstream system already built (NA-1 legibility, NA-2 acceptance mod, NA-3 resolve and
+target bias, NA-6 formation) consumes it for free.
+
+Bounded deliberately: promotion only from the serialized grievance record (never from a vibe), at
+most one emergent design per nation, and it is announced as a beat. This is also what makes the DoD's
+"≥1 agenda shift" an actual *system* rather than a deck-order tick — and it is the single mechanic
+most likely to produce a campaign the player wants to tell someone about.
+
+**4. The volte-face.** §3.4 gives Russia "reverses hard" as an adjective. Make it a mechanic: a great
+power that is **beaten and then courted** — rather than beaten and humiliated — can reverse in one
+settlement, from enemy to partner, and be aimed at a third party. That is Tilsit, and it is the
+single most dramatic diplomatic event of the period. It is also a *player-caused* surprise, which is
+the best kind: it rewards the choice to be generous to a broken enemy, an option the game currently
+gives the player no reason to consider. It routes through the existing settlement layer plus the
+`sponsor` branch, and it gets its own beat (§4.6a).
+
+*What is never hidden:* a nation's want, its target, its current rung (D4), its stated war reason
+(§5 pin 4), or the fact that a war is coming (§4.6 fore-warning). Fog lives in **agreements and
+timing** — never in dispositions.
+
+### 3.7 Britain is an auction, not a wall
+
+§3.4 (v1.1) established that Britain is reachable by the economic lever rather than the front door,
+and that until the player finds the lever "Britain keeps paying, which is the correct and historical
+frustration, not a dead end." That is true and insufficient: a frustration the player cannot *play
+against* in the meantime is still a wall, just an explained one.
+
+The fix is already three-quarters built. `get_british_subsidy_recipient` (`coalition.py:1084`) picks
+who gets paid; `_process_british_subsidy` (`:1119`) pays them; `get_paymaster_nation` /
+`get_paymaster_subsidy_amount` (`agendas.py:778, 822`) already generalise the paymaster posture beyond
+Britain. Three additions turn a standing drain into a game:
+
+- **The subsidy is visible.** The player can see who Britain is paying and how much. Today the most
+  consequential fact about why Austria will not settle is invisible.
+- **The subsidy is contestable.** France may **outbid** — through the D5 compensation instrument, or
+  by paying directly — for a recipient's alignment. Britain's purse is finite and its own; an
+  outbidding war over Austria is the paymaster duel the period actually ran on, and mechanically it
+  is a comparison inside a function that already exists.
+- **The recipient can be made not worth funding.** Peace, compensation, vassalage or defeat each
+  remove a recipient from the list. The player learns that the way to beat a paymaster is to buy or
+  break its clients, not to march at it — which is the lesson §3.4 wants taught, delivered as a
+  strategy rather than as a wall.
+
+The Continental System remains the way to stop the gold at its source (§3.4). This section is what
+the player gets to *do* about Britain in the fifty turns before that lands.
+
 ---
 
 ## 4. Slices
@@ -350,6 +477,41 @@ should be scoped as such rather than as a parameter change.
 **Ships with the D5 counter-instruments** (§6 D5) — per principle 7, the player must be able to
 answer AI-2 in AI-2.
 
+#### 4.2b — The participation surface (pin 3, made a mechanic)
+
+§5 pin 3 says "the player is never a spectator" and then guards it with the D1 cap, the D2
+elimination floor and the fore-warning surface. Those are **limits** — they bound how much of the
+campaign happens without France. None of them is *participation*. If AI-3 ships with only those
+guards, the honest description of the feature is "sometimes a war you are not in appears in your
+ledger," and the player's verb for it is *reading*.
+
+The gap closes cheaply, because a war between two other powers is the richest decision the game can
+hand a player who is not in it. **When an AI-vs-AI war brews or begins, both sides court France**,
+and the player chooses among five answers — every one of which routes through a seam that already
+exists:
+
+| Answer | Seam it uses | What it feels like |
+|---|---|---|
+| **Join A / join B** | the existing call-to-arms and negotiated-entry paths | picking a winner, and being owed for it |
+| **Sell neutrality** | D5 compensation, in reverse — the AI pays *you* to stay out | Prussia's entire 1795–1806, played from the other side |
+| **Sponsor without joining** | the `sponsor` branch through `get_paymaster_nation` | being Britain for once |
+| **Broker** | the existing settlement package, third-party-capable per AI-4 | ending someone else's war on your terms, for a price |
+| **Refuse everyone** | — | and watch, having been *asked*, which is the whole difference |
+
+The last row is the point. A war the player was courted about and declined to touch is a decision;
+the identical war with no courting is scenery. This is the single highest fun-per-line item in the
+phase.
+
+**One legibility dependency:** the ledger must show third-party **war exhaustion** — `world.
+war_exhaustion` is already a per-nation dict (`coalition.py:1248, 1265`) and is already accrued from
+battles, so this is a display wire, not a system. Without it, "let them bleed each other while France
+rearms" — stated as a core fantasy in §1 — is a guess. With it, it is a strategy the player can time.
+
+*Landing split:* the **sell-neutrality** and **sponsor** arms ship with AI-2 (they need only the
+diplomacy path). **Join**, **broker** and the exhaustion display ship with AI-3/AI-4, because they
+need a third-party war to exist and to be endable. The row is tracked as one item so neither half is
+orphaned.
+
 ### AI-3 — The Decision for War (the missing first link)
 
 The heart of the phase. A new rung — sited with the NA-5 ultimatum rung, which already computes most
@@ -375,7 +537,16 @@ Requirements that make it feel like history rather than chaos:
   and the D1 world-wide cap on simultaneous AI-initiated wars.
 - **Opportunism** (§3.2) as the timing term.
 - **Fore-warning.** The player learns a war is brewing before it lands (§4.6) — this is the
-  difference between drama and a surprise diff.
+  difference between drama and a surprise diff. It surfaces as **The Brewing Crisis** beat (§4.6a),
+  with the instruments that would defuse it listed and honestly gated, and it is subject to the tempo
+  rule: one foregrounded crisis world-wide.
+- **The player is courted, not merely warned** (§4.2b). Both sides seek France's alignment, purchase
+  her neutrality, or ask her to broker. A war France was never approached about fails AI-V.
+
+A note on §3.6: the sealed article hides *how a war was arranged*, never *that it was declared* or
+*what for*. A war's reason is always rendered (§5 pin 4); what may have been sealed is the bargain
+between two other courts that produced it — which is exactly the shape of a historical surprise and
+not a suspension of the fore-warning contract.
 
 ### AI-4 — A continent, not a hub (de-France-centering)
 
@@ -443,6 +614,55 @@ dispatch**, chosen by `weight`, with the rest collapsed into a single "and three
 tail. **Fore-warnings and declarations are exempt** — those are never suppressed. A pin asserts the
 cap; a second pin asserts the exemption.
 
+**v1.2 amendment — the cap governs *routine ladder movement only*.** As written above the cap is a
+line budget over everything intent emits, which would let it suppress the phase's best content: the
+cap is measured in *lines*, and the §4.6a beats are **events**, not lines. Stated precisely: routine
+movement on the ladder (a court hardening, an ask refused, a guarantee sought) is capped at 2 per
+dispatch and collapses into the tail; the six named beats are exempt in the same way fore-warnings
+and declarations already are. A third pin asserts a beat is never collapsed into the tail. Getting
+this wrong is not hypothetical — it is precisely how the jealousy system buried its own best moment
+(the audit's own words: *"the system is working beautifully underneath… but the volume buries it"*).
+
+*Relevance, not just weight:* the 2 chosen lines are picked by `weight` **× proximity to French
+interest**. A Russo-Ottoman quarrel at the Danube and a Prussian design on Hanover are not equally
+worth the player's two lines, and `weight` alone cannot tell them apart. The far war still happens
+and still appears in the ledger; it just does not spend the dispatch budget.
+
+#### 4.6a — The beats
+
+Every system in this project that landed well named its **moment**: Wave 6's battle names, NA-6b's
+Proclamation, the Jealousy petition channel, the muster preview the July-19 audit called the best
+surface in the game. Every system that landed flat emitted lines. Intent is the largest system the
+game has added since diplomacy and it currently specifies *reporting* (§4.6) without specifying a
+single moment. These are its moments, each one an existing transport:
+
+1. **The Courier.** An ask, an offer or a sale of neutrality arrives as a **named envoy in the Voice
+   Bible register**, through the existing `incoming_proposal` dtype and popup idiom
+   (`ai_diplomacy.py:1300, 1403`). Not a dispatch line. The whole point of AI-2 is that Europe starts
+   talking to France; it should arrive as somebody talking.
+2. **The Brewing Crisis.** The fore-warning of §4.3, as a *named* crisis with the instruments that
+   would defuse it listed and **honestly gated** — the `/formables` honest-availability contract
+   (which the audit singled out as "a model for how gated content should be surfaced") applied to
+   diplomacy. "Prussia will move on Hanover. You may compensate, guarantee, or aim her elsewhere —
+   two of those three you can afford."
+3. **The Ultimatum.** Already built (NA-5), now re-homed as the `coerce` rung rather than a terminal
+   gesture. No new surface; a new position in a ladder.
+4. **The Broken Bargain (§3.3).** The compensation the player took and did not honour, arriving as a
+   cold envoy and the strongest casus belli in the game. This beat must land harder than any other
+   because it is the only one that is entirely the player's own doing — Schönbrunn to Jena, played.
+5. **The Volte-Face (§3.6).** A beaten great power, courted rather than humiliated, reversing into a
+   partner in one settlement. The reward for generosity, and a genuine astonishment.
+6. **The Congress.** A third-party war ending without France, reported as news **with the
+   consequences named** — who gained, who now borders France, who is now free to look elsewhere. A
+   settlement the player reads as a diff is a patch note; one that names what it means for France is
+   a plot development.
+
+**Tempo — one foregrounded crisis at a time, world-wide.** Other intents continue to climb silently
+and surface when the foreground clears. The phase's failure mode is not too few wars — D1 already
+bounds that — it is **four simultaneous crises reading as noise**, which is exactly how jealousy
+failed in both the July-10 and July-19 audits. The lesson is available in advance this time; the rule
+is the standing brewing-crisis limit, and it is a blessed number tunable in-band.
+
 ### AI-V — Assurance and evaluation
 
 - A both-sides pin set (the MC-V pattern): every intent kit exercised for an AI nation *and*
@@ -458,8 +678,19 @@ cap; a second pin asserts the exemption.
     `coerce`/`fight`) must differ between every pair of majors by a fixed floor. Identical AIs fail.
   - **Legible from the ledger.** For each major, the Intent row + Talleyrand read together name its
     *style*, not only its target — a scripted assertion, not a vibe.
+- **The v1.2 gameflow assertions**, run against the same simulation:
+  - **The player was asked.** Every AI-initiated war produced at least one courting offer to France
+    before or during it (§4.2b). A war France was never approached about fails.
+  - **The seven scenes** (§7a): at least 5 of 7 demonstrably reachable, each unreachable one carrying
+    a written blocking predicate — the same honest-absence discipline the DoD already applies to
+    formations.
+  - **The beats fired and were not collapsed** (§4.6a): each of the six beats reachable, and a pin
+    that a beat is never swallowed by the §4.6 line cap.
+  - **The soap-opera measurement** (§5 pin 13): the share of dispatch column-inches spent on events
+    France was not party to, reported as a number rather than asserted as a feel.
 - A live scored creative pass in the `docs/audits/` idiom, which must speak to whether the majors felt
-  like distinct statesmen — the pillar this contract exists to raise.
+  like distinct statesmen — the pillar this contract exists to raise — **and to whether the player had
+  something to do about them**, which is the pillar §4.2b exists to raise.
 
 ---
 
@@ -495,6 +726,20 @@ Pins to write before the first behaviour change:
     behaviour under threat still reflects its profile (Britain still reaches for gold not a levy;
     Austria still seeks a partner before fighting alone), and the homogeneity guard (§4.7) holds in
     wartime, not only at peace.
+11. **Surprise is never a lie** (§3.6). Nothing hidden may be a *disposition*. A court's want, its
+    target, its rung, its stated war reason and the fact that a war is coming are always readable.
+    Only **agreements** (the sealed article) and **timing** are uncertain. Pin: an assertion that no
+    intent field consumed by the ledger is ever suppressed or falsified for any nation.
+12. **Every sealed article is discoverable before it bites** (§3.6). A bargain the player had no
+    possible route to learning is a cheat, not a surprise. Each sealed article carries at least one
+    discovery route — rumour, a diplomat's read, a defection, or the money appearing in a ledger —
+    and the D5 counter-instruments must remain usable once it *is* discovered. Pin: a sealed article
+    with zero discovery routes fails the test, and a discovered one still has an answer.
+13. **A living Europe must not become a soap opera.** The inverse of the diorama is a campaign where
+    so much happens elsewhere that France's own war reads as incidental. Guarded by D1's cap, D3's
+    gravity condition, the §4.6a tempo rule and the §4.6 relevance weighting — and measured, not
+    assumed: the acceptance run reports what share of dispatch column-inches were spent on events
+    France was not party to.
 
 ---
 
@@ -544,6 +789,12 @@ What is *not* shown is **when**. Imminence is conveyed by Talleyrand's voice and
 events, never by a hidden number the player could have read. So the player always knows Prussia wants
 Hanover and is prepared to coerce for it; they never know that this is the turn. That is the honest
 place to put uncertainty, and it keeps intelligence valuable without making the ledger lie.
+
+> **v1.2 note — §3.6 does not amend this decision, it draws its boundary.** The sealed article hides
+> an **agreement between two other courts**, never a **disposition**: want, target, rung and stated
+> war reason stay open exactly as D4 requires, and §5 pin 11 makes that a test. D4's "uncertain
+> timing" and §3.6's "uncertain agreements" are the same principle applied twice — uncertainty lives
+> outside the ledger's claims, never inside them.
 
 ### D5 — The player gets counter-instruments. **Three, and they ship with AI-2, not after it.**
 
@@ -600,9 +851,37 @@ its own byte-identical pin, and it is the phase's long pole.
   formation, or a written explanation of the specific predicate that blocked it** (formation is the
   longest chain in the game and 40 turns may honestly be too short — an unexplained absence fails,
   an explained one does not).
+- **The player was courted, not merely warned** (§4.2b). Every AI-initiated war produced at least one
+  offer to France — join, sell neutrality, sponsor, or broker — so that standing aside was a choice
+  the player made rather than a thing that happened around them.
+- **France can read itself** (§3.5). The player's own ledger row shows Europe's reading of France, and
+  a player who does nothing drifts down the perceived ladder.
+- **At least one genuine surprise is structurally possible and none of them is a lie** (§3.6, §5 pins
+  11–12): a sealed article that was discoverable, an emergent design, or a volte-face.
 - The 1805 opening is byte-identical, M1–M7 unmoved, and the pre/post anti-France threat series
   measured and reported (§5.5).
 - Scored creative pass recorded in `docs/audits/`.
+
+### 7a — The seven scenes (historical acceptance)
+
+The DoD above is measured in counts. This is measured in *recognition*: can the engine **produce**
+the decade's characteristic political events — not script them, not fake them, but reach them from
+authored 1805 by the machinery in §3? A phase that hits every number and cannot produce any of these
+has built a simulation of statecraft without its texture.
+
+| # | Scene | The mechanic that reaches it |
+|---|---|---|
+| 1 | **The Confederation of the Rhine** — a cluster of minors bandwagons to the hegemon | `bandwagon` (§3.1) + the vassalage on-ramp (§4.5), timing per §3.4's minors paragraph |
+| 2 | **Schönbrunn** — a design bought off with compensation elsewhere | D5 instrument 1, creating a standing expectation (§3.3) |
+| 3 | **Jena** — that bargain broken, and the war that follows says so | §3.3 reneged compensation as the highest-weight casus belli, carried as the war's stated reason |
+| 4 | **Tilsit** — a beaten enemy reverses and is aimed at a third party | the volte-face (§3.6) + the `sponsor` branch |
+| 5 | **Pitt's subsidy** — a war funded by a power that never marches, and France bidding for the recipient | `get_paymaster_nation` + the subsidy contest (§3.7) |
+| 6 | **The Continental System bites** — the gold stops because the trade was cut | the existing Continental System reaching Britain's core (§3.4) |
+| 7 | **A partition** — two powers agree to carve a third, possibly in a sealed article, and it lands as a fait accompli | the sealed article (§3.6) + third-party settlement (§4.4) |
+
+**Acceptance:** ≥5 of 7 demonstrably reachable in the AI-V run, each miss carrying a written blocking
+predicate. Scene 6 may legitimately be blocked on economic scale and scene 7 on the sealed-article
+slice slipping — those are explanations; "it didn't come up" is not.
 
 ---
 
@@ -623,8 +902,75 @@ its own byte-identical pin, and it is the phase's long pole.
 | AI-V Assurance | §4.7 | both-sides pins + the 40-turn acceptance run | `test_ai_intent_assurance.py` |
 | Economy re-measure | audit §5 | re-measure from an actively-spending run before tuning | carried here so it is not lost |
 
+### v1.2 rows (the gameflow pass)
+
+| Row | Owner | Landing | Tracking |
+|---|---|---|---|
+| **AI-1b The mirror** | §3.5 | France's own ledger row = Europe's derived reading of France; restraint drifts it down | folded into `test_ai_intent_layer.py` |
+| **AI-2d Participation surface** | §4.2b | sell-neutrality + sponsor arms with AI-2; join / broker / third-party war-exhaustion display with AI-3/AI-4 — **one row so neither half orphans** | `test_ai_intent_participation.py` |
+| **AI-2e Subsidy contest** | §3.7 | subsidy recipient + amount made visible; France may outbid or remove a client, through `get_paymaster_nation` / `get_british_subsidy_recipient` | folded into `test_ai_intent_counterplay.py` |
+| **AI-3b Sealed articles** | §3.6, §5 pin 12 | AI↔AI bargains whose *fact* is public and *article* may be sealed, each with ≥1 discovery route | `test_ai_intent_sealed_articles.py` |
+| **AI-5b Emergent designs + volte-face** | §3.6 | grievance→design promotion (max 1/nation, from the serialized record) and the courted-loser reversal through the settlement layer | `test_ai_intent_emergent_designs.py` |
+| **AI-6b The beats + tempo** | §4.6a | six named beats on existing transports; one foregrounded crisis world-wide; cap governs routine lines only; relevance-weighted line selection | folded into `test_ai_intent_legibility.py` |
+
+**Scope honesty (GR9).** These six rows are real additions to an already-large phase, and pretending
+otherwise would be the failure mode this project has a rule against. Their disposition:
+
+- **Core — must ship with the phase**, because without them AI-3 is something done *to* the player:
+  **AI-2d** (participation) and **AI-6b** (beats + tempo). AI-2d is the single item most likely to
+  decide whether the phase is fun.
+- **Cheap and high-yield — take them where they sit:** **AI-1b** (one derived row) and **AI-2e**
+  (a comparison in an existing function plus a display).
+- **May slip past the phase with a named landing, and say so if they do:** **AI-3b** sealed articles
+  (a genuinely new mechanic — nothing in `settlement_*.py` or `diplomacy.py` models a hidden clause
+  today) and **AI-5b** emergent designs + volte-face. If either slips, it lands in the phase's own
+  exit review rather than becoming a vague "later" — and §7a scenes 4 and 7 fail with that as their
+  written blocking predicate, which is the honest outcome, not a hidden one.
+
 **Not in this phase, deliberately:** narrative/LLM-voiced diplomacy beyond existing register banks
 (GR6); a new war-goal system beyond reusing `war_objective`; any rebalance of the anti-France
 coalition beyond keeping it intact (§5.5); naval-dependent designs and the preventive-seizure war
 (Copenhagen 1807) — that is a `deny_regions` fast-path that needs the DEF-5 naval layer to mean
 anything, and it is homed there, not here.
+
+---
+
+## 9. v1.2 review record — what the gameflow pass changed, and why
+
+The review asked one question of v1.1: **what does the player do, turn to turn, once this ships?**
+
+v1.1 answers it honestly for the peacetime half — AI-2 gives Europe verbs and D5 gives France three
+answers — and then thins out precisely where the phase gets loud. Once AI-3 lands, the spec's
+player-facing verbs for an AI-vs-AI war are *read the ledger* and *have been warned*. Pin 3 names the
+right worry ("the player is never a spectator") and then guards it with three limits, none of which
+is participation. That is the gap §4.2b closes, and it is the single change in this revision most
+likely to decide whether the phase reads as a living Europe or as weather.
+
+The second finding is quieter and more dangerous. v1.1's commitment to legibility is so thorough —
+fully open ladder, fore-warning always, no unexplained war, every reason rendered — that **the phase
+had no remaining capacity to surprise anyone.** Four correct wins in a row (NA, the sweeps, the
+audits) have trained this project's specs toward legibility as an unalloyed good, and it mostly is;
+but a strategy game whose entire diplomatic layer is knowable in advance has traded one failure
+(the diorama) for another (the timetable). §3.6 puts surprise back in the three places it can live
+without the ledger ever lying — **agreements, timing, and the world writing designs the author did
+not** — and §5 pins 11–12 fence it so it can never become the fog D4 correctly refused.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | Pin 3 is a limit, not a mechanic — the player's verb for an AI war is *reading* | **§4.2b** participation surface; **AI-2d** |
+| 2 | Total legibility left no room for surprise; "no fog" was being read as "no uncertainty" | **§3.6** — fog boundary drawn at dispositions-vs-agreements; pins 11–12 |
+| 3 | ≥1 agenda shift was a DoD number with no system behind it | **§3.6** emergent designs; **AI-5b** |
+| 4 | Intent specified reporting, never a *moment* — the failure pattern of every flat system this project has shipped | **§4.6a** the six beats |
+| 5 | The narration cap, as written, could suppress the phase's best content | §4.6 v1.2 amendment: cap governs routine lines; beats are events |
+| 6 | `weight` alone can't tell a Danube quarrel from a Prussian design on Hanover | §4.6 relevance weighting |
+| 7 | Britain explained is still Britain unplayable for fifty turns | **§3.7** the subsidy contest; **AI-2e** |
+| 8 | Intent was entirely outward-facing; France could not read itself | **§3.5** the mirror; **AI-1b** |
+| 9 | "Reverses hard" and "minors are texture" were adjectives doing a mechanic's job | §3.6 volte-face; §3.4 minors-are-timing paragraph |
+| 10 | The inverse failure of the diorama — a soap opera — was unguarded and unmeasured | §5 pin 13, measured in the acceptance run |
+| 11 | Historical fidelity was asserted in prose but never made falsifiable | **§7a** the seven scenes |
+
+**What the review did *not* touch.** §6 is untouched — every decision D1–D6 survives the read intact,
+and the pass produced no argument against any of them. §0.1's four corrections and the §4.4a
+migration contract are untouched. §3.4's statecraft table is extended only by the minors paragraph.
+The sequencing in D6 stands, with the v1.2 rows slotted into the slices they belong to rather than
+appended as a tail — the phase does not grow a new stage, it grows in place.

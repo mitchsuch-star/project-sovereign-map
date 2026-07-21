@@ -6,7 +6,7 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
-### 🧠 AI INTENT DESIGN GATE ✅ HELD July 20, 2026 — `AI_INTENT_SPEC.md` v1.0, §6 authoritative
+### 🧠 AI INTENT DESIGN GATE ✅ HELD July 20, 2026 — `AI_INTENT_SPEC.md` **v1.2**, §6 authoritative
 
 **Docs-only session.** The v0.1 spec's six open questions were decided under the user's delegated
 gate ("make decisions — we want this to play fun and historically"), and the spec's code claims were
@@ -57,6 +57,67 @@ continental holdings are beatable on land, and its *core* behind the Channel is 
 its trade (the Continental System, already modelled)** now and by **Ireland/invasion once DEF-5 naval
 lands**. It answers a land ultimatum with gold precisely to teach that the front door is the wrong
 door; the reward for the economic lever is the gold stops.
+
+**v1.2 amendment (same day, user-directed — "creative spec review… think of gameflow, fun,
+historical, with room for surprises"): the gameflow pass.** A creative read of v1.1 asking the one
+question the first two revisions did not — *what does the player actually do, turn to turn, once this
+ships, and what can still astonish them?* Verdict: v1.1 is a correct **simulation** spec and an
+incomplete **game** spec, with two structural gaps. **(1) Pin 3 is a limit, not a mechanic.** "The
+player is never a spectator" was guarded by the D1 cap, the D2 floor and the fore-warning — three
+*bounds*, none of them participation; the player's verb for an AI-vs-AI war was *reading*. **(2) Total
+legibility left no room for surprise** — fully open ladder + fore-warning always + every reason
+rendered had traded the diorama for a timetable. Five additions, all additive, **§6 untouched — every
+D1–D6 decision survived the read intact**:
+
+- **§4.2b The participation surface** — when an AI-vs-AI war brews, **both sides court France**: join
+  A / join B / **sell neutrality** (Prussia 1795–1806 played from the other side) / sponsor without
+  joining / **broker** for a price / refuse everyone *having been asked*, which is the whole
+  difference. Every arm routes through an existing seam (call-to-arms, paymaster, settlement). Plus
+  the third-party **war-exhaustion display** (`world.war_exhaustion` already exists per-nation) so
+  "let them bleed while France rearms" — a §1 core fantasy — is a timeable strategy, not a guess.
+  *Highest fun-per-line item in the phase.*
+- **§3.6 Where the surprises live** — the fog boundary re-drawn from "no fog" to **no fog on
+  *dispositions*, fog on *agreements* and *timing***. A court's want/target/rung/war-reason is never
+  hidden (D4 intact); but France is not a party to every bilateral treaty in Europe, so the **sealed
+  article** (Tilsit's secret articles, the partition conventions) is the historically correct place
+  for fog — and pin 12 requires every sealed bargain to be **discoverable before it bites**. Plus
+  **emergent designs** (a humiliated or reneged-upon nation promotes a grievance into a *new deck
+  design* — Prussia after Jena; this is what makes the DoD's "≥1 agenda shift" a system rather than a
+  deck-order tick) and the **volte-face** (a beaten-then-*courted* great power reverses into a partner
+  — Tilsit; the reward for generosity, an option the game gives no reason to consider today).
+- **§4.6a The beats + tempo** — every system this project shipped *well* named its moment (the
+  Proclamation, the petition channel, the muster preview); every flat one emitted lines. Six beats on
+  existing transports: **The Courier** (a named envoy through the `incoming_proposal` idiom, not a
+  dispatch line), **The Brewing Crisis** (fore-warning with the defusing instruments listed and
+  honestly gated — the `/formables` contract applied to diplomacy), **The Ultimatum** (NA-5, re-homed
+  as the `coerce` rung), **The Broken Bargain**, **The Volte-Face**, **The Congress**. Tempo rule: one
+  foregrounded crisis world-wide — the phase's failure mode is not too few wars but four simultaneous
+  crises reading as noise, which is exactly how jealousy failed in *both* prior audits.
+- **§3.7 Britain is an auction, not a wall** — the v1.1 correction explained Britain; it did not make
+  her *playable* for the fifty turns before the Continental System bites. Make the subsidy **visible**,
+  **contestable** (France may outbid for a recipient's alignment), and its clients **removable** by
+  peace/compensation/vassalage/defeat. Three-quarters built already (`get_british_subsidy_recipient`
+  `coalition.py:1084`, `get_paymaster_nation` `agendas.py:778`).
+- **§3.5 The mirror** — intent was entirely outward-facing. France's own ledger row now shows
+  **Europe's derived reading of France** from observable deeds only (GR6-safe): what the courts believe
+  Napoleon wants, and where they place him on the ladder. The player **can be wrong about how they are
+  seen** — a defensive massing reads as a threat whether or not it was meant as one, which is a
+  surprise engine costing one derived row and is the road to the Third Coalition, exactly.
+
+**Also folded:** the §4.6 narration cap **amended** — it governs *routine ladder movement only*; the
+beats are events and are exempt (as written it could have suppressed the phase's best content, the
+precise way jealousy buried its own); line selection weighted by `weight` **× proximity to French
+interest** (a Danube quarrel and a Prussian design on Hanover are not worth the same two lines); the
+minors get a paragraph saying their aliveness is **timing, not character** (Bavaria 1805, Saxony 1806,
+Bernadotte 1812 — the flip, not the style); three new pins (**11** surprise is never a lie, **12**
+every sealed article is discoverable, **13** guard the *inverse* failure — a living Europe must not
+become a soap opera where France's own war reads as incidental, **measured** as dispatch share);
+**§7a the seven scenes** — the decade's characteristic events (Confederation of the Rhine, Schönbrunn,
+Jena, Tilsit, Pitt's subsidy, the Continental System biting, a partition) as a falsifiable
+reachability list, ≥5 of 7 or a written blocking predicate; and four new AI-V assertions. Six new
+owner rows (AI-1b/2d/2e/3b/5b/6b) with **honest scope triage in §8** — AI-2d + AI-6b are core, AI-1b +
+AI-2e are cheap, AI-3b + AI-5b may slip to the phase exit review with §7a scenes 4 and 7 failing as
+their written blocker. Review record + the 11-finding disposition table = **spec §9**. Docs-only.
 
 **Also added (v1.0):** the price ladder gains `bandwagon` and a `sponsor` *branch* (a nation with weight but
 not force hires a proxy) plus an **opportunism term** so AI wars land while France is committed
