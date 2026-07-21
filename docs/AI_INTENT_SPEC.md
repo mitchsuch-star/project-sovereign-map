@@ -18,9 +18,17 @@
 > and the tempo rule. **§7a** adds the seven historical scenes as a falsifiable acceptance list, and
 > **§9** records the review's own dispositions and the honest scope cost. Where v1.2 amends v1.1 it
 > says so in place.
+> **v1.2 also carries a correction to its own first draft (§9 rows 12–13).** That draft answered
+> *"can this surprise me?"* and mistook it for *"will this differ next time?"* — the AI layer has
+> **zero** randomness (`agendas.py`, `ai_diplomacy.py` and `coalition.py` contain no `random` call
+> between them) and the project has **no campaign seed**, so every campaign would open identically
+> and diverge only as the player forked it. **§3.8** adds the serialized campaign seed and scopes what
+> it may perturb (the bars, never the choices); **§5 pin 14** fences it; and the AI-V acceptance run
+> becomes an **N-seed sweep**, because every §7 number had been specified against a single
+> deterministic trace.
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, **re-verified against master at `12636a6`** for this
-> revision (§0.1 records two corrections the re-verification forced).
+> revision (§0.1 records four corrections the re-verification forced).
 > **Relationship to the NA arc:** this does not replace Nation Agendas. NA-0..NA-6d built the
 > *content* of what nations want and the machinery that consumes it once a war exists. This phase
 > builds the **will** — the missing first link — and de-centres the world from France.
@@ -426,6 +434,64 @@ Britain. Three additions turn a standing drain into a game:
 The Continental System remains the way to stop the gold at its source (§3.4). This section is what
 the player gets to *do* about Britain in the fifty turns before that lands.
 
+### 3.8 Variance — will the second campaign differ from the first?
+
+§3.6 answers *"can this surprise me?"* — within one playthrough. It does **not** answer *"will this
+be different next time?"*, and those are separate properties that the v1.2 pass conflated. Asked
+directly, the answer against the code as it stands is **no**, and the measurement is stark:
+
+| Layer | `random` uses |
+|---|---|
+| `agendas.py` | **0** — `get_active_agenda` is "first predicate that holds wins" over an authored deck |
+| `ai_diplomacy.py` | **0** |
+| `coalition.py` | **0** |
+| `enemy_ai.py` | 3, in ~4,600 lines |
+| **A campaign seed anywhere in the project** | **none exists** |
+
+Intent as specified is a pure function of world state, so it inherits this exactly. Combined with §5
+pin 1 (the 1805 opening is byte-identical), the consequence is unavoidable: **the opening moves of
+every campaign are identical, and stay identical until the player's own choices have moved the world
+state far enough to fork it.** Prussia reaches for Hanover on the same turn, Britain pays the same
+client, the same crisis brews at the same moment. The second campaign teaches you the timings; the
+third is a script you already know. That is a fair description of a failure this phase would ship
+with, and it is not one §3.6 addresses.
+
+**Determinism here is load-bearing, so the fix cannot be `random()` at the decision.** M1–M7
+byte-identical, the boot pin, the §4.4a threat-series pin and §5 pin 8's save/load determinism all
+depend on reproducibility. The answer is a **serialized campaign seed**: fixed at world creation,
+written through `to_dict`/`from_dict`, deterministic *within* a campaign (a save reloads to the same
+Europe, and any pin may fix the seed to a constant and keep its exact numbers), varied *across* them.
+
+**Where the seed is allowed to bite — the bars, not the choices:**
+
+1. **Threshold jitter.** It perturbs `weight`, the opportunism trigger, ladder dwell time and
+   cooldown lengths within a small band. Prussia still wants Hanover — **character is fixed** (§3.4);
+   what moves is *when* she reaches for it. This is the cheap, high-yield lever, because the system
+   compounds: a few turns' difference in one court's timing changes which war France is busy with,
+   which changes who is opportune, which forks the mid-game entirely.
+2. **Tie-breaks.** Where two designs or two targets score equal, the seed chooses. Today "first
+   predicate wins" quietly makes authored deck order into destiny, and this costs nothing to fix.
+3. **Weighted late, not early.** The band widens with turn number. Turn 1 of 1805 *should* look like
+   1805 every time — that is a feature, not sameness — and the divergence should arrive as the
+   campaign earns it.
+
+**What the seed must never do: make intent unreadable.** D4 is untouched. The jitter moves a number;
+the ledger shows the number it actually moved to. The player always reads the truth about Prussia's
+weight — they simply cannot carry last campaign's *timings* into this one. The seed invalidates
+**memorisation**, never **understanding**, and that distinction is the whole design.
+
+**Sequencing consequence: the seed lands with AI-0/AI-1 or not at all.** Introduced late, every pin
+written against "the" deterministic trace has to be revisited, and the phase would pay for it twice.
+It is a small slice with an outsized ordering constraint.
+
+> **Open gate question — not decided here.** *Should the 1805 **opening** itself vary* (starting
+> relations, grudges, deck order within historical bounds)? It is the strongest variance lever and it
+> collides head-on with §5 pin 1, so it would need to be an explicit opt-in — a "historical" versus
+> "varied" opening — rather than a default. That is a design decision about what the campaign *is*,
+> which under GR9 belongs to the user at the D6 re-check, not to the build. **§3.8's seed is scoped to
+> the jitter and tie-breaks above, which do not touch the boot**; a per-nation intent state on turn 0
+> is byte-identical regardless of seed, and that is a pin (§5 pin 14).
+
 ---
 
 ## 4. Slices
@@ -669,6 +735,17 @@ is the standing brewing-crisis limit, and it is a blessed number tunable in-band
   reachable by the player's own systems.
 - **The falsifying run:** the 40-turn AI-only simulation that produced `formations: NONE` and no
   agenda shift is the phase's acceptance test. Acceptance numbers in §7.
+- **v1.2 amendment — the acceptance run is N runs, not one.** As written, every acceptance number in
+  §7 is measured on a single 40-turn trace. Against a fully deterministic AI layer (§3.8) that trace
+  is not a *sample* of the system's behaviour, it **is** the system's behaviour for exactly one
+  opening — so "≥1 and ≤4 AI-initiated wars" would be a claim about one point of a function nobody
+  had sampled, and tuning D1's cap against it would be tuning against an anecdote. Once the campaign
+  seed exists the fix is nearly free: **run the acceptance sweep over N seeds (start at 10) and
+  report the distribution.** The band becomes a claim about that distribution — *no run exceeds the
+  ceiling, the median sits in band, and no seed produces zero* — which is both a stronger guarantee
+  and the only honest way to state one. The same sweep is what proves §3.8 works at all: **if every
+  seed produces the same war count on the same turns, the variance slice failed**, and that is a
+  cheap, falsifiable pin rather than a matter of opinion.
 - **The §3.4 aliveness assertions**, run against that same simulation:
   - **In-character, once each.** Over the run, each major exhibits its signature move at least once —
     Austria builds or joins a bloc rather than fighting alone; Prussia bandwagons *and* later reneges
@@ -740,6 +817,12 @@ Pins to write before the first behaviour change:
     gravity condition, the §4.6a tempo rule and the §4.6 relevance weighting — and measured, not
     assumed: the acceptance run reports what share of dispatch column-inches were spent on events
     France was not party to.
+14. **The seed varies the campaign, never the boot or the save** (§3.8). Turn-0 intent is
+    byte-identical across every seed — the 1805 opening is the 1805 opening — and a save reloads to
+    the same Europe it was saved from, because the seed is serialized rather than re-rolled. Pin:
+    identical turn-0 intent across N seeds; a mid-campaign save/load round-trip reproducing the same
+    subsequent 5 turns; and every existing byte-identical pin (boot, M1–M7, the §4.4a threat series)
+    still green with the seed fixed to a constant.
 
 ---
 
@@ -858,6 +941,9 @@ its own byte-identical pin, and it is the phase's long pole.
   a player who does nothing drifts down the perceived ladder.
 - **At least one genuine surprise is structurally possible and none of them is a lie** (§3.6, §5 pins
   11–12): a sealed article that was discoverable, an emergent design, or a volte-face.
+- **Two campaigns are not the same campaign** (§3.8). Across the N-seed acceptance sweep, war counts,
+  the turns wars begin, and which courts reach `fight` all vary — while turn-0 intent is
+  byte-identical on every seed and a save/load reproduces its own campaign exactly.
 - The 1805 opening is byte-identical, M1–M7 unmoved, and the pre/post anti-France threat series
   measured and reported (§5.5).
 - Scored creative pass recorded in `docs/audits/`.
@@ -906,6 +992,7 @@ slice slipping — those are explanations; "it didn't come up" is not.
 
 | Row | Owner | Landing | Tracking |
 |---|---|---|---|
+| **AI-0b Campaign seed** | §3.8 | serialized world seed + threshold jitter + tie-breaks; **must land with AI-0/AI-1** or every pin written against the deterministic trace is revisited | `test_ai_intent_variance.py` |
 | **AI-1b The mirror** | §3.5 | France's own ledger row = Europe's derived reading of France; restraint drifts it down | folded into `test_ai_intent_layer.py` |
 | **AI-2d Participation surface** | §4.2b | sell-neutrality + sponsor arms with AI-2; join / broker / third-party war-exhaustion display with AI-3/AI-4 — **one row so neither half orphans** | `test_ai_intent_participation.py` |
 | **AI-2e Subsidy contest** | §3.7 | subsidy recipient + amount made visible; France may outbid or remove a client, through `get_paymaster_nation` / `get_british_subsidy_recipient` | folded into `test_ai_intent_counterplay.py` |
@@ -919,6 +1006,9 @@ otherwise would be the failure mode this project has a rule against. Their dispo
 - **Core — must ship with the phase**, because without them AI-3 is something done *to* the player:
   **AI-2d** (participation) and **AI-6b** (beats + tempo). AI-2d is the single item most likely to
   decide whether the phase is fun.
+- **Core *and* order-constrained: AI-0b** (§3.8). Small, but it must land at the front. A phase whose
+  every campaign opens identically has built a very good script, and retrofitting a seed after the
+  pins are written costs more than writing it first.
 - **Cheap and high-yield — take them where they sit:** **AI-1b** (one derived row) and **AI-2e**
   (a comparison in an existing function plus a display).
 - **May slip past the phase with a named landing, and say so if they do:** **AI-3b** sealed articles
@@ -968,6 +1058,8 @@ not** — and §5 pins 11–12 fence it so it can never become the fog D4 correc
 | 9 | "Reverses hard" and "minors are texture" were adjectives doing a mechanic's job | §3.6 volte-face; §3.4 minors-are-timing paragraph |
 | 10 | The inverse failure of the diorama — a soap opera — was unguarded and unmeasured | §5 pin 13, measured in the acceptance run |
 | 11 | Historical fidelity was asserted in prose but never made falsifiable | **§7a** the seven scenes |
+| 12 | *(added on review)* Surprise-within-a-playthrough was mistaken for variance-across-playthroughs. The AI layer has **zero** randomness and the project has **no campaign seed** — every campaign opens identically and diverges only as the player forks it | **§3.8** + **AI-0b**, order-constrained to the front; pin 14 |
+| 13 | *(added on review)* Every §7 acceptance number was measured on a **single** 40-turn trace — against a deterministic layer that is one point of an unsampled function, and D1's cap would have been tuned against an anecdote | AI-V amendment: N-seed sweep, band stated as a distribution; the same sweep falsifies §3.8 |
 
 **What the review did *not* touch.** §6 is untouched — every decision D1–D6 survives the read intact,
 and the pass produced no argument against any of them. §0.1's four corrections and the §4.4a

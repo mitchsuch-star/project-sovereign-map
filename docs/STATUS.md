@@ -104,6 +104,37 @@ D1–D6 decision survived the read intact**:
   seen** — a defensive massing reads as a threat whether or not it was meant as one, which is a
   surprise engine costing one derived row and is the road to the Third Coalition, exactly.
 
+**v1.2 self-correction, same session (user: "will this assure the same thing doesn't happen every
+time"): §3.8 VARIANCE + the N-seed acceptance sweep.** The first v1.2 draft answered *"can this
+surprise me?"* and mistook it for *"will this differ next time?"* — two different properties.
+Measured against master: **`agendas.py`, `ai_diplomacy.py` and `coalition.py` contain ZERO `random`
+calls between them** (`enemy_ai.py`: 3, in ~4,600 lines), `get_active_agenda` is "first predicate that
+holds wins" over an authored deck, and **no campaign seed exists anywhere in the project**. Intent, as
+a pure function of world state, inherits that exactly — so combined with pin 1 (byte-identical boot)
+**every campaign opens identically and diverges only as the player forks it**: Prussia reaches for
+Hanover on the same turn, Britain pays the same client, the same crisis brews at the same moment. The
+second campaign teaches you the timings; the third is a script. → **§3.8**: a **serialized campaign
+seed** (determinism is load-bearing here — M1–M7, the boot pin, §4.4a's threat series and pin 8's
+save/load all need reproducibility, so `random()` at the decision is not available). It perturbs **the
+bars, not the choices**: `weight`, opportunism triggers, ladder dwell and cooldowns within a band;
+tie-breaks where deck order is quietly acting as destiny; **weighted late** so turn 1 of 1805 still
+looks like 1805. Character stays fixed (§3.4) — Prussia still wants Hanover, only *when* moves — and
+because the system compounds, a few turns' difference forks the mid-game entirely. **It never makes
+intent unreadable** (D4 intact): the jitter moves a number and the ledger shows the number it moved
+to, so the seed invalidates **memorisation**, never **understanding**. **Sequencing: AI-0b must land
+at the front** with AI-0/AI-1, or every pin written against "the" deterministic trace is revisited.
+**Second finding, methodological:** every §7 acceptance number was specified against a **single**
+40-turn trace — against a deterministic layer that is not a sample, it is one point of an unsampled
+function, and D1's cap would have been tuned against an anecdote. AI-V now runs an **N-seed sweep
+(start at 10)** and states the band as a distribution (no run over the ceiling, median in band, no
+seed at zero) — the same sweep that **falsifies §3.8**: if every seed produces the same wars on the
+same turns, the variance slice failed. New pin 14 (turn-0 intent byte-identical across seeds;
+save/load reproduces its own campaign; all existing byte-identical pins green with the seed fixed),
+new DoD line, new row **AI-0b**. **One gate question raised and deliberately NOT decided:** whether
+the 1805 *opening itself* should vary (starting relations/grudges/deck order) — the strongest lever,
+but it collides with pin 1 and would need to be an opt-in "historical vs varied" opening, which is a
+decision about what the campaign *is* → the user, at the D6 re-check.
+
 **Also folded:** the §4.6 narration cap **amended** — it governs *routine ladder movement only*; the
 beats are events and are exempt (as written it could have suppressed the phase's best content, the
 precise way jealousy buried its own); line selection weighted by `weight` **× proximity to French
