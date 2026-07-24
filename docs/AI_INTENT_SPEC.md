@@ -1,69 +1,35 @@
-# AI Intent — Phase Spec (v1.3, gate record + aliveness contract + gameflow pass + verification pass)
+# AI Intent — Phase Spec (v1.4 — gate record · phased build plan · the four review passes)
 
-> **Status:** **DESIGN GATE HELD July 20, 2026.** The six open questions of v0.1 are decided and
-> recorded in **§6, which is authoritative**. Nothing is built yet; the build may begin against this
-> document without a further gate, except where §6 names a re-check.
-> **v1.1 (July 20, 2026):** adds §3.4, the **great-power aliveness contract** — the assurance that
-> Austria, Prussia, Russia and Britain feel like distinct political actors pursuing their own designs
-> and conducting real politics *with each other*, not just posturing toward France. Additive to the
-> gate; it hardens the DoD and AI-V acceptance, it does not reopen §6.
-> **v1.2 (July 20, 2026) — the gameflow pass.** A creative review asking one question the first two
-> revisions did not: *what does the player actually do, turn to turn, once this ships, and what can
-> still astonish them?* v1.1 is a correct simulation spec and an incomplete game spec. Five additions,
-> all additive, none reopening §6: **§3.5** the mirror (Europe's reading of France, shown to France) ·
-> **§3.6** where the surprises live — the fog boundary sharpened from "no fog" to *no fog on
-> dispositions, fog on agreements and timing*, plus emergent designs and the volte-face · **§3.7**
-> Britain as a contested auction rather than a wall · **§4.2b** the participation surface, which turns
-> pin 3 ("the player is never a spectator") from a limit into a mechanic · **§4.6a** the named beats
-> and the tempo rule. **§7a** adds the seven historical scenes as a falsifiable acceptance list, and
-> **§9** records the review's own dispositions and the honest scope cost. Where v1.2 amends v1.1 it
-> says so in place.
-> **v1.2 also carries a correction to its own first draft (§9 rows 12–13).** That draft answered
-> *"can this surprise me?"* and mistook it for *"will this differ next time?"* — the AI layer has
-> **zero** randomness (`agendas.py`, `ai_diplomacy.py` and `coalition.py` contain no `random` call
-> between them) and the project has **no campaign seed**, so every campaign would open identically
-> and diverge only as the player forked it. **§3.8** adds the serialized campaign seed and scopes what
-> it may perturb (the bars, never the choices); **§5 pin 14** fences it; and the AI-V acceptance run
-> becomes an **N-seed sweep**, because every §7 number had been specified against a single
-> deterministic trace.
-> **§3.8 left one question open and the user decided it the same day: ✅ D7 — the *opening* is seeded
-> too, within authored historical bounds.** **§6 D7** is the gate record and **§3.8.1** is the
-> envelope that makes "within bounds of history" falsifiable: the bounds are **authored content, not a
-> formula** (a value with no authored band never varies), the map/roster/`starting_wars`/deck-content/
-> marshals/statecraft are **fixed on every seed** while **dispositions** vary, the **historian test**
-> is a hard pin on all seeds, and `SOVEREIGN_SEED=historical` reproduces today's boot byte-for-byte so
-> the existing suite needs no edit. Pins 1 and 14 are narrowed, not deleted.
-> **v1.3 (July 21, 2026) — the verification pass.** A fresh-mind review: ten ground-truth readers
-> checking every `file:line` claim against master, ten design lenses, and every finding through two
-> adversarial refuters — asking the three questions the brief set. Does this **assure historic
-> outcomes**, does it produce **variability and surprise**, and does the world run on **dynamic
-> conditions depending on what happens?** **§6 is untouched — D1–D7 all survived the read.** What did
-> not survive is a layer of factual claims the build plan rested on:
-> **§0.1 Correction D is WITHDRAWN** — the `_agenda_cache` invalidation defect does not exist, NA-0
-> closed it and pinned it twice, and slice **AI-0 is deleted**; following its instruction literally
-> would have *re-opened* the P1 it claimed to find. **The historian test carried a clause that is
-> false on the shipped scenario** ("no minor boots at war" — Spain, Holland, Bavaria and the Kingdom
-> of Italy all do, as they did in 1805), so the phase's one falsifiable historical pin would have
-> redded on turn 0 of the `historical` seed; §3.8.1 restates it as six clauses. **Third-party war
-> exhaustion is not "a display wire"** — it never accrues and actively *decays* for exactly the wars
-> this phase exists to create, making it the **fourth** France-literal system to generalise (row
-> AI-4c). Nineteen corrections in all, tabled in **§10**.
-> **Three structural additions answer the brief.** **§3.1a — the descent:** the ladder was specified
-> only as climbed, and all three seams that lower it are dead for the AI-vs-AI case; this is the half
-> of "dynamic conditions" v1.2 missed, and it is why §4.4's own named worst outcome (AI-3 as a one-way
-> ratchet) was live. **§3.9 — the historical attractors:** v1.2 made turn 0 falsifiable and said
-> nothing about why turn 40 should still rhyme with the decade, and never named the tension between
-> *assured outcomes* and *variability* — resolved here as **assure the shapes, vary the casting**.
-> **§2 principle 9 — reactivity:** the class the surviving findings kept instancing, stated once so it
-> catches the next one.
-> Four contracts are written that v1.2 asserted in a sentence — **§4.3a** the declaration contract,
-> **§4.4a steps 5–6** the threat producers, **§4.4b** the coalition migration, **§4.6b** the client
-> surfaces — the last because **the phase contained no Godot work at all**, in a spec whose principle 4
-> says legibility is the feature and not the reporting of it.
+> **Status: DESIGN GATE HELD July 20, 2026 — §6 (D1–D7) is authoritative and has survived every
+> subsequent pass untouched. Nothing is built yet.** The build may begin against this document
+> without a further gate, except the one D6 names: the user re-check between Stage C and Stage D.
+>
+> **How to read this document.**
+> - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
+>   criteria, the living cut list). §8 is the owner ledger (GR9); §5 the pins; §7 + §7a the
+>   acceptance. **§10 is the correction table — read it before trusting any prose claim about the
+>   codebase**, including this document's own earlier passes.
+> - **Understanding the design?** §0 the finding → §1 thesis → §2 principles → §3 the model (the
+>   ladder · §3.1a the descent · §3.4 statecraft · §3.5 the mirror · §3.6 surprises · §3.8 variance ·
+>   §3.9 attractors) → §6 the decisions.
+> - **Checking provenance?** §9 (v1.2 gameflow record) · §9a (v1.3 verification record) · §10 (the
+>   19 corrections) · §12 (v1.4 creative record). Passes append records; they never silently edit
+>   the gate.
+>
+> **Version history** — each pass additive, none reopening §6:
+>
+> | v | Date | What it did | Record |
+> |---|---|---|---|
+> | v1.0 | July 20, 2026 | gate held, D1–D6 decided; §0.1 re-verification corrected three v0.1 claims (A–C), each changing the build | §6, §0.1 |
+> | v1.1 | July 20, 2026 | §3.4 the great-power aliveness contract — majors as distinct statesmen, with AI-V teeth | §3.4 |
+> | v1.2 | July 20, 2026 | the gameflow pass — §3.5 mirror · §3.6 surprises · §3.7 the auction · §4.2b participation · §4.6a beats · §7a scenes · §3.8 variance (its own correction: the AI layer has zero randomness and no campaign seed existed); **D7 decided same day** — the opening is seeded too, within authored bounds (§3.8.1) | §9 |
+> | v1.3 | July 21, 2026 | the verification pass — ten ground-truth readers, ten lenses, two refuters per finding; **19 factual corrections** (row AI-0 deleted; the historian test's false clause; third-party war exhaustion *decays*); §3.1a the descent · §3.9 attractors · §2 principle 9; contracts §4.2c / §4.3a / §4.4a steps 5–6 / §4.4b / §4.6b; pins 15–20; AI-V three arms | §9a, §10 |
+> | **v1.4** | **July 24, 2026** | **the structure & creative pass — §11 the phased build plan (the builder's front door); §12 six gameplay additions: the deterrence receipt · Russia's second design · the licence · the purchased dispatch + the player's seal · armed mediation · the allegiance auction; pins 21–24; beat 7** | **§11, §12** |
+>
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
-> decision-architecture map taken at `b4b6326`, **re-verified against master at `12636a6`** for the
-> v1.0 revision and **again at `e7f92dd`** for v1.3 (§0.1 records the corrections that re-verification
-> forced — three that stand, one withdrawn; §10 records v1.3's nineteen).
+> decision-architecture map taken at `b4b6326`, re-verified against master at `12636a6` (v1.0) and
+> again at `e7f92dd` (v1.3 — §0.1 records the corrections re-verification forced, three standing and
+> one withdrawn; §10 records v1.3's nineteen).
 > **Relationship to the NA arc:** this does not replace Nation Agendas. NA-0..NA-6d built the
 > *content* of what nations want and the machinery that consumes it once a war exists. This phase
 > builds the **will** — the missing first link — and de-centres the world from France.
@@ -575,7 +541,9 @@ settlement, from enemy to partner, and be aimed at a third party. That is Tilsit
 single most dramatic diplomatic event of the period. It is also a *player-caused* surprise, which is
 the best kind: it rewards the choice to be generous to a broken enemy, an option the game currently
 gives the player no reason to consider. It routes through the existing settlement layer plus the
-`sponsor` branch, and it gets its own beat (§4.6a).
+`sponsor` branch, and it gets its own beat (§4.6a). *(v1.4: the reversal also retires or suspends
+the reversed power's `contain_hegemon` design so its deck advances — "aimed at a third party" needs
+an object to aim at, and §12.2 authors the design Russia advances to.)*
 
 *What is never hidden:* a nation's want, its target, its current rung (D4), its stated war reason
 (§5 pin 4), or the fact that a war is coming (§4.6 fore-warning). Fog lives in **agreements and
@@ -1268,7 +1236,7 @@ cap; a second pin asserts the exemption.
 line budget over everything intent emits, which would let it suppress the phase's best content: the
 cap is measured in *lines*, and the §4.6a beats are **events**, not lines. Stated precisely: routine
 movement on the ladder (a court hardening, an ask refused, a guarantee sought) is capped at 2 per
-dispatch and collapses into the tail; the six named beats are exempt in the same way fore-warnings
+dispatch and collapses into the tail; the named beats *(seven since v1.4)* are exempt in the same way fore-warnings
 and declarations already are. A third pin asserts a beat is never collapsed into the tail. Getting
 this wrong is not hypothetical — it is precisely how the jealousy system buried its own best moment
 (the audit's own words: *"the system is working beautifully underneath… but the volume buries it"*).
@@ -1306,6 +1274,15 @@ single moment. These are its moments, each one an existing transport:
    consequences named** — who gained, who now borders France, who is now free to look elsewhere. A
    settlement the player reads as a diff is a patch note; one that names what it means for France is
    a plot development.
+7. **The Crisis Passes.** *(v1.4)* The other ending. A foregrounded crisis that de-escalates — the
+   design bought off, the coveter deterred by a guarantee, the moment starved as §3.2's opportunism
+   decayed — is **announced with its cause named and the instrument credited**, on beat 2's own
+   transports. *"Berlin stands down, Sire. The King will not test your guarantee of Hanover."*
+   Without this beat deterrence is invisible: the player who successfully prevents a war sees
+   nothing, and the D5 instruments teach nothing at the exact moment they work. Ochakov 1791; the
+   Prussian mobilisation dissolving after Austerlitz. Conservation of narrative, not added noise: a
+   crisis that was foregrounded already owed the player an ending — this beat is the second of
+   exactly two. Pin 21; full argument §12.1.
 
 **Tempo — one foregrounded crisis at a time, world-wide.** Other intents continue to climb silently
 and surface when the foreground clears. The phase's failure mode is not too few wars — D1 already
@@ -1313,7 +1290,8 @@ bounds that — it is **four simultaneous crises reading as noise**, which is ex
 failed in both the July-10 and July-19 audits. The lesson is available in advance this time; the rule
 is the standing brewing-crisis limit, and it is a blessed number tunable in-band.
 
-**v1.3 — name the transport for all six, not one.** "Each one an existing transport" is asserted but
+**v1.3 — name the transport for all beats, not one** *(v1.4: seven beats; beat 7 rides beat 2's
+transports by construction)*. "Each one an existing transport" is asserted but
 only beat 1 and beat 3 are traced to one. The default is **reuse**: branch
 `incoming_proposal_popup.gd` on a new dtype in the NA-5 `is_ultimatum` pattern. Only if a beat mints a
 new `.tscn` does the CanvasLayer band need resolving — and it does need resolving then, because
@@ -1397,10 +1375,11 @@ claimed. And the standing XR-1 rule rides every `.gd`-touching row: boot the eng
   - **The seven scenes** (§7a): at least 5 of 7 demonstrably reachable, each unreachable one carrying
     a written blocking predicate — the same honest-absence discipline the DoD already applies to
     formations.
-  - **The beats fired and were not collapsed** (§4.6a): each of the six beats reachable, and a pin
+  - **The beats fired and were not collapsed** (§4.6a): each of the seven beats reachable, and a pin
     that a beat is never swallowed by the §4.6 line cap. *(v1.3 arm map: beats 1, 3 and 6 → arm (a);
     beat 4, "entirely the player's own doing", and beat 2's honest-gated defuse list → arm (b); beat
-    5 → either.)*
+    5 → either. v1.4: beat 7 → either — arm (b) scripts an instrument-caused defusal, arm (a) may
+    produce an opportunism-decay one.)*
   - **The throttle did not eat the phase** (§4.2c): no AI-initiated war may begin while either
     belligerent's courting offer to France was throttle-deferred, and the boot 1805 world can deliver
     a full turn's intent-ask budget in one turn.
@@ -1539,6 +1518,26 @@ Pins to write before the first behaviour change:
     live in-game verification confirms that the AI-1 intent row, the §3.5 mirror row, the §3.7
     subsidy row and each §4.6a beat render through their named transports. **A beat that exists only
     in a JSON response is exactly the failure §4.6a exists to prevent.**
+21. **Every foregrounded crisis ends on screen** *(v1.4, §12.1)*. A crisis that was foregrounded
+    (beat 2) resolves as exactly one of two beats: the fore-warned war, or **The Crisis Passes**
+    (beat 7) naming its cause — the D5 instrument that bought it off or deterred it, the §3.2
+    opportunism that decayed, the design that satisfied. A foregrounded crisis that silently stops
+    being mentioned is a failing test. Non-foregrounded ladder coolings stay quiet — this pin adds
+    no lines to the §4.6 budget and does not touch pin 13.
+22. **Deck depth never moves the boot** *(v1.4, §12.2)*. `gulf_and_straits` — and any later authored
+    second design — is **inactive at boot on every seed**: Russia's deck carries no order band, so
+    `arbiter_of_europe` leads it on all seeds, and no nation's turn-0 active design differs from
+    today's on the `historical` seed. Asserted beside pin 1's boot bytes. (Austria's pair is the one
+    deck the order band may reorder, deliberately — §12.2.)
+23. **A licence is a bond** *(v1.4, §12.3)*. A directed sponsorship at `amount_per_turn: 0` creates
+    the same §3.3 standing expectation as a paid one. The licensor entering the licensed war against
+    its recipient — or guaranteeing its target — is *reneging*, with the same highest-weight casus
+    belli, in both directions: either side of the board may hold either end of a licence.
+24. **The seal is symmetric and never deletes a consequence** *(v1.4, §12.4)*. Any party's sealed
+    article — including France's — is discoverable by the same routes at the same price; discovery
+    fires the deferred third-party reaction **in full** (masking defers reads at the intent/threat
+    derivation chokepoint; it never reduces them); and no *disposition* is sealable by anyone —
+    pin 11's boundary holds against the player too.
 
 ---
 
@@ -1622,11 +1621,12 @@ bought, aimed elsewhere, or deterred — and chose not to.
 
 ### D6 — Sequencing: **BD → AI-0b/0c → AI-1 → AI-2 → re-check → AI-3 → AI-4 → AI-5/6 → AI-V.**
 
-*(Header updated by D7, then by v1.3. The **two** AI-0 rows are the front block: **AI-0b** the
-campaign seed and **AI-0c** the historical bands (§3.8, D7). Both are prerequisites rather than
+*(Header updated by D7, then by v1.3, then by v1.4. The AI-0 front block: **AI-0b** the
+campaign seed and **AI-0c** the historical bands (§3.8, D7), joined in v1.4 by **AI-0d** the second
+design (§12.2, pure authoring beside AI-0c). The first two are prerequisites rather than
 features — each one, landed late, invalidates pins written before it. **AI-0 (the agenda-cache fix) is
 deleted:** §0.1 Correction D is withdrawn, the defect does not exist, and its one real residual is a
-sentence inside AI-1.)*
+sentence inside AI-1. Stage names per §11: BD → A → B → C → re-check → D → E/F → G.)*
 
 Battle Diorama (ROADMAP row BD) keeps its place first: it is contained, visual, already scoped, and
 a deliberate palate cleanser between two large systems arcs.
@@ -1720,6 +1720,10 @@ blessed number tunable in-band; **widening the envelope — adding a new Tier-2 
   record. Deliberately not an unconditional "≥6 of 10": three of the four triggers are player-driven
   or D2-blocked, so a flat threshold would fail for reasons unrelated to the mechanic. If AI-3b or
   AI-5b(ii) slip, they fail here carrying the same written blocking predicate they carry in §7a.)*
+- **Deterrence is visible** *(v1.4, pin 21)*. Across the sweep, at least one foregrounded crisis
+  ends in **The Crisis Passes** with its cause named — arm (b) scripts one via a D5 instrument — and
+  no foregrounded crisis evaporates silently on any seed. The instruments must be seen to *work*,
+  not only to exist.
 - **Two campaigns are not the same campaign** (§3.8, D7). Across the N-seed acceptance sweep, the
   opening dispositions, war counts, the turns wars begin and which courts reach `fight` all vary —
   measured on **Arm B, with the ambient RNG held constant**, so the difference is attributable to the
@@ -1752,7 +1756,7 @@ has built a simulation of statecraft without its texture.
 | 1 | **The Confederation of the Rhine** — a cluster of minors bandwagons to the hegemon | `bandwagon` (§3.1) + the vassalage on-ramp (§4.5), timing per §3.4's minors paragraph | either — but note that with a passive France the hegemony share may never reach the P-Bandwagon gate (`ai_diplomacy.py:1094`) |
 | 2 | **Schönbrunn** — a design bought off with compensation elsewhere | D5 instrument 1, creating a standing expectation (§3.3) | either (D5 works AI↔AI) |
 | 3 | **Jena** — that bargain broken, and the war that follows says so | §3.3 reneged compensation as the highest-weight casus belli, carried as the war's stated reason | either |
-| 4 | **Tilsit** — a beaten enemy reverses and is aimed at a third party | the volte-face (§3.6) + the `sponsor` branch (AI-2b's directed record) | either — §3.6 calls it "a *player-caused* surprise" |
+| 4 | **Tilsit** — a beaten enemy reverses and is aimed at a third party | the volte-face (§3.6) + the `sponsor` branch (AI-2b's directed record) + **the §12.2 second design as the aim's object** — a reversed Russia advances to *The Gulf and the Straits* | either — §3.6 calls it "a *player-caused* surprise" |
 | 5 | **Pitt's subsidy** — a war funded by a power that never marches, and France bidding for the recipient | the subsidy contest (§3.7) + AI-2b's directed record | **(b)** |
 | 6 | **The Continental System bites** — the gold stops because the trade was cut | the existing Continental System reaching Britain's purse (§3.4) | **(b)** |
 | 7 | **A partition** — two powers agree to carve a third, possibly in a sealed article, and it lands as a fait accompli | the sealed article (§3.6) + third-party settlement (§4.4) | (a) |
@@ -1806,8 +1810,8 @@ of its proposed pins already exist in `test_nation_agendas.py`. Rows amended by 
 | **AI-2e Subsidy contest** *(amended)* | §3.7 | subsidy recipient + amount made visible; remove-a-client; **the outbid arm depends on AI-2b's directed record and lands with it** — `get_british_subsidy_recipient` compares relations among coalition members and cannot see a French offer | folded into `test_ai_intent_counterplay.py` |
 | **AI-3b Sealed articles** | §3.6, §5 pin 12 | AI↔AI bargains whose *fact* is public and *article* may be sealed, each with ≥1 discovery route | `test_ai_intent_sealed_articles.py` |
 | **AI-5b(i) Emergent designs** *(split, Core)* | §3.6 | grievance→design promotion (max 1/nation) from **derived homeland loss** + a durable `settlement_memories` `punitive_settlement` record + §3.3 broken bargains; an `acquire_regions` entry, **front-inserted**, **activating when the survival override clears**; `get_agenda_grudge_nations` generalised off `world.player_nation` to a `(victim, author)` query | `test_ai_intent_emergent_designs.py` |
-| **AI-5b(ii) The volte-face** *(split, may slip)* | §3.6 | the courted-loser reversal through the settlement layer + the `sponsor` branch. **If it slips, §4.6a beat 5 and §7a scene 4 carry the written blocking predicate** and the AI-V "six beats" assertion amends to five | folded into `test_ai_intent_emergent_designs.py` |
-| **AI-6b The beats + tempo** | §4.6a | six named beats on existing transports; one foregrounded crisis world-wide; cap governs routine lines only; relevance-weighted line selection | folded into `test_ai_intent_legibility.py` |
+| **AI-5b(ii) The volte-face** *(split, may slip; amended v1.4)* | §3.6 | the courted-loser reversal through the settlement layer + the `sponsor` branch; **the reversal retires/suspends the reversed power's `contain_hegemon` design so its deck advances to the next design** (§12.2 authors Russia's). **If it slips, §4.6a beat 5 and §7a scene 4 carry the written blocking predicate** and the AI-V beats assertion amends seven → six | folded into `test_ai_intent_emergent_designs.py` |
+| **AI-6b The beats + tempo** *(amended v1.4)* | §4.6a | **seven** named beats on existing transports (v1.4 adds beat 7, The Crisis Passes — pin 21); one foregrounded crisis world-wide; cap governs routine lines only; relevance-weighted line selection | folded into `test_ai_intent_legibility.py` |
 
 ### v1.3 rows (the verification pass)
 
@@ -1817,6 +1821,14 @@ of its proposed pins already exist in `test_nation_agendas.py`. Rows amended by 
 | **AI-4c War-exhaustion generalisation** | §4.2b, §4.4, §3.1a | per-turn tick re-keyed to `get_nations_at_war_with(nation)`; an explicit third-party battle arm in **both** combat copies; Europe scoping carried; per-war ledger display. **Balance-touching** — every AI nation gains a non-zero `calculate_war_effort_cost`, blessed at the D6 re-check; the §8 economy re-measure covers it. **Must not be cut** (§9a) | `test_ai_intent_third_party.py` |
 | **AI-6c Client surfaces** | §4.6b | `diplomatic_ledger.gd` (intent + mirror + subsidy + third-party exhaustion), `war_status_panel.gd` / `war_detail_popup.gd`, `mailbox_panel.gd`, `dispatch_view.gd`, `main.gd` dtype whitelist, `cooldown_manager.py PRIORITY_ORDER` + `dialog_manager.register()` for any new popup, and the §4.2b courting surface. **Owns only what no earlier row claimed** — every row naming a display lands its own render. Boot the engine, grep `SCRIPT ERROR` | `test_ai_intent_legibility.py` + boot smoke |
 | **§4.4b Coalition de-anchoring** | §4.4b | folded into AI-4b as its second long pole; listed here so the price is not lost again | `test_ai_intent_third_party.py` |
+
+### v1.4 rows (the creative pass)
+
+| Row | Owner | Landing | Tracking |
+|---|---|---|---|
+| **AI-0d The second design** *(Core, authoring — lands with AI-0c)* | §12.2 | Russia's `gulf_and_straits` (`acquire_regions`, `["Finland", "Rumelia"]`) authored **behind** `arbiter_of_europe` in `europe_1805.json`; no order band for Russia (pin 22); AI-0c authors its deck-order band over **Austria's** existing pair instead — the band's first real subject; validator already validates decks | pin 22, folded into `test_ai_intent_historical_envelope.py` |
+| **AI-5c The Arbiter's Offer** *(may slip — §11 cut list #2)* | §12.5 | armed mediation: a non-belligerent major with a live contain/arbiter design offers to mediate a French war above an exhaustion floor — suggested terms through the existing incoming-settlement machinery, mediator credited on accept; refusal consequence **derived only** (mediator weight + relations; no new threat namespace, no auto-join); AI-vs-AI mediation deferred to the exit review | `test_ai_intent_mediation.py` |
+| *Folds (no new rows):* | | 12.1 the deterrence receipt → **AI-6b** (beat 7, pin 21) · 12.3 the licence → **AI-2b** (amount-0 arm, pin 23) · 12.4 the purchased dispatch + player seal → **AI-3b** (its principle-7 half, pin 24) · 12.6 the allegiance auction → **AI-2d** (Stage C half) | |
 
 **Scope honesty (GR9).** These six rows are real additions to an already-large phase, and pretending
 otherwise would be the failure mode this project has a rule against. Their disposition:
@@ -1842,7 +1854,9 @@ otherwise would be the failure mode this project has a rule against. Their dispo
   than a deck-order tick. **AI-3b** sealed articles remains the first cut: it is the only item in the
   phase with genuinely new machinery and no existing seam. Whichever slips lands in the phase's own
   exit review rather than becoming a vague "later", and its §7a scene fails carrying that as its
-  written blocking predicate — the honest outcome, not a hidden one.
+  written blocking predicate — the honest outcome, not a hidden one. *(v1.4's additions keep the
+  same discipline: AI-0d is Core-and-cheap authoring beside AI-0c; the three folds ride their host
+  rows' dispositions — 12.4 goes wherever AI-3b goes; AI-5c may slip, §11 cut list #2.)*
 
 **Not in this phase, deliberately:** narrative/LLM-voiced diplomacy beyond existing register banks
 (GR6); a new war-goal system beyond reusing `war_objective` — *(v1.3: adding a `design` /
@@ -1937,8 +1951,9 @@ grievance substrate (~0.5, assumed to exist), and AI-2b's directed sponsorship r
 on a function that cannot express it). **Six of those seven rows are corrections to the price, not
 additions to the scope — the phase was always this big.**
 
-**The cut list, written before the pressure exists.** D6's pre-AI-3 re-check carries it, in priority
-order; each entry names what it takes with it:
+**The cut list, written before the pressure exists.** *(v1.4: the **living** cut list now sits in
+§11's re-check block, with AI-5c slotted in; this copy stays as the v1.3 record.)* D6's pre-AI-3
+re-check carries it, in priority order; each entry names what it takes with it:
 
 1. **AI-3b sealed articles** — the only item with genuinely new machinery and no existing seam. Takes
    §7a scene 7 and part of the DoD surprise line; §3.6's surprise budget is then carried by AI-5b(i),
@@ -1993,3 +2008,301 @@ fix, "the bars, not the choices" is the right scope, and the proposal to migrate
 sites into a world-owned RNG was correctly rejected as a 19-module refactor that would break pin 2.
 **§4.6's narration cap and §4.6a's tempo rule stand** — the answer to the throttle is a named budget,
 never a removed throttle. **§2 principle 3 stands**; only its citation needed tightening.
+
+---
+
+## 11. The phased build plan *(v1.4 — the builder's front door)*
+
+Everything in this section is **collated, not new**: D6 owns the order, §8 owns the rows, §5 the
+pins, §7 + §7a the acceptance. It exists because a builder should not have to collate five sections
+to answer *"what do I build next, and how do I know it landed?"* — which, after four review passes,
+was the honest state of this document. On any conflict, **§6 and §8 win**.
+
+**The shape of the phase in one paragraph.** Foundations first — the seed and the authored bounds,
+because every pin written before them is written twice. Then the read-only layer *and its render*:
+Europe shows its hand. Then the peacetime game: Europe talks, and France can answer. **Then the user
+re-check — the phase's only remaining gate.** Only then the decision for war, packaged in one
+indivisible stage with the machinery that lets other people's wars hurt and *end*. Then consequence
+wiring, the presentation remainder, and a three-arm acceptance sweep against the seven scenes.
+
+**What a turn feels like when this is done** — the vignette every stage below builds toward:
+
+> Turn 14. The dispatch leads with the one foregrounded crisis: *"Berlin has moved to coercion —
+> Prussia masses on Hanover's border."* Beneath it, one routine line: *Vienna seeks a Russian
+> guarantee.* The ledger's designs tab shows Prussia at `coerce`, weight 74 and climbing — and, in
+> France's own row, how Europe reads *you*: hegemon, 0.41 of the continent's weight, *keeps his
+> bargains* (three seasons without a broken article). Talleyrand: *"Berlin can be bought, Sire — the
+> Hanoverian design is exactly the kind gold satisfies. Austria cannot. If you mean to fight
+> Prussia, do it before the British subsidy renews."* Four answers stand open: compensate Berlin
+> (and hand her a hostage in the §3.3 sense — yours); guarantee Hanover (and stake your credibility
+> on a test you may not want); aim Prussia at somebody else entirely; or let the war come, having
+> been asked. The mailbox holds one more thing: St. Petersburg's envoy — beaten at Austerlitz,
+> courted since — proposes partnership, *and asks what France would say to a Russian design on
+> Finland.* You know what Tilsit cost the last man who signed one. You sign.
+
+### 11.1 The stages
+
+**Bold** rows are Core (§8's triage); *(slip N)* rows sit on the cut list below at that position.
+BD (Battle Diorama, its own ROADMAP row) precedes Stage A per D6 — a deliberate palate cleanser.
+
+| Stage | Rows | What the player has when it lands | Exit criteria |
+|---|---|---|---|
+| **A — The Dice and the Bounds** | **AI-0b** campaign seed · **AI-0c** historical bands · **AI-0d** the second design *(v1.4)* | Two campaigns stop being the same campaign; the seed shown in ledger + save, shareable | pins 14(a) + 22 green; the six-clause historian test harness exists; validator + `MODDING_FORMAT.md` rows; suite + M1–M7 byte-identical on `historical` |
+| **B — Europe Shows Its Hand** | **AI-1** intent layer + its ledger render · **AI-1b** the mirror ∥ **AI-2a** diplomacy-path convergence (refactor) | The designs tab: every court's want, target and rung — and Europe's derived reading of France | boot intents pinned against authored 1805; renders live in-game (pin 20); AI-2a's byte-identical player-flow pin green |
+| **C — The Bargaining Table** | **AI-2** intent-driven rungs · **AI-2b** D5 instruments + the licence *(v1.4)* · **AI-2c** statecraft · **AI-2d** sell-neutrality / sponsor arms + the allegiance auction *(v1.4)* · **AI-2e** subsidy visibility + remove-a-client · ∥ AI-4a steps 1–4 (refactor) | Europe talks: couriers with reasons, all three D5 instruments both directions, consent as a currency, Britain's purse visible, a minor's flip contested | pin 18 (deckless-neutral); the §4.2c delivery budget live; beats 1 + 4's envoy firing; pin 23; the re-check evidence pack assembled |
+| ⛩ **THE RE-CHECK** — D6's only remaining gate | — | — | user decides from data: D1's cap number; the living cut list (§11.2); AI-4c's economy deltas blessed (pin 17b); AI-5c keep or slip |
+| **D — War and Peace** *(indivisible — a war that can start must be able to end)* | **AI-3** the decision + §4.3a declaration contract · AI-4a steps 5–6 (producers + decay) · **AI-4b** third-party settlements + §4.4b coalition de-anchoring · **AI-4c** war-exhaustion generalisation · AI-2d join / broker arms · *AI-3b sealed articles + the purchased dispatch (slip 1)* | The first AI war: fore-warned, courted about, priced, endable — "let them bleed while France rearms" readable per war | pins 15 / 16 / 17 / 19 / 21 / 24; the DoD war lines (a war starts AND ends; exhaustion rises monotonically; France was courted); beats 2, 3, 6 and 7 firing. Internal order per D6 — AI-3 then AI-4 — but **nothing user-facing lands mid-stage**: harness-only until AI-4b/4c close the loop |
+| **E — Consequence and Character** | **AI-5** system wires (formations · vassals · econ · jealousy proxy · NA-5 as the coerce rung · recruitment) · **AI-5b(i)** emergent designs · *AI-5b(ii) the volte-face (slip 3)* · *AI-5c the Arbiter's Offer (v1.4, slip 2)* | Grievances become designs; generosity has a payoff; the arbiter finally arbitrates | pin 19 + the emergent-design assertions; beat 5 fired or its written predicate |
+| **F — The Stage** | **AI-6** cap + relevance weighting · **AI-6b** tempo + any beat no row claimed · **AI-6c** surface remainder | A dispatch that breathes: two routine lines, one foregrounded crisis, beats never buried | the narration pins (cap / exemption / never-collapsed); pin 20's live in-game pass |
+| **G — The Reckoning** | **AI-V** three arms + the scripted-France arm | — | the full §7 DoD; §7a ≥5-of-7 across the arm union; the scored creative pass in `docs/audits/` |
+
+### 11.2 Stage rules and the living cut list
+
+**Rules, so the table cannot be gamed:**
+
+- **Exactly two parallel tracks**, both v1.3-blessed no-behaviour-change refactors with their own
+  byte-identical pins: AI-2a beside Stage B, AI-4a steps 1–4 beside Stage C. Nothing else runs ahead
+  of its stage.
+- **Stage D is indivisible.** AI-3 alone is the one-way ratchet §4.4 names. The stage exits only
+  when, under the harness, an AI-initiated war has both started and ended.
+- **Beats land with their owning rows** (§4.6b's ownership rule): beat 1 with AI-2 · beat 4's envoy
+  with AI-2b, its war with AI-3 · beats 2 and 7 with AI-3 · beat 3 with AI-3's ladder gate (NA-5
+  exists today; intent starts driving it in Stage D, §4.5 completes the wire in E) · beat 6 with
+  AI-4b · beat 5 with AI-5b(ii). AI-6b owns the tempo rule and whatever no row claimed.
+- **Every `.gd`-touching row**: boot the engine, grep `SCRIPT ERROR`, parse harness EXIT=0 (pin 20,
+  the standing XR-1 rule).
+
+**The living cut list** — supersedes §9a's copy (kept there as the v1.3 record). Cuts happen only at
+the re-check or the exit review, and each entry names what it takes with it:
+
+1. **AI-3b** sealed articles, *including* the §12.4 purchased dispatch and player seal — both halves
+   go together. Takes §7a scene 7 and part of the DoD surprise line; §3.6's surprise budget then
+   rides AI-5b(i), which is Core and cheap.
+2. **AI-5c** the Arbiter's Offer *(v1.4)* — takes its beat variant; `arbiter_of_europe` stays a
+   stance line until the exit review. Nothing else depends on it.
+3. **AI-5b(ii)** the volte-face — takes beat 5 and §7a scene 4; the AI-V beats assertion amends
+   seven → six.
+4. **AI-2e's outbid arm** — takes §7a scene 5's France-bidding half; the visibility and
+   remove-a-client halves stay.
+5. **§3.5's upward-mirror assertion** — takes an AI-V arm-(b) row, never a DoD line.
+
+**Never cut: AI-4c.** §9a's closing rule stands — without it AI-3 ships the ratchet, and the ledger
+displays a *falling* exhaustion number for two powers grinding each other, which is worse than
+displaying nothing.
+
+---
+
+## 12. v1.4 — the creative & structure pass *(July 24, 2026)*
+
+A fresh-mind creative review with one constraint honoured throughout: **§6 is untouched.** Nothing
+below reopens D1–D7; every addition routes through machinery the gate already blessed, and two of
+them are definitions of words the gate record itself already used. The previous passes each asked
+one question — v1.2 asked *"what does the player do?"*, v1.3 asked *"is it true?"* — and this pass
+asks the one that remained: **"where are the missing reward loops, and what would the decade's own
+statesmen recognise as absent?"**
+
+**The gameplay verdict, first, because it was the brief.** The spine is right and this pass found no
+reason to move any of it: the price ladder, the participation surface, the sealed article, the
+seeded opening, the descent, the attractors. What was missing is narrow and characteristic of a spec
+grown by review rather than by play: the game rewards *escalation* with drama at every rung and
+rewards *successful prevention* with silence (§12.1); its marquee historical scene names an aim that
+has no object (§12.2); its counter-instruments all cost gold, in a game whose France is often
+gold-poor and permission-rich (§12.3); its one espionage surface has routes but no verb (§12.4); its
+most alive neutral design has a stance line but no behaviour (§12.5); and the moment §3.4 itself
+calls a minor's entire drama — the flip — happens *to* the player rather than being fought over
+(§12.6). Each addition names the gap, the history, the mechanic, the price, and the owner.
+
+### 12.1 The deterrence receipt — beat 7, "The Crisis Passes"
+
+**The gap.** §3.1a builds the descent, and §4.6a — before this pass — named six beats, every one of
+them an escalation or the resolution of somebody else's war. A player who *successfully deters* a war sees nothing: the
+guarantee holds, the crisis quietly stops being foregrounded, and the D5 instruments teach nothing
+at the exact moment they work. That is the worst reward loop a strategy game can ship — the payoff
+for the phase's most sophisticated play is the *absence of an event* — and it quietly breaks D4's
+promise too: if every foregrounded crisis always becomes a war, fore-warning is not warning, it is
+scheduling.
+
+**The history.** The period is full of wars that did not happen, and contemporaries experienced the
+stand-downs as *events*: the Ochakov crisis of 1791, where Pitt mobilised the fleet against Russia
+and then climbed down in public; Prussia's 1805 mobilisation — Haugwitz carried what was nearly an
+ultimatum toward Napoleon and, after Austerlitz, delivered congratulations instead. A Europe where
+crises only ever resolve one way is not the Europe this phase is modelling.
+
+**The mechanic.** A foregrounded crisis (beat 2) must end **on screen**, as exactly one of two
+beats: the fore-warned war, or **The Crisis Passes** — the stand-down, with its cause named and the
+instrument credited. *"Berlin stands down, Sire. The King will not test your guarantee of Hanover."*
+Cause taxonomy is the descent's own (§3.1a): bought off (b), deterred (the guarantee raised the
+`weight` bar past reach), starved (§3.2 opportunism decayed), or satisfied (a). Conservation of
+narrative, not added noise: a foregrounded crisis already owed the player an ending, so this beat
+adds zero net lines to the §4.6 budget and pin 13 is untouched — non-foregrounded ladder coolings
+stay quiet.
+
+**Price and owner.** Nearly free — the intent layer computes every input already; the beat rides
+beat 2's transports. Folds into **AI-6b**, lands in Stage D with beat 2. **Pin 21.** DoD gains the
+"deterrence is visible" line, and AI-V arm (b) scripts one instrument-caused defusal.
+
+### 12.2 The second design — Russia's "The Gulf and the Straits" (row AI-0d)
+
+**The gap, and it is structural.** §1 names *"Napoleon points Russia at Sweden at Tilsit"* as one of
+the four historical modes this phase exists to model. §3.6-4 defines the volte-face as a beaten
+power "reversed... and **aimed at a third party**." §7a scene 4 makes that acceptance. But Russia's
+authored deck holds exactly one design — `arbiter_of_europe`, a contain-the-hegemon posture — so a
+volte-faced Russia has **nothing to advance to**: the deck ends, the aim has no object, and the
+phase's marquee scene falls back to whichever nation happens to hold a design pointing somewhere
+convenient. Meanwhile D7's Tier-2 "deck order among equally-live designs" band is nearly vacuous
+where it matters most: among the majors, only Austria holds two live designs. Two gaps, one authored
+entry.
+
+**The history.** Finland boots Swedish on this map; Rumelia and Constantinople boot Ottoman. Russia
+took Finland in 1808–09 — Alexander's stated casus was the security of Petersburg, and the licence
+for it was agreed at Tilsit — and fought the Ottomans from 1806 to 1812 over the Danube and the
+road to the Straits, a war that ran the entire width of the Napoleonic wars. France played **both
+sides of the Eastern Question inside two years** — Sébastiani sent to stiffen the Porte in 1806,
+the Tilsit understanding aiming Alexander south and north in 1807 — which is exactly the two-handed
+game §3 wants on the player's desk. And the slow unwinding of those understandings — Oldenburg, the
+principalities, Poland — is the road to 1812: the licence mechanism (§12.3) carries its own sequel.
+
+**The authored entry** (behind `arbiter_of_europe`; the file's own blurb idiom):
+
+```json
+{
+  "id": "gulf_and_straits",
+  "type": "acquire_regions",
+  "title": "The Gulf and the Straits",
+  "regions": ["Finland", "Rumelia"],
+  "blurb": "Petersburg is shielded on the Gulf and completed at the Straits - the Tsar's two shores. A design that waits behind the war with France, and wakes the day that war is no longer the Tsar's concern."
+}
+```
+
+**Why it is safe, and what it unlocks.** Inactive at boot on every seed — `arbiter_of_europe` is
+live at boot (France's share 0.396 ≥ its 0.33 floor) and first-predicate-wins; Russia's deck gets
+**no order band** (no band → no variance, §3.8.1), so this cannot move the opening anywhere —
+**pin 22**. It activates by exactly two routes, both wanted: arbiter goes inactive (France genuinely
+contained — the late game gains an eastern storyline instead of a frozen board), or the volte-face
+retires it (Tilsit — the AI-5b(ii) clause v1.4 adds). Its two victims collide with two authored
+designs — Sweden's `scourge_of_the_usurper` and the Ottoman `guard_the_straits`, giving the guard
+type its first real thing to guard against — and both targets are non-capital provinces, so the wars
+it generates end in settlements, not eliminations (D2 untouched; the victims survive their loss
+exactly as Sweden and the Porte did). It is AI-3's most natural far-from-France war, the relevance
+weighting's first real subject, the licence's marquee use, and `against` is derived per §3's own
+machinery — the intent layer, not the deck, decides which shore first, which is §3.2's opportunism
+doing character work.
+
+**And Austria gets the variance instead.** AI-0c authors its deck-order band over Austria's
+*existing* pair — `redeem_italy` / `primacy_germany` — because that is the one place deck order was
+genuinely contested in 1805: the Vienna war council's actual debate, Charles arguing Italy the main
+theatre while Mack marched on the Iller. A seed where Austria opens Germany-first is not an
+ahistorical seed; it is the other half of the real deployment.
+
+**Price and owner.** Authoring + the validator that already validates decks + pin 22. Row
+**AI-0d**, Core, lands with AI-0c in Stage A. The cheapest line in the phase per unit of payoff.
+
+### 12.3 The licence — sponsorship at gold zero *(a definition, not a new instrument)*
+
+D5-2's own gate text reads *"subsidise **or licence** another nation's design against a third
+party."* The subsidy half got AI-2b's directed record; the licence half was never defined. Define
+it: **a directed sponsorship with `amount_per_turn: 0`, whose consideration is the licensor's
+committed non-interference.** Same record, same seams, one semantic: the licensor has sold not gold
+but *permission*, and the §3.3 machinery holds the bond — the licensor entering the licensed war
+against its recipient, or guaranteeing its target, is **reneging**, the highest-weight casus belli
+in the game (**pin 23**, both directions — an AI hegemon may licence too, GR5).
+
+It is also the exact inverse of §4.2b's sell-neutrality — one record shape, opposite flow — so the
+build mints **one** record, not two. History: Tilsit's green-lights cost Napoleon nothing but
+consent, and consent turned out to be the most expensive thing he ever sold. Gameplay: a gold-poor
+France gains the currency it always has; *"drop your design on my provinces and I will bless your
+design on his"* — the deflection trade — becomes playable without a treasury, and every licence
+granted is a §3.3 hostage the player chose to hand over. Price: ~zero beyond AI-2b. Folds into
+**AI-2b**, Stage C.
+
+### 12.4 The purchased dispatch, and the player's own seal *(AI-3b's principle-7 half)*
+
+**The gap.** Pin 12 makes every sealed article discoverable and lists only *passive* routes —
+rumour, a diplomat's read, a defection, money in a ledger. Principle 7 says no mechanic lands
+without its answering instrument in the same slice. Applied to AI-3b itself, that demands **an
+active discovery verb**: pay Talleyrand's network to buy the text of a known meeting. The fact of
+the meeting is always public (§3.6), so the player always has a handle to pull; the purchase is
+deterministic and priced, through the standard 12-step action checklist. History: the *cabinet
+noir*; every court of the period bought dispatches, and Talleyrand himself sold France's secrets to
+Austria and Russia from 1808 — the man will hardly object to running the trade in the other
+direction.
+
+**And the seal cuts both ways (GR5).** France's own licence- and sponsorship-class bargains may be
+sealed for a premium — hidden from third-party *reaction* until discovered. Implementation stays
+cheap because intent is derived: masking happens at the intent/threat derivation chokepoint — a
+court's read simply excludes articles it is not party to and has not discovered — one site, not N
+producer sites, with discovery state carried on the article record. On discovery, the deferred
+reaction fires **in full** plus an "the article is out" beat: sealing defers consequence, never
+deletes it, and no disposition is sealable by anyone (**pin 24** — pin 11's boundary holds against
+the player too). That converts the sealed article from AI flavour into a player risk instrument —
+seal the Tilsit licence and race Britain's spies — which is the period's actual texture: half of
+Europe's chanceries spent the decade paying to read the other half's mail.
+
+**Price and owner.** Honest: article record + input masking + discovery state + one action. It is
+why this stays **inside AI-3b** and why cut-list entry 1 takes both halves together.
+
+### 12.5 The Arbiter's Offer — armed mediation (row AI-5c, may slip)
+
+**The gap.** `arbiter_of_europe` is the most alive design in the boot deck — and its only behaviour
+is a stance line. The audit read it aloud (*"correctly reads France's hegemony share"*) and that is
+all it does. §3.4 promises Russia "intervenes far from home on principle"; the peacetime half of
+that character does not exist.
+
+**The mechanic.** A non-belligerent major with a live contain/arbiter design **offers to mediate a
+French war** above an exhaustion floor: suggested terms through the existing incoming-settlement
+machinery, delivered as a Courier variant, the mediator's interest named. Accept → the settlement
+review opens with the mediator credited (relations, design satisfaction). Refuse → **derived
+consequence only** in v1: the mediator's weight against France rises and relations drop — no new
+threat namespace, no auto-join. The elegance is what happens next without a single bespoke wire:
+that weight rise feeds the mediator's own ladder, its statecraft does the rest (Austria builds a
+bloc, Russia sponsors), and refusing mediation *becomes* the ramp toward the next coalition — which
+is Prague 1813 reproduced by machinery rather than scripted. History: Russia's 1806 mediation
+feelers; Metternich's armed mediation of 1813, the ladder rung between neutrality and the Sixth
+Coalition.
+
+**Price and owner.** Medium-small: an ask type on the existing transport + suggested-terms reuse +
+one derived consequence. Row **AI-5c**, Stage E, **may slip at the re-check** (cut list #2).
+AI-vs-AI mediation — a court brokering someone *else's* war — is explicitly deferred to the exit
+review; the player-facing half is the fun half.
+
+### 12.6 The allegiance auction — a minor's flip is contested *(inside AI-2d)*
+
+§3.4's own words: a minor's aliveness *is* its timing — "the moment it chose a side." §4.2b makes
+wars courtable. Combine them: when a minor's bandwagon readiness crests, the flip is announced as
+**in play** — a Courier beat — and both the hegemon and its rival may bid through the same D5
+instruments before it resolves by lean + light profile. History: Bavaria, September 1805 — courted
+by both empires, invaded by one, signed with the other in secret at Bogenhausen (a sealed-article
+natural, if AI-3b lands). Saxony, 1806. Gameplay: the bandwagon rung becomes a contest the player
+can *narrowly lose* rather than a weather event, and the D5 instruments get a second theatre.
+Price: an eligibility predicate + the beat + best-standing-offer resolution over records that
+already exist. Folds into **AI-2d's Stage C half**.
+
+### 12.7 What this pass deliberately did not add
+
+Recorded so the restraint is auditable, in the §10 discipline: **no espionage system** (one verb,
+§12.4, priced and deterministic — an agent network with placement and counter-intelligence is a
+different game); **no mediation teeth beyond derived weight** (an auto-join on refusal would mint a
+new PEACE→WAR edge and violate §4.3a); **no second designs beyond Russia's** (Prussia, Britain and
+the minors' decks are correctly shaped — more authored appetite is exactly the drift pin 1 exists
+to stop, and Austria's variance need is served by ordering, not content); **no beat for
+non-foregrounded coolings** (the tail stays quiet or pin 13 dies by a thousand stand-down notices);
+and **no reopening of the §9a scope arithmetic** — the two genuine additions here (AI-0d authoring,
+AI-5c) are priced above and one of them may slip.
+
+### 12.8 Review record
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | Deterrence succeeds invisibly — the D5 instruments have no success feedback, and a foregrounded crisis could evaporate silently | **§12.1** beat 7 · pin 21 · DoD line |
+| 2 | §7a scene 4's aim has no object: a volte-faced Russia's deck ends at `arbiter_of_europe`; the Tier-2 deck-order band is vacuous for every major but Austria | **§12.2** row AI-0d · pin 22 · the AI-5b(ii) retire clause · Austria's order band |
+| 3 | D5-2 says "or licence" and the licence was never defined; sell-neutrality had no proactive mirror | **§12.3** the amount-0 arm of AI-2b · pin 23 |
+| 4 | Pin 12's discovery routes are all passive — principle 7 was never applied to AI-3b itself; and the seal was AI-only, which is a GR5 asymmetry | **§12.4** the purchased dispatch + player seal · pin 24 |
+| 5 | `arbiter_of_europe` has a stance line and no behaviour; §3.4's "intervenes on principle" had no peacetime expression | **§12.5** row AI-5c (may slip) |
+| 6 | The minors' one dramatic moment — the flip — is uncontested weather | **§12.6** inside AI-2d |
+| 7 | The document itself: four passes of sediment, build scope collated from five sections, no stage structure | **§11** the phased build plan · the compact header · the living cut list |
+
+**What the pass did *not* touch, so its restraint is on the record like its predecessors':** §6
+D1–D7 stand untouched; no v1.3 correction is reopened and no §10 row is contradicted; the §9a scope
+arithmetic and cut-priority stand (AI-5c slots at #2 without displacing the never-cut rule on
+AI-4c); every §5 pin 1–20 stands unedited; and the beat count is the only number this pass moved
+anywhere in the acceptance layer (six → seven, with the AI-V arm map extended to match).

@@ -6,6 +6,58 @@
 
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
+### 🧠 AI INTENT SPEC v1.4 ✅ July 24, 2026 — the structure & creative pass (docs-only)
+
+**Docs-only session** (user: *"review with a fresh mind… feel free to add ideas, refine it, assure it
+makes for good gameplay… creatively, use history… I want an easy to follow and phased spec"*).
+`AI_INTENT_SPEC.md` bumped **v1.3 → v1.4**; **§6 (D1–D7) untouched, no v1.3 correction reopened.**
+Two deliverables:
+
+**1. Structure — §11 is now the phased build plan and the document's front door.** After four review
+passes, build scope had to be collated from five places (D6, three §8 owner tables, §9a's cut list,
+the acceptance sections). §11 restates the whole phase as **Stages A–G** — A the dice & bounds
+(AI-0b/0c/0d) → B Europe shows its hand (AI-1/1b ∥ AI-2a) → C the bargaining table (AI-2 family ∥
+AI-4a steps 1–4) → ⛩ the D6 re-check → **D war & peace, ruled INDIVISIBLE** (AI-3 + AI-4a-c +
+AI-3b — a war that can start must be able to end; nothing user-facing lands mid-stage) → E
+consequence & character (AI-5 family) → F the stage (AI-6 family) → G the reckoning (AI-V) — each
+stage with rows, what-the-player-has, and exit criteria; beat-to-stage ownership mapped; **the
+living cut list moved to §11.2** (§9a's copy marked as the v1.3 record); a turn-14 player vignette
+states what the phase feels like when done. The 69-line version-archaeology header was rebuilt as a
+reading map + version table (narratives live on in §9/§9a/§10). **All existing §-numbers stable —
+zero cross-reference churn.**
+
+**2. Creative — §12, six additions, each with history/mechanic/price/owner (record table §12.8):**
+(1) **the deterrence receipt** — beat 7 "The Crisis Passes" + pin 21 + a DoD line: a foregrounded
+crisis must END on screen, cause named and instrument credited — D5's success case was invisible
+(the guarantee that works produced *nothing*), and every-crisis-becomes-war would have collapsed D4's
+"only timing is uncertain" into scheduling (Ochakov 1791; Haugwitz after Austerlitz); (2) **Russia's
+second design** `gulf_and_straits` (`acquire_regions` [Finland, Rumelia], authored BEHIND
+`arbiter_of_europe`; row **AI-0d**, pin 22 = inactive at boot on EVERY seed) — found: **§7a scene 4
+(Tilsit) was structurally unsatisfiable**, a volte-faced Russia had nothing to advance to since its
+deck ends at arbiter, so "aimed at a third party" had no object; the entry also gives AI-3 its
+natural far-from-France war (the Finnish War / Russo-Turkish 1806 — both targets non-capital, so
+D2-safe by construction), and the AI-5b(ii) row gains the retire-the-contain-design clause; deck-
+order variance re-pointed at **Austria's existing pair** (Italy-first vs Germany-first — the actual
+Vienna war-council debate); (3) **the licence** — D5-2's own word, now defined: a directed
+sponsorship at `amount_per_turn: 0` whose consideration is committed non-interference, pin 23 (a
+licence is a bond both directions; ONE record shared with sell-neutrality; Tilsit's green-lights, and
+their unwinding is the road to 1812); (4) **the purchased dispatch + the player's own seal** —
+AI-3b's principle-7 half, pin 24: an active, priced, deterministic discovery verb (the cabinet noir;
+Talleyrand's trade run in reverse), and France may seal its own licence-class articles for a premium
+— masking defers third-party reads at the intent-derivation chokepoint (one site), discovery fires
+the deferred reaction IN FULL, dispositions never sealable; (5) **the Arbiter's Offer** (row
+**AI-5c**, may slip — cut list #2): armed mediation gives `arbiter_of_europe` its missing behaviour;
+refusal consequence derived-only, and the weight rise feeding the existing ladder + statecraft IS
+Prague 1813 by machinery, no bespoke wire; (6) **the allegiance auction** (inside AI-2d): a minor's
+flip announced as in-play and biddable by both sides before it resolves (Bavaria, September 1805 —
+courted by both empires, signed in secret at Bogenhausen; a sealed-article natural). Beats now
+**seven**; pins **21–24**; §12.7 records what was deliberately NOT added (no espionage system, no
+mediation auto-join, no further second designs).
+
+**Files:** `AI_INTENT_SPEC.md` (v1.4), CLAUDE.md AI row, ROADMAP row AI, this entry. **No code, no
+tests, suite untouched.** Build order unchanged: BD → Stage A. **▶ NEXT: user in-game review of
+NA-6c+NA-6d, then Battle Diorama (row BD), then §11 Stage A.**
+
 ### 🧠 AI INTENT DESIGN GATE ✅ HELD July 20, 2026 — `AI_INTENT_SPEC.md` **v1.2**, §6 authoritative
 
 **Docs-only session.** The v0.1 spec's six open questions were decided under the user's delegated
