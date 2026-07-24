@@ -28,6 +28,7 @@
         "France|KingdomOfItaly": "VASSAL",
         "France|Switzerland": "VASSAL"
     },
+    "_variance_comment": "AI-0c (docs/AI_INTENT_SPEC.md 3.8.1, D7): authored variance bands. A relation entry may be a band-carrying object {value, band:[lo,hi]} - the campaign seed resolves it inside the band; the historical seed (or unset SOVEREIGN_SEED) always resolves to `value`, today's boot byte-for-byte. No band = no variance. Banded here: Prussia's disposition (the definitional 1805 contingency), the starting grudges (Austria-Prussia over Germany, Russia-Ottoman over the straits, Prussia-Hanover), the minors' lean, and the intra-coalition warmth that picks Britain's first subsidy client. starting_wars pairs are deliberately unbanded (the validator would clamp any band to below the -60 armistice-first line). threat_level_band varies the campaign's central pressure narrowly - widening it escalates.",
     "nation_relations": {
         "Britain|France": -90,
         "Austria|France": -80,
@@ -36,9 +37,9 @@
         "Austria|Bavaria": -80,
         "Britain|Holland": -80,
         "Austria|KingdomOfItaly": -80,
-        "Britain|Russia": 70,
+        "Britain|Russia": {"value": 70, "band": [55, 75]},
         "Bavaria|France": 60,
-        "Austria|Britain": 60,
+        "Austria|Britain": {"value": 60, "band": [50, 70]},
         "Austria|Russia": 60,
         "Britain|Sweden": 50,
         "France|Spain": 40,
@@ -46,20 +47,23 @@
         "Russia|Sweden": 40,
         "Naples|Russia": 40,
         "Britain|Naples": 30,
-        "Prussia|Russia": 30,
-        "Ottoman|Russia": 20,
-        "Denmark|France": 10,
-        "France|Prussia": -10,
-        "France|Saxony": -10,
+        "Prussia|Russia": {"value": 30, "band": [15, 45]},
+        "Ottoman|Russia": {"value": 20, "band": [5, 30]},
+        "Denmark|France": {"value": 10, "band": [0, 20]},
+        "Austria|Prussia": {"value": 0, "band": [-15, 8]},
+        "Hanover|Prussia": {"value": 0, "band": [-12, 6]},
+        "France|Prussia": {"value": -10, "band": [-25, 5]},
+        "France|Saxony": {"value": -10, "band": [-20, 5]},
         "France|Portugal": -10,
         "France|PapalStates": -10,
         "France|Ottoman": -20,
-        "France|Naples": -30,
+        "France|Naples": {"value": -30, "band": [-45, -15]},
         "France|Hanover": -50,
         "France|Sweden": -60,
         "France|Sardinia": -70
     },
     "threat_level": 85,
+    "threat_level_band": [80, 90],
     "coalition_count": 1,
     "active_coalition": {
         "id": "coalition_1",
@@ -621,7 +625,7 @@
             }
         ]
     },
-    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only.",
+    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot.",
     "agendas": {
         "Austria": [
             {
@@ -629,6 +633,7 @@
                 "type": "acquire_regions",
                 "title": "Redeem Italy",
                 "regions": ["Milan", "Piedmont", "Savoy"],
+                "order_group": 1,
                 "blurb": "The priority theater of 1805 - Charles holds the main army in Italy; the losses of Campo Formio and Luneville must be undone."
             },
             {
@@ -636,6 +641,7 @@
                 "type": "acquire_regions",
                 "title": "Primacy in Germany",
                 "regions": ["Munich", "Swabia"],
+                "order_group": 1,
                 "blurb": "Mack's thrust to the Iller - Bavaria's defection to France must be punished and the German lands held for the Habsburg crown."
             }
         ],
@@ -678,6 +684,13 @@
                 "title": "Arbiter of Europe",
                 "share_floor": 0.33,
                 "blurb": "Alexander campaigns as the guardian of the European order - the Tsar fights the hegemon while the coalition stands."
+            },
+            {
+                "id": "gulf_and_straits",
+                "type": "acquire_regions",
+                "title": "The Gulf and the Straits",
+                "regions": ["Finland", "Rumelia"],
+                "blurb": "Petersburg is shielded on the Gulf and completed at the Straits - the Tsar's two shores. A design that waits behind the war with France, and wakes the day that war is no longer the Tsar's concern."
             }
         ],
         "Sweden": [

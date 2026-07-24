@@ -97,7 +97,10 @@ class TestWarRoom:
         for row in ctx["wars"]:
             # NA-1 (July 17, 2026): each war row now carries the
             # belligerents' agenda payloads for the design lines.
-            assert set(row) == {"opponent", "war_score", "trend", "agendas"}
+            # AI-1 (July 24, 2026): + the intent payloads — the war room
+            # names each court's PRICE beside its design.
+            assert set(row) == {"opponent", "war_score", "trend",
+                                "agendas", "intents"}
         # ONE recommendation, never a list, ending in an executable option
         assert ctx["recommendation"] is not None
         executable = dialogue["options"][0]

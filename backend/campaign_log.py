@@ -90,6 +90,8 @@ CAMPAIGN_LOG_TYPES = {
     "diplomatic_treaty_broken",
     "diplomatic_alliance_cascade",
     "diplomatic_ai_ai_treaty",
+    # AI-2a: the court-to-court refusal moment (§5 pin 8's public half)
+    "ai_ai_proposal_refused",
     "commitment_paradox_resolved",
     # Deep audit fix: missing event types
     "war_declaration",
@@ -270,6 +272,7 @@ CATEGORY_MAP = {
     "diplomatic_treaty_broken": "diplomacy",
     "diplomatic_alliance_cascade": "diplomacy",
     "diplomatic_ai_ai_treaty": "diplomacy",
+    "ai_ai_proposal_refused": "diplomacy",
     "commitment_paradox_resolved": "diplomacy",
     # Deep audit fix: missing event types
     "war_declaration": "diplomacy",
@@ -606,6 +609,11 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         if event_type in ("diplomatic_treaty_signed", "diplomatic_war_declared",
                           "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
                           "diplomatic_ai_ai_treaty",
+                          # AI-2a review fix [14]: the court-to-court refusal
+                          # rides the same visibility arm as its treaty
+                          # sibling — without this branch the event was
+                          # silently dropped and NO surface showed it.
+                          "ai_ai_proposal_refused",
                           "balance_of_europe_shifted",
                           "call_to_arms_refused_defensive",
                           "call_to_arms_refused_offensive",
@@ -616,6 +624,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             for key in (
                 "nation", "nation_a", "nation_b", "target", "aggressor",
                 "breaker", "victim", "honorer", "hegemon", "speaker_nation",
+                "proposer", "recipient", "refused_by",
             ):
                 val = event.get(key)
                 if val:
@@ -1404,6 +1413,15 @@ def format_event_oneliner(event: dict) -> str:
         nation_b = event.get("nation_b", "Unknown")
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
         return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
+
+    if event_type == "ai_ai_proposal_refused":
+        # AI-2a: the court-to-court refusal — the ask happened, was
+        # rebuffed, and the balance of power is WITNESSED (§3.4).
+        proposer = event.get("proposer", "Unknown")
+        refused_by = event.get("refused_by") or event.get("recipient",
+                                                          "Unknown")
+        ptype = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{refused_by} rebuffs {proposer} ({ptype})"
 
     # Deep audit fix: new event types
     if event_type == "war_declaration":

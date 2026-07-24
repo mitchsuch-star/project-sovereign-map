@@ -174,6 +174,10 @@ def _reset_world_state(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState
 
 _reset_world_state()
 print(f"SOVEREIGN_MAP: {world.sovereign_map} ({len(world.regions)} regions)")
+# AI-0b boot banner: the seed is reported here but its default lives in
+# WorldState.__init__ (SOVEREIGN_SEED env) — it is orthogonal to the
+# scenario-path precedence chain above, not a rung in it (spec §3.8.1).
+print(f"SOVEREIGN_SEED: campaign seed {world.campaign_seed!r}")
 
 
 def get_llm_game_state() -> dict:

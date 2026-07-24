@@ -425,13 +425,20 @@ def _validate_aggrieved_list(result, path: str, aggrieved: Any) -> None:
 
 
 def _validate_agenda_deck(result, key_path: str, deck: Any,
-                          all_region_names: Any) -> None:
+                          all_region_names: Any,
+                          allow_order_group: bool = True) -> None:
     """Validate ONE agenda deck (an ordered list of entries).
 
     Extracted at NA-6c so the `formable_nations` template `deck` is held
     to the exact same schema as an authored `agendas` deck — a carved
     client's dormant deck is a real deck, and a second hand-rolled
     validation would drift from this one the first time either changed.
+
+    AI-0c: `allow_order_group=False` for formable-template decks — the
+    seed resolver only permutes `scenario_data["agendas"]`, so an order
+    band on a dormant template would be a silent no-op on every seed AND
+    the key would leak into the serialized world unstripped (review fix
+    [1]). No resolver, no band.
     """
     if not isinstance(deck, list):
         result.add_error(key_path, f"Must be a list, got {type(deck).__name__}")
@@ -505,6 +512,220 @@ def _validate_agenda_deck(result, key_path: str, deck: Any,
         if "forms" in entry:
             _validate_forms_block(
                 result, path, entry.get("forms"), agenda_type)
+        # AI-0c (docs/AI_INTENT_SPEC.md §3.8.1) — the deck-order band.
+        # Entries sharing an `order_group` value are equally-live designs
+        # the campaign seed may reorder; malformed is an ERROR (a silent
+        # no-op band would read as variance that never happens).
+        if "order_group" in entry:
+            if not allow_order_group:
+                result.add_error(
+                    f"{path}.order_group",
+                    "order_group is only valid in the top-level `agendas` "
+                    "decks — the seed resolver never permutes a dormant "
+                    "formable-template deck, so the band would be a "
+                    "silent no-op")
+                continue
+            group = entry.get("order_group")
+            if (not isinstance(group, int) or isinstance(group, bool)
+                    or group < 1):
+                result.add_error(
+                    f"{path}.order_group",
+                    f"Must be a positive integer, got {group!r}")
+
+    if allow_order_group:
+        _validate_deck_order_groups(result, key_path, deck)
+
+
+def _validate_deck_order_groups(result, key_path: str, deck: Any) -> None:
+    """AI-0c: order_group structural rules for one deck.
+
+    A group's members must be CONTIGUOUS in the deck — the seed permutes
+    within a run and never moves an entry past an ungrouped one, so a
+    split group would silently become two independent runs (ERROR). A
+    single-member group is a no-op band (WARNING).
+    """
+    if not isinstance(deck, list):
+        return
+    runs: dict = {}          # group value -> list of contiguous run lengths
+    previous_group = None
+    for entry in deck:
+        group = entry.get("order_group") if isinstance(entry, dict) else None
+        if isinstance(group, bool) or not isinstance(group, int):
+            group = None
+        if group is not None and group == previous_group:
+            runs[group][-1] += 1
+        elif group is not None:
+            runs.setdefault(group, []).append(1)
+        previous_group = group
+    for group, run_lengths in runs.items():
+        if len(run_lengths) > 1:
+            result.add_error(
+                f"{key_path}.order_group",
+                f"order_group {group} appears in {len(run_lengths)} "
+                f"non-contiguous runs — a group's entries must be "
+                f"adjacent in the deck")
+        elif run_lengths[0] < 2:
+            result.add_warning(
+                f"{key_path}.order_group",
+                f"order_group {group} has a single member — the band "
+                f"varies nothing")
+
+
+def _validate_nation_relations(result, data: dict) -> None:
+    """AI-0c (docs/AI_INTENT_SPEC.md §3.8.1): nation_relations entries.
+
+    An entry is a bare int (fixed, today's shape) or the band-carrying
+    object {"value": int, "band": [lo, hi]} — the trust `{"value": N}`
+    authoring idiom. The clamps, per the envelope contract:
+      - the band must CONTAIN the authored value (the historical seed
+        resolves to the centre, which must itself be in-band);
+      - a band on a pair appearing in `starting_wars` must sit entirely
+        below the −60 armistice-first line (ARMISTICE_AUTO_PEACE_RELATION,
+        diplomacy.py) — a seed may make a war colder or warmer, never flip
+        its truce-expiry behaviour.
+    The authored boot *state* (WAR/ALLIANCE/VASSAL) is never derived from
+    a relation value, so a band cannot change it mechanically; the clamp
+    above is the one documented behavioural threshold a boot band could
+    actually cross. Runtime never re-clamps — the validator is the gate.
+    """
+    relations = data.get("nation_relations")
+    if relations is None:
+        return
+    if not isinstance(relations, dict):
+        result.add_error(
+            "nation_relations",
+            f"Must be an object, got {type(relations).__name__}")
+        return
+
+    from backend.game_logic.diplomacy import ARMISTICE_AUTO_PEACE_RELATION
+
+    war_pairs = set()
+    for entry in (data.get("starting_wars") or []):
+        if isinstance(entry, dict):
+            attacker = str(entry.get("attacker") or "").strip()
+            defender = str(entry.get("defender") or "").strip()
+            if attacker and defender:
+                war_pairs.add("|".join(sorted([attacker, defender])))
+
+    for pair, entry in relations.items():
+        path = f"nation_relations.{pair}"
+        parts = str(pair).split("|")
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            result.add_error(path, "Pair key must be 'NationA|NationB'")
+            continue
+        if parts[0] == parts[1]:
+            result.add_error(path, "A nation cannot relate to itself")
+            continue
+        if parts != sorted(parts):
+            # An unsorted key is unreachable at runtime (_make_diplo_key
+            # sorts on every read/write) — a silently dead entry.
+            result.add_error(
+                path,
+                f"Pair key must be alphabetically sorted "
+                f"('{'|'.join(sorted(parts))}')")
+            continue
+        for nation in parts:
+            if nation not in VALID_NATIONS:
+                result.add_warning(
+                    path, f"References unknown nation '{nation}'")
+
+        if isinstance(entry, bool):
+            result.add_error(path, f"Must be an integer, got {entry!r}")
+            continue
+        if isinstance(entry, int):
+            if not -100 <= entry <= 100:
+                result.add_error(
+                    path, f"Relation must be in [-100, 100], got {entry}")
+            continue
+        if not isinstance(entry, dict):
+            result.add_error(
+                path,
+                f"Must be an integer or a band object "
+                f"{{'value': int, 'band': [lo, hi]}}, "
+                f"got {type(entry).__name__}")
+            continue
+
+        value = entry.get("value")
+        if (not isinstance(value, int) or isinstance(value, bool)
+                or not -100 <= value <= 100):
+            result.add_error(
+                f"{path}.value",
+                f"Must be an integer in [-100, 100], got {value!r}")
+            continue
+        band = entry.get("band")
+        if band is None:
+            result.add_error(
+                f"{path}.band",
+                "A band object requires a 'band' [lo, hi] — author a "
+                "bare integer for a fixed relation (no band, no variance)")
+            continue
+        if (not isinstance(band, list) or len(band) != 2
+                or any(isinstance(b, bool) or not isinstance(b, int)
+                       for b in band)):
+            result.add_error(
+                f"{path}.band",
+                f"Must be [lo, hi] with integer bounds, got {band!r}")
+            continue
+        lo, hi = band
+        if lo > hi:
+            result.add_error(
+                f"{path}.band", f"lo must be <= hi, got [{lo}, {hi}]")
+            continue
+        if not (-100 <= lo and hi <= 100):
+            result.add_error(
+                f"{path}.band",
+                f"Band must sit inside [-100, 100], got [{lo}, {hi}]")
+            continue
+        if not lo <= value <= hi:
+            result.add_error(
+                f"{path}.band",
+                f"Band [{lo}, {hi}] must contain the authored value "
+                f"{value} (the historical seed resolves to it)")
+        if pair in war_pairs and hi >= ARMISTICE_AUTO_PEACE_RELATION:
+            result.add_error(
+                f"{path}.band",
+                f"Pair boots at war: the band must sit entirely below "
+                f"the {ARMISTICE_AUTO_PEACE_RELATION} armistice-first "
+                f"line, got hi={hi}")
+
+
+def _validate_threat_level_band(result, data: dict) -> None:
+    """AI-0c: the sibling `threat_level_band` [lo, hi] — must contain the
+    authored `threat_level` and sit inside [0, 100]. Narrow by design
+    (the campaign's central pressure, D3): widening the envelope
+    escalates, but that is design review, not schema."""
+    if "threat_level_band" not in data:
+        return
+    band = data.get("threat_level_band")
+    if (not isinstance(band, list) or len(band) != 2
+            or any(isinstance(b, bool) or not isinstance(b, int)
+                   for b in band)):
+        result.add_error(
+            "threat_level_band",
+            f"Must be [lo, hi] with integer bounds, got {band!r}")
+        return
+    lo, hi = band
+    if lo > hi or not (0 <= lo and hi <= 100):
+        result.add_error(
+            "threat_level_band",
+            f"Bounds must satisfy 0 <= lo <= hi <= 100, got [{lo}, {hi}]")
+        return
+    threat = data.get("threat_level")
+    if not isinstance(threat, int) or isinstance(threat, bool):
+        # Review fix [0]: a band with no authored centre would make the
+        # historical seed (threat absent -> 0) and every variance seed
+        # (80-90) diverge STRUCTURALLY — the exact thing the envelope
+        # contract forbids. No centre, no band.
+        result.add_error(
+            "threat_level_band",
+            "Requires an authored integer `threat_level` beside it — the "
+            "historical seed resolves to the centre, which must exist")
+        return
+    if not lo <= threat <= hi:
+        result.add_error(
+            "threat_level_band",
+            f"Band [{lo}, {hi}] must contain the authored threat_level "
+            f"{threat} (the historical seed resolves to it)")
 
 
 def validate_scenario(
@@ -946,11 +1167,19 @@ def validate_scenario(
 
                 # The client's own deck - held to the identical schema as an
                 # authored `agendas` deck (it IS one; it simply lies dormant
-                # while the client answers to a lord, §3.2).
+                # while the client answers to a lord, §3.2). AI-0c: except
+                # order_group — the seed resolver never reaches a dormant
+                # template, so a band here is rejected, not ignored.
                 if "deck" in template:
                     _validate_agenda_deck(
                         result, f"{path}.deck", template.get("deck"),
-                        all_region_names)
+                        all_region_names, allow_order_group=False)
+
+    # AI-0c (docs/AI_INTENT_SPEC.md §3.8.1): the authored variance envelope
+    # — nation_relations band objects and the threat_level sibling band.
+    # (Deck order_group is validated inside _validate_agenda_deck.)
+    _validate_nation_relations(result, data)
+    _validate_threat_level_band(result, data)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

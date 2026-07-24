@@ -55,6 +55,9 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         "authority": int(authority),
         "authority_label": authority_label,
         "actions_remaining": int(world.actions_remaining),
+        # AI-0b: the campaign seed, shown and shareable — a good opening can
+        # be replayed or reported against (docs/AI_INTENT_SPEC.md §3.8.1).
+        "campaign_seed": str(getattr(world, "campaign_seed", "historical")),
     }
 
 

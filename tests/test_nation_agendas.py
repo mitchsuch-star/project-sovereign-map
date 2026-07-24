@@ -163,11 +163,18 @@ class TestPredicatesAndPriority:
         assert view is None or view.id != "low_countries"
 
     def test_contain_inactive_inside_hegemon_bloc(self, world):
+        # Pin flipped consciously at AI-0d (docs/AI_INTENT_SPEC.md §12.2):
+        # Russia allied INTO the hegemon's bloc still deactivates
+        # arbiter_of_europe (the contain predicate this test pins), but the
+        # deck no longer ends there — the second design, gulf_and_straits,
+        # takes over by deck priority. That is the Tilsit route: a Russia
+        # in France's camp turns toward the Gulf and the Straits.
         key = world._make_diplo_key("Russia", "France")
         world.diplomatic_states[key] = "ALLIANCE"
         world.invalidate_bloc_members_cache()
         world.invalidate_active_nations_cache()
-        assert get_active_agenda("Russia", world) is None
+        view = get_active_agenda("Russia", world)
+        assert view is not None and view.id == "gulf_and_straits"
 
     def test_paymaster_activates_when_deny_satisfied(self, world):
         # Strip the Low Countries from the French bloc -> low_countries

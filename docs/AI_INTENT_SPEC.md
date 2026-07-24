@@ -25,6 +25,7 @@
 > | v1.2 | July 20, 2026 | the gameflow pass — §3.5 mirror · §3.6 surprises · §3.7 the auction · §4.2b participation · §4.6a beats · §7a scenes · §3.8 variance (its own correction: the AI layer has zero randomness and no campaign seed existed); **D7 decided same day** — the opening is seeded too, within authored bounds (§3.8.1) | §9 |
 > | v1.3 | July 21, 2026 | the verification pass — ten ground-truth readers, ten lenses, two refuters per finding; **19 factual corrections** (row AI-0 deleted; the historian test's false clause; third-party war exhaustion *decays*); §3.1a the descent · §3.9 attractors · §2 principle 9; contracts §4.2c / §4.3a / §4.4a steps 5–6 / §4.4b / §4.6b; pins 15–20; AI-V three arms | §9a, §10 |
 > | **v1.4** | **July 24, 2026** | **the structure & creative pass — §11 the phased build plan (the builder's front door); §12 six gameplay additions: the deterrence receipt · Russia's second design · the licence · the purchased dispatch + the player's seal · armed mediation · the allegiance auction; pins 21–24; beat 7** | **§11, §12** |
+| v1.4.1 | July 24, 2026 | §13 the standing review questions (user-directed): border massing (new row AI-3c, Stage D) · multi-front conduct (AI-V assertions) · recruit/commission budgeting (the §8 economy re-measure) · AI-vs-AI wars (=Stage D) · the non-France hegemon (=D3 + pin 16d). **Same day: Stage A (AI-0b/0c/0d) and Stage B (AI-1/AI-1b/AI-2a) BUILT — landing record §14.** | §13, §14 |
 >
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, re-verified against master at `12636a6` (v1.0) and
@@ -2306,3 +2307,129 @@ D1–D7 stand untouched; no v1.3 correction is reopened and no §10 row is contr
 arithmetic and cut-priority stand (AI-5c slots at #2 without displacing the never-cut rule on
 AI-4c); every §5 pin 1–20 stands unedited; and the beat count is the only number this pass moved
 anywhere in the acceptance layer (six → seven, with the AI-V arm map extended to match).
+
+---
+
+## 13. Standing review questions *(v1.4.1 — user-directed, July 24, 2026)*
+
+Six questions the user put to the phase at the Stage A/B build session, recorded here so the
+re-check and AI-V review them against evidence rather than memory. Each row names where the spec
+already answers, and what remains open with its owner. **Nothing here reopens §6.**
+
+| # | Question | Where the spec answers it today | What remains open — owner |
+|---|---|---|---|
+| Q1 | **Do the AI nations position troops on their borders — does the army agree with the ledger?** | Partially, and only as *reading*: NA-3 §5.6 biases enemy target-choice toward covets, and AI-1b's mirror reads FRANCE'S positions as intent ("his corps stand against their soil"). Nothing yet makes an AI court at `coerce`+ MASS toward its target before acting — the fore-warning is ledger-only. | **Row AI-3c "The army agrees with the ledger"** (below) — Stage D, inside AI-3: the war-intent marker biases the existing enemy-AI movement rungs toward the design's frontier, so a brewing war is visible ON THE MAP as well as in the ledger (the §3.5 mirror's symmetric half). GR5: same movement rungs, new bias input; no new movement system. |
+| Q2 | **Can the AI handle fighting multiple wars at once — and what other edge cases lurk?** | The 1805 boot already puts Britain in three wars and the engine copes because all wars share the France-pair machinery. The generalisation is exactly where the risk moves: per-pair resolve (`effective_p1_threshold`), AI-4c per-war exhaustion, AI-4b third-party settlements. D1's cap bounds SIMULTANEOUS AI-initiated wars, not a nation's total belligerency. | **AI-V arm (a) gains a multi-front assertion set** (tracked in `test_ai_intent_assurance.py`): a scripted two-front fixture where one nation fights two separate wars — each war's resolve, exhaustion and settlement track resolves independently; no cross-war state bleed (the named edge cases: simultaneous settlement tracks on both wars, force starvation of one front, armistice on one front while the other burns, and a peace on front A never mutating front B's `war_instance`). |
+| Q3 | **How does the AI balance WHEN to recruit marshals vs troops vs saving gold?** | The admin-chain priorities exist and are documented (`ENEMY_AI_REFERENCE.md`): P1 recruit, P1.6 vassal shore-up, P1.75 marshal commission, GR5-priced with war-priced recruitment ×3 and the Intendance modifier. What no pass has measured is that ordering under the EC-W economy (war effort + butcher's bill + contributions), where treasuries drain in war. | Owned by the **§8 "Economy re-measure" row** (already carried so it is not lost) + one AI-V arm-(a) assertion: over the 40-turn run, no solvent at-war major sits at zero recruitment for the whole run, and no nation commissions itself into bankruptcy (the two failure shapes). Re-tuning, if the measure demands it, is blessed-number territory — escalates only on shape change. |
+| Q4 | **Do nations actually fight each other?** | **Not today — that is the finding the phase exists to fix (§0): no AI nation can decide to go to war, ever.** AI-3 (Stage D) builds the decision; AI-4 makes third-party wars hurt and END; D1 caps the world at 2 simultaneous AI-initiated wars; the DoD demands ≥1 AI-vs-AI war fought AND settled in the sweep. | Nothing further — Stage D is the answer. The Stage A/B session landed the prerequisites (the refusal record without which AI-3's ladder gate was unsatisfiable). |
+| Q5 | **Can someone other than France be hegemon?** | **Yes, by design (D3):** the hegemon is derived court-relatively (`agendas._hegemon`, the §18 whole-phase fix), so whoever's bloc leads IS the hegemon — but a coalition forms against a non-player hegemon only when its share exceeds France's own. §5 pin 16(d) makes the eclipse a test: a scripted fixture where another power's share exceeds France's drives threat and coalition-formation against IT. | The pin lands with AI-4a steps 5–6 (Stage D). Note for the re-check: on the shipped opening France leads at 0.396, so eclipse is a mid-game state, not a boot state — working as designed. |
+| Q6 | **What about any other edge cases?** | §5's 24 pins are the standing edge-case ledger; §10's corrections are the record of the ones prose got wrong. | The Q2 multi-front set above is the one genuinely new family this review added. Anything further found at the re-check joins §11.2's living cut list or a pin, never a vague note. |
+
+### 13.1 Row AI-3c — "The army agrees with the ledger" *(new, Stage D, inside AI-3)*
+
+| Row | Owner | Landing | Tracking |
+|---|---|---|---|
+| **AI-3c Border massing** | §13 Q1, §4.3's fore-warning | a court whose intent stands at `coerce` or `fight` (and whose §3.2 opportunism window is open) biases its EXISTING enemy-AI movement rungs toward the design's frontier — corps drift to the border before the declaration, so the fore-warned war is visible on the map; a design bought off or cooled (§3.1a) releases the bias the same turn (no latch). D4 holds: the massing is the *timing* signal made physical, never a hidden number. GR5: the bias rides the same movement scoring every marshal uses; no teleporting, no new movement verbs. | folded into `test_ai_intent_war_decision.py`; AI-V arm (a) asserts ≥1 fore-warned war in the sweep showed pre-war massing on the target frontier |
+
+*Scope honesty:* AI-3c is a bias term inside Stage D's existing work, not a new stage; if the D6
+re-check finds Stage D over-budget, AI-3c may slip to Stage E carrying its Q1 row here as the
+written record — it must not silently vanish, because Q1 is a user question with a name on it.
+
+---
+
+## 14. Landing record — Stage A + Stage B *(July 24, 2026, one session; authoritative)*
+
+**Built and landed:** Stage A (AI-0b · AI-0c · AI-0d) and Stage B (AI-1 · AI-1b · AI-2a), per the
+§11.1 table, under the user's "as many phases as comfortable" direction. BD (Battle Diorama) was
+deliberately re-sequenced BEHIND the AI stages by that same direction — its ROADMAP row stands.
+**The phase now stands at the ⛩ re-check boundary's doorstep: Stage C is next, and nothing past it
+may build before the user re-check.**
+
+### Stage A — the dice and the bounds
+
+- **AI-0b.** `backend/game_logic/campaign_variance.py`: sha256-derived, module-RNG-free
+  `seeded_int` / `seeded_jitter` (JITTER_RAMP_TURNS=12, 0 at turn 0, 0 forever on historical) /
+  `seeded_tiebreak` / `seeded_permutation`; serialized `WorldState.campaign_seed` (env
+  `SOVEREIGN_SEED` read in `__init__` per the in-model idiom; `from_dict` restores EXACTLY, missing
+  key → `historical` — pin 14c); `from_scenario(path, seed=…)` override; boot banner in `main.py`;
+  seed shown in the strategic ledger (Intel tab, bbcode-sanitised) + save metadata; conftest pins
+  `SOVEREIGN_SEED=historical` suite-wide. *A jitter draw is a fixed per-(seed, namespace)
+  disposition scaled by the ramp — a mid-range draw is 0 at every amplitude, by design.*
+- **AI-0c.** Authored bands in `europe_1805.json`: TEN relation bands (France|Prussia [-25,5] the
+  Haugwitz contingency; Prussia|Russia; the grudge pairs Austria|Prussia + Hanover|Prussia NEW at
+  centre 0; Ottoman|Russia; the Britain-client pair Austria|Britain + Britain|Russia; the minors'
+  France-lean Saxony/Denmark/Naples), `threat_level_band [80, 90]`, Austria's `order_group` pair
+  (Italy-first vs Germany-first — seed `ulm` opens Germany-first, pinned). Resolution in
+  `from_scenario` AFTER validation, BEFORE `from_dict` — the save path never sees a band.
+  Validator: `_validate_nation_relations` (sorted-key, contains-value, war-pair band entirely below
+  the −60 armistice-first line), `_validate_threat_level_band` (requires the authored centre),
+  `order_group` schema + contiguity (rejected in formable-template decks — no resolver, no band).
+  MODDING_FORMAT + SAVE_FORMAT rows. **Deliberately deferred with owners:** the minors'
+  bandwagon-lean *dimension* beyond relations and the boot-readiness band land with their consumers
+  (AI-2, Stage C); the "new campaigns default to a random seed" flip is a **re-check decision** —
+  until then variance is opt-in via `SOVEREIGN_SEED`/`seed=`.
+- **AI-0d.** Russia's `gulf_and_straits` authored behind `arbiter_of_europe` (§12.2 verbatim; no
+  Russia order band). Pin 22 green on every sweep seed; the one existing pin it legitimately moved
+  (`test_contain_inactive_inside_hegemon_bloc` — Russia allied into France's bloc now advances to
+  the Gulf, the Tilsit route) flipped consciously with the record in the test.
+- **Tests:** `test_ai_intent_variance.py` + `test_ai_intent_historical_envelope.py` — the
+  **six-clause historian test** across a 7-seed sweep (historical + crimson-1805/ulm/austerlitz/
+  jena-06/wagram/tilsit), Tier-1 identity, Tier-2 in-band, no-band-never-varies, variance-is-real
+  (relations ≥3 values, threat ≥3 values, Austria order fires), pin 14(a) unset≡historical.
+
+### Stage B — Europe shows its hand
+
+- **AI-1.** `backend/game_logic/intent.py`: `get_nation_intent` chokepoint — the §3 record
+  {want, against, weight, price} derived from the agenda view + war state + relations + §3.2
+  opportunism + the §3.8 jitter (the seed's first consumer, landed together per D7's ordering
+  constraint); per-turn `_intent_cache` cleared in `invalidate_bloc_members_cache` beside
+  `_agenda_cache`; **staleness DECIDED: relations/force/treasury turn-granular by design** (the
+  agendas treasury choice), pinned. A live design's price floors at `ask`; deckless/vassal/player
+  read `indifferent` (pin 18) and every surface omits. Boot intents pinned (measured): Austria/
+  Britain/Russia `fight`; **Prussia `align` at 59 over Hanover** (the Potsdam winter, straight off
+  the authored opening); Sweden/Sardinia `coerce`; Ottoman/Denmark `ask`. Surfaces: the nations-tab
+  `intent` sibling + `diplomatic_ledger.gd` render; Talleyrand's war room names each belligerent's
+  price; the rung-1.5 counsel carries the price clause.
+- **AI-1b.** `build_france_mirror_payload` — "How Europe Reads France" atop the nations tab (a NEW
+  block: the player never had a row): hegemon share, perceived rung derived from `threat_level`
+  (restraint drifts it DOWN — the decay does the work, pinned), perceived target from French corps
+  positions (ally/vassal soil never reads as the threat — staging; the read falls on whoever
+  borders it: boot pin = Hesse, §3.5's blessed misreading shape). Europe-world only; legacy None.
+- **AI-2a.** The six seams, no behaviour change: recipient-explicit envelope
+  (`_build_proposal_terms`/`_make_proposal` — Talleyrand annotates only player-addressed mail);
+  recipient-aware transport (`deliver_ai_proposal` routes foreign recipients to
+  `_resolve_ai_ai_proposal`, never the mailbox); **the refusal producer both paths** — serialized
+  `world.diplomatic_refusals` (`{proposer}>{recipient}` ORDERED keys, dedupe 6 / memory 12 turns,
+  `get_refused_asks` is AI-3's gate read) written on player-rejects-AI, AI-rejects-player
+  (reject AND counter-fail arms), and the AI-AI moment that did not exist — with its public
+  `ai_ai_proposal_refused` campaign-log event (registered + formatted + **visible through the fog
+  filter**); cooldown re-key to ordered pairs with the migration built into the key semantics
+  (legacy `{nation}|…` IS recipient=player — zero save/test churn; the R43 `ai_ai|` ratify cooldown
+  stays pair-symmetric BY DECISION); `ai_stalemate_counters` key semantics documented (bare name =
+  vs-player; the acceptance-term latent coupling noted for AI-2). **The counter-offer arm, decided
+  in writing:** AI-AI resolves accept-or-refuse only; court-to-court counters need statecraft
+  (who haggles) and land with AI-2c — recorded in `_resolve_ai_ai_proposal`'s docstring. **Only a
+  recipient-side refusal is a refusal** — a proposer-side balk stays silent, as pre-refactor.
+- **Tests:** `test_ai_intent_layer.py` (23) + `test_ai_intent_peacetime_convergence.py` (21).
+
+### The review, and what it caught
+
+A 60-agent find→2-refuter workflow (8 lenses) confirmed **11 distinct findings, ALL FIXED
+pre-commit** — headline **P1: the court-to-court refusal event was invisible in-game**
+(`filter_campaign_log` had no branch for it and the phase loop excludes refusal events from its
+return — no surface showed it); plus the refusal misattribution ("{X} rebuffs {X}" when the
+proposer's own acceptance balked — now recipient-refusals only), the counter-fail arm missing the
+pin-8 record, two validator gaps (orphan threat band; formable-deck order_group as silent no-op),
+the survival-threat capital-first that never applied, live-design price `indifferent` nonsense
+copy, the seed's bbcode injection, and four test-falsifiability hardenings (the live-path AI-AI
+ratify pin, nonzero-jitter pins, the tautological historical-jitter test, the fog-filter/log-half
+assertions). Consciously flipped pins: campaign-log type count 122→123 (two files), the 1805
+relations matrix +2 grudge pairs, the war-room row key set +`intents`, the Russia
+contain-inactive-in-bloc pin (→ gulf_and_straits, the Tilsit route).
+
+**Exit criteria check (§11.1):** Stage A — pins 14(a)+22 green ✓ · six-clause historian harness ✓ ·
+validator + MODDING_FORMAT rows ✓ · suite + M1–M7 byte-identical on historical ✓. Stage B — boot
+intents pinned against authored 1805 ✓ · renders live (parse harness EXIT=0, headless boot 0
+`SCRIPT ERROR`; the **pin-20 live in-game visual pass remains open** for the user's next session —
+backend payloads + renders verified headless only) ✓* · AI-2a byte-identical player-flow pin green
+(suite) ✓.

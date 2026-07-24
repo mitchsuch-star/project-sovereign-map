@@ -16,6 +16,10 @@ from backend.models.intel import (
 )
 from backend.game_logic.agendas import build_agenda_payload
 from backend.game_logic.diplomatic_templates import get_treaty_harshness_for_consumer
+from backend.game_logic.intent import (
+    build_france_mirror_payload,
+    build_intent_payload,
+)
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
@@ -103,6 +107,10 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         "balance_of_europe": _build_balance_of_europe(world),
         "talleyrand": _build_talleyrand(world),
         "war_bargains": _build_war_bargains(world),
+        # AI-1b (docs/AI_INTENT_SPEC.md §3.5): the player's own row —
+        # Europe's derived reading of France. None on legacy/bare worlds
+        # (renderers omit).
+        "france_mirror": build_france_mirror_payload(world),
     }
 
 
@@ -413,6 +421,10 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # NA-1: the nation's active design — un-fogged like relations
             # (DPF-1); None when no agenda is live (renderers omit).
             "agenda": build_agenda_payload(nation, world),
+            # AI-1: the nation's intent — want / against / price, D4's
+            # fully-open ladder (timing is the only thing not shown).
+            # None when indifferent with no design (renderers omit).
+            "intent": build_intent_payload(nation, world),
         })
 
     return nations

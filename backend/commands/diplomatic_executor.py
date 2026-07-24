@@ -5696,6 +5696,13 @@ class DiplomaticExecutor:
             # peace/armistice proposal). AI-only; anti-stacking in the recorder.
             from backend.game_logic.coalition import record_schemer_peace_rejection
             record_schemer_peace_rejection(world, source_nation, proposal_type)
+            # AI-2a (§5 pin 8): the refused ask goes on the serialized
+            # record — the court asked France and France said no.
+            from backend.game_logic.ai_diplomacy import (
+                record_diplomatic_refusal,
+            )
+            record_diplomatic_refusal(
+                world, source_nation, world.player_nation, proposal_type)
 
         world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification

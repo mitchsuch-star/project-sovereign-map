@@ -116,7 +116,10 @@ class TestTypeWhitelist:
         # Phase audit (July 18, 2026): +1 ai_ultimatum_void — a demand
         # overtaken by war, or outliving the court that made it, lapses
         # instead of executing.
-        assert len(CAMPAIGN_LOG_TYPES) == 122
+        # AI-2a (July 24, 2026): +1 ai_ai_proposal_refused — the court-to-
+        # court refusal moment (§5 pin 8's public half; the AI-AI path had
+        # no refusal record at all before this).
+        assert len(CAMPAIGN_LOG_TYPES) == 123
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

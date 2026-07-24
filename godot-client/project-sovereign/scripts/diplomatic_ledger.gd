@@ -290,6 +290,16 @@ func _render_nations():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]\n\n"
 
+	# AI-1b (the mirror): Europe's derived reading of FRANCE — the player's
+	# own row, first. Omitted when null (legacy/bare worlds).
+	var mirror = cached_data.get("france_mirror")
+	if mirror != null and mirror is Dictionary:
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]How Europe Reads France[/b][/color]\n"
+		var mirror_lines = mirror.get("lines", [])
+		for ml in mirror_lines:
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(ml) + "[/color]\n"
+		bbcode += "\n"
+
 	if nations.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No nations in diplomatic contact.[/color]\n"
 		content_area.text = bbcode
@@ -399,6 +409,14 @@ func _render_nations():
 							forms_line += " (" + forms_progress + ")"
 						bbcode += " [color=#" + Utils.COLOR_GOLD + "]→ " + forms_line + "[/color]"
 				bbcode += "\n"
+
+		# AI-1: the nation's intent — its price, fully open (D4: want,
+		# target and rung always shown; only timing is uncertain).
+		var intent = n.get("intent")
+		if intent != null and intent is Dictionary:
+			var intent_summary = str(intent.get("summary", ""))
+			if intent_summary != "":
+				bbcode += "  Intent: [color=#" + Utils.COLOR_INFO + "]" + intent_summary + "[/color]\n"
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])

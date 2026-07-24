@@ -227,6 +227,14 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
             payload = build_agenda_payload(opponent, world) or {}
             title = payload.get("title", "their design")
             display = formed_display_name(world, opponent)
+            # AI-1: Talleyrand names the court's price beside its design.
+            from backend.game_logic.intent import build_intent_payload
+            intent_payload = build_intent_payload(opponent, world)
+            price_clause = ""
+            if intent_payload:
+                price_clause = (
+                    f" Their court is prepared to go as far as "
+                    f"{intent_payload['price_display'].lower()}.")
             terms_state = (row.get("request_terms_state") or {}).get("state", "")
             # The terms route belongs to the row's leader; other members
             # get the proposal menu (expand_options is always reachable).
@@ -241,7 +249,7 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                              f"price — '{title}'. We hold what their "
                              f"court wants; satisfy the design at the "
                              f"table and their reason to fight goes "
-                             f"with it."),
+                             f"with it." + price_clause),
                 }
             return {
                 "kind": "open_proposal",
@@ -252,7 +260,7 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                 "text": (f"{display}'s war has a purpose we can price — "
                          f"'{title}'. We hold what their court wants; "
                          f"offer it at the table and their reason to "
-                         f"fight goes with it."),
+                         f"fight goes with it." + price_clause),
             }
     # 2. An aggressive coalition bearing down → shore the weakest friend.
     if posture == "aggressive" and int(getattr(world, "threat_level", 0)) > 60:
@@ -370,6 +378,7 @@ def _assess_situation(world) -> Dict:
             participants = [n for n in (row.get("opponents")
                                         or [row.get("opponent", "")]) if n]
             agenda_payloads = {}
+            intent_payloads = {}
             for participant in participants:
                 payload = build_agenda_payload(participant, world)
                 if payload:
@@ -387,9 +396,19 @@ def _assess_situation(world) -> Dict:
                                if forms_marker.get("progress") else "")
                             + ")")
                     lines.append(design_line)
+                # AI-1: the belligerent's PRICE beside its design — what
+                # their court is currently prepared to pay (D4: the rung
+                # is always readable; only timing is uncertain).
+                from backend.game_logic.intent import build_intent_payload
+                intent_payload = build_intent_payload(participant, world)
+                if intent_payload:
+                    intent_payloads[participant] = intent_payload
+                    lines.append(
+                        f"    Their price: {intent_payload['summary']}.")
             wars_context.append({"opponent": row.get("opponent", ""),
                                  "war_score": score, "trend": trend,
-                                 "agendas": agenda_payloads})
+                                 "agendas": agenda_payloads,
+                                 "intents": intent_payloads})
     else:
         lines.append("  France wages no war — a rare and precious quiet.")
     for row in armistice_rows:

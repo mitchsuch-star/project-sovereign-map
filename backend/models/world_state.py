@@ -705,7 +705,18 @@ class WorldState:
         # DIPLOMACY - Session 4: AI proposals, advisory, proactive suggestions
         # ============================================================
         # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
+        # AI-2a key semantics: a BARE nation name means "vs the player"
+        # (every current writer); a non-player war uses the ordered
+        # "{nation}>{recipient}" form when AI-3/AI-4 begin writing it.
         self.ai_stalemate_counters: Dict[str, int] = {}
+
+        # AI-2a (docs/AI_INTENT_SPEC.md §4.2 seam 5, §5 pin 8): refused
+        # asks on the SERIALIZED record — {"{proposer}>{recipient}":
+        # [{"type": str, "turn": int}, ...]}, ordered pair, pruned to
+        # REFUSAL_MEMORY_TURNS at write. AI-3's ladder gate ("cheaper
+        # instruments tried and refused") reads this; re-deriving it would
+        # make "no cold-open wars" a lie across a save/load.
+        self.diplomatic_refusals: Dict[str, List[Dict]] = {}
 
         # R126: AI proposal metadata — tracks war_score at time of proposal for urgent re-proposal
         # Format: {nation: {"war_score_at_proposal": int, "turn": int}}
@@ -992,6 +1003,15 @@ class WorldState:
         # V2-16: Per-turn diplomatic trust cap tracking (survives save/load)
         # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
         self.diplomatic_trust_applied: Dict[str, int] = {}
+
+        # AI-0b (docs/AI_INTENT_SPEC.md §3.8, §6 D7): the serialized campaign
+        # seed — the only source of cross-campaign variance. Default lives IN
+        # THE MODEL (not main.py's scenario selector — 75 from_scenario
+        # callers bypass main.py). Unset env or "historical" reproduces
+        # today's boot byte-for-byte; from_dict restores the stored value
+        # exactly (pin 14c), never a fresh one.
+        from backend.game_logic.campaign_variance import resolve_campaign_seed
+        self.campaign_seed: str = resolve_campaign_seed()
 
         self._apply_smoke_start_preset()
 
@@ -1693,6 +1713,11 @@ class WorldState:
         # active-nations invalidation chains into it), so the derived-agenda
         # cache flushes here.
         self._agenda_cache = None
+        # AI-1 (docs/AI_INTENT_SPEC.md §4.1): intent derives FROM the agenda
+        # view plus war state — same mutation families, same chokepoint.
+        # Relations/force/treasury staleness is turn-granular BY DESIGN
+        # (the agendas treasury choice), pinned in test_ai_intent_layer.py.
+        self._intent_cache = None
 
     def _top_overlord(self, nation: str) -> str:
         """Walk the vassal `lord` chain until it terminates. Return top overlord.
@@ -5023,6 +5048,8 @@ class WorldState:
             # ═══════ CORE GAME STATE ═══════
             "player_nation": self.player_nation,
             "sovereign_map": getattr(self, "sovereign_map", "legacy"),
+            # AI-0b: the campaign seed round-trips exactly (pin 14c).
+            "campaign_seed": str(getattr(self, "campaign_seed", "historical")),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -5160,6 +5187,11 @@ class WorldState:
             # diplomatic_queue eliminated — Session 2 follow-up
             "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
+            # AI-2a: refused asks, ordered "{proposer}>{recipient}" keys.
+            "diplomatic_refusals": {
+                k: [dict(e) for e in v]
+                for k, v in self.diplomatic_refusals.items()
+            },
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
             "war_score_history": {
@@ -5419,6 +5451,13 @@ class WorldState:
             player_nation=data.get("player_nation", DEFAULT_PLAYER_NATION),
             sovereign_map=data.get("sovereign_map", "legacy"),
         )
+
+        # AI-0b pin 14c: restore the stored campaign seed EXACTLY — never a
+        # freshly generated (or env-derived) one. A pre-seed save has no key
+        # and reads "historical" regardless of the current environment.
+        from backend.game_logic.campaign_variance import HISTORICAL_SEED
+        world.campaign_seed = str(
+            data.get("campaign_seed") or HISTORICAL_SEED)
 
         # ═══════ CORE GAME STATE ═══════
         # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
@@ -5724,6 +5763,12 @@ class WorldState:
                 dm.push(dialogue)
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
+        # AI-2a: the refusal record — a pre-AI-2a save reads {} (no
+        # refusals were ever recorded, honestly).
+        world.diplomatic_refusals = {
+            str(k): [dict(e) for e in (v or [])]
+            for k, v in (data.get("diplomatic_refusals") or {}).items()
+        }
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
         world.war_score_history = {
@@ -6104,9 +6149,15 @@ class WorldState:
         return world
 
     @classmethod
-    def from_scenario(cls, scenario_path: str) -> 'WorldState':
+    def from_scenario(cls, scenario_path: str,
+                      seed: Optional[str] = None) -> 'WorldState':
         """
         Load a scenario from a JSON file.
+
+        AI-0b: `seed` overrides the SOVEREIGN_SEED environment variable for
+        this boot (the 75-caller test idiom — band pins construct their
+        worlds through this parameter directly). None/unset resolves to the
+        env, then to "historical" (today's boot, byte-for-byte).
 
         This is the primary entry point for modders to create custom scenarios.
         The scenario file can specify minimal data - missing fields get defaults.
@@ -6231,6 +6282,19 @@ class WorldState:
         if not validation.is_valid:
             errors_str = "; ".join(f"{e.path}: {e.message}" for e in validation.errors[:3])
             raise ValueError(f"Invalid scenario: {errors_str}")
+
+        # AI-0b/AI-0c (docs/AI_INTENT_SPEC.md §3.8.1): resolve the campaign
+        # seed and collapse every authored variance band to a concrete value
+        # — historical seed => authored centres, byte-identical boot. Runs
+        # AFTER validation (the validator checks the authored band shapes)
+        # and BEFORE from_dict (the save-load path never sees a band).
+        from backend.game_logic.campaign_variance import (
+            apply_scenario_variance,
+            resolve_campaign_seed,
+        )
+        effective_seed = resolve_campaign_seed(seed)
+        apply_scenario_variance(scenario_data, effective_seed)
+        scenario_data["campaign_seed"] = effective_seed
 
         # Use from_dict for actual loading
         world = cls.from_dict(scenario_data)
@@ -7548,6 +7612,15 @@ class WorldState:
                 # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
                 from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
                 apply_rejection_cooldowns(target, ptype, self, deferred=True)
+                # AI-2a review fix [8]: an engaged-then-refused counter IS a
+                # refusal ("treat as rejection" must include the pin-8
+                # record, or the substrate under-counts exactly the asks
+                # the court took most seriously).
+                from backend.game_logic.ai_diplomacy import (
+                    record_diplomatic_refusal,
+                )
+                record_diplomatic_refusal(
+                    self, self.player_nation, target, ptype)
                 # PL-5A: Popup for failed counter-offer
                 from backend.display_names import proposal_display_name
                 self.proposal_result_popup = {
@@ -7576,6 +7649,12 @@ class WorldState:
             # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
             from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
             apply_rejection_cooldowns(target, ptype, self, deferred=True)
+            # AI-2a (§5 pin 8): the mirror direction — FRANCE asked and the
+            # court said no. The ordered record keeps both directions apart.
+            from backend.game_logic.ai_diplomacy import (
+                record_diplomatic_refusal,
+            )
+            record_diplomatic_refusal(self, self.player_nation, target, ptype)
             # PL-5A: Popup for rejection
             from backend.display_names import proposal_display_name
             self.proposal_result_popup = {

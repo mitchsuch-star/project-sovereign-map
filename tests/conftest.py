@@ -85,6 +85,20 @@ def _isolate_sovereign_scenario(monkeypatch):
     monkeypatch.setenv("SOVEREIGN_SCENARIO", "none")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_sovereign_seed(monkeypatch):
+    """Pin SOVEREIGN_SEED to the historical seed for every test (AI-0b, D7).
+
+    docs/AI_INTENT_SPEC.md §3.8.1: unset-or-"historical" reproduces today's
+    boot byte-for-byte, so every existing byte-identical pin (the E1 band,
+    M1-M7, the boot-actives pins) holds unedited. Defence in depth beside
+    the in-model default — variance tests construct their worlds through
+    `WorldState.from_scenario(path, seed=...)` directly, which overrides
+    the environment (the 75-caller idiom).
+    """
+    monkeypatch.setenv("SOVEREIGN_SEED", "historical")
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # MARSHAL FACTORY
 # ════════════════════════════════════════════════════════════════════════════════

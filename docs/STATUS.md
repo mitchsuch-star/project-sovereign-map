@@ -4,6 +4,51 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ⚙️ AI INTENT STAGES A + B ✅ BUILT July 24, 2026 — the dice, the bounds, and Europe's hand
+
+**User direction: commit the spec, then "do as many phases as you think are comfortable to do at
+once" (committing deferred to session end); mid-session addendum: record the standing AI review
+questions at the spec's end.** Landed **Stage A (AI-0b campaign seed · AI-0c historical bands ·
+AI-0d the second design)** and **Stage B (AI-1 intent layer · AI-1b the mirror · AI-2a
+diplomacy-path convergence)** per `AI_INTENT_SPEC.md` §11.1 — **landing record = spec §14
+(authoritative)**; the spec also gained **§13 (v1.4.1)**, the user's six standing review questions
+routed to owners (border massing → NEW row **AI-3c** "The army agrees with the ledger", Stage D;
+multi-front conduct + recruit/commission budgeting → AI-V assertions + the §8 economy re-measure;
+AI-vs-AI wars = Stage D; the non-France hegemon = D3 + pin 16d). **BD (Battle Diorama) re-sequenced
+BEHIND the AI stages by user direction — row BD stands.**
+
+- **AI-0b:** serialized `WorldState.campaign_seed` (env `SOVEREIGN_SEED` in-model; `from_dict`
+  restores exactly, pin 14c), `from_scenario(seed=…)`, sha256 module-RNG-free derivation helpers
+  (`campaign_variance.py` — jitter ramps 0→full by turn 12, 0 forever on historical), boot banner,
+  seed in strategic-ledger Intel tab (bbcode-sanitised) + save metadata, conftest suite-wide
+  `SOVEREIGN_SEED=historical` pin.
+- **AI-0c/0d:** ten authored relation bands (France|Prussia [-25,5] the Haugwitz contingency; the
+  grudge pairs Austria|Prussia + Hanover|Prussia NEW at behaviour-neutral 0), `threat_level_band
+  [80,90]`, Austria's `order_group` (seed `ulm` opens Germany-first — Mack's deployment), Russia's
+  `gulf_and_straits` behind arbiter (pin 22 every seed); validator band schema (contains-value,
+  war-pair < −60 clamp, order_group contiguity, formable-deck rejection); the **six-clause
+  historian test** across a 7-seed sweep (`test_ai_intent_historical_envelope.py`).
+- **AI-1/1b:** `intent.py` — {want, against, weight, price} derived + per-turn cached on the
+  bloc-cache chokepoint; staleness DECIDED turn-granular; boot pins measured (Prussia **`align` 59
+  over Hanover** — the Potsdam winter; Austria/Britain/Russia `fight`; Sweden `coerce`); ledger
+  nations-tab `intent` row + **"How Europe Reads France"** mirror block (restraint drifts the
+  perceived rung down; boot target = Hesse, §3.5's misreading by design); Talleyrand war-room
+  prices.
+- **AI-2a:** recipient-explicit envelope/transport, **the refusal record both paths** (serialized
+  `diplomatic_refusals`, ordered keys, + the `ai_ai_proposal_refused` public event — fog-filter
+  visible), cooldown re-key with legacy-format-as-player-arm migration (zero churn), counter-offer
+  asymmetry decided in writing. The AI-AI refusal moment did not exist before this slice — it is
+  AI-3's ladder-gate substrate (§5 pin 8).
+- **Review:** 60-agent find→2-refuter workflow, **11 distinct findings ALL FIXED** — headline P1:
+  the refusal event was invisible in-game (no fog-filter branch + excluded from the phase return).
+  Conscious pin flips: campaign-log count 122→123 (×2 files), relations matrix +2 pairs, war-room
+  keys +`intents`, Russia contain-in-bloc → gulf_and_straits (the Tilsit route).
+- Suite **14,409 → 14,612/3** (206 new across 4 `test_ai_intent_*.py` files), ruff clean, M1–M7
+  byte-identical, parse harness EXIT=0, headless boot 0 `SCRIPT ERROR` ×2. **⚠ open: pin-20 live
+  in-game visual pass** on the two new ledger surfaces (intent rows + the mirror block + the seed
+  line) — headless-verified only. **▶ NEXT: user in-game review (NA-6c/6d + the new AI surfaces) →
+  Battle Diorama (row BD) → §11 Stage C (the bargaining table) → ⛩ THE RE-CHECK.**
+
 **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
 ### 🧠 AI INTENT SPEC v1.4 ✅ July 24, 2026 — the structure & creative pass (docs-only)

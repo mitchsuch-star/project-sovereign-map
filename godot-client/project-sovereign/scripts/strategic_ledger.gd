@@ -514,6 +514,13 @@ func _render_intel():
 	if unknown_count > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]" + str(unknown_count) + " region(s) with no intel.[/color]\n"
 
+	# AI-0b: the campaign seed, shown and shareable (top-level ledger key).
+	# Review fix [4]: the seed is a raw user-supplied string (SOVEREIGN_SEED
+	# env / pasted shares) — strip bbcode brackets before rendering.
+	var campaign_seed = str(cached_data.get("campaign_seed", "historical"))
+	campaign_seed = campaign_seed.replace("[", "").replace("]", "")
+	bbcode += "\n[color=#" + Utils.COLOR_GREY + "]Campaign seed: " + campaign_seed + "[/color]\n"
+
 	content_area.text = bbcode
 
 

@@ -41,7 +41,13 @@ AUTHORED_OFF_CONTROLLER = {
 # The researched relations matrix (plan §"Researched 1805 opening draft"),
 # sorted-pipe keys. War pairs not named in the plan's relations list carry the
 # legacy at-war seed (-80): Austria|Bavaria, Britain|Holland, Austria|KingdomOfItaly.
+# AI-0c (July 24, 2026): two grudge pairs authored at the behaviour-neutral
+# centre 0 (an unauthored pair reads 0 at every seam) so their variance BANDS
+# exist — Austria|Prussia (Germany) and Hanover|Prussia (the Prize). On the
+# historical seed they resolve to 0: behaviour byte-identical, keys new.
 EXPECTED_RELATIONS = {
+    "Austria|Prussia": 0,
+    "Hanover|Prussia": 0,
     "Britain|France": -90,
     "Austria|France": -80,
     "France|Russia": -80,

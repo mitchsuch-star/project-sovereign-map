@@ -242,7 +242,29 @@ def _is_situation_urgent(nation: str, war_score: int, world) -> bool:
     return (prev_war_score - war_score) >= URGENT_REPROPO_DELTA
 
 
-def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) -> bool:
+def _cooldown_keys(nation: str, proposal_type: str, world,
+                   recipient: str = None) -> tuple:
+    """(nation_key, type_key) for the ask cooldown store.
+
+    AI-2a (§4.2 seam 4): cooldowns are keyed to an ORDERED
+    (proposer, recipient) pair — never `_make_diplo_key`, which sorts and
+    would collapse "Prussia asks Austria" with "Austria asks Prussia".
+    The migration is built into the key semantics: the legacy
+    `{nation}|...` format IS the recipient=player arm (byte-identical for
+    every existing save and test), and only a non-player recipient uses
+    the explicit `{proposer}>{recipient}|...` form. (The R43
+    `ai_ai|{sorted pair}` RATIFY cooldown stays symmetric by decision — a
+    fresh treaty blocks rapid re-upgrade in either direction.)
+    """
+    player = getattr(world, 'player_nation', 'France')
+    if recipient is None or recipient == player:
+        return f"{nation}|nation", f"{nation}|{proposal_type}"
+    return (f"{nation}>{recipient}|nation",
+            f"{nation}>{recipient}|{proposal_type}")
+
+
+def _is_on_cooldown(nation: str, proposal_type: str, world,
+                    war_score: int = 0, recipient: str = None) -> bool:
     """Check if a nation or proposal type is on cooldown.
 
     R126: If war_score is provided and situation is urgent (war score dropped
@@ -250,8 +272,8 @@ def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) 
     still applies.
     """
     cooldowns = _get_cooldowns(world)
-    nation_key = f"{nation}|nation"
-    type_key = f"{nation}|{proposal_type}"
+    nation_key, type_key = _cooldown_keys(nation, proposal_type, world,
+                                          recipient)
 
     if cooldowns.get(nation_key, 0) > 0:
         # R126: Bypass nation cooldown if situation is urgent
@@ -279,10 +301,14 @@ def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) 
     return False
 
 
-def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *, deferred: bool = False) -> None:
+def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *,
+                              deferred: bool = False,
+                              recipient: str = None) -> None:
     """Apply cooldowns after a proposal is rejected.
 
-    Called from executor when player rejects an AI proposal.
+    Called from executor when player rejects an AI proposal. AI-2a:
+    `recipient` scopes the cooldown to the ordered (proposer, recipient)
+    pair; None keeps the legacy player-addressed keys byte-identically.
     Args:
         deferred: True when called from _process_proposal_in_transit inside
                   advance_turn — adds +1 to compensate for decrement_all running
@@ -290,14 +316,15 @@ def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *, deferre
     """
     offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
-    nation_key = f"{nation}|nation"
-    type_key = f"{nation}|{proposal_type}"
+    nation_key, type_key = _cooldown_keys(nation, proposal_type, world,
+                                          recipient)
     cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN) + offset
     cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN) + offset
     _set_cooldowns(world, cooldowns)
 
 
-def apply_lapse_type_cooldown(nation: str, proposal_type: str, world) -> None:
+def apply_lapse_type_cooldown(nation: str, proposal_type: str, world,
+                              recipient: str = None) -> None:
     """W6-10 anti-monotony: an offer that LAPSES unanswered blocks the same
     type from the same nation for TYPE_LAPSE_COOLDOWN turns — before this,
     only the 2-turn nation cooldown applied on lapse, so an ignored
@@ -308,13 +335,15 @@ def apply_lapse_type_cooldown(nation: str, proposal_type: str, world) -> None:
     if not nation or proposal_type in ("", "unknown", None):
         return
     cooldowns = _get_cooldowns(world)
-    type_key = f"{nation}|{proposal_type}"
+    _nation_key, type_key = _cooldown_keys(nation, proposal_type, world,
+                                           recipient)
     cooldowns[type_key] = max(
         int(cooldowns.get(type_key, 0)), int(TYPE_LAPSE_COOLDOWN))
     _set_cooldowns(world, cooldowns)
 
 
-def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False) -> None:
+def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False,
+                              recipient: str = None) -> None:
     """Apply a short cooldown after a proposal is accepted.
 
     Prevents the same nation from immediately proposing the next upgrade
@@ -326,12 +355,68 @@ def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False) -> 
     """
     offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
-    nation_key = f"{nation}|nation"
+    nation_key, _type_key = _cooldown_keys(nation, "nation", world,
+                                           recipient)
     cooldowns[nation_key] = max(
         int(cooldowns.get(nation_key, 0)),
         int(NATION_ACCEPTANCE_COOLDOWN) + offset,
     )
     _set_cooldowns(world, cooldowns)
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI-2a — the refusal record (§4.2 seam 5, §5 pin 8's substrate)
+# ═══════════════════════════════════════════════════════════════
+
+# Dedupe window: the same (proposer>recipient, type) refusal is recorded
+# once per this many turns — the AI-AI trigger poll re-fires every turn
+# and must not spam the record or the campaign log. Blessed, in-band.
+REFUSAL_DEDUPE_TURNS = 6
+# Retention: refusals older than this are pruned at write time. AI-3's
+# ladder gate ("cheaper instruments tried and refused") reads inside this
+# window; matching the agenda-grudge horizon keeps one memory scale.
+REFUSAL_MEMORY_TURNS = 12
+
+
+def record_diplomatic_refusal(world, proposer: str, recipient: str,
+                              proposal_type: str) -> bool:
+    """Put a refused ask on the SERIALIZED record (§5 pin 8: refused asks
+    must survive a save — if they were re-derived, "no cold-open wars"
+    becomes a lie the moment a player loads). Ordered key
+    `{proposer}>{recipient}`; entries `{"type", "turn"}`.
+
+    Returns True when a new entry was recorded, False when deduped.
+    Works on every path: player refuses an AI court, an AI court refuses
+    the player, and court-to-court (the moment that did not exist before
+    AI-2a).
+    """
+    if not proposer or not recipient or proposer == recipient:
+        return False
+    store = getattr(world, 'diplomatic_refusals', None)
+    if store is None:
+        store = {}
+        world.diplomatic_refusals = store
+    key = f"{proposer}>{recipient}"
+    turn = int(getattr(world, 'current_turn', 0))
+    entries = [e for e in (store.get(key) or [])
+               if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
+    for entry in entries:
+        if (entry.get("type") == proposal_type
+                and turn - int(entry.get("turn", 0)) < REFUSAL_DEDUPE_TURNS):
+            store[key] = entries
+            return False
+    entries.append({"type": str(proposal_type), "turn": turn})
+    store[key] = entries
+    return True
+
+
+def get_refused_asks(world, proposer: str, recipient: str) -> List[Dict]:
+    """The live refusal record for an ordered pair, pruned to the memory
+    window — the read AI-3's ladder gate consumes."""
+    store = getattr(world, 'diplomatic_refusals', {}) or {}
+    turn = int(getattr(world, 'current_turn', 0))
+    return [e for e in (store.get(f"{proposer}>{recipient}") or [])
+            if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
 
 
 def _has_pending_proposal_from(nation: str, world) -> bool:
@@ -494,23 +579,30 @@ def _build_proposal_terms(
     war_score: int,
     world,
     gold_mult: float = 1.0,
+    recipient: str = None,
 ) -> Dict:
     """Build proposal terms dict from AI nation's perspective.
 
-    The AI proposes TO France. So:
+    AI-2a (docs/AI_INTENT_SPEC.md §4.2 seam 1): the envelope is
+    recipient-explicit. `recipient=None` keeps the historical default —
+    the AI proposes TO France — byte-identically; passing another nation
+    addresses the same envelope court-to-court. Nothing passes a
+    non-player recipient until AI-2 wires the intent-driven rungs.
+
     - proposer_nation = AI nation
-    - target_nation = France (player)
-    - sweeteners = things AI offers to France to sweeten the deal
-    - demands = things AI wants from France
+    - target_nation = recipient (default: the player)
+    - sweeteners = things the proposer offers the recipient
+    - demands = things the proposer wants from the recipient
 
     R115: gold_mult scales gold amounts by diplomat personality.
     """
     player = getattr(world, 'player_nation', 'France')
+    recipient = recipient or player
 
     terms = {
         "type": proposal_type,
         "proposer_nation": nation,
-        "target_nation": player,
+        "target_nation": recipient,
         "sweeteners": [],
         "demands": [],
         "clauses": [],
@@ -580,7 +672,7 @@ def _build_proposal_terms(
         # "friendly_gift" (the cooldown key, opportunistic precedent);
         # terms["type"] maps to the highest LEGAL low-tier acceptance type
         # for the current relation (NON_AGGRESSION needs relation >= 0).
-        diplo_key = world._make_diplo_key(nation, player)
+        diplo_key = world._make_diplo_key(nation, recipient)
         relation = world.nation_relations.get(diplo_key, 0)
         if relation >= 0:
             terms["type"] = "non_aggression"
@@ -603,7 +695,7 @@ def _build_proposal_terms(
         terms["type"] = "peace"  # Map to peace for acceptance formula
         gold_demand = max(200, int(war_score * 5 * gold_mult))
         terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
-        diplo_key = world._make_diplo_key(nation, player)
+        diplo_key = world._make_diplo_key(nation, recipient)
         obj = getattr(world, 'war_objectives', {}).get(diplo_key, {}).get(nation, {})
         if obj and obj.get("type") == "liberation" and obj.get("concluded_turn") is None:
             for vassal_nation in obj.get("vassal_nations", []):
@@ -611,7 +703,7 @@ def _build_proposal_terms(
                     "type": "liberation",
                     "value": 1,
                     "vassal_nation": vassal_nation,
-                    "lord_nation": player,
+                    "lord_nation": recipient,
                     "liberator": nation,
                 })
 
@@ -1178,18 +1270,42 @@ def _make_proposal(
     priority: int,
     terms: Dict,
     world,
+    recipient: str = None,
 ) -> Dict:
-    """Construct the standard proposal dict."""
-    # Get game bucket from France's perspective (for Talleyrand's assessment)
-    game_bucket = get_game_bucket(nation, world)
-    assessment = _get_talleyrand_assessment(proposal_type, game_bucket)
+    """Construct the standard proposal dict.
+
+    AI-2a (§4.2 seam 1): the envelope carries an explicit `recipient`
+    (default: the player — byte-identical to the historical shape). The
+    Talleyrand assessment and game bucket are FRANCE'S reading of the
+    proposer and only exist on player-addressed envelopes; a court-to-
+    court proposal carries None there (Talleyrand does not annotate other
+    people's mail).
+    """
+    player = getattr(world, 'player_nation', 'France')
+    recipient = recipient or player
+
+    if recipient == player:
+        # Get game bucket from France's perspective (Talleyrand's assessment)
+        game_bucket = get_game_bucket(nation, world)
+        assessment = _get_talleyrand_assessment(proposal_type, game_bucket)
+        decision_reason = determine_ai_offer_decision_reason(
+            nation, proposal_type, world)
+    else:
+        assessment = None
+        # The player-relative reason ladder does not apply court-to-court;
+        # AI-2 refines this when intent drives the rungs. ask_advances is
+        # nation-generic, so the one honest label survives.
+        from backend.game_logic.agendas import ask_advances_agenda
+        decision_reason = ("agenda_pursuit"
+                           if ask_advances_agenda(nation, proposal_type,
+                                                  world)
+                           else "unknown_baseline")
 
     # Fix 11: Metadata moved to generate_ai_proposal after acceptance check
     # (was here before, but recorded even for rejected proposals)
-    decision_reason = determine_ai_offer_decision_reason(nation, proposal_type, world)
-
     return {
         "source": nation,
+        "recipient": recipient,
         "proposal_type": proposal_type,
         "priority": int(priority),
         "terms": terms,
@@ -1346,9 +1462,22 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     Creates an incoming_proposal dialogue with Accept/Reject/Counter options.
     Sets blocking=True so no other proposals overwrite it.
 
-    Returns the dialogue dict (also stored on world).
+    AI-2a (§4.2 seam 2): the transport is recipient-aware. A proposal whose
+    `recipient` is another AI court never touches the player's mailbox,
+    notifications or popups — it routes to the court-to-court resolution
+    (`_resolve_ai_ai_proposal`: accept both sides → ratify; else the
+    refusal record + its public event). The player-addressed path below is
+    byte-identical to the pre-AI-2a transport.
+
+    Returns the dialogue dict (also stored on world), or the resolution
+    event dict (possibly empty) for a court-to-court envelope.
     """
     nation = proposal["source"]
+    player = getattr(world, 'player_nation', 'France')
+    recipient = proposal.get("recipient") or player
+    if recipient != player:
+        return _resolve_ai_ai_proposal(proposal, world) or {}
+
     dialogue = build_ai_proposal_dialogue(proposal, world)
 
     # V2-89 → R12C: push() auto-queues if another dialogue is active
@@ -1982,26 +2111,83 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
             if not proposal:
                 continue
 
-            # Check acceptance from both sides
-            acceptance_a = _ai_ai_acceptance(proposal, initiator, target, world)
-            acceptance_b = _ai_ai_acceptance(proposal, target, initiator, world)
-
-            if acceptance_a >= 50 and acceptance_b >= 50:
-                # Ratify immediately via unified path (no transit delay for AI-AI)
-                normalized = {
-                    "type": proposal["type"],
-                    "proposer_nation": proposal.get("proposer", initiator),
-                    "target_nation": proposal.get("target", target),
-                    "sweeteners": [],
-                    "demands": [],
-                    "clauses": [],
-                }
-                event = world._ratify_treaty(normalized)
-                if event:
-                    events.append(event)
-                    treaties_this_turn += 1
+            # AI-2a (§4.2 seam 3): resolution converged into ONE arm both
+            # the trigger loop above and a recipient-addressed
+            # deliver_ai_proposal reach. Ratify outcomes are byte-identical
+            # to the pre-AI-2a inline block; the refusal moment is NEW —
+            # it did not exist on this path at all (§5 pin 8's substrate).
+            event = _resolve_ai_ai_proposal(proposal, world)
+            if event and event.get("type") != "ai_ai_proposal_refused":
+                events.append(event)
+                treaties_this_turn += 1
 
     return rivalry_events + events
+
+
+def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
+    """Resolve a court-to-court proposal: acceptance both sides → ratify,
+    else record the refusal (serialized) and emit its public event.
+
+    AI-2a decision, recorded (§4.2 seam 3 — the counter-offer arm): the
+    AI-AI path resolves accept-or-refuse ONLY. The player keeps
+    Accept/Reject/Counter; a court-to-court counter-offer needs the
+    statecraft weighting (who haggles, who doesn't) and lands with AI-2c,
+    not here. The asymmetry is deliberate and this docstring is its
+    record.
+    """
+    # Two envelope shapes reach this arm: the trigger loop's minimal
+    # {"type", "proposer", "target"} and _make_proposal's full
+    # {"proposal_type", "source", "recipient", "terms"} — normalise both.
+    terms = proposal.get("terms") or {}
+    initiator = (proposal.get("proposer") or proposal.get("source")
+                 or terms.get("proposer_nation"))
+    target = (proposal.get("target") or proposal.get("recipient")
+              or terms.get("target_nation"))
+    ptype = (proposal.get("type") or terms.get("type")
+             or proposal.get("proposal_type"))
+    if not initiator or not target or not ptype:
+        return None
+    scored = {"type": ptype, "proposer": initiator, "target": target}
+
+    acceptance_a = _ai_ai_acceptance(scored, initiator, target, world)
+    acceptance_b = _ai_ai_acceptance(scored, target, initiator, world)
+
+    if acceptance_a >= 50 and acceptance_b >= 50:
+        # Ratify immediately via unified path (no transit delay for AI-AI)
+        normalized = {
+            "type": ptype,
+            "proposer_nation": initiator,
+            "target_nation": target,
+            "sweeteners": [],
+            "demands": [],
+            "clauses": [],
+        }
+        return world._ratify_treaty(normalized)
+
+    # The refusal moment (AI-2a seam 5): the ask happened and was rebuffed
+    # — put it on the serialized record and in the campaign log, ONCE per
+    # (pair, type) per dedupe window, so the every-turn trigger re-poll
+    # does not spam either. AI-3's ladder gate reads this record.
+    # Review fix [7]/[15]: ONLY a recipient-side refusal is a refusal.
+    # When the proposer's OWN acceptance balks (a < 50 <= b), the ask
+    # never truly happened — recording it would write a false "the
+    # recipient said no" onto the record AI-3 escalates from, and the
+    # one-liner would read "{X} rebuffs {X}". Pre-refactor this dual-
+    # consent failure was silent; it stays silent.
+    if acceptance_b >= 50:
+        return None
+    if record_diplomatic_refusal(world, initiator, target, ptype):
+        event = {
+            "type": "ai_ai_proposal_refused",
+            "proposer": initiator,
+            "recipient": target,
+            "refused_by": target,
+            "proposal_type": ptype,
+            "turn": int(world.current_turn),
+        }
+        world.log_event(event)
+        return event
+    return None
 
 
 def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Dict]:

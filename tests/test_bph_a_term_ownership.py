@@ -288,7 +288,9 @@ class TestPeaceRatifiedCampaignLog:
         # NA-5 (July 18, 2026): +2 ai_ultimatum_accepted / ai_ultimatum_rejected.
         # NA-6a (July 18, 2026): +1 nation_formed (the Proclamation).
         # Phase audit (July 18, 2026): +1 ai_ultimatum_void (the lapsed demand).
-        assert len(CAMPAIGN_LOG_TYPES) == 122
+        # AI-2a (July 24, 2026): +1 ai_ai_proposal_refused (the court-to-
+        # court refusal moment — §5 pin 8's public half).
+        assert len(CAMPAIGN_LOG_TYPES) == 123
 
     def test_format_peace_oneliner(self):
         event = {
