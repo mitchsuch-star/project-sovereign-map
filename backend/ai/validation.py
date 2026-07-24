@@ -97,6 +97,11 @@ VALID_ACTIONS: Set[str] = {
     # Marshal Recruitment (Jealousy v3.2 final phase) — "commission Grouchy";
     # target = candidate name from the nation's authored marshal_pool.
     "recruit_marshal",
+    # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5) — nation-target
+    # diplomacy verbs, 1 DP each charged in-executor:
+    "sponsor_design",    # "sponsor Prussia against Austria, 200 gold" (0 = licence)
+    "buy_off_design",    # "buy off Prussia" — compensation, price derived
+    "guarantee_nation",  # "guarantee Saxony" — pledge to defend
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -116,6 +121,10 @@ META_ACTIONS: Set[str] = {
     "change_autonomy",
     "make_vassal",
     "grant_region_to_vassal",  # VS-3
+    # AI-2b D5 instruments — nation-target, no marshal needed
+    "sponsor_design",
+    "buy_off_design",
+    "guarantee_nation",
     # Diplomatic actions — no marshal needed
     "diplomatic_break",
     "diplomatic_downgrade",

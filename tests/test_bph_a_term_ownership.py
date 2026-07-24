@@ -290,7 +290,14 @@ class TestPeaceRatifiedCampaignLog:
         # Phase audit (July 18, 2026): +1 ai_ultimatum_void (the lapsed demand).
         # AI-2a (July 24, 2026): +1 ai_ai_proposal_refused (the court-to-
         # court refusal moment — §5 pin 8's public half).
-        assert len(CAMPAIGN_LOG_TYPES) == 123
+        # AI-2b Stage C (July 24, 2026): +7 D5 instrument lifecycle
+        # (sponsorship granted/reneged/expired, design_bought_off,
+        # bargain_reneged, guarantee pledged/abandoned).
+        # AI-2d Stage C (July 24, 2026): +2 — the allegiance auction
+        # (allegiance_auction_opened / allegiance_auction_resolved).
+        # AI-2e Stage C (July 24, 2026): +1 british_subsidy — the
+        # paymaster's gold on the record (§3.7 visibility).
+        assert len(CAMPAIGN_LOG_TYPES) == 133
 
     def test_format_peace_oneliner(self):
         event = {

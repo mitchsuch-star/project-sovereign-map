@@ -418,6 +418,14 @@ func _render_nations():
 			if intent_summary != "":
 				bbcode += "  Intent: [color=#" + Utils.COLOR_INFO + "]" + intent_summary + "[/color]\n"
 
+		# AI-2b/2e (Stage C): every live D5 instrument this court is
+		# party to — sponsorships, licences, neutrality compacts,
+		# buy-off bargains, guarantees, an open allegiance auction.
+		# Backend-composed line (R7); null omits the row.
+		var compacts = n.get("compacts")
+		if compacts != null and str(compacts) != "":
+			bbcode += "  Compacts: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(compacts)) + "[/color]\n"
+
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:
@@ -852,6 +860,19 @@ func _render_balance_of_europe():
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]No coalition active. Post-dissolution cooldown: " + str(coalition_cooldown) + " turns.[/color]\n"
 		else:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]No coalition active.[/color]\n"
+
+	# AI-2e §3.7 (Stage C): the paymaster's purse, visible and
+	# contestable — payer, client, amount, and how to take the client
+	# away. Backend-composed lines; null omits the block.
+	var subsidy = boe.get("paymaster_subsidy")
+	if subsidy != null and subsidy is Dictionary:
+		var subsidy_line = str(subsidy.get("line", ""))
+		if subsidy_line != "":
+			bbcode += "\n[b]THE PAYMASTER'S PURSE[/b]\n"
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(subsidy_line) + "[/color]\n"
+			var subsidy_counter = str(subsidy.get("counterplay", ""))
+			if subsidy_counter != "":
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + subsidy_counter + "[/color]\n"
 
 	# Dissolution conditions
 	bbcode += "\n[color=#" + Utils.COLOR_GREY + "]Coalition dissolves if threat falls below "

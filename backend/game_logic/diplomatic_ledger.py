@@ -16,10 +16,19 @@ from backend.models.intel import (
 )
 from backend.game_logic.agendas import build_agenda_payload
 from backend.game_logic.diplomatic_templates import get_treaty_harshness_for_consumer
+from backend.game_logic.instruments import (
+    build_instruments_line,
+    build_subsidy_payload,
+)
 from backend.game_logic.intent import (
     build_france_mirror_payload,
     build_intent_payload,
 )
+
+
+def _build_instruments_line(nation: str, world):
+    """Thin adapter keeping the nations-tab call site tidy."""
+    return build_instruments_line(world, nation)
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
@@ -425,6 +434,10 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # fully-open ladder (timing is the only thing not shown).
             # None when indifferent with no design (renderers omit).
             "intent": build_intent_payload(nation, world),
+            # AI-2b/2e: every live D5 instrument this court is party to
+            # (sponsorships, compacts, bargains, guarantees, an open
+            # allegiance auction) — one composed line, None omits.
+            "compacts": _build_instruments_line(nation, world),
         })
 
     return nations
@@ -940,6 +953,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "threat_projection": threat_projection,
         "dissolution_threat_threshold": int(20),
         "dissolution_war_exhaustion_limit": int(80),
+        # AI-2e §3.7: the paymaster's purse, visible and contestable —
+        # payer, client, amount, and the counterplay line. None omits.
+        "paymaster_subsidy": build_subsidy_payload(world),
     }
 
 # ============================================================================

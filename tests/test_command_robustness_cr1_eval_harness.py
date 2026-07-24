@@ -57,6 +57,9 @@ MOCK_REACHABLE_ACTIONS = [
     # W6-9 (EXP-D1): the strategic assessment verb — mock-reachable via the
     # assess/situation keyword branch AND the question path.
     "diplomatic_advisory",
+    # AI-2b (AI_INTENT_SPEC §6 D5): the counter-instrument verbs —
+    # sponsor/subsidize/licence, buy off/pay off, guarantee (nation-gated).
+    "sponsor_design", "buy_off_design", "guarantee_nation",
 ]
 
 

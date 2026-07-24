@@ -416,6 +416,11 @@ class WorldState:
             # the authored gold price + the initial corps from the infantry
             # manpower pool, all charged in-executor.
             "recruit_marshal": 1,
+            # AI-2b D5 counter-instruments: 1 DP each, charged in the
+            # executor (the request_terms idiom) — never AP.
+            "sponsor_design": 0,
+            "buy_off_design": 0,
+            "guarantee_nation": 0,
         }
 
         # ============================================================
@@ -718,6 +723,21 @@ class WorldState:
         # make "no cold-open wars" a lie across a save/load.
         self.diplomatic_refusals: Dict[str, List[Dict]] = {}
 
+        # AI-2b (docs/AI_INTENT_SPEC.md §6 D5, §3.3, §12.3): the D5
+        # counter-instrument records — SERIALIZED per §5 pin 8
+        # (compensation bargains and their expectations must survive a
+        # save). Shapes documented in backend/game_logic/instruments.py.
+        # One directed record covers sponsorship + the licence
+        # (amount 0) + sell-neutrality (kind="neutrality") — §12.3's
+        # "one record, not two".
+        self.directed_sponsorships: List[Dict] = []
+        self.compensation_bargains: List[Dict] = []
+        self.diplomatic_guarantees: List[Dict] = []
+        # §12.6 (AI-2d): open allegiance auctions —
+        # {minor: {"opened_turn": int, "resolves_turn": int}}. Serialized:
+        # an announced flip must survive a save (§5 pin 8's family).
+        self.allegiance_auctions: Dict[str, Dict] = {}
+
         # R126: AI proposal metadata — tracks war_score at time of proposal for urgent re-proposal
         # Format: {nation: {"war_score_at_proposal": int, "turn": int}}
         self.ai_proposal_metadata: Dict[str, Dict] = {}
@@ -756,8 +776,18 @@ class WorldState:
         # ============================================================
         # COALITION SYSTEM (Phase 8 Session 7)
         # ============================================================
-        self.threat_level: int = 0                       # 0-100 clamped
-        self.threat_sources_this_turn: list = []         # [{"source": str, "amount": int}]
+        # AI-4a steps 1-4 (AI_INTENT_SPEC §4.4a): the per-target threat
+        # store. `threat_level` is a PROPERTY over the player's slot, so
+        # every legacy reader and writer keeps working byte-for-byte.
+        # NO producer passes a non-player target until Stage D lands
+        # steps 5-6 (the producer migration + decay) — until then every
+        # non-player slot is structurally 0.
+        self.threat_by_target: Dict[str, int] = {}
+        self.threat_level = 0                            # 0-100 clamped (property → player slot)
+        # Entries: {"source": str, "amount": int, "target": str}. Legacy
+        # saves/writers may omit "target" — readers default it to the
+        # player (§4.4a step 3).
+        self.threat_sources_this_turn: list = []
         # Metternich / DD8 armed mediation (DWL-DIP-METTERNICH): {nation: expires_on_turn}.
         # A rejected Schemer-authored peace/armistice proposal plants a 5-turn
         # war-pressure marker for that nation on the coalition-threat substrate.
@@ -1401,6 +1431,21 @@ class WorldState:
     def bankruptcy_turns(self, value: int):
         self.nation_bankruptcy_turns[self.player_nation] = int(value)
 
+    @property
+    def threat_level(self) -> int:
+        """AI-4a step 2 (AI_INTENT_SPEC §4.4a): the France-facing threat
+        scalar is a VIEW over the player's slot in `threat_by_target` —
+        the `gold` property idiom. All 73 backend reads and 10 .gd reads
+        keep working byte-for-byte; direct writers (cheat, from_dict,
+        coalition decay) route through the setter into the same slot."""
+        return int(self.threat_by_target.get(self.player_nation, 0))
+
+    @threat_level.setter
+    def threat_level(self, value):
+        # R94 tolerance: the legacy field accepted None (readers guarded
+        # with `or 0`); the property coerces it to 0 at write instead.
+        self.threat_by_target[self.player_nation] = int(value or 0)
+
     # ========================================
     # R6: COOLDOWN BACKWARD-COMPATIBLE PROPERTIES
     # ========================================
@@ -1668,6 +1713,18 @@ class WorldState:
             return float(NATION_HONOR_BIAS.get(nation, 1.0) or 1.0)
         except (TypeError, ValueError):
             return 1.0
+
+    def get_statecraft(self, nation: str) -> Dict:
+        """AI-2c (AI_INTENT_SPEC §3.4): the authored statecraft profile,
+        merged over the neutral default. The honor-bias idiom — authored
+        constant data, no serialized field, no runtime shadow map."""
+        from backend.nation_config import (
+            NATION_STATECRAFT,
+            STATECRAFT_DEFAULT,
+        )
+        profile = dict(STATECRAFT_DEFAULT)
+        profile.update(NATION_STATECRAFT.get(nation, {}) or {})
+        return profile
 
     def get_capital_garrison_target(self, nation: Optional[str]) -> int:
         """DEF-6 (Slice 8): the capital-garrison strength/regen cap for a
@@ -5192,6 +5249,19 @@ class WorldState:
                 k: [dict(e) for e in v]
                 for k, v in self.diplomatic_refusals.items()
             },
+            # AI-2b: the D5 instrument records (§5 pin 8 — serialized).
+            "directed_sponsorships": [
+                dict(r) for r in self.directed_sponsorships
+            ],
+            "compensation_bargains": [
+                dict(r) for r in self.compensation_bargains
+            ],
+            "diplomatic_guarantees": [
+                dict(r) for r in self.diplomatic_guarantees
+            ],
+            "allegiance_auctions": {
+                str(k): dict(v) for k, v in self.allegiance_auctions.items()
+            },
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
             "war_score_history": {
@@ -5217,7 +5287,12 @@ class WorldState:
             # PL-23: last_redemption_turn removed
 
             # ═══════ COALITION SYSTEM (Session 7) ═══════
+            # AI-4a step 3: both forms written for one release — the scalar
+            # for legacy readers, the per-target dict as the authority.
             "threat_level": int(self.threat_level),
+            "threat_by_target": {
+                str(k): int(v) for k, v in self.threat_by_target.items()
+            },
             "threat_sources_this_turn": [s.copy() for s in self.threat_sources_this_turn],
             "schemer_rejection_pressure": {
                 str(k): int(v) for k, v in self.schemer_rejection_pressure.items()
@@ -5769,6 +5844,20 @@ class WorldState:
             str(k): [dict(e) for e in (v or [])]
             for k, v in (data.get("diplomatic_refusals") or {}).items()
         }
+        # AI-2b: the D5 instrument records — pre-Stage-C saves read [].
+        world.directed_sponsorships = [
+            dict(r) for r in (data.get("directed_sponsorships") or [])
+        ]
+        world.compensation_bargains = [
+            dict(r) for r in (data.get("compensation_bargains") or [])
+        ]
+        world.diplomatic_guarantees = [
+            dict(r) for r in (data.get("diplomatic_guarantees") or [])
+        ]
+        world.allegiance_auctions = {
+            str(k): dict(v)
+            for k, v in (data.get("allegiance_auctions") or {}).items()
+        }
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
         world.war_score_history = {
@@ -5801,7 +5890,13 @@ class WorldState:
         # PL-23: last_redemption_turn removed (silently ignored from old saves)
 
         # ═══════ COALITION SYSTEM (Session 7) ═══════
+        # AI-4a step 3: a legacy scalar-only save seeds the player's slot;
+        # a post-migration save restores the whole per-target dict (which
+        # already contains the player slot the scalar mirrors).
         world.threat_level = int(data.get("threat_level", 0))
+        _tbt = data.get("threat_by_target")
+        if isinstance(_tbt, dict):
+            world.threat_by_target = {str(k): int(v) for k, v in _tbt.items()}
         world.schemer_rejection_pressure = {
             str(k): int(v)
             for k, v in (data.get("schemer_rejection_pressure") or {}).items()
@@ -7195,6 +7290,18 @@ class WorldState:
                 process_recurring_settlement_payments,
             )
             process_recurring_settlement_payments(self)
+
+        # ════════════════════════════════════════════════════════════
+        # AI-2b D5 INSTRUMENTS (AI_INTENT_SPEC §6 D5) — sponsorship
+        # payments + expiry, renege detection, guarantee abandonment.
+        # Beside the recurring-payments seam it mirrors; iterates only
+        # the three world-level instrument lists (GR8). Boot-zero: all
+        # three stores are empty until an instrument is granted.
+        # ════════════════════════════════════════════════════════════
+        if (self.directed_sponsorships or self.compensation_bargains
+                or self.diplomatic_guarantees):
+            from backend.game_logic.instruments import process_instruments
+            tactical_events.extend(process_instruments(self))
 
         # ════════════════════════════════════════════════════════════
         # ES-7 DOTATION RECONCILIATION (Economy Revisit S7) — after the

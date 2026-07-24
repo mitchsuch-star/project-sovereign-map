@@ -314,12 +314,32 @@ def get_active_agenda(nation: str, world) -> Optional[AgendaView]:
             else:
                 deck = (getattr(world, "agendas", {}) or {}).get(nation) or []
                 for entry in deck:
+                    # AI-2b (§3.1a b / §6 D5-1): a design bought off by
+                    # agreement is SUSPENDED — the deck advances past it
+                    # while the compensation bargain stands, and it wakes
+                    # the turn the bargain is reneged (record removed).
+                    if _design_bought_off(world, nation,
+                                          str(entry.get("id") or "")):
+                        continue
                     if _entry_active(world, nation, entry):
                         view = _view_from_entry(nation, entry)
                         break
 
     cache[nation] = view
     return view
+
+
+def _design_bought_off(world, nation: str, design_id: str) -> bool:
+    """AI-2b: is this deck entry suspended by a standing compensation
+    bargain? Reads the raw serialized store directly (shape documented in
+    instruments.py) — no import cycle with the instruments module."""
+    if not design_id:
+        return False
+    for record in getattr(world, "compensation_bargains", []) or []:
+        if (record.get("recipient") == nation
+                and record.get("design_id") == design_id):
+            return True
+    return False
 
 
 # ═══════════════════ SATISFACTION / RESOLVE (pure, NA-2/3 feeders) ════════

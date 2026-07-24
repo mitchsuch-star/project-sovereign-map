@@ -1816,6 +1816,21 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{guard_holder} seethes: {violator}'s columns cross {region} "
         "in defiance of its declared neutrality."
     ),
+    # AI-2b beat 4 (AI_INTENT_SPEC §4.6a) — The Broken Bargain.
+    "broken_bargain": (
+        "The compact with {nation} lies torn — {breaker} is named the "
+        "breaker in every chancery of Europe."
+    ),
+    # AI-2d §12.6 — the allegiance auction's Courier beat.
+    "allegiance_in_play": (
+        "The allegiance of {nation} is in play — every court with gold "
+        "or standing now bids for the flip."
+    ),
+    # AI-2e §3.7 — the paymaster's gold, made visible.
+    "paymaster_subsidy": (
+        "{payer}'s gold reaches {nation} — the subsidy stands at "
+        "{amount} this season."
+    ),
     # Nation Agendas NA-6 §11.8 stage 1 — the dispatch LEADS with a
     # proclamation (values arrive humanized: both display names).
     "nation_formed": (

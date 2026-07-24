@@ -226,6 +226,10 @@ class CommandParser:
             "make_vassal",      # Create a vassal
             "release_vassal",   # Release a vassal nation (P8-4 sync)
             "grant_region_to_vassal",  # VS-3: cede a province to a vassal
+            # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5)
+            "sponsor_design",    # Directed sponsorship / licence
+            "buy_off_design",    # Compensation — buy off a design
+            "guarantee_nation",  # Pledge to defend a nation
             # Strategic actions (LLM may return these directly) — P8-4 sync
             "pursue",           # Strategic PURSUE - chasing enemy marshal
             "support",          # Strategic SUPPORT - marching to ally
@@ -382,7 +386,8 @@ class CommandParser:
         # nation survives for the executor.
         if llm_result.get("action") in (
                 "change_autonomy", "invest_vassal", "release_vassal",
-                "make_vassal", "grant_region_to_vassal"):
+                "make_vassal", "grant_region_to_vassal",
+                "sponsor_design", "buy_off_design", "guarantee_nation"):
             if llm_result.get("marshal") and not llm_result.get("target"):
                 llm_result["target"] = llm_result["marshal"]
             llm_result["marshal"] = None
@@ -616,7 +621,10 @@ class CommandParser:
         # Spanish region Asturias)
         _VASSAL_ACTIONS = ("invest_vassal", "release_vassal",
                            "make_vassal", "change_autonomy",
-                           "grant_region_to_vassal")
+                           "grant_region_to_vassal",
+                           # AI-2b: instrument targets are nations too
+                           "sponsor_design", "buy_off_design",
+                           "guarantee_nation")
         # A nation demonym ("the Austrians", "Prussians") names an ARMY, not a
         # province — drop it to None so neither the fuzzy ladder below nor the
         # command-text fallback rewrites it into a region ("the Austrians" →

@@ -108,6 +108,295 @@ class DiplomaticExecutor:
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
 
+    # ════════════════════════════════════════════════════════════════
+    # AI-2b — THE D5 COUNTER-INSTRUMENTS (AI_INTENT_SPEC §6 D5)
+    # Player verbs: 1 DP each (the request_terms idiom — charged here,
+    # never AP). Every gate answers honestly, naming the price or the
+    # missing precondition (the /formables honest-availability contract).
+    # ════════════════════════════════════════════════════════════════
+
+    _INSTRUMENT_ACTIONS = ("sponsor_design", "buy_off_design",
+                           "guarantee_nation")
+
+    def _instrument_preflight(self, command: Dict, game_state: Dict):
+        """Shared gate: world, target nation resolved, 1 DP available.
+        Returns (world, target, error_result_or_None)."""
+        from backend.game_logic.instruments import INSTRUMENT_DP_COST
+        world = game_state.get("world")
+        if not world:
+            return None, "", {"success": False, "message": "No active game."}
+        target = (command.get("target") or command.get("target_nation")
+                  or "").strip()
+        if not target:
+            return world, "", None  # caller answers with its own usage line
+        from backend.game_logic.diplomatic_dialogue import get_known_nations
+        known = get_known_nations(world)
+        if target not in known:
+            resolved = next((n for n in known
+                             if n.lower() == target.lower()), None)
+            if resolved is None:
+                return world, "", {
+                    "success": False,
+                    "message": (f"Sire, I am not aware of a court called "
+                                f"'{target}'."),
+                }
+            target = resolved
+        player = getattr(world, "player_nation", "France")
+        if target == player:
+            return world, "", {
+                "success": False,
+                "message": "Sire, France cannot treat with itself.",
+            }
+        if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
+            return world, "", {
+                "success": False,
+                "message": (f"Insufficient Diplomatic Points. This "
+                            f"instrument costs {INSTRUMENT_DP_COST} DP."),
+            }
+        return world, target, None
+
+    @staticmethod
+    def _scan_amount(text: str) -> Optional[int]:
+        """First standalone number in the raw text (gold amounts)."""
+        import re as _re
+        match = _re.search(r'\b(\d[\d,]*)\b', text or "")
+        if not match:
+            return None
+        return int(match.group(1).replace(",", ""))
+
+    def _execute_sponsor_design(self, command: Dict, game_state: Dict) -> Dict:
+        """D5-2: directed sponsorship — 'sponsor Prussia against Austria,
+        200 gold'. Amount 0 (or the licence verb) = the §12.3 licence:
+        permission sold instead of gold, same bond (pin 23)."""
+        from backend.game_logic.instruments import (
+            INSTRUMENT_DP_COST,
+            SPONSORSHIP_DEFAULT_TURNS,
+            grant_directed_sponsorship,
+        )
+        from backend.game_logic.intent import get_nation_intent
+
+        world, recipient, error = self._instrument_preflight(command, game_state)
+        if error:
+            return error
+        if not recipient:
+            return {
+                "success": False,
+                "message": ("Name the court to sponsor, Sire — e.g. "
+                            "'sponsor Prussia against Austria, 200 gold' "
+                            "(0 gold licences their design instead)."),
+            }
+
+        raw_text = (command.get("raw_input")
+                    or command.get("original_command")
+                    or command.get("raw_command") or "").lower()
+
+        # The aim: the nation after "against" (the VS-3 clause-scan idiom).
+        aim = ""
+        if " against " in raw_text:
+            tail = raw_text.split(" against ", 1)[1]
+            from backend.game_logic.diplomatic_dialogue import (
+                get_known_nations,
+            )
+            for nation in sorted(get_known_nations(world), key=len,
+                                 reverse=True):
+                if nation.lower() in tail:
+                    aim = nation
+                    break
+
+        view = get_nation_intent(recipient, world)
+        if view.want_id is None or view.survival:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{recipient} has no design to "
+                            f"sponsor, Sire — gold cannot aim a court at "
+                            f"nothing.\""),
+            }
+        if not aim:
+            aim = view.against or ""
+        if not aim:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{recipient}'s design stands "
+                            f"against no one at present. Name the target — "
+                            f"'sponsor {recipient} against ...'\""),
+            }
+        if view.against and aim != view.against:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{recipient}'s design is aimed "
+                            f"at {view.against}, not {aim}. We can only "
+                            f"arm the grievance they already hold.\""),
+            }
+        player = getattr(world, "player_nation", "France")
+        if aim == player:
+            return {
+                "success": False,
+                "message": ("Talleyrand: \"Sponsor a design against "
+                            "ourselves, Sire? I must decline.\""),
+            }
+
+        amount = self._scan_amount(raw_text)
+        is_licence_verb = any(v in raw_text for v in ("licence", "license"))
+        if amount is None:
+            amount = 0 if is_licence_verb else 200
+        if amount > 0:
+            treasury = int(world.nation_gold.get(player, 0))
+            if treasury < amount:
+                return {
+                    "success": False,
+                    "message": (f"The treasury holds {treasury} gold — it "
+                                f"cannot promise {amount} per turn."),
+                }
+
+        world.diplomatic_points -= INSTRUMENT_DP_COST
+        result = grant_directed_sponsorship(
+            world, payer=player, recipient=recipient, aim=aim,
+            amount_per_turn=amount, turns=SPONSORSHIP_DEFAULT_TURNS,
+            kind="sponsorship")
+        record = result["record"]
+        if amount == 0:
+            message = (
+                f"The licence is granted: France blesses {recipient}'s "
+                f"design against {aim} and pledges non-interference. "
+                f"Talleyrand: \"Consent costs nothing today, Sire. "
+                f"Tomorrow it is the most expensive thing we have sold — "
+                f"entering that war against them would be reneging.\"")
+        else:
+            message = (
+                f"France sponsors {recipient}'s design against {aim} — "
+                f"{amount} gold per turn for "
+                f"{int(record['expiry_turn']) - int(record['started_turn'])} "
+                f"turns. Talleyrand: \"Their grievance now marches on our "
+                f"coin. Turning on them before it lapses would be "
+                f"reneging, Sire.\"")
+        return {"success": True, "message": message,
+                "sponsorship": dict(record), "new_state": game_state}
+
+    def _execute_buy_off_design(self, command: Dict, game_state: Dict) -> Dict:
+        """D5-1: compensation — buy off a design aimed at France('s
+        sphere). The price is derived and NAMED (D4 — no fog); paying it
+        suspends the design and mints the §3.3 standing expectation."""
+        from backend.game_logic.instruments import (
+            INSTRUMENT_DP_COST,
+            compute_buyoff_price,
+            create_compensation_bargain,
+        )
+        from backend.game_logic.intent import get_nation_intent
+
+        world, target, error = self._instrument_preflight(command, game_state)
+        if error:
+            return error
+        if not target:
+            return {
+                "success": False,
+                "message": ("Name the court to buy off, Sire — e.g. "
+                            "'buy off Prussia'."),
+            }
+
+        view = get_nation_intent(target, world)
+        if view.want_id is None:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{target} wants nothing that "
+                            f"gold can put to sleep, Sire.\""),
+            }
+        if view.survival:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{target} fights for its "
+                            f"existence — there is no price on that.\""),
+            }
+        price = compute_buyoff_price(world, target)
+        player = getattr(world, "player_nation", "France")
+
+        raw_text = (command.get("raw_input")
+                    or command.get("original_command")
+                    or command.get("raw_command") or "").lower()
+        offered = self._scan_amount(raw_text)
+        if offered is not None and offered < price:
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"{offered} gold will not move "
+                            f"them, Sire. Their price is {price} — the "
+                            f"weight of the design sets it.\""),
+            }
+        amount = price if offered is None else offered
+
+        treasury = int(world.nation_gold.get(player, 0))
+        if treasury < amount:
+            return {
+                "success": False,
+                "message": (f"Their price is {amount} gold; the treasury "
+                            f"holds {treasury}. Talleyrand: \"We cannot "
+                            f"afford their appetite today, Sire.\""),
+            }
+
+        world.diplomatic_points -= INSTRUMENT_DP_COST
+        world.nation_gold[player] = treasury - amount
+        world.nation_gold[target] = int(
+            world.nation_gold.get(target, 0)) + amount
+        result = create_compensation_bargain(
+            world, payer=player, recipient=target,
+            design_id=view.want_id, granted={"gold": amount})
+        message = (
+            f"{target}'s design — {view.want_title} — is bought off for "
+            f"{amount} gold. Talleyrand: \"The want sleeps, Sire; it does "
+            f"not die. The bargain is a hostage we have given — renege on "
+            f"it and it returns the heavier.\"")
+        return {"success": True, "message": message,
+                "bargain": dict(result["record"]), "new_state": game_state}
+
+    def _execute_guarantee_nation(self, command: Dict, game_state: Dict) -> Dict:
+        """D5-3: pledge to defend a court. Deters its coveters (their
+        intent weight drops, shown in the ledger); stakes France's
+        credibility — abandoning a tested guarantee is the
+        guarantee_abandoned grievance."""
+        from backend.game_logic.instruments import (
+            GUARANTEE_WEIGHT_DETERRENT,
+            INSTRUMENT_DP_COST,
+            pledge_guarantee,
+        )
+
+        world, target, error = self._instrument_preflight(command, game_state)
+        if error:
+            return error
+        if not target:
+            return {
+                "success": False,
+                "message": ("Name the court to guarantee, Sire — e.g. "
+                            "'guarantee Saxony'."),
+            }
+        player = getattr(world, "player_nation", "France")
+        if world.is_at_war(player, target):
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"We are at war with {target}, "
+                            f"Sire. A guarantee of one's enemy is a "
+                            f"surrender with extra steps.\""),
+            }
+        vassal_record = (getattr(world, "vassals", {}) or {}).get(target)
+        if vassal_record and vassal_record.get("lord") == player:
+            return {
+                "success": False,
+                "message": (f"{target} is already under French "
+                            f"protection as a vassal."),
+            }
+
+        result = pledge_guarantee(world, guarantor=player, protected=target)
+        if not result.get("success"):
+            return result
+        world.diplomatic_points -= INSTRUMENT_DP_COST
+        message = (
+            f"France guarantees {target}. Every court that covets their "
+            f"soil now weighs our army in the scale (their willingness "
+            f"falls by {GUARANTEE_WEIGHT_DETERRENT}). Talleyrand: \"A "
+            f"guarantee is credibility staked, Sire — if it is tested "
+            f"and we do not march, all Europe will know what our word "
+            f"weighs.\"")
+        return {"success": True, "message": message,
+                "guarantee": dict(result["record"]),
+                "new_state": game_state}
+
     def _is_pending_objection_dialogue(self, dialogue: Optional[Dict]) -> bool:
         """Return True when the active dialogue is the pre-send objection branch."""
         if not dialogue:
@@ -3671,6 +3960,15 @@ class DiplomaticExecutor:
                 score = int(acceptance_result.get("score", 0))
             except Exception:
                 score = 20
+            # AI-2c (§3.4): the statecraft coercion answer — Austria
+            # HARDENS under an ultimatum, Prussia FOLDS then resents,
+            # Russia escalates on honour, and Britain answers with the
+            # subsidy wall DERIVED from hostile-army-on-home-soil (never
+            # hard-coded — pin 10). Neutral courts read +0 byte-identically.
+            from backend.game_logic.statecraft import (
+                coercion_acceptance_delta,
+            )
+            score += coercion_acceptance_delta(world, target_nation)
             accepted = score >= 50
 
             # §3a: Dynamic relation penalty to target (PL-19)
@@ -5643,6 +5941,23 @@ class DiplomaticExecutor:
         if "target_nation" not in terms:
             terms["target_nation"] = world.player_nation
         treaty_event = world._ratify_treaty(terms)
+
+        # AI-2d (§4.2b): accepting a SELL-NEUTRALITY offer mints the
+        # §3.3 compact — the payment France just took is a hostage
+        # France has given. Entering that war against the payer later
+        # is RENEGING, the strongest casus belli in the game; without
+        # the bond, "take everyone's gold" would strictly dominate.
+        if terms.get("compact") == "sell_neutrality":
+            from backend.game_logic.instruments import (
+                grant_directed_sponsorship,
+            )
+            grant_directed_sponsorship(
+                world, payer=source_nation,
+                recipient=world.player_nation,
+                aim=terms.get("compact_aim") or "",
+                amount_per_turn=0,  # the lump rode ratification
+                kind="neutrality")
+
         world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
         from backend.notifications import DIPLOMATIC_PROPOSAL

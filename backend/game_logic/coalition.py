@@ -664,48 +664,64 @@ def describe_hegemon_bloc(world, hegemon: Optional[str], share: float) -> Dict:
 # §2a. THREAT ACCUMULATION
 # ════════════════════════════════════════════════════════════════
 
-def add_threat(world, amount: int, source_key: str) -> int:
+def add_threat(world, amount: int, source_key: str, target: str = None) -> int:
     """Add threat from an aggressive action (§2a).
+
+    AI-4a step 1 (AI_INTENT_SPEC §4.4a): `target` names the actor whose
+    slot in `threat_by_target` rises — NEVER the victim. Defaulting to
+    the player keeps every existing call site byte-identical; no
+    production caller passes a non-player target until Stage D lands
+    steps 5-6 (the producer migration).
 
     Args:
         world: WorldState
         amount: Positive int to add
         source_key: e.g. "battle_win", "capital_capture", "war_declaration",
                     "hegemony_passive"
+        target: the ACTOR nation accruing threat (default: the player)
 
     Returns:
-        New threat_level (clamped 0-100)
+        New threat level for the target's slot (clamped 0-100)
     """
+    tgt = target or world.player_nation
     if amount <= 0:
-        return int(world.threat_level)
-    world.threat_level = int(min(100, max(0, world.threat_level + amount)))
+        return int(world.threat_by_target.get(tgt, 0))
+    world.threat_by_target[tgt] = int(
+        min(100, max(0, world.threat_by_target.get(tgt, 0) + amount)))
     world.threat_sources_this_turn.append({
         "source": source_key,
         "amount": int(amount),
+        "target": tgt,
     })
     # B-Hegemony: transient per-turn flag backing the
     # `residual_pressure_active` anti-spam gate. Set True on any positive
     # threat increment; cleared at end-of-turn / ledger evaluation.
-    setattr(world, "positive_threat_delta_this_turn", True)
-    return int(world.threat_level)
+    # Player-slot only — the gate it backs is a France-threat surface.
+    if tgt == world.player_nation:
+        setattr(world, "positive_threat_delta_this_turn", True)
+    return int(world.threat_by_target[tgt])
 
 
-def reduce_threat(world, amount: int, source_key: str) -> int:
+def reduce_threat(world, amount: int, source_key: str, target: str = None) -> int:
     """Reduce threat from voluntary concessions (§2b voluntary).
 
     For things like releasing vassals or returning territory — NOT per-turn decay.
+    AI-4a step 1: optional `target` per `add_threat`'s contract.
 
     Returns:
-        New threat_level (clamped 0-100)
+        New threat level for the target's slot (clamped 0-100)
     """
+    tgt = target or world.player_nation
     if amount <= 0:
-        return int(world.threat_level)
-    world.threat_level = int(min(100, max(0, world.threat_level - amount)))
+        return int(world.threat_by_target.get(tgt, 0))
+    world.threat_by_target[tgt] = int(
+        min(100, max(0, world.threat_by_target.get(tgt, 0) - amount)))
     world.threat_sources_this_turn.append({
         "source": source_key,
         "amount": int(-amount),
+        "target": tgt,
     })
-    return int(world.threat_level)
+    return int(world.threat_by_target[tgt])
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1100,13 +1116,30 @@ def get_british_subsidy_recipient(world) -> Optional[str]:
         return None
 
     members = coalition.get("members", [])
+    target = coalition.get("target_nation") or getattr(
+        world, "player_nation", "France")
 
     # Find partner with lowest relation to the payer (min > -20)
     best = None
     best_relation = 200  # Higher than any possible relation
 
+    from backend.game_logic.instruments import standing_sponsorship_amount
+    from backend.game_logic.agendas import get_paymaster_subsidy_amount
+    subsidy = int(get_paymaster_subsidy_amount(world, payer))
+
     for member in members:
         if member == payer:
+            continue
+        # AI-2e (§3.7): the paymaster duel. A member the coalition's
+        # TARGET has bought is not worth funding — outbid when the
+        # rival's standing directed sponsorship matches the subsidy
+        # (the D5 record is the bid), or bought off outright when a
+        # live compensation bargain stands. Boot byte-identical: both
+        # stores are empty until an instrument is granted.
+        if standing_sponsorship_amount(world, target, member) >= subsidy:
+            continue
+        if any(r.get("payer") == target and r.get("recipient") == member
+               for r in getattr(world, "compensation_bargains", []) or []):
             continue
         rel = _get_relation(world, payer, member)
         if rel > -20 and rel < best_relation:
@@ -1181,6 +1214,20 @@ def _process_british_subsidy(world) -> List[Dict]:
         "subsidy_source_detail": source_detail,
         "message": f"{payer} subsidizes {recipient} with {subsidy} gold.",
     })
+    # AI-2e (§3.7): the subsidy is VISIBLE — "today the most
+    # consequential fact about why Austria will not settle is
+    # invisible." Campaign log + dispatch, beside the terminal line.
+    world.log_event({
+        "type": "british_subsidy",
+        "payer": payer,
+        "recipient": recipient,
+        "amount": int(subsidy),
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    })
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "paymaster_subsidy",
+                         {"nation": recipient, "payer": payer,
+                          "amount": int(subsidy)}, "always")
     return events
 
 

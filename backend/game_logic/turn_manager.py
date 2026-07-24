@@ -439,6 +439,16 @@ class TurnManager:
         # which calls dialogue_manager.push() (auto-queues when slot is occupied)
         MAX_BANDWAGON_PER_TURN = 2
         bandwagon_delivered = 0
+        # AI-2 §4.2c: intent asks carry their OWN world-wide budget —
+        # sized so the §4.2b marquee case (both belligerents courting
+        # France the same turn) can never be starved by an unrelated
+        # bandwagon flood. An intent ask NEVER counts against the
+        # bandwagon cap (whatever its derived decision_reason), and
+        # vice versa. Ultimatums stay exempt from both.
+        from backend.game_logic.ai_diplomacy import (
+            INTENT_ASK_BUDGET_PER_TURN,
+        )
+        intent_delivered = 0
         for nation in enemy_nations:
             proposal = process_diplomatic_phase(nation, world)
             if not proposal:
@@ -450,8 +460,13 @@ class TurnManager:
             # one live world-wide + a 15-turn per-nation cooldown SET AT
             # ISSUE, so a throttle deferral here would silently eat the
             # court's one ultimatum for 15 turns.
-            if (proposal.get("decision_reason") in ("hegemony_pressure",
-                                                    "agenda_pursuit")
+            if proposal.get("intent_ask"):
+                if intent_delivered >= INTENT_ASK_BUDGET_PER_TURN:
+                    debug_print(f"[DIPLOMACY] {nation} intent ask deferred (§4.2c budget)")
+                    continue
+                intent_delivered += 1
+            elif (proposal.get("decision_reason") in ("hegemony_pressure",
+                                                      "agenda_pursuit")
                     and proposal.get("proposal_type") != "ultimatum"):
                 if bandwagon_delivered >= MAX_BANDWAGON_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} bandwagon proposal deferred (per-turn cap)")

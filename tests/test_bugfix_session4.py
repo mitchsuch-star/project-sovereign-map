@@ -219,7 +219,15 @@ class TestDLF9P3UpgradePath:
             assert proposal.get("proposal_type") == "open_borders"
 
     def test_p3_proposes_non_aggression_from_open_borders(self):
-        """From OPEN_BORDERS, P3 should propose NON_AGGRESSION."""
+        """From OPEN_BORDERS, P3 seeks the NON_AGGRESSION rung.
+
+        AI-2c (AI_INTENT_SPEC §3.4) conscious flip: Prussia's statecraft
+        reaches for gold first, so the hesitant opportunist now leads
+        with the friendly GIFT — whose base ask at relation >= 0 IS the
+        non-aggression pact (softened with gold). The DLF-9 property
+        (a legal upward proposal fires from OPEN_BORDERS) holds either
+        way; only Berlin's opening instrument changed.
+        """
         world = make_world()
         set_state(world, "France", "Prussia", "OPEN_BORDERS")
         set_relation(world, "France", "Prussia", 25)
@@ -227,7 +235,8 @@ class TestDLF9P3UpgradePath:
 
         proposal = self._run_p3(world, "Prussia")
         if proposal:
-            assert proposal.get("proposal_type") == "non_aggression"
+            assert proposal.get("proposal_type") in (
+                "non_aggression", "friendly_gift")
 
     def test_p3_proposes_defensive_alliance_from_non_aggression(self):
         """From NON_AGGRESSION with sufficient relation, P3 should propose DEFENSIVE_ALLIANCE."""

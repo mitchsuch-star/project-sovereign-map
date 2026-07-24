@@ -155,7 +155,14 @@ class TestUltimatumTrigger:
         world.regions["Hanover"].controller = "Hanover"
         world.invalidate_active_nations_cache()
         assert _ultimatum_demandable_regions("Prussia", world) == []
-        assert _fire(world) is None
+        proposal = _fire(world)
+        # AI-2 (Stage C) conscious narrowing: with the P-Intent rung
+        # live, Prussia at `align` against Hanover-held-by-Hanover may
+        # legitimately court FRANCE instead (the alignment ask — the
+        # Schönbrunn negotiation, played). The pin this test owns is
+        # only that no ULTIMATUM fires without a demandable target.
+        assert proposal is None or (
+            proposal.get("proposal_type") != "ultimatum")
 
     def test_no_fire_inside_player_bloc(self, world):
         _make_ultimatum_ready(world)

@@ -1377,6 +1377,18 @@ class LLMClient:
             action = "revoke_pension"
         elif _mentions_pension(command_lower):
             action = "grant_pension"
+        # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5). Verbs are
+        # clean words unused by earlier arms; guarantee is gated on a
+        # known nation in text (the grant-gate idiom) so prose like
+        # "guarantee our supply lines" never fires it.
+        elif re.search(r'\b(sponsor|subsidi[sz]e|bankroll|licen[cs]e)\b',
+                       command_lower):
+            action = "sponsor_design"
+        elif re.search(r'\b(buy|pay|bought)\s+(off|out)\b', command_lower):
+            action = "buy_off_design"
+        elif (re.search(r'\bguarantee\b', command_lower)
+              and any(n in command_lower for n in known_nations_lower)):
+            action = "guarantee_nation"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,
@@ -1415,12 +1427,22 @@ class LLMClient:
         # (generic region/enemy extraction would fuzzy-drift nation names,
         # e.g. Austria → the Spanish region Asturias).
         if action in ("invest_vassal", "release_vassal", "make_vassal",
-                      "change_autonomy",
-                      "grant_region_to_vassal") and known_nations:
+                      "change_autonomy", "grant_region_to_vassal",
+                      "sponsor_design", "buy_off_design",
+                      "guarantee_nation") and known_nations:
             matched_form = _match_known_name(
                 command_lower, known_nations.keys())
             if matched_form:
                 target = known_nations[matched_form]
+            # AI-2b: "sponsor X against Y" — the RECIPIENT is the nation
+            # before the against-clause; generic first-match could return
+            # the aim. Cut the clause and re-match (the VS-3 C6 idiom);
+            # the executor extracts the aim from the raw text itself.
+            if action == "sponsor_design" and " against " in command_lower:
+                head = command_lower.split(" against ", 1)[0]
+                head_form = _match_known_name(head, known_nations.keys())
+                if head_form:
+                    target = known_nations[head_form]
 
         # CR-0: dynamic target extraction from the live game_state — enemy
         # commanders first (mirrors the legacy ladder's precedence), then

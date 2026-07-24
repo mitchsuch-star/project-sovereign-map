@@ -219,6 +219,19 @@ CAMPAIGN_LOG_TYPES = {
     "agenda_violation",
     # Nation Agendas NA-6 §11.8 — a nation is proclaimed
     "nation_formed",
+    # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5, §3.3, §12.3)
+    "sponsorship_granted",
+    "sponsorship_reneged",
+    "sponsorship_expired",
+    "design_bought_off",
+    "bargain_reneged",
+    "guarantee_pledged",
+    "guarantee_abandoned",
+    # AI-2d §12.6 — the allegiance auction
+    "allegiance_auction_opened",
+    "allegiance_auction_resolved",
+    # AI-2e §3.7 — the paymaster's gold, on the record
+    "british_subsidy",
 }
 
 # ============================================================================
@@ -274,6 +287,19 @@ CATEGORY_MAP = {
     "diplomatic_ai_ai_treaty": "diplomacy",
     "ai_ai_proposal_refused": "diplomacy",
     "commitment_paradox_resolved": "diplomacy",
+    # AI-2b D5 counter-instruments
+    "sponsorship_granted": "diplomacy",
+    "sponsorship_reneged": "diplomacy",
+    "sponsorship_expired": "diplomacy",
+    "design_bought_off": "diplomacy",
+    "bargain_reneged": "diplomacy",
+    "guarantee_pledged": "diplomacy",
+    "guarantee_abandoned": "diplomacy",
+    # AI-2d §12.6 — the allegiance auction
+    "allegiance_auction_opened": "diplomacy",
+    "allegiance_auction_resolved": "diplomacy",
+    # AI-2e §3.7 — the paymaster subsidy
+    "british_subsidy": "diplomacy",
     # Deep audit fix: missing event types
     "war_declaration": "diplomacy",
     "defensive_cascade": "diplomacy",
@@ -587,6 +613,14 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # AI-2d §12.6: an announced flip is town-crier public — the whole
+        # point of the beat is that the auction is IN PLAY (pin 11: no
+        # hidden dispositions), so both auction events always show.
+        if event_type in ("allegiance_auction_opened",
+                          "allegiance_auction_resolved"):
+            filtered.append(event)
+            continue
+
         # Economy events (enemy): region PARTIAL+
         if event_type in ("recruitment", "building_started", "building_completed",
                           "building_damaged", "desertion",
@@ -614,6 +648,17 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           # sibling — without this branch the event was
                           # silently dropped and NO surface showed it.
                           "ai_ai_proposal_refused",
+                          # AI-2b: instrument events ride the same arm —
+                          # a player-party event passes the player-event
+                          # gate above; court-to-court needs PARTIAL+ on a
+                          # named party (payer/recipient/breaker/victim).
+                          "sponsorship_granted", "sponsorship_reneged",
+                          "sponsorship_expired", "design_bought_off",
+                          "bargain_reneged", "guarantee_pledged",
+                          "guarantee_abandoned",
+                          # AI-2e: the paymaster subsidy rides the same
+                          # PARTIAL+ arm (payer/recipient keys)
+                          "british_subsidy",
                           "balance_of_europe_shifted",
                           "call_to_arms_refused_defensive",
                           "call_to_arms_refused_offensive",
@@ -625,6 +670,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 "nation", "nation_a", "nation_b", "target", "aggressor",
                 "breaker", "victim", "honorer", "hegemon", "speaker_nation",
                 "proposer", "recipient", "refused_by",
+                # AI-2b/AI-2d instrument + auction parties
+                "payer", "guarantor", "protected", "winner",
             ):
                 val = event.get(key)
                 if val:
@@ -1422,6 +1469,78 @@ def format_event_oneliner(event: dict) -> str:
                                                           "Unknown")
         ptype = (event.get("proposal_type") or "proposal").replace("_", " ")
         return f"{refused_by} rebuffs {proposer} ({ptype})"
+
+    # AI-2b: the D5 counter-instruments.
+    if event_type == "sponsorship_granted":
+        payer = display_nation(event.get("payer", "Unknown"))
+        recipient = display_nation(event.get("recipient", "Unknown"))
+        aim = display_nation(event.get("aim", "")) if event.get("aim") else ""
+        if event.get("kind") == "neutrality":
+            return (f"{payer} buys {recipient}'s neutrality"
+                    + (f" in the war over {aim}" if aim else ""))
+        if event.get("licence"):
+            return f"{payer} licences {recipient}'s design against {aim}"
+        return (f"{payer} sponsors {recipient}"
+                + (f" against {aim}" if aim else "")
+                + f" ({int(event.get('amount', 0))}g/turn)")
+
+    if event_type == "sponsorship_reneged":
+        breaker = display_nation(event.get("breaker", "Unknown"))
+        victim = display_nation(event.get("victim", "Unknown"))
+        noun = ("licence" if event.get("licence")
+                else "neutrality compact"
+                if event.get("kind") == "neutrality" else "sponsorship")
+        return f"THE BROKEN BARGAIN: {breaker} tears up its {noun} with {victim}"
+
+    if event_type == "sponsorship_expired":
+        payer = display_nation(event.get("payer", "Unknown"))
+        recipient = display_nation(event.get("recipient", "Unknown"))
+        return f"The compact between {payer} and {recipient} lapses"
+
+    if event_type == "design_bought_off":
+        payer = display_nation(event.get("payer", "Unknown"))
+        recipient = display_nation(event.get("recipient", "Unknown"))
+        return f"{payer} buys off {recipient}'s design — the want sleeps"
+
+    if event_type == "bargain_reneged":
+        breaker = display_nation(event.get("breaker", "Unknown"))
+        victim = display_nation(event.get("victim", "Unknown"))
+        return (f"THE BROKEN BARGAIN: {breaker} reneges on its compact "
+                f"with {victim} — the design returns")
+
+    if event_type == "guarantee_pledged":
+        guarantor = display_nation(event.get("guarantor", "Unknown"))
+        protected = display_nation(event.get("protected", "Unknown"))
+        return f"{guarantor} guarantees {protected}"
+
+    if event_type == "guarantee_abandoned":
+        breaker = display_nation(event.get("breaker", "Unknown"))
+        victim = display_nation(event.get("victim", "Unknown"))
+        return (f"A guarantee proves paper: {breaker} abandons "
+                f"{victim} to its attackers")
+
+    if event_type == "british_subsidy":
+        payer = display_nation(event.get("payer", "Unknown"))
+        recipient = display_nation(event.get("recipient", "Unknown"))
+        amount = int(event.get("amount", 0))
+        return f"{payer}'s gold: {amount}g reaches {recipient}"
+
+    if event_type == "allegiance_auction_opened":
+        nation = display_nation(event.get("nation", "Unknown"))
+        return f"THE FLIP IS IN PLAY: {nation} weighs its allegiance"
+
+    if event_type == "allegiance_auction_resolved":
+        nation = display_nation(event.get("nation", "Unknown"))
+        outcome = event.get("outcome", "")
+        if outcome == "lapsed":
+            return f"The moment passes — {nation} keeps its own counsel"
+        if outcome == "no_suitor":
+            return f"No court bids for {nation}; the flip dissolves"
+        winner = display_nation(event.get("winner") or "Unknown")
+        if outcome == "player_offer":
+            return (f"{nation} chooses France — their envoy carries "
+                    f"the pact")
+        return f"THE FLIP: {nation} signs with {winner}"
 
     # Deep audit fix: new event types
     if event_type == "war_declaration":

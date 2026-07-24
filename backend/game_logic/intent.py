@@ -239,6 +239,11 @@ def _survival_threat(nation: str, world) -> Optional[str]:
 def _derive_weight(nation: str, agenda: AgendaView,
                    against: Optional[str], world) -> int:
     weight = WEIGHT_BASE_BY_TYPE.get(agenda.type, 40)
+    # AI-2c (§3.4): the statecraft weight modifier — authored 0 for every
+    # 1805 court (boot-neutral, pin 1); the wire exists for scenarios
+    # that author a hungrier or sleepier great power.
+    from backend.game_logic.statecraft import statecraft_weight_mod
+    weight += statecraft_weight_mod(world, nation)
     if against:
         if world.is_at_war(nation, against):
             weight += WEIGHT_AT_WAR_WITH_HOLDER
@@ -261,6 +266,25 @@ def _derive_weight(nation: str, agenda: AgendaView,
         if int((getattr(world, "nation_gold", {}) or {})
                .get(against, 0)) < 0:
             weight += WEIGHT_OPPORTUNISM_BANKRUPT
+        # AI-2b D5-3: a live third-party guarantee of the obstacle raises
+        # the coveter's bar for war — shown as the weight it actually
+        # moved to (D4: the ledger shows the number). Boot-zero: no
+        # guarantees exist until one is pledged.
+        from backend.game_logic.instruments import (
+            GUARANTEE_WEIGHT_DETERRENT,
+            WEIGHT_RENEGED_BARGAIN,
+            has_renege_grievance,
+        )
+        for record in getattr(world, "diplomatic_guarantees", []) or []:
+            if (record.get("protected") == against
+                    and record.get("guarantor") != nation):
+                weight -= GUARANTEE_WEIGHT_DETERRENT
+                break
+        # §3.3: a reneged bargain is the strongest mark in the game — the
+        # victim's willingness against the breaker surges (Stage D adds
+        # the may-skip-rungs casus belli).
+        if has_renege_grievance(world, nation, against):
+            weight += WEIGHT_RENEGED_BARGAIN
     # §3.8 threshold jitter — 0 at boot on every seed, 0 forever on the
     # historical seed; the bars move, never the choices.
     weight += seeded_jitter(

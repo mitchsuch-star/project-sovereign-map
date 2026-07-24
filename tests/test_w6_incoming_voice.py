@@ -234,16 +234,25 @@ class TestAntiMonotony:
             "Prussia|open_borders", 0) >= TYPE_LAPSE_COOLDOWN - 1
 
     def test_hegemony_ask_varies_by_relation_band(self, world):
+        # AI-2c conscious flip: Prussia's statecraft ("reaches for gold
+        # first") now leads the NEUTRAL band with the friendly gift —
+        # the W6-10 anti-monotony property (bands vary the ask, the
+        # candidate SET is unchanged) still holds; only the hesitant
+        # opportunist's opening instrument moved. A statecraft-neutral
+        # court keeps the original ordering (asserted below).
         # Warm court: the ladder upgrade leads
         key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key] = "PEACE"
         world.nation_relations[key] = 40
         assert _hegemony_ask_candidates("Prussia", "PEACE", 40, world)[0] \
             == "open_borders"  # PEACE ladder rung
-        # Neutral court: non-aggression leads (relation 10 meets req 0)
+        # Neutral court: Prussia's gift leads; the pact stays available
         candidates = _hegemony_ask_candidates("Prussia", "PEACE", 10, world)
+        assert candidates[0] == "friendly_gift"
+        assert "non_aggression" in candidates
+        # A statecraft-neutral court keeps the pre-AI-2c band order
+        candidates = _hegemony_ask_candidates("Hanover", "PEACE", 10, world)
         assert candidates[0] == "non_aggression"
-        assert "friendly_gift" in candidates
         # Cool court: the gift leads; non_aggression (req 0) is illegal
         candidates = _hegemony_ask_candidates("Prussia", "PEACE", -10, world)
         assert candidates[0] == "friendly_gift"

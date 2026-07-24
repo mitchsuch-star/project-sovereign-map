@@ -48,6 +48,9 @@ ACTION_DISPLAY = {
     "revoke_pension": "has his rente withdrawn",      # ES-7 second pass (§0.6.8)
     "recruit_marshal": "commissions",                 # Marshal Recruitment (v3.2)
     "grant_region_to_vassal": "cedes territory to",   # VS-3 (Vassal Depth)
+    "sponsor_design": "sponsors",                     # AI-2b (D5-2)
+    "buy_off_design": "buys off",                     # AI-2b (D5-1)
+    "guarantee_nation": "guarantees",                 # AI-2b (D5-3)
 }
 
 # ============================================================================
@@ -116,6 +119,9 @@ OBJECTION_DISPLAY = {
     "revoke_pension": "losing his rente",           # ES-7 second pass (no objections in v1)
     "recruit_marshal": "commissioning a marshal",   # Marshal Recruitment (no objections in v1)
     "grant_region_to_vassal": "ceding territory",   # VS-3 (no objections in v1)
+    "sponsor_design": "sponsoring a design",        # AI-2b (no objections in v1)
+    "buy_off_design": "buying off a design",        # AI-2b (no objections in v1)
+    "guarantee_nation": "pledging a guarantee",     # AI-2b (no objections in v1)
 }
 
 # ============================================================================
@@ -158,6 +164,9 @@ DEFIANCE_DISPLAY = {
     "revoke_pension": "lost his rente",            # ES-7 second pass (no defiance in v1)
     "recruit_marshal": "commissioned a marshal",   # Marshal Recruitment (no defiance in v1)
     "grant_region_to_vassal": "ceded territory",   # VS-3 (no defiance in v1)
+    "sponsor_design": "sponsored a design",        # AI-2b (no defiance in v1)
+    "buy_off_design": "bought off a design",       # AI-2b (no defiance in v1)
+    "guarantee_nation": "pledged a guarantee",     # AI-2b (no defiance in v1)
 }
 
 # ============================================================================
@@ -211,6 +220,10 @@ PROPOSAL_TYPE_DISPLAY = {
     # W6-10: the P3 relation-band gift ask (stable P-rule label; the terms
     # type underneath is non_aggression or open_borders)
     "friendly_gift": "Gift of Friendship",
+    # AI-2 (AI_INTENT_SPEC §4.2): the intent-driven asks (stable P-rule
+    # labels; the terms type underneath is a legal treaty state)
+    "design_purchase": "Treaty of Cession",
+    "sell_neutrality": "Purchase of Neutrality",
 }
 
 CLAUSE_TYPE_DISPLAY = {

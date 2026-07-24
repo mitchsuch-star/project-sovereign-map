@@ -143,6 +143,71 @@ NATION_HONOR_BIAS: Dict[str, float] = {
     "Switzerland": 1.0,       # satellite, neutral tradition
 }
 
+# ════════════════════════════════════════════════════════════════════════
+# AI-2c — GREAT-POWER STATECRAFT (AI_INTENT_SPEC §3.4, the aliveness
+# contract). The honor-bias idiom: an authored constant map, no serialized
+# field, single read chokepoint `world.get_statecraft(nation)`, the
+# neutral default for unauthored courts. It biases FOUR things only:
+# which rung the power prefers (`reaches_first` reorders ask candidates —
+# the NA-2 design-advancing front-move still outranks it), which
+# instrument it reaches for first, how it answers being coerced
+# (`coercion` — the acceptance delta at the ultimatum seam; Britain's
+# `subsidy` answer is DERIVED from hostile-army-on-home-soil, never
+# hard-coded), and a `weight_mod` on its design (authored 0 for every
+# 1805 court — a capability, deliberately boot-neutral per §5 pin 1).
+# `haggles` drives the AI-2c court-to-court counter-offer arm.
+# Behaviour helpers live in backend/game_logic/statecraft.py.
+# ════════════════════════════════════════════════════════════════════════
+
+STATECRAFT_DEFAULT: Dict = {
+    "style": "a court among courts",
+    "reaches_first": (),
+    "coercion": "neutral",
+    "weight_mod": 0,
+    "haggles": False,
+}
+
+NATION_STATECRAFT: Dict[str, Dict] = {
+    # The four majors (§3.4's table — full profiles).
+    "Austria": {
+        "style": "the aggrieved patient revanchist",
+        "reaches_first": ("align",),      # build a bloc before fighting alone
+        "coercion": "hardens",            # coercion confirms the grievance
+        "weight_mod": 0,
+        "haggles": True,                  # Metternich negotiates everything
+    },
+    "Prussia": {
+        "style": "the hesitant opportunist",
+        "reaches_first": ("buy", "bandwagon"),  # sells neutrality, takes gold
+        "coercion": "folds",              # then resents (§3.3 owns the resentment)
+        "weight_mod": 0,
+        "haggles": True,
+    },
+    "Russia": {
+        "style": "the distant arbiter",
+        "reaches_first": ("sponsor",),    # leads or funds coalitions
+        "coercion": "honour",             # escalates on honour, then reverses hard
+        "weight_mod": 0,
+        "haggles": False,                 # Alexander does not bargain in kopecks
+    },
+    "Britain": {
+        "style": "the paymaster",
+        "reaches_first": ("sponsor",),    # the branch, not the rung
+        "coercion": "subsidy",            # gold, while no army stands on home soil
+        "weight_mod": 0,
+        "haggles": True,
+    },
+    # Secondaries — LIGHT profiles (a preferred rung + a coercion
+    # reaction, no more — over-characterising them blows the narration
+    # budget, §3.4).
+    "Sweden": {"reaches_first": ("align",), "coercion": "honour"},
+    "Ottoman": {"reaches_first": ("buy",), "coercion": "folds"},
+    "Denmark": {"reaches_first": ("ask",), "coercion": "folds"},
+    "Sardinia": {"reaches_first": ("align",), "coercion": "hardens"},
+    "Naples": {"reaches_first": ("align",), "coercion": "folds"},
+    "Spain": {"reaches_first": ("buy",), "coercion": "folds"},
+}
+
 RUNTIME_NATIONS = tuple(
     dict.fromkeys(
         (

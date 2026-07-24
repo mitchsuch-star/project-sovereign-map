@@ -119,7 +119,15 @@ class TestTypeWhitelist:
         # AI-2a (July 24, 2026): +1 ai_ai_proposal_refused — the court-to-
         # court refusal moment (§5 pin 8's public half; the AI-AI path had
         # no refusal record at all before this).
-        assert len(CAMPAIGN_LOG_TYPES) == 123
+        # AI-2b Stage C (July 24, 2026): +7 — the D5 counter-instrument
+        # lifecycle (sponsorship_granted / sponsorship_reneged /
+        # sponsorship_expired / design_bought_off / bargain_reneged /
+        # guarantee_pledged / guarantee_abandoned).
+        # AI-2d Stage C (July 24, 2026): +2 — the allegiance auction
+        # (allegiance_auction_opened / allegiance_auction_resolved).
+        # AI-2e Stage C (July 24, 2026): +1 british_subsidy — the
+        # paymaster's gold on the record (§3.7 visibility).
+        assert len(CAMPAIGN_LOG_TYPES) == 133
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""
