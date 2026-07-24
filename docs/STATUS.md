@@ -43,7 +43,7 @@ BEHIND the AI stages by user direction — row BD stands.**
   the refusal event was invisible in-game (no fog-filter branch + excluded from the phase return).
   Conscious pin flips: campaign-log count 122→123 (×2 files), relations matrix +2 pairs, war-room
   keys +`intents`, Russia contain-in-bloc → gulf_and_straits (the Tilsit route).
-- Suite **14,409 → 14,612/3** (206 new across 4 `test_ai_intent_*.py` files), ruff clean, M1–M7
+- Suite **14,409 → 14,613/3** (207 new across 4 `test_ai_intent_*.py` files), ruff clean, M1–M7
   byte-identical, parse harness EXIT=0, headless boot 0 `SCRIPT ERROR` ×2. **⚠ open: pin-20 live
   in-game visual pass** on the two new ledger surfaces (intent rows + the mirror block + the seed
   line) — headless-verified only. **▶ NEXT: user in-game review (NA-6c/6d + the new AI surfaces) →
