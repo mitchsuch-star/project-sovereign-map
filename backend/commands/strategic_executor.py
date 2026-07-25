@@ -7,6 +7,10 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 import random
 from typing import Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
+from backend.ai.nation_names import (
+    nation_not_a_province_message,
+    resolve_typed_nation,
+)
 from backend.models.world_state import WorldState
 from backend.commands.objection_v2 import (
     ConcernLevel, evaluate_strategic_situation, apply_mood_variance,
@@ -543,6 +547,18 @@ class StrategicExecutor:
                     and dest and dest not in world.regions):
                 resolved = _resolve_region_from_phrase(world, dest)
                 if resolved is None:
+                    # IGR-A3: "Ney, march to Austria" reaches HERE, not the
+                    # tactical region chokepoint — so the strategic verbs need
+                    # the same honest answer, or a named court reads as an
+                    # unintelligible phrase.
+                    nation = resolve_typed_nation(dest, world)
+                    if nation:
+                        return {
+                            "success": False,
+                            "message": nation_not_a_province_message(nation, world),
+                            "nation_named": nation,
+                            "variable_action_cost": 0,
+                        }
                     return {
                         "success": False,
                         "message": (

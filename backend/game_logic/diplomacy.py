@@ -5849,6 +5849,7 @@ def resolve_join_opportunity(
                 beneficiary,
                 named_enemy,
                 opportunity.get("promiser", "") or "",
+                world=world,
             )
             return result
 

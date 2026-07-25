@@ -1046,10 +1046,20 @@ class CommandParser:
                         # Apply fuzzy matching to strategic target (strategic parser
                         # only does exact match — typos like "bordeuex" slip through)
                         if strategic.get("target_type") == "region":
-                            fuzzy_result = self.fuzzy_matcher.match_with_context(
-                                strategic_target, self._get_known_regions(world))
-                            if fuzzy_result["action"] in ("exact", "auto_correct"):
-                                strategic_target = fuzzy_result["match"]
+                            # IGR-A3: the SAME nation guard as the tactical
+                            # ladder. Without it this fuzzy pass reopened the
+                            # whole defect on the strategic verbs — "Ney,
+                            # march/advance/head/proceed/make for/travel/push/
+                            # deploy/relocate/journey to Austria" all created a
+                            # real MOVE_TO order to Asturias, because only the
+                            # bare "move to" phrasing reaches the guarded path.
+                            if resolve_typed_nation(strategic_target, world):
+                                pass  # keep the nation verbatim; the executor names it
+                            else:
+                                fuzzy_result = self.fuzzy_matcher.match_with_context(
+                                    strategic_target, self._get_known_regions(world))
+                                if fuzzy_result["action"] in ("exact", "auto_correct"):
+                                    strategic_target = fuzzy_result["match"]
                         elif strategic.get("target_type") == "marshal":
                             all_marshals = self._get_player_marshals(world) + self._get_known_enemies(world)
                             fuzzy_result = self.fuzzy_matcher.match_with_context(

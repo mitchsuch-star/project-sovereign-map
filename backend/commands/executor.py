@@ -15,8 +15,11 @@ TODO (Future): Multi-Army Battles
 """
 from typing import Dict, Optional, Tuple
 from backend.ai.generic_targets import is_generic_target
-from backend.ai.nation_names import nation_province_list, resolve_typed_nation
-from backend.display_names import display_nation
+from backend.ai.nation_names import (
+    nation_not_a_province_message,
+    nation_province_list,
+    resolve_typed_nation,
+)
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
@@ -256,21 +259,11 @@ class CommandExecutor:
         # move / scout / retreat / attack / bombard all inherit it.
         typed_nation = resolve_typed_nation(region_name, world)
         if typed_nation:
-            provinces = nation_province_list(typed_nation, world)
-            nation_label = display_nation(typed_nation)
-            if provinces:
-                shown = ", ".join(provinces[:8])
-                more = "" if len(provinces) <= 8 else f", and {len(provinces) - 8} more"
-                detail = f"Name a province, Sire — theirs are {shown}{more}."
-            else:
-                detail = "They hold no province our maps can name, Sire."
             return (None, {
                 "success": False,
-                "message": (
-                    f"{nation_label} is a nation, not a province. {detail}"
-                ),
+                "message": nation_not_a_province_message(typed_nation, world),
                 "nation_named": typed_nation,
-                "suggestions": provinces[:3],
+                "suggestions": nation_province_list(typed_nation, world)[:3],
             })
 
         # Get all region names for fuzzy matching

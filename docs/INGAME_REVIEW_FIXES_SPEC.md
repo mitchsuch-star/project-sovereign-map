@@ -136,6 +136,50 @@ PASS in the review) and the AI-vs-AI silence already has an owner in
 > **Also taken:** `BUG_FIXES.md` **IGR-X1** (P1 save/autosave crash), whose own
 > routing said "take before IGR-A" — `del marshal._recovery_destination`
 > removed the attribute that `Marshal.to_dict` reads directly.
+>
+> ---
+>
+> **Post-landing adversarial review (38 agents, 6 lenses → 2 refuters each) —
+> 16 raw findings, 4 fixed, addendum below.** The headline is that **A3's first
+> cut was half a fix**, and the refuters got that one wrong — I reproduced it
+> by hand before accepting it:
+>
+> - **A3 was bypassed on the STRATEGIC path.** Only the bare `move to`
+>   phrasing reaches the guarded ladder. `march to` / `advance to` / `head to` /
+>   `proceed to` / `make for` / `travel to` / `push to` / `deploy to` /
+>   `relocate to` / `journey to` all run through `parser.py`'s strategic-target
+>   fuzzy pass, which had no guard — **ten of eleven phrasings still built a
+>   real MOVE_TO order to Asturias and stepped Ney out of Rhineland.** Guarded
+>   at the strategic pass, and `strategic_executor` now carries the same honest
+>   answer (it has its own failure message, so a named court read as an
+>   unintelligible phrase). The sentence is single-sourced in
+>   `nation_names.nation_not_a_province_message` — three seams answer it now.
+> - **`Ottoman` and `PapalStates` are their own demonym**, so the strategic
+>   classifier called them GENERIC and sent the marshal at whichever enemy was
+>   nearest — an Austrian, on the boot board. A bare nation name now classifies
+>   as a court; plural/adjectival forms ("the Ottomans") stay generic, which is
+>   the CR-0 behaviour its pins protect.
+> - **Retreat told the player a real nation "is not known to the staff"** and
+>   fell back elsewhere. The arm discards the error dict BY DESIGN (a retreat
+>   must substitute, never refuse) — it now reads the `nation_named` key and
+>   says "that is a nation, not a province".
+> - **A1 dead-named a formed court.** Composing finished prose with the static
+>   `display_nation` bakes "Kingdom of Italy" into the sentence, after which
+>   Godot's raw-tag `formation_overrides` pass can never repair it to "Italy" —
+>   the §11.8 stage-3 hazard `NATION_AGENDAS_SPEC.md:490` records as a
+>   previously-fixed defect. `ally_entry_block_line` takes an optional `world`
+>   and resolves through `formations.formed_display_name`. (This one was a
+>   REGRESSION: the pre-A1 line passed the raw tag, which the client repaired.)
+> - **A1 made a repeatable event visible.** The declaration review is
+>   re-openable and appended an identical `hard_block_surfaced` every time —
+>   invisible while the filter branch was dead, but a NEW source of exactly the
+>   spam IGR-B exists to cure. Now one line per `(turn, ally, enemy, reason)`.
+>
+> Twelve findings did not survive refutation, including the tribute-figure and
+> "wrong lord" objections to A4 (the reported number IS the applied gold flow)
+> and the claim that the cap raise re-duplicates the ally-entry review.
+> Final: suite **15,011/3**, eval 461/461, M1–M7 and `BASELINE_SERIES`
+> byte-identical, `tests/test_igr_a_honest_copy.py` (71).
 
 | # | Item | Done when |
 |---|---|---|

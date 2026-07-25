@@ -1768,14 +1768,21 @@ class DiplomaticExecutor:
                 reason = str(hard_blocks[0])
                 promiser = opp.get("promiser") or world.player_nation
                 block_line = ally_entry_block_line(
-                    reason, beneficiary, named_enemy, promiser)
+                    reason, beneficiary, named_enemy, promiser, world=world)
                 summary.append(block_line)
                 warnings.append({
                     "severity": "high",
                     "text": block_line,
                     "hard_block_reason": reason,
                 })
-                world.log_event({
+                # A1: this review is re-openable — a player who backs out and
+                # weighs the same declaration again used to append an
+                # identical event every time. That was invisible while the
+                # campaign-log filter had no branch for it; now that the
+                # surface is live, an unguarded write would be a NEW source of
+                # exactly the log spam IGR-B exists to cure. One line per
+                # (turn, ally, enemy, reason).
+                _event = {
                     "type": "hard_block_surfaced",
                     "turn": int(world.current_turn),
                     "beneficiary": beneficiary,
@@ -1786,7 +1793,17 @@ class DiplomaticExecutor:
                     # without this the log arm can only say "against us".
                     "promiser": promiser,
                     "origin_episode_id": origin_episode_id,
-                })
+                }
+                _already = any(
+                    e.get("type") == "hard_block_surfaced"
+                    and e.get("turn") == _event["turn"]
+                    and e.get("beneficiary") == beneficiary
+                    and (e.get("target_enemy") or e.get("named_enemy")) == named_enemy
+                    and e.get("hard_block_reason") == reason
+                    for e in (getattr(world, "event_log", None) or [])[-40:]
+                )
+                if not _already:
+                    world.log_event(_event)
                 continue
 
             if band == "join":

@@ -542,6 +542,156 @@ class TestA4VassalReleaseReport:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# Pre-push adversarial review (38 agents, find→2 refuters) — the four
+# findings that survived refutation. Each one is a defect the first cut of
+# IGR-A shipped, so each gets a pin.
+# ══════════════════════════════════════════════════════════════════════════
+
+# Every movement phrasing the strategic parser recognises. "move to" was the
+# ONLY one the first cut guarded — the other ten built a real MOVE_TO order to
+# Asturias, which is the entire defect A3 exists to kill.
+_MOVEMENT_VERBS = [
+    "move to", "march to", "advance to", "head to", "proceed to",
+    "make for", "travel to", "push to", "deploy to", "relocate to",
+    "journey to",
+]
+
+
+class TestReviewFixStrategicPathIsGuardedToo:
+    @pytest.mark.parametrize("verb", _MOVEMENT_VERBS)
+    def test_no_phrasing_marches_to_the_wrong_country(self, verb):
+        world = _world1805()
+        result = _order(world, f"Ney, {verb} Austria")
+        assert result["success"] is False
+        assert "Austria is a nation, not a province" in result["message"]
+        assert "Asturias" not in result["message"]
+        ney = world.get_marshal("Ney")
+        order = getattr(ney, "strategic_order", None)
+        assert getattr(order, "target", None) != "Asturias"
+        assert ney.location == "Rhineland", "no step may be taken"
+
+    def test_britain_too(self):
+        world = _world1805()
+        result = _order(world, "Ney, march to Britain")
+        assert "Britain is a nation, not a province" in result["message"]
+        assert "Brittany" not in result["message"]
+
+    def test_a_real_province_still_takes_a_strategic_order(self):
+        world = _world1805()
+        result = _order(world, "Ney, march to Normandy")
+        assert result["success"] is True
+        assert getattr(world.get_marshal("Ney").strategic_order, "target", None) == "Normandy"
+
+    def test_a_tag_that_is_its_own_demonym_is_a_court_not_a_generic_army(self):
+        """`Ottoman` and `PapalStates` (-> "papal") collide with their own
+        demonym overrides, so the strategic classifier called them GENERIC and
+        sent the marshal at whichever enemy was nearest — an Austrian, on the
+        boot board."""
+        for typed in ("Ottoman", "Papal States"):
+            world = _world1805()
+            result = _order(world, f"Ney, march to {typed}")
+            assert result["success"] is False
+            assert "is a nation, not a province" in result["message"]
+            assert getattr(world.get_marshal("Ney").strategic_order, "target", None) != "Swabia"
+
+    def test_the_plural_demonym_stays_generic(self):
+        """The falsifiable negative: "the Austrians" is still an army
+        reference, and the CR-0 generic classification must not move."""
+        from backend.ai.strategic_parser import detect_strategic_command
+
+        world = _world1805()
+        result = detect_strategic_command("Ney, pursue the Austrians", "Ney", world)
+        assert result is not None
+        assert result.get("target_type") == "generic"
+
+    def test_the_copy_has_one_source(self):
+        """Three seams answer this now (tactical chokepoint, strategic order
+        builder, retreat fallback) — the sentence is written once."""
+        from backend.ai.nation_names import nation_not_a_province_message
+
+        world = _world1805()
+        line = nation_not_a_province_message("Saxony", world)
+        assert line == "Saxony is a nation, not a province. Name a province, Sire — theirs are Dresden."
+        for module in ("backend/commands/executor.py",
+                       "backend/commands/strategic_executor.py"):
+            source = io.open(module, encoding="utf-8").read()
+            assert "is a nation, not a province" not in source, (
+                f"{module} re-types the sentence instead of calling the helper")
+
+
+class TestReviewFixRetreatNamesTheCourt:
+    def test_retreat_does_not_call_a_real_nation_an_unknown_province(self):
+        """The retreat arm discards the error dict by design (a retreat must
+        substitute, never refuse) — but it was telling the player that Austria
+        "is not known to the staff"."""
+        world = _world1805()
+        _, error = CommandExecutor()._fuzzy_match_region("Austria", world)
+        assert error["nation_named"] == "Austria"
+        source = io.open("backend/commands/movement_executor.py", encoding="utf-8").read()
+        assert 'reason = "that is a nation, not a province"' in source
+        assert "_match_error" in source and 'get("nation_named")' in source
+
+
+class TestReviewFixFormedCourtsAreNotDeadNamed:
+    def test_a_formed_nation_is_named_by_its_new_name(self):
+        """NA-6 §11.8 stage 3: no surface may show the dead name. Because this
+        helper composes finished prose, the client's raw-tag override can
+        never repair it downstream — so it must resolve through the
+        formation-aware chokepoint itself."""
+        from backend.game_logic.formations import formed_display_name
+
+        world = _world1805()
+        world.nation_formations = {
+            "KingdomOfItaly": {"id": "risorgimento", "sponsor": "France", "turn": 3},
+        }
+        assert formed_display_name(world, "KingdomOfItaly") == "Italy"
+        line = ally_entry_block_line(
+            "no_participation_path", "KingdomOfItaly", "Ottoman", "France",
+            world=world)
+        assert "Italy" in line
+        assert "Kingdom of Italy" not in line
+
+    def test_without_a_world_it_falls_back_to_the_static_name(self):
+        line = ally_entry_block_line(
+            "no_participation_path", "KingdomOfItaly", "Ottoman")
+        assert "Kingdom of Italy" in line
+
+
+class TestReviewFixTheLogIsNotSpammed:
+    def test_reopening_the_review_does_not_append_a_duplicate(self):
+        """The review is re-openable. While the campaign-log branch was dead
+        this was invisible; with the surface live an unguarded write is a NEW
+        source of exactly the spam IGR-B exists to cure."""
+        world = _world1805()
+        executor = CommandExecutor()
+        for _ in range(3):
+            executor._execute_diplomatic_declare_war(
+                {"target_nation": "Prussia", "action": "diplomatic_declare_war",
+                 "war_objective": "conquest", "confirmed_objection": True},
+                world,
+            )
+        events = [e for e in world.event_log
+                  if e.get("type") == "hard_block_surfaced"]
+        assert len(events) == 1, f"expected one line, got {len(events)}"
+
+    def test_a_different_turn_records_again(self):
+        """The guard is per-turn, not permanent — the same block next turn is
+        news again."""
+        world = _world1805()
+        executor = CommandExecutor()
+        executor._execute_diplomatic_declare_war(
+            {"target_nation": "Prussia", "action": "diplomatic_declare_war",
+             "war_objective": "conquest", "confirmed_objection": True}, world)
+        world.current_turn += 1
+        executor._execute_diplomatic_declare_war(
+            {"target_nation": "Prussia", "action": "diplomatic_declare_war",
+             "war_objective": "conquest", "confirmed_objection": True}, world)
+        events = [e for e in world.event_log
+                  if e.get("type") == "hard_block_surfaced"]
+        assert len(events) == 2
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # IGR-X1 — found in passing by the spec's verification fleet, routed
 # "standalone; take before IGR-A" (docs/BUG_FIXES.md).
 # ══════════════════════════════════════════════════════════════════════════

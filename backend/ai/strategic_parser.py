@@ -32,6 +32,7 @@ except ImportError:
 
 # Derived from region.py grid_position (single source of truth)
 from backend.models.region import REGIONS_DATA as _REGIONS_DATA
+from backend.ai.nation_names import resolve_typed_nation
 
 REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
     name: data["grid_position"]
@@ -598,6 +599,21 @@ def _classify_target(
         "anyone", "whoever", "nearest", "closest",
     ]
     target_lower_full = target_text.lower()
+    # IGR-A3: a BARE NATION NAME is a named court, not a generic army. This
+    # only matters for the handful of tags that are their own demonym
+    # ("Ottoman", "PapalStates" → "papal"), where the loop below would
+    # otherwise classify "march to Ottoman" as generic and send the marshal at
+    # whatever enemy happens to be nearest — an Austrian, in the boot world.
+    # Plural/adjectival forms ("the Ottomans", "papal troops") do NOT match
+    # here and stay generic, which is the pre-existing behaviour the CR-0 pins
+    # protect.
+    if resolve_typed_nation(target_text, world):
+        return {
+            "target": target_text,
+            "target_type": "region",
+            "target_snapshot_location": None,
+            "convert_to_pursue": False,
+        }
     # CR-0: live-nation demonyms ("austrians", "russians") classify as
     # generic too — previously only the two legacy literals above did.
     # WORD-boundary matched, never substring: "saxon" must not fire inside

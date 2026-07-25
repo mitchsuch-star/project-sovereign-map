@@ -40,9 +40,21 @@ against master before a line was edited.
   reads directly, so any save or autosave after an AI marshal finished recovering raised
   `AttributeError`. Its own row said "take before IGR-A".
 
-Suite **14,990/3** · ruff clean · parser eval **461/461** mock (+4 corpus rows) · Godot parse
+**A post-landing adversarial review (38 agents, 6 lenses → 2 refuters each) found 16, of which
+4 survived and were fixed** — headline: **A3's first cut was half a fix, and the refuters were
+wrong to downgrade it.** Only the bare `move to` phrasing reached the guarded ladder; `march to`,
+`advance to`, `head to`, `proceed to`, `make for`, `travel to`, `push to`, `deploy to`,
+`relocate to` and `journey to` all run through the *strategic* target pass, which had no guard —
+**ten of eleven phrasings still built a real MOVE_TO order to Asturias.** Reproduced by hand
+before accepting. Also fixed: `Ottoman`/`PapalStates` (tags that are their own demonym) classified
+as a generic army and marched at the nearest Austrian; retreat told the player a real court "is
+not known to the staff"; A1 **dead-named a formed nation** (composing finished prose defeats the
+client's raw-tag formation override — a regression, since the pre-A1 line passed the raw tag);
+and A1 made a *repeatable* event visible, a new source of the very log spam IGR-B exists to cure.
+
+Suite **15,011/3** · ruff clean · parser eval **461/461** mock (+4 corpus rows) · Godot parse
 harness EXIT=0 (17/17 scripts, both scenes instantiate) · headless boot **0 `SCRIPT ERROR`** ·
-M1–M7 and the 40-turn `BASELINE_SERIES` byte-identical. `tests/test_igr_a_honest_copy.py` (50).
+M1–M7 and the 40-turn `BASELINE_SERIES` byte-identical. `tests/test_igr_a_honest_copy.py` (71).
 **Next per spec §6: the pause for review, then IGR-B (gate Q1).**
 
 

@@ -955,6 +955,7 @@ def ally_entry_block_line(
     beneficiary: str,
     named_enemy: str,
     promiser: str = "",
+    world=None,
 ) -> str:
     """IGR-A1: render ONE war-entry hard block as a whole prose sentence.
 
@@ -975,12 +976,30 @@ def ally_entry_block_line(
                 break
     if template is None:
         template = ALLY_ENTRY_BLOCK_FALLBACK
+
+    # NA-6 §11.8 stage 3 ("no surface may show the dead name"): once a court
+    # has formed, `display_nation` is the DEAD name, and because this helper
+    # composes finished prose the client's raw-tag override can never repair
+    # it downstream. Resolve through the formation-aware chokepoint when a
+    # world is available. `format_event_oneliner` has none, but the campaign
+    # log is already repaired by `apply_formation_names_to_history`.
+    def _name(tag: str, fallback: str) -> str:
+        if not tag:
+            return fallback
+        if world is not None:
+            try:
+                from backend.game_logic.formations import formed_display_name
+                return formed_display_name(world, tag)
+            except Exception:
+                pass
+        return display_nation(tag)
+
     return template.format(
-        ally=display_nation(beneficiary) if beneficiary else "That court",
-        enemy=display_nation(named_enemy) if named_enemy else "that court",
+        ally=_name(beneficiary, "That court"),
+        enemy=_name(named_enemy, "that court"),
         # The campaign-log event carries no promiser; "us" keeps the line
         # true from the player's chair without hardcoding France.
-        promiser=display_nation(promiser) if promiser else "us",
+        promiser=_name(promiser, "us"),
     )
 
 

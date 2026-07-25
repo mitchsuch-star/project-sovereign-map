@@ -77,6 +77,27 @@ def resolve_typed_nation(text: Optional[str], world) -> Optional[str]:
     return None
 
 
+def nation_not_a_province_message(nation: str, world) -> str:
+    """The ONE sentence every order surface uses when a court was named.
+
+    Three verbs reach three different seams — the tactical region chokepoint
+    (`executor._fuzzy_match_region`, which move/scout/attack/bombard share),
+    the strategic order builder (`march to`, `advance to`, and eight more
+    phrasings), and the retreat fallback — so the copy lives here rather than
+    being re-typed at each one.
+    """
+    from backend.display_names import display_nation
+
+    provinces = nation_province_list(nation, world)
+    if provinces:
+        shown = ", ".join(provinces[:8])
+        more = "" if len(provinces) <= 8 else f", and {len(provinces) - 8} more"
+        detail = f"Name a province, Sire — theirs are {shown}{more}."
+    else:
+        detail = "They hold no province our maps can name, Sire."
+    return f"{display_nation(nation)} is a nation, not a province. {detail}"
+
+
 def nation_province_list(nation: str, world) -> List[str]:
     """The provinces `nation` currently controls, sorted, for player copy.
 

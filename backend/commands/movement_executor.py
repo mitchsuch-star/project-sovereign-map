@@ -9,6 +9,7 @@ from typing import Dict
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS
+from backend.display_names import display_nation
 
 
 class MovementExecutor:
@@ -885,7 +886,16 @@ class MovementExecutor:
             stated_display = stated_name or str(target)
             reason = ""
             if stated_name is None:
-                reason = "no such province is known to the staff"
+                # IGR-A3: a retreat is a forced fallback, so this arm must
+                # SUBSTITUTE rather than refuse — but it may not tell the
+                # player a real court "is not known to the staff". Name the
+                # nation, since that is what they actually typed.
+                _nation = (_match_error or {}).get("nation_named")
+                if _nation:
+                    stated_display = display_nation(_nation)
+                    reason = "that is a nation, not a province"
+                else:
+                    reason = "no such province is known to the staff"
             elif stated_name == marshal.location:
                 reason = f"{marshal.name} already stands there"
             elif stated_name not in current_region.adjacent_regions:
