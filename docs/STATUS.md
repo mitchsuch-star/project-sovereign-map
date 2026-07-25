@@ -4,6 +4,72 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### 🎮 THE QUEUED IN-GAME REVIEW ✅ HELD July 25, 2026 — NA-6c/6d + AI-3r, widened cross-element
+
+**User direction: "Play the game for real and give me a full in-game review … widened to a
+cross-element pass."** Played in the real Godot client against the real backend
+(`LLM_MODE=anthropic`, default `europe_1805.json`): France, seed `historical`, turns 1–9, then a
+5-turn `SOVEREIGN_SEED=austerlitz` variance pass. **Record =
+`docs/audits/INGAME_REVIEW_2026_07_25.md` (authoritative).** Backend commit `bdeb17c`.
+
+**Scores (overall ≈7.4):** agendas/formables **8.5** · marshal drama **8.5** · combat legibility
+**8.0** · parsing **7.5** · economy **7.5** · AI aliveness **7.5** · diplomacy/settlements **7.0** ·
+vassals **6.5** · UI/UX **6.5** · **narration 6.0** (the weak pillar, and the #1 gap).
+
+**5 defects found by play, ALL FIXED in-session** (`tests/test_ingame_review_fixes_2026_07_25.py`, 29):
+- **P1 the declare-war soft-lock** — declaring war on a treaty partner looped forever (war purpose
+  → treaty warning → Talleyrand objection → war purpose → …), three cycles observed, only Cancel
+  escaped. `_include_popup_passthroughs` POPS the objection popup when it delivers it, so the
+  objective and treaty resolution were unreadable at answer time and each path dropped the other's
+  bypass flag. Fixed with a transient context that survives the pop; re-verified live.
+- **P1 every AP-priced marshal-petition arm arrived dead** — `turn_manager` runs the jealousy pass
+  BEFORE `advance_turn` refills AP, so `enabled: ap >= cost` was baked at zero and shown to a
+  player holding 4/4. Confirmed twice live (Promise Glory at 4/4, Force Reconciliation at 3/4 — no
+  HTTP on click). The paid half of the Jealousy channel was unreachable in ordinary play.
+  Affordability now re-derived at the delivery seam; disabled arms state their reason.
+- **P2 beat-7 copy lied** — `exposed`/`outmatched`/`penniless` rendered as "the moment passed",
+  the exact §0.3 defect AI-3r was written to kill. Single-sourced on `war_council.crisis_cause_phrase()`.
+- **P2 the terminal swallowed the mouse wheel** — `OutputDisplay` is a `fit_content` RichTextLabel
+  inside a ScrollContainer; drag worked, wheel did not. `scroll_active = false`, matching every
+  sibling ledger. Verified live.
+- **P2 the separate-peace promise was not kept** — "Your drafted terms for X carry into the talks"
+  while identity clauses are dropped by design. Copy now names what will not travel, with a drift
+  guard tying it to the seed function.
+
+**Must-see checklist:** Formables button **PASS** (gate terms flipped `•`→green `✓` live the turn I
+took Posen, and the negotiate button appeared) · create_client carve authored in a settlement
+**PASS** · "→ forms:" watcher **PASS** · per-court Exposure + The Emperor's Own Exposure **PASS** ·
+Stage B/C/D mirror / intent / weariness / paymaster / `agenda_pursuit` **ALL PASS** · **The
+Proclamation NOT REACHED** (the carve sits on a whole-war settlement needing all four courts at
+50; the bilateral route the game offers drops the clause — stays on the must-see list) ·
+"The Polish Question" NOT REACHED (needs the Duchy to exist) · beats 2/3/7 did not fire, **as
+expected and NOT filed as a regression** (spec §8.2: 0 crises / 40 turns × 8 seeds).
+
+**Routed:** `BUG_FIXES.md` §In-Game Review July 25 — **IGR-1 the campaign log is drowned in AI-AI
+refusal spam** (turn 9: 24 of 25 events were `X rebuffs Y`, burying Russia adopting *The Gulf and
+the Straits*), IGR-2 raw `no_participation_path` in player copy, IGR-3 identity clauses dropped by
+the bilateral substitution, IGR-4 Talleyrand's "designs held in check" rung has no reachable
+trigger (GR9). `DESIGN_REFINEMENT.md` §In-Game Review — IGR-D1 plunder yields 87g against 3,085
+income so the Plunder/Secure choice has no tension, IGR-D2 minor-court envoy spam, IGR-D3 the
+identity-clause gate.
+
+**Variance pass:** the D7 contract held exactly — Tier 1 identical (exposure 159,000/189,000,
+Austria 104,000/126,000, deck content), Tier 2 banded (alarm 85→84, Britain relation −85→−90,
+Russia weight 89→90). Headline: **Austria opened on `Primacy in Germany` (→ Bavaria) instead of
+`Redeem Italy`** — the authored AI-0c deck-order band producing a materially different war — and
+the variance propagated into the drama (Ney crowned + Bernadotte↔Davout feuding, where
+`historical` gave Davout the crown and Murat↔Lannes the feud).
+
+**Also confirmed live** (evidence gaps closed): Murat's **autonomous glory-attack executed**
+("hungry for glory, has attacked Brunswick on his own initiative" — Sweep 2 had this unfilled);
+decks advance in play (Britain *The Low Countries → The Paymaster of Coalitions* on taking
+Flanders; Austria retargeted onto Kingdom of Italy the turn I released it; Russia took up *The
+Gulf and the Straits* at T9); the Fontainebleau petition's rentes moved the ledger from
+`+1817g` to `+740g` net.
+
+Suite **14,936/3**, ruff clean, Godot parse harness EXIT=0.
+
+
 ### ⚔️ AI-3r ✅ GATED + BUILT COMPLETE July 25, 2026 — "What It Leaves Undefended" (all five slices, one session)
 
 **User direction: "do the next phase commit and push making ai wars work better assure its done

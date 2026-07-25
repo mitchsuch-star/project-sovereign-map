@@ -25,6 +25,20 @@
 
 ---
 
+## In-Game Review — Design Items (July 25, 2026)
+
+From the live NA-6c/6d + AI-3r cross-element pass. Memo:
+`docs/audits/INGAME_REVIEW_2026_07_25.md`. Correctness defects went to `BUG_FIXES.md`
+§ In-Game Review July 25; these three are design calls, not bugs.
+
+| ID | Item | Why it matters | Landing |
+|---|---|---|---|
+| **IGR-D1** | **Plunder is economically irrelevant.** Plundering Nassau yielded **87 gold** against 3,085/turn income and a 5,177g treasury. Secure (stability 25) is strictly correct in every situation I met, so the post-capture choice has no tension. | A per-conquest decision the game stops to ask about should cost the player something to answer. Either price plunder so it can fund a campaign, or re-cut the choice as stability-vs-authority / estate-vs-treasury rather than gold. | Econ pass 2 (`ECONOMY_REVISIT_SPEC.md`) — needs a blessed number, so it escalates |
+| **IGR-D2** | **Minor-court envoy spam.** Turns 2–5 delivered ~3–5 near-identical Open Borders / Non-Aggression proposals per turn from minors, each a blocking modal that interrupts a command already in flight (the typed order echoes, then its result is deferred behind the popup). The voices are genuinely good — Reis Efendi, Einsiedel, Consalvi all distinct — but volume flattens them. | The per-nation voice work is some of the best writing in the game and it is being spent on a queue the player learns to click through. | Batch into a single "the small courts write" digest with per-row accept/decline; owner = the next diplomacy polish slice |
+| **IGR-D3** | **Should identity clauses survive the bilateral substitution?** (mirror of `BUG_FIXES.md` IGR-3.) The blocked-settlement path offers "Make peace with X only", promises the drafted terms carry, and drops `create_client` / vassalage / liberation by design. | This is the difference between the NA-6 carve being a headline feature and a feature most players will never complete. | Needs a user gate — carry identity clauses, or steer back to the joint route when one is drafted |
+
+---
+
 ## Econ War-Coupling — Deferred Riders (July 17, 2026)
 
 > From the EC-W research pass + build (gate record `docs/audits/ECON_WAR_COUPLING_RESEARCH_2026_07_17.md` §5;

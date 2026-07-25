@@ -22,6 +22,30 @@
 
 ---
 
+## In-Game Review — July 25, 2026 (5 FIXED in-session; 4 routed OPEN)
+
+Found by playing the real client for the queued NA-6c/6d + AI-3r review (France, 1805,
+`LLM_MODE=anthropic`, turns 1–9 + a 5-turn `austerlitz` variance pass). Memo:
+`docs/audits/INGAME_REVIEW_2026_07_25.md`. Fixed in commit `bdeb17c`,
+tests `tests/test_ingame_review_fixes_2026_07_25.py` (29).
+
+**FIXED in-session** — IGR-F1 declare-war-on-a-treaty-partner infinite modal soft-lock (P1);
+IGR-F2 every AP-priced marshal-petition arm arrived permanently disabled (P1);
+IGR-F3 beat-7 `exposed`/`outmatched`/`penniless` rendered as the `starved` phrase (P2);
+IGR-F4 the command terminal swallowed the mouse wheel (P2);
+IGR-F5 the separate-peace "your drafted terms carry" promise dropped identity clauses (P2, copy).
+
+**OPEN:**
+
+| ID | Sev | Item | Owner / landing |
+|---|---|---|---|
+| **IGR-1** | P2 | **Campaign log drowned in AI-AI refusal spam.** Turn 9 carried 25 events; **24** were `D <X> rebuffs <Y> (open borders / non aggression)`. The one dramatic line — `The court of Russia takes up a new design: The Gulf and the Straits` — sat at the bottom of the wall in identical styling. Per-turn counts ran 19–40, dominated throughout. The `ai_ai_proposal_refused` record (AI-2a, AI-3's ladder substrate) is correct; rendering it at full volume defeats the log as a history surface. Needs aggregation ("Nine courts rebuffed Austria this turn"), a category filter, or demotion below the fold. | AI Intent Stage E/F client surfaces (`AI_INTENT_SPEC.md` §4.6b / row AI-6c) |
+| **IGR-2** | P3 | **Raw internal key in player copy.** The ally-entry proposal renders `Spain cannot join against Prussia: no_participation_path.` verbatim — an R7 display-names violation ("never expose raw internal keys"). Needs a `display_names` entry. | Next diplomacy polish slice |
+| **IGR-3** | P2 | **Design question — should identity clauses survive the bilateral substitution?** `_pair_substitute_seed_terms` translates money + taken territory only; `create_client`, vassalage, liberation and forced_alliance are settlement-tier and dropped by design. Played live: authored *"Erect Duchy of Warsaw from Prussia's lands"*, took the "Make peace with Prussia only" route the game itself offers, and got a bare white peace with the clause gone. The copy is now honest (IGR-F5), but the *only* route the game steers a blocked player toward still silently discards the marquee NA-6 clause. Either carry identity clauses, or have the settlement steer back to the joint route when one is drafted. | Also filed as `DESIGN_REFINEMENT.md` IGR-D3 |
+| **IGR-4** | P2 | **A player-facing counsel rung with no reachable trigger (GR9).** Talleyrand's "designs held in check" / "not free to move" arm requires `_restraint_block_reason == 'exposed'` on a **non-player → non-player** design. At boot Austria short-circuits on `busy` and Prussia reads `None`; `designs_in_check` was `[]` across two war-room runs. Either give it a reachable trigger or retire the rung explicitly. | AI-V arm (a) — the D1-band measurement (`AI_WAR_DECISION_SPEC.md` §8.2) |
+
+---
+
 ## July-18 Playtest Sweep — ALL FIXED July 18, 2026
 
 Two user-reported issues, both real, both with a family behind them. Found by a
