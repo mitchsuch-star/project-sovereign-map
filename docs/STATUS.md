@@ -69,7 +69,7 @@ Gulf and the Straits* at T9); the Fontainebleau petition's rentes moved the ledg
 
 Suite **14,936/3**, ruff clean, Godot parse harness EXIT=0.
 
-**▶ QUEUED SAME DAY — row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.3, AWAITING THE §5 GATE — 3 questions).**
+**▶ QUEUED SAME DAY — row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v1.0, ✅ GATE BLESSED — build may proceed).**
 Everything the review routed rather than fixed is now a spec'd, ordered pass rather than loose
 backlog: **IGR-A** honest copy (4 items, gate-free) · **IGR-B** the campaign log becomes readable
 (Q1) · **IGR-G** settlement viewport +
@@ -77,10 +77,9 @@ map-stack legibility (gate-free) · **IGR-D** the carve becomes completable (Q2 
 with the in-client Proclamation sighting this review could not deliver) · **IGR-F** the
 minor-court envoy digest (gate-free) · **IGR-E** plunder earns its prompt (Q4, blessed number).
 Build order **A → pause for review → B → D → F → E → G**; the two gate-free slices land first
-per the project's slice-review cadence. **Three gate questions, all with recommendations:** Q1
-aggregate the AI-AI refusal lines · Q2 **should identity clauses survive a separate peace** (the
-historical case is Tilsit — the Duchy of Warsaw was carved from Prussia alone while the British
-war ran, which is exactly what the engine forbids today) · Q4 plunder ≈4× province income. Nothing in the spec is deferred without an
+per the project's slice-review cadence. **✅ GATE BLESSED July 25, 2026 (spec §5, authoritative):** Q1 **(a)** aggregate the log at the view layer keyed `(turn, proposal_type)` · Q2 **(a) scoped to `create_client` + (b) for the rest** — the carve CARRIES into a separate peace (Tilsit), while vassalage/liberation stay settlement-tier and the bilateral route is DISABLED with a stated reason rather than dropping them silently; the G4F-15 armistice ruling stands · ~~Q3~~ struck pre-gate (IGR-C withdrawn) · Q4 **(a)** `PLUNDER_INCOME_MULTIPLIER = 4`, blessed and in-band tunable, with a falsifiable acceptance test (a poor early player plausibly plunders; a rich late one does not) and a recorded dissent that option (b) — stability-vs-authority — is the better design if the number fails twice.
+
+Nothing in the spec is deferred without an
 owner; the four items deliberately not taken (beats 2/3/7, the Polish Question label, Congress
 beat 6, the unreproduced modal stacking) each name theirs in §4.
 

@@ -1,7 +1,11 @@
 # In-Game Review Fixes & Improvements (row **IGR**)
 
-> **v0.3 — SPEC, awaiting a user gate on §5 (3 questions).** Queued July 25, 2026 from the live
-> in-game review held the same day. **Evidence of record =
+> **v1.0 — ✅ GATE HELD AND BLESSED July 25, 2026 under the user's delegated grant**
+> ("whats reccomendation for q answers" → "put in answers"). **Gate record = §5,
+> authoritative.** All three live questions decided at the spec's recommendations, with one
+> amendment: **Q2 lands as a split, not a binary.** The build may proceed on all slices.
+>
+> Queued July 25, 2026 from the live in-game review held the same day. **Evidence of record =
 > `docs/audits/INGAME_REVIEW_2026_07_25.md`** (France/1805 played in the real client,
 > seed `historical` turns 1–9 + a 5-turn `austerlitz` variance pass).
 >
@@ -23,8 +27,8 @@
 > promises the review found unowned. It does not touch combat, the economy model, or the
 > agenda substrate. **Every slice below is view/copy-layer** except IGR-D and IGR-E.
 >
-> **Reading order:** §1 what the review left open · §2 the slices · §3 acceptance ·
-> §4 deferrals + the drive-by finds · §5 the gate (**3 questions**).
+> **Reading order:** §5 **the gate record — read it first** · §1 what the review left open ·
+> §2 the slices · §3 acceptance · §4 deferrals + the drive-by finds · §6 build order.
 
 ---
 
@@ -210,7 +214,9 @@ instant minors' relations with France go negative it fires for every minor pair 
 **Hard constraint:** the record is AI-3's ladder-gate substrate
 (`war_council.py:500-508` reads `get_refused_asks`, threshold 2). **View-layer only.**
 
-Recommended shape: a new pure `collapse_refusal_family(events)` in `campaign_log.py`,
+**✅ Gate Q1 DECIDED (§5): aggregate at the view layer, keyed `(turn, proposal_type)`.**
+
+Shape: a new pure `collapse_refusal_family(events)` in `campaign_log.py`,
 called from `main.py:2861` **after** `filter_campaign_log`, bucketing by
 **`(turn, proposal_type)`**; a bucket of 1 passes through byte-identical, a bucket of N
 emits one shallow copy at the **first** member's index carrying display-only
@@ -320,14 +326,25 @@ a separate peace with Prussia alone, while the war with Britain continued.** Tha
 precisely the case the engine forbids. Carving from one defeated court while other wars
 run is not an edge case; it is the canonical instance of the feature.
 
-Done when: a player who has beaten one court can carve from it alone, the Proclamation
-fires, and must-see #4 closes with an **in-client screenshot**.
+**✅ Gate Q2 DECIDED as a split (§5):** `create_client` **carries** into the
+pair-substitute peace; vassalage / liberation / forced-alliance stay settlement-tier and
+the bilateral route is **disabled with a stated reason** when the draft holds one. The
+G4F-15 armistice ruling stands — a truce never erects a client state.
+
+Done when **both** arms hold: (1) a player who has beaten one court can carve from it alone,
+the Proclamation fires, and must-see #4 closes with an **in-client screenshot**; (2) a draft
+holding a settlement-tier identity clause shows the bilateral route disabled with its
+reason, and a test pins that no identity clause is ever dropped silently again.
 
 ### IGR-E — Plunder earns its prompt *(gate Q4 — needs a blessed number)*
 
 Plundering Nassau yielded **87 gold** against 3,085/turn income and a 5,177g treasury.
 Secure was strictly correct in every situation met, so a modal that stops the game asks a
-question with one right answer. Balance change → the number is the user's (§5 Q4).
+question with one right answer.
+
+**✅ Gate Q4 DECIDED (§5): `PLUNDER_INCOME_MULTIPLIER = 4`** — blessed, in-band tunable.
+Done when the falsifiable test in §5 Q4 passes: a poor early player plausibly plunders, a
+rich late one does not.
 
 ### IGR-F — The small courts write one letter, not five *(no gate)*
 
@@ -419,9 +436,25 @@ The verification fleet surfaced two defects unrelated to the review, both routed
 
 ---
 
-## 5. The gate — four questions
+## 5. The gate — ✅ **HELD AND BLESSED July 25, 2026**
 
-### Q1. How should the campaign log handle AI-AI diplomatic traffic?
+> **THIS SECTION IS THE GATE RECORD AND IS AUTHORITATIVE.** The user asked for
+> recommendations, then directed "put in answers" — a delegated grant. All three live
+> questions are decided **at the spec's recommendations**, with **one amendment the user's
+> request prompted: Q2 lands as a SPLIT, not the binary the spec offered.** Q3 was struck
+> before the gate (§2, IGR-C withdrawn) and needed no decision.
+>
+> | | Decision |
+> |---|---|
+> | **Q1** | **(a)** — aggregate at the view layer, keyed `(turn, proposal_type)` |
+> | **Q2** | **(a) scoped to `create_client`** + **(b) for every other identity clause** |
+> | ~~Q3~~ | struck pre-gate — IGR-C withdrawn |
+> | **Q4** | **(a)** — plunder = province income **× 4**, in-band tunable |
+>
+> **The build may proceed on all slices.** The full options tables are preserved below so
+> the reasoning behind each decision stays auditable.
+
+### Q1 — ✅ DECIDED **(a)**: aggregate, keyed `(turn, proposal_type)`
 
 | | Option | Effect |
 |---|---|---|
@@ -429,10 +462,15 @@ The verification fleet surfaced two defects unrelated to the review, both routed
 | ~~b~~ | ~~Per-category filter / demotion~~ | **STRUCK on evidence** — the buried payload (`agenda_shift`) shares category "diplomacy" with the noise, so any category filter hides the signal too |
 | c | Suppress AI-AI refusals from the view entirely | Cheapest; loses a real signal about who is isolated |
 
-**Recommendation: (a).** *"Nine courts rebuffed Austria"* is a story; twenty-four lines
-are not.
+**DECIDED (a).** *"Nine courts rebuffed Austria"* is a story; twenty-four lines are not.
 
-### Q2. Should identity clauses survive a separate peace? *(the important one)*
+> **Rider carried into the build:** this does **not** relieve the `MAX_EVENT_LOG_SIZE=500`
+> eviction — the bursts are ~4% of the ring buffer every ~7 turns, so real history
+> (battles, captures) still gets pushed out. That is producer-side, and throttling the
+> producer changes `get_refused_asks` cardinality → AI-3's ladder gate. **It must not be
+> folded into IGR-B.** Owner: its own gate, after IGR-B lands.
+
+### Q2 — ✅ DECIDED: **(a) scoped to `create_client`, plus (b) for the rest**
 
 | | Option | Effect |
 |---|---|---|
@@ -440,8 +478,32 @@ are not.
 | b | **Steer back** — disable "Make peace with X only" when the draft holds an identity clause, naming the joint route | Small and honest, but leaves the marquee feature gated behind beating four great powers at once |
 | c | Leave as is | `bdeb17c` already stopped the lie; the feature stays hard to reach |
 
-**Recommendation: (a)** — on the historical argument, and because a feature the review
-could not reach in nine turns of competent play is a feature most players never see.
+**DECIDED — the split, not the binary.** The spec offered a/b/c; the gate takes **(a) for
+`create_client` only, and (b) for every other identity clause**:
+
+- **`create_client` CARRIES** into the pair-substitute peace. It is the marquee clause, it
+  is the one blocking the Proclamation, it has the direct historical warrant (**Tilsit** —
+  the Duchy of Warsaw was carved from Prussia *alone* while the British war ran), and it is
+  the closest identity clause to an existing bilateral term (a territory cede plus a flag),
+  so its pricing can lean on machinery that already exists.
+- **Vassalage / liberation / forced-alliance stay settlement-tier**, and the bilateral
+  route is **disabled with a stated reason** when the draft holds one — never dropped
+  silently. This is option (b) applied to exactly the clauses (a) does not cover.
+
+**Why the split beats either pure option.** Pure (a) means teaching the bilateral
+acceptance scorer to price *every* identity clause — a balance surface one review cannot
+size responsibly. Pure (b) leaves the Proclamation gated behind beating four great powers
+simultaneously: this review satisfied every prerequisite by real play (at war with Prussia,
+Posen held and secured, gate green, clause authored) and still could not finish it. A
+feature most players will never complete is not really shipped.
+
+**Unchanged by this decision:** the **G4F-15 ruling stands** — the *armistice* arm keeps
+carrying concessions only. A truce that erects a client state is not a truce.
+
+**Definition of done for IGR-D is now two-armed:** (1) a player who has beaten one court
+can carve from that court alone and the Proclamation fires — closed by an **in-client
+screenshot**; (2) a draft holding vassalage/liberation shows the bilateral route disabled
+with its reason, and a test pins that no identity clause is ever dropped silently again.
 
 ### ~~Q3. What becomes of the "designs held in check" counsel?~~ — **STRUCK, no decision needed**
 
@@ -453,15 +515,28 @@ have rendered Sweden's anti-Napoleon design as held in check against Britain.
 
 **Nothing is asked of the user here.**
 
-### Q4. What is plunder worth? *(a blessed number is required)*
+### Q4 — ✅ DECIDED **(a)**: plunder = province income **× 4**
 
 | | Option | Effect |
 |---|---|---|
-| **a** | **Scale to the province** — ~3–5 turns of its income *(recommended shape)* | Nassau pays ~450–750g instead of 87g — enough to matter early, never enough to fund a war |
+| **a** | **Scale to the province** — ~3–5 turns of its income | Nassau pays ~450–750g instead of 87g — enough to matter early, never enough to fund a war |
 | b | Re-cut as stability-vs-authority rather than gold | Removes the balance question; changes what the prompt is *about* |
 | c | Leave it | Accept that Secure is always correct and the prompt is flavour |
 
-**Recommendation: (a) with a multiplier of 4**, in-band tunable.
+**DECIDED (a), `PLUNDER_INCOME_MULTIPLIER = 4`** — a **blessed number, in-band tunable**;
+any change to the *shape* (e.g. moving to option b) escalates.
+
+**The falsifiable acceptance test**, so the number can be judged rather than argued:
+
+> A turn-3 player holding under ~2,000g should plausibly choose **Plunder**; a turn-20
+> player holding over ~20,000g should not. If both still always Secure, the multiplier is
+> too low — **not** the design.
+
+**Recorded dissent, so it is not lost:** option **(b)** is arguably the better *design* —
+it deletes the balance-number problem entirely and makes the prompt about what kind of
+ruler you are rather than arithmetic. (a) was taken because it is in-band tunable and
+matches how this project has handled blessed numbers. If the acceptance test above fails
+twice at different multipliers, **re-open at (b) rather than tuning a third time.**
 
 ### Gate note on IGR-G
 

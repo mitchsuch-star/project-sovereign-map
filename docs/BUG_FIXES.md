@@ -35,7 +35,10 @@ IGR-F3 beat-7 `exposed`/`outmatched`/`penniless` rendered as the `starved` phras
 IGR-F4 the command terminal swallowed the mouse wheel (P2);
 IGR-F5 the separate-peace "your drafted terms carry" promise dropped identity clauses (P2, copy).
 
-**OPEN — owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.2, awaiting its §5 gate).**
+**OPEN — owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v1.0, ✅ GATE BLESSED July 25, 2026 —
+build may proceed; gate record = spec §5, authoritative).** IGR-3's question is DECIDED: `create_client`
+carries into a separate peace (the Tilsit case), while vassalage/liberation stay settlement-tier and the
+bilateral route is disabled with a stated reason instead of dropping them silently.
 Slice mapping: IGR-2 → **IGR-A1**; IGR-1 → **IGR-B** (Q1); IGR-4 → **IGR-C** (Q3); IGR-3 →
 **IGR-D** (Q2). IGR-X1/X2 were found in passing by the spec's verification fleet and are
 standalone.

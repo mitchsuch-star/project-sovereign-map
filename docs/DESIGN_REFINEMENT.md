@@ -31,8 +31,11 @@ From the live NA-6c/6d + AI-3r cross-element pass. Memo:
 `docs/audits/INGAME_REVIEW_2026_07_25.md`. Correctness defects went to `BUG_FIXES.md`
 § In-Game Review July 25; these three are design calls, not bugs.
 
-**All three are owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, awaiting its §5
-gate):** IGR-D1 → **IGR-E** (gate Q4, needs a blessed number) · IGR-D2 → **IGR-F** (gate-free) ·
+**All three are owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v1.0, ✅ GATE BLESSED
+July 25, 2026 — gate record = spec §5, authoritative):** IGR-D1 is DECIDED at
+`PLUNDER_INCOME_MULTIPLIER = 4` (blessed, in-band tunable, with a falsifiable acceptance test and a
+recorded dissent that the stability-vs-authority re-cut is the better design if the number fails
+twice); IGR-D3 is DECIDED as the `create_client`-carries split. Mapping: IGR-D1 → **IGR-E** (gate Q4, needs a blessed number) · IGR-D2 → **IGR-F** (gate-free) ·
 IGR-D3 → **IGR-D** (gate Q2 — the same question as `BUG_FIXES.md` IGR-3).
 
 | ID | Item | Why it matters | Landing |
