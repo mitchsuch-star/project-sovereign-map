@@ -80,7 +80,7 @@ blocked returns an honest reason every time. **Recorded as an observation, not f
 `ai_ai_proposal_refused` can be the ENTIRE campaign-log page for a turn (six identical-shaped
 rebuffs) — pin 13's soap-opera risk lives in the log, not just the dispatch.
 
-Suite **14,871/3** (+20), ruff clean, parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR` ×3.
+Suite **14,851/3** (+20), ruff clean, parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR` ×3.
 **▶ NEXT: the user in-game review (NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E.**
 
 ### ⚔️ AI INTENT ⛩ RE-CHECK HELD + STAGE D ✅ BUILT July 24, 2026 (third session that day) — War and Peace
