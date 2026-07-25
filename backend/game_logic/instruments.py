@@ -703,17 +703,48 @@ def build_subsidy_payload(world) -> Optional[Dict]:
         return None
     from backend.display_names import display_nation
     amount = int(get_paymaster_subsidy_amount(world, payer))
+    # The tier is treasury-scaled (200 / 300 above 4,000 / 400 above 8,000),
+    # so the rate read AFTER the season's income can outrun the sum the
+    # season actually delivered — the dispatch says "the subsidy stands at
+    # 200" while this line said "pays 300g/turn" in the same breath. State
+    # what was DELIVERED this season when a transfer happened (no new
+    # serialized state: the transfer already logs itself), and keep the
+    # prospective rate beside it when the two disagree.
+    delivered = _last_subsidy_delivered(world, payer, recipient)
+    if delivered is not None and delivered != amount:
+        line = (f"{display_nation(payer)} pays {display_nation(recipient)} "
+                f"{delivered}g this season to keep the field "
+                f"({amount}g/turn at their present treasury)")
+    else:
+        line = (f"{display_nation(payer)} pays {display_nation(recipient)} "
+                f"{amount}g/turn to keep the field")
     return {
         "payer": payer,
         "recipient": recipient,
         "amount": amount,
-        "line": (f"{display_nation(payer)} pays "
-                 f"{display_nation(recipient)} {amount}g/turn to keep "
-                 f"the field"),
+        "delivered": delivered,
+        "line": line,
         "counterplay": ("Peace, compensation, vassalage or defeat "
                         "removes the client; a richer standing "
                         "sponsorship outbids it."),
     }
+
+
+def _last_subsidy_delivered(world, payer: str, recipient: str) -> Optional[int]:
+    """Gold actually transferred payer→recipient this turn, or None.
+
+    Reads the `british_subsidy` event the transfer already writes
+    (`coalition._process_british_subsidy`) — display-only, no new state.
+    """
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for event in reversed(list(getattr(world, "event_log", None) or [])):
+        if int(event.get("turn", -1) or -1) != turn:
+            break
+        if (event.get("type") == "british_subsidy"
+                and event.get("payer") == payer
+                and event.get("recipient") == recipient):
+            return int(event.get("amount", 0) or 0)
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -286,6 +286,10 @@ var map_canvas_size: Vector2 = Vector2.ZERO
 var world_bounds: Rect2 = Rect2(Vector2.ZERO, Vector2.ONE)
 # Slice 7.5 (DEF-11): the zoom-LOD label layer; null outside bitmap mode.
 var map_label_layer = null
+# GLOBAL-space rects of overlaying UI panels (the command terminal) that map
+# labels must dodge. Cached here because the owner pushes them on every
+# layout pass, which can precede the label layer's creation.
+var _ui_avoid_global_rects: Array = []
 # WORLD-coord rects occupied by marshal icons, name stacks, and garrison
 # chips this rebuild — pushed to the label layer so province labels dodge
 # the map furniture instead of drawing through it.
@@ -966,6 +970,9 @@ func _create_scene_layers():
 		map_label_layer.z_index = 50
 		map_label_layer.setup(self)
 		add_child(map_label_layer)
+		# Re-apply any UI rects pushed before the layer existed.
+		if not _ui_avoid_global_rects.is_empty():
+			map_label_layer.set_ui_avoid_rects(_ui_avoid_global_rects)
 
 	tooltip_layer = MapTooltipLayer.new()
 	tooltip_layer.name = "TooltipLayer"
@@ -1307,6 +1314,14 @@ func _rebuild_dynamic_nodes():
 	if map_label_layer != null:
 		map_label_layer.set_avoid_rects(_label_avoid_world_rects)
 	_refresh_hover_state()
+
+
+func set_ui_avoid_rects(global_rects: Array) -> void:
+	"""Screen-space UI panels the map labels must not draw over (main.gd
+	pushes the command terminal's rect on every layout pass)."""
+	_ui_avoid_global_rects = global_rects.duplicate()
+	if map_label_layer != null:
+		map_label_layer.set_ui_avoid_rects(_ui_avoid_global_rects)
 
 
 func _marshal_slot_offset(i: int, count: int) -> float:

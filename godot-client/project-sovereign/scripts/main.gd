@@ -838,6 +838,8 @@ func _minimize_terminal():
 	restore_button.visible = true
 	if resize_grip:
 		resize_grip.visible = false
+	# A minimized terminal hands the map back its labels.
+	_push_map_label_avoid_rects()
 
 func _restore_terminal():
 	"""Expand the terminal panel, hide restore button."""
@@ -845,7 +847,7 @@ func _restore_terminal():
 	restore_button.visible = false
 	if resize_grip:
 		resize_grip.visible = true
-		_reposition_after_layout()
+	_reposition_after_layout()
 	command_input.grab_focus()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -967,6 +969,23 @@ func _position_resize_grip() -> void:
 func _reposition_after_layout() -> void:
 	# Font/scale changes can reflow container min-sizes a frame later.
 	call_deferred("_position_resize_grip")
+	call_deferred("_push_map_label_avoid_rects")
+
+
+func _push_map_label_avoid_rects() -> void:
+	"""Tell the map which screen rects its labels must dodge.
+
+	The label layer only ever knew about WORLD-space map furniture, so the
+	nation and province names drew straight across the Imperial Command
+	window — 'FRANCE', 'SPAIN' and 'PORTUGAL' over the terminal's own text.
+	Pushed after every layout pass because the panel is resizable, and after
+	visibility toggles because a hidden terminal must free the map again."""
+	if map_area == null or not map_area.has_method("set_ui_avoid_rects"):
+		return
+	var rects: Array = []
+	if bottom_left_ui != null and bottom_left_ui.visible:
+		rects.append(bottom_left_ui.get_global_rect())
+	map_area.set_ui_avoid_rects(rects)
 
 func _on_grip_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

@@ -844,11 +844,18 @@ func _render_balance_of_europe():
 			var m_nation = Utils.display_nation_name(str(mem.get("nation", "?")))
 			var m_strength = str(mem.get("strength_display", "?"))
 			var m_we = int(mem.get("war_exhaustion", 0))
+			# AI-4c: exhaustion runs to WAR_EXHAUSTION_MAX (200), not 100 —
+			# a saturated court used to read "WE: 200/100".
+			var we_max = int(boe.get("war_exhaustion_max", 200))
+			if we_max <= 0:
+				we_max = 200
 
 			# Mini WE bar (10 chars)
-			var we_filled = int(m_we / 10)
+			var we_filled = int(round(float(m_we) / float(we_max) * 10.0))
 			if we_filled > 10:
 				we_filled = 10
+			if we_filled < 0:
+				we_filled = 0
 			var we_empty = 10 - we_filled
 			var we_bar = ""
 			for i in range(we_filled):
@@ -856,7 +863,7 @@ func _render_balance_of_europe():
 			for i in range(we_empty):
 				we_bar += "░"
 
-			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/100 [" + we_bar + "]\n"
+			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/" + str(we_max) + " [" + we_bar + "]\n"
 	elif coalition_state == "BREWING":
 		var turns_str = ""
 		if brewing_turns != null:
@@ -884,12 +891,15 @@ func _render_balance_of_europe():
 			if subsidy_counter != "":
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + subsidy_counter + "[/color]\n"
 
-	# Dissolution conditions
+	# Dissolution conditions — the TWO the engine actually tests
+	# (coalition.check_dissolution). The retired war-exhaustion clause
+	# promised a lever that never existed: a live campaign showed a member
+	# pinned at the exhaustion cap with the coalition still standing.
 	bbcode += "\n[color=#" + Utils.COLOR_GREY + "]Coalition dissolves if threat falls below "
 	bbcode += str(int(boe.get("dissolution_threat_threshold", 20)))
-	bbcode += " or any member's war exhaustion exceeds "
-	bbcode += str(int(boe.get("dissolution_war_exhaustion_limit", 80)))
-	bbcode += ".[/color]\n"
+	bbcode += " or fewer than "
+	bbcode += str(int(boe.get("dissolution_min_members", 2)))
+	bbcode += " members remain at war.[/color]\n"
 
 	content_area.text = bbcode
 

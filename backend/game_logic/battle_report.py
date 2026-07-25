@@ -442,7 +442,7 @@ _OBSERVATIONS = {
     "coordination_reinforcement_mixed": [
         "{ally} arrived to reinforce {marshal}, but {failed_ally} failed to reach the field in time.",
         "Reinforcements from {ally} bolstered {marshal}'s position — though {failed_ally} never arrived, Sire.",
-        "{ally}'s timely arrival aided {marshal}. {failed_ally}, however, was conspicuously absent.",
+        "{ally}'s timely arrival aided {marshal}. {failed_ally}, however, {failed_was} conspicuously absent.",
     ],
     "coordination_reinforcement_failure": [
         "{ally} failed to arrive in time. {marshal}'s army fought without expected support.",
@@ -503,6 +503,23 @@ _OBSERVATIONS = {
         "The battle unfolded without particular distinction.",
     ],
 }
+
+
+def _join_names(names) -> str:
+    """Render a marshal list as prose: "A", "A and B", "A, B and C".
+
+    `" and ".join()` produced "Lannes and Murat and Bernadotte" in a live
+    Berthier observation — a coordination report is read every battle, so
+    the list has to read like a sentence.
+    """
+    clean = [str(n).strip() for n in names if str(n or "").strip()]
+    if not clean:
+        return ""
+    if len(clean) == 1:
+        return clean[0]
+    if len(clean) == 2:
+        return f"{clean[0]} and {clean[1]}"
+    return ", ".join(clean[:-1]) + f" and {clean[-1]}"
 
 
 def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str:
@@ -580,6 +597,10 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         result = result.replace("{arrival_score}", extra.get("arrival_score", ""))
         # Session 68: artillery name placeholder
         result = result.replace("{artillery}", extra.get("artillery", ""))
+        # Number agreement for the multi-name coordination banks: three
+        # absent marshals took a singular verb ("Lannes and Murat and
+        # Bernadotte, however, was conspicuously absent").
+        result = result.replace("{failed_was}", extra.get("failed_was", "was"))
         return result
 
     # ════════════════════════════════════════════════════════════════════════
@@ -623,13 +644,14 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     if arrived and failed:
         # Mixed: some arrived, some didn't — mention both
-        arrived_names = " and ".join(r.get("marshal", "") for r in arrived)
-        failed_names = " and ".join(r.get("marshal", "") for r in failed)
+        arrived_names = _join_names([r.get("marshal", "") for r in arrived])
+        failed_names = _join_names([r.get("marshal", "") for r in failed])
         return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_mixed"]),
-                     ally=arrived_names, failed_ally=failed_names)
+                     ally=arrived_names, failed_ally=failed_names,
+                     failed_was=("were" if len(failed) > 1 else "was"))
 
     if arrived:
-        ally_names = " and ".join(r.get("marshal", "") for r in arrived)
+        ally_names = _join_names([r.get("marshal", "") for r in arrived])
         # W6-1 (BUG-CA-5): branch on the OUTCOME — the arrival bank claims
         # "swung the battle in our favor", which the live audit caught being
         # said about a stalemate. Stalemate → held; loss → not enough.
@@ -650,7 +672,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     # Priority 0.8: All reinforcements failed (our side)
     if failed:
-        failed_names = " and ".join(r.get("marshal", "") for r in failed)
+        failed_names = _join_names([r.get("marshal", "") for r in failed])
         return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_failure"]),
                      ally=failed_names)
 

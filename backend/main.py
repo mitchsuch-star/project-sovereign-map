@@ -3149,10 +3149,15 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         world.incoming_proposal_popup = popup
         result["incoming_proposal"] = popup
     elif dtype == "incoming_settlement_offer":
-        popup = dialogue.get("popup_payload")
-        if not isinstance(popup, dict) or not popup:
-            popup = build_incoming_settlement_offer_popup(world, dialogue)
-            dialogue["popup_payload"] = popup
+        # REBUILD every activation, exactly like the proposal arm above. The
+        # offer's territorial clause is DERIVED from current controllers
+        # (`_derive_status_quo_lines`), so re-showing a cached payload told
+        # the player who held what on the turn the offer ARRIVED: a turn-3
+        # offer re-opened on turn 8 still read "Austria retains Swabia"
+        # after France had retaken it — false facts on the surface where
+        # peace is accepted or refused.
+        popup = build_incoming_settlement_offer_popup(world, dialogue)
+        dialogue["popup_payload"] = popup
         result["incoming_settlement_offer"] = popup
     elif dtype == "ally_settlement_petition":
         popup = dialogue.get("popup_payload")

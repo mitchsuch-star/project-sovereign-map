@@ -4,6 +4,85 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### 🖥️ THE PIN-20 LIVE IN-GAME PASS ✅ HELD July 25, 2026 — Stages B/C/D on screen, 8 defects fixed
+
+**User direction: "do in game pass and make any fixes found commit and push when done, give a
+review of the game after."** The AI-Intent phase had shipped Stages A–D across three build sessions
+with **no Godot-side verification at all** — pin 20's standing debt. This session drove the real
+1805 campaign through the real client (two worlds: a 38-turn HTTP-driven sweep for reachability,
+then a fresh hand-played campaign for the surfaces), and every Stage B/C/D surface was confirmed
+rendering — or fixed.
+
+**Verified live on screen (pin 20 CLEARED for Stages B and C, partially for D):**
+
+- **Stage B** — the Diplomatic Ledger's NATIONS tab opens with **"How Europe Reads France"**
+  (`Read as: The hegemon of Europe — 40% of the continent's weight. / The courts believe he will go
+  as far as war (alarm 85). / They think he is coming for Hesse`), and every court carries its
+  **Design** and **Intent** rows (Britain `The Low Countries` / "prepared to go as far as war —
+  France stands in the way (weight 88)"; Prussia `The Hanoverian Prize` at weight **59**, the pinned
+  boot value). The **Weariness** row renders where fog allows (Austria: "National exhaustion across
+  all wars: 0 (stable) — at war with Bavaria, France, Kingdom of Italy").
+- **Stage C** — **THE PAYMASTER'S PURSE** block live in the THREAT & COALITION tab
+  ("Britain pays Austria 300g/turn to keep the field" + the counterplay line); **Compacts** rows live
+  ("Britain sponsors Russia against France (200g/turn)"); the **allegiance auction** fired twice
+  unprompted (`THE FLIP IS IN PLAY: Sweden weighs its allegiance` → `THE FLIP: Sweden signs with
+  Britain`); an envoy arrived speaking the NA-2 `agenda_pursuit` register ("My master's design is
+  known to all Europe; Denmark sends this offer in its pursuit").
+- **Stage D** — **beat 6 (The Congress) fired twice in the wild**: `THE CONGRESS: Austria and
+  Bavaria make peace without France` (turn 14) and `Britain and Spain` (turn 16), campaign log AND
+  dispatch. `threat_by_target` carried five populated non-France slots (AI-4a steps 5–6 live).
+  **Beats 2/3/7 did NOT fire in 38 turns and `war_intents` stayed empty** — recorded honestly:
+  that run collapsed France to 9 provinces with six powers pinned at the exhaustion cap, which is
+  exactly the state AI-3's restraints suppress. **The D1 acceptance band (1–4 AI-initiated wars /
+  40 turns) is therefore still unmeasured in a healthy campaign and belongs to AI-V.**
+- Also live: CR-5 delegation ("Davout, deal with Mack" → the cautious scout + "Davout, cautious as
+  ever, wants to see the ground before he commits"), W6-2 dynamic battle naming ("The Great Battle
+  of Swabia", "Second Battle of Swabia"), Crowned with Glory, an autonomous jealousy glory-attack
+  (Murat took Swabia unordered), the marshal-petition channel, `/formables` with honest gate terms.
+
+**Eight defects found and FIXED (`test_live_pass_fixes_2026_07_25.py`, 20 tests):**
+
+1. **Map labels drew straight across the Imperial Command window** (P2, every frame of every
+   session): the label layer only dodged WORLD-space map furniture, so `FRANCE` / `SPAIN` /
+   `PORTUGAL` / `KINGDOM OF ITALY` rendered over the terminal's own text, and the nation tier
+   dodged *nothing at all*. Fixed with a screen-space avoid channel — `main.gd`
+   `_push_map_label_avoid_rects()` → `map_renderer_base.set_ui_avoid_rects()` →
+   `map_label_layer.set_ui_avoid_rects()` — pushed on every layout pass and on minimize/restore,
+   applied to BOTH tiers. Verified: `FRANCE` now nudges clear and the panel is clean.
+2. **A re-opened settlement offer described the map of the turn it ARRIVED** (P2): the status-quo
+   clause is *derived* from current controllers, but `/mailbox/activate` replayed a cached
+   `popup_payload` — a turn-3 offer read "Austria retains … Swabia" on turn 8, after France had
+   retaken Swabia, on the surface where peace is accepted or refused. Now rebuilt every activation,
+   exactly like the proposal arm beside it.
+3. **The ledger stated a coalition-dissolution rule that does not exist** (P2): "any member's war
+   exhaustion exceeds 80" is nowhere in `coalition.check_dissolution` (which tests threat < 20 and
+   fewer than 2 members at war, full stop). Live proof: Austria pinned at WE **200** with the Third
+   Coalition standing. The clause is retired; the payload now derives from
+   `DISSOLUTION_THREAT_THRESHOLD` + the member floor so it cannot drift again.
+4. **"WE: 200/100"** (P3): the member bars hardcoded a denominator of 100 against
+   `WAR_EXHAUSTION_MAX = 200`. Backend publishes `war_exhaustion_max`; the bar scales off it.
+5. **Berthier's coordination line was ungrammatical** (P2): `" and ".join()` produced "aided Ney and
+   Lannes and Murat and Bernadotte, however, **was** conspicuously absent." New `_join_names()`
+   ("A, B and C") + a `{failed_was}` number token.
+6. **The enemy-phase popup stuttered every battle** (P3): "- Mack attacks Ney" was immediately
+   followed by "Mack attacks Ney" inside the battle block. `_format_battle` now takes the action
+   line's pair and drops the restatement when it duplicates.
+7. **The purse and the dispatch quoted different sums in the same breath** (P3): the dispatch said
+   "the subsidy stands at 200 this season" (delivered) while the ledger said "pays 300g/turn" (the
+   tier at the treasury *after* income). The purse now names the delivered sum when the two differ,
+   keeping the prospective rate beside it — read from the transfer's own event, zero new state.
+8. **The mailbox subtitle lied** (P3): "Current-turn envoys only." above rows from turns 3 and 7.
+
+**Not defects, checked and cleared:** the campaign log DOES humanize camelCase nation keys at render
+(`PapalStates` → `Papal States`); the log's per-turn page was complete (battles, captures, jealousy,
+`glory_crowned`); ESC not dismissing a hard-stop settlement dialogue is by design; `end turn` while
+blocked returns an honest reason every time. **Recorded as an observation, not fixed:**
+`ai_ai_proposal_refused` can be the ENTIRE campaign-log page for a turn (six identical-shaped
+rebuffs) — pin 13's soap-opera risk lives in the log, not just the dispatch.
+
+Suite **14,871/3** (+20), ruff clean, parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR` ×3.
+**▶ NEXT: the user in-game review (NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E.**
+
 ### ⚔️ AI INTENT ⛩ RE-CHECK HELD + STAGE D ✅ BUILT July 24, 2026 (third session that day) — War and Peace
 
 **User direction: "do next phase of intent commit and push."** The phase's only remaining gate —

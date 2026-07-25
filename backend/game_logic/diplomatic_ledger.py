@@ -809,6 +809,8 @@ def _as_str_list(value) -> List[str]:
 def _build_balance_of_europe(world) -> Dict[str, Any]:
     """Build the v2.4.3 Balance of Europe ledger payload."""
     from backend.game_logic.coalition import (
+        DISSOLUTION_THREAT_THRESHOLD,
+        WAR_EXHAUSTION_MAX,
         bloc_power,
         _hegemony_signal_band,
         _identify_max_bloc_share,
@@ -1011,8 +1013,19 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "threat_sources_this_turn": threat_sources,
         "qualifying_nations": get_qualifying_nations(world),
         "threat_projection": threat_projection,
-        "dissolution_threat_threshold": int(20),
-        "dissolution_war_exhaustion_limit": int(80),
+        # Derived from the ONLY two conditions `coalition.check_dissolution`
+        # actually tests, so the stated rule cannot drift from the code
+        # again. The retired `dissolution_war_exhaustion_limit: 80` was a
+        # hardcoded literal describing a lever that has never existed — a
+        # live 1805 campaign showed Austria pinned at the exhaustion CAP
+        # with the Third Coalition standing, i.e. the ledger was teaching a
+        # war plan the engine would not honour.
+        "dissolution_threat_threshold": int(DISSOLUTION_THREAT_THRESHOLD),
+        "dissolution_min_members": 2,
+        # AI-4c: exhaustion runs to WAR_EXHAUSTION_MAX, not 100 — the member
+        # rows render "WE: n/max" off this, so a saturated court reads
+        # "200/200" instead of the old "200/100".
+        "war_exhaustion_max": int(WAR_EXHAUSTION_MAX),
         # AI-2e §3.7: the paymaster's purse, visible and contestable —
         # payer, client, amount, and the counterplay line. None omits.
         "paymaster_subsidy": build_subsidy_payload(world),

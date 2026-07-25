@@ -72,6 +72,9 @@ var _zoom_level: float = 1.0
 # stacks + garrison chips). Only the province tier dodges these — nation
 # labels draw zoomed out where the furniture is visually negligible.
 var _avoid_world_rects: Array = []
+# GLOBAL-space rects of UI panels (the command terminal) — see
+# set_ui_avoid_rects(). Layout, not map data: clear_labels() leaves them.
+var _ui_avoid_rects: Array = []
 # Screen-projected avoid rects for the tier currently being drawn.
 var _projected_avoid_rects: Array = []
 
@@ -100,6 +103,19 @@ func set_labels(nation_labels: Array, province_labels: Array) -> void:
 
 func set_avoid_rects(avoid_world_rects: Array) -> void:
 	_avoid_world_rects = avoid_world_rects.duplicate()
+	queue_redraw()
+
+
+func set_ui_avoid_rects(global_ui_rects: Array) -> void:
+	"""GLOBAL-space rects of UI panels labels must not draw over.
+
+	The map furniture rects above are WORLD-space; the command terminal is a
+	screen-space panel on another CanvasLayer, so it was invisible to the
+	dodge pass and 'FRANCE' / 'SPAIN' / 'PORTUGAL' rendered straight across
+	the Imperial Command window's own text. Applies to BOTH tiers — the
+	nation tier previously dodged nothing at all.
+	"""
+	_ui_avoid_rects = global_ui_rects.duplicate()
 	queue_redraw()
 
 
@@ -139,18 +155,34 @@ func _draw():
 	if not is_equal_approx(vp_scale, 1.0):
 		xform = xform.scaled(Vector2(1.0 / vp_scale, 1.0 / vp_scale))
 	var logical_zoom: float = _zoom_level / vp_scale
+	var ui_rects: Array = _local_ui_avoid_rects()
 	if logical_zoom >= PROVINCE_LABEL_MIN_ZOOM:
-		_projected_avoid_rects = _project_avoid_rects(xform)
+		_projected_avoid_rects = _project_avoid_rects(xform) + ui_rects
 		_draw_label_tier(
 			province_font, _province_labels, xform,
 			clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)
 		)
 	else:
-		_projected_avoid_rects = []
+		_projected_avoid_rects = ui_rects
 		_draw_label_tier(
 			nation_font, _nation_labels, xform,
 			clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)
 		)
+
+
+func _local_ui_avoid_rects() -> Array:
+	"""UI panel rects converted from GLOBAL space into this Control's own."""
+	if _ui_avoid_rects.is_empty():
+		return []
+	var out: Array = []
+	var inv := get_global_transform().affine_inverse()
+	for rect in _ui_avoid_rects:
+		if not rect is Rect2:
+			continue
+		var top_left: Vector2 = inv * rect.position
+		var bottom_right: Vector2 = inv * rect.end
+		out.append(Rect2(top_left, bottom_right - top_left).abs().grow(AVOID_RECT_PADDING))
+	return out
 
 
 func _project_avoid_rects(xform: Transform2D) -> Array:

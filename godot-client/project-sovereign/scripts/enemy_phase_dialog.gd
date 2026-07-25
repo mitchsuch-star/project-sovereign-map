@@ -163,7 +163,10 @@ func _format_action(action: Dictionary) -> String:
 		print("[ENEMY_PHASE_DEBUG] event[", i, "] type: ", event.get("type", "NO TYPE"))
 		if event.get("type") == "battle":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_battle for battle event")
-			result += _format_battle(event)
+			# Pass the action line's own pair so the battle block does not
+			# restate it: "- Mack attacks Ney" was immediately followed by
+			# "Mack attacks Ney" under the battle name, every single turn.
+			result += _format_battle(event, marshal_name, str(target))
 		elif event.get("type") == "bombardment":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_bombardment for bombardment event")
 			result += _format_bombardment(event)
@@ -195,8 +198,13 @@ func _format_action(action: Dictionary) -> String:
 
 	return result
 
-func _format_battle(event: Dictionary) -> String:
-	"""Format battle details."""
+func _format_battle(event: Dictionary, action_marshal: String = "", action_target: String = "") -> String:
+	"""Format battle details.
+
+	`action_marshal`/`action_target` are the pair the caller's action line
+	already printed; when the battle is between exactly those two, the
+	"X attacks Y" restatement is dropped as a duplicate.
+	"""
 	var result = ""
 
 	var attacker = event.get("attacker", {})
@@ -217,7 +225,12 @@ func _format_battle(event: Dictionary) -> String:
 	# Battle header - use battle_name if available, fallback to attacker vs defender
 	var battle_title = event.get("battle_name", attacker_name + " vs " + defender_name)
 	result += "[color=#" + Utils.COLOR_BATTLE + "]    " + battle_title + "[/color]\n"
-	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
+	var already_stated = (
+		action_marshal != "" and attacker_name == action_marshal
+		and action_target != "" and defender_name == action_target
+	)
+	if not already_stated:
+		result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
 
 	# Casualties
 	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": "

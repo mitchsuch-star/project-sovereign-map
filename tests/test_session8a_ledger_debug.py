@@ -442,7 +442,14 @@ class TestDiplomaticLedgerThreatCoalition:
         assert isinstance(boe["coalition_cooldown"], int)
         assert isinstance(boe["cooldown_turns_remaining"], int)
         assert isinstance(boe["dissolution_threat_threshold"], int)
-        assert isinstance(boe["dissolution_war_exhaustion_limit"], int)
+        # `dissolution_war_exhaustion_limit` was RETIRED (live pass,
+        # July 25, 2026): it advertised a dissolution lever
+        # `coalition.check_dissolution` has never implemented. The two
+        # conditions it does test are published instead, plus the real
+        # exhaustion ceiling for the member bars.
+        assert "dissolution_war_exhaustion_limit" not in boe
+        assert isinstance(boe["dissolution_min_members"], int)
+        assert isinstance(boe["war_exhaustion_max"], int)
 
         projection = boe["threat_projection"]
         for key in (
