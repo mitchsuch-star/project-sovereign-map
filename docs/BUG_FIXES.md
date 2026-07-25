@@ -35,17 +35,26 @@ IGR-F3 beat-7 `exposed`/`outmatched`/`penniless` rendered as the `starved` phras
 IGR-F4 the command terminal swallowed the mouse wheel (P2);
 IGR-F5 the separate-peace "your drafted terms carry" promise dropped identity clauses (P2, copy).
 
-**OPEN — all four are owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, awaiting its §5
-gate).** Slice mapping: IGR-2 → **IGR-A1**; IGR-1 → **IGR-B** (gate Q1); IGR-4 → **IGR-C** (gate
-Q3); IGR-3 → **IGR-D** (gate Q2). The "Owner / landing" column below names the upstream spec each
-item also touches.
+**OPEN — owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.2, awaiting its §5 gate).**
+Slice mapping: IGR-2 → **IGR-A1**; IGR-1 → **IGR-B** (Q1); IGR-4 → **IGR-C** (Q3); IGR-3 →
+**IGR-D** (Q2). IGR-X1/X2 were found in passing by the spec's verification fleet and are
+standalone.
+
+**The v0.2→v0.3 verification + refutation pass re-measured every row and corrected seven claims.**
+Most consequentially: a per-category log filter (a tempting fix for IGR-1) is *wrong*, because the
+buried payload shares category "diplomacy" with the noise; the region-vs-nation item is **P3, not
+P1** (`move to Austria` does resolve to Asturias, but `movement_executor.py:186-203` already names
+the substitution three times — and the real seam is `parser.py:99 _is_nation_demonym`, not the
+executor, which never sees the word "Austria"); and **IGR-4 is WITHDRAWN** — see its row.
 
 | ID | Sev | Item | Owner / landing |
 |---|---|---|---|
 | **IGR-1** | P2 | **Campaign log drowned in AI-AI refusal spam.** Turn 9 carried 25 events; **24** were `D <X> rebuffs <Y> (open borders / non aggression)`. The one dramatic line — `The court of Russia takes up a new design: The Gulf and the Straits` — sat at the bottom of the wall in identical styling. Per-turn counts ran 19–40, dominated throughout. The `ai_ai_proposal_refused` record (AI-2a, AI-3's ladder substrate) is correct; rendering it at full volume defeats the log as a history surface. Needs aggregation ("Nine courts rebuffed Austria this turn"), a category filter, or demotion below the fold. | AI Intent Stage E/F client surfaces (`AI_INTENT_SPEC.md` §4.6b / row AI-6c) |
 | **IGR-2** | P3 | **Raw internal key in player copy.** The ally-entry proposal renders `Spain cannot join against Prussia: no_participation_path.` verbatim — an R7 display-names violation ("never expose raw internal keys"). Needs a `display_names` entry. | Next diplomacy polish slice |
 | **IGR-3** | P2 | **Design question — should identity clauses survive the bilateral substitution?** `_pair_substitute_seed_terms` translates money + taken territory only; `create_client`, vassalage, liberation and forced_alliance are settlement-tier and dropped by design. Played live: authored *"Erect Duchy of Warsaw from Prussia's lands"*, took the "Make peace with Prussia only" route the game itself offers, and got a bare white peace with the clause gone. The copy is now honest (IGR-F5), but the *only* route the game steers a blocked player toward still silently discards the marquee NA-6 clause. Either carry identity clauses, or have the settlement steer back to the joint route when one is drafted. | Also filed as `DESIGN_REFINEMENT.md` IGR-D3 |
-| **IGR-4** | P2 | **A player-facing counsel rung with no reachable trigger (GR9).** Talleyrand's "designs held in check" / "not free to move" arm requires `_restraint_block_reason == 'exposed'` on a **non-player → non-player** design. At boot Austria short-circuits on `busy` and Prussia reads `None`; `designs_in_check` was `[]` across two war-room runs. Either give it a reachable trigger or retire the rung explicitly. | AI-V arm (a) — the D1-band measurement (`AI_WAR_DECISION_SPEC.md` §8.2) |
+| **IGR-X1** | **P1** | **Save/autosave crashes after an AI marshal finishes recovering.** `enemy_ai.py:2039` does `del marshal._recovery_destination`, permanently removing the attribute; `marshal.py:1485` then reads `self._recovery_destination` directly in `to_dict()` → `AttributeError: 'Marshal' object has no attribute '_recovery_destination'`. Reproduced in a deterministic 20-turn ambient run. `world_state.py:9233-9234` already uses the safe `hasattr`+assign-`None` form; `enemy_ai.py` does not. **Found in passing by the IGR verification fleet — unrelated to the review itself.** | Standalone fix; no gate. Take before IGR-A |
+| **IGR-X2** | P3 | **A read path mutates the world.** `WorldState.get_region_intel` (`world_state.py:1937-1943`) lazily *inserts* an UNKNOWN `RegionIntel` on read, so `filter_campaign_log` — pure-looking — mutates `world.intel`; an in-session `GET /campaign_log` perturbs the intel key set. Silently diverged a measurement run. **Found in passing.** | Standalone; matters most to IGR-B's harness |
+| ~~**IGR-4**~~ | — | **WITHDRAWN July 25, 2026 by the IGR verification pass — not a defect.** The "designs held in check" rung is the *third* surface of the exposure mechanic; the other two (`_build_france_exposure`, `_build_exposure_line`) render at boot and were verified **PASS** in the review itself. The AI-vs-AI silence already has an owner, landing slice and tracking line in `AI_WAR_DECISION_SPEC.md` §8.2-1 (**AI-V arm (a)**), so GR9 is satisfied. The proposed broadening was additionally measured to render **0 rows while France remains the hegemon** (all 37 rows land only in the collapse case) and would have shown Sweden's authored anti-Napoleon design as held in check *against Britain*. | Closed — no work |
 
 ---
 

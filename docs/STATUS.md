@@ -69,21 +69,51 @@ Gulf and the Straits* at T9); the Fontainebleau petition's rentes moved the ledg
 
 Suite **14,936/3**, ruff clean, Godot parse harness EXIT=0.
 
-**▶ QUEUED SAME DAY — row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, AWAITING THE §5 GATE).**
+**▶ QUEUED SAME DAY — row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.3, AWAITING THE §5 GATE — 3 questions).**
 Everything the review routed rather than fixed is now a spec'd, ordered pass rather than loose
 backlog: **IGR-A** honest copy (4 items, gate-free) · **IGR-B** the campaign log becomes readable
-(Q1) · **IGR-C** Talleyrand's unreachable counsel rung (Q3, GR9) · **IGR-G** settlement viewport +
+(Q1) · **IGR-G** settlement viewport +
 map-stack legibility (gate-free) · **IGR-D** the carve becomes completable (Q2 — the big one; ends
 with the in-client Proclamation sighting this review could not deliver) · **IGR-F** the
 minor-court envoy digest (gate-free) · **IGR-E** plunder earns its prompt (Q4, blessed number).
-Build order **A → pause for review → B → C → G → D → F → E**; the two gate-free slices land first
-per the project's slice-review cadence. **Four gate questions, all with recommendations:** Q1
+Build order **A → pause for review → B → D → F → E → G**; the two gate-free slices land first
+per the project's slice-review cadence. **Three gate questions, all with recommendations:** Q1
 aggregate the AI-AI refusal lines · Q2 **should identity clauses survive a separate peace** (the
 historical case is Tilsit — the Duchy of Warsaw was carved from Prussia alone while the British
-war ran, which is exactly what the engine forbids today) · Q3 broaden the designs-in-check rung to
-France's own exposure · Q4 plunder ≈4× province income. Nothing in the spec is deferred without an
+war ran, which is exactly what the engine forbids today) · Q4 plunder ≈4× province income. Nothing in the spec is deferred without an
 owner; the four items deliberately not taken (beats 2/3/7, the Polish Question label, Congress
 beat 6, the unreproduced modal stacking) each name theirs in §4.
+
+**v0.2 → v0.3 — the spec's own verification + refutation pass (same day).** Before trusting the spec, every routed row
+was re-measured against master by a find→refute fleet. **Four v0.1 claims were wrong and are
+corrected in place, marked "⚠ v0.1 SAID"** so the reasoning stays auditable: (1) the log
+aggregation key `(proposer, proposal_type)` was **measured insufficient** — a burst turn carries
+~10 distinct proposers, so 21 lines become ~10; the working key is `(turn, proposal_type)`, and a
+**per-category filter is outright wrong** because the buried `agenda_shift` payload shares
+category "diplomacy" with the noise; (2) "broaden Talleyrand's rung to France's own designs" is
+**not buildable** — France has no agenda deck, so there is no French design to hold in check; the
+correct fix is to name any live restraint (measured 0 → ~34 rendered rows); (3) Austria does not
+"short-circuit on busy" — its design targets the player and is dropped by the player-target
+filter; (4) releasing a vassal does **not** end shared wars, so that copy must be forward-looking.
+Then the refuters went after those corrections and **overturned two more of mine**: (5) the
+`move to Austria` → **Asturias** case is **P3, not the P1 I had escalated it to** — it is not
+silent, `movement_executor.py:186-203` names the substituted province three times and flags it
+(*"Our maps read Asturias as the province nearest your order, Sire"*), and the attack arm refuses
+outright; the real seam is `parser.py:99 _is_nation_demonym` (whose own docstring already names
+this bug class) generalised to bare nation names, **not** the executor, which never sees the word
+"Austria"; and (6) **the whole IGR-C slice is WITHDRAWN** — Talleyrand's "designs held in check"
+rung is not a GR9 orphan (it is the *third* surface of the exposure mechanic, and the other two
+render at boot and were verified PASS in this very review; the AI-vs-AI silence already has an
+owner in `AI_WAR_DECISION_SPEC.md` §8.2-1 = AI-V arm (a)), the proposed broadening renders **0
+rows while France remains the hegemon**, and it would have shown Sweden's authored anti-Napoleon
+design as held in check *against Britain*. **The gate is therefore 3 questions, not 4, and the
+spec is smaller than v0.1 — which is the point of running the refuters.** **Two unrelated
+defects were found in passing and routed:** IGR-X1 (**P1 crash** — `enemy_ai.py:2039`
+`del marshal._recovery_destination` makes every later save/autosave raise `AttributeError`) and
+IGR-X2 (`get_region_intel` mutates `world.intel` on read, so `GET /campaign_log` perturbs the
+world). The log-spam producer measures at **171 pairs scanned per turn** with the refusal family
+**excluded from the anti-spam counter**, and the wave **repeats on the ~6-turn dedupe period** —
+it is standing, not a one-off.
 
 
 ### ⚔️ AI-3r ✅ GATED + BUILT COMPLETE July 25, 2026 — "What It Leaves Undefended" (all five slices, one session)
