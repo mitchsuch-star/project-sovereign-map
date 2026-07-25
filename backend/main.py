@@ -812,6 +812,14 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     str(popup.get("decision_reason", ""))
                 )
             response[winner_key] = popup
+        elif winner_key == "marshal_petition" and isinstance(winner_value, dict):
+            # In-game review July 25, 2026: petitions are built inside the turn
+            # pass (before advance_turn refills AP), so their priced arms must
+            # have affordability re-derived HERE, against the AP the player
+            # actually holds when the dialog opens.
+            from backend.game_logic.jealousy import refresh_petition_affordability
+
+            response[winner_key] = refresh_petition_affordability(winner_value, world)
         else:
             response[winner_key] = winner_value
 

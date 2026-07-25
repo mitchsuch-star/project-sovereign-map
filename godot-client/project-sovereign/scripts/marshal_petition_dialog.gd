@@ -80,12 +80,22 @@ func _add_option(option: Dictionary):
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.add_theme_font_size_override("font_size", 14)
 	btn.add_theme_color_override("font_color", Utils.UI_GOLD)
-	btn.disabled = not bool(option.get("enabled", true))
+	var is_enabled = bool(option.get("enabled", true))
+	btn.disabled = not is_enabled
 	btn.tooltip_text = str(option.get("detail", ""))
+	if not is_enabled:
+		# July 25, 2026 in-game review: a greyed arm used to say nothing about
+		# WHY, and at a glance read as merely un-hovered. Dim the label and let
+		# the detail line carry the backend's reason.
+		btn.add_theme_color_override("font_color", Color(0.55, 0.52, 0.48, 1))
+		btn.add_theme_color_override("font_disabled_color", Color(0.55, 0.52, 0.48, 1))
 	btn.pressed.connect(_on_option_pressed.bind(str(option.get("id", ""))))
 	options_container.add_child(btn)
 
 	var detail = str(option.get("detail", ""))
+	var reason = str(option.get("unavailable_reason", ""))
+	if not is_enabled and reason != "":
+		detail = reason if detail == "" else reason + "  " + detail
 	if detail != "":
 		var detail_label = Label.new()
 		detail_label.text = "    " + detail

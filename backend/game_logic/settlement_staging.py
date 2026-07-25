@@ -261,6 +261,86 @@ def _build_settlement_scope_replace_confirm_dialogue(
     }
 
 
+# ══════════════════════════════════════════════════════════════════════
+# Pair-substitute carry-over surface (in-game review, July 25, 2026)
+# ══════════════════════════════════════════════════════════════════════
+# The G4F-8 handoff (settlement_actions._pair_substitute_seed_terms) can
+# translate ONLY the money and taken-territory clauses into the bilateral
+# demand/sweetener dialect. Identity-bearing clauses — vassalage,
+# liberation, forced_alliance, create_client — are settlement-tier and are
+# dropped, by design.
+#
+# The confirm chooser used to promise, flatly, "Your drafted terms for X
+# carry into the talks." Playing the real client: I authored "Erect Duchy
+# of Warsaw from Prussia's lands", was told my terms would carry, and got a
+# bare white peace with the clause silently gone. The promise now names
+# what will NOT travel, so the player can choose the joint route instead.
+PAIR_SUBSTITUTE_CARRIED_TYPES = frozenset({
+    "gold_indemnity",
+    "gold_per_turn",
+    "territory_cede",
+})
+
+# Player-facing names for the settlement-tier clauses, for the honest warning.
+_PAIR_SUBSTITUTE_DROPPED_LABELS = {
+    "create_client": "erecting a client state",
+    "vassalage": "vassalage",
+    "liberation": "liberation",
+    "forced_alliance": "a forced alliance",
+    "continental_system": "the Continental System",
+    "release_vassal": "releasing a vassal",
+    "vassal_transfer": "transferring a vassal",
+}
+
+
+def pair_substitute_dropped_clause_labels(
+    settlement_terms: Any,
+    *,
+    target: str,
+) -> List[str]:
+    """Player-facing labels for clauses authored against ``target`` that the
+    bilateral handoff cannot carry. Empty when everything travels."""
+    labels: List[str] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        if ttype in PAIR_SUBSTITUTE_CARRIED_TYPES:
+            continue
+        # Only clauses aimed AT this court are at stake in these talks.
+        if str(term.get("from") or "") != target and str(term.get("to") or "") != target:
+            continue
+        label = _PAIR_SUBSTITUTE_DROPPED_LABELS.get(ttype)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _pair_substitute_carry_description(
+    current_dialogue: Mapping[str, Any],
+    selected_target: str,
+) -> str:
+    """The confirm option's consequence line — honest about what travels."""
+    base = (
+        "Set aside the joint settlement; the other courts stay at war. "
+        f"Your drafted terms for {selected_target} carry into the talks"
+    )
+    dropped = pair_substitute_dropped_clause_labels(
+        current_dialogue.get("settlement_terms") or [],
+        target=selected_target,
+    )
+    if not dropped:
+        return base + "."
+    if len(dropped) == 1:
+        listed = dropped[0]
+    else:
+        listed = ", ".join(dropped[:-1]) + " and " + dropped[-1]
+    return (
+        base
+        + f" — except {listed}, which only a joint settlement can seal."
+    )
+
+
 def _build_pair_substitute_confirm_dialogue(
     current_dialogue: Mapping[str, Any],
     *,
@@ -311,10 +391,8 @@ def _build_pair_substitute_confirm_dialogue(
                     f"Proceed — {arm_label} with {selected_target} alone"
                 ),
                 "action": "confirm_pair_substitute",
-                "description": (
-                    "Set aside the joint settlement; the other courts stay "
-                    f"at war. Your drafted terms for {selected_target} "
-                    "carry into the talks."
+                "description": _pair_substitute_carry_description(
+                    current_dialogue, selected_target
                 ),
             },
             {

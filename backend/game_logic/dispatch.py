@@ -90,12 +90,27 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
 }
 
 # Beat-7 cause copy for the headline arm (R7 — composed backend-side).
+# Entries here override the shared short form where the headline wants a
+# fuller phrasing; anything absent falls through to
+# war_council.crisis_cause_phrase(), which covers the WHOLE taxonomy —
+# including AI-3r's exposed / outmatched / penniless. Before the July 25,
+# 2026 in-game review this map was the only lookup and silently rendered
+# those three as "the moment passed".
 _CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
     "satisfied": "the want is won",
     "bought_off": "the design was bought off, and the bargain stands",
     "deterred": "the guarantee held",
     "starved": "the moment passed",
 }
+
+
+def _crisis_cause_headline(cause: str) -> str:
+    """Headline phrasing for a beat-7 cause, honest for every cause id."""
+    key = str(cause or "")
+    if key in _CRISIS_CAUSE_HEADLINE:
+        return _CRISIS_CAUSE_HEADLINE[key]
+    from backend.game_logic.war_council import crisis_cause_phrase
+    return crisis_cause_phrase(key)
 
 # Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
@@ -206,8 +221,7 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             _add("europe_crisis_passed",
                  nation=formed_display_name(world, e.get("nation", "?")),
                  target=formed_display_name(world, e.get("target", "?")),
-                 cause=_CRISIS_CAUSE_HEADLINE.get(
-                     str(e.get("cause", "starved")), "the moment passed"))
+                 cause=_crisis_cause_headline(e.get("cause", "starved")))
         elif etype == "third_party_peace":
             _add("europe_congress",
                  proposer=formed_display_name(world, e.get("proposer", "?")),

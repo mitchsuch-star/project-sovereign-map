@@ -229,6 +229,15 @@ theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 fit_content = true
 scroll_following = true
+; In-game review July 25, 2026: with fit_content the label is exactly as tall
+; as its text, so its OWN scroll has zero range — but it still swallowed the
+; wheel, and the parent OutputScroll never saw it. The terminal (the game's
+; primary surface) could only be scrolled by dragging the thin scrollbar.
+; scroll_active=false hands the wheel to the ScrollContainer, matching every
+; other RichTextLabel-in-a-ScrollContainer in this project (dispatch_view,
+; strategic_ledger, diplomatic_ledger), all of which already wheel-scroll.
+; Clicks still reach the label, so bbcode links ([Reward…]) keep working.
+scroll_active = false
 
 [node name="InputSection" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
 layout_mode = 2

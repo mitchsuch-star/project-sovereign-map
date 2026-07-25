@@ -100,6 +100,34 @@ _CRISIS_CAUSE_COPY = {
     "penniless": "the treasury could not bear a campaign",
 }
 
+# SHORT-form beat-7 cause copy, for the compact surfaces: the campaign-log
+# one-liner and the dispatch headline. The long form above rides the event
+# `message`; these two surfaces re-derive from the raw `cause` field, so they
+# MUST cover the same taxonomy. In-game review July 25, 2026 found both
+# consumers carrying private 4-entry copies that degraded AI-3r's three new
+# causes to the `starved` phrase — reintroducing the exact §0.3 lie ("the
+# moment passed" for a refusal that was really exposure/force/treasury).
+# Single source now; consumers call crisis_cause_phrase().
+_CRISIS_CAUSE_SHORT = {
+    "satisfied": "the want is won",
+    "bought_off": "bought off",
+    "deterred": "deterred by guarantee",
+    "starved": "the moment passed",
+    "exposed": "their frontier could not be stripped",
+    "outmatched": "the odds never came",
+    "penniless": "the treasury could not bear it",
+}
+
+
+def crisis_cause_phrase(cause: str) -> str:
+    """Short beat-7 stand-down phrase for a cause id.
+
+    Every cause the engine can emit has its own entry, so the `starved`
+    copy never stands in for an exposure / force / treasury refusal.
+    """
+    return _CRISIS_CAUSE_SHORT.get(str(cause or ""), "the moment passed")
+
+
 # Soft-gate block → the beat-7 cause it truthfully renders as. "busy"
 # and a fallen ladder ARE decayed moments; the three named refusals are
 # facts about the coveter and render as themselves.

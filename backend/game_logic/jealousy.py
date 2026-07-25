@@ -830,6 +830,54 @@ def _push_petition(world, petition: Dict) -> None:
         queue.push("pending_marshal_petition", petition)
 
 
+def refresh_petition_affordability(petition: Dict, world) -> Dict:
+    """Re-derive each option's `enabled` against the player's CURRENT AP.
+
+    In-game review July 25, 2026. Petitions are BUILT inside the turn pass
+    (`turn_manager.process_turn` runs the jealousy pass BEFORE
+    `world.advance_turn()`, which is what refills `actions_remaining`), so a
+    petition assembled at the end of a spent turn baked `enabled: ap >= cost`
+    against ZERO AP and was then shown to a player holding a full 4/4. Every
+    priced arm — Promise Glory, Reassign, Mediate, Force Reconciliation —
+    arrived permanently greyed, silently, with no reason given: the paid half
+    of the marshal-petition channel was unreachable in ordinary play.
+
+    `ap_cost` is authored on the option; affordability is decided HERE, at the
+    moment the petition is handed to the client. Options that carry no
+    `ap_cost` keep whatever `enabled` they were authored with.
+    """
+    if not isinstance(petition, dict):
+        return petition
+    options = petition.get("options")
+    if not isinstance(options, list):
+        return petition
+    ap = _player_ap(world)
+    refreshed = []
+    for option in options:
+        if not isinstance(option, dict):
+            refreshed.append(option)
+            continue
+        cost = option.get("ap_cost")
+        if cost is None:
+            refreshed.append(option)
+            continue
+        option = dict(option)
+        cost = int(cost)
+        option["enabled"] = ap >= cost
+        if ap < cost:
+            # Never grey a choice silently — say what it would take.
+            option["unavailable_reason"] = (
+                f"Needs {cost} action point{'s' if cost != 1 else ''} — "
+                f"you have {ap}."
+            )
+        else:
+            option.pop("unavailable_reason", None)
+        refreshed.append(option)
+    petition = dict(petition)
+    petition["options"] = refreshed
+    return petition
+
+
 def queue_confrontation_petition(world, marshal, target) -> None:
     """First-time jealousy confrontation (spec §6)."""
     ap = _player_ap(world)
@@ -865,6 +913,7 @@ def queue_confrontation_petition(world, marshal, target) -> None:
              "detail": f"His patience is bought — the grievance shortens by "
                        f"{CONFRONT_PROMISE_DURATION_CUT} turns.",
              "cost_note": f"{CONFRONT_PROMISE_AP} AP",
+             "ap_cost": CONFRONT_PROMISE_AP,
              "enabled": ap >= CONFRONT_PROMISE_AP},
             {"id": "rebuke", "label": "Rebuke",
              "detail": (f"Trust {CONFRONT_REBUKE_TRUST}. The grievance "
@@ -889,7 +938,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
              "cost_note": "", "enabled": True},
             {"id": "mediate", "label": "Mediate",
              "detail": "Your authority decides whether they listen.",
-             "cost_note": "1 AP", "enabled": ap >= 1},
+             "cost_note": "1 AP", "ap_cost": 1, "enabled": ap >= 1},
             {"id": "reprimand", "label": "Reprimand Both",
              "detail": "Trust -3 on both — anger redirected at you may mend the breach.",
              "cost_note": "", "enabled": True},
@@ -903,7 +952,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
              "cost_note": "", "enabled": True},
             {"id": "force_reconciliation", "label": "Force Reconciliation",
              "detail": "A public gamble on your authority.",
-             "cost_note": "2 AP", "enabled": ap >= 2},
+             "cost_note": "2 AP", "ap_cost": 2, "enabled": ap >= 2},
             {"id": "separate", "label": "Separate Them",
              "detail": ("Not a fix — Berthier will warn you whenever their "
                         "commands stand together."),

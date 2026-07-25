@@ -1586,12 +1586,10 @@ def format_event_oneliner(event: dict) -> str:
         nation = display_nation(event.get("nation", "Unknown"))
         target = display_nation(event.get("target", "Unknown"))
         cause = str(event.get("cause", "starved"))
-        cause_copy = {
-            "satisfied": "the want is won",
-            "bought_off": "bought off",
-            "deterred": "deterred by guarantee",
-            "starved": "the moment passed",
-        }.get(cause, "the moment passed")
+        # Single source: war_council owns the beat-7 cause taxonomy, incl.
+        # AI-3r's exposed / outmatched / penniless (July 25, 2026 review).
+        from backend.game_logic.war_council import crisis_cause_phrase
+        cause_copy = crisis_cause_phrase(cause)
         return f"THE CRISIS PASSES: {nation} stands down over {target} ({cause_copy})"
 
     if event_type == "guarantee_honored":

@@ -510,10 +510,25 @@ class DiplomaticExecutor:
         if popup_action == "diplomatic_declare_war":
             if not popup_target:
                 return {"success": False, "message": "No target nation specified."}
-            popup_war_obj = (world.diplomatic_objection_popup or {}).get("war_objective")
+            # The popup itself has already been popped by the passthrough that
+            # DELIVERED it, so read the transient context stashed when the
+            # objection was raised (July 25, 2026 declare-war soft-lock).
+            ctx = getattr(world, "_declare_war_objection_context", None) or {}
+            if str(ctx.get("target_nation") or "") != popup_target:
+                ctx = {}
+            popup_war_obj = (
+                ctx.get("war_objective")
+                or (world.diplomatic_objection_popup or {}).get("war_objective")
+            )
+            popup_treaty_resolved = bool(
+                ctx.get("_treaty_warning_resolved")
+                or (world.diplomatic_objection_popup or {}).get("_treaty_warning_resolved")
+            )
+            world._declare_war_objection_context = None
             return self._execute_diplomatic_declare_war(
                 {"target_nation": popup_target, "confirmed_objection": True,
-                 "war_objective": popup_war_obj},
+                 "war_objective": popup_war_obj,
+                 "_treaty_warning_resolved": popup_treaty_resolved},
                 world,
             )
 
@@ -2132,6 +2147,30 @@ class DiplomaticExecutor:
                     "action": "diplomatic_declare_war",
                     "target_nation": target_nation,
                     "war_objective": war_objective,
+                    "_treaty_warning_resolved": bool(
+                        diplomatic_data.get("_treaty_warning_resolved")
+                    ),
+                }
+                # In-game review July 25, 2026 — the declare-war soft-lock.
+                # `_include_popup_passthroughs` POPS the objection popup when
+                # it delivers it, so by the time the player answers, the popup
+                # is already gone and every field on it (war_objective, the
+                # treaty resolution) is unreadable. That is why the objection's
+                # "Proceed Anyway" re-entered with NEITHER the objective (so the
+                # war-purpose question was asked again) NOR the treaty
+                # resolution (so the treaty warning fired again), whose own
+                # "Proceed" re-entered via force_declare_war WITHOUT
+                # confirmed_objection — and the three modals chased each other
+                # forever. War could never be declared on a treaty partner.
+                # Stash the context on a transient attr (underscore = not
+                # serialized, same convention as _popup_queue) that survives
+                # the pop; the handler consumes and clears it.
+                world._declare_war_objection_context = {
+                    "target_nation": target_nation,
+                    "war_objective": war_objective,
+                    "_treaty_warning_resolved": bool(
+                        diplomatic_data.get("_treaty_warning_resolved")
+                    ),
                 }
                 return {
                     "success": True,
@@ -3598,6 +3637,13 @@ class DiplomaticExecutor:
                         or (dialogue.get("breach_preview") or {}).get("episode_id")
                     ),
                     "_treaty_warning_resolved": True,
+                    # Mirror of the popup fix: if Talleyrand's objection was
+                    # already answered before the treaty warning appeared,
+                    # do not raise it a second time.
+                    "confirmed_objection": bool(
+                        selected.get("confirmed_objection")
+                        or dialogue.get("confirmed_objection")
+                    ),
                 },
                 world,
             )
