@@ -81,7 +81,52 @@ blocked returns an honest reason every time. **Recorded as an observation, not f
 rebuffs) — pin 13's soap-opera risk lives in the log, not just the dispatch.
 
 Suite **14,851/3** (+20), ruff clean, parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR` ×3.
-**▶ NEXT: the user in-game review (NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E.**
+
+**Then the same session's post-pass question — "do nations fight each other?" — opened row AI-3r
+(below), which now HEADS the queue.**
+**▶ NEXT: the ⚠️ AI-3r USER GATE (spec §6 Q1–Q6) → AI-3r.0 the probe → the user in-game review
+(NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E.**
+
+### ⚠️ AI-3r SPEC'D July 25, 2026 (same session) — "What It Leaves Undefended" — NEEDS A GATE
+
+**The question that opened it, in the user's words:** *"do nations fight each other?"* → *"doesn't
+just 2 at war seem overly gamey… there should be relationships and opportunities"* → *"why should
+there be a max"* → *"they don't want to leave themselves exposed to a strong enemy — take
+inspiration from Hearts of Iron."* **Spec = `docs/AI_WAR_DECISION_SPEC.md` v0.1 (PROPOSED, not
+blessed); ROADMAP row AI-3r; amends `AI_INTENT_SPEC.md` §6 D1 ONLY (D2–D7 untouched).**
+
+**The finding, measured then read.** The live pass produced **0 AI-initiated wars in 38 turns** with
+`war_intents` empty throughout. That is not bad luck — the `fight` rung needs weight **85**, and the
+reachable ceiling for an `acquire_regions` design against a holder the court is **not already at war
+with** is **76** on the default seed (55 base + 8 cold relation + 10 holder-busy + 3 bankrupt).
+`WEIGHT_AT_WAR_WITH_HOLDER` (+10) is a **dead term** — the state it needs disqualifies the crisis.
+Maximum seeded jitter reaches 84, one short. The only corridor is a reneged bargain (+15).
+**D1's own acceptance band (1–4 AI wars / 40 turns, `AI_INTENT_SPEC.md` §7) is therefore unmeetable
+by construction**, which makes reachability a **defect against the phase's DoD, not a redesign.**
+Two companions: the crisis opener filters `want_type == "acquire_regions"`, so `deny_regions` (60)
+and `contain_hegemon` (65) — the historically warlike designs — can never open a war at all; and
+when D1's cap DOES bind, the crisis dies on beat 7 with cause `starved` — *"the moment passed,
+opportunism decayed"* — which is **false**, and is the same defect class as the coalition-dissolution
+rule retired hours earlier the same day.
+
+**The design shift:** replace the global quota with an **exposure calculus**. A court's *free* field
+army = standing strength − a **rear-security reserve** held against its worst armed neighbour
+(`menace = their strength × relation band × authored posture`, **max not sum**, capped at 60% of its
+own army); only free strength counts toward the 1.25× force ratio. Diegetic (*"Berlin will not strip
+the Silesian frontier while Vienna stands armed"*), playable (France can manufacture or prevent
+another power's war), and self-limiting with no number to set. HOI4 borrows: the held-back-divisions
+idea, authored per-pair `wary_of` posture on the existing `NATION_STATECRAFT` (D7's "authored
+content, not a formula"), and the recognition that **justify-war-goal already exists here** as the
+Stage D fore-warning and **world tension already exists** as AI-4a step 5 accruing threat to the
+aggressor's own slot — wired, and idle, because no AI has ever expanded.
+
+Slices: **AI-3r.0 the probe (8 seeds × 40 turns, harness-only, runs FIRST — every §3 number is
+otherwise guesswork)** → .1 exposure + the ledger row → .2 the moment (opportunity terms + design
+widening) → .3 cap deletion + beat-7 cause honesty (`exposed` / `outmatched`) + authored posture →
+.V re-measure into AI-V arm (a). **Slices .1/.2 need no gate (defect side); .3 and the widening do.**
+Six questions in spec §6 with recommendations: delete the cap outright · max-not-sum reserve · widen
+the designs · authored posture · **player display-only** (Napoleon may strip the Rhine; the game's
+job is to tell him what he leaves open) · sequence after BD.
 
 ### ⚔️ AI INTENT ⛩ RE-CHECK HELD + STAGE D ✅ BUILT July 24, 2026 (third session that day) — War and Peace
 
@@ -1596,7 +1641,23 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
-> **▶ NEXT SESSION STARTS HERE (updated July 16, 2026, fifteenth entry): 8.EVAL IS HELD AND CLOSED** (user delegated the decisions; **gate record = `docs/audits/EVAL_8_2026_07_16.md`, authoritative** — all 25 docket items re-verified against master by a 13-agent workflow, then disposed keep/defer/drop; the same session landed the Region-Panel & Map-Interaction UX pass, see the 🖱️ fifteenth-entry section above). **Resume at Phase 8.5, opening per the gate record §3:** (1) **Batch Q "Quick Wins & Honest Counsel"** — VS-5 live ratification exercise FIRST, then AUD-b zero-combat armistice guard / AUD-c+carve-out war-score-aware offer direction / AUD-g advisory bands / S5-1 / S5-2 / S5-3 / S5-5 / S5-D2 / **E7 authority-banded defiance floor (DECIDED)** / **Metternich small build (DECIDED)** / AUD-e docs-only reconciliation / the S5-4 docstring line; (2) the **CR-6 mini-gate** (USER — S5-D1 bare-attack gating, questions pre-staged in the record §3); (3) the **8.5 design gate proper** (USER — Events/Goals/National Identity with the re-scoped Nation-Agendas core as the diplomacy centerpiece). Deferred work is homed in `DESIGN_REFINEMENT.md` §8.EVAL Dispositions (8 named pre-EA rows); drops are explicit in the record. *(The prior fourteenth-entry text below is superseded; kept for the program overview.)*
+> **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, sixteenth entry): THE ⚠️ AI-3r GATE.**
+> The pin-20 live in-game pass is HELD and its 8 defects are landed (`17385bf` + `cdbea59`, top
+> entry above): Stage B's mirror/Design/Intent/Weariness rows, Stage C's purse/compacts/auction and
+> Stage D's beat 6 are all confirmed ON SCREEN. **The open item is row AI-3r** —
+> `docs/AI_WAR_DECISION_SPEC.md` v0.1 (`607dee0`), PROPOSED not blessed: the live pass measured
+> **zero AI-initiated wars in 38 turns** and the arithmetic shows the `fight` rung is unreachable
+> (ceiling 76 vs floor 85 on the default seed), so **D1's own 1–4-per-40-turns band cannot be met by
+> construction**. **Resume by putting spec §6 Q1–Q6 to the user** (delete the cap · max-not-sum
+> rear-security reserve · let deny/contain designs open wars · authored `wary_of` posture · player
+> display-only · sequence vs BD), then **AI-3r.0 the probe** — 8 seeds × 40 turns, harness-only,
+> logging every weight term per court per turn; it lands nothing and every §3 number depends on it.
+> Slices .1/.2 need no gate (defect against the phase's DoD); .3 and the design widening do.
+> **Also still open and unchanged:** the user in-game review of NA-6c/6d, Battle Diorama (row BD),
+> then `AI_INTENT_SPEC.md` §11 Stage E. *(The fifteenth-entry text below is superseded; kept for the
+> 8.EVAL record.)*
+>
+> **[Superseded July 25, 2026 — see the sixteenth entry] ▶ (updated July 16, 2026, fifteenth entry): 8.EVAL IS HELD AND CLOSED** (user delegated the decisions; **gate record = `docs/audits/EVAL_8_2026_07_16.md`, authoritative** — all 25 docket items re-verified against master by a 13-agent workflow, then disposed keep/defer/drop; the same session landed the Region-Panel & Map-Interaction UX pass, see the 🖱️ fifteenth-entry section above). **Resume at Phase 8.5, opening per the gate record §3:** (1) **Batch Q "Quick Wins & Honest Counsel"** — VS-5 live ratification exercise FIRST, then AUD-b zero-combat armistice guard / AUD-c+carve-out war-score-aware offer direction / AUD-g advisory bands / S5-1 / S5-2 / S5-3 / S5-5 / S5-D2 / **E7 authority-banded defiance floor (DECIDED)** / **Metternich small build (DECIDED)** / AUD-e docs-only reconciliation / the S5-4 docstring line; (2) the **CR-6 mini-gate** (USER — S5-D1 bare-attack gating, questions pre-staged in the record §3); (3) the **8.5 design gate proper** (USER — Events/Goals/National Identity with the re-scoped Nation-Agendas core as the diplomacy centerpiece). Deferred work is homed in `DESIGN_REFINEMENT.md` §8.EVAL Dispositions (8 named pre-EA rows); drops are explicit in the record. *(The prior fourteenth-entry text below is superseded; kept for the program overview.)*
 >
 > **[Superseded July 16, 2026 (later session) — 8.EVAL held] ▶ (fourteenth entry): THE COMBAT OVERHAUL PROGRAM IS CLOSED** (Sweep 5 Parsing/UX MET + exit sweep passed — records `docs/audits/SWEEP_5_2026_07_16.md` + `COMBAT_OVERHAUL_EXIT_SWEEP_2026_07_16.md` + the ⚔️ July-16 section above; every §1 target met/exceeded, overall 6.4→≈7.6, zero regressions; five parse/UX defects live-found-and-fixed in-sweep + the P0 end-turn 500 killed). The U2/U3/U5/UI-6 visual sign-off rows are CLOSED (self-served pass, recorded above); the 1805 flag date-accuracy pass landed (Hanover/Ottoman/Saxony redrawn). **Resume at 8.EVAL** — the war-LLM/diplomacy triage (DWL-DIP-E7, DWL-DIP-METTERNICH, DESIGN_REFINEMENT queue items 5-6) + the routed live settlement-ratification exercise (VS-5 `vassal_transfer` through the F1 wizard) — **then Phase 8.5.** Open engineering backlog: `BUG_FIXES.md` §Sweep-5 (S5-1..5) + `DESIGN_REFINEMENT.md` §Sweep-5 (S5-D1 bare-"attack" gate inversion = a CR-6 gate candidate). *(The prior thirteenth-entry text below is superseded; kept for the program overview.)*
 >
