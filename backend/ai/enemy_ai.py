@@ -2036,7 +2036,12 @@ class EnemyAI:
                 # DLF-12: Check diplomatic permission — armistice may have been declared
                 if not self._can_ai_move_to(world, marshal.nation, recovery_dest):
                     ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked — clearing lock")
-                    del marshal._recovery_destination
+                    # IGR-X1 (P1): `del` REMOVED the attribute, and
+                    # `Marshal.to_dict` reads `self._recovery_destination`
+                    # directly — so the next save or autosave died with
+                    # AttributeError. Clear by assignment, the form
+                    # `world_state.py` already uses at its own clear site.
+                    marshal._recovery_destination = None
                 else:
                     ai_debug(f"  P1 Recovery: {marshal.name} moving to locked destination {recovery_dest}")
                     print(f"  [RECOVERY LOCKED] {marshal.name} moving to {recovery_dest} (locked)")

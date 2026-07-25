@@ -4,6 +4,48 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ✅ IGR-A — Honest copy — LANDED July 25, 2026 (the first slice of row IGR)
+
+**User direction: "do bug fixes A".** The four gate-free items of
+`docs/INGAME_REVIEW_FIXES_SPEC.md` §2 IGR-A, plus the P1 the spec routed ahead of it.
+**Landing record = spec §2 IGR-A (authoritative)** — it records every place the spec's own
+claims turned out wrong, because a 4-agent seam-verification pass re-measured all of them
+against master before a line was edited.
+
+- **A1 the hard-block copy** — `Spain cannot join against Prussia: no_participation_path.`
+  became a whole sentence. One helper (`display_names.ally_entry_block_line`), prefix-aware for
+  the three keys with a dynamic nation suffix, chancery third-person because the same line feeds
+  the campaign log. **The second surface was dead**: `filter_campaign_log` had no
+  `hard_block_surfaced` branch, so the chronicle line the spec asked to fix had never once
+  reached the overlay. It does now.
+- **A2 the duplicated "Political Context:"** — the confirm popup printed each line inline in
+  Talleyrand's prose *and* again as a bullet, then announced "+2 more diplomatic concerns" about
+  lines already on screen. The inline append is gone at both confirm sites; the cap rose 2→4 at
+  **all three** render sites (break-treaty goes through a different builder). The paradox
+  inline **stays** — its popup renders `message` and nothing else, so dropping it would have
+  deleted the reliability preview from the game.
+- **A3 a nation typed where a province belongs** — `move to Austria` marched Ney eight provinces
+  to the Spanish coast, and **`Britain → Brittany` was a second case the spec missed**. New
+  single-source predicate `backend/ai/nation_names.py`, deliberately *not* a widening of the
+  shared demonym list, running after the exact-region check (the collision set is **three** —
+  Hanover, Naples, Normandy) and before the demonym null. It never nulls the target; the
+  executor's one region chokepoint answers with the court's own provinces, on every verb
+  including attack.
+- **A4 the silent vassal release** — "Kingdom of Italy has been released from vassalage." now
+  names the 375 g/turn tribute, the real threat delta (85 → 77, read from `reduce_threat`'s
+  return because it clamps), the 5-turn cooldown, the lost call to arms, **and the woken deck
+  with its formation watcher** — releasing Kingdom of Italy is precisely what un-blocks
+  `→ forms: Italy`, and the game had been performing its own best causal link in silence.
+- **Bonus P1 — IGR-X1**: `del marshal._recovery_destination` removed an attribute `to_dict`
+  reads directly, so any save or autosave after an AI marshal finished recovering raised
+  `AttributeError`. Its own row said "take before IGR-A".
+
+Suite **14,990/3** · ruff clean · parser eval **461/461** mock (+4 corpus rows) · Godot parse
+harness EXIT=0 (17/17 scripts, both scenes instantiate) · headless boot **0 `SCRIPT ERROR`** ·
+M1–M7 and the 40-turn `BASELINE_SERIES` byte-identical. `tests/test_igr_a_honest_copy.py` (50).
+**Next per spec §6: the pause for review, then IGR-B (gate Q1).**
+
+
 ### 🎮 THE QUEUED IN-GAME REVIEW ✅ HELD July 25, 2026 — NA-6c/6d + AI-3r, widened cross-element
 
 **User direction: "Play the game for real and give me a full in-game review … widened to a

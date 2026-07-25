@@ -16,6 +16,7 @@ from backend.models.intel import FULL, PARTIAL
 # Action display names — single source in display_names.py (R7)
 from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
+from backend.display_names import ally_entry_block_line
 from backend.display_names import diplomatic_decision_reason_display
 from backend.display_names import display_nation
 from backend.display_names import humanize_entity_name
@@ -811,6 +812,16 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             filtered.append(event)
             continue
 
+        # IGR-A1: the ally-entry hard block. Written only from the PLAYER's own
+        # declaration review (build_declaration_preview is the sole live
+        # producer), so it is always the player's business — but it carries
+        # none of the keys `_is_player_event` checks, so it had no branch here
+        # at all and never reached the overlay. No fog concern: it names an
+        # ally of the player and the enemy of the war the player is declaring.
+        if event_type == "hard_block_surfaced":
+            filtered.append(event)
+            continue
+
         # Coalition brewing: always show (targets France)
         if event_type in ("coalition_brewing_started", "coalition_brewing_cancelled",
                           "proposal_voided_by_coalition"):
@@ -1441,10 +1452,17 @@ def format_event_oneliner(event: dict) -> str:
         )
 
     if event_type == "hard_block_surfaced":
+        # IGR-A1: was `reason.replace("_", " ")` — i.e. "no participation
+        # path" straight to the chronicle. The raw key still rides the event
+        # (old saves included); only the rendering changed.
         beneficiary = event.get("beneficiary", "Unknown")
         target_enemy = event.get("target_enemy") or event.get("named_enemy", "Unknown")
-        reason = str(event.get("hard_block_reason", "blocked")).replace("_", " ")
-        return f"{beneficiary} cannot join against {target_enemy}: {reason}."
+        return ally_entry_block_line(
+            str(event.get("hard_block_reason", "")),
+            beneficiary,
+            target_enemy,
+            str(event.get("promiser", "") or ""),
+        )
 
     if event_type == "ally_refused_free_join":
         beneficiary = event.get("beneficiary", "Unknown")

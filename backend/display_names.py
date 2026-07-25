@@ -631,6 +631,66 @@ DECISION_REASON_DISPLAY = {
     "strength_insufficient": "insufficient strength",
 }
 
+# ============================================================================
+# ALLY ENTRY BLOCK DISPLAY — whole sentences for the war-entry hard blocks
+# Source: IGR-A item A1. `get_ally_entry_hard_blocks` (diplomacy.py) returns
+# machine keys; two surfaces used to print them verbatim
+# ("Spain cannot join against Prussia: no_participation_path.").
+#
+# Register is CHANCERY THIRD PERSON with no "Sire" — the same table feeds the
+# campaign log, which is a chronicle and never addresses the Emperor. Wrap
+# Talleyrand's first person at a call site if a surface wants it.
+#
+# Placeholders: {ally} (beneficiary), {enemy} (named enemy), {promiser} (the
+# power making the call — "us" when it cannot be threaded).
+#
+# NOT registered in `_CATEGORY_MAPS`: `display()` returns a hit verbatim, so a
+# brace-bearing template there would ship a NEW leak. Same reason
+# AMENDS_REFUSAL_DISPLAY is kept out. Three of the producer's keys carry a
+# dynamic nation suffix, so lookup is prefix-aware — see
+# `ally_entry_block_line`.
+# ============================================================================
+
+ALLY_ENTRY_BLOCK_DISPLAY = {
+    "armistice_cooldown_with_": (
+        "{ally} is still bound by its armistice with {enemy} and cannot take "
+        "the field against that court."
+    ),
+    "anti_promiser_coalition_member": (
+        "{ally} has taken its place in the coalition against {promiser} and "
+        "will not march at our side."
+    ),
+    "hard_reject_posture": (
+        "{ally} has shut its chancery to us after repeated betrayals and will "
+        "hear no call to arms against {enemy}."
+    ),
+    "no_participation_path": (
+        "{ally} can find no road to {enemy} — no shared border, and no "
+        "friendly passage within reach — so its armies could never come to "
+        "grips."
+    ),
+    # Structurally unreachable from the live producer today (a court cannot be
+    # both ALLIANCE and WAR on one symmetric key), but named so a future
+    # producer cannot re-leak the raw string.
+    "at_war_with_": (
+        "{ally} already stands against us in this quarrel and cannot be "
+        "called to our side."
+    ),
+    "direct_enemy_of_": (
+        "{ally} already stands against us in this quarrel and cannot be "
+        "called to our side."
+    ),
+}
+
+# Keys whose stored form is a PREFIX (the producer appends a nation name).
+_ALLY_ENTRY_BLOCK_PREFIXES = (
+    "armistice_cooldown_with_",
+    "at_war_with_",
+    "direct_enemy_of_",
+)
+
+ALLY_ENTRY_BLOCK_FALLBACK = "{ally} cannot be brought into the war against {enemy}."
+
 
 # ============================================================================
 # IMPERIAL SETTLEMENT DISPLAY — disabled reasons, acceptance, and components
@@ -888,6 +948,63 @@ def diplomatic_decision_reason_display(reason: str) -> str:
     """Translate a deterministic decision_reason enum to player-facing text."""
     result, raw = _lookup_display_name(DECISION_REASON_DISPLAY, reason)
     return result or _fallback_display_name(raw, default="")
+
+
+def ally_entry_block_line(
+    reason: str,
+    beneficiary: str,
+    named_enemy: str,
+    promiser: str = "",
+) -> str:
+    """IGR-A1: render ONE war-entry hard block as a whole prose sentence.
+
+    `reason` is the raw key from `get_ally_entry_hard_blocks`. Three of its
+    kinds carry a dynamic nation suffix (`armistice_cooldown_with_Prussia`),
+    so an exact dict lookup is not enough — prefixes are matched explicitly.
+
+    Never falls through to `_fallback_display_name`: title-casing the key
+    ("No Participation Path") is the same leak wearing a hat. Unknown keys get
+    a prose default instead.
+    """
+    key = str(reason or "")
+    template = ALLY_ENTRY_BLOCK_DISPLAY.get(key)
+    if template is None:
+        for prefix in _ALLY_ENTRY_BLOCK_PREFIXES:
+            if key.startswith(prefix):
+                template = ALLY_ENTRY_BLOCK_DISPLAY.get(prefix)
+                break
+    if template is None:
+        template = ALLY_ENTRY_BLOCK_FALLBACK
+    return template.format(
+        ally=display_nation(beneficiary) if beneficiary else "That court",
+        enemy=display_nation(named_enemy) if named_enemy else "that court",
+        # The campaign-log event carries no promiser; "us" keeps the line
+        # true from the player's chair without hardcoding France.
+        promiser=display_nation(promiser) if promiser else "us",
+    )
+
+
+def warnings_to_plain_text(warnings, separator: str = "\n") -> str:
+    """IGR-A2: the ONE formatter for a structured `warnings[]` list as prose.
+
+    The confirm dialogues ship `warnings[]` to a popup that renders them under
+    "Political Context:", so they must NOT also inline them into the message
+    (that was the duplication A2 fixes). Surfaces that have no such renderer —
+    the commitment-paradox popup, API-only consumers — route through here so
+    the concatenation cannot be hand-rolled back into existence.
+    """
+    if not warnings:
+        return ""
+    lines = []
+    for warning in warnings:
+        text = ""
+        if isinstance(warning, dict):
+            text = str(warning.get("text", "") or "")
+        elif warning:
+            text = str(warning)
+        if text:
+            lines.append(text)
+    return separator.join(lines)
 
 
 def settlement_disabled_reason_display(reason: str) -> str:

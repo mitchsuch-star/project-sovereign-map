@@ -3537,6 +3537,54 @@
    },
    "source": "tests/test_ai_intent_counterplay.py — AI-2b (§6 D5-3)",
    "notes": "D5-3 guarantee. The mock arm is gated on a known nation in text so prose like 'guarantee our supply lines' never fires it."
+  },
+  {
+    "id": "igr-a3-move-to-austria-names-the-nation",
+    "utterance": "Ney, move to Austria",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "target": "Austria"
+    },
+    "source": "IGR-A3 (docs/INGAME_REVIEW_FIXES_SPEC.md §2 A3)",
+    "notes": "The nation name must survive the fuzzy ladder verbatim. Before IGR-A3 it auto-corrected to the Spanish province 'Asturias' and Ney marched eight provinces to the coast. The executor's region chokepoint now answers with Austria's own provinces."
+  },
+  {
+    "id": "igr-a3-move-to-britain-names-the-nation",
+    "utterance": "Ney, move to Britain",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "target": "Britain"
+    },
+    "source": "IGR-A3 (second wrong-province case, found by the verification pass)",
+    "notes": "The spec named only Austria; 'Britain' auto-corrected to 'Brittany' and executed a real 7-hop march."
+  },
+  {
+    "id": "igr-a3-move-to-hanover-still-resolves",
+    "utterance": "Ney, move to Hanover",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "target": "Hanover"
+    },
+    "source": "IGR-A3 collision guard",
+    "notes": "Hanover is BOTH a nation and a province (as are Naples and Normandy). The nation guard runs after the exact-region check, so a word that names a real province keeps resolving to it."
+  },
+  {
+    "id": "igr-a3-attack-austria-keeps-the-nation",
+    "utterance": "Ney, attack Austria",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "attack",
+      "target": "Austria"
+    },
+    "source": "IGR-A3 (the attack arm is NOT board-independent)",
+    "notes": "The spec claimed the attack arm 'refuses'; measured, it only refused because Asturias happened to be empty. With an enemy standing there it staged a commit-able muster 1,500km away. The parser now carries the nation name and the combat executor names the court."
   }
  ]
 }

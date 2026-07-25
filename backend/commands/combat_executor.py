@@ -3306,6 +3306,13 @@ class CombatExecutor:
             if region_error and "Did you mean" in region_error.get("message", ""):
                 return region_error
 
+            # IGR-A3: "Ney, attack Austria" names a COUNTRY. Say so and list
+            # its provinces rather than falling through to the bare
+            # "Unknown target: Austria" — and never let the old fuzzy pass
+            # stage a muster in Asturias.
+            if region_error and region_error.get("nation_named"):
+                return region_error
+
             if target_region_fuzzy:
                 resolved_target = target_region_fuzzy.name
             elif enemy_error and "Did you mean" in enemy_error.get("message", ""):

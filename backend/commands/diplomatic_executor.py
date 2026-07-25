@@ -12,6 +12,7 @@ from backend.models.world_state import WorldState
 
 
 from backend.display_names import proposal_display_name as _proposal_display_name
+from backend.display_names import ally_entry_block_line
 
 
 # Re-front Slice 2: settlement PROPOSE Tier-2 verbs that ride on per-court rows
@@ -886,8 +887,8 @@ class DiplomaticExecutor:
                 f"without offering release will mark us as oath-breakers. "
                 f"Shall I proceed?"
             )
-            if warnings:
-                confirm_text += "\n\n" + "\n".join(w["text"] for w in warnings)
+            # IGR-A2: `warnings` rides the dialogue and the popup renders it
+            # under "Political Context:" — never inline it here as well.
             world.dialogue_manager.replace({
                 "type": "force_break_treaty_confirmation",
                 "target_nation": target_nation,
@@ -1760,11 +1761,18 @@ class DiplomaticExecutor:
             band = score.get("band", "refuse")
 
             if hard_blocks:
+                # IGR-A1: only hard_blocks[0] is ever shown, and it used to be
+                # printed as the raw key ("...: no_participation_path."). The
+                # key stays raw in the MACHINE fields below — the campaign-log
+                # arm re-renders from it, including out of old saves.
                 reason = str(hard_blocks[0])
-                summary.append(f"{beneficiary} cannot join against {named_enemy}: {reason}.")
+                promiser = opp.get("promiser") or world.player_nation
+                block_line = ally_entry_block_line(
+                    reason, beneficiary, named_enemy, promiser)
+                summary.append(block_line)
                 warnings.append({
                     "severity": "high",
-                    "text": f"{beneficiary} cannot join against {named_enemy}: {reason}.",
+                    "text": block_line,
                     "hard_block_reason": reason,
                 })
                 world.log_event({
@@ -1774,6 +1782,9 @@ class DiplomaticExecutor:
                     "target_enemy": named_enemy,
                     "named_enemy": named_enemy,
                     "hard_block_reason": reason,
+                    # A1: the coalition line names the power being refused;
+                    # without this the log arm can only say "against us".
+                    "promiser": promiser,
                     "origin_episode_id": origin_episode_id,
                 })
                 continue
@@ -2079,8 +2090,11 @@ class DiplomaticExecutor:
             treaty_display = _display_proposal_type(treaty_type)
 
             # Structured warnings[] per RELIABILITY_COMMITMENTS_SPEC §12.2.
+            # IGR-A2: these are shipped as `warnings` and rendered by the popup
+            # under "Political Context:". They are deliberately NOT also
+            # appended to the prose — that printed every line twice and then
+            # said "+2 more diplomatic concerns" about lines already on screen.
             warnings = _build_breach_warnings(breach_preview, war_preview)
-            extra_lines = [w["text"] for w in warnings]
 
             # Optional actor-personality colouring for future Voice Bible use.
             actor_personality = ""
@@ -2092,8 +2106,6 @@ class DiplomaticExecutor:
                 f"Declaring war would shatter that commitment and mark us as oath-breakers "
                 f"in the eyes of Europe. Shall I proceed regardless?"
             )
-            if extra_lines:
-                warning_text += "\n\n" + "\n".join(extra_lines)
             world.dialogue_manager.replace({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,

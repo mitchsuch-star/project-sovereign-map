@@ -247,7 +247,16 @@ class TestWarOnTreatyAlly:
         breach_preview = dialogue.get("breach_preview") or {}
         assert breach_preview.get("reliability_before") == 0
         assert breach_preview.get("reliability_after") == -10
-        assert "Reliability would fall from 0 to -10." in result.get("message", "")
+        # IGR-A2: CONSCIOUSLY FLIPPED. This used to assert the preview line was
+        # inlined into `message` — which is exactly the duplication the popup
+        # then re-printed under "Political Context:". The line must now live in
+        # the structured warnings ONLY; its absence from the prose is the
+        # regression guard.
+        texts = [w.get("text", "") for w in (result.get("warnings") or [])]
+        assert "Reliability would fall from 0 to -10." in texts
+        assert "Reliability would fall from 0 to -10." not in result.get("message", "")
+        assert "Reliability would fall from 0 to -10." not in (
+            dialogue.get("talleyrand_text") or "")
 
     def test_war_on_treaty_ally_warning_ships_structured_warnings_list(self):
         """Commitments substrate: warnings[] is a structured list, not free text."""

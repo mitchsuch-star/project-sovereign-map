@@ -5840,8 +5840,16 @@ def resolve_join_opportunity(
     if resolution == "accept":
         hard_blocks = opportunity.get("hard_blocks", [])
         if hard_blocks:
+            # IGR-A1: same prose as the review dialogue and the chronicle —
+            # one helper, so this latent third site cannot re-leak the key.
+            from backend.display_names import ally_entry_block_line
             result["success"] = False
-            result["message"] = f"{beneficiary} cannot join: {hard_blocks[0]}"
+            result["message"] = ally_entry_block_line(
+                str(hard_blocks[0]),
+                beneficiary,
+                named_enemy,
+                opportunity.get("promiser", "") or "",
+            )
             return result
 
         if not world.is_at_war(beneficiary, named_enemy):
@@ -7789,20 +7797,27 @@ def declare_war(
                 f"Sire, a crisis! {aggressor} has declared war on {target}. "
                 f"We are allied with both nations. We must choose a side."
             )
+            # IGR-A2: the inline copy STAYS here — unlike the two confirm
+            # dialogues, `commitment_paradox_popup.gd` renders `message` and
+            # nothing else, and the popup payload built below carries no
+            # `warnings` key, so this concatenation is the only delivery of
+            # the paradox reliability preview. Routed through the one shared
+            # formatter so it cannot drift from the popup surfaces.
+            from backend.display_names import warnings_to_plain_text
             preview_lines = []
             if attacker_paradox_warnings:
                 preview_lines.append(
                     "Honor "
                     + target
                     + ": "
-                    + " ".join(w["text"] for w in attacker_paradox_warnings)
+                    + warnings_to_plain_text(attacker_paradox_warnings, separator=" ")
                 )
             if defender_paradox_warnings:
                 preview_lines.append(
                     "Side with "
                     + aggressor
                     + ": "
-                    + " ".join(w["text"] for w in defender_paradox_warnings)
+                    + warnings_to_plain_text(defender_paradox_warnings, separator=" ")
                 )
             if preview_lines:
                 paradox_msg += "\n\n" + "\n".join(preview_lines)

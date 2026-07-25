@@ -15,6 +15,8 @@ TODO (Future): Multi-Army Battles
 """
 from typing import Dict, Optional, Tuple
 from backend.ai.generic_targets import is_generic_target
+from backend.ai.nation_names import nation_province_list, resolve_typed_nation
+from backend.display_names import display_nation
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
@@ -245,6 +247,31 @@ class CommandExecutor:
         region = world.get_region(region_name)
         if region:
             return (region, None)
+
+        # IGR-A3: the player named a NATION, not a province. Answer with that
+        # court's own provinces instead of the nearest-scoring place name —
+        # "Austria" used to auto-correct to Asturias and march the corps to
+        # the Spanish coast, and "Saxony" answered "Did you mean 'Savoy'?".
+        # This sits at the single chokepoint all seven callers reach, so
+        # move / scout / retreat / attack / bombard all inherit it.
+        typed_nation = resolve_typed_nation(region_name, world)
+        if typed_nation:
+            provinces = nation_province_list(typed_nation, world)
+            nation_label = display_nation(typed_nation)
+            if provinces:
+                shown = ", ".join(provinces[:8])
+                more = "" if len(provinces) <= 8 else f", and {len(provinces) - 8} more"
+                detail = f"Name a province, Sire — theirs are {shown}{more}."
+            else:
+                detail = "They hold no province our maps can name, Sire."
+            return (None, {
+                "success": False,
+                "message": (
+                    f"{nation_label} is a nation, not a province. {detail}"
+                ),
+                "nation_named": typed_nation,
+                "suggestions": provinces[:3],
+            })
 
         # Get all region names for fuzzy matching
         all_regions = list(world.regions.keys())

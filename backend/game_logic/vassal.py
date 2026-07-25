@@ -1642,6 +1642,107 @@ def get_vassal_warnings(world) -> List[dict]:
 # RELEASE VASSAL
 # ═══════════════════════════════════════════════════════
 
+# R14: turns a released vassal cannot be re-vassalized (treaty or conquest).
+RELEASE_COOLDOWN_TURNS = 5
+
+
+def _release_tribute_snapshot(world, vassal_name: str, state: dict) -> int:
+    """Gross tribute per turn the lord is about to stop collecting.
+
+    Mirrors the STRATEGIC LEDGER's derivation (`ledger.py` vassal_tribute):
+    cached region index, effective income, EC-W1 disruption skip. Deliberately
+    NOT `process_vassal_tribute`'s figure, which additionally caps by the
+    vassal's own purse — a gold-poor turn would understate what the player is
+    giving up permanently.
+    """
+    try:
+        rate = float(state.get("tribute_rate", 0.5))
+        disrupted = world.get_disrupted_regions()
+        income = sum(
+            world.regions[name].get_effective_income()
+            for name in world.get_nation_regions(vassal_name)
+            if name not in disrupted
+        )
+        return int(income * rate)
+    except Exception:
+        return 0
+
+
+def _build_release_report(
+    world,
+    vassal_name: str,
+    lord: str,
+    *,
+    lost_tribute: int,
+    released_marshals: list,
+    was_continental_member: bool,
+    threat_before: int,
+    threat_after: int,
+) -> str:
+    """IGR-A4: what a voluntary release actually costs and buys.
+
+    Before this the whole consequence chain was reported as
+    "<X> has been released from vassalage." — including the fact that
+    releasing Kingdom of Italy is exactly what un-blocks the `forms: Italy`
+    watcher, i.e. the game performed its own most interesting causal link in
+    silence. Every clause is CONDITIONAL: three of the shipped vassals field
+    no marshals, the Continental System is empty at boot, and Switzerland has
+    no agenda deck at all.
+    """
+    from backend.display_names import display_nation
+
+    name = display_nation(vassal_name)
+    parts = [f"{name} is released from vassalage and stands a free court again."]
+
+    if lost_tribute > 0:
+        parts.append(f"Their tribute of {lost_tribute} gold a turn ends.")
+    if released_marshals:
+        parts.append(
+            f"Their marshals return to their own colours: "
+            f"{', '.join(released_marshals)}."
+        )
+    if was_continental_member:
+        parts.append("They are no longer bound to the Continental System.")
+
+    # Forward-looking, and precisely true: release does NOT end their other
+    # wars — it only ends the lord-vassal pair. What is lost is the call.
+    parts.append(
+        f"They will no longer answer {display_nation(lord)}'s call to arms."
+        if lord else "They will no longer answer our call to arms."
+    )
+
+    if threat_after < threat_before:
+        parts.append(
+            f"Europe's alarm at {display_nation(lord)} eases "
+            f"({threat_before} → {threat_after})."
+        )
+
+    parts.append(
+        f"They cannot be brought back under the yoke for "
+        f"{RELEASE_COOLDOWN_TURNS} turns."
+    )
+
+    # The woken deck — read AFTER the release, since get_active_agenda is
+    # per-turn cached and short-circuits on vassalage. This is the line that
+    # makes the "→ forms:" watcher legible.
+    try:
+        from backend.game_logic.agendas import get_active_agenda
+        from backend.game_logic.formations import get_formation_watch
+        agenda = get_active_agenda(vassal_name, world)
+        if agenda is not None:
+            parts.append(f"Freed, they take up a design of their own: {agenda.title}.")
+            watch = get_formation_watch(world, vassal_name)
+            if watch and not watch.get("blocked_by_vassalage"):
+                parts.append(
+                    f"Should they see it through they would proclaim "
+                    f"{watch.get('forms')} — {watch.get('progress')}."
+                )
+    except Exception:
+        pass
+
+    return " ".join(parts)
+
+
 def release_vassal(
     world,
     vassal_name: str,
@@ -1659,6 +1760,20 @@ def release_vassal(
 
     state = world.vassals[vassal_name]
     lord = state["lord"]
+
+    # IGR-A4: snapshot BEFORE the mutations below destroy the evidence.
+    # `original_nation` is the only marker of an assimilated contingent and is
+    # delattr'd four lines down; `world.vassals[...]` is deleted outright; and
+    # Continental-System membership is discarded further on. The whole report
+    # is assembled at the tail from these locals.
+    released_marshals = sorted(
+        m.name for m in world.marshals.values()
+        if getattr(m, 'original_nation', None) == vassal_name
+    )
+    lost_tribute = _release_tribute_snapshot(world, vassal_name, state)
+    was_continental_member = vassal_name in (
+        getattr(world, 'continental_system_members', None) or [])
+    threat_before = int(getattr(world, 'threat_by_target', {}).get(lord, 0)) if lord else 0
 
     # Restore marshals to vassal nation
     for marshal in list(world.marshals.values()):
@@ -1690,10 +1805,11 @@ def release_vassal(
                    and d.get("context", {}).get("vassal_name") == vassal_name)
     )
 
-    # R14: Set release cooldown (blocks treaty re-vassalization for 5 turns)
+    # R14: Set release cooldown (blocks re-vassalization — by treaty AND by
+    # conquest, see create_vassal_treaty / create_vassal_conquest — for 5 turns)
     if not hasattr(world, 'vassal_release_cooldowns'):
         world.vassal_release_cooldowns = {}
-    world.vassal_release_cooldowns[vassal_name] = 5
+    world.vassal_release_cooldowns[vassal_name] = RELEASE_COOLDOWN_TURNS
 
     # R50: Remove from Continental System on release
     cs_members = getattr(world, 'continental_system_members', [])
@@ -1732,13 +1848,34 @@ def release_vassal(
     else:
         set_diplomatic_state(world, lord, vassal_name, "PEACE", "vassal_release")
         # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)
+        threat_after = threat_before
         if reduce_threat_on_release and lord:
             from backend.game_logic.coalition import reduce_threat
-            reduce_threat(world, 8, "voluntary_vassal_release", target=lord)
+            # Use the RETURN value, not the constant — reduce_threat clamps at
+            # 0, so "-8" is a lie whenever the slot is already below 8.
+            threat_after = reduce_threat(
+                world, 8, "voluntary_vassal_release", target=lord)
+
+    if rebellion:
+        # The pair went to WAR, not PEACE, and no threat was relieved — none
+        # of the voluntary-concession copy below is true on this arm.
+        return {
+            "success": True,
+            "message": f"{vassal_name} has been released from vassalage.",
+        }
 
     return {
         "success": True,
-        "message": f"{vassal_name} has been released from vassalage.",
+        "message": _build_release_report(
+            world,
+            vassal_name,
+            lord,
+            lost_tribute=lost_tribute,
+            released_marshals=released_marshals,
+            was_continental_member=was_continental_member,
+            threat_before=threat_before,
+            threat_after=threat_after,
+        ),
     }
 
 

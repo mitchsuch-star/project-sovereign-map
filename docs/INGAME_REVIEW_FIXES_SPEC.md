@@ -54,7 +54,88 @@ PASS in the review) and the AI-vs-AI silence already has an owner in
 
 ## 2. The slices
 
-### IGR-A — Honest copy *(no gate)*
+### IGR-A — Honest copy *(no gate)* — ✅ **LANDED July 25, 2026**
+
+> **Landing record — authoritative for what A1–A4 actually became.**
+> Tests `tests/test_igr_a_honest_copy.py` (50). Suite 14,990/3, ruff clean,
+> parser eval **461/461** mock (+4 corpus rows), Godot parse harness EXIT=0
+> (17/17 scripts, both scenes instantiate), headless boot 0 `SCRIPT ERROR`,
+> M1–M7 and the 40-turn `BASELINE_SERIES` byte-identical.
+>
+> **A1** — one helper `display_names.ally_entry_block_line(reason, ally, enemy,
+> promiser)` returns the WHOLE sentence, backed by `ALLY_ENTRY_BLOCK_DISPLAY`
+> (deliberately NOT in `_CATEGORY_MAPS`, per the trap below) with **prefix
+> matching** for the three keys that carry a dynamic nation suffix and its own
+> prose fallback (never `_fallback_display_name`, which title-cases the key into
+> "No Participation Path"). Consumed at `diplomatic_executor.py`'s review
+> dialogue, `campaign_log.format_event_oneliner`, and the latent
+> `diplomacy.resolve_join_opportunity` site. Raw keys stay on the machine
+> fields. Register is chancery third person — the same line feeds the log,
+> which contains zero "Sire".
+> **⚠ the spec's "2 live surfaces" was wrong: surface 2 was DEAD.**
+> `filter_campaign_log` had no `hard_block_surfaced` branch and no
+> default-include fallthrough, so the event never reached the overlay. A1 adds
+> the branch — otherwise "renders as prose on both surfaces" was unverifiable
+> in game. The event also now carries `promiser`, without which the coalition
+> line could only say "against us". No new event type (`CAMPAIGN_LOG_TYPES`
+> still 140).
+>
+> **A2** — the inline append dropped at BOTH confirm sites; `warnings[]` is now
+> the single delivery and the popup owns presentation. The cap was raised
+> **2→4 at all three `mini(warnings.size(), N)` sites**, not the one the spec
+> named — break-treaty renders through `_build_content` (`:345`), a different
+> builder. `force_break_treaty_confirmation` was ABSENT from main.gd's
+> `PROPOSAL_CONFIRM_DIALOGUE_TYPES` and fired a `push_warning` on every fire;
+> added, since that route now carries the only copy.
+> **⚠ the paradox inline STAYS.** `commitment_paradox_popup.gd` renders
+> `message` and nothing else and its payload has no `warnings` key, so
+> `diplomacy.py:7792-7808` is the *only* delivery of the paradox reliability
+> preview — dropping it would have silently deleted the feature with zero test
+> coverage. It is routed through the new single formatter
+> `display_names.warnings_to_plain_text` instead. `tests/test_playtest_bugfixes.py:250`
+> consciously flipped: the line must be in `warnings[]` and ABSENT from
+> `message`/`talleyrand_text`.
+>
+> **A3** — new single-source predicate `backend/ai/nation_names.py`
+> (`resolve_typed_nation` / `nation_province_list`), NOT a widening of
+> `_nation_demonyms` — that list is shared with the strategic-target
+> classifier, and widening it reclassifies "march to Saxony" as a generic army
+> order (a pin a prior adversarial review wrote for exactly this hazard). It
+> runs **after** the exact-region check, so the collision set — **Hanover,
+> Naples AND Normandy**, three not one — keeps resolving to the province, and
+> **before** the demonym null, so "Ottoman"/"Papal States" get the helpful
+> answer instead of the dead-end ask. It never nulls: nulling discards the
+> typed word and is strictly worse than today. The answer is carried at
+> `executor._fuzzy_match_region`, the single chokepoint all seven callers
+> reach, and surfaced on the attack arm too.
+> **⚠ three spec claims corrected.** (a) Saxony/Prussia/Bavaria do NOT resolve
+> to None at the parser — they pass through and the *executor* answers, so the
+> named seam was not where the defect lived. (b) **`Britain → Brittany` is a
+> second wrong-province case** the spec missed — a real 7-hop march. (c) the
+> attack arm does not "refuse"; it only did because Asturias happened to be
+> empty, and with an enemy standing there it staged a commit-able muster
+> 1,500 km away. The eval gate is **461/461**, not the 433/433 the spec cites.
+> `llm_client.py` and `validation.py` deliberately UNTOUCHED — those rows are
+> legacy *region* names, and two corpus rows ride them on the cold path.
+>
+> **A4** — the report names tribute lost (measured 375/337/225 g per boot
+> vassal), the threat drop from `reduce_threat`'s RETURN value (it clamps at 0,
+> so the constant −8 is a lie below 8), the 5-turn cooldown (now the named
+> `RELEASE_COOLDOWN_TURNS`), the forward-looking loss of the call to arms, and
+> **the woken deck plus its formation watcher** — releasing Kingdom of Italy is
+> exactly what un-blocks `→ forms: Italy`, and the game had been performing its
+> own most interesting causal link in silence. Every clause is conditional:
+> Switzerland has no deck, the Continental System is empty at boot, and all
+> three vassals field zero marshals. Gated on `not rebellion`.
+> **⚠ two spec claims corrected.** Release does NOT cost co-belligerency —
+> only the lord–vassal pair goes to PEACE, and the released court keeps its
+> other wars. And `release_vassal(rebellion=True)` is **not** the rebellion
+> path: it has zero production callers (`check_vassal_rebellion` duplicates the
+> cleanup inline), though the arm is still guarded.
+>
+> **Also taken:** `BUG_FIXES.md` **IGR-X1** (P1 save/autosave crash), whose own
+> routing said "take before IGR-A" — `del marshal._recovery_destination`
+> removed the attribute that `Marshal.to_dict` reads directly.
 
 | # | Item | Done when |
 |---|---|---|
@@ -549,7 +630,7 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 
 ## 6. Build order
 
-`IGR-A` (gate-free, four items) → **pause for review** → `IGR-B` (Q1) →
+~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → **▶ pause for review** → `IGR-B` (Q1) →
 `IGR-D` (Q2, ends with the live Proclamation sighting) → `IGR-F` → `IGR-E` (Q4) →
 `IGR-G` (after the user sees screenshots). **IGR-C is withdrawn.**
 

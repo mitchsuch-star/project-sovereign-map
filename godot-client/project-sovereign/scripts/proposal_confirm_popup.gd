@@ -342,7 +342,10 @@ func _build_content(data: Dictionary) -> String:
 	var warnings = data.get("warnings", [])
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
-		var shown = mini(warnings.size(), 2)
+		# IGR-A2: the backend no longer inlines these lines into the prose
+		# above, so this block is now their ONLY surface — a cap of 2 would
+		# trade duplication for truncation.
+		var shown = mini(warnings.size(), 4)
 		for idx in range(shown):
 			var warning = warnings[idx]
 			var severity = str(warning.get("severity", "low"))
@@ -1628,7 +1631,10 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 	var warnings = data.get("warnings", [])
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
-		var shown = mini(warnings.size(), 2)
+		# IGR-A2: the backend no longer inlines these lines into the prose
+		# above, so this block is now their ONLY surface — a cap of 2 would
+		# trade duplication for truncation.
+		var shown = mini(warnings.size(), 4)
 		for idx in range(shown):
 			var warning = warnings[idx]
 			var severity = str(warning.get("severity", "low"))
@@ -1656,7 +1662,10 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 	var warnings = data.get("warnings", [])
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
-		var shown = mini(warnings.size(), 2)
+		# IGR-A2: the backend no longer inlines these lines into the prose
+		# above, so this block is now their ONLY surface — a cap of 2 would
+		# trade duplication for truncation.
+		var shown = mini(warnings.size(), 4)
 		for idx in range(shown):
 			var warning = warnings[idx]
 			var severity = str(warning.get("severity", "low"))

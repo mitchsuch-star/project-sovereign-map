@@ -18,6 +18,13 @@ const PROPOSAL_CONFIRM_DIALOGUE_TYPES := [
 	"feasibility",
 	"advisory",
 	"force_declare_war_confirmation",
+	# IGR-A2: this one was ABSENT, so every treaty break fired the
+	# "Unknown diplomatic_dialogue dtype" push_warning on its way to the
+	# popup. Rendering is unchanged (it has no `match` arm and still falls to
+	# `_build_content`, which owns the Political Context block) — but that
+	# route is now load-bearing, since the backend no longer inlines the
+	# warning lines into the prose.
+	"force_break_treaty_confirmation",
 	"conflict_alert",
 	"terms_guidance",
 	"ultimatum_confirm",

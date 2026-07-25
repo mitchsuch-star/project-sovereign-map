@@ -15,6 +15,7 @@ from backend.ai.llm_client import (
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
+from backend.ai.nation_names import resolve_typed_nation
 from backend.ai.strategic_parser import detect_strategic_command, _nation_demonyms
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
@@ -625,6 +626,24 @@ class CommandParser:
                            # AI-2b: instrument targets are nations too
                            "sponsor_design", "buy_off_design",
                            "guarantee_nation")
+        # IGR-A3: a bare NATION name ("move to Austria") is neither a province
+        # nor a demonym. It must not be fuzzy-rewritten — that marched Ney to
+        # Asturias, and "Britain" to Brittany — and it must NOT be nulled
+        # either: nulling discards the word the player typed and answers
+        # "Where shall Ney march, Sire?", which is the Sweep-5 defect. Carry
+        # the name through unchanged; the executor's region chokepoint names
+        # the nation and lists its provinces.
+        #
+        # Checked BEFORE the demonym rule so "Ottoman" / "Papal States" (whose
+        # tags collide with their own demonym overrides) get the helpful
+        # answer instead of the dead-end ask. `resolve_typed_nation` returns
+        # None for a word that is also an exact region (Hanover, Naples,
+        # Normandy), so those keep resolving to the province.
+        _typed_nation = None
+        if (llm_result.get("target")
+                and llm_result.get("action") not in _VASSAL_ACTIONS):
+            _typed_nation = resolve_typed_nation(llm_result["target"], world)
+
         # A nation demonym ("the Austrians", "Prussians") names an ARMY, not a
         # province — drop it to None so neither the fuzzy ladder below nor the
         # command-text fallback rewrites it into a region ("the Austrians" →
@@ -632,10 +651,13 @@ class CommandParser:
         # executor auto-target the nearest enemy, mirroring the mock parser's
         # deliberate demonym omission.
         if (llm_result.get("target")
+                and not _typed_nation
                 and llm_result.get("action") not in _VASSAL_ACTIONS
                 and _is_nation_demonym(llm_result["target"], world)):
             llm_result["target"] = None
-        if llm_result.get("target") and llm_result.get("action") not in _VASSAL_ACTIONS:
+        if (llm_result.get("target")
+                and not _typed_nation
+                and llm_result.get("action") not in _VASSAL_ACTIONS):
             # CR-0 precedence ladder: exact enemy > exact region >
             # enemy auto-correct > region auto-correct. With 126 live
             # provinces, region fuzzy rewrote exact/typo'd enemy names
@@ -718,6 +740,20 @@ class CommandParser:
                 # Skip very short words (likely not valid targets)
                 if len(word) < 3:
                     continue
+                # IGR-A3: a bare nation name scanned out of the command text
+                # gets the same treatment as one the parser resolved — keep it
+                # verbatim so the executor can name the nation, rather than
+                # letting the combined fuzzy pass auto-correct it into a
+                # province. Checked before the demonym rule for the same
+                # reason as above.
+                _word_nation = resolve_typed_nation(word, world)
+                if _word_nation:
+                    # The canonical tag, not the raw casing — "austria" is not
+                    # in the validator's target set and would be silently
+                    # nulled back to None.
+                    llm_result["target"] = _word_nation
+                    break
+
                 # A nation demonym ("Austrians") is a generic army reference,
                 # not a province — never fuzzy-match it into a region here
                 # (it drifted to "Asturias"). Leave target None → auto-target.
