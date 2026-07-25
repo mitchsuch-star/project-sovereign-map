@@ -314,6 +314,12 @@ class WorldState:
         # the ACTIVE agenda is derived per turn (never stored). Empty = no
         # designs (survival override only).
         self.agendas: Dict[str, list] = {}
+        # AI-3r §2.6 (gate ruling R1): the authored statecraft OVERRIDE —
+        # scenario key `statecraft`, per-nation, `wary_of` sub-key only in
+        # v1. Merged over the nation_config code table at get_statecraft.
+        # Serialized like `agendas` (scenario-authored, read at runtime).
+        # Empty = code table only (every posture 1.0).
+        self.statecraft: Dict[str, dict] = {}
         # NA-1: last-announced agenda id per nation — powers the dispatch
         # shift beat's dedup across save/load (the last_expectation_seen
         # idiom). "" records an observed no-agenda state.
@@ -1686,6 +1692,9 @@ class WorldState:
         self._active_nations_cache = None
         self._nation_regions_cache = None
         self._national_power_cache = {}
+        # AI-3r §2.7: the land-neighbour map reads region control only —
+        # same mutation family, same chokepoint.
+        self._neighbouring_nations_cache = None
         # B-Hegemony: bloc membership depends on vassalage + active nations,
         # so any seam that invalidates the active-nations cache also
         # invalidates the bloc-members cache.
@@ -1725,13 +1734,31 @@ class WorldState:
     def get_statecraft(self, nation: str) -> Dict:
         """AI-2c (AI_INTENT_SPEC §3.4): the authored statecraft profile,
         merged over the neutral default. The honor-bias idiom — authored
-        constant data, no serialized field, no runtime shadow map."""
+        constant data with no runtime shadow map for the PROFILE table.
+
+        AI-3r §2.6 (gate ruling R1, consciously amending the no-serialized
+        contract): the scenario `statecraft` key overlays `wary_of` ONLY —
+        per-scenario authored posture (D7: the bounds are authored content,
+        reviewable in the scenario file, validator-enforced). The v1
+        surface is deliberately narrow: no other profile key is moddable
+        through it.
+        """
         from backend.nation_config import (
             NATION_STATECRAFT,
             STATECRAFT_DEFAULT,
         )
         profile = dict(STATECRAFT_DEFAULT)
         profile.update(NATION_STATECRAFT.get(nation, {}) or {})
+        override = (getattr(self, "statecraft", {}) or {}).get(nation) or {}
+        wary = override.get("wary_of")
+        if isinstance(wary, dict):
+            merged = {}
+            for target, value in wary.items():
+                try:
+                    merged[str(target)] = float(value)
+                except (TypeError, ValueError):
+                    continue
+            profile["wary_of"] = merged
         return profile
 
     def get_capital_garrison_target(self, nation: Optional[str]) -> int:
@@ -1783,6 +1810,9 @@ class WorldState:
         # Relations/force/treasury staleness is turn-granular BY DESIGN
         # (the agendas treasury choice), pinned in test_ai_intent_layer.py.
         self._intent_cache = None
+        # AI-3r §2.1: the exposure view reads neighbours + war/alliance
+        # geometry + relations — same mutation families, same chokepoint.
+        self._exposure_cache = None
 
     def _top_overlord(self, nation: str) -> str:
         """Walk the vassal `lord` chain until it terminates. Return top overlord.
@@ -2406,6 +2436,36 @@ class WorldState:
     def get_player_regions(self) -> List[str]:
         """Get regions controlled by the player."""
         return self.get_nation_regions(self.player_nation)
+
+    def get_neighbouring_nations(self, nation: str) -> List[str]:
+        """AI-3r §2.1: powers controlling at least one region adjacent to
+        one of `nation`'s own. CONTROLLER-level — dropping vassals, lords,
+        allies and the eliminated is the consumer's business (the war
+        council does it at the menace step, §2.1-2).
+
+        §2.7 scale contract (GR8): the full map for ALL nations is built
+        in ONE region pass, cached per turn, and cleared through
+        invalidate_active_nations_cache() — every region-capture seam
+        already routes there.
+        """
+        cache = getattr(self, '_neighbouring_nations_cache', None)
+        cache_turn = getattr(self, '_neighbouring_nations_cache_turn', -1)
+        if cache is None or cache_turn != self.current_turn:
+            cache = {}
+            for region in self.regions.values():
+                controller = region.controller
+                if not controller:
+                    continue
+                for adjacent in region.adjacent_regions or []:
+                    other = self.regions.get(adjacent)
+                    other_controller = (getattr(other, 'controller', None)
+                                        if other is not None else None)
+                    if other_controller and other_controller != controller:
+                        cache.setdefault(controller, set()).add(other_controller)
+                        cache.setdefault(other_controller, set()).add(controller)
+            self._neighbouring_nations_cache = cache
+            self._neighbouring_nations_cache_turn = self.current_turn
+        return sorted(cache.get(nation, ()))
 
     def get_region(self, region_name: str) -> Optional[Region]:
         """Get a specific region by name."""
@@ -5125,6 +5185,10 @@ class WorldState:
             "marshal_pool": {k: [dict(c) for c in v]
                              for k, v in self.marshal_pool.items()},
             "agendas": copy.deepcopy(self.agendas),
+            # AI-3r §2.6 (R1): the scenario statecraft override — the
+            # scenario key and the save key are one ("statecraft").
+            "statecraft": copy.deepcopy(
+                getattr(self, "statecraft", {}) or {}),
             "nation_agenda_seen": {str(k): str(v)
                                    for k, v in self.nation_agenda_seen.items()},
             # deepcopy, NOT the flat str() arm above: NA-6 records are
@@ -5586,6 +5650,14 @@ class WorldState:
         world.agendas = {
             k: copy.deepcopy(list(v or []))
             for k, v in (data.get("agendas", {}) or {}).items()
+        }
+        # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
+        # posture). Absent on pre-AI-3r saves = empty = code table only.
+        # The scenario key and the save key are one ("statecraft").
+        world.statecraft = {
+            str(k): copy.deepcopy(dict(v))
+            for k, v in (data.get("statecraft") or {}).items()
+            if isinstance(v, dict)
         }
         world.nation_agenda_seen = {
             str(k): str(v)

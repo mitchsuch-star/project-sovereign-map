@@ -69,13 +69,29 @@ WEIGHT_BASE_BY_TYPE = {
     "paymaster": 40,
     "guard_neutrality": 25,
 }
-WEIGHT_AT_WAR_WITH_HOLDER = 10       # the war IS the pursuit
+# AI-3r ruling R5: WEIGHT_AT_WAR_WITH_HOLDER (+10, "the war IS the
+# pursuit") is RETIRED — with _derive_price's already-at-war early return
+# its only surviving effect was a cosmetic bump on the displayed weight,
+# and for war-OPENING it was a dead term by construction (the state it
+# needs disqualifies the crisis, AI_WAR_DECISION_SPEC §0.2).
 WEIGHT_RELATION_COLD = 8             # relation <= -40 with `against`
 WEIGHT_RELATION_CHILLY = 4           # relation <= 0
 WEIGHT_RELATION_WARM = -8            # relation > 30
 WEIGHT_OPPORTUNISM_ONE_WAR = 6       # §3.2 — the holder is busy
 WEIGHT_OPPORTUNISM_TWO_WARS = 10     # …deeply busy
 WEIGHT_OPPORTUNISM_BANKRUPT = 3      # …or bankrupt
+# AI-3r §2.2 — the moment: opportunity terms that can actually climb to
+# the fight bar (N3–N6, blessed at the §6.1 gate; the slice-0 probe kept
+# the bar itself at 85). Each is a per-turn READING, never a latch
+# (§3.1a) — an opening not taken closes by itself, and beat 7 then
+# reports `starved` truthfully.
+WEIGHT_HOLDER_ALLIES_COMMITTED = 6   # N3: the holder's faction is busy
+WEIGHT_HOLDER_RECENTLY_BEATEN = 8    # N4: the wolves gather after Austerlitz
+RECENTLY_BEATEN_TURNS = 6            # N4: the war-end window
+WEIGHT_HOLDER_EXHAUSTED = 5          # N5: consumes the AI-4c signal
+HOLDER_EXHAUSTION_BAND = 100         # N5: WE floor for the read
+WEIGHT_OWN_REAR_QUIET = 6            # N6: a safe rear invites adventure
+REAR_QUIET_FRACTION = 0.20           # N6: reserve below 20% of standing
 WEIGHT_SURVIVAL = 95
 INTENT_WEIGHT_JITTER = 8             # §3.8 amplitude, ramps in over turns
 
@@ -236,6 +252,70 @@ def _survival_threat(nation: str, world) -> Optional[str]:
     return at_war[0]
 
 
+def _holder_allies_committed(nation: str, holder: str, world) -> bool:
+    """AI-3r §2.2 (N3): the holder's guarantors/allies are themselves at
+    war — HOI4's "their faction is busy". Before this term only the
+    holder's OWN wars counted toward opportunism."""
+    for record in getattr(world, "diplomatic_guarantees", []) or []:
+        if record.get("protected") != holder:
+            continue
+        guarantor = str(record.get("guarantor") or "")
+        if not guarantor or guarantor in (nation, holder):
+            continue
+        if world.get_nations_at_war_with(guarantor):
+            return True
+    for other in world.get_active_nations():
+        if other in (nation, holder):
+            continue
+        if world.get_diplomatic_state(holder, other) in (
+                "ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            if world.get_nations_at_war_with(other):
+                return True
+    return False
+
+
+def _holder_recently_beaten(holder: str, world) -> bool:
+    """AI-3r §2.2 (N4), derivation per gate ruling R3 — zero new fields:
+    the holder reads BEATEN while its capital is not in its own hands, OR
+    when a war ended for it within RECENTLY_BEATEN_TURNS (the per-nation
+    exited_turn/ended_turn read — the get_agenda_grudge_nations idiom;
+    instance retention 10 >= window 6) while home soil is still held by a
+    power outside its vassal chain. A pure per-turn reading — recovering
+    the capital or the soil ends it."""
+    capital = world.get_nation_capital(holder)
+    capital_region = world.regions.get(capital) if capital else None
+    if capital_region is not None and capital_region.controller != holder:
+        return True
+    turn = int(getattr(world, "current_turn", 0))
+    ended_recently = False
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, dict):
+            continue
+        meta = instance.get("participant_meta") or {}
+        side_by = instance.get("side_by_nation") or {}
+        if holder not in meta and holder not in side_by:
+            continue
+        end = (meta.get(holder) or {}).get("exited_turn")
+        if end is None:
+            end = instance.get("ended_turn")
+        if end is None:
+            continue
+        if turn - int(end) < RECENTLY_BEATEN_TURNS:
+            ended_recently = True
+            break
+    if not ended_recently:
+        return False
+    home = (getattr(world, "nation_starting_regions", {}) or {}).get(
+        holder, []) or []
+    for region_name in home:
+        region = world.regions.get(region_name)
+        controller = getattr(region, "controller", None) if region else None
+        if (controller and controller != holder
+                and world._top_overlord(controller) != holder):
+            return True
+    return False
+
+
 def _derive_weight(nation: str, agenda: AgendaView,
                    against: Optional[str], world) -> int:
     weight = WEIGHT_BASE_BY_TYPE.get(agenda.type, 40)
@@ -245,8 +325,6 @@ def _derive_weight(nation: str, agenda: AgendaView,
     from backend.game_logic.statecraft import statecraft_weight_mod
     weight += statecraft_weight_mod(world, nation)
     if against:
-        if world.is_at_war(nation, against):
-            weight += WEIGHT_AT_WAR_WITH_HOLDER
         relation = int(world.nation_relations.get(
             world._make_diplo_key(nation, against), 0) or 0)
         if relation <= -40:
@@ -285,6 +363,24 @@ def _derive_weight(nation: str, agenda: AgendaView,
         # the may-skip-rungs casus belli).
         if has_renege_grievance(world, nation, against):
             weight += WEIGHT_RENEGED_BARGAIN
+        # AI-3r §2.2 — the moment. All four are per-turn readings that
+        # decay the moment the world improves for the holder (§3.1a).
+        if _holder_allies_committed(nation, against, world):
+            weight += WEIGHT_HOLDER_ALLIES_COMMITTED
+        if _holder_recently_beaten(against, world):
+            weight += WEIGHT_HOLDER_RECENTLY_BEATEN
+        if int((getattr(world, "war_exhaustion", {}) or {})
+               .get(against, 0) or 0) > HOLDER_EXHAUSTION_BAND:
+            weight += WEIGHT_HOLDER_EXHAUSTED
+        # The mirror of the exposure gate — a quiet rear invites
+        # adventure. Local import: war_council imports intent the same
+        # way (function-local), so no cycle exists at module load.
+        from backend.game_logic.war_council import get_exposure_view
+        exposure = get_exposure_view(world, nation)
+        if (exposure["standing"] > 0
+                and exposure["reserve"]
+                < REAR_QUIET_FRACTION * exposure["standing"]):
+            weight += WEIGHT_OWN_REAR_QUIET
     # §3.8 threshold jitter — 0 at boot on every seed, 0 forever on the
     # historical seed; the bars move, never the choices.
     weight += seeded_jitter(

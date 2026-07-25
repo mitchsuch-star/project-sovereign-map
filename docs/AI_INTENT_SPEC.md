@@ -2669,7 +2669,13 @@ changes hands; the war instance closes) — `test_ai_intent_war_decision.py` +
   declaration at `CRISIS_FOREWARN_TURNS=2` of foregrounded tenure), the ladder gate
   (`CRISIS_REFUSALS_REQUIRED=2` or a §3.3 renege grievance that may skip rungs), the restraint
   gates (no existing wars, treasury ≥500, force ratio 1.25× incl. the target's guarantors in
-  the scale), `MAX_SIMULTANEOUS_AI_WARS=2` (D1 — a capped crisis WAITS, it does not die), the
+  the scale), ~~`MAX_SIMULTANEOUS_AI_WARS=2` (D1 — a capped crisis WAITS, it does not die)~~
+  **← D1's cap AMENDED July 25, 2026 by `AI_WAR_DECISION_SPEC.md` (AI-3r, gate §6.1): the
+  quota is DELETED and replaced by the rear-security exposure calculus — the force gate now
+  weighs FREE strength (`get_free_strength` = standing − the reserve held against the worst
+  armed neighbour), the runaway guard moved to the suite (`SWEEP_WAR_ALARM=6`/40 turns), the
+  opener widened to deny/contain designs, and beat 7's cause taxonomy gained
+  exposed/outmatched/penniless so `starved` never renders for a gate refusal** — the
   §4.3a-4 `can_declare_war` shared preview, the §4.3a-2 treaty-break-first step (an
   unbreakable predicate stalls the crisis and cools it as starved after 4 polls — pin 21's
   termination guarantee), the §4.3a-1 declaration at the announcement (`declare_war` direct;

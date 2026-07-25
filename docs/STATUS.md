@@ -4,6 +4,65 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ⚔️ AI-3r ✅ GATED + BUILT COMPLETE July 25, 2026 — "What It Leaves Undefended" (all five slices, one session)
+
+**User direction: "do the next phase commit and push making ai wars work better assure its done
+well spec wise and didnt miss any key elements."** The gate was held under that delegated grant —
+**gate record = `AI_WAR_DECISION_SPEC.md` §6.1 (Q1–Q5 at the spec's recommendations; Q6 overridden
+by the user's own request — AI-3r ran NOW, the Battle Diorama stays queued next), five
+implementation rulings in §6.2, landing record = §8 (authoritative).**
+
+- **.0 The Probe** (`docs/audits/AI_3R_PROBE_2026_07_25.md`): 8 seeds × 40 ambient turns — **0
+  crises, 0 council wars everywhere; §0.2 confirmed measured** (Prussia never left `align` while
+  openable; Britain/Russia sat AT the fight rung 10–15 turns blocked by nothing but the acquire-only
+  type filter). N7 kept at 85 from projection data. **Unexpected finding recorded:** the
+  pre-existing combat-seam auto-declaration already ignites un-counselled AI-AI wars in ambient
+  worlds (Prussia→Austria turn 5) — outside AI-3r's D1-only mandate, noted for AI-V.
+- **.1 Exposure** — the HOI4-inspired rear-security reserve: `world.get_neighbouring_nations` (ONE
+  region pass, per-turn cached, cleared through the standard invalidation chain) +
+  `get_exposure_view`/`get_rear_reserve`/`get_free_strength` in `war_council.py`; the restraint
+  force gate now weighs **FREE strength** (standing − the reserve held against the worst armed
+  neighbour, max-not-sum per Q2, capped at 60%); `_restraint_block_reason` is ONE seam that both
+  gates and names causes. Ledger: per-court **Exposure** rows (fogged PARTIAL+, Europe-only) +
+  **"The Emperor's Own Exposure"** (un-fogged, "Advisory only, Sire" — Q5's pinned asymmetry: the
+  player is TOLD, never gated; executor-source negative pin). **Live-verified over HTTP**: France
+  159,000/189,000 free with the rest held against Britain; Austria/Prussia/Bavaria rows fog-gated.
+- **.2 The Moment** — four opportunity terms that can actually climb (all per-turn readings, never
+  latches): holder's-allies-committed +6, holder-recently-beaten +8 (ruling R3's zero-new-fields
+  derivation), holder-exhausted +5 (finally consumes AI-4c), own-rear-quiet +6.
+  `WEIGHT_AT_WAR_WITH_HOLDER` DELETED (ruling R5 — dead for war-opening by construction, cosmetic
+  elsewhere). The opener widened to deny/contain designs (Q3) with the D3 guard pinned
+  (player-hegemon containment stays the coalition's business). Emergent interplay pinned: **a
+  guarantor at war is a hollow pledge** (−8 deterrent + 6 allies-committed = −2 net).
+- **.3 The Cap** — **`MAX_SIMULTANEOUS_AI_WARS` DELETED** (Q1); the runaway guard moved to the
+  suite (`SWEEP_WAR_ALARM=6`/40 turns, enforced by a seeded subprocess run); **beat 7 never lies
+  again**: causes `exposed` (threat NAMED in the copy) / `outmatched` / `penniless` (ruling R2)
+  join the taxonomy, the soft-stall cooling maps the LAST blocking reason to its own cause, and the
+  `crisis_passed` event carries `last_soft_block` for falsifiability. **Authored `wary_of`** landed
+  per ruling R1: scenario key `statecraft` (Prussia fears Austria 1.25/Russia 1.4 · Austria fears
+  Prussia 1.25 · Ottoman fears Russia 1.5 · Sweden fears Russia 1.4), ONE serialized world field,
+  validator block + `MODDING_FORMAT.md` row. Talleyrand's war room gains the **designs-held-in-check
+  rung** ("Berlin is not free to move, Sire…").
+- **.V measured honestly (spec §8.2, the E1-anchor precedent):** ambient re-measure = **0 council
+  wars per 40 turns on every seed** — within the alarm, below D1's band, and the blocking predicate
+  is now WRITTEN (every warlike 1805 design targets the player-hegemon → D3 routes it to the
+  coalition; the lone AI-vs-AI case needs a moment conjunction the passive ambient world never
+  assembles). **Reachability proven deterministically**: the fixture crisis declares its fore-warned
+  war on schedule with the cap gone; a widened contain design opens, coerces and declares. The D1
+  band transfers to **AI-V arm (a)**, where a played France assembles the moments.
+
+Conscious pin flips recorded in spec §8.3 (boot weights 85/84/89 with prices unmoved where it
+matters — Prussia's 59/align byte-identical; Sweden coerce→fight is behaviourally inert; the D5-3
+deterrent fixtures re-anchored on PEACETIME guarantors). `tests/test_ai_war_decision_ai3r.py` (56);
+suite **14,907/3**, ruff clean, **M1–M7 byte-identical AND the 40-turn threat `BASELINE_SERIES`
+held byte-identical** (no re-record — coerce and fight are treated alike by every price consumer),
+parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`, exposure rows live over HTTP. The beat-7
+`exposed` moment on a live screen rides the queued user in-game review (NA-6c/6d).
+
+**▶ NEXT: the user in-game review (NA-6c/6d + the AI-3r exposure surfaces) + Battle Diorama (row
+BD) → §11 Stage E (AI-5 wires · AI-5b(i) emergent designs Core · AI-5c) → F → G (AI-V, now
+carrying the D1 band measurement).**
+
 ### 🖥️ THE PIN-20 LIVE IN-GAME PASS ✅ HELD July 25, 2026 — Stages B/C/D on screen, 8 defects fixed
 
 **User direction: "do in game pass and make any fixes found commit and push when done, give a
@@ -83,11 +142,9 @@ rebuffs) — pin 13's soap-opera risk lives in the log, not just the dispatch.
 Suite **14,851/3** (+20), ruff clean, parse harness EXIT=0, boot smoke 0 `SCRIPT ERROR` ×3.
 
 **Then the same session's post-pass question — "do nations fight each other?" — opened row AI-3r
-(below), which now HEADS the queue.**
-**▶ NEXT: the ⚠️ AI-3r USER GATE (spec §6 Q1–Q6) → AI-3r.0 the probe → the user in-game review
-(NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E.**
+(below), which was GATED AND BUILT the same day (see the top entry).**
 
-### ⚠️ AI-3r SPEC'D July 25, 2026 (same session) — "What It Leaves Undefended" — NEEDS A GATE
+### ⚠️ AI-3r SPEC'D July 25, 2026 (same session) — "What It Leaves Undefended" — ✅ GATE HELD + BUILT same day (top entry; gate record spec §6.1)
 
 **The question that opened it, in the user's words:** *"do nations fight each other?"* → *"doesn't
 just 2 at war seem overly gamey… there should be relationships and opportunities"* → *"why should

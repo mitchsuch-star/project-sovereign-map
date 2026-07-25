@@ -625,6 +625,13 @@
             }
         ]
     },
+    "_statecraft_comment": "AI-3r section 2.6 (docs/AI_WAR_DECISION_SPEC.md, gate ruling R1): authored rear-security posture. wary_of multiplies the neighbour's menace in the war council's reserve calculus - a fear the relations number alone would understate. v1 authors wary_of ONLY (profile keys stay in nation_config). Values clamp-validated to [0.5, 2.0]; absent pair = 1.0. Authored 1805 fears: the German dualism both ways (Silesia taken 1742 - Berlin and Vienna each garrison against the other), Prussia's dread of the Russian colossus marching through Poland, the standing Russo-Turkish menace on the straits (the 1806 war), and Sweden's fear for Finland (lost 1809).",
+    "statecraft": {
+        "Prussia": { "wary_of": { "Austria": 1.25, "Russia": 1.4 } },
+        "Austria": { "wary_of": { "Prussia": 1.25 } },
+        "Ottoman": { "wary_of": { "Russia": 1.5 } },
+        "Sweden": { "wary_of": { "Russia": 1.4 } }
+    },
     "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot.",
     "agendas": {
         "Austria": [

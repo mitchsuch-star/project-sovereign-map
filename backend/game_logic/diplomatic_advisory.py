@@ -464,6 +464,51 @@ def _assess_situation(world) -> Dict:
         lines.append(f"  What stirred Europe this turn: "
                      f"{'; '.join(rendered)}.")
 
+    # ── Designs held in check (AI-3r §2.5-4) ──
+    # The exposure gate rendered as counsel: a court at the war rung (or
+    # in an open crisis) whose frontier pins its army. Consumes the SAME
+    # view the war council reads — no new evaluation.
+    from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.game_logic.intent import get_nation_intent
+    from backend.game_logic.war_council import (
+        _restraint_block_reason,
+        get_exposure_view,
+        get_war_intent,
+    )
+    checked_designs: List[Dict] = []
+    _adv_vassals = set((getattr(world, "vassals", {}) or {}).keys())
+    for court in sorted(world.get_active_nations()):
+        if court == player or court in _adv_vassals:
+            continue
+        court_view = get_nation_intent(court, world)
+        if (court_view.want_id is None or court_view.survival
+                or not court_view.against):
+            continue
+        if court_view.against == player or court_view.against in _adv_vassals:
+            continue  # player-directed designs are the coalition's business
+        if world.is_at_war(court, court_view.against):
+            continue
+        if court_view.price != "fight" and get_war_intent(world, court) is None:
+            continue
+        if _restraint_block_reason(world, court, court_view.against) != "exposed":
+            continue
+        threat = get_exposure_view(world, court).get("worst_threat")
+        checked_designs.append({
+            "nation": court,
+            "against": court_view.against,
+            "threat": threat,
+            "want_title": court_view.want_title,
+        })
+    if checked_designs:
+        lines.append("")
+        for row in checked_designs[:2]:
+            threat_display = (_fdn(world, row["threat"])
+                              if row["threat"] else "a neighbour")
+            lines.append(
+                f"  {_fdn(world, row['nation'])} is not free to move, Sire "
+                f"— while {threat_display} stands armed at their back, "
+                f"{row['want_title'] or 'their design'} stays a grievance.")
+
     # ── The vassals (loyalty, drift, cause) ──
     vassal_context: List[Dict] = []
     own_vassals = sorted(
@@ -527,6 +572,8 @@ def _assess_situation(world) -> Dict:
             "threat_level": threat,
             "threat_tier": tier,
             "threat_sources": sources_context,
+            # AI-3r §2.5-4: courts whose design the exposure gate pins.
+            "designs_in_check": checked_designs,
             "vassals": vassal_context,
             "recommendation": (dict(recommendation)
                                if recommendation else None),

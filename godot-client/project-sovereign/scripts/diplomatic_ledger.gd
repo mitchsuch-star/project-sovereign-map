@@ -300,6 +300,18 @@ func _render_nations():
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(ml) + "[/color]\n"
 		bbcode += "\n"
 
+	# AI-3r (§2.5-3): France's own exposure — the same reserve/free
+	# derivation the war council applies to every court, shown to the
+	# player. Display only, never a gate on orders (gate Q5). Backend-
+	# composed line (R7); null omits the block.
+	var exposure = cached_data.get("france_exposure")
+	if exposure != null and exposure is Dictionary:
+		var exposure_line = str(exposure.get("line", ""))
+		if exposure_line != "":
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]The Emperor's Own Exposure[/b][/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_line) + "[/color]\n"
+			bbcode += "\n"
+
 	if nations.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No nations in diplomatic contact.[/color]\n"
 		content_area.text = bbcode
@@ -435,6 +447,15 @@ func _render_nations():
 			var weariness_line = str(weariness.get("line", ""))
 			if weariness_line != "":
 				bbcode += "  Weariness: [color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(weariness_line) + "[/color]\n"
+
+		# AI-3r (§2.5-2): the court's exposure — free field army vs the
+		# rear-security reserve, the war council's own arithmetic made
+		# readable. Backend-composed line (R7); null omits the row.
+		var exposure_row = n.get("exposure")
+		if exposure_row != null and exposure_row is Dictionary:
+			var exposure_row_line = str(exposure_row.get("line", ""))
+			if exposure_row_line != "":
+				bbcode += "  Exposure: [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]\n"
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])

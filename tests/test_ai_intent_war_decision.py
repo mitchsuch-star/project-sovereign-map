@@ -31,7 +31,6 @@ from backend.game_logic.instruments import (
 )
 from backend.game_logic.intent import get_nation_intent
 from backend.game_logic.war_council import (
-    MAX_SIMULTANEOUS_AI_WARS,
     can_declare_war,
     count_ai_initiated_wars,
     exit_shared_wars_for_defection,
@@ -200,11 +199,15 @@ class TestCrisisLifecycle:
         process_war_council(world)
         assert "Prussia" in world.war_intents
 
-    def test_d1_cap_holds_the_crisis_open(self, world):
+    def test_cap_deleted_unrelated_wars_do_not_block(self, world):
+        """AI-3r §2.4 (gate Q1, AI_WAR_DECISION_SPEC.md §6.1): the D1
+        quota is DELETED — two live council wars elsewhere no longer
+        freeze an unrelated crisis. "Prussia may not move because Spain
+        and Bavaria are busy" was never a fact about Prussia; the
+        exposure gate, the one-design-war-per-court rule and the AI-4a
+        self-threat costs govern instead. CONSCIOUSLY INVERTS the old
+        test_d1_cap_holds_the_crisis_open."""
         _arm_prussia_crisis(world)
-        # Two live AI-initiated wars already stand (D1's denominator) —
-        # LIVE means two standing sides (review fix [r2 HIGH]: a war
-        # decided by elimination stops counting).
         world.war_instances["wf1"] = {
             "ai_initiated": True, "ended_turn": None,
             "active_participants": ["Sweden", "Denmark"],
@@ -213,16 +216,19 @@ class TestCrisisLifecycle:
             "ai_initiated": True, "ended_turn": None,
             "active_participants": ["Spain", "Portugal"],
         }
-        assert count_ai_initiated_wars(world) >= MAX_SIMULTANEOUS_AI_WARS
+        assert count_ai_initiated_wars(world) == 2  # the metric survives
         process_war_council(world)
         _poll_next_turn(world)
         _poll_next_turn(world)
-        assert not world.is_at_war("Prussia", "Hanover"), "D1's cap holds"
-        assert "Prussia" in world.war_intents, "the crisis waits, does not die"
+        assert world.is_at_war("Prussia", "Hanover"), \
+            "the cap is gone — the fore-warned war fires on schedule"
+        assert not hasattr(war_council, "MAX_SIMULTANEOUS_AI_WARS"), \
+            "the quota constant must stay deleted (AI-3r Q1)"
 
-    def test_elimination_frees_the_d1_cap(self, world):
-        """Review fix [r2 HIGH]: a design war won by ELIMINATING the minor
-        never receives ended_turn — the cap must not count it forever."""
+    def test_elimination_decided_war_not_counted_live(self, world):
+        """Review fix [r2 HIGH], kept for the METRIC: a design war won by
+        ELIMINATING the minor never receives ended_turn — the sweep
+        counter must not count it as live forever."""
         world.war_instances["wf_won"] = {
             "ai_initiated": True, "ended_turn": None,
             # The loser was eliminated and stripped from the sides.
@@ -251,7 +257,11 @@ class TestCrisisPasses:
 
     def test_deterred_by_guarantee(self, world):
         self._open(world)
-        pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        # AI-3r re-anchor: the guarantor must be AT PEACE — a busy
+        # guarantor's pledge is hollow (the N3 allies-committed +6 eats
+        # most of the -8 deterrent, a deliberate interplay pinned in
+        # test_ai_war_decision_ai3r.py). Saxony stands idle.
+        pledge_guarantee(world, guarantor="Saxony", protected="Hanover")
         world.invalidate_bloc_members_cache()
         events = _poll_next_turn(world)
         passed = [e for e in events if e["type"] == "crisis_passed"]

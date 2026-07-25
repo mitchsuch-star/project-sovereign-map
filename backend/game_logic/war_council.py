@@ -26,14 +26,21 @@ Contracts honoured here:
   the foreground clears.
 - **Every foregrounded crisis ends on screen** (§5 pin 21): exactly one of
   two beats — the fore-warned war, or The Crisis Passes (beat 7) with its
-  cause named and the instrument credited (§12.1's taxonomy: satisfied /
-  bought off / deterred / starved).
+  cause named and the instrument credited (§12.1's taxonomy, widened by
+  AI-3r §2.5-1: satisfied / bought off / deterred / starved / exposed /
+  outmatched / penniless — every reachable cause has its OWN copy, and no
+  cause is ever rendered under another's string).
 - **AI-vs-AI only in v1** (§16.2): a player-targeted design expresses
   `coerce` through the NA-5 ultimatum and `fight` through the coalition
   machinery — the campaign's central pressure — never a unilateral
   declaration (the NA-5 pin stands).
-- **D1's cap** (§6, re-confirmed §16.1-1): at most `MAX_SIMULTANEOUS_AI_WARS`
-  live AI-initiated wars world-wide.
+- **The exposure calculus replaces D1's cap** (AI_WAR_DECISION_SPEC.md
+  §6.1 Q1, amending AI_INTENT_SPEC §6 D1): `MAX_SIMULTANEOUS_AI_WARS` is
+  DELETED — the ceiling on simultaneous wars is what each court can
+  afford to leave behind (`get_rear_reserve`/`get_free_strength`), plus
+  the one-design-war-per-court rule and the AI-4a step-5 self-threat
+  costs. The runaway guard lives in the SUITE (`SWEEP_WAR_ALARM`), not
+  the engine.
 - **Pin 15**: the council never fore-warns a crisis whose declaration
   predicate is already refused (`can_declare_war` is the shared preview,
   §4.3a-4), and the combat seams abort on a refused declaration.
@@ -52,21 +59,56 @@ new war-goal system).
 from typing import Dict, List, Optional
 
 # ── Blessed numbers (in-band tunable; shape changes escalate) ──────────
-MAX_SIMULTANEOUS_AI_WARS = 2       # D1, re-confirmed at the §16 re-check
+# AI-3r §6.1 Q1: MAX_SIMULTANEOUS_AI_WARS is DELETED — it never bound in
+# the qualifying arithmetic (probe memo AI_3R_PROBE_2026_07_25.md), it
+# could not be rendered diegetically, and the costs that should govern
+# (the exposure gate + one design war per court + AI-4a self-threat)
+# are built. SWEEP_WAR_ALARM is the SUITE's runaway tripwire (N8), not
+# an engine rule — a 40-turn seeded run producing more council wars than
+# this sends a human to look at the costs.
+SWEEP_WAR_ALARM = 6                # N8: per 40 turns, suite-level only
 CRISIS_FOREWARN_TURNS = 2          # foregrounded tenure before declaration
 CRISIS_REFUSALS_REQUIRED = 2       # ladder gate: refused asks on record
 AI_WAR_FORCE_RATIO = 1.25          # the NA-5 strength idiom
 AI_WAR_TREASURY_FLOOR = 500        # no bankrupt adventures
 CRISIS_HARD_STALL_TURNS = 4        # preview-refused predicate → starved
-CRISIS_SOFT_STALL_TURNS = 8        # ladder/restraints/cap blocked → starved
+CRISIS_SOFT_STALL_TURNS = 8        # ladder/restraints blocked → cooled
 COERCIVE_DEMAND_TYPE = "coercive_demand"
 
-# The §12.1 cause taxonomy for beat 7 (display strings composed backend-side, R7)
+# AI-3r §2.3 (gate Q3): deny_regions and contain_hegemon — the highest-
+# base, most historically warlike designs — may open crises. The D3
+# guard is structural: the v1 AI-vs-AI rule already excludes the player,
+# so a containment war against France stays the coalition's business
+# (pinned). Ruling R4: their objectives keep the [capital] default —
+# get_agenda_military_targets stays acquire-only (the NA-3 §3.1
+# never-self-conquest pin is preserved verbatim).
+CRISIS_ELIGIBLE_DESIGNS = ("acquire_regions", "deny_regions",
+                           "contain_hegemon")
+
+# The §12.1 cause taxonomy for beat 7 (display strings composed
+# backend-side, R7), widened by AI-3r §2.5-1 + ruling R2: every cause the
+# engine can produce has its OWN copy — `starved` never again renders for
+# a gate refusal that was not decayed opportunism (the §0.3 defect).
 _CRISIS_CAUSE_COPY = {
     "satisfied": "the design is satisfied — the want is won",
     "bought_off": "the design was bought off — compensation stands",
     "deterred": "the guarantee raised the price past reach",
     "starved": "the moment passed — opportunism decayed",
+    "exposed": "the frontier could not be stripped — {threat} stands "
+               "armed at their back",
+    "outmatched": "the odds never came — the design outweighs the army",
+    "penniless": "the treasury could not bear a campaign",
+}
+
+# Soft-gate block → the beat-7 cause it truthfully renders as. "busy"
+# and a fallen ladder ARE decayed moments; the three named refusals are
+# facts about the coveter and render as themselves.
+_SOFT_BLOCK_CAUSE = {
+    "exposed": "exposed",
+    "outmatched": "outmatched",
+    "penniless": "penniless",
+    "busy": "starved",
+    "ladder": "starved",
 }
 
 
@@ -75,14 +117,123 @@ def _standing_strength(world, nation: str) -> int:
                if getattr(m, "nation", None) == nation and m.strength > 0)
 
 
+# ── AI-3r §2.1: the rear-security reserve (the exposure calculus) ───────
+# A great power does not commit its field army to a war of choice if that
+# leaves its own soil open to a neighbour who might take it. Decision
+# layer only — never a combat modifier (Golden Rule 1 untouched), and
+# NEVER a gate on the player's own orders (gate Q5: display-only for
+# France, pinned).
+
+RESERVE_CAP_FRACTION = 0.60   # N1: never garrison more than 60% of the army
+MENACE_BAND_COLD = 1.0        # N2: relation <= -40 (or open war)
+MENACE_BAND_CHILLY = 0.6      # N2: relation <= 0
+MENACE_BAND_COOL = 0.3        # N2: relation <= 30
+MENACE_BAND_WARM = 0.1        # N2: relation > 30 — an ally-ish neighbour
+                              #     still costs something
+
+
+def _menace_band(relation: int) -> float:
+    if relation <= -40:
+        return MENACE_BAND_COLD
+    if relation <= 0:
+        return MENACE_BAND_CHILLY
+    if relation <= 30:
+        return MENACE_BAND_COOL
+    return MENACE_BAND_WARM
+
+
+def _wary_posture(world, nation: str, neighbour: str) -> float:
+    """§2.6: the authored `wary_of` multiplier — scenario statecraft data
+    read through the get_statecraft chokepoint; absent → 1.0."""
+    try:
+        wary = (world.get_statecraft(nation) or {}).get("wary_of") or {}
+        return float(wary.get(neighbour, 1.0) or 1.0)
+    except (TypeError, ValueError):
+        return 1.0
+
+
+def get_exposure_view(world, nation: str) -> Dict:
+    """§2.1: {standing, reserve, free, worst_threat, worst_menace,
+    threats:[{nation, menace}...]} — every term already in the world, no
+    new serialized field. Per-turn cached; flushed through
+    invalidate_bloc_members_cache (region control, vassalage, war and
+    alliance geometry all reach it). Relations/strength staleness is
+    turn-granular by design (the intent-cache choice)."""
+    cache = getattr(world, "_exposure_cache", None)
+    cache_turn = getattr(world, "_exposure_cache_turn", -1)
+    if cache is None or cache_turn != int(world.current_turn):
+        cache = {}
+        world._exposure_cache = cache
+        world._exposure_cache_turn = int(world.current_turn)
+    if nation in cache:
+        return cache[nation]
+
+    own = _standing_strength(world, nation)
+    active = set(world.get_active_nations())
+    own_family = world._top_overlord(nation)
+    threats = []
+    for neighbour in world.get_neighbouring_nations(nation):
+        if neighbour == nation or neighbour not in active:
+            continue
+        if world._top_overlord(neighbour) == own_family:
+            continue  # own vassals, the lord, sibling clients
+        if world.get_diplomatic_state(nation, neighbour) in (
+                "ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            continue
+        strength = _standing_strength(world, neighbour)
+        if strength <= 0:
+            continue
+        if world.is_at_war(nation, neighbour):
+            band = MENACE_BAND_COLD  # an open enemy is the full menace
+        else:
+            band = _menace_band(int(world.nation_relations.get(
+                world._make_diplo_key(nation, neighbour), 0) or 0))
+        menace = int(strength * band * _wary_posture(world, nation, neighbour))
+        if menace > 0:
+            threats.append({"nation": neighbour, "menace": menace})
+    threats.sort(key=lambda t: (-t["menace"], t["nation"]))
+
+    # Q2 (gate): MAX single menace, not the sum — a state garrisons
+    # against its worst credible single opponent, clamped so a terrified
+    # court still keeps 40% of its army marchable.
+    worst = threats[0] if threats else None
+    reserve = int(min(worst["menace"] if worst else 0,
+                      RESERVE_CAP_FRACTION * own))
+    view = {
+        "nation": nation,
+        "standing": int(own),
+        "reserve": int(reserve),
+        "free": int(max(0, own - reserve)),
+        "worst_threat": worst["nation"] if worst else None,
+        "worst_menace": int(worst["menace"]) if worst else 0,
+        "threats": threats,
+    }
+    cache[nation] = view
+    return view
+
+
+def get_rear_reserve(world, nation: str) -> int:
+    """§2.1: strength that CANNOT march — held against the worst armed
+    neighbour."""
+    return int(get_exposure_view(world, nation)["reserve"])
+
+
+def get_free_strength(world, nation: str) -> int:
+    """§2.1: standing minus the rear reserve, floored at 0 — the only
+    strength the war council may weigh for a war of choice."""
+    return int(get_exposure_view(world, nation)["free"])
+
+
 def count_ai_initiated_wars(world) -> int:
-    """Live wars the war council opened (D1's cap denominator).
+    """Live wars the war council opened. AI-3r §2.4: the CAP role is
+    deleted — this survives as the sweep/AI-V metric only (no production
+    caller gates on it).
 
     Review fix [r2 HIGH]: a war whose loser was ELIMINATED never receives
     `ended_turn` (elimination bypasses the settlement path by design), so
-    counting on `ended_turn` alone jammed the cap permanently after two
-    successful minor-conquests — the feature's own happy path. A war is
-    LIVE for the cap only while it still has two standing sides.
+    counting on `ended_turn` alone jammed the old cap permanently after
+    two successful minor-conquests — the feature's own happy path. A war
+    is LIVE here only while it still has two standing sides.
     """
     count = 0
     for war in (getattr(world, "war_instances", {}) or {}).values():
@@ -214,12 +365,22 @@ def _emit_crisis_passed(world, coveter: str, record: Dict, cause: str,
     coveter_display = humanize_entity_name(coveter)
     target_display = humanize_entity_name(str(record.get("target") or ""))
     cause_copy = _CRISIS_CAUSE_COPY.get(cause, _CRISIS_CAUSE_COPY["starved"])
+    if "{threat}" in cause_copy:
+        # The exposed cause names the neighbour that pinned the army —
+        # the same per-turn view the gate itself read (§2.5-1).
+        threat = get_exposure_view(world, coveter).get("worst_threat")
+        cause_copy = cause_copy.format(
+            threat=humanize_entity_name(threat) if threat else "a neighbour")
     event = {
         "type": "crisis_passed",
         "nation": coveter,
         "target": record.get("target"),
         "design_id": record.get("design_id"),
         "cause": cause,
+        # AI-3r §2.5-1 observability: the last soft gate that blocked,
+        # so the suite's honesty pin (starved never renders for a gate
+        # refusal) is falsifiable against the live log.
+        "last_soft_block": record.get("last_soft_block"),
         "message": (f"{coveter_display} stands down over "
                     f"{target_display} — {cause_copy}."),
     }
@@ -319,13 +480,22 @@ def _ladder_climbed(world, coveter: str, target: str) -> bool:
     return len(get_refused_asks(world, coveter, target)) >= CRISIS_REFUSALS_REQUIRED
 
 
-def _restraints_hold(world, coveter: str, target: str) -> bool:
-    """§4.3's restraint gates: force ratio, treasury, existing war load."""
+def _restraint_block_reason(world, coveter: str, target: str) -> Optional[str]:
+    """§4.3's restraint gates, decomposed so beat 7 can name the TRUE
+    cause (§2.5-1's honesty pin): None while all gates clear, else
+    "busy" / "penniless" / "outmatched" / "exposed".
+
+    AI-3r §2.1 — the force gate weighs FREE strength (standing minus the
+    rear-security reserve) against the target and its guarantors: Prussia
+    with Austria armed and cold on its flank cannot campaign in Hanover;
+    Prussia after Austria is beaten, bankrupt or friendly can. The
+    defender defends with everything — `theirs` stays standing strength.
+    """
     if world.get_nations_at_war_with(coveter):
-        return False  # a court already at war opens no second design war
+        return "busy"  # a court already at war opens no second design war
     treasury = int((getattr(world, "nation_gold", {}) or {}).get(coveter, 0))
     if treasury < AI_WAR_TREASURY_FLOOR:
-        return False
+        return "penniless"
     own = _standing_strength(world, coveter)
     theirs = _standing_strength(world, target)
     # Alliance webs: a defender's guarantors stand in the scale too.
@@ -333,11 +503,14 @@ def _restraints_hold(world, coveter: str, target: str) -> bool:
         if (guarantee.get("protected") == target
                 and guarantee.get("guarantor") not in (coveter, target)):
             theirs += _standing_strength(world, str(guarantee.get("guarantor")))
-    if theirs > 0 and own < AI_WAR_FORCE_RATIO * theirs:
-        return False
+    if theirs > 0:
+        if own < AI_WAR_FORCE_RATIO * theirs:
+            return "outmatched"  # even the whole army would not suffice
+        if get_free_strength(world, coveter) < AI_WAR_FORCE_RATIO * theirs:
+            return "exposed"     # the army suffices; the frontier pins it
     if theirs == 0 and own <= 0:
-        return False
-    return True
+        return "outmatched"
+    return None
 
 
 def _declare_design_war(world, coveter: str, record: Dict,
@@ -649,30 +822,38 @@ def process_war_council(world) -> List[Dict]:
                 record["coerce_recorded_turn"] = turn
             continue
 
-        # Declaration gate: foregrounded tenure, ladder, restraints, D1, preview.
+        # Declaration gate: foregrounded tenure, ladder, restraints, preview.
+        # AI-3r §2.4 (gate Q1): D1's MAX_SIMULTANEOUS_AI_WARS check is
+        # DELETED — the exposure gate inside the restraints is the
+        # diegetic replacement, and it can be rendered honestly.
         foregrounded_turn = record.get("foregrounded_turn")
         if not record.get("foregrounded") or foregrounded_turn is None:
             continue
         if turn - int(foregrounded_turn) < CRISIS_FOREWARN_TURNS:
             continue
         target = str(record.get("target") or "")
-        if (count_ai_initiated_wars(world) >= MAX_SIMULTANEOUS_AI_WARS
-                or not _ladder_climbed(world, coveter, target)
-                or not _restraints_hold(world, coveter, target)):
-            # Review fix [r2 MEDIUM]: the SOFT gates (cap / ladder /
-            # restraints) also carry pin 21's termination guarantee — a
-            # fully fore-warned crisis that cannot fire for a long spell
-            # (the holder permanently at war, an empty chest, a jammed
-            # cap) cools on screen instead of freezing the world-wide
-            # foreground slot forever. Longer window than the hard
-            # predicate: these gates legitimately clear within a few
-            # turns (treasuries refill, wars end).
+        soft_block = ("ladder" if not _ladder_climbed(world, coveter, target)
+                      else _restraint_block_reason(world, coveter, target))
+        if soft_block is not None:
+            # Review fix [r2 MEDIUM]: the SOFT gates (ladder/restraints)
+            # also carry pin 21's termination guarantee — a fully
+            # fore-warned crisis that cannot fire for a long spell (the
+            # holder permanently at war, an empty chest, a pinned
+            # frontier) cools ON SCREEN instead of freezing the
+            # world-wide foreground slot forever. Longer window than the
+            # hard predicate: these gates legitimately clear within a
+            # few turns (treasuries refill, wars end). AI-3r §2.5-1: the
+            # LAST blocking reason names the cause — `starved` never
+            # renders for an exposure or force refusal.
             record["soft_stall_turns"] = int(record.get("soft_stall_turns", 0)) + 1
+            record["last_soft_block"] = soft_block
             if record["soft_stall_turns"] >= CRISIS_SOFT_STALL_TURNS:
-                _emit_crisis_passed(world, coveter, record, "starved", events)
+                cause = _SOFT_BLOCK_CAUSE.get(soft_block, "starved")
+                _emit_crisis_passed(world, coveter, record, cause, events)
                 del store[coveter]
             continue
         record["soft_stall_turns"] = 0
+        record.pop("last_soft_block", None)
         if _declare_design_war(world, coveter, record, events):
             del store[coveter]
 
@@ -698,7 +879,7 @@ def process_war_council(world) -> List[Dict]:
                 continue
             view = get_nation_intent(nation, world)
             if (view.price != "fight" or view.survival
-                    or view.want_type != "acquire_regions"):
+                    or view.want_type not in CRISIS_ELIGIBLE_DESIGNS):
                 continue
             target = view.against
             # v1 (§16.2): AI-vs-AI only — a player-targeted design coerces

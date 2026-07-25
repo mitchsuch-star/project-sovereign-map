@@ -46,17 +46,29 @@ def world(world1805):
 
 class TestBootIntents:
     @pytest.mark.parametrize("nation,want,against,weight,price", [
-        # The three coalition belligerents are already paying the top of
-        # the ladder — the war IS the pursuit.
-        ("Austria", "redeem_italy", "France", 83, "fight"),
-        ("Britain", "low_countries", "France", 88, "fight"),
-        ("Russia", "arbiter_of_europe", "France", 93, "fight"),
+        # RE-MEASURED CONSCIOUSLY at AI-3r.2 (AI_WAR_DECISION_SPEC.md):
+        # the dead at-war-with-holder +10 is retired (ruling R5) and the
+        # §2.2 moment terms enter — every anti-France court reads the
+        # allies-committed +6 at boot (Spain and Bavaria, France's
+        # treaty allies, boot at war), and Austria's near-empty reserve
+        # (worst armed neighbour: 22k Bavaria) reads rear-quiet +6.
+        # The three coalition belligerents still price at the top of the
+        # ladder — the war IS the pursuit (the _derive_price early
+        # return, untouched).
+        ("Austria", "redeem_italy", "France", 85, "fight"),
+        ("Britain", "low_countries", "France", 84, "fight"),
+        ("Russia", "arbiter_of_europe", "France", 89, "fight"),
         # Berlin covets Hanover and is maneuvering alliances for it —
         # the Potsdam winter, read straight off the authored opening.
+        # UNMOVED by AI-3r: no moment term fires against a quiet,
+        # ally-less Hanover — the marquee case still needs its moment.
         ("Prussia", "hanoverian_prize", "Hanover", 59, "align"),
-        # Gustav IV mobilises; Turin seethes; the neutrals guard.
-        ("Sweden", "scourge_of_the_usurper", "France", 83, "coerce"),
-        ("Sardinia", "house_of_savoy_restored", "France", 73, "coerce"),
+        # Gustav IV mobilises (the allies-committed read lifts Stockholm
+        # to the war rung — but its design aims at the player-hegemon,
+        # which stays the coalition's business, D3); Turin seethes; the
+        # neutrals guard.
+        ("Sweden", "scourge_of_the_usurper", "France", 89, "fight"),
+        ("Sardinia", "house_of_savoy_restored", "France", 79, "coerce"),
         ("Ottoman", "guard_the_straits", None, 25, "ask"),
         ("Denmark", "neutrality_of_the_north", None, 25, "ask"),
     ])
@@ -110,10 +122,13 @@ class TestCacheAndStaleness:
     def test_production_diplomatic_seam_flushes_cache(self, world):
         # set_diplomatic_state → invalidate_bloc_members_cache → the
         # intent cache flushes beside the agenda cache — same turn.
+        # AI-3r re-anchor: Austria's peacetime weight (85) now sits AT
+        # the fight threshold, so its price no longer moves on peace —
+        # Britain (84 → coerce) is the court whose rung must flip.
         from backend.game_logic.diplomacy import set_diplomatic_state
-        assert get_nation_intent("Austria", world).price == "fight"
-        set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
-        view = get_nation_intent("Austria", world)
+        assert get_nation_intent("Britain", world).price == "fight"
+        set_diplomatic_state(world, "Britain", "France", "PEACE", "test")
+        view = get_nation_intent("Britain", world)
         assert view.price != "fight"
 
     def test_relations_are_turn_granular_by_design(self, world):

@@ -1,6 +1,11 @@
 # AI War Decision — "What It Leaves Undefended" (row **AI-3r**)
 
-> **v0.1 — PROPOSED July 25, 2026. Not blessed. §6 holds the gate questions.**
+> **v1.0 — GATE HELD July 25, 2026 under the user's delegated grant** ("do the
+> next phase … making ai wars work better") — **gate record = §6.1,
+> authoritative.** All six questions decided at the spec's recommendations
+> except Q6, which the user's own request overrides (AI-3r runs NOW; the
+> Battle Diorama stays queued next). §6.2 records the five implementation
+> rulings the build required. **Landing record = §8.**
 >
 > **This spec AMENDS a blessed gate decision** — `AI_INTENT_SPEC.md` §6 **D1**
 > ("at most 2 simultaneous AI-initiated wars"). It does not reopen D2–D7.
@@ -343,6 +348,31 @@ Slice order is load-bearing: **the probe runs first**, because every number in
 | **Q5** | Does the exposure calculus gate the **player's** orders too? | **No — display only.** Napoleon may strip the Rhine if he wishes; the game must *tell* him what he is leaving open. Pinned as a deliberate asymmetry with a falsifiable negative test. |
 | **Q6** | Does this run before or after the Battle Diorama (row BD)? | **After BD.** BD is queued, scoped and small; this is a multi-slice systems change and AI-V wants it settled, not rushed. |
 
+### 6.1 GATE RECORD (July 25, 2026 — user-delegated, authoritative)
+
+| # | Decision |
+|---|---|
+| **Q1** | **DELETE `MAX_SIMULTANEOUS_AI_WARS`.** As recommended: it never bound in the qualifying arithmetic, it cannot be rendered diegetically, and the aggressive-expansion costs (AI-4a step 5 self-threat) already govern. The runaway guard moves to the suite (`SWEEP_WAR_ALARM`, N8). `count_ai_initiated_wars` survives as the sweep metric. |
+| **Q2** | **MAX single menace**, clamped to `RESERVE_CAP_FRACTION`. As recommended — sum immobilises every centrally-placed power. |
+| **Q3** | **YES — `deny_regions` and `contain_hegemon` may open wars**, with the D3 guard: the v1 AI-vs-AI rule already excludes the player structurally, and a pinned test asserts a deny/contain crisis never opens against the player's bloc. See ruling R4 for the objective shape. |
+| **Q4** | **AUTHORED `wary_of` posture** — as recommended, per D7. Authoring home per ruling R1: a new optional scenario `statecraft` key (wary_of-only in v1), validator-enforced, loaded into ONE serialized world store. |
+| **Q5** | **Display only for the player.** The exposure view renders on France's own ledger row; no player order is ever gated. Pinned negative test in the AI-3r.1 suite. |
+| **Q6** | **OVERRIDDEN BY THE USER: AI-3r runs NOW** (July 25, 2026 — "do the next phase … making ai wars work better"). The Battle Diorama (row BD) stays queued immediately after; nothing else re-sequences. |
+
+The §3 numbers N1–N8 are blessed as proposed, with N7 settled from the
+slice-0 probe (the terms climb to the bar; the bar stays 85). Standing
+rule holds: blessed numbers stay in-band tunable, shape changes escalate.
+
+### 6.2 Implementation rulings (gate-record addenda)
+
+| # | Ruling |
+|---|---|
+| **R1** | **`wary_of` is authored in the scenario file**, not in `nation_config.NATION_STATECRAFT`. §2.6's sketch said "scenario data" while pointing at the statecraft table, which is a code constant under an authored "no serialized field" contract (AI-2c) and a pinned no-over-characterisation test for secondaries. Resolution: a new top-level scenario key `statecraft` (per-nation, **`wary_of` sub-key only in v1** — the profile table stays code), read by `from_scenario` into ONE new serialized world field `scenario_statecraft` (the `agendas` deck-store idiom), merged over the code table at the `get_statecraft` chokepoint. The AI-2c "no serialized field" contract line is consciously amended by this gate. Validator: `wary_of` values in [0.5, 2.0], known-nation targets, no self-reference, unknown sub-keys rejected. `MODDING_FORMAT.md` row added. |
+| **R2** | **The cause taxonomy gains `penniless`** (treasury below `AI_WAR_TREASURY_FLOOR`) beyond the spec's `exposed`/`outmatched` — forced by §2.5-1's own pin: "no cause is ever rendered under another's string," and an empty chest is not decayed opportunism. Reachable causes after the build: satisfied / bought_off / deterred / starved / exposed / outmatched / penniless — each with its own copy. |
+| **R3** | **`WEIGHT_HOLDER_RECENTLY_BEATEN` derivation** (zero new fields): the holder reads *beaten* while its capital is not in its own hands, OR when a war it participated in ended for it within `RECENTLY_BEATEN_TURNS` (the per-nation `exited_turn`/`ended_turn` read — the `get_agenda_grudge_nations` idiom; instance retention 10 ≥ window 6) *and* it is currently missing home soil to a power outside its vassal chain. A pure per-turn reading — recovering the capital or the soil ends it (§2.2's decay rule). |
+| **R4** | **Deny/contain design wars keep the `[capital]` default objective.** `get_agenda_military_targets` stays acquire-only — the NA-3 §3.1 "never self-conquest / deny targets never bias corps" pin is preserved verbatim. The widening changes which designs may OPEN a crisis, never what soil the army is pointed at: a containment war aims at the hegemon's heart, exactly like every non-design war today. The AI-3c frontier bias is likewise inert for deny/contain crises (empty target set), accepted and pinned. |
+| **R5** | **`WEIGHT_AT_WAR_WITH_HOLDER` is retired entirely**, not merely "from the acquire path": with `_derive_price`'s already-at-war early return, the term's only surviving effect was cosmetic (the displayed weight during a war). Dead code is deleted, not kept for a display bump; the ledger's at-war rows read `fight` regardless. Affected display pins flipped consciously. |
+
 ---
 
 ## 7. Deferrals homed (Golden Rule 9)
@@ -355,3 +385,111 @@ Slice order is load-bearing: **the probe runs first**, because every number in
 | Multi-front conduct once a court holds two wars | **AI-V assertions** (already owned, `AI_INTENT_SPEC.md` §13) | AI-V | the existing §13 question | AI-V sweep |
 
 Nothing in this spec is left as "future polish."
+
+---
+
+## 8. LANDING RECORD — BUILT COMPLETE July 25, 2026 (one session, all five slices)
+
+**Suite `tests/test_ai_war_decision_ai3r.py` (56) + conscious pin flips
+across 4 existing files; full suite 14,907/3; ruff clean; M1–M7
+byte-identical; the 40-turn threat `BASELINE_SERIES` held BYTE-IDENTICAL
+(no re-record needed — price consumers treat coerce and fight alike, so
+the ambient courts' behaviour never moved); parse harness EXIT=0;
+headless boot 0 `SCRIPT ERROR`; the ledger rows live-verified over HTTP.**
+
+### 8.1 What landed, by slice
+
+- **.0 The Probe** — memo `docs/audits/AI_3R_PROBE_2026_07_25.md`:
+  8 seeds × 40 turns, 0 crises/0 council wars everywhere; §0.2 confirmed
+  measured (Prussia never left `align` while openable; Britain/Russia sat
+  AT the fight rung for 10–15 turns blocked by nothing but the type
+  filter); N7 kept at 85 from the projection data; **unexpected finding
+  recorded**: the pre-existing combat-seam auto-declaration
+  (`combat_executor.py` ~3501) already ignites un-counselled AI-AI wars
+  in ambient worlds (Prussia→Austria turn 5) — outside this spec's D1
+  mandate, noted for AI-V's arm.
+- **.1 Exposure** — `world.get_neighbouring_nations` (ONE region pass,
+  per-turn cached, cleared through `invalidate_active_nations_cache`);
+  `get_exposure_view`/`get_rear_reserve`/`get_free_strength` in
+  `war_council.py` (per-turn cached, flushed via
+  `invalidate_bloc_members_cache`); `_restraint_block_reason` — ONE seam
+  that both gates and names causes; the force gate weighs FREE strength;
+  ledger rows: per-court `exposure` (fogged PARTIAL+, the weariness
+  idiom, Europe-only) + top-level `france_exposure` (un-fogged own row,
+  "Advisory only, Sire") + both rendered in `diplomatic_ledger.gd`.
+- **.2 The Moment** — `WEIGHT_HOLDER_ALLIES_COMMITTED=6` /
+  `WEIGHT_HOLDER_RECENTLY_BEATEN=8` (ruling R3 derivation, zero new
+  fields) / `WEIGHT_HOLDER_EXHAUSTED=5` above WE 100 /
+  `WEIGHT_OWN_REAR_QUIET=6` below 20% — all per-turn readings that decay
+  (§3.1a); `WEIGHT_AT_WAR_WITH_HOLDER` DELETED (ruling R5); the opener
+  widened to `CRISIS_ELIGIBLE_DESIGNS = (acquire, deny, contain)` with
+  the D3 guard structural (player-exclusion) + pinned.
+- **.3 The Cap** — `MAX_SIMULTANEOUS_AI_WARS` DELETED (Q1);
+  `count_ai_initiated_wars` survives as the sweep metric;
+  `SWEEP_WAR_ALARM=6` enforced by a 40-turn seeded subprocess run IN THE
+  SUITE; beat-7 taxonomy gained `exposed` (threat named in the copy) /
+  `outmatched` / `penniless` (ruling R2), soft-stall cooling maps the
+  LAST blocking reason to its own cause and the `crisis_passed` event
+  carries `last_soft_block` for falsifiability; authored `wary_of`
+  landed per ruling R1 — scenario key `statecraft` (Prussia 1.25/1.4 ·
+  Austria 1.25 · Ottoman 1.5 · Sweden 1.4), ONE serialized world field
+  (`world.statecraft`), merged at `get_statecraft`, validator block
+  (`_validate_statecraft`) + `MODDING_FORMAT.md` row; Talleyrand's
+  war-room "designs held in check" rung (§2.5-4) with
+  `designs_in_check` in the assess context.
+- **.V Re-measure** — see §8.2.
+
+### 8.2 The §5 acceptance, MEASURED (the E1-anchor precedent: recorded, not fudged)
+
+1. **The 1–4-per-40-turns band is NOT met in the ambient harness —
+   measured 0 council wars on every seed — and the blocking predicate is
+   now WRITTEN:** on the shipped 1805 scenario every warlike design
+   (Austria/Britain/Russia/Sweden/Sardinia) targets the player-hegemon,
+   which D3 routes to the coalition forever; the sole AI-vs-AI acquire
+   case (Prussia→Hanover) requires a moment conjunction (holder beaten /
+   allies committed / cold relations) plus a climbed ladder that a
+   passive ambient world never assembles — and ambient Prussia is
+   overrun by Austria by turn ~6 regardless (probe memo §5). **The
+   REACHABILITY is proven deterministically instead**: the fixture
+   crisis declares its fore-warned war on schedule with the cap gone,
+   and a widened contain design opens, coerces and declares
+   (`TestWidening`). The band itself transfers to **AI-V arm (a)**
+   (§4's own .V row), where a played France assembles moments the
+   ambient harness cannot.
+2. **The exposure gate bites, deterministically pinned**: `exposed`
+   cooling fires with the pinning neighbour NAMED (`TestCauseHonesty`),
+   and the gate blocks a standing-sufficient/free-insufficient war
+   (`TestRestraintReasons::test_exposed_when_reserve_pins_the_army`).
+3. **Beat-7 causes**: all seven reachable causes carry distinct copy;
+   `starved` never renders for an exposure/force/treasury refusal
+   (suite pin + the live-log falsifiability key).
+4. **Widened designs**: a `contain_hegemon` war declared in-suite; the
+   ambient blocking predicate is written (arm 1 above) — §5-4's "or a
+   written blocking predicate" arm.
+5. **Boot integrity**: historical boot behaviour byte-identical where
+   unclaimed (Prussia 59/align untouched); the at-war courts' WEIGHTS
+   consciously re-pinned (85/84/89 — R5 + the boot-true moment terms;
+   their PRICE stays `fight` via the early return); `BASELINE_SERIES`
+   byte-identical; M1–M7 byte-identical; suite green; ruff clean;
+   parse harness EXIT=0.
+6. **Scale**: single-region-pass + no-scan-in-exposure source pins green.
+7. **In-game (pin 20)**: the exposure rows verified LIVE over HTTP
+   (France 159,000/189,000 vs Britain; Austria/Prussia/Bavaria rows
+   fog-gated correctly). The beat-7 `exposed` moment on a live screen
+   needs a played crisis — it rides the already-queued user in-game
+   review (NA-6c/6d), noted there.
+
+### 8.3 Conscious pin flips (all annotated in place)
+
+`test_ai_intent_layer.py` boot weights (retired +10, new N3/N6 terms;
+Sweden's boot price `coerce→fight` — behaviourally inert, both rungs are
+excluded from every P-Intent arm); the seam-flush test re-anchored on
+Britain (Austria's peacetime weight now sits AT the threshold);
+`test_ai_intent_counterplay.py` renege-surge expression drops the retired
++10, and the D5-3 deterrent fixtures switch to PEACETIME guarantors — a
+guarantor at war now reads as a HOLLOW pledge (−8 + N3's +6 = −2 net), a
+deliberate interplay pinned in the new suite;
+`test_ai_intent_war_decision.py`'s cap test consciously INVERTED
+(unrelated wars no longer block; the constant's absence asserted);
+`test_ai_intent_peacetime.py`'s buy-rung fixture quiets France's treaty
+allies (their boot wars read as N3 +6 on every court eyeing France).

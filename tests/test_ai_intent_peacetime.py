@@ -89,10 +89,18 @@ class TestDesignPurchase:
     def _prussia_wants_french_hanover(self, world):
         """France holds Hanover; Prussia's design obstacle becomes
         France at the `buy` rung (warm relation + a third-party
-        guarantee's deterrent pull the weight under the align floor)."""
+        guarantee's deterrent pull the weight under the align floor).
+
+        AI-3r re-anchor: France's treaty allies (Spain, Bavaria) must
+        stand at PEACE here — their boot wars now read as the N3
+        allies-committed +6 on every court eyeing France, which lifted
+        this arrangement one point over the buy ceiling (55 = align)."""
         for region_name in ("Hanover",):
             world.regions[region_name].controller = "France"
         _set_relation(world, "France", "Prussia", 40)
+        world.diplomatic_states[world._make_diplo_key("Britain", "Spain")] = "PEACE"
+        world.diplomatic_states[world._make_diplo_key("Austria", "Bavaria")] = "PEACE"
+        world.invalidate_bloc_members_cache()
         pledge_guarantee(world, guarantor="Denmark", protected="France")
         view = get_nation_intent("Prussia", world)
         assert view.against == "France"

@@ -165,6 +165,10 @@ STATECRAFT_DEFAULT: Dict = {
     "coercion": "neutral",
     "weight_mod": 0,
     "haggles": False,
+    # AI-3r §2.6: per-neighbour rear-security posture multipliers —
+    # authored in the SCENARIO file (`statecraft` key, gate ruling R1),
+    # never here. Empty = every neighbour weighs 1.0.
+    "wary_of": {},
 }
 
 NATION_STATECRAFT: Dict[str, Dict] = {

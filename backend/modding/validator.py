@@ -728,6 +728,70 @@ def _validate_threat_level_band(result, data: dict) -> None:
             f"{threat} (the historical seed resolves to it)")
 
 
+_WARY_OF_MIN = 0.5
+_WARY_OF_MAX = 2.0
+
+
+def _validate_statecraft(result, data: dict, known_nations: set) -> None:
+    """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
+    per-nation, `wary_of` sub-key ONLY in v1 (the profile table stays in
+    nation_config). D7's principle enforced at the schema: values clamp
+    to [0.5, 2.0], targets must be known nations (hard error — an
+    ahistorical fear of a phantom is data rot, not forward-compat),
+    self-reference is a hard error, unknown sub-keys are hard errors."""
+    if "statecraft" not in data:
+        return
+    block = data.get("statecraft")
+    if not isinstance(block, dict):
+        result.add_error(
+            "statecraft",
+            f"Must be an object, got {type(block).__name__}")
+        return
+    for nation, profile in block.items():
+        path = f"statecraft.{nation}"
+        if known_nations and nation not in known_nations:
+            result.add_warning(
+                path,
+                f"References unknown nation '{nation}' - the posture "
+                f"will never be read")
+        if not isinstance(profile, dict):
+            result.add_error(
+                path, f"Must be an object, got {type(profile).__name__}")
+            continue
+        unknown = sorted(set(profile.keys()) - {"wary_of"})
+        if unknown:
+            result.add_error(
+                path,
+                f"v1 authors wary_of only - unknown key(s) {unknown}")
+        wary = profile.get("wary_of")
+        if wary is None:
+            continue
+        if not isinstance(wary, dict):
+            result.add_error(
+                f"{path}.wary_of",
+                f"Must be an object, got {type(wary).__name__}")
+            continue
+        for target, value in wary.items():
+            wpath = f"{path}.wary_of.{target}"
+            if target == nation:
+                result.add_error(
+                    wpath, "A nation cannot be wary of itself")
+            elif known_nations and target not in known_nations:
+                result.add_error(
+                    wpath, f"References unknown nation '{target}'")
+            if (isinstance(value, bool)
+                    or not isinstance(value, (int, float))):
+                result.add_error(
+                    wpath,
+                    f"Must be a number in [{_WARY_OF_MIN}, "
+                    f"{_WARY_OF_MAX}], got {value!r}")
+            elif not (_WARY_OF_MIN <= float(value) <= _WARY_OF_MAX):
+                result.add_error(
+                    wpath,
+                    f"Must be within [{_WARY_OF_MIN}, {_WARY_OF_MAX}], "
+                    f"got {value}")
+
+
 def validate_scenario(
     scenario_path_or_data: Any,
     check_adjacency: bool = True
@@ -1180,6 +1244,25 @@ def validate_scenario(
     # (Deck order_group is validated inside _validate_agenda_deck.)
     _validate_nation_relations(result, data)
     _validate_threat_level_band(result, data)
+
+    # AI-3r §2.6 (gate ruling R1): the authored statecraft posture block.
+    # Rebuilds the known-nations set with the agendas-block recipe (the
+    # blocks validate independently of each other's presence).
+    statecraft_known: Set[str] = set()
+    if "regions" in data and isinstance(data["regions"], dict):
+        for region_data in data["regions"].values():
+            if isinstance(region_data, dict):
+                controller = (region_data.get("controller")
+                              or region_data.get("starting_controller"))
+                if controller:
+                    statecraft_known.add(controller)
+    if isinstance(data.get("marshals"), dict):
+        for marshal_data in data["marshals"].values():
+            if isinstance(marshal_data, dict) and marshal_data.get("nation"):
+                statecraft_known.add(marshal_data["nation"])
+    if data.get("player_nation"):
+        statecraft_known.add(data["player_nation"])
+    _validate_statecraft(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

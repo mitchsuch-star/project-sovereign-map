@@ -120,6 +120,9 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         # Europe's derived reading of France. None on legacy/bare worlds
         # (renderers omit).
         "france_mirror": build_france_mirror_payload(world),
+        # AI-3r (§2.5-3): France's own exposure — display only, never a
+        # gate on the player's orders (gate Q5). None on legacy/bare.
+        "france_exposure": _build_france_exposure(world),
     }
 
 
@@ -443,9 +446,79 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # belligerent list — "let them bleed while France rearms"
             # made readable. None omits (at peace, zero exhaustion).
             "war_weariness": _build_war_weariness_line(nation, world),
+            # AI-3r (§2.5-2): the court's exposure — free field army vs
+            # the rear-security reserve, the row that makes the war
+            # council's refusals playable. None omits (fogged/army-less).
+            "exposure": _build_exposure_line(nation, world),
         })
 
     return nations
+
+
+def _build_exposure_line(nation: str, world):
+    """AI-3r §2.5-2: {standing, reserve, free, worst_threat, line} or None.
+
+    Fogged to PARTIAL+ exactly like the weariness row — the reserve is an
+    army-disposition fact, not a diplomatic one. Europe-scoped: the
+    legacy/bare ledger stays byte-identical (the deckless-neutral idiom).
+    """
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return None
+    vis = _get_nation_visibility(nation, world)
+    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
+    if VISIBILITY_PRIORITY.get(vis, 0) < partial_priority:
+        return None
+    from backend.game_logic.war_council import get_exposure_view
+    view = get_exposure_view(world, nation)
+    if view["standing"] <= 0:
+        return None
+    from backend.game_logic.formations import formed_display_name
+    if view["reserve"] > 0 and view["worst_threat"]:
+        threat_display = formed_display_name(world, view["worst_threat"])
+        line = (f"Free field army: {view['free']:,} of "
+                f"{view['standing']:,} — the rest held against "
+                f"{threat_display}")
+    else:
+        line = (f"Free field army: the whole {view['standing']:,} — "
+                f"no armed neighbour compels a reserve")
+    return {
+        "standing": int(view["standing"]),
+        "reserve": int(view["reserve"]),
+        "free": int(view["free"]),
+        "worst_threat": view["worst_threat"],
+        "line": line,
+    }
+
+
+def _build_france_exposure(world):
+    """AI-3r §2.5-3: France's own exposure row — the same derivation the
+    war council applies to every court, RENDERED to the player and never
+    gating their orders (gate Q5's pinned asymmetry). Un-fogged (own
+    forces); None on legacy/bare worlds and with no army standing."""
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return None
+    player = getattr(world, "player_nation", "France")
+    from backend.game_logic.war_council import get_exposure_view
+    view = get_exposure_view(world, player)
+    if view["standing"] <= 0:
+        return None
+    from backend.game_logic.formations import formed_display_name
+    if view["reserve"] > 0 and view["worst_threat"]:
+        threat_display = formed_display_name(world, view["worst_threat"])
+        line = (f"Free field army: {view['free']:,} of "
+                f"{view['standing']:,} — prudence holds the rest against "
+                f"{threat_display}. Advisory only, Sire: your marshals "
+                f"march where you send them.")
+    else:
+        line = (f"Free field army: the whole {view['standing']:,} — no "
+                f"armed neighbour compels a reserve.")
+    return {
+        "standing": int(view["standing"]),
+        "reserve": int(view["reserve"]),
+        "free": int(view["free"]),
+        "worst_threat": view["worst_threat"],
+        "line": line,
+    }
 
 
 def _build_war_weariness_line(nation: str, world):

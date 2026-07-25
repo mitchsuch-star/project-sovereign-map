@@ -281,10 +281,15 @@ class TestGuaranteeVerb:
 class TestIntentCoupling:
     def test_guarantee_deters_the_coveter(self, world):
         """Prussia (weight 59, align) drops below the align floor when a
-        third party guarantees Hanover — D5-3's raised bar, shown."""
+        third party guarantees Hanover — D5-3's raised bar, shown.
+
+        AI-3r re-anchor: the guarantor must be AT PEACE for the clean -8
+        to show — a guarantor at war reads as a hollow pledge (the N3
+        allies-committed +6 nets it to -2; pinned as an interplay in
+        test_ai_war_decision_ai3r.py). Denmark stands idle at boot."""
         before = get_nation_intent("Prussia", world)
         assert before.price == "align" and before.weight == 59
-        pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        pledge_guarantee(world, guarantor="Denmark", protected="Hanover")
         after = get_nation_intent("Prussia", world)
         assert after.weight == before.weight - GUARANTEE_WEIGHT_DETERRENT
         assert after.price == "buy"
@@ -314,9 +319,12 @@ class TestIntentCoupling:
         after = get_nation_intent("Sweden", world)
         assert after.want_id == view.want_id  # the design is back
         assert after.price == "fight"         # at war with the breaker
-        # The surge is visible in the weight (clamped at 100).
+        # The surge is visible in the weight (clamped at 100). AI-3r
+        # ruling R5 retired the at-war +10; the new war also lifts
+        # France's holder-wars count a tier (+10 → already at the
+        # two-wars ceiling at boot), so the delta is the surge alone.
         assert after.weight == min(
-            100, view.weight + 10 + WEIGHT_RENEGED_BARGAIN)
+            100, view.weight + WEIGHT_RENEGED_BARGAIN)
 
 
 # ═══════════════════════════════════════════════════════════════════════
