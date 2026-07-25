@@ -853,6 +853,16 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     coalition = getattr(world, 'active_coalition', None)
     brewing = getattr(world, 'coalition_brewing', None)
     cooldown = int(getattr(world, 'coalition_cooldown', 0) or 0)
+    # Stage D review fix [r7]: this panel is FRANCE's coalition frame — its
+    # threat/qualifying/sources are all player-scoped, so an ECLIPSE
+    # coalition/brewing (target_nation != player) must not wear it. The
+    # eclipse surfaces through the nations tab, campaign log and dispatch
+    # until Stage F lands its own render (§4.6b).
+    _lp = getattr(world, 'player_nation', 'France')
+    if coalition and (coalition.get("target_nation") or _lp) != _lp:
+        coalition = None
+    if brewing and (brewing.get("target_nation") or _lp) != _lp:
+        brewing = None
     if coalition:
         coalition_state = "DECLARED"
         headline_case = "ACTIVE_COALITION"

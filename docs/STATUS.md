@@ -64,12 +64,27 @@ untouched).
   weight below it) · the ultimatum-yield threat pin re-scoped to the player's slot (the AI
   beneficiary now accrues its own) · 5 formables-test renames · preserved warts on the record
   (the mirror copy's missing decisive-victory arm; France-gated coalition shock) → exit review.
-- Suite **14,826/3** (was 14,772/3; `test_ai_intent_war_decision.py` + `test_ai_intent_third_party.py`
-  = 42 new), ruff clean, M1–M7 byte-identical in-suite, parse harness EXIT=0
-  (`diplomatic_ledger.gd` the one `.gd` touch). **▶ NEXT: the pin-20 live in-game pass (Stage B/C
-  surfaces + the new Stage D beats/headlines/weariness row) + the user in-game review (NA-6c/6d)
-  + Battle Diorama (row BD) → §11 Stage E (consequence & character: AI-5 wires · AI-5b(i)
-  emergent designs Core · AI-5c kept · volte-face may slip) → F → G (AI-V).**
+- **The 9-lens review fleet then confirmed 2 HIGH + 12 findings, ALL FIXED same session
+  (addendum = spec §17.1)** — headline [r5 HIGH]: the seven boot wars fold into ONE instance
+  CONTAINING France, so the four satellite sub-pairs (Spain|Britain, Holland|Britain,
+  Bavaria|Austria, KingdomOfItaly|Austria) had NO exit and would have ratcheted to exhaustion
+  200 forever → **the exhausted-pair exit** (a spent, stagnant, non-vassal sub-pair white-peaces
+  out of a player-containing instance; vassals stay bound to the lord's war; one exit/turn);
+  [r2 HIGH]: a design war won by ELIMINATION never gets ended_turn → the D1 cap counted it
+  forever (two conquests would have ended AI war-making) → live-for-the-cap = two standing
+  sides; plus the eclipse reader/copy de-anchoring sweep (notifications, top-bar flag, dispatch
+  section, war-room attribution, oneliners, convergence bias, the 6a oscillation gate, the
+  France coalition panel), the broker ask naming its war, the last-region cession honesty, the
+  force-arm winner-pays hole closed by shape, R7 humanization, and 6 test-falsifiability
+  hardenings. The 40-turn threat baseline was re-recorded consciously ONCE (the pair-exit
+  legitimately ends the minors' side-wars ~turn 17).
+- Suite **14,831/3** (was 14,772/3; `test_ai_intent_war_decision.py` +
+  `test_ai_intent_third_party.py` = 47 + the flipped pins), ruff clean, M1–M7 byte-identical
+  in-suite, parse harness EXIT=0 (`diplomatic_ledger.gd` the one `.gd` touch). **▶ NEXT: the
+  pin-20 live in-game pass (Stage B/C surfaces + the new Stage D beats/headlines/weariness row)
+  + the user in-game review (NA-6c/6d) + Battle Diorama (row BD) → §11 Stage E (consequence &
+  character: AI-5 wires · AI-5b(i) emergent designs Core · AI-5c kept · volte-face may slip)
+  → F → G (AI-V).**
 
 ### ⚙️ AI INTENT STAGE C ✅ BUILT July 24, 2026 (second session that day) — The Bargaining Table
 

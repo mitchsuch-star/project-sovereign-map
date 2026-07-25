@@ -1529,14 +1529,26 @@ def form_coalition(qualifying_nations: List[str], world,
     world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
     world.notifications.dismiss_by_type(COALITION_MURMURS)
 
-    # 8. Notification
+    # 8. Notification. Stage D review fix [r6]: an ECLIPSE coalition names
+    # its target and drops to NORMAL priority — the copy must never imply
+    # the player is under declaration.
+    from backend.display_names import humanize_entity_name as _hum
+    if france == world.player_nation:
+        _decl_body = (f"{name} has declared war. Leader: {leader}. "
+                      f"Members: {', '.join(sorted(all_members))}. "
+                      f"Combined strength: {int(combined_strength):,}.")
+        _decl_priority = NotificationPriority.CRITICAL
+    else:
+        _decl_body = (f"{name} has declared war on {_hum(france)}. "
+                      f"Leader: {leader}. "
+                      f"Members: {', '.join(sorted(all_members))}. "
+                      f"Combined strength: {int(combined_strength):,}.")
+        _decl_priority = NotificationPriority.NORMAL
     world.notifications.add(create_notification(
         COALITION_DECLARED,
-        NotificationPriority.CRITICAL,
+        _decl_priority,
         f"{name} Declared!",
-        f"{name} has declared war. Leader: {leader}. "
-        f"Members: {', '.join(sorted(all_members))}. "
-        f"Combined strength: {int(combined_strength):,}.",
+        _decl_body,
         int(world.current_turn),
         details={
             "coalition_name": name,
@@ -1544,6 +1556,7 @@ def form_coalition(qualifying_nations: List[str], world,
             "members": sorted(all_members),
             "posture": posture,
             "combined_strength": int(combined_strength),
+            "target_nation": france,
         },
     ))
 
@@ -1558,11 +1571,18 @@ def form_coalition(qualifying_nations: List[str], world,
         "target_nation": france,
     })
 
-    # R83: Dispatch event for coalition formation
+    # R83: Dispatch event for coalition formation (target-aware — the
+    # anti-France template keeps its exact legacy copy).
     from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, "diplomatic_coalition_formed", {
-        "member_list": ", ".join(sorted(all_members)),
-    }, "always")
+    if france == world.player_nation:
+        queue_dispatch_event(world, "diplomatic_coalition_formed", {
+            "member_list": ", ".join(sorted(all_members)),
+        }, "always")
+    else:
+        queue_dispatch_event(world, "diplomatic_coalition_formed_other", {
+            "member_list": ", ".join(sorted(all_members)),
+            "target": _hum(france),
+        }, "always")
 
     # EC-2: Log voided proposal
     if voided_proposal_nation:
@@ -1653,6 +1673,9 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
         return events
 
     name = coalition.get("name", "The Coalition")
+    # §4.4b: dissolution copy names a NON-player target (legacy records
+    # default to the player, byte-identical copy).
+    _dissolve_target = coalition.get("target_nation") or world.player_nation
 
     # Clear coalition state
     world.active_coalition = None
@@ -1678,17 +1701,26 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
         "type": "coalition_dissolved",
         "coalition_name": name,
         "reason": reason,
+        "target_nation": _dissolve_target,
     })
 
     events.append({
         "type": "coalition_dissolved",
         "message": f"{name} has dissolved.",
         "reason": reason,
+        "target_nation": _dissolve_target,
     })
 
-    # R83: Dispatch event for coalition dissolution
+    # R83: Dispatch event for coalition dissolution (target-aware — the
+    # anti-France template keeps its exact legacy copy).
     from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, "diplomatic_coalition_dissolved", {}, "always")
+    if _dissolve_target == world.player_nation:
+        queue_dispatch_event(world, "diplomatic_coalition_dissolved", {}, "always")
+    else:
+        from backend.display_names import humanize_entity_name
+        queue_dispatch_event(world, "diplomatic_coalition_dissolved_other", {
+            "target": humanize_entity_name(_dissolve_target),
+        }, "always")
 
     return events
 
@@ -2024,15 +2056,34 @@ def process_coalition_turn(world) -> List[Dict]:
     # while an eclipse coalition (non-player target) stands, the eclipse
     # coalition dissolves in its favour and the pivot pays no cooldown —
     # Europe remembers who the real danger is.
-    if world.active_coalition:
+    # Review fix [r6 MEDIUM]: the pivot fires only when the anti-France
+    # process can actually PROCEED (≥1 qualifying court) — otherwise 6a
+    # dissolving + 7b re-brewing every cycle would oscillate forever and
+    # starve the eclipse coalition of its war.
+    _france_can_coalesce = (world.threat_level >= THREAT_BREWING_MIN
+                            and bool(get_qualifying_nations(world)))
+    if world.active_coalition and _france_can_coalesce:
         _active_target = world.active_coalition.get("target_nation") or france
-        if _active_target != france and world.threat_level >= THREAT_BREWING_MIN:
+        if _active_target != france:
             events.extend(dissolve_coalition(world, "the_greater_danger"))
             world.coalition_cooldown = 0
             world.log_event({
                 "type": "coalition_dissolved_for_france",
                 "previous_target": _active_target,
                 "threat_level": int(world.threat_level),
+            })
+    # Review fix [S-D r1]: the precedence also covers an eclipse BREWING —
+    # without this arm, section 7 (France's own brew/instant) is skipped by
+    # the section-6 elif while an eclipse counts down, delaying the
+    # anti-France process by up to the whole countdown.
+    if world.coalition_brewing and _france_can_coalesce:
+        _brew_target = world.coalition_brewing.get("target_nation") or france
+        if _brew_target != france:
+            world.coalition_brewing = None
+            world.log_event({
+                "type": "coalition_brewing_cancelled",
+                "target_nation": _brew_target,
+                "reason": "the_greater_danger",
             })
 
     # ────────── 6. Brewing check (§3c) ──────────
@@ -2087,8 +2138,12 @@ def process_coalition_turn(world) -> List[Dict]:
                     # Not enough nations — cancel
                     world.coalition_brewing = None
                     world.notifications.dismiss_by_type(COALITION_BREWING)
-            else:
-                # Update notification with remaining turns
+            elif brewing_target == france:
+                # Update notification with remaining turns. Review fix
+                # [S-D r1]: the CRITICAL anti-France alarm copy must never
+                # fire for an ECLIPSE brewing — that countdown stays on the
+                # campaign log/ledger surfaces, matching the 7b block's
+                # deliberate no-notification choice.
                 world.notifications.dismiss_by_type(COALITION_BREWING)
                 world.notifications.add(create_notification(
                     COALITION_BREWING,
@@ -2194,14 +2249,40 @@ def process_coalition_turn(world) -> List[Dict]:
                     "threat_level": int(_tgt_threat),
                     "target_nation": _tgt,
                 })
+                from backend.display_names import humanize_entity_name
                 events.append({
                     "type": "coalition_brewing_started",
-                    "message": (f"A coalition is brewing against {_tgt}! "
-                                f"{', '.join(_eclipse_qualifying)} are consulting."),
+                    "message": (
+                        f"A coalition is brewing against "
+                        f"{humanize_entity_name(_tgt)}! "
+                        f"{', '.join(humanize_entity_name(n) for n in _eclipse_qualifying)} "
+                        f"are consulting."),
                     "qualifying_nations": _eclipse_qualifying,
                     "turns_remaining": BREWING_COUNTDOWN,
                     "target_nation": _tgt,
                 })
+                # Review fix [r6 LOW]: the eclipse brewing is VISIBLE from
+                # turn 1 — a NORMAL-priority rail notice (it is Europe's
+                # business, not France's crisis) + its own dispatch line.
+                world.notifications.add(create_notification(
+                    COALITION_BREWING,
+                    NotificationPriority.NORMAL,
+                    f"Coalition Brewing Against {humanize_entity_name(_tgt)}",
+                    (f"{', '.join(humanize_entity_name(n) for n in _eclipse_qualifying)} "
+                     f"are consulting against "
+                     f"{humanize_entity_name(_tgt)}. "
+                     f"{BREWING_COUNTDOWN} turns until declaration."),
+                    int(world.current_turn),
+                    details={
+                        "qualifying_nations": _eclipse_qualifying,
+                        "turns_remaining": BREWING_COUNTDOWN,
+                        "target_nation": _tgt,
+                    },
+                ))
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(
+                    world, "diplomatic_coalition_brewing_other",
+                    {"target": humanize_entity_name(_tgt)}, "always")
 
     # ────────── 8. Update posture if coalition active (§4c) ──────────
     if world.active_coalition:

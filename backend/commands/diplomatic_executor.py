@@ -5942,6 +5942,10 @@ class DiplomaticExecutor:
         # the outcome arrives as a result popup (the PL-14 rule).
         if proposal_type == "broker_peace":
             world.dialogue_manager.pop()
+            # Review fix [r3 LOW]: clear the envoy chip like the sibling
+            # accept/reject handlers — else it lingers until clear_stale.
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             war_id = str(terms.get("war_id") or "")
             war = (getattr(world, "war_instances", {}) or {}).get(war_id)
             from backend.display_names import proposal_display_name

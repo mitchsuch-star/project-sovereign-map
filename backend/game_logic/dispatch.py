@@ -213,7 +213,14 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                  proposer=formed_display_name(world, e.get("proposer", "?")),
                  accepter=formed_display_name(world, e.get("accepter", "?")))
         elif etype in ("coalition_formed", "coalition_brewing_started"):
-            if etype == "coalition_formed":
+            # Stage D review fix [r1/r6]: an ECLIPSE coalition's events
+            # carry target_nation != player — those must never render as
+            # "against us" (the europe_* arms and the campaign log carry
+            # them instead).
+            _etarget = e.get("target_nation") or player_nation
+            if _etarget != player_nation:
+                pass
+            elif etype == "coalition_formed":
                 _add("war_touches_us",
                      line="a Coalition has formed against France.")
             else:
@@ -1759,22 +1766,33 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
         return None
 
     tier = get_threat_tier(threat)
+    _player = getattr(world, "player_nation", "France")
     section = {
         "threat_level": threat,
         "tier": tier,
-        "sources": [s.copy() for s in world.threat_sources_this_turn],
+        # Stage D review fix [r1]: this is FRANCE's alarm breakdown —
+        # producers now log every actor's deeds, so filter to
+        # player-targeted entries (legacy target-less entries included).
+        "sources": [
+            s.copy() for s in world.threat_sources_this_turn
+            if not isinstance(s, dict) or s.get("target", _player) == _player
+        ],
     }
 
-    # Brewing status
+    # Brewing status — player-targeted brewing only (an eclipse brewing
+    # against another power is not France's coalition section).
     if world.coalition_brewing:
         brewing = world.coalition_brewing
-        section["brewing"] = {
-            "qualifying_nations": brewing.get("qualifying_nations", []),
-            "turns_remaining": int(brewing.get("turns_remaining", 0)),
-        }
+        if (brewing.get("target_nation") or _player) == _player:
+            section["brewing"] = {
+                "qualifying_nations": brewing.get("qualifying_nations", []),
+                "turns_remaining": int(brewing.get("turns_remaining", 0)),
+            }
 
-    # Active coalition details
-    if is_coalition_active(world):
+    # Active coalition details — France's own coalition only (an eclipse
+    # coalition against another power surfaces via its own dispatch lines).
+    if is_coalition_active(world) and (
+            (world.active_coalition.get("target_nation") or _player) == _player):
         from backend.game_logic.diplomatic_ledger import _get_nation_visibility, _format_army_strength
         coalition = world.active_coalition
         members_info = []
@@ -1851,6 +1869,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
+    # §4.4b (Stage D review fix [r6]): the eclipse variants — a coalition
+    # against ANOTHER power must never wear the anti-France copy.
+    "diplomatic_coalition_formed_other": "A coalition has formed against {target}. Members: {member_list}.",
+    "diplomatic_coalition_dissolved_other": "The coalition against {target} has dissolved.",
+    "diplomatic_coalition_brewing_other": "Word from the chanceries: a coalition is brewing against {target}.",
     # Marshal recruitment (Jealousy v3.2 build): word of an enemy commission
     # reaches the player only with intel on that court (partial_on_nation).
     "enemy_marshal_commissioned": "Intelligence reports {nation} has raised {marshal} to high command.",
@@ -2004,6 +2027,10 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "crisis_passed": "HIGH",
     "guarantee_called": "HIGH",
     "third_party_peace": "HIGH",
+    # Eclipse-coalition variants: Europe's business, not France's crisis.
+    "diplomatic_coalition_formed_other": "MEDIUM",
+    "diplomatic_coalition_dissolved_other": "MEDIUM",
+    "diplomatic_coalition_brewing_other": "MEDIUM",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

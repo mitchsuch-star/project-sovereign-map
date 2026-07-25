@@ -49,16 +49,22 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # [85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 45, 42,
 #  39, 36, 41, 38, 35, 32, 40, 37, 34, 31, 37, 45, 42, 42, 42, 45, 45,
 #  42, 42, 45, 45, 42, 42, 45]
-# Then RE-RECORDED CONSCIOUSLY at the Stage C rung rework, same
-# session: AI-2's intent-driven rungs (P-Intent before P3, the AI-AI
-# design/alignment triggers, the sponsor branch) legitimately change
-# what the courts do each turn, which feeds relations, bloc shares and
-# the coalition tick. The pin's job from here is to catch UNINTENDED
-# drift between slices.
+# RE-RECORDED CONSCIOUSLY at the Stage C rung rework (the intent-driven
+# rungs legitimately change what the courts do each turn):
+# [85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 48, 53,
+#  50, 47, 52, 49, 46, 43, 43, 40, 37, 34, 39, 36, 33, 33, 30, 27, 27,
+#  27, 24, 24, 21, 21, 21, 18]
+# Stage D verified that series BYTE-IDENTICAL twice (AI-4a steps 5-6 in
+# isolation AND with the AI-4c tick live — spec §17). Then RE-RECORDED
+# CONSCIOUSLY ONCE at the Stage D review round: the [r5 HIGH] exhausted-
+# pair exit lets the boot minors' side-wars (Spain|Britain et al.) end by
+# mutual exhaustion mid-run (~turn 17), which moves the minors' economies
+# and the courts' behaviour downstream — identical through turn 17, +3
+# offset after. The pin's job from here is to catch UNINTENDED drift.
 BASELINE_SERIES = [
     85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 48, 53,
-    50, 47, 52, 49, 46, 43, 43, 40, 37, 34, 39, 36, 33, 33, 30, 27, 27,
-    27, 24, 24, 21, 21, 21, 18,
+    50, 50, 55, 52, 49, 46, 46, 43, 40, 37, 42, 39, 36, 36, 33, 30, 30,
+    30, 27, 27, 24, 24, 24, 21,
 ]
 
 

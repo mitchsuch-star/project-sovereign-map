@@ -38,6 +38,16 @@ THIRD_PARTY_MAX_CESSIONS = 2        # decisive victor's territorial take cap
 THIRD_PARTY_DECISIVE_SCORE = 20     # the AUD-c decisive band, reused
 BROKER_ASK_MARGIN = 10              # "close to the table" band for the ask
 BROKER_ASK_COOLDOWN = 6             # per-war courier cadence
+# Review fix [r5 HIGH] — the exhausted-pair exit: a non-player, non-vassal
+# SUB-PAIR welded inside a player-containing war instance (the 1805 boot
+# folds all seven starting wars into ONE instance with France in it) would
+# otherwise ratchet to WE 200 with no exit until the player ends the whole
+# war. Two spent courts whose side-war is going nowhere sign a white peace
+# — §3.1a's descent (c) made real for the co-belligerent minors (Spain's
+# own exits, 1795/1802). Vassals stay bound to their lord's war.
+PAIR_EXIT_WE_FLOOR = 120            # both sides this weary
+PAIR_EXIT_MIN_TURNS = 10            # the pair fought this long
+PAIR_EXIT_STAGNANT_SCORE = 15       # |pair war score| within this band
 
 
 def _side_leader_active(war: Dict, side: str) -> Optional[str]:
@@ -75,6 +85,15 @@ def build_third_party_terms(world, war: Dict, *, loser: str,
     )
 
     if winner_score >= THIRD_PARTY_DECISIVE_SCORE:
+        # Review fix [r3 LOW]: the shared apply-guard silently drops a
+        # cession that would strip a nation's LAST region below the
+        # total-annexation war score — never GENERATE a package the apply
+        # step will quietly refuse (the announced peace must match the
+        # applied one). Elimination cessions need the ≥90 score.
+        from backend.game_logic.settlement_scoring import (
+            TOTAL_ANNEXATION_WAR_SCORE,
+        )
+        loser_region_count = len(world.get_nation_regions(loser))
         ceded = 0
         for region_name in get_agenda_military_targets(winner, world):
             if ceded >= THIRD_PARTY_MAX_CESSIONS:
@@ -84,6 +103,9 @@ def build_third_party_terms(world, war: Dict, *, loser: str,
                 continue
             if getattr(region, "controller", None) != loser:
                 continue
+            if (loser_region_count - ceded <= 1
+                    and winner_score < TOTAL_ANNEXATION_WAR_SCORE):
+                continue  # would be the loser's last province
             if getattr(region, "is_capital", False):
                 # D2's floor, verbatim: AI wars may eliminate MINORS —
                 # a single-province minor's capital IS the design's
@@ -221,13 +243,20 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         # winning" — honest, but SURRENDER terms need no enthusiasm. A
         # package whose every material clause flows TOWARD the accepter
         # is taken; a white peace is taken when BOTH courts crossed the
-        # seam (mutual exhaustion); anything else needs the broker.
+        # seam (mutual exhaustion) or under the broker's auspices.
+        # Review hardening [r3 INFO]: a material package that does NOT
+        # flow wholly toward the accepter is refused STRUCTURALLY — the
+        # broker's force never rams a winner-pays peace through a scored
+        # objection (the old guard rested on an unasserted constant
+        # coupling).
         material = [t for t in terms
                     if t.get("type") in ("gold_indemnity", "territory_cede",
                                          "gold_lump", "gold_per_turn")]
         surrender_shaped = bool(material) and all(
             t.get("to") == winner and t.get("from") == loser
             for t in material)
+        if material and not surrender_shaped:
+            return None
         winner_score = int(get_war_score_for(world, winner, loser))
         winner_threshold = effective_peace_threshold(winner, loser, world)
         mutual_exhaustion = (not material
@@ -259,6 +288,7 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     process_formations(world)
 
     consequence = _consequence_line(world, winner, loser, terms)
+    from backend.display_names import humanize_entity_name
     event = {
         "type": "third_party_peace",
         "war_id": war_id,
@@ -267,8 +297,9 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         "broker": broker,
         "terms": [dict(t) for t in terms],
         "consequence": consequence,
-        "message": (f"Peace concluded between {loser} and {winner} "
-                    f"without France. {consequence}"),
+        "message": (f"Peace concluded between {humanize_entity_name(loser)} "
+                    f"and {humanize_entity_name(winner)} without France. "
+                    f"{consequence}"),
     }
     world.log_event({k: v for k, v in event.items() if k != "terms"})
 
@@ -300,7 +331,13 @@ def process_third_party_settlements(world) -> List[Dict]:
         if not isinstance(war, dict) or war.get("ended_turn") is not None:
             continue
         participants = list(war.get("active_participants") or [])
-        if len(participants) < 2 or player in participants:
+        if len(participants) < 2:
+            continue
+        if player in participants:
+            # The player decides its OWN peace — but the non-player,
+            # non-vassal SUB-PAIRS welded into this instance still get
+            # the exhausted-pair exit (review fix [r5 HIGH]).
+            _process_exhausted_pair_exits(world, str(war_id), war, events)
             continue
         if turn - int(war.get("created_turn", turn)) < THIRD_PARTY_MIN_WAR_TURNS:
             continue
@@ -315,6 +352,74 @@ def process_third_party_settlements(world) -> List[Dict]:
             continue
         _maybe_ask_france_to_broker(world, str(war_id), war)
     return events
+
+
+def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
+                                  events: List[Dict]) -> None:
+    """The mutual-exhaustion white peace for a non-player sub-pair inside
+    a player-containing instance (constants above). At most ONE pair exit
+    per turn world-wide (tempo); the player's own pairs and every vassal's
+    pairs are untouchable — a vassal follows its lord's war, and its
+    weariness is the lord's pressure to read."""
+    from backend.game_logic.diplomacy import (
+        cleanup_war_end,
+        get_war_score_for,
+        set_diplomatic_state,
+    )
+    if getattr(world, "_pair_exit_this_turn", -1) == int(world.current_turn):
+        return
+    player = getattr(world, "player_nation", "France")
+    turn = int(getattr(world, "current_turn", 0))
+    vassals = set((getattr(world, "vassals", {}) or {}).keys())
+    exhaustion = getattr(world, "war_exhaustion", {}) or {}
+    meta = war.get("diplo_key_meta") or {}
+
+    for pair_key in list(war.get("active_diplo_keys") or []):
+        pair_meta = meta.get(pair_key) or {}
+        if pair_meta.get("pair_status") != "war":
+            continue
+        parts = str(pair_key).split("|")
+        if len(parts) != 2:
+            continue
+        a, b = parts
+        if player in (a, b) or a in vassals or b in vassals:
+            continue
+        joined = int(pair_meta.get("joined_turn", war.get("created_turn", turn)) or 0)
+        if turn - joined < PAIR_EXIT_MIN_TURNS:
+            continue
+        if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR
+                or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):
+            continue
+        if abs(int(get_war_score_for(world, a, b))) > PAIR_EXIT_STAGNANT_SCORE:
+            continue
+
+        set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")
+        cleanup_war_end(world, pair_key, conclude_objectives=True)
+        world._pair_exit_this_turn = int(world.current_turn)
+
+        from backend.display_names import humanize_entity_name
+        consequence = ("Both courts are spent; their side of the war ends "
+                       "while the greater war goes on.")
+        event = {
+            "type": "third_party_peace",
+            "war_id": war_id,
+            "proposer": a,
+            "accepter": b,
+            "broker": None,
+            "consequence": consequence,
+            "message": (f"Peace concluded between {humanize_entity_name(a)} "
+                        f"and {humanize_entity_name(b)} without France. "
+                        f"{consequence}"),
+        }
+        world.log_event(dict(event))
+        events.append(event)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "third_party_peace", {
+            "proposer": humanize_entity_name(a),
+            "accepter": humanize_entity_name(b),
+            "consequence": consequence,
+        }, "always")
+        return
 
 
 def _maybe_ask_france_to_broker(world, war_id: str, war: Dict) -> None:
@@ -350,9 +455,20 @@ def _maybe_ask_france_to_broker(world, war_id: str, war: Dict) -> None:
     if asker is None or _has_pending_proposal_from(asker, world):
         return
     war["broker_ask_turn"] = turn
+    # Review fix [r3 MEDIUM]: the popup must NAME the war being brokered —
+    # without proposer/target the surface reads "between Unknown and
+    # France" and the §4.2b informed-refusal contract dies. The asker is
+    # the proposer; its enemy leader is the counterparty.
+    other = (defenders_leader if asker == attackers_leader
+             else attackers_leader)
     proposal = _make_proposal(
         asker, "broker_peace", 6,
-        {"type": "broker_peace", "war_id": war_id},
+        {
+            "type": "broker_peace",
+            "war_id": war_id,
+            "proposer_nation": asker,
+            "target_nation": other,
+        },
         world,
     )
     if proposal:

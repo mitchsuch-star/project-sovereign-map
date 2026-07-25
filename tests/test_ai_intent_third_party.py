@@ -132,11 +132,14 @@ class TestThirdPartySettlement:
         war_id, war = _find_war(world, "Prussia", "Hanover")
         assert war_id
         self._age_war(world, war)
-        # Hanover is the loser: exhausted and beaten on the score.
+        # Hanover is the loser: exhausted and beaten decisively (the ≥90
+        # band — a single-province minor's capital may only cede, and its
+        # nation eliminate, at the total-annexation score; below it the
+        # package would be a white peace).
         world.war_exhaustion["Hanover"] = 150
         world.war_scores[world._make_diplo_key("Hanover", "Prussia")] = (
-            -60 if world._make_diplo_key("Hanover", "Prussia").startswith("Hanover")
-            else 60)
+            -95 if world._make_diplo_key("Hanover", "Prussia").startswith("Hanover")
+            else 95)
         # The player's mounted dialogue must be untouched (pin 19c).
         world.dialogue_manager.push({
             "type": "test_sentinel", "target_nation": "Spain",
@@ -165,7 +168,7 @@ class TestThirdPartySettlement:
                                         winner="Prussia")
         # Force the decisive band from Prussia's perspective first.
         key = world._make_diplo_key("Hanover", "Prussia")
-        world.war_scores[key] = -60 if key.startswith("Hanover") else 60
+        world.war_scores[key] = -95 if key.startswith("Hanover") else 95
         terms = build_third_party_terms(world, war, loser="Hanover",
                                         winner="Prussia")
         cessions = [t for t in terms if t.get("type") == "territory_cede"]
@@ -179,7 +182,7 @@ class TestThirdPartySettlement:
         self._age_war(world, war)
         world.war_exhaustion["Hanover"] = 150
         key = world._make_diplo_key("Hanover", "Prussia")
-        world.war_scores[key] = -60 if key.startswith("Hanover") else 60
+        world.war_scores[key] = -95 if key.startswith("Hanover") else 95
         events = process_third_party_settlements(world)
         assert any(e["type"] == "third_party_peace" for e in events)
         assert world.regions["Hanover"].controller == "Prussia"
@@ -192,7 +195,7 @@ class TestThirdPartySettlement:
         self._age_war(world, war)
         world.war_exhaustion["Hanover"] = 150
         key = world._make_diplo_key("Hanover", "Prussia")
-        world.war_scores[key] = -60 if key.startswith("Hanover") else 60
+        world.war_scores[key] = -95 if key.startswith("Hanover") else 95
         calls = {}
 
         def _refuse(*args, **kwargs):
@@ -212,7 +215,7 @@ class TestThirdPartySettlement:
         war_id, war = _find_war(world, "Prussia", "Hanover")
         world.war_exhaustion["Hanover"] = 150
         key = world._make_diplo_key("Hanover", "Prussia")
-        world.war_scores[key] = -60 if key.startswith("Hanover") else 60
+        world.war_scores[key] = -95 if key.startswith("Hanover") else 95
         assert process_third_party_settlements(world) == [], \
             "a war younger than the age gate never settles"
         # France's own wars are never touched by this pass.
@@ -222,6 +225,96 @@ class TestThirdPartySettlement:
         world.war_exhaustion["Austria"] = 190
         events = process_third_party_settlements(world)
         assert france_war["ended_turn"] is None
+
+    def test_exhausted_pair_exits_the_players_war_instance(self, world):
+        """Review fix [r5 HIGH]: the 1805 boot welds all seven starting
+        wars into ONE instance containing France, so the four satellite
+        sub-pairs (Spain|Britain, Holland|Britain, Bavaria|Austria,
+        KingdomOfItaly|Austria) had NO exit and ratcheted to exhaustion
+        200 forever. A spent, stagnant, non-vassal pair now signs a white
+        peace while the greater war goes on."""
+        war_id, war = _find_war(world, "France", "Britain")
+        assert war_id, "the boot instance contains France"
+        assert "Spain" in (war.get("active_participants") or [])
+        # Spain and Britain both spent; their pair old and going nowhere.
+        world.war_exhaustion["Spain"] = 150
+        world.war_exhaustion["Britain"] = 150
+        pair_key = world._make_diplo_key("Spain", "Britain")
+        meta = war.get("diplo_key_meta", {}).get(pair_key)
+        assert meta is not None, "the boot pair exists in the instance"
+        meta["joined_turn"] = int(world.current_turn) - 12
+        world.war_scores[pair_key] = 0
+        events = process_third_party_settlements(world)
+        exits = [e for e in events if e["type"] == "third_party_peace"]
+        assert exits and {exits[0]["proposer"], exits[0]["accepter"]} == \
+            {"Spain", "Britain"}
+        assert world.get_diplomatic_state("Spain", "Britain") == "PEACE"
+        # The greater war is untouched: France still fights Britain.
+        assert world.is_at_war("France", "Britain")
+        assert war.get("ended_turn") is None
+        # Spain leaves the instance once its only pair closes — its
+        # exhaustion now DECAYS on the tick (the ratchet is broken).
+        assert "Spain" not in (war.get("active_participants") or [])
+
+    def test_vassal_pairs_never_exit_the_lords_war(self, world):
+        """A vassal follows its lord's war — Holland (France's vassal)
+        stays bound however weary."""
+        war_id, war = _find_war(world, "France", "Britain")
+        assert war_id
+        world.war_exhaustion["Holland"] = 200
+        world.war_exhaustion["Britain"] = 200
+        pair_key = world._make_diplo_key("Britain", "Holland")
+        meta = war.get("diplo_key_meta", {}).get(pair_key)
+        if meta is None:
+            pytest.skip("boot topology drift: no Britain|Holland pair")
+        meta["joined_turn"] = int(world.current_turn) - 12
+        world.war_scores[pair_key] = 0
+        process_third_party_settlements(world)
+        assert world.is_at_war("Britain", "Holland"), \
+            "a vassal's pair is the lord's to end"
+
+    def test_pair_exit_never_touches_the_players_own_pairs(self, world):
+        war_id, war = _find_war(world, "France", "Britain")
+        world.war_exhaustion["France"] = 200
+        world.war_exhaustion["Britain"] = 200
+        pair_key = world._make_diplo_key("Britain", "France")
+        meta = war.get("diplo_key_meta", {}).get(pair_key)
+        if meta is not None:
+            meta["joined_turn"] = int(world.current_turn) - 12
+        world.war_scores[pair_key] = 0
+        process_third_party_settlements(world)
+        assert world.is_at_war("France", "Britain")
+
+    def test_third_party_battle_arm_accrues_for_the_loser(self, world):
+        """The AI-4c battle arm (both combat copies gained it): a battle
+        France is not in accrues exhaustion for the LOSER's own dead —
+        exercised through the real executor pipeline."""
+        import random
+
+        from backend.commands.executor import CommandExecutor
+        declare_war(world, "Prussia", "Hanover")
+        executor = CommandExecutor()
+        gs = {"world": world, "debug_mode": True}
+        prussian = next(m for m in world.marshals.values()
+                        if m.nation == "Prussia" and m.strength > 0)
+        prussian.strength = 60000
+        target = "Hanover"
+        world.regions[target].garrison_strength = 0
+        # A weak Hanoverian defender materialises for the fixture.
+        from backend.models.marshal import Marshal
+        defender = Marshal("Wallmoden", target, 8000, "cautious",
+                           nation="Hanover")
+        world.marshals["Wallmoden"] = defender
+        prussian.location = world.regions[target].adjacent_regions[0]
+        world._build_marshal_index()
+        france_we_before = int(world.war_exhaustion.get("France", 0))
+        hanover_we_before = int(world.war_exhaustion.get("Hanover", 0))
+        random.seed(4242)
+        executor._execute_attack(prussian, target, world, gs)
+        assert int(world.war_exhaustion.get("Hanover", 0)) > hanover_we_before, \
+            "the third-party loser bears its own dead"
+        assert int(world.war_exhaustion.get("France", 0)) == france_we_before, \
+            "France's series is untouched by a battle it is not in"
 
     def test_broker_ask_reaches_the_mailbox(self, world):
         """§4.2b's broker row: a court close to the table asks France."""

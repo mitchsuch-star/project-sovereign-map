@@ -6062,8 +6062,11 @@ class EnemyAI:
     def _get_convergence_bias_score(self, region_name: str, nation: str, world: WorldState) -> int:
         """Coalition convergence bias for P7 movement (COALITION_SPEC §5b).
 
-        Returns score bonus for regions adjacent to French-controlled territory.
-        Only applies to coalition members during an active coalition.
+        Returns score bonus for regions adjacent to the coalition TARGET's
+        territory. §4.4b (Stage D review fix [r6]): the target is read from
+        the coalition record — an eclipse coalition's members converge on
+        the eclipsed power's borders, not France's (legacy records default
+        to the player, byte-identical).
         """
         from backend.game_logic.coalition import is_coalition_member, is_coalition_active, get_convergence_bias
         if not is_coalition_active(world) or not is_coalition_member(nation, world):
@@ -6074,12 +6077,13 @@ class EnemyAI:
         if bias <= 0:
             return 0
 
-        france = world.player_nation
+        france = (world.active_coalition.get("target_nation")
+                  or world.player_nation)
         region = world.get_region(region_name)
         if not region:
             return 0
 
-        # Check if any adjacent region is French-controlled
+        # Check if any adjacent region is target-controlled
         for adj_name in region.adjacent_regions:
             adj = world.get_region(adj_name)
             if adj and adj.controller == france:

@@ -247,6 +247,19 @@ def get_llm_game_state() -> dict:
         "world": world,
     }
 
+def _player_coalition_brewing(w):
+    """Stage D review fix [r1]: the top-bar alarm reads only a brewing that
+    TARGETS the player — an eclipse brewing (target_nation != player) must
+    not pulse France's coalition warning."""
+    brewing = getattr(w, 'coalition_brewing', None)
+    if not brewing:
+        return None
+    player = getattr(w, 'player_nation', 'France')
+    if (brewing.get("target_nation") or player) != player:
+        return None
+    return brewing
+
+
 def _get_talleyrand_state_label(w) -> str:
     """Get Talleyrand state label for top bar (authority-based, PL-23)."""
     if not hasattr(w, 'authority_tracker'):
@@ -357,10 +370,10 @@ def build_base_response(world, success: bool = True, message: str = "",
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
-        "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
+        "coalition_brewing": _player_coalition_brewing(world) is not None,
         "coalition_brewing_turns": int(
-            world.coalition_brewing.get("turns_remaining", 0)
-        ) if getattr(world, 'coalition_brewing', None) else None,
+            _player_coalition_brewing(world).get("turns_remaining", 0)
+        ) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }
@@ -1098,8 +1111,8 @@ def test_connection():
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": int(getattr(world, 'threat_level', 0)),
-        "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
-        "coalition_brewing_turns": int(world.coalition_brewing.get("turns_remaining", 0)) if getattr(world, 'coalition_brewing', None) else None,
+        "coalition_brewing": _player_coalition_brewing(world) is not None,
+        "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
     }

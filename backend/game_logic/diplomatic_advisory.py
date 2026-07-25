@@ -441,9 +441,14 @@ def _assess_situation(world) -> Dict:
             f"{threat} ({tier}).")
 
     # ── What alarmed Europe this turn (top 3, already itemized) ──
+    # Stage D review fix [r1]: this list explains FRANCE's alarm delta —
+    # producers now log every actor's deeds, so only player-targeted
+    # entries (or legacy target-less ones) belong here.
+    _adv_player = getattr(world, "player_nation", "France")
     sources = sorted(
         (s for s in (getattr(world, "threat_sources_this_turn", []) or [])
-         if isinstance(s, dict)),
+         if isinstance(s, dict)
+         and s.get("target", _adv_player) == _adv_player),
         key=lambda s: -abs(int(s.get("amount", 0))))[:3]
     sources_context: List[Dict] = []
     if sources:

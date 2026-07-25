@@ -2774,3 +2774,66 @@ Stage D couriers) — the sweep-level "every AI war produced ≥1 offer" asserti
 AI-V, where the DoD sites it. `test_ai_intent_war_decision.py` (19) +
 `test_ai_intent_third_party.py` (13) + the flipped migration pins; suite green (count in
 STATUS); ruff clean; `diplomatic_ledger.gd` boot-smoked (XR-1).
+
+### 17.1 The review round — 9 lenses, 2 HIGH + 12 confirmed findings, ALL FIXED
+
+A nine-lens adversarial fleet (threat migration · war-council lifecycle · settlements · combat
+seams · fog/GR/display · exhaustion/economy · coalition rulings · beats delivery · test
+falsifiability) ran against the landed commit `3227024`. Everything the fleet confirmed was
+fixed in the same session:
+
+- **[r5 HIGH] The boot-minors exhaustion ratchet.** The seven `starting_wars` fold into ONE
+  instance CONTAINING France, so the instance-scoped player-skip froze the four satellite
+  sub-pairs (Spain|Britain, Holland|Britain, Bavaria|Austria, KingdomOfItaly|Austria) — under
+  the AI-4c tick they would have ratcheted to exhaustion 200 with no exit until the player
+  ended the whole Third Coalition war. Fixed as **the exhausted-pair exit**: a non-player,
+  NON-VASSAL sub-pair inside a player-containing instance signs a white peace when both sides
+  are spent (≥120), the pair is old (≥10 turns) and stagnant (|score| ≤ 15) — §3.1a's descent
+  (c) for the co-belligerent minors, Spain's own 1795/1802 exits; ONE pair exit per turn
+  world-wide; the player's pairs and every vassal's pairs untouchable (a vassal follows its
+  lord's war — its weariness is the lord's pressure to read). The 40-turn threat baseline was
+  re-recorded consciously ONCE for this (identical through turn 17, +3 after — the ripple of
+  the minors' side-wars actually ending).
+- **[r2 HIGH] The D1 cap jammed on elimination victories.** A design war won by eliminating
+  the minor never receives `ended_turn` (elimination bypasses the settlement path), so the cap
+  counted it forever — two successful conquests would have ended AI war-making for the
+  campaign. Fixed: a war is LIVE for the cap only with two standing sides.
+- **[r2 MED] Pin 21's stall guarantee extended to the SOFT gates** (cap/ladder/restraints, 8
+  turns) — a fully fore-warned crisis that cannot fire no longer freezes the world-wide
+  foreground slot forever.
+- **[r1 MED ×4] The eclipse reader leaks**: the CRITICAL brewing-countdown notification, the
+  top-bar `coalition_brewing` flag (`main.py` ×2), the Morning-Dispatch coalition section's
+  sources/brewing/active-coalition blocks, and the war-room "What stirred Europe" list all now
+  filter to PLAYER-targeted threat entries / player-targeted coalitions.
+- **[r6 MED ×3] Presentation de-anchoring**: `coalition_declared`/`coalition_dissolved`/
+  `coalition_brewing_started` oneliners, the formation notification (NORMAL priority + "on
+  {target}" copy for eclipses), and the new `diplomatic_coalition_{formed,dissolved,brewing}_other`
+  dispatch templates; the §5b convergence bias converges on the coalition's own
+  `target_nation`; the 6a/brewing precedence now fires only when France can actually coalesce
+  (≥1 qualifying court — kills the dissolve/re-brew oscillation); the eclipse brewing gained
+  its turn-1 rail notice + dispatch line; the France coalition panel (`diplomatic_ledger`)
+  excludes eclipse records until Stage F's own render.
+- **[r3 MED] The broker ask names its war** (`proposer_nation`/`target_nation` on the terms —
+  was "between Unknown and France") + the envoy chip dismissal on accept; the last-region
+  cession is only generated at the total-annexation score (the announced peace always matches
+  the applied one); the force arm STRUCTURALLY refuses any material package not flowing wholly
+  toward the accepter (the winner-pays hole closed by shape, not by constant coupling).
+- **[r8/r5-fog] R7 leaks**: `third_party_peace` and the eclipse brewing messages humanize
+  their nation names; the guarantor-join war's logged declaration carries "honouring the
+  guarantee of X" as its stated reason (pin 4).
+- **[r4 LOW] The auto-combat mirror gained the symmetric falsy-nation guard.**
+- **[r9] Test falsifiability**: pin 15's FULL second clause asserted (strengths, locations,
+  instance count, no conquest event); the third-party battle arm exercised through the real
+  executor; the deterred skip became a hard assert; the save/load test drives the CLOCK to the
+  post-load declaration; the real declaration pins `count_ai_initiated_wars == 1`; the
+  elimination-frees-the-cap pin added.
+- **Accepted with reasons**: the three cause-copy variants (dispatch/headline/log — different
+  registers per surface, flagged as drift-watch); the AI-AI coercive-demand dedupe return
+  unused (the ladder gate re-verifies independently); the eliminated-coveter "satisfied" copy;
+  the orphaned `proposal_result` route + the single-candidate headline repeat (pre-existing,
+  out of scope); vassal-only wars settling headlessly (vassals fight their own wars —
+  confirmed intended); the guarantee's 1-DP player price vs the AI's predicate throttle (DP is
+  architecturally player-only; mechanic shared — not a GR5 break).
+
+Post-fix gates: suite **14,831/3**, ruff clean, M1–M7 byte-identical, the 40-turn baseline
+re-recorded consciously (§ above), no new `.gd` touches this round.

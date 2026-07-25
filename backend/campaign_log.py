@@ -1645,9 +1645,19 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "coalition_declared":
         members = event.get("members", [])
-        return f"Coalition formed against France! Members: {', '.join(members) if members else 'Unknown'}"
+        members_str = ', '.join(members) if members else 'Unknown'
+        # Stage D review fix [r6]: an ECLIPSE coalition names its own
+        # target — never dressed as a coalition against France.
+        target = event.get("target_nation") or "France"
+        if target != "France":
+            return (f"Coalition formed against {display_nation(target)}! "
+                    f"Members: {members_str}")
+        return f"Coalition formed against France! Members: {members_str}"
 
     if event_type == "coalition_dissolved":
+        target = event.get("target_nation") or "France"
+        if target != "France":
+            return f"Coalition against {display_nation(target)} has dissolved."
         return "Coalition against France has dissolved."
 
     # V3 Session 8: new event types
@@ -1741,6 +1751,11 @@ def format_event_oneliner(event: dict) -> str:
         threat = event.get("threat_level", 0)
         qualifying = event.get("qualifying_nations", [])
         nations_str = ", ".join(qualifying) if qualifying else "several nations"
+        # Stage D review fix [r1]: name a non-France target explicitly.
+        brew_target = event.get("target_nation") or "France"
+        if brew_target != "France":
+            return (f"Coalition brewing against {display_nation(brew_target)} "
+                    f"— {nations_str} consulting (their alarm: {threat})")
         return f"Coalition brewing — {nations_str} alarmed (threat: {threat})"
 
     if event_type == "coalition_brewing_cancelled":

@@ -9938,7 +9938,7 @@ class WorldState:
                     getattr(self, "sovereign_map", "legacy") == "europe"
                     and france not in (marshal.nation, enemy.nation)
                 )
-                if combat_result.get("victor") == marshal.name:
+                if combat_result.get("victor") == marshal.name and marshal.nation:
                     add_threat(self, 3, "battle_win", target=marshal.nation)
                     if ac_def_cas > 0 and ac_atk_cas > 0:
                         ratio = ac_def_cas / ac_atk_cas

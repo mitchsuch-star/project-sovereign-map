@@ -161,6 +161,8 @@ class TestCrisisLifecycle:
                   if e.get("type") == "war_declaration"
                   and e.get("aggressor") == "Prussia"]
         assert logged and logged[-1].get("stated_reason")
+        # Review fix [r9]: the REAL declared war counts against D1's cap.
+        assert count_ai_initiated_wars(world) == 1
 
     def test_ladder_gate_blocks_cold_open(self, world, monkeypatch):
         """Weight alone never declares — §5 pin 8's no-cold-open-wars.
@@ -200,15 +202,33 @@ class TestCrisisLifecycle:
 
     def test_d1_cap_holds_the_crisis_open(self, world):
         _arm_prussia_crisis(world)
-        # Two live AI-initiated wars already stand (D1's denominator).
-        world.war_instances["wf1"] = {"ai_initiated": True, "ended_turn": None}
-        world.war_instances["wf2"] = {"ai_initiated": True, "ended_turn": None}
+        # Two live AI-initiated wars already stand (D1's denominator) —
+        # LIVE means two standing sides (review fix [r2 HIGH]: a war
+        # decided by elimination stops counting).
+        world.war_instances["wf1"] = {
+            "ai_initiated": True, "ended_turn": None,
+            "active_participants": ["Sweden", "Denmark"],
+        }
+        world.war_instances["wf2"] = {
+            "ai_initiated": True, "ended_turn": None,
+            "active_participants": ["Spain", "Portugal"],
+        }
         assert count_ai_initiated_wars(world) >= MAX_SIMULTANEOUS_AI_WARS
         process_war_council(world)
         _poll_next_turn(world)
         _poll_next_turn(world)
         assert not world.is_at_war("Prussia", "Hanover"), "D1's cap holds"
         assert "Prussia" in world.war_intents, "the crisis waits, does not die"
+
+    def test_elimination_frees_the_d1_cap(self, world):
+        """Review fix [r2 HIGH]: a design war won by ELIMINATING the minor
+        never receives ended_turn — the cap must not count it forever."""
+        world.war_instances["wf_won"] = {
+            "ai_initiated": True, "ended_turn": None,
+            # The loser was eliminated and stripped from the sides.
+            "active_participants": ["Prussia"],
+        }
+        assert count_ai_initiated_wars(world) == 0
 
 
 class TestCrisisPasses:
@@ -235,8 +255,11 @@ class TestCrisisPasses:
         world.invalidate_bloc_members_cache()
         events = _poll_next_turn(world)
         passed = [e for e in events if e["type"] == "crisis_passed"]
-        if get_nation_intent("Prussia", world).price == "fight":
-            pytest.skip("fixture drift: -8 did not drop the rung")
+        # Review fix [r9]: a HARD assert, not a skip — if a retune ever
+        # keeps the rung at fight through the -8 deterrent, this test must
+        # fail loudly, not go dark (weight 87 - 8 = 79 < 85 today).
+        assert get_nation_intent("Prussia", world).price != "fight", \
+            "the -8 deterrent must drop the fixture's rung below fight"
         assert passed and passed[0]["cause"] == "deterred"
 
     def test_satisfied_when_the_want_is_won(self, world):
@@ -282,10 +305,27 @@ class TestPin15NoUndeclaredConquest:
         austrian.location = world.regions[prussian_region].adjacent_regions[0]
         world._build_marshal_index()
         before_controller = world.regions[prussian_region].controller
+        before_strengths = {m.name: int(m.strength)
+                            for m in world.marshals.values()}
+        before_locations = {m.name: m.location
+                            for m in world.marshals.values()}
+        before_war_count = len(world.war_instances)
+        before_captures = sum(1 for e in world.event_log
+                              if e.get("type") == "region_captured")
         result = executor._execute_attack(austrian, prussian_region, world, gs)
         assert result.get("success") is False
         assert world.regions[prussian_region].controller == before_controller
         assert not world.is_at_war("Austria", "Prussia")
+        # Pin 15's FULL second clause: the refused declaration leaves the
+        # world byte-identical — no battle ran, nobody moved, no instance,
+        # no conquest event (review fix [r9]).
+        assert {m.name: int(m.strength)
+                for m in world.marshals.values()} == before_strengths
+        assert {m.name: m.location
+                for m in world.marshals.values()} == before_locations
+        assert len(world.war_instances) == before_war_count
+        assert sum(1 for e in world.event_log
+                   if e.get("type") == "region_captured") == before_captures
 
     def test_open_movement_capture_requires_declaration(self, world):
         """The can_enter_territory shortcut is closed: an attack on a
@@ -405,6 +445,13 @@ class TestSerialization:
         assert loaded.war_intents["Prussia"] == record
         assert (loaded.diplomatic_refusals.get("Prussia>Hanover")
                 == world.diplomatic_refusals.get("Prussia>Hanover"))
+        # Review fix [r9]: the CLOCK drives the loaded world — the
+        # declaration fires on schedule after the load, exactly as it
+        # would have without one (the behaviour, not just the record).
+        loaded.current_turn = int(loaded.current_turn) + 1
+        process_war_council(loaded)
+        assert loaded.is_at_war("Prussia", "Hanover"), \
+            "fore-warning must not lie across a save/load"
 
     def test_pre_stage_d_saves_read_empty(self, world):
         data = world.to_dict()

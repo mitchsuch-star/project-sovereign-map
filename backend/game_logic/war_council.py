@@ -57,6 +57,8 @@ CRISIS_FOREWARN_TURNS = 2          # foregrounded tenure before declaration
 CRISIS_REFUSALS_REQUIRED = 2       # ladder gate: refused asks on record
 AI_WAR_FORCE_RATIO = 1.25          # the NA-5 strength idiom
 AI_WAR_TREASURY_FLOOR = 500        # no bankrupt adventures
+CRISIS_HARD_STALL_TURNS = 4        # preview-refused predicate → starved
+CRISIS_SOFT_STALL_TURNS = 8        # ladder/restraints/cap blocked → starved
 COERCIVE_DEMAND_TYPE = "coercive_demand"
 
 # The §12.1 cause taxonomy for beat 7 (display strings composed backend-side, R7)
@@ -74,11 +76,21 @@ def _standing_strength(world, nation: str) -> int:
 
 
 def count_ai_initiated_wars(world) -> int:
-    """Live wars the war council opened (D1's cap denominator)."""
+    """Live wars the war council opened (D1's cap denominator).
+
+    Review fix [r2 HIGH]: a war whose loser was ELIMINATED never receives
+    `ended_turn` (elimination bypasses the settlement path by design), so
+    counting on `ended_turn` alone jammed the cap permanently after two
+    successful minor-conquests — the feature's own happy path. A war is
+    LIVE for the cap only while it still has two standing sides.
+    """
     count = 0
     for war in (getattr(world, "war_instances", {}) or {}).values():
-        if war.get("ai_initiated") and war.get("ended_turn") is None:
-            count += 1
+        if not war.get("ai_initiated") or war.get("ended_turn") is not None:
+            continue
+        if len(war.get("active_participants") or []) < 2:
+            continue  # decided by elimination — no longer a live war
+        count += 1
     return count
 
 
@@ -421,6 +433,17 @@ def _honour_guarantees(world, coveter: str, target: str, war_id: str,
             continue
         join = declare_war(world, guarantor, coveter, casus_belli=True)
         if join.get("success"):
+            # Review fix [r8 LOW]: the join war's headline reason is the
+            # guarantee, not bare "conquest" — patch the just-logged
+            # declaration event the same way the design war does (pin 4).
+            for logged in reversed(getattr(world, "event_log", []) or []):
+                if (logged.get("type") == "war_declaration"
+                        and logged.get("aggressor") == guarantor
+                        and logged.get("target") == coveter):
+                    logged["stated_reason"] = (
+                        f"honouring the guarantee of "
+                        f"{humanize_entity_name(target)}")
+                    break
             event = {
                 "type": "guarantee_honored",
                 "guarantor": guarantor,
@@ -459,10 +482,12 @@ def _run_ai_instrument_producers(world, coveter: str, record: Dict,
             if price is not None and int(gold.get(target, 0)) >= price:
                 gold[target] = int(gold.get(target, 0)) - int(price)
                 gold[coveter] = int(gold.get(coveter, 0)) + int(price)
+                # Review fix [r2 LOW]: the SAME granted shape the player
+                # verb mints ({"gold": N}) — one record schema, GR5.
                 create_compensation_bargain(
                     world, payer=target, recipient=coveter,
                     design_id=str(record.get("design_id") or ""),
-                    granted={"kind": "gold", "amount": int(price)},
+                    granted={"gold": int(price)},
                 )
                 from backend.display_names import humanize_entity_name
                 event = {
@@ -613,7 +638,7 @@ def process_war_council(world) -> List[Dict]:
             # screen as starved (pin 21 forbids a foregrounded crisis
             # that never ends).
             record["stall_turns"] = int(record.get("stall_turns", 0)) + 1
-            if record["stall_turns"] >= 4:
+            if record["stall_turns"] >= CRISIS_HARD_STALL_TURNS:
                 _emit_crisis_passed(world, coveter, record, "starved", events)
                 del store[coveter]
             continue
@@ -631,12 +656,23 @@ def process_war_council(world) -> List[Dict]:
         if turn - int(foregrounded_turn) < CRISIS_FOREWARN_TURNS:
             continue
         target = str(record.get("target") or "")
-        if count_ai_initiated_wars(world) >= MAX_SIMULTANEOUS_AI_WARS:
-            continue  # D1's cap — the crisis waits, does not die
-        if not _ladder_climbed(world, coveter, target):
+        if (count_ai_initiated_wars(world) >= MAX_SIMULTANEOUS_AI_WARS
+                or not _ladder_climbed(world, coveter, target)
+                or not _restraints_hold(world, coveter, target)):
+            # Review fix [r2 MEDIUM]: the SOFT gates (cap / ladder /
+            # restraints) also carry pin 21's termination guarantee — a
+            # fully fore-warned crisis that cannot fire for a long spell
+            # (the holder permanently at war, an empty chest, a jammed
+            # cap) cools on screen instead of freezing the world-wide
+            # foreground slot forever. Longer window than the hard
+            # predicate: these gates legitimately clear within a few
+            # turns (treasuries refill, wars end).
+            record["soft_stall_turns"] = int(record.get("soft_stall_turns", 0)) + 1
+            if record["soft_stall_turns"] >= CRISIS_SOFT_STALL_TURNS:
+                _emit_crisis_passed(world, coveter, record, "starved", events)
+                del store[coveter]
             continue
-        if not _restraints_hold(world, coveter, target):
-            continue
+        record["soft_stall_turns"] = 0
         if _declare_design_war(world, coveter, record, events):
             del store[coveter]
 
