@@ -297,7 +297,10 @@ class TestPeaceRatifiedCampaignLog:
         # (allegiance_auction_opened / allegiance_auction_resolved).
         # AI-2e Stage C (July 24, 2026): +1 british_subsidy — the
         # paymaster's gold on the record (§3.7 visibility).
-        assert len(CAMPAIGN_LOG_TYPES) == 133
+        # Stage C review fixes (July 24, 2026): +1 instrument_lapsed — an
+        # instrument ending WITHOUT a breaker (term served / ward
+        # aggression / unattributable war) must still reach the record.
+        assert len(CAMPAIGN_LOG_TYPES) == 134
 
     def test_format_peace_oneliner(self):
         event = {

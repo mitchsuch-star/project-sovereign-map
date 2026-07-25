@@ -59,7 +59,12 @@ def hostile_army_on_home_soil(world, nation: str) -> bool:
         owner = getattr(marshal, "nation", None)
         if not owner or owner == nation:
             continue
-        if getattr(marshal, "captured", False):
+        # Review fix: the Marshal field is `captured_by` (not
+        # `captured`) — a PRISONER paraded at the captor's capital is
+        # not a hostile army, and neither is an empty-handed general.
+        if getattr(marshal, "captured_by", ""):
+            continue
+        if int(getattr(marshal, "strength", 0) or 0) < 1000:
             continue
         location = getattr(marshal, "location", None)
         if location in home and world.is_at_war(nation, owner):

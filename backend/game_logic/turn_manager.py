@@ -460,7 +460,11 @@ class TurnManager:
             # one live world-wide + a 15-turn per-nation cooldown SET AT
             # ISSUE, so a throttle deferral here would silently eat the
             # court's one ultimatum for 15 turns.
-            if proposal.get("intent_ask"):
+            if proposal.get("recipient") not in (None, world.player_nation):
+                # A court-to-court envelope never touches the mailbox —
+                # it must not consume either mailbox budget (review fix).
+                pass
+            elif proposal.get("intent_ask"):
                 if intent_delivered >= INTENT_ASK_BUDGET_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} intent ask deferred (§4.2c budget)")
                     continue

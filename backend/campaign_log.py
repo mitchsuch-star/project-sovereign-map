@@ -232,6 +232,10 @@ CAMPAIGN_LOG_TYPES = {
     "allegiance_auction_resolved",
     # AI-2e §3.7 — the paymaster's gold, on the record
     "british_subsidy",
+    # AI-2b review fix — an instrument ending WITHOUT a breaker (term
+    # served, ward aggression, or a war nobody can honestly be blamed
+    # for) is still on the record; silence was the defect.
+    "instrument_lapsed",
 }
 
 # ============================================================================
@@ -300,6 +304,7 @@ CATEGORY_MAP = {
     "allegiance_auction_resolved": "diplomacy",
     # AI-2e §3.7 — the paymaster subsidy
     "british_subsidy": "diplomacy",
+    "instrument_lapsed": "diplomacy",
     # Deep audit fix: missing event types
     "war_declaration": "diplomacy",
     "defensive_cascade": "diplomacy",
@@ -659,6 +664,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           # AI-2e: the paymaster subsidy rides the same
                           # PARTIAL+ arm (payer/recipient keys)
                           "british_subsidy",
+                          "instrument_lapsed",
                           "balance_of_europe_shifted",
                           "call_to_arms_refused_defensive",
                           "call_to_arms_refused_offensive",
@@ -1524,6 +1530,19 @@ def format_event_oneliner(event: dict) -> str:
         recipient = display_nation(event.get("recipient", "Unknown"))
         amount = int(event.get("amount", 0))
         return f"{payer}'s gold: {amount}g reaches {recipient}"
+
+    if event_type == "instrument_lapsed":
+        payer = display_nation(event.get("payer", "Unknown"))
+        recipient = display_nation(event.get("recipient", "Unknown"))
+        reason = event.get("reason", "")
+        if reason == "term_served":
+            return (f"The bargain between {payer} and {recipient} is "
+                    f"served in full — the design wakes")
+        if reason == "ward_aggression":
+            return (f"{recipient} marches of its own will — "
+                    f"{payer}'s guarantee is void, unblamed")
+        return (f"War overtakes the compact between {payer} and "
+                f"{recipient} — it lapses, no breaker named")
 
     if event_type == "allegiance_auction_opened":
         nation = display_nation(event.get("nation", "Unknown"))

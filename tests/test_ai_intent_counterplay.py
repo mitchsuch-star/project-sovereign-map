@@ -58,8 +58,28 @@ def _executor(world):
     return CommandExecutor(), {"world": world, "debug_mode": True}
 
 
-def _make_war(world, a, b, *, start_turn=None):
-    key = world._make_diplo_key(a, b)
+def _make_war(world, aggressor, defender, *, start_turn=None):
+    """An ATTRIBUTED war: the first arg is the declarer. The renege
+    arms read the war_instances attackers side (`_pair_aggressor`) —
+    a bare diplomatic_states write has no declarer and lapses records
+    instead of branding anyone."""
+    from backend.game_logic.settlement_helpers import (
+        ensure_war_instance_for_pair,
+    )
+    result = ensure_war_instance_for_pair(world, aggressor, defender,
+                                 entry_path="stage_c_test")
+    if not result.get("ok"):
+        # Validation refused (e.g. a standing treaty) — hand-craft the
+        # minimal attributed instance the renege arms read.
+        wid = f"stage_c_test_{aggressor}_{defender}"
+        world.war_instances[wid] = {
+            "war_id": wid, "attackers": [aggressor],
+            "defenders": [defender], "ended_turn": None,
+            "active_participants": [aggressor, defender],
+        }
+        if hasattr(world, "invalidate_war_instance_indexes"):
+            world.invalidate_war_instance_indexes()
+    key = world._make_diplo_key(aggressor, defender)
     world.diplomatic_states[key] = "WAR"
     world.war_start_turns[key] = (int(start_turn)
                                   if start_turn is not None
@@ -324,14 +344,28 @@ class TestInstrumentPass:
         assert world.nation_gold["France"] == 1000
         assert len(world.directed_sponsorships) == 1
 
-    def test_sponsorship_expires(self, world):
+    def test_sponsorship_expires_after_exactly_its_term(self, world):
+        """The term COUNTER (review fix): a 2-turn promise pays exactly
+        twice — player and AI mints alike — then lapses, logged."""
         grant_directed_sponsorship(
             world, payer="France", recipient="Prussia", aim="Hanover",
             amount_per_turn=100, turns=2)
-        world.current_turn += 2
+        world.nation_gold["France"] = 1000
+        prussia = int(world.nation_gold.get("Prussia", 0))
+        for _ in range(2):
+            world.current_turn += 1
+            assert not [e for e in process_instruments(world)
+                        if e["type"] == "sponsorship_expired"]
+        assert world.nation_gold["Prussia"] == prussia + 200  # 2 payments
+        world.current_turn += 1
         events = process_instruments(world)
         assert any(e["type"] == "sponsorship_expired" for e in events)
         assert not world.directed_sponsorships
+        assert world.nation_gold["Prussia"] == prussia + 200  # no 3rd
+        # The lapse reaches the record (review fix: expiry was dead code
+        # on every surface).
+        assert any(e.get("type") == "sponsorship_expired"
+                   for e in world.event_log)
 
     def test_pin23_licensor_entering_licensed_war_is_reneging(self, world):
         """Pin 23: amount 0 creates the same bond as a paid sponsorship —
@@ -398,10 +432,13 @@ class TestInstrumentPass:
     def test_guarantee_abandoned_after_grace(self, world):
         """Attacker must be a nation France is NOT already at war with
         (France fights Russia at boot, which would read as honouring) —
-        Prussia is at peace with France in 1805."""
+        Prussia is at peace with France in 1805. Grace runs from the
+        LATER of war start and the pledge (review fix), so the pledge
+        must be old enough to have owed a march."""
         pledge_guarantee(world, guarantor="France", protected="Denmark")
-        _make_war(world, "Denmark", "Prussia",
-                  start_turn=world.current_turn - GUARANTEE_GRACE_TURNS)
+        _make_war(world, "Prussia", "Denmark",
+                  start_turn=world.current_turn)
+        world.current_turn += GUARANTEE_GRACE_TURNS
         events = process_instruments(world)
         abandoned = [e for e in events
                      if e["type"] == "guarantee_abandoned"]
@@ -411,20 +448,196 @@ class TestInstrumentPass:
 
     def test_guarantee_honored_when_guarantor_fights(self, world):
         pledge_guarantee(world, guarantor="France", protected="Denmark")
-        _make_war(world, "Denmark", "Prussia",
-                  start_turn=world.current_turn - GUARANTEE_GRACE_TURNS)
+        _make_war(world, "Prussia", "Denmark",
+                  start_turn=world.current_turn)
         _make_war(world, "France", "Prussia")
+        world.current_turn += GUARANTEE_GRACE_TURNS
         events = process_instruments(world)
         assert not any(e["type"] == "guarantee_abandoned" for e in events)
         assert len(world.diplomatic_guarantees) == 1
 
     def test_guarantee_holds_inside_grace_window(self, world):
         pledge_guarantee(world, guarantor="France", protected="Denmark")
-        _make_war(world, "Denmark", "Russia",
+        _make_war(world, "Prussia", "Denmark",
                   start_turn=world.current_turn)
         events = process_instruments(world)
         assert not any(e["type"] == "guarantee_abandoned" for e in events)
         assert len(world.diplomatic_guarantees) == 1
+
+    def test_mid_war_pledge_still_gets_its_grace(self, world):
+        """Review fix: a guarantee pledged into an ALREADY-old war used
+        to brand the guarantor one turn later — before it could ever
+        march. Grace now runs from the pledge."""
+        _make_war(world, "Prussia", "Denmark",
+                  start_turn=world.current_turn - 5)
+        pledge_guarantee(world, guarantor="France", protected="Denmark")
+        events = process_instruments(world)
+        assert not any(e["type"] == "guarantee_abandoned" for e in events)
+        assert len(world.diplomatic_guarantees) == 1
+
+    def test_ward_aggression_voids_without_branding(self, world):
+        """Review fix: the ward declaring on its own guarantor forfeits
+        the protection — the guarantee VOIDS, nobody is branded."""
+        pledge_guarantee(world, guarantor="France", protected="Denmark")
+        _make_war(world, "Denmark", "France")
+        events = process_instruments(world)
+        assert not any(e["type"] == "guarantee_abandoned" for e in events)
+        lapsed = [e for e in events if e["type"] == "instrument_lapsed"]
+        assert lapsed and lapsed[0]["reason"] == "ward_aggression"
+        assert not world.diplomatic_guarantees
+        assert not has_renege_grievance(world, "Denmark", "France")
+
+
+class TestRenegeAttribution:
+    """The review's headline P1: renege is an ACT ('entering the war
+    later'), never a state. The AGGRESSOR of a post-mint war is the
+    breaker, whoever holds which end; an unattributable or pre-existing
+    war LAPSES the record and brands nobody."""
+
+    def test_attacked_payer_is_not_the_breaker(self, world):
+        """France licences Prussia; PRUSSIA then declares on France —
+        Prussia (the aggressor) is the breaker, never the bound payer."""
+        grant_directed_sponsorship(
+            world, payer="France", recipient="Prussia", aim="Hanover",
+            amount_per_turn=0)
+        _make_war(world, "Prussia", "France")
+        events = process_instruments(world)
+        renege = [e for e in events if e["type"] == "sponsorship_reneged"]
+        assert renege and renege[0]["breaker"] == "Prussia"
+        assert has_renege_grievance(world, "France", "Prussia")
+        assert not has_renege_grievance(world, "Prussia", "France")
+        # No false player-blame popup for a war France did not start.
+        assert world.proposal_result_popup is None
+
+    def test_attacked_neutrality_recipient_is_not_the_breaker(self, world):
+        """Prussia buys France's neutrality; PRUSSIA then declares on
+        France — the payer-aggressor is the breaker, and the bound
+        recipient (France) keeps its honour."""
+        grant_directed_sponsorship(
+            world, payer="Prussia", recipient="France", aim="Austria",
+            amount_per_turn=150, kind="neutrality")
+        _make_war(world, "Prussia", "France")
+        events = process_instruments(world)
+        renege = [e for e in events if e["type"] == "sponsorship_reneged"]
+        assert renege and renege[0]["breaker"] == "Prussia"
+        assert has_renege_grievance(world, "France", "Prussia")
+
+    def test_bought_off_court_marching_anyway_is_the_breaker(self, world):
+        """France buys off Prussia's design; PRUSSIA takes the gold and
+        declares anyway — Prussia broke the bargain, not France."""
+        view = get_nation_intent("Prussia", world)
+        create_compensation_bargain(
+            world, payer="France", recipient="Prussia",
+            design_id=view.want_id, granted={"gold": 500})
+        _make_war(world, "Prussia", "France")
+        events = process_instruments(world)
+        renege = [e for e in events if e["type"] == "bargain_reneged"]
+        assert renege and renege[0]["breaker"] == "Prussia"
+        assert has_renege_grievance(world, "France", "Prussia")
+
+    def test_unattributed_war_lapses_without_a_breaker(self, world):
+        """A bare state-write war (no instance, no declarer) can brand
+        nobody — the record lapses on the log instead."""
+        grant_directed_sponsorship(
+            world, payer="France", recipient="Prussia", aim="Hanover",
+            amount_per_turn=100)
+        key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = int(world.current_turn)
+        world.invalidate_bloc_members_cache()
+        events = process_instruments(world)
+        assert not any(e["type"] == "sponsorship_reneged" for e in events)
+        lapsed = [e for e in events if e["type"] == "instrument_lapsed"]
+        assert lapsed and lapsed[0]["reason"] == "war_unattributed"
+        assert not world.directed_sponsorships
+        assert not has_renege_grievance(world, "Prussia", "France")
+        assert not has_renege_grievance(world, "France", "Prussia")
+
+    def test_bargain_term_serves_and_the_design_wakes(self, world):
+        """§3.3's asymmetry made finite (review balance fix): the bought
+        design SLEEPS for the term, then wakes quietly."""
+        from backend.game_logic.instruments import COMPENSATION_TERM_TURNS
+        view = get_nation_intent("Prussia", world)
+        create_compensation_bargain(
+            world, payer="France", recipient="Prussia",
+            design_id=view.want_id, granted={"gold": 500})
+        assert get_nation_intent("Prussia", world).want_id != view.want_id
+        world.current_turn += COMPENSATION_TERM_TURNS
+        events = process_instruments(world)
+        lapsed = [e for e in events if e["type"] == "instrument_lapsed"]
+        assert lapsed and lapsed[0]["reason"] == "term_served"
+        assert not world.compensation_bargains
+        assert get_nation_intent("Prussia", world).want_id == view.want_id
+
+
+class TestMintGates:
+    """Review fix: the mint refuses honestly what the pass would brand —
+    the guarantee verb's own idiom, applied to its siblings."""
+
+    def test_buy_off_refused_at_war(self, world):
+        executor, gs = _executor(world)
+        world.diplomatic_points = 3
+        world.nation_gold["France"] = 99999
+        result = executor._diplomatic._execute_buy_off_design(
+            {"action": "buy_off_design", "target": "Austria",
+             "raw_input": "buy off austria"}, gs)
+        assert not result["success"]
+        assert "WAR" in result["message"]
+        assert not world.compensation_bargains
+        assert world.diplomatic_points == 3  # nothing charged
+
+    def test_sponsor_refused_at_war_with_recipient(self, world):
+        executor, gs = _executor(world)
+        world.diplomatic_points = 3
+        result = executor._diplomatic._execute_sponsor_design(
+            {"action": "sponsor_design", "target": "Austria",
+             "raw_input": "sponsor austria against prussia"}, gs)
+        assert not result["success"]
+        assert "WAR" in result["message"]
+
+    def test_sponsor_refused_against_a_guaranteed_ward(self, world):
+        executor, gs = _executor(world)
+        world.diplomatic_points = 3
+        pledge_guarantee(world, guarantor="France", protected="Hanover")
+        result = executor._diplomatic._execute_sponsor_design(
+            {"action": "sponsor_design", "target": "Prussia",
+             "raw_input": "sponsor prussia against hanover, 100 gold"}, gs)
+        assert not result["success"]
+        assert "GUARANTEES" in result["message"]
+
+    def test_duplicate_licence_is_not_a_relation_pump(self, world):
+        """Review fix: one live record per (kind, payer, recipient,
+        aim) — the second identical cast refuses, charges nothing,
+        moves no relation."""
+        executor, gs = _executor(world)
+        world.diplomatic_points = 5
+        first = executor._diplomatic._execute_sponsor_design(
+            {"action": "sponsor_design", "target": "Prussia",
+             "raw_input": "license prussia against hanover"}, gs)
+        assert first["success"]
+        relation_after_first = world.nation_relations.get(
+            world._make_diplo_key("France", "Prussia"), 0)
+        second = executor._diplomatic._execute_sponsor_design(
+            {"action": "sponsor_design", "target": "Prussia",
+             "raw_input": "license prussia against hanover"}, gs)
+        assert not second["success"]
+        assert len(world.directed_sponsorships) == 1
+        assert world.diplomatic_points == 4  # only the first cast paid
+        assert world.nation_relations.get(
+            world._make_diplo_key("France", "Prussia"), 0) == (
+            relation_after_first)
+
+    def test_unsustainable_promise_refused(self, world):
+        """Review fix (the paper bid): the player's standing promise is
+        held to the AI's own sustain bar (four turns' cover)."""
+        executor, gs = _executor(world)
+        world.diplomatic_points = 3
+        world.nation_gold["France"] = 500
+        result = executor._diplomatic._execute_sponsor_design(
+            {"action": "sponsor_design", "target": "Prussia",
+             "raw_input": "sponsor prussia against hanover, 400 gold"}, gs)
+        assert not result["success"]
+        assert "SUSTAIN" in result["message"]
 
 
 # ═══════════════════════════════════════════════════════════════════════

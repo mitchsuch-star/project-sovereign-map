@@ -42,8 +42,26 @@ def world(world1805):
     return WorldState.from_dict(world1805.to_dict())
 
 
-def _make_war(world, a, b):
-    key = world._make_diplo_key(a, b)
+def _make_war(world, aggressor, defender):
+    """Attributed war — the first arg is the declarer (the renege arms
+    read the war_instances attackers side)."""
+    from backend.game_logic.settlement_helpers import (
+        ensure_war_instance_for_pair,
+    )
+    result = ensure_war_instance_for_pair(world, aggressor, defender,
+                                 entry_path="stage_c_test")
+    if not result.get("ok"):
+        # Validation refused (e.g. a standing treaty) — hand-craft the
+        # minimal attributed instance the renege arms read.
+        wid = f"stage_c_test_{aggressor}_{defender}"
+        world.war_instances[wid] = {
+            "war_id": wid, "attackers": [aggressor],
+            "defenders": [defender], "ended_turn": None,
+            "active_participants": [aggressor, defender],
+        }
+        if hasattr(world, "invalidate_war_instance_indexes"):
+            world.invalidate_war_instance_indexes()
+    key = world._make_diplo_key(aggressor, defender)
     world.diplomatic_states[key] = "WAR"
     world.war_start_turns[key] = int(world.current_turn)
     world.invalidate_bloc_members_cache()

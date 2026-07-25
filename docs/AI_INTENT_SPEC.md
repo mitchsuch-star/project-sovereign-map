@@ -2342,8 +2342,8 @@ written record — it must not silently vanish, because Q1 is a user question wi
 **Built and landed:** Stage A (AI-0b · AI-0c · AI-0d) and Stage B (AI-1 · AI-1b · AI-2a), per the
 §11.1 table, under the user's "as many phases as comfortable" direction. BD (Battle Diorama) was
 deliberately re-sequenced BEHIND the AI stages by that same direction — its ROADMAP row stands.
-**The phase now stands at the ⛩ re-check boundary's doorstep: Stage C is next, and nothing past it
-may build before the user re-check.**
+*(Superseded July 24, 2026 — Stage C landed the same day, §15. The phase now stands AT the
+⛩ re-check: nothing past Stage C may build before the user decides from the §15 evidence pack.)*
 
 ### Stage A — the dice and the bounds
 
@@ -2433,3 +2433,104 @@ intents pinned against authored 1805 ✓ · renders live (parse harness EXIT=0, 
 `SCRIPT ERROR`; the **pin-20 live in-game visual pass remains open** for the user's next session —
 backend payloads + renders verified headless only) ✓* · AI-2a byte-identical player-flow pin green
 (suite) ✓.
+
+## 15. Landing record — Stage C, "The Bargaining Table" *(July 24, 2026, same session as A+B; authoritative)*
+
+**Built and landed** per the §11.1 table: **AI-2 · AI-2b · AI-2c · AI-2d (Stage C half) · AI-2e**,
+plus the parallel-track **AI-4a steps 1-4**. Commits `2f2dc22` (the build) + the review-fix commit.
+**The phase now stands AT the ⛩ re-check** — Stage D may not build before the user decides.
+
+### What landed
+
+- **AI-4a steps 1-4** — `world.threat_by_target` with `threat_level` as a property over the
+  player's slot (the `gold` idiom); `add_threat`/`reduce_threat` optional ACTOR target; source
+  entries carry `target`. **The step-4 pin held byte-identical against the `d1be956` baseline
+  before any behaviour slice landed** (`test_ai_intent_threat_migration.py` — a
+  PYTHONHASHSEED-pinned 40-turn subprocess harness; the ambient sim is hash-order-unstable across
+  processes, pin 14(c) observed in the wild). The constant was then re-recorded CONSCIOUSLY at the
+  rung rework. Steps 5-6 stay Stage D; every non-player slot is structurally 0 (pinned).
+- **AI-2b** — `instruments.py`: the ONE directed record (§12.3) covering sponsorship, the licence
+  (amount 0, pin 23) and sell-neutrality (`kind="neutrality"`); compensation bargains that SUSPEND
+  a design at the `get_active_agenda` chokepoint; guarantees with the intent deterrent (−8, shown)
+  and the `guarantee_abandoned` enforcement `protection_promised` never had. Three serialized
+  stores + `allegiance_auctions` (§5 pin 8). Player verbs `sponsor_design` / `buy_off_design` /
+  `guarantee_nation` (1 DP, honest-availability refusals, 12-step wiring, 4 corpus rows). Renege
+  marks ride the EXISTING directed grievance store; intent reads them as the §3.3 weight surge
+  (+15). Beat 4 fires on the PL-14 outcome popup in the Voice Bible register.
+- **AI-2c** — `nation_config.NATION_STATECRAFT` (honor-bias idiom, `world.get_statecraft`): the
+  four majors per the §3.4 table + six light secondaries; ask-order partition under the NA-2
+  design-front rule; the coercion delta at the player-ultimatum seam (Britain's subsidy wall −40
+  **derived** from `hostile_army_on_home_soil` — pin 10); the AI-AI haggle arm AI-2a's docstring
+  promised (near-miss band [35,50), one rung down, dual consent, non-hagglers byte-identical);
+  `weight_mod` authored 0 on every 1805 court (boot-neutral, pinned). *§3.4 amendment note: the
+  `haggles` gate is a FIFTH biased thing beyond the section's "four things only" — mandated by
+  AI-2a's own deferral language; recorded here rather than silently.*
+- **AI-2** — the P-Intent rung **BEFORE P3** (the design outranks the threat-shelter ask — at boot
+  threat 85, a P3-first ordering would have silenced every design ask): the design purchase
+  (accept cedes + satisfies — §3.1a descent live; reject writes the pin-8 record), sell-neutrality
+  (accept mints the §3.3 compact; the bond DISCLOSED at decision time as a rendered
+  `neutrality_compact` clause + its own Talleyrand assessment), the alignment ask; AI-AI trigger 0
+  (design asks → the refusal record AI-3 escalates from, dedupe-window-aware so legacy triggers
+  are not shadowed; alignment pacts); P-Bandwagon widened to any ≥50% hegemon, intent-driven,
+  boot-dormant; the sponsor branch (Russia funds Austria from turn 1); the §4.2c budget
+  (`INTENT_ASK_BUDGET_PER_TURN = 2`, its own lane — court-to-court envelopes consume neither);
+  the opportunism valve (design_purchase only, the URGENT_REPROPO idiom).
+- **AI-2d (Stage C half)** — sell-neutrality + sponsor arms (above) + the §12.6 allegiance
+  auction: serialized `allegiance_auctions`, the announced flip (always-visible, pin 11), 3-turn
+  bidding window over standing D5 records + lean (10g/turn = 1 point), player wins arrive as
+  refusable OFFERS, passed crests lapse, an AI flip is announced only when the pact actually
+  ratified. Join/broker stay Stage D (§4.2b's split).
+- **AI-2e** — the subsidy visible (campaign log + dispatch + THE PAYMASTER'S PURSE balance block +
+  per-nation Compacts ledger lines, `.gd` renders landed); the outbid at recipient selection over
+  AI-2b's directed record; a bought-off client not worth funding.
+
+### The review, and what it caught
+
+An 8-lens find→2-refuter workflow (56 agents; 27 verifiers were killed by the session usage cap —
+those findings were adjudicated by hand, in context, against the code). **16 confirmed findings,
+ALL FIXED in the follow-up commit** — headline **P1 (three lenses converged): renege attribution
+was DIRECTION-BLIND** — the symmetric `is_at_war` plus a mint-time-fixed breaker branded the
+ATTACKED party ("torn up — by your hand, not ours" shown to a player the AI had just declared war
+on, with the aggressor collecting the +15 surge). Root fix: **renege is an ACT** — only a
+POST-MINT war brands anyone, and the branded party is the war's AGGRESSOR read from the
+war_instances attackers side; unattributable/pre-existing wars LAPSE the record on the log
+(`instrument_lapsed`), branding nobody. Also fixed: guarantee grace now runs from
+max(war start, pledge) with ward-aggression voiding unblamed; mint gates refuse at-war buy-offs /
+sponsorships and guaranteed-aim sponsorships (the guarantee verb's own idiom); the sell-neutrality
+compact mints ONLY on successful ratification and the offer maps to a ratifiable type at cold
+relations; the licence dedupe (one live record per kind+payer+recipient+aim — the +5-relation pump
+is dead); the player sustain bar (×4 cover, the AI's own gate); the term counter (a promised
+10-turn sponsorship pays exactly 10 on both mint paths, and an expiry-turn war can no longer slip
+the bond); compensation terms are FINITE (`COMPENSATION_TERM_TURNS` 15 — the design sleeps, it is
+not deleted); the ultimatum confirm estimate now carries the coercion delta (shown = applied, was
+lying by up to 40 for Britain); `hostile_army_on_home_soil` read a nonexistent `captured` attr (a
+PRISONER at London dropped the subsidy wall) + gained the 1,000-man floor; the haggle arm and the
+auction announce nothing a failed ratify did not sign; the Broken-Bargain popup never clobbers an
+in-transit answer (the NA-6b §17.1 class); expiries/lapses reach the campaign log; dispatch
+priorities authored (broken_bargain/allegiance HIGH).
+
+### Deferred with owners (GR9)
+
+- **AI producers for guarantees + compensation grants + region-granting compensation** (the D5
+  "both directions" remainder): the records bind both directions today, but an AI court choosing
+  to guarantee/buy off needs the war-decision context — owner **AI-3 (Stage D)**, where the
+  choice has stakes. Sell-neutrality + sponsorship already produce AI-side.
+- **The F1 wizard chips for the three instrument verbs** (typed-command + refusal surfaces landed;
+  the guided chips belong to the courting surface): owner **AI-6c (Stage F)**, the client-surface
+  remainder row that owns "the §4.2b courting surface".
+- **A ledger Net line for standing sponsorship payments** (the per-turn transfer is visible in the
+  Compacts row and the campaign log but not as a treasury Net component — the treaty
+  `gold_per_turn` clauses share this pre-existing shape): owner — the §8 economy re-measure row,
+  with EC pass 2.
+- **Statecraft applies on legacy worlds** (Austria hardens under a legacy-fixture ultimatum too):
+  CONSCIOUS — statecraft is character, world-agnostic like the honor bias; the legacy suite is
+  green with it live.
+
+**Exit criteria check (§11.1 Stage C):** pin 18 deckless-neutral green (bare-world pins in all
+four new test files) ✓ · the §4.2c delivery budget live (its own lane + the marquee-case test) ✓ ·
+beat 1 firing (the named-envoy pin on a live design purchase) + beat 4 firing (the cold-envoy
+popup pin) ✓ · pin 23 green (licensor renege both directions, licence == paid bond) ✓ · the
+re-check evidence pack = `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md` ✓. Suite **14,772/3**
+(+159 over Stage B's 14,613); parse harness EXIT=0; headless boot 0 `SCRIPT ERROR`; the pin-20
+live in-game pass remains OPEN for the user's next session (now covering the Stage B ledger
+surfaces + the Stage C compacts/purse rows and the courier/auction beats).

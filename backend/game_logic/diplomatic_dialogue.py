@@ -457,8 +457,18 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
     # Calculate acceptance
     try:
         result = calculate_acceptance(proposal, world)
-        dialogue["acceptance_estimate"] = int(result.get("score", 0))
-        dialogue["acceptance_outcome"] = result.get("outcome", "REJECT")
+        # AI-2c review fix (shown = applied): the DECISION seam adds the
+        # statecraft coercion answer (Austria hardens −15, Prussia folds
+        # +10, Britain's derived subsidy wall −40...) — the estimate the
+        # player stakes relations and threat on must carry the same
+        # number, or the preview lies by up to 40 points.
+        from backend.game_logic.statecraft import coercion_acceptance_delta
+        coercion_delta = int(coercion_acceptance_delta(world, target_nation))
+        score = int(result.get("score", 0)) + coercion_delta
+        dialogue["acceptance_estimate"] = score
+        dialogue["acceptance_outcome"] = ("ACCEPT" if score >= 50
+                                          else "REJECT")
+        dialogue["coercion_delta"] = coercion_delta
         # Find key obstacle for hint
         components = result.get("components", {})
         negative_components = {k: v for k, v in components.items() if isinstance(v, (int, float)) and v < 0}

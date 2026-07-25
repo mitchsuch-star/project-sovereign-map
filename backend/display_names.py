@@ -246,6 +246,10 @@ CLAUSE_TYPE_DISPLAY = {
     "open_borders": "Open borders",
     "protection": "Protection guarantee",
     "protection_promised": "Protection guarantee",
+    # AI-2d (Stage C): the sell-neutrality bond, DISCLOSED at decision
+    # time (pin 23 — accepting binds France out of the payer's war;
+    # entering it later is reneging).
+    "neutrality_compact": "Neutrality compact — France stays OUT of their war (entering it later is reneging)",
     "continental_system_lifted": "Continental System lifted",
     "manpower_infantry": "Infantry manpower",
     "infantry_manpower": "Infantry manpower",

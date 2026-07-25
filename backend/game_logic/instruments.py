@@ -61,7 +61,53 @@ INSTRUMENT_DP_COST = 1              # player verbs (charged in-executor)
 GUARANTEE_WEIGHT_DETERRENT = 8      # coveter's weight drop vs a guaranteed holder
 WEIGHT_RENEGED_BARGAIN = 15         # victim's weight surge vs the breaker
 
+# A design bought off sleeps for a TERM, not forever — §3.3's asymmetry
+# ("buying a design off does not delete it") plus the review's balance
+# hole (a one-time ~1,000g must not delete a great power's design for
+# the rest of the campaign). Blessed, in-band tunable; re-check data.
+COMPENSATION_TERM_TURNS = 15
+
 _RENEGE_GRIEVANCE_TYPES = ("bargain_reneged", "guarantee_abandoned")
+
+
+def _pair_aggressor(world, a: str, b: str) -> Optional[str]:
+    """Who DECLARED the live war between `a` and `b` — the attribution
+    read every renege arm needs (review P1: the symmetric `is_at_war`
+    cannot know who entered, so the bound party was branded even when it
+    was the one attacked). Reads the durable war_instances side lists
+    (`ensure_war_instance_for_pair` seats the originator on `attackers`).
+    None when no active instance seats the pair on opposite sides —
+    attribution unknown, and no one may be branded on a guess."""
+    try:
+        war_ids = world.get_war_instances_by_participant(a)
+    except Exception:
+        return None
+    instances = getattr(world, "war_instances", {}) or {}
+    for war_id in war_ids:
+        instance = instances.get(war_id) or {}
+        # Active filter is `ended_turn` (spec §7.3 — the field the
+        # participant index itself filters on); an ended war must never
+        # attribute a fresh renege.
+        if instance.get("ended_turn") is not None:
+            continue
+        attackers = set(instance.get("attackers") or [])
+        defenders = set(instance.get("defenders") or [])
+        if a in attackers and b in defenders:
+            return a
+        if b in attackers and a in defenders:
+            return b
+    return None
+
+
+def _war_is_post_mint(world, a: str, b: str, minted_turn: int) -> bool:
+    """Did the live war between the parties start ON or AFTER the record
+    was minted? A pre-existing war can never be 'entering the war later'
+    (§3.3's renege is an ACT, not a state)."""
+    pair = world._make_diplo_key(a, b)
+    war_start = (getattr(world, "war_start_turns", {}) or {}).get(pair)
+    if war_start is None:
+        return False
+    return int(war_start) >= int(minted_turn)
 
 
 def _next_seq(records: List[Dict]) -> int:
@@ -115,8 +161,20 @@ def grant_directed_sponsorship(world, *, payer: str, recipient: str,
     design against `aim`; the PAYER is bound (pin 23).
     kind="neutrality": payer buys recipient's non-interference in the
     payer's war concerning `aim`; the RECIPIENT is bound.
+
+    Deduped like `pledge_guarantee` (review fix — repeating an identical
+    0-gold licence was a +5-relation-per-cast pump): one live record per
+    (kind, payer, recipient, aim). N identical bonds are one bond.
     """
     records = getattr(world, "directed_sponsorships", [])
+    for existing in records:
+        if (existing.get("kind") == kind
+                and existing.get("payer") == payer
+                and existing.get("recipient") == recipient
+                and existing.get("aim") == aim):
+            return {"success": False,
+                    "message": (f"An identical compact between {payer} "
+                                f"and {recipient} already stands.")}
     record = {
         "id": (f"{kind}:{payer}:{recipient}:"
                f"{int(world.current_turn)}:{_next_seq(records)}"),
@@ -127,6 +185,12 @@ def grant_directed_sponsorship(world, *, payer: str, recipient: str,
         "amount_per_turn": max(0, int(amount_per_turn)),
         "started_turn": int(world.current_turn),
         "expiry_turn": int(world.current_turn) + max(1, int(turns)),
+        # The term counter (review fix — expiry-by-turn-number paid a
+        # player mint 9 times for a promised 10 while an AI mint paid
+        # 10, because the AI phase runs before the instruments pass in
+        # the same advance_turn): both directions now pay exactly
+        # `turns` times, counted, then lapse.
+        "turns_remaining": max(1, int(turns)),
     }
     records.append(record)
     world.directed_sponsorships = records
@@ -193,6 +257,9 @@ def create_compensation_bargain(world, *, payer: str, recipient: str,
         "design_id": design_id,
         "granted": dict(granted),
         "turn": int(world.current_turn),
+        # §3.3's asymmetry made finite: the design SLEEPS for a term,
+        # it is not deleted (review balance fix).
+        "expires_turn": int(world.current_turn) + COMPENSATION_TERM_TURNS,
     }
     records.append(record)
     world.compensation_bargains = records
@@ -289,10 +356,27 @@ def _renege(world, *, breaker: str, victim: str, grievance_type: str,
     world.invalidate_bloc_members_cache()
 
 
+def _lapse(world, events: List[Dict], event: Dict) -> None:
+    """A record ends WITHOUT a breaker (term served, or a war nobody can
+    be honestly blamed for) — logged so the compact never vanishes
+    silently from the ledger (review fix: the expiry arm was dead code
+    on every surface)."""
+    world.log_event(event)
+    events.append(event)
+
+
 def process_instruments(world) -> List[Dict]:
-    """One pass per turn: sponsorship payments + expiry, renege detection
-    on both record families, guarantee abandonment. GR8: iterates the
-    three world lists only — no region scans, no marshal scans."""
+    """One pass per turn: renege detection FIRST (a war escape on the
+    expiry turn was a free renege — review fix), then payments on the
+    term counter, then lapse. GR8: iterates the three world lists only.
+
+    ATTRIBUTION (review P1 — the direction-blind branding): a war
+    between the parties reneges a record only when it started ON/AFTER
+    the mint, and the party branded is the war's AGGRESSOR (the
+    war_instances attackers side), whoever holds which end of the
+    record. §3.3's renege is an ACT — "entering the war later" — never
+    a state; a pre-existing war, or one whose declarer cannot be read,
+    LAPSES the record without a breaker."""
     events: List[Dict] = []
     turn = int(world.current_turn)
 
@@ -303,46 +387,87 @@ def process_instruments(world) -> List[Dict]:
         recipient = record.get("recipient", "")
         aim = record.get("aim", "")
         kind = record.get("kind", "sponsorship")
+        minted = int(record.get("started_turn", 0))
 
         if _party_gone(world, payer) or _party_gone(world, recipient):
             continue
-        if turn >= int(record.get("expiry_turn", 0)):
-            events.append({
+
+        # Renege / lapse on a war between the parties (checked BEFORE
+        # the term so an expiry-turn declaration cannot slip the bond).
+        if world.is_at_war(payer, recipient):
+            aggressor = _pair_aggressor(world, payer, recipient)
+            if (aggressor is not None
+                    and _war_is_post_mint(world, payer, recipient, minted)):
+                _renege(
+                    world, breaker=aggressor,
+                    victim=recipient if aggressor == payer else payer,
+                    grievance_type="bargain_reneged",
+                    source=("neutrality_compact" if kind == "neutrality"
+                            else "directed_sponsorship"),
+                    event={
+                        "type": "sponsorship_reneged",
+                        "kind": kind, "breaker": aggressor,
+                        "victim": (recipient if aggressor == payer
+                                   else payer),
+                        "aim": aim, "turn": turn,
+                        "licence": (kind == "sponsorship"
+                                    and int(record.get("amount_per_turn",
+                                                       0)) == 0),
+                    },
+                    events=events,
+                )
+            else:
+                _lapse(world, events, {
+                    "type": "instrument_lapsed",
+                    "instrument": kind, "payer": payer,
+                    "recipient": recipient, "aim": aim,
+                    "reason": "war_unattributed", "turn": turn,
+                })
+            continue
+
+        # Pin 23's second arm: the payer GUARANTEEING the aim while the
+        # sponsorship stands is reneging — but only a guarantee pledged
+        # AFTER the sponsorship (a pre-existing one is now refused at
+        # the mint gate; via raw API it lapses, not brands).
+        if kind == "sponsorship" and aim:
+            newer_guarantee = any(
+                g.get("guarantor") == payer and g.get("protected") == aim
+                and int(g.get("started_turn", 0)) >= minted
+                for g in getattr(world, "diplomatic_guarantees", []) or [])
+            if payer in guarantors_of(world, aim):
+                if newer_guarantee:
+                    _renege(
+                        world, breaker=payer, victim=recipient,
+                        grievance_type="bargain_reneged",
+                        source="directed_sponsorship",
+                        event={
+                            "type": "sponsorship_reneged",
+                            "kind": kind, "breaker": payer,
+                            "victim": recipient, "aim": aim, "turn": turn,
+                            "licence": int(record.get("amount_per_turn",
+                                                      0)) == 0,
+                        },
+                        events=events,
+                    )
+                else:
+                    _lapse(world, events, {
+                        "type": "instrument_lapsed",
+                        "instrument": kind, "payer": payer,
+                        "recipient": recipient, "aim": aim,
+                        "reason": "conflicting_guarantee", "turn": turn,
+                    })
+                continue
+
+        # The term (counted — both directions pay exactly `turns` times).
+        remaining = int(record.get(
+            "turns_remaining",
+            max(0, int(record.get("expiry_turn", turn)) - turn)))
+        if remaining <= 0:
+            _lapse(world, events, {
                 "type": "sponsorship_expired",
                 "payer": payer, "recipient": recipient, "aim": aim,
                 "kind": kind, "turn": turn,
             })
-            continue
-
-        # Renege detection (pin 23, both directions).
-        if kind == "sponsorship" and (
-                world.is_at_war(payer, recipient)
-                or (aim and payer in guarantors_of(world, aim))):
-            _renege(
-                world, breaker=payer, victim=recipient,
-                grievance_type="bargain_reneged",
-                source="directed_sponsorship",
-                event={
-                    "type": "sponsorship_reneged",
-                    "kind": kind, "breaker": payer, "victim": recipient,
-                    "aim": aim, "turn": turn,
-                    "licence": int(record.get("amount_per_turn", 0)) == 0,
-                },
-                events=events,
-            )
-            continue
-        if kind == "neutrality" and world.is_at_war(recipient, payer):
-            _renege(
-                world, breaker=recipient, victim=payer,
-                grievance_type="bargain_reneged",
-                source="neutrality_compact",
-                event={
-                    "type": "sponsorship_reneged",
-                    "kind": kind, "breaker": recipient, "victim": payer,
-                    "aim": aim, "turn": turn, "licence": False,
-                },
-                events=events,
-            )
             continue
 
         # The payment (0 = the licence — permission needs no gold).
@@ -354,6 +479,7 @@ def process_instruments(world) -> List[Dict]:
                 world.nation_gold[payer] = payer_gold - paid
                 world.nation_gold[recipient] = int(
                     world.nation_gold.get(recipient, 0)) + paid
+        record["turns_remaining"] = remaining - 1
         survivors.append(record)
     world.directed_sponsorships = survivors
 
@@ -362,17 +488,48 @@ def process_instruments(world) -> List[Dict]:
     for record in getattr(world, "compensation_bargains", []) or []:
         payer = record.get("payer", "")
         recipient = record.get("recipient", "")
+        minted = int(record.get("turn", 0))
         if _party_gone(world, payer) or _party_gone(world, recipient):
             continue
 
-        reneged = False
-        # Making war on the court you bought off tears up the bargain.
+        # A war between the parties: the post-mint AGGRESSOR reneged —
+        # the payer tearing up its own purchase, or the bought-off court
+        # taking the gold and marching anyway.
         if world.is_at_war(payer, recipient):
-            reneged = True
+            aggressor = _pair_aggressor(world, payer, recipient)
+            if (aggressor is not None
+                    and _war_is_post_mint(world, payer, recipient, minted)):
+                _renege(
+                    world, breaker=aggressor,
+                    victim=recipient if aggressor == payer else payer,
+                    grievance_type="bargain_reneged",
+                    source="compensation_bargain",
+                    event={
+                        "type": "bargain_reneged",
+                        "breaker": aggressor,
+                        "victim": (recipient if aggressor == payer
+                                   else payer),
+                        "design_id": record.get("design_id", ""),
+                        "turn": turn,
+                    },
+                    events=events,
+                )
+            else:
+                _lapse(world, events, {
+                    "type": "instrument_lapsed",
+                    "instrument": "bargain", "payer": payer,
+                    "recipient": recipient,
+                    "design_id": record.get("design_id", ""),
+                    "reason": "war_unattributed", "turn": turn,
+                })
+            world.invalidate_bloc_members_cache()  # the design wakes
+            continue
+
         # Retaking the granted province (§3.3: the granted object is a
         # hostage) — the grant no longer stands with the recipient's side.
+        reneged = False
         granted_region = (record.get("granted") or {}).get("region")
-        if not reneged and granted_region:
+        if granted_region:
             region = world.regions.get(granted_region)
             controller = getattr(region, "controller", None)
             if region is not None and controller:
@@ -396,6 +553,19 @@ def process_instruments(world) -> List[Dict]:
                 events=events,
             )
             continue
+
+        # The term served in full: the design wakes quietly (§3.1a —
+        # the want sleeps, it does not die).
+        if turn >= int(record.get("expires_turn", turn + 1)):
+            _lapse(world, events, {
+                "type": "instrument_lapsed",
+                "instrument": "bargain", "payer": payer,
+                "recipient": recipient,
+                "design_id": record.get("design_id", ""),
+                "reason": "term_served", "turn": turn,
+            })
+            world.invalidate_bloc_members_cache()  # the design wakes
+            continue
         survivors.append(record)
     world.compensation_bargains = survivors
 
@@ -404,25 +574,45 @@ def process_instruments(world) -> List[Dict]:
     for record in getattr(world, "diplomatic_guarantees", []) or []:
         guarantor = record.get("guarantor", "")
         protected = record.get("protected", "")
+        pledged = int(record.get("started_turn", 0))
         if _party_gone(world, guarantor) or _party_gone(world, protected):
             continue
 
         abandoned = False
+        voided = False
         for attacker in world.get_nations_at_war_with(protected):
             if attacker == guarantor:
-                # The guarantor itself attacking its ward is the
-                # abandonment in its purest form.
-                abandoned = True
+                # Attribution decides (review fix): the guarantor
+                # ATTACKING its ward is abandonment in its purest form;
+                # the ward declaring on its guarantor forfeits the
+                # protection — the guarantee voids, nobody is branded.
+                aggressor = _pair_aggressor(world, guarantor, protected)
+                if aggressor == guarantor:
+                    abandoned = True
+                else:
+                    voided = True
                 break
             if world.is_at_war(guarantor, attacker):
                 continue  # honoured — the guarantor is in the fight
+            # Grace runs from the LATER of the war start and the pledge
+            # (review fix: a guarantee pledged into an old war branded
+            # the guarantor one turn later, before it could ever march).
             pair_key = world._make_diplo_key(protected, attacker)
             war_start = int(
                 (getattr(world, "war_start_turns", {}) or {})
                 .get(pair_key, turn))
-            if turn - war_start >= GUARANTEE_GRACE_TURNS:
+            if turn - max(war_start, pledged) >= GUARANTEE_GRACE_TURNS:
                 abandoned = True
                 break
+        if voided:
+            _lapse(world, events, {
+                "type": "instrument_lapsed",
+                "instrument": "guarantee", "payer": guarantor,
+                "recipient": protected,
+                "reason": "ward_aggression", "turn": turn,
+            })
+            world.invalidate_bloc_members_cache()  # the deterrent lifts
+            continue
         if abandoned:
             _renege(
                 world, breaker=guarantor, victim=protected,
@@ -581,15 +771,20 @@ def _emit_broken_bargain_beat(world, *, breaker: str, victim: str,
     line = _BROKEN_BARGAIN_LINES[grievance].format(
         diplomat=diplomat, victim=victim,
         turn=int(event.get("turn", world.current_turn)))
-    world.proposal_result_popup = {
-        "target_nation": victim,
-        "proposal_type": "The Broken Bargain",
-        "outcome": "bargain broken",
-        "message": line,
-        "feedback": ("The strongest grievance in the game now stands "
-                     "against France. Their court's design returns, "
-                     "the heavier for it."),
-    }
+    # Review fix (the NA-6b §17.1 clobber class): the outcome slot may
+    # already hold this turn's in-transit proposal answer — never
+    # overwrite it. The HIGH notification + campaign log + dispatch
+    # beat below carry the reproach either way.
+    if world.proposal_result_popup is None:
+        world.proposal_result_popup = {
+            "target_nation": victim,
+            "proposal_type": "The Broken Bargain",
+            "outcome": "bargain broken",
+            "message": line,
+            "feedback": ("The strongest grievance in the game now stands "
+                         "against France. Their court's design returns, "
+                         "the heavier for it."),
+        }
     world.notifications.add(create_notification(
         DIPLOMATIC_PROPOSAL,
         NotificationPriority.HIGH,

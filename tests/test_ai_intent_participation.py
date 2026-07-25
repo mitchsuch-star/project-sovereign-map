@@ -98,8 +98,12 @@ class TestAuctionResolves:
         monkeypatch.setattr(
             "backend.game_logic.coalition.identify_ranked_bloc_shares",
             lambda w: [("Britain", 0.3), ("Austria", 0.2)])
-        world.nation_relations[world._make_diplo_key(nation, "Britain")] = 0
-        world.nation_relations[world._make_diplo_key(nation, "France")] = 5
+        # Britain's raw lean trails France's; the patronage decides —
+        # and the winner's relation clears the pact's ratify gate
+        # (the review's honest-flip fix: no announced flip without a
+        # real treaty).
+        world.nation_relations[world._make_diplo_key(nation, "Britain")] = 30
+        world.nation_relations[world._make_diplo_key(nation, "France")] = 35
         grant_directed_sponsorship(
             world, payer="Britain", recipient=nation, aim="Austria",
             amount_per_turn=200)

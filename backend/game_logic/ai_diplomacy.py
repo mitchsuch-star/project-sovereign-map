@@ -194,6 +194,16 @@ TALLEYRAND_ASSESSMENTS = {
         "An unexpected overture. There may be hidden motives worth examining.",
     ("opportunistic", "any"):
         "They sense our distraction and seek to capitalize. Tread carefully.",
+    # AI-2 (Stage C): the intent-driven asks — the assessment names the
+    # instrument so the decision surface is honest (pin 23 family).
+    ("design_purchase", "any"):
+        "They offer gold for the province their court has coveted all "
+        "along, Sire. Sell it and their design is satisfied; refuse and "
+        "the refusal goes on their ledger.",
+    ("sell_neutrality", "any"):
+        "They are buying our neutrality in their war, Sire. Take the "
+        "gold and we are BOUND — entering that war against them later "
+        "would be reneging, the gravest mark a court can earn.",
 }
 
 
@@ -315,7 +325,10 @@ def _is_on_cooldown(nation: str, proposal_type: str, world,
         # war-score collapse does (the URGENT_REPROPO idiom). The TYPE
         # cooldown still applies — the anti-monotony governor stands.
         opportune = False
-        if proposal_type in ("design_purchase", "sell_neutrality"):
+        # design_purchase ONLY (review fix: sell_neutrality's urgency is
+        # the court's OWN war, not the design obstacle's — the valve
+        # would have keyed on the wrong belligerent).
+        if proposal_type == "design_purchase":
             from backend.game_logic.intent import get_nation_intent
             view = get_nation_intent(nation, world)
             if (view.against
@@ -776,8 +789,17 @@ def _build_proposal_terms(
         # France entering that war later is RENEGING, the strongest
         # casus belli in the game. Without the bond, "refuse everyone"
         # would strictly dominate.
+        # Review fix: the terms type must be RATIFIABLE or the accept
+        # click pays nothing (NON_AGGRESSION requires relation >= 0 —
+        # the friendly_gift mapping, W6-10).
         wars = sorted(world.get_nations_at_war_with(nation))
-        terms["type"] = "non_aggression"
+        diplo_key = world._make_diplo_key(nation, recipient)
+        relation = world.nation_relations.get(diplo_key, 0)
+        if relation >= 0:
+            terms["type"] = "non_aggression"
+        else:
+            terms["type"] = "open_borders"
+            terms["clauses"].append("open_borders")
         treasury = int(world.nation_gold.get(nation, 0))
         offer = max(SELL_NEUTRALITY_BASE,
                     int(treasury * SELL_NEUTRALITY_TREASURY_FRACTION
@@ -788,6 +810,10 @@ def _build_proposal_terms(
                 {"type": "gold_lump", "value": int(offer)})
         terms["compact"] = "sell_neutrality"
         terms["compact_aim"] = wars[0] if wars else ""
+        # Review fix (the invisible bond): the compact is DISCLOSED at
+        # decision time as a rendered clause (pin 23 — a licence is a
+        # bond the player must see before signing).
+        terms["clauses"].append("neutrality_compact")
 
     elif proposal_type == "harsh_peace":
         # R116: AI is winning badly — demand harsh terms
@@ -1025,7 +1051,14 @@ def _generate_intent_ask(nation: str, world, diplo_state: str,
             and view.price in ("ask", "buy", "align", "bandwagon")
             and view.against != player):
         wars = world.get_nations_at_war_with(nation)
-        if wars and player not in wars:
+        # Review fix (the lump farm): a court that has ALREADY bought
+        # France's neutrality does not re-offer while the compact
+        # stands — one lump per term.
+        already_bought = any(
+            r.get("kind") == "neutrality" and r.get("payer") == nation
+            and r.get("recipient") == player
+            for r in getattr(world, "directed_sponsorships", []) or [])
+        if wars and player not in wars and not already_bought:
             from backend.game_logic.intent import get_france_perceived_intent
             _price, _weight, perceived_target = (
                 get_france_perceived_intent(world))
@@ -2364,6 +2397,14 @@ def _process_ai_sponsorships(world) -> List[Dict]:
         for recipient in active:
             if recipient in (payer, aim) or recipient == player:
                 continue
+            # Review fix (GR5 with the player mint gates): no patronage
+            # of a court the payer is fighting, none against a court the
+            # payer guarantees — both would self-renege on the next pass.
+            if world.is_at_war(payer, recipient):
+                continue
+            from backend.game_logic.instruments import guarantors_of
+            if payer in guarantors_of(world, aim):
+                continue
             view = get_nation_intent(recipient, world)
             if (view.want_id is None or view.survival
                     or view.against != aim):
@@ -2373,6 +2414,17 @@ def _process_ai_sponsorships(world) -> List[Dict]:
             result = grant_directed_sponsorship(
                 world, payer=payer, recipient=recipient, aim=aim,
                 amount_per_turn=amount)
+            if not result.get("success"):
+                continue
+            # Review fix (GR5 pricing, best-effort): the player pays
+            # 1 DP per instrument; the AI patron pays from its own pool
+            # WHEN it holds any (the pools boot empty and fill via
+            # regen — an empty pool must not silence the sponsor branch
+            # the boot vignette depends on).
+            nation_dp = getattr(world, "nation_dp", {})
+            if int(nation_dp.get(payer, 0) or 0) >= 1:
+                nation_dp[payer] = int(nation_dp.get(payer, 0)) - 1
+                world.nation_dp = nation_dp
             events.append(result["event"])
             break
     return events
@@ -2509,14 +2561,18 @@ def process_allegiance_auctions(world) -> List[Dict]:
             outcome = "player_offer"
         else:
             state = world.get_diplomatic_state(nation, best)
+            outcome = "flipped"
             if state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE", "WAR"):
-                world._ratify_treaty({
+                treaty = world._ratify_treaty({
                     "type": "defensive_alliance",
                     "proposer_nation": nation,
                     "target_nation": best,
                     "sweeteners": [], "demands": [], "clauses": [],
                 })
-            outcome = "flipped"
+                # Review fix: never announce a flip the table refused.
+                if (not isinstance(treaty, dict)
+                        or treaty.get("type") == "diplomatic_treaty_failed"):
+                    best, outcome = None, "no_suitor"
         event = {
             "type": "allegiance_auction_resolved",
             "nation": nation, "winner": best,
@@ -2677,10 +2733,14 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
                     "clauses": [],
                 }
                 event = world._ratify_treaty(normalized)
-                if isinstance(event, dict):
+                # Review fix: a failed downgrade ratify (same-state,
+                # relation gate) is NOT a counter — fall through to the
+                # refusal record below, never swallow the pin-8 moment.
+                if (isinstance(event, dict) and event.get("type")
+                        not in (None, "diplomatic_treaty_failed")):
                     event["countered"] = True
                     event["asked_type"] = ptype
-                return event
+                    return event
 
     # The refusal moment (AI-2a seam 5): the ask happened and was rebuffed
     # — put it on the serialized record and in the campaign log, ONCE per
@@ -2745,10 +2805,19 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
         # transfer by agreement lands with AI-4's settlements; in
         # Stage C the ask exists to be REFUSED — the §5 pin 8 record
         # and the fog-visible refusal event are the ladder's substrate.
+        # Review fix: inside the refusal-dedupe window the ask would
+        # resolve to nothing — skip it so the pair's OTHER triggers
+        # (both-at-war-with-France alliance etc.) are not shadowed for
+        # six turns per ask.
         if (view.against == target and view.price in ("ask", "buy")
                 and not world.is_at_war(proposer, target)):
-            return {"type": "design_ask", "proposer": proposer,
-                    "target": target}
+            recent = [e for e in get_refused_asks(world, proposer, target)
+                      if e.get("type") == "design_ask"
+                      and int(world.current_turn) - int(e.get("turn", 0))
+                      < REFUSAL_DEDUPE_TURNS]
+            if not recent:
+                return {"type": "design_ask", "proposer": proposer,
+                        "target": target}
         # 0b — THE ALIGNMENT ASK: a court at `align` courts the enemies
         # of its obstacle ("Vienna seeks a Russian guarantee"). The
         # target must itself be cold toward the obstacle, and the pact

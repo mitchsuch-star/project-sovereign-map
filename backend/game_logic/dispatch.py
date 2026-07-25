@@ -1911,6 +1911,13 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "agenda_violation": "HIGH",
     "nation_formed": "HIGH",
     "nation_created": "HIGH",
+    # AI-2b/2d/2e (Stage C): the broken bargain is the phase's marquee
+    # grievance beat and the flip announcement is the auction's Courier
+    # moment — both HIGH like their treaty-broken siblings; the routine
+    # subsidy line stays MEDIUM by design.
+    "broken_bargain": "HIGH",
+    "allegiance_in_play": "HIGH",
+    "paymaster_subsidy": "MEDIUM",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

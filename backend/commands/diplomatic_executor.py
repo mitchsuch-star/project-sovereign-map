@@ -203,6 +203,17 @@ class DiplomaticExecutor:
                     aim = nation
                     break
 
+        player = getattr(world, "player_nation", "France")
+        # Review fix (the instant-self-renege trap): the renege pass
+        # treats a standing war as reneging — so the mint must refuse
+        # honestly, exactly as guarantee_nation already does.
+        if world.is_at_war(player, recipient):
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"We are at WAR with "
+                            f"{recipient}, Sire — one does not bankroll "
+                            f"the court one is fighting.\""),
+            }
         view = get_nation_intent(recipient, world)
         if view.want_id is None or view.survival:
             return {
@@ -227,12 +238,22 @@ class DiplomaticExecutor:
                             f"at {view.against}, not {aim}. We can only "
                             f"arm the grievance they already hold.\""),
             }
-        player = getattr(world, "player_nation", "France")
         if aim == player:
             return {
                 "success": False,
                 "message": ("Talleyrand: \"Sponsor a design against "
                             "ourselves, Sire? I must decline.\""),
+            }
+        # Review fix: sponsoring a design against a court FRANCE
+        # guarantees would self-renege on the next pass — refuse with
+        # the reason named instead.
+        from backend.game_logic.instruments import guarantors_of
+        if player in guarantors_of(world, aim):
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"France GUARANTEES {aim}, "
+                            f"Sire. Arming a design against our own ward "
+                            f"would be reneging on our word.\""),
             }
 
         amount = self._scan_amount(raw_text)
@@ -241,18 +262,26 @@ class DiplomaticExecutor:
             amount = 0 if is_licence_verb else 200
         if amount > 0:
             treasury = int(world.nation_gold.get(player, 0))
-            if treasury < amount:
+            # Review fix (the paper-bid hole): the AI branch requires a
+            # sustainable purse (×4); the player's promise is held to
+            # the same bar — a bid the treasury cannot carry is refused,
+            # not weighed at face value.
+            if treasury < amount * 4:
                 return {
                     "success": False,
-                    "message": (f"The treasury holds {treasury} gold — it "
-                                f"cannot promise {amount} per turn."),
+                    "message": (f"The treasury holds {treasury} gold — "
+                                f"it cannot SUSTAIN {amount} per turn "
+                                f"(Talleyrand demands four turns' cover "
+                                f"before he signs a standing promise)."),
                 }
 
-        world.diplomatic_points -= INSTRUMENT_DP_COST
         result = grant_directed_sponsorship(
             world, payer=player, recipient=recipient, aim=aim,
             amount_per_turn=amount, turns=SPONSORSHIP_DEFAULT_TURNS,
             kind="sponsorship")
+        if not result.get("success"):
+            return result  # duplicate compact — no DP charged
+        world.diplomatic_points -= INSTRUMENT_DP_COST
         record = result["record"]
         if amount == 0:
             message = (
@@ -291,6 +320,17 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": ("Name the court to buy off, Sire — e.g. "
                             "'buy off Prussia'."),
+            }
+        # Review fix (the instant-self-renege trap): buying off a court
+        # France is at war with would brand FRANCE the breaker on the
+        # next pass — the mint refuses honestly instead.
+        player = getattr(world, "player_nation", "France")
+        if world.is_at_war(player, target):
+            return {
+                "success": False,
+                "message": (f"Talleyrand: \"We are at WAR with {target}, "
+                            f"Sire. Designs are bought off at the peace "
+                            f"table, not across a battlefield.\""),
             }
 
         view = get_nation_intent(target, world)
@@ -5947,7 +5987,11 @@ class DiplomaticExecutor:
         # France has given. Entering that war against the payer later
         # is RENEGING, the strongest casus belli in the game; without
         # the bond, "take everyone's gold" would strictly dominate.
-        if terms.get("compact") == "sell_neutrality":
+        # Review fix: minted ONLY on a successful ratification — a
+        # failed treaty pays no lump, so it may bind nobody.
+        if (terms.get("compact") == "sell_neutrality"
+                and treaty_event
+                and treaty_event.get("type") != "diplomatic_treaty_failed"):
             from backend.game_logic.instruments import (
                 grant_directed_sponsorship,
             )

@@ -4,6 +4,36 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ⚙️ AI INTENT STAGE C ✅ BUILT July 24, 2026 (second session that day) — The Bargaining Table
+
+**User direction: "do next phase of intent, commit and push."** Landed **Stage C in full per
+`AI_INTENT_SPEC.md` §11.1** — **AI-2** intent-driven rungs (P-Intent BEFORE P3: the design
+purchase / sell-neutrality / alignment asks; AI-AI trigger 0 design+alignment asks; P-Bandwagon
+widened to any hegemon; the §4.2c `INTENT_ASK_BUDGET_PER_TURN=2` lane + opportunism valve),
+**AI-2b** the D5 counter-instruments (`instruments.py` — the ONE directed record for
+sponsorship/licence/sell-neutrality, compensation bargains that SUSPEND designs at the agenda
+chokepoint, guarantees with the −8 intent deterrent + `guarantee_abandoned` enforcement; player
+verbs `sponsor_design`/`buy_off_design`/`guarantee_nation` at 1 DP with honest refusals; 4 new
+serialized stores; beat 4 The Broken Bargain on the PL-14 popup), **AI-2c** statecraft
+(`NATION_STATECRAFT`, honor-bias idiom — Austria hardens/align-first, Prussia folds/gold-first,
+Russia honour/sponsor-first, Britain's −40 subsidy wall DERIVED from hostile-army-on-home-soil;
+the AI-AI haggle arm; ask-order partitions under the NA-2 design-front rule), **AI-2d** the §12.6
+allegiance auction (announced flips, D5-record bidding, refusable player wins) + the AI sponsor
+branch (Russia funds Austria turn 1), **AI-2e** the paymaster duel (subsidy visible on campaign
+log/dispatch/THE PAYMASTER'S PURSE + per-nation Compacts `.gd` rows; the outbid over the directed
+record; bought clients not worth funding), and the parallel **AI-4a steps 1-4** (`threat_by_target`
++ the `threat_level` property — the step-4 pin verified BYTE-IDENTICAL against `d1be956` before any
+behaviour landed, then re-recorded consciously). **Landing record = spec §15 (authoritative)**;
+**re-check evidence pack = `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md`.** An 8-lens find→2-refuter
+review (56 agents; 27 verifiers lost to the session cap were adjudicated by hand) confirmed **16
+findings, ALL FIXED** — headline P1: renege attribution was DIRECTION-BLIND (the attacked party was
+branded the breaker; fixed as aggressor-attributed via the war_instances attackers side, with
+unattributable wars lapsing on the new `instrument_lapsed` event). Suite **14,772/3** (+159); parse
+harness EXIT=0; boot 0 `SCRIPT ERROR`. **▶ NEXT: THE ⛩ RE-CHECK (the phase's only remaining gate —
+user decides from the evidence pack: D1's cap, the §11.2 cut list, AI-5c keep/slip) + the pin-20
+live in-game pass (Stage B ledger rows + Stage C compacts/purse/courier surfaces); Stage D (War
+and Peace) may not build before it. BD (Battle Diorama) still queued by its ROADMAP row.**
+
 ### ⚙️ AI INTENT STAGES A + B ✅ BUILT July 24, 2026 — the dice, the bounds, and Europe's hand
 
 **User direction: commit the spec, then "do as many phases as you think are comfortable to do at

@@ -133,11 +133,14 @@ class TestCoercionAnswers:
         assert coercion_acceptance_delta(world, "Britain") == 0
 
     def test_captured_marshal_does_not_hold_the_wall_down(self, world):
+        """A PRISONER paraded at the captor's capital is not a hostile
+        army (review fix: the guard read a nonexistent `captured` attr —
+        the Marshal field is `captured_by`)."""
         home = list(world.nation_starting_regions["Britain"])
         marshal = next(m for m in world.marshals.values()
                        if m.nation == "France")
         marshal.location = home[0]
-        marshal.captured = True
+        marshal.captured_by = "Britain"
         assert not hostile_army_on_home_soil(world, "Britain")
 
     def test_peacetime_army_is_not_hostile(self, world):
