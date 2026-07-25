@@ -31,6 +31,10 @@ From the live NA-6c/6d + AI-3r cross-element pass. Memo:
 `docs/audits/INGAME_REVIEW_2026_07_25.md`. Correctness defects went to `BUG_FIXES.md`
 § In-Game Review July 25; these three are design calls, not bugs.
 
+**All three are owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, awaiting its §5
+gate):** IGR-D1 → **IGR-E** (gate Q4, needs a blessed number) · IGR-D2 → **IGR-F** (gate-free) ·
+IGR-D3 → **IGR-D** (gate Q2 — the same question as `BUG_FIXES.md` IGR-3).
+
 | ID | Item | Why it matters | Landing |
 |---|---|---|---|
 | **IGR-D1** | **Plunder is economically irrelevant.** Plundering Nassau yielded **87 gold** against 3,085/turn income and a 5,177g treasury. Secure (stability 25) is strictly correct in every situation I met, so the post-capture choice has no tension. | A per-conquest decision the game stops to ask about should cost the player something to answer. Either price plunder so it can fund a campaign, or re-cut the choice as stability-vs-authority / estate-vs-treasury rather than gold. | Econ pass 2 (`ECONOMY_REVISIT_SPEC.md`) — needs a blessed number, so it escalates |

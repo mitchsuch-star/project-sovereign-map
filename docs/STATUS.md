@@ -69,6 +69,22 @@ Gulf and the Straits* at T9); the Fontainebleau petition's rentes moved the ledg
 
 Suite **14,936/3**, ruff clean, Godot parse harness EXIT=0.
 
+**▶ QUEUED SAME DAY — row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, AWAITING THE §5 GATE).**
+Everything the review routed rather than fixed is now a spec'd, ordered pass rather than loose
+backlog: **IGR-A** honest copy (4 items, gate-free) · **IGR-B** the campaign log becomes readable
+(Q1) · **IGR-C** Talleyrand's unreachable counsel rung (Q3, GR9) · **IGR-G** settlement viewport +
+map-stack legibility (gate-free) · **IGR-D** the carve becomes completable (Q2 — the big one; ends
+with the in-client Proclamation sighting this review could not deliver) · **IGR-F** the
+minor-court envoy digest (gate-free) · **IGR-E** plunder earns its prompt (Q4, blessed number).
+Build order **A → pause for review → B → C → G → D → F → E**; the two gate-free slices land first
+per the project's slice-review cadence. **Four gate questions, all with recommendations:** Q1
+aggregate the AI-AI refusal lines · Q2 **should identity clauses survive a separate peace** (the
+historical case is Tilsit — the Duchy of Warsaw was carved from Prussia alone while the British
+war ran, which is exactly what the engine forbids today) · Q3 broaden the designs-in-check rung to
+France's own exposure · Q4 plunder ≈4× province income. Nothing in the spec is deferred without an
+owner; the four items deliberately not taken (beats 2/3/7, the Polish Question label, Congress
+beat 6, the unreproduced modal stacking) each name theirs in §4.
+
 
 ### ⚔️ AI-3r ✅ GATED + BUILT COMPLETE July 25, 2026 — "What It Leaves Undefended" (all five slices, one session)
 

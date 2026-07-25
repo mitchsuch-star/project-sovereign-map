@@ -35,7 +35,10 @@ IGR-F3 beat-7 `exposed`/`outmatched`/`penniless` rendered as the `starved` phras
 IGR-F4 the command terminal swallowed the mouse wheel (P2);
 IGR-F5 the separate-peace "your drafted terms carry" promise dropped identity clauses (P2, copy).
 
-**OPEN:**
+**OPEN — all four are owned by row IGR, `docs/INGAME_REVIEW_FIXES_SPEC.md` (v0.1, awaiting its §5
+gate).** Slice mapping: IGR-2 → **IGR-A1**; IGR-1 → **IGR-B** (gate Q1); IGR-4 → **IGR-C** (gate
+Q3); IGR-3 → **IGR-D** (gate Q2). The "Owner / landing" column below names the upstream spec each
+item also touches.
 
 | ID | Sev | Item | Owner / landing |
 |---|---|---|---|
