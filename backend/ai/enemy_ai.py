@@ -3778,6 +3778,19 @@ class EnemyAI:
         strategic_targets = []
         if not enemies:
             strategic_targets = self._get_strategic_enemy_regions(nation, world)
+
+        # AI-3c (§13.1 — "the army agrees with the ledger"): a court whose
+        # war council holds a live crisis masses on its design's frontier
+        # BEFORE the declaration — the fore-warned war visible on the map.
+        # The bias rides the SAME movement scoring every marshal uses (GR5)
+        # and releases the turn the crisis cools (the store empties — no
+        # latch). Deckless worlds: war_intents is empty, byte-identical.
+        # A court fighting a real war ignores it (enemies win the rung).
+        if not enemies and not strategic_targets:
+            from backend.game_logic.war_council import get_intent_frontier
+            frontier = get_intent_frontier(world, nation)
+            if frontier:
+                strategic_targets = list(frontier)
         if not enemies and not strategic_targets:
             return None
 

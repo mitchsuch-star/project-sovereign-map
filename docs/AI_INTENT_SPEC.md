@@ -1,8 +1,9 @@
 # AI Intent — Phase Spec (v1.4 — gate record · phased build plan · the four review passes)
 
 > **Status: DESIGN GATE HELD July 20, 2026 — §6 (D1–D7) is authoritative and has survived every
-> subsequent pass untouched. Nothing is built yet.** The build may begin against this document
-> without a further gate, except the one D6 names: the user re-check between Stage C and Stage D.
+> subsequent pass untouched. Stages A–D are BUILT** (§14 A+B · §15 C · §17 D, each authoritative);
+> the D6 re-check between Stage C and Stage D was **held July 24, 2026 — gate record §16**.
+> Remaining: Stage E (consequence & character) → F (the stage) → G (AI-V), per §11.
 >
 > **How to read this document.**
 > - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
@@ -26,6 +27,7 @@
 > | v1.3 | July 21, 2026 | the verification pass — ten ground-truth readers, ten lenses, two refuters per finding; **19 factual corrections** (row AI-0 deleted; the historian test's false clause; third-party war exhaustion *decays*); §3.1a the descent · §3.9 attractors · §2 principle 9; contracts §4.2c / §4.3a / §4.4a steps 5–6 / §4.4b / §4.6b; pins 15–20; AI-V three arms | §9a, §10 |
 > | **v1.4** | **July 24, 2026** | **the structure & creative pass — §11 the phased build plan (the builder's front door); §12 six gameplay additions: the deterrence receipt · Russia's second design · the licence · the purchased dispatch + the player's seal · armed mediation · the allegiance auction; pins 21–24; beat 7** | **§11, §12** |
 | v1.4.1 | July 24, 2026 | §13 the standing review questions (user-directed): border massing (new row AI-3c, Stage D) · multi-front conduct (AI-V assertions) · recruit/commission budgeting (the §8 economy re-measure) · AI-vs-AI wars (=Stage D) · the non-France hegemon (=D3 + pin 16d). **Same day: Stage A (AI-0b/0c/0d) and Stage B (AI-1/AI-1b/AI-2a) BUILT — landing record §14.** | §13, §14 |
+| v1.4.2 | July 24, 2026 | **Stage C BUILT** (landing record §15; evidence pack `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md`) · **⛩ THE RE-CHECK HELD** (gate record §16: D1 cap confirmed 2; AI-3b slipped out of Stage D; AI-5c keeps Stage E; pin 17b re-sited to §17; the §4.4b exclusive ruling) · **Stage D BUILT** — war and peace, indivisible (landing record §17: AI-3 + §4.3a + AI-3c · AI-4a steps 5–6 · §4.4b · AI-4c · AI-4b + broker/join · beats 2/3/6/7; pins 15/16/17/19/21 green) | §15, §16, §17 |
 >
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
 > decision-architecture map taken at `b4b6326`, re-verified against master at `12636a6` (v1.0) and
@@ -2534,3 +2536,241 @@ re-check evidence pack = `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md` ✓. Suite
 (+159 over Stage B's 14,613); parse harness EXIT=0; headless boot 0 `SCRIPT ERROR`; the pin-20
 live in-game pass remains OPEN for the user's next session (now covering the Stage B ledger
 surfaces + the Stage C compacts/purse rows and the courier/auction beats).
+
+---
+
+## 16. ⛩ The re-check — gate record *(held July 24, 2026; authoritative)*
+
+**Authority.** D6's "user re-check between Stage C and Stage D," held from the evidence pack
+(`docs/audits/STAGE_C_EVIDENCE_2026_07_24.md`) under the user's standing session direction — *"do
+next phase of intent, commit and push"* — the same delegated-defaults idiom as the EC-W gate and
+8.EVAL. Every decision below is the evidence pack's own recommendation or the spec's marked
+default; **nothing reopens §6.** Stage D (War and Peace) is hereby OPEN to build.
+
+### 16.1 The docket, decided
+
+1. **D1's cap — CONFIRMED at 2** simultaneous AI-initiated wars, acceptance band 1–4 over the
+   40-turn sweep. Evidence §2: no live AI wars exist yet to measure against; the refusal-record
+   accumulation rate (≤1 per coveting pair per 6-turn dedupe window, one standing boot pair)
+   puts no pressure on the default. **Re-measure at the Stage D landing record** from the first
+   40-turn sweep with wars live, and again at AI-V.
+2. **Cut list #1 — AI-3b (sealed articles + purchased dispatch + player seal) SLIPS out of
+   Stage D.** The slip the stage table already marks *(slip 1)* is exercised: Stage D is the
+   phase's largest stage and its indivisibility rule (a war must start AND end under the harness
+   before anything user-facing lands) is the wrong place to carry the phase's one optional
+   espionage surface. **Slipped, not cut** — final keep-or-cut at the exit review. While slipped:
+   pin 24 rides the row; §7a scene 7's sealed-article half and the DoD surprise line carry this
+   entry as their written blocking predicate (the partition itself stays reachable — AI-4b's
+   third-party settlement is Stage D Core; only the *sealed* arrangement of it waits).
+3. **Cut list #2 — AI-5c (the Arbiter's Offer) KEEPS its Stage E slot.** The refusal consequence
+   is derived-only, the transport exists, and it is `arbiter_of_europe`'s only behaviour; cutting
+   now would re-open §12.5's gap for no schedule gain (Stage E is not the long pole). It remains
+   cut-list #2 if Stage E overruns — this record is its keep decision, not its immunity.
+4. **Cut list #3/#5 unchanged** (AI-5b(ii) volte-face stays the Stage E slip candidate; the §3.5
+   upward-mirror assertion stays an AI-V arm-(b) row). **Cut list #4 CLOSED** — the outbid arm
+   landed in Stage C and did not slip (evidence §3).
+5. **Pin 17(b) — the AI-4c economy deltas are NOT blessED here, by necessity** (evidence §4: the
+   third-party exhaustion/treasury series cannot exist until AI-4c lands). The blessing is
+   **re-sited to the Stage D landing record (§17)**, where the measured boot third-party series —
+   the four boot belligerents' exhaustion and `calculate_war_effort_cost` deltas — is recorded
+   and blessed with data, as pin 17(b) itself anticipates.
+6. **Balance flags (evidence §5) stand as blessed in-band:** guarantees at 1 DP (the credibility
+   stake is the real price), `COMPENSATION_TERM_TURNS = 15`, sponsorship term 10 / tiers
+   200/300/400. Revisit with live-war data at the exit review; shape changes escalate.
+7. **AI-3c (border massing) stays INSIDE Stage D.** §13 Q1 carries the user's name; the row is a
+   bias term on existing movement rungs, not a stage risk. The §13.1 slip-to-E clause stays
+   available if the stage overruns mid-build.
+8. **The §4.4b D3 arbitration ruling — EXCLUSIVE.** One active coalition world-wide.
+   Anti-France precedence, so D3's gravity is never diluted: a coalition against a non-player
+   hegemon forms only when **no anti-France coalition is active** and that power's hegemony share
+   exceeds France's; if France's own threat crosses the formation threshold while an anti-X
+   coalition stands, the anti-X coalition **dissolves in its favour** (logged as its own event —
+   Europe remembers who the real danger is). `coalition_count` and the `_ORDINALS` naming stay
+   world-wide — one sequence of coalitions in Europe's history, whoever each was against.
+   Consequence per §4.4b: the singleton `world.active_coalition` suffices; the migration is
+   anchor work on the existing `target_nation` key, not a store rewrite.
+
+### 16.2 What Stage D builds (the scope as gated)
+
+Per §11.1 with the dispositions above: **AI-3** (+ §4.3a all four requirements + the
+co-belligerent side-exit helper + **AI-3c**) · **AI-4a steps 5–6** · **AI-4b** third-party
+settlements + §4.4b under the exclusive ruling (Core, the stopgap stays deleted) · **AI-4c**
+(never cut) · **AI-2d join/broker arms** + the Stage C deferral "AI producers for guarantees +
+compensation" (§15, owner AI-3) · **beats 2, 3, 6, 7** with pin 21's one-of-two-endings contract
+and the one-foregrounded-crisis tempo rule. AI-3b is out (item 2). Exit = §11.1's Stage D row:
+pins 15 / 16 / 17 / 19 / 21 green (24 slipped with its row), the DoD war lines, and an
+AI-initiated war that has both started and ended under the harness.
+
+---
+
+## 17. Landing record — Stage D, "War and Peace" *(July 24, 2026; authoritative)*
+
+**Built and landed in one session, immediately after the §16 re-check, under the same user
+direction ("do next phase of intent, commit and push").** The stage's indivisibility rule held:
+nothing user-facing landed before AI-4b/4c closed the loop, and the exit test is the §11.1
+sentence itself — under the harness, an AI-initiated war both **starts** (Prussia declares on
+Hanover for the Hanoverian Prize, fore-warned, coerced, ladder-climbed) **and ends** (the
+exhausted loser sues through the P1 seam; the winner takes the surrender; the design province
+changes hands; the war instance closes) — `test_ai_intent_war_decision.py` +
+`test_ai_intent_third_party.py`.
+
+### What landed
+
+- **AI-4a steps 5–6** (the phase's highest-risk item): every threat producer now passes the
+  ACTOR as `target` — battle wins/decisive victories/capital captures (both combat copies),
+  region capture, treaty annex/return, liberation, forced alliance (both the treaty and
+  settlement layers), war declaration, diplomatic downgrade, treaty breach, ultimatum annex,
+  and all six vassal-family sites. The coalition standing block gained per-nation
+  region-control loops and the previously computed-and-DISCARDED non-player
+  `hegemony_passive` increment (D3's fuel, wired). The four standing contributors carry their
+  written decisions in-code (defensive-refusal memory / schemer markers / the two grudge
+  families / ultimatum defiance — all STAY FRANCE-ONLY, reasons stated at the block).
+  Per-target decay runs on the player's own schedule through `reduce_threat` (entries carry
+  targets); the eclipse pass (`_eclipse_candidate`) brews — never instant-forms (pin 16c
+  structural) — against a non-player power only when its bloc share exceeds France's AND no
+  coalition stands anywhere (the §16.1-8 exclusive ruling), and the player is never enrolled
+  (neither as qualifying nor via the already-at-war arm).
+- **Pin 16(a) VERIFIED in isolation**: with the AI-4c tick temporarily neutralised, the
+  40-turn `historical` threat series was byte-identical to the recorded baseline; re-run with
+  AI-4c live it was byte-identical AGAIN (the third-party exhaustion economics did not ripple
+  into France's series on the pinned run) — **`BASELINE_SERIES` stands unedited.** The
+  Stage-C-era `test_no_nonplayer_slot_ever_accrues` invariant was consciously INVERTED
+  (non-player slots now live: Britain peaked 55, Austria 19, Holland/Spain/Prussia/Russia
+  decayed back to 0 on the same run — pin 16(b) live organically); the new assertion also pins
+  that no non-player slot reaches the brewing tier on the historical ambient run (D3's gravity,
+  measured).
+- **§4.4b under the exclusive ruling**: `qualifies_for_coalition` / `get_qualifying_nations` /
+  `get_nations_at_war_with_target` / `coalition_leadership_score` (the one SEMANTIC change —
+  hostility re-anchored to the coalition's target) / `select_coalition_leader` /
+  `form_coalition` / `check_dissolution` / `calculate_coalition_war_score` all take or read the
+  target, defaulting to the player byte-identically (`target_nation` key, legacy records
+  default player). Anti-France precedence: an eclipse coalition dissolves
+  (`the_greater_danger`, its own log event) the turn France's alarm crosses the brewing line,
+  cooldown zeroed — Europe remembers who the real danger is. `coalition_count`/`_ORDINALS`
+  stay world-wide.
+- **AI-4c**: the per-turn tick keys on `get_nations_at_war_with(nation)` on Europe worlds (the
+  France arm's own predicate); the legacy world keeps the France-relative read verbatim (pin
+  17c green). Both combat copies gained the explicit third-party arm — the LOSER bears its own
+  dead, the France arms verbatim above it. **The mirror copy's pre-existing divergence
+  (France-defender-wins grants no decisive_victory/shock) is PRESERVED, not fixed** —
+  byte-identity before symmetry; flagged for the exit review. Coalition shock kept its
+  France-arm gating verbatim (members' WE feeds separate-peace acceptance — widening it is a
+  behaviour change this migration must not smuggle in; exit-review item). Display: the nations
+  tab gained the labelled `war_weariness` line ("National exhaustion across all wars: N
+  (trend) — at war with …", §4.2b's labelled arm) with its own `diplomatic_ledger.gd` render.
+- **Pin 17(b) BLESSED, with the data the re-check re-sited here** (3-turn boot measurement,
+  historical seed): Spain we=24/28g·turn, Holland we=26/5g, Bavaria we=40/4g, KingdomOfItaly
+  we=24/10g — the four boot third-party belligerents accrue from turn 1 as the pin demands,
+  their `calculate_war_effort_cost` deltas are one order below their treasuries
+  (257–2,938g standing), and no solvency shape moved. Blessed as-is; the §8 economy re-measure
+  row still owns the long-run retune.
+- **AI-3 — `war_council.py`**: the crisis lifecycle (open → beat 2 with honestly-gated
+  instruments → beat 3's AI-AI coercive demand, REFUSED onto the serialized record → the
+  declaration at `CRISIS_FOREWARN_TURNS=2` of foregrounded tenure), the ladder gate
+  (`CRISIS_REFUSALS_REQUIRED=2` or a §3.3 renege grievance that may skip rungs), the restraint
+  gates (no existing wars, treasury ≥500, force ratio 1.25× incl. the target's guarantors in
+  the scale), `MAX_SIMULTANEOUS_AI_WARS=2` (D1 — a capped crisis WAITS, it does not die), the
+  §4.3a-4 `can_declare_war` shared preview, the §4.3a-2 treaty-break-first step (an
+  unbreakable predicate stalls the crisis and cools it as starved after 4 polls — pin 21's
+  termination guarantee), the §4.3a-1 declaration at the announcement (`declare_war` direct;
+  the combat seam later finds the war live), war instances stamped
+  `ai_initiated`/`design_id`/`stated_reason`, the objective's `target_regions` re-pointed to
+  the DESIGN's provinces (+`design` key — reuse, not a new war-goal system), and the logged
+  `war_declaration` event carrying `stated_reason` for the headline (pin 4). **v1 scope
+  pinned: AI-vs-AI acquire designs only** — a player-targeted design coerces through NA-5 and
+  fights through the coalition (the NA-5 no-unilateral-war pin stands); deny/contain designs
+  express through guarantees and coalitions, never a council war.
+- **§4.3a-3 + pin 15**: both combat-seam refusal discards are now ABORTS (a refused
+  declaration returns a refusal, the world byte-identical), and the `OPEN_MOVEMENT_STATES`
+  capture hole is CLOSED — an attack on a peace-nation's region always requires a successful
+  declaration (AI) or the WPS staging (player; the player's silent open-borders capture is
+  gone with it — pin 4's second clause). Plain movement under those treaties is untouched.
+- **The §4.3a blocked case**: `exit_shared_wars_for_defection` — the VS-6 side-exit idiom
+  lifted into `war_council` — peaces out a co-belligerent's shared wars so the defection
+  declaration can land; pinned executable against the boot Third Coalition (Austria exits its
+  France war, then declares on Britain). Organic use stays with AI-5b(ii).
+- **AI-3c**: `get_intent_frontier` (per-turn cached, GR8) anchors the P7 mover on the design's
+  own unmet provinces — the massing EMERGES from the existing `_can_ai_move_to` gates
+  stalling every corps at the last lawful region; the bias enters P7's
+  empty-targets early-return so an at-peace coveter finally moves; released the turn the
+  crisis cools (no latch); deckless worlds byte-identical (the store is empty).
+- **AI-4b — `settlement_third_party.py`**: the loser sues through
+  `effective_peace_threshold` — **P1's inline formula EXTRACTED to this one seam, verbatim
+  (pin 19b)** — the winner scores through
+  `settlement_scoring.calculate_common_peace_acceptance` (module attribute — the standing
+  patch seam holds for the AI-AI arm, pinned), hard stops are an absolute veto, and the
+  **victor's-consent arm** covers what the scorer honestly under-scores: SURRENDER-shaped
+  terms (every material clause flowing to the accepter) need no enthusiasm, and a white peace
+  lands on mutual exhaustion. Terms = `_settlement_offer_build_terms` (its `player` parameter
+  RENAMED `accepter`, nation-pair-general per §4.4) + the territorial generator: up to two of
+  the winner's DESIGN provinces still in the loser's hands cede — **the D2 capital ruling
+  landed here**: a single-province minor's capital IS the design's object and may cede (its
+  nation eliminating, D2's "minors yes"), a great power's (`_CANONICAL_MAJORS`) capital never
+  rides a routine cession. The headless ratify wrapper drives the four internals + the three
+  invalidations + `process_formations` and NEVER touches `dialogue_manager` (pin 19c pinned
+  with a mounted sentinel). Beat 6 (The Congress) names its consequences — who took what, who
+  pays, whether the new ground touches the French frontier.
+- **AI-2d join/broker**: an AI guarantor of the target declares on the aggressor at the
+  declaration (`guarantee_honored`, casus belli); FRANCE's own pledge produces the ward's
+  plea (`guarantee_called` dispatch event) and the Stage C abandonment clock does the honest
+  rest — the player is never auto-conscripted. The broker: a court within
+  `BROKER_ASK_MARGIN=10` of its threshold asks France to convene (`broker_peace` on the
+  existing incoming-proposal transport + display row); Accept runs the settlement attempt at
+  the broker margin with the outcome as a result popup (the PL-14 rule — no new dtype), and a
+  landed congress pays the broker's fee (+10 relations with both courts).
+- **AI instrument producers** (the Stage C deferral, §15 → here): on a live foregrounded
+  crisis, a folds-statecraft holder solvent for `compute_buyoff_price` buys the coveter off
+  (gold moves, the bargain minted, the crisis passes bought_off — descent (b) has an AI
+  producer at last), and one protector per turn world-wide (sponsor/align statecraft, warm to
+  the ward, cold to the coveter, at peace) pledges the guarantee that makes beat 7's
+  "deterred" reachable without the player.
+- **Beats 2/3/6/7** on existing transports: campaign-log types `crisis_brewing` /
+  `coercive_demand` / `crisis_passed` / `guarantee_honored` / `third_party_peace` (count pins
+  flipped consciously 134 → 140, both test files) riding the town-crier visibility arm beside
+  the auction (DPF-1 — a crisis, its demand, its ending and a congress are court knowledge);
+  dispatch templates + priorities (beats HIGH — events, exempt from the routine cap; the
+  demand MEDIUM under the crisis lead); and the dispatch HEADLINE finally has non-France arms
+  — `europe_at_war` (with the stated reason) / `europe_crisis` / `europe_congress` /
+  `europe_crisis_passed`, all weighted BELOW everything France-centric (pin 13) with their own
+  Berthier closing notes.
+
+### Conscious pin flips and preserved warts
+
+1. `test_no_nonplayer_slot_ever_accrues` → `test_nonplayer_slots_live_and_bounded` (the
+   Stage-C-era steps-5-6-have-not-landed invariant, inverted by landing them).
+2. Campaign-log count 134 → 140 (both count pins; the five beats plus the
+   §16.1-8 pivot event `coalition_dissolved_for_france`).
+3. The auto-combat mirror's missing decisive_victory/shock on France-defender-wins is
+   PRESERVED (pre-existing divergence; byte-identity first) — exit-review item.
+4. Coalition shock stays France-gated in both copies (widening it moves members' WE, which
+   moves separate-peace acceptance) — exit-review item.
+5. `war_declaration` threat now credits EVERY aggressor's own slot — a coalition member
+   declaring on France takes a transient +20 in its own slot (decays; D3-gated from ever
+   mattering); noted at `form_coalition`.
+6. The player attacking an open-borders partner's region now stages the War Purpose dialog
+   instead of silently capturing (pin 4's second clause — behaviour change, correct).
+
+### Serialization
+
+ONE new world field: `war_intents` (crisis records — fore-warning tenure must survive a save;
+`from_dict` reads pre-Stage-D saves as `{}`). War instances carry `ai_initiated` / `design_id`
+/ `stated_reason` / `third_party_peace_attempt_turn` / `broker_ask_turn` inside the
+already-serialized container; objectives carry `design`. `SAVE_FORMAT_REFERENCE.md` updated
+(including the missing `diplomatic_refusals` row this session found).
+
+### Exit criteria check (§11.1 Stage D as gated by §16)
+
+Pin 15 (refused-declaration aborts + the capture hole) ✓ · pin 16(a-d) (byte-identical series
+verified in isolation AND with AI-4c live; return-to-zero organic; never-instant structural;
+the eclipse fixture forms against Austria with France's slot unmoved) ✓ · pin 17(a-c) (both
+belligerents monotone over 20 turns; boot deltas measured + blessed above; legacy tick
+verbatim) ✓ · pin 19(a-c) (satisfy-drops-rung via the crisis-passes causes; the AI-AI suing
+seam IS P1's; ratify with the mounted dialogue untouched) ✓ · pin 21 (both endings on screen;
+the stall guarantee) ✓ · pin 24 slipped with AI-3b (§16.1-2) · the war starts AND ends under
+the harness ✓ · beats 2/3/6/7 firing (campaign log + dispatch + headline arms) ✓ · France
+courted: the courting rides the existing Stage C arms the moment the war exists (sell-
+neutrality's "a war France is not in" gate opens; the guarantee plea and broker ask are new
+Stage D couriers) — the sweep-level "every AI war produced ≥1 offer" assertion stays with
+AI-V, where the DoD sites it. `test_ai_intent_war_decision.py` (19) +
+`test_ai_intent_third_party.py` (13) + the flipped migration pins; suite green (count in
+STATUS); ruff clean; `diplomatic_ledger.gd` boot-smoked (XR-1).

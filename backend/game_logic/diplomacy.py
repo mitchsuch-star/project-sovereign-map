@@ -7655,11 +7655,13 @@ def declare_war(
             world.modify_nation_relation(aggressor, nation, indirect_penalty)
             relation_changes.append({"nations": (aggressor, nation), "delta": indirect_penalty})
 
-    # Coalition threat: +20 for France declaring war, halved with casus belli (§2a, S5c)
-    if aggressor == world.player_nation:
+    # Coalition threat: +20 for declaring war, halved with casus belli
+    # (§2a, S5c). AI-4a step 5: keyed to the AGGRESSOR — any declarer's
+    # own slot accrues; France's slot sees exactly the same events.
+    if aggressor:
         from backend.game_logic.coalition import add_threat
         threat = 10 if casus_belli else 20
-        add_threat(world, threat, "war_declaration")
+        add_threat(world, threat, "war_declaration", target=aggressor)
 
     # Authority changes for AI nations
     nation_auth = getattr(world, 'nation_authority', {})
@@ -8584,11 +8586,11 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
             if nation != nation_a and nation != nation_b:
                 world.modify_nation_relation(nation_a, nation, penalties["relation_all"])
 
-    # Coalition threat from downgrade (§2a)
+    # Coalition threat from downgrade (§2a) — AI-4a step 5: the actor's slot.
     threat_amount = penalties.get("threat", 0)
-    if threat_amount > 0 and nation_a == world.player_nation:
+    if threat_amount > 0 and nation_a:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, threat_amount, "diplomatic_downgrade")
+        add_threat(world, threat_amount, "diplomatic_downgrade", target=nation_a)
 
     world.log_event({
         "type": "diplomatic_downgrade",
@@ -9502,11 +9504,13 @@ def break_treaty(
             world.modify_nation_relation(breaker_nation, nation, -10)
             relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
 
-    # Deep audit fix 9: Only add threat when PLAYER breaks treaty (threat tracks France's aggression)
-    if breaker_nation == world.player_nation:
+    # AI-4a step 5 (supersedes deep-audit fix 9's player gate): threat
+    # tracks the BREAKER's aggression, whoever breaks — each actor's own slot.
+    if breaker_nation:
         from backend.game_logic.coalition import add_threat
         threat_amount = 25 if treaty_type in ("alliance", "defensive_alliance") else 15
-        add_threat(world, threat_amount, f"broke_{treaty_type}")
+        add_threat(world, threat_amount, f"broke_{treaty_type}",
+                   target=breaker_nation)
 
     # Post-break state: one level below broken treaty (E11)
     # IMPORTANT: Must include ALL diplomatic states. If you add a new

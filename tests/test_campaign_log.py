@@ -130,7 +130,7 @@ class TestTypeWhitelist:
         # Stage C review fixes (July 24, 2026): +1 instrument_lapsed — an
         # instrument ending WITHOUT a breaker (term served / ward
         # aggression / unattributable war) must still reach the record.
-        assert len(CAMPAIGN_LOG_TYPES) == 134
+        assert len(CAMPAIGN_LOG_TYPES) == 140
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

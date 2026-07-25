@@ -62,6 +62,14 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "war_touches_us": 70,       # coalition tier change / war decl. vs us
     "ally_broken": 60,          # ally suffered a major defeat
     "estate_eroding": 55,       # ES-7 erosion began
+    # AI-3/AI-4b (Stage D): Europe's own crises may LEAD the dispatch —
+    # the vignette's "the dispatch leads with the one foregrounded
+    # crisis" — but always below anything that touches France directly
+    # (pin 13: France's war never reads as incidental).
+    "europe_at_war": 52,        # an AI war declared, France not party
+    "europe_crisis": 50,        # beat 2 — the foregrounded brewing crisis
+    "europe_congress": 48,      # beat 6 — a third-party peace concluded
+    "europe_crisis_passed": 46,  # beat 7 — the stand-down, cause named
 }
 
 # One prose template per headline class, in Berthier's register.
@@ -75,6 +83,18 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "war_touches_us": "Sire — {line}",
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
+    "europe_at_war": "Sire — {aggressor} has declared war on {target}. The stated cause: {reason}.",
+    "europe_crisis": "Sire — {nation} moves toward war with {target}. The design is open; the timing is not.",
+    "europe_congress": "Sire — {proposer} and {accepter} have made peace without us.",
+    "europe_crisis_passed": "Sire — {nation} stands down over {target}; {cause}.",
+}
+
+# Beat-7 cause copy for the headline arm (R7 — composed backend-side).
+_CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
+    "satisfied": "the want is won",
+    "bought_off": "the design was bought off, and the bargain stands",
+    "deterred": "the guarantee held",
+    "starved": "the moment passed",
 }
 
 # Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
@@ -88,6 +108,10 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
     "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
     "estate_eroding": "A marshal who feels forgotten fights like one, Sire. The estate rolls want attention.",
+    "europe_at_war": "A war we are not in, Sire — for now. Both courts will come asking; the question is what our neutrality is worth.",
+    "europe_crisis": "The instruments are on the table, Sire — compensate, guarantee, or let it come having been asked.",
+    "europe_congress": "A peace made without France sets a table we were not at, Sire. Note who gained.",
+    "europe_crisis_passed": "A war that does not happen leaves no monument, Sire — note what held it, and keep that instrument sharp.",
 }
 
 
@@ -164,6 +188,30 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 other = target if aggressor == player_nation else aggressor
                 _add("war_touches_us",
                      line=f"{formed_display_name(world, other)} and France are at war.")
+            elif etype == "war_declaration" and aggressor and target:
+                # AI-3 (Stage D): a war between other powers may lead the
+                # dispatch — with its STATED REASON (pin 4: no unexplained
+                # war). Weighted below everything France-centric.
+                reason = (e.get("stated_reason")
+                          or e.get("casus_belli_label") or "conquest")
+                _add("europe_at_war",
+                     aggressor=formed_display_name(world, aggressor),
+                     target=formed_display_name(world, target),
+                     reason=str(reason))
+        elif etype == "crisis_brewing":
+            _add("europe_crisis",
+                 nation=formed_display_name(world, e.get("nation", "?")),
+                 target=formed_display_name(world, e.get("target", "?")))
+        elif etype == "crisis_passed":
+            _add("europe_crisis_passed",
+                 nation=formed_display_name(world, e.get("nation", "?")),
+                 target=formed_display_name(world, e.get("target", "?")),
+                 cause=_CRISIS_CAUSE_HEADLINE.get(
+                     str(e.get("cause", "starved")), "the moment passed"))
+        elif etype == "third_party_peace":
+            _add("europe_congress",
+                 proposer=formed_display_name(world, e.get("proposer", "?")),
+                 accepter=formed_display_name(world, e.get("accepter", "?")))
         elif etype in ("coalition_formed", "coalition_brewing_started"):
             if etype == "coalition_formed":
                 _add("war_touches_us",
@@ -1831,6 +1879,35 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{payer}'s gold reaches {nation} — the subsidy stands at "
         "{amount} this season."
     ),
+    # AI-3 Stage D beats (AI_INTENT_SPEC §4.6a). Beat 2, The Brewing
+    # Crisis: the fore-warning, instruments listed and honestly gated.
+    "crisis_brewing": (
+        "THE BREWING CRISIS: {nation} will move on {target}. "
+        "You may {instruments}."
+    ),
+    # Beat 3's AI-AI arm — the coercive demand, the last rung before war.
+    "coercive_demand": (
+        "{nation} delivers a final demand to {target} — it is refused. "
+        "The ladder has one rung left."
+    ),
+    # Beat 7, The Crisis Passes (pin 21): the stand-down, cause named,
+    # instrument credited. Ochakov 1791; the Prussian mobilisation
+    # dissolving after Austerlitz.
+    "crisis_passed": (
+        "{nation} stands down over {target}, Sire — {cause}."
+    ),
+    # D5-3's enforcement made personal: the ward pleads for the pledge.
+    "guarantee_called": (
+        "{ward} pleads for your guarantee, Sire — {aggressor} has "
+        "declared war. Honour it in the field, or the abandonment "
+        "will be remembered."
+    ),
+    # AI-4b beat 6, The Congress: a third-party war ends without France,
+    # consequences named (who gained, what it means for us).
+    "third_party_peace": (
+        "THE CONGRESS: {proposer} and {accepter} have made their peace "
+        "without France. {consequence}"
+    ),
     # Nation Agendas NA-6 §11.8 stage 1 — the dispatch LEADS with a
     # proclamation (values arrive humanized: both display names).
     "nation_formed": (
@@ -1918,6 +1995,15 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "broken_bargain": "HIGH",
     "allegiance_in_play": "HIGH",
     "paymaster_subsidy": "MEDIUM",
+    # AI-3/AI-4b (Stage D): beats are EVENTS, exempt from the routine
+    # cap (§4.6's v1.2 amendment) — a beat is never collapsed into the
+    # tail. The coercive demand is the one MEDIUM: the crisis lead
+    # already owns the foreground that turn.
+    "crisis_brewing": "HIGH",
+    "coercive_demand": "MEDIUM",
+    "crisis_passed": "HIGH",
+    "guarantee_called": "HIGH",
+    "third_party_peace": "HIGH",
     "diplomatic_proposal_sent": "LOW",
     "diplomatic_proposal_returned": "HIGH",
     "diplomatic_sabotage_discovered": "HIGH",

@@ -2974,9 +2974,9 @@ class DiplomaticExecutor:
         (beneficiary omitted) is the player-issued path, byte-identical.
         The AI-issued accept path calls it with target_nation=the player and
         beneficiary=the issuing court — gold/territory/manpower flow player
-        to AI through the same arms. The add_threat calls fire only when the
-        player is the beneficiary: the threat scalar is France-targeted, and
-        an AI annexing FRENCH soil is not French aggression."""
+        to AI through the same arms. AI-4a step 5: the annexation threat is
+        keyed to the BENEFICIARY's own slot, whoever annexes — the player
+        path is byte-identical."""
         from backend.game_logic.coalition import add_threat
 
         player = beneficiary or world.player_nation
@@ -3029,8 +3029,8 @@ class DiplomaticExecutor:
                         transferred.append(rname)
                 if transferred:
                     world.invalidate_active_nations_cache()
-                    if beneficiary_is_player:
-                        add_threat(world, 8 * len(transferred), "ultimatum_annex")
+                    add_threat(world, 8 * len(transferred), "ultimatum_annex",
+                               target=player)
                     descriptions.append(f"{', '.join(transferred)} annexed")
 
             elif dtype in ("manpower", "manpower_infantry", "manpower_cavalry", "manpower_artillery"):
@@ -5935,6 +5935,52 @@ class DiplomaticExecutor:
             return {"success": False, "message": "Error: proposal data missing."}
 
         proposal_type = terms.get("type", "")
+
+        # AI-4b (§4.2b, the broker row): accepting a BROKER ask convenes
+        # the congress instead of ratifying a treaty — France ends someone
+        # else's war, for standing with both courts. No dialogue survives;
+        # the outcome arrives as a result popup (the PL-14 rule).
+        if proposal_type == "broker_peace":
+            world.dialogue_manager.pop()
+            war_id = str(terms.get("war_id") or "")
+            war = (getattr(world, "war_instances", {}) or {}).get(war_id)
+            from backend.display_names import proposal_display_name
+            if not isinstance(war, dict) or war.get("ended_turn") is not None:
+                message = ("The war has already ended, Sire — there is "
+                           "nothing left to broker.")
+                world.proposal_result_popup = {
+                    "target_nation": source_nation,
+                    "proposal_type": proposal_display_name("broker_peace"),
+                    "outcome": "REJECT",
+                    "message": message,
+                    "feedback": "The congress found the table empty.",
+                }
+                return {"success": True, "message": message}
+            from backend.game_logic.settlement_third_party import (
+                attempt_third_party_settlement,
+            )
+            event = attempt_third_party_settlement(
+                world, war_id, war, force=True,
+                broker=world.player_nation,
+            )
+            if event is None:
+                message = ("The congress convenes under French auspices, "
+                           "but the courts will not sign, Sire. Their war "
+                           "goes on.")
+                outcome = "REJECT"
+                feedback = "Neither belligerent is ready to yield."
+            else:
+                message = str(event.get("message", "Peace is concluded."))
+                outcome = "ACCEPT"
+                feedback = str(event.get("consequence", ""))
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name("broker_peace"),
+                "outcome": outcome,
+                "message": message,
+                "feedback": feedback,
+            }
+            return {"success": True, "message": message}
 
         # Check for conflicting alliances (§5b.3) — only on first pass
         # (conflict_alert dialogue type means we already showed the warning)

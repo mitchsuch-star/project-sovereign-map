@@ -236,6 +236,19 @@ CAMPAIGN_LOG_TYPES = {
     # served, ward aggression, or a war nobody can honestly be blamed
     # for) is still on the record; silence was the defect.
     "instrument_lapsed",
+    # AI-3 Stage D (AI_INTENT_SPEC §4.3, §4.6a) — the war council's beats:
+    # the fore-warned crisis (beat 2), the coercive demand (beat 3's AI-AI
+    # arm), the stand-down with its cause named (beat 7, pin 21), and a
+    # guarantor honouring its pledge at the declaration.
+    "crisis_brewing",
+    "coercive_demand",
+    "crisis_passed",
+    "guarantee_honored",
+    # AI-4b Stage D (§4.4) — a third-party war ends without France (beat 6).
+    "third_party_peace",
+    # §16.1-8 the exclusive ruling — an eclipse coalition yields to the
+    # anti-France process the turn France's own alarm crosses brewing.
+    "coalition_dissolved_for_france",
 }
 
 # ============================================================================
@@ -305,6 +318,12 @@ CATEGORY_MAP = {
     # AI-2e §3.7 — the paymaster subsidy
     "british_subsidy": "diplomacy",
     "instrument_lapsed": "diplomacy",
+    "crisis_brewing": "diplomacy",
+    "coercive_demand": "diplomacy",
+    "crisis_passed": "diplomacy",
+    "guarantee_honored": "diplomacy",
+    "third_party_peace": "diplomacy",
+    "coalition_dissolved_for_france": "diplomacy",
     # Deep audit fix: missing event types
     "war_declaration": "diplomacy",
     "defensive_cascade": "diplomacy",
@@ -621,8 +640,17 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # AI-2d §12.6: an announced flip is town-crier public — the whole
         # point of the beat is that the auction is IN PLAY (pin 11: no
         # hidden dispositions), so both auction events always show.
+        # AI-3/AI-4b Stage D: the war-council beats ride the same arm —
+        # beat 2 IS the fore-warning contract ("I saw that coming"), and
+        # DPF-1 says diplomacy has no fog. A crisis, its demand, its
+        # ending, a guarantor marching, and a congress are court
+        # knowledge across Europe.
         if event_type in ("allegiance_auction_opened",
-                          "allegiance_auction_resolved"):
+                          "allegiance_auction_resolved",
+                          "crisis_brewing", "coercive_demand",
+                          "crisis_passed", "guarantee_honored",
+                          "third_party_peace",
+                          "coalition_dissolved_for_france"):
             filtered.append(event)
             continue
 
@@ -1543,6 +1571,44 @@ def format_event_oneliner(event: dict) -> str:
                     f"{payer}'s guarantee is void, unblamed")
         return (f"War overtakes the compact between {payer} and "
                 f"{recipient} — it lapses, no breaker named")
+
+    if event_type == "crisis_brewing":
+        nation = display_nation(event.get("nation", "Unknown"))
+        target = display_nation(event.get("target", "Unknown"))
+        return f"THE BREWING CRISIS: {nation} will move on {target}"
+
+    if event_type == "coercive_demand":
+        nation = display_nation(event.get("nation", "Unknown"))
+        target = display_nation(event.get("target", "Unknown"))
+        return f"{nation} delivers a final demand to {target} — refused"
+
+    if event_type == "crisis_passed":
+        nation = display_nation(event.get("nation", "Unknown"))
+        target = display_nation(event.get("target", "Unknown"))
+        cause = str(event.get("cause", "starved"))
+        cause_copy = {
+            "satisfied": "the want is won",
+            "bought_off": "bought off",
+            "deterred": "deterred by guarantee",
+            "starved": "the moment passed",
+        }.get(cause, "the moment passed")
+        return f"THE CRISIS PASSES: {nation} stands down over {target} ({cause_copy})"
+
+    if event_type == "guarantee_honored":
+        guarantor = display_nation(event.get("guarantor", "Unknown"))
+        ward = display_nation(event.get("ward", "Unknown"))
+        aggressor = display_nation(event.get("aggressor", "Unknown"))
+        return f"{guarantor} honours its guarantee of {ward} — war on {aggressor}"
+
+    if event_type == "third_party_peace":
+        a = display_nation(event.get("proposer", "Unknown"))
+        b = display_nation(event.get("accepter", "Unknown"))
+        return f"THE CONGRESS: {a} and {b} make peace without France"
+
+    if event_type == "coalition_dissolved_for_france":
+        prev = display_nation(event.get("previous_target", "Unknown"))
+        return (f"The coalition against {prev} dissolves — Europe "
+                f"remembers who the real danger is")
 
     if event_type == "allegiance_auction_opened":
         nation = display_nation(event.get("nation", "Unknown"))

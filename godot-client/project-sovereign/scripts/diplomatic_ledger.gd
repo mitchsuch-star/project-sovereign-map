@@ -426,6 +426,16 @@ func _render_nations():
 		if compacts != null and str(compacts) != "":
 			bbcode += "  Compacts: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(compacts)) + "[/color]\n"
 
+		# AI-4c (Stage D): war-weariness, explicitly labelled as national
+		# exhaustion across ALL the court's wars, belligerents named —
+		# "let them bleed while France rearms" readable per court.
+		# Backend-composed line (R7); null omits the row.
+		var weariness = n.get("war_weariness")
+		if weariness != null and weariness is Dictionary:
+			var weariness_line = str(weariness.get("line", ""))
+			if weariness_line != "":
+				bbcode += "  Weariness: [color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(weariness_line) + "[/color]\n"
+
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:

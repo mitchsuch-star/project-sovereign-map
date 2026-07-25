@@ -311,12 +311,15 @@ def _apply_settlement_terms(
                 applied.append(clause)
                 if hasattr(world, "invalidate_active_nations_cache"):
                     world.invalidate_active_nations_cache()
-                if to_nation == getattr(world, "player_nation", None):
+                # AI-4a step 5: the annexing/returning ACTOR's own slot.
+                if to_nation:
                     from backend.game_logic.coalition import add_threat
-                    add_threat(world, 8 * len(transferred), "treaty_annex")
-                if from_nation == getattr(world, "player_nation", None):
+                    add_threat(world, 8 * len(transferred), "treaty_annex",
+                               target=to_nation)
+                if from_nation:
                     from backend.game_logic.coalition import reduce_threat
-                    reduce_threat(world, 5 * len(transferred), "territory_return")
+                    reduce_threat(world, 5 * len(transferred), "territory_return",
+                                  target=from_nation)
                 for nation in {from_nation}:
                     if (
                         nation
@@ -550,9 +553,9 @@ def _apply_settlement_terms(
                         if hasattr(world, "modify_nation_relation"):
                             world.modify_nation_relation(lib_vassal, lib_from, -20)
                             world.modify_nation_relation(lib_vassal, lib_liberator, 30)
-                    if lib_from == getattr(world, "player_nation", None):
+                    if lib_from:
                         from backend.game_logic.coalition import reduce_threat
-                        reduce_threat(world, 8, "liberation")
+                        reduce_threat(world, 8, "liberation", target=lib_from)
                     if (
                         lib_liberator
                         and lib_from
@@ -798,9 +801,10 @@ def _resolve_pair_state_transitions(
                 clause_threat_delta += int(
                     FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE
                 )
-            if proposer_member == getattr(world, "player_nation", None):
+            if proposer_member:
                 from backend.game_logic.coalition import add_threat
-                add_threat(world, clause_threat_delta, "forced_alliance")
+                add_threat(world, clause_threat_delta, "forced_alliance",
+                           target=proposer_member)
             if hasattr(world, "log_event"):
                 world.log_event({
                     "type": "forced_alliance_imposed",

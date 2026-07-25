@@ -478,6 +478,32 @@ def get_refused_asks(world, proposer: str, recipient: str) -> List[Dict]:
             if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
 
 
+def effective_peace_threshold(nation: str, opponent: str, world) -> int:
+    """The ONE peace-readiness seam (AI_INTENT_SPEC §3.1a(c), pin 19b):
+    a nation sues for peace when its war score against `opponent` falls
+    below this. P1 (the anti-player arm) and AI-4b's third-party arm both
+    read it — a court whose exhaustion crosses the threshold sues on the
+    AI-vs-AI path exactly as it would against France.
+
+    -40 base + the diplomat's peace_threshold_delta + we // 20, plus the
+    ticking-pressure and agenda-resolve terms while the pair is at war
+    (WPS-D §13.2, NA-3 §5.5) — the formula P1 carried inline, verbatim.
+    """
+    mods = _get_personality_modifiers(nation, world)
+    we = world.war_exhaustion.get(nation, 0)
+    threshold = -40 + mods["peace_threshold_delta"] + we // 20
+    if world.is_at_war(nation, opponent):
+        diplo_key = world._make_diplo_key(nation, opponent)
+        threshold += _calculate_ticking_pressure(nation, opponent, diplo_key, world)
+        # NA-3 §5.5: agenda resolve — a war that advances the court's
+        # design hardens resolve (-8, fights longer); a satisfied design
+        # or the survival override sues sooner (+10); an irrelevant war
+        # deliberately changes nothing (AUD-b/P2 armistice tuning holds).
+        from backend.game_logic.agendas import get_agenda_resolve_delta
+        threshold += get_agenda_resolve_delta(nation, opponent, world)
+    return int(threshold)
+
+
 def _has_pending_proposal_from(nation: str, world) -> bool:
     """Check if there's already a pending proposal from this nation.
 
@@ -1263,19 +1289,9 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     mods = _get_personality_modifiers(nation, world)
     gold_mult = mods["gold_demand_mult"]
     we = world.war_exhaustion.get(nation, 0)
-    effective_p1_threshold = -40 + mods["peace_threshold_delta"] + we // 20
-
-    # WPS-D §13.2: AI ticking pressure — opponent ticking makes AI more
-    # willing to seek peace (raises threshold); own ticking makes AI less willing.
-    if is_at_war:
-        ticking_pressure = _calculate_ticking_pressure(nation, player, diplo_key, world)
-        effective_p1_threshold += ticking_pressure
-        # NA-3 §5.5: agenda resolve — a war that advances the court's
-        # design hardens resolve (-8, fights longer); a satisfied design
-        # or the survival override sues sooner (+10); an irrelevant war
-        # deliberately changes nothing (AUD-b/P2 armistice tuning holds).
-        from backend.game_logic.agendas import get_agenda_resolve_delta
-        effective_p1_threshold += get_agenda_resolve_delta(nation, player, world)
+    # AI-4b (pin 19b): P1 and the third-party arm sue through the SAME
+    # seam — the formula lives in effective_peace_threshold, verbatim.
+    effective_p1_threshold = effective_peace_threshold(nation, player, world)
 
     effective_stalemate_turns = max(2, 5 + mods["patience_bonus"] - we // 30)
 
@@ -3069,20 +3085,25 @@ def _settlement_offer_opposing_side_leader(
 
 def _settlement_offer_build_terms(
     *,
-    player: str,
+    accepter: str,
     proposer_nation: str,
     war_age_turns: int,
-    player_war_score: int = 0,
+    accepter_war_score: int = 0,
     world=None,
 ) -> List[Dict]:
     """Deterministic peace + (war-score-directed) gold_indemnity package.
 
-    AUD-c: the indemnity DIRECTION follows the war score from the player's
-    perspective against the opposing leader (`proposer_nation`):
-    - player winning by >= the decisive band → the losing AI pays the player
-      (concession); the player finally sees a favourable offer.
-    - player losing by >= the band → the player pays reparations (the historical
-      "settle now, pay to end it" framing; unchanged from before).
+    AI-4b (AI_INTENT_SPEC §4.4): the `player` parameter is renamed
+    `accepter` — the offer's RECIPIENT, which on the classic incoming-offer
+    path is the player and on the third-party path is the winning AI
+    court. Nation-pair-general by construction.
+
+    AUD-c: the indemnity DIRECTION follows the war score from the
+    accepter's perspective against the opposing leader (`proposer_nation`):
+    - accepter winning by >= the decisive band → the losing proposer pays
+      the accepter (concession); the player finally sees a favourable offer.
+    - accepter losing by >= the band → the accepter pays reparations (the
+      historical "settle now, pay to end it" framing; unchanged).
     - inside the band → a white peace: the `peace` clause with no indemnity.
     The player can still reject or counter through the editor.
 
@@ -3096,10 +3117,10 @@ def _settlement_offer_build_terms(
     duration_bonus = max(0, war_age_turns) * SETTLEMENT_OFFER_PER_DURATION_BONUS
     base_amount = SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus
 
-    if player_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
-        payer, payee = proposer_nation, player
-    elif player_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
-        payer, payee = player, proposer_nation
+    if accepter_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        payer, payee = proposer_nation, accepter
+    elif accepter_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        payer, payee = accepter, proposer_nation
     else:
         # An even war settles as a clean white peace (no indemnity clause).
         return [{"type": "peace"}]
@@ -3107,7 +3128,7 @@ def _settlement_offer_build_terms(
     if world is not None:
         payer_treasury = int(getattr(world, "nation_gold", {}).get(payer, 0))
         scaled = (base_amount
-                  + abs(int(player_war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE
+                  + abs(int(accepter_war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE
                   + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
         cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
         amount = max(0, min(scaled, cap))
@@ -3136,12 +3157,15 @@ def _settlement_offer_build_terms(
     # erect the Duchy of Warsaw. GR5 is the whole point of this arm: a
     # carve must be something the player can SUFFER, not only inflict.
     #
-    # Gated on the AI winning decisively (payer == player) so a carve never
-    # rides an even peace, and on the shared eligibility predicate so the
-    # AI can never propose soil it does not hold.
-    if world is not None and payer == player:
+    # Gated on the AI winning decisively (payer == accepter) so a carve
+    # never rides an even peace, and on the shared eligibility predicate so
+    # the AI can never propose soil it does not hold. The carve stays a
+    # PLAYER-victim arm (the Normandy mirror): AI-AI carves are deferred
+    # with their owner (§16.1-2 — the sealed-article partition texture).
+    if (world is not None and payer == accepter
+            and accepter == getattr(world, "player_nation", None)):
         carve = _settlement_offer_carve_clause(
-            world, player=player, proposer_nation=proposer_nation)
+            world, player=accepter, proposer_nation=proposer_nation)
         if carve is not None:
             terms.append(carve)
     return terms
@@ -3295,10 +3319,10 @@ def _emit_settlement_offer_for_war(
             player_war_score = 0
 
     terms = _settlement_offer_build_terms(
-        player=player,
+        accepter=player,
         proposer_nation=proposer_nation,
         war_age_turns=war_age_turns,
-        player_war_score=player_war_score,
+        accepter_war_score=player_war_score,
         world=world,
     )
     seq = _settlement_offer_next_seq(

@@ -1707,9 +1707,19 @@ class CombatExecutor:
             france = world.player_nation
             total_cas = int(atk_casualties) + int(def_casualties)
 
-            if attacker_won and attacker.nation == france:
-                # France won as attacker
-                add_threat(world, 3, "battle_win")
+            # AI-4a step 5 (Stage D): threat's target is the ACTOR — the
+            # winner whose deed scares Europe. France's own slot is written
+            # by exactly the same events as before (pin 16a byte-identical);
+            # a non-player victor now accrues into its own slot instead of
+            # nothing. Coalition shock keeps its France-arm gating verbatim
+            # (members' WE feeds separate-peace acceptance — widening it is
+            # a behaviour change this migration must not smuggle in).
+            _third_party_battle = (
+                getattr(world, "sovereign_map", "legacy") == "europe"
+                and france not in (attacker.nation, defender_nation)
+            )
+            if attacker_won and attacker.nation:
+                add_threat(world, 3, "battle_win", target=attacker.nation)
                 # Decisive: ratio > 2:1 AND total > 10,000
                 if int(def_casualties) > 0 and int(atk_casualties) > 0:
                     ratio = int(def_casualties) / int(atk_casualties)
@@ -1718,28 +1728,32 @@ class CombatExecutor:
                 else:
                     ratio = 0
                 if ratio > 2 and total_cas > 10000:
-                    add_threat(world, 5, "decisive_victory")
-                    if defender:
+                    add_threat(world, 5, "decisive_victory", target=attacker.nation)
+                    if defender and attacker.nation == france:
                         add_coalition_shock(defender_nation, world)
                 if conquered:
                     cap_reg = world.get_region(battle_region)
                     if cap_reg and getattr(cap_reg, 'is_capital', False):
-                        add_threat(world, 15, "capital_capture")
-                add_war_exhaustion_from_battle(defender_nation, int(def_casualties), world)
-
-            elif (attacker_won and defender_nation == france
-                    and getattr(world, "sovereign_map", "legacy") == "europe"):
-                # EC-W2: France mauled as DEFENDER — the missing loser-accrues
-                # arm (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3). Before
-                # this, France losing battles on home soil accrued NOTHING —
-                # the exact July-17 playtest shape. Europe-scoped (N1).
-                add_war_exhaustion_from_battle(france, int(def_casualties), world)
+                        add_threat(world, 15, "capital_capture", target=attacker.nation)
+                if attacker.nation == france:
+                    add_war_exhaustion_from_battle(defender_nation, int(def_casualties), world)
+                elif (defender_nation == france
+                        and getattr(world, "sovereign_map", "legacy") == "europe"):
+                    # EC-W2: France mauled as DEFENDER — the loser-accrues
+                    # arm (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3).
+                    add_war_exhaustion_from_battle(france, int(def_casualties), world)
+                elif _third_party_battle and defender_nation:
+                    # AI-4c pin 17a: a third-party loser bears its own dead —
+                    # the explicit arm both combat copies gain (a trailing
+                    # else could not work; the France arms above swallow it).
+                    add_war_exhaustion_from_battle(
+                        defender_nation, int(def_casualties), world)
 
             elif defender_won:
                 if attacker.nation == france:
                     add_war_exhaustion_from_battle(attacker.nation, int(atk_casualties), world)
-                if defender_nation == france:
-                    add_threat(world, 3, "battle_win")
+                if defender_nation:
+                    add_threat(world, 3, "battle_win", target=defender_nation)
                     if int(atk_casualties) > 0 and int(def_casualties) > 0:
                         ratio = int(atk_casualties) / int(def_casualties)
                     elif int(atk_casualties) > 0:
@@ -1747,8 +1761,13 @@ class CombatExecutor:
                     else:
                         ratio = 0
                     if ratio > 2 and total_cas > 10000:
-                        add_threat(world, 5, "decisive_victory")
-                        add_coalition_shock(attacker.nation, world)
+                        add_threat(world, 5, "decisive_victory", target=defender_nation)
+                        if defender_nation == france:
+                            add_coalition_shock(attacker.nation, world)
+                    if defender_nation == france:
+                        add_war_exhaustion_from_battle(
+                            attacker.nation, int(atk_casualties), world)
+                if _third_party_battle:
                     add_war_exhaustion_from_battle(
                         attacker.nation, int(atk_casualties), world)
 
@@ -3480,12 +3499,22 @@ class CombatExecutor:
                 return _stage_war_purpose_for_attack(enemy_marshal.nation)
             from backend.game_logic.diplomacy import declare_war
             war_result = declare_war(world, marshal.nation, enemy_marshal.nation)
-            if war_result.get("success"):
-                # Deduct DP for player
-                if marshal.nation == world.player_nation:
-                    dp = getattr(world, 'diplomatic_points', 0)
-                    world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
-                # War declared — continue with attack
+            if not war_result.get("success"):
+                # §4.3a-3 (pin 15): the declaration is the GATE, not a side
+                # effect — a refused declaration (armistice cooldown, side
+                # conflict, unavailable objective) aborts the attack instead
+                # of proceeding against a nation still at peace.
+                return {
+                    "success": False,
+                    "message": (f"{marshal.name} cannot open hostilities with "
+                                f"{enemy_marshal.nation}: "
+                                f"{war_result.get('message', 'the declaration was refused.')}"),
+                }
+            # Deduct DP for player
+            if marshal.nation == world.player_nation:
+                dp = getattr(world, 'diplomatic_points', 0)
+                world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
+            # War declared — continue with attack
 
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
@@ -3520,19 +3549,32 @@ class CombatExecutor:
                     }
 
                 # Auto-war-declaration for undefended territory (Phase 8 Session 2)
+                # §4.3a / pin 15: an ATTACK on a peace-nation's province
+                # always requires a successful declaration — the old
+                # can_enter_territory shortcut let an OPEN_MOVEMENT
+                # treaty-holder march in and capture with no war, no
+                # objective and no reason to render ("no unannounced
+                # conquest"). Plain movement under those treaties is
+                # untouched (movement_executor); this is the CAPTURE path.
                 if target_region.controller and not world.is_at_war(marshal.nation, target_region.controller):
                     # Don't declare war on our own ally/vassal to seize their land.
                     _refusal = friendly_fire_refusal(world, marshal, target_region.controller)
                     if _refusal is not None:
                         return _refusal
-                    from backend.game_logic.diplomacy import declare_war, can_enter_territory
-                    if not can_enter_territory(world, marshal.nation, target_region.controller):
-                        if marshal.nation == world.player_nation:
-                            return _stage_war_purpose_for_attack(target_region.controller)
-                        war_result = declare_war(world, marshal.nation, target_region.controller)
-                        if war_result.get("success") and marshal.nation == world.player_nation:
-                            dp = getattr(world, 'diplomatic_points', 0)
-                            world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
+                    from backend.game_logic.diplomacy import declare_war
+                    if marshal.nation == world.player_nation:
+                        return _stage_war_purpose_for_attack(target_region.controller)
+                    war_result = declare_war(world, marshal.nation, target_region.controller)
+                    if not war_result.get("success"):
+                        # §4.3a-3: refused declaration aborts the capture —
+                        # region.controller, marshals and strengths stay
+                        # byte-identical, no war_instance, no conquest event.
+                        return {
+                            "success": False,
+                            "message": (f"{marshal.name} cannot seize "
+                                        f"{resolved_target}: "
+                                        f"{war_result.get('message', 'the declaration was refused.')}"),
+                        }
 
                 # Check for any defenders (marshals from nations other than attacker)
                 defenders = [m for m in world.marshals.values()

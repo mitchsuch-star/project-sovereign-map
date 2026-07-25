@@ -97,12 +97,21 @@ class TestHeadlineSelection:
         assert "Austria" in headline["text"]
 
     def test_ai_vs_ai_war_is_not_our_headline(self):
+        """Stage D (AI_INTENT_SPEC §17): an AI-vs-AI war now HAS a lead —
+        the europe_at_war class — but it is never dressed as OUR war
+        (war_touches_us), and it sits below every France-centric weight
+        (pin 13). The old pin asserted None; the real claim it protected
+        was the class boundary, kept here."""
         world = WorldFactory.basic()
         world.event_log = [
             {"type": "war_declaration", "aggressor": "Austria",
              "target": "Prussia", "turn": world.current_turn - 1},
         ]
-        assert _build_headline(world, "France") is None
+        headline = _build_headline(world, "France")
+        assert headline is not None
+        assert headline["class"] == "europe_at_war"
+        from backend.game_logic.dispatch import HEADLINE_WEIGHTS
+        assert headline["weight"] < HEADLINE_WEIGHTS["war_touches_us"]
 
     def test_enemy_on_our_soil_from_fresh_intel(self):
         world = WorldFactory.basic()

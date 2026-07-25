@@ -94,13 +94,25 @@ class TestStep4SeriesPin:
     def test_series_matches_recorded_baseline(self, payload):
         assert payload["series"] == BASELINE_SERIES
 
-    def test_no_nonplayer_slot_ever_accrues(self, payload):
-        """Steps 5-6 have not landed: every non-player slot is 0 after
-        40 ambient turns — no producer passes a target."""
+    def test_nonplayer_slots_live_and_bounded(self, payload):
+        """Steps 5-6 LANDED (Stage D): producers now pass the actor as
+        target, so non-player slots may accrue — the Stage-C-era
+        no-accrual invariant is consciously INVERTED (AI_INTENT_SPEC §17).
+        What must still hold: every slot is clamped 0-100, and on the
+        historical 40-turn run no non-player slot reaches the brewing
+        tier (D3's gravity — France remains the story of the age)."""
         tbt = payload["threat_by_target"]
+        accrued = {n: v for n, v in tbt.items()
+                   if n != "France" and v > 0}
         for nation, value in tbt.items():
+            assert 0 <= value <= 100, f"{nation} slot out of clamp: {value}"
             if nation != "France":
-                assert value == 0, f"{nation} slot accrued {value}"
+                assert value < 60, (
+                    f"{nation} reached the brewing tier ({value}) on the "
+                    f"historical ambient run — D3's gravity should hold")
+        # The migration is LIVE: at least one non-player deed accrued
+        # somewhere in 40 turns of four boot wars (battle wins, captures).
+        assert accrued, "steps 5-6 appear dead: no non-player slot ever accrued"
 
     def test_scalar_mirrors_player_slot_throughout(self, payload):
         assert payload["scalar_mirror_ok"] is True

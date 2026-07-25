@@ -182,12 +182,12 @@ def create_vassal_treaty(
     from backend.game_logic.diplomacy import set_diplomatic_state
     set_diplomatic_state(world, lord, vassal, "VASSAL", "treaty_vassalization")
 
-    # Coalition threat: +5 for treaty vassalization (§2a). Slice 0: coalition
-    # threat tracks the PLAYER's aggression — an AI lord vassalizing a minor
-    # must not raise the anti-player threat pool (GR5 asymmetry by design).
-    if lord == getattr(world, 'player_nation', 'France'):
+    # Coalition threat: +5 for treaty vassalization (§2a). AI-4a step 5:
+    # per-target keying dissolves the old Slice-0 asymmetry — an AI lord's
+    # vassalization feeds the AI's OWN slot, never the anti-player pool.
+    if lord:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, 5, "treaty_vassalization")
+        add_threat(world, 5, "treaty_vassalization", target=lord)
 
     # R48: Reconcile diplomatic conflicts
     _reconcile_vassal_diplomacy(world, lord, vassal)
@@ -266,11 +266,11 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     from backend.game_logic.diplomacy import set_diplomatic_state
     set_diplomatic_state(world, lord, vassal, "VASSAL", "conquest_vassalization")
 
-    # Coalition threat: +25 for conquest vassalization (§2a). Slice 0: threat
-    # tracks the PLAYER's aggression only — see the treaty-path note.
-    if lord == getattr(world, 'player_nation', 'France'):
+    # Coalition threat: +25 for conquest vassalization (§2a). AI-4a step 5:
+    # the conquering lord's own slot, whoever wears the crown.
+    if lord:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, 25, "conquest_vassalization")
+        add_threat(world, 25, "conquest_vassalization", target=lord)
 
     # R48: Reconcile diplomatic conflicts
     _reconcile_vassal_diplomacy(world, lord, vassal)
@@ -872,11 +872,11 @@ def check_vassal_rebellion(world) -> List[dict]:
             if other_state["lord"] == lord:
                 other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
 
-        # Coalition threat reduction from rebellion (Slice 0: player-scoped —
-        # threat tracks the player; an AI lord's rebellion is not our relief)
-        if lord == getattr(world, 'player_nation', 'France'):
+        # Coalition threat reduction from rebellion (AI-4a step 5: the
+        # LOSING lord's slot — a shrinking empire scares Europe less).
+        if lord:
             from backend.game_logic.coalition import reduce_threat
-            reduce_threat(world, 10, "vassal_rebellion")
+            reduce_threat(world, 10, "vassal_rebellion", target=lord)
 
         # Relation -50
         world.modify_nation_relation(lord, vassal_name, -50)
@@ -1732,9 +1732,9 @@ def release_vassal(
     else:
         set_diplomatic_state(world, lord, vassal_name, "PEACE", "vassal_release")
         # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)
-        if reduce_threat_on_release and lord == getattr(world, 'player_nation', 'France'):
+        if reduce_threat_on_release and lord:
             from backend.game_logic.coalition import reduce_threat
-            reduce_threat(world, 8, "voluntary_vassal_release")
+            reduce_threat(world, 8, "voluntary_vassal_release", target=lord)
 
     return {
         "success": True,
@@ -2017,9 +2017,9 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
             other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
     world.modify_nation_relation(lord, vassal_name, -50)
     world.modify_nation_relation(vassal_name, briber, 30)
-    if lord == getattr(world, 'player_nation', 'France'):
+    if lord:
         from backend.game_logic.coalition import reduce_threat
-        reduce_threat(world, 10, "vassal_defection")
+        reduce_threat(world, 10, "vassal_defection", target=lord)
 
     return {"outcome": outcome, "lord": lord}
 
@@ -2152,9 +2152,9 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
             # player threat on every other loss path (rebellion −10, release
             # −8, defection-free −10) — the transfer outcome is the same
             # player loss and gets the same relief.
-            if lord == getattr(world, 'player_nation', 'France'):
+            if lord:
                 from backend.game_logic.coalition import reduce_threat
-                reduce_threat(world, 10, "vassal_defection")
+                reduce_threat(world, 10, "vassal_defection", target=lord)
             outcome = "transfer"
             message = (
                 f"THE DEFECTION: {vassal_name} changes masters — bribed away "

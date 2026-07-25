@@ -498,8 +498,11 @@ class TestProcessCoalitionTurnIntegration:
             name == "hegemony_passive" and amt > 0 for name, amt in sources
         ), f"hegemony_passive source not recorded: {sources}"
 
-    def test_non_france_hegemon_guard_skips_add_threat(self):
-        """When hegemon != player_nation, `add_threat` must NOT fire."""
+    def test_non_france_hegemon_accrues_its_own_slot(self):
+        """AI-4a step 5 (Stage D, AI_INTENT_SPEC §17): the previously
+        computed-and-DISCARDED non-player hegemony increment now lands in
+        the hegemon's OWN slot — D3's eclipse fuel — while the PLAYER's
+        slot stays untouched (the old pin's real claim, kept)."""
         w = _clean_diplo_world()
         _strip_all_regions_to_sink(w)
         # Russia is hegemon; France has very little
@@ -515,10 +518,19 @@ class TestProcessCoalitionTurnIntegration:
         hegemon, share = _identify_max_bloc_share(w)
         assert hegemon == "Russia"
         assert share >= 0.33
-        # threat_level should remain 0 (no hegemony_passive addition because
-        # Russia isn't France; events may add decay but no passive pressure)
-        sources = [s.get("source") for s in w.threat_sources_this_turn]
-        assert "hegemony_passive" not in sources
+        # France's own slot saw no passive pressure…
+        france_sources = [
+            s.get("source") for s in w.threat_sources_this_turn
+            if s.get("target", "France") == "France"
+        ]
+        assert "hegemony_passive" not in france_sources
+        # …and Russia's did (the Stage D wire).
+        russia_sources = [
+            s.get("source") for s in w.threat_sources_this_turn
+            if s.get("target") == "Russia"
+        ]
+        assert "hegemony_passive" in russia_sources
+        assert w.threat_by_target.get("Russia", 0) > 0
 
 
 # ════════════════════════════════════════════════════════════════
@@ -858,11 +870,17 @@ class TestBlocShrinkStopsAccrual:
         w.invalidate_active_nations_cache()
         # France bloc now = 2×3 = 6, Saxony alone 4×1 = 4, Britain 9; total = 6+4+9 = 19; France share = 31% (below 33%)
         # Next turn's process_coalition_turn should NOT add hegemony_passive
+        # to FRANCE's slot. (AI-4a step 5: another power crossing 33% now
+        # accrues its OWN slot — Britain here — which is the Stage D wire,
+        # not this test's subject.)
         w.current_turn += 1
         w.threat_sources_this_turn = []
         process_coalition_turn(w)
-        sources = [s.get("source") for s in w.threat_sources_this_turn]
-        assert "hegemony_passive" not in sources
+        france_sources = [
+            s.get("source") for s in w.threat_sources_this_turn
+            if s.get("target", "France") == "France"
+        ]
+        assert "hegemony_passive" not in france_sources
 
 
 # ════════════════════════════════════════════════════════════════

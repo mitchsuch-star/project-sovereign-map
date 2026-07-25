@@ -808,6 +808,36 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 - **NA-2 hawk agenda-persistence:** hawks get a −2-turn cooldown discount on design-advancing ask types (check-time).
 - **NA-3 paymaster generalization** lives in `coalition.py` §4e (any coalition member with a live authored paymaster posture pays, treasury-tiered 200/300/400 cap 400) — pointer only; this doc covers `enemy_ai.py`/`ai_diplomacy.py`.
 
+**The War Council (AI-3, Stage D — `war_council.py`, the ladder's `fight` rung):**
+
+`process_war_council` runs once per turn in `advance_turn` (after the AI-AI diplomatic phase). A
+court with a live ACQUIRE design at intent price `fight` (weight ≥ 85), a CLIMBED ladder (≥ 2
+refusals on the serialized `diplomatic_refusals` record, or a §3.3 renege grievance which may skip
+rungs), and passing restraints (no existing wars · treasury ≥ 500 · strength ≥ 1.25× the target
+plus its guarantors · the `can_declare_war` preview · the D1 world-wide cap of **2** live
+AI-initiated wars) opens a **crisis**: beat 2 fore-warns (one foregrounded crisis world-wide), the
+coercive demand lands refused on the record (beat 3's AI-AI arm), and after 2 foregrounded turns
+the council itself calls `declare_war` — the combat seam later finds the war live (§4.3a-1, no new
+PEACE→WAR edge). A crisis that cools passes ON SCREEN with its cause named (beat 7: satisfied /
+bought off / deterred / starved — pin 21). **v1 is AI-vs-AI only**: a player-targeted design
+coerces through NA-5 and fights through the coalition, never here. AI instrument producers ride
+the foregrounded crisis: a folds-statecraft holder buys the coveter off; one sponsor/align-
+statecraft protector per turn pledges a guarantee. An AI guarantor of the target declares on the
+aggressor at the declaration (`guarantee_honored`); France's own pledge produces the ward's plea
+and the Stage C abandonment clock. **AI-3c**: a court with a live crisis biases P7 movement toward
+its design's frontier (`get_intent_frontier` — the massing emerges from `_can_ai_move_to` stalling
+corps at the border; released the turn the crisis cools).
+
+**Third-party settlements (AI-4b, Stage D — `settlement_third_party.py`):** every live war France
+is not in gets a per-turn peace attempt after 3 turns of age: the loser sues when its war score
+falls through `effective_peace_threshold` (P1's own formula, extracted to one seam), terms =
+purse-priced indemnity + up to 2 of the winner's design provinces (a great power's capital never
+cedes; a minor's may — D2), the winner accepts through the common-peace scorer (hard stops veto;
+surrender-shaped terms need no enthusiasm), and the headless ratify closes the war without ever
+touching the dialogue manager. A court within 10 of its threshold asks FRANCE to broker
+(`broker_peace` proposal; Accept convenes the congress at the broker margin, +10 relations with
+both courts on success).
+
 ---
 
 ## TODOs and Future Work

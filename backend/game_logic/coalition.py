@@ -275,6 +275,40 @@ def _calculate_hegemony_pressure(world) -> Dict[str, int]:
     return {hegemon: _hegemony_pressure_for_share(share)}
 
 
+def _eclipse_candidate(world):
+    """D3's eclipse gate (AI-4a step 6): the highest-threat NON-player slot
+    whose bloc share exceeds France's own, or None.
+
+    Returns (target_nation, threat_value). The share condition is D3's own
+    sentence — a coalition forms against a non-player hegemon only when
+    that power's hegemony share exceeds France's, so the anti-France
+    pressure can never be diluted by the generalisation.
+    """
+    france = world.player_nation
+    slots = getattr(world, "threat_by_target", {}) or {}
+    if not slots:
+        return None
+    total = sum(power_score(n, world) for n in world.get_active_nations())
+    if total <= 0:
+        return None
+    france_share = bloc_power(france, world) / total
+    vassals = set(getattr(world, 'vassals', {}).keys())
+    active = set(world.get_active_nations())
+    candidates = []
+    for tgt, value in slots.items():
+        if tgt == france or tgt in vassals or tgt not in active:
+            continue
+        if int(value) < THREAT_BREWING_MIN:
+            continue
+        if bloc_power(tgt, world) / total <= france_share:
+            continue
+        candidates.append((int(value), tgt))
+    if not candidates:
+        return None
+    value, tgt = max(candidates)
+    return tgt, value
+
+
 def _pick_counterplay_hint(world, hegemon: str, share: float, band: int) -> str:
     """Capability-aware counter-play hint per §7.3.
 
@@ -886,31 +920,35 @@ def _calculate_defensive_refusal_memory_threat(world) -> int:
 # §2b. THREAT DECAY
 # ════════════════════════════════════════════════════════════════
 
-def _calculate_threat_decay(world) -> int:
-    """Calculate per-turn threat decay (§2b).
+def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
+    """Calculate per-turn threat decay (§2b; AI-4a step 6 per-target).
 
     Formula: 1 base + 1 per peaceful non-vassal nation (cap 3) + CS bonus.
+    The Continental System +1 is a France-only instrument and applies to the
+    player slot only (AI_INTENT_SPEC §4.4a step 6, stated explicitly).
     """
-    france = world.player_nation
+    tgt = target or world.player_nation
     vassals = set(getattr(world, 'vassals', {}).keys())
 
     peace_nations = []
     for n in _get_all_nations(world):
-        if n == france:
+        if n == tgt:
             continue  # Self-exclusion (§2b IMPORTANT note)
         if n in vassals:
             continue
-        state = _get_diplo_state(world, france, n)
+        state = _get_diplo_state(world, tgt, n)
         if state in PEACEFUL_STATES:
             peace_nations.append(n)
 
     raw_decay = 1 + len(peace_nations)
     decay = min(raw_decay, DECAY_CAP)
 
-    # Continental System bonus — separate, not subject to cap (§2b)
-    cs_members = getattr(world, 'continental_system_members', [])
-    if len(cs_members) >= 2:
-        decay += 1
+    # Continental System bonus — separate, not subject to cap (§2b);
+    # player slot only (the CS is France's own instrument).
+    if tgt == world.player_nation:
+        cs_members = getattr(world, 'continental_system_members', [])
+        if len(cs_members) >= 2:
+            decay += 1
 
     return int(decay)
 
@@ -919,43 +957,50 @@ def _calculate_threat_decay(world) -> int:
 # §3b. QUALIFYING NATIONS
 # ════════════════════════════════════════════════════════════════
 
-def qualifies_for_coalition(nation: str, world) -> bool:
+def qualifies_for_coalition(nation: str, world, target: Optional[str] = None) -> bool:
     """Check if a nation qualifies for coalition membership (§3b).
 
-    Qualifies if: relation < -10, not vassal, not already at war with France.
+    Qualifies if: relation < -10, not vassal, not already at war with the
+    coalition's target (default: the player — §4.4b anchor work).
     """
-    france = world.player_nation
-    if nation == france:
+    tgt = target or world.player_nation
+    if nation == tgt:
         return False
-    relation = _get_relation(world, france, nation)
+    relation = _get_relation(world, tgt, nation)
     is_vassal = nation in getattr(world, 'vassals', {})
-    already_at_war = _get_diplo_state(world, france, nation) == "WAR"
+    already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
     return relation < -10 and not is_vassal and not already_at_war
 
 
-def get_qualifying_nations(world) -> List[str]:
+def get_qualifying_nations(world, target: Optional[str] = None) -> List[str]:
     """Get all nations that qualify for coalition membership."""
-    return [n for n in _get_all_nations(world) if qualifies_for_coalition(n, world)]
+    return [n for n in _get_all_nations(world)
+            if qualifies_for_coalition(n, world, target=target)]
+
+
+def get_nations_at_war_with_target(world, target: str) -> List[str]:
+    """All non-vassal nations currently at war with `target` (§4.4b)."""
+    vassals = set(getattr(world, 'vassals', {}).keys())
+    result = []
+    for n in _get_all_nations(world):
+        if n == target or n in vassals:
+            continue
+        if _get_diplo_state(world, target, n) == "WAR":
+            result.append(n)
+    return result
 
 
 def get_nations_at_war_with_france(world) -> List[str]:
     """Get all non-vassal nations currently at war with France."""
-    france = world.player_nation
-    vassals = set(getattr(world, 'vassals', {}).keys())
-    result = []
-    for n in _get_all_nations(world):
-        if n == france or n in vassals:
-            continue
-        if _get_diplo_state(world, france, n) == "WAR":
-            result.append(n)
-    return result
+    return get_nations_at_war_with_target(world, world.player_nation)
 
 
 # ════════════════════════════════════════════════════════════════
 # §4a. LEADER SELECTION
 # ════════════════════════════════════════════════════════════════
 
-def coalition_leadership_score(nation: str, world, european_power: Optional[int] = None) -> int:
+def coalition_leadership_score(nation: str, world, european_power: Optional[int] = None,
+                               target: Optional[str] = None) -> int:
     """Calculate leadership score for a nation (§4a + §7.4).
 
     Base: `military//1000 + hostility + authority`. B-Hegemony adds a
@@ -963,8 +1008,10 @@ def coalition_leadership_score(nation: str, world, european_power: Optional[int]
     nation's bloc commands, weighted ×50. Naturally surfaces the largest
     non-hegemon power as coalition leader.
 
-    Note the `france` hostility anchor stays France-coupled in v0.1 per
-    §7.4 caveat; D2 Coalition Generalization will generalize.
+    §4.4b (AI-4b, Stage D): the hostility anchor is re-keyed to the
+    coalition's TARGET — the one binding the spec flags as a semantics
+    change rather than a default. `target=None` reads the player, so every
+    existing anti-France call is byte-identical.
 
     Args:
         nation: the candidate nation
@@ -972,11 +1019,12 @@ def coalition_leadership_score(nation: str, world, european_power: Optional[int]
         european_power: optional precomputed total power. Computed once per
             scoring pass at the caller level (see `select_coalition_leader`)
             to avoid re-computing per candidate.
+        target: the nation the coalition is against (default: the player).
     """
-    france = world.player_nation
+    tgt = target or world.player_nation
     military = sum(m.strength for m in world.marshals.values()
                    if m.nation == nation and m.strength > 0) // 1000
-    hostility = abs(_get_relation(world, france, nation))
+    hostility = abs(_get_relation(world, tgt, nation))
     authority = getattr(world, 'nation_authority', {}).get(nation, 60)
     score = int(military + hostility + authority)
 
@@ -990,7 +1038,8 @@ def coalition_leadership_score(nation: str, world, european_power: Optional[int]
     return int(score)
 
 
-def select_coalition_leader(members: List[str], world) -> str:
+def select_coalition_leader(members: List[str], world,
+                            target: Optional[str] = None) -> str:
     """Select coalition leader from members (§4a).
 
     Highest leadership score. Tiebreak: most marshals, then alphabetical.
@@ -1002,7 +1051,8 @@ def select_coalition_leader(members: List[str], world) -> str:
     european_power = sum(power_score(n, world) for n in world.get_active_nations())
 
     def _sort_key(nation):
-        score = coalition_leadership_score(nation, world, european_power=european_power)
+        score = coalition_leadership_score(nation, world, european_power=european_power,
+                                           target=target)
         marshal_count = sum(1 for m in world.marshals.values()
                            if m.nation == nation and m.strength > 0)
         # Negative for descending sort, nation for ascending alpha tiebreak
@@ -1024,7 +1074,9 @@ def calculate_coalition_war_score(world) -> int:
     if not coalition:
         return 0
 
-    france = world.player_nation
+    # §4.4b: the war score is measured against the coalition's own target
+    # (the stored `target_nation` key — France on every legacy record).
+    france = coalition.get("target_nation") or world.player_nation
     members = coalition.get("members", [])
     total_weight = 0
     weighted_sum = 0
@@ -1359,7 +1411,8 @@ def add_coalition_shock(defeated_nation: str, world) -> None:
 # §3e. COALITION FORMATION
 # ════════════════════════════════════════════════════════════════
 
-def form_coalition(qualifying_nations: List[str], world) -> Dict:
+def form_coalition(qualifying_nations: List[str], world,
+                   target: Optional[str] = None) -> Dict:
     """Form a coalition against France (§3e).
 
     qualifying_nations: Nations that meet §3b criteria (will declare war).
@@ -1367,10 +1420,18 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
 
     Returns dict with coalition info and events.
     """
-    france = world.player_nation
+    france = target or world.player_nation
 
     # 1. Identify all members
-    already_at_war = get_nations_at_war_with_france(world)
+    already_at_war = get_nations_at_war_with_target(world, france)
+    if france != world.player_nation:
+        # §16.1-8: the PLAYER is never enrolled in an eclipse coalition —
+        # not even via the already-at-war arm. France fights its own wars
+        # by the player's hand; the coalition machinery is a court of AIs.
+        already_at_war = [n for n in already_at_war
+                          if n != world.player_nation]
+        qualifying_nations = [n for n in qualifying_nations
+                              if n != world.player_nation]
     new_belligerents = [n for n in qualifying_nations if n not in already_at_war]
     all_members = list(set(already_at_war + qualifying_nations))
 
@@ -1387,8 +1448,9 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         if result.get("success"):
             war_events.append(result)
 
-    # Coalition wars don't add threat — declare_war only adds threat
-    # when France is the aggressor, and here the coalition members declare.
+    # AI-4a step 5: declare_war now credits the AGGRESSOR's own threat slot
+    # (a coalition member declaring on the target accrues a transient +20 in
+    # its own slot, which decays; the TARGET's slot is untouched by these).
 
     # EC-2: Void any in-transit proposal to a nation joining the coalition
     pit = getattr(world, 'proposal_in_transit', None)
@@ -1417,7 +1479,7 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
             world.modify_nation_relation(m1, m2, 10)
 
     # 4. Select leader and determine posture
-    leader = select_coalition_leader(all_members, world)
+    leader = select_coalition_leader(all_members, world, target=france)
     world.coalition_count += 1
 
     # 5. Build coalition name (§3f)
@@ -1492,7 +1554,8 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "leader": leader,
         "members": sorted(all_members),
         "posture": posture,
-        "threat_level": int(world.threat_level),
+        "threat_level": int(world.threat_by_target.get(france, 0)),
+        "target_nation": france,
     })
 
     # R83: Dispatch event for coalition formation
@@ -1562,7 +1625,9 @@ def check_dissolution(world) -> Optional[str]:
     if not coalition:
         return None
 
-    france = world.player_nation
+    # §4.4b: dissolution is judged against the coalition's own target —
+    # France on every legacy record (key default), so anti-France byte-identical.
+    france = coalition.get("target_nation") or world.player_nation
     members = coalition.get("members", [])
 
     # Check: < 2 members
@@ -1570,8 +1635,8 @@ def check_dissolution(world) -> Optional[str]:
     if len(active_members) < 2:
         return "insufficient_members"
 
-    # Check: threat below 20
-    if world.threat_level < DISSOLUTION_THREAT_THRESHOLD:
+    # Check: threat below 20 (the target's own slot)
+    if world.threat_by_target.get(france, 0) < DISSOLUTION_THREAT_THRESHOLD:
         return "low_threat"
 
     return None
@@ -1771,27 +1836,55 @@ def process_coalition_turn(world) -> List[Dict]:
         elif control_pct > 0.60:
             add_threat(world, 1, "region_control_60")
 
+        # AI-4a step 5: the same passive read, per non-player nation — a
+        # conqueror is a conqueror whoever wears the crown. Boot-zero for
+        # every 1805 court (nobody holds 60% of 126 provinces); the fuel
+        # pin 16(d)'s eclipse fixture burns. Vassals never accrue (their
+        # soil is their lord's sphere and their slot could never form).
+        vassal_set = set(getattr(world, 'vassals', {}).keys())
+        for _n in world.get_active_nations():
+            if _n == france or _n in vassal_set:
+                continue
+            _pct = len(world.get_nation_regions(_n)) / total_regions
+            if _pct > 0.80:
+                add_threat(world, 3, "region_control_80", target=_n)
+            elif _pct > 0.70:
+                add_threat(world, 2, "region_control_70", target=_n)
+            elif _pct > 0.60:
+                add_threat(world, 1, "region_control_60", target=_n)
+
     # ────────── 1b. B-Hegemony passive pressure (§7.3) ──────────
     # Per-turn passive contribution from bloc-share dominance. Gates at
-    # 33%+; returns `{hegemon: increment}` or `{}`. In v0.1 the
-    # threat_level scalar remains France-targeted, so if the hegemon is
-    # anyone other than `world.player_nation`, we emit a debug log for
-    # telemetry and skip the `add_threat` call. D2 Coalition Generalization
-    # will generalize the scalar to per-target later.
+    # 33%+; returns `{hegemon: increment}` or `{}`. AI-4a step 5 (Stage D):
+    # a non-player hegemon now accrues into its OWN slot — the previously
+    # computed-and-discarded increment is exactly the fuel D3's eclipse
+    # clause needs. The player arm is byte-identical.
     hegemony_pressure = _calculate_hegemony_pressure(world)
     if hegemony_pressure:
         hegemon, increment = next(iter(hegemony_pressure.items()))
         if hegemon == france:
             add_threat(world, int(increment), "hegemony_passive")
         else:
-            from backend.utils.debug import debug_print
-            debug_print(
-                f"[HEGEMONY] non-France hegemon {hegemon} at share "
-                f"{bloc_power(hegemon, world) / max(1, sum(power_score(n, world) for n in world.get_active_nations())):.2f}; "
-                f"skipping add_threat (v0.1 France-targeted scalar, D2 will generalize)"
-            )
+            add_threat(world, int(increment), "hegemony_passive", target=hegemon)
 
     # ────────── 2. Threat decay (§2b) ──────────
+    # AI-4a step 5, the four standing contributors — the written decisions
+    # the migration contract demands (silence is how the gap recurs):
+    #   defensive_refusal_memory — STAYS FRANCE-ONLY: the DG-4 call-to-arms
+    #     episode substrate exists only for the player; no AI court can
+    #     refuse a defensive call on the record today.
+    #   schemer_peace_rejection — STAYS FRANCE-ONLY: Talleyrand is France's
+    #     own minister; the sabotage system is player-scoped by design.
+    #   agenda_grudge / formation_grudge — STAYS FRANCE-ONLY in Stage D:
+    #     an AI court's denied design already pressures its DENIER through
+    #     the intent layer's weight (WEIGHT_RENEGED_BARGAIN, relations);
+    #     threat is Europe's fear of a conqueror, and the AI-AI grievance
+    #     channel is the ladder, not the coalition alarm. Re-open at the
+    #     exit review if the eclipse fixture wants more fuel.
+    #   ultimatum_defied — STAYS FRANCE-ONLY: only the player can defy an
+    #     NA-5 ultimatum (AI-AI ultimatums do not exist; the AI-AI coerce
+    #     step is the war council's coercive demand, which feeds the
+    #     refusal record instead).
     refusal_memory_threat = _calculate_defensive_refusal_memory_threat(world)
     if refusal_memory_threat > 0:
         add_threat(world, refusal_memory_threat, "defensive_refusal_memory")
@@ -1848,6 +1941,21 @@ def process_coalition_turn(world) -> List[Dict]:
                 "amount": int(-actual_decay),
             })
 
+    # AI-4a step 6: every NON-player slot decays on the same schedule the
+    # player's does (pin 16b — threat is not a one-way ratchet in either
+    # direction). Routed through reduce_threat so the log entry carries a
+    # target like every other; the player slot keeps the legacy direct
+    # write above, byte-identically.
+    for _tgt in list(world.threat_by_target.keys()):
+        if _tgt == france:
+            continue
+        _slot = int(world.threat_by_target.get(_tgt, 0))
+        if _slot <= 0:
+            continue
+        _tgt_decay = _calculate_threat_decay(world, target=_tgt)
+        if _tgt_decay > 0:
+            reduce_threat(world, min(_tgt_decay, _slot), "decay", target=_tgt)
+
     # ────────── 3. War exhaustion per-turn (§10a) ──────────
     for nation in _get_all_nations(world):
         if nation == france:
@@ -1870,9 +1978,17 @@ def process_coalition_turn(world) -> List[Dict]:
             if new_we != current_we:
                 world.war_exhaustion[france] = int(new_we)
             continue
-        state = _get_diplo_state(world, france, nation)
+        # AI-4c: on Europe worlds the tick keys on being at war with ANYONE
+        # (the exact predicate France's own arm uses) — an AI-vs-AI war
+        # finally accrues instead of decaying −5/turn (pin 17a). The legacy
+        # fixture world keeps the France-relative read byte-identically
+        # (pin 17c — it boots at war and its economy is pinned).
+        if getattr(world, "sovereign_map", "legacy") == "europe":
+            at_war = bool(world.get_nations_at_war_with(nation))
+        else:
+            at_war = _get_diplo_state(world, france, nation) == "WAR"
         current_we = world.war_exhaustion.get(nation, 0)
-        if state == "WAR":
+        if at_war:
             new_we = min(current_we + 8, WAR_EXHAUSTION_MAX)  # R11: was +5
         else:
             new_we = max(current_we - 5, 0)
@@ -1902,13 +2018,39 @@ def process_coalition_turn(world) -> List[Dict]:
                 int(world.current_turn),
             ))
 
+    # ────────── 6a. Anti-France precedence (AI_INTENT_SPEC §16.1-8) ──────────
+    # The exclusive ruling: one coalition world-wide, and the anti-France
+    # coalition always wins. If France's own alarm crosses the brewing line
+    # while an eclipse coalition (non-player target) stands, the eclipse
+    # coalition dissolves in its favour and the pivot pays no cooldown —
+    # Europe remembers who the real danger is.
+    if world.active_coalition:
+        _active_target = world.active_coalition.get("target_nation") or france
+        if _active_target != france and world.threat_level >= THREAT_BREWING_MIN:
+            events.extend(dissolve_coalition(world, "the_greater_danger"))
+            world.coalition_cooldown = 0
+            world.log_event({
+                "type": "coalition_dissolved_for_france",
+                "previous_target": _active_target,
+                "threat_level": int(world.threat_level),
+            })
+
     # ────────── 6. Brewing check (§3c) ──────────
     if world.coalition_brewing and not world.active_coalition:
         brewing = world.coalition_brewing
-        qualifying = get_qualifying_nations(world)
+        # §4.4b: a brewing record may carry its own target (non-player
+        # eclipse coalitions); a legacy record without the key reads as
+        # the player, byte-identically.
+        brewing_target = brewing.get("target_nation") or france
+        brewing_threat = int(world.threat_by_target.get(brewing_target, 0))
+        qualifying = get_qualifying_nations(world, target=brewing_target)
+        if brewing_target != france:
+            # The player is never auto-conscripted into an eclipse
+            # coalition — France joins wars by the player's own hand.
+            qualifying = [n for n in qualifying if n != france]
 
         # Check cancellation (momentum rule §3c)
-        if world.threat_level < BREWING_CANCEL_THRESHOLD or len(qualifying) == 0:
+        if brewing_threat < BREWING_CANCEL_THRESHOLD or len(qualifying) == 0:
             world.coalition_brewing = None
             world.notifications.dismiss_by_type(COALITION_BREWING)
             events.append({
@@ -1921,8 +2063,10 @@ def process_coalition_turn(world) -> List[Dict]:
             brewing["turns_remaining"] = brewing.get("turns_remaining", 1) - 1
             brewing["qualifying_nations"] = qualifying
 
-            # Check instant override (§3d: threat ≥80 during brewing)
-            if world.threat_level >= THREAT_INSTANT_MIN:
+            # Check instant override (§3d: threat ≥80 during brewing).
+            # Pin 16(c): a NON-player target never instant-forms — the
+            # countdown is the structural guarantee of ≥1 brewing turn.
+            if brewing_threat >= THREAT_INSTANT_MIN and brewing_target == france:
                 result = form_coalition(qualifying, world)
                 if result.get("success"):
                     events.append({
@@ -1932,7 +2076,7 @@ def process_coalition_turn(world) -> List[Dict]:
                     })
             elif brewing["turns_remaining"] <= 0:
                 # Countdown expired — declare
-                result = form_coalition(qualifying, world)
+                result = form_coalition(qualifying, world, target=brewing_target)
                 if result.get("success"):
                     events.append({
                         "type": "coalition_declared",
@@ -2019,6 +2163,45 @@ def process_coalition_turn(world) -> List[Dict]:
 
         # Threat tier notifications (regardless of cooldown)
         _check_threat_notifications(world)
+
+    # ────────── 7b. The eclipse pass (AI-4a step 6 + D3) ──────────
+    # A coalition against a NON-player hegemon forms only when that power's
+    # bloc share exceeds France's own AND no coalition (any target) is
+    # active or brewing — the §16.1-8 exclusive ruling. It always brews
+    # (never instant — pin 16c's structural ≥1-turn guarantee), and the
+    # player is never auto-conscripted (France joins wars by the player's
+    # own hand).
+    if (not world.active_coalition and not world.coalition_brewing
+            and world.coalition_cooldown <= 0):
+        _eclipse = _eclipse_candidate(world)
+        if _eclipse is not None:
+            _tgt, _tgt_threat = _eclipse
+            _eclipse_qualifying = [
+                n for n in get_qualifying_nations(world, target=_tgt)
+                if n != france
+            ]
+            if _eclipse_qualifying:
+                world.coalition_brewing = {
+                    "qualifying_nations": _eclipse_qualifying,
+                    "turns_remaining": BREWING_COUNTDOWN,
+                    "started_turn": int(world.current_turn),
+                    "threat_at_start": int(_tgt_threat),
+                    "target_nation": _tgt,
+                }
+                world.log_event({
+                    "type": "coalition_brewing_started",
+                    "qualifying_nations": _eclipse_qualifying,
+                    "threat_level": int(_tgt_threat),
+                    "target_nation": _tgt,
+                })
+                events.append({
+                    "type": "coalition_brewing_started",
+                    "message": (f"A coalition is brewing against {_tgt}! "
+                                f"{', '.join(_eclipse_qualifying)} are consulting."),
+                    "qualifying_nations": _eclipse_qualifying,
+                    "turns_remaining": BREWING_COUNTDOWN,
+                    "target_nation": _tgt,
+                })
 
     # ────────── 8. Update posture if coalition active (§4c) ──────────
     if world.active_coalition:

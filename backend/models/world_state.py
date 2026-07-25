@@ -723,6 +723,14 @@ class WorldState:
         # make "no cold-open wars" a lie across a save/load.
         self.diplomatic_refusals: Dict[str, List[Dict]] = {}
 
+        # AI-3 (AI_INTENT_SPEC §4.3, Stage D): the war council's open
+        # crises — coveter → {target, design_id, want_title, opened_turn,
+        # foregrounded, foregrounded_turn, coerce_recorded_turn,
+        # treaty_broken_turn, stall_turns}. SERIALIZED (§5 pin 8's sister:
+        # a fore-warned crisis must survive a save — re-deriving it would
+        # skip the fore-warning tenure and beat 7's owed ending).
+        self.war_intents: Dict[str, Dict] = {}
+
         # AI-2b (docs/AI_INTENT_SPEC.md §6 D5, §3.3, §12.3): the D5
         # counter-instrument records — SERIALIZED per §5 pin 8
         # (compensation bargains and their expectations must survive a
@@ -2980,14 +2988,16 @@ class WorldState:
         region.stability = 25  # Captured regions start at low stability
 
         # R16: +2 threat per captured region (non-starting territory, France only)
-        if capturing_nation == getattr(self, 'player_nation', 'France'):
+        if capturing_nation:
+            # AI-4a step 5: target is the ACTOR — any conqueror's capture of
+            # non-starting territory feeds ITS slot (France byte-identical).
             # Map Slice 5: read the WORLD's starting map (legacy or Europe),
             # not the legacy module global — else every Europe-only province
             # name misses and recapturing own territory would accrue threat.
             starting = getattr(self, "_starting_controllers", None) or get_starting_controllers()
             if starting.get(region_name) != capturing_nation:
                 from backend.game_logic.coalition import add_threat
-                add_threat(self, 2, "region_capture")
+                add_threat(self, 2, "region_capture", target=capturing_nation)
 
         # Imperial Settlement B2: occupation event accrual happens BEFORE
         # `_eliminate_nation` so a final-region capture still credits the
@@ -5249,6 +5259,10 @@ class WorldState:
                 k: [dict(e) for e in v]
                 for k, v in self.diplomatic_refusals.items()
             },
+            # AI-3: the war council's open crises (fore-warning survives a save).
+            "war_intents": {
+                k: dict(v) for k, v in self.war_intents.items()
+            },
             # AI-2b: the D5 instrument records (§5 pin 8 — serialized).
             "directed_sponsorships": [
                 dict(r) for r in self.directed_sponsorships
@@ -5843,6 +5857,11 @@ class WorldState:
         world.diplomatic_refusals = {
             str(k): [dict(e) for e in (v or [])]
             for k, v in (data.get("diplomatic_refusals") or {}).items()
+        }
+        # AI-3: open crises — pre-Stage-D saves read {}.
+        world.war_intents = {
+            str(k): dict(v) for k, v in (data.get("war_intents") or {}).items()
+            if isinstance(v, dict)
         }
         # AI-2b: the D5 instrument records — pre-Stage-C saves read [].
         world.directed_sponsorships = [
@@ -7221,6 +7240,26 @@ class WorldState:
         tactical_events.extend(ai_ai_events)
 
         # ════════════════════════════════════════════════════════════
+        # AI-3: THE WAR COUNCIL (AI_INTENT_SPEC §4.3, Stage D)
+        # After the AI-AI diplomatic phase so this turn's refusals are
+        # on the record; before instruments so a bargain minted here
+        # suspends the design at the next poll. Deckless worlds no-op.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.war_council import process_war_council
+        tactical_events.extend(process_war_council(self))
+
+        # ════════════════════════════════════════════════════════════
+        # AI-4b: THIRD-PARTY SETTLEMENTS (AI_INTENT_SPEC §4.4, Stage D)
+        # Wars France is not in can END — the descent's (d) seam. After
+        # the war council (a fresh war never settles the turn it opens;
+        # the age gate holds regardless).
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.settlement_third_party import (
+            process_third_party_settlements,
+        )
+        tactical_events.extend(process_third_party_settlements(self))
+
+        # ════════════════════════════════════════════════════════════
         # R12C: STALE DIALOGUE CLEARING (consolidates non-blocking auto-dismiss
         # + blocking safety valve into DialogueManager.clear_stale)
         # ════════════════════════════════════════════════════════════
@@ -8175,14 +8214,17 @@ class WorldState:
                     applied_treaty_clauses.append(applied_clause)
                 if transferred_count > 0:
                     self.invalidate_active_nations_cache()
-                # Coalition threat: +8 per region ACTUALLY annexed by France (§2a)
-                if to_nation == self.player_nation and transferred_count > 0:
+                # Coalition threat: +8 per region ACTUALLY annexed (§2a) —
+                # AI-4a step 5: keyed to the annexing ACTOR, any nation.
+                if to_nation and transferred_count > 0:
                     from backend.game_logic.coalition import add_threat
-                    add_threat(self, 8 * transferred_count, "treaty_annex")
-                # Threat reduction: -5 per region ACTUALLY returned by France (§2b)
-                if from_nation == self.player_nation and transferred_count > 0:
+                    add_threat(self, 8 * transferred_count, "treaty_annex",
+                               target=to_nation)
+                # Threat reduction: -5 per region ACTUALLY returned (§2b)
+                if from_nation and transferred_count > 0:
                     from backend.game_logic.coalition import reduce_threat
-                    reduce_threat(self, 5 * transferred_count, "territory_return")
+                    reduce_threat(self, 5 * transferred_count, "territory_return",
+                                  target=from_nation)
 
         # ═══ WPS-C: Forced alliance + liberation clause handling ═══
         _forced_alliance_clauses: List[Dict] = []
@@ -8233,9 +8275,9 @@ class WorldState:
                     self.modify_nation_relation(lib_vassal, lib_from, -20)
                     self.modify_nation_relation(lib_vassal, lib_liberator, 30)
 
-                    if lib_from == getattr(self, "player_nation", "France"):
+                    if lib_from:
                         from backend.game_logic.coalition import reduce_threat as _rt
-                        _rt(self, 8, "liberation")
+                        _rt(self, 8, "liberation", target=lib_from)
 
                     # Imperial Settlement B2: emit `liberated_region_restored`
                     # per region of the freed vassal, credited to the liberator
@@ -8390,9 +8432,10 @@ class WorldState:
                 fa_threat_delta = int(_BASE) + (
                     int(_SURCHARGE) if includes_cs else 0
                 )
-                if fa_imposer == getattr(self, "player_nation", "France"):
+                if fa_imposer:
                     from backend.game_logic.coalition import add_threat as _at
-                    _at(self, fa_threat_delta, "forced_alliance")
+                    _at(self, fa_threat_delta, "forced_alliance",
+                        target=fa_imposer)
                 self.log_event({
                     "type": "forced_alliance_imposed",
                     "imposer": fa_imposer,
@@ -9885,8 +9928,18 @@ class WorldState:
                 ac_total_cas = ac_atk_cas + ac_def_cas
                 france = self.player_nation
 
-                if combat_result.get("victor") == marshal.name and marshal.nation == france:
-                    add_threat(self, 3, "battle_win")
+                # AI-4a step 5: threat's target is the ACTOR (the victor);
+                # France's slot sees exactly the same events as before.
+                # This mirror's France-defender-wins arm has never granted
+                # decisive_victory/shock — that pre-existing divergence from
+                # the executor copy is preserved verbatim (byte-identity
+                # before symmetry; recorded in AI_INTENT_SPEC §17).
+                _ac_third_party = (
+                    getattr(self, "sovereign_map", "legacy") == "europe"
+                    and france not in (marshal.nation, enemy.nation)
+                )
+                if combat_result.get("victor") == marshal.name:
+                    add_threat(self, 3, "battle_win", target=marshal.nation)
                     if ac_def_cas > 0 and ac_atk_cas > 0:
                         ratio = ac_def_cas / ac_atk_cas
                     elif ac_def_cas > 0:
@@ -9894,25 +9947,33 @@ class WorldState:
                     else:
                         ratio = 0
                     if ratio > 2 and ac_total_cas > 10000:
-                        add_threat(self, 5, "decisive_victory")
-                        add_coalition_shock(enemy.nation, self)
+                        add_threat(self, 5, "decisive_victory", target=marshal.nation)
+                        if marshal.nation == france:
+                            add_coalition_shock(enemy.nation, self)
                     if conquered:
                         cr = self.get_region(auto_charge_battle_region)
                         if cr and getattr(cr, 'is_capital', False):
-                            add_threat(self, 15, "capital_capture")
-                    add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
-                elif (combat_result.get("victor") == marshal.name
-                        and enemy.nation == france
-                        and getattr(self, "sovereign_map", "legacy") == "europe"):
-                    # EC-W2: France mauled as DEFENDER — the missing
-                    # loser-accrues arm (memo §3; mirrors the executor
-                    # pipeline's new branch). Europe-scoped (N1).
-                    add_war_exhaustion_from_battle(france, ac_def_cas, self)
+                            add_threat(self, 15, "capital_capture", target=marshal.nation)
+                    if marshal.nation == france:
+                        add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
+                    elif (enemy.nation == france
+                            and getattr(self, "sovereign_map", "legacy") == "europe"):
+                        # EC-W2: France mauled as DEFENDER — the missing
+                        # loser-accrues arm (memo §3; mirrors the executor
+                        # pipeline's new branch). Europe-scoped (N1).
+                        add_war_exhaustion_from_battle(france, ac_def_cas, self)
+                    elif _ac_third_party:
+                        # AI-4c pin 17a: the third-party loser bears its own
+                        # dead (explicit arm — both combat copies).
+                        add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
                 elif combat_result.get("victor") == enemy.name:
                     if marshal.nation == france:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
+                    if enemy.nation:
+                        add_threat(self, 3, "battle_win", target=enemy.nation)
                     if enemy.nation == france:
-                        add_threat(self, 3, "battle_win")
+                        add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
+                    if _ac_third_party:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
 
                 # EC-W3: The Butcher's Bill — each side pays at once for the

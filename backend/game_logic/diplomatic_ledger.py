@@ -438,9 +438,52 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # (sponsorships, compacts, bargains, guarantees, an open
             # allegiance auction) — one composed line, None omits.
             "compacts": _build_instruments_line(nation, world),
+            # AI-4c (§4.2b): the court's war-weariness, EXPLICITLY labelled
+            # as national exhaustion across ALL its wars, with the
+            # belligerent list — "let them bleed while France rearms"
+            # made readable. None omits (at peace, zero exhaustion).
+            "war_weariness": _build_war_weariness_line(nation, world),
         })
 
     return nations
+
+
+def _build_war_weariness_line(nation: str, world):
+    """AI-4c's display half: {value, trend, at_war_with, line} or None.
+
+    The §4.2b contract: either the row is per-war, or it is explicitly
+    labelled as NATIONAL exhaustion across all wars — this is the labelled
+    arm, with the wars named beside it. Fogged to PARTIAL+ like the
+    coalition tab's member exhaustion (army-internal, not a diplo fact).
+    """
+    vis = _get_nation_visibility(nation, world)
+    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
+    if VISIBILITY_PRIORITY.get(vis, 0) < partial_priority:
+        return None
+    we = int((getattr(world, 'war_exhaustion', {}) or {}).get(nation, 0) or 0)
+    at_war = sorted(world.get_nations_at_war_with(nation))
+    if we <= 0 and not at_war:
+        return None
+    prev_we = int(getattr(world, '_prev_war_exhaustion', {}).get(nation, 0) or 0)
+    if we > prev_we:
+        trend = "rising"
+    elif we < prev_we:
+        trend = "falling"
+    else:
+        trend = "stable"
+    from backend.game_logic.formations import formed_display_name
+    at_war_display = [formed_display_name(world, n) for n in at_war]
+    if at_war_display:
+        line = (f"National exhaustion across all wars: {we} ({trend}) — "
+                f"at war with {', '.join(at_war_display)}")
+    else:
+        line = f"National exhaustion across all wars: {we} ({trend})"
+    return {
+        "value": we,
+        "trend": trend,
+        "at_war_with": at_war,
+        "line": line,
+    }
 
 
 # ============================================================================
@@ -836,8 +879,15 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         coalition_name = str(coalition.get("name", "Unknown Coalition") or "Unknown Coalition")
         coalition_posture = str(coalition.get("strategic_posture", "defensive") or "defensive")
 
-    # Threat sources this turn (with human-readable labels)
-    raw_sources = list(getattr(world, 'threat_sources_this_turn', []))
+    # Threat sources this turn (with human-readable labels).
+    # AI-4a step 5: producers now log every actor's deeds — this panel is
+    # the PLAYER's alarm, so only player-targeted entries (or legacy
+    # target-less ones) are shown.
+    _player = getattr(world, 'player_nation', 'France')
+    raw_sources = [
+        s for s in getattr(world, 'threat_sources_this_turn', [])
+        if not isinstance(s, dict) or s.get("target", _player) == _player
+    ]
     threat_sources = []
     for s in raw_sources:
         if isinstance(s, dict):

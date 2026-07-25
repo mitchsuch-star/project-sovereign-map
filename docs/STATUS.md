@@ -4,6 +4,73 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ⚔️ AI INTENT ⛩ RE-CHECK HELD + STAGE D ✅ BUILT July 24, 2026 (third session that day) — War and Peace
+
+**User direction: "do next phase of intent commit and push."** The phase's only remaining gate —
+the D6 ⛩ re-check — was **held from the Stage C evidence pack under the standing delegation**
+(gate record = `AI_INTENT_SPEC.md` §16, authoritative): **D1's cap CONFIRMED at 2** (band 1–4,
+re-measure at AI-V), **AI-3b slipped out of Stage D** (not cut — exit review owns it; pin 24 and
+§7a scene 7's seal half carry the predicate), **AI-5c keeps its Stage E slot**, **pin 17(b)
+re-sited to the landing record and BLESSED there with measured data**, AI-3c stayed in-stage, and
+the **§4.4b arbitration ruled EXCLUSIVE** (one coalition world-wide; anti-France always wins —
+an eclipse coalition dissolves for France, cooldown zeroed). **Then Stage D was BUILT in the same
+session — landing record = spec §17 (authoritative)**, the stage's indivisibility honoured: under
+the harness an AI-initiated war both **starts** (Prussia on Hanover for the Hanoverian Prize —
+fore-warned beat 2 with honestly-gated instruments, the refused coercive demand beat 3 on the
+serialized record, declaration at 2 foregrounded turns through `declare_war` at the announcement)
+**and ends** (the exhausted loser sues through `effective_peace_threshold` — P1's formula
+extracted to ONE seam, pin 19b — the winner takes the surrender through the standing scorer seam,
+the design province cedes, the war instance closes headlessly with the player's mounted dialogue
+untouched).
+
+- **`war_council.py` (AI-3 + AI-3c):** the crisis lifecycle over ONE new serialized field
+  (`war_intents`); ladder gate (2 refusals / renege skips rungs); restraints + D1 cap 2 (a capped
+  crisis WAITS); `can_declare_war` shared preview; the treaty-break-first step; pin 21's stall
+  guarantee (a dead predicate starves the crisis ON SCREEN); one foregrounded crisis world-wide;
+  AI-vs-AI only in v1 (player-targeted designs coerce via NA-5, fight via the coalition — pins
+  stand); AI producers on the crisis (folds-holder buys off; one protector/turn guarantees); AI
+  guarantors JOIN at the declaration, France's pledge pleads (never auto-conscripts); the P7
+  frontier bias masses corps on the border via the existing movement gates (deckless-neutral).
+- **§4.3a at the combat seams:** both refusal-discards are now ABORTS and the OPEN_MOVEMENT
+  capture hole is CLOSED (pin 15 — no undeclared conquest, either side; the player's silent
+  open-borders capture now stages War Purpose instead). `exit_shared_wars_for_defection` lifted
+  from the VS-6 idiom, pinned executable against the boot coalition.
+- **AI-4a steps 5–6 + §4.4b:** every threat producer passes its ACTOR as target (the discarded
+  non-player hegemony increment WIRED — D3's fuel); written stays-France-only decisions on the
+  four standing contributors; per-target decay; the eclipse pass (share-gated, brewing-only —
+  pin 16c structural); the player never enrolled; all nine coalition anchors target-keyed with
+  legacy defaults byte-identical; **pin 16(a) VERIFIED TWICE — France's 40-turn series
+  byte-identical in isolation AND with AI-4c live; `BASELINE_SERIES` stands unedited**; the
+  Stage-C no-accrual invariant consciously INVERTED (Britain peaked 55/decayed, four slots
+  returned to 0 organically — pin 16b live).
+- **AI-4c:** the tick keys on `get_nations_at_war_with` on Europe (legacy verbatim, pin 17c);
+  explicit third-party loser-bears-its-dead arms in BOTH combat copies; pin 17(a) green (the pin
+  that failed against master); **17(b) blessed with data** (boot third-party belligerents Spain
+  24we/28g · Holland 26/5 · Bavaria 40/4 · KingdomOfItaly 24/10 by turn 4 — an order below their
+  treasuries); the labelled nations-tab weariness line + its `.gd` render.
+- **AI-4b (`settlement_third_party.py`) + AI-2d join/broker:** headless third-party peace (scorer
+  hard-stops veto; the victor's-consent arm; D2's capital ruling — a minor's capital may cede and
+  eliminate, a great power's never); `_settlement_offer_build_terms`'s `player` param RENAMED
+  `accepter` (nation-pair-general); beat 6 names consequences incl. the French-frontier read; the
+  broker ask on the existing proposal transport (Accept convenes at the broker margin, result as
+  popup — PL-14 rule, no new dtype; +10 relations both courts).
+- **Beats 2/3/6/7 live end-to-end:** 6 campaign-log types (count pins 134→140 ×2, conscious),
+  town-crier visibility (DPF-1), dispatch templates + priorities (beats exempt from the routine
+  cap), and the headline's first non-France arms (`europe_at_war` with the stated reason /
+  `europe_crisis` / `europe_congress` / `europe_crisis_passed`, all weighted below France-centric
+  — pin 13) with Berthier closing notes.
+- **Conscious pin flips:** the inverted no-accrual invariant · log counts 134→140 · the W6
+  "AI-vs-AI war is no headline" pin re-pointed at the CLASS boundary (never `war_touches_us`,
+  weight below it) · the ultimatum-yield threat pin re-scoped to the player's slot (the AI
+  beneficiary now accrues its own) · 5 formables-test renames · preserved warts on the record
+  (the mirror copy's missing decisive-victory arm; France-gated coalition shock) → exit review.
+- Suite **14,826/3** (was 14,772/3; `test_ai_intent_war_decision.py` + `test_ai_intent_third_party.py`
+  = 42 new), ruff clean, M1–M7 byte-identical in-suite, parse harness EXIT=0
+  (`diplomatic_ledger.gd` the one `.gd` touch). **▶ NEXT: the pin-20 live in-game pass (Stage B/C
+  surfaces + the new Stage D beats/headlines/weariness row) + the user in-game review (NA-6c/6d)
+  + Battle Diorama (row BD) → §11 Stage E (consequence & character: AI-5 wires · AI-5b(i)
+  emergent designs Core · AI-5c kept · volte-face may slip) → F → G (AI-V).**
+
 ### ⚙️ AI INTENT STAGE C ✅ BUILT July 24, 2026 (second session that day) — The Bargaining Table
 
 **User direction: "do next phase of intent, commit and push."** Landed **Stage C in full per

@@ -320,10 +320,17 @@ class TestUltimatumResolution:
         executor, _ = self._deliver(world)
         world.threat_level = 10
         executor.handle_diplomatic_dialogue_response("yield", {"world": world})
-        # the AI annexed FRENCH soil — that is not French aggression
+        # the AI annexed FRENCH soil — that is not French aggression: the
+        # PLAYER's slot is untouched. (AI-4a step 5, Stage D: the annexing
+        # BENEFICIARY now accrues in its OWN slot — Prussia's here — which
+        # is the new correct behaviour, not this pin's subject.)
         assert world.threat_level == 10
         assert not any(s.get("source") == "ultimatum_annex"
-                       for s in world.threat_sources_this_turn)
+                       for s in world.threat_sources_this_turn
+                       if s.get("target", "France") == "France")
+        assert any(s.get("source") == "ultimatum_annex"
+                   and s.get("target") == "Prussia"
+                   for s in world.threat_sources_this_turn)
 
     def test_yield_plants_no_marker(self, world):
         executor, _ = self._deliver(world)

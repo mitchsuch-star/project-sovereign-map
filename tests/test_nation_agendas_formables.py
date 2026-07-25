@@ -1938,8 +1938,8 @@ class TestCarveGR5TheNormandyMirror:
         _at_war(world, "Britain", "France")
         _hand_over(world, "Britain", ["Normandy"])
         terms = _settlement_offer_build_terms(
-            player="France", proposer_nation="Britain", war_age_turns=6,
-            player_war_score=-80, world=world)
+            accepter="France", proposer_nation="Britain", war_age_turns=6,
+            accepter_war_score=-80, world=world)
         carve = [t for t in terms if t.get("type") == "create_client"]
         assert len(carve) == 1
         assert carve[0]["from"] == "France"
@@ -1951,8 +1951,8 @@ class TestCarveGR5TheNormandyMirror:
         _at_war(world, "Britain", "France")
         _hand_over(world, "Britain", ["Normandy"])
         terms = _settlement_offer_build_terms(
-            player="France", proposer_nation="Britain", war_age_turns=6,
-            player_war_score=0, world=world)
+            accepter="France", proposer_nation="Britain", war_age_turns=6,
+            accepter_war_score=0, world=world)
         assert not [t for t in terms if t.get("type") == "create_client"]
 
     def test_a_losing_ai_never_carves(self, world):
@@ -1960,16 +1960,16 @@ class TestCarveGR5TheNormandyMirror:
         _at_war(world, "Britain", "France")
         _hand_over(world, "Britain", ["Normandy"])
         terms = _settlement_offer_build_terms(
-            player="France", proposer_nation="Britain", war_age_turns=6,
-            player_war_score=80, world=world)
+            accepter="France", proposer_nation="Britain", war_age_turns=6,
+            accepter_war_score=80, world=world)
         assert not [t for t in terms if t.get("type") == "create_client"]
 
     def test_the_ai_cannot_offer_soil_it_does_not_hold(self, world):
         _at_war(world, "Britain", "France")
         assert world.regions["Normandy"].controller == "France"
         terms = _settlement_offer_build_terms(
-            player="France", proposer_nation="Britain", war_age_turns=6,
-            player_war_score=-80, world=world)
+            accepter="France", proposer_nation="Britain", war_age_turns=6,
+            accepter_war_score=-80, world=world)
         assert not [t for t in terms if t.get("type") == "create_client"]
 
     def test_the_ai_carve_lands_against_the_player(self, world):
@@ -2373,8 +2373,8 @@ class TestCarveReviewFixes:
         for treasury in (0, -500):
             world.nation_gold["France"] = treasury
             terms = _settlement_offer_build_terms(
-                player="France", proposer_nation="Britain", war_age_turns=6,
-                player_war_score=-80, world=world)
+                accepter="France", proposer_nation="Britain", war_age_turns=6,
+                accepter_war_score=-80, world=world)
             types = [t["type"] for t in terms]
             assert "create_client" in types, treasury
             # ...and an empty chest still owes no indemnity.
