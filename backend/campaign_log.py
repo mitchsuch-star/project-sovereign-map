@@ -890,6 +890,159 @@ def filter_campaign_log(event_log: list, world_state) -> list:
     return filtered
 
 
+# ════════════════════════════════════════════════════════════
+# IGR-B — THE REFUSAL FAMILY COLLAPSE (gate Q1, option (a))
+# ════════════════════════════════════════════════════════════
+
+# The ONE campaign-log family whose producer scales O(n²): the court-to-
+# court refusal is emitted from a pair loop over every active nation
+# (19 at boot → 171 pairs), and refusals are deliberately excluded from
+# the anti-spam counter (`ai_diplomacy.py` ~:2649), so a burst turn scans
+# and emits across the whole board at once. Measured on the deterministic
+# 20-turn ambient run: turn 3 emits 69 raw refusals, of which 23 survive
+# the fog filter onto a 26-row page — burying that turn's `agenda_shift`
+# ("The court of X takes up a new design") at index 25 of 26.
+#
+# Deliberately a tuple of ONE. No other campaign-log family has this
+# shape, and widening it is not owed work — a new family would have to
+# earn a row of its own with its own measurement.
+COLLAPSIBLE_REFUSAL_TYPES = ("ai_ai_proposal_refused",)
+
+
+def collapse_refusal_family(events: list) -> list:
+    """Aggregate bursts of court-to-court refusals for DISPLAY only.
+
+    Pure. Called from the `GET /campaign_log` handler *after*
+    `filter_campaign_log` — never inside it (51 test call sites depend on
+    that function's contract, and the collapse is a view concern).
+
+    Buckets by `(turn, proposal_type)` **within the refusal family only**.
+    A bucket of one passes through untouched (the same object). A bucket
+    of N is represented by ONE shallow copy of its FIRST member, carrying
+    the display-only keys `collapsed_count` and `collapsed_pairs`;
+    `format_event_oneliner` renders the aggregate sentence from them.
+
+    Two hard rules, both load-bearing:
+
+    1. **Gate on the event TYPE first.** `filter_campaign_log` returns
+       *originals, not copies*, and `(turn, proposal_type)` is NOT unique
+       to refusals — `diplomatic_proposal_sent` (the player's own
+       proposal), `proposal_arrived` and `offer_lapsed` all carry a
+       `proposal_type` from the same vocabulary, and all three take an
+       "always show" branch above. A bare key bucket merges the player's
+       own diplomacy into the aggregate and deletes it. Verified live:
+       `offer_lapsed` lands on turn 3 — the burst turn itself.
+    2. **Never mutate the input dicts.** They are the very objects in
+       `world.event_log`, which is serialized into every save
+       (`world_state.to_dict` copies whatever is there). Stamping
+       `collapsed_count` in place would bake view state into the save
+       file permanently. Hence `dict(event)`; the family carries six
+       scalar keys, so a shallow copy is sufficient.
+
+    The producer is untouched by design: both emission sites are gated on
+    `record_diplomatic_refusal`, the writer of `world.diplomatic_refusals`
+    that AI-3's ladder gate reads (`war_council` `CRISIS_REFUSALS_REQUIRED`).
+    Throttling the producer would change AI war decisions; this does not.
+
+    Args:
+        events: fog-filtered event dicts, in log order.
+
+    Returns:
+        A new list, same order, with each collapsed bucket represented by
+        one synthetic entry at its first member's position.
+    """
+    if not events:
+        return []
+
+    buckets: dict = {}
+    for index, event in enumerate(events):
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") not in COLLAPSIBLE_REFUSAL_TYPES:
+            continue
+        key = (event.get("turn"), event.get("proposal_type"))
+        buckets.setdefault(key, []).append(index)
+
+    # Only a genuine burst collapses; a lone refusal keeps its own line.
+    collapse_at = {}
+    superseded = set()
+    for key, indices in buckets.items():
+        if len(indices) < 2:
+            continue
+        collapse_at[indices[0]] = key
+        superseded.update(indices[1:])
+
+    out = []
+    for index, event in enumerate(events):
+        if index in superseded:
+            continue
+        key = collapse_at.get(index)
+        if key is None:
+            out.append(event)          # untouched, same object
+            continue
+        members = [events[i] for i in buckets[key]]
+        collapsed = dict(event)        # rule 2 — never the model's dict
+        collapsed["collapsed_count"] = len(members)
+        collapsed["collapsed_pairs"] = [
+            {
+                "proposer": m.get("proposer"),
+                "refused_by": m.get("refused_by") or m.get("recipient"),
+            }
+            for m in members
+        ]
+        out.append(collapsed)
+    return out
+
+
+def _unique_in_order(values) -> list:
+    """Distinct truthy values, first-seen order (stable copy for tests)."""
+    seen = set()
+    ordered = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
+def _join_courts(names: list) -> str:
+    """'A', 'A and B', 'A, B and C' — chancery list register."""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
+    """One honest sentence for a collapsed refusal bucket.
+
+    The count is always stated: the turn header now reads the collapsed
+    row count, so if the sentence did not disclose how many approaches it
+    stands for, the rest would have vanished silently — which is worse
+    than the spam it replaces.
+
+    Raw nation tags, exactly as the uncollapsed arm and its
+    `diplomatic_ai_ai_treaty` sibling pass them: the client repairs them
+    through `Utils.humanize_nation_keys_in_text`, and the NA-6 formation
+    overrides can only rename a nation that is still a raw tag. Composing
+    finished prose with `display_nation` here would bake a dead name into
+    the sentence past the point either repair can reach it (the §11.8
+    stage-3 hazard IGR-A hit).
+    """
+    pairs = event.get("collapsed_pairs") or []
+    proposers = _unique_in_order(p.get("proposer") for p in pairs)
+    refusers = _unique_in_order(p.get("refused_by") for p in pairs)
+
+    if len(proposers) == 1 and len(refusers) > 1:
+        return f"{len(refusers)} courts rebuff {proposers[0]} ({ptype})"
+    if len(refusers) == 1 and len(proposers) > 1:
+        return f"{refusers[0]} rebuffs {len(proposers)} courts ({ptype})"
+    if 2 <= len(proposers) <= 3:
+        return (f"{count} approaches from {_join_courts(proposers)} "
+                f"are rebuffed ({ptype})")
+    return f"{count} approaches rebuffed among the courts ({ptype})"
+
+
 def _name_tag(name: str, nation: str) -> str:
     """Format 'Name (Nation)' when nation is available, else just 'Name'.
 
@@ -1520,6 +1673,10 @@ def format_event_oneliner(event: dict) -> str:
         refused_by = event.get("refused_by") or event.get("recipient",
                                                           "Unknown")
         ptype = (event.get("proposal_type") or "proposal").replace("_", " ")
+        # IGR-B: a burst of these arrives collapsed into one row.
+        count = int(event.get("collapsed_count") or 0)
+        if count > 1:
+            return _collapsed_refusal_line(event, ptype, count)
         return f"{refused_by} rebuffs {proposer} ({ptype})"
 
     # AI-2b: the D5 counter-instruments.

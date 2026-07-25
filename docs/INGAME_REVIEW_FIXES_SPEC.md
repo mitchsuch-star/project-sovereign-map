@@ -321,7 +321,106 @@ turns**; state VASSAL→PEACE; assimilated marshals restored; Continental System
 `→ forms: Italy` watcher. The game performs its own most interesting causal link in
 silence.
 
-### IGR-B — The campaign log becomes readable *(gate Q1)*
+### IGR-B — The campaign log becomes readable *(gate Q1)* — ✅ **LANDED July 25, 2026**
+
+> **Landing record — authoritative for what IGR-B actually became.**
+> Tests `tests/test_igr_b_campaign_log_readable.py` (36). Suite 15,047, ruff
+> clean, parser eval **461/461** mock, M1–M7 green and the 40-turn
+> `BASELINE_SERIES` byte-identical. **No `.gd` diff** (see below) — the XR-1
+> boot smoke was run anyway and the log verified live in the client.
+>
+> **The shape, as blessed:** one pure `collapse_refusal_family(events)` in
+> `campaign_log.py`, called from the `GET /campaign_log` handler *after*
+> `filter_campaign_log`, bucketing by `(turn, proposal_type)`. A bucket of one
+> passes through as the *same object*; a bucket of N is one shallow copy of its
+> first member carrying display-only `collapsed_count` / `collapsed_pairs`.
+> `format_event_oneliner` grew a collapsed arm that renders the aggregate
+> sentence, so the count reaches the player through the existing `display`
+> string and the client needed no change at all.
+>
+> **⚠ THE ACCEPTANCE CASE WAS RE-SITED — the burst is turn 3, not turn 9.**
+> The spec's raw table `{9:21, 11:7, 12:2, 13:3, 16:21, …}` was read off
+> `world.event_log` *after* the run, by which point `MAX_EVENT_LOG_SIZE=500`
+> had evicted 342 of 842 events. Those eight turns are individually correct but
+> they are precisely the survivors of the cap: the true emission history is
+> `{2:8, 3:69, 5:9, 6:3, 9:21, 11:7, 12:2, 13:3, 16:21, 17:7, 18:2, 19:3}`, and
+> **the spec's own probe never saw turn 3 — the largest burst in the run, 3.3×
+> the wave it named.** Worse, **turn 9's 21 refusals are 100% fog-filtered**
+> (0 visible; the branch needs PARTIAL+ on a named party and by mid-run France
+> has lost intel on the minors doing the asking), so the "≤5 events" test would
+> have passed trivially on a 1-event page. Turn 3 is what reproduces the live
+> review's 24/25: **26 visible rows, 23 of them refusals (88.5%)**.
+> Also refuted: *"a real game with wider intel sees more survive the fog
+> filter"* — the modal outcome for a burst on this run is **zero** survivors.
+>
+> **Measured result (live page, the frame the review observed):**
+>
+> | turn | rows before → after | refusals before → after | `agenda_shift` index |
+> |---|---|---|---|
+> | 2 | 6 → **1** | 6 → 1 | – |
+> | **3 (the burst)** | **26 → 5** | **23 → 2** | **25 → 4** |
+> | 5 | 2 → 1 | 2 → 1 | – |
+> | 6 | 6 → 4 | 3 → 1 | 5 → 3 |
+> | 12 | 4 → 3 | 2 → 1 | 3 → 2 |
+> | 13 | 8 → 7 | 2 → 1 | – |
+>
+> **⚠ Two P1 hazards found by verifying the spec against master, both
+> reproduced by hand before any code was written:**
+>
+> 1. **The bare `(turn, proposal_type)` key would have deleted the player's own
+>    diplomacy.** It is *not* unique to refusals: `diplomatic_proposal_sent`,
+>    `proposal_arrived` and `offer_lapsed` all carry a `proposal_type` from the
+>    same vocabulary and all take an "always show" branch. Reproduced: a bucket
+>    of `{diplomatic_proposal_sent, offer_lapsed}` sharing
+>    `(3, "non_aggression")` collapsed to one row and destroyed the other — and
+>    `offer_lapsed` was measured live **on turn 3, the burst turn itself**. The
+>    function gates on `type` first; four tests pin it.
+> 2. **In-place stamping would have corrupted every save.**
+>    `filter_campaign_log` returns *originals, not copies* (its own docstring
+>    says so) — the very dicts in `world.event_log`, which `to_dict` serializes
+>    via `[e.copy() for e in …]`. `collapsed_count` written in place would ride
+>    into the save file permanently. Hence `dict(event)`; pinned by asserting
+>    `world.event_log` is element-identical and the save string contains no
+>    `collapsed_*` after a `GET /campaign_log`.
+>
+> **The sentence** adapts to the bucket rather than emitting a bare count, and
+> always states the number (the turn header now reads the *collapsed* row
+> count, so a sentence that hid it would delete history silently). All four
+> arms fired on the ambient run:
+> `Britain rebuffs 6 courts (open borders)` ·
+> `22 approaches from Prussia and Bavaria are rebuffed (open borders)` ·
+> `2 courts rebuff Prussia (open borders)` ·
+> `Switzerland rebuffs 2 courts (defensive alliance)`.
+> Raw nation tags are preserved deliberately — the client repairs them through
+> `Utils.humanize_nation_keys_in_text`, and the NA-6 formation overrides can
+> only rename a still-raw tag; baking `display_nation` prose here is the §11.8
+> stage-3 dead-name hazard IGR-A hit.
+>
+> **⚠ Four further spec claims corrected.** (a) "~60 test call sites" for
+> `filter_campaign_log` — it is **51**. (b) The category cites are `306`/`344`,
+> not 305/343 (the substantive point stands and Q1(b) is correctly struck).
+> (c) The rung is not only Trigger 5: emission site 2 is fed by **seven**
+> trigger returns, and turn 3's mega-burst is 47 `open_borders` (Trigger 4) +
+> 22 `defensive_alliance` — only the latter repeats on the 6-turn dedupe
+> period. The O(n²) driver is the pair loop, not any single trigger. (d) The
+> stated reason for preferring `(turn, proposal_type)` over
+> `(proposer, proposal_type)` overstates by ~5×: the *visible* burst page
+> carries **2** distinct proposers, not ~10. The decision is still right
+> (23 → 2, and it degrades to the number of types, measured max 2).
+>
+> **No Godot diff, deliberately.** `campaign_log.gd` reads exactly two fields,
+> `category` and `display`, and has **zero** automated coverage — it is absent
+> from `tools/godot_parse_check.gd` and from every pytest. Composing the
+> sentence backend-side keeps the client untouched, which is what gate Q1(a)'s
+> "no Godot diff" promised. The turn header's `events.size()` now reads the
+> collapsed count by construction — that *is* the fix, and the sentence carries
+> the number so nothing vanishes unannounced.
+>
+> **The residual stands, unfolded:** `MAX_EVENT_LOG_SIZE=500` eviction is
+> producer-side and worse than the spec stated — **342 of 842 events (41%) are
+> evicted by turn 21 on a zero-action run**, 90 of the 156 refusals among them.
+> Not touched here, correctly: the honest lever changes `get_refused_asks`
+> cardinality and therefore AI-3. Owner: its own gate (§4).
 
 **Measured, deterministically** (20 ambient turns, `historical`, zero player actions):
 19 enemy nations → **171 pairs scanned per turn**; raw emissions
@@ -674,9 +773,10 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 
 ## 6. Build order
 
-~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → **▶ pause for review** → `IGR-B` (Q1) →
-`IGR-D` (Q2, ends with the live Proclamation sighting) → `IGR-F` → `IGR-E` (Q4) →
-`IGR-G` (after the user sees screenshots). **IGR-C is withdrawn.**
+~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → ~~**pause for review**~~ ✅ →
+~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → **▶ `IGR-D`** (Q2, ends with the live
+Proclamation sighting) → `IGR-F` → `IGR-E` (Q4) → `IGR-G` (after the user sees
+screenshots). **IGR-C is withdrawn.**
 
 `IGR-D` sits late deliberately: it is the only slice touching the settlement engine, and
 it wants the polish slices landed so its live pass is clean.

@@ -2856,9 +2856,12 @@ def get_campaign_log():
     """Get fog-filtered campaign event log grouped by turn (descending)."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
-    from backend.campaign_log import filter_campaign_log, format_event_oneliner, CATEGORY_MAP
+    from backend.campaign_log import (filter_campaign_log, format_event_oneliner,
+                                      CATEGORY_MAP, collapse_refusal_family)
 
-    filtered = filter_campaign_log(world.event_log, world)
+    # IGR-B: aggregate the O(n^2) court-to-court refusal bursts for DISPLAY
+    # only — the producer's record is AI-3's ladder-gate substrate.
+    filtered = collapse_refusal_family(filter_campaign_log(world.event_log, world))
 
     # Group by turn descending
     turns = {}

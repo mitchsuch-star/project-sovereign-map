@@ -4,6 +4,46 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ✅ IGR-B — The campaign log becomes readable — LANDED July 25, 2026
+
+**User direction: "Build IGR-B per spec §2", gate Q1 already decided (spec §5, option (a)).**
+**Landing record = spec §2 IGR-B (authoritative).** Suite **15,047**, ruff clean, parser eval
+461/461 mock, M1–M7 green, the 40-turn `BASELINE_SERIES` byte-identical,
+`tests/test_igr_b_campaign_log_readable.py` (36). **No `.gd` diff.**
+
+One pure `campaign_log.collapse_refusal_family(events)`, called from `GET /campaign_log`
+*after* `filter_campaign_log` (never inside it — 51 test call sites own that contract),
+bucketing by `(turn, proposal_type)` **within the refusal family only**. A bucket of one
+passes through as the same object; a bucket of N is one shallow copy of its first member
+carrying display-only `collapsed_count` / `collapsed_pairs`, which `format_event_oneliner`
+renders as an adaptive sentence. **The producer is untouched by design** — both emission
+sites are gated on `record_diplomatic_refusal`, the writer of `world.diplomatic_refusals`
+that AI-3's ladder gate reads.
+
+- **The acceptance case moved: the burst is turn 3, not turn 9.** The spec's raw table was
+  read off a `world.event_log` already truncated by `MAX_EVENT_LOG_SIZE=500`, so it never saw
+  turn 3's **69** emissions — 3.3× the wave it named — and **turn 9's 21 refusals are 100%
+  fog-filtered**, which would have made the "≤5 events" test pass on a 1-event page. Turn 3 is
+  what reproduces the live review's 24/25: 26 visible rows, 23 refusals.
+- **Measured result on turn 3: 26 rows → 5, refusals 23 → 2, and the buried `agenda_shift`
+  rises from index 25 of 26 to index 4 of 5** — visible without scrolling, which was the whole
+  point. Turns 2/5/6/12/13 collapse proportionally.
+- **Two P1 hazards, both found by verifying the spec against master and reproduced by hand
+  before any code was written.** (1) The bare `(turn, proposal_type)` key is *not* unique to
+  refusals — `diplomatic_proposal_sent` (the player's own), `proposal_arrived` and
+  `offer_lapsed` share the vocabulary and all take an "always show" branch; a bucket of two
+  non-refusals collapsed and **deleted one**, and `offer_lapsed` lands on turn 3 itself. The
+  function gates on `type` first. (2) `filter_campaign_log` returns *originals, not copies* —
+  the very dicts `world.to_dict` serializes — so stamping `collapsed_count` in place would
+  have baked view state into every save from that moment on.
+- **Pinned unchanged across a real `GET /campaign_log`:** `world.diplomatic_refusals`,
+  `len(world.event_log)`, AI-3's `_ladder_climbed` (×30 court pairs), event-log element
+  identity, and the absence of any `collapsed_*` key from the serialized save.
+- **`CAMPAIGN_LOG_TYPES == 140`** still holds — no new event type, no schema change.
+- **The residual is stated, not hidden:** the 500-event eviction is producer-side and worse
+  than the spec said (**342 of 842 events, 41%, evicted by turn 21 on a zero-action run**).
+  Not folded in — the honest lever changes `get_refused_asks` cardinality and therefore AI-3.
+
 ### ✅ IGR-A — Honest copy — LANDED July 25, 2026 (the first slice of row IGR)
 
 **User direction: "do bug fixes A".** The four gate-free items of
