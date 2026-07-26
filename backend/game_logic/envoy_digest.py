@@ -134,15 +134,25 @@ def collect_routine_small_court_dialogues(world) -> List[Dict]:
     return found
 
 
-def _headline(count: int, nations: List[str]) -> str:
+def _headline(world, count: int, nations: List[str]) -> str:
     """Name the courts when there are few enough to name, count them when not.
 
     Same discipline as IGR-B's collapsed refusal line: lose nothing first,
     then fall back to a true number.
-    """
-    from backend.display_names import humanize_entity_name
 
-    names = [humanize_entity_name(n) for n in nations]
+    Names resolve through `formations.formed_display_name`, NOT the bare
+    camelCase splitter. The splitter knows nothing about NA-6 formations, so
+    it baked a DEAD NAME the client could never repair — the repair pass
+    matches on the still-raw tag, and a headline that already reads
+    "Kingdom Of Italy" no longer contains one. It also disagreed with the row
+    label twenty pixels below it, which does resolve correctly: the Ottoman
+    rendered as "Ottoman" in the sentence and "Ottoman Empire" on the row,
+    with no formation involved at all. This is the same helper the arrival
+    notification for this very delivery already uses.
+    """
+    from backend.game_logic.formations import formed_display_name
+
+    names = [formed_display_name(world, n) for n in nations]
     if count == 1:
         return f"{names[0]} writes."
     if count <= 3:
@@ -169,15 +179,25 @@ def build_envoy_digest(world) -> Optional[Dict]:
         for d in dialogues
     ]
     count = len(items)
+    # IGR-F review [7]: the noun follows the roster, not the slice's working
+    # title. `!= "major"` deliberately includes the secondary courts — Spain,
+    # the Ottomans, Sweden, Naples — and calling the Porte a "small court" in
+    # a header is a different claim from batching its routine mail.
+    all_minor = all(i["power_tier"] == "minor" for i in items)
     return {
         "turn": int(world.current_turn),
         "count": count,
+        "title": (
+            ("THE SMALL COURTS WRITE" if all_minor else "THE COURTS WRITE")
+            if count > 1
+            else ("A SMALL COURT WRITES" if all_minor else "A COURT WRITES")
+        ),
         # Deliberately NOT `pending_envoy_count`: that counts persistent
         # settlement offers and ally petitions too, which do NOT lapse. Every
         # row in this list is a CURRENT_TURN_OFFER_TYPES item, so this number
         # is the honest size of the deadline.
         "lapsing_count": count,
-        "headline": _headline(count, [i["from_nation"] for i in items]),
+        "headline": _headline(world, count, [i["from_nation"] for i in items]),
         # One turn, no grace — `lapse_pending_offers` is the first statement
         # of end_turn. And an ignored ask carries a silent 6-turn per-type
         # cooldown, which the player has never been told about.

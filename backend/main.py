@@ -778,6 +778,29 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
     ))
 
 
+def _fill_popup_keys_without_draining(response: dict) -> None:
+    """Present-but-None popup keys, WITHOUT popping the queue.
+
+    IGR-F review [1]: `build_base_response` drains the PopupQueue by default,
+    and `pop_highest` REMOVES the entry — so a response whose client handler
+    ignores popups destroys whatever was queued. That is exactly the shape of
+    `POST /mailbox/respond`: `_on_mailbox_row_action_result` reads only
+    `success`, `message` and the top-bar fields, so the first Accept in the
+    letter-book was eating a deferred `diplomatic_sabotage_popup` (one-shot,
+    PERMANENTLY lost) or a Proclamation overflow card. It is reachable on the
+    ordinary path — the enemy-phase response defers every choice popup, and
+    the letter-book opens over them.
+
+    Keys stay present so the Godot contract (`tests/test_response_pipeline.py`)
+    still holds; the popup itself rides the player's next `/command`, which is
+    what the client handler's own docstring already promises.
+    """
+    from backend.models.cooldown_manager import PopupQueue
+
+    for response_key in PopupQueue.RESPONSE_KEYS.values():
+        response.setdefault(response_key, None)
+
+
 def _digest_owns(dialogue, world) -> bool:
     """IGR-F: is this dialogue a routine small-court letter?
 
@@ -2233,8 +2256,12 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
     one caller, ``POST /mailbox/respond``. Answering three letters in the
     letter-book would otherwise raise three ``proposal_result`` modals — the
     same storm this slice exists to kill, moved one surface downstream. The
-    outcome is returned inline on ``digest_row_result`` instead, and the
-    letter-book renders it on the row.
+    outcome still reaches the player in full on ``message``, which the
+    letter-book's client handler prints to the terminal transcript.
+
+    It ALSO suppresses the popup-queue drain (review finding [1]): this
+    response's client handler discards popups, so draining would destroy them.
+    Anything queued rides the player's next ``/command`` instead.
     """
     try:
         dialogue_before = world.pending_diplomatic_dialogue or {}
@@ -2260,7 +2287,12 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
                 or result.get("error_display")
                 or "Response processed"
             ),
+            # IGR-F review [1]: a letter-book row answer must not DRAIN the
+            # popup queue — its client handler throws popups away.
+            include_popup_passthroughs=not suppress_result_popup,
         )
+        if suppress_result_popup:
+            _fill_popup_keys_without_draining(response)
         # PF-1 / D3: surface the failure fields so the client can render the
         # reason on a re-mounted dialogue instead of a silent no-op.
         # W6-0: `stale_dialogue` rides along so the client knows its rendered
@@ -2315,7 +2347,10 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
                     world,
                     success=result.get("success", False),
                     message=result.get("message", "Response processed"),
+                    include_popup_passthroughs=not suppress_result_popup,
                 )
+                if suppress_result_popup:
+                    _fill_popup_keys_without_draining(response)
                 _restore_popup_passthroughs(response, carried)
 
         _include_peace_ratification_summary(response, result)
@@ -2333,13 +2368,6 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
             response["terminal_recovery_copy"] = result["terminal_recovery_copy"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
-        if suppress_result_popup and response.get("proposal_result") is not None:
-            # A handler set the popup directly rather than leaving it to the
-            # PL-14 net above. Demote it to the inline row outcome instead of
-            # letting the letter-book raise one modal per answered letter.
-            # Nothing is lost: the outcome text is rendered on the row.
-            response["digest_row_result"] = response["proposal_result"]
-            response["proposal_result"] = None
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")
@@ -3280,29 +3308,30 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
             target = candidate
             break
 
-    if target is None:
-        return build_base_response(
-            world, success=False,
-            message="That letter is no longer among the pending envoys, Sire.",
+    def _refuse(message: str) -> dict:
+        # IGR-F review [1]: a refused click must not eat a queued popup either.
+        response = build_base_response(
+            world, success=False, message=message,
+            include_popup_passthroughs=False,
             digest_row_failed=int(request.mailbox_id))
+        _fill_popup_keys_without_draining(response)
+        return response
+
+    if target is None:
+        return _refuse(
+            "That letter is no longer among the pending envoys, Sire.")
 
     if not is_routine_small_court(target, world):
-        return build_base_response(
-            world, success=False,
-            message=("That matter is too weighty to answer from the "
-                     "letter-book, Sire. Open it in full."),
-            digest_row_failed=int(request.mailbox_id))
+        return _refuse("That matter is too weighty to answer from the "
+                       "letter-book, Sire. Open it in full.")
 
     activated = dm.activate_mailbox_item(int(request.mailbox_id))
     if activated is None:
         # activate_mailbox_item refuses while a hard-stop / hybrid /
         # local-planning dialogue holds the active slot. Say so rather than
         # firing an answer that would land somewhere else.
-        return build_base_response(
-            world, success=False,
-            message=("Another matter holds your attention, Sire. Settle it "
-                     "before answering the lesser courts."),
-            digest_row_failed=int(request.mailbox_id))
+        return _refuse("Another matter holds your attention, Sire. Settle it "
+                       "before answering the lesser courts.")
 
     response = _respond_to_dialogue_sync(
         request.choice,

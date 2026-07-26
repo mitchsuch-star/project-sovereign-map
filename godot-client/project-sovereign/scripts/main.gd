@@ -3341,6 +3341,13 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_dismissed_proposal_nation = ""
 	_pending_envoy_request_active = false
 	_awaiting_end_turn_confirmation = false
+	# IGR-F review [5]: the letter-book latches are per-turn, and a LOAD
+	# produces no `turn_end` event — so the `_display_turn_change` re-arm never
+	# runs. Loading a save whose turn matches one already raised this session
+	# would silently skip the auto-raise. Reload-the-current-turn is the
+	# ordinary savescum pattern.
+	_envoy_digest_shown_turn = -1
+	_pending_envoy_digest_turn = -1
 	_set_pending_envoy_count(0)
 	command_history.clear()
 	history_index = -1

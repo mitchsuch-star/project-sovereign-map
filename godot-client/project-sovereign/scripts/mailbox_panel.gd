@@ -53,14 +53,14 @@ func show_mailbox(data: Dictionary):
 			if typeof(row) == TYPE_DICTIONARY:
 				_digest_rows[int(row.get("mailbox_id", 0))] = row
 
-	if _digest_rows.is_empty():
-		title_label.text = "PENDING ENVOYS (%d)" % count
-		subtitle_label.text = DEFAULT_SUBTITLE
-	else:
-		title_label.text = "THE SMALL COURTS WRITE (%d)" % int(digest.get("count", _digest_rows.size()))
-		var headline = Utils.humanize_nation_keys_in_text(str(digest.get("headline", "")))
-		var deadline = str(digest.get("deadline_note", ""))
-		subtitle_label.text = (headline + " " + deadline).strip_edges()
+	# IGR-F review [4]: the panel-wide header stays panel-wide. The digest's
+	# "answer them here, they lapse when the turn ends" promise is FALSE over a
+	# settlement offer or an ally petition — both are PERSISTENT mailbox types
+	# that never lapse — and the digest count is smaller than the number of
+	# rows on screen whenever one is waiting. The letter-book's own copy is a
+	# caption over its own rows instead.
+	title_label.text = "PENDING ENVOYS (%d)" % count
+	subtitle_label.text = DEFAULT_SUBTITLE
 	_clear_rows()
 
 	if items.is_empty():
@@ -69,7 +69,11 @@ func show_mailbox(data: Dictionary):
 		return
 
 	empty_state_label.visible = false
+	var caption_placed := false
 	for item in items:
+		if not caption_placed and _digest_rows.has(int(item.get("mailbox_id", 0))):
+			list_content.add_child(_build_digest_caption(digest))
+			caption_placed = true
 		list_content.add_child(_build_item_row(item))
 
 	show()
@@ -79,6 +83,36 @@ func show_mailbox(data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+
+
+func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
+	"""The letter-book's own heading, scoped to the rows it actually governs.
+
+	The title comes from the backend so the noun follows the roster: the
+	predicate deliberately includes the SECONDARY courts, and calling the
+	Porte a small court is a different claim from batching its routine mail."""
+	var box = VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 2)
+
+	var heading = Label.new()
+	var title = str(digest.get("title", "THE COURTS WRITE"))
+	heading.text = "%s (%d)" % [title, int(digest.get("count", _digest_rows.size()))]
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading.add_theme_font_size_override("font_size", 13)
+	heading.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
+	box.add_child(heading)
+
+	var note = Label.new()
+	var headline = Utils.humanize_nation_keys_in_text(str(digest.get("headline", "")))
+	note.text = (headline + " " + str(digest.get("deadline_note", ""))).strip_edges()
+	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_size_override("font_size", 11)
+	note.add_theme_color_override("font_color", Color(0.7, 0.72, 0.78, 1.0))
+	box.add_child(note)
+
+	return box
 
 
 func _build_item_row(item: Dictionary) -> PanelContainer:

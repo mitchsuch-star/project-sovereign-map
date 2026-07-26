@@ -416,21 +416,80 @@ class TestDigestHeadline:
             assert name in line
 
     def test_a_crowd_states_the_true_number(self):
-        nations = ["Bavaria", "Hesse", "PapalStates", "Saxony", "Denmark"]
-        line = self._headline(nations)
-        assert "5" in line
-        # ...and never a number that is not the number of letters.
-        assert build_envoy_digest_count(nations) == 5
+        """Review [6]: this asserted `"5" in line` and then compared a helper
+        that rebuilt the digest and returned `len(items)` — tautologically 5,
+        never touching the headline. A `count + 10` mutation confined to this
+        branch survived. Now it pins the whole sentence against the count the
+        payload itself reports."""
+        world = _world()
+        for nation in ["Bavaria", "Hesse", "PapalStates", "Saxony", "Denmark"]:
+            _deliver(world, nation, "open_borders")
+        digest = build_envoy_digest(world)
+        assert digest["count"] == 5
+        assert digest["headline"] == "5 of the lesser courts write."
 
-    def test_the_headline_humanizes_the_tag(self):
-        assert "Papal States" in self._headline(["PapalStates"])
+    def test_the_headline_names_a_formed_court_by_its_living_name(self):
+        """Review [2]: the headline used the bare camelCase splitter, which
+        knows nothing about NA-6 formations — so it baked a DEAD NAME the
+        client could never repair (the repair pass matches on the still-raw
+        tag, and "Kingdom Of Italy" no longer contains one).
+
+        On the real 1805 board, because a formation needs its authored deck to
+        resolve a display name at all."""
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        scenario = (root / "godot-client" / "project-sovereign" / "assets"
+                    / "maps" / "europe_1805.json")
+        world = WorldState.from_scenario(str(scenario))
+        _deliver(world, "KingdomOfItaly", "open_borders")
+        assert build_envoy_digest(world)["headline"] == "Kingdom of Italy writes."
+
+        world.nation_formations = {
+            "KingdomOfItaly": {"id": "risorgimento", "sponsor": "France",
+                               "turn": 1}}
+        assert build_envoy_digest(world)["headline"] == "Italy writes."
+
+    def test_the_headline_agrees_with_the_row_label(self):
+        """They sit twenty pixels apart. The Ottoman rendered as "Ottoman" in
+        the sentence and "Ottoman Empire" on the row, with no formation
+        involved at all — the splitter simply is not the R7 chokepoint."""
+        from backend.game_logic.formations import formed_display_name
+
+        for tag in ("Ottoman", "KingdomOfItaly", "PapalStates"):
+            world = _world()
+            _deliver(world, tag, "open_borders")
+            digest = build_envoy_digest(world)
+            # `from_nation` stays RAW so the client resolves it; the headline
+            # is finished prose and must already carry the same answer.
+            assert digest["items"][0]["from_nation"] == tag
+            assert formed_display_name(world, tag) in digest["headline"]
 
 
-def build_envoy_digest_count(nations):
-    world = _world()
-    for nation in nations:
-        _deliver(world, nation, "open_borders")
-    return build_envoy_digest(world)["count"]
+class TestDigestTitle:
+    """Review [7]: the noun follows the roster. `!= "major"` deliberately
+    includes the SECONDARY courts, and calling the Porte a small court in a
+    header is a different claim from batching its routine mail."""
+
+    def test_all_minor_courts_read_as_small_courts(self):
+        world = _world()
+        for nation in ("Bavaria", "Hesse"):
+            _deliver(world, nation, "open_borders")
+        assert build_envoy_digest(world)["title"] == "THE SMALL COURTS WRITE"
+
+    def test_a_secondary_court_drops_the_word_small(self):
+        world = _world()
+        _deliver(world, "Bavaria", "open_borders")
+        _deliver(world, "Ottoman", "open_borders")
+        assert build_envoy_digest(world)["title"] == "THE COURTS WRITE"
+
+    def test_one_letter_is_not_plural(self):
+        world = _world()
+        _deliver(world, "Bavaria", "open_borders")
+        assert build_envoy_digest(world)["title"] == "A SMALL COURT WRITES"
+        world2 = _world()
+        _deliver(world2, "Ottoman", "open_borders")
+        assert build_envoy_digest(world2)["title"] == "A COURT WRITES"
 
 
 class TestDigestIsPure:
@@ -571,11 +630,14 @@ class TestMailboxRespond:
         assert world.proposal_result_popup is None
         assert build_envoy_digest(world) is None
 
-    def test_a_popup_set_by_a_handler_is_demoted_not_shown(self):
-        """The failsafe, exercised directly: whatever raises a result popup,
-        the letter-book must not become a modal chain."""
-        import backend.main as main_module
+    def test_a_popup_set_by_a_handler_survives_to_the_next_response(self):
+        """Whatever raises a result popup, the letter-book must neither show
+        it (a modal chain) nor destroy it (review finding [1]). It waits.
 
+        This replaces an earlier `digest_row_result` demotion, which the same
+        review showed had no client reader and which the drain fix made
+        unreachable — one rule now covers both: the letter-book never touches
+        the popup queue."""
         main_module, world = self._setup()
         dialogue = _deliver(world, "Bavaria", "open_borders")
         world.dialogue_manager.activate_mailbox_item(dialogue["mailbox_id"])
@@ -589,7 +651,7 @@ class TestMailboxRespond:
             "accept", dialogue_id=dialogue["dialogue_id"],
             suppress_result_popup=True)
         assert result.get("proposal_result") is None
-        assert result["digest_row_result"]["message"] == "set by a handler"
+        assert world.proposal_result_popup["message"] == "set by a handler"
 
     def test_the_outcome_still_reaches_the_player_inline(self):
         main_module, world = self._setup()
@@ -662,6 +724,54 @@ class TestMailboxRespond:
         assert "envoy_digest" in result
         assert "active_wars" in result
         assert "game_state" in result
+
+    def test_answering_a_row_does_not_destroy_a_queued_popup(self):
+        """Review [1]: `build_base_response` DRAINS the popup queue and
+        `pop_highest` REMOVES the entry — but the letter-book's client handler
+        reads only `success`/`message`, so the payload died in the response.
+        Reachable on the ordinary path: the enemy-phase response defers every
+        choice popup, then the letter-book opens over them. A one-shot
+        `diplomatic_sabotage_popup` was lost PERMANENTLY."""
+        main_module, world = self._setup()
+        dialogue = _deliver(world, "Bavaria", "open_borders")
+        world.diplomatic_sabotage_popup = {"probe": True}
+        result = main_module.respond_to_mailbox_item(
+            main_module.MailboxRespondRequest(
+                mailbox_id=dialogue["mailbox_id"], choice="accept"))
+        assert result["success"] is True
+        assert world.diplomatic_sabotage_popup == {"probe": True}
+        assert result.get("diplomatic_sabotage") is None
+
+    @pytest.mark.parametrize("mailbox_id,setup", [
+        (9999, None),
+        (None, "great_power"),
+    ])
+    def test_a_refused_click_does_not_destroy_a_queued_popup_either(
+            self, mailbox_id, setup):
+        main_module, world = self._setup()
+        if setup == "great_power":
+            mailbox_id = _deliver(world, "Prussia", "open_borders")["mailbox_id"]
+        else:
+            _deliver(world, "Bavaria", "open_borders")
+        world.diplomatic_sabotage_popup = {"probe": True}
+        result = main_module.respond_to_mailbox_item(
+            main_module.MailboxRespondRequest(
+                mailbox_id=mailbox_id, choice="accept"))
+        assert result["success"] is False
+        assert world.diplomatic_sabotage_popup == {"probe": True}
+
+    def test_the_response_still_carries_every_popup_key(self):
+        """Not draining must not mean not present — the Godot contract wants
+        the keys on every gameplay response."""
+        from backend.models.cooldown_manager import PopupQueue
+
+        main_module, world = self._setup()
+        dialogue = _deliver(world, "Bavaria", "open_borders")
+        result = main_module.respond_to_mailbox_item(
+            main_module.MailboxRespondRequest(
+                mailbox_id=dialogue["mailbox_id"], choice="accept"))
+        for key in set(PopupQueue.RESPONSE_KEYS.values()):
+            assert key in result
 
     def test_the_digest_refreshes_in_the_same_response(self):
         main_module, world = self._setup()
@@ -772,3 +882,56 @@ class TestClientContract:
 
     def test_the_client_posts_to_the_atomic_endpoint(self):
         assert "/mailbox/respond" in _gd("api_client.gd")
+
+    # ── Review [3]: eight `.gd` mutations survived 83/83. These are the two
+    # load-bearing ones plus the call sites the repo pins by convention
+    # everywhere except here. The panel has no runtime test, in a repo that
+    # has already shipped a `.gd` regression that killed the client for a day.
+
+    def _body(self, name, func):
+        source = _gd(name)
+        start = source.index(f"func {func}")
+        end = source.index("\nfunc ", start + 10)
+        return source[start:end]
+
+    def test_the_digest_is_actually_stashed(self):
+        """`_pending_envoy_digest_turn` is written positively in exactly one
+        place with exactly one call site. Delete either and
+        `_show_pending_envoy_digest` returns false forever — the letter-book
+        never auto-raises and every other test still passes."""
+        body = self._body("main.gd", "_on_command_result")
+        assert "_stash_envoy_digest(response)" in body
+        stash = self._body("main.gd", "_stash_envoy_digest")
+        assert "_pending_envoy_digest_turn = digest_turn" in stash
+
+    def test_the_row_action_signal_is_connected(self):
+        assert ("mailbox_panel.row_action.connect(_on_mailbox_row_action)"
+                in _gd("main.gd"))
+
+    def test_the_row_action_actually_calls_the_endpoint(self):
+        body = self._body("main.gd", "_on_mailbox_row_action")
+        assert "api_client.respond_to_mailbox_item(" in body
+
+    def test_a_failed_answer_re_enables_the_buttons(self):
+        body = self._body("main.gd", "_on_mailbox_row_action_result")
+        assert "set_row_buttons_enabled(true)" in body
+
+    def test_a_lone_letter_still_opens_the_panel_not_a_modal(self):
+        """Reverting two tokens sends a single small-court letter back into
+        `activate_mailbox_item` — the exact modal this slice replaces — on
+        what the measurements say is the common board state."""
+        body = self._body("main.gd", "_on_mailbox_list_result")
+        assert "if count == 1 and not has_digest:" in body
+
+    def test_the_latches_are_cleared_on_a_world_swap(self):
+        body = self._body("main.gd", "_reset_frontend_state_for_world_swap")
+        assert "_envoy_digest_shown_turn = -1" in body
+        assert "_pending_envoy_digest_turn = -1" in body
+
+    def test_the_panel_header_is_not_overwritten_by_the_digest(self):
+        """Review [4]: the 'they lapse at turn end' promise is false over a
+        settlement offer, which never lapses — so it is a caption over the
+        digest's own rows, not the panel-wide subtitle."""
+        source = _gd("mailbox_panel.gd")
+        assert 'title_label.text = "PENDING ENVOYS (%d)" % count' in source
+        assert "func _build_digest_caption" in source

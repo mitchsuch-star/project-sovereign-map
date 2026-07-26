@@ -973,6 +973,62 @@ rich late one does not.
 > the panel is not shared) and the subtitle given `autowrap_mode`. Re-verified live at
 > 2560-wide: both letters fully readable without scrolling.
 >
+> ---
+>
+> **Post-landing adversarial review (71 agents, 6 lenses → 2 refuters each) —
+> 8 confirmed findings, ALL FIXED.** Every one was reproduced before it was accepted, and
+> the reviewer corrected three of its own submissions in the process (a claimed permanent
+> Jealousy-channel deadlock was false; "answer them here" is not a lie over persistent
+> rows; the post-load pop-open arm was unreachable). One finding was dropped outright with
+> its repro refuted.
+>
+> - **[P2] Answering a letter dropped a queued popup on the floor.**
+>   `build_base_response` DRAINS the PopupQueue by default and `pop_highest` REMOVES the
+>   entry — but the letter-book's client handler reads only `success`/`message`, so the
+>   payload died in the response. Reachable on the ordinary path, not a corner: the
+>   enemy-phase response defers every choice popup and the letter-book opens over them. A
+>   one-shot `diplomatic_sabotage_popup` was lost **permanently**, as was a Proclamation
+>   overflow card. Fixed by suppressing the drain on all four arms (keys still present, so
+>   the response contract holds) — the popup now rides the player's next `/command`, which
+>   is what the client handler's own docstring already promised. **The class is not new**:
+>   `POST /notifications/dismiss` has the identical shape and is recorded as such.
+> - **[P2] The headline baked a dead name.** `_headline` used the bare camelCase splitter,
+>   which knows nothing about NA-6 formations — so the client repair was structurally
+>   impossible (it matches on the still-raw tag, and "Kingdom Of Italy" no longer contains
+>   one). It also disagreed with its own row label twenty pixels below, with no formation
+>   involved at all: **the Ottoman rendered "Ottoman" in the sentence and "Ottoman Empire"
+>   on the row** — the exact court this slice widened its predicate to include. Now
+>   resolves through `formations.formed_display_name`, the helper this very delivery's
+>   arrival notification already used. The module's own `_digest_row` docstring had
+>   forbidden precisely this.
+> - **[P2] Eight `.gd` mutations survived 83/83**, two of them load-bearing: deleting the
+>   single `_stash_envoy_digest(response)` call site makes the letter-book **never
+>   auto-raise**, and reverting two tokens at the `count == 1` bypass sends a lone letter
+>   back into the modal the slice exists to replace. Six bounded call-site pins added, in
+>   the idiom the repo already uses everywhere else.
+> - **[P3] The panel-wide header carried the letter-book's promise.** "They lapse when the
+>   turn ends" is **false** over a settlement offer or ally petition — both PERSISTENT
+>   mailbox types — and the digest count was smaller than the rows on screen whenever one
+>   was waiting. `build_envoy_digest` had been scrupulous about this (it emits its own
+>   `lapsing_count` with a comment explaining why); the client threw the distinction away.
+>   The panel keeps `PENDING ENVOYS (n)`; the letter-book's copy is now a caption over its
+>   own rows.
+> - **[P3] The two latches survived a world swap** — a load produces no `turn_end` event,
+>   so reloading the current turn silently skipped the auto-raise. Cleared beside their
+>   four siblings.
+> - **[P3] `test_a_crowd_states_the_true_number` was satisfied by a wrong number** — it
+>   asserted a digit was present, then compared a helper that returned `len(items)`
+>   tautologically. A `count + 10` mutation confined to that branch survived. Now pins the
+>   whole sentence.
+> - **[P4] "THE SMALL COURTS WRITE" was applied to Spain and the Porte**, and was
+>   unconditionally plural over one letter. The title is now derived from the roster.
+> - **[P4] Two comments overstated** what happens to an outcome. Reworded; the dead
+>   `digest_row_result` demotion was deleted rather than documented, since the drain fix
+>   made it unreachable and the review showed it had no client reader.
+>
+> Final: suite **15,249/3**, `tests/test_igr_f_envoy_digest.py` (98), parse harness EXIT=0,
+> boot 0 `SCRIPT ERROR`, and the reworked panel re-verified live (screenshot updated).
+>
 > **Residuals, stated not hidden.** (a) If a small court's letter is the ACTIVE
 > dialogue and a great power writes later the same turn, the great power's modal
 > waits until the letter is answered — but it is listed in the same panel, one click
