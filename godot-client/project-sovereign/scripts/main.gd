@@ -252,6 +252,10 @@ var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
 var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Not Now"
 var _pending_envoy_request_active: bool = false
+# IGR-F: the turn number the letter-book was last auto-raised on. -1 = never.
+var _envoy_digest_shown_turn: int = -1
+# IGR-F: a digest seen on the wire but not yet raised. -1 = nothing waiting.
+var _pending_envoy_digest_turn: int = -1
 var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
@@ -429,6 +433,7 @@ func _ready():
 	mailbox_panel = dialog_manager.register("mailbox_panel", "res://scenes/mailbox_panel.tscn")
 	if mailbox_panel:
 		mailbox_panel.item_selected.connect(_on_mailbox_item_selected)
+		mailbox_panel.row_action.connect(_on_mailbox_row_action)
 		mailbox_panel.panel_closed.connect(_on_mailbox_panel_closed)
 
 	# Pause menu (layer 120, always on top)
@@ -1260,6 +1265,8 @@ func _on_proclamation_dismissed():
 	# A second formation on the same tick queues behind the first.
 	if _show_pending_proclamation():
 		return
+	if _show_pending_envoy_digest():
+		return  # _on_mailbox_panel_closed re-enables input
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -1276,8 +1283,52 @@ func _return_control_to_player() -> void:
 	"""
 	if _show_pending_proclamation():
 		return  # _on_proclamation_dismissed re-enables input
+	if _show_pending_envoy_digest():
+		return  # _on_mailbox_panel_closed re-enables input
 	set_input_enabled(true)
 	command_input.grab_focus()
+
+
+# IGR-F: the letter-book follows the Proclamation's discipline exactly, and
+# for the same reason. It is NOT a `_post_hud_response_routes` entry: every
+# entry there returns from `_on_command_result` BEFORE `_display_result`, so
+# routing it would have swallowed the output of whatever command the player
+# had just typed — which is precisely the "interrupts a command in flight"
+# complaint this slice exists to answer. It would have replaced a storm of
+# modals with a surface that eats your orders.
+#
+# So it is STASHED on arrival and raised only where the player would
+# otherwise regain control, behind the Proclamation.
+func _stash_envoy_digest(response: Dictionary) -> void:
+	if typeof(response) != TYPE_DICTIONARY or not response.has("envoy_digest"):
+		return
+	var digest = response.get("envoy_digest")
+	if typeof(digest) != TYPE_DICTIONARY or int(digest.get("count", 0)) <= 0:
+		return
+	var digest_turn = int(digest.get("turn", -1))
+	if digest_turn == _envoy_digest_shown_turn:
+		return  # already raised this turn; the envoy badge reopens it
+	_pending_envoy_digest_turn = digest_turn
+
+func _show_pending_envoy_digest() -> bool:
+	"""Raise the letter-book. True when raised — the caller must then NOT
+	re-enable input; `_on_mailbox_panel_closed` owns that.
+
+	Latched per turn. The payload is derived fresh on EVERY response, so
+	without the latch a closed panel would re-open on the very next one —
+	the infinite-modal shape this review already found and fixed once."""
+	if _pending_envoy_digest_turn < 0 or mailbox_panel == null:
+		return false
+	if _pending_envoy_request_active or mailbox_panel.visible or _is_modal_dialog_open():
+		return false
+	_envoy_digest_shown_turn = _pending_envoy_digest_turn
+	_pending_envoy_digest_turn = -1
+	_pending_envoy_request_active = true
+	# Fetched rather than rendered from the stash: the panel lists EVERY
+	# pending envoy, so a great-power letter waiting behind the small courts
+	# stays visible and one click from being opened in full.
+	api_client.get_mailbox(_on_mailbox_list_result)
+	return true
 
 func _response_has_diplomatic_objection_route(response: Dictionary) -> bool:
 	return (
@@ -1297,6 +1348,7 @@ func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
 
 func _route_incoming_proposal_response(response: Dictionary):
 	incoming_proposal_popup.show_proposal(response.incoming_proposal)
+
 
 func _response_has_incoming_settlement_offer_route(response: Dictionary) -> bool:
 	# SC-5 reversal commit 2 (Slice G1): match either the dedicated
@@ -1398,6 +1450,7 @@ func _on_command_result(response):
 	# never re-fires it).
 	if typeof(response) == TYPE_DICTIONARY:
 		_stash_proclamation(response)
+		_stash_envoy_digest(response)
 
 	# ═══════════════════════════════════════════════════════════
 	# DEBUG TRACE: Exact step-by-step debugging
@@ -1553,6 +1606,10 @@ func _on_command_result(response):
 	# never learned the settlement had been ratified.
 	if _show_pending_proclamation():
 		return  # _on_proclamation_dismissed re-enables input
+
+	# IGR-F: the letter-book, likewise after the whole response has rendered.
+	if _show_pending_envoy_digest():
+		return  # _on_mailbox_panel_closed re-enables input
 
 	# Auto-focus input
 	command_input.grab_focus()
@@ -2042,6 +2099,10 @@ func _display_turn_change(event: Dictionary):
 
 	# Clear deferred state — new turn starts fresh
 	_dismissed_proposal_nation = ""
+	# IGR-F: the letter-book is raised once per turn; a new turn re-arms it.
+	# Belt and braces — the latch already compares against the digest's own
+	# `turn` — but a save loaded into a different turn must not stay latched.
+	_envoy_digest_shown_turn = -1
 
 	var new_turn = int(event.get("new_turn", 0))
 	var income = int(event.get("income", 0))
@@ -3978,6 +4039,11 @@ func _on_mailbox_list_result(response: Dictionary):
 		add_output("[color=#d9c08c]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
 		))
+		# IGR-F: `_show_pending_envoy_digest` left input disabled expecting the
+		# panel to own the hand-back. If it never opens, hand it back here or
+		# the terminal is locked with nothing on screen to unlock it.
+		set_input_enabled(true)
+		command_input.grab_focus()
 		return
 	var count = int(response.get("count", 0))
 	var items = response.get("items", [])
@@ -3986,8 +4052,15 @@ func _on_mailbox_list_result(response: Dictionary):
 	_set_pending_envoy_count(count)
 	if count == 0:
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
 		return
-	if count == 1:
+	# IGR-F: a letter-book row is answered IN the panel, so the count==1
+	# shortcut below must not divert it into the very modal the digest exists
+	# to replace. Any digest content opens the panel.
+	var digest = response.get("envoy_digest")
+	var has_digest = typeof(digest) == TYPE_DICTIONARY and int(digest.get("count", 0)) > 0
+	if count == 1 and not has_digest:
 		# Single item: reopen directly if already active, otherwise activate it.
 		var item = items[0] if items.size() > 0 else {}
 		var mailbox_id = int(item.get("mailbox_id", 0))
@@ -3998,10 +4071,15 @@ func _on_mailbox_list_result(response: Dictionary):
 			api_client.activate_mailbox_item(mailbox_id, _on_mailbox_activate_result)
 		else:
 			add_output("[color=#d9c08c]That diplomatic item could not be opened.[/color]")
+			set_input_enabled(true)
+			command_input.grab_focus()
 		return
-	# 2+ items: show the browsable mailbox panel
+	# 2+ items, or any letter-book content: show the browsable panel
 	if mailbox_panel:
 		mailbox_panel.show_mailbox(response)
+	else:
+		set_input_enabled(true)
+		command_input.grab_focus()
 
 func _on_pending_envoy_result(response: Dictionary):
 	"""Handle pending envoy recovery — reopen the active proposal popup."""
@@ -4040,6 +4118,54 @@ func _on_pending_envoy_result(response: Dictionary):
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
 		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % dtype)
+
+func _on_mailbox_row_action(mailbox_id: int, action: String):
+	"""IGR-F: Accept / Decline one letter without leaving the letter-book."""
+	if _pending_envoy_request_active:
+		return
+	_pending_envoy_request_active = true
+	api_client.respond_to_mailbox_item(mailbox_id, action, _on_mailbox_row_action_result)
+
+func _on_mailbox_row_action_result(response: Dictionary):
+	"""Render one letter's outcome inline and refresh the letter-book.
+
+	Deliberately NOT routed through _on_command_result: that would run the
+	modal route table and could raise a popup UNDER the open panel (layer 119
+	sits above every dialog slot). Anything the answer promoted surfaces on
+	the player's next command, through the normal path."""
+	_pending_envoy_request_active = false
+	_update_diplomatic_top_bar(response)
+	var msg = str(response.get("message", "")).strip_edges()
+	if msg != "":
+		var colour = Utils.COLOR_INFO if response.get("success", false) else "d9c08c"
+		add_output("[color=#" + colour + "]" + Utils.humanize_nation_keys_in_text(msg) + "[/color]")
+	if not response.get("success", false):
+		# Re-enable the buttons: the letter is still there to answer.
+		if mailbox_panel and mailbox_panel.visible:
+			mailbox_panel.set_row_buttons_enabled(true)
+		return
+	# Re-FETCH rather than mutate in place. A row can also vanish without
+	# being answered — coalition formation removes every live proposal from a
+	# joining court — so "the row I clicked is gone" is never proof of
+	# anything. The server's list is the only truth.
+	if mailbox_panel and mailbox_panel.visible:
+		_pending_envoy_request_active = true
+		api_client.get_mailbox(_on_mailbox_refresh_result)
+
+func _on_mailbox_refresh_result(response: Dictionary):
+	"""Re-render the open letter-book, or close it when the desk is clear."""
+	_pending_envoy_request_active = false
+	var count = int(response.get("count", 0))
+	if top_bar and top_bar.has_method("update_mailbox_count"):
+		top_bar.update_mailbox_count(count)
+	_set_pending_envoy_count(count)
+	if not mailbox_panel:
+		return
+	if not response.get("success", false) or count == 0:
+		mailbox_panel.hide()
+		_on_mailbox_panel_closed()
+		return
+	mailbox_panel.show_mailbox(response)
 
 func _on_mailbox_item_selected(mailbox_id: int, is_active: bool, item_type: String):
 	"""Handle click on a mailbox item row."""
@@ -4083,8 +4209,14 @@ func _on_mailbox_activate_result(response: Dictionary):
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
 func _on_mailbox_panel_closed():
-	"""Mailbox panel closed without selecting an item."""
-	pass
+	"""Mailbox panel closed without selecting an item.
+
+	IGR-F: the letter-book can be raised by `_show_pending_envoy_digest`,
+	which leaves input disabled the way the Proclamation does — so closing it
+	is what hands control back. Harmless on the envoy-badge path, where input
+	was never disabled in the first place."""
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 
 # ════════════════════════════════════════════════════════════════════════════

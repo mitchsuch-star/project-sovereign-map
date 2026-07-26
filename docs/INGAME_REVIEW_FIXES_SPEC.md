@@ -829,14 +829,126 @@ question with one right answer.
 Done when the falsifiable test in §5 Q4 passes: a poor early player plausibly plunders, a
 rich late one does not.
 
-### IGR-F — The small courts write one letter, not five *(no gate)*
+### IGR-F — The small courts write one letter, not five *(no gate)* — ✅ **LANDED July 26, 2026**
 
-~3–5 near-identical Open Borders / Non-Aggression proposals per turn from minors, each a
-blocking modal that interrupts a command in flight. The per-nation voices are among the
-best writing in the game — Reis Efendi's *"an old admirer of whatever endures"*,
-Consalvi's *"her friendship rather than her fear"* — and volume is flattening them. Batch
-routine minor-court proposals into one digest with per-row accept/decline, keeping the
-voice line on each row. Great-power and settlement traffic unaffected.
+> **Landing record — authoritative for what IGR-F actually became.**
+> Tests `tests/test_igr_f_envoy_digest.py` (83). Suite **15,201/3**, ruff clean,
+> parser eval **461/461** mock, M1–M7 and the 40-turn `BASELINE_SERIES`
+> byte-identical, Godot parse harness EXIT=0 (17/17), headless boot 0 `SCRIPT ERROR`.
+> A 20-mutation sweep catches **20/20** — two of my own tests were inert on the
+> first pass and are recorded below.
+>
+> **The shape: the letter-book.** One pure `build_envoy_digest(world)` in the new
+> `backend/game_logic/envoy_digest.py`, derived from the dialogue manager on every
+> response and carried on the base envelope beside `pending_envoy_count`. The
+> surface is the EXISTING `mailbox_panel.gd` (CanvasLayer 119) with per-row
+> Accept/Decline buttons and the court's spoken line — **no PopupQueue slot** (the
+> 11-key pin holds), **no campaign-log type** (140 holds), **no new dialogue dtype**
+> (so none of the three Godot registration surfaces move). Answering is one new
+> endpoint, `POST /mailbox/respond`.
+>
+> **⚠ THE PREDICATE IS NOT THE ONE THE SPEC IMPLIED — twice over.**
+> - **`tier == "minor"` is wrong.** Reis Efendi is the **Ottoman** diplomat
+>   (`diplomat.py:159`) and the Ottoman is authored **`secondary`**
+>   (`nation_config.py:73`). A minor-only predicate would have left untouched one of
+>   the two voice lines the review named as being flattened. It is `!= "major"`,
+>   spelled `in ("minor", "secondary")` to match the existing `ai_diplomacy` idiom.
+>   **Recorded divergence:** `diplomatic_ledger.py:342` uses `== "minor"` for vassal
+>   eligibility, which puts the Ottoman on the great-power side. Different questions;
+>   do not "fix" one to match the other.
+> - **Tier alone is not enough at all.** A minor court suing for peace arrives on the
+>   *identical* `incoming_proposal` dtype as its open-borders request. The predicate
+>   is a conjunction with a POSITIVE type allowlist
+>   `{open_borders, non_aggression, friendly_gift}` — never a denylist, which would
+>   silently admit every future P-rung label. `opportunistic` is EXCLUDED: it reads as
+>   a non-aggression pact but demands 100 g/turn in perpetuity.
+> - **And it must key on `context["proposal_type"]`, never `terms["type"]`.**
+>   `_build_proposal_terms` deliberately rewrites the terms type, so a digest keyed
+>   there would batch a `design_purchase` province cession and a `sell_neutrality`
+>   compact as routine mail. Pinned.
+>
+> **⚠ THE SPEC'S "3–5 per turn" IS NOT WHAT THE BOARD DOES.** Measured over 20–25
+> ambient turns on the shipped `europe_1805` (two independent harnesses):
+> **the maximum routine small-court deliveries in any single turn is 2**, in every run
+> — `MAX_BANDWAGON_PER_TURN = 2` binds. The real measured shape is a **relentless
+> 2-per-turn drip from the same seven small courts on 9–16 of 20 turns**. It is not a
+> ceiling (`shared_enemy_survival` / `unknown_baseline` reasons are uncapped, and four
+> non-major courts carry one at boot), and there is **suppressed demand behind it**:
+> 11 of 41 generated proposals were silently discarded by the throttle, 100%
+> minor-tier. So the acceptance case is sited at 2 and the 3+ case is covered
+> synthetically — an acceptance test demanding ≥3 on an arbitrary turn would be
+> flaky and, on the pinned run, false.
+>
+> **⚠ A PRE-EXISTING P1 FIXED IN PASSING, reproduced by hand before it was accepted.**
+> `deliver_ai_proposal` wrote `world.incoming_proposal_popup` UNCONDITIONALLY while
+> `push` makes only the FIRST arrival current — so on any multi-proposal turn the
+> client rendered the LAST letter and its id-bound answer hit the W6-0 stale guard.
+> Measured: three letters delivered, the response carried PapalStates (dialogue_id 3),
+> the active dialogue was Bavaria (dialogue_id 1), Accept came back *"another matter
+> has arrived since"*. **The multi-court surface this slice exists to fix was already
+> unanswerable.** The slot now mirrors the active dialogue.
+>
+> **The seam that actually produces the storm is the SAFETY VALVE**
+> (`main.py:837-854`), not the popup queue: it re-derives a modal from the active
+> dialogue on *every* response cycle until answered — which is literally "interrupts
+> a command in flight". Suppressing the slot alone does nothing. `pop()`/`_promote()`
+> are deliberately untouched (four order pins depend on them).
+>
+> **⚠ THE DIGEST IS NOT A `_post_hud_response_routes` ENTRY, and that is the whole
+> reason it works.** Every entry there returns from `_on_command_result` BEFORE
+> `_display_result` — so routing the letter-book would have swallowed the output of
+> whatever command the player had just typed, replacing a storm of modals with a
+> surface that eats your orders. It follows the NA-6b discipline instead: stashed on
+> arrival, raised only from `_return_control_to_player` / the `_on_command_result`
+> tail, behind the Proclamation; latched per turn (derived fresh every response, so
+> without the latch a closed panel re-opens on the next one — an infinite modal);
+> and blanked on the `enemy_phase` response so the end-turn report is read first.
+> `_on_mailbox_panel_closed` now hands control back, and every non-opening branch of
+> `_on_mailbox_list_result` does too — a raised-but-never-opened digest would
+> otherwise leave the terminal locked with nothing on screen to unlock it.
+>
+> **Per-row Accept is legal only because the endpoint activates server-side.**
+> `handle_diplomatic_dialogue_response` refuses any `dialogue_id` that is not the
+> current top, and queued rows are reachable only through `activate_mailbox_item`.
+> Doing that in two client calls would re-open the very race the W6-0 binding
+> forbids. `POST /mailbox/respond` resolves the id from the `mailbox_id` the player
+> clicked, so the binding holds by construction. The endpoint is **scoped to rows the
+> letter-book owns** — it can never become a way to accept a consequential treaty
+> with one unconsidered click.
+>
+> **Answering N letters raises no result modals.** Three accepts would otherwise
+> raise three `proposal_result` popups — the same storm one surface downstream. The
+> outcome rides the response `message` and is printed inline.
+>
+> **Two of my own tests were inert and both are fixed** (proven by mutation):
+> `test_answering_raises_no_result_modal` passed under a mutation that ignored the
+> suppression flag, because the demotion failsafe nulled the popup anyway — it now
+> also asserts `digest_row_result is None`, which is what distinguishes them; and
+> `test_an_unknown_row_is_refused_honestly` could not tell a vanished letter from a
+> too-weighty one, since both refusals set `digest_row_failed` — it now pins the
+> message. **A drive-by fix rides along:** `test_nation_agendas_formables.py:1310`
+> scraped a fixed 200 characters after `_on_proclamation_dismissed` and de-bound the
+> moment another control-returning branch was added ahead of the re-enable — the same
+> false-satisfy shape IGR-B's review found in the NA-6 dead-name pin. Now bounded by
+> the next function.
+>
+> **Residuals, stated not hidden.** (a) If a small court's letter is the ACTIVE
+> dialogue and a great power writes later the same turn, the great power's modal
+> waits until the letter is answered — but it is listed in the same panel, one click
+> from opening in full, and on every measured turn the majors were delivered first
+> anyway. (b) `coalition.py:1513` silently removes every live proposal from a court
+> joining a coalition, with no `offer_lapsed` record — pre-existing, and the reason
+> the client re-FETCHES rather than mutating rows in place. (c) `pending_envoy_count`
+> over-counts for the "will lapse" warning because it includes persistent settlement
+> offers; the digest emits its own `lapsing_count` rather than inheriting the lie.
+
+~~3–5~~ **A measured 2** near-identical Open Borders / Non-Aggression / Gift-of-Friendship
+proposals per turn from the small courts, each a blocking modal that interrupts a command
+in flight. The per-nation voices are among the best writing in the game — Reis Efendi's
+*"an old admirer of whatever endures"*, Consalvi's *"her friendship rather than her fear"*
+— and volume is flattening them. Batch routine small-court proposals into one digest with
+per-row accept/decline, keeping the voice line on each row. Great-power and settlement
+traffic unaffected.
 
 ### IGR-G — Two legibility fixes *(gate: yes — see §5 note)*
 
@@ -1033,9 +1145,9 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 ## 6. Build order
 
 ~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → ~~**pause for review**~~ ✅ →
-~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → **▶ `IGR-D`** (Q2, ends with the live
-Proclamation sighting) → `IGR-F` → `IGR-E` (Q4) → `IGR-G` (after the user sees
-screenshots). **IGR-C is withdrawn.**
+~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-D` (Q2, ends with the live
+Proclamation sighting)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-F`~~ ✅ **LANDED July 26, 2026**
+→ **▶ `IGR-E`** (Q4) → `IGR-G` (after the user sees screenshots). **IGR-C is withdrawn.**
 
 `IGR-D` sits late deliberately: it is the only slice touching the settlement engine, and
 it wants the polish slices landed so its live pass is clean.

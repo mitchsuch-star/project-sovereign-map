@@ -1821,7 +1821,27 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
 
     # Keep the current active popup available for Godot. Queued mailbox items
     # carry their own popup payload on the dialogue itself.
-    world.incoming_proposal_popup = copy.deepcopy(dialogue["popup_payload"])
+    #
+    # IGR-F: the write is now conditional on this dialogue actually BEING the
+    # active one. The unconditional write was last-write-wins, so on a turn
+    # carrying two or more proposals the client rendered the LAST arrival
+    # while `push` had made the FIRST one current — and the client's
+    # id-bound answer then hit the W6-0 stale guard. Reproduced: three
+    # letters delivered, the response carried PapalStates (dialogue_id 3),
+    # the active dialogue was Bavaria (dialogue_id 1), and Accept came back
+    # "another matter has arrived since". The multi-court surface this slice
+    # exists to fix was already unanswerable.
+    #
+    # And a routine small-court letter never claims the blocking-modal slot
+    # at all — the letter-book owns it.
+    if world.dialogue_manager.peek() is dialogue:
+        from backend.game_logic.envoy_digest import is_routine_small_court
+
+        if is_routine_small_court(dialogue, world):
+            world.incoming_proposal_popup = None
+        else:
+            world.incoming_proposal_popup = copy.deepcopy(
+                dialogue["popup_payload"])
 
     return dialogue
 

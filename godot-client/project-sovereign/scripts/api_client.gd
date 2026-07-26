@@ -120,6 +120,11 @@ func get_map_topology(callback: Callable):
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
 
+func respond_to_mailbox_item(mailbox_id: int, choice: String, callback: Callable):
+	# IGR-F: answer one letter-book row. The backend activates and answers in
+	# ONE call so the dialogue id cannot go stale between the two halves.
+	_send_post("/mailbox/respond", {"mailbox_id": mailbox_id, "choice": choice}, callback)
+
 
 # --- POST endpoints ---
 

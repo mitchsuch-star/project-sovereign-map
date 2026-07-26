@@ -1307,7 +1307,14 @@ class TestGodotWiring:
         assert "proclamation_popup.dismissed.connect(_on_proclamation_dismissed)" in main_gd
         assert "func _on_proclamation_dismissed" in main_gd
         handler = main_gd.index("func _on_proclamation_dismissed")
-        assert "set_input_enabled(true)" in main_gd[handler:handler + 200]
+        # IGR-F: bounded by the NEXT function, not a fixed 200 characters.
+        # The fixed window silently de-bound the moment another
+        # control-returning branch was added ahead of the re-enable — the
+        # same false-satisfy shape IGR-B's review found in the NA-6
+        # dead-name pin. The body is what the contract is about.
+        end = main_gd.index("\nfunc ", handler + 1)
+        body = main_gd[handler:end]
+        assert "set_input_enabled(true)" in body
 
     def test_the_card_is_not_a_pre_empting_route(self):
         """REGRESSION (two confirmed P1s): every entry in

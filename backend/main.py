@@ -355,6 +355,7 @@ def build_base_response(world, success: bool = True, message: str = "",
 
     Endpoint-specific fields passed as **extra.
     """
+    from backend.game_logic.envoy_digest import build_envoy_digest
     from backend.game_logic.war_status import build_active_wars
 
     response = {
@@ -376,6 +377,15 @@ def build_base_response(world, success: bool = True, message: str = "",
         ) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+        # IGR-F: the letter-book. Derived fresh from the dialogue manager on
+        # every response so it can never go stale against the queue it
+        # describes; None when no small court is waiting. It rides the base
+        # envelope (not the popup queue) deliberately — a queue slot would
+        # cost the 11-key pin AND a new arbitration against
+        # incoming_proposal / incoming_settlement_offer, which is the exact
+        # "two things in one slot, one gets swallowed" shape this review has
+        # already logged twice.
+        "envoy_digest": build_envoy_digest(world),
     }
     response.update(extra)
     # NA-6 §11.10-3: the identity override map rides EVERY response so the
@@ -629,6 +639,15 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         _include_popup_passthroughs(response, world)
         return
 
+    # IGR-F: the letter-book is a CHOICE surface, so it follows the same
+    # deferral as every other choice popup — the end-turn report is read
+    # first. It is derived, not queued, so deferring is just blanking the
+    # key: the next response rebuilds it from the same dialogues. This puts
+    # the digest in exactly the slot the modal storm used to occupy (the
+    # first response of the new turn), which is what "interrupts a command
+    # in flight" described.
+    response["envoy_digest"] = None
+
     # PL-5A + PL-30: proposal results are informational-only and safe to show
     # alongside enemy_phase; other choice popups stay deferred on world.
     proposal_result = world.proposal_result_popup
@@ -759,6 +778,19 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
     ))
 
 
+def _digest_owns(dialogue, world) -> bool:
+    """IGR-F: is this dialogue a routine small-court letter?
+
+    The safety valve below re-derives a blocking modal from the ACTIVE
+    dialogue on every single response cycle until it is answered — that
+    valve, not the popup queue, is what turns a queue of small-court letters
+    into N sequential modals. A letter the digest owns must never reach it.
+    """
+    from backend.game_logic.envoy_digest import is_routine_small_court
+
+    return is_routine_small_court(dialogue, world)
+
+
 def _include_popup_passthroughs(response: dict, world) -> None:
     """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
@@ -838,7 +870,9 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     and winner_attr is None
                     and world.pending_diplomatic_dialogue
                     and world.pending_diplomatic_dialogue.get("type")
-                    in ("incoming_proposal", "incoming_ultimatum")):
+                    in ("incoming_proposal", "incoming_ultimatum")
+                    and not _digest_owns(world.pending_diplomatic_dialogue,
+                                         world)):
                 # BUGFIX: Safety valve — derive clauses from dialogue context
                 # instead of hardcoding []. Empty clauses cause blank popup
                 # in Godot. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
@@ -2189,10 +2223,19 @@ async def respond_to_diplomatic_dialogue(request: dict):
             world, success=False, message=f"Error: {str(e)}")
 
 
-def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None):
+def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
+                              suppress_result_popup=False):
     """Shared dialogue-response assembly for the endpoint AND the W6-0 typed
     pending-question router — a typed "2" must behave byte-identically to the
-    popup's option-2 button."""
+    popup's option-2 button.
+
+    ``suppress_result_popup`` is IGR-F's only divergence and is set by exactly
+    one caller, ``POST /mailbox/respond``. Answering three letters in the
+    letter-book would otherwise raise three ``proposal_result`` modals — the
+    same storm this slice exists to kill, moved one surface downstream. The
+    outcome is returned inline on ``digest_row_result`` instead, and the
+    letter-book renders it on the row.
+    """
     try:
         dialogue_before = world.pending_diplomatic_dialogue or {}
         # Re-front Slice 2: structured settlement Tier-2 affordances (dials /
@@ -2233,7 +2276,8 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None):
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
         elif (result.get("success")
               and world.proposal_result_popup is None
-              and not result.get("suppress_proposal_result_popup")):
+              and not result.get("suppress_proposal_result_popup")
+              and not suppress_result_popup):
             # PL-14 safety net: If dialogue concluded (no new dialogue pushed)
             # and handler forgot to set proposal_result_popup, create one from
             # the result message so it shows as a Godot popup, not terminal text.
@@ -2289,6 +2333,13 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None):
             response["terminal_recovery_copy"] = result["terminal_recovery_copy"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
+        if suppress_result_popup and response.get("proposal_result") is not None:
+            # A handler set the popup directly rather than leaving it to the
+            # PL-14 net above. Demote it to the inline row outcome instead of
+            # letting the letter-book raise one modal per answered letter.
+            # Nothing is lost: the outcome text is rendered on the row.
+            response["digest_row_result"] = response["proposal_result"]
+            response["proposal_result"] = None
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")
@@ -3093,6 +3144,7 @@ def get_mailbox():
     first-class mailbox rows. Save-loaded saves get promoted on first
     read so badge counts stay accurate across game sessions.
     """
+    from backend.game_logic.envoy_digest import build_envoy_digest
     from backend.game_logic.settlement_offers import (
         promote_pending_settlement_offers,
     )
@@ -3106,6 +3158,10 @@ def get_mailbox():
         "success": True,
         "items": items,
         "count": len(items),
+        # IGR-F: the letter-book rides the browse surface too, so the panel
+        # gets rows AND their inline-answerable subset from one call. Same
+        # derived builder as build_base_response — one source, no drift.
+        "envoy_digest": build_envoy_digest(world),
     }
 
 
@@ -3178,6 +3234,83 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         result["diplomatic_dialogue"] = popup
 
     return result
+
+
+class MailboxRespondRequest(BaseModel):
+    mailbox_id: int
+    choice: str
+
+
+@app.post("/mailbox/respond")
+def respond_to_mailbox_item(request: MailboxRespondRequest):
+    """IGR-F: answer ONE letter-book row without opening it as a modal.
+
+    `handle_diplomatic_dialogue_response` reads only the ACTIVE dialogue and
+    refuses a `dialogue_id` that is not the current top (the W6-0 identity
+    binding, which exists because answering Britain's settlement offer once
+    rejected Saxony's never-seen proposal). So a per-row answer is only legal
+    as activate-then-respond, and doing that in two client calls would
+    re-open exactly the race the binding forbids: the id can go stale between
+    them. Resolving the id server-side from the `mailbox_id` the player
+    actually clicked preserves the binding by construction.
+
+    Scoped deliberately: only a row the letter-book OWNS may be answered
+    here. Anything else — a great power's ask, an ultimatum, a settlement
+    offer, a peace or an alliance from a minor — must be opened in full, so
+    this endpoint can never become a way to accept a consequential treaty
+    with one unconsidered click.
+    """
+    from backend.game_logic.envoy_digest import is_routine_small_court
+    from backend.game_logic.settlement_offers import (
+        promote_pending_settlement_offers,
+    )
+
+    world = game_state["world"]
+    if world.game_over:
+        return build_base_response(
+            world, success=False, message="The war is over.",
+            game_over=True, victory=world.victory)
+
+    promote_pending_settlement_offers(world)
+    dm = world.dialogue_manager
+
+    target = None
+    for candidate in ([dm.peek()] if dm.peek() else []) + list(dm.iter_queue()):
+        if int(candidate.get("mailbox_id", 0)) == int(request.mailbox_id):
+            target = candidate
+            break
+
+    if target is None:
+        return build_base_response(
+            world, success=False,
+            message="That letter is no longer among the pending envoys, Sire.",
+            digest_row_failed=int(request.mailbox_id))
+
+    if not is_routine_small_court(target, world):
+        return build_base_response(
+            world, success=False,
+            message=("That matter is too weighty to answer from the "
+                     "letter-book, Sire. Open it in full."),
+            digest_row_failed=int(request.mailbox_id))
+
+    activated = dm.activate_mailbox_item(int(request.mailbox_id))
+    if activated is None:
+        # activate_mailbox_item refuses while a hard-stop / hybrid /
+        # local-planning dialogue holds the active slot. Say so rather than
+        # firing an answer that would land somewhere else.
+        return build_base_response(
+            world, success=False,
+            message=("Another matter holds your attention, Sire. Settle it "
+                     "before answering the lesser courts."),
+            digest_row_failed=int(request.mailbox_id))
+
+    response = _respond_to_dialogue_sync(
+        request.choice,
+        dialogue_id=activated.get("dialogue_id"),
+        suppress_result_popup=True,
+    )
+    response["digest_row_answered"] = int(request.mailbox_id)
+    return response
 
 
 # ════════════════════════════════════════════════════════════
