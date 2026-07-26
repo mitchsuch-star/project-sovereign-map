@@ -1629,28 +1629,51 @@ class TestCounterOfferReachesThePlayer:
         assert "REJECT likely" in str(enriched2.get("acceptance_outcome_display"))
 
     def test_counter_respects_ratification_relation_gate(self):
-        """A peace counter at relations below the STATE_RELATION_REQUIREMENTS
-        threshold (-60) would bind on the formula and then fail
-        _ratify_treaty â€” the generator must refuse it, and the preview must
-        name the gate (the live smoke accepted a counter and got
-        'Relations with Britain are insufficient for PEACE')."""
+        """A counter at relations below the STATE_RELATION_REQUIREMENTS
+        threshold would bind on the formula and then fail _ratify_treaty â€”
+        the generator must refuse it, and the preview must name the gate.
+
+        IGR-X3 â€” RE-SITED off PEACE, which no longer has a requirement, onto
+        `non_aggression`, which does (0). The GUARD is unchanged and still
+        load-bearing; only its peace arm went quiet. The old version also
+        asserted the warning recommended an armistice, and that counsel is
+        deliberately gone: it promised "five turns of quiet may cool tempers"
+        while relation decay skipped ARMISTICE outright, so the quiet cooled
+        nothing. A truce now really does thaw (`ARMISTICE_THAW_PER_TURN`).
+        """
         from backend.game_logic.ai_diplomacy import generate_counter_offer
         from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
 
         world = _bilateral_war_world(relations=-80)
-        peace = dict(_armistice_proposal(), type="peace")
-        assert generate_counter_offer(peace, world, dry_run=True) is None
+        pact = dict(_armistice_proposal(), type="non_aggression")
+        assert generate_counter_offer(pact, world, dry_run=True) is None
 
         dialogue = {
             "type": "proposal_confirm",
             "target_nation": "Britain",
-            "options": [{"action": "execute_proposal", "terms": dict(peace)}],
+            "options": [{"action": "execute_proposal", "terms": dict(pact)}],
             "context": {},
         }
-        enriched = _enrich_proposal_summary(dialogue, "Britain", "peace", world)
+        enriched = _enrich_proposal_summary(
+            dialogue, "Britain", "non_aggression", world)
         warning = str(enriched.get("ratification_gate_warning", ""))
-        assert "-80" in warning and "-60" in warning
-        assert "armistice" in warning.lower()
+        assert "-80" in warning and "0" in warning
+        assert "armistice" not in warning.lower()
+
+        # And PEACE, the case this test used to cover, now carries no gate
+        # warning at all, because there is no gate.
+        peace_dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Britain",
+            "options": [{"action": "execute_proposal",
+                         "terms": dict(_armistice_proposal(), type="peace")}],
+            "context": {},
+        }
+        assert not _enrich_proposal_summary(
+            peace_dialogue, "Britain", "peace",
+            _bilateral_war_world(relations=-80)
+        ).get("ratification_gate_warning")
+
         # Armistice itself has NO relation requirement â€” no gate warning.
         world2 = _bilateral_war_world(relations=-80)
         dialogue2b = {
@@ -1667,12 +1690,19 @@ class TestCounterOfferReachesThePlayer:
     def test_accept_counter_with_failed_ratification_reports_failure(self):
         """'You have accepted X's counter-proposal. Relations are
         insufficient' â€” the success copy must not survive a failed
-        ratification."""
+        ratification.
+
+        IGR-X3 â€” RE-SITED off PEACE onto `non_aggression`. The contract is
+        the point and it is unchanged; PEACE simply stopped being a case that
+        can fail this way. IGR-X3 additionally closed the SIBLING hole: the
+        same swallow lived in `_handle_accept_ai_proposal`, where a player
+        accepting the AI's own peace offer read "You have accepted Britain's
+        proposal" over a war that carried on."""
         from backend.commands.executor import CommandExecutor
 
         world = _bilateral_war_world(relations=-80)
         counter_terms = {
-            "type": "peace",
+            "type": "non_aggression",
             "proposer_nation": "France",
             "target_nation": "Britain",
             "sweeteners": [],

@@ -801,26 +801,30 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     }
     # G4F-13: surface the ratify gate at preview time. A proposal can clear
     # the acceptance formula and still be vetoed by the relation
-    # requirement at ratification (PEACE needs relations >= -60); the old
-    # preview promised outcomes the treaty gate would silently refuse.
+    # requirement at ratification; the old preview promised outcomes the
+    # treaty gate would silently refuse.
+    #
+    # IGR-X3: PEACE no longer has a requirement, so this block now speaks only
+    # for the friendship ladder (open borders / non-aggression / the
+    # alliances), where consent genuinely is about goodwill. The peace-only
+    # armistice counsel that used to hang off it is GONE, and not merely
+    # because it became unreachable: it was FALSE. It advised the player that
+    # waiting out a truce would soften the other court, while
+    # `_process_relation_decay` skipped ARMISTICE outright — so the waiting
+    # softened nothing and the war resumed unchanged. A truce now really does
+    # thaw (`ARMISTICE_THAW_PER_TURN`), which is the honest way to make a
+    # promise true rather than rewording it.
     from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
     _gate_state = _state_map.get(proposal_type, "")
     _gate_req = STATE_RELATION_REQUIREMENTS.get(_gate_state)
     if _gate_req is not None:
         _gate_key = world._make_diplo_key(player_nation, target_nation)
         _gate_relation = int(world.nation_relations.get(_gate_key, 0))
-        _gate_current = world.get_diplomatic_state(player_nation, target_nation)
         if _gate_relation < _gate_req:
-            warning = (
+            dialogue["ratification_gate_warning"] = (
                 f"Their court will not ratify {_gate_state.replace('_', ' ').title()} "
                 f"while relations stand at {_gate_relation} (it requires {_gate_req})."
             )
-            if _gate_state == "PEACE" and _gate_current == "WAR":
-                warning += (
-                    " An armistice asks no such warmth, Sire — five turns of"
-                    " quiet may cool tempers enough to sign."
-                )
-            dialogue["ratification_gate_warning"] = warning
 
     current_diplo = world.get_diplomatic_state(get_player_nation(world), target_nation)
     target_diplo = _state_map.get(proposal_type, "PEACE")

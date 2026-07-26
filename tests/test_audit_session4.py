@@ -514,7 +514,14 @@ class TestConflictAlertWiring:
         assert world.pending_diplomatic_dialogue is None
 
     def test_conflict_alert_accept_anyway_ratifies(self):
-        """After conflict_alert, choosing 'Accept anyway' ratifies the treaty."""
+        """After conflict_alert, choosing 'Accept anyway' ratifies the treaty.
+
+        IGR-X3: the fixture now seeds a relation that actually clears
+        `STATE_RELATION_REQUIREMENTS["ALLIANCE"] = 40`. It did not before, so
+        `_ratify_treaty` REFUSED the alliance and the handler reported
+        `success: True` over it anyway — this test has been asserting a lie
+        since it was written, and only went red once the swallow was closed.
+        The name says "ratifies"; now it does."""
         executor = CommandExecutor()
         world = make_world()
         game_state = {"world": world}
@@ -522,6 +529,7 @@ class TestConflictAlertWiring:
         # Set up conflict scenario
         key_fp = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key_fp] = "WAR"
+        world.nation_relations[key_fp] = 60
         key_pa = world._make_diplo_key("Prussia", "Austria")
         world.diplomatic_states[key_pa] = "ALLIANCE"
         key_fa = world._make_diplo_key("France", "Austria")

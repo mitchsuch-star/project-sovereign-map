@@ -185,13 +185,18 @@ class TestTransitions:
 
 
 class TestRelationRequirements:
-    def test_armistice_to_peace_blocked_below_minus_60(self):
-        """ARMISTICE→PEACE blocked when relation < -60 (D2 fix: >= not >)."""
-        assert check_relation_requirement("ARMISTICE", "PEACE", -60) is True  # Exactly at threshold: allowed
-        assert check_relation_requirement("ARMISTICE", "PEACE", -61) is False
+    def test_armistice_to_peace_is_never_blocked_by_hatred(self):
+        """IGR-X3 — CONSCIOUSLY FLIPPED from "blocked below -60".
 
-    def test_armistice_to_peace_allowed_above_minus_60(self):
-        assert check_relation_requirement("ARMISTICE", "PEACE", -59) is True
+        A beaten court signs. It does not have to like you first; it charges
+        you more, through the acceptance formula's own relations term."""
+        assert check_relation_requirement("ARMISTICE", "PEACE", -61) is True
+        assert check_relation_requirement("ARMISTICE", "PEACE", -100) is True
+
+    def test_the_friendship_ladder_still_asks_for_goodwill(self):
+        """The rows above PEACE are untouched and load-bearing."""
+        assert check_relation_requirement("PEACE", "OPEN_BORDERS", -21) is False
+        assert check_relation_requirement("PEACE", "OPEN_BORDERS", -20) is True
 
     def test_non_aggression_to_def_alliance_blocked(self):
         """NON_AGGRESSION→DEF_ALLIANCE blocked when relation < +20 (D2 fix: >= not >)."""

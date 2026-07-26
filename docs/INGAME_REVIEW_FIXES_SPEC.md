@@ -791,12 +791,20 @@ rendered rows** on historical (Sweden→Austria at the fight rung, turns 8–41)
 >
 > **⚠ Residual, stated not hidden: bilateral peace with a BOOT enemy is unreachable, and
 > that is pre-existing.** `_ratify_treaty` applies a player-only relation floor
-> (`STATE_RELATION_REQUIREMENTS["PEACE"] = -60`); France boots at −95/−100/−95 with
-> Austria/Britain/Russia and relation decay explicitly skips WAR and ARMISTICE. Measured:
-> a player-declared war on Prussia lands at −40, so **the reviewed case — and Tilsit —
-> works**, while the three boot enemies keep the documented armistice-first route and the
-> joint settlement. Not widened here: the floor re-prices every bilateral peace in the
-> game and is a design gate of its own.
+> (`STATE_RELATION_REQUIREMENTS["PEACE"] = -60`); France boots at ~~−95/−100/−95~~
+> **−90/−80/−80** with Britain/Austria/Russia and relation decay explicitly skips WAR and
+> ARMISTICE. Measured: a player-declared war on Prussia lands at −40, so **the reviewed
+> case — and Tilsit — works**, while the three boot enemies keep the documented
+> armistice-first route and the joint settlement. Not widened here: the floor re-prices
+> every bilateral peace in the game and is a design gate of its own.
+>
+> **✅ RESOLVED July 26, 2026 by IGR-X3** — the floor is gone for PEACE (landing record
+> `BUG_FIXES.md` §IGR-X3), so the bilateral route is now open against the boot enemies
+> too. **Two corrections to this residual, both measured:** the boot relations are
+> **−90/−80/−80**, not the −95/−100/−95 written here; and "unreachable" was too strong —
+> `mission_improve_relations` is offered in the ARMISTICE branch, so the war was endable
+> by an undiscoverable 4–6 turn ritual whose in-game teaching described a mechanism that
+> did not exist.
 
 Unchanged from v0.1 and re-affirmed. I reached every prerequisite by real play (at war
 with Prussia, Posen held and secured, gate green, clause authored) and neither route

@@ -22,7 +22,73 @@
 
 ---
 
-## IGR-X3 — The player can never end a boot war bilaterally, in EITHER direction (OPEN, P1)
+## ~~IGR-X3 — The player can never end a boot war bilaterally, in EITHER direction~~ (✅ FIXED July 26, 2026, P1)
+
+> **✅ INVESTIGATED, PUT TO THE USER, AND FIXED July 26, 2026.** The user chose the full
+> scope ("Everything, incl. armistice thaw") after a 24-agent verify→refute investigation.
+> **Landing record = this block.** Tests `tests/test_igr_x3_peace_relation_floor.py` (33).
+>
+> **What shipped.** `STATE_RELATION_REQUIREMENTS["PEACE"]` is now `None`. Ending a war is
+> not an act of friendship; what prices a peace is war score, position and exhaustion,
+> which `calculate_acceptance` already weighs. **The rows above PEACE are untouched** —
+> `validate_transition` permits any upward jump, so they are the only thing preventing
+> `WAR → ALLIANCE`. Nobody has to like you to stop shooting; somebody does have to like
+> you to march beside you. The dead `TRANSITION_RULES[...]["relation_req"]` copy of the
+> number was cleared with it so the spec table cannot contradict the live rule.
+>
+> **The truce now actually cools tempers.** `_process_relation_decay` no longer lumps
+> ARMISTICE in with WAR: a truce thaws at `ARMISTICE_THAW_PER_TURN = 3`, WAR still
+> freezes. Measured: Britain −90 → −75 over one five-turn truce, and a second carries it
+> to −60 and `armistice_expired_peace`. The authored expiry fork is reachable by the
+> passive route the game already advertised.
+>
+> **Plus the two P1s that were independent of the floor:**
+> - `_handle_accept_ai_proposal` ignored a `diplomatic_treaty_failed` result, so a
+>   refused ratification was reported as an acceptance. Measured verbatim: `success: true`
+>   with *"You have accepted Britain's proposal. Relations with France are insufficient for
+>   PEACE."* — the offer consumed, the cooldown applied, the war carrying on. It now
+>   reports honestly, in the same vocabulary as the sibling counter-offer guard that has
+>   had this check since G4F-13, and does **not** burn the acceptance cooldown (nothing was
+>   accepted, so the court stays free to raise it again).
+> - The one place the game taught the escape said *"five turns of quiet may cool tempers
+>   enough to sign"* while decay skipped ARMISTICE outright. **That advice is the likely
+>   proximate cause of this bug report** — follow it literally and the war resumes in five
+>   turns. Deleted rather than reworded, and the mechanism it described is now real.
+>
+> **⚠ THREE OF THE CLAIMS BELOW WERE WRONG, and one of them was mine.**
+> 1. **"Can they recover? **No**"** — refuted. `mission_improve_relations` IS offered, in
+>    the ARMISTICE branch. The war was endable; the route was undiscoverable, monopolised
+>    the single world-wide mission slot, and was taught by copy that described a
+>    non-existent mechanism. "Impossible" was the wrong diagnosis of a real defect.
+> 2. **The IGR-D residual's −95/−100/−95 boot relations** are wrong; this row's
+>    −90/−80/−80 are right, measured on the shipped board and NOT seed-dependent (the
+>    scenario deliberately leaves `starting_wars` pairs unbanded). Corrected in
+>    `INGAME_REVIEW_FIXES_SPEC.md`.
+> 3. **The floor was never gate-blessed and its enforcement was an accident.** It was
+>    authored as the armistice-EXPIRY branch condition — a job `ARMISTICE_AUTO_PEACE_RELATION`
+>    still does — and `check_relation_requirement` was DEAD CODE for three days before a
+>    cleanup commit ("4 unwired functions wired") switched it on. The player/AI asymmetry
+>    is scaffolding from the commit that unified AI-AI ratification, not a designed rule.
+> 4. **Option (b), war-score-aware relief, is INERT and was not built.** `cleanup_war_end`
+>    pops the pair's war score on any WAR→non-WAR transition, so relief at ARMISTICE would
+>    always be 0. The costing that recommended it had measured a hand-set fixture.
+>
+> **Byte-identity: M1–M7 and the 40-turn `BASELINE_SERIES` are unchanged — and the honest
+> reason is that the ambient harness never enters ARMISTICE at all** (measured: 0 armistice
+> turns in 40). The thaw is symmetric and WILL move AI-AI relations in a played game; the
+> harness simply cannot see it. Recorded rather than treated as evidence of no effect.
+>
+> **Five tests consciously flipped or re-sited**, each with its reason written at the
+> assertion: the two floor-value pins, the counter-offer gate pin and the failed-ratification
+> pin (both re-sited off PEACE onto `non_aggression`, where the guard is still
+> load-bearing), and `test_conflict_alert_accept_anyway_ratifies` — which turned out to
+> have been asserting a lie since it was written: its fixture never cleared the ALLIANCE
+> floor, so the treaty it claims to ratify was refused and the handler reported success
+> anyway. Its name says "ratifies"; now it does.
+
+<details><summary>The original bug row, kept for the record</summary>
+
+## IGR-X3 — The player can never end a boot war bilaterally, in EITHER direction (was OPEN, P1)
 
 **Found July 25, 2026** while landing IGR-D, which hit it as a hard residual: a
 `create_client` carve can only travel on the bilateral peace route, and that route is
@@ -66,6 +132,8 @@ bilateral peace in the game and touches the AI counter-offer path
 (`ai_diplomacy.py:1926`). It needs its own investigation and a decision.
 
 **Owner:** the next session (investigate + propose; see `docs/STATUS.md` Next Steps).
+
+</details>
 
 ---
 

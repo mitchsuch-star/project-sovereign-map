@@ -1920,11 +1920,18 @@ def generate_counter_offer(
         nation_dp[author] = current_dp - 1
         world.nation_dp = nation_dp
 
-    # G4F-13: never author a counter the ratify gate would veto. A peace
-    # counter at relations below the STATE_RELATION_REQUIREMENTS threshold
-    # would "bind" at >= 50 on the formula and then fail _ratify_treaty —
-    # the player accepts and nothing happens. Unratifiable type → no
-    # counter (the resolution degrades to an honest rejection instead).
+    # G4F-13: never author a counter the ratify gate would veto. A counter at
+    # relations below the STATE_RELATION_REQUIREMENTS threshold would "bind"
+    # at >= 50 on the formula and then fail _ratify_treaty — the player
+    # accepts and nothing happens. Unratifiable type → no counter (the
+    # resolution degrades to an honest rejection instead).
+    #
+    # IGR-X3: kept, and deliberately NOT narrowed. Its peace arm is now inert
+    # (PEACE has no requirement), but the guard is generic and still earns its
+    # place for the friendship ladder — a `non_aggression` counter at -40 is
+    # exactly the case it was written for. Deleting it because one of its arms
+    # went quiet would re-open the swallowed-acceptance class this same slice
+    # is closing at the other end.
     _counter_target = terms.get("target_nation", "")
     if _counter_target:
         from backend.game_logic.diplomacy import (

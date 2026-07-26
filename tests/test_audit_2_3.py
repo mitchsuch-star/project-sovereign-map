@@ -681,19 +681,31 @@ class TestRelationRequirements:
     TRANSITION_RULES relation_req uses strict > comparison (check_relation_requirement).
     """
 
-    def test_armistice_to_peace_blocked_at_minus_65(self):
-        """ARMISTICE -> PEACE requires relation > -60. At -65, blocked."""
-        req = TRANSITION_RULES[("ARMISTICE", "PEACE")]["relation_req"]
-        assert req == -60, f"Expected req=-60, got {req}"
-        assert check_relation_requirement("ARMISTICE", "PEACE", -65) is False
+    def test_peace_has_no_relation_requirement_at_any_hatred(self):
+        """IGR-X3 — CONSCIOUSLY FLIPPED. This used to assert
+        `check_relation_requirement("ARMISTICE","PEACE",-65) is False`.
 
-    def test_armistice_to_peace_allowed_at_exactly_minus_60(self):
-        """ARMISTICE -> PEACE requires relation >= -60. At exactly -60, allowed (D2 fix: >= not >)."""
-        assert check_relation_requirement("ARMISTICE", "PEACE", -60) is True
+        Ending a war is not an act of friendship. Pressburg and Tilsit were
+        signed at the maximum of mutual hatred BECAUSE of how the war had
+        gone; war score, position and exhaustion price a peace, and
+        `calculate_acceptance` already weighs all three — including a
+        relations term that R141 deliberately dampens during war to stop deep
+        hatred making wartime peace impossible. The floor charged hostility a
+        second time, absolutely, and only to the player.
+        """
+        assert check_relation_requirement("ARMISTICE", "PEACE", -65) is True
+        assert check_relation_requirement("ARMISTICE", "PEACE", -100) is True
+        assert check_relation_requirement("WAR", "PEACE", -100) is True
 
-    def test_armistice_to_peace_allowed_at_minus_59(self):
-        """ARMISTICE -> PEACE requires relation > -60. At -59, allowed."""
-        assert check_relation_requirement("ARMISTICE", "PEACE", -59) is True
+    def test_the_dead_transition_rules_row_no_longer_contradicts_the_live_one(self):
+        """`TRANSITION_RULES[...]["relation_req"]` is read by nothing —
+        `get_transition_dp_cost` consumes `dp_cost` only — so it was a spec
+        table quietly disagreeing with the live one. Cleared with it."""
+        assert TRANSITION_RULES[("ARMISTICE", "PEACE")]["relation_req"] is None
+
+    def test_armistice_still_asks_no_warmth(self):
+        """Unchanged: ARMISTICE never had a requirement and still has none."""
+        assert check_relation_requirement("WAR", "ARMISTICE", -100) is True
 
     def test_peace_to_open_borders_blocked_at_minus_25(self):
         """PEACE -> OPEN_BORDERS requires relation > -20. At -25, blocked."""
@@ -761,10 +773,16 @@ class TestRelationRequirements:
         assert check_relation_requirement("WAR", "ARMISTICE", 100) is True
 
     def test_jump_transition_checks_target_state(self):
-        """R98: Jump transition checks target state's relation requirement."""
-        # PEACE requires relation > -60
-        assert check_relation_requirement("WAR", "PEACE", -50) is True
-        assert check_relation_requirement("WAR", "PEACE", -100) is False
+        """R98: Jump transition checks target state's relation requirement.
+
+        IGR-X3: re-sited off PEACE (which no longer has one) onto the
+        friendship ladder, where the rule is still load-bearing —
+        `validate_transition` permits ANY upward jump, so these numbers are
+        the only thing preventing WAR -> ALLIANCE."""
+        assert check_relation_requirement("WAR", "OPEN_BORDERS", -10) is True
+        assert check_relation_requirement("WAR", "OPEN_BORDERS", -100) is False
+        assert check_relation_requirement("WAR", "ALLIANCE", 40) is True
+        assert check_relation_requirement("WAR", "ALLIANCE", -100) is False
 
 
 # ======================================================

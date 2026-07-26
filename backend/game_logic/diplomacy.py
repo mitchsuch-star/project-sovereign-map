@@ -74,7 +74,12 @@ TRADE_INCOME = {
 TRANSITION_RULES = {
     # (from, to): {"dp_cost": int, "relation_req": int or None}
     ("WAR", "ARMISTICE"): {"dp_cost": 1, "relation_req": None},
-    ("ARMISTICE", "PEACE"): {"dp_cost": 2, "relation_req": -60},
+    # IGR-X3: cleared with the live floor. `relation_req` is DEAD DATA — the
+    # only consumer, `get_transition_dp_cost`, reads `dp_cost` alone, and
+    # `check_relation_requirement` goes to STATE_RELATION_REQUIREMENTS — so
+    # leaving -60 here would be a spec table quietly contradicting the rule
+    # that ships, which is exactly the trap the next reader falls into.
+    ("ARMISTICE", "PEACE"): {"dp_cost": 2, "relation_req": None},
     ("PEACE", "OPEN_BORDERS"): {"dp_cost": 1, "relation_req": -20},
     ("OPEN_BORDERS", "NON_AGGRESSION"): {"dp_cost": 1, "relation_req": 0},
     ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE"): {"dp_cost": 2, "relation_req": 20},
@@ -83,9 +88,34 @@ TRANSITION_RULES = {
 
 # ═══════ STATE-LEVEL RELATION REQUIREMENTS (R98: jumps) ═══════
 # For non-adjacent upward jumps, the TARGET state's relation requirement applies.
+#
+# IGR-X3 (July 26, 2026): PEACE has NO relation requirement, deliberately.
+# Ending a war is not an act of friendship — Pressburg and Tilsit were signed
+# at the maximum of mutual hatred, BECAUSE of how the war had gone. What
+# prices a peace is war score, military position and exhaustion, all of which
+# `calculate_acceptance` already weighs; hostility is one of its terms, and
+# R141 deliberately DAMPENS that term during war to `max(-10, min(10, rel/4))`
+# with the stated rationale "prevents deep hatred from making wartime peace
+# mathematically impossible". A hard floor above that scorer re-imposed
+# absolutely what R141 had just made partial, and charged hostility twice.
+#
+# The row that used to sit here (`"PEACE": -60`) was never gate-blessed. It
+# was authored as the ARMISTICE-EXPIRY branch condition — a job still done,
+# correctly and symmetrically, by `ARMISTICE_AUTO_PEACE_RELATION` below — and
+# only became a veto on a proposed peace when a cleanup commit wired a
+# function that had been dead for three days. It applied to the PLAYER alone:
+# two AI courts at -95 signed peace freely (a Golden Rule 5 violation with no
+# countervailing contract), the multilateral settlement route never consulted
+# it at all, and it left the player unable to accept a peace the AI had itself
+# offered.
+#
+# The rows BELOW are load-bearing and stay. `validate_transition` permits any
+# upward jump, so WAR -> ALLIANCE is structurally legal and these numbers are
+# the only thing preventing it. Nobody has to like you to stop shooting;
+# somebody does have to like you to march beside you.
 STATE_RELATION_REQUIREMENTS = {
     "ARMISTICE": None,
-    "PEACE": -60,
+    "PEACE": None,
     "OPEN_BORDERS": -20,
     "NON_AGGRESSION": 0,
     "DEFENSIVE_ALLIANCE": 20,
@@ -3589,6 +3619,27 @@ ARMISTICE_DURATION = 5
 # runs out convert to PEACE; below it the war resumes. Single source for
 # the expiry processor and every surface that explains the rule.
 ARMISTICE_AUTO_PEACE_RELATION = -60
+
+# IGR-X3: a truce actually cools tempers. Relation decay used to skip WAR and
+# ARMISTICE in the same breath, so five turns of truce left the relation
+# exactly where it started and the pair reverted to war unchanged — while the
+# one place the game TAUGHT the escape said "five turns of quiet may cool
+# tempers enough to sign". A player who followed that advice literally watched
+# the war resume and reasonably concluded peace was impossible.
+#
+# WAR still freezes: guns firing is not a cooling-off period. ARMISTICE thaws
+# toward the neutral band at this rate, so the expiry fork above is reachable
+# by the passive route the game already advertises. In-band tunable.
+#
+# Blessed at 3 (15 points per five-turn truce), measured against the shipped
+# board: France's boot hatreds are -90/-80/-80, so ONE truce moves Britain to
+# -75 and Austria/Russia to -65, and a SECOND carries either over the -60
+# expiry line into peace. Deliberately slower than winning — 3/turn is triple
+# the peacetime drift but half what a single battle swings, so a truce is a
+# real thaw and never the cheapest relations lever in the game. It is also
+# visible: the HUD `relation_trend` reads "rising" at 3 and "stable" at 1, and
+# an invisible mechanism is what caused this defect in the first place.
+ARMISTICE_THAW_PER_TURN = 3
 
 HARSHNESS_LABELS = [
     (0.10, "generous"),
@@ -9671,8 +9722,13 @@ def _process_nation_authority(world) -> None:
 def _process_relation_decay(world) -> None:
     """R4a: Relations drift toward +-10 band each turn.
 
-    Skip pairs that are: vassals, at WAR, in ARMISTICE, or targeted by COURT_NATION mission.
+    Skip pairs that are: vassals, at WAR, or targeted by COURT_NATION mission.
     Above +10: -1/turn. Below -10: +1/turn.
+
+    IGR-X3: ARMISTICE no longer skips. A truce is a cooling-off period — that
+    is the whole reason the game offers one — so it thaws toward the neutral
+    band at `ARMISTICE_THAW_PER_TURN` instead of freezing like an active war.
+    Symmetric: it runs for every pair, AI-AI included, on the same tick.
     """
     all_nations = world.get_active_nations()  # DLF-11
 
@@ -9695,19 +9751,21 @@ def _process_relation_decay(world) -> None:
             diplo_key = world._make_diplo_key(nation_a, nation_b)
             state = world.diplomatic_states.get(diplo_key, "PEACE")
 
-            # Skip WAR and ARMISTICE pairs
-            if state in ("WAR", "ARMISTICE"):
+            # Guns firing is not a cooling-off period — WAR still freezes.
+            if state == "WAR":
                 continue
 
             # Skip if COURT_NATION targets either nation in the pair
             if court_target and court_target in (nation_a, nation_b):
                 continue
 
+            # IGR-X3: a truce thaws faster than ordinary peacetime drift.
+            step = ARMISTICE_THAW_PER_TURN if state == "ARMISTICE" else 1
             relation = world.nation_relations.get(diplo_key, 0)
             if relation > 10:
-                world.modify_nation_relation(nation_a, nation_b, -1)
+                world.modify_nation_relation(nation_a, nation_b, -step)
             elif relation < -10:
-                world.modify_nation_relation(nation_a, nation_b, 1)
+                world.modify_nation_relation(nation_a, nation_b, step)
 
 
 # ═══════════════════════════════════════════════════════

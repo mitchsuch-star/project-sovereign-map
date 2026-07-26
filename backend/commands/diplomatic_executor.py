@@ -6107,6 +6107,45 @@ class DiplomaticExecutor:
             terms["target_nation"] = world.player_nation
         treaty_event = world._ratify_treaty(terms)
 
+        # IGR-X3: a REFUSED ratification used to be reported as an acceptance.
+        # `_ratify_treaty` returns `diplomatic_treaty_failed` rather than
+        # raising, and this handler ignored it — so the player clicked Accept
+        # on a peace Britain had itself offered, read "You have accepted
+        # Britain's proposal", watched the acceptance cooldown consume the
+        # offer, and the war carried on. Measured verbatim on the boot board:
+        # `success: true` with the message "You have accepted Britain's
+        # proposal. Relations with France are insufficient for PEACE."
+        #
+        # The relation floor that caused that particular case is gone, but the
+        # swallow is general — the no-downgrade guard and every future
+        # ratification rule reach the same seam. Report the refusal honestly,
+        # and do NOT apply the acceptance cooldown: nothing was accepted, so
+        # the court must stay free to raise it again.
+        if (isinstance(treaty_event, dict)
+                and treaty_event.get("type") == "diplomatic_treaty_failed"):
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            world.log_event({
+                "type": "ai_proposal_rejected",
+                "source": source_nation,
+                "proposal_type": proposal_type,
+                "decision_reason": "counterparty_reversal",
+            })
+            reason = str(treaty_event.get("message", "")).strip()
+            from backend.game_logic.formations import formed_display_name
+            court = formed_display_name(world, source_nation)
+            # Same vocabulary as the sibling counter-offer guard above, which
+            # has had this check since G4F-13 — one phrase for one outcome.
+            return {
+                "success": False,
+                "message": (
+                    f"{court}'s terms could not be ratified"
+                    + (f": {reason}" if reason else ".")
+                ),
+                "decision_reason": treaty_event.get("decision_reason", ""),
+            }
+
         # AI-2d (§4.2b): accepting a SELL-NEUTRALITY offer mints the
         # §3.3 compact — the payment France just took is a hostage
         # France has given. Entering that war against the payer later
