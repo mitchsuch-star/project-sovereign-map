@@ -1401,7 +1401,7 @@ have rendered Sweden's anti-Napoleon design as held in check against Britain.
 
 | | Option | Effect |
 |---|---|---|
-| **a** | **Scale to the province** — ~3–5 turns of its income | Nassau pays ~450–750g instead of 87g — enough to matter early, never enough to fund a war |
+| **a** | **Scale to the province** — ~3–5 turns of its income | ~~Nassau pays ~450–750g instead of 87g~~ **⚠ SEE THE §2 IGR-E LANDING RECORD — this worked example is WRONG.** Nassau's `income_value` is 50 (the map MINIMUM), so ×4 pays **200g**; 450–750 is `150 × 3–5`, the MEDIAN province. The *shape* text ("~3–5 turns of its income") is correct and is what ×4 satisfies, so the blessed constant stands — enough to matter early, never enough to fund a war |
 | b | Re-cut as stability-vs-authority rather than gold | Removes the balance question; changes what the prompt is *about* |
 | c | Leave it | Accept that Secure is always correct and the prompt is flavour |
 
@@ -1434,7 +1434,8 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 ~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → ~~**pause for review**~~ ✅ →
 ~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-D` (Q2, ends with the live
 Proclamation sighting)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-F`~~ ✅ **LANDED July 26, 2026**
-→ **▶ `IGR-E`** (Q4) → `IGR-G` (after the user sees screenshots). **IGR-C is withdrawn.**
+→ ~~`IGR-E` (Q4)~~ ✅ **LANDED July 26, 2026** → **▶ `IGR-G`** (after the user sees
+screenshots). **IGR-C is withdrawn.**
 
 `IGR-D` sits late deliberately: it is the only slice touching the settlement engine, and
 it wants the polish slices landed so its live pass is clean.

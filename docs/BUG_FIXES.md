@@ -137,6 +137,21 @@ bilateral peace in the game and touches the AI counter-offer path
 
 ---
 
+## IGR-E — routed in passing, July 26, 2026 (3 OPEN)
+
+Found by the IGR-E ground-truth pass (the plunder-multiplier slice) and **deliberately not
+absorbed into it** — each is either a *shape* change to an already-blessed number or a
+separate pre-existing path. Landing record for the slice itself:
+`docs/INGAME_REVIEW_FIXES_SPEC.md` §2 IGR-E.
+
+| ID | Sev | Item | Owner / landing |
+|---|---|---|---|
+| **IGR-X4** | **P2** | **The W6-8 estate confiscation windfall is always exactly 0 gold** — both branches, both sides. `capture_executor._maybe_mount_estate_choice` computes `windfall = int(CONFISCATION_INCOME_MULT × region.get_effective_income())` **after** stage 1 has left stability at 10 (plunder) or 25 (secure); `Region._get_stability_modifier` returns **0.0** at `stability <= 25`, so the product is 0 on every province in the game. The player is shown *"CONFISCATE (+0 gold, Austria will not forgive it)"* and asked to pay −10 relations plus −1 trust on every cautious marshal, and to forfeit the +5 respect bonus, **for nothing**. The docstring at `capture_executor.py:152-154` ("a plundered estate is worth confiscating less than one kept whole") describes behaviour that does not exist — both are 0. The W6-8 tests pass tautologically (`0 == 0`). This is IGR-E's own pathology one stage deeper, and worse. | **Owner: the next econ tuning gate** (`ECONOMY_REVISIT_SPEC.md`, alongside EWC-D1). **Landing:** a slice that re-bases the windfall on `income_value` (as IGR-E did for plunder) or explicitly re-prices it. **Done when:** confiscating a just-captured estate pays a non-zero, stated sum, and a test asserts a *specific* value rather than `0 == 0`. **Escalates** because it changes which income base a blessed W6-8/ES-7 number reads — a shape change, not a tuning. **Test:** `tests/test_w6_estate_confiscation.py` (the tautological pins are the ones to replace). |
+| **IGR-X5** | P3 | **A strategic-march capture never asks the question and never secures.** `movement_executor.py:483-498` restores `_prior_choice` over the freshly-set `pending_capture_choice`; the comment says "AUTO-SECURE this province" but **`_apply_secure` is never called** — so buildings stay *undamaged*, construction is neither continued nor cancelled, and **no `region_captured` event is logged**. Marching in is therefore strictly better than capturing and securing. IGR-E raises the value of the branch being skipped. | **Owner: row IGR-G** (the remaining IGR slice) or the next movement/capture pass. **Landing:** call `_apply_secure` and log the event on the march-capture path, or state in the code why the asymmetry is intended. **Done when:** a march capture and an attack capture leave the province in the same state given the same choice, pinned by a test. **Test:** `tests/test_pf3_uncontested_occupation.py`. |
+| **IGR-X6** | P3 | **`region.plundered` is serialized and has no mechanical readers.** Writers at `combat_executor.py` and `world_state.py`; the only reader is its own clear condition in `process_stability_growth`. It costs a save field and reads as meaningful state. | **Owner: the next econ tuning gate**, with IGR-X4. **Landing:** either give it a consumer (an occupation-cost or unrest modifier is the natural one) or delete it with its save-format row. **Done when:** the flag either changes something measurable or no longer exists. **Test:** `tests/test_serialization_enforcement.py`. |
+
+---
+
 ## In-Game Review — July 25, 2026 (5 FIXED in-session; 4 routed OPEN)
 
 Found by playing the real client for the queued NA-6c/6d + AI-3r review (France, 1805,

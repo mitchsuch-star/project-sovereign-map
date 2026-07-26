@@ -2396,7 +2396,7 @@ Gold is tracked per nation in `world_state.nation_gold` dict. Starting values ha
 - **EC-W2 "The War Effort":** France enters the WE system — +8/turn while at war with anyone / −5 decay (coalition.py §10a France arm), plus the missing battle arm (France loses as DEFENDER → `casualties//1000` cap 20, both the executor pipeline and the auto-charge copy). Every nation with WE pays `int(max(0, treasury) × WE // WAR_EFFORT_DIVISOR 2500)`/turn (`calculate_war_effort_cost`, single source; WE 200 → 8%/turn of the chest) — the signed `war_effort` Net component ("War Effort" line). Treasury-fraction, NOT flat: a poor nation pays ~nothing (Austria's +18 boot margin is structurally safe), the term can never push a treasury negative by itself, and it attacks the passive hoard directly. R49 already guards partial peace (WE resets only with no remaining wars).
 - **EC-W3 "The Butcher's Bill":** every resolved non-bombardment battle charges each side `int(own_casualties × MATERIEL_RATE 0.05)` at once (50g/1,000 — below the 60g/1,000 war recruit price, hierarchy pinned). One-time flow OUTSIDE Net (plunder precedent) in `_post_combat_pipeline` step 13b + the auto-charge copy; surfaced as the "[Materiel]" battle-message line.
 - **EC-W4 "Peace with Teeth":** AI settlement offers price the indemnity to the payer's purse — `min(base 500 + 50×war_age + |war_score|×40 + treasury×0.15, treasury×0.40)`; an empty chest degrades to white peace (`_settlement_offer_build_terms`, both directions). The player-ask baseline scales too: `max(300, court_balance×0.25)`, still capacity-capped (settlement_baseline).
-- **EC-W5 fixes:** AI personality auto-plunder now pays the same ×1.75 as the player (single source `world_state.PLUNDER_GOLD_MULTIPLIER`); the treasury report's net includes infrastructure (was silently omitted).
+- **EC-W5 fixes:** AI personality auto-plunder now pays the same rate as the player (single source, `world_state.PLUNDER_INCOME_MULTIPLIER` — **×1.75 at EC-W5, retuned to ×4 by IGR-E**); the treasury report's net includes infrastructure (was silently omitted). ⚠ **The parity was nominal until IGR-E**: the AI branch read a non-existent attribute and could never fire, so "the same as the player" was true of the constant and false of the behaviour.
 
 Tests: `test_econ_war_coupling.py` (33) + re-blessed EC-W4 pins in `test_settlement_incoming_offers.py`.
 
@@ -2417,7 +2417,9 @@ Tests: `test_econ_war_coupling.py` (33) + re-blessed EC-W4 pins in `test_settlem
 
 **Boundary values fall into LOWER tier:** stability=25 → Hostile, stability=50 → Unrest, stability=75 → Settling.
 
-**On capture:** Stability set to 25 (Hostile/Secured). TODO 6.2.E: plunder (10) vs secure (25) choice.
+**On capture:** Stability set to 25 (Hostile/Secured), then the player answers the Plunder/Secure
+choice (see "Plunder/Secure Capture Choice" above — shipped Feb 2026; the stale TODO here was cleared
+by IGR-E).
 
 **On battle:** -10 stability per battle in the region.
 
@@ -2509,10 +2511,22 @@ When a **player** captures a region, a popup asks: **Plunder** or **Secure**?
 
 | Choice | Stability | War Damage | Gold | Buildings | Plundered Flag |
 |--------|-----------|------------|------|-----------|----------------|
-| Plunder | 10 | +0.35 | = base income | Destroyed | True |
+| Plunder | 10 | +0.35 | **= base income × 4** | Destroyed | True |
 | Secure | 25 | +0.00 | 0 | Damaged | False |
 
-- **AI captures** auto-decide by personality: aggressive → plunder, all others → secure
+- **The rate is `world_state.PLUNDER_INCOME_MULTIPLIER = 4.0`** — the single source, read through
+  `world_state.plunder_yield(region)` by the player payout, the AI branch AND the pre-choice preview
+  (shown = applied). **IGR-E** (gate Q4, `INGAME_REVIEW_FIXES_SPEC.md` §5) retuned it from 1.75 and
+  renamed it; **blessed and in-band tunable** (the band is "~3–5 turns of its income"), but changing the
+  *shape* escalates — and per the recorded dissent, a second failed multiplier re-opens at option (b),
+  the stability-vs-authority recut, rather than a third tuning.
+- **The prompt quotes the figure before the choice** (`build_capture_choice` → `plunder_gold`, rendered
+  on the modal button, the terminal sentence and both refusal restatements). Deliberately reads BASE
+  income: a just-captured province sits at stability ≤ 25 where the stability modifier is 0.0, so an
+  effective-income reading would pay 0 everywhere.
+- **AI captures** auto-decide by personality: aggressive → plunder, all others → secure —
+  via `world_state.ai_prefers_plunder` (GR5). Until IGR-E this branch was **dead code**: it read a
+  `personality_type` attribute `Marshal` does not have, so the AI could never plunder.
 - `pending_capture_choice` blocks commands until resolved (same pattern as `pending_objection`)
 - Plundered flag clears when stability recovers above 50
 - Endpoint: `POST /capture_choice` with `{"choice": "plunder"}` or `{"choice": "secure"}`

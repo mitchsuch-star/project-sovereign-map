@@ -4,24 +4,13 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ▶ WHAT'S NEXT (as of July 26, 2026 — end of the IGR-F / IGR-X3 session)
+> ### ▶ WHAT'S NEXT (as of July 26, 2026 — end of the IGR-E session)
 >
 > **The IGR queue** (`docs/INGAME_REVIEW_FIXES_SPEC.md`, gate record §5):
-> ~~IGR-A~~ ✅ · ~~IGR-B~~ ✅ · ~~IGR-D~~ ✅ · ~~IGR-F~~ ✅ → **▶ IGR-E** → **IGR-G**.
-> ~~IGR-C~~ withdrawn pre-gate.
+> ~~IGR-A~~ ✅ · ~~IGR-B~~ ✅ · ~~IGR-D~~ ✅ · ~~IGR-F~~ ✅ · ~~IGR-E~~ ✅ → **▶ IGR-G**.
+> ~~IGR-C~~ withdrawn pre-gate. **IGR-G is the last slice in the row.**
 >
-> 1. **▶ IGR-E — "Plunder earns its prompt."** *No gate needed — Q4 is already
->    DECIDED (spec §5): `PLUNDER_INCOME_MULTIPLIER = 4`, a blessed, in-band tunable
->    number.* Plundering Nassau paid **87 gold** against a 3,085/turn income and a
->    5,177g treasury, so Secure was strictly correct in every situation the review
->    met — a modal that stops the game to ask a question with one right answer.
->    Ships with the spec's own falsifiable acceptance test: *a turn-3 player under
->    ~2,000g should plausibly plunder; a turn-20 player over ~20,000g should not.*
->    **Recorded dissent to carry into the build:** option (b) — recutting the prompt
->    as stability-vs-authority rather than gold — is arguably the better design. If
->    the acceptance test fails at two different multipliers, **re-open at (b) rather
->    than tuning a third time.**
-> 2. **IGR-G — two legibility fixes.** ⚠️ **Bring these to the user WITH SCREENSHOTS
+> 1. **▶ IGR-G — two legibility fixes.** ⚠️ **Bring these to the user WITH SCREENSHOTS
 >    before building** (spec §5 gate note). G1 re-weights `Utils.clamp_centered_panel`,
 >    a helper shared by every centre-anchored popup — IGR-F already hit its
 >    authored-rect-is-a-ceiling behaviour from the other side and has a worked example.
@@ -32,6 +21,71 @@
 > by AI Intent Stage E (`AI_INTENT_SPEC.md` §11).
 >
 > **Nothing is blocked on a user decision right now** except IGR-G's screenshots.
+
+### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
+
+**User direction: "code IGR-E ... commit and push when done", with the recorded dissent
+explicitly carried forward.** Landing record = `docs/INGAME_REVIEW_FIXES_SPEC.md` §2 IGR-E
+(authoritative). Commits `c7e30b9` (the slice) + `88e2707` (the GR5 addendum).
+Suite **15,279/3**, ruff clean, parser eval 461/461, M1–M7 and `BASELINE_SERIES`
+byte-identical, parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`.
+`tests/test_igr_e_plunder_prompt.py` (30).
+
+**The number.** `PLUNDER_GOLD_MULTIPLIER = 1.75` → `PLUNDER_INCOME_MULTIPLIER = 4.0`,
+renamed to the name gate Q4 actually blessed and kept a single source (a second constant
+over the same base is the dual-source defect GR1 forbids).
+
+**⚠ The gate's worked example is wrong, and the record corrects it rather than conforming
+to it.** §5 Q4 illustrates option (a) as *"Nassau pays ~450–750g"*. **At ×4 Nassau pays
+200g** — its `income_value` is 50, the **minimum** on the 126-province map (27 provinces
+share it). The 450–750 band is `150 × 3–5`: the **median** province (41 of 126) labelled
+with the poorest one's name. Measured ladder: 50→200 · 100→400 · 150→**600** · 200→800 ·
+300→1,200. **Nothing was re-gated** — the gate's *shape* text ("~3–5 turns of its income")
+is exactly what ×4 satisfies.
+
+**The acceptance test passes in both directions**, as arithmetic over the production
+formulas rather than judgement. Poor+early: the loot is ≥10% of the gate's 2,000g anchor
+**and** exceeds the revenue it destroys over 5 turns (600 vs 315 at the median).
+Rich+late: ≤6% of 20,000g **and** converges to within 15% of break-even over 30 turns.
+The inversion is the point — the loot is one-time while forgone revenue keeps accruing
+until it plateaus. A **negative control** re-runs arm A at the old ×1.75 and asserts it
+**fails**, which is what makes the test evidence rather than decoration. One published
+break-even model, in the test, derived from `Region`'s own methods with the **ES-2
+occupation cost** included — the term that makes it honest.
+
+**Quadrupling a number the player never sees changes no decision**, so the second half is
+the prompt. Before this, *no* surface stated what Plunder would pay: the payload carried
+three keys, none economic; the buttons were string literals; the terminal asked "How shall
+they behave?"; and the Region Action Panel shows *effective* income, which for a
+just-captured province is **0g**. Now one builder serves both capture routes, one
+expression both quotes and pays (shown = applied), and the figure appears on the modal
+button, the terminal sentence, the occupation message and both refusal restatements.
+Stage 1 also mints a W6-0 `dialogue_id` it never had — the stale-answer guard was
+structurally **inert** — with zero client wiring change.
+
+**GR5 addendum, own commit: the AI could never plunder, on any board, ever.** Both AI
+sites read a `personality_type` attribute `Marshal` does not have. (The second trap:
+`Personality` has no `str` mixin, so reading the right attribute while still comparing to
+the enum member leaves it just as dead — now pinned.) Measured on the pinned ambient run:
+**41 capture choices, 100% `secure` → 39 secure / 2 plunder**, both by Britain's Paget.
+`BASELINE_SERIES` stays byte-identical anyway, this time for a *design* reason: threat
+accrues on the conquest, not on what the conqueror does afterwards. **Two of the three
+tests that "proved" GR5 parity manufactured the missing attribute**, which is what let
+them pass against dead code; one failed the instant the production fix landed. The guard
+meant to catch exactly this was scoped to `enemy_ai.py` alone — now an **AST** check over
+the whole backend, mutation-tested.
+
+**Routed, not absorbed** (`BUG_FIXES.md` §IGR-E, each with owner/landing/done-when/test):
+**IGR-X4 (P2)** the W6-8 estate confiscation windfall is **always exactly 0 gold** — it
+reads effective income after stage 1 has left stability ≤ 25, so the player is asked to
+pay relations and trust for nothing; this is IGR-E's own pathology one stage deeper, and
+its fix is a *shape* change to a blessed W6-8/ES-7 number, so it escalates. **IGR-X5 (P3)**
+a strategic-march capture never asks and never secures. **IGR-X6 (P3)** `region.plundered`
+has no mechanical readers.
+
+**⚠ The dissent survives the edit** and now lives in five places: the landing record, this
+entry, the struck `DESIGN_REFINEMENT.md` IGR-D1 row, a comment at the constant, and the
+acceptance test's docstring. **Attempts used: ONE of two.**
 
 ### ✅ IGR-X3 — A beaten enemy signs; it does not have to like you first — LANDED July 26, 2026
 
@@ -402,7 +456,7 @@ backlog: **IGR-A** honest copy (4 items, gate-free) · **IGR-B** the campaign lo
 (Q1) · **IGR-G** settlement viewport +
 map-stack legibility (gate-free) · **IGR-D** the carve becomes completable (Q2 — the big one; ends
 with the in-client Proclamation sighting this review could not deliver) · **IGR-F** the
-minor-court envoy digest (gate-free) · **IGR-E** plunder earns its prompt (Q4, blessed number).
+minor-court envoy digest (gate-free) · ~~**IGR-E** plunder earns its prompt (Q4, blessed number)~~ ✅ **LANDED July 26, 2026**.
 Build order **A → pause for review → B → D → F → E → G**; the two gate-free slices land first
 per the project's slice-review cadence. **✅ GATE BLESSED July 25, 2026 (spec §5, authoritative):** Q1 **(a)** aggregate the log at the view layer keyed `(turn, proposal_type)` · Q2 **(a) scoped to `create_client` + (b) for the rest** — the carve CARRIES into a separate peace (Tilsit), while vassalage/liberation stay settlement-tier and the bilateral route is DISABLED with a stated reason rather than dropping them silently; the G4F-15 armistice ruling stands · ~~Q3~~ struck pre-gate (IGR-C withdrawn) · Q4 **(a)** `PLUNDER_INCOME_MULTIPLIER = 4`, blessed and in-band tunable, with a falsifiable acceptance test (a poor early player plausibly plunders; a rich late one does not) and a recorded dissent that option (b) — stability-vs-authority — is the better design if the number fails twice.
 
@@ -2135,6 +2189,36 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 ## Next Steps (re-staged July 2, 2026)
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
+
+> **▶ NEXT SESSION STARTS HERE (updated July 26, 2026, eighteenth entry): `IGR-G`, THE LAST
+> SLICE IN ROW IGR — AND IT NEEDS SCREENSHOTS PUT TO THE USER FIRST.**
+>
+> **IGR-E is LANDED and pushed** (`c7e30b9` + the GR5 addendum `88e2707`; landing record
+> `INGAME_REVIEW_FIXES_SPEC.md` §2 IGR-E). Suite **15,279/3**. The IGR queue is
+> `~~A~~ · ~~B~~ · ~~D~~ · ~~F~~ · ~~E~~ → **G**`, with `~~C~~` withdrawn pre-gate.
+>
+> **IGR-G is a gate note, not a gate.** Spec §5 says to bring G1 and G2 to the user **with
+> screenshots** before building: G1 re-weights `Utils.clamp_centered_panel`, shared by every
+> centre-anchored popup (IGR-F hit its authored-rect-is-a-ceiling behaviour from the other
+> side and has a worked example); G2 is a **third** tuning pass over map furniture whose
+> visual sign-off has been open since U5. So the first action next session is to produce the
+> screenshots, not to write code.
+>
+> **Two things IGR-E leaves on the table, both already homed** (`BUG_FIXES.md` §IGR-E):
+> **IGR-X4** — the W6-8 estate confiscation windfall is **always exactly 0 gold**, because it
+> reads effective income after stage 1 has left stability ≤ 25. The player is shown
+> *"CONFISCATE (+0 gold, Austria will not forgive it)"* and asked to pay −10 relations and −1
+> trust per cautious marshal for it. It is the same defect IGR-E just fixed, one stage deeper,
+> and its fix re-bases a blessed W6-8/ES-7 number, so it **escalates** rather than riding a
+> tuning slice. Worth putting to the user next to the IGR-G screenshots. **IGR-X5/X6** are P3.
+>
+> **And the dissent, which must not be lost:** gate Q4 recorded that option (b) — recutting the
+> prompt as stability-vs-authority rather than gold — is arguably the better *design*. **If the
+> acceptance test fails at a SECOND multiplier, re-open at (b) rather than tuning a third time.
+> Attempts used: ONE of two (×4, PASSED).**
+>
+> **Also still open and unchanged:** Battle Diorama (row **BD**), then `AI_INTENT_SPEC.md` §11
+> Stage E. *(This entry supersedes the seventeenth.)*
 
 > **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, seventeenth entry): IGR-F, plus
 > INVESTIGATE THE PEACE RELATION FLOOR (`BUG_FIXES.md` IGR-X3).**
