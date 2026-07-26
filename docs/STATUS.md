@@ -4,6 +4,75 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ✅ IGR-F — The small courts write one letter, not five — LANDED July 26, 2026
+
+**User direction: "build IGR-F per spec §2. No gate."** Landing record = spec §2 IGR-F
+(authoritative). Commits `7b91928` (build) + `0d14db7` (the live pass). Suite **15,201/3**,
+ruff clean, parser eval 461/461 mock, M1–M7 and the 40-turn `BASELINE_SERIES`
+byte-identical, Godot parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`,
+`tests/test_igr_f_envoy_digest.py` (83), **20-mutation sweep 20/20**.
+
+Routine asks from the lesser courts (`open_borders` / `non_aggression` / `friendly_gift`
+from a non-major tier) stop arriving as N sequential blocking modals and ride one derived
+**letter-book** instead — the existing mailbox panel, with per-row Accept/Decline and each
+court's own spoken line given room. **No PopupQueue slot** (the 11-key pin holds), **no
+campaign-log type** (140 holds), **no new dialogue dtype**. One new endpoint,
+`POST /mailbox/respond`, activates and answers atomically.
+
+**A 37-agent seam-verification fleet ran before any code was written and corrected the
+spec twice:**
+
+- **`tier == "minor"` is the wrong predicate.** Reis Efendi is the **Ottoman** diplomat and
+  the Ottoman is authored `secondary` — a minor-only test would have left untouched one of
+  the two voice lines the review named as being flattened. It is `!= "major"`. And tier
+  alone is not enough at all: **a minor court suing for peace arrives on the identical
+  `incoming_proposal` dtype**, so the predicate is a conjunction with a positive type
+  allowlist keyed on the *stable* `context["proposal_type"]` — `terms["type"]` is
+  rewritten downstream, and keying there would batch a `design_purchase` province cession
+  as routine mail.
+- **"3–5 per turn" is not what the board does.** Measured over 20–25 ambient turns on two
+  independent harnesses: the maximum routine small-court deliveries in any single turn is
+  **2**, in every run — `MAX_BANDWAGON_PER_TURN` binds. The real shape is a **relentless
+  2-per-turn drip from the same seven courts on 9–16 of 20 turns**, with 11 of 41
+  generated proposals silently discarded by the throttle, 100% minor-tier.
+
+**A pre-existing P1 fixed in passing, reproduced by hand before it was accepted:** the
+popup slot was written unconditionally while `push` makes only the FIRST arrival current,
+so on any multi-proposal turn the client rendered the LAST letter and its id-bound answer
+hit the W6-0 stale guard. Measured — three letters delivered, the response carried
+PapalStates (dialogue_id 3), the active dialogue was Bavaria (dialogue_id 1), Accept came
+back *"another matter has arrived since"*. **The multi-court surface this slice exists to
+fix was already unanswerable.**
+
+**The seam that produces the storm is the safety valve** (`main.py:837-854`), which
+re-derives a modal from the active dialogue on *every* response cycle — literally
+"interrupts a command in flight". `pop()`/`_promote()` deliberately untouched.
+
+**The digest is NOT a route-table entry, and that is the whole reason it works.** Every
+`_post_hud_response_routes` entry returns from `_on_command_result` before
+`_display_result`, so routing it would have swallowed the output of whatever command the
+player had just typed — replacing a storm of modals with a surface that eats your orders.
+It follows the NA-6b discipline: stashed on arrival, raised from the control-return tail
+behind the Proclamation, latched per turn, blanked on the `enemy_phase` response.
+
+**✅ VERIFIED LIVE** — `docs/audits/IGR_F_LETTER_BOOK_2026_07_26.png`. Prussia's
+great-power modal fired first and alone; the command's own output was not swallowed;
+*THE SMALL COURTS WRITE (2)* rendered Reis Efendi and Araujo in full with their own
+Accept/Decline; one inline click signed PEACE → OPEN_BORDERS and dropped the badge 2 → 1
+with no result modal; the row body still opened the full popup with its Counter arm; and
+dismissing then typing another command did **not** re-raise the panel. **One defect found
+by playing it, fixed in-slice:** the panel's authored rect is a *ceiling* for
+`clamp_centered_panel`, so at 600×400 the taller letter rows clipped the second letter —
+raised to 960×720.
+
+**Two of my own tests were inert and both are fixed** (proven by mutation), plus a drive-by:
+`test_nation_agendas_formables.py:1310` scraped a fixed 200 characters after
+`_on_proclamation_dismissed` and de-bound the moment another control-returning branch was
+added ahead of the re-enable — the same false-satisfy shape IGR-B's review found in the
+NA-6 dead-name pin. Now bounded by the next function.
+
+---
+
 ### ✅ IGR-D — The carve becomes completable — LANDED July 25, 2026
 
 **User direction: "Build IGR-D per spec §2", gate Q2 already decided as a SPLIT (spec §5),
