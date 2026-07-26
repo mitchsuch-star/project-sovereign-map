@@ -10,6 +10,8 @@ Design decisions:
 - One-liner formatting with safe .get() defaults throughout
 """
 
+from collections import Counter
+
 from backend.models.intel import FULL, PARTIAL
 
 
@@ -908,6 +910,19 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 # earn a row of its own with its own measurement.
 COLLAPSIBLE_REFUSAL_TYPES = ("ai_ai_proposal_refused",)
 
+# Above this many distinct courts on a side, listing them stops being a
+# sentence and becomes a roster; the aggregate names only the courts that
+# actually carry the burst, or states a bare count if none does.
+COLLAPSE_NAMED_LIMIT = 3
+
+# A real burst is heavy-tailed, not flat: measured live, one page carried
+# {Prussia 10, Austria 4, Denmark 1, Bavaria 1} — four courts, but Prussia
+# alone is 62% of it. Naming by CARDINALITY alone deleted "Prussia knocked
+# on ten doors and was turned away at every one", which is the whole story,
+# because two minors each made one approach. This is the share one or two
+# courts must carry before the sentence names them as the principals.
+COLLAPSE_DOMINANCE = 0.6
+
 
 def collapse_refusal_family(events: list) -> list:
     """Aggregate bursts of court-to-court refusals for DISPLAY only.
@@ -953,6 +968,8 @@ def collapse_refusal_family(events: list) -> list:
     """
     if not events:
         return []
+    events = list(events)      # the caller's contract says list; do not
+                               # silently return [] for any other iterable
 
     buckets: dict = {}
     for index, event in enumerate(events):
@@ -1013,6 +1030,25 @@ def _join_courts(names: list) -> str:
     return f"{', '.join(names[:-1])} and {names[-1]}"
 
 
+def _principal_courts(names, count: int) -> list:
+    """The one or two courts carrying most of a burst, else an empty list.
+
+    Only consulted once a side is too crowded to list outright. Frequency
+    is the point: `collapsed_pairs` keeps every pair, so multiplicity is
+    available, and it is the only thing that separates "Prussia was turned
+    away by ten courts, and two minors also asked around" from a genuinely
+    diffuse season of failed diplomacy.
+    """
+    tally = Counter(name for name in names if name)
+    if len(tally) <= COLLAPSE_NAMED_LIMIT or count <= 0:
+        return []
+    for how_many in (1, 2):
+        top = [name for name, _ in tally.most_common(how_many)]
+        if sum(tally[name] for name in top) >= count * COLLAPSE_DOMINANCE:
+            return top
+    return []
+
+
 def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
     """One honest sentence for a collapsed refusal bucket.
 
@@ -1033,13 +1069,43 @@ def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
     proposers = _unique_in_order(p.get("proposer") for p in pairs)
     refusers = _unique_in_order(p.get("refused_by") for p in pairs)
 
-    if len(proposers) == 1 and len(refusers) > 1:
+    # A SMALL bucket loses nothing: when one side is a single court and the
+    # other is short enough to list, every name in the uncollapsed rows
+    # survives into the aggregate and the collapse is pure profit. Measured
+    # live, the common two- and three-row buckets are exactly this shape,
+    # and rendering them as "Britain rebuffs 2 courts" threw away the two
+    # courts to save one row.
+    if len(proposers) == 1 and len(refusers) <= COLLAPSE_NAMED_LIMIT:
+        return f"{_join_courts(refusers)} rebuff {proposers[0]} ({ptype})"
+    if len(refusers) == 1 and len(proposers) <= COLLAPSE_NAMED_LIMIT:
+        return f"{refusers[0]} rebuffs {_join_courts(proposers)} ({ptype})"
+
+    # One court against a crowd — the crowd becomes a number.
+    if len(proposers) == 1:
         return f"{len(refusers)} courts rebuff {proposers[0]} ({ptype})"
-    if len(refusers) == 1 and len(proposers) > 1:
+    if len(refusers) == 1:
         return f"{refusers[0]} rebuffs {len(proposers)} courts ({ptype})"
-    if 2 <= len(proposers) <= 3:
+
+    # Naming stays symmetric from here: the real board produces both
+    # shapes — one page was 5 askers against 10 courts (genuinely
+    # anonymous), another was 7 approaches falling on just 2 courts, which
+    # is "two courts turned Europe away" and is not a bare count.
+    if 2 <= len(proposers) <= COLLAPSE_NAMED_LIMIT:
         return (f"{count} approaches from {_join_courts(proposers)} "
                 f"are rebuffed ({ptype})")
+    if 2 <= len(refusers) <= COLLAPSE_NAMED_LIMIT:
+        return (f"{count} approaches to {_join_courts(refusers)} "
+                f"are rebuffed ({ptype})")
+
+    # Too many courts to list — name the ones that ARE the burst, if any.
+    chief = _principal_courts((p.get("proposer") for p in pairs), count)
+    if chief:
+        return (f"{count} approaches rebuffed, chiefly from "
+                f"{_join_courts(chief)} ({ptype})")
+    chief = _principal_courts((p.get("refused_by") for p in pairs), count)
+    if chief:
+        return (f"{count} approaches rebuffed, chiefly by "
+                f"{_join_courts(chief)} ({ptype})")
     return f"{count} approaches rebuffed among the courts ({ptype})"
 
 

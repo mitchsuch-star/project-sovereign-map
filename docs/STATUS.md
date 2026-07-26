@@ -7,9 +7,9 @@
 ### ✅ IGR-B — The campaign log becomes readable — LANDED July 25, 2026
 
 **User direction: "Build IGR-B per spec §2", gate Q1 already decided (spec §5, option (a)).**
-**Landing record = spec §2 IGR-B (authoritative).** Suite **15,047**, ruff clean, parser eval
+**Landing record = spec §2 IGR-B (authoritative).** Suite **15,057**, ruff clean, parser eval
 461/461 mock, M1–M7 green, the 40-turn `BASELINE_SERIES` byte-identical,
-`tests/test_igr_b_campaign_log_readable.py` (36). **No `.gd` diff.**
+`tests/test_igr_b_campaign_log_readable.py` (46). **No `.gd` diff.**
 
 One pure `campaign_log.collapse_refusal_family(events)`, called from `GET /campaign_log`
 *after* `filter_campaign_log` (never inside it — 51 test call sites own that contract),
@@ -43,6 +43,27 @@ that AI-3's ladder gate reads.
 - **The residual is stated, not hidden:** the 500-event eviction is producer-side and worse
   than the spec said (**342 of 842 events, 41%, evicted by turn 21 on a zero-action run**).
   Not folded in — the honest lever changes `get_refused_asks` cardinality and therefore AI-3.
+- **A 59-agent find→refute review then took 8 more fixes**, four of them against my *own*
+  tests, each reproduced by hand first: the save-corruption gate ran over a bucket the fog
+  filter had already reduced to one (so nothing collapsed); both AI-3 pins compared
+  all-False to all-False on an empty refusal record; the "fresh list" test appended to a
+  list and asserted a *key* was absent; and nothing pinned that the collapse runs AFTER the
+  fog filter. Headline behaviour fix: **the sentence branched on how many courts there were
+  and not on which ones mattered**, so a measured live burst of `{Prussia 10, Austria 4,
+  Denmark 1, Bavaria 1}` rendered as "16 approaches rebuffed among the courts" — two minors
+  asking once each deleted the fact that Prussia was turned away ten times. It now ranks by
+  frequency, and a short bucket loses no names at all.
+- **Drive-by, pre-existing: 4 of the 7 arms of the NA-6 dead-name pin were non-binding.**
+  `test_get_endpoints_carry_the_overrides_too` sliced a fixed 2,400 characters after each
+  route decorator, overshooting four of the seven bodies into the *next* endpoint, whose own
+  call satisfied the assertion — deleting the overrides from `/campaign_log`, `/dispatch`,
+  `/marshal_overview` or `/status` left it green. Bounded to the real body; mutation-tested
+  3/7 → **7/7** binding.
+- **DECIDED and recorded rather than fixed silently:** the turn header now counts *collapsed*
+  rows ("Turn 3 — 5 events" where 26 happened). It stays: the header has always meant rows in
+  this block, expanding shows exactly that many, the collapsed row states the true number one
+  line below, and gate Q1(a) bought "no Godot diff" with this behaviour. Reversing it is a
+  ~4-line `.gd` change.
 
 ### ✅ IGR-A — Honest copy — LANDED July 25, 2026 (the first slice of row IGR)
 

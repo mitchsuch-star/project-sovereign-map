@@ -324,10 +324,11 @@ silence.
 ### IGR-B — The campaign log becomes readable *(gate Q1)* — ✅ **LANDED July 25, 2026**
 
 > **Landing record — authoritative for what IGR-B actually became.**
-> Tests `tests/test_igr_b_campaign_log_readable.py` (36). Suite 15,047, ruff
-> clean, parser eval **461/461** mock, M1–M7 green and the 40-turn
-> `BASELINE_SERIES` byte-identical. **No `.gd` diff** (see below) — the XR-1
-> boot smoke was run anyway and the log verified live in the client.
+> Tests `tests/test_igr_b_campaign_log_readable.py` (46). Suite **15,057**,
+> ruff clean, parser eval **461/461** mock, M1–M7 green and the 40-turn
+> `BASELINE_SERIES` byte-identical. **No `.gd` diff** (see below); the client
+> booted clean (0 `SCRIPT ERROR`) and the collapsed rows were served by the
+> real backend over HTTP and put through the client's own text transform.
 >
 > **The shape, as blessed:** one pure `collapse_refusal_family(events)` in
 > `campaign_log.py`, called from the `GET /campaign_log` handler *after*
@@ -383,18 +384,37 @@ silence.
 >    `world.event_log` is element-identical and the save string contains no
 >    `collapsed_*` after a `GET /campaign_log`.
 >
-> **The sentence** adapts to the bucket rather than emitting a bare count, and
-> always states the number (the turn header now reads the *collapsed* row
-> count, so a sentence that hid it would delete history silently). All four
-> arms fired on the ambient run:
-> `Britain rebuffs 6 courts (open borders)` ·
-> `22 approaches from Prussia and Bavaria are rebuffed (open borders)` ·
-> `2 courts rebuff Prussia (open borders)` ·
-> `Switzerland rebuffs 2 courts (defensive alliance)`.
+> **The sentence** never emits a bare count when it can name the courts, and
+> always accounts for every approach — either by naming all of them or by
+> stating the true number. The rule is *lose nothing first, then rank by
+> frequency, then count*:
+>
+> | shape | sentence |
+> |---|---|
+> | one court against a short list | `Britain rebuffs Baden, Hesse and Saxony` |
+> | one court against a crowd | `9 courts rebuff Prussia` |
+> | a short list on either side | `22 approaches from Prussia and Bavaria are rebuffed` |
+> | crowded, but one or two courts carry ≥60% | `16 approaches rebuffed, chiefly from Prussia` |
+> | genuinely diffuse | `16 approaches rebuffed among the courts` |
+>
+> **The frequency arm exists because the post-review pass measured the real
+> shape and it is heavy-tailed, not flat:** one live page was
+> `{Prussia 10, Austria 4, Denmark 1, Bavaria 1}` — four distinct askers, so
+> branching on *cardinality alone* fell through to the anonymous arm and
+> deleted "Prussia knocked on ten doors and was turned away at every one",
+> which is the whole story, because two minors each asked once. It was also
+> non-monotonic: since fog is re-evaluated at view time, the bucket gains
+> members as the player's intelligence improves, so learning more made the
+> sentence say less. `collapsed_pairs` already carried the multiplicity;
+> only the uniquing threw it away. Pinned by
+> `test_naming_is_monotonic_as_fog_lifts`.
+>
 > Raw nation tags are preserved deliberately — the client repairs them through
 > `Utils.humanize_nation_keys_in_text`, and the NA-6 formation overrides can
 > only rename a still-raw tag; baking `display_nation` prose here is the §11.8
-> stage-3 dead-name hazard IGR-A hit.
+> stage-3 dead-name hazard IGR-A hit. **Verified by executing the client's own
+> transform headlessly** on the real emitted strings: `PapalStates` →
+> *Papal States*, `KingdomOfItaly` → *Kingdom of Italy*.
 >
 > **⚠ Four further spec claims corrected.** (a) "~60 test call sites" for
 > `filter_campaign_log` — it is **51**. (b) The category cites are `306`/`344`,
@@ -404,9 +424,21 @@ silence.
 > 22 `defensive_alliance` — only the latter repeats on the 6-turn dedupe
 > period. The O(n²) driver is the pair loop, not any single trigger. (d) The
 > stated reason for preferring `(turn, proposal_type)` over
-> `(proposer, proposal_type)` overstates by ~5×: the *visible* burst page
-> carries **2** distinct proposers, not ~10. The decision is still right
-> (23 → 2, and it degrades to the number of types, measured max 2).
+> `(proposer, proposal_type)` overstates the alternative's failure: the
+> *visible* burst page carries **2–5** distinct proposers depending on how
+> much the player has seen, not ~10. The decision is still right (23 → 2, and
+> it degrades to the number of types, measured max 2).
+>
+> **DECIDED — the turn header counts collapsed rows, and stays that way.**
+> `campaign_log.gd` renders `events.size()` under the word "event(s)", so a
+> burst turn's header reads *"Turn 3 — 5 events"* where it used to read 26.
+> The review's refuters split on this. It stays because the header has always
+> meant *rows in this block* and still does — expanding shows exactly that
+> many rows — the collapsed row itself states the true number one line below,
+> and gate Q1(a) bought "no Godot diff" with precisely this behaviour while
+> the Done-when *is* the shrunken page. Reversing it is a ~4-line `.gd`
+> change (sum `collapsed_count`, append "(N approaches)") and forfeits only
+> the no-Godot-diff property.
 >
 > **No Godot diff, deliberately.** `campaign_log.gd` reads exactly two fields,
 > `category` and `display`, and has **zero** automated coverage — it is absent
@@ -415,6 +447,58 @@ silence.
 > "no Godot diff" promised. The turn header's `events.size()` now reads the
 > collapsed count by construction — that *is* the fix, and the sentence carries
 > the number so nothing vanishes unannounced.
+>
+> **Post-landing adversarial review (59 agents, 6 lenses → 2 refuters each) —
+> 26 raw findings, 20 survived, 8 fixed.** Every fix was reproduced by hand
+> before being accepted; the frequency cliff and the blind pin were measured
+> directly rather than taken on the reviewers' word.
+>
+> - **Four of my own tests were vacuous or inert, and I proved each one.**
+>   `test_world_event_log_survives_the_whole_view_pipeline` used a hand-rolled
+>   pair that the fog filter reduced to ONE, so **nothing collapsed** and the
+>   save-corruption gate ran over a pipeline that never took the copy path.
+>   Both AI-3 pins compared `[False]×N` to `[False]×N` on a world whose
+>   `diplomatic_refusals` was `{}` — they now seed the record to a climbed
+>   state and assert `any(before)` first. `test_collapsed_pairs_is_a_fresh_list`
+>   appended to a list then asserted a *key* was absent, which `list.append`
+>   cannot change; it now mutates a nested dict THROUGH the output and diffs
+>   the input against a deep snapshot — the real aliasing gate.
+>   `test_the_count_is_always_stated` asserted only that some digit existed,
+>   which any wrong number satisfies; it is now
+>   `test_every_arm_accounts_for_every_approach` and checks the actual integer
+>   with a word-boundary match across all eight arms.
+> - **Nothing pinned that the collapse runs AFTER the fog filter** — a reorder
+>   would leak fogged courts into `collapsed_pairs` and into the sentence, and
+>   passed 36/36. Now pinned by injecting a deliberately-fogged pair and
+>   asserting neither court appears anywhere in the payload.
+> - **The naming cliff** (above) — the headline, still live after my first
+>   post-review patch.
+> - **A short bucket now loses nothing.** One asker refused by three courts
+>   rendered as "3 courts rebuff Prussia": one row saved, three names thrown
+>   away. When one side is a single court and the other is short enough to
+>   list, every name from the uncollapsed rows survives into the aggregate.
+> - **Drive-by, pre-existing, found by the review and fixed here: 4 of the 7
+>   arms of the NA-6 dead-name pin were non-binding.**
+>   `test_get_endpoints_carry_the_overrides_too` sliced a fixed 2400 characters
+>   after each route decorator, which overshoots four of the seven bodies into
+>   the NEXT endpoint — whose own `_attach_nation_identity_overrides` satisfied
+>   the assertion. **Deleting the call from `/campaign_log`, `/dispatch`,
+>   `/marshal_overview` or `/status` left the pin green.** Verified by mutating
+>   each call out in turn: 3/7 caught before, **7/7 after**. The scrape is now
+>   bounded by the next route decorator (`_endpoint_body`), which also retires
+>   the headroom bookkeeping this slice would otherwise have inherited.
+> - **`collapse_refusal_family` silently returned `[]` for any non-list
+>   iterable**, against its own annotation. One `list(events)`.
+>
+> Recorded as notes rather than fixed, each because the producer and the gate
+> together make them unreachable: `design_ask` collapses under the same rule
+> (0 emitted in 40 ambient turns across 4 seeds, and a bucket of one already
+> passes through intact); branches 1–2 state the distinct-court count rather
+> than the bucket size (needs a duplicate ordered pair, which
+> `REFUSAL_DEDUPE_TURNS=6` forbids); the collapsed row keeps its anchor
+> member's scalar keys (the documented summary shape); and `Ottoman` renders
+> without "Empire" — a pre-existing house-wide divergence shared with
+> `diplomatic_ai_ai_treaty`, which this slice *reduces* rather than introduces.
 >
 > **The residual stands, unfolded:** `MAX_EVENT_LOG_SIZE=500` eviction is
 > producer-side and worse than the spec stated — **342 of 842 events (41%) are

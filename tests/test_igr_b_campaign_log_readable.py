@@ -146,9 +146,20 @@ class TestCollapseShape:
             "battle", REFUSAL, "conquest", "agenda_shift"]
 
     def test_non_dict_entries_survive(self):
+        """Asserting only element 0 would pass a bail-on-first-non-dict
+        implementation and a latch-and-drop-everything-after one alike."""
         events = ["junk", _refusal("Austria", "Prussia")]
         out = collapse_refusal_family(events)
+        assert len(out) == 2
         assert out[0] == "junk"
+        assert out[1] is events[1]
+
+    def test_a_non_list_iterable_is_not_silently_emptied(self):
+        events = [_refusal("Austria", "Prussia"),
+                  _refusal("Austria", "Bavaria")]
+        out = collapse_refusal_family(iter(events))
+        assert len(out) == 1
+        assert out[0]["collapsed_count"] == 2
 
 
 class TestNeverMutatesTheModel:
@@ -168,27 +179,42 @@ class TestNeverMutatesTheModel:
         assert out[0] is not events[0]
         assert "collapsed_count" not in events[0]
 
-    def test_collapsed_pairs_is_a_fresh_list(self):
-        """A nested value shared with the model would still reach the save."""
+    def test_collapsed_pairs_shares_nothing_with_the_model(self):
+        """A nested value aliased to a model dict would still reach the save.
+
+        Mutation must go THROUGH the output and be checked against a
+        deep snapshot of the input — appending to the outer list cannot
+        change an input dict's key set, so a containment assertion would
+        be inert and an aliasing implementation would pass it.
+        """
         events = [_refusal("Austria", "Prussia"),
                   _refusal("Austria", "Bavaria")]
+        snapshot = copy.deepcopy(events)
+
         out = collapse_refusal_family(events)
+        out[0]["collapsed_pairs"][0]["proposer"] = "CORRUPTED"
         out[0]["collapsed_pairs"].append({"proposer": "X", "refused_by": "Y"})
-        assert all("collapsed_pairs" not in e for e in events)
+
+        assert events == snapshot
+        assert all(e["proposer"] == "Austria" for e in events)
 
     def test_world_event_log_survives_the_whole_view_pipeline(self):
-        """The end-to-end gate: filter -> collapse leaves the log pristine."""
-        world = WorldState()
-        world.event_log.extend([
-            _refusal("Austria", "Prussia"),
-            _refusal("Austria", "Bavaria"),
-            {"type": "battle", "turn": 3, "nation": world.player_nation},
-        ])
+        """The end-to-end gate: filter -> collapse leaves the log pristine.
+
+        Built on the burst fixture deliberately. A hand-rolled pair is NOT
+        enough: in a bare world the fog filter drops all but one of them,
+        so nothing collapses and the assertion below passes over a pipeline
+        that never exercised the copy.
+        """
+        world = _world_with_a_visible_burst()
         snapshot = copy.deepcopy(world.event_log)
         ids = [id(e) for e in world.event_log]
 
-        collapse_refusal_family(filter_campaign_log(world.event_log, world))
+        out = collapse_refusal_family(
+            filter_campaign_log(world.event_log, world))
 
+        assert any(e.get("collapsed_count") for e in out), (
+            "the fixture must actually collapse something")
         assert world.event_log == snapshot
         assert [id(e) for e in world.event_log] == ids
         assert "collapsed_count" not in json.dumps(world.to_dict())
@@ -259,17 +285,30 @@ class TestCollapsedLine:
         assert format_event_oneliner(event) == (
             "Prussia rebuffs Austria (open borders)")
 
-    def test_one_proposer_many_refusers(self):
-        """The story: 'N courts rebuff X'. Measured live on turns 5, 6, 12."""
+    def test_a_short_bucket_loses_nothing_at_all(self):
+        """One asker, three refusals: the aggregate names every court the
+        three uncollapsed rows named, in one row. Collapsing is free."""
         line = _line([("Prussia", "Baden"), ("Prussia", "Hesse"),
                       ("Prussia", "Saxony")])
-        assert line == "3 courts rebuff Prussia (open borders)"
+        assert line == "Baden, Hesse and Saxony rebuff Prussia (open borders)"
 
-    def test_one_refuser_many_proposers(self):
-        """Measured live on turns 2 and 13."""
+    def test_a_short_bucket_loses_nothing_in_the_mirror_shape_either(self):
+        """Measured live: this is the common two- and three-row bucket, and
+        it used to render as 'Britain rebuffs 3 courts' — one row saved at
+        the cost of three names."""
         line = _line([("Baden", "Britain"), ("Hesse", "Britain"),
                       ("Saxony", "Britain")])
-        assert line == "Britain rebuffs 3 courts (open borders)"
+        assert line == "Britain rebuffs Baden, Hesse and Saxony (open borders)"
+
+    def test_one_proposer_against_a_crowd_counts_the_crowd(self):
+        """The story: 'N courts rebuff X' — past listing, a count is the
+        only readable form."""
+        line = _line([("Prussia", f"Court{i}") for i in range(9)])
+        assert line == "9 courts rebuff Prussia (open borders)"
+
+    def test_one_refuser_against_a_crowd_counts_the_crowd(self):
+        line = _line([(f"Court{i}", "Britain") for i in range(9)])
+        assert line == "Britain rebuffs 9 courts (open borders)"
 
     def test_few_proposers_are_named(self):
         """Measured live on turn 3 — the burst turn."""
@@ -284,21 +323,98 @@ class TestCollapsedLine:
         assert line == ("4 approaches from Prussia, Bavaria and Saxony "
                         "are rebuffed (open borders)")
 
-    def test_many_proposers_fall_back_to_the_anonymous_count(self):
-        pairs = [(f"P{i}", f"R{i}") for i in range(6)]
+    def test_few_refusers_are_named_too(self):
+        """Measured live: turn 2 was 7 approaches falling on just 2 courts —
+        a story, and it rendered as a bare count until naming went
+        symmetric."""
+        pairs = [(f"P{i}", "Britain" if i % 2 else "Russia") for i in range(7)]
         line = _line(pairs)
-        assert line == "6 approaches rebuffed among the courts (open borders)"
+        assert line == ("7 approaches to Russia and Britain "
+                        "are rebuffed (open borders)")
 
-    def test_the_count_is_always_stated(self):
-        """The turn header now shows the collapsed row count, so a sentence
-        that hid the number would delete history silently."""
-        for pairs in (
-            [("Prussia", "Baden"), ("Prussia", "Hesse")],
-            [("Baden", "Britain"), ("Hesse", "Britain")],
-            [("Prussia", "Baden"), ("Bavaria", "Hesse")],
-            [(f"P{i}", f"R{i}") for i in range(6)],
-        ):
-            assert any(ch.isdigit() for ch in _line(pairs))
+    def test_the_measured_burst_names_its_principal(self):
+        """The real shape, taken off a live board: proposers
+        {Prussia 10, Austria 4, Denmark 1, Bavaria 1} over 10 refusers.
+
+        Four distinct askers, so cardinality alone sends this to the
+        anonymous arm and deletes 'Prussia knocked on ten doors and was
+        turned away at every one' because two minors each asked once.
+        Prussia is 62% of the burst and must be named.
+        """
+        pairs = ([("Prussia", f"R{i}") for i in range(10)]
+                 + [("Austria", f"R{i}") for i in range(4)]
+                 + [("Denmark", "R0"), ("Bavaria", "R1")])
+        assert _line(pairs) == ("16 approaches rebuffed, chiefly from "
+                                "Prussia (open borders)")
+
+    def test_two_principals_are_named_when_neither_dominates_alone(self):
+        pairs = ([("Prussia", f"R{i}") for i in range(6)]
+                 + [("Austria", f"R{i}") for i in range(6)]
+                 + [("Denmark", "R0"), ("Bavaria", "R1")])
+        assert _line(pairs) == ("14 approaches rebuffed, chiefly from "
+                                "Prussia and Austria (open borders)")
+
+    def test_a_crowded_refused_side_names_its_principal_too(self):
+        pairs = ([(f"P{i}", "Britain") for i in range(9)]
+                 + [(f"P{i}", f"R{i}") for i in range(4)])
+        assert _line(pairs) == ("13 approaches rebuffed, chiefly by "
+                                "Britain (open borders)")
+
+    def test_a_genuinely_flat_burst_stays_anonymous(self):
+        """Anonymity is CORRECT when no court carries the burst — the
+        sentence must not invent a protagonist out of a diffuse season."""
+        pairs = [(f"P{i}", f"R{i}") for i in range(6)]
+        assert _line(pairs) == (
+            "6 approaches rebuffed among the courts (open borders)")
+
+    def test_naming_is_monotonic_as_fog_lifts(self):
+        """Fog is re-evaluated at VIEW time, so a bucket gains members as
+        intelligence improves. Learning more must never make the sentence
+        say less: adding two one-off minors to a Prussia-dominated burst
+        used to flip it from named to anonymous."""
+        core = [("Prussia", f"R{i}") for i in range(10)]
+        assert "Prussia" in _line(core)
+        assert "Prussia" in _line(core + [("Denmark", "R0")])
+        assert "Prussia" in _line(core + [("Denmark", "R0"),
+                                          ("Bavaria", "R1")])
+        assert "Prussia" in _line(core + [("Denmark", "R0"),
+                                          ("Bavaria", "R1"),
+                                          ("Naples", "R2")])
+
+    def test_proposers_are_named_before_refusers_when_both_are_short(self):
+        pairs = [("Prussia", "Britain"), ("Bavaria", "Russia")]
+        assert _line(pairs).startswith("2 approaches from Prussia and Bavaria")
+
+    def test_every_arm_accounts_for_every_approach(self):
+        """Nothing may vanish unannounced: each arm either NAMES every court
+        it stands for, or states the true number. `any(isdigit())` would
+        pass a hardcoded constant — the number itself is checked here, and
+        every arm of the sentence is exercised.
+        """
+        import re
+        crowd = [(f"P{i}", f"R{i}") for i in range(6)]
+        skewed = ([("Prussia", f"R{i}") for i in range(10)]
+                  + [("Austria", f"R{i}") for i in range(4)]
+                  + [("Denmark", "R0"), ("Bavaria", "R1")])
+        cases = [
+            [("Prussia", "Baden"), ("Prussia", "Hesse")],               # both short
+            [("Baden", "Britain"), ("Hesse", "Britain")],               # both short
+            [("Prussia", f"R{i}") for i in range(6)],                   # one v crowd
+            [(f"P{i}", "Britain") for i in range(6)],                   # crowd v one
+            [("Prussia", "B1"), ("Prussia", "B2"),
+             ("Bavaria", "B3"), ("Bavaria", "B4")],                     # few proposers
+            [(f"P{i}", "Britain" if i % 2 else "Russia")
+             for i in range(7)],                                        # few refusers
+            skewed,                                                     # dominant
+            crowd,                                                      # anonymous
+        ]
+        for pairs in cases:
+            line = _line(pairs)
+            named = {p for p, _ in pairs} | {r for _, r in pairs}
+            states_count = re.search(rf"\b{len(pairs)}\b", line) is not None
+            names_all = all(court in line for court in named)
+            assert states_count or names_all, (
+                f"{line!r} neither states {len(pairs)} nor names every court")
 
     def test_the_proposal_type_is_always_named(self):
         line = _line([("Prussia", "Baden"), ("Prussia", "Hesse")],
@@ -427,21 +543,56 @@ class TestContracts:
         assert all("collapsed_count" not in e for e in raw)
 
     def test_the_ai3_ladder_gate_is_untouched(self):
-        """The refusal RECORD is AI-3's substrate; the view never reaches it."""
+        """The refusal RECORD is AI-3's substrate; the view never reaches it.
+
+        The record is SEEDED to a climbed state first. Without that the
+        fixture's `diplomatic_refusals` is `{}` and `_ladder_climbed`
+        returns False for every pair, so the assertion would compare
+        all-False against all-False and pin nothing.
+        """
+        from backend.game_logic.ai_diplomacy import record_diplomatic_refusal
         from backend.game_logic.war_council import _ladder_climbed
         world = _world_with_a_visible_burst()
         courts = list(world.enemy_nations)[:5]
-        before = [_ladder_climbed(world, a, b)
-                  for a in courts for b in courts if a != b]
+
+        # Two refusals on one ordered pair = the CRISIS_REFUSALS_REQUIRED
+        # threshold, so at least one reading is True and the pin has teeth.
+        record_diplomatic_refusal(world, courts[0], courts[1], "open_borders")
+        record_diplomatic_refusal(world, courts[0], courts[1],
+                                  "defensive_alliance")
+        pairs = [(a, b) for a in courts for b in courts if a != b]
+        before = [_ladder_climbed(world, a, b) for a, b in pairs]
+        assert any(before), "the seeded record must climb at least one ladder"
 
         collapse_refusal_family(filter_campaign_log(world.event_log, world))
 
-        after = [_ladder_climbed(world, a, b)
-                 for a in courts for b in courts if a != b]
+        after = [_ladder_climbed(world, a, b) for a, b in pairs]
         assert before == after
 
     def test_the_producer_record_is_not_written_by_the_view(self):
+        from backend.game_logic.ai_diplomacy import record_diplomatic_refusal
         world = _world_with_a_visible_burst()
+        courts = list(world.enemy_nations)[:3]
+        record_diplomatic_refusal(world, courts[0], courts[1], "open_borders")
+        assert world.diplomatic_refusals, "the pin needs a non-empty record"
+
         before = copy.deepcopy(world.diplomatic_refusals)
         collapse_refusal_family(filter_campaign_log(world.event_log, world))
         assert world.diplomatic_refusals == before
+
+    def test_the_collapse_runs_after_the_fog_filter(self):
+        """Order is load-bearing: collapsing the RAW log would leak fogged
+        courts into `collapsed_pairs` and into the rendered sentence."""
+        world = _world_with_a_visible_burst()
+        world.event_log.append(
+            _refusal("SecretCourtA", "SecretCourtB", ptype="open_borders"))
+
+        visible = filter_campaign_log(world.event_log, world)
+        assert not any(e.get("proposer") == "SecretCourtA" for e in visible), (
+            "fixture must keep the extra pair fogged")
+
+        payload = TestEndpoint()._get(world)
+        rows = [e for tb in payload["turns"] for e in tb["events"]]
+        blob = json.dumps(rows)
+        assert "SecretCourtA" not in blob
+        assert "SecretCourtB" not in blob

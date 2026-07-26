@@ -17,9 +17,26 @@ deck — `test_formable_authored_below_the_first_entry_still_fires` and
 pins that fail if anyone "simplifies" it back to `get_active_agenda`.
 """
 
+import re
 from pathlib import Path
 
 import pytest
+
+
+def _endpoint_body(source: str, decorator: str) -> str:
+    """The source of ONE route handler, bounded by the next route decorator.
+
+    A fixed character window is not safe here: four of the seven bodies
+    this module scrapes are shorter than the 2400 chars it used to slice,
+    so the window ran on into the following endpoint and that endpoint's
+    call satisfied the assertion. The pin stayed green with the call under
+    test deleted. Found by the IGR-B review.
+    """
+    start = source.index(decorator)
+    rest = source[start + len(decorator):]
+    nxt = re.search(r'@app\.(get|post)\("', rest)
+    end = start + len(decorator) + (nxt.start() if nxt else len(rest))
+    return source[start:end]
 
 from backend.game_logic.agendas import (
     build_agenda_payload, get_active_agenda,
@@ -828,7 +845,15 @@ class TestResponsePayload:
     def test_get_endpoints_carry_the_overrides_too(self):
         """§11.8 stage 3: a player who LOADS a save with formations and
         opens a ledger before issuing any command must not read the dead
-        name. Pinned by source-scrape over the hand-rolled GET payloads."""
+        name. Pinned by source-scrape over the hand-rolled GET payloads.
+
+        The scrape is bounded by the NEXT route decorator, not by a magic
+        character count. Found by the IGR-B review: a fixed 2400-char
+        window overshot four of these seven bodies into the following
+        endpoint, whose own call satisfied the assertion — so deleting the
+        overrides from `/marshal_overview`, `/dispatch`, `/campaign_log`
+        or `/status` left this pin green.
+        """
         import inspect
 
         from backend import main as main_module
@@ -837,8 +862,7 @@ class TestResponsePayload:
                          '@app.get("/marshal_overview")', '@app.get("/dispatch")',
                          '@app.get("/campaign_log")', '@app.get("/map_topology")',
                          '@app.get("/status")'):
-            start = source.index(endpoint)
-            body = source[start:start + 2400]
+            body = _endpoint_body(source, endpoint)
             assert "_attach_nation_identity_overrides" in body, (
                 f"{endpoint} does not stamp the NA-6 identity overrides"
             )
@@ -1213,8 +1237,7 @@ class TestNoDeadNameInProse:
         import inspect
         from backend import main as main_module
         source = inspect.getsource(main_module)
-        start = source.index('@app.get("/campaign_log")')
-        body = source[start:start + 2400]
+        body = _endpoint_body(source, '@app.get("/campaign_log")')
         assert "_formations_history_names" in body
 
     def test_history_rename_is_inert_with_no_formations(self, world):
