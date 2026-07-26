@@ -4,6 +4,80 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ▶ WHAT'S NEXT (as of July 26, 2026 — end of the IGR-F / IGR-X3 session)
+>
+> **The IGR queue** (`docs/INGAME_REVIEW_FIXES_SPEC.md`, gate record §5):
+> ~~IGR-A~~ ✅ · ~~IGR-B~~ ✅ · ~~IGR-D~~ ✅ · ~~IGR-F~~ ✅ → **▶ IGR-E** → **IGR-G**.
+> ~~IGR-C~~ withdrawn pre-gate.
+>
+> 1. **▶ IGR-E — "Plunder earns its prompt."** *No gate needed — Q4 is already
+>    DECIDED (spec §5): `PLUNDER_INCOME_MULTIPLIER = 4`, a blessed, in-band tunable
+>    number.* Plundering Nassau paid **87 gold** against a 3,085/turn income and a
+>    5,177g treasury, so Secure was strictly correct in every situation the review
+>    met — a modal that stops the game to ask a question with one right answer.
+>    Ships with the spec's own falsifiable acceptance test: *a turn-3 player under
+>    ~2,000g should plausibly plunder; a turn-20 player over ~20,000g should not.*
+>    **Recorded dissent to carry into the build:** option (b) — recutting the prompt
+>    as stability-vs-authority rather than gold — is arguably the better design. If
+>    the acceptance test fails at two different multipliers, **re-open at (b) rather
+>    than tuning a third time.**
+> 2. **IGR-G — two legibility fixes.** ⚠️ **Bring these to the user WITH SCREENSHOTS
+>    before building** (spec §5 gate note). G1 re-weights `Utils.clamp_centered_panel`,
+>    a helper shared by every centre-anchored popup — IGR-F already hit its
+>    authored-rect-is-a-ceiling behaviour from the other side and has a worked example.
+>    G2 is a **third** tuning pass over map furniture whose visual sign-off has been
+>    open since U5.
+>
+> **Then:** the Battle Diorama (ROADMAP row **BD**, eval verdict BUILD-IT), followed
+> by AI Intent Stage E (`AI_INTENT_SPEC.md` §11).
+>
+> **Nothing is blocked on a user decision right now** except IGR-G's screenshots.
+
+### ✅ IGR-X3 — A beaten enemy signs; it does not have to like you first — LANDED July 26, 2026
+
+**User direction after the recommendation was put to them: "Everything, incl. armistice
+thaw".** Landing record = `docs/BUG_FIXES.md` §IGR-X3 (authoritative). Commit `0a62c54`.
+Suite **15,234/3** at landing, `tests/test_igr_x3_peace_relation_floor.py` (33).
+
+`STATE_RELATION_REQUIREMENTS["PEACE"]` is now `None`. Ending a war is not an act of
+friendship — Pressburg and Tilsit were signed at the maximum of mutual hatred *because* of
+how the war had gone. What prices a peace is war score, position and exhaustion, all of
+which `calculate_acceptance` already weighs. **The rows above PEACE are untouched**:
+`validate_transition` permits any upward jump, so they are the only thing preventing
+`WAR → ALLIANCE`. Nobody has to like you to stop shooting; somebody does have to like you
+to march beside you.
+
+**The truce now actually cools tempers** — `_process_relation_decay` no longer lumps
+ARMISTICE in with WAR. `ARMISTICE_THAW_PER_TURN = 3`; WAR still freezes. Measured:
+Britain −90 → −75 over one five-turn truce, and a second carries it to −60 and
+`armistice_expired_peace`.
+
+**Plus the two P1s that were independent of the floor:** `_handle_accept_ai_proposal`
+reported a *refused* ratification as an acceptance (measured verbatim: `success: true`
+with *"You have accepted Britain's proposal. Relations with France are insufficient for
+PEACE"* — offer consumed, cooldown applied, war carrying on); and the one place the game
+taught the escape described a mechanism that did not exist.
+
+**⚠ Three claims in the bug row were wrong, one of them mine.** "Can they recover? No" is
+refuted — `mission_improve_relations` IS offered in the ARMISTICE branch, so the war was
+endable by an undiscoverable ritual, not impossible. The IGR-D residual's −95/−100/−95
+boot relations are wrong; −90/−80/−80 are right. And the floor was never gate-blessed: it
+was authored as the armistice-EXPIRY branch condition and switched on when a cleanup
+commit wired a function that had been dead for three days. **Option (b), war-score-aware
+relief, was NOT built — it is inert**: `cleanup_war_end` pops the war score on any
+WAR→non-WAR transition, so relief at ARMISTICE would always be 0.
+
+**⚠ Byte-identity finding, reported not buried.** M1–M7 and the 40-turn `BASELINE_SERIES`
+are unchanged — and the honest reason is that **the ambient harness never enters ARMISTICE
+at all** (measured: 0 armistice turns in 40). The thaw is symmetric and WILL move AI-AI
+relations in a played game; the harness cannot see it.
+
+**Five tests consciously flipped or re-sited**, including
+`test_conflict_alert_accept_anyway_ratifies` — which had been asserting a lie since it was
+written: its fixture never cleared the ALLIANCE floor, so the treaty it claims to ratify
+was refused and the handler reported success anyway. It only went red once the swallow was
+closed.
+
 ### ✅ IGR-F — The small courts write one letter, not five — LANDED July 26, 2026
 
 **User direction: "build IGR-F per spec §2. No gate."** Landing record = spec §2 IGR-F
