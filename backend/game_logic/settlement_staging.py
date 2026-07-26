@@ -289,7 +289,13 @@ PAIR_SUBSTITUTE_CARRIED_TYPES = frozenset({
 })
 
 # Player-facing names for the settlement-tier clauses, for the honest warning.
+# EVERY clause type the guided authoring surface can put on a court must have
+# a row here or travel — a type in neither set is dropped in total silence,
+# which is the whole defect IGR-D exists to close. `subjugation` was exactly
+# that hole: it is offered by `Add demand`, it cannot travel, and it was
+# named nowhere.
 _PAIR_SUBSTITUTE_DROPPED_LABELS = {
+    "subjugation": "subjugation",
     "vassalage": "vassalage",
     "liberation": "liberation",
     "forced_alliance": "a forced alliance",
@@ -298,25 +304,44 @@ _PAIR_SUBSTITUTE_DROPPED_LABELS = {
     "vassal_transfer": "transferring a vassal",
 }
 
+# Labels for types that USUALLY travel but can fail their direction test.
+_CARRIED_TYPE_FALLBACK_LABELS = {
+    "create_client": "erecting a client state for another power",
+}
+
 
 def pair_substitute_dropped_clause_labels(
     settlement_terms: Any,
     *,
     target: str,
+    proposer_leader: str = "",
 ) -> List[str]:
     """Player-facing labels for clauses authored against ``target`` that the
-    bilateral handoff cannot carry. Empty when everything travels."""
+    bilateral handoff cannot carry. Empty when everything travels.
+
+    ``proposer_leader`` exists because membership of
+    `PAIR_SUBSTITUTE_CARRIED_TYPES` is necessary but not sufficient: the seed
+    carries a `create_client` only when the carver is the proposer too, since
+    the bilateral demand dialect derives direction from which list a term sat
+    in and would otherwise re-stamp the player as the carver of an ALLY's
+    client. Such a carve is settlement-tier in practice, and without this it
+    became the one clause dropped in total silence — the regression IGR-D
+    introduced by moving the type into the carried set.
+    """
     labels: List[str] = []
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
         ttype = str(term.get("type") or "")
         if ttype in PAIR_SUBSTITUTE_CARRIED_TYPES:
-            continue
+            if not (ttype == "create_client" and proposer_leader
+                    and str(term.get("to") or "") != proposer_leader):
+                continue
         # Only clauses aimed AT this court are at stake in these talks.
         if str(term.get("from") or "") != target and str(term.get("to") or "") != target:
             continue
-        label = _PAIR_SUBSTITUTE_DROPPED_LABELS.get(ttype)
+        label = _PAIR_SUBSTITUTE_DROPPED_LABELS.get(
+            ttype, _CARRIED_TYPE_FALLBACK_LABELS.get(ttype))
         if label and label not in labels:
             labels.append(label)
     return labels
@@ -333,6 +358,7 @@ def pair_substitute_settlement_tier_block(
     settlement_terms: Any,
     *,
     target: str,
+    proposer_leader: str = "",
 ) -> str:
     """IGR-D gate Q2(b): the reason the bilateral peace is refused, or "".
 
@@ -348,7 +374,7 @@ def pair_substitute_settlement_tier_block(
     reads the same set, so the two halves of the split can never drift.
     """
     dropped = pair_substitute_dropped_clause_labels(
-        settlement_terms, target=target,
+        settlement_terms, target=target, proposer_leader=proposer_leader,
     )
     if not dropped:
         return ""
@@ -371,19 +397,35 @@ def _pair_substitute_carry_description(
     lie the review's R5 fix did not reach (it only corrected the peace arm's
     clause-tier omission).
     """
-    base = (
-        "Set aside the joint settlement; the other courts stay at war. "
-        f"Your drafted terms for {selected_target} carry into the talks"
+    staged_leaders = current_dialogue.get("staged_leaders") or {}
+    proposer_leader = str(
+        staged_leaders.get(str(current_dialogue.get("proposer_side") or ""))
+        or ""
     )
-    if proposal_type == "armistice":
-        return (
-            "Set aside the joint settlement; the other courts stay at war. "
-            f"A truce with {selected_target} carries what you OFFER — every "
-            "demand you drafted waits for a peace table."
-        )
+    # Computed for BOTH arms. Returning early on the armistice skipped it,
+    # so a truce named nothing it abandoned — and since a settlement-tier
+    # clause now DISABLES the peace arm, the armistice is exactly where a
+    # blocked player is funnelled.
     dropped = pair_substitute_dropped_clause_labels(
         current_dialogue.get("settlement_terms") or [],
         target=selected_target,
+        proposer_leader=proposer_leader,
+    )
+    if proposal_type == "armistice":
+        line = (
+            "Set aside the joint settlement; the other courts stay at war. "
+            f"A truce with {selected_target} carries what you OFFER — every "
+            "demand you drafted is set aside with the joint draft."
+        )
+        if dropped:
+            line += (
+                f" {_humanize_label_list(dropped).capitalize()} can only be "
+                "sealed at a joint settlement."
+            )
+        return line
+    base = (
+        "Set aside the joint settlement; the other courts stay at war. "
+        f"Your drafted terms for {selected_target} carry into the talks"
     )
     if not dropped:
         return base + "."
@@ -2669,6 +2711,7 @@ def build_settlement_confirm_dialogue(
             if action_id == "seek_bilateral_peace":
                 tier_block = pair_substitute_settlement_tier_block(
                     staged_terms_for_gate, target=resolved_target,
+                    proposer_leader=actor_for_substitute,
                 )
                 if tier_block:
                     options.append({

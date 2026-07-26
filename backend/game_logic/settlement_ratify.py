@@ -21,7 +21,6 @@ from backend.game_logic.settlement_scoring import (
     SETTLEMENT_HARD_STOP_CODES,
     TOTAL_ANNEXATION_WAR_SCORE,
 )
-from backend.game_logic.formations import CARVE_LOYALTY
 from typing import (
     Any,
     Dict,

@@ -1222,10 +1222,13 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	# will NOT travel, and (on the armistice arm) that no demand travels at
 	# all — but it only ever reached a hover tooltip, so the body text kept
 	# making the exact promise the review caught it breaking.
+	# No fallback sentence, deliberately: the old hardcoded line IS the
+	# promise this became data-driven in order to stop making, so restoring
+	# it whenever the key is missing would put the lie straight back on the
+	# one arm (armistice) that provably cannot keep it.
 	var carry_line = str(data.get("carry_line", ""))
-	if carry_line == "":
-		carry_line = "Your drafted terms for %s carry into the talks." % Utils.display_nation_name(target)
-	bbcode += "[color=#80b0e0]%s[/color]\n" % Utils.humanize_nation_keys_in_text(carry_line)
+	if carry_line != "":
+		bbcode += "[color=#80b0e0]%s[/color]\n" % Utils.humanize_nation_keys_in_text(carry_line)
 	bbcode += "[color=#a0a0a8]The joint draft stays untouched if you cancel.[/color]\n\n"
 	var ttext = str(data.get("talleyrand_text", ""))
 	if ttext != "":

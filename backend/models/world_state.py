@@ -8728,7 +8728,49 @@ class WorldState:
             if _is_peace_ratification:
                 from backend.game_logic.diplomacy import build_peace_ratification_summary
                 from backend.game_logic.diplomatic_templates import annotate_peace_terms as _ann
-                _annotated_for_summary = _ann(proposal, proposer, target_nation)
+                # IGR-D: annotate what was RATIFIED, not what was asked for.
+                # `terms_ratified` is built from these annotations, and a
+                # `create_client` demand is the one clause that can be
+                # refused at ratification on its own merits — the eligibility
+                # re-check runs a full turn after the player committed, and
+                # an enemy corps retaking the soil in the meantime is the
+                # ordinary case (it happened twice in this slice's own live
+                # probing). Annotating the SUBMITTED proposal told the player
+                # "France erects the Duchy of Warsaw out of Prussia" over a
+                # treaty that erected nothing — the exact silent lie this
+                # slice exists to kill, one surface downstream.
+                _applied_carve_tags = {
+                    str(c.get("tag") or "") for c in applied_treaty_clauses
+                    if c.get("type") == "create_client"
+                }
+                _summary_proposal = proposal
+                _refused_carves = [
+                    d for d in (proposal.get("demands") or [])
+                    if isinstance(d, dict) and d.get("type") == "create_client"
+                    and str(d.get("tag") or "") not in _applied_carve_tags
+                ]
+                if _refused_carves:
+                    _summary_proposal = dict(proposal)
+                    _summary_proposal["demands"] = [
+                        d for d in (proposal.get("demands") or [])
+                        if d not in _refused_carves
+                    ]
+                _annotated_for_summary = _ann(
+                    _summary_proposal, proposer, target_nation)
+                # ...and say so out loud. Dropping the row would stop the
+                # lie; naming the loss is what lets the player understand
+                # why the nation they drafted is not on the map.
+                applied_penalties = list(applied_penalties)
+                for _rc in _refused_carves:
+                    _rc_name = str(_rc.get("client_display_name")
+                                   or _rc.get("tag") or "the client state")
+                    applied_penalties.append({
+                        "display": (
+                            f"{_rc_name} could not be erected — the ground "
+                            f"named in the article was no longer ours when "
+                            f"the treaty was signed"
+                        ),
+                    })
                 summary_treaty = treaty.copy()
                 summary_treaty["clauses"] = [c.copy() for c in applied_treaty_clauses]
                 peace_ratification_summary = build_peace_ratification_summary(

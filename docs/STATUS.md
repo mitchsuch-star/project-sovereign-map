@@ -51,6 +51,24 @@ another. That last one is why the first delivery test failed while every unit te
   stable, loyal, and useful — using the drift system's own levers rather than exempting the
   carve from them. The relation outlives vassalage, so a Warsaw later freed to proclaim
   Poland stays France's friend.
+- **✅ Must-see #4 CLOSED — the Proclamation was sighted in-client** (screenshot
+  `docs/audits/IGR_D_PROCLAMATION_2026_07_25.png`): real client, real backend, the carve
+  carried into a peace with Prussia alone. *"it answers to France as a satellite (loyalty
+  60) · it marches when France calls, and pays tribute … By your hand."*
+- **Post-landing review (8 lenses x 2 refuters, 39 agents): 5 production + 10 test defects
+  fixed; a 10-mutation sweep now catches 10/10.** The headline is that the slice
+  **re-committed its own defect one surface downstream** — `terms_ratified` was annotated
+  from the SUBMITTED proposal, so a carve the new gate correctly refused still told the
+  player the Duchy had been erected. Not hypothetical: my own live probing hit that refusal
+  twice (Prussia retook Posen; then **Russia walked into it**). Also fixed: `subjugation`
+  was in neither the carried set nor the labels (silently dropped, and the guard test
+  iterated the very dict it was missing from); the split left an *ally-beneficiary* carve
+  as the one clause dropped with no word; the armistice arm stopped naming what it
+  abandons — the arm arm-B funnels blocked players onto; and Talleyrand still called a
+  dismemberment "too generous" on the slice's own blessed package.
+- **Ten of my own tests were vacuous**, each proven by reverting the production fix and
+  watching the test stay green — the counter-offer fix had **zero** coverage, and arm B's
+  entire coverage was source-string matching that already passed on master.
 - **Residual, stated not hidden:** bilateral peace with a **boot** enemy is unreachable
   (the pre-existing −60 relation floor vs −95/−100 boot war relations, decay skips
   WAR/ARMISTICE). The reviewed Prussia case — and Tilsit — measures −40 and works.

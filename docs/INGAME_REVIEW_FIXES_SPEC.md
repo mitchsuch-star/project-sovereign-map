@@ -738,6 +738,57 @@ rendered rows** on historical (Sweden→Austria at the fight rung, turns 8–41)
 > dormant Poland dream with `blocked_by_vassalage` — legible without becoming a promise
 > the poll cannot keep.
 >
+> ---
+>
+> **✅ MUST-SEE #4 IS CLOSED — the Proclamation was sighted in-client**, screenshot
+> `docs/audits/IGR_D_PROCLAMATION_2026_07_25.png`: the real Godot client, the real backend,
+> the carve carried into a bilateral peace with Prussia alone, ratified on the end-turn
+> tick. *A NATION IS PROCLAIMED / Duchy of Warsaw … it answers to France as a satellite
+> (loyalty 60) · it marches when France calls, and pays tribute … By your hand.* Live
+> `/formables` afterwards states the C→T chain honestly: *"forms when a free Duchy of
+> Warsaw holds all 2 of its claimed provinces"* + *"currently a vassal of France"*.
+>
+> **Post-landing adversarial review (8 lenses → 2 refuters each, 39 agents) — every
+> surviving finding reproduced by hand before it was accepted. 5 production defects and
+> 10 test defects fixed; a 10-mutation sweep now catches 10/10.**
+>
+> The headline is that **the slice re-committed its own defect one surface downstream**:
+> `terms_ratified` was annotated from the *submitted* proposal, so a carve the new
+> eligibility gate correctly REFUSED at ratification still told the player *"France erects
+> Duchy of Warsaw (Posen) out of Prussia"* over a treaty that erected nothing. Not a corner
+> case — a full turn passes in transit, and this slice's own live probing hit the refusal
+> twice (Prussia retook Posen once; **Russia walked into it** the next time). The summary
+> now reconciles against `applied_treaty_clauses` **and names the loss** rather than merely
+> omitting it.
+>
+> - **`subjugation` was in NEITHER set** — not carried, not labelled — so the bilateral
+>   route threw it away in total silence. And the guard test could not see it: it iterated
+>   the very dict the type was missing from. The replacement walks
+>   `_DEMAND_ADDABLE_CLAUSE_TYPES` — what the authoring surface can actually produce.
+> - **The split reopened the hole it closed for one case.** Moving `create_client` into the
+>   carried set deleted its dropped-label row, but the seed only carries a carve whose
+>   CARVER is the proposer — so an *ally-beneficiary* carve became the one clause dropped
+>   with no word at all, under a chooser promising a clean carry.
+> - **The armistice arm stopped naming what it abandons** (my early return skipped the
+>   `dropped` computation) — and arm B funnels a blocked player onto exactly that arm.
+> - **Talleyrand still called a dismemberment "too generous"** on the slice's OWN blessed
+>   package: the carve's 0.35 minus the unconditional −0.1 per sweetener = 0.25, under the
+>   0.3 bar, so the measured-acceptable Tilsit got an unauthored 50 g/turn tribute bolted
+>   on. Now floored by a named `TOO_GENEROUS_HARSHNESS`.
+> - **Ten of my own tests were vacuous or inert**, each proven by mutating the production
+>   code and watching the test stay green: the counter-offer fix had **zero** coverage (the
+>   fixture left `nation_dp` empty, so `generate_counter_offer` returned None and the test
+>   asserted nothing); the landless-court test was refused by the annexation gate before
+>   the elimination guard it names was ever reached; `TestG4F15StandsUntouched`
+>   hand-rolled `dict(seed, demands=[])` and asserted nothing was in `[]` — a tautology;
+>   **arm B's entire coverage was `inspect.getsource` substring matching that already
+>   passed on master**; the eligibility re-check was indistinguishable from the pre-existing
+>   live control re-read; and the pricing walk was never called by the test named for it.
+> - **A real test-isolation bug found in passing:** the E2E delivery test leaked
+>   `main.world` / `game_state`, and — separately — the counter-offer assertion is
+>   order-sensitive (it catches its mutation alone but not after the E2E test). Both are
+>   recorded; the counter fix now also carries a source pin that ambient state cannot fool.
+>
 > **⚠ Residual, stated not hidden: bilateral peace with a BOOT enemy is unreachable, and
 > that is pre-existing.** `_ratify_treaty` applies a player-only relation floor
 > (`STATE_RELATION_REQUIREMENTS["PEACE"] = -60`); France boots at −95/−100/−95 with

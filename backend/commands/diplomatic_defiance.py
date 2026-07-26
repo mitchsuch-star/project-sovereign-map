@@ -135,6 +135,12 @@ def calculate_diplomatic_defiance_chance_deterministic(talleyrand, world) -> flo
 # §3b — WHAT TALLEYRAND CHANGES (sabotage application)
 # ════════════════════════════════════════════════════════════════════════════
 
+# The bar below which Talleyrand judges a package "too generous" and hardens
+# it. Named by IGR-D so the dismemberment floor and the branch that consumes
+# it cannot drift apart.
+TOO_GENEROUS_HARSHNESS = 0.3
+
+
 def calculate_proposal_harshness(proposal: Dict) -> float:
     """Calculate harshness score (0.0-1.0) from proposal contents.
 
@@ -177,8 +183,22 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
             provinces = demand.get("provinces") or []
             harshness += 0.2 * max(1, len(provinces)) + 0.15
 
+    # A package that dismembers its target into a client state can never be
+    # "too generous", whatever is offered alongside it. Without this floor
+    # the unconditional -0.1 per sweetener drags the carve's own 0.35 back
+    # under the 0.3 bar — measured at exactly 0.25 on this slice's blessed
+    # reachability package (the carve plus the 6,000g sweetener the price
+    # was tuned to require), so the one package IGR-D certifies as
+    # acceptable is also the one Talleyrand hardens with an unauthored
+    # 50 g/turn tribute.
+    dismemberment_floor = 0.0
+    if any(isinstance(d, dict) and d.get("type") == "create_client"
+           for d in proposal.get("demands", [])):
+        dismemberment_floor = TOO_GENEROUS_HARSHNESS
+
     for sweetener in proposal.get("sweeteners", []):
         harshness -= 0.1
+    harshness = max(harshness, dismemberment_floor)
 
     # Vassalage proposals are inherently harsh
     if proposal.get("type") == "vassalage":
@@ -250,7 +270,7 @@ def apply_diplomatic_sabotage(original_proposal: Dict, talleyrand, world) -> Dic
             if demand.get("type") == "gold_per_turn":
                 demand["value"] = int(demand.get("value", 0) * 0.6)
         defiance_type = "softened"
-    elif harshness < 0.3:
+    elif harshness < TOO_GENEROUS_HARSHNESS:
         # Too generous → add face-saving clause, increase gold 30%
         for demand in modified.get("demands", []):
             if demand.get("type") == "gold_per_turn":

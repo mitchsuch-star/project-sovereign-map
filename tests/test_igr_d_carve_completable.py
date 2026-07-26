@@ -23,8 +23,11 @@ The G4F-15 ruling stands untouched: a truce never erects a client state.
 """
 
 import os
+import pathlib
 
 import pytest
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 SCENARIO = "godot-client/project-sovereign/assets/maps/europe_1805.json"
 
@@ -135,6 +138,12 @@ class TestTheCarveTravels:
         seed = _pair_substitute_seed_terms(
             [_carve_term()], target="Prussia", proposer_leader="France",
         )
+        assert any(d.get("type") == "create_client"
+                   for d in seed["demands"]), (
+            "the carve must be IN demands — the only list _ratify_treaty "
+            "converts. Asserting only its absence elsewhere passes with the "
+            "whole seed change reverted."
+        )
         assert not any(s.get("type") == "create_client"
                        for s in seed["sweeteners"])
         assert "clauses" not in seed
@@ -199,6 +208,12 @@ class TestG4F15StandsUntouched:
     that way rather than being satisfied by accident."""
 
     def test_the_armistice_arm_drops_the_carve(self):
+        """Executes the PRODUCTION guard. A hand-rolled `dict(seed,
+        demands=[])` and then asserting nothing is in `[]` is a tautology
+        that stays green with the real guard disabled."""
+        import inspect
+
+        from backend.game_logic import settlement_actions
         from backend.game_logic.settlement_actions import (
             _pair_substitute_seed_terms,
         )
@@ -206,12 +221,15 @@ class TestG4F15StandsUntouched:
             [_carve_term()], target="Prussia", proposer_leader="France",
         )
         assert seed["demands"], "precondition: the peace arm carries it"
-        # The handoff's G4F-15 guard, applied verbatim.
-        armistice_seed = dict(seed, demands=[])
-        assert not any(d.get("type") == "create_client"
-                       for d in armistice_seed["demands"])
-        assert not any(s.get("type") == "create_client"
-                       for s in armistice_seed["sweeteners"])
+        # The guard lives inside `_execute_pair_substitute_handoff`; pin the
+        # real source of it, and that it keys off the armistice arm.
+        body = inspect.getsource(
+            settlement_actions._execute_pair_substitute_handoff)
+        guard = 'if proposal_type == "armistice" and seed["demands"]:'
+        assert guard in body, (
+            "the G4F-15 armistice guard was removed or reshaped: " + guard
+        )
+        assert 'seed = dict(seed, demands=[])' in body
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -267,10 +285,9 @@ class TestTheBilateralRouteCarves:
         assert card["old_display_name"] == ""
 
     def test_the_ratification_summary_names_the_client(self):
-        """`applied_treaty_clauses` is a SECOND list, and it is what
-        `build_peace_ratification_summary` renders as "what was actually
-        signed". A carve appended only to `treaty_clauses` would be applied
-        and then omitted from the one surface that reports the treaty."""
+        """`terms_ratified` is annotated from the proposal, reconciled
+        against `applied_treaty_clauses` — see the refused-carve test below,
+        which is the half that can actually fail."""
         world = _europe_world()
         event = self._ratify(world)
         summary = event["peace_ratification_summary"]
@@ -303,6 +320,49 @@ class TestTheBilateralRouteCarves:
         self._ratify(world)
         assert "DuchyOfWarsaw" not in world.get_active_nations()
         assert world.regions["Posen"].controller == "Prussia"
+
+    def test_the_predicate_refuses_what_the_live_re_read_would_allow(self):
+        """Isolates the NEW eligibility call from the live control re-check
+        that `apply_create_client_clause` already performed. France HOLDS
+        Rome here, so `cc_held` passes and the shared helper would mint --
+        but Rome's starting controller is the Papacy, not Prussia, so
+        `carve_not_defeated_soil` must refuse. Without this, deleting the
+        eligibility call from `_ratify_treaty` left the suite green while
+        the bilateral route silently lost the defeated-soil rule and the
+        total-annexation floor that the settlement route enforces."""
+        world = _beaten_prussia()
+        world.regions["Rome"].controller = "France"
+        world.invalidate_active_nations_cache()
+        # Precondition: the shared apply body alone WOULD mint it.
+        from backend.game_logic.formations import apply_create_client_clause
+        from backend.game_logic.settlement_validation import (
+            evaluate_create_client_eligibility,
+        )
+        war = next(w for w in world.war_instances.values()
+                   if w.get("ended_turn") is None)
+        assert not evaluate_create_client_eligibility(
+            world, war_instance=war, template_id="RomanRepublic",
+            from_court="Prussia", carver="France",
+        )["eligible"], "precondition: the predicate must refuse this"
+        probe = world.__class__.from_scenario(SCENARIO)
+        probe.regions["Rome"].controller = "France"
+        probe.invalidate_active_nations_cache()
+        assert apply_create_client_clause(probe, {
+            "type": "create_client", "from": "Prussia", "to": "France",
+            "tag": "RomanRepublic",
+        }) is not None, (
+            "precondition: the live re-read alone does NOT refuse this, so "
+            "the eligibility call is the only thing that can"
+        )
+        # Now the real route must refuse it.
+        world._ratify_treaty({
+            "type": "peace", "proposer_nation": "France",
+            "target_nation": "Prussia", "sweeteners": [],
+            "demands": [{"type": "create_client", "value": 1,
+                         "tag": "RomanRepublic", "provinces": ["Rome"],
+                         "client_display_name": "Roman Republic"}],
+        })
+        assert "RomanRepublic" not in world.get_active_nations()
 
     def test_soil_that_was_never_the_courts_cannot_be_carved(self):
         """`carve_not_defeated_soil` — the predicate's own rule, reached
@@ -353,11 +413,19 @@ class TestTheBilateralRouteCarves:
             if region.controller == "Prussia":
                 region.controller = "France"
         world.invalidate_active_nations_cache()
+        # Without a decisive score the total-annexation gate refuses the
+        # carve BEFORE the elimination guard is ever reached, so the event
+        # count is trivially unchanged and the guard is unpinned.
+        world.war_scores[world._make_diplo_key("France", "Prussia")] = 95
         before = [e for e in world.event_log
                   if e.get("type") == "nation_eliminated"]
         self._ratify(world)
         after = [e for e in world.event_log
                  if e.get("type") == "nation_eliminated"]
+        assert "DuchyOfWarsaw" in world.get_active_nations(), (
+            "precondition failed: the carve never applied, so the "
+            "elimination guard was never reached"
+        )
         assert len(after) == len(before), (
             "a court this clause never took soil from was announced again"
         )
@@ -400,11 +468,12 @@ class TestTheProclamationReachesTheClient:
                 "demands": [_carve_demand()],
             },
         }
-        original = main_module.world
         # BOTH handles: `main.py` keeps a module-level `world` alongside
         # `game_state["world"]`, the executor reads the dict and the
         # RESPONSE layers read the global. Setting only the dict runs the
         # command on this world and then builds the response from another.
+        original_world = main_module.world
+        original_state = dict(main_module.game_state)
         main_module._set_active_world(world)
         try:
             with patch(
@@ -436,8 +505,14 @@ class TestTheProclamationReachesTheClient:
             assert card["display_name"] == "Duchy of Warsaw"
             assert card["subtitle"] == "By your hand."
         finally:
-            if original is not None:
-                main_module._set_active_world(original)
+            # Restore UNCONDITIONALLY. Guarding on `is not None` left this
+            # test's world installed globally whenever main.py had not yet
+            # booted one, and a leaked world changes later tests in the
+            # file -- measured: the counter-offer regression test stopped
+            # catching its own mutation once this test had run.
+            main_module.world = original_world
+            main_module.game_state.clear()
+            main_module.game_state.update(original_state)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -549,6 +624,36 @@ class TestTheCarveIsPriced:
             DEMAND_VALUES["territory_cede"])
         assert _accumulate_raw_treaty_harshness(
             {"demands": [_carve_demand()]}) > 0
+        # THE BINDING PART: the constants are only decoration unless the
+        # WALK reads them. Measure the score with the charge zeroed — the
+        # registry row alone is a no-op, because the generic branches
+        # multiply by `value`, so nothing else would catch its deletion.
+        import backend.game_logic.diplomacy as D
+        world = _europe_world()
+        proposal = {
+            "type": "peace", "proposer_nation": "France",
+            "target_nation": "Prussia", "sweeteners": [],
+            "demands": [_carve_demand()],
+        }
+        charged = D.calculate_acceptance(
+            proposal, world)["components"]["deal_balance"]
+        saved = (D.CREATE_CLIENT_DEMAND_PER_PROVINCE,
+                 D.CREATE_CLIENT_DEMAND_ERECTION)
+        try:
+            D.CREATE_CLIENT_DEMAND_PER_PROVINCE = 0.0
+            D.CREATE_CLIENT_DEMAND_ERECTION = 0.0
+            free = D.calculate_acceptance(
+                proposal, world)["components"]["deal_balance"]
+        finally:
+            (D.CREATE_CLIENT_DEMAND_PER_PROVINCE,
+             D.CREATE_CLIENT_DEMAND_ERECTION) = saved
+        assert charged < free, (
+            "the walk branch does not read the constants — the carve is "
+            f"free on deal_balance ({charged} vs {free})"
+        )
+        assert charged == pytest.approx(
+            free + CREATE_CLIENT_DEMAND_PER_PROVINCE
+            + CREATE_CLIENT_DEMAND_ERECTION)
 
     def test_talleyrand_does_not_call_a_dismemberment_generous(self):
         """The THIRD harshness dialect. Unscored, a carve-only peace read
@@ -575,19 +680,47 @@ class TestTheCounterOfferDoesNotAmputateTheCarve:
         from backend.game_logic.ai_diplomacy import generate_counter_offer
 
         world = _beaten_prussia()
+        # The AI must be able to AFFORD a counter, or `generate_counter_offer`
+        # returns None before it reaches the strike loop and the test asserts
+        # nothing at all — which is exactly what the first cut of this test
+        # did, leaving the headline fix with zero coverage.
+        world.nation_dp = {"Prussia": 5}
         proposal = {
             "type": "peace",
             "proposer_nation": "France",
             "target_nation": "Prussia",
-            "sweeteners": [{"type": "gold_lump", "value": 3000}],
+            # Tuned into the 30-49 counter band, so a counter is really built.
+            "sweeteners": [{"type": "gold_lump", "value": 2000}],
             "demands": [_carve_demand(), {"type": "gold_lump", "value": 300}],
         }
         counter = generate_counter_offer(proposal, world)
-        if counter is None:
-            return  # an honest refusal is the other correct outcome
-        assert any(d.get("type") == "create_client"
-                   for d in counter.get("demands", [])), (
-            "the counter kept the gold and deleted the nation"
+        assert counter is not None, (
+            "precondition failed: no counter was generated, so this test "
+            "would assert nothing"
+        )
+        types = [d.get("type") for d in counter.get("demands", [])]
+        assert "create_client" in types, (
+            f"the counter kept the gold and deleted the nation: {types}"
+        )
+
+    def test_the_exemption_is_still_in_the_strike_loop(self):
+        """A source pin beside the behavioural one. The live assertion above
+        is order-sensitive -- measured: it catches the guard's deletion when
+        run alone but not after the end-turn E2E test in this same file, so
+        on its own it would let the fix be deleted silently in a full run.
+        This pin cannot be fooled by ambient state."""
+        import inspect
+
+        from backend.game_logic import ai_diplomacy
+        body = inspect.getsource(ai_diplomacy.generate_counter_offer)
+        demand_loop = body[body.index("for i, d in enumerate("):]
+        assert 'if d.get("type") == "create_client":' in demand_loop, (
+            "the counter-offer strike loop no longer exempts the carve"
+        )
+        guard = demand_loop[demand_loop.index(
+            'if d.get("type") == "create_client":'):]
+        assert "continue" in guard.split("test_terms")[0], (
+            "the exemption no longer skips the clause"
         )
 
 
@@ -751,38 +884,81 @@ class TestSettlementTierClauseDisablesTheBilateralRoute:
 
 
 class TestTheDisabledOptionKeepsItsShape:
-    """The option must be DISABLED, never hidden: existing fixtures index
-    `options[]` by action and would raise rather than fail."""
+    """Behavioural, not a source scrape. The earlier version of this class
+    only ran `inspect.getsource(...)` substring checks, which stay green if
+    the block is moved behind a condition that never fires — or if the
+    option is HIDDEN instead of disabled, the exact SC-29 policy violation
+    the class is named for."""
 
-    def _confirm(self, world, terms):
+    def _blocked_dialogue(self, terms):
+        """A genuinely blocked REVIEW, staged through the production entry
+        point with the draft in place — `build_settlement_confirm_dialogue`
+        reads its terms from the PREVIEW it is handed, so injecting them
+        into a dialogue afterwards never reaches the gate at all."""
         from backend.game_logic.settlement_staging import (
-            build_settlement_confirm_dialogue,
+            stage_settlement_confirm,
         )
-        return build_settlement_confirm_dialogue(world, terms)
+        from backend.models.world_state import WorldState
+        from tests.helpers.full_europe_settlement_fixtures import (
+            make_synthetic_war_instance,
+        )
 
-    def test_the_row_is_present_disabled_and_reasoned(self):
-        import inspect
+        world = WorldState()
+        war = make_synthetic_war_instance(
+            "war_1", attackers=["France"], defenders=["Austria", "Prussia"],
+            attacker_leader="France", defender_leader="Austria",
+            created_turn=1, created_sequence=1,
+        )
+        world.war_instances["war_1"] = war
+        for pair in war["active_diplo_keys"]:
+            a, _ = pair.split("|")
+            world.diplomatic_states[pair] = "WAR"
+            world.war_scores[pair] = 80 if a != "France" else -80
+        world.invalidate_war_instance_indexes()
+        staged = stage_settlement_confirm(
+            world, war_id="war_1",
+            covered_enemy_participants=["Austria", "Prussia"],
+            selected_target_nation="Austria",
+            settlement_terms=terms,
+        )
+        return staged["diplomatic_dialogue"]
 
-        from backend.game_logic import settlement_staging
-        source = inspect.getsource(
-            settlement_staging.build_settlement_confirm_dialogue)
-        assert "pair_substitute_settlement_tier_block" in source
-        # The disabled SHAPE, not a hidden option.
-        assert '"available": False' in source
-        assert '"disabled_reason_display"' in source
+    def _by_action(self, dialogue):
+        return {o.get("action"): o for o in dialogue.get("options", [])}
 
-    def test_only_the_peace_arm_is_blocked(self):
-        """G4F-15 already rules a truce carries concessions only, so losing
-        a demand there is the stated contract rather than a silent drop —
-        and disabling it too would leave a blocked player no exit."""
-        import inspect
+    def test_a_clean_draft_leaves_the_peace_substitute_available(self):
+        """The control. Without it, a test that only checks the disabled
+        case passes on a build where the option never appears at all."""
+        options = self._by_action(self._blocked_dialogue(None))
+        assert "seek_bilateral_peace" in options
+        assert options["seek_bilateral_peace"].get("available") is not False
 
-        from backend.game_logic import settlement_staging
-        source = inspect.getsource(
-            settlement_staging.build_settlement_confirm_dialogue)
-        idx = source.index("pair_substitute_settlement_tier_block")
-        window = source[max(0, idx - 400):idx]
-        assert 'action_id == "seek_bilateral_peace"' in window
+    def test_vassalage_disables_the_peace_substitute_with_its_reason(self):
+        options = self._by_action(self._blocked_dialogue(
+            [{"type": "vassalage", "from": "Austria", "to": "France"}]))
+        # DISABLED, never hidden — fixtures elsewhere index options[] by
+        # action and would raise rather than fail.
+        assert "seek_bilateral_peace" in options, "the row was HIDDEN"
+        row = options["seek_bilateral_peace"]
+        assert row.get("available") is False
+        reason = str(row.get("disabled_reason_display") or "")
+        assert "vassalage" in reason, reason
+        assert "joint settlement" in reason, reason
+
+    def test_the_armistice_substitute_stays_available(self):
+        """G4F-15 already governs the truce, and disabling it too would
+        leave a blocked player no exit at all."""
+        options = self._by_action(self._blocked_dialogue(
+            [{"type": "vassalage", "from": "Austria", "to": "France"}]))
+        assert options.get("seek_armistice_instead", {}).get(
+            "available") is not False
+
+    def test_a_carve_does_not_disable_it(self):
+        options = self._by_action(self._blocked_dialogue([{
+            "type": "create_client", "from": "Austria", "to": "France",
+            "tag": "RomanRepublic", "provinces": ["Rome"],
+        }]))
+        assert options["seek_bilateral_peace"].get("available") is not False
 
 
 class TestTheCarryPromiseIsHonestOnEveryArm:
@@ -825,8 +1001,8 @@ class TestTheCarryPromiseIsHonestOnEveryArm:
         assert "demand" in line.lower(), line
 
     def test_the_client_renders_the_backend_line(self):
-        path = ("godot-client/project-sovereign/scripts/"
-                "proposal_confirm_popup.gd")
+        path = (REPO_ROOT / "godot-client" / "project-sovereign"
+                / "scripts" / "proposal_confirm_popup.gd")
         with open(path, encoding="utf-8") as handle:
             source = handle.read()
         body = source[source.index("_build_pair_substitute_confirm_content"):]
@@ -847,6 +1023,150 @@ class TestTheCarryPromiseIsHonestOnEveryArm:
 # ══════════════════════════════════════════════════════════════════════
 # THE PAYOFF — a carve must be worth making
 # ══════════════════════════════════════════════════════════════════════
+
+class TestThePostLandingReviewFixes:
+    """The find->refute review of `32ff834`. Every one of these was
+    reproduced by hand before the fix was written."""
+
+    def test_a_refused_carve_is_not_reported_as_ratified(self):
+        """THE headline. `terms_ratified` was annotated from the SUBMITTED
+        proposal, so a carve the eligibility gate correctly refused at
+        ratification -- the ordinary case, since a full turn passes in
+        transit and an enemy corps can retake the soil -- still told the
+        player "France erects Duchy of Warsaw (Posen) out of Prussia" over a
+        treaty that erected nothing. The exact silent lie this slice exists
+        to kill, one surface downstream of the one it fixed."""
+        world = _beaten_prussia()
+        world.regions["Posen"].controller = "Prussia"   # lost in transit
+        world.invalidate_active_nations_cache()
+        event = world._ratify_treaty({
+            "type": "peace", "proposer_nation": "France",
+            "target_nation": "Prussia", "sweeteners": [],
+            "demands": [_carve_demand()],
+        })
+        assert "DuchyOfWarsaw" not in world.get_active_nations()
+        summary = event["peace_ratification_summary"]
+        joined = " ".join(summary["terms_ratified"])
+        assert "Warsaw" not in joined, (
+            "reported as ratified when nothing was erected: " + joined
+        )
+        # And it is NAMED, not merely omitted -- the player must be able to
+        # understand why the nation they drafted is not on the map.
+        aftermath = " ".join(summary["political_aftermath"])
+        assert "Duchy of Warsaw" in aftermath, aftermath
+        assert "could not be erected" in aftermath, aftermath
+
+    def test_a_successful_carve_is_still_reported(self):
+        """The control: the reconciliation must not silence the happy
+        path."""
+        world = _beaten_prussia()
+        event = world._ratify_treaty({
+            "type": "peace", "proposer_nation": "France",
+            "target_nation": "Prussia", "sweeteners": [],
+            "demands": [_carve_demand()],
+        })
+        assert "DuchyOfWarsaw" in world.get_active_nations()
+        joined = " ".join(
+            event["peace_ratification_summary"]["terms_ratified"])
+        assert "Duchy of Warsaw" in joined
+
+    def test_subjugation_no_longer_vanishes_in_silence(self):
+        """`subjugation` was in NEITHER the carried set nor the dropped
+        labels, so the bilateral route threw it away without a word -- and
+        the guard test could not see it, because it iterated the very dict
+        the type was missing from."""
+        from backend.game_logic.settlement_actions import (
+            _pair_substitute_seed_terms,
+        )
+        from backend.game_logic.settlement_staging import (
+            pair_substitute_settlement_tier_block,
+        )
+        term = {"type": "subjugation", "from": "Prussia", "to": "France"}
+        assert not _pair_substitute_seed_terms(
+            [term], target="Prussia", proposer_leader="France")["demands"]
+        reason = pair_substitute_settlement_tier_block(
+            [term], target="Prussia")
+        assert "subjugation" in reason, reason
+
+    def test_no_authorable_identity_clause_vanishes_in_silence(self):
+        """The non-circular version of the guard. It walks the clause types
+        the SETTLEMENT AUTHORING surface can actually put on a court --
+        `settlement_actions._DEMAND_ADDABLE_CLAUSE_TYPES` -- instead of the
+        label dict, which cannot report a type it is missing."""
+        from backend.game_logic.settlement_actions import (
+            _DEMAND_ADDABLE_CLAUSE_TYPES,
+            _pair_substitute_seed_terms,
+        )
+        from backend.game_logic.settlement_staging import (
+            pair_substitute_settlement_tier_block,
+        )
+        for ttype in _DEMAND_ADDABLE_CLAUSE_TYPES:
+            term = {"type": ttype, "from": "Prussia", "to": "France",
+                    "tag": "DuchyOfWarsaw", "provinces": ["Posen"],
+                    "vassal_nation": "Saxony", "lord_nation": "Prussia",
+                    "amount": 100, "turns": 3, "region": "Posen",
+                    "vassal": "Saxony"}
+            travels = bool(_pair_substitute_seed_terms(
+                [term], target="Prussia",
+                proposer_leader="France")["demands"])
+            blocked = bool(pair_substitute_settlement_tier_block(
+                [term], target="Prussia", proposer_leader="France"))
+            assert travels or blocked, (
+                repr(ttype) + " neither travels nor states a reason -- it is "
+                "silently dropped, which is the whole defect"
+            )
+
+    def test_an_ally_beneficiary_carve_is_named_not_silently_dropped(self):
+        """IGR-D moved `create_client` into the carried set and deleted its
+        dropped-label row -- but the seed only carries a carve whose CARVER
+        is the proposer, so an ally-beneficiary carve became the one clause
+        dropped in total silence while the chooser promised a clean carry."""
+        from backend.game_logic.settlement_staging import (
+            _pair_substitute_carry_description,
+            pair_substitute_settlement_tier_block,
+        )
+        ally = [{"type": "create_client", "from": "Prussia", "to": "Austria",
+                 "tag": "DuchyOfWarsaw", "provinces": ["Posen"]}]
+        assert pair_substitute_settlement_tier_block(
+            ally, target="Prussia", proposer_leader="France")
+        text = _pair_substitute_carry_description(
+            {"settlement_terms": ally,
+             "staged_leaders": {"attackers": "France"},
+             "proposer_side": "attackers"}, "Prussia", "peace")
+        assert "another power" in text, text
+
+    def test_the_armistice_arm_names_what_it_abandons(self):
+        """The early return skipped the `dropped` computation, so a truce
+        named nothing it was giving up -- and arm B funnels a blocked player
+        onto exactly that arm."""
+        from backend.game_logic.settlement_staging import (
+            _pair_substitute_carry_description,
+        )
+        text = _pair_substitute_carry_description(
+            {"settlement_terms": [
+                {"type": "vassalage", "from": "Prussia", "to": "France"}]},
+            "Prussia", "armistice")
+        assert "assalage" in text, text
+        assert "joint settlement" in text, text
+
+    def test_talleyrand_cannot_call_a_dismemberment_generous(self):
+        """The carve's own 0.35 was dragged back under the 0.3 bar by the
+        unconditional -0.1 per sweetener -- on the slice's OWN blessed
+        reachability package (carve + the 6,000g the price requires), which
+        then got an unauthored 50g/turn tribute bolted onto it."""
+        from backend.commands.diplomatic_defiance import (
+            TOO_GENEROUS_HARSHNESS,
+            calculate_proposal_harshness,
+        )
+        blessed = {"type": "peace", "demands": [_carve_demand()],
+                   "sweeteners": [{"type": "gold_lump", "value": 6000}]}
+        assert calculate_proposal_harshness(
+            blessed) >= TOO_GENEROUS_HARSHNESS
+        # ...without making every generous peace look harsh.
+        plain = {"type": "peace", "demands": [],
+                 "sweeteners": [{"type": "gold_lump", "value": 6000}]}
+        assert calculate_proposal_harshness(plain) < TOO_GENEROUS_HARSHNESS
+
 
 class TestTheCarveIsWorthMaking:
     """Measured on master before IGR-D: the client was born at loyalty 30,
