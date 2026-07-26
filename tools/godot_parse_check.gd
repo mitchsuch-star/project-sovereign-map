@@ -36,6 +36,12 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/top_bar.gd",
 	"res://scripts/notification_bar.gd",
 	"res://scripts/mailbox_panel.gd",
+	# IGR-E: the plunder/secure modal. It is instantiated at RUNTIME by
+	# dialog_manager.register, not embedded in main.tscn, so it was covered
+	# by neither the script list nor SCENE_INSTANTIATION_CHECKS — a parse
+	# error in it passed this harness EXIT=0 and surfaced only in a live
+	# boot. It renders a gold figure the player decides on; guard it.
+	"res://scripts/capture_choice_dialog.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not

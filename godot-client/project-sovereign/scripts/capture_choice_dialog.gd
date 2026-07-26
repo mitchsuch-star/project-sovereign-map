@@ -70,8 +70,14 @@ func show_capture_choice(data: Dictionary):
 		# Set description
 		description_label.text = "How shall your forces treat the conquered territory?"
 
-		# Set button text with consequences
-		plunder_button.text = "PLUNDER (Loot gold, destroy buildings, stability 10)"
+		# Set button text with consequences.
+		# IGR-E: the PLUNDER arm now quotes what it will actually pay. The
+		# backend sends `plunder_gold` computed by the same expression that
+		# pays it (world_state.plunder_yield), so this is shown=applied, not
+		# an estimate. Same %d idiom as the estate stage twelve lines above.
+		# Defaults to 0 only if an old save's payload predates the key.
+		var plunder_gold = int(data.get("plunder_gold", 0))
+		plunder_button.text = "PLUNDER (+%d gold, buildings burned, stability 10)" % plunder_gold
 		secure_button.text = "SECURE (Preserve order, stability 25, buildings damaged)"
 
 	# Ensure all children are visible first

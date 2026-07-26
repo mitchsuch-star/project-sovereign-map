@@ -144,7 +144,7 @@ class CommandExecutor:
 
     # Class-level constants delegated from CombatExecutor (R10A backward compat)
     ARTILLERY_CASUALTY_FACTOR = CombatExecutor.ARTILLERY_CASUALTY_FACTOR
-    PLUNDER_GOLD_MULTIPLIER = CombatExecutor.PLUNDER_GOLD_MULTIPLIER
+    PLUNDER_INCOME_MULTIPLIER = CombatExecutor.PLUNDER_INCOME_MULTIPLIER
 
     # Class-level constants delegated from EconomyExecutor (R13A backward compat)
     GARRISON_DETACHMENT_SIZE = EconomyExecutor.GARRISON_DETACHMENT_SIZE

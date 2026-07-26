@@ -827,15 +827,177 @@ the Proclamation fires, and must-see #4 closes with an **in-client screenshot**;
 holding a settlement-tier identity clause shows the bilateral route disabled with its
 reason, and a test pins that no identity clause is ever dropped silently again.
 
-### IGR-E — Plunder earns its prompt *(gate Q4 — needs a blessed number)*
+### IGR-E — Plunder earns its prompt *(gate Q4)* — ✅ **LANDED July 26, 2026**
 
 Plundering Nassau yielded **87 gold** against 3,085/turn income and a 5,177g treasury.
 Secure was strictly correct in every situation met, so a modal that stops the game asks a
 question with one right answer.
 
 **✅ Gate Q4 DECIDED (§5): `PLUNDER_INCOME_MULTIPLIER = 4`** — blessed, in-band tunable.
-Done when the falsifiable test in §5 Q4 passes: a poor early player plausibly plunders, a
-rich late one does not.
+
+> **Landing record — authoritative for what IGR-E actually became.**
+> Tests `tests/test_igr_e_plunder_prompt.py` (24). Suite **15,273/3**, ruff clean,
+> parser eval **461/461** mock, M1–M7 byte-identical, the 40-turn `BASELINE_SERIES`
+> byte-identical **but see the ⚠ below — the cause is not the one the badge usually
+> means**, Godot parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`.
+>
+> **The number, and it is the whole gate.** `PLUNDER_GOLD_MULTIPLIER = 1.75` →
+> `PLUNDER_INCOME_MULTIPLIER = 4.0` (`world_state.py`). The constant was **renamed to
+> the name the gate blessed** — 7 sites, 4 backend + 3 test — because leaving the
+> mismatch guarantees a future reader greps the gate's constant, finds nothing, and
+> concludes Q4 was never built. It is deliberately **not** introduced as a second
+> constant beside the old one: a second multiplier over the same base is exactly the
+> dual-source defect GR1 forbids.
+>
+> **⚠ THE GATE'S WORKED EXAMPLE IS WRONG, AND IS CORRECTED HERE RATHER THAN QUIETLY
+> CONFORMED TO.** §5 Q4's options table illustrates option (a) as *"Nassau pays
+> ~450–750g instead of 87g"*. **At ×4 Nassau pays 200g.** Nassau's `income_value` is
+> **50 — the minimum on the whole 126-province map** (27 provinces share it). The
+> 450–750 band is `150 × 3–5`, i.e. the **median** province (150, the plurality at 41
+> of 126) labelled with the poorest one's name. The measured ladder is:
+>
+> | income | provinces | ×1.75 (was) | **×4 (now)** |
+> |---|---|---|---|
+> | 50 *(rural — **Nassau**)* | 27 | 87 | **200** |
+> | 100 | 22 | 175 | **400** |
+> | 150 *(city — median)* | **41** | 262 | **600** |
+> | 200 | 16 | 350 | **800** |
+> | 300 *(capital)* | 20 | 525 | **1,200** |
+>
+> **The blessed constant stands and nothing was re-gated,** because the gate's *shape*
+> text — "~3–5 turns of its income" — is what ×4 satisfies exactly; only the gold
+> figure attached to Nassau's name was mistaken. To make Nassau itself pay 450 the
+> multiplier would have to be ×9. Pinned by
+> `test_the_gates_worked_example_is_wrong_and_this_pins_why` so nobody rediscovers it.
+>
+> **The acceptance test PASSES in both directions** — this is the definition of done,
+> and it is arithmetic over the production formulas, not judgement.
+> `TestTheFalsifiableAcceptanceTest` requires **both** halves of each arm:
+> - **Arm A, poor and early** — the loot is a *material* share of the purse (≥10% of
+>   the gate's 2,000g anchor: 200g = 10%, 600g = 30%) **and** exceeds the revenue it
+>   destroys over a 5-turn horizon (600 > 315 at the median).
+> - **Arm B, rich and late** — the loot is *immaterial* (≤6% of 20,000g) **and** no
+>   longer beats the forgone revenue over a 30-turn horizon; it converges to within
+>   15% of break-even at every tier.
+>
+> **The inversion is the point:** short horizon favours Plunder, long horizon favours
+> Secure, because the loot is one-time while the forgone revenue keeps accruing until
+> it plateaus. That is what turns the modal from a quiz into a decision.
+>
+> **The negative control is what makes it evidence.** `test_the_acceptance_test_can_
+> fail_negative_control` re-runs Arm A at the OLD ×1.75 and asserts it **fails** — the
+> rural province on both halves (87g = 4.4% of the purse, and less than securing), the
+> median on the second half (262g clears materiality but is still strictly worse than
+> securing). That is the review's finding, reproduced as a falsifiable pin.
+>
+> **The published break-even model.** Three independent readers produced three
+> different models during ground truth; this record publishes **one**, and it lives in
+> the test as `cumulative_net()` derived from the production methods
+> (`Region.get_effective_income`, `Region.get_occupation_fraction`,
+> `recover_war_damage`) rather than restating them. Per turn: +5 stability (+10 with a
+> friendly marshal), −0.02 war damage, income collected, **ES-2 occupation cost charged
+> on BASE income**. That last term is what makes it honest — the extra turns Plunder
+> spends in a worse stability tier cost real gold. Verified scale-free: both loot and
+> forgone revenue are linear in income, so the verdict is identical at every tier.
+>
+> **⚠ QUADRUPLING A NUMBER THE PLAYER NEVER SEES CHANGES NO DECISION** — so the slice's
+> second half is the prompt. Before IGR-E **no surface stated what Plunder would pay**:
+> the payload carried three keys, none economic; the buttons were string literals; the
+> terminal asked *"How shall they behave?"*; and the nearest indirect surface, the
+> Region Action Panel, shows *effective* income, which for a just-captured province is
+> **0g**. Now:
+> - **One builder, two routes.** `world_state.build_capture_choice` replaces the two
+>   hand-written payloads (instant capture in `combat_executor`, occupation completing
+>   in `_apply_occupation_capture_effects`). Pricing only one would have left the
+>   fortified-province capture — the harder, more consequential fight — rendering a
+>   blank.
+> - **`world_state.plunder_yield` is the one expression that pays**, called by the
+>   preview, by `_apply_plunder`, and by the AI branch. Shown **is** applied, in the
+>   MC-2/Q3 sense, structurally rather than coincidentally.
+> - **The button quotes it** (`capture_choice_dialog.gd`, the same `%d` idiom as the
+>   W6-8 estate row twelve lines above), and so do the terminal sentence
+>   (`capture_choice_prompt`, one home), the occupation message, and **both** refusal
+>   restatements.
+> - **Stage 1 now mints a `dialogue_id`.** It never had one — only the estate stage did
+>   — so the W6-0 stale-answer guard was **structurally inert** for stage 1 (it needs
+>   both operands non-None). Survivable while the buttons were generic; once a button
+>   asserts a gold figure about a *named* province, a mis-slotted answer is a lie on
+>   screen, and the single pending slot is genuinely contended (`movement_executor`'s
+>   `_prior_choice` restore exists for exactly that). **No client change was needed** —
+>   `main.gd` already forwarded `current_dialogue_id` and `api_client.gd` already
+>   omitted it below 0.
+>
+> **Fixed in passing, found by the slice's own tests:** stage 1's invalid-token branch
+> returned a bare *"Invalid choice"* **without re-attaching `capture_data`**, so a
+> wrong typed answer left the client with a question still pending in world state and
+> nothing to render it from — while the estate stage's equivalent branch had always
+> re-attached. Both now restate through `_pending_prompt`, with the price.
+>
+> **⚠ BYTE-IDENTITY, REPORTED NOT BURIED** (the IGR-X3 house form). `BASELINE_SERIES`
+> and M1–M7 are byte-identical at ×4 — but **M1–M7 is structurally immune** (it never
+> calls `advance_turn`, never touches treasury) and `BASELINE_SERIES` is unchanged
+> **because the AI plunder branch is dead code**, not because the change is inert by
+> design. Measured: **41 AI capture-choice calls over the 40-turn ambient run, 100%
+> `secure`, 0 plunder gold.** Both AI sites gate on `getattr(marshal,
+> 'personality_type', None)` and `Marshal` has no such attribute. **That is a GR5
+> violation sitting on the very constant this slice quadrupled**, so it is fixed — in
+> its **own commit**, immediately after this one, so the series delta is attributable
+> to exactly one change. See the addendum below.
+>
+> **The EC-2 tension, acknowledged rather than drifted into.** `ECONOMY_REVISIT_SPEC.md`
+> §0.6.7 amendment 2 (blessed July 9, authoritative) deliberately gave plunder *a
+> recurring price* — plundered regions sit in high-cost ES-2 tiers longer. IGR-E makes
+> it *pay more up front*. These are the two arms of one trade-off, and ×4 is what gives
+> the ES-2 arm something to bite on; the break-even model above only converges because
+> amendment 2 exists. `tests/test_economy_es2_occupation.py:215-220` remains the pin.
+>
+> **Flipped pins, consciously:** `test_economy_audit_fixes.py` ×3 (the constant, Paris
+> 525→1,200, and the rural 87→200 — *the review's own 87g, pinned as correct since
+> Session 24*) and `test_plunder_secure.py` ×2 (Lyon 350→800, both paths). Renamed
+> `test_plunder_paris_gives_525_gold` → `..._1200_gold`. Nothing else in the suite
+> pinned a plunder value.
+>
+> **Not owed, verified:** no corpus row and no `VALID_ACTIONS` entry (the tokens route
+> through the W6-0 pending-question router, not the parser — the 12-step new-action
+> checklist does not fire); no ledger threading (plunder gold is a one-time flow
+> deliberately outside Net, the standing "plunder-gold precedent"); no transport work
+> (`_build_result_response` splats the payload, `/capture_choice` copies it wholesale).
+>
+> **Routed, not absorbed** (all three found during ground truth, all pre-existing,
+> `BUG_FIXES.md` §IGR-E):
+> - **IGR-X4 (P2)** — the W6-8 estate confiscation windfall is **always exactly 0
+>   gold**, both branches, both sides: it reads `get_effective_income()` *after* stage 1
+>   has left stability at 10 or 25, where the stability modifier is 0.0. The player is
+>   shown *"CONFISCATE (+0 gold, Austria will not forgive it)"* and asked to pay −10
+>   relations and −1 trust per cautious marshal for nothing. **This is IGR-E's own
+>   pathology one stage deeper and worse.** Its fix changes which income base a blessed
+>   W6-8/ES-7 number reads — a *shape* change, so it escalates rather than riding here.
+> - **IGR-X5 (P3)** — a strategic-march capture never asks the question and never
+>   applies secure (`movement_executor.py` restores `_prior_choice` over the freshly-set
+>   pending; the comment says "AUTO-SECURE" but `_apply_secure` is never called, no
+>   `region_captured` event is logged, and buildings stay undamaged). Marching in is
+>   strictly better than securing. ×4 raises the value of the branch being skipped.
+> - **IGR-X6 (P3)** — `region.plundered` is serialized and has zero mechanical readers
+>   beyond its own clear condition.
+>
+> **⚠ THE DISSENT, CARRIED SO IT SURVIVES THE EDIT.** Gate §5 Q4 recorded that option
+> **(b)** — the stability-vs-authority recut — is arguably the better *design*, and
+> that **if the acceptance test fails at two different multipliers, re-open at (b)
+> rather than tuning a third time.** **Attempts used: ONE of two (×4, PASSED.)** The
+> dissent now lives in five places that survive this slice's edits: this record, the
+> STATUS top entry, the struck `DESIGN_REFINEMENT.md` IGR-D1 row, a comment at the
+> constant itself, and the acceptance test's docstring.
+
+#### IGR-E addendum — the GR5 half *(separate commit, same session)*
+
+> `_get_ai_capture_choice` and the occupation-completion AI branch both read
+> `getattr(marshal, 'personality_type', None)`, which **does not exist** — `Marshal`
+> carries `self.personality` as a plain string, and `Personality` is a plain `Enum`
+> with no `str` mixin, so `Personality.AGGRESSIVE == 'aggressive'` is `False` and even
+> reading the right attribute would have failed without `.value`. Net effect: **the AI
+> could never plunder**, on any board, ever — a player-only windfall on a constant this
+> slice just quadrupled. Fixed at both sites through one shared reader. The ambient
+> delta is recorded in the addendum's own landing note.
 
 ### IGR-F — The small courts write one letter, not five *(no gate)* — ✅ **LANDED July 26, 2026**
 

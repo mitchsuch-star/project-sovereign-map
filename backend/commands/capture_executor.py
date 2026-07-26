@@ -125,10 +125,18 @@ class CaptureExecutor:
                                             pending, response)
             return response
         else:
+            # IGR-E: restate through the shared prompt (so the price
+            # survives a wrong token) and RE-ATTACH the pending question,
+            # as the estate stage's wrong-token branch already did — this
+            # branch used to drop capture_data from the response, leaving
+            # the client with a question still pending in world state but
+            # nothing to render it from.
             return {
                 "success": False,
-                "message": (f"Invalid choice: '{choice}'. "
-                            "Choose 'plunder' or 'secure'.")
+                "message": (f"Invalid choice: '{choice}'. Sire, "
+                            + self._pending_prompt(pending)),
+                "pending_capture_choice": True,
+                "capture_data": pending,
             }
 
     # ── W6-8: the estate stage ────────────────────────────────────────
@@ -141,8 +149,11 @@ class CaptureExecutor:
             return (f"the fate of Marshal {pending.get('estate_holder', '?')}'s "
                     f"estate at {pending.get('region', '?')} awaits your word: "
                     f"'confiscate' or 'respect'.")
+        # IGR-E: the restatement quotes the price too — a player who typed a
+        # stale or wrong token must not lose the figure the prompt carried.
+        gold = int(pending.get("plunder_gold", 0) or 0)
         return (f"{pending.get('region', 'the captured region')} awaits your "
-                f"word: 'plunder' or 'secure'.")
+                f"word: 'plunder' (for {gold:,} gold) or 'secure'.")
 
     def _maybe_mount_estate_choice(self, world, region, capturer_name: str,
                                    pending: Dict, response: Dict) -> None:

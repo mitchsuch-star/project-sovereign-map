@@ -183,10 +183,93 @@ WAR_EFFORT_DIVISOR = 2500
 # 1,000, deliberately BELOW the war recruit price (60g/1,000) so replacing
 # men still costs more than replacing kit (hierarchy pinned in tests).
 MATERIEL_RATE = 0.05
-# EC-W5a: plunder pays 175% of base income — single source shared by the
-# player path (combat_executor._apply_plunder) and the AI personality
+# EC-W5a: plunder pays a multiple of base income — single source shared by
+# the player path (combat_executor._apply_plunder) and the AI personality
 # auto-decide path below (was a GR5 violation: AI plunder paid ×1.0).
-PLUNDER_GOLD_MULTIPLIER = 1.75
+#
+# IGR-E (gate Q4, INGAME_REVIEW_FIXES_SPEC.md §5): retuned 1.75 → 4.0, and
+# renamed from PLUNDER_GOLD_MULTIPLIER to the name the gate actually blessed.
+# At ×1.75 the July-25 review measured Nassau paying 87g against a 5,177g
+# treasury, so Secure was strictly correct in every situation met and the
+# modal asked a question with one right answer.
+#
+# ⚠ The gate's worked example is WRONG and the landing record says so: it
+# illustrates option (a) as "Nassau pays ~450–750g", but Nassau's
+# income_value is 50 — the map's MINIMUM — so ×4 pays 200g. 450–750 is
+# 150 × 3–5, i.e. the MEDIAN province (41 of 126) mislabelled with the
+# poorest one's name. The gate's SHAPE text ("~3–5 turns of its income")
+# is what ×4 satisfies, so the blessed constant stands.
+#
+# BLESSED and in-band tunable (the band is option (a)'s "~3–5 turns");
+# changing the SHAPE (e.g. to option (b), the stability-vs-authority recut)
+# ESCALATES. ⚠ RECORDED DISSENT, carried from gate §5 Q4: if the falsifiable
+# acceptance test (tests/test_igr_e_plunder_prompt.py) fails at TWO different
+# multipliers, re-open at option (b) rather than tuning a third time.
+# Attempts used so far: ONE of two (×4, PASSED — see the landing record).
+PLUNDER_INCOME_MULTIPLIER = 4.0
+
+
+def plunder_yield(region) -> int:
+    """Gold a plundered province pays its captor — THE single source.
+
+    IGR-E: the player's prompt now quotes this figure BEFORE the choice is
+    made (capture_choice_dialog.gd), so preview and payout must be the same
+    expression, not two copies of it — the shown=applied discipline MC-2/Q3
+    established. Called by combat_executor._apply_plunder, the AI
+    auto-decide branch below, and both builders of pending_capture_choice.
+
+    Deliberately reads BASE income_value, not get_effective_income(): a
+    just-captured province sits at stability <= 25, where the stability
+    modifier is 0.0, so an effective-income reading would pay exactly 0 on
+    every province in the game (that is the live W6-8 estate-windfall bug,
+    routed as IGR-X4 — do not reproduce it here).
+    """
+    return int(region.income_value * PLUNDER_INCOME_MULTIPLIER)
+
+
+def build_capture_choice(world, region, capturer_name: str,
+                         previous_controller) -> dict:
+    """The stage-1 plunder/secure question — THE single builder.
+
+    IGR-E: there are two capture routes into this question (instant capture
+    in combat_executor._attempt_region_capture, and occupation completing in
+    _apply_occupation_capture_effects). Before this slice each built the
+    payload by hand, so pricing one would have left the fortified-province
+    capture rendering a blank button.
+
+    Carries `plunder_gold` — what Plunder will actually pay, from the same
+    expression that pays it — so the modal states its terms instead of
+    asking an unpriced question. Also mints a W6-0 `dialogue_id`: stage 1
+    never had one (only the W6-8 estate stage did), leaving the stale-answer
+    guard in capture_executor structurally inert. That was survivable while
+    the buttons were generic; once a button asserts a gold figure about a
+    NAMED province, a mis-slotted answer becomes a lie on screen, and the
+    single pending slot is genuinely contended (several marshals can capture
+    in one turn — movement_executor's _prior_choice restore exists for it).
+    """
+    return {
+        "region": region.name,
+        "capturer": capturer_name,
+        "previous_controller": previous_controller,
+        "plunder_gold": plunder_yield(region),
+        "region_income": int(region.income_value),
+        "dialogue_id": world.dialogue_manager.mint_dialogue_id(),
+    }
+
+
+def capture_choice_prompt(pending: dict) -> str:
+    """The typed-path sentence for the stage-1 question — one home.
+
+    IGR-E: the terminal used to ask "How shall they behave?" and name no
+    figure, so a player answering by typing had strictly less information
+    than one clicking. BUG-CA-10 discipline: state the price and enumerate
+    the answers the game will accept.
+    """
+    gold = int(pending.get("plunder_gold", 0) or 0)
+    return (f"\nYour forces have taken {pending.get('region', 'the region')}. "
+            f"Plunder it for {gold:,} gold — buildings burned, the province "
+            f"left hostile — or secure it and keep the country quiet? "
+            f"('plunder' or 'secure')")
 
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
@@ -3206,12 +3289,11 @@ class WorldState:
         self.capture_region(region_name, marshal.nation)
 
         if marshal.nation == self.player_nation:
-            self.pending_capture_choice = {
-                "region": region_name,
-                "capturer": marshal.name,
-                "previous_controller": old_controller,
-            }
-            return f" {region_name} captured by {marshal.nation}! Choose plunder or secure."
+            self.pending_capture_choice = build_capture_choice(
+                self, region, marshal.name, old_controller)
+            return (f" {region_name} captured by {marshal.nation}! Plunder it "
+                    f"for {self.pending_capture_choice['plunder_gold']:,} gold, "
+                    f"or secure it?")
         else:
             # AI auto-decide by personality
             from backend.models.personality import Personality
@@ -3221,9 +3303,10 @@ class WorldState:
                 region.stability = 10
                 region.apply_war_damage(0.35)
                 region.plundered = True
-                # EC-W5a: same 175% plunder rate as the player path (GR5 —
-                # was ×1.0, a silent AI discount on the same choice).
-                gold_gained = int(region.income_value * PLUNDER_GOLD_MULTIPLIER)
+                # EC-W5a: same plunder rate as the player path (GR5 — was
+                # ×1.0, a silent AI discount on the same choice). IGR-E
+                # routes it through the shared single source.
+                gold_gained = plunder_yield(region)
                 self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
                 region.buildings = []
                 region.building_under_construction = None

@@ -3,7 +3,7 @@ Tests for Phase 6.2 Economy Audit Fixes (Session 24).
 
 Covers:
 - Task 1: Coalition territory expansion and starting gold
-- Task 3: Plunder gold multiplier (1.75x)
+- Task 3: Plunder gold multiplier (IGR-E: x4 of base income)
 - Task 4: AI recruitment threshold (0.50)
 - Task 5: Training ground morale buff (+30%, recruits at 70%)
 - Task 7: AI builds markets and supply depots
@@ -110,32 +110,44 @@ class TestCoalitionTerritories:
 # ============================================================================
 
 class TestPlunderMultiplier:
-    """Plunder now gives 175% of base income."""
+    """Plunder pays a multiple of BASE income.
+
+    IGR-E (gate Q4) retuned 1.75 -> 4.0 and renamed the constant to the
+    blessed PLUNDER_INCOME_MULTIPLIER. At x1.75 the July-25 in-game review
+    measured a 50-income province paying 87g against a 5,177g treasury, so
+    Secure was strictly correct everywhere and the modal asked a question
+    with one right answer.
+    """
 
     def test_plunder_multiplier_value(self):
-        """PLUNDER_GOLD_MULTIPLIER constant is 1.75."""
+        """PLUNDER_INCOME_MULTIPLIER constant is 4 (IGR-E, was 1.75)."""
         executor = CommandExecutor()
-        assert executor.PLUNDER_GOLD_MULTIPLIER == 1.75
+        assert executor.PLUNDER_INCOME_MULTIPLIER == 4.0
 
-    def test_plunder_paris_gives_525_gold(self):
-        """Paris (300 base income) should give 525 gold on plunder."""
+    def test_plunder_paris_gives_1200_gold(self):
+        """Paris (300 base income) gives 1,200 gold on plunder (IGR-E x4)."""
         world = make_world()
         executor = CommandExecutor()
         region = world.regions["Paris"]
         old_gold = world.gold
         result = executor._apply_plunder(region, world)
-        assert result["gold_gained"] == 525  # int(300 * 1.75)
-        assert world.gold == old_gold + 525
+        assert result["gold_gained"] == 1200  # int(300 * 4.0)
+        assert world.gold == old_gold + 1200
 
     def test_plunder_rural_region(self):
-        """Rural region (50 base income) should give 87 gold on plunder."""
+        """Rural region (50 base income) gives 200 gold (IGR-E x4).
+
+        This is the review's own case: 50-income Nassau paid 87g at x1.75.
+        NOTE the gate's worked example ("Nassau pays ~450-750g") is wrong --
+        450-750 is the MEDIAN province (150 x 3-5), not the map minimum.
+        """
         world = make_world()
         executor = CommandExecutor()
         region = world.regions["Bordeaux"]
         old_gold = world.gold
         result = executor._apply_plunder(region, world)
-        assert result["gold_gained"] == 87  # int(50 * 1.75)
-        assert world.gold == old_gold + 87
+        assert result["gold_gained"] == 200  # int(50 * 4.0)
+        assert world.gold == old_gold + 200
 
 
 # ============================================================================

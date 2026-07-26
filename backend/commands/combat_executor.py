@@ -7,7 +7,7 @@ Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 import re
 from typing import Dict, Optional
 from backend.models.world_state import (
-    PLUNDER_GOLD_MULTIPLIER as WS_PLUNDER_GOLD_MULTIPLIER,
+    PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
 )
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
@@ -1994,7 +1994,9 @@ class CombatExecutor:
             }
 
             if marshal.nation == world.player_nation and world.pending_capture_choice:
-                result["message"] += "\nYour forces have taken the region! How shall they behave?"
+                from backend.models.world_state import capture_choice_prompt
+                result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
                 result["pending_capture_choice"] = True
                 result["capture_data"] = world.pending_capture_choice
 
@@ -3676,7 +3678,9 @@ class CombatExecutor:
                     }
 
                     if marshal.nation == world.player_nation and world.pending_capture_choice:
-                        result["message"] += "\nYour forces have taken the region! How shall they behave?"
+                        from backend.models.world_state import capture_choice_prompt
+                        result["message"] += capture_choice_prompt(
+                            world.pending_capture_choice)
                         result["pending_capture_choice"] = True
                         result["capture_data"] = world.pending_capture_choice
 
@@ -5851,7 +5855,7 @@ class CombatExecutor:
     # EC-W5a: single source lives in world_state.py so the AI personality
     # auto-decide path (world_state capture handling) pays the SAME rate
     # (GR5 — it silently paid ×1.0 before). Class attr kept for tests.
-    PLUNDER_GOLD_MULTIPLIER = WS_PLUNDER_GOLD_MULTIPLIER
+    PLUNDER_INCOME_MULTIPLIER = WS_PLUNDER_INCOME_MULTIPLIER
 
     def _apply_plunder(self, region, world, nation: str = None) -> Dict:
         """Apply plunder effects to a captured region.
@@ -5864,8 +5868,11 @@ class CombatExecutor:
         region.stability = 10
         region.apply_war_damage(0.35)
         region.plundered = True
-        # Immediate gold = 175% of BASE income (not effective)
-        gold_gained = int(region.income_value * self.PLUNDER_GOLD_MULTIPLIER)
+        # Immediate gold on BASE income (not effective) — IGR-E routes it
+        # through the single source so the figure the prompt quoted before
+        # the choice is byte-identical to the figure actually paid.
+        from backend.models.world_state import plunder_yield
+        gold_gained = plunder_yield(region)
         # IMPORTANT: Use nation_gold dict directly, NOT world.gold (which always targets player_nation)
         receiving_nation = nation or world.player_nation
         world.nation_gold[receiving_nation] = world.nation_gold.get(receiving_nation, 0) + gold_gained
@@ -5981,11 +5988,9 @@ class CombatExecutor:
             # Phase 6.2.E: Plunder/Secure choice
             ai_choice = None
             if marshal.nation == world.player_nation:
-                world.pending_capture_choice = {
-                    "region": region_name,
-                    "capturer": marshal.name,
-                    "previous_controller": old_controller,
-                }
+                from backend.models.world_state import build_capture_choice
+                world.pending_capture_choice = build_capture_choice(
+                    world, region, marshal.name, old_controller)
             else:
                 # AI capture — auto-decide by personality
                 ai_choice = self._apply_ai_capture_choice(marshal, region, world, old_controller=old_controller)

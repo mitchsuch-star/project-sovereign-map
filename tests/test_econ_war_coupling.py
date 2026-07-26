@@ -38,7 +38,7 @@ from backend.models.world_state import (
     DISRUPTION_MIN_STRENGTH,
     DISRUPTION_STABILITY_DRAIN,
     MATERIEL_RATE,
-    PLUNDER_GOLD_MULTIPLIER,
+    PLUNDER_INCOME_MULTIPLIER,
     WAR_EFFORT_DIVISOR,
     WorldState,
 )
@@ -569,7 +569,7 @@ class TestPlayerAskScaling:
 class TestPlunderParity:
     def test_single_source(self):
         from backend.commands.combat_executor import CombatExecutor
-        assert CombatExecutor.PLUNDER_GOLD_MULTIPLIER == PLUNDER_GOLD_MULTIPLIER
+        assert CombatExecutor.PLUNDER_INCOME_MULTIPLIER == PLUNDER_INCOME_MULTIPLIER
 
     def test_ai_plunder_pays_player_rate(self, world):
         """GR5: the AI personality auto-plunder (an aggressive enemy marshal
@@ -588,7 +588,7 @@ class TestPlunderParity:
         at_base = fr_region.income_value
         world._apply_occupation_capture_effects(austrian, fr_region.name)
         assert world.nation_gold["Austria"] == at_gold_before + int(
-            at_base * PLUNDER_GOLD_MULTIPLIER)
+            at_base * PLUNDER_INCOME_MULTIPLIER)
 
 
 class TestEconomyReportNetFix:

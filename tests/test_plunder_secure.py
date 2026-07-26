@@ -82,8 +82,8 @@ class TestPlunderEffects:
             "previous_controller": "Britain",
         }
         executor.handle_capture_choice("plunder", gs)
-        # Lyon base income = 200, plunder multiplier = 1.75x → int(200 * 1.75) = 350
-        assert world.gold == old_gold + 350
+        # Lyon base income = 200, IGR-E multiplier x4 -> int(200 * 4.0) = 800
+        assert world.gold == old_gold + 800
 
     def test_plunder_destroys_all_buildings(self):
         world, gs = make_game_state()
@@ -131,8 +131,8 @@ class TestPlunderEffects:
             "previous_controller": "Britain",
         }
         executor.handle_capture_choice("plunder", gs)
-        # Still gets base * 1.75 multiplier, not 0 (effective)
-        assert world.gold == old_gold + 350
+        # Still gets base * 4.0 multiplier, not 0 (effective)
+        assert world.gold == old_gold + 800
 
 
 class TestSecureEffects:
