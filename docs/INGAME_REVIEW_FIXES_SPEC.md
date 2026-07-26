@@ -932,6 +932,39 @@ rich late one does not.
 > false-satisfy shape IGR-B's review found in the NA-6 dead-name pin. Now bounded by
 > the next function.
 >
+> ---
+>
+> **✅ VERIFIED LIVE IN THE CLIENT** (spec §3 requires it for IGR-F specifically) —
+> screenshot `docs/audits/IGR_F_LETTER_BOOK_2026_07_26.png`. Real Godot client, real
+> backend, `europe_1805`, turn 2. Five things checked on screen, in order:
+>
+> 1. **Prussia's modal fired first and alone.** A major power's routine `open_borders`
+>    ask still gets its own DIPLOMATIC ENVOY popup with Hardenberg's line and the full
+>    Accept / Counter / Reject / Not Now arms. Great-power traffic is visibly untouched.
+> 2. **The command's own output was NOT swallowed.** After answering Prussia the
+>    terminal read *"Responding to Prussia's proposal: reject / You have rejected
+>    Prussia's proposal"* and only THEN did the letter-book raise — the whole reason it
+>    is not a route entry.
+> 3. **THE SMALL COURTS WRITE (2)** — *"Ottoman and Portugal write. Answer them here.
+>    Unanswered letters lapse when the turn ends, and a court left waiting will not
+>    raise the matter again for some seasons."* Both letters render in full with their
+>    own voices — **Reis Efendi's "an old admirer of whatever endures" and Araujo's
+>    "would far rather reach an understanding than be caught standing in its path"** —
+>    their terms, and their own Accept / Decline.
+> 4. **Inline Accept works.** One click signed *PEACE → OPEN_BORDERS with Ottoman*, the
+>    row vanished, the header became **(1)** / *"Portugal writes."*, the envoy badge went
+>    2 → 1, and **no result modal appeared**.
+> 5. **Nothing is lost and nothing loops.** Clicking the letter BODY opened the full
+>    envoy popup *with the Counter arm* exactly as the row hint promises; dismissing and
+>    typing another command did **not** re-raise the panel (the per-turn latch), and the
+>    envoy badge reopened it with both rows and buttons intact.
+>
+> **One defect found by playing it, fixed in-slice:** the panel's authored rect is a
+> CEILING for `Utils.clamp_centered_panel`, and at 600×400 the taller letter rows
+> clipped the second letter behind a ~40px scroll strip. Raised to 960×720 (scene-local;
+> the panel is not shared) and the subtitle given `autowrap_mode`. Re-verified live at
+> 2560-wide: both letters fully readable without scrolling.
+>
 > **Residuals, stated not hidden.** (a) If a small court's letter is the ACTIVE
 > dialogue and a great power writes later the same turn, the great power's modal
 > waits until the letter is answered — but it is listed in the same panel, one click
