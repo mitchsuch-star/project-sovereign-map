@@ -836,7 +836,7 @@ question with one right answer.
 **✅ Gate Q4 DECIDED (§5): `PLUNDER_INCOME_MULTIPLIER = 4`** — blessed, in-band tunable.
 
 > **Landing record — authoritative for what IGR-E actually became.**
-> Tests `tests/test_igr_e_plunder_prompt.py` (24). Suite **15,273/3**, ruff clean,
+> Tests `tests/test_igr_e_plunder_prompt.py` (30). Suite **15,279/3**, ruff clean,
 > parser eval **461/461** mock, M1–M7 byte-identical, the 40-turn `BASELINE_SERIES`
 > byte-identical **but see the ⚠ below — the cause is not the one the badge usually
 > means**, Godot parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`.
@@ -996,8 +996,36 @@ question with one right answer.
 > with no `str` mixin, so `Personality.AGGRESSIVE == 'aggressive'` is `False` and even
 > reading the right attribute would have failed without `.value`. Net effect: **the AI
 > could never plunder**, on any board, ever — a player-only windfall on a constant this
-> slice just quadrupled. Fixed at both sites through one shared reader. The ambient
-> delta is recorded in the addendum's own landing note.
+> slice just quadrupled.
+>
+> Fixed at both sites through one shared reader, `world_state.ai_prefers_plunder`
+> (there are two AI branches, and the second is a hand-inlined duplicate rather than a
+> call, so fixing one would have left fortified-province captures unable to plunder).
+> The idiom matches what the July-2026 AI audit installed at `enemy_ai.py` for the
+> identical defect on the recapture threshold.
+>
+> **Measured on the pinned 40-turn ambient run** (`PYTHONHASHSEED=0`,
+> `SOVEREIGN_SEED=historical`): **before — 41 AI capture choices, 100% `secure`, 0
+> plunder gold; after — 39 secure / 2 plunder**, both by Britain's **Paget**, the only
+> aggressive non-France marshal to reach a capture in that run. **`BASELINE_SERIES` and
+> M1–M7 stay byte-identical anyway**, and this time for a reason that is *about the
+> design rather than about dead code*: threat accrues on the conquest, not on what the
+> conqueror then does with the province.
+>
+> **Two of the three tests that "proved" GR5 parity were not falsifiable** and are
+> fixed here: `test_econ_war_coupling.py` and `test_plunder_secure.py` **manufactured
+> the missing `personality_type` attribute** on the marshal, which is precisely what let
+> them pass against a dead branch. They now set the real `personality`. The
+> `test_econ_war_coupling` one **failed the moment the production fix landed** — the
+> clearest possible evidence the brief's reading was right.
+>
+> **And the guard that existed to prevent exactly this was scoped to one file.**
+> `test_ai_audit_2026_07.py::test_no_personality_type_reads_remain` grepped
+> **`backend/ai/enemy_ai.py` only**, so it could not see either plunder site. Widened to
+> the whole backend and rewritten as an **AST** check (attribute access + `getattr`
+> literal) rather than a text grep, so prose that *names* the dead attribute in order to
+> warn against it does not trip it. Mutation-tested: reintroducing the defect fails the
+> guard.
 
 ### IGR-F — The small courts write one letter, not five *(no gate)* — ✅ **LANDED July 26, 2026**
 

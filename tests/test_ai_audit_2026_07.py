@@ -223,9 +223,36 @@ class TestIntentFortifiedGuard:
 class TestAttributeFixes:
 
     def test_no_personality_type_reads_remain(self):
-        source = Path("backend/ai/enemy_ai.py").read_text(encoding="utf-8")
-        assert "'personality_type'" not in source.replace('"personality_type"', "'personality_type'"), (
-            "marshal.personality_type does not exist — use marshal.personality")
+        """IGR-E addendum: WIDENED from enemy_ai.py to the whole backend.
+
+        Scoping this guard to one file is why the identical defect survived
+        for months at BOTH plunder/secure AI sites (combat_executor's
+        _get_ai_capture_choice and world_state's occupation-capture branch),
+        making the AI structurally unable to plunder — a GR5 violation the
+        guard existed to prevent and could not see.
+        """
+        import ast
+
+        offenders = []
+        for path in sorted(Path("backend").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                # `x.personality_type`
+                if (isinstance(node, ast.Attribute)
+                        and node.attr == "personality_type"):
+                    offenders.append(f"{path}:{node.lineno}: attribute access")
+                # `getattr(x, "personality_type", ...)`
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id == "getattr"
+                        and len(node.args) >= 2
+                        and isinstance(node.args[1], ast.Constant)
+                        and node.args[1].value == "personality_type"):
+                    offenders.append(f"{path}:{node.lineno}: getattr")
+        assert not offenders, (
+            "marshal.personality_type does not exist — use marshal.personality "
+            "(and compare against the string, not a Personality member: the "
+            "enum has no str mixin). Offenders: " + " | ".join(offenders))
 
     def test_no_bare_region_income_reads_remain(self):
         source = Path("backend/ai/enemy_ai.py").read_text(encoding="utf-8")

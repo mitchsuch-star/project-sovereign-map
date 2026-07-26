@@ -5918,12 +5918,14 @@ class CombatExecutor:
             region.watchtower_turns_remaining = 0
 
     def _get_ai_capture_choice(self, marshal) -> str:
-        """AI decides plunder vs secure based on personality."""
-        from backend.models.personality import Personality
-        personality = getattr(marshal, 'personality_type', None)
-        if personality == Personality.AGGRESSIVE:
-            return "plunder"
-        return "secure"
+        """AI decides plunder vs secure based on personality.
+
+        IGR-E addendum: routed through the single source. This read
+        `marshal.personality_type` — an attribute that does not exist — so
+        it returned "secure" unconditionally and the AI could never plunder.
+        """
+        from backend.models.world_state import ai_prefers_plunder
+        return "plunder" if ai_prefers_plunder(marshal) else "secure"
 
     def _apply_ai_capture_choice(self, marshal, region, world, old_controller: str = "") -> str:
         """Apply AI's automatic capture choice (no popup). Returns the choice made."""

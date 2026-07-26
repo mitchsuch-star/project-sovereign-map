@@ -227,6 +227,29 @@ def plunder_yield(region) -> int:
     return int(region.income_value * PLUNDER_INCOME_MULTIPLIER)
 
 
+def ai_prefers_plunder(marshal) -> bool:
+    """Whether an AI marshal sacks a province it has just taken — GR5's half
+    of the player's plunder/secure modal, and THE single source for it.
+
+    IGR-E addendum: both AI sites used to read
+    ``getattr(marshal, 'personality_type', None)`` and compare it to a
+    ``Personality`` member. ``Marshal`` has no ``personality_type`` — it
+    carries ``self.personality`` as a plain string — so the read was always
+    None and **the AI could never plunder, on any board, ever**. Measured
+    before the fix: 41 AI capture-choice calls over the 40-turn ambient run,
+    100% ``secure``, 0 plunder gold. That made a quadrupled windfall
+    player-only, which is precisely what Golden Rule 5 forbids.
+
+    Note the second trap: ``Personality`` is a plain ``Enum`` with no ``str``
+    mixin, so ``Personality.AGGRESSIVE == 'aggressive'`` is False. Switching
+    to the right attribute without also comparing against ``.value`` would
+    have left the branch just as dead. This compares strings, matching the
+    idiom the July-2026 AI audit installed at ``enemy_ai.py`` for the
+    identical defect on the recapture threshold.
+    """
+    return (getattr(marshal, "personality", None) or "") == "aggressive"
+
+
 def build_capture_choice(world, region, capturer_name: str,
                          previous_controller) -> dict:
     """The stage-1 plunder/secure question — THE single builder.
@@ -3295,10 +3318,10 @@ class WorldState:
                     f"for {self.pending_capture_choice['plunder_gold']:,} gold, "
                     f"or secure it?")
         else:
-            # AI auto-decide by personality
-            from backend.models.personality import Personality
-            personality_type = getattr(marshal, 'personality_type', None)
-            if personality_type == Personality.AGGRESSIVE:
+            # AI auto-decide by personality. IGR-E addendum: routed through
+            # the single source — this read `personality_type`, which does
+            # not exist on Marshal, so the branch was unreachable.
+            if ai_prefers_plunder(marshal):
                 # Plunder: stability 10, war damage, destroy buildings, gain gold
                 region.stability = 10
                 region.apply_war_damage(0.35)

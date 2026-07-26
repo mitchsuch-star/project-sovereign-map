@@ -301,9 +301,11 @@ class TestAICaptureAutoDecides:
     """Test that AI captures auto-decide without popup."""
 
     def test_aggressive_ai_plunders(self):
+        """IGR-E addendum: sets the REAL `personality` string. Setting
+        `personality_type` (which Marshal does not have) is what allowed
+        this test to pass against a dead production branch."""
         world, gs = make_game_state()
         executor = CommandExecutor()
-        from backend.models.personality import Personality
 
         # Create an aggressive AI marshal
         region = world.get_region("Paris")
@@ -311,7 +313,7 @@ class TestAICaptureAutoDecides:
         region.stability = 80
 
         uxbridge = world.get_marshal("Uxbridge")
-        uxbridge.personality_type = Personality.AGGRESSIVE
+        uxbridge.personality = "aggressive"
 
         # Simulate AI capture via _apply_ai_capture_choice
         executor._apply_ai_capture_choice(uxbridge, region, world)
@@ -321,14 +323,13 @@ class TestAICaptureAutoDecides:
     def test_cautious_ai_secures(self):
         world, gs = make_game_state()
         executor = CommandExecutor()
-        from backend.models.personality import Personality
 
         region = world.get_region("Paris")
         region.controller = "France"
         region.stability = 80
 
         wellington = world.get_marshal("Wellington")
-        wellington.personality_type = Personality.CAUTIOUS
+        wellington.personality = "cautious"
 
         executor._apply_ai_capture_choice(wellington, region, world)
         assert region.stability == 25  # Secured

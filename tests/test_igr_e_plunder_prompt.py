@@ -394,6 +394,87 @@ class TestThePromptIsPriced:
                 == world.pending_capture_choice["dialogue_id"])
 
 
+class TestTheAICanActuallyPlunder:
+    """IGR-E addendum — GR5, the half that made the windfall player-only.
+
+    Both AI capture sites read `getattr(marshal, 'personality_type', None)`
+    and compared it to a `Personality` member. `Marshal` has no such
+    attribute (it carries `personality` as a plain string), so the read was
+    always None and **the AI could never plunder, on any board, ever**.
+    Measured before the fix on the pinned 40-turn ambient run: 41 AI
+    capture-choice calls, 100% `secure`, 0 plunder gold. After: 39 secure /
+    2 plunder, both by Britain's Paget — the only aggressive non-France
+    marshal to reach a capture in that run.
+
+    The second trap, which a careless fix walks straight into: `Personality`
+    is a plain `Enum` with no `str` mixin, so `Personality.AGGRESSIVE ==
+    'aggressive'` is False. Reading the *right* attribute while still
+    comparing against the member leaves the branch just as dead.
+    """
+
+    def _world(self):
+        world = WorldState(player_nation="France")
+        region = world.regions["Paris"]
+        region.controller = "France"
+        region.stability = 80
+        return world, region
+
+    def test_the_enum_does_not_compare_equal_to_its_own_string(self):
+        """Pins the trap itself, so a future 'simplification' back to the
+        enum comparison fails loudly instead of silently re-killing it."""
+        from backend.models.personality import Personality
+        assert Personality.AGGRESSIVE != "aggressive"
+
+    def test_an_aggressive_ai_marshal_plunders(self):
+        from backend.models.world_state import ai_prefers_plunder
+        world, region = self._world()
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        assert ai_prefers_plunder(marshal) is True
+        CommandExecutor()._apply_ai_capture_choice(marshal, region, world)
+        assert region.stability == 10
+        assert region.plundered is True
+
+    def test_a_cautious_ai_marshal_secures(self):
+        world, region = self._world()
+        marshal = world.get_marshal("Wellington")
+        marshal.personality = "cautious"
+        CommandExecutor()._apply_ai_capture_choice(marshal, region, world)
+        assert region.stability == 25
+        assert region.plundered is False
+
+    def test_the_ai_is_paid_exactly_the_player_rate(self):
+        """GR5: the same modal, the same money. Not 'about the same'."""
+        world, region = self._world()
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        before = world.nation_gold.get(marshal.nation, 0)
+        CommandExecutor()._apply_ai_capture_choice(marshal, region, world)
+        assert world.nation_gold[marshal.nation] - before == plunder_yield(region)
+
+    def test_the_occupation_route_is_fixed_too(self):
+        """There are TWO AI branches, and the second is a hand-inlined
+        duplicate rather than a call — fixing only the first leaves
+        fortified-province captures unable to plunder."""
+        world, region = self._world()
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        marshal.nation = "Britain"
+        before = world.nation_gold.get("Britain", 0)
+        world._apply_occupation_capture_effects(marshal, region.name)
+        assert world.nation_gold["Britain"] - before == plunder_yield(region)
+        assert region.stability == 10
+
+    def test_no_pending_choice_is_raised_for_an_ai_capture(self):
+        """The AI decides by rule; it must never queue the player's modal."""
+        world, region = self._world()
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        marshal.nation = "Britain"
+        world._apply_occupation_capture_effects(marshal, region.name)
+        assert world.pending_capture_choice is None
+
+
 class TestTheClientRendersIt:
     """The backend can price the question all it likes; the modal is where
     the player reads it. capture_choice_dialog.gd is NOT in the committed

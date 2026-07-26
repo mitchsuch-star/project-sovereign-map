@@ -573,9 +573,14 @@ class TestPlunderParity:
 
     def test_ai_plunder_pays_player_rate(self, world):
         """GR5: the AI personality auto-plunder (an aggressive enemy marshal
-        capturing a province) pays ×1.75 base income like the player's
-        plunder choice (was ×1.0 — a silent AI discount)."""
-        from backend.models.personality import Personality
+        capturing a province) pays the same base-income multiple as the
+        player's plunder choice (was ×1.0 — a silent AI discount).
+
+        IGR-E addendum: this test used to set `personality_type`, an
+        attribute Marshal does not have, which is what let it pass while the
+        production branch it claims to cover was dead code. It now sets the
+        real `personality`, so it actually exercises the AI plunder path.
+        """
         fr_region = None
         for name in world.get_nation_regions("France"):
             if not world.regions[name].is_capital:
@@ -583,7 +588,7 @@ class TestPlunderParity:
                 break
         assert fr_region is not None
         austrian = next(m for m in world.marshals.values() if m.nation == "Austria")
-        austrian.personality_type = Personality.AGGRESSIVE
+        austrian.personality = "aggressive"
         at_gold_before = int(world.nation_gold.get("Austria", 0))
         at_base = fr_region.income_value
         world._apply_occupation_capture_effects(austrian, fr_region.name)
