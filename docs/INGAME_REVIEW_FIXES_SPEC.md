@@ -621,7 +621,131 @@ rendered rows** on historical (Sweden→Austria at the fight rung, turns 8–41)
 
 </details>
 
-### IGR-D — The carve becomes completable *(gate Q2 — the biggest question here)*
+### IGR-D — The carve becomes completable *(gate Q2)* — ✅ **LANDED July 25, 2026**
+
+> **Landing record — authoritative for what IGR-D actually became.**
+> Tests `tests/test_igr_d_carve_completable.py` (49). Suite **15,107/3**, ruff clean,
+> parser eval **461/461** mock, M1–M7 and the 40-turn `BASELINE_SERIES` byte-identical,
+> Godot parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`.
+>
+> **Arm A — `create_client` carries.** Five seams, in order of the clause's journey:
+> `PAIR_SUBSTITUTE_CARRIED_TYPES` gains the type (and it leaves
+> `_PAIR_SUBSTITUTE_DROPPED_LABELS`, which would otherwise be a *new* lie);
+> `_pair_substitute_seed_terms` grows a literal `ttype == "create_client"` arm emitting a
+> **demand** carrying `tag` / `provinces` / `client_display_name`; `_ratify_treaty`'s
+> demand→clause allowlist widens by those three keys; and a new arm in `_ratify_treaty`
+> re-validates through `evaluate_create_client_eligibility` and applies.
+>
+> **The apply body was EXTRACTED, not copied.** `formations.apply_create_client_clause`
+> now holds what was inline in `settlement_ratify`, and both routes call it. That body is
+> the entire NA-6c §20.1 review — the live re-read, the already-active-tag refusal, the
+> four-condition elimination gate — and a second hand-written arm would have had to
+> re-earn every one of them. The settlement path is byte-identical.
+>
+> **Why it must ride `demands` and not `clauses`.** `_ratify_treaty` builds its clause
+> list from `sweeteners` + `demands` **only**; `proposal["clauses"]` is read exactly once,
+> as a bare `"open_borders" in …` string test. Seeded into `clauses` the carve would
+> price, annotate, warn about estates, ratify into the treaty record — and apply nothing,
+> reproducing this slice's own defect one layer down. It is also what satisfies **G4F-15
+> for free**: the armistice arm empties `seed["demands"]` wholesale, so a truce still
+> cannot erect a client state.
+>
+> **Four defects found in passing, none of which the spec named, all fixed:**
+> - **The counter-offer amputated the carve every time.** `generate_counter_offer`
+>   deep-copies the *player's own* proposal and deletes whichever element raises
+>   acceptance most; a carve is by construction the most expensive line in any package
+>   (measured **+35** removal impact against +12 for a 300g demand), and the counter's
+>   summary never said so. The most common non-accept outcome silently returned a gold
+>   treaty to a player who believed they had erected the Duchy of Warsaw. `create_client`
+>   is now exempt from the strike list — a court that will not stomach dismemberment must
+>   refuse, not quietly re-draft.
+> - **The ratification summary omitted the client.** `applied_treaty_clauses` is a
+>   *second* list and it is what `build_peace_ratification_summary` renders as "what was
+>   actually signed".
+> - **A carve-only Tilsit logged as a `white_peace`** — France dismembers Prussia and the
+>   campaign log records that nothing happened. Both outcome classifiers (`_ratify_treaty`
+>   and `build_peace_ratification_summary`) now count it, without inflating
+>   `territory_gained`: the soil goes to the new client, not to France.
+> - **A THIRD harshness dialect.** `diplomatic_defiance.calculate_proposal_harshness`
+>   scored a carve at 0.0, so a peace that dismembered its target fell into the
+>   "< 0.3 = too generous" arm and Talleyrand bolted a perpetual **50 g/turn** tribute
+>   onto it that the player never authored.
+>
+> **ES-7 held.** `_enrich_proposal_summary` still carried its pre-NA-6c
+> `!= "territory_cede"` guard and scanned only `sweeteners`+`clauses`, so a carve stripped
+> a marshal's estate with no warning on the surface the player confirms on. It now uses
+> the shared `cession_shaped_regions` extractor plus a demands pass **scoped to
+> `create_client`** — a `territory_cede` demand *acquires* land, and warning on it would
+> tell the player that taking a province strips his own marshal's estate.
+>
+> **⚠ THE PRICE WAS RETUNED AFTER MEASUREMENT, and the first cut would have shipped the
+> defect in a new shape.** The real defect was **saturation**: a carve's whole cost lived
+> in `harshness_penalty`, which clamps at 1.0 and caps at −40, so measured on master,
+> adding a carve to any realistic Tilsit package moved the acceptance score by **exactly
+> zero** — a second carve, or a third, also moved it by zero. The fix belongs on
+> `deal_balance`, which does not saturate. My first number mirrored the harshness dialect
+> at its ×50 identity ratio (−15/province − 7.5) and **measured out at 40 against the bar
+> of 50 for a victor holding ALL of Prussia** — i.e. it made the marquee clause
+> unreachable on the very route this slice exists to open. Re-derived at **−5/province
+> (the table's own `territory_cede` rate) − 2.5 (half a province, the same 0.15-to-0.30
+> ratio the harshness dialect uses)**: a victor holding all of Prussia lands at **54**
+> (carves), one holding only Posen at **34** (does not). Blessed, in-band tunable, pinned
+> by a falsifiable two-sided acceptance test.
+>
+> **Arm B — the rest disable the route with their reason.** New
+> `pair_substitute_settlement_tier_block` reads the *same* `PAIR_SUBSTITUTE_CARRIED_TYPES`
+> the carry arm does, so the two halves of the split cannot drift. It is computed at the
+> option builder (where `staged_terms_for_gate` is in scope) rather than inside
+> `evaluate_pair_peace_substitute_eligibility`, which takes only
+> `(world, war_id, actor, target, action)` and cannot see the draft — that also avoids
+> mis-filing a draft-shaped refusal into a closed taxonomy pinned by exact equality.
+> **Zero new refusal codes, and zero new Godot machinery**: the `available: False` +
+> `disabled_reason_display` shape is already rendered twice by
+> `proposal_confirm_popup.gd` (dimmed+tooltipped button, and a "Not available now" body
+> line). **Scoped to the PEACE arm** — G4F-15 already rules a truce carries concessions
+> only, so losing a demand there is the stated contract, and disabling it too would leave
+> a blocked player no exit.
+>
+> **The carry promise had THREE producers and only one was honest.** The backend
+> description (fixed July 25), `proposal_confirm_popup.gd:1219` — which hardcoded
+> *"Your drafted terms for X carry into the talks"* in **body text**, so the honest
+> sentence only ever reached a hover tooltip — and Talleyrand's own voice line, which
+> guaranteed *"Your drafted terms travel with me."* All three now defer to one
+> backend-composed `carry_line`, which is additionally **arm-aware**: the armistice
+> chooser stops promising a carry it drops.
+>
+> **THE PAYOFF (user-directed: "make the payoff for forming duchy good as well").**
+> Measured on master, carving the Duchy of Warsaw was close to pure cost. The client was
+> born at `CARVE_LOYALTY = 30` — **five points below `CONTRIBUTION_DISAFFECTED_BELOW`** —
+> so from its first turn it refused every call to arms, was immediately eligible for an
+> enemy bribe, and, with **no France↔client relation seeded at all**, nothing offset the
+> −2 satellite drift: it reached open rebellion against its own creator in fifteen turns.
+> Talleyrand's pitch for the clause promises *"a friend that costs us nothing to
+> garrison"*. Two constants, both using the drift system's own existing levers rather
+> than exempting the carve from them:
+> - **`CARVE_LOYALTY` 30 → 60** (`CONTRIBUTION_LOYAL_MIN`) — the state you conjured out of
+>   a conquest fights for you, which is the only reason to prefer a carve to an
+>   annexation, and what the Duchy of Warsaw actually did.
+> - **`CARVE_PATRON_RELATION = 40`** — seeded once, never laundered on a re-carve.
+>   `40 // 20 = +2` exactly cancels the satellite drift, so a well-treated client is
+>   **stable rather than a countdown**; it still slides the moment relations sour, climbs
+>   when garrisoned or subsidised, and — because relations outlive vassalage — a client
+>   later released to proclaim Poland stays France's friend, which is the one credit entry
+>   against §11.9's partition fury.
+>
+> The Proclamation card now states the bargain (*"it marches when France calls, and pays
+> tribute"*) rather than only the dependence, and `get_formation_watch` keeps showing the
+> dormant Poland dream with `blocked_by_vassalage` — legible without becoming a promise
+> the poll cannot keep.
+>
+> **⚠ Residual, stated not hidden: bilateral peace with a BOOT enemy is unreachable, and
+> that is pre-existing.** `_ratify_treaty` applies a player-only relation floor
+> (`STATE_RELATION_REQUIREMENTS["PEACE"] = -60`); France boots at −95/−100/−95 with
+> Austria/Britain/Russia and relation decay explicitly skips WAR and ARMISTICE. Measured:
+> a player-declared war on Prussia lands at −40, so **the reviewed case — and Tilsit —
+> works**, while the three boot enemies keep the documented armistice-first route and the
+> joint settlement. Not widened here: the floor re-prices every bilateral peace in the
+> game and is a design gate of its own.
 
 Unchanged from v0.1 and re-affirmed. I reached every prerequisite by real play (at war
 with Prussia, Posen held and secured, gate green, clause authored) and neither route

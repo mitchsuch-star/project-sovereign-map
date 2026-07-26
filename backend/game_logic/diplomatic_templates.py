@@ -1731,11 +1731,14 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # trapdoor — Talleyrand states what leaving the joint settlement MEANS
     # (the other courts fight on; the drafted terms for the target travel
     # into the new talks) and asks before he moves.
+    # IGR-D: the third producer of the carry promise, and the one that
+    # spoke it unconditionally. The chooser's BODY now renders the
+    # backend's honest `carry_line`, so Talleyrand stops making a
+    # guarantee the armistice arm cannot keep and defers to it.
     "settlement_pair_substitute_confirm_talleyrand": (
         "Sire, this sets aside the joint settlement of {war_label} to "
         "treat with {target_nation} alone — every other court keeps its "
-        "war. Your drafted terms for {target_nation} travel with me. "
-        "Shall I proceed?"
+        "war. Shall I proceed?"
     ),
     # SC-31 / G2-Slice-8 Voice Bible §16.1 surrender / dependency families.
     # Surrender preset is a structured, labeled action — Talleyrand frames

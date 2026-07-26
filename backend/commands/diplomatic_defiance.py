@@ -165,6 +165,17 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
             value = demand.get("value", 0)
             harshness += max(0.15, 0.15 * (value / 1000))
+        elif dtype == "create_client":
+            # NA-6c / IGR-D — the THIRD harshness dialect, and the one that
+            # decides whether Talleyrand thinks the package too generous.
+            # Unscored, a peace whose only demand was dismembering the
+            # target into a client state read 0.0, fell into the "< 0.3 =
+            # too generous" arm, and on a defiance roll got a perpetual
+            # 50g/turn tribute bolted on that the player never authored.
+            # Priced like the cession it is (0.2/province here) plus the
+            # erection, mirroring the ratio the other two dialects use.
+            provinces = demand.get("provinces") or []
+            harshness += 0.2 * max(1, len(provinces)) + 0.15
 
     for sweetener in proposal.get("sweeteners", []):
         harshness -= 0.1

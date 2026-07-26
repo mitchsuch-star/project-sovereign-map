@@ -251,17 +251,45 @@ class TestCrisisCauseCopy:
 class TestPairSubstituteCarryHonesty:
     """Played live: authored 'Erect Duchy of Warsaw from Prussia's lands',
     was told "Your drafted terms for Prussia carry into the talks", and got
-    a bare white peace — create_client is settlement-tier and is dropped."""
+    a bare white peace — create_client was settlement-tier and was dropped.
 
-    def test_create_client_is_named_as_not_carrying(self):
+    IGR-D gate Q2 answered that as a SPLIT and this class was flipped with
+    it: `create_client` now CARRIES (Tilsit carved the Duchy of Warsaw out
+    of Prussia alone), so the honest copy must stop warning about it. The
+    remaining identity clauses still cannot travel — and they no longer
+    merely get named in a description, they DISABLE the bilateral peace
+    (`TestSettlementTierClauseDisablesTheBilateralRoute` below).
+    """
+
+    def test_create_client_no_longer_warns_because_it_carries(self):
+        """Consciously flipped by IGR-D. Was
+        `test_create_client_is_named_as_not_carrying`."""
+        from backend.game_logic.settlement_staging import (
+            PAIR_SUBSTITUTE_CARRIED_TYPES,
+            _pair_substitute_carry_description,
+        )
+        assert "create_client" in PAIR_SUBSTITUTE_CARRIED_TYPES
+        dialogue = {"settlement_terms": [
+            {"type": "create_client", "from": "Prussia", "to": "France",
+             "tag": "DuchyOfWarsaw", "provinces": ["Posen"]},
+        ]}
+        text = _pair_substitute_carry_description(dialogue, "Prussia")
+        assert "except" not in text, (
+            "a carried clause must not be listed as left behind: " + text
+        )
+        assert text.endswith("carry into the talks.")
+
+    def test_a_settlement_tier_clause_is_still_named(self):
+        """The other half of the split — vassalage never travels, and the
+        copy must keep saying so."""
         from backend.game_logic.settlement_staging import (
             _pair_substitute_carry_description,
         )
         dialogue = {"settlement_terms": [
-            {"type": "create_client", "from": "Prussia", "region": "Posen"},
+            {"type": "vassalage", "from": "Prussia", "to": "France"},
         ]}
         text = _pair_substitute_carry_description(dialogue, "Prussia")
-        assert "client state" in text
+        assert "vassalage" in text
         assert "joint settlement" in text
 
     def test_money_and_territory_still_promise_a_clean_carry(self):

@@ -667,12 +667,26 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # paths (annotated section + plain summary fallback) before the
     # proposal is sent.
     from backend.game_logic.dotation import estate_cession_warning
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
     _warned_regions = set()
-    for _clause in (list(terms.get("sweeteners", []) or [])
-                    + list(terms.get("clauses", []) or [])):
-        if not isinstance(_clause, dict) or _clause.get("type") != "territory_cede":
+    # NA-6c's shared extractor, which this loop never got: it handles the
+    # singular `region`, the plural `regions`, AND a carve's `provinces`.
+    # IGR-D adds the DEMANDS pass, scoped to `create_client` — a carve is
+    # direction-wise a demand, but its soil is already the player's (the
+    # eligibility predicate requires it), so it strips an estate exactly as
+    # a cession does. The scope matters: a `territory_cede` demand ACQUIRES
+    # land, and warning on it would tell the player that taking a province
+    # strips his marshal's estate.
+    _estate_scan = (
+        list(terms.get("sweeteners", []) or [])
+        + list(terms.get("clauses", []) or [])
+        + [d for d in (terms.get("demands", []) or [])
+           if isinstance(d, dict) and d.get("type") == "create_client"]
+    )
+    for _clause in _estate_scan:
+        if not isinstance(_clause, dict):
             continue
-        for _region_name in _clause.get("regions", []) or []:
+        for _region_name in cession_shaped_regions(_clause):
             _region_name = str(_region_name)
             if _region_name in _warned_regions:
                 continue

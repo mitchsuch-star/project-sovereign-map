@@ -1968,6 +1968,18 @@ def generate_counter_offer(
 
     # Test removing each demand (these hurt France, removing helps France)
     for i, d in enumerate(terms.get("demands", [])):
+        if d.get("type") == "create_client":
+            # NA-6c / IGR-D: never counter by deleting the client state.
+            # A carve is by construction the most expensive single line in
+            # any package (measured +35 removal impact against +12 for a
+            # 300g demand), so "strike whichever clause the AI hates most"
+            # amputated it EVERY time — and the counter's summary never
+            # said so. The player would accept a peace they believed
+            # erected the Duchy of Warsaw and get a gold treaty: exactly
+            # the silent-drop defect this slice exists to kill, one layer
+            # below the carry-over. A court that will not stomach
+            # dismemberment must REFUSE, not quietly re-draft it away.
+            continue
         test_terms = copy.deepcopy(terms)
         test_terms["demands"].pop(i)
         test_result = calculate_acceptance(test_terms, world)

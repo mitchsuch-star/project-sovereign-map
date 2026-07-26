@@ -2887,9 +2887,19 @@ def _pair_substitute_seed_terms(
       settlement stream must convert by total, never by rate.
     - ``territory_cede`` FROM the target → one aggregated
       ``territory_cede`` demand carrying every region.
-    - Identity-bearing clauses (vassalage, liberation, forced_alliance, …)
-      and proposer-paid territory are settlement-tier — skipped; the
-      bilateral flow's own authoring handles anything further.
+    - ``create_client`` FROM the target TO the proposer → a
+      ``create_client`` demand carrying the template ``tag`` (the
+      authority), plus the denormalized ``provinces`` /
+      ``client_display_name`` the bilateral pricing and display seams
+      read. IGR-D / gate Q2(a): this is the Tilsit clause — the Duchy of
+      Warsaw was carved from Prussia ALONE while the British war ran — so
+      it is the one identity clause that travels. Everything else in that
+      family stays settlement-tier and the substitute is DISABLED rather
+      than dropped (``settlement_staging`` owns that gate).
+    - The remaining identity-bearing clauses (vassalage, liberation,
+      forced_alliance, …) and proposer-paid territory are settlement-tier
+      — skipped; the bilateral flow's own authoring handles anything
+      further.
     """
     demands: List[Dict[str, Any]] = []
     sweeteners: List[Dict[str, Any]] = []
@@ -2918,6 +2928,31 @@ def _pair_substitute_seed_terms(
             region = str(term.get("region") or "")
             if region:
                 demanded_regions.append(region)
+        elif ttype == "create_client" and frm == target and to == proposer_leader:
+            # BOTH directions are checked, unlike the money arms: a joint
+            # draft may carry a carve an ALLY makes out of this same court
+            # (GR5 — `create_client` is carver-parameterised), and dragging
+            # that into France's private peace would erect someone else's
+            # client on France's authority.
+            cc_tag = str(term.get("tag") or "")
+            if cc_tag:
+                cc_provinces = [
+                    str(p) for p in (term.get("provinces") or []) if p
+                ]
+                demands.append({
+                    "type": "create_client",
+                    # The bilateral acceptance walk multiplies by `value`,
+                    # so it carries the province count — a two-province
+                    # carve must cost more than a one-province carve.
+                    "value": max(1, len(cc_provinces)),
+                    "tag": cc_tag,
+                    "provinces": cc_provinces,
+                    # Not decoration: `annotate_peace_terms` falls back to
+                    # the raw template id, so omitting this renders
+                    # "France erects DuchyOfWarsaw" on the confirm popup.
+                    "client_display_name": str(
+                        term.get("client_display_name") or cc_tag),
+                })
     if demanded_regions:
         demands.append({
             "type": "territory_cede",

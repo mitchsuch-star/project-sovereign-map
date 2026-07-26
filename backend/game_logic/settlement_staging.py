@@ -265,25 +265,31 @@ def _build_settlement_scope_replace_confirm_dialogue(
 # Pair-substitute carry-over surface (in-game review, July 25, 2026)
 # ══════════════════════════════════════════════════════════════════════
 # The G4F-8 handoff (settlement_actions._pair_substitute_seed_terms) can
-# translate ONLY the money and taken-territory clauses into the bilateral
-# demand/sweetener dialect. Identity-bearing clauses — vassalage,
-# liberation, forced_alliance, create_client — are settlement-tier and are
-# dropped, by design.
+# translate the money, taken-territory and — since IGR-D — `create_client`
+# clauses into the bilateral demand/sweetener dialect. The REMAINING
+# identity-bearing clauses (vassalage, liberation, forced_alliance, …) are
+# settlement-tier.
 #
 # The confirm chooser used to promise, flatly, "Your drafted terms for X
 # carry into the talks." Playing the real client: I authored "Erect Duchy
 # of Warsaw from Prussia's lands", was told my terms would carry, and got a
-# bare white peace with the clause silently gone. The promise now names
-# what will NOT travel, so the player can choose the joint route instead.
+# bare white peace with the clause silently gone.
+#
+# IGR-D / gate Q2 answers that as a SPLIT. `create_client` now travels —
+# the Duchy of Warsaw was carved from Prussia alone at Tilsit while the
+# British war ran, so the separate peace IS the canonical instance of the
+# clause, not an edge case. Everything else in the family still cannot
+# travel, and rather than being named-and-dropped the bilateral peace is
+# now DISABLED with its reason (see `pair_substitute_settlement_tier_block`).
 PAIR_SUBSTITUTE_CARRIED_TYPES = frozenset({
     "gold_indemnity",
     "gold_per_turn",
     "territory_cede",
+    "create_client",
 })
 
 # Player-facing names for the settlement-tier clauses, for the honest warning.
 _PAIR_SUBSTITUTE_DROPPED_LABELS = {
-    "create_client": "erecting a client state",
     "vassalage": "vassalage",
     "liberation": "liberation",
     "forced_alliance": "a forced alliance",
@@ -316,28 +322,75 @@ def pair_substitute_dropped_clause_labels(
     return labels
 
 
+def _humanize_label_list(labels: List[str]) -> str:
+    """"a, b and c" — the shared list idiom for the two carry surfaces."""
+    if len(labels) == 1:
+        return labels[0]
+    return ", ".join(labels[:-1]) + " and " + labels[-1]
+
+
+def pair_substitute_settlement_tier_block(
+    settlement_terms: Any,
+    *,
+    target: str,
+) -> str:
+    """IGR-D gate Q2(b): the reason the bilateral peace is refused, or "".
+
+    A draft holding a settlement-tier identity clause against ``target``
+    cannot become a bilateral peace — the clause has no bilateral dialect
+    to travel in. Before IGR-D the substitute simply THREW IT AWAY and the
+    chooser mentioned the loss in a description; the gate's ruling is that
+    the route is disabled with its reason instead, so the drafting is never
+    silently discarded.
+
+    Deliberately NOT a `create_client` refusal: that clause now carries
+    (Q2(a)), which `PAIR_SUBSTITUTE_CARRIED_TYPES` already encodes — this
+    reads the same set, so the two halves of the split can never drift.
+    """
+    dropped = pair_substitute_dropped_clause_labels(
+        settlement_terms, target=target,
+    )
+    if not dropped:
+        return ""
+    return (
+        f"Your draft for {target} holds {_humanize_label_list(dropped)}. "
+        "Only a joint settlement can seal that; a separate peace would have "
+        "to abandon it. Revise the terms, or press the joint settlement."
+    )
+
+
 def _pair_substitute_carry_description(
     current_dialogue: Mapping[str, Any],
     selected_target: str,
+    proposal_type: str = "peace",
 ) -> str:
-    """The confirm option's consequence line — honest about what travels."""
+    """The confirm option's consequence line — honest about what travels.
+
+    ``proposal_type`` matters: the G4F-15 ruling drops every DEMAND on the
+    armistice arm, so promising an unconditional carry there was a standing
+    lie the review's R5 fix did not reach (it only corrected the peace arm's
+    clause-tier omission).
+    """
     base = (
         "Set aside the joint settlement; the other courts stay at war. "
         f"Your drafted terms for {selected_target} carry into the talks"
     )
+    if proposal_type == "armistice":
+        return (
+            "Set aside the joint settlement; the other courts stay at war. "
+            f"A truce with {selected_target} carries what you OFFER — every "
+            "demand you drafted waits for a peace table."
+        )
     dropped = pair_substitute_dropped_clause_labels(
         current_dialogue.get("settlement_terms") or [],
         target=selected_target,
     )
     if not dropped:
         return base + "."
-    if len(dropped) == 1:
-        listed = dropped[0]
-    else:
-        listed = ", ".join(dropped[:-1]) + " and " + dropped[-1]
     return (
         base
-        + f" — except {listed}, which only a joint settlement can seal."
+        + f" — except {_humanize_label_list(dropped)}, "
+        "which only a joint settlement can seal."
     )
 
 
@@ -371,6 +424,9 @@ def _build_pair_substitute_confirm_dialogue(
         f"Leave the joint settlement and seek {arm_label} with "
         f"{selected_target} alone? The other courts stay at war."
     )
+    _carry_line = _pair_substitute_carry_description(
+        current_dialogue, selected_target, str(proposal_type)
+    )
     return {
         "type": "settlement_pair_substitute_confirm",
         "dialogue_type": "settlement_pair_substitute_confirm",
@@ -379,6 +435,11 @@ def _build_pair_substitute_confirm_dialogue(
         "selected_target_nation": selected_target,
         "pair_substitute_action": str(action),
         "proposal_type": str(proposal_type),
+        # IGR-D: `proposal_confirm_popup.gd` hardcoded the flat promise
+        # "Your drafted terms for X carry into the talks" in its BODY, so
+        # the honest sentence the July-25 R5 fix wrote only ever reached a
+        # hover tooltip. The client now renders this string instead.
+        "carry_line": _carry_line,
         "prior_dialogue": copy.deepcopy(dict(current_dialogue)),
         "pair_substitute_eligibility": dict(eligibility),
         "available_action_ids": [
@@ -391,9 +452,7 @@ def _build_pair_substitute_confirm_dialogue(
                     f"Proceed — {arm_label} with {selected_target} alone"
                 ),
                 "action": "confirm_pair_substitute",
-                "description": _pair_substitute_carry_description(
-                    current_dialogue, selected_target
-                ),
+                "description": _carry_line,
             },
             {
                 "label": "Stay with the joint settlement",
@@ -2595,6 +2654,33 @@ def build_settlement_confirm_dialogue(
                 "alone; the war continues elsewhere.",
             ),
         ):
+            # IGR-D gate Q2(b): a draft holding a settlement-tier identity
+            # clause disables the PEACE substitute with its reason instead
+            # of silently throwing the clause away. Computed HERE rather
+            # than inside `evaluate_pair_peace_substitute_eligibility` —
+            # that helper takes (world, war_id, actor, target, action) and
+            # cannot see the draft, and widening its closed refusal
+            # taxonomy for a draft-shaped refusal would mis-file it.
+            #
+            # The ARMISTICE arm is deliberately untouched: G4F-15 already
+            # rules a truce carries concessions only, so losing a demand
+            # there is the stated contract rather than a silent drop, and
+            # disabling it too would leave a blocked player with no exit.
+            if action_id == "seek_bilateral_peace":
+                tier_block = pair_substitute_settlement_tier_block(
+                    staged_terms_for_gate, target=resolved_target,
+                )
+                if tier_block:
+                    options.append({
+                        "label": label,
+                        "action": action_id,
+                        "available": False,
+                        "disabled_reason_display": tier_block,
+                        "scope": "selected_pair",
+                        "war_id": war_id,
+                        "selected_target_nation": resolved_target,
+                    })
+                    continue
             eligibility = evaluate_pair_peace_substitute_eligibility(
                 world,
                 war_id=war_id,

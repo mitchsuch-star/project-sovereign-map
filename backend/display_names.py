@@ -1232,6 +1232,16 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
             lines.append(f"{target_label} pays {int(value)} gold")
         elif demand_type == "ap_per_turn":
             lines.append(f"{target_label} loses {int(value)} AP/turn")
+        elif demand_type == "create_client":
+            # NA-6c / IGR-D: without this arm the generic fallback below
+            # renders a bare "Demand: Client state erected" — naming
+            # neither the nation being founded nor the soil it stands on,
+            # on the one surface where the player commits to the carve.
+            client = str(demand.get("client_display_name")
+                         or demand.get("tag") or "a client state")
+            provinces = [str(p) for p in (demand.get("provinces") or []) if p]
+            soil = f" out of {', '.join(provinces)}" if provinces else ""
+            lines.append(f"{target_label} yields {client}{soil}")
         else:
             detail = _format_clause_detail(demand)
             detail_suffix = f" ({detail})" if detail else ""

@@ -4,6 +4,57 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+### ✅ IGR-D — The carve becomes completable — LANDED July 25, 2026
+
+**User direction: "Build IGR-D per spec §2", gate Q2 already decided as a SPLIT (spec §5),
+plus "make the payoff for forming duchy good as well". Landing record = spec §2 IGR-D
+(authoritative).** Suite **15,107/3**, ruff clean, parser eval 461/461 mock, M1–M7 and the
+40-turn `BASELINE_SERIES` byte-identical, Godot parse harness EXIT=0, headless boot
+0 `SCRIPT ERROR`, `tests/test_igr_d_carve_completable.py` (49).
+
+A 12-reader + 3-refuter verification fleet ran before any code was written, and it earned
+its keep: it found that the carve must ride `demands` (`_ratify_treaty` reads
+`proposal["clauses"]` exactly once, as a bare string test), that the counter-offer strikes
+the carve first every time, and that `main.py` keeps a module-level `world` **separate**
+from `game_state["world"]` — the executor reads the dict, the response layers read the
+global, and setting only one runs the command on one world and builds the response from
+another. That last one is why the first delivery test failed while every unit test passed.
+
+- **Arm A — `create_client` carries into the pair-substitute bilateral peace.** The apply
+  body was **extracted** into `formations.apply_create_client_clause` and both routes call
+  it, so the whole NA-6c §20.1 review (live re-read, active-tag refusal, the
+  four-condition elimination gate) is inherited rather than re-earned. The settlement path
+  is byte-identical. Eligibility is re-validated on the new route through the *same*
+  `evaluate_create_client_eligibility` — never a forked predicate — and it earns its place:
+  in live probing it correctly refused twice, once when Prussia retook Posen during the
+  transit turn and once when **Russia** walked into it.
+- **Four defects found in passing, none named by the spec:** the counter-offer amputated
+  the client state and never said so; `applied_treaty_clauses` omitted it, so the
+  ratification summary did not mention what was signed; a carve-only Tilsit logged as a
+  **`white_peace`**; and a **third** harshness dialect scored it 0.0, so Talleyrand judged
+  a dismemberment "too generous" and bolted an unauthored 50 g/turn tribute onto it.
+- **⚠ The price was retuned after measurement.** The real defect was *saturation* — on any
+  realistic package the carve moved acceptance by **exactly zero**, because harshness
+  clamps. My first number (the ×50 harshness mirror) fixed that but measured **40 against
+  the bar of 50 for a victor holding ALL of Prussia** — it would have shipped the same
+  defect wearing a different hat. Re-derived from the table's own territory rate: a victor
+  holding all of Prussia now lands at **54**, one holding only Posen at **34**.
+- **Arm B** reads the same carried-types set as arm A, so the split cannot drift, and needs
+  **zero** new refusal codes and **zero** new Godot machinery. Scoped to the PEACE arm;
+  G4F-15 governs the truce and disabling it too would leave a blocked player no exit.
+- **The carry promise had three producers and only one was honest** — the `.gd` body text
+  hardcoded the flat guarantee, so the July-25 R5 fix only ever reached a hover tooltip.
+- **Payoff (user-directed):** the client was born at loyalty **30**, five below the
+  disaffected line, with **no patron relation seeded at all** — it refused every call to
+  arms, was bribable on day one, and rebelled in ~15 turns. `CARVE_LOYALTY` 30 → **60** and
+  a new `CARVE_PATRON_RELATION = 40` (which exactly cancels the satellite drift) make it
+  stable, loyal, and useful — using the drift system's own levers rather than exempting the
+  carve from them. The relation outlives vassalage, so a Warsaw later freed to proclaim
+  Poland stays France's friend.
+- **Residual, stated not hidden:** bilateral peace with a **boot** enemy is unreachable
+  (the pre-existing −60 relation floor vs −95/−100 boot war relations, decay skips
+  WAR/ARMISTICE). The reviewed Prussia case — and Tilsit — measures −40 and works.
+
 ### ✅ IGR-B — The campaign log becomes readable — LANDED July 25, 2026
 
 **User direction: "Build IGR-B per spec §2", gate Q1 already decided (spec §5, option (a)).**

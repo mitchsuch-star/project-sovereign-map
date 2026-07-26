@@ -1216,7 +1216,16 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
 	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
 	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % Utils.display_nation_name(target)
-	bbcode += "[color=#80b0e0]Your drafted terms for %s carry into the talks.[/color]\n" % Utils.display_nation_name(target)
+	# IGR-D: this line used to be a hardcoded, unconditional
+	# "Your drafted terms for X carry into the talks." The backend has
+	# composed the honest sentence since the July-25 R5 fix — naming what
+	# will NOT travel, and (on the armistice arm) that no demand travels at
+	# all — but it only ever reached a hover tooltip, so the body text kept
+	# making the exact promise the review caught it breaking.
+	var carry_line = str(data.get("carry_line", ""))
+	if carry_line == "":
+		carry_line = "Your drafted terms for %s carry into the talks." % Utils.display_nation_name(target)
+	bbcode += "[color=#80b0e0]%s[/color]\n" % Utils.humanize_nation_keys_in_text(carry_line)
 	bbcode += "[color=#a0a0a8]The joint draft stays untouched if you cancel.[/color]\n\n"
 	var ttext = str(data.get("talleyrand_text", ""))
 	if ttext != "":

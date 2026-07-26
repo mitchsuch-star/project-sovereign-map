@@ -189,7 +189,37 @@ DEMAND_VALUES = {
     # gold_lump rate = -15; a major's marshal 800g = -24). The entry here
     # is the registry marker; the per-marshal value lives in the walk.
     "prisoner_return": -15,
+    # NA-6c / IGR-D: erecting a client state out of the court's own soil.
+    # Registry marker only — the per-province value lives in the walk (the
+    # `prisoner_return` pattern), because a carve carries its subject in
+    # `provinces` rather than in a scalar `value`.
+    "create_client": -8,
 }
+# IGR-D, blessed and in-band tunable. The carve's REAL cost has always been
+# `harshness_penalty`, which already charges it a steep premium (a measured
+# -37 against a plain cession's -14). This is the small companion charge on
+# `deal_balance`, and it exists for one reason: harshness SATURATES —
+# `calculate_treaty_harshness` clamps at 1.0 and the penalty caps at -40 —
+# so measured on master, adding a carve to any realistic Tilsit package
+# (indemnity + a cession) moved the acceptance score by EXACTLY ZERO. A
+# second carve, or a third, also moved it by zero. `deal_balance` does not
+# saturate, so this is what keeps dismembering a state from being free.
+#
+# Derived, not invented: -5/province is `DEMAND_VALUES["territory_cede"]`,
+# the table's own documented per-region rate, and the erection premium is
+# half a province — the same 0.15-to-0.30 ratio the harshness dialect
+# already uses for this clause (`0.3 * provinces + 0.15`).
+#
+# MEASURED against the acceptance bar of 50, on the shipped 1805 board with
+# Prussia's army broken and a 6,000g sweetener: a victor holding ALL of
+# Prussia lands at 54 (carves), a victor holding only Posen at 34 (does
+# not). A first cut of -15/-7.5 — mirroring harshness at its x50 identity
+# ratio — was RETUNED after measurement: it double-charged an already
+# non-linear penalty and put the maximal case at 40, which would have made
+# the marquee clause unreachable on the very route this slice exists to
+# open.
+CREATE_CLIENT_DEMAND_PER_PROVINCE = -5.0
+CREATE_CLIENT_DEMAND_ERECTION = -2.5
 
 # Commitment-bearing states. Breaking out of one of these should produce a
 # remembered political breach, not just a generic state flip.
@@ -4047,11 +4077,19 @@ def build_peace_ratification_summary(
     # §11.2 War outcome classification
     any_territory_changed = bool(territory_gained or territory_lost)
     any_gold_exchanged = bool(gold_received > 0 or gold_paid > 0)
+    # NA-6c / IGR-D: erecting a client state moves soil to the NEW nation,
+    # not to the player, so it correctly stays out of `territory_gained` —
+    # but it is the most material term a treaty can carry, and without this
+    # a carve-only Tilsit was reported to the player as a white peace.
+    any_client_erected = any(
+        clause.get("type") == "create_client"
+        for clause in treaty.get("clauses", [])
+    )
     if war_score >= 30:
         war_outcome = "french_victory"
     elif war_score <= -30:
         war_outcome = "enemy_victory"
-    elif any_territory_changed or any_gold_exchanged:
+    elif any_territory_changed or any_gold_exchanged or any_client_erected:
         war_outcome = "stalemate"
     else:
         war_outcome = "white_peace"
@@ -6707,6 +6745,25 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                     >= 25000):
                 ransom_worth = 800
             demand_total += -3 * ransom_worth / 100
+        elif dtype == "create_client":
+            # NA-6c / IGR-D. The registry row alone would be a NO-OP: the
+            # generic branches multiply by `value`, and before this arm a
+            # carve's whole cost came from `harshness_penalty` — which
+            # SATURATES (harshness clamps at 1.0, the penalty caps at -40),
+            # so measured against any realistic Tilsit package adding the
+            # carve moved the score by exactly ZERO. `deal_balance` is the
+            # un-saturating axis; this is where dismembering a state has to
+            # cost something.
+            _cc_provinces = d.get("provinces")
+            _cc_count = (
+                len(_cc_provinces)
+                if isinstance(_cc_provinces, (list, tuple)) and _cc_provinces
+                else max(1, int(dvalue or 1))
+            )
+            demand_total += (
+                CREATE_CLIENT_DEMAND_PER_PROVINCE * _cc_count
+                + CREATE_CLIENT_DEMAND_ERECTION
+            )
         elif isinstance(rate, (int, float)) and abs(rate) < 1:
             demand_total += (dvalue * rate) if dvalue is not None else 0
         else:

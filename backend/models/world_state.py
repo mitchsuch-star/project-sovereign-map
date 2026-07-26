@@ -8022,6 +8022,12 @@ class WorldState:
                 "includes_continental_system",
                 "named_enemy", "claim_region", "claim_holder",
                 "marshal",  # W6-7: prisoner_return names its prisoner
+                # NA-6c / IGR-D: a `create_client` demand's SUBJECT. `tag`
+                # is the authority (the apply arm re-resolves the template);
+                # `provinces` feeds harshness pricing and the estate
+                # warning; `client_display_name` keeps the confirm popup
+                # from printing the raw template id at the player.
+                "tag", "provinces", "client_display_name",
             ):
                 if extra_key in d:
                     clause_entry[extra_key] = d[extra_key]
@@ -8402,6 +8408,65 @@ class WorldState:
                         "turn": int(self.current_turn),
                     })
 
+        # NA-6c / IGR-D §2 gate Q2(a): erect a client state out of the
+        # defeated court's soil on a BILATERAL peace. This is the Tilsit
+        # case — the Duchy of Warsaw was carved from Prussia alone while
+        # the British war ran — and until now the clause had no bilateral
+        # apply seam at all, so a carried carve would have priced,
+        # displayed, ratified into the treaty record and then done nothing.
+        #
+        # Runs AFTER the loops above so an earlier `territory_cede` in the
+        # same package has already moved its soil, matching the settlement
+        # route's ordering discipline.
+        for clause in treaty_clauses:
+            if clause.get("type") != "create_client":
+                continue
+            cc_from = str(clause.get("from") or "")
+            cc_to = str(clause.get("to") or "")
+            # The settlement route validates eligibility at AUTHORING time
+            # and again through `validate_settlement_terms` on every
+            # restage; the bilateral route has neither, and a full turn
+            # passes in transit. So the predicate runs HERE — one source,
+            # never a second copy of the rule. It reads the war instance's
+            # side lists (not `diplomatic_states`), which is why it still
+            # answers correctly although `set_diplomatic_state` has already
+            # moved this pair to PEACE above; `cleanup_war_end` has not run
+            # yet, so the instance is still live.
+            from backend.game_logic.settlement_validation import (
+                evaluate_create_client_eligibility,
+            )
+            from backend.game_logic.settlement_helpers import (
+                _iter_active_war_instances,
+            )
+            cc_instance = None
+            for _wid, _inst in _iter_active_war_instances(self):
+                sides = (set(_inst.get("attackers") or []),
+                         set(_inst.get("defenders") or []))
+                if ((cc_from in sides[0] and cc_to in sides[1])
+                        or (cc_from in sides[1] and cc_to in sides[0])):
+                    cc_instance = _inst
+                    break
+            if cc_instance is None:
+                continue
+            if not evaluate_create_client_eligibility(
+                self,
+                war_instance=cc_instance,
+                template_id=str(clause.get("tag") or ""),
+                from_court=cc_from,
+                carver=cc_to,
+            ).get("eligible"):
+                continue
+            from backend.game_logic.formations import (
+                apply_create_client_clause,
+            )
+            cc_applied = apply_create_client_clause(self, clause)
+            if cc_applied is not None:
+                # Mandatory, not stylistic: `applied_treaty_clauses` is what
+                # `build_peace_ratification_summary` renders as "what was
+                # actually signed". Omitting it would leave the client state
+                # off the one surface that reports the treaty.
+                applied_treaty_clauses.append(cc_applied)
+
         # WB-A: War bargain clause → create commitment record
         for clause in war_bargain_clauses:
             from backend.game_logic.diplomacy import create_war_bargain_commitment
@@ -8572,6 +8637,16 @@ class WorldState:
                     if c.get("type") == "territory_cede" and c.get("from") == self.player_nation
                 ]
                 _terr_lost_flat = [r for rs in _terr_lost for r in rs]
+                # NA-6c / IGR-D: a carve is NOT a territorial gain for the
+                # player — the soil goes to the new client, so it stays out
+                # of `territory_gained` deliberately. But it is emphatically
+                # a material term, and counting only cessions and gold
+                # logged a Tilsit that dismembered Prussia into a client
+                # state as a WHITE PEACE: "nothing happened".
+                _client_erected = any(
+                    c.get("type") == "create_client"
+                    for c in applied_treaty_clauses
+                )
                 _gold_in = sum(
                     abs(int(c.get("amount", 0))) for c in applied_treaty_clauses
                     if c.get("type") == "gold_lump" and c.get("to") == self.player_nation
@@ -8584,7 +8659,8 @@ class WorldState:
                     _war_outcome = "french_victory"
                 elif _ws <= -30:
                     _war_outcome = "enemy_victory"
-                elif _terr_gained_flat or _terr_lost_flat or _gold_in or _gold_out:
+                elif (_terr_gained_flat or _terr_lost_flat or _gold_in
+                        or _gold_out or _client_erected):
                     _war_outcome = "stalemate"
                 else:
                     _war_outcome = "white_peace"

@@ -38,7 +38,7 @@ GR8: no per-region scan outside the one-shot reward pass.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from backend.display_names import display_nation
 from backend.game_logic.agendas import (
@@ -55,12 +55,34 @@ FORMATION_AGGRIEVED_RELATION_PENALTY = -30   # §11.9, one-time, per aggrieved c
 FORMATION_STABILITY_CAP = 100            # the world-wide stability ceiling
 
 # ══════════════════ NA-6c — CLASS C CARVE-OUT (spec §11.4) ═══════════════
-# Deliberately NOT `vassal.TRANSFER_LOYALTY_RESET`, which numerically equals
-# this today: that constant carries a TRANSFER semantic (a satellite changing
-# hands keeps its grievances). A carved client is BORN owing its existence to
-# the carver — same number, different meaning, so it gets its own name and
-# may be tuned independently.
-CARVE_LOYALTY = 30
+# Deliberately NOT `vassal.TRANSFER_LOYALTY_RESET`: that constant carries a
+# TRANSFER semantic (a satellite changing hands keeps its grievances). A
+# carved client is BORN owing its existence to the carver — different
+# meaning, so it gets its own name and is tuned independently.
+#
+# IGR-D raised this 30 -> 60, and the two halves of the reason are worth
+# keeping. MEASURED on master: a carved client was born at 30, five points
+# BELOW `vassal.CONTRIBUTION_DISAFFECTED_BELOW` (35), so from its very
+# first turn it refused every call to arms, was immediately eligible for an
+# enemy bribe, and — with nothing offsetting the -2 satellite drift — fell
+# to open rebellion against its own creator in fifteen turns. Talleyrand's
+# pitch for the clause promises "a friend that costs us nothing to
+# garrison"; what shipped was a countdown. 60 is `CONTRIBUTION_LOYAL_MIN`:
+# the state you conjured out of a conquest fights for you, which is both
+# the only reason to prefer a carve to an annexation and what the Duchy of
+# Warsaw actually did. In-band tunable.
+CARVE_LOYALTY = 60
+# The patron bond, and the SECOND half of that fix. Loyalty alone would
+# still have drained: the carve seeded no France<->client relation at all,
+# so `forecast_vassal_loyalty`'s `relation // 20` term contributed 0 against
+# the -2 satellite drift. 40 // 20 = +2 makes a well-treated client exactly
+# STABLE rather than free — it never decays on its own, and it still slides
+# the moment relations sour, climbs when garrisoned or subsidised, and can
+# be invested in. Uses the drift system's own existing lever rather than
+# exempting the carve from it. It also outlives vassalage: a client later
+# released to proclaim its Class-T dream (Warsaw -> Poland) stays France's
+# friend, which is the one credit entry against §11.9's partition fury.
+CARVE_PATRON_RELATION = 40
 CARVE_SEED_GOLD_DEFAULT = 500
 # A newborn client's reserve — below PapalStates (the smallest authored
 # Europe pool, 8000/1000/500), because it is a province with a flag on it.
@@ -596,6 +618,13 @@ def build_proclamation_card(world, payload: dict) -> dict:
         if sponsor_display:
             lines.append(f"it answers to {sponsor_display} as a satellite "
                          f"(loyalty {int(CARVE_LOYALTY)})")
+            # IGR-D: state the BARGAIN, not only the dependence. What a
+            # carve buys — a frontier that garrisons and fights for itself,
+            # and a tributary — was true of nothing on master (the client
+            # was born disaffected and rebelled in fifteen turns) and is
+            # invisible on the one surface that announces it.
+            lines.append(
+                f"it marches when {sponsor_display} calls, and pays tribute")
     if int(payload.get("regions_lifted", 0)) > 0:
         lines.append(
             f"its provinces exult (+{int(payload['stability_bonus'])} "
@@ -915,6 +944,15 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
         "regions": list(provinces),
     }
     world.diplomatic_states[world._make_diplo_key(tag, carver)] = "VASSAL"
+    # The patron bond (IGR-D). Written directly for the same reason the
+    # vassal row above is: `modify_nation_relation` clamps and logs against
+    # a prior value, and there is no prior — this pair did not exist a
+    # moment ago. Only seeded when absent, so a re-carve of a tag whose
+    # relations France has since spent cannot launder them back to 40.
+    _rel_key = world._make_diplo_key(tag, carver)
+    relations = getattr(world, "nation_relations", None)
+    if relations is not None and _rel_key not in relations:
+        relations[_rel_key] = int(CARVE_PATRON_RELATION)
 
 
 def create_client_nation(world, template_id: str, carver: str,
@@ -1050,6 +1088,89 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
     }
     _announce(world, payload)
     return payload
+
+
+def apply_create_client_clause(world, term: Mapping[str, Any]) -> Optional[Dict]:
+    """Apply ONE ratified `create_client` clause: re-verify against live
+    state, mint the client, and return the stamped applied clause (or None
+    when the carve no longer holds).
+
+    IGR-D extracted this out of `settlement_ratify._apply_settlement_terms`
+    so the bilateral pair-substitute peace (`WorldState._ratify_treaty`)
+    carves through the SAME body. The whole NA-6c §20.1 review lives in
+    here — the live re-read, the already-active-tag refusal, and the
+    four-condition elimination gate — and a second hand-written arm would
+    have had to re-earn every one of them. Behaviour is byte-identical to
+    the settlement arm it replaces.
+
+    The clause's own eligibility (war sides, whose soil it was, the
+    total-annexation floor) is validated by
+    `settlement_validation.evaluate_create_client_eligibility` at the
+    AUTHORING seam and is deliberately NOT re-run here — the settlement
+    route has always applied on the live re-checks alone, and adding a
+    gate would change its verdicts. A route with no authoring-time
+    validation (the bilateral one) calls the predicate itself first.
+    """
+    cc_tag = str(term.get("tag") or "")
+    cc_from = str(term.get("from") or "")
+    cc_to = str(term.get("to") or "")
+    cc_template = get_template(world, cc_tag)
+    cc_provinces = template_provinces(cc_template or {})
+    # Re-verify against LIVE state rather than trusting the validation-time
+    # snapshot — the VS-5 lesson: clauses apply in submitted order with no
+    # per-type phasing, so an earlier clause in this very package may have
+    # moved one of these provinces out from under the carve.
+    cc_bloc = set(world.get_bloc_members(cc_to)) | {cc_to}
+    cc_held = bool(cc_provinces) and all(
+        str(getattr((getattr(world, "regions", {}) or {}).get(p),
+                    "controller", "")) in cc_bloc
+        for p in cc_provinces
+    )
+    # Who held each template province immediately BEFORE the carve — the
+    # only honest basis for "did this clause take soil from the court
+    # being carved".
+    cc_prior_controllers = {
+        str(getattr((getattr(world, "regions", {}) or {}).get(p),
+                    "controller", "") or "")
+        for p in cc_provinces
+    }
+    if not (cc_tag and cc_from and cc_to and cc_template is not None
+            and cc_held
+            and cc_tag not in set(world.get_active_nations())):
+        return None
+    # The court being carved may be left with nothing — that is the Papal
+    # case and it is intended (validation already required a decisive war
+    # score for it). Snapshot BEFORE the carve so the elimination check
+    # reads the real result.
+    cc_payload = create_client_nation(world, cc_tag, cc_to, ceded_from=cc_from)
+    if cc_payload is None:
+        return None
+    clause = dict(term)
+    clause["provinces"] = list(cc_provinces)
+    clause["client_display_name"] = str(
+        cc_payload.get("display_name") or cc_tag)
+    clause["loyalty_after"] = int(CARVE_LOYALTY)
+    clause["pair_state_transition"] = (
+        f"{cc_payload.get('display_name') or cc_tag} erected "
+        f"as a client of {cc_to}"
+    )
+    # Elimination LAST, and only once the client tag owns the soil —
+    # carving a one-province polity erases it, and `_eliminate_nation`
+    # frees a lord's vassals with a bare `del`, so the row written above
+    # must already belong to the CARVER, never to the court dying here.
+    #
+    # Gated on soil having ACTUALLY moved away from cc_from in this clause.
+    # Eligibility requires the carver to already hold every template
+    # province, so the usual case is that the court was landless BEFORE the
+    # carve and `capture_region` already eliminated it — an ungated
+    # re-check then fired a second, duplicate announcement for a court this
+    # clause never touched.
+    if (cc_from
+            and cc_from != getattr(world, "player_nation", None)
+            and cc_from in cc_prior_controllers
+            and not world.get_nation_regions(cc_from)):
+        world._eliminate_nation(cc_from)
+    return clause
 
 
 # ═══════════════════ §11.9 THE STANDING WOUND (formation_grudge) ══════════
