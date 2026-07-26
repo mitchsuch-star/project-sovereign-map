@@ -1993,6 +1993,55 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
+> **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, seventeenth entry): IGR-F, plus
+> INVESTIGATE THE PEACE RELATION FLOOR (`BUG_FIXES.md` IGR-X3).**
+>
+> **IGR-D is LANDED and pushed** (`32ff834` + the review pass `99121ff`) and **must-see #4 is
+> CLOSED** — the Proclamation was sighted in the real client, screenshot
+> `docs/audits/IGR_D_PROCLAMATION_2026_07_25.png`. Suite **15,118/3**.
+>
+> **Two things for the next session.**
+>
+> **1. The queue's next slice is `IGR-F`** — the minor-court envoy digest
+> (`docs/INGAME_REVIEW_FIXES_SPEC.md` §2, no gate). Build order is
+> `A → B → ~~D~~ → F → E → G`. IGR-E needs the Q4 number (already blessed:
+> `PLUNDER_INCOME_MULTIPLIER = 4`); IGR-G waits on user screenshots.
+>
+> **2. Investigate and propose a fix for IGR-X3 — the peace relation floor**, raised by the
+> user on landing IGR-D: *"relation shouldn't impact war, people in war hate each other
+> anyway."* This is a DESIGN question with a measured defect underneath it, so the
+> deliverable is an investigation + a recommendation, not a silent code change — removing
+> the floor re-prices every bilateral peace in the game.
+>
+> Everything below is measured on the shipped `europe_1805` board, not argued:
+>
+> - `STATE_RELATION_REQUIREMENTS["PEACE"] = -60` (`diplomacy.py:86-93`), enforced at
+>   `world_state.py:7950-7959` under `if is_player_treaty:`.
+> - France boots at **-90 / -80 / -80** with Britain / Russia / Austria, and
+>   `_process_relation_decay` **skips WAR and ARMISTICE** (`diplomacy.py:9698-9700`), so the
+>   +1/turn recovery never runs while the war is on. `ARMISTICE_DURATION = 5` and armistice
+>   skips decay too — a treadmill, never a path to PEACE.
+> - `is_player_treaty` is `proposer == player OR target == player`, so it bites **both
+>   directions**: probed, **the AI offering France peace and France accepting FAILS** with
+>   *"Relations with France are insufficient for PEACE."*
+> - **The AI is exempt.** Probed: an AI-AI peace at relation **-95** ratifies normally. Two
+>   courts that hate each other may end their war; the player may not. That is a Golden
+>   Rule 5 asymmetry.
+> - **The joint settlement route never calls the check at all**, so the identical peace is
+>   legal or illegal depending only on which surface was used.
+>
+> The acceptance formula already prices war score, military supremacy, military pressure and
+> war exhaustion. Options worth costing at the gate: delete the PEACE row outright (keep the
+> floor for ALLIANCE/NON_AGGRESSION, where consent really is about goodwill); make it
+> war-score-aware so a decisive victor can dictate terms regardless of hatred; or let
+> ARMISTICE thaw relations so the existing escape hatch actually leads somewhere. Note the
+> second consumer at `ai_diplomacy.py:1926` (counter-offer generation) and re-run M1-M7 plus
+> the 40-turn `BASELINE_SERIES`.
+>
+> **Also still open and unchanged:** Battle Diorama (row BD), then `AI_INTENT_SPEC.md` §11
+> Stage E. *(The sixteenth-entry text below is superseded where it conflicts; kept for the
+> AI-3r record.)*
+
 > **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, sixteenth entry): THE ⚠️ AI-3r GATE.**
 > The pin-20 live in-game pass is HELD and its 8 defects are landed (`17385bf` + `cdbea59`, top
 > entry above): Stage B's mirror/Design/Intent/Weariness rows, Stage C's purse/compacts/auction and

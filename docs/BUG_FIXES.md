@@ -22,6 +22,53 @@
 
 ---
 
+## IGR-X3 — The player can never end a boot war bilaterally, in EITHER direction (OPEN, P1)
+
+**Found July 25, 2026** while landing IGR-D, which hit it as a hard residual: a
+`create_client` carve can only travel on the bilateral peace route, and that route is
+unreachable for the three wars the campaign opens with. Measured, not argued — every
+number below is from a live probe on the shipped `europe_1805` board.
+
+**The rule.** `STATE_RELATION_REQUIREMENTS["PEACE"] = -60` (`diplomacy.py:86-93`), enforced
+at `world_state.py:7950-7959` under `if is_player_treaty:`.
+
+**Why it is unreachable.**
+
+| | |
+|---|---|
+| Boot relations | France/Britain **−90**, France/Russia **−80**, France/Austria **−80** |
+| Can they recover? | **No.** `_process_relation_decay` (`diplomacy.py:9698-9700`) explicitly skips `WAR` **and** `ARMISTICE`, so the +1/turn drift toward the neutral band never runs while the war is on |
+| The armistice escape | `ARMISTICE_DURATION = 5`, and armistice also skips decay — a treadmill, never a path to PEACE |
+| Scope | `is_player_treaty = (proposer == player OR target == player)` (`world_state.py:7915`) — **both directions** |
+
+**Three things make it a defect rather than a difficulty:**
+
+1. **Accepting the AI's OWN peace offer fails.** Probed: Austria proposes peace to France,
+   France accepts → `diplomatic_treaty_failed`, *"Relations with France are insufficient
+   for PEACE."* The AI offers a treaty the engine will not let the player take.
+2. **The AI is exempt (GR5).** Probed: an AI↔AI peace at relation **−95** ratifies
+   normally (`ai_ai_treaty`, state → PEACE). Two courts that hate each other may end their
+   war; the player may not. Golden Rule 5 exists to forbid exactly this.
+3. **The joint settlement route does not apply the check at all** — `settlement_ratify`
+   never calls `check_relation_requirement`. So the identical peace is legal or illegal
+   depending only on which surface the player used. The gate is a route artefact, not a
+   rule.
+
+**The design argument (user, July 25, 2026):** *"relation shouldn't impact war, people in
+war hate each other anyway."* Historically exact: Pressburg (1805) and Tilsit (1807) were
+signed at the maximum of mutual hatred, *because* of the war's outcome. War score,
+military position and exhaustion are what should price a peace — the acceptance formula
+already models all three. A relation floor on top double-counts the hostility and then
+makes it absolute.
+
+**Not fixed in IGR-D, deliberately:** removing or reshaping the floor re-prices every
+bilateral peace in the game and touches the AI counter-offer path
+(`ai_diplomacy.py:1926`). It needs its own investigation and a decision.
+
+**Owner:** the next session (investigate + propose; see `docs/STATUS.md` Next Steps).
+
+---
+
 ## In-Game Review — July 25, 2026 (5 FIXED in-session; 4 routed OPEN)
 
 Found by playing the real client for the queued NA-6c/6d + AI-3r review (France, 1805,
