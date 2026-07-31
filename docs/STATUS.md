@@ -17,19 +17,28 @@
 >    G2 is a **third** tuning pass over map furniture whose visual sign-off has been
 >    open since U5.
 >
+> 2. **Worth deciding beside those screenshots: IGR-X4 (P2)** — the W6-8 estate
+>    confiscation windfall is **always exactly 0 gold** (it reads effective income after
+>    capture leaves stability ≤ 25, so the player pays −10 relations and marshal trust
+>    for nothing). Its fix re-bases a blessed W6-8/ES-7 number — a shape change — so it
+>    **escalates to the user**; full row with owner/landing/done-when in
+>    `BUG_FIXES.md` §IGR-E (alongside P3 rows IGR-X5–X9).
+>
 > **Then:** the Battle Diorama (ROADMAP row **BD**, eval verdict BUILD-IT), followed
 > by AI Intent Stage E (`AI_INTENT_SPEC.md` §11).
 >
-> **Nothing is blocked on a user decision right now** except IGR-G's screenshots.
+> **Nothing is blocked on a user decision right now** except IGR-G's screenshots (and
+> the IGR-X4 escalation above, which can ride the same conversation).
 
 ### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
 
 **User direction: "code IGR-E ... commit and push when done", with the recorded dissent
 explicitly carried forward.** Landing record = `docs/INGAME_REVIEW_FIXES_SPEC.md` §2 IGR-E
-(authoritative). Commits `c7e30b9` (the slice) + `88e2707` (the GR5 addendum).
-Suite **15,279/3**, ruff clean, parser eval 461/461, M1–M7 and `BASELINE_SERIES`
-byte-identical, parse harness EXIT=0, headless boot 0 `SCRIPT ERROR`.
-`tests/test_igr_e_plunder_prompt.py` (30).
+(authoritative). **Four commits, all pushed:** `c7e30b9` (the slice) + `88e2707` (the GR5
+addendum) + `cec49f6` (docs) + `e6c0d42` (the post-landing adversarial review — 3 P2 +
+10 P3, all fixed; see the review paragraph below). Final: suite **15,287/3**, ruff clean,
+parser eval 461/461, M1–M7 and `BASELINE_SERIES` byte-identical, parse harness EXIT=0,
+headless boot 0 `SCRIPT ERROR`. `tests/test_igr_e_plunder_prompt.py` (**38**).
 
 **The number.** `PLUNDER_GOLD_MULTIPLIER = 1.75` → `PLUNDER_INCOME_MULTIPLIER = 4.0`,
 renamed to the name gate Q4 actually blessed and kept a single source (a second constant
