@@ -81,10 +81,38 @@ RENTE_AI_TREASURY_FLOOR = 400
 # Conquering the province that sustains an ENEMY marshal's estate poses a
 # choice: confiscate (windfall + grudge) or respect the title (goodwill).
 
-CONFISCATION_INCOME_MULT = 2          # windfall = 2x effective income (band 1.5-3x)
+CONFISCATION_INCOME_MULT = 2          # windfall = 2x base income, war-damage scaled (band 1.5-3x)
 CONFISCATION_RELATIONS_PENALTY = -10  # with the estate-holder's nation (band -5..-15)
 CONFISCATION_CAUTIOUS_TRUST = -1      # one-time; property is sacred
 RESPECT_ACCEPTANCE_BONUS = 5          # additive acceptance term, cap one per nation
+
+
+def confiscation_windfall(region) -> int:
+    """Gold a confiscated estate pays its captor — THE single source.
+
+    IGR-X4: the W6-8 cut read ``get_effective_income()`` AFTER stage 1 had
+    left stability at 10 (plunder) or 25 (secure), where the stability
+    modifier is 0.0 — so the windfall was **exactly 0 gold on every province
+    in the game**, both branches, both sides, and the player was asked to pay
+    -10 relations plus a trust dock per cautious marshal for nothing. Same
+    pathology IGR-E fixed for plunder one stage up, so the fix mirrors it:
+    read BASE ``income_value`` (never effective income at the post-capture
+    read point).
+
+    The ``(1 - war_damage)`` term is what keeps the original design promise
+    ("a plundered estate is worth confiscating less than one kept whole")
+    TRUE rather than deleting it: plunder applies +0.35 war damage before
+    this is computed, so plunder-then-confiscate pays ~35% less than
+    secure-then-confiscate, deterministically and order-honestly.
+
+    The blessed 2x multiplier and its 1.5-3x band stand unchanged — only the
+    income BASE is re-keyed, because the blessed base was structurally zero
+    and had never priced anything (the W6-8 pins passed as ``0 == 0``).
+    Decision taken under the user's July 31, 2026 delegated grant; recorded
+    in WAVE6_FUN_FACTOR_SPEC.md §10 and BUG_FIXES.md §IGR-E.
+    """
+    return int(CONFISCATION_INCOME_MULT * region.income_value
+               * (1.0 - region.war_damage))
 
 
 # ═══════════════════════════ DERIVED FLAVOR ═══════════════════════════════
@@ -506,9 +534,10 @@ def apply_estate_confiscation(world, region, holder, capturer_nation: str,
     exact function.
 
     windfall: the player pipeline passes the number the popup SHOWED so the
-    charge always equals the promise; the AI path computes it here."""
+    charge always equals the promise; the AI path computes it here — through
+    the SAME single source the popup prices with (IGR-X4)."""
     if windfall is None:
-        windfall = int(CONFISCATION_INCOME_MULT * region.get_effective_income())
+        windfall = confiscation_windfall(region)
     windfall = int(windfall)
     world.nation_gold[capturer_nation] = (
         world.nation_gold.get(capturer_nation, 0) + windfall)

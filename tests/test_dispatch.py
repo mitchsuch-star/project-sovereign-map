@@ -48,8 +48,12 @@ def _make_marshal(name="Ney", location="Paris", strength=50000,
 
 def _inject_intel(world, region_name, visibility, turn, known_marshals=None,
                   total_strength=0, source="adjacent"):
-    """Set up RegionIntel for a region at a given visibility level."""
-    intel = world.get_region_intel(region_name)
+    """Set up RegionIntel for a region at a given visibility level.
+
+    IGR-X2: get_region_intel is a pure read now, so a fixture MINTING
+    intel (incl. for fictional regions) must write the entry itself."""
+    from backend.models.intel import RegionIntel
+    intel = world.intel.setdefault(region_name, RegionIntel(region_name))
     if visibility in (FULL, PARTIAL):
         intel.refresh(
             visibility=visibility,

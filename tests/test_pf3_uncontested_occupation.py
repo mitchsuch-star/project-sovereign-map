@@ -175,6 +175,50 @@ def test_strategic_march_capture_does_not_halt_next_hop():
     # Auto-secured (like the AI) — no per-hop popup accumulates, so the single
     # slot is never clobbered and neither capture is left dangling.
     assert world.pending_capture_choice is None
+    # IGR-X5: "auto-secured" is now TRUE, not just this comment — before the
+    # fix the fresh pending choice was discarded and nothing was applied, so
+    # marching in was strictly better than capturing and securing.
+    for name in ("B", "C"):
+        assert world.regions[name].stability == 25
+        assert world.regions[name].plundered is False
+    captured_rows = [e for e in world.event_log
+                     if e.get("type") == "region_captured"]
+    assert {e["region"] for e in captured_rows} == {"B", "C"}
+    assert all(e["method"] == "secure" and e["captured_by"] == "France"
+               for e in captured_rows)
+
+
+def test_strategic_march_capture_secures_like_an_attack_capture():
+    """IGR-X5 Done-when: a march capture and an attack capture answered
+    'secure' leave the province in the same state — buildings damaged,
+    construction cancelled, stability 25, region_captured logged."""
+    world = WorldState()
+    world.regions = {
+        "A": _mk("A", ["B"], "France"),
+        "B": _mk("B", ["A"], "Britain"),
+    }
+    world.player_nation = "France"
+    world.current_turn = 1
+    world.actions_remaining = 4
+    world.pending_capture_choice = None
+    world.diplomatic_states[world._make_diplo_key("France", "Britain")] = "WAR"
+    target = world.regions["B"]
+    target.buildings = [{"type": "market"}]
+    target.building_under_construction = {"type": "supply_depot", "turns": 2}
+    soult = Marshal("Soult", "A", 40000, "aggressive", "France")
+    world.marshals["Soult"] = soult
+    executor = CommandExecutor()
+    with _suppress():
+        result = executor._execute_move(soult, "B", world, {"world": world},
+                                        strategic_execution=True)
+    assert target.controller == "France"
+    assert target.stability == 25
+    assert all(b.get("damaged") for b in target.buildings)
+    assert target.building_under_construction is None
+    assert world.pending_capture_choice is None
+    assert "secured" in result.get("message", "")
+    assert any(e.get("type") == "region_captured" and e.get("region") == "B"
+               and e.get("method") == "secure" for e in world.event_log)
 
 
 def test_strategic_capture_preserves_earlier_marshals_pending_choice():

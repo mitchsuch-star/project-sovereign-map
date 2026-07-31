@@ -1004,3 +1004,68 @@ class TestMarshalArmField:
         marseille = filtered["map_data"]["Marseille"]
         # Own marshal should NOT appear as fogged ghost
         assert len(marseille["fogged_forces"]) == 0, "Player marshals should not appear as stale ghosts"
+
+
+class TestX2IntelReadPurity:
+    """IGR-X2: get_region_intel is a PURE READ. The old insert-on-read meant
+    pure-looking paths (filter_campaign_log, ledger builders, an in-session
+    GET /campaign_log) mutated world.intel, and every insertion became a
+    save row — it silently diverged a measurement run."""
+
+    def test_a_read_of_a_missing_key_does_not_insert(self):
+        world = WorldState()
+        world.intel.pop("Marseille", None)
+        before = set(world.intel.keys())
+        intel = world.get_region_intel("Marseille")
+        assert intel.visibility == UNKNOWN
+        assert set(world.intel.keys()) == before
+
+    def test_repeated_reads_return_equivalent_transients(self):
+        world = WorldState()
+        world.intel.pop("Marseille", None)
+        a = world.get_region_intel("Marseille")
+        b = world.get_region_intel("Marseille")
+        assert a.visibility == b.visibility == UNKNOWN
+        assert "Marseille" not in world.intel
+
+    def test_a_stored_entry_is_returned_by_identity(self):
+        """Mutate-after-read still persists for every REAL region — init's
+        calculate_visibility stores an entry per region, and the read
+        returns the stored object itself."""
+        world = WorldState()
+        assert world.get_region_intel("Marseille") is world.intel["Marseille"]
+
+    def test_calculate_visibility_still_persists_every_region(self):
+        world = WorldState()
+        world.intel = {}
+        world.calculate_visibility()
+        for region_name in world.regions:
+            assert region_name in world.intel
+
+    def test_scout_refresh_still_persists_on_a_missing_key(self):
+        world = WorldState()
+        world.intel.pop("Marseille", None)
+        world.update_intel_from_scout("Marseille", turn=1)
+        assert "Marseille" in world.intel
+        assert world.intel["Marseille"].visibility == FULL
+
+    def test_campaign_log_filter_does_not_perturb_the_intel_keys(self):
+        """The measured bug: an in-session GET /campaign_log changed the
+        world's intel key set."""
+        from backend.campaign_log import filter_campaign_log
+        world = WorldState()
+        world.intel.pop("Marseille", None)
+        world.log_event({
+            "type": "region_captured", "region": "Marseille",
+            "captured_by": "Britain", "captured_from": "France",
+            "method": "secure",
+        })
+        before = set(world.intel.keys())
+        filter_campaign_log(world.event_log, world)
+        assert set(world.intel.keys()) == before
+
+    def test_a_save_carries_no_read_created_rows(self):
+        world = WorldState()
+        world.intel.pop("Marseille", None)
+        world.get_region_intel("Marseille")
+        assert "Marseille" not in world.to_dict()["intel"]

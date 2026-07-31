@@ -61,10 +61,23 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # mutual exhaustion mid-run (~turn 17), which moves the minors' economies
 # and the courts' behaviour downstream — identical through turn 17, +3
 # offset after. The pin's job from here is to catch UNINTENDED drift.
+#
+# RE-RECORDED CONSCIOUSLY ONCE at IGR-X4 (July 31, 2026): the estate
+# confiscation windfall was structurally 0 gold (it read effective income
+# after stage 1 left stability <= 25); re-based on income_value it pays for
+# real. The ambient run has FOUR live AI-vs-AI confiscations by turn 9
+# (Britain reclaiming its own soil strips Castanos's estates for 184/245/
+# 280g; Spain strips Moore's Flanders estate for 400g), so Britain's purse
+# genuinely changes and the trajectory diverges from turn 15 on — identical
+# through index 14. Attribution was BISECTED to the one-line windfall
+# re-base (comment-only and function-only probes both left the series
+# byte-identical; the live call swap alone flips it), and the confiscations
+# were counted by a live spy because the 500-cap event log had EVICTED all
+# four rows by turn 40 — the same trap IGR-B's landing record documents.
 BASELINE_SERIES = [
-    85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 48, 53,
-    50, 50, 55, 52, 49, 46, 46, 43, 40, 37, 42, 39, 36, 36, 33, 30, 30,
-    30, 27, 27, 24, 24, 24, 21,
+    85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 37, 34,
+    31, 28, 33, 30, 27, 24, 27, 27, 24, 21, 18, 15, 18, 18, 15, 15, 20,
+    23, 20, 25, 25, 22, 22, 22,
 ]
 
 

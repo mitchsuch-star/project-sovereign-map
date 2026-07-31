@@ -289,6 +289,69 @@ class TestBuildResultResponse:
         assert response["events"] == [{"type": "combat"}]
 
 
+class TestX7CaptureRoutesDoNotDrainPopups:
+    """IGR-X7: the capture-choice routes' client handler reads only the
+    capture keys — a popup POPPED into those responses died unread. All
+    capture arms now fill the popup keys WITHOUT draining, so the queued
+    popup survives to ride the player's next ordinary /command."""
+
+    def _seed_capture(self, world):
+        region_name = next(iter(world.regions))
+        world.pending_capture_choice = {
+            "region": region_name,
+            "capturer": "Ney",
+            "previous_controller": "Austria",
+        }
+        return region_name
+
+    def test_result_response_can_fill_without_draining(
+            self, fresh_world, main_module):
+        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        response = main_module._build_result_response(
+            {"success": True, "message": "x"}, fresh_world,
+            drain_popups=False)
+        # Keys present (contract holds) but None; the popup stays queued.
+        for key in POPUP_KEYS:
+            assert key in response
+            assert response[key] is None
+        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+
+    def test_typed_capture_token_leaves_queued_popup_alone(
+            self, client, fresh_world):
+        """A typed 'plunder' answer (the W6-0 pending-question router) must
+        not eat a popup that was queued behind the capture question."""
+        self._seed_capture(fresh_world)
+        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        resp = client.post("/command", json={"command": "plunder"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["coalition_popup"] is None
+        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+        # The survivor is delivered on the next ordinary command.
+        follow = client.post("/command", json={"command": "status"}).json()
+        assert follow["coalition_popup"] == {"type": "coalition_formed"}
+
+    def test_capture_choice_endpoint_leaves_queued_popup_alone(
+            self, client, fresh_world):
+        self._seed_capture(fresh_world)
+        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        resp = client.post("/capture_choice", json={"choice": "secure"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["coalition_popup"] is None
+        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+
+    def test_command_capture_early_return_site_is_wired(self, main_module):
+        """Source pin: the /command capture early-return passes
+        drain_popups=False (an end-to-end drive of that arm needs a live
+        combat capture; the mechanism itself is covered above)."""
+        src = inspect.getsource(main_module)
+        marker = src.index(
+            "PLUNDER/SECURE CHOICE PENDING - Returning full result")
+        window = src[marker:marker + 400]
+        assert "_build_result_response(result, world, drain_popups=False)" in window
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # INTEGRATION TESTS: Endpoint response shapes
 # ════════════════════════════════════════════════════════════════════════════

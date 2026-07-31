@@ -262,7 +262,15 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	# Check for region conquered
 	if event.get("region_conquered", false):
 		var region = event.get("region_name", "territory")
-		result += "[color=#" + Utils.COLOR_CONQUEST + "]    " + region + " CAPTURED![/color]\n"
+		# IGR-X8: field-battle conquests now carry the decided choice like
+		# the garrison/unopposed conquest events — same suffix vocabulary.
+		var battle_capture_choice = str(event.get("capture_choice", ""))
+		var battle_choice_str = ""
+		if battle_capture_choice == "plunder":
+			battle_choice_str = " (plundered)"
+		elif battle_capture_choice == "secure":
+			battle_choice_str = " (secured)"
+		result += "[color=#" + Utils.COLOR_CONQUEST + "]    " + region + " CAPTURED!" + battle_choice_str + "[/color]\n"
 
 	# Check for forced retreat
 	if attacker.get("forced_retreat", false):

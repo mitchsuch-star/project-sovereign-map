@@ -228,7 +228,18 @@ def plunder_yield(region) -> int:
     modifier is 0.0, so an effective-income reading would pay exactly 0 on
     every province in the game (that is the live W6-8 estate-windfall bug,
     routed as IGR-X4 — do not reproduce it here).
+
+    IGR-X6: a province whose `plundered` flag still stands has nothing left
+    to give — a re-sack pays 0 until stability recovers past 50 (the flag's
+    clear condition, >= 9 unguarded turns). This is the repeat-sack guard
+    the flag never had, and its first mechanical reader. Because the SAME
+    expression prices the prompt and pays the sack, the modal honestly
+    quotes 0 on an already-stripped province (shown = applied) — and the
+    order in apply_plunder_effects (read the yield BEFORE setting the flag)
+    is load-bearing, GR4.
     """
+    if getattr(region, "plundered", False):
+        return 0
     return int(region.income_value * PLUNDER_INCOME_MULTIPLIER)
 
 
@@ -282,11 +293,15 @@ def apply_plunder_effects(world, region, receiving_nation: str) -> int:
     every building and the watchtower destroyed with one ``building_damaged``
     event each, and gold = ``plunder_yield(region)`` credited to
     ``receiving_nation``. Returns the gold gained.
+
+    GR4 (IGR-X6): the yield is read BEFORE the ``plundered`` flag is set —
+    plunder_yield returns 0 for an already-plundered province (the
+    repeat-sack guard), so setting the flag first would zero every sack.
     """
     region.stability = 10
     region.apply_war_damage(0.35)
-    region.plundered = True
     gold_gained = plunder_yield(region)
+    region.plundered = True
     world.nation_gold[receiving_nation] = (
         world.nation_gold.get(receiving_nation, 0) + gold_gained)
     for building in region.buildings:
@@ -2113,9 +2128,24 @@ class WorldState:
     # ========================================
 
     def get_region_intel(self, region_name: str) -> RegionIntel:
+        """Current intel for a region — a PURE READ (IGR-X2).
+
+        Returns a transient UNKNOWN RegionIntel for a missing key instead of
+        lazily inserting it: the old insert-on-read meant pure-looking paths
+        (filter_campaign_log, ledger builders, a GET /campaign_log) mutated
+        world.intel and every insertion became a save row. Writers that need
+        the entry to PERSIST (calculate_visibility, the update_intel_from_*
+        family) go through _intel_entry below.
         """
-        Get current intel for a region. Creates UNKNOWN entry if missing.
-        """
+        entry = self.intel.get(region_name)
+        if entry is None:
+            return RegionIntel(region_name)
+        return entry
+
+    def _intel_entry(self, region_name: str) -> RegionIntel:
+        """The WRITE-THROUGH access: creates and stores the entry if missing.
+        Only for callers that mutate the returned object expecting it to
+        persist (visibility recalc, scout/battle/transit intel refresh)."""
         if region_name not in self.intel:
             self.intel[region_name] = RegionIntel(region_name)
         return self.intel[region_name]
@@ -2210,7 +2240,7 @@ class WorldState:
         # Step 0 + 1 + 2 + 3: Process all regions
         # ════════════════════════════════════════════════════════════
         for region_name, region in self.regions.items():
-            intel = self.get_region_intel(region_name)
+            intel = self._intel_entry(region_name)  # IGR-X2: write-through
             old_visibility = intel.visibility
             is_own = (region.controller == self.player_nation)
             has_friendly_marshal = (region_name in friendly_marshal_regions)
@@ -2407,7 +2437,7 @@ class WorldState:
         by advancing last_updated_turn by 1 — the watchtower's observation
         post keeps the intel fresher.
         """
-        intel = self.get_region_intel(region_name)
+        intel = self._intel_entry(region_name)  # IGR-X2: write-through
         enemy_marshals = [
             m for m in self.get_marshals_in_region(region_name)
             if m.nation != self.player_nation and m.strength > 0
@@ -2457,7 +2487,7 @@ class WorldState:
 
         REFRESH path: queries live marshal data.
         """
-        intel = self.get_region_intel(region_name)
+        intel = self._intel_entry(region_name)  # IGR-X2: write-through
         enemy_marshals = [
             m for m in self.get_marshals_in_region(region_name)
             if m.nation != self.player_nation and m.strength > 0
@@ -2487,7 +2517,7 @@ class WorldState:
 
         REFRESH path: queries live marshal data (PARTIAL — names + band only).
         """
-        intel = self.get_region_intel(region_name)
+        intel = self._intel_entry(region_name)  # IGR-X2: write-through
         enemy_marshals = [
             m for m in self.get_marshals_in_region(region_name)
             if m.nation != self.player_nation and m.strength > 0
@@ -3377,6 +3407,10 @@ class WorldState:
         Returns message string.
         """
         region = self.get_region(region_name)
+        # IGR-X8: what this capture decided, readable by the occupation_complete
+        # event builder (transient — never serialized; None = player question
+        # still pending / no capture).
+        self._last_occupation_capture_choice = None
         if not region:
             return ""
 
@@ -3410,6 +3444,7 @@ class WorldState:
                 # this soil by rule — confiscate at war, respect otherwise.
                 from backend.game_logic.dotation import apply_ai_estate_rule
                 apply_ai_estate_rule(self, region, marshal.nation)
+                self._last_occupation_capture_choice = "plunder"
                 return (f" {region_name} captured and plundered by "
                         f"{marshal.nation}! (+{gold_gained:,} gold)")
             else:
@@ -3435,6 +3470,7 @@ class WorldState:
                 # W6-8 (GR5): same estate rule as the plunder branch.
                 from backend.game_logic.dotation import apply_ai_estate_rule
                 apply_ai_estate_rule(self, region, marshal.nation)
+                self._last_occupation_capture_choice = "secure"
                 return f" {region_name} captured and secured by {marshal.nation}."
 
     # ========================================
@@ -9252,13 +9288,19 @@ class WorldState:
                         marshal.occupation_region = None
                         marshal.occupation_turns_held = 0
                         marshal.occupation_turns_required = 0
-                        events.append({
+                        occupation_event = {
                             "type": "occupation_complete",
                             "marshal": marshal.name,
                             "nation": marshal.nation,
                             "region": occ_region,
                             "message": f"{marshal.name} has secured the fortress at {occ_region}!{capture_msg}"
-                        })
+                        }
+                        # IGR-X8: the AI's decided choice rides the event like
+                        # the other conquest events (None = player pending).
+                        if getattr(self, "_last_occupation_capture_choice", None):
+                            occupation_event["capture_choice"] = (
+                                self._last_occupation_capture_choice)
+                        events.append(occupation_event)
                     else:
                         turns_left = marshal.occupation_turns_required - marshal.occupation_turns_held
                         events.append({

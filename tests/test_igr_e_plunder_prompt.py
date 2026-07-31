@@ -173,9 +173,13 @@ class TestTheBlessedNumber:
         region = world.regions["Paris"]
         executor = CommandExecutor()
         before = world.nation_gold["France"]
+        # IGR-X6: read the expectation BEFORE the sack — plunder_yield now
+        # returns 0 once the `plundered` flag stands (the repeat-sack guard),
+        # so a post-sack read compares against the guard, not the payout.
+        expected = plunder_yield(region)
         result = executor._apply_plunder(region, world)
-        assert result["gold_gained"] == plunder_yield(region)
-        assert world.nation_gold["France"] - before == plunder_yield(region)
+        assert result["gold_gained"] == expected
+        assert world.nation_gold["France"] - before == expected
 
     def test_the_measured_payout_across_the_real_income_ladder(self):
         """The whole table, pinned, so a retune is visible in one diff."""
@@ -663,8 +667,9 @@ class TestTheAICanActuallyPlunder:
         marshal = world.get_marshal("Uxbridge")
         marshal.personality = "aggressive"
         before = world.nation_gold.get(marshal.nation, 0)
+        expected = plunder_yield(region)  # IGR-X6: pre-sack read (see above)
         CommandExecutor()._apply_ai_capture_choice(marshal, region, world)
-        assert world.nation_gold[marshal.nation] - before == plunder_yield(region)
+        assert world.nation_gold[marshal.nation] - before == expected
 
     def test_the_occupation_route_is_fixed_too(self):
         """There are TWO AI branches — fixing only the first leaves
@@ -676,8 +681,9 @@ class TestTheAICanActuallyPlunder:
         marshal.personality = "aggressive"
         marshal.nation = "Britain"
         before = world.nation_gold.get("Britain", 0)
+        expected = plunder_yield(region)  # IGR-X6: pre-sack read (see above)
         world._apply_occupation_capture_effects(marshal, region.name)
-        assert world.nation_gold["Britain"] - before == plunder_yield(region)
+        assert world.nation_gold["Britain"] - before == expected
         assert region.stability == 10
 
     def test_occupation_route_plunder_logs_building_damaged_events(self):
@@ -760,3 +766,168 @@ class TestTheClientRendersIt:
         """The exact string the review saw. If it comes back, the slice has
         been reverted at the only surface the player actually reads."""
         assert "PLUNDER (Loot gold, destroy buildings" not in self._source()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# IGR-X8 — the capture surface renders evenly across its routes
+# ════════════════════════════════════════════════════════════════════════
+
+
+class TestX8RouteParity:
+    """IGR-X8: three of five AI-visible capture sites dropped
+    `capture_choice` from their events (bare " CAPTURED!"), four routes
+    printed a literal sentence instead of the priced question, the
+    command-block message was unpriced and nameless, and an answer was
+    applied without re-checking who holds the province."""
+
+    def _pending_world(self):
+        world = WorldState(player_nation="France")
+        region = world.regions["Belgium"]
+        region.controller = "France"
+        world.pending_capture_choice = build_capture_choice(
+            world, region, "Ney", "Britain")
+        return world, region
+
+    # ── holder re-validation at answer time ──────────────────────────
+
+    def test_stage_one_answer_on_a_retaken_province_lapses(self):
+        world, region = self._pending_world()
+        region.controller = "Britain"  # retaken between capture and answer
+        world.invalidate_active_nations_cache()
+        gold_before = world.nation_gold.get("France", 0)
+        result = CommandExecutor().handle_capture_choice(
+            "plunder", {"world": world})
+        assert result["success"] is False
+        assert "no longer in our hands" in result["message"]
+        assert world.pending_capture_choice is None
+        assert world.nation_gold.get("France", 0) == gold_before
+        assert region.stability != 10  # never sacked
+
+    def test_estate_answer_on_a_retaken_province_lapses(self):
+        world = WorldState(player_nation="France")
+        region = world.regions["Belgium"]
+        region.controller = "France"
+        holder = world.get_marshal("Wellington")
+        holder.dotation_regions = [region.name]
+        world.pending_capture_choice = {
+            "stage": "estate", "region": region.name, "capturer": "Ney",
+            "estate_holder": holder.name,
+            "estate_holder_nation": holder.nation,
+            "windfall": 100, "options": ["confiscate", "respect"],
+            "dialogue_id": 1,
+        }
+        region.controller = "Britain"
+        world.invalidate_active_nations_cache()
+        gold_before = world.nation_gold.get("France", 0)
+        result = CommandExecutor().handle_capture_choice(
+            "confiscate", {"world": world})
+        assert result["success"] is False
+        assert "no longer in our hands" in result["message"]
+        assert world.pending_capture_choice is None
+        assert world.nation_gold.get("France", 0) == gold_before
+        assert region.name in holder.dotation_regions  # estate untouched
+
+    # ── the command-block message states the question ────────────────
+
+    def test_the_command_block_message_is_priced_and_named(self):
+        world, region = self._pending_world()
+        expected_gold = world.pending_capture_choice["plunder_gold"]
+        result = CommandExecutor().execute(
+            {"command": {"marshal": "Ney", "action": "status"}},
+            {"world": world})
+        assert result.get("pending_capture_choice") is True
+        msg = result.get("message", "")
+        assert region.name in msg
+        assert f"{expected_gold:,}" in msg
+        assert "'plunder' or 'secure'" in msg
+
+    # ── the occupation_complete event carries the AI's choice ────────
+
+    def test_occupation_complete_event_carries_the_ai_choice(self):
+        world = WorldState(player_nation="France")
+        region = world.regions["Paris"]
+        region.controller = "France"
+        region.stability = 80
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        marshal.location = region.name
+        marshal.occupation_region = region.name
+        marshal.occupation_turns_required = 1
+        marshal.occupation_turns_held = 0
+        events = world._process_tactical_states()
+        done = [e for e in events if e.get("type") == "occupation_complete"]
+        assert len(done) == 1
+        assert done[0]["capture_choice"] == "plunder"
+        assert region.plundered is True
+
+    def test_occupation_complete_event_for_the_player_stays_undecided(self):
+        world = WorldState(player_nation="Britain")
+        region = world.regions["Paris"]
+        region.controller = "France"
+        marshal = world.get_marshal("Uxbridge")
+        marshal.location = region.name
+        marshal.occupation_region = region.name
+        marshal.occupation_turns_required = 1
+        marshal.occupation_turns_held = 0
+        events = world._process_tactical_states()
+        done = [e for e in events if e.get("type") == "occupation_complete"]
+        assert len(done) == 1
+        assert "capture_choice" not in done[0]  # question still pending
+        assert world.pending_capture_choice is not None
+
+    # ── the manual move-capture states the price ─────────────────────
+
+    def test_manual_move_capture_states_the_price(self):
+        world = WorldState(player_nation="France")
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Britain")] = "WAR"
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        target = world.regions["Belgium"]
+        target.controller = "Britain"
+        target.garrison_strength = 0
+        for m in world.marshals.values():
+            if m.location == "Belgium":
+                m.location = "London"
+        world.invalidate_active_nations_cache()
+        result = CommandExecutor()._execute_move(
+            ney, "Belgium", world, {"world": world})
+        assert result.get("pending_capture_choice") is True
+        expected = world.pending_capture_choice["plunder_gold"]
+        assert f"{expected:,}" in result["message"]
+        assert "'plunder' or 'secure'" in result["message"]
+
+    # ── the three combat-site events attach the choice (bounded pins) ─
+
+    def _method_source(self, name):
+        import inspect
+        return inspect.getsource(getattr(CombatExecutor, name))
+
+    def test_the_field_battle_event_attaches_the_choice(self):
+        src = self._method_source("_execute_attack")
+        assert ('result["events"][0]["capture_choice"] = '
+                'capture_result["capture_choice"]' in src)
+
+    def test_the_auto_bombardment_event_attaches_conquest_keys(self):
+        src = self._method_source("_execute_attack")
+        assert 'auto_kill_event["region_conquered"] = True' in src
+        assert 'auto_kill_event["capture_choice"]' in src
+
+    def test_the_glorious_charge_event_attaches_conquest_keys(self):
+        src = self._method_source("_execute_glorious_charge")
+        assert 'charge_event["region_conquered"] = True' in src
+        assert 'charge_event["capture_choice"]' in src
+
+    def test_the_enemy_phase_dialog_renders_the_battle_event_choice(self):
+        import io
+        from pathlib import Path
+        gd = (Path(__file__).resolve().parents[1] / "godot-client"
+              / "project-sovereign" / "scripts" / "enemy_phase_dialog.gd")
+        src = io.open(gd, encoding="utf-8").read()
+        # The bare " CAPTURED!" arm now carries the same suffix vocabulary
+        # as the conquest-event arm.
+        arm = src.split('event.get("region_conquered", false)', 1)[1]
+        arm = arm.split("# Check for forced retreat", 1)[0]
+        assert 'event.get("capture_choice", "")' in arm
+        assert '" (plundered)"' in arm
+        assert '" (secured)"' in arm

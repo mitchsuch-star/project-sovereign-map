@@ -494,7 +494,31 @@ class MovementExecutor:
                 # flipped (capture_region); RESTORE whatever was pending before
                 # this capture (None if nothing) so we secure THIS province
                 # without discarding an earlier marshal's unresolved choice.
+                #
+                # IGR-X5: "AUTO-SECURE" used to be only this comment — the
+                # fresh pending choice was discarded and NOTHING was applied,
+                # so a march capture left buildings undamaged, construction
+                # running, and no region_captured row: marching in was
+                # strictly better than capturing and securing. Now secure is
+                # genuinely applied and the event logged, so a march capture
+                # and an attack capture answered "secure" leave the province
+                # in the same state. The W6-8 estate question deliberately
+                # does NOT mount here: a mid-march hop is no moment for a
+                # court decision, so the holder simply keeps his title —
+                # indistinguishable from "respect" minus the goodwill entry.
                 if strategic_execution:
+                    fresh = world.pending_capture_choice
+                    if (fresh is not None and fresh is not _prior_choice
+                            and fresh.get("region") == target_name):
+                        self._executor._combat._apply_secure(dest_region)
+                        world.log_event({
+                            "type": "region_captured",
+                            "region": target_name,
+                            "captured_by": marshal.nation,
+                            "captured_from": _old_controller,
+                            "method": "secure",
+                        })
+                        move_message += " The province is secured."
                     world.pending_capture_choice = _prior_choice
 
         events = [{
@@ -601,6 +625,13 @@ class MovementExecutor:
                 and getattr(world, "pending_capture_choice", None)):
             result["pending_capture_choice"] = True
             result["capture_data"] = world.pending_capture_choice
+            # IGR-X8: state the priced question in the transcript too — the
+            # move route said only "falls to France!" while the garrison and
+            # unopposed-attack routes quote the figure (route parity).
+            if world.pending_capture_choice.get("stage") != "estate":
+                from backend.models.world_state import capture_choice_prompt
+                result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
         return result
 
     def _execute_scout(self, marshal, target, world: WorldState, game_state) -> Dict:

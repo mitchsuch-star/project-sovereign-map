@@ -541,8 +541,14 @@ class CommandExecutor:
                     f"{_pending.get('region', '?')} first! "
                     f"Choose 'confiscate' or 'respect'.")
             else:
+                # IGR-X8: the stage-1 block used to be unpriced and nameless
+                # ("the captured region") while its estate sibling named
+                # holder and region — restate through the same priced sentence
+                # every other stage-1 surface uses (one home, world_state).
+                from backend.models.world_state import capture_choice_prompt
                 _block_msg = ("You must decide how to handle the captured "
-                              "region first! Choose 'plunder' or 'secure'.")
+                              "region first!"
+                              + capture_choice_prompt(_pending))
             return {
                 "success": False,
                 "message": _block_msg,

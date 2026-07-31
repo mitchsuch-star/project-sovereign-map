@@ -2,10 +2,17 @@
 
 Wave 6 slice 8 (docs/WAVE6_FUN_FACTOR_SPEC.md §10): conquering the province
 that sustains an ENEMY marshal's estate poses a second capture choice —
-confiscate the estate (2x effective-income windfall, -10 relations, the
-capturer's cautious marshals -1 trust, the region becomes endowable) or
-respect the title (the estate stays on the marshal's rolls; +5 acceptance
-with his nation, cap one per nation, serialized world.respected_estates).
+confiscate the estate (2x base-income windfall scaled by war damage,
+-10 relations, the capturer's cautious marshals -1 trust, the region becomes
+endowable) or respect the title (the estate stays on the marshal's rolls;
++5 acceptance with his nation, cap one per nation, serialized
+world.respected_estates).
+
+IGR-X4 (July 31, 2026): the windfall is priced by dotation.confiscation_windfall
+— the original effective-income read ran AFTER stage 1 left stability <= 25,
+where the stability modifier is 0.0, so it paid exactly 0 gold on every
+province in the game and this file's own pins passed as ``0 == 0``. The pins
+below now assert specific non-zero values.
 
 GR5: the AI conqueror applies a deterministic rule instead of the popup —
 confiscate when at war with the estate-holder's nation, respect otherwise.
@@ -31,6 +38,7 @@ from backend.game_logic.dotation import (
     apply_ai_estate_rule,
     apply_estate_respect,
     check_estate_eligibility,
+    confiscation_windfall,
     find_enemy_estate_holder,
     get_satisfaction,
     is_estate_respected,
@@ -125,8 +133,15 @@ class TestEstateChoiceMounting:
         assert pending["estate_holder_nation"] == "Austria"
         assert pending["options"] == ["confiscate", "respect"]
         assert isinstance(pending["dialogue_id"], int)
+        # IGR-X4: the single source, and a SPECIFIC non-zero value — the old
+        # effective-income pin was 0 == 0 (stage 1 leaves stability <= 25,
+        # where the stability modifier is 0.0 and effective income is 0).
+        assert pending["windfall"] == confiscation_windfall(region)
         assert pending["windfall"] == int(
-            CONFISCATION_INCOME_MULT * region.get_effective_income())
+            CONFISCATION_INCOME_MULT * region.income_value
+            * (1.0 - region.war_damage))
+        assert pending["windfall"] > 0
+        assert region.get_effective_income() == 0  # the base the W6-8 cut read
         # The result re-attaches the question for the popup chain
         assert result["pending_capture_choice"] is True
         assert result["capture_data"] is pending
@@ -181,6 +196,8 @@ class TestConfiscation:
         relation_before = world.nation_relations.get(
             world._make_diplo_key("France", "Austria"), 0)
         promised = world.pending_capture_choice["windfall"]
+        # IGR-X4: promise==payment was vacuously green at 0 == 0 for a year.
+        assert promised > 0
 
         result = executor.handle_capture_choice("confiscate", {"world": world})
 
@@ -355,7 +372,13 @@ class TestAIRule:
     def test_ai_confiscates_at_war(self, world):
         """France and Austria are at war at the 1805 boot — an Austrian
         conqueror confiscates a French marshal's estate (symmetry: the
-        player's marshals are not safe either)."""
+        player's marshals are not safe either).
+
+        IGR-X4: stability is set to what stage 1 actually leaves (all three
+        production call sites of apply_ai_estate_rule run AFTER plunder/secure
+        applied) — the old test flipped the controller directly, so boot
+        stability survived and it passed with a windfall unreachable through
+        the real pipeline."""
         french = next(m for m in world.marshals.values()
                       if m.nation == "France" and m.strength > 0)
         region = next(r for r in world.regions.values()
@@ -363,13 +386,17 @@ class TestAIRule:
                       and r.region_type != "capital")
         french.dotation_regions.append(region.name)
         region.controller = "Austria"
+        region.stability = 25  # what _apply_secure leaves before the AI rule
         world.invalidate_active_nations_cache()
         assert world.is_at_war("Austria", "France")
         gold_before = world.nation_gold.get("Austria", 0)
         outcome = apply_ai_estate_rule(world, region, "Austria")
         assert outcome["choice"] == "confiscate"
         assert region.name not in french.dotation_regions
-        assert world.nation_gold["Austria"] > gold_before
+        # Exact, non-zero, from the same single source the player popup quotes.
+        assert outcome["windfall"] == confiscation_windfall(region)
+        assert outcome["windfall"] > 0
+        assert world.nation_gold["Austria"] == gold_before + outcome["windfall"]
         # The victim court is told at once (player-marshal victim)
         notes = world.notifications.get_pending()
         assert any(n["type"] == "estate_confiscated" for n in notes)
@@ -391,6 +418,43 @@ class TestAIRule:
         region.controller = "France"
         world.invalidate_active_nations_cache()
         assert apply_ai_estate_rule(world, region, "France") is None
+
+
+# ════════════════════════════════════════════════════════════════════════
+# IGR-X4 — the windfall re-base (the 0-gold pathology, killed)
+# ════════════════════════════════════════════════════════════════════════
+
+
+class TestX4WindfallRebase:
+    def test_plundered_estate_worth_less_than_secured(self, world1805, executor):
+        """The design promise the docstring always made — 'a plundered estate
+        is worth confiscating less than one kept whole' — is now TRUE instead
+        of 0 == 0: plunder's +0.35 war damage lands before the windfall read."""
+        results = {}
+        for choice in ("secure", "plunder"):
+            w = WorldState.from_dict(world1805.to_dict())
+            holder = _austrian_marshal(w)
+            region = _estate_region(w, holder, controller="France")
+            _seed_stage1(w, region)
+            CommandExecutor().handle_capture_choice(choice, {"world": w})
+            results[choice] = w.pending_capture_choice["windfall"]
+        assert results["plunder"] > 0
+        assert results["secure"] > 0
+        assert results["plunder"] < results["secure"]
+
+    def test_windfall_moves_with_the_blessed_constant(self, world, executor,
+                                                      monkeypatch):
+        """Falsifiable single-source pin (the IGR-E idiom): retuning the
+        blessed multiplier must move the mounted price — an alias-equality
+        pin could never fail."""
+        import backend.game_logic.dotation as dotation_module
+        holder = _austrian_marshal(world)
+        region = _estate_region(world, holder, controller="France")
+        monkeypatch.setattr(dotation_module, "CONFISCATION_INCOME_MULT", 3)
+        _seed_stage1(world, region)
+        _resolve_stage1(executor, world)
+        assert world.pending_capture_choice["windfall"] == int(
+            3 * region.income_value * (1.0 - region.war_damage))
 
 
 # ════════════════════════════════════════════════════════════════════════

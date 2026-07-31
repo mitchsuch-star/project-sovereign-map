@@ -4181,6 +4181,27 @@ class CombatExecutor:
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.
             auto_kill_materiel = pipeline_out.get('materiel_msg', '')
 
+            auto_kill_event = {
+                "type": "battle",
+                "attacker": {"name": marshal.name},
+                "defender": {"name": enemy_marshal.name},
+                "attacker_nation": getattr(marshal, "nation", ""),
+                "defender_nation": getattr(enemy_marshal, "nation", ""),
+                "location": battle_region_name,
+                "outcome": "attacker_victory",
+                "auto_bombardment_kill": True,
+            }
+            # IGR-X8: parity with the garrison/unopposed routes — the AI's
+            # decided choice rides the event (enemy_phase_dialog renders
+            # "(plundered)"/"(secured)"), and the region flag tells the bare
+            # " CAPTURED!" arm which province fell.
+            if conquest_msg:
+                auto_kill_event["region_conquered"] = True
+                auto_kill_event["region_name"] = battle_region_name
+                if capture_result.get("capture_choice"):
+                    auto_kill_event["capture_choice"] = (
+                        capture_result["capture_choice"])
+
             result = {
                 "success": True,
                 "action": "attack",
@@ -4189,18 +4210,20 @@ class CombatExecutor:
                 "auto_bombardment_results": [
                     r.get("bombardment_result", {}) for r in auto_bombardment_results
                 ],
-                "events": [{
-                    "type": "battle",
-                    "attacker": {"name": marshal.name},
-                    "defender": {"name": enemy_marshal.name},
-                    "attacker_nation": getattr(marshal, "nation", ""),
-                    "defender_nation": getattr(enemy_marshal, "nation", ""),
-                    "location": battle_region_name,
-                    "outcome": "attacker_victory",
-                    "auto_bombardment_kill": True,
-                }],
+                "events": [auto_kill_event],
                 "new_state": game_state,
             }
+            # IGR-X8: this route SET the world-side pending choice but never
+            # told the response — the player got an invisible question that
+            # only surfaced as a block on their next command. Same
+            # prompt+flags block as the garrison route.
+            if (conquest_msg and marshal.nation == world.player_nation
+                    and world.pending_capture_choice):
+                from backend.models.world_state import capture_choice_prompt
+                result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
+                result["pending_capture_choice"] = True
+                result["capture_data"] = world.pending_capture_choice
             if counter_punch_message:
                 result["message"] = counter_punch_message + result["message"]
             if drill_cancelled_message:
@@ -4871,6 +4894,7 @@ class CombatExecutor:
         conquered = False
         conquest_msg = ""
         movement_msg = ""
+        capture_result = None  # IGR-X8: read by the event-parity block below
 
         # Check if defender retreated/fled (even in stalemate, empty territory = advance)
         defender_fled = (
@@ -5229,6 +5253,21 @@ class CombatExecutor:
         if world.pending_capture_choice:
             result["pending_capture_choice"] = True
             result["capture_data"] = world.pending_capture_choice
+            # IGR-X8: the field-battle conquest (the most common capture)
+            # never stated the question in the message — a typed-path player
+            # had strictly less information than one clicking. Same priced
+            # sentence as the garrison/unopposed routes.
+            if (marshal.nation == world.player_nation
+                    and world.pending_capture_choice.get("stage") != "estate"):
+                from backend.models.world_state import capture_choice_prompt
+                result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
+
+        # IGR-X8: an AI field-battle conquest rendered a bare " CAPTURED!"
+        # in the enemy-phase dialog while garrison/unopposed conquests said
+        # "(plundered)"/"(secured)" — the decided choice now rides the event.
+        if conquered and capture_result and capture_result.get("capture_choice"):
+            result["events"][0]["capture_choice"] = capture_result["capture_choice"]
 
         # ════════════════════════════════════════════════════════════
         # REINFORCEMENT TRUST PENALTIES (Session 61a)
@@ -5688,6 +5727,7 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         conquered = False
         conquest_msg = ""
+        capture_result = None  # IGR-X8: read by the event-parity block below
         if attacker_won and marshal.strength > 0 and marshal.location == charge_battle_region:
             target_region = world.get_region(charge_battle_region)
             if target_region and target_region.controller != marshal.nation:
@@ -5755,6 +5795,21 @@ class CombatExecutor:
             charge_message += pipeline_out['materiel_msg']
         charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
+        charge_event = {
+            "type": "glorious_charge",
+            "marshal": marshal.name,
+            "target": target_marshal.name,
+            "attacker_won": attacker_won,
+            "recklessness_reset": True
+        }
+        # IGR-X8: parity with the other conquest events — the enemy-phase
+        # dialog can attribute what became of the province.
+        if conquered:
+            charge_event["region_conquered"] = True
+            charge_event["region_name"] = charge_battle_region
+            if capture_result and capture_result.get("capture_choice"):
+                charge_event["capture_choice"] = capture_result["capture_choice"]
+
         charge_result = {
             "success": True,
             "message": charge_message,
@@ -5763,13 +5818,7 @@ class CombatExecutor:
             "recklessness_before": recklessness_before,
             "recklessness_after": 0,
             "combat_result": combat_result,
-            "events": [{
-                "type": "glorious_charge",
-                "marshal": marshal.name,
-                "target": target_marshal.name,
-                "attacker_won": attacker_won,
-                "recklessness_reset": True
-            }],
+            "events": [charge_event],
             "new_state": game_state
         }
         # Berthier's After-Action Report
@@ -5779,6 +5828,12 @@ class CombatExecutor:
         if world.pending_capture_choice:
             charge_result["pending_capture_choice"] = True
             charge_result["capture_data"] = world.pending_capture_choice
+            # IGR-X8: state the priced question here too (route parity).
+            if (marshal.nation == world.player_nation
+                    and world.pending_capture_choice.get("stage") != "estate"):
+                from backend.models.world_state import capture_choice_prompt
+                charge_result["message"] += capture_choice_prompt(
+                    world.pending_capture_choice)
         return charge_result
 
     def respond_to_glorious_charge(self, response: str, world: WorldState) -> Dict:

@@ -373,6 +373,32 @@ class TestPlunderedFlagLifecycle:
         # Stability grows to 51 (46 + 5 base), > 50 → clears plundered
         assert region.plundered is False
 
+    def test_a_resack_pays_nothing_until_the_province_recovers(self):
+        """IGR-X6: the flag's first mechanical reader — a province whose
+        `plundered` flag still stands has nothing left to give. Before this
+        guard a province changing hands repeatedly paid the FULL yield each
+        time (the flag was serialized, displayed as meaningful state, and
+        read by nothing but its own clear condition)."""
+        from backend.models.world_state import (
+            apply_plunder_effects, plunder_yield,
+        )
+        world, gs = make_game_state()
+        region = world.get_region("Lyon")
+        region.controller = "France"
+        first = apply_plunder_effects(world, region, "France")
+        assert first > 0  # the first sack pays in full (GR4: yield read
+        #                   BEFORE the flag is set — order is load-bearing)
+        assert region.plundered is True
+        # The prompt and the payout share one expression, so an
+        # already-stripped province is honestly QUOTED at 0 too.
+        assert plunder_yield(region) == 0
+        again = apply_plunder_effects(world, region, "Britain")
+        assert again == 0
+        # Recovery past 50 clears the flag and the province pays again.
+        region.stability = 60
+        region.plundered = False
+        assert plunder_yield(region) > 0
+
 
 class TestCaptureChoiceSerialization:
     """Test serialization of capture choice fields."""

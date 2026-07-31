@@ -409,11 +409,17 @@ def build_base_response(world, success: bool = True, message: str = "",
     return response
 
 
-def _build_result_response(result: dict, world) -> dict:
+def _build_result_response(result: dict, world, drain_popups: bool = True) -> dict:
     """Build a standard response from an executor result dict.
 
     Strips new_state (circular refs), adds base fields via build_base_response().
     Used for /command early returns and endpoints that forward executor results.
+
+    drain_popups=False (IGR-X7): the capture-choice routes' client handler
+    (main.gd's capture route) reads only the capture keys — a popup POPPED
+    into this response dies unread, exactly the IGR-F letter-book shape.
+    Keys stay present (filled without draining) so the response contract
+    holds; the queued popup rides the player's next ordinary /command.
     """
     extra = {k: v for k, v in result.items() if k != "new_state"}
     # Sweep-5 P0 (live 500): an early-return result that already ran the enemy
@@ -427,13 +433,17 @@ def _build_result_response(result: dict, world) -> dict:
         cleaned_phase = _build_visible_enemy_phase(extra.pop("enemy_phase"), world)
         if cleaned_phase is not None:
             extra["enemy_phase"] = cleaned_phase
-    return build_base_response(
+    response = build_base_response(
         world,
         success=extra.pop("success", False),
         message=extra.pop("message", ""),
         events=extra.pop("events", []),
+        include_popup_passthroughs=drain_popups,
         **extra
     )
+    if not drain_popups:
+        _fill_popup_keys_without_draining(response)
+    return response
 
 
 def _build_command_response(result: dict, world, feedback: dict | None = None) -> dict:
@@ -1428,7 +1438,8 @@ def execute_command(request: CommandRequest):
                   f"-> capture choice")
             result = executor.handle_capture_choice(
                 _pending_answer_token, game_state)
-            return _build_result_response(result, world)
+            # IGR-X7: the capture route must not eat a queued popup.
+            return _build_result_response(result, world, drain_popups=False)
         if world.pending_diplomatic_dialogue is not None:
             _pending_dlg = world.pending_diplomatic_dialogue
             _dlg_options = _pending_dlg.get("options", []) or []
@@ -1985,7 +1996,9 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         if result.get("pending_capture_choice"):
             print("[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
-            return _build_result_response(result, world)
+            # IGR-X7: this early-return's client route reads only the capture
+            # keys — popping a queued popup here would discard it.
+            return _build_result_response(result, world, drain_popups=False)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR DIPLOMATIC DIALOGUE (Phase 8 Session 3)
@@ -2435,14 +2448,21 @@ def capture_choice(request: CaptureChoiceResponse):
             extra["capture_data"] = result.get("capture_data")
         if result.get("stale_dialogue"):
             extra["stale_dialogue"] = True
-        return build_base_response(
+        # IGR-X7: the capture dialog's client handler reads only the capture
+        # keys — draining the PopupQueue into this response destroys whatever
+        # was queued (one-shot popups permanently). Fill without draining;
+        # the popup rides the player's next /command.
+        response = build_base_response(
             world,
             success=result.get("success", False),
             message=result.get("message", "Choice processed"),
             events=result.get("events", []),
             capture_choice=result.get("capture_choice"),
+            include_popup_passthroughs=False,
             **extra,
         )
+        _fill_popup_keys_without_draining(response)
+        return response
     except Exception as e:
         print(f"ERROR handling capture choice: {e}")
         import traceback

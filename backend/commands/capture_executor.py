@@ -70,6 +70,19 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             return {"success": False, "message": f"Region {region_name} not found."}
 
+        # IGR-X8: re-validate the holder at ANSWER time. A full turn can pass
+        # between capture and answer (a jealousy autonomous attack's
+        # _strategic_execution bypasses the pending-choice block), so the
+        # province may have been retaken — answering "plunder" would sack an
+        # enemy-held province and credit the player the gold.
+        if region.controller != world.player_nation:
+            world.pending_capture_choice = None
+            return {
+                "success": False,
+                "message": (f"Sire, the question has lapsed — {region_name} "
+                            f"is no longer in our hands."),
+            }
+
         if choice == "plunder":
             result = self._executor._combat._apply_plunder(region, world)
             world.pending_capture_choice = None
@@ -167,9 +180,12 @@ class CaptureExecutor:
 
         The windfall is computed NOW — after plunder/secure applied — so a
         plundered estate is worth confiscating less than one kept whole
-        (deterministic and order-honest)."""
+        (deterministic and order-honest: plunder's +0.35 war damage is
+        already on the region when confiscation_windfall reads it).
+        IGR-X4: priced by the single source in dotation.py — the old
+        effective-income read here was structurally 0 on every province."""
         from backend.game_logic.dotation import (
-            CONFISCATION_INCOME_MULT, derive_title, find_enemy_estate_holder,
+            confiscation_windfall, derive_title, find_enemy_estate_holder,
         )
         holder = find_enemy_estate_holder(world, region.name,
                                           world.player_nation)
@@ -183,8 +199,7 @@ class CaptureExecutor:
             "previous_controller": pending.get("previous_controller", ""),
             "estate_holder": holder.name,
             "estate_holder_nation": holder.nation,
-            "windfall": int(CONFISCATION_INCOME_MULT
-                            * region.get_effective_income()),
+            "windfall": confiscation_windfall(region),
             "title": title,
             "options": ["confiscate", "respect"],
             "dialogue_id": world.dialogue_manager.mint_dialogue_id(),
@@ -195,7 +210,7 @@ class CaptureExecutor:
         response["message"] += (
             f"\n\nSire — {region.name} sustains Marshal {holder.name}'s "
             f"household (the {title.replace('Duke of', 'Duchy of')}). "
-            f"Confiscate the estate (+{estate_pending['windfall']} gold; "
+            f"Confiscate the estate (+{estate_pending['windfall']:,} gold; "
             f"{holder.nation} will not forgive it) or respect the title "
             f"({holder.nation} will remember the courtesy)?")
 
@@ -210,6 +225,13 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             return {"success": False,
                     "message": "The estate question has lapsed."}
+        # IGR-X8: same holder re-validation as stage 1 — confiscating an
+        # estate on a province we no longer hold is not a choice we have.
+        if region.controller != world.player_nation:
+            world.pending_capture_choice = None
+            return {"success": False,
+                    "message": (f"Sire, the question has lapsed — "
+                                f"{region.name} is no longer in our hands.")}
 
         if choice == "confiscate":
             outcome = apply_estate_confiscation(
@@ -217,7 +239,7 @@ class CaptureExecutor:
                 windfall=pending.get("windfall"))
             world.pending_capture_choice = None
             message = (f"The estate at {region.name} is confiscated! "
-                       f"{outcome['windfall']} gold seized for the treasury. "
+                       f"{outcome['windfall']:,} gold seized for the treasury. "
                        f"Marshal {holder.name}'s title is extinguished — "
                        f"{holder.nation} will not forgive it.")
             if outcome["disapproving"]:

@@ -11,7 +11,7 @@ from backend.campaign_log import (
     filter_campaign_log,
     format_event_oneliner,
 )
-from backend.models.intel import FULL, PARTIAL, STALE, UNKNOWN
+from backend.models.intel import FULL, PARTIAL, STALE, UNKNOWN, RegionIntel
 from backend.models.world_state import WorldState
 
 
@@ -20,11 +20,16 @@ from backend.models.world_state import WorldState
 # ============================================================================
 
 def _make_world_with_visibility(region_visibility=None):
-    """Create a WorldState with specific region intel visibility levels."""
+    """Create a WorldState with specific region intel visibility levels.
+
+    IGR-X2: get_region_intel is a pure read now (a missing key returns a
+    transient), so a fixture MINTING intel for a region — including
+    fictional ones like "Brussels" — must write the entry itself."""
     world = WorldState()
     if region_visibility:
         for region_name, vis_level in region_visibility.items():
-            intel = world.get_region_intel(region_name)
+            intel = world.intel.setdefault(
+                region_name, RegionIntel(region_name))
             intel.visibility = vis_level
     return world
 
