@@ -2226,7 +2226,56 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
-> **▶ NEXT SESSION STARTS HERE (updated July 26, 2026, eighteenth entry): `IGR-G`, THE LAST
+> **▶ NEXT SESSION STARTS HERE (updated July 31, 2026, nineteenth entry): ROW IGR IS
+> BUILD-COMPLETE — next is the Battle Diorama (row BD), then `AI_INTENT_SPEC.md` §11
+> Stage E.**
+>
+> **IGR-G LANDED + the routed X-backlog CLOSED July 31, 2026, in one session under the
+> user's delegated grant** ("complete the igr work … feel free to go off spec if something
+> is bad wrong or poorly designed"). Landing records: `INGAME_REVIEW_FIXES_SPEC.md` §2
+> IGR-G + §6, and the struck rows in `BUG_FIXES.md`. Suite **15,324/3**, ruff clean, parse
+> harness EXIT=0, boot 0 `SCRIPT ERROR`, M1–M7 byte-identical.
+>
+> - **IGR-G1** — the settlement screen uses the screen: `clamp_ceiling_override` panel
+>   meta (settlement_confirm only; the pinned call string survives) + a priority-aware
+>   relax pass (`relax_last` — the per-court table yields LAST). Measured 720×520/145px →
+>   1160×980/320px on a 2550×1340 viewport, via a deterministic harness
+>   (`tools/settlement_popup_screenshot.gd`) feeding the REAL popup a REAL backend payload.
+> - **IGR-G2** — piece stacks: spacing 30→38, a third rank above 4, ONE stack label
+>   ("Ney +4") above 3; the 3–4 shape numerically unchanged; hitboxes stay per-marshal.
+> - **⚠ open: user visual sign-off on the before/after pack** —
+>   `docs/audits/IGR_G1_SETTLEMENT_BEFORE/AFTER_2026_07_31.png` +
+>   `IGR_G2_STACKS_BEFORE/AFTER[_ZOOM]_2026_07_31.png` (the gate note's "screenshots
+>   first" was resolved by the grant as before/after evidence rather than a pre-build
+>   pause).
+> - **IGR-X4 (P2, the escalation)** — the 0-gold confiscation windfall: re-based on
+>   `income_value × (1 − war_damage)` in ONE source (`dotation.confiscation_windfall`);
+>   blessed 2× + band stand (`WAVE6_FUN_FACTOR_SPEC.md` §10 amended in place). **The
+>   40-turn `BASELINE_SERIES` was re-recorded consciously once** — four live AI-vs-AI
+>   confiscations by turn 9 (Britain stripping Castanos ×3, Spain stripping Moore) now
+>   pay 184–400g instead of 0, so the ambient trajectory diverges from turn 15; the
+>   delta was BISECTED to the one-line re-base (comment-only and function-only probes
+>   left the series byte-identical) and the confiscations counted by a LIVE SPY because
+>   the 500-cap event log had evicted all four rows — the IGR-B trap, hit again in the
+>   wild.
+> - **IGR-X7 (P2)** — the three capture-route responses fill popup keys WITHOUT draining
+>   (a queued one-shot popup survives to the next /command). **IGR-X5** — the strategic
+>   march genuinely auto-secures + logs `region_captured`. **IGR-X8** — priced stage-1
+>   sentence on every player capture route, `capture_choice` on every AI-visible conquest
+>   event (+ the enemy-phase dialog suffix), the priced command-block message, holder
+>   re-validation at answer time on both stages. **IGR-X6** — a re-sack pays (and quotes)
+>   0 while `plundered` stands; yield read BEFORE the flag is set (GR4). **IGR-X2** —
+>   `get_region_intel` is a pure read; writers go through `_intel_entry`; two test
+>   fixtures that MINTED intel via the lazy insert were converted to writes.
+> - **IGR-X9 stays homed at the econ gate** (decision-shaped: bless razing-sheds-the-bill
+>   as design or re-shape it).
+> - New tests: `test_igr_g_legibility.py` (12) + extensions across 6 files; the IGR-E
+>   dissent counter is UNTOUCHED (attempts remain ONE of two).
+>
+> **Also still open and unchanged:** Battle Diorama (row **BD**), then `AI_INTENT_SPEC.md`
+> §11 Stage E. *(This entry supersedes the eighteenth.)*
+
+> **[Superseded July 31, 2026 — IGR-G landed, X-backlog closed] ▶ (updated July 26, 2026, eighteenth entry): `IGR-G`, THE LAST
 > SLICE IN ROW IGR — AND IT NEEDS SCREENSHOTS PUT TO THE USER FIRST.**
 >
 > **IGR-E is LANDED and pushed** (`c7e30b9` + the GR5 addendum `88e2707`; landing record

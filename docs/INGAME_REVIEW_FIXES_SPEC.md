@@ -1322,7 +1322,71 @@ in flight. The per-nation voices are among the best writing in the game — Reis
 per-row accept/decline, keeping the voice line on each row. Great-power and settlement
 traffic unaffected.
 
-### IGR-G — Two legibility fixes *(gate: yes — see §5 note)*
+### IGR-G — Two legibility fixes *(gate: yes — see §5 note)* — ✅ **LANDED July 31, 2026**
+
+> **Landing record — authoritative for what IGR-G actually became.**
+> Tests `tests/test_igr_g_legibility.py` (12). Ruff clean, Godot parse
+> harness EXIT=0, client boot 0 `SCRIPT ERROR`, M1–M7 byte-identical.
+>
+> **The gate note's "screenshots to the user BEFORE building" was resolved by
+> the user's July 31 delegated grant** ("complete the igr work … feel free to
+> go off spec if something is bad wrong or poorly designed") — the session
+> produced the BEFORE evidence first, built, then produced the AFTER pack, so
+> the user signs off on a before/after pair instead of a pre-build pause:
+> `docs/audits/IGR_G1_SETTLEMENT_BEFORE/AFTER_2026_07_31.png` +
+> `IGR_G2_STACKS_BEFORE/AFTER[_ZOOM]_2026_07_31.png`.
+> **⚠ open: user visual sign-off on both AFTER shots** (the standing UI
+> sign-off convention).
+>
+> **G1 — measured, fixed, re-measured.** A deterministic evidence harness
+> (`tools/settlement_popup_screenshot.gd` — instantiates the REAL
+> `proposal_confirm_popup.tscn` with a REAL `settlement_confirm` payload
+> pulled from the live backend over HTTP) reproduced the spec's numbers to
+> the decimal on a 2550×1340 viewport: **panel 720×520, PerCourtScroll
+> relaxed down to 145.24px** (the spec said "~145px ≈ 6 rows"), one court
+> visible before clipping. After: **panel 1160×980, PerCourtScroll at its
+> full 320 floor**, all three boot courts fully visible with blockers,
+> voices, Add-demand affordances, warnings, and both button rails —
+> unscrolled. Same payload both runs, so the pair is pixel-attributable.
+>
+> The shape, and why it is a META and not a parameter: the exact call string
+> `Utils.clamp_centered_panel($PanelContainer)` is pinned across every
+> centre-anchored surface by `test_ui_visual_foundation.py`, so the ceiling
+> rides `clamp_ceiling_override` panel meta instead — set per-open by the
+> `settlement_confirm` branch (`SETTLEMENT_CEILING = Vector2(1160, 980)`),
+> REMOVED per-open by every other dtype (the popup instance is shared; a
+> stale meta would leak the settlement rect into proposal_confirm). The
+> override only ever RAISES the cached authored ceiling (`maxf` both axes)
+> and the viewport caps still apply after it, so small windows keep
+> shrinking correctly. The other ~27 call sites are byte-unchanged.
+>
+> The relax pass is now priority-aware rather than headroom-proportional:
+> a control tagged `relax_last` (the popup tags `PerCourtScroll` in
+> `_ready`) yields only when every untagged control is already at the
+> floor — the old pass charged the largest floor the largest share, robbing
+> exactly the region the player needs most *because* it declared the
+> biggest minimum. All the pinned relax properties survive (restore-first,
+> iterate-with-remeasure, `relaxed_min_y` bookkeeping, the Button guard,
+> the `Vector2(0, 320)` authored scene floor).
+>
+> **G2 — the cheap fix, as specced.** `WAR_PIECE_SLOT_SPACING` 30→38 (the
+> visible figure is ~35px — 30px spacing overlapped at EVERY zoom;
+> geometry, not zoom); `_marshal_slot_offset_2d` generalizes the two-rank
+> round-robin to THREE ranks above 4 pieces, with the 3–4 piece shape
+> **numerically unchanged** (mirrored per-index in the test, so the U5
+> sign-off look is provably preserved and the pinned `if count <= 2:` flat
+> line survives); and above 3 co-located marshals ONE stack label
+> (`"Ney +4"`) replaces the 13px-staggered name pile — hover hitboxes stay
+> per-marshal, so the tooltip still identifies each piece. Live-verified:
+> the boot board with five marshals teleported onto Rhineland drew a
+> three-rank spread under a single readable label where the BEFORE shot is
+> one smeared clump under five overlapping names. The legacy square-icon
+> world is byte-unchanged (`use_stack_label` requires `pieces_active`).
+>
+> **Deliberately NOT taken here** (spec §4 owns it): the labels still live
+> in `force_layer` and scale with the camera — the screen-space re-home is
+> its own row. The "+N" tin-plaque badge stays the separate art-bearing
+> increment.
 
 **G1 — the settlement authoring viewport.**
 
@@ -1519,8 +1583,24 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 ~~`IGR-A` (gate-free, four items)~~ ✅ **LANDED July 25, 2026** → ~~**pause for review**~~ ✅ →
 ~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-D` (Q2, ends with the live
 Proclamation sighting)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-F`~~ ✅ **LANDED July 26, 2026**
-→ ~~`IGR-E` (Q4)~~ ✅ **LANDED July 26, 2026** → **▶ `IGR-G`** (after the user sees
-screenshots). **IGR-C is withdrawn.**
+→ ~~`IGR-E` (Q4)~~ ✅ **LANDED July 26, 2026** → ~~`IGR-G`~~ ✅ **LANDED July 31, 2026**
+(before/after screenshot pack under the user's delegated grant — ⚠ visual sign-off open).
+**IGR-C is withdrawn. ROW IGR IS BUILD-COMPLETE.**
+
+**The same July-31 session closed the routed X-backlog under the same grant** (landing
+records = the struck rows in `BUG_FIXES.md` §IGR-E and §In-Game Review): **IGR-X4** (the
+0-gold confiscation windfall — re-based on `income_value × (1 − war_damage)` through one
+`dotation.confiscation_windfall` single source; the blessed 2× and its band stand; the
+40-turn `BASELINE_SERIES` was re-recorded consciously once, the delta bisected to this
+one line — four live AI-vs-AI confiscations by turn 9 now pay real gold), **IGR-X7** (all
+three capture-route responses fill popup keys without draining), **IGR-X5** (the
+strategic-march capture genuinely auto-secures + logs `region_captured`), **IGR-X8** (the
+priced stage-1 sentence on every player capture route, `capture_choice` on every
+AI-visible conquest event, the priced command-block message, and holder re-validation at
+answer time on both stages), **IGR-X6** (a re-sack pays 0 while `plundered` stands — the
+flag's first mechanical reader, shown=applied through `plunder_yield`), and **IGR-X2**
+(`get_region_intel` is a pure read; the four persistence writers go through the new
+`_intel_entry`). **IGR-X9 stays homed at the econ gate** (decision-shaped, not a fix).
 
 `IGR-D` sits late deliberately: it is the only slice touching the settlement engine, and
 it wants the polish slices landed so its live pass is clean.
