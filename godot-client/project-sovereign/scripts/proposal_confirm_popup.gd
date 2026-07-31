@@ -37,6 +37,13 @@ var _suggestion_options_expanded: Dictionary = {}
 const COLOR_GOLD = "#d9c08c"
 const COLOR_DIMMED = "#808080"
 const COLOR_RED = "#e04040"
+# IGR-G1: the settlement authoring surface is a DOCUMENT (treasury preamble +
+# the per-court table + footer + tier-2 affordance rails), not a dialog — on a
+# 2560-wide monitor the shared 720x520 authored rect squeezed the per-court
+# table to ~145px (~6 rows) while 70% of the screen sat empty. This ceiling
+# applies to dtype settlement_confirm ONLY (set per-open, removed for every
+# other dtype); clamp_centered_panel still shrinks it to fit small viewports.
+const SETTLEMENT_CEILING := Vector2(1160, 980)
 # GT-Slice-3: client-side magnitude step for the per-line gold controls
 # (mirrors the backend SETTLEMENT_DIAL_GOLD_STEP; the server clamps and
 # revalidates every value — this is presentation-side convenience only).
@@ -46,6 +53,12 @@ func _ready():
 	hide()
 	if per_court_table:
 		per_court_table.meta_clicked.connect(_on_per_court_meta_clicked)
+	# IGR-G1: the per-court table is the PRIMARY settlement content — mark it
+	# so clamp_centered_panel's relax pass shrinks it LAST. The old
+	# headroom-proportional pass charged the largest floor the largest share,
+	# robbing exactly the region the player needs most.
+	if per_court_scroll:
+		per_court_scroll.set_meta("relax_last", true)
 
 # July 18, 2026: a last-resort escape hatch. This popup had no ESC handler and
 # no overlay click-to-close, and main.gd's ESC ladder deliberately refuses to
@@ -234,6 +247,13 @@ func show_dialogue(data: Dictionary):
 	# this bite, since Godot clamps a Control's size UP to its combined minimum
 	# regardless of offsets. This popup is the settle-a-war surface the July 18,
 	# 2026 report flagged as "too big for the screen".
+	# IGR-G1: the settlement table gets the document ceiling; every other
+	# dtype must REMOVE the meta (this node instance is shared), or a later
+	# proposal_confirm would inherit the settlement's rect.
+	if is_settlement_table:
+		$PanelContainer.set_meta("clamp_ceiling_override", SETTLEMENT_CEILING)
+	elif $PanelContainer.has_meta("clamp_ceiling_override"):
+		$PanelContainer.remove_meta("clamp_ceiling_override")
 	Utils.clamp_centered_panel($PanelContainer)
 
 func _add_settlement_tier2_buttons(data: Dictionary):

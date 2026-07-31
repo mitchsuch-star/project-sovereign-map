@@ -442,6 +442,17 @@ static func clamp_centered_panel(panel: Control) -> void:
 			authored.y = maxf(floor_size.y, 240.0)
 		panel.set_meta("design_size", authored)
 	var design: Vector2 = panel.get_meta("design_size")
+	# IGR-G1: a caller may raise the ceiling for ONE surface without touching
+	# the authored rect every other dialogue type shares. The settlement
+	# authoring screen (proposal_confirm_popup, dtype settlement_confirm) sets
+	# this meta per-open and REMOVES it for every other dtype — the cached
+	# design_size stays the ceiling for the other ~27 call sites, so their
+	# rendering is byte-unchanged. A meta (not a parameter) because the exact
+	# call string `Utils.clamp_centered_panel($PanelContainer)` is pinned
+	# across every centre-anchored surface by test_ui_visual_foundation.py.
+	if panel.has_meta("clamp_ceiling_override"):
+		var override: Vector2 = panel.get_meta("clamp_ceiling_override")
+		design = Vector2(maxf(design.x, override.x), maxf(design.y, override.y))
 	var view: Vector2 = viewport.get_visible_rect().size
 	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
 	var h: float = minf(design.y, maxf(240.0, view.y - 88.0))
@@ -489,13 +500,30 @@ static func _relax_child_minimums(panel: Control, budget: float) -> void:
 		if excess <= 0.0:
 			break
 		# Only controls that can still give something up take a share.
+		# IGR-G1: the old pass distributed proportional to headroom, which
+		# charged the LARGEST floor the largest share — the settlement
+		# per-court table (the primary content, 320px authored floor) was
+		# robbed hardest precisely because it declared the biggest minimum.
+		# A control tagged `relax_last` (the caller marks its primary
+		# content) now yields only when every untagged control is already
+		# at the floor — secondary rails give first, the document last.
 		var room: float = 0.0
 		var givers: Array = []
 		for control in flexible:
+			if control.has_meta("relax_last"):
+				continue
 			var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
 			if headroom > 0.5:
 				givers.append(control)
 				room += headroom
+		if givers.is_empty() or room <= 0.0:
+			for control in flexible:
+				if not control.has_meta("relax_last"):
+					continue
+				var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+				if headroom > 0.5:
+					givers.append(control)
+					room += headroom
 		if givers.is_empty() or room <= 0.0:
 			break
 		var take: float = minf(excess, room)

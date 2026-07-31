@@ -23,7 +23,10 @@ const MARSHAL_ICON_Y_OFFSET: float = -50.0
 # tween. Tunable — flagged for visual sign-off like the U2/U3 gates. Shrunk from
 # 84 -> 64 so standees in neighbouring provinces stop overlapping (July 13 feedback).
 const WAR_PIECE_FRAME_PX: float = 64.0
-const WAR_PIECE_SLOT_SPACING: float = 30.0
+# IGR-G2: 30px spacing against a ~35px visible figure (64 * 0.55) meant
+# co-located pieces overlapped at EVERY zoom — geometry, not zoom. 38 gives
+# each figure daylight while a 5-stack still reads as one massed province.
+const WAR_PIECE_SLOT_SPACING: float = 38.0
 # UI-6 (U5 residual): 3+ co-located standees split into two ranks — the rear
 # rank steps back by this many map px (pieces_layer y-sorts, so rear draws
 # behind) instead of stretching one overlapping x-line across the province.
@@ -1337,14 +1340,18 @@ func _marshal_slot_offset_2d(i: int, count: int) -> Vector2:
 	# UI-6 (U5 residual): 1-2 pieces keep the flat x-line; 3+ split into two
 	# ranks (even indexes front, odd indexes a rank back) so a massed
 	# province stops drawing as one overlapping smear.
+	# IGR-G2: 5+ split into THREE ranks (i % ranks round-robin, generalizing
+	# the two-rank math — the 3-4 piece shape is numerically unchanged) so a
+	# Grande-Armee stack grows back instead of stretching one long x-line.
 	if count <= 2:
 		return Vector2((float(i) - float(count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING, 0.0)
-	var rank := i % 2
-	var idx := int(i / 2.0)
-	var front_count := int(ceil(count / 2.0))
-	var rank_count := front_count if rank == 0 else count - front_count
+	var ranks := 2 if count <= 4 else 3
+	var rank := i % ranks
+	var idx := int(i / float(ranks))
+	# Pieces in this rank: indexes {rank, rank+ranks, ...} below count.
+	var rank_count := int(ceil(float(count - rank) / float(ranks)))
 	var x := (float(idx) - float(rank_count - 1) / 2.0) * WAR_PIECE_SLOT_SPACING
-	var y := 0.0 if rank == 0 else -WAR_PIECE_RANK_DEPTH
+	var y := -float(rank) * WAR_PIECE_RANK_DEPTH
 	return Vector2(x, y)
 
 
@@ -1355,6 +1362,12 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 	# Legacy square-icon horizontal layout (only used when pieces are inactive).
 	var total_width = marshals.size() * MARSHAL_ICON_SIZE.x + max(0, marshals.size() - 1) * MARSHAL_ICON_SPACING
 	var start_x = -total_width / 2.0
+
+	# IGR-G2: above 3 co-located pieces the per-marshal name pile (a 13px
+	# stagger of 40-60px-wide names over 38px slots) is unreadable at every
+	# zoom — draw ONE stack label ("Ney +4") instead. Hover hitboxes stay
+	# per-marshal, so the tooltip still identifies each piece.
+	var use_stack_label := pieces_active and marshals.size() > 3
 
 	for i in range(marshals.size()):
 		var marshal: Dictionary = marshals[i]
@@ -1392,23 +1405,47 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			label_anchor_world = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
 			hitbox_rect = Rect2(icon_pos, MARSHAL_ICON_SIZE)
 
-		var name_label = Label.new()
-		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_label.position = _world_to_layer_position(label_anchor_world)
-		name_label.size = Vector2(name_width, 14.0)
-		name_label.text = marshal_name
-		name_label.add_theme_font_size_override("font_size", 11)
-		name_label.add_theme_color_override("font_color", Color.WHITE)
-		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
-		force_layer.add_child(name_label)
+		if not use_stack_label:
+			var name_label = Label.new()
+			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			name_label.position = _world_to_layer_position(label_anchor_world)
+			name_label.size = Vector2(name_width, 14.0)
+			name_label.text = marshal_name
+			name_label.add_theme_font_size_override("font_size", 11)
+			name_label.add_theme_color_override("font_color", Color.WHITE)
+			name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+			name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			force_layer.add_child(name_label)
+			_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, 14.0)))
 
 		marshal_hitboxes.append({
 			"rect": hitbox_rect,
 			"marshal": marshal,
 		})
 		_label_avoid_world_rects.append(hitbox_rect)
-		_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, 14.0)))
+
+	if use_stack_label:
+		# One aggregate label over the whole stack, centered on the slot
+		# spread (slots are symmetric about region_pos.x) and lifted clear
+		# of the rearmost rank's figures.
+		var lead_name = str(marshals[0].get("name", "?"))
+		var stack_text := "%s +%d" % [lead_name, marshals.size() - 1]
+		var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+		var rear_ranks := 1 if marshals.size() <= 4 else 2
+		var stack_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0
+				+ float(rear_ranks) * WAR_PIECE_RANK_DEPTH)
+		var stack_anchor := region_pos + Vector2(-stack_width / 2.0, stack_y)
+		var stack_label = Label.new()
+		stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack_label.position = _world_to_layer_position(stack_anchor)
+		stack_label.size = Vector2(stack_width, 14.0)
+		stack_label.text = stack_text
+		stack_label.add_theme_font_size_override("font_size", 11)
+		stack_label.add_theme_color_override("font_color", Color.WHITE)
+		stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+		stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+		force_layer.add_child(stack_label)
+		_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, 14.0)))
 
 
 func _marshal_arm(marshal: Dictionary) -> String:
