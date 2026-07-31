@@ -87,6 +87,33 @@ has no mechanical readers.
 entry, the struck `DESIGN_REFINEMENT.md` IGR-D1 row, a comment at the constant, and the
 acceptance test's docstring. **Attempts used: ONE of two.**
 
+**Post-landing adversarial review (same session — 8 find lenses → per-lens refuters →
+synthesis, 17 agents): no P1; 3 P2 + 10 in-scope P3 confirmed, ALL FIXED** (fourth
+commit; spec §2 IGR-E carries the addendum). The P2s: **the newly-live AI branch would
+sack its own recaptured homeland** — an aggressive commissioned marshal retaking his
+nation's capital would burn its buildings and pay himself ×4 to loot himself; fixed
+with an own-soil guard in the single source (starting-controller check; the player's
+own-soil modal deliberately untouched; ambient tally unchanged at 39/2 — Paget sacks
+Brabant and Ile-de-France, neither British — `BASELINE_SERIES` byte-identical).
+**The published break-even model omitted the EC-U2 damaged-structure bill** — Secure
+keeps enemy structures damaged (yielding nothing, billed 40g/turn) while Plunder
+deletes bill and asset, so on a BUILT province razing wins at any multiplier
+including ×0; the term is in the model now, the case published as a
+multiplier-invariant test, and the design question homed as **IGR-X9** (it can never
+touch the dissent counter — the acceptance test judges the multiplier and this term
+is invariant to it). **And the record's "the inversion is the point" was false under
+its own model** — garrisoned, the choice converges with a ≤4% permanent plunder
+sliver; the true inversion is ungarrisoned (772 > 600 at the median); the record is
+corrected in place and the test renamed. The P3s: one shared `apply_plunder_effects`
+(the occupation branch's inlined copy dropped the per-building events), pre-IGR-E
+saves backfilled at load (a live question was quoting "+0 gold" and paying 800; a
+genuinely unresolvable one now omits the figure), the dead `region_income` key
+deleted, one gold-formatting idiom everywhere, the single-source and negative-control
+tests made falsifiable, exact-line `.gd` pins, and the band documented as
+permission-to-try (the criteria admit exactly ×4). Pre-existing findings routed:
+**IGR-X7** (capture responses drain the PopupQueue), **IGR-X8** (uneven capture
+surfaces), **IGR-X9**. `test_igr_e_plunder_prompt.py` 30 → **38**.
+
 ### ✅ IGR-X3 — A beaten enemy signs; it does not have to like you first — LANDED July 26, 2026
 
 **User direction after the recommendation was put to them: "Everything, incl. armistice

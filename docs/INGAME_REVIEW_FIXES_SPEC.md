@@ -872,23 +872,55 @@ question with one right answer.
 >
 > **The acceptance test PASSES in both directions** — this is the definition of done,
 > and it is arithmetic over the production formulas, not judgement.
-> `TestTheFalsifiableAcceptanceTest` requires **both** halves of each arm:
+> `TestTheFalsifiableAcceptanceTest` requires **both** halves of each arm, on a **bare,
+> garrisoned province** (assumptions stated because they are load-bearing — the
+> post-landing review's headline correction):
 > - **Arm A, poor and early** — the loot is a *material* share of the purse (≥10% of
 >   the gate's 2,000g anchor: 200g = 10%, 600g = 30%) **and** exceeds the revenue it
 >   destroys over a 5-turn horizon (600 > 315 at the median).
-> - **Arm B, rich and late** — the loot is *immaterial* (≤6% of 20,000g) **and** no
->   longer beats the forgone revenue over a 30-turn horizon; it converges to within
->   15% of break-even at every tier.
+> - **Arm B, rich and late** — the loot is *immaterial* (≤6% of 20,000g) **and** the
+>   long-run gold offers no margin worth the unrest — within 10% of break-even at
+>   every tier. **The materiality half carries the design weight.**
 >
-> **The inversion is the point:** short horizon favours Plunder, long horizon favours
-> Secure, because the loot is one-time while the forgone revenue keeps accruing until
-> it plateaus. That is what turns the modal from a quiz into a decision.
+> **⚠ CORRECTED BY THE POST-LANDING REVIEW (its P2 #3) — the first cut of this record
+> claimed "the inversion is the point", and that is FALSE under the record's own
+> model.** Garrisoned, the forgone revenue plateaus just *below* the loot at every
+> tier (600 vs 581 at the median; plunder keeps a ≤4% permanent sliver), so the
+> garrisoned bare-province choice **converges to near-break-even** rather than
+> inverting. The TRUE inversion exists **ungarrisoned** — without the +10 growth the
+> province lingers in the punitive tiers and the 30-turn forgone revenue (772g at the
+> median) exceeds the loot (600g). Both facts are pinned in
+> `test_convergence_garrisoned_and_true_inversion_ungarrisoned` (renamed from the
+> `_inverts_` name that asserted a property the model never had). What turns the modal
+> into a decision is the materiality gradient plus the convergence — not an inversion.
+>
+> **⚠ AND THE MODEL'S FIRST CUT OMITTED A TERM THAT MATTERS (review P2 #2):** the
+> EC-U2 infrastructure bill. Secure keeps the enemy's structures DAMAGED — producing
+> nothing until a 150g + 1-AP repair, yet billed `EUROPE_INFRASTRUCTURE_UPKEEP` (40g)
+> every turn — while Plunder deletes bill and asset together. On a province carrying
+> enemy structures the gold therefore favours razing **at any multiplier, including
+> ×0**: one building's 30-turn bill (1,200g) alone exceeds the whole bare-province
+> revenue gap (581g at the median). `cumulative_net` now carries the term and
+> `test_on_a_built_province_razing_pays_and_is_multiplier_invariant` publishes the
+> case instead of hiding it. **This does NOT touch the dissent counter**: the
+> acceptance test judges the *multiplier*, and a term invariant to the multiplier
+> cannot be moved by re-tuning it — the design question (is shedding the EC-U2 bill by
+> razing too attractive?) is multiplier-independent and homed at the econ gate as
+> **IGR-X9**. The bare-province arms — the boot board, which authors zero buildings —
+> are unchanged.
+>
+> **⚠ THE BAND IS PERMISSION TO TRY, not a promise (review #6).** The acceptance
+> criteria as calibrated admit exactly ×4 — arm A's materiality floor puts the rural
+> province on the 10% line at the gate's own anchors (`int(50×4)=200` = 10.0% of
+> 2,000g), and arm B's ceiling binds at the capital tier. A retune anywhere in 3–5
+> must re-run the acceptance file, which is the judge; a value that fails it counts
+> toward the two-attempt dissent counter.
 >
 > **The negative control is what makes it evidence.** `test_the_acceptance_test_can_
-> fail_negative_control` re-runs Arm A at the OLD ×1.75 and asserts it **fails** — the
-> rural province on both halves (87g = 4.4% of the purse, and less than securing), the
-> median on the second half (262g clears materiality but is still strictly worse than
-> securing). That is the review's finding, reproduced as a falsifiable pin.
+> fail_negative_control` re-runs Arm A at the OLD ×1.75 **through arm A's own
+> predicate** (`_arm_a_holds` — review #8: the first cut retyped the threshold, so
+> weakening the arm left the control green) and asserts it **fails**, plus a leg aimed
+> squarely at the materiality floor: the review's measured 87g must sit below it.
 >
 > **The published break-even model.** Three independent readers produced three
 > different models during ground truth; this record publishes **one**, and it lives in
@@ -896,7 +928,8 @@ question with one right answer.
 > (`Region.get_effective_income`, `Region.get_occupation_fraction`,
 > `recover_war_damage`) rather than restating them. Per turn: +5 stability (+10 with a
 > friendly marshal), −0.02 war damage, income collected, **ES-2 occupation cost charged
-> on BASE income**. That last term is what makes it honest — the extra turns Plunder
+> on BASE income**, and the **EC-U2 bill on damaged structures** (see above). Those
+> last two terms are what make it honest — the extra turns Plunder
 > spends in a worse stability tier cost real gold. Verified scale-free: both loot and
 > forgone revenue are linear in income, so the verdict is identical at every tier.
 >
@@ -926,6 +959,11 @@ question with one right answer.
 >   `_prior_choice` restore exists for exactly that). **No client change was needed** —
 >   `main.gd` already forwarded `current_dialogue_id` and `api_client.gd` already
 >   omitted it below 0.
+> - **The parse harness was WIDENED** (undisclosed in this record's first cut — review
+>   #5): `capture_choice_dialog.gd` is instantiated at runtime by `dialog_manager`,
+>   not embedded in `main.tscn`, so it sat in NEITHER harness list and a parse error
+>   in it passed EXIT=0. Added to `SETTLEMENT_CRITICAL_SCRIPTS` in
+>   `tools/godot_parse_check.gd`.
 >
 > **Fixed in passing, found by the slice's own tests:** stage 1's invalid-token branch
 > returned a bare *"Invalid choice"* **without re-attaching `capture_data`**, so a
@@ -1012,10 +1050,13 @@ question with one right answer.
 > design rather than about dead code*: threat accrues on the conquest, not on what the
 > conqueror then does with the province.
 >
-> **Two of the three tests that "proved" GR5 parity were not falsifiable** and are
-> fixed here: `test_econ_war_coupling.py` and `test_plunder_secure.py` **manufactured
-> the missing `personality_type` attribute** on the marshal, which is precisely what let
-> them pass against a dead branch. They now set the real `personality`. The
+> **All THREE tests that "proved" GR5 parity were non-falsifiable** (the first cut of
+> this record said two — post-landing review correction #4) and are fixed here:
+> `test_econ_war_coupling.py` and both `test_plunder_secure.py` AI tests
+> **manufactured the missing `personality_type` attribute** on the marshal, which is
+> precisely what let them pass against a dead branch — and the cautious one was the
+> *least* falsifiable of all, since the dead branch produced its asserted
+> `stability == 25` for every personality. They now set the real `personality`. The
 > `test_econ_war_coupling` one **failed the moment the production fix landed** — the
 > clearest possible evidence the brief's reading was right.
 >
@@ -1026,6 +1067,50 @@ question with one right answer.
 > literal) rather than a text grep, so prose that *names* the dead attribute in order to
 > warn against it does not trip it. Mutation-tested: reintroducing the defect fails the
 > guard.
+
+#### IGR-E post-landing adversarial review *(same session — 8 find lenses → per-lens refuters → synthesis; 17 agents)*
+
+> **Verdict: no P1 survived. Three P2s and ten in-scope P3s confirmed — ALL FIXED in the
+> follow-up commit.** The refuted findings and the real-but-pre-existing ones are listed
+> in the synthesis; the pre-existing P2-shaped item (capture-choice responses drain the
+> PopupQueue) and two bundles are routed as **IGR-X7 / IGR-X8 / IGR-X9** in
+> `BUG_FIXES.md` §IGR-E.
+>
+> **P2 #1 — the AI plundered its own recaptured homeland.** The GR5 fix made the branch
+> live, and nothing consulted whose soil it was: an aggressive commissioned marshal
+> (the pool holds five) retaking his nation's own capital would burn its buildings and
+> pay himself ×4 to loot himself — reproduced by the review on the test world. Fixed
+> with an **own-soil guard in the single source** (`ai_prefers_plunder` now takes
+> world + region and returns False when the region's *starting controller* is the
+> marshal's own nation). The player's own-soil modal is deliberately untouched.
+> Measured: the pinned ambient tally is unchanged (39/2, Paget sacking Brabant and
+> Ile-de-France — neither British), `BASELINE_SERIES` byte-identical.
+>
+> **P2 #2 and #3 — the model and the claims it fed** are corrected above in place,
+> marked ⚠ per house convention. The EC-U2 term is in `cumulative_net`; the built-
+> province case is published as its own multiplier-invariant test; the false
+> "inversion" claim is replaced by the measured convergence-plus-ungarrisoned-inversion
+> pair; the band is stated as permission-to-try.
+>
+> **The P3s, all fixed:** the two plunder implementations collapsed into ONE
+> (`world_state.apply_plunder_effects` — the occupation branch's hand-inlined copy had
+> silently dropped the per-building `building_damaged` events, measured 1 log row vs
+> 4); a pre-IGR-E save's live stage-1 question is **backfilled** with the real price at
+> `from_dict` (it would have rendered "+0 gold" and paid 800), estate-stage dicts
+> untouched, and every reader — `capture_choice_prompt`, `_pending_prompt`, the modal —
+> now **omits** the figure rather than quoting 0 when the key is genuinely absent; the
+> dead speculative `region_income` payload key is deleted; the gold figure renders
+> **one way everywhere** (`{:,}` backend, `Utils.format_number` in the dialog — the
+> estate CONFISCATE line unified too); the single-source test became falsifiable
+> (monkeypatch the module constant, assert the payout moves — the alias-equality form
+> could not fail); the negative control judges arm A's own predicate; the `.gd` pins
+> are exact source lines (the substring pins were pre-satisfied by the estate stage);
+> the stale harness docstring and the stale `dialogue_id` comment are corrected; the
+> AST guard asserts it scanned a non-empty tree (C-7); and the builder docstring's
+> "mis-slotted answer becomes a lie" flourish is replaced by the reachable case
+> (stage-1→stage-1 supersession — same vocabulary, two provinces, one slot).
+>
+> Tests `tests/test_igr_e_plunder_prompt.py` **38** (was 30).
 
 ### IGR-F — The small courts write one letter, not five *(no gate)* — ✅ **LANDED July 26, 2026**
 

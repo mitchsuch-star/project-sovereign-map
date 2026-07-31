@@ -5860,43 +5860,19 @@ class CombatExecutor:
     def _apply_plunder(self, region, world, nation: str = None) -> Dict:
         """Apply plunder effects to a captured region.
 
+        IGR-E post-landing review #5: the effects live in ONE place —
+        `world_state.apply_plunder_effects` — shared with the AI
+        occupation-capture branch, which used to carry a hand-inlined copy
+        that silently dropped the per-building event logging.
+
         Args:
             nation: Nation receiving the gold. MUST be passed explicitly for AI nations.
                     Do NOT use world.gold (property targeting player_nation) for AI plunder.
                     Defaults to player_nation for backward compat only.
         """
-        region.stability = 10
-        region.apply_war_damage(0.35)
-        region.plundered = True
-        # Immediate gold on BASE income (not effective) — IGR-E routes it
-        # through the single source so the figure the prompt quoted before
-        # the choice is byte-identical to the figure actually paid.
-        from backend.models.world_state import plunder_yield
-        gold_gained = plunder_yield(region)
-        # IMPORTANT: Use nation_gold dict directly, NOT world.gold (which always targets player_nation)
+        from backend.models.world_state import apply_plunder_effects
         receiving_nation = nation or world.player_nation
-        world.nation_gold[receiving_nation] = world.nation_gold.get(receiving_nation, 0) + gold_gained
-        # Log building_damaged for each destroyed building
-        for building in region.buildings:
-            world.log_event({
-                "type": "building_damaged",
-                "region": region.name,
-                "building": building["type"],
-                "cause": "plunder",
-            })
-        # Destroy all buildings
-        region.buildings = []
-        region.building_under_construction = None
-        # Destroy watchtower (Phase 6 Fog - Session 35)
-        if getattr(region, 'watchtower', 'none') != "none":
-            world.log_event({
-                "type": "building_damaged",
-                "region": region.name,
-                "building": "watchtower",
-                "cause": "plunder",
-            })
-            region.watchtower = "none"
-            region.watchtower_turns_remaining = 0
+        gold_gained = apply_plunder_effects(world, region, receiving_nation)
         return {"gold_gained": int(gold_gained)}
 
     def _apply_secure(self, region) -> None:
@@ -5917,19 +5893,23 @@ class CombatExecutor:
             region.watchtower = "none"
             region.watchtower_turns_remaining = 0
 
-    def _get_ai_capture_choice(self, marshal) -> str:
+    def _get_ai_capture_choice(self, marshal, region, world) -> str:
         """AI decides plunder vs secure based on personality.
 
         IGR-E addendum: routed through the single source. This read
         `marshal.personality_type` — an attribute that does not exist — so
         it returned "secure" unconditionally and the AI could never plunder.
+        Post-landing review P2 #1 added the own-soil guard (an AI never
+        sacks its own homeland on recapture), which needs region + world —
+        both live in the single source, so the signature carries them.
         """
         from backend.models.world_state import ai_prefers_plunder
-        return "plunder" if ai_prefers_plunder(marshal) else "secure"
+        return ("plunder" if ai_prefers_plunder(marshal, world, region.name)
+                else "secure")
 
     def _apply_ai_capture_choice(self, marshal, region, world, old_controller: str = "") -> str:
         """Apply AI's automatic capture choice (no popup). Returns the choice made."""
-        choice = self._get_ai_capture_choice(marshal)
+        choice = self._get_ai_capture_choice(marshal, region, world)
         if choice == "plunder":
             self._apply_plunder(region, world, nation=marshal.nation)
         else:

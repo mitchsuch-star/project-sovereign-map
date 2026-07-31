@@ -22,7 +22,7 @@ signal choice_made(choice: String)
 var current_region: String = ""
 var current_capturer: String = ""
 var current_stage: String = "capture"  # "capture" or "estate" (W6-8)
-var current_dialogue_id: int = -1      # W6-0 identity on the estate stage
+var current_dialogue_id: int = -1      # W6-0 identity (stage 1 since IGR-E; estate stage since W6-8)
 
 func _ready():
 	# Connect button signals
@@ -58,7 +58,7 @@ func show_capture_choice(data: Dictionary):
 		title_label.text = "AN ESTATE IN YOUR HANDS"
 		region_label.text = "%s sustains Marshal %s's household" % [current_region, holder]
 		description_label.text = "How shall the conqueror treat his title?"
-		plunder_button.text = "CONFISCATE (+%d gold, %s will not forgive it)" % [windfall, holder_nation]
+		plunder_button.text = "CONFISCATE (+%s gold, %s will not forgive it)" % [Utils.format_number(windfall), holder_nation]
 		secure_button.text = "RESPECT THE TITLE (%s will remember the courtesy)" % holder_nation
 	else:
 		# Set title
@@ -74,10 +74,16 @@ func show_capture_choice(data: Dictionary):
 		# IGR-E: the PLUNDER arm now quotes what it will actually pay. The
 		# backend sends `plunder_gold` computed by the same expression that
 		# pays it (world_state.plunder_yield), so this is shown=applied, not
-		# an estimate. Same %d idiom as the estate stage twelve lines above.
-		# Defaults to 0 only if an old save's payload predates the key.
+		# an estimate. Post-landing review #4/#11: a payload that predates
+		# the key (pre-IGR-E save whose load-time backfill could not resolve
+		# the region) gets an UNPRICED label, never "+0 gold" for a choice
+		# that pays the real sum; and the figure uses Utils.format_number so
+		# the modal, terminal and outcome line all read "1,200" the same way.
 		var plunder_gold = int(data.get("plunder_gold", 0))
-		plunder_button.text = "PLUNDER (+%d gold, buildings burned, stability 10)" % plunder_gold
+		if data.has("plunder_gold"):
+			plunder_button.text = "PLUNDER (+%s gold, buildings burned, stability 10)" % Utils.format_number(plunder_gold)
+		else:
+			plunder_button.text = "PLUNDER (loot the province, buildings burned, stability 10)"
 		secure_button.text = "SECURE (Preserve order, stability 25, buildings damaged)"
 
 	# Ensure all children are visible first

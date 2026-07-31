@@ -40,8 +40,10 @@ from backend.commands.executor import CommandExecutor
 from backend.commands.combat_executor import CombatExecutor
 from backend.models.region import Region
 from backend.models.world_state import (
+    EUROPE_INFRASTRUCTURE_UPKEEP,
     PLUNDER_INCOME_MULTIPLIER,
     WorldState,
+    ai_prefers_plunder,
     build_capture_choice,
     capture_choice_prompt,
     plunder_yield,
@@ -62,7 +64,8 @@ def _model_region(income: int) -> Region:
 
 
 def cumulative_net(income: int, stability: int, war_damage: float,
-                   turns: int, garrisoned: bool = True) -> int:
+                   turns: int, garrisoned: bool = True,
+                   damaged_buildings: int = 0) -> int:
     """Gold the OWNER nets from a conquered province over `turns` turns.
 
     THE published break-even model for IGR-E (three independent readers
@@ -75,10 +78,20 @@ def cumulative_net(income: int, stability: int, war_damage: float,
       * process_war_damage_recovery -> -0.02
       * income collected          -> Region.get_effective_income()
       * ES-2 occupation cost      -> income_value * Region.get_occupation_fraction()
+      * EC-U2 infrastructure bill -> EUROPE_INFRASTRUCTURE_UPKEEP per
+        standing structure (post-landing review #2 — a DAMAGED building
+        yields nothing yet is still billed, which is the term the first
+        cut of this model omitted)
 
     The occupation term is what makes this honest: it is charged on BASE
     income regardless of what the province actually yields, so the extra
     turns Plunder spends in a worse stability tier cost real gold.
+
+    `damaged_buildings` models Secure's aftermath pessimally: the enemy's
+    structures survive DAMAGED — producing nothing until a 150g + 1-AP
+    repair, but billed every turn. (A rational owner repairs; the repair
+    restores function whose value is partly military — forts defend,
+    depots supply — and gold cannot price that, so the model does not try.)
     """
     region = _model_region(income)
     region.stability = stability
@@ -89,17 +102,23 @@ def cumulative_net(income: int, stability: int, war_damage: float,
         region.recover_war_damage(0.02)
         total += region.get_effective_income()
         total -= int(region.income_value * region.get_occupation_fraction())
+        total -= damaged_buildings * EUROPE_INFRASTRUCTURE_UPKEEP
     return total
 
 
-def forgone_by_plundering(income: int, turns: int, garrisoned: bool = True) -> int:
+def forgone_by_plundering(income: int, turns: int, garrisoned: bool = True,
+                          buildings: int = 0) -> int:
     """What Plunder costs the owner over `turns` turns, versus Secure.
 
-    Secure leaves stability 25 and no war damage; Plunder sets stability 10
-    and adds 0.35 war damage (combat_executor._apply_plunder).
+    Secure leaves stability 25, no war damage, and the province's
+    structures DAMAGED (still billed, per EC-U2); Plunder sets stability
+    10, adds 0.35 war damage, and deletes the structures — bill and asset
+    together (combat_executor._apply_plunder).
     """
-    secure = cumulative_net(income, 25, 0.0, turns, garrisoned)
-    plunder = cumulative_net(income, 10, 0.35, turns, garrisoned)
+    secure = cumulative_net(income, 25, 0.0, turns, garrisoned,
+                            damaged_buildings=buildings)
+    plunder = cumulative_net(income, 10, 0.35, turns, garrisoned,
+                             damaged_buildings=0)
     return secure - plunder
 
 
@@ -114,13 +133,38 @@ class TestTheBlessedNumber:
 
         Tuning inside 3..5 is delegated; leaving it is a SHAPE change that
         escalates to the user (and, per the dissent, to option (b)).
+
+        Post-landing review #6, stated plainly rather than implied: the
+        band is PERMISSION TO TRY, not a promise that every value in it
+        passes. The acceptance criteria as calibrated admit exactly x4 —
+        arm A's materiality floor puts the rural province on the 10% line
+        at the gate's own 2,000g anchor (int(50*4)=200 = 10.0%), and arm
+        B's ceiling binds at the capital tier. A retune inside the band
+        must re-run this file; the acceptance test is the judge.
         """
         assert 3.0 <= PLUNDER_INCOME_MULTIPLIER <= 5.0
 
-    def test_it_is_a_single_source(self):
-        """GR1: one multiplier, no second copy anywhere on the path."""
+    def test_it_is_a_single_source(self, monkeypatch):
+        """GR1, falsifiably (post-landing review #7): move the module
+        constant and the PAYING expression must move with it — proving
+        _apply_plunder carries no hardcoded second copy. The first cut of
+        this test asserted equality over executor class attributes that no
+        production code reads, so hardcoding plunder_yield would have left
+        all 30 tests green.
+        """
+        # The import-time aliases kept for legacy tests still agree...
         assert CombatExecutor.PLUNDER_INCOME_MULTIPLIER == PLUNDER_INCOME_MULTIPLIER
         assert CommandExecutor.PLUNDER_INCOME_MULTIPLIER == PLUNDER_INCOME_MULTIPLIER
+        # ...and the live proof: patch the module constant, the payout moves.
+        import backend.models.world_state as ws
+        monkeypatch.setattr(ws, "PLUNDER_INCOME_MULTIPLIER", 7.0)
+        assert ws.plunder_yield(_model_region(100)) == 700
+        world = WorldState(player_nation="France")
+        region = world.regions["Paris"]
+        before = world.nation_gold["France"]
+        result = CommandExecutor()._apply_plunder(region, world)
+        assert result["gold_gained"] == int(region.income_value * 7.0)
+        assert world.nation_gold["France"] - before == result["gold_gained"]
 
     def test_plunder_yield_is_the_one_expression_that_pays(self):
         """The preview and the payout must be the same expression, not two
@@ -185,9 +229,21 @@ class TestTheFalsifiableAcceptanceTest:
     RICH_PURSE = 20000      # gate's "over ~20,000g" at turn 20
     EARLY_HORIZON = 5       # turns a turn-3 player is playing for
     LATE_HORIZON = 30       # turns a turn-20 player will hold the province
+    # The arms' thresholds, named once so the negative control judges the
+    # SAME predicate the arms do (post-landing review #8 — the first cut
+    # retyped 0.10 in the control, so weakening the arm left it green).
+    MATERIALITY_FLOOR = 0.10    # arm A: loot must be >= this share of the purse
+    IMMATERIALITY_CEIL = 0.06   # arm B: loot must be <= this share of the purse
+    CONVERGENCE_TOL = 1.10      # arm B: loot within 10% of the long-run cost
+
+    @classmethod
+    def _arm_a_holds(cls, loot: int, purse: int, cost: int) -> bool:
+        """Arm A's whole predicate, used by the arm AND the control."""
+        return (loot / purse >= cls.MATERIALITY_FLOOR) and (loot > cost)
 
     def test_arm_a_a_poor_early_player_plausibly_plunders(self):
-        """Two conditions, both required.
+        """Two conditions, both required. Model: bare province (the boot
+        board authors zero buildings), garrisoned (+10 stability growth).
 
         (1) The loot is a MATERIAL share of the purse — it changes what the
             player can do next turn (a corps costs thousands).
@@ -198,71 +254,123 @@ class TestTheFalsifiableAcceptanceTest:
             loot = plunder_yield(_model_region(income))
             share = loot / self.POOR_PURSE
             cost = forgone_by_plundering(income, self.EARLY_HORIZON)
-            assert share >= 0.10, (
+            assert share >= self.MATERIALITY_FLOOR, (
                 f"income {income}: loot {loot} is only {share:.1%} of a poor "
                 f"purse — immaterial, so Secure stays automatic")
             assert loot > cost, (
                 f"income {income}: loot {loot} <= {cost} forgone over "
                 f"{self.EARLY_HORIZON} turns — Plunder is strictly wrong")
+            assert self._arm_a_holds(loot, self.POOR_PURSE, cost)
 
     def test_arm_b_a_rich_late_player_does_not_plunder(self):
         """The mirror. Plunder must not become the new always-right answer —
         that would be the same defect wearing the other hat.
 
-        (1) The loot is IMMATERIAL against a late-game purse.
-        (2) Over a horizon a settled empire holds the province for, the loot
-            no longer beats the revenue it destroys by any margin worth the
-            unrest — it converges to break-even.
+        Model disclosure (post-landing review #3): bare province,
+        garrisoned=True — the same assumptions as arm A, stated because
+        they are load-bearing. Under them the long-run gold CONVERGES to
+        near-break-even (plunder keeps a sliver of an edge, <= 4%
+        measured); the true inversion exists ungarrisoned and is pinned in
+        its own test below. Arm B's protection is therefore BOTH halves:
+        (1) the loot is IMMATERIAL against a late-game purse (this is the
+            half that carries the design weight), and
+        (2) the long-run gold offers no margin worth the unrest — within
+            10% of break-even at every tier.
         """
         for income in INCOME_LADDER:
             loot = plunder_yield(_model_region(income))
             share = loot / self.RICH_PURSE
             cost = forgone_by_plundering(income, self.LATE_HORIZON)
-            assert share <= 0.06, (
+            assert share <= self.IMMATERIALITY_CEIL, (
                 f"income {income}: loot {loot} is {share:.1%} of a rich "
                 f"purse — still tempting late, multiplier too high")
-            assert loot <= cost * 1.10, (
-                f"income {income}: loot {loot} still beats {cost} forgone "
-                f"over {self.LATE_HORIZON} turns by >10% — Plunder is "
+            assert loot <= cost * self.CONVERGENCE_TOL, (
+                f"income {income}: loot {loot} beats {cost} forgone over "
+                f"{self.LATE_HORIZON} turns by >10% — Plunder is "
                 f"free money for a settled empire")
 
-    def test_the_choice_inverts_with_the_horizon_which_is_the_whole_point(self):
-        """Short horizon favours Plunder, long horizon favours Secure. That
-        inversion is what makes the modal a decision rather than a quiz."""
+    def test_convergence_garrisoned_and_true_inversion_ungarrisoned(self):
+        """Renamed from `..._inverts_with_the_horizon_...` (post-landing
+        review #3): under garrisoned=True the forgone revenue plateaus just
+        BELOW the loot at every tier, so the garrisoned bare-province
+        choice CONVERGES to near-break-even rather than inverting —
+        plunder keeps a small permanent edge (600 vs 581 at the median).
+        The TRUE inversion exists ungarrisoned: without the +10 growth the
+        province lingers in the punitive tiers longer and the 30-turn
+        forgone revenue EXCEEDS the loot. Both facts pinned so the record
+        cites them precisely instead of claiming an inversion the model
+        does not produce.
+        """
         income = MEDIAN_INCOME
         loot = plunder_yield(_model_region(income))
-        assert loot > forgone_by_plundering(income, self.EARLY_HORIZON)
-        assert loot <= forgone_by_plundering(income, self.LATE_HORIZON) * 1.10
+        forgone_garrisoned = forgone_by_plundering(
+            income, self.LATE_HORIZON, garrisoned=True)
+        assert forgone_garrisoned < loot          # plunder keeps a sliver...
+        assert loot <= forgone_garrisoned * self.CONVERGENCE_TOL  # ...within 10%
+        forgone_ungarrisoned = forgone_by_plundering(
+            income, self.LATE_HORIZON, garrisoned=False)
+        assert forgone_ungarrisoned > loot        # the real inversion
+
+    def test_on_a_built_province_razing_pays_and_is_multiplier_invariant(self):
+        """The EC-U2 interaction, published rather than hidden (post-landing
+        review #2 — the term the model's first cut omitted).
+
+        Secure keeps the enemy's structures DAMAGED: producing nothing
+        until a 150g + 1-AP repair, yet billed EUROPE_INFRASTRUCTURE_UPKEEP
+        every turn. Plunder deletes bill and asset together. On a province
+        carrying enemy structures the gold therefore favours razing at ANY
+        multiplier — including 0: one building's 30-turn bill (1,200g)
+        alone exceeds the whole bare-province revenue gap (581g at the
+        median).
+
+        This is NOT an acceptance failure of the blessed x4 and does NOT
+        touch the dissent counter: the acceptance test judges the
+        MULTIPLIER, and a term invariant to the multiplier cannot be moved
+        by re-tuning it. The design question — whether shedding the EC-U2
+        bill by razing is too attractive — is homed at the econ gate
+        (BUG_FIXES.md IGR-X9). The counterweight gold cannot price is the
+        structures' function: forts defend, depots supply.
+        """
+        income = MEDIAN_INCOME
+        cost_bare = forgone_by_plundering(income, self.LATE_HORIZON)
+        cost_built = forgone_by_plundering(income, self.LATE_HORIZON,
+                                           buildings=1)
+        assert cost_built == cost_bare - (
+            self.LATE_HORIZON * EUROPE_INFRASTRUCTURE_UPKEEP)
+        assert cost_built < 0, (
+            "one damaged building's bill should exceed the revenue gap — "
+            "razing wins on gold even at multiplier 0")
 
     def test_the_acceptance_test_can_fail_negative_control(self):
-        """FALSIFIABILITY. At the OLD x1.75 the poor-early arm fails on both
-        of its conditions — which is exactly what the review reported. A test
-        that could not fail would not be evidence that x4 fixed anything.
+        """FALSIFIABILITY. At the OLD x1.75 arm A fails — which is exactly
+        what the review reported. A test that could not fail would not be
+        evidence that x4 fixed anything.
+
+        Judged through arm A's OWN predicate (`_arm_a_holds`), not a
+        retyped copy of it (post-landing review #8), plus one leg aimed
+        squarely at the materiality floor: at x1.75 the review's own case
+        (87g) must sit BELOW the floor, so weakening the floor breaks this
+        control even though the worth-it half fails at 1.75 either way.
         """
         old = 1.75
         for income in (NASSAU_INCOME, MEDIAN_INCOME):
             old_loot = int(income * old)
-            material = old_loot / self.POOR_PURSE >= 0.10
-            worth_it = old_loot > forgone_by_plundering(
-                income, self.EARLY_HORIZON)
-            # Arm A is a CONJUNCTION, so the control asserts the conjunction
-            # fails — not that both halves do. At x1.75 the rural province
-            # fails both (87g = 4.4% of the purse, and less than it costs);
-            # the median province clears materiality at 262g/13.1% but is
-            # still strictly worse than securing, which is the review's
-            # finding in one line.
-            assert not (material and worth_it), (
+            cost = forgone_by_plundering(income, self.EARLY_HORIZON)
+            assert not self._arm_a_holds(old_loot, self.POOR_PURSE, cost), (
                 f"income {income}: x1.75 should NOT satisfy arm A — if it "
                 f"does, this control has stopped discriminating and the "
                 f"acceptance test is no longer evidence of anything")
-        # And the sharper half of the review's own case, pinned exactly.
+        # The materiality-floor leg: the review's measured 87g is 4.35% of
+        # the gate's poor purse and must fail the floor on its own.
         assert int(NASSAU_INCOME * old) == 87
+        assert 87 / self.POOR_PURSE < self.MATERIALITY_FLOOR
 
     def test_the_published_break_even_model(self):
         """The single model the landing record publishes, pinned.
 
         Scale-free: both loot and forgone revenue are linear in income, so
-        the verdict is identical at every tier.
+        the verdict is identical at every tier. Bare province, garrisoned —
+        the built-province case is its own test above.
         """
         for income in INCOME_LADDER:
             loot = plunder_yield(_model_region(income))
@@ -393,6 +501,59 @@ class TestThePromptIsPriced:
         assert (restored.pending_capture_choice["dialogue_id"]
                 == world.pending_capture_choice["dialogue_id"])
 
+    def test_a_pre_igr_e_save_is_backfilled_with_the_real_price(self):
+        """Post-landing review #4. A pre-IGR-E autosave can carry a LIVE
+        stage-1 question without the priced keys (meta_executor sets the
+        pending choice during turn resolution and autosaves after) — the
+        button would then read "+0 gold" while clicking pays the real sum,
+        which is the exact shown≠applied lie this slice removed. from_dict
+        backfills the price from the live region at load.
+        """
+        world, lyon, ney = self._capture_lyon()
+        world.pending_capture_choice = build_capture_choice(
+            world, lyon, ney.name, "Britain")
+        save = world.to_dict()
+        # Strip the payload back to its pre-IGR-E three-key shape.
+        save["pending_capture_choice"] = {
+            "region": "Lyon", "capturer": ney.name,
+            "previous_controller": "Britain",
+        }
+        restored = WorldState.from_dict(save)
+        assert (restored.pending_capture_choice["plunder_gold"]
+                == plunder_yield(restored.get_region("Lyon")))
+        # dialogue_id is deliberately NOT invented for an old question —
+        # it stays unguarded, which is the pre-slice behaviour.
+        assert "dialogue_id" not in restored.pending_capture_choice
+
+    def test_an_estate_stage_save_is_not_touched_by_the_backfill(self):
+        """The W6-8 estate question prices with `windfall`; stuffing
+        plunder_gold into it would be a new wrong number."""
+        world, lyon, ney = self._capture_lyon()
+        save = world.to_dict()
+        save["pending_capture_choice"] = {
+            "stage": "estate", "region": "Lyon", "capturer": ney.name,
+            "previous_controller": "Britain", "estate_holder": "X",
+            "estate_holder_nation": "Britain", "windfall": 0,
+            "title": "Duke of Lyon", "options": ["confiscate", "respect"],
+            "dialogue_id": 7,
+        }
+        restored = WorldState.from_dict(save)
+        assert "plunder_gold" not in restored.pending_capture_choice
+
+    def test_a_keyless_payload_omits_the_figure_rather_than_lying(self):
+        """Post-landing review #4, the reader half: if the price is absent
+        (backfill could not resolve the region), every restatement omits
+        the figure — an absent price is honest, "0 gold" is not."""
+        keyless = {"region": "Lyon", "capturer": "Ney",
+                   "previous_controller": "Britain"}
+        sentence = capture_choice_prompt(keyless)
+        assert "0 gold" not in sentence
+        assert "'plunder'" in sentence and "'secure'" in sentence
+        from backend.commands.capture_executor import CaptureExecutor
+        restatement = CaptureExecutor._pending_prompt(keyless)
+        assert "0 gold" not in restatement
+        assert "'plunder'" in restatement
+
 
 class TestTheAICanActuallyPlunder:
     """IGR-E addendum — GR5, the half that made the windfall player-only.
@@ -426,14 +587,67 @@ class TestTheAICanActuallyPlunder:
         assert Personality.AGGRESSIVE != "aggressive"
 
     def test_an_aggressive_ai_marshal_plunders(self):
-        from backend.models.world_state import ai_prefers_plunder
         world, region = self._world()
         marshal = world.get_marshal("Uxbridge")
         marshal.personality = "aggressive"
-        assert ai_prefers_plunder(marshal) is True
+        assert ai_prefers_plunder(marshal, world, region.name) is True
         CommandExecutor()._apply_ai_capture_choice(marshal, region, world)
         assert region.stability == 10
         assert region.plundered is True
+
+    def test_the_ai_never_sacks_its_own_recaptured_homeland(self):
+        """Post-landing review P2 #1 — the own-soil guard.
+
+        Without it, an aggressive commissioned marshal (the recruitment
+        pool holds five: Blücher, Bagration, Paget, Kutaisov, ...) retaking
+        his nation's OWN soil would burn its buildings, drop it to
+        stability 10 / war damage 0.35, and pay himself x4 to loot
+        himself. Reproduced by the review on the test world: Britain
+        retaking its own starting province plundered it. Newly reachable
+        the moment the dead personality_type branch was fixed, so the
+        guard lands with the same slice. The PLAYER's own-soil modal is
+        deliberately untouched — asking the player is a choice; an AI
+        looting itself is not one anyone would make.
+        """
+        world = WorldState(player_nation="France")
+        home = None
+        for name, starter in world._starting_controllers.items():
+            if starter == "Britain" and world.get_region(name) is not None:
+                home = world.get_region(name)
+                break
+        assert home is not None, "test world must have a British province"
+        home.controller = "France"   # France took it; Britain retakes it
+        home.stability = 80
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        assert ai_prefers_plunder(marshal, world, home.name) is False
+        before = world.nation_gold.get("Britain", 0)
+        choice = CommandExecutor()._apply_ai_capture_choice(
+            marshal, home, world)
+        assert choice == "secure"
+        assert home.stability == 25
+        assert home.plundered is False
+        assert world.nation_gold.get("Britain", 0) == before
+
+    def test_the_own_soil_guard_covers_the_occupation_route_too(self):
+        """Both AI branches share the single source, so the guard must hold
+        on the fortified-province (occupation-completion) route as well."""
+        world = WorldState(player_nation="France")
+        home = None
+        for name, starter in world._starting_controllers.items():
+            if starter == "Britain" and world.get_region(name) is not None:
+                home = world.get_region(name)
+                break
+        assert home is not None
+        home.controller = "France"
+        home.stability = 80
+        home.buildings = [{"type": "supply_depot", "damaged": False}]
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        marshal.nation = "Britain"
+        world._apply_occupation_capture_effects(marshal, home.name)
+        assert home.stability == 25          # secured, not sacked
+        assert home.buildings, "own building must survive the recapture"
 
     def test_a_cautious_ai_marshal_secures(self):
         world, region = self._world()
@@ -453,9 +667,10 @@ class TestTheAICanActuallyPlunder:
         assert world.nation_gold[marshal.nation] - before == plunder_yield(region)
 
     def test_the_occupation_route_is_fixed_too(self):
-        """There are TWO AI branches, and the second is a hand-inlined
-        duplicate rather than a call — fixing only the first leaves
-        fortified-province captures unable to plunder."""
+        """There are TWO AI branches — fixing only the first leaves
+        fortified-province captures unable to plunder. (Post-landing review
+        #5 then collapsed the second's hand-inlined duplicate into the one
+        shared `apply_plunder_effects`.)"""
         world, region = self._world()
         marshal = world.get_marshal("Uxbridge")
         marshal.personality = "aggressive"
@@ -464,6 +679,29 @@ class TestTheAICanActuallyPlunder:
         world._apply_occupation_capture_effects(marshal, region.name)
         assert world.nation_gold["Britain"] - before == plunder_yield(region)
         assert region.stability == 10
+
+    def test_occupation_route_plunder_logs_building_damaged_events(self):
+        """Post-landing review #5: the occupation branch's hand-inlined
+        plunder copy destroyed buildings SILENTLY — an AI sacking a
+        fortified province left one campaign-log row where sacking an open
+        one left up to four. Both branches now share
+        `world_state.apply_plunder_effects`, so the events are identical.
+        """
+        world, region = self._world()
+        region.buildings = [{"type": "supply_depot", "damaged": False},
+                            {"type": "market", "damaged": False}]
+        region.watchtower = "active"
+        marshal = world.get_marshal("Uxbridge")
+        marshal.personality = "aggressive"
+        marshal.nation = "Britain"
+        world._apply_occupation_capture_effects(marshal, region.name)
+        damaged = [e for e in world.event_log
+                   if e.get("type") == "building_damaged"
+                   and e.get("region") == region.name
+                   and e.get("cause") == "plunder"]
+        assert {e["building"] for e in damaged} == {
+            "supply_depot", "market", "watchtower"}
+        assert region.buildings == [] and region.watchtower == "none"
 
     def test_no_pending_choice_is_raised_for_an_ai_capture(self):
         """The AI decides by rule; it must never queue the player's modal."""
@@ -477,10 +715,18 @@ class TestTheAICanActuallyPlunder:
 
 class TestTheClientRendersIt:
     """The backend can price the question all it likes; the modal is where
-    the player reads it. capture_choice_dialog.gd is NOT in the committed
-    parse harness (it is instantiated at runtime by dialog_manager, not
-    embedded in main.tscn), so a defect here passes the harness and shows
-    only in a live boot — hence a text pin as well as the boot check.
+    the player reads it. capture_choice_dialog.gd was in NEITHER harness
+    list before this slice (instantiated at runtime by dialog_manager, not
+    embedded in main.tscn) — IGR-E added it to SETTLEMENT_CRITICAL_SCRIPTS
+    in tools/godot_parse_check.gd, so parseability is now covered there;
+    these pins cover CONTENT, which no harness checks (post-landing review
+    #12 corrected this docstring — its first cut claimed the opposite).
+
+    The pins are exact source lines (post-landing review #9): the first
+    cut asserted substrings ('+%d gold', 'data.get(\"plunder_gold\"') that
+    the estate stage's pre-existing CONFISCATE line already satisfied, so
+    a `* 2` slipped into the var line would have kept every pin green
+    while the modal quoted double what plunder_yield pays.
     """
 
     GD = ("godot-client/project-sovereign/scripts/capture_choice_dialog.gd")
@@ -489,14 +735,26 @@ class TestTheClientRendersIt:
         import io
         return io.open(self.GD, encoding="utf-8").read()
 
-    def test_the_plunder_button_reads_the_priced_key(self):
-        src = self._source()
-        assert 'data.get("plunder_gold"' in src
+    def test_the_plunder_button_reads_the_payload_verbatim(self):
+        """The var line, exactly — no arithmetic between payload and label."""
+        assert ('var plunder_gold = int(data.get("plunder_gold", 0))'
+                in self._source())
 
-    def test_the_plunder_button_formats_the_number_into_its_label(self):
+    def test_the_plunder_button_quotes_the_figure_exactly(self):
+        """The priced label line, exactly as authored — formatted through
+        Utils.format_number so modal, terminal and outcome line all render
+        1,200 the same way (post-landing review #11)."""
+        assert ('plunder_button.text = "PLUNDER (+%s gold, buildings burned, '
+                'stability 10)" % Utils.format_number(plunder_gold)'
+                in self._source())
+
+    def test_a_payload_without_the_key_gets_an_unpriced_label(self):
+        """Post-landing review #4: a pre-IGR-E payload must fall back to an
+        UNPRICED label — never assert '+0 gold' about a real payout."""
         src = self._source()
-        assert "+%d gold" in src
-        assert "% plunder_gold" in src
+        assert 'if data.has("plunder_gold"):' in src
+        assert ('plunder_button.text = "PLUNDER (loot the province, '
+                'buildings burned, stability 10)"' in src)
 
     def test_the_generic_unpriced_label_is_gone(self):
         """The exact string the review saw. If it comes back, the slice has

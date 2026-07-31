@@ -84,7 +84,7 @@ class CaptureExecutor:
             response = {
                 "success": True,
                 "message": (f"{capturer_name}'s troops plunder {region_name}! "
-                            f"Gained {result['gold_gained']} gold. "
+                            f"Gained {result['gold_gained']:,} gold. "
                             f"Buildings destroyed. Stability set to 10."),
                 "events": [{
                     "type": "plunder",
@@ -151,9 +151,14 @@ class CaptureExecutor:
                     f"'confiscate' or 'respect'.")
         # IGR-E: the restatement quotes the price too — a player who typed a
         # stale or wrong token must not lose the figure the prompt carried.
-        gold = int(pending.get("plunder_gold", 0) or 0)
+        # Post-landing review #4: a payload predating the priced keys omits
+        # the figure rather than quoting "0 gold" for a real payout.
+        gold = pending.get("plunder_gold")
+        if gold is None:
+            return (f"{pending.get('region', 'the captured region')} awaits "
+                    f"your word: 'plunder' or 'secure'.")
         return (f"{pending.get('region', 'the captured region')} awaits your "
-                f"word: 'plunder' (for {gold:,} gold) or 'secure'.")
+                f"word: 'plunder' (for {int(gold):,} gold) or 'secure'.")
 
     def _maybe_mount_estate_choice(self, world, region, capturer_name: str,
                                    pending: Dict, response: Dict) -> None:

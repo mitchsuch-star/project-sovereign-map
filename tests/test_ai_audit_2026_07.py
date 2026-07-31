@@ -234,7 +234,11 @@ class TestAttributeFixes:
         import ast
 
         offenders = []
-        for path in sorted(Path("backend").rglob("*.py")):
+        scanned = sorted(Path("backend").rglob("*.py"))
+        # Guard the guard: under a wrong CWD rglob returns [] and the test
+        # would pass vacuously (post-landing review C-7).
+        assert len(scanned) > 50, "backend/ not found — wrong CWD?"
+        for path in scanned:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
                 # `x.personality_type`

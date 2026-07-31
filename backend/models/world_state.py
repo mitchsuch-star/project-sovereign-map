@@ -202,9 +202,14 @@ MATERIEL_RATE = 0.05
 #
 # BLESSED and in-band tunable (the band is option (a)'s "~3–5 turns");
 # changing the SHAPE (e.g. to option (b), the stability-vs-authority recut)
-# ESCALATES. ⚠ RECORDED DISSENT, carried from gate §5 Q4: if the falsifiable
-# acceptance test (tests/test_igr_e_plunder_prompt.py) fails at TWO different
-# multipliers, re-open at option (b) rather than tuning a third time.
+# ESCALATES. ⚠ The band is PERMISSION TO TRY, not a promise every value in
+# it passes: the acceptance criteria as calibrated admit exactly ×4 (the
+# rural province's materiality sits on the 10% line by the gate's own
+# 2,000g anchor — post-landing review #6), so a retune inside the band must
+# re-run tests/test_igr_e_plunder_prompt.py, which is the judge.
+# ⚠ RECORDED DISSENT, carried from gate §5 Q4: if the falsifiable
+# acceptance test fails at TWO different multipliers, re-open at option (b)
+# rather than tuning a third time.
 # Attempts used so far: ONE of two (×4, PASSED — see the landing record).
 PLUNDER_INCOME_MULTIPLIER = 4.0
 
@@ -227,7 +232,7 @@ def plunder_yield(region) -> int:
     return int(region.income_value * PLUNDER_INCOME_MULTIPLIER)
 
 
-def ai_prefers_plunder(marshal) -> bool:
+def ai_prefers_plunder(marshal, world, region_name: str) -> bool:
     """Whether an AI marshal sacks a province it has just taken — GR5's half
     of the player's plunder/secure modal, and THE single source for it.
 
@@ -246,8 +251,63 @@ def ai_prefers_plunder(marshal) -> bool:
     have left the branch just as dead. This compares strings, matching the
     idiom the July-2026 AI audit installed at ``enemy_ai.py`` for the
     identical defect on the recapture threshold.
+
+    OWN-SOIL GUARD (post-landing review P2): an AI never sacks its own
+    homeland on RECAPTURE. Without this, an aggressive commissioned marshal
+    (Blücher, Bagration, Paget — the recruitment pool has five) retaking his
+    nation's own capital would burn its buildings, drop it to stability 10
+    and pay himself ×4 to loot himself. Newly reachable the moment the dead
+    branch above was fixed, so it lands with the same slice. The PLAYER's
+    own-soil modal is untouched — asking the player is a deliberate choice;
+    an AI looting itself is not a choice anyone would make.
     """
+    starting = (getattr(world, "_starting_controllers", None)
+                or get_starting_controllers())
+    if starting.get(region_name) == marshal.nation:
+        return False
     return (getattr(marshal, "personality", None) or "") == "aggressive"
+
+
+def apply_plunder_effects(world, region, receiving_nation: str) -> int:
+    """Sack a captured province — THE one implementation of plunder's
+    effects, both sides (post-landing review P3 #5).
+
+    There used to be two: ``combat_executor._apply_plunder`` and a
+    hand-inlined duplicate in ``_apply_occupation_capture_effects`` that
+    silently omitted the per-building ``building_damaged`` event logging —
+    so an AI sacking a fortified province left one campaign-log row where
+    sacking an open one left up to four. Both now call here.
+
+    Effects: stability 10, +0.35 war damage (cap 0.5), ``plundered`` flag,
+    every building and the watchtower destroyed with one ``building_damaged``
+    event each, and gold = ``plunder_yield(region)`` credited to
+    ``receiving_nation``. Returns the gold gained.
+    """
+    region.stability = 10
+    region.apply_war_damage(0.35)
+    region.plundered = True
+    gold_gained = plunder_yield(region)
+    world.nation_gold[receiving_nation] = (
+        world.nation_gold.get(receiving_nation, 0) + gold_gained)
+    for building in region.buildings:
+        world.log_event({
+            "type": "building_damaged",
+            "region": region.name,
+            "building": building["type"],
+            "cause": "plunder",
+        })
+    region.buildings = []
+    region.building_under_construction = None
+    if getattr(region, 'watchtower', 'none') != "none":
+        world.log_event({
+            "type": "building_damaged",
+            "region": region.name,
+            "building": "watchtower",
+            "cause": "plunder",
+        })
+        region.watchtower = "none"
+        region.watchtower_turns_remaining = 0
+    return gold_gained
 
 
 def build_capture_choice(world, region, capturer_name: str,
@@ -264,18 +324,19 @@ def build_capture_choice(world, region, capturer_name: str,
     expression that pays it — so the modal states its terms instead of
     asking an unpriced question. Also mints a W6-0 `dialogue_id`: stage 1
     never had one (only the W6-8 estate stage did), leaving the stale-answer
-    guard in capture_executor structurally inert. That was survivable while
-    the buttons were generic; once a button asserts a gold figure about a
-    NAMED province, a mis-slotted answer becomes a lie on screen, and the
-    single pending slot is genuinely contended (several marshals can capture
-    in one turn — movement_executor's _prior_choice restore exists for it).
+    guard in capture_executor structurally inert. The reachable case the id
+    now catches is stage-1-to-stage-1 supersession: several marshals can
+    capture in one turn (movement_executor's _prior_choice restore exists
+    for exactly that), the two questions share the SAME token vocabulary,
+    and both now quote province-specific gold — so an answer aimed at the
+    superseded question must be refused and restated, never silently
+    applied to the current one.
     """
     return {
         "region": region.name,
         "capturer": capturer_name,
         "previous_controller": previous_controller,
         "plunder_gold": plunder_yield(region),
-        "region_income": int(region.income_value),
         "dialogue_id": world.dialogue_manager.mint_dialogue_id(),
     }
 
@@ -287,10 +348,21 @@ def capture_choice_prompt(pending: dict) -> str:
     figure, so a player answering by typing had strictly less information
     than one clicking. BUG-CA-10 discipline: state the price and enumerate
     the answers the game will accept.
+
+    Post-landing review #4: if the payload predates the priced keys (a
+    pre-IGR-E save whose pending question survived the load-time backfill's
+    region lookup failing), OMIT the figure rather than quote "0 gold" for
+    a choice that pays the real sum — an absent price is honest, a wrong
+    one is the exact lie this slice exists to remove.
     """
-    gold = int(pending.get("plunder_gold", 0) or 0)
-    return (f"\nYour forces have taken {pending.get('region', 'the region')}. "
-            f"Plunder it for {gold:,} gold — buildings burned, the province "
+    region = pending.get('region', 'the region')
+    gold = pending.get("plunder_gold")
+    if gold is None:
+        return (f"\nYour forces have taken {region}. Plunder it — buildings "
+                f"burned, the province left hostile — or secure it and keep "
+                f"the country quiet? ('plunder' or 'secure')")
+    return (f"\nYour forces have taken {region}. "
+            f"Plunder it for {int(gold):,} gold — buildings burned, the province "
             f"left hostile — or secure it and keep the country quiet? "
             f"('plunder' or 'secure')")
 
@@ -3321,22 +3393,12 @@ class WorldState:
             # AI auto-decide by personality. IGR-E addendum: routed through
             # the single source — this read `personality_type`, which does
             # not exist on Marshal, so the branch was unreachable.
-            if ai_prefers_plunder(marshal):
-                # Plunder: stability 10, war damage, destroy buildings, gain gold
-                region.stability = 10
-                region.apply_war_damage(0.35)
-                region.plundered = True
-                # EC-W5a: same plunder rate as the player path (GR5 — was
-                # ×1.0, a silent AI discount on the same choice). IGR-E
-                # routes it through the shared single source.
-                gold_gained = plunder_yield(region)
-                self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
-                region.buildings = []
-                region.building_under_construction = None
-                # Destroy watchtower on plunder (Phase 6 Fog - Session 35)
-                if getattr(region, 'watchtower', 'none') != "none":
-                    region.watchtower = "none"
-                    region.watchtower_turns_remaining = 0
+            if ai_prefers_plunder(marshal, self, region_name):
+                # EC-W5a/GR5: the same plunder rate as the player path.
+                # Post-landing review #5: the effects were a hand-inlined
+                # copy that silently dropped the per-building
+                # building_damaged events — now the ONE implementation.
+                gold_gained = apply_plunder_effects(self, region, marshal.nation)
                 self.log_event({
                     "type": "region_captured",
                     "region": region_name,
@@ -3348,7 +3410,8 @@ class WorldState:
                 # this soil by rule — confiscate at war, respect otherwise.
                 from backend.game_logic.dotation import apply_ai_estate_rule
                 apply_ai_estate_rule(self, region, marshal.nation)
-                return f" {region_name} captured and plundered by {marshal.nation}! (+{gold_gained} gold)"
+                return (f" {region_name} captured and plundered by "
+                        f"{marshal.nation}! (+{gold_gained:,} gold)")
             else:
                 # Secure: stability 25, damage buildings, cancel construction
                 region.stability = 25
@@ -5852,6 +5915,20 @@ class WorldState:
         world.pending_redemption = data.get("pending_redemption")
         world.pending_strategic_objection = data.get("pending_strategic_objection")
         world.pending_capture_choice = data.get("pending_capture_choice")
+        # IGR-E post-landing review #4: a pre-IGR-E save can carry a live
+        # stage-1 question without the priced keys — the button would then
+        # read "+0 gold" while clicking pays the real sum, the exact
+        # shown≠applied lie the slice removed. Backfill the price from the
+        # live region at load. Estate-stage dicts price with `windfall`
+        # and are left alone; dialogue_id is NOT backfilled (an old
+        # question stays unguarded, which is the pre-slice behaviour).
+        _pcc = world.pending_capture_choice
+        if (isinstance(_pcc, dict)
+                and _pcc.get("stage", "capture") != "estate"
+                and "plunder_gold" not in _pcc):
+            _pcc_region = world.get_region(_pcc.get("region", "") or "")
+            if _pcc_region is not None:
+                _pcc["plunder_gold"] = plunder_yield(_pcc_region)
 
         # ═══════ JEALOUSY v3.2 — PETITION CHANNEL ═══════
         world.pending_marshal_petition = data.get("pending_marshal_petition")

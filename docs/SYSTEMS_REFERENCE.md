@@ -2526,7 +2526,10 @@ When a **player** captures a region, a popup asks: **Plunder** or **Secure**?
   effective-income reading would pay 0 everywhere.
 - **AI captures** auto-decide by personality: aggressive → plunder, all others → secure —
   via `world_state.ai_prefers_plunder` (GR5). Until IGR-E this branch was **dead code**: it read a
-  `personality_type` attribute `Marshal` does not have, so the AI could never plunder.
+  `personality_type` attribute `Marshal` does not have, so the AI could never plunder. **Own-soil
+  guard** (IGR-E post-landing review): an AI never sacks a province whose *starting controller* is
+  its own nation — recapturing home soil always secures. The player's own-soil modal is untouched.
+  Plunder's EFFECTS live in ONE place both sides call: `world_state.apply_plunder_effects`.
 - `pending_capture_choice` blocks commands until resolved (same pattern as `pending_objection`)
 - Plundered flag clears when stability recovers above 50
 - Endpoint: `POST /capture_choice` with `{"choice": "plunder"}` or `{"choice": "secure"}`
