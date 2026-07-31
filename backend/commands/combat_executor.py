@@ -5256,8 +5256,12 @@ class CombatExecutor:
             # IGR-X8: the field-battle conquest (the most common capture)
             # never stated the question in the message — a typed-path player
             # had strictly less information than one clicking. Same priced
-            # sentence as the garrison/unopposed routes.
-            if (marshal.nation == world.player_nation
+            # sentence as the garrison/unopposed routes. Review fix: gated
+            # on THIS attack having conquered (like the auto-kill sibling) —
+            # a stale pending from an EARLIER marshal's strategic capture
+            # must not append "Your forces have taken Tyrol" to an unrelated
+            # battle report.
+            if (conquered and marshal.nation == world.player_nation
                     and world.pending_capture_choice.get("stage") != "estate"):
                 from backend.models.world_state import capture_choice_prompt
                 result["message"] += capture_choice_prompt(
@@ -5829,7 +5833,9 @@ class CombatExecutor:
             charge_result["pending_capture_choice"] = True
             charge_result["capture_data"] = world.pending_capture_choice
             # IGR-X8: state the priced question here too (route parity).
-            if (marshal.nation == world.player_nation
+            # Review fix: gated on THIS charge having conquered — never a
+            # stale pending's prompt on an unrelated charge report.
+            if (conquered and marshal.nation == world.player_nation
                     and world.pending_capture_choice.get("stage") != "estate"):
                 from backend.models.world_state import capture_choice_prompt
                 charge_result["message"] += capture_choice_prompt(

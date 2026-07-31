@@ -66,10 +66,15 @@ class TestG1SettlementViewport:
         # a stale meta would leak the settlement rect into proposal_confirm.
         tail = src[src.index("# IGR-G1: the settlement table gets the document ceiling"):]
         tail = tail[:tail.index("Utils.clamp_centered_panel($PanelContainer)")]
-        assert ('set_meta("clamp_ceiling_override", SETTLEMENT_CEILING)'
-                in tail)
-        assert 'remove_meta("clamp_ceiling_override")' in tail
-        assert "if is_settlement_table:" in tail
+        # Review hardening: BIND each action to its branch by ordering —
+        # unordered substring checks passed with the arm bodies swapped
+        # (settlement REMOVING the ceiling, everyone else setting it).
+        set_branch = tail.index("if is_settlement_table:")
+        set_call = tail.index(
+            'set_meta("clamp_ceiling_override", SETTLEMENT_CEILING)')
+        elif_branch = tail.index("elif ")
+        remove_call = tail.index('remove_meta("clamp_ceiling_override")')
+        assert set_branch < set_call < elif_branch < remove_call
 
     def test_the_call_string_pin_survives(self):
         """The ceiling rides a META precisely because the exact call string
@@ -124,6 +129,12 @@ class TestG2PieceStacks:
         assert "var ranks := 2 if count <= 4 else 3" in body
         assert "var rank := i % ranks" in body
         assert "-float(rank) * WAR_PIECE_RANK_DEPTH" in body
+        # Review hardening: pin the rank_count formula VERBATIM — the Python
+        # mirror below validates the derivation but never read the .gd, so a
+        # drift (e.g. integer division dropping the ceil) was invisible.
+        assert ("var rank_count := int(ceil(float(count - rank) / float(ranks)))"
+                in body)
+        assert "var idx := int(i / float(ranks))" in body
 
     def test_two_rank_shape_is_numerically_unchanged_for_3_and_4(self):
         """The generalized round-robin must reproduce the old two-rank math
@@ -154,16 +165,31 @@ class TestG2PieceStacks:
         ys = {new(i, 6, 38.0, 16.0)[1] for i in range(6)}
         assert ys == {0.0, -16.0, -32.0}
 
-    def test_stack_label_replaces_the_name_pile_above_three(self):
+    def test_stack_label_collapses_per_nation_not_per_region(self):
+        """Review fix: the region's marshals[] array is MIXED-NATION (the
+        backend appends FULL-visibility enemies to the same list), so the
+        collapse keys on the marshal's NATION group — 'Ney +4' must never
+        count Mack, and Mack must never lose his label to Ney's rank."""
         body = _renderer_func_body("_create_marshal_nodes")
-        assert ("var use_stack_label := pieces_active and marshals.size() > 3"
-                in body)
-        # Per-marshal labels are gated off; ONE aggregate label is drawn.
-        assert "if not use_stack_label:" in body
-        assert 'var stack_text := "%s +%d" % [lead_name, marshals.size() - 1]' in body
-        # Hover hitboxes stay per-marshal (the tooltip still identifies
-        # each piece) — the append is outside the label gate.
-        assert "marshal_hitboxes.append({" in body
+        # The per-nation census, and the per-marshal gate reading it.
+        assert "nation_counts[mn] = int(nation_counts.get(mn, 0)) + 1" in body
+        assert ("var in_collapsed_group := (pieces_active\n"
+                "\t\t\t\tand int(nation_counts.get(nation, 0)) > 3)" in body)
+        assert "if not in_collapsed_group:" in body
+        # One label per collapsed GROUP, named from that group's own lead.
+        assert 'var stack_text := "%s +%d" % [lead_name, group_size - 1]' in body
+        assert "if group_size <= 3:" in body
+        # A second collapsed nation stacks a row higher, never overprinting.
+        assert "float(stack_row) * 13.0" in body
+
+    def test_hover_hitboxes_survive_the_collapse(self):
+        """Review hardening: the hitbox append must sit at LOOP level (two
+        tabs), never inside the label gate (three tabs) — a bare containment
+        check passed with the append indented into the gate, which would
+        have deleted every 4+-stack's hover tooltips."""
+        body = _renderer_func_body("_create_marshal_nodes")
+        assert "\n\t\tmarshal_hitboxes.append({" in body
+        assert "\n\t\t\tmarshal_hitboxes.append({" not in body
 
     def test_stack_label_clears_the_rear_rank(self):
         body = _renderer_func_body("_create_marshal_nodes")
@@ -172,7 +198,7 @@ class TestG2PieceStacks:
 
     def test_legacy_icon_branch_is_untouched(self):
         """The bitmap-mode gate: the legacy square-icon world keeps its
-        per-marshal labels (use_stack_label requires pieces_active)."""
+        per-marshal labels (the collapse requires pieces_active)."""
         body = _renderer_func_body("_create_marshal_nodes")
-        assert "pieces_active and marshals.size() > 3" in body
+        assert "in_collapsed_group := (pieces_active" in body
         assert "-15.0 - i * 14.0" in body  # legacy stagger, byte-unchanged

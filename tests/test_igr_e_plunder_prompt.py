@@ -904,19 +904,52 @@ class TestX8RouteParity:
         return inspect.getsource(getattr(CombatExecutor, name))
 
     def test_the_field_battle_event_attaches_the_choice(self):
+        """Review hardening: the GUARD is pinned with its body — a bare
+        assignment pin survived `if False and conquered ...`."""
         src = self._method_source("_execute_attack")
-        assert ('result["events"][0]["capture_choice"] = '
-                'capture_result["capture_choice"]' in src)
+        guard = src.index('if conquered and capture_result and '
+                          'capture_result.get("capture_choice"):')
+        body = src.index('result["events"][0]["capture_choice"] = '
+                         'capture_result["capture_choice"]')
+        assert guard < body < guard + 400
+
+    def test_the_field_battle_prompt_is_gated_on_this_conquest(self):
+        """Review fix: a stale pending from an EARLIER marshal's strategic
+        capture must not append its prompt to an unrelated battle report —
+        the prompt arm requires `conquered` (the auto-kill sibling's
+        conquest_msg gate, mirrored)."""
+        src = self._method_source("_execute_attack")
+        assert ('if (conquered and marshal.nation == world.player_nation'
+                in src)
+        charge = self._method_source("_execute_glorious_charge")
+        assert ('if (conquered and marshal.nation == world.player_nation'
+                in charge)
 
     def test_the_auto_bombardment_event_attaches_conquest_keys(self):
         src = self._method_source("_execute_attack")
-        assert 'auto_kill_event["region_conquered"] = True' in src
-        assert 'auto_kill_event["capture_choice"]' in src
+        guard = src.index("if conquest_msg:")
+        rc = src.index('auto_kill_event["region_conquered"] = True')
+        cc = src.index('auto_kill_event["capture_choice"]')
+        assert guard < rc < cc < guard + 600
+
+    def test_the_auto_bombardment_route_flags_and_prompts(self):
+        """Review finding: the auto-kill route's NEW player prompt/flags
+        block had zero coverage — it is the route that used to leave the
+        player an INVISIBLE pending question."""
+        src = self._method_source("_execute_attack")
+        block = src.index('if (conquest_msg and marshal.nation == '
+                          'world.player_nation')
+        tail = src[block:block + 500]
+        assert 'result["pending_capture_choice"] = True' in tail
+        assert 'result["capture_data"] = world.pending_capture_choice' in tail
+        assert "capture_choice_prompt(" in tail
 
     def test_the_glorious_charge_event_attaches_conquest_keys(self):
         src = self._method_source("_execute_glorious_charge")
-        assert 'charge_event["region_conquered"] = True' in src
-        assert 'charge_event["capture_choice"]' in src
+        guard = src.index("if conquered:")
+        rc = src.index('charge_event["region_conquered"] = True')
+        cc = src.index('charge_event["capture_choice"]')
+        assert guard < rc < cc < guard + 400
 
     def test_the_enemy_phase_dialog_renders_the_battle_event_choice(self):
         import io

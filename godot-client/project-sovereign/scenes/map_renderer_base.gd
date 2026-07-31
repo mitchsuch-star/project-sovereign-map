@@ -1367,12 +1367,24 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 	# stagger of 40-60px-wide names over 38px slots) is unreadable at every
 	# zoom — draw ONE stack label ("Ney +4") instead. Hover hitboxes stay
 	# per-marshal, so the tooltip still identifies each piece.
-	var use_stack_label := pieces_active and marshals.size() > 3
+	# Review fix (nation-blind aggregation): the region's marshals[] array is
+	# MIXED-NATION — the backend appends FULL-visibility enemy marshals to the
+	# same list (an engaged battle province, or a co-located neutral) — so the
+	# collapse is PER NATION: a nation's group of 4+ becomes one label, and a
+	# marshal whose nation has <= 3 here always keeps its own name. "Ney +4"
+	# must never count Mack, and Mack must never lose his label to Ney's rank.
+	var nation_counts := {}
+	if pieces_active:
+		for m in marshals:
+			var mn := str(m.get("nation", "Neutral"))
+			nation_counts[mn] = int(nation_counts.get(mn, 0)) + 1
 
 	for i in range(marshals.size()):
 		var marshal: Dictionary = marshals[i]
 		var marshal_name = str(marshal.get("name", "?"))
 		var nation = str(marshal.get("nation", "Neutral"))
+		var in_collapsed_group := (pieces_active
+				and int(nation_counts.get(nation, 0)) > 3)
 		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
 
 		# label_anchor_world = top-left of the name label (WORLD coords);
@@ -1405,7 +1417,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			label_anchor_world = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
 			hitbox_rect = Rect2(icon_pos, MARSHAL_ICON_SIZE)
 
-		if not use_stack_label:
+		if not in_collapsed_group:
 			var name_label = Label.new()
 			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			name_label.position = _world_to_layer_position(label_anchor_world)
@@ -1418,34 +1430,49 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			force_layer.add_child(name_label)
 			_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, 14.0)))
 
+		# The hover hitbox is appended for EVERY marshal — collapsed or not —
+		# so the tooltip still identifies each individual piece. Review-fix
+		# pin: this append must stay OUTSIDE the label gate above.
 		marshal_hitboxes.append({
 			"rect": hitbox_rect,
 			"marshal": marshal,
 		})
 		_label_avoid_world_rects.append(hitbox_rect)
 
-	if use_stack_label:
-		# One aggregate label over the whole stack, centered on the slot
-		# spread (slots are symmetric about region_pos.x) and lifted clear
-		# of the rearmost rank's figures.
-		var lead_name = str(marshals[0].get("name", "?"))
-		var stack_text := "%s +%d" % [lead_name, marshals.size() - 1]
-		var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
-		var rear_ranks := 1 if marshals.size() <= 4 else 2
-		var stack_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0
-				+ float(rear_ranks) * WAR_PIECE_RANK_DEPTH)
-		var stack_anchor := region_pos + Vector2(-stack_width / 2.0, stack_y)
-		var stack_label = Label.new()
-		stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stack_label.position = _world_to_layer_position(stack_anchor)
-		stack_label.size = Vector2(stack_width, 14.0)
-		stack_label.text = stack_text
-		stack_label.add_theme_font_size_override("font_size", 11)
-		stack_label.add_theme_color_override("font_color", Color.WHITE)
-		stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-		stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
-		force_layer.add_child(stack_label)
-		_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, 14.0)))
+	# One aggregate label per COLLAPSED nation group ("Ney +4"), lifted clear
+	# of the rearmost rank's figures; a second collapsed nation (rare — an
+	# engaged mass battle) stacks one 13px row higher, so two groups can
+	# never overprint each other.
+	if pieces_active:
+		var stack_row := 0
+		for group_nation in nation_counts:
+			var group_size := int(nation_counts[group_nation])
+			if group_size <= 3:
+				continue
+			var lead_name := ""
+			for m in marshals:
+				if str(m.get("nation", "Neutral")) == group_nation:
+					lead_name = str(m.get("name", "?"))
+					break
+			var stack_text := "%s +%d" % [lead_name, group_size - 1]
+			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+			var rear_ranks := 1 if marshals.size() <= 4 else 2
+			var stack_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0
+					+ float(rear_ranks) * WAR_PIECE_RANK_DEPTH
+					+ float(stack_row) * 13.0)
+			var stack_anchor := region_pos + Vector2(-stack_width / 2.0, stack_y)
+			var stack_label = Label.new()
+			stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			stack_label.position = _world_to_layer_position(stack_anchor)
+			stack_label.size = Vector2(stack_width, 14.0)
+			stack_label.text = stack_text
+			stack_label.add_theme_font_size_override("font_size", 11)
+			stack_label.add_theme_color_override("font_color", Color.WHITE)
+			stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+			stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			force_layer.add_child(stack_label)
+			_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, 14.0)))
+			stack_row += 1
 
 
 func _marshal_arm(marshal: Dictionary) -> String:
