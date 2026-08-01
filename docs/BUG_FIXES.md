@@ -3,6 +3,12 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
+> Last Updated: August 1, 2026 (**Live-Playthrough Aug-1 section added** — 10 defects from
+> the played-world creative-audit re-measure, 8 FIXED in-session with pins
+> (`tests/test_playthrough_fixes_2026_08_01.py`, 12), 2 ROUTED below (F1 neutral-soil
+> pursuit-capture, F6 AI square-thrash). Record: `docs/audits/AI_V_SWEEP_2026_08_01.md`
+> §10 + `docs/STATUS.md` top entry.)
+>
 > Last Updated: July 18, 2026 (**July-18 Playtest Sweep section added — ALL 25 rows FIXED**:
 > the two user-reported issues ("give them hell" did nothing; the settle-a-war window ran off
 > the screen) plus their families, found by a 34-agent find→verify workflow and hardened by a
@@ -19,6 +25,70 @@
 > review, memo `docs/audits/SWEEP_5_2026_07_16.md`.)
 >
 > Last Updated: July 14, 2026 (**Vassal Playtest Findings — F1/F1c/F3/F6/F8b/C1/C2/F5/F7/F4 ALL FIXED** this session from a live europe_1805 playtest + 14-agent adversarial verification; memo `docs/audits/VASSAL_PLAYTEST_2026_07_14.md`, tests `tests/test_playtest_fixes_2026_07_14.py`. Prior: July 12, 2026 (**Playtest Sweep PS-1..PS-9 — 3 user-reported issues + same-family sweep + the generosity-inversion fix (PS-9: "More generous" lowered a hawk's acceptance); ALL FIXED + verified, suite 12,964/3, Godot parse-clean**). Prior: July 11, 2026 (**Estate-Second-Pass Eval Findings section added** — ESP-EV-1 muster typed-answer misroute + ESP-EV-2 expectation-note under-fire FIXED in-session; ESP-EV-3 battles_won seam inconsistency + ESP-EV-4 attack-region silent redirect ROUTED to 8.EVAL. Prior: **MC-V Enemy-AI Personality Findings section added** — 5 ROUTED items from the Marshal Content Pass MC-V assurance/eval slice, headline MC-V-2 = enemy literal AI aliased to cautious, a design decision owned by the MC exit review / Jealousy gate; none is a forced fix. Prior: the **Creative-Audit Findings section** — 10 correctness defects (ALL FIXED across Wave 6 W6-0/W6-1). Earlier state: CR-0 parser roster pinning + **EC-0 advance-turn AP reset** + **MC-0 marshal-overview ability display** all FIXED. Historical context: the April 12, 2026 renderer notes below predate the July 2, 2026 real-map cutover — the running game is the 126-province 1805 campaign; Session-8 renderer work is COMPLETE.)
+
+---
+
+## Live-Playthrough Findings (August 1, 2026 — the played-world creative-audit re-measure)
+
+> Source: `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 (the full ledger and the scored
+> addendum live there). **F2/F3/F4/F5/F7/F8/F9/F10 were FIXED in-session** — pinned in
+> `tests/test_playthrough_fixes_2026_08_01.py` (12); the two rows below are the OPEN
+> routes.
+
+### PT-F1 — Pursuit-battle capture of neutral/allied soil has zero diplomatic consequence (P2, OPEN)
+
+**Seen live twice.** (a) Mack routed into **Nassau (Hesse — at PEACE with France)**; Ney
+pursued, destroyed him, captured Nassau, got the plunder/secure prompt — and Hesse stayed
+`PEACE / relation 0`, then wrote France a *non-aggression letter*. Only the global threat
+scalar noticed (+15, unexplained on any surface). (b) Retro-discovered: **Swabia is
+BAVARIAN at boot** (Mack merely occupies it), so the session's Ulm capture transferred a
+bloc ALLY's province to France, equally unremarked.
+
+**Mechanism.** Stage-D pin 15 closed the OPEN_MOVEMENT *movement*-capture hole (silent
+walk-in capture now stages War Purpose, both sides). The *battle-advance* capture path —
+attack an enemy marshal standing on third-party soil, win, advance — never passes that
+seam, so the region transfers to the victor with no declaration, no relation hit, no
+event line naming the violation.
+
+**Owner / landing.** Needs a one-question design gate (the same seam family Stage D
+used): does a battle-advance onto an uninvolved court's soil (i) stage the pin-15 War
+Purpose flow, (ii) price in relations/threat with a named event, or (iii) hand the
+province BACK to its owner after the battle (pursuit ≠ conquest)? Recommendation: (i)
+for neutral courts, (iii) for allies/vassals. Landing slice: one session, backend-only;
+completion = a `test_neutral_soil_pursuit_capture.py` behavior test covering both live
+cases (Nassau and boot-Swabia shapes); STATUS line on landing. Until then the AI cannot
+farm it (AI target selection is war-scoped) but a player can.
+
+### PT-F6 — The AI square-thrash: form/break/re-form in one enemy phase (P3, OPEN)
+
+**Seen live every phase from turn 3.** Moore formed square at Nivernais THREE times in
+one phase — breaking it himself each time (stance change, then counter-punch, then
+re-form); Archduke Charles and Castanos produced the same transcript shape. The AI's
+action planner does not model that its own next action breaks the square, so it burns
+actions and the enemy phase reads as farce (the concrete mechanism behind "the enemy
+phase as theater: 5.5" in the audit addendum §10.4).
+
+**Owner / landing.** `enemy_ai.py` action planning — a per-phase latch (a marshal who
+broke his own square this phase may not re-form it) is the minimal shape; suppressing
+square formation while further offensive actions are planned is the correct one.
+**Harness-sensitive**: any behaviour change here can move `BASELINE_SERIES` / M1–M7 —
+land in its own slice with the conscious-re-record discipline (the IGR-X4 precedent),
+never as a drive-by. Completion = a phase-transcript test asserting ≤1 square formation
+per marshal per enemy phase + harness verdict recorded; STATUS line on landing.
+
+### PT-observations routed to owners (no open bug row)
+
+- **Muster one-voice odds (CO-6 finisher):** "the balance of force looks favorable"
+  (joint committed force) beside "attacks cautiously at unfavorable odds" (solo ratio)
+  in one message — `DESIGN_REFINEMENT.md` §Live-Playthrough row PT-D1.
+- **Diorama contingent taxonomy:** a marshal who REFUSED to march renders as
+  `failed_arrive`; a promised joiner who failed his arrival roll is absent entirely —
+  `DESIGN_REFINEMENT.md` PT-D2 (BD polish family).
+- **Letter-book label coherence:** digest rows titled "Gift of Friendship" whose own
+  clauses read "Open Borders Agreement" — `DESIGN_REFINEMENT.md` PT-D3.
+- **Move-chain presentation** (Moore undoing a four-province campaign in one phase) —
+  `DESIGN_REFINEMENT.md` PT-D4; the naval gate itself stays owned by **DEF-5**, whose
+  urgency this session upgrades (Spain besieged London on turn 5).
 
 ---
 

@@ -403,7 +403,11 @@ class TacticalExecutor:
         # Build message with personality-specific info
         personality_message = ""
         if personality == "cautious":
-            personality_message = f" (Iron Marshal: +{int(instant_bonus * 100)}% instant, +{int(fortify_rate * 100)}%/turn, max {int(max_fortify * 100)}%)"
+            # "Iron Marshal" is Davout's epithet, not the cautious kit's
+            # name — live it captioned Archduke John's and Moore's fortify
+            # lines (the July-9 misattribution class, three missed sites).
+            _kit_label = "Iron Marshal" if marshal.name == "Davout" else "Cautious"
+            personality_message = f" ({_kit_label}: +{int(instant_bonus * 100)}% instant, +{int(fortify_rate * 100)}%/turn, max {int(max_fortify * 100)}%)"
         elif personality == "aggressive":
             personality_message = f" (Aggressive: max {int(max_fortify * 100)}% only)"
 

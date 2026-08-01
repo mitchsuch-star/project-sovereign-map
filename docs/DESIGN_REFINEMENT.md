@@ -2,7 +2,7 @@
 
 > **Design items and addons for evaluation.** This is the design-refinement backlog; execution routes through `docs/ROADMAP.md`'s current phase queue. (The old "work begins after `BUG_FIXES.md` is clear" gate cleared April 2026.)
 >
-> **Last Updated:** July 11, 2026 — **Estate Second Pass deferrals filed** (ESP-1..4, from the ES-7 second-pass design conversation; owner spec `ECONOMY_REVISIT_SPEC.md` §0.6.8). Prior: July 10, 2026 — **Wave 6 APPROVED IN FULL same day it was filed** (+2 gate additions: Dynamic Battle Naming, Literal Doctrine); the build-ready owner is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (12 slices, blessed default numbers recorded there). Wave 6 items came from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153 (now SUPERSEDED by W6-5), R129/R131/R132, R155/R156, R117 (absorbed into W6-9). Prior: July 2, 2026 present-tense pass. April 16, 2026 rescope context preserved below as history.
+> **Last Updated:** August 1, 2026 — **Live-Playthrough design items filed** (PT-D1..D4, from the played-world creative-audit re-measure; memo `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 — PT-D1/D2/D4 share the PT-F6 enemy-phase slice, PT-D3 is copy-level). Prior: July 11, 2026 — **Estate Second Pass deferrals filed** (ESP-1..4, from the ES-7 second-pass design conversation; owner spec `ECONOMY_REVISIT_SPEC.md` §0.6.8). Prior: July 10, 2026 — **Wave 6 APPROVED IN FULL same day it was filed** (+2 gate additions: Dynamic Battle Naming, Literal Doctrine); the build-ready owner is **`docs/WAVE6_FUN_FACTOR_SPEC.md`** (12 slices, blessed default numbers recorded there). Wave 6 items came from `docs/audits/CREATIVE_AUDIT_2026_07_10.md`; live-evidence revisions recorded on R154, R59/R153 (now SUPERSEDED by W6-5), R129/R131/R132, R155/R156, R117 (absorbed into W6-9). Prior: July 2, 2026 present-tense pass. April 16, 2026 rescope context preserved below as history.
 
 ---
 
@@ -22,6 +22,24 @@
 | **Wave 6 — Creative Capstone (July 10, 2026)** | 14 | **✅ APPROVED IN FULL July 10** (6 expansions + 6 escalations + 2 gate additions: Dynamic Battle Naming, Literal Doctrine); owner = `WAVE6_FUN_FACTOR_SPEC.md` (12 build slices W6-0..W6-11) |
 | **Estate Second Pass deferrals (July 11, 2026)** | 4 | **ESP-1 + ESP-2 + ESP-4 ✅ LANDED July 11, 2026 with the Jealousy v3.2 build** (ESP-4 folded per its own row's fold-in clause; record = `JEALOUSY_SPEC.md` §0.3/§0.4, tests `test_estate_riders_esp.py`); ESP-3 respect-by-treaty → diplomacy gate (unchanged) |
 | **Total** | **63** | |
+
+---
+
+## Live-Playthrough — Design Items (August 1, 2026)
+
+From the played-world creative-audit re-measure (memo = `docs/audits/AI_V_SWEEP_2026_08_01.md`
+§10; correctness defects went to `BUG_FIXES.md` §Live-Playthrough — PT-F1/PT-F6 are the open
+bug rows there). These four are presentation/design calls, not correctness bugs. **Owner for
+all four = the enemy-phase / combat-legibility family; natural landing = the same slice that
+takes PT-F6** (they share the transcript-composition seam), except PT-D3 which is a
+copy-level fix landable in any session.
+
+| ID | Item | Why it matters | Landing / completion |
+|---|---|---|---|
+| PT-D1 | **Muster one-voice odds.** The muster header states joint-force odds ("the balance of force looks favorable") while the personality line in the SAME message states solo odds ("attacks cautiously at unfavorable odds"). | The player cannot tell which read the battle will use; CO-6 named committed strength but the two frames still disagree on one surface. | With PT-F6's slice: one odds vocabulary — the header names the committed joint figure, personality lines reference it ("at unfavorable odds *alone*"). Test: one message never carries both frames unqualified. |
+| PT-D2 | **Diorama contingent taxonomy.** Soult (who REFUSED to march — literal, no standing order) rendered `failed_arrive`; Murat (who promised "will march" and failed his roll) was absent from the tableau entirely. | The tableau misattributes refusal as failure and erases the failed promise — the exact drama BD exists to stage. | BD polish family (`BATTLE_DIORAMA_SPEC.md` §14 soft-watch): distinct statuses {refused, failed_arrive, out_of_reach}; muster-promise parity test (every WILL JOIN name appears with SOME status). |
+| PT-D3 | **Letter-book label coherence.** Digest rows titled "Gift of Friendship" (`friendly_gift` context type) whose own clauses read "Proposal: Open Borders Agreement". | Header/body mismatch on the digest's small surface erodes trust in the letter-book's summaries. | Any session, copy-level: derive the row title from the LEAD CLAUSE when the context type's display disagrees with it; test in the IGR-F family file. |
+| PT-D4 | **Move-chain presentation.** One corps chaining 3–4 moves per enemy phase reads as teleportation (Moore recaptured four provinces in ONE phase; John marched Languedoc→Provence→Piedmont→Milan in one). | Mechanically legal (symmetric AP), narratively farce — the single loudest contributor to the addendum's "enemy phase as theater: 5.5". | With PT-F6's slice: render a marshal's chained moves as ONE "forced march" line (origin → terminus, provinces named, attrition summed). Presentation only — never touches the moves themselves. Test: a 3-move chain produces one line. |
 
 ---
 

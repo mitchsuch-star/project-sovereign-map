@@ -219,7 +219,11 @@ class MovementExecutor:
         # If enemy marshal in current region, can only retreat to friendly territory
         # ════════════════════════════════════════════════════════════
         marshals_here = world.get_marshals_in_region(marshal.location)
-        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation)]
+        # strength > 0 matters: captured marshals are held AT the captor's
+        # capital with strength 0 (combat_executor W6-7), so without the
+        # filter a prisoner "engages" every corps in the capital — live,
+        # Mack's ghost pinned Mortier inside Paris for four turns.
+        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_here:
             # Engaged with enemy - can only move to regions controlled by marshal's nation
@@ -586,6 +590,13 @@ class MovementExecutor:
                     # Must be enemy-controlled
                     if not adj_region.controller or adj_region.controller == marshal.nation:
                         continue
+                    # ... of a court we are AT WAR with. "Not ours" is not
+                    # "fair game": live, this hint urged attacking Bavaria's
+                    # Franconia (France's own bloc ally, with Deroy's corps
+                    # standing in it) and Holland's Gelderland (a French
+                    # vassal). An attack there means a new war, not a walkover.
+                    if not world.is_at_war(marshal.nation, adj_region.controller):
+                        continue
                     # Fog-aware: check visibility
                     intel = world.get_region_intel(adj_name)
                     if intel.visibility not in (FULL, PARTIAL):
@@ -669,7 +680,10 @@ class MovementExecutor:
             if distance > max_scout_range:
                 range_msg = f"Can only scout regions within {max_scout_range} moves"
                 if scout_bonus > 0:
-                    range_msg += f" (Iron Marshal: +{scout_bonus} range)"
+                    # "Iron Marshal" is Davout's epithet, not the cautious
+                    # kit's name — live it captioned Archduke John's lines.
+                    _kit_label = "Iron Marshal" if marshal.name == "Davout" else "Cautious"
+                    range_msg += f" ({_kit_label}: +{scout_bonus} range)"
                 return {
                     "success": False,
                     "message": f"{target_name} is too far to scout (distance: {distance})",
@@ -691,7 +705,9 @@ class MovementExecutor:
             # Detailed intel on enemies
             enemy_intel = []
             for m in marshals_there:
-                if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
+                # strength > 0: a captured marshal parked at his captor's
+                # capital must not show up as a scouted field army.
+                if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
                     enemy_intel.append(f"{m.name} ({m.nation}): ~{m.strength:,} troops")
 
             intel_msg = f"Controlled by {controller}. {terrain_msg}. "
@@ -946,10 +962,23 @@ class MovementExecutor:
                 else:
                     best_region = stated_name
             if reason:
-                substitution_note = (
-                    f" {stated_display} cannot be reached, Sire — {reason}; "
-                    f"{marshal.name} falls back to {best_region} instead."
-                )
+                if stated_name is not None and best_region == stated_name:
+                    # The doctrine's own safe-retreat pick IS the refused
+                    # destination — a surrounded army may have only hostile
+                    # ground left (live: Soult at Hungary, every neighbour
+                    # Austrian or Russian). "Carniola cannot be reached —
+                    # falls back to Carniola instead" contradicted itself in
+                    # one sentence; say what is actually happening.
+                    substitution_note = (
+                        f" No friendly ground lies open, Sire — "
+                        f"{marshal.name} falls back on {best_region} "
+                        f"through hostile country."
+                    )
+                else:
+                    substitution_note = (
+                        f" {stated_display} cannot be reached, Sire — {reason}; "
+                        f"{marshal.name} falls back to {best_region} instead."
+                    )
 
         # ════════════════════════════════════════════════════════════
         # STANCE-BASED RETREAT PENALTIES

@@ -9551,7 +9551,11 @@ class WorldState:
                     # Add personality-specific message
                     personality_note = ""
                     if personality == "cautious":
-                        personality_note = " (Iron Marshal: faster fortification)"
+                        # Davout keeps his epithet; other cautious marshals
+                        # get the kit's own name (misattribution class).
+                        _kit_label = ("Iron Marshal" if marshal.name == "Davout"
+                                      else "Cautious")
+                        personality_note = f" ({_kit_label}: faster fortification)"
                     elif personality == "aggressive":
                         personality_note = " (Aggressive: limited fortification)"
 

@@ -1034,6 +1034,30 @@ class CommandExecutor:
                         }
 
                 # ═══════════════════════════════════════════════════════════
+                # FORTIFY-WHILE-ENGAGED CHECK - Validation BEFORE objection
+                # Mirrors _execute_fortify's own gate. Live playthrough:
+                # Massena (engaged at Milan) objected to fortify, the player
+                # INSISTED through the drama, and only then did execution
+                # fail on the engagement — the exact objection-then-failure
+                # shape the bypass hierarchy exists to prevent.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'fortify':
+                    _engaged_here = [
+                        m for m in world.marshals.values()
+                        if m.location == marshal.location
+                        and m.nation != marshal.nation
+                        and m.strength > 0
+                        and world.is_at_war(marshal.nation, m.nation)
+                    ]
+                    if _engaged_here:
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} cannot fortify while engaged with enemy forces! "
+                                      f"Enemy present: {', '.join(e.name for e in _engaged_here)}. "
+                                      f"Attack or retreat first."
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # ALREADY-FORTIFIED CHECK - Validation BEFORE objection
                 # Objection evaluation must run AFTER action validation —
                 # no point objecting to an action that would fail anyway.

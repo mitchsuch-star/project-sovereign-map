@@ -4,6 +4,7 @@ Connects Godot frontend to Python game logic
 """
 
 import os
+import re  # soft-stop option token matching (playthrough fix, Aug 1 2026)
 import asyncio  # noqa: E402 - 3A-1: state_lock (async middleware)
 import weakref  # noqa: E402 - 3A-1: per-event-loop state locks
 from pathlib import Path
@@ -1714,7 +1715,20 @@ def execute_command(request: CommandRequest):
                 # PL-27: Soft-stop — only match against actual dialogue options
                 # to avoid capturing unrelated commands like "garrison"
                 dialogue = world.pending_diplomatic_dialogue
-                for opt in dialogue.get("options", []):
+                _soft_options = dialogue.get("options") or []
+                if not _soft_options and isinstance(
+                        dialogue.get("popup_payload"), dict):
+                    # Settlement offers carry their options only inside
+                    # popup_payload — with no top-level options this matcher
+                    # had NOTHING to match, so even a verbatim "reject offer"
+                    # fell through to the parser (live: "reject the offer"
+                    # with Britain's offer on screen became a
+                    # downgrade-relations clarification). Same fallback the
+                    # response handler itself uses.
+                    _soft_options = dialogue["popup_payload"].get(
+                        "options") or []
+                _raw_words = set(re.findall(r"[a-z_]+", raw_lower))
+                for opt in _soft_options:
                     label = (opt.get("label") or "").lower().strip()
                     action = (opt.get("action") or "").lower().strip()
                     if label and label in raw_lower:
@@ -1722,6 +1736,14 @@ def execute_command(request: CommandRequest):
                         break
                     if action and action in raw_lower:
                         matched_keyword = action
+                        break
+                    # Token-subset: "reject THE offer" answers the "Reject
+                    # Offer" option even with an article between the words.
+                    # Every label word must appear — a lone "offer" or
+                    # unrelated command never matches.
+                    _label_words = set(re.findall(r"[a-z]+", label))
+                    if _label_words and _label_words <= _raw_words:
+                        matched_keyword = action or label
                         break
 
             if matched_keyword:
@@ -1757,6 +1779,33 @@ def execute_command(request: CommandRequest):
                 "agree", "never mind",
             ]
             if raw_lower_check in _DIALOGUE_ONLY_KEYWORDS:
+                # Live playthrough: with Massena's tactical OBJECTION pending,
+                # "proceed" fell through here and Berthier denied any pending
+                # matter — while every real order stayed blocked on the
+                # objection ("settle the objection before issuing new
+                # orders"). A dialogue-ish word typed while an objection
+                # waits must reprompt THAT objection's own choices, not
+                # gaslight the player about the diplomatic channel.
+                if world.pending_objection is not None:
+                    _objecting = world.pending_objection.get(
+                        "marshal", "A marshal")
+                    _obj_choices = (
+                        ["trust", "insist", "compromise"]
+                        if world.pending_objection.get("alternative")
+                        else ["trust", "insist"])
+                    return build_base_response(
+                        world, success=False,
+                        message=(
+                            f"{_objecting} awaits your answer, Sire — reply "
+                            f"{' or '.join(repr(c) for c in _obj_choices)}."),
+                        objection=world.pending_objection,
+                        choices=_obj_choices,
+                        action_info={
+                            "cost": 0,
+                            "remaining": int(world.actions_remaining),
+                            "turn_advanced": False,
+                            "new_turn": None,
+                        })
                 return build_base_response(
                     world, success=False,
                     message="Berthier: \"There is no pending diplomatic matter to respond to, Sire.\"",
@@ -3158,10 +3207,14 @@ def get_pending_envoy():
         if dtype == "incoming_settlement_offer":
             result["has_pending"] = True
             result["dialogue_type"] = dtype
-            popup = current.get("popup_payload")
-            if not isinstance(popup, dict) or not popup:
-                popup = build_incoming_settlement_offer_popup(world, current)
-                current["popup_payload"] = popup
+            # REBUILD every read, exactly like /mailbox/activate's arm: the
+            # offer's status-quo clause is DERIVED from current controllers,
+            # so serving the payload cached at creation described the map of
+            # the turn the offer was DRAFTED (live: a turn-3 offer read at
+            # turn 7 still claimed Britain held Flanders and Orleanais —
+            # Spain had retaken both).
+            popup = build_incoming_settlement_offer_popup(world, current)
+            current["popup_payload"] = popup
             result["incoming_settlement_offer"] = popup
         elif dtype == "ally_settlement_petition":
             result["has_pending"] = True

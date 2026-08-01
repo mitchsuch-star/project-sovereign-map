@@ -4,6 +4,59 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ THE PLAYED-WORLD RE-MEASURE + FIX SESSION — August 1, 2026 (second session that day)
+>
+> **User direction: "do a live playthrough and add items to the most recent creative audit
+> done at end of ai phase. fix any bugs found during playthrough and assess what the audit
+> shows still needs improved commit and push when done."**
+>
+> **The addendum = `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 (authoritative).** A 10-turn
+> HTTP-driven 1805 campaign (`LLM_MODE=anthropic`, historical seed, active France: the Ulm
+> strike → the plunder mistake → the failed march on Vienna → Kutuzov at the gates) — the
+> first PLAYED re-measure the sweep asked for.
+>
+> - **The sweep's open evidence gaps CLOSED in play**: the autonomous glory-attack fired
+>   organically (Murat vs John, fore-warned, mauled); emergent Revanche promoted BOTH ways
+>   incl. **Britain-vs-Spain** (an AI-vs-AI grievance authored by play); the §3.5 mirror
+>   inverted ("A great power in Austria's shadow", hegemon share 0.0) and the log's
+>   hegemon read flipped to "Austrian-led alignment"; enemy courts endowed dukes on
+>   conquered FRENCH soil (Charles→Languedoc, John→Piedmont, Moore→Lorraine); Britain
+>   sponsored Sweden AND Russia against France; the war-score-aware offer arrived shaped
+>   and directed correctly.
+> - **The living balance HOLDS at 6.5** — `foreign_wars` stayed `[]` all 10 turns; no
+>   standalone AI-AI instance, no council war (D3 compresses a France-centric war onto the
+>   player, as designed). The re-measure that can move it = a 30+-turn campaign where
+>   France goes quiet mid-game. **NEW measured pillar: the enemy phase as theater 5.5** —
+>   square-thrash, move-chain teleportation, contradictory odds frames; the concrete
+>   mechanism behind July-25's "narration 6.0".
+> - **10 defects found, 8 FIXED in-session** (`tests/test_playthrough_fixes_2026_08_01.py`,
+>   12): the fortify objection-then-failure hierarchy violation; "proceed"-during-objection
+>   misrouted to the diplomatic channel; the capture hint recommending ALLY/VASSAL soil
+>   (Bavaria's Franconia, Holland's Gelderland); "(Iron Marshal:" captioning every cautious
+>   marshal (3 sites the July-9 sweep missed); the stale status-quo clause on the
+>   `/pending_envoy` delivery surface (the July-25 activate fix, one surface over);
+>   typed "reject the offer" unable to reach the on-screen offer (options live in
+>   popup_payload + article-tolerant matching); **Mack's ghost** (a captured marshal is
+>   held at the captor's capital at strength 0 BY DESIGN — the movement engaged-filter was
+>   the one filter missing `strength > 0`, so the prisoner pinned Mortier inside Paris);
+>   the self-contradicting surrounded-retreat note. M1–M7 + `BASELINE_SERIES` verified
+>   byte-identical after the fixes (no re-record).
+> - **2 ROUTED with owner rows** (`BUG_FIXES.md` §Live-Playthrough): **PT-F1** pursuit-battle
+>   capture of neutral/ALLIED soil carries zero diplomatic consequence (Nassau taken from
+>   at-peace Hesse → relation 0 + a non-aggression letter; retro-find: Swabia is BAVARIAN
+>   at boot, so the Ulm capture took an ally's province) — needs the small pin-15-family
+>   gate; **PT-F6** the AI square-thrash (forms/breaks square ×3 in one phase) —
+>   harness-sensitive, own slice with the conscious-re-record discipline. Plus 4 design
+>   rows PT-D1..D4 in `DESIGN_REFINEMENT.md` (muster one-voice odds, diorama
+>   refused-vs-failed taxonomy, letter-book label coherence, move-chain presentation).
+> - **Ranked "still needs improvement"** (addendum §10.5): 1. enemy-phase composition
+>   (PT-F6 + PT-D4), 2. **DEF-5 naval urgency upgraded** — Spain besieged LONDON on turn 5;
+>   the Channel walks both ways, 3. PT-F1, 4. the D1 conjunction (long-campaign vehicle),
+>   5. diorama taxonomy, 6. letter-book labels.
+> - The pin-20 E+F **visual** half stays on the user's open list (this session verified the
+>   payloads over HTTP — foreign_wars shape, casus-belli field, instrument chips with live
+>   prices, beats in the dispatch stream — not the pixels).
+>
 > ### ▶ WHAT'S NEXT (as of August 1, 2026 — end of the AI Intent Stage G session)
 >
 > **THE AI INTENT PHASE IS CLOSED.** Stage G (AI-V, "The Reckoning") ran August 1, 2026 —
