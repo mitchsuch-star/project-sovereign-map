@@ -2129,6 +2129,23 @@ def build_incoming_settlement_offer_popup(
         amount=str(amount or 0),
     )
 
+    # AI-5c (§12.5): a MEDIATED offer names the arbiter and its interest —
+    # the Courier contract. The mediator's line leads; Talleyrand appends
+    # the honest read on what refusing a great power's good offices costs.
+    mediator = str(offer.get("mediator") or "")
+    if mediator:
+        from backend.display_names import humanize_entity_name
+        mediator_display = humanize_entity_name(mediator)
+        interest = str(offer.get("mediator_interest") or
+                       "the balance of Europe")
+        proposer_voice = (
+            f"Under the good offices of {mediator_display} — whose court "
+            f"pursues {interest} — the following terms are laid before "
+            f"you. {proposer_voice}")
+        talleyrand_voice = (
+            f"{talleyrand_voice} Mark this, Sire: {mediator_display} "
+            f"mediates, and an arbiter scorned remembers it.")
+
     # May 24, 2026 audit punch list Tier 3 P2: every non-gold clause is
     # rendered with structured copy so a region cession, forced alliance,
     # vassalage, subjugation, liberation, or recurring-gold offer cannot
@@ -2254,6 +2271,10 @@ def build_incoming_settlement_offer_popup(
         "options": options,
         "available_action_ids": [opt["action"] for opt in options],
     }
+    if mediator:
+        payload["mediator"] = mediator
+        payload["mediator_interest"] = str(
+            offer.get("mediator_interest") or "")
     # W6-0 (BUG-CA-7): popups regenerated from a mounted dialogue carry the
     # dialogue's identity so the client answers the offer it actually saw.
     if offer.get("dialogue_id") is not None:
@@ -2408,6 +2429,20 @@ def handle_incoming_settlement_offer_action(
         _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
         if _is_offer_active_dialogue(world, dialogue):
             world.dialogue_manager.pop()
+        # AI-5c (§12.5): refusing a MEDIATED offer scorns the arbiter, not
+        # only the belligerent — derived consequence ONLY: the pin-8
+        # refusal record (which the mediator's own intent weight reads,
+        # expiring with the record's memory window) plus a relations
+        # chill. No new threat namespace, no auto-join.
+        mediator = str(dialogue.get("mediator") or "")
+        if mediator:
+            from backend.game_logic.ai_diplomacy import (
+                MEDIATION_REFUSED_RELATIONS,
+                record_diplomatic_refusal,
+            )
+            record_diplomatic_refusal(world, mediator, actor, "mediation")
+            world.modify_nation_relation(
+                actor, mediator, MEDIATION_REFUSED_RELATIONS)
         ally_petitions = queue_ally_settlement_petitions_for_player_action(
             world,
             trigger_action="reject_settlement_offer",
@@ -2705,6 +2740,19 @@ def handle_incoming_settlement_offer_action(
         # choose-from-war-detail when both are missing).
         result["error_display"] = result.get("error_display") or _error_display(str(result.get("error") or "invalid_war_id"))
         result.update(_safe_reopen_response(world, war_id=war_id, dialogue=dialogue))
+    elif str(dialogue.get("mediator") or ""):
+        # AI-5c (§12.5): the good offices ACCEPTED — the mediator is
+        # credited at the moment the review opens (relations), and the
+        # design satisfaction the peace itself serves is derived. One
+        # credit per offer: the review's own confirm/abort never re-runs
+        # this arm because the staged dialogue is a settlement_confirm.
+        from backend.game_logic.ai_diplomacy import (
+            MEDIATION_CREDIT_RELATIONS,
+        )
+        mediator = str(dialogue.get("mediator") or "")
+        world.modify_nation_relation(
+            actor, mediator, MEDIATION_CREDIT_RELATIONS)
+        result["mediator"] = mediator
     return result
 
 

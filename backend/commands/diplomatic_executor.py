@@ -6061,6 +6061,39 @@ class DiplomaticExecutor:
             }
             return {"success": True, "message": message}
 
+        # AI-5 (§4.5, the vassalage on-ramp): accepting a minor's OFFERED
+        # crown creates the vassal through the same treaty seam the
+        # player's own `make_vassal` uses — voluntary submission seeds
+        # loyalty 80 (60 + generosity 2×10; it CHOSE this). No dialogue
+        # survives; the outcome is a result popup (the PL-14 rule).
+        if proposal_type == "offer_vassalage":
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import proposal_display_name
+            from backend.game_logic.vassal import create_vassal_treaty
+            outcome = create_vassal_treaty(
+                world, world.player_nation, source_nation,
+                generosity_bonus=2)
+            if outcome.get("success"):
+                message = (f"{source_nation} kneels, Sire — its crown "
+                           f"now answers to Paris.")
+                result_outcome = "ACCEPT"
+                feedback = str(outcome.get("message", ""))
+            else:
+                message = (f"The submission could not be sealed, Sire. "
+                           f"{outcome.get('message', '')}")
+                result_outcome = "REJECT"
+                feedback = str(outcome.get("message", ""))
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name("offer_vassalage"),
+                "outcome": result_outcome,
+                "message": message,
+                "feedback": feedback,
+            }
+            return {"success": True, "message": message}
+
         # Check for conflicting alliances (§5b.3) — only on first pass
         # (conflict_alert dialogue type means we already showed the warning)
         if (dialogue.get("type") != "conflict_alert"

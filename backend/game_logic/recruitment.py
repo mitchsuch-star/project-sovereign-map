@@ -235,14 +235,29 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
 
 # ═══════════════════════ AI RUNG (GR5) ════════════════════════════════════
 
+def _preparing_for_design(world, nation: str) -> bool:
+    """AI-5 (§4.5, the recruitment wire): a court that has climbed its
+    intent ladder to `coerce` or beyond is PREPARING — the war it is
+    pricing needs officers before it needs a declaration. A pure per-turn
+    reading off the intent chokepoint (never a latch): the moment the
+    design cools below coerce, peacetime thrift returns. Local import —
+    intent reads nothing from this module, so no cycle exists."""
+    from backend.game_logic.intent import get_nation_intent, rung_index
+    view = get_nation_intent(nation, world)
+    return rung_index(view.price) >= rung_index("coerce")
+
+
 def find_ai_commission(world, nation: str, treasury: int) -> Optional[Dict]:
     """The enemy AI's admin-phase rung: commission the FIRST authored
-    candidate when at war, under-officered, and solvent (pool order is the
-    authored quality order). Returns an action dict or None."""
+    candidate when at war — or preparing a design at `coerce`+ (AI-5:
+    Prussia calls up Blücher BEFORE Jena, not after) — under-officered,
+    and solvent (pool order is the authored quality order). Returns an
+    action dict or None."""
     pool = get_marshal_pool(world, nation)
     if not pool:
         return None
-    if not world.get_nations_at_war_with(nation):
+    if (not world.get_nations_at_war_with(nation)
+            and not _preparing_for_design(world, nation)):
         return None
     if _standing_count(world, nation) >= AI_RECRUIT_MAX_STANDING:
         return None

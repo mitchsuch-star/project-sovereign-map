@@ -275,13 +275,22 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     )
     if not plan:
         return None
-    settlement_ratify._apply_settlement_terms(
+    applied_clauses = settlement_ratify._apply_settlement_terms(
         world, settlement_terms=terms, war_id=war_id,
         settlement_route_id=f"third_party:{war_id}:{turn}",
     )
     settlement_ratify._resolve_pair_state_transitions(world, plan, terms)
     settlement_ratify._record_common_peace_treaties(
         world, plan=plan, settlement_terms=terms)
+    # AI-5b(i) (§3.6): an AI-dictated peace that strips the loser leaves
+    # the same durable punitive record the player's table does — Prussia
+    # remembers Vienna's Diktat exactly as it would remember Paris's.
+    # APPLIED clauses, never the ask (the apply may skip a clause).
+    from backend.game_logic.emergent_designs import (
+        collect_cessions_from_clauses, record_punitive_cessions,
+    )
+    record_punitive_cessions(
+        world, collect_cessions_from_clauses(applied_clauses))
     world.invalidate_war_instance_indexes()
     world.invalidate_bloc_members_cache()
     world.invalidate_active_nations_cache()

@@ -102,6 +102,25 @@ AI_SPONSORSHIPS_PER_TURN = 1      # narration budget: one new patron per turn
 ALLEGIANCE_AUCTION_WINDOW = 3     # turns between the announcement and the flip
 AUCTION_SPONSORSHIP_LEAN_DIVISOR = 10  # 10g/turn of standing patronage = 1 lean point
 
+# ═══════ AI-5 (Stage E, AI_INTENT_SPEC §4.5 + §3.6 + §12.5) ═══════
+# Blessed numbers, in-band tunable; structure escalates.
+#
+# The vassalage on-ramp: a bandwagoning minor whose upgrade ladder is
+# EXHAUSTED (already at ALLIANCE with the hegemon) offers its crown —
+# the Confederation of the Rhine, 1806, chosen rather than imposed.
+VASSAL_ONRAMP_RELATION = 40       # a crown is not surrendered at relation 5
+OFFER_VASSALAGE_COOLDOWN_TURNS = 12   # per-nation, set at ISSUE (lapse-safe)
+# The volte-face courier (AI-5b(ii)): the beaten-then-courted great power
+# proposes the reversal itself, naming the design it would advance to.
+VOLTE_FACE_OFFER_COOLDOWN_TURNS = 12  # per-nation, set at ISSUE
+# The Arbiter's Offer (AI-5c, §12.5): armed mediation of a French war by
+# a non-belligerent contain/arbiter court, above an exhaustion floor.
+MEDIATION_WE_FLOOR = 60           # either belligerent this weary invites offices
+MEDIATION_COOLDOWN_TURNS = 10     # per-mediator, set at ISSUE
+MEDIATION_CREDIT_RELATIONS = 8    # accepting the offices warms France<->mediator
+MEDIATION_REFUSED_RELATIONS = -8  # scorning them cools the pair (the record
+                                  # itself feeds the intent weight surge)
+
 # Per-nation desire table for counter-offers (§9b)
 # Ordered by preference (most desired first).
 #
@@ -1168,10 +1187,14 @@ def _ultimatum_demandable_regions(nation: str, world) -> List[str]:
 def _generate_agenda_ultimatum(nation: str, world) -> Optional[Dict]:
     """NA-5 §8 (R162): the ultimatum rung body — the caller has already
     established at-peace and relation < 0. The remaining gates (each one
-    falsified in test_nation_agendas_ultimatums.py): per-nation 15-turn
-    cooldown clear, no live ultimatum anywhere, outside the player's bloc,
-    an active acquire design with a player-held unmet target, and fog-free
-    national strength >= AI_ULTIMATUM_STRENGTH_RATIO x the player's.
+    falsified in test_nation_agendas_ultimatums.py): the court stands at
+    `coerce` on ITS OWN ladder with the player as the obstacle (AI-5 §4.5 —
+    the ultimatum is the coerce RUNG, not a terminal gesture: a court that
+    is not prepared to pay coercion's price does not bluff it), per-nation
+    15-turn cooldown clear, no live ultimatum anywhere, outside the
+    player's bloc, an active acquire design with a player-held unmet
+    target, and fog-free national strength >= AI_ULTIMATUM_STRENGTH_RATIO
+    x the player's.
 
     Building Blocks: terms via the player's own generate_ultimatum_terms
     with the direction inverted (issuer=the AI court, target=the player)
@@ -1183,6 +1206,18 @@ def _generate_agenda_ultimatum(nation: str, world) -> Optional[Dict]:
     from backend.game_logic.diplomatic_templates import generate_ultimatum_terms
 
     player = getattr(world, "player_nation", "France")
+
+    # AI-5 (§4.5): NA-5 re-homed as the ladder's coerce rung. The court
+    # must have CLIMBED to coerce — weight >= the coerce floor, against
+    # the player — before an ultimatum leaves the chancery. Yielding then
+    # satisfies the design and the rung falls (§3.1a descent, derived);
+    # historically exact: Potsdam's ultimatum came when France was
+    # stretched across two fronts, not on a quiet morning.
+    from backend.game_logic.intent import get_nation_intent, rung_index
+    intent_view = get_nation_intent(nation, world)
+    if (intent_view.against != player
+            or rung_index(intent_view.price) < rung_index("coerce")):
+        return None
 
     cooldowns = _get_cooldowns(world)
     if cooldowns.get(f"{nation}|ultimatum", 0) > 0:
@@ -1363,6 +1398,53 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
                 proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
+    # ── P-VolteFace (AI-5b(ii), §3.6-4): the beaten-then-courted great
+    # power proposes the reversal ITSELF — St. Petersburg's envoy, beaten
+    # at Austerlitz and courted since, proposes partnership and asks what
+    # France would say to a Russian design on Finland. Sited ABOVE
+    # P-Intent and P3 for the same reason P-Intent outranks P3: at the
+    # standing boot threat (85) a shelter-ask-first ordering would
+    # silence the phase's rarest beat forever. The offer is a plain
+    # `alliance` proposal (the existing accept path mints it and the
+    # ratify relation gate can never refuse it — eligibility requires
+    # the same floor), so beat 5 fires at the ratify chokepoint. ──
+    if proposal is None and not is_at_war:
+        from backend.game_logic.emergent_designs import (
+            _next_design_after_contain,
+            volte_face_receptive,
+        )
+        cooldowns = _get_cooldowns(world)
+        if (cooldowns.get(f"{nation}|volte_face", 0) <= 0
+                and volte_face_receptive(world, nation, player)
+                and not _is_on_cooldown(nation, "alliance", world,
+                                        war_score)):
+            terms = _build_proposal_terms(nation, "alliance", 0, world,
+                                          gold_mult=gold_mult)
+            proposal = _make_proposal(nation, "alliance", 8, terms, world)
+            if proposal is not None:
+                # The reversal is the point; the stock acceptance model
+                # cannot price an astonishment. Refusal stays a real
+                # choice — force only the SEND.
+                proposal["_force_send"] = True
+                proposal["decision_reason"] = "volte_face"
+                next_design = _next_design_after_contain(world, nation)
+                next_title = str((next_design or {}).get("title") or "")
+                from backend.display_names import humanize_entity_name
+                nation_display = humanize_entity_name(nation)
+                assessment = (
+                    f"Sire — {nation_display} was beaten, and we courted "
+                    f"her rather than broke her. This is the return on "
+                    f"that generosity: the reversal of a great power in "
+                    f"one signing.")
+                if next_title:
+                    assessment += (
+                        f" Her court asks what France would say to "
+                        f"{next_title} — aimed away from us.")
+                proposal["talleyrand_assessment"] = assessment
+                cooldowns[f"{nation}|volte_face"] = int(
+                    VOLTE_FACE_OFFER_COOLDOWN_TURNS)
+                _set_cooldowns(world, cooldowns)
+
     # ── P-Intent (AI-2, §4.2): the peacetime pursuit rung — BEFORE P3,
     # because §4.2's core claim is that a court with a live design fires
     # on WHAT IT IS TRYING TO ACHIEVE, not on the France-threat scalar
@@ -1482,6 +1564,47 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                     terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
                     proposal = _make_proposal(nation, ptype, 9, terms, world)
             elif (
+                # AI-5 (§4.5): THE VASSALAGE ON-RAMP. `already_in_hegemon
+                # _bloc` above means allied — the upgrade ladder is
+                # exhausted, and a minor whose OWN ladder reads
+                # `bandwagon` takes the last step and offers its crown.
+                # The Confederation of the Rhine, chosen not imposed.
+                # Arrives as a refusable OFFER (the auction rule);
+                # honest-availability: never offered when the power cap
+                # would refuse the acceptance.
+                hegemon == player
+                and already_in_hegemon_bloc
+                and world.get_diplomatic_state(nation, player) == "ALLIANCE"
+                and is_minor_or_secondary
+                and nation not in (getattr(world, "vassals", {}) or {})
+                and relation >= VASSAL_ONRAMP_RELATION
+            ):
+                from backend.game_logic.intent import get_nation_intent
+                cooldowns = _get_cooldowns(world)
+                if (get_nation_intent(nation, world).price == "bandwagon"
+                        and cooldowns.get(
+                            f"{nation}|offer_vassalage", 0) <= 0):
+                    from backend.game_logic.diplomacy import (
+                        check_vassalage_power_cap,
+                    )
+                    if check_vassalage_power_cap(
+                            world, player, nation)["allowed"]:
+                        terms = {
+                            "type": "offer_vassalage",
+                            "proposer_nation": nation,
+                            "target_nation": player,
+                            "demands": [],
+                            "sweeteners": [],
+                        }
+                        proposal = _make_proposal(
+                            nation, "offer_vassalage", 9, terms, world)
+                        if proposal is not None:
+                            proposal["_force_send"] = True
+                            proposal["decision_reason"] = "bandwagon_submission"
+                            cooldowns[f"{nation}|offer_vassalage"] = int(
+                                OFFER_VASSALAGE_COOLDOWN_TURNS)
+                            _set_cooldowns(world, cooldowns)
+            elif (
                 # AI-2 (§3.1): the rung widened to ANY hegemon and driven
                 # from INTENT — a court whose own ladder reads `bandwagon`
                 # serves the strong for payment. The recipient-addressed
@@ -1516,6 +1639,49 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                             recipient=hegemon)
                         proposal = _make_proposal(nation, ptype, 9, terms,
                                                   world, recipient=hegemon)
+            elif (
+                # AI-5 (§4.5): the on-ramp's AI-AI mirror — a minor
+                # ALREADY ALLIED to an AI hegemon (so the arm above,
+                # which serves the un-allied, never sees it) whose own
+                # ladder reads `bandwagon` submits directly (the
+                # auction's AI-win idiom: ratified in place, announced
+                # by the vassal machinery's own always-visible
+                # dispatch). Same floors as the player-facing arm.
+                hegemon is not None
+                and hegemon != player
+                and hegemon != nation
+                and _hegemony_signal_band(share) >= 2
+                and already_in_hegemon_bloc
+                and world.get_diplomatic_state(nation, hegemon) == "ALLIANCE"
+                and is_minor_or_secondary
+                and nation not in (getattr(world, "vassals", {}) or {})
+                and not world.is_at_war(nation, hegemon)
+            ):
+                from backend.game_logic.intent import get_nation_intent
+                relation_h = int(world.nation_relations.get(
+                    world._make_diplo_key(nation, hegemon), 0) or 0)
+                cooldowns = _get_cooldowns(world)
+                if (get_nation_intent(nation, world).price == "bandwagon"
+                        and relation_h >= VASSAL_ONRAMP_RELATION
+                        and cooldowns.get(
+                            f"{nation}|offer_vassalage", 0) <= 0):
+                    # The same WPS-B pre-check the player-facing arm
+                    # runs: a cap-blocked submission is skipped WITHOUT
+                    # burning the cooldown (armies shift; the crown may
+                    # be acceptable next season).
+                    from backend.game_logic.diplomacy import (
+                        check_vassalage_power_cap,
+                    )
+                    if check_vassalage_power_cap(
+                            world, hegemon, nation)["allowed"]:
+                        cooldowns[f"{nation}|offer_vassalage"] = int(
+                            OFFER_VASSALAGE_COOLDOWN_TURNS)
+                        _set_cooldowns(world, cooldowns)
+                        from backend.game_logic.vassal import (
+                            create_vassal_treaty,
+                        )
+                        create_vassal_treaty(
+                            world, hegemon, nation, generosity_bonus=2)
         except Exception as exc:
             from backend.utils.debug import debug_print
             debug_print(
@@ -3328,11 +3494,13 @@ def _emit_settlement_offer_for_war(
     pending: List[Dict],
     cooldowns: Dict[str, int],
     requested_by_player: bool = False,
+    mediator: str = "",
 ) -> Dict:
     """Author one incoming settlement offer for an already-vetted war.
 
-    Shared by the periodic producer scan and the SC-30 request-terms
-    grant path (Building Blocks: a granted request produces its offer
+    Shared by the periodic producer scan, the SC-30 request-terms grant
+    path, and the AI-5c mediation producer (Building Blocks: a granted
+    request — or an arbiter's brokered terms — produces its offer
     through the SAME emission, tagged with provenance)."""
     side_by_nation = war.get("side_by_nation") or {}
     player_side = side_by_nation.get(player)
@@ -3384,6 +3552,16 @@ def _emit_settlement_offer_for_war(
     }
     if requested_by_player:
         offer["requested_by_player"] = True
+    if mediator:
+        # AI-5c (§12.5): the Arbiter's Offer — the terms arrive under a
+        # third court's good offices, its interest NAMED (the Courier
+        # contract). Display-only provenance; accept/decline/revise run
+        # the identical machinery.
+        offer["mediator"] = str(mediator)
+        from backend.game_logic.agendas import get_active_agenda
+        view = get_active_agenda(mediator, world)
+        offer["mediator_interest"] = str(
+            getattr(view, "title", "") or "the balance of Europe")
     pending.append(offer)
     cooldowns[str(war_id)] = current_turn + SETTLEMENT_OFFER_COOLDOWN_TURNS
     return offer
@@ -3622,4 +3800,110 @@ def process_settlement_offer_phase(world) -> List[Dict]:
             pending=pending, cooldowns=cooldowns,
         ))
 
+    return produced
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI-5c — THE ARBITER'S OFFER (AI_INTENT_SPEC §12.5, Stage E)
+# ═══════════════════════════════════════════════════════════════
+
+def _find_mediator(world, war: Dict, player: str) -> str:
+    """A non-belligerent MAJOR with a live contain/arbiter design, outside
+    the war, not a vassal, its mediation cooldown clear. Deterministic:
+    first eligible in name order. Empty string when nobody qualifies —
+    which is every ambient 1805 boot state, since all three contain-class
+    courts open the campaign as belligerents.
+
+    LIVE participants only: a court that separate-peaced OUT of this war
+    (exited_turn stamped) is precisely the historical mediator — Tilsit
+    Russia offering its offices over the residual war. Its general
+    non-belligerency is still enforced below."""
+    from backend.game_logic.agendas import _has_belligerency, get_active_agenda
+    meta_map = war.get("participant_meta") or {}
+    exited = {n for n, meta in meta_map.items()
+              if isinstance(meta, dict) and meta.get("exited_turn")}
+    participants = set((war.get("side_by_nation") or {}).keys())
+    for nation, meta in meta_map.items():
+        if isinstance(meta, dict) and meta.get("side"):
+            participants.add(nation)
+    participants -= exited
+    vassals = getattr(world, "vassals", {}) or {}
+    cooldowns = _get_cooldowns(world)
+    for nation in sorted(world.get_active_nations()):
+        if nation == player or nation in participants or nation in vassals:
+            continue
+        if world.get_power_tier(nation) != "major":
+            continue
+        view = get_active_agenda(nation, world)
+        if view is None or view.survival or view.type != "contain_hegemon":
+            continue
+        if _has_belligerency(world, nation):
+            continue  # an armistice is a paused war, not neutrality
+        if cooldowns.get(f"{nation}|mediation", 0) > 0:
+            continue
+        return nation
+    return ""
+
+
+def process_mediation_offers(world) -> List[Dict]:
+    """AI-5c §12.5 — armed mediation: a non-belligerent contain/arbiter
+    major offers to mediate a FRENCH war above the exhaustion floor. The
+    brokered terms ride the EXISTING incoming-settlement machinery
+    (`_emit_settlement_offer_for_war` with mediator provenance) — accept
+    opens the same settlement review, credited; refusal writes the pin-8
+    refusal record the mediator's own intent weight then reads (derived
+    consequence only: no new threat namespace, no auto-join). Russia's
+    1806 feelers; Metternich's armed mediation of 1813.
+
+    At most ONE mediation world-wide per turn; the mediator's cooldown is
+    set at ISSUE (lapse-safe, the NA-5 idiom). AI-vs-AI mediation is
+    deferred to the exit review — the player-facing half is the fun half.
+    """
+    player = getattr(world, "player_nation", "France")
+    current_turn = int(getattr(world, "current_turn", 0))
+    war_instances = getattr(world, "war_instances", None) or {}
+    if not war_instances:
+        return []
+    if not (getattr(world, "agendas", {}) or {}):
+        return []  # deckless worlds have no arbiters (pin 18)
+    pending = getattr(world, "pending_settlement_dialogues", None)
+    if pending is None:
+        pending = []
+        world.pending_settlement_dialogues = pending
+    cooldowns = getattr(world, "ai_settlement_cooldowns", None)
+    if cooldowns is None:
+        cooldowns = {}
+        world.ai_settlement_cooldowns = cooldowns
+
+    exhaustion = getattr(world, "war_exhaustion", {}) or {}
+    produced: List[Dict] = []
+    for war_id in sorted(war_instances.keys()):
+        war = war_instances[war_id]
+        if not isinstance(war, dict):
+            continue
+        if _settlement_offer_eligible_for_war(
+                world, war, player=player, current_turn=current_turn,
+        ) is not None:
+            continue
+        side_by_nation = war.get("side_by_nation") or {}
+        leader = _settlement_offer_opposing_side_leader(
+            war, player_side=side_by_nation.get(player))
+        weariest = max(int(exhaustion.get(player, 0) or 0),
+                       int(exhaustion.get(leader, 0) or 0) if leader else 0)
+        if weariest < MEDIATION_WE_FLOOR:
+            continue  # nobody is bleeding enough to want offices
+        mediator = _find_mediator(world, war, player)
+        if not mediator:
+            continue
+        proposal_cooldowns = _get_cooldowns(world)
+        proposal_cooldowns[f"{mediator}|mediation"] = int(
+            MEDIATION_COOLDOWN_TURNS)
+        _set_cooldowns(world, proposal_cooldowns)
+        produced.append(_emit_settlement_offer_for_war(
+            world, str(war_id), war,
+            player=player, current_turn=current_turn,
+            pending=pending, cooldowns=cooldowns,
+            mediator=mediator,
+        ))
+        break  # one arbiter speaks at a time, world-wide
     return produced

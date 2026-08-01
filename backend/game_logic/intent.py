@@ -93,6 +93,11 @@ HOLDER_EXHAUSTION_BAND = 100         # N5: WE floor for the read
 WEIGHT_OWN_REAR_QUIET = 6            # N6: a safe rear invites adventure
 REAR_QUIET_FRACTION = 0.20           # N6: reserve below 20% of standing
 WEIGHT_SURVIVAL = 95
+# AI-5c (§12.5): the hegemon REFUSED this court's offered mediation —
+# the arbiter scorned hardens. Derived from the pin-8 refusal record,
+# so it expires with that record's 12-turn memory window: refusing the
+# good offices is the ramp toward the next coalition, by machinery.
+WEIGHT_MEDIATION_REBUFFED = 6
 INTENT_WEIGHT_JITTER = 8             # §3.8 amplitude, ramps in over turns
 
 # weight -> rung thresholds (highest rung whose floor is met).
@@ -363,6 +368,16 @@ def _derive_weight(nation: str, agenda: AgendaView,
         # the may-skip-rungs casus belli).
         if has_renege_grievance(world, nation, against):
             weight += WEIGHT_RENEGED_BARGAIN
+        # AI-5c (§12.5): scorned good offices. A contain/arbiter court
+        # whose offered mediation `against` refused reads the refusal
+        # record (pin 8) and hardens — fully derived, expiring with the
+        # record's own memory window. Local import: the war_council
+        # idiom (ai_diplomacy imports intent function-locally too).
+        if agenda.type == "contain_hegemon":
+            from backend.game_logic.ai_diplomacy import get_refused_asks
+            if any(e.get("type") == "mediation"
+                   for e in get_refused_asks(world, nation, against)):
+                weight += WEIGHT_MEDIATION_REBUFFED
         # AI-3r §2.2 — the moment. All four are per-turn readings that
         # decay the moment the world improves for the holder (§3.1a).
         if _holder_allies_committed(nation, against, world):

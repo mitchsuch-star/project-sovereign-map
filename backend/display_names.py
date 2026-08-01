@@ -225,6 +225,9 @@ PROPOSAL_TYPE_DISPLAY = {
     # labels; the terms type underneath is a legal treaty state)
     "design_purchase": "Treaty of Cession",
     "sell_neutrality": "Purchase of Neutrality",
+    # AI-5 (§4.5): a bandwagoning minor offers its own crown — the
+    # Confederation of the Rhine step, chosen rather than imposed.
+    "offer_vassalage": "Offer of Submission",
 }
 
 CLAUSE_TYPE_DISPLAY = {

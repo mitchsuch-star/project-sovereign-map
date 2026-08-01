@@ -65,9 +65,20 @@ def world(world1805):
 
 def _make_ultimatum_ready(world, nation="Prussia", region="Hanover"):
     """Arrange every §8 gate to hold for `nation` over `region`:
-    peace everywhere (disables the P1/P2/P7/P8 masks), threat 0 (disables
+    peace everywhere (disables the P1/P2/P8 masks), threat 0 (disables
     the P3 shelter rung), the design target in the player's DIRECT hands,
-    hostile relation, and a fog-free strength ratio above the gate."""
+    hostile relation, and a fog-free strength ratio above the gate.
+
+    Stage E (AI-5, §4.5): the ultimatum is now the ladder's COERCE rung —
+    the issuer must have CLIMBED there (weight >= 72 against the player).
+    The fixture arranges the climb from the real derivation, telling the
+    true story of every historical ultimatum of the period: relation COLD
+    (-45, +8), France busy in ONE other war (+6 opportunism — one war, so
+    the legacy P7 rung at >=2 stays quiet), France's armies weary
+    (war_exhaustion 120, +5). Base 55 + 19 = 74 >= the coerce floor;
+    jitter is 0 on the suite's pinned historical seed. Potsdam, November
+    1805: the demand came when Napoleon was stretched, not on a quiet
+    morning."""
     for other in list(world.get_active_nations()):
         if other == world.player_nation:
             continue
@@ -78,7 +89,14 @@ def _make_ultimatum_ready(world, nation="Prussia", region="Hanover"):
     world.threat_level = 0
     world.regions[region].controller = world.player_nation
     world.invalidate_active_nations_cache()
-    world.nation_relations[world._make_diplo_key(world.player_nation, nation)] = -20
+    world.nation_relations[world._make_diplo_key(world.player_nation, nation)] = -45
+    # The coerce climb: one French war (holder-busy +6, below P7's >=2
+    # gate) and a weary France (+5). Britain is never the issuer here.
+    war_key = world._make_diplo_key(world.player_nation, "Britain")
+    world.diplomatic_states[war_key] = "WAR"
+    world.war_start_turns[war_key] = int(world.current_turn)
+    world.war_exhaustion[world.player_nation] = 120
+    world.invalidate_bloc_members_cache()
     for m in world.marshals.values():
         if m.nation == world.player_nation:
             m.strength = 2000
@@ -87,6 +105,15 @@ def _make_ultimatum_ready(world, nation="Prussia", region="Hanover"):
     assert _national_strength(nation, world) >= (
         _national_strength(world.player_nation, world) * AI_ULTIMATUM_STRENGTH_RATIO
     ), "fixture must clear the strength gate"
+    if (world.agendas or {}).get(nation):
+        # Deckless issuers (the Spain case) CANNOT climb — that absence
+        # is itself a pinned gate below, so the sanity check is deck-only.
+        from backend.game_logic.intent import get_nation_intent, rung_index
+        view = get_nation_intent(nation, world)
+        assert view.against == world.player_nation, (
+            "fixture must leave the player as the design obstacle")
+        assert rung_index(view.price) >= rung_index("coerce"), (
+            f"fixture must put {nation} at coerce (weight {view.weight})")
     return world
 
 

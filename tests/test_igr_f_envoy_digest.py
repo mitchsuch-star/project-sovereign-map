@@ -798,7 +798,7 @@ class TestUntouched:
     def test_no_new_campaign_log_type(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
 
-        assert len(CAMPAIGN_LOG_TYPES) == 140
+        assert len(CAMPAIGN_LOG_TYPES) == 142
 
     def test_no_new_dialogue_type(self):
         assert "envoy_digest" not in DialogueManager.DIALOGUE_PRIORITY

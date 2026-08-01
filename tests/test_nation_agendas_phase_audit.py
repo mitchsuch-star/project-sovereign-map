@@ -374,8 +374,18 @@ class TestVoidUltimatum:
         world.threat_level = 0
         world.regions["Hanover"].controller = world.player_nation
         world.invalidate_active_nations_cache()
+        # Stage E (AI-5): NA-5 is the ladder's COERCE rung — arrange the
+        # climb from the real derivation (the test_nation_agendas_
+        # ultimatums fixture arithmetic): relation cold (-45, +8), France
+        # busy in ONE other war (+6; below P7's >=2 gate), France weary
+        # (WE 120, +5) — 55 + 19 = 74 >= the coerce floor.
         world.nation_relations[
-            world._make_diplo_key(world.player_nation, self.ISSUER)] = -20
+            world._make_diplo_key(world.player_nation, self.ISSUER)] = -45
+        war_key = world._make_diplo_key(world.player_nation, "Britain")
+        world.diplomatic_states[war_key] = "WAR"
+        world.war_start_turns[war_key] = int(world.current_turn)
+        world.war_exhaustion[world.player_nation] = 120
+        world.invalidate_bloc_members_cache()
         for m in world.marshals.values():
             if m.nation == world.player_nation:
                 m.strength = 2000

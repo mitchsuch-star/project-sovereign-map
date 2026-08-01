@@ -7753,6 +7753,12 @@ class WorldState:
         # every surface is emitted inside the poll (this call site has no
         # event channel; `_last_tactical_events` froze further up).
         process_formations(self)
+        # AI-5b(i): grievance→design promotion runs BEFORE the shift poll
+        # for the same reason — a design promoted this tick that also
+        # ACTIVATES this tick (no survival override standing) announces
+        # its activation on the same turn's shift beat.
+        from backend.game_logic.emergent_designs import process_emergent_designs
+        process_emergent_designs(self)
         process_agenda_shifts(self)
 
         # ════════════════════════════════════════════════════════════
@@ -8704,6 +8710,15 @@ class WorldState:
                 )
                 applied_treaty_clauses.append(clause.copy())
 
+        # AI-5b(i) (§3.6): a bilateral treaty that strips a court leaves
+        # the durable punitive record too — the ultimatum-tribute path and
+        # the harsh peace both run through here. APPLIED clauses only.
+        from backend.game_logic.emergent_designs import (
+            collect_cessions_from_clauses, record_punitive_cessions,
+        )
+        record_punitive_cessions(
+            self, collect_cessions_from_clauses(applied_treaty_clauses))
+
         # R81: Check for elimination after territory cessions
         ceded_from = set()
         for clause in treaty_clauses:
@@ -8802,6 +8817,17 @@ class WorldState:
                     "projected_threat_delta": fa_threat_delta,
                     "turn": int(self.current_turn),
                 })
+
+        # AI-5b(ii) beat 5 — THE VOLTE-FACE: an ALLIANCE just landed on
+        # this pair; if either party was a beaten-then-courted great power
+        # toward the other, the reversal is announced (§3.6-4, Tilsit).
+        # A FORCED alliance never fires — its relations were reset to 0,
+        # below the receptive floor (humiliation is the other door).
+        if final_state == "ALLIANCE":
+            from backend.game_logic.emergent_designs import (
+                maybe_fire_volte_face,
+            )
+            maybe_fire_volte_face(self, proposer, target_nation)
 
         # ═══ Player-specific events ═══
         if is_player_treaty:

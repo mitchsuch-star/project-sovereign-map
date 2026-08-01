@@ -1,9 +1,9 @@
 # AI Intent — Phase Spec (v1.4 — gate record · phased build plan · the four review passes)
 
 > **Status: DESIGN GATE HELD July 20, 2026 — §6 (D1–D7) is authoritative and has survived every
-> subsequent pass untouched. Stages A–D are BUILT** (§14 A+B · §15 C · §17 D, each authoritative);
-> the D6 re-check between Stage C and Stage D was **held July 24, 2026 — gate record §16**.
-> Remaining: Stage E (consequence & character) → F (the stage) → G (AI-V), per §11.
+> subsequent pass untouched. Stages A–E are BUILT** (§14 A+B · §15 C · §17 D · §18 E, each
+> authoritative); the D6 re-check between Stage C and Stage D was **held July 24, 2026 — gate
+> record §16**. Remaining: Stage F (the stage) → G (AI-V), per §11.
 >
 > **How to read this document.**
 > - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
@@ -2843,3 +2843,206 @@ fixed in the same session:
 
 Post-fix gates: suite **14,831/3**, ruff clean, M1–M7 byte-identical, the 40-turn baseline
 re-recorded consciously (§ above), no new `.gd` touches this round.
+
+---
+
+## 18. Landing record — Stage E, "Consequence and Character" *(July 31, 2026; authoritative)*
+
+**Built and landed in one session under the user's standing direction ("do next step of project
+code and commit and push"). The whole §11.1 Stage E row shipped — including both slip
+candidates:** AI-5 (all six §4.5 wires) · AI-5b(i) emergent designs (Core) · **AI-5b(ii) the
+volte-face (slip 3 — NOT slipped)** · **AI-5c the Arbiter's Offer (kept per §16.1-3)**. Beat 5
+exists and fires under the harness, so the §11.1 exit line's "or its written predicate" arm was
+never needed. Zero new serialized fields anywhere in the stage; zero `.gd` touches (every beat
+rides an existing transport — pin 20's live pass stays with Stage F, as sited).
+
+### AI-5b(i) — emergent designs (`backend/game_logic/emergent_designs.py`)
+
+- **The promotion poll** (`process_emergent_designs`, sited in `_advance_turn_internal` between
+  `process_formations` and `process_agenda_shifts` so a same-tick activation announces on the
+  existing shift beat): a non-player, non-vassal court on a Europe world promotes its grievance
+  into a REAL `acquire_regions` deck entry — id `revanche_<nation>`, title "Revanche", regions =
+  the lost homeland provinces in authored order, `emergent: True` + `author` + `promoted_turn`
+  riding `AgendaView.params`. **Front-inserted** (constraint b) into the already-serialized
+  `world.agendas` store — the entry round-trips a save with zero new fields, and every
+  downstream consumer (NA-1 legibility, NA-2 acceptance, NA-3 resolve/targeting, intent, the
+  war council) reads it for free.
+- **The §3.6 v1.3 substrate honoured exactly**: partition/capital loss DERIVED from
+  `nation_starting_regions` vs live control (the survival-override comparison, vassal-chain
+  walk); the punitive settlement gets the durable `settlement_memories` record; the broken
+  bargain reads `has_renege_grievance` (never re-stored);
+  `betrayal_history["grievance_flags"]` untouched.
+- **The trigger arms**: capital lost OR >= `EMERGENT_DESIGN_MIN_LOST` (2) homeland provinces in
+  foreign hands OR (>=1 lost AND a durable record — punitive memory, or a renege grievance
+  against a holder). Author = the punitive record's actor, else a renege-marked holder, else
+  the capital's holder, else the plurality holder. **Max ONE emergent design per nation, ever**
+  (the `emergent` key is the latch; a fresh humiliation after a satisfied revanche does not
+  re-promote — recorded bound, revisit at the exit review if play demands it). The player is
+  EXCLUDED (France's wants are the player's own choices; the §3.5 mirror is France's row; pin
+  18's deckless-player reading stays intact) and vassals are excluded while vassalized (the
+  dormant-deck doctrine — a satellite released later promotes then; pinned).
+- **Constraint (c) pinned in both halves**: promoted AT the humiliation while the survival
+  override holds the deck down; ACTIVE the turn the override clears — structural, because the
+  override sits above the deck walk.
+- **The punitive record** (`record_punitive_cessions` + `collect_cessions_from_clauses`):
+  `memory_type="punitive_settlement"`, durable (`expires_in=None`), actor = plurality receiver,
+  written at ALL THREE ratify seams from APPLIED clauses only (never the ask) —
+  `settlement_ratify.ratify_settlement_confirm`,
+  `settlement_third_party.attempt_third_party_settlement` (whose discarded
+  `_apply_settlement_terms` return is now captured), and `WorldState._ratify_treaty`. Bar:
+  capital, or >= `PUNITIVE_SETTLEMENT_MIN_PROVINCES` (2) provinces in one signing — an NA-5
+  ultimatum yield (max one region, capital never demandable) is deliberately BELOW it:
+  coercion is not partition. Vienna's Diktat is remembered exactly as Paris's.
+- **The beat**: `design_promoted` — campaign-log type (140 -> 142 with `volte_face`; five count
+  pins flipped consciously), town-crier visible (a sworn revanche is court knowledge), HIGH
+  dispatch template, one-liner "REVANCHE: {nation} swears to retake {province}...".
+- **`get_agenda_grudge_nations(world, author=None)`** — the row's (victim, author)
+  generalisation: the player-anchored default is byte-identical (the §5.8 threat contributor
+  unchanged); `agenda_concerns_player_bloc` refactored over an anchor-general body. Prussia
+  partitioned by Austria now grudges AUSTRIA, readably.
+
+### AI-5b(ii) — the volte-face (beat 5; slip 3 NOT exercised)
+
+- **`volte_face_receptive(world, power, hegemon)`** — §3.6-4's eligibility as five per-turn
+  readings of serialized state, no latch: major tier · at peace with the hegemon · BEATEN
+  (war with the hegemon ended within `VOLTE_FACE_WINDOW` 15, per-nation end read off
+  `war_instances` + the archive, and the defeat still shows — `war_exhaustion >= 40` or
+  homeland soil in the hegemon's bloc's hands, because a generous white peace leaves no soil
+  mark: Friedland's mark on Russia was the army, not the map) · **NOT HUMILIATED** (a punitive
+  memory authored by the hegemon forecloses FOREVER — durable record, generosity is the whole
+  doctrine — and so does a sworn revanche charged to them) · COURTED (relations >=
+  `VOLTE_FACE_RELATION_FLOOR` 40 — deliberately equal to the ALLIANCE ratify requirement, so
+  the courier never offers what the treaty gate would refuse).
+- **The deck-advance needs NO machinery** — the §12.2 payoff lands structurally: an ALLIANCE
+  puts the reversed power inside the hegemon's bloc, `_contain_active` reads self-in-bloc as
+  dormancy, and `get_active_agenda` walks on — `arbiter_of_europe` yields to
+  `gulf_and_straits`, pinned. If the alliance breaks, containment WAKES: Tilsit collapses into
+  1812 by the same read, unscripted.
+- **The courier** (P-VolteFace in `process_diplomatic_phase`): the beaten court proposes the
+  `alliance` ITSELF — priority 8, `_force_send` (the acceptance model cannot price an
+  astonishment; refusal stays the player's), `decision_reason="volte_face"` (its own lane,
+  never the bandwagon throttle's), Talleyrand naming the design it would advance to ("her
+  court asks what France would say to The Gulf and the Straits — aimed away from us"), 12-turn
+  issue-time cooldown. **Sequencing decision, recorded**: the rung sits ABOVE P-Intent and P3
+  — at the standing boot threat (85) a shelter-ask-first ordering would have silenced the
+  phase's rarest beat forever (caught by this slice's own tests; the P-Intent precedent's
+  reasoning, applied).
+- **Beat 5 fires at the ratify chokepoint** (`maybe_fire_volte_face` from `_ratify_treaty`
+  after any ALLIANCE lands, both directions — GR5: an AI hegemon courting its beaten rival
+  announces too): campaign log + HIGH dispatch, naming the next design. A FORCED alliance
+  never fires (its relations reset to 0, below the courted floor — humiliation is the other
+  door).
+
+### AI-5c — the Arbiter's Offer (kept, per the §16.1-3 re-check ruling)
+
+- **The producer** (`process_mediation_offers`, called beside `process_settlement_offer_phase`
+  in turn_manager): a NON-BELLIGERENT major with a live `contain_hegemon` design offers to
+  mediate a French war when either belligerent's exhaustion >= `MEDIATION_WE_FLOOR` (60). ONE
+  mediation world-wide per turn; the mediator's 10-turn cooldown is set at ISSUE (lapse-safe,
+  the NA-5 idiom). **Structurally dormant on the whole ambient 1805 board** — all three
+  contain-class courts boot as belligerents; pinned. **Ruling recorded**: a court that
+  separate-peaced OUT of the war (exited_turn stamped) IS a legitimate mediator for the
+  residual war — Tilsit Russia offering its offices — while `_has_belligerency` (armistice
+  counts) still bars any active belligerent anywhere.
+- **The transport is 100% reuse**: the offer is a standard `incoming_settlement_offer` minted
+  by the SAME `_emit_settlement_offer_for_war` (new optional `mediator` provenance), riding the
+  same pending store, promotion, mailbox, notification and popup — no new dtype, no PopupQueue
+  slot, no `.gd`. The popup names the arbiter and its interest (the §12.5 Courier contract):
+  "Under the good offices of Russia — whose court pursues Arbiter of Europe...", with
+  Talleyrand's honest cost line ("an arbiter scorned remembers it").
+- **Accept** -> the same settlement review opens (`stage_settlement_confirm` via the standard
+  accept arm), mediator credited: relations France<->mediator +`MEDIATION_CREDIT_RELATIONS`
+  (8); the design satisfaction the peace serves stays derived, as §12.5 demands.
+- **Refuse** -> DERIVED consequence only, exactly as gated: the pin-8 refusal record
+  (`record_diplomatic_refusal(mediator, player, "mediation")`) + relations
+  `MEDIATION_REFUSED_RELATIONS` (-8). **The elegance clause is now a mechanism**: intent's
+  `_derive_weight` gained `WEIGHT_MEDIATION_REBUFFED` (+6) for a contain-design court whose
+  recorded mediation the hegemon refused — the weight rise feeds the mediator's own ladder and
+  statecraft does the rest (Prague 1813 by machinery), and it EXPIRES with the refusal
+  record's 12-turn memory window. No threat write, no auto-join, pinned. A lapsed offer writes
+  nothing (lapse != rejection, the NA-5 doctrine).
+
+### AI-5 — the six §4.5 wires
+
+1. **NA formations**: PROVEN wired, end to end — an AI nation pursuing an acquisitive forming
+   design finishes it through the Stage D third-party settlement (the ratify seam's own
+   `process_formations` call proclaims the formed nation the turn its last province cedes), no
+   player brokering. Assurance test, no new code — Stage D had already closed the loop.
+2. **Vassals — the on-ramp**: a bandwagoning minor whose upgrade ladder is EXHAUSTED (already
+   at ALLIANCE with the hegemon, the rung both bandwagon arms previously fell silent at)
+   offers its crown. Player-hegemon side: a new `offer_vassalage` proposal (display "Offer of
+   Submission"; refusable, the auction rule; honest availability — the WPS-B power cap is
+   pre-checked and a capped offer is never sent; 12-turn issue cooldown; accept branch in
+   `_handle_accept_ai_proposal` runs `create_vassal_treaty(player, minor, generosity_bonus=2)`
+   -> loyalty 80, it CHOSE this — the Confederation of the Rhine, joined). AI-hegemon side:
+   its own elif (the un-allied arm structurally never sees an allied minor) submits in place
+   via the same `create_vassal_treaty`, cap pre-checked WITHOUT burning the cooldown (armies
+   shift), announced by the vassal machinery's own always-visible dispatch. Relation floor
+   `VASSAL_ONRAMP_RELATION` (40) both sides.
+3. **NA-5 as the coerce rung**: `_generate_agenda_ultimatum` now requires the issuer to have
+   CLIMBED — `intent.against == player` and `rung_index(price) >= coerce` — before an
+   ultimatum leaves the chancery, completing the §11.2 "intent starts driving it in Stage D,
+   §4.5 completes the wire in E" plan. Yield -> satisfaction -> the rung falls within one
+   derivation (§3.1a descent at this seam, pinned). **Conscious pin re-tune**: the
+   `test_nation_agendas_ultimatums` + `test_nation_agendas_phase_audit` fixtures now arrange
+   the climb from the REAL derivation — relation cold (-45), France busy in one war, France
+   weary (WE 120) -> weight 74 — which is the true story of every ultimatum of the period
+   (Potsdam, November 1805: the demand came when Napoleon was stretched, not on a quiet
+   morning). Defy's consequences unchanged (`ultimatum_rejection_pressure` stands; no
+   refusal-record write was added — nothing player-pair-scoped reads it, the war council being
+   AI-vs-AI only; recorded, not overlooked).
+4. **Recruitment**: `find_ai_commission` gains the preparing arm — at peace but at `coerce`+
+   on its own ladder, a court commissions (Prussia calls up Bluecher BEFORE Jena). Same
+   roster, treasury and pool gates; a per-turn reading, never a latch.
+5. **Jealousy (EC-M)**: the proxy finally serves a real faction —
+   `find_autonomous_attack_target` prefers an enemy standing ON the nation's own unmet design
+   provinces (`get_agenda_military_targets`) over a merely weaker one, weakest-within-band
+   otherwise (Bernadotte hunts his glory where the Emperor wants the map redrawn). Preference
+   only, never eligibility; a court with no design — including deckless player France — keeps
+   weakest-first byte-identically.
+6. **Economy**: VERIFIED landed, not rebuilt (the v1.3 note's own scoping): the sponsor
+   executor IS AI-2b's directed record (minted -> `process_instruments` pays, court to court),
+   the coalition subsidy stays `get_paymaster_nation`'s special case, and the WE->intent read
+   (AI-3r N5) is the economy talking back to the ladder — all pinned in the wiring index so
+   the §4.5 row is verifiable rather than asserted.
+
+### Conscious pin flips and recorded decisions
+
+1. Campaign-log type count 140 -> 142 (five count-pin files; `design_promoted` + `volte_face`,
+   both town-crier-visible per DPF-1).
+2. The NA-5 trigger fixtures re-tuned to the coerce climb (above) — the old -20-relation
+   quiet-France state now correctly produces NO ultimatum and is pinned as such
+   (`test_ultimatum_blocked_below_coerce`).
+3. P-VolteFace sits above P-Intent/P3 (the sequencing decision above).
+4. The mediation producer advances the mediated war's standard offer clock
+   (`SETTLEMENT_OFFER_COOLDOWN_TURNS`) — offer traffic control; a mediated season quiets the
+   belligerent's own courier.
+5. `maybe_fire_volte_face` checks BOTH directions of the pair at every ALLIANCE ratify; the
+   forced-alliance path can never satisfy it (relations 0 < the courted floor) — asserted, not
+   assumed.
+6. The emergent-design poll and the mediation producer are Europe-scoped (the war_council
+   idiom); the bare suite world and the legacy rollback are byte-identical, pinned.
+
+### Serialization
+
+**ZERO new fields.** Promoted entries ride the already-serialized `world.agendas` deck store
+(round-trip pinned); the punitive record rides `world.settlement_memories` (new `memory_type`
+value only); the volte-face is derived; mediation provenance rides the transient
+offer/dialogue payloads and the existing `ai_proposal_cooldowns` / `diplomatic_refusals`
+stores. `SAVE_FORMAT_REFERENCE.md` gains the two value-vocabulary notes, no schema rows.
+
+### Exit criteria check (§11.1 Stage E)
+
+Pin 19 (descent) — re-verified at the NA-5 seam: yield -> satisfied -> rung falls, one
+derivation ✓ · the emergent-design assertions — constraint (a) plain acquire entry ✓ (b)
+front-insert ✓ (c) both halves (recorded at the humiliation under the survival override,
+active when it clears) ✓ max-one ✓ player/vassal exclusions ✓ save round-trip ✓ ·
+**beat 5 FIRED under the harness** (`test_alliance_ratify_fires_beat_and_advances_the_deck`:
+the alliance lands, THE VOLTE-FACE announces, Russia's deck advances to `gulf_and_straits`) —
+the written-predicate arm unused ✓ · the promotion beat + the shift-beat interplay live in the
+turn pipeline ✓ · tests: `test_ai_intent_emergent_designs.py` (37) +
+`test_ai_intent_system_wiring.py` (16) + `test_ai_intent_mediation.py` (12), plus the
+re-tuned ultimatum suites; suite **15,437/3**, ruff clean, **M1–M7 AND the 40-turn
+`BASELINE_SERIES` byte-identical WITHOUT re-recording** (the ambient run never partitions a
+court, never frees an arbiter, never courts a beaten power — Stage E's mechanics all wait for
+a PLAYED moment, which is where the D6 vignette wants them).

@@ -524,7 +524,10 @@ class TurnManager:
         # Cooldowns and one-active-offer-per-war guards are enforced
         # inside the producer.
         # ════════════════════════════════════════════════════════════
-        from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
+        from backend.game_logic.ai_diplomacy import (
+            process_mediation_offers,
+            process_settlement_offer_phase,
+        )
         from backend.game_logic.settlement_offers import (
             promote_pending_settlement_offers,
         )
@@ -534,6 +537,11 @@ class TurnManager:
             create_notification,
         )
         produced_offers = process_settlement_offer_phase(world)
+        # AI-5c: the Arbiter's Offer rides the SAME pending store, so the
+        # promotion / notification / popup plumbing below serves it
+        # unchanged — a mediated offer is an incoming settlement offer
+        # with a named third-court provenance.
+        produced_offers = produced_offers + process_mediation_offers(world)
         promoted_offers = promote_pending_settlement_offers(world)
         for offer in produced_offers:
             debug_print(

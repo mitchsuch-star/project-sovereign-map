@@ -579,16 +579,24 @@ def agenda_concerns_player_bloc(nation: str, world) -> bool:
     deny is HEGEMON-anchored (§3.1): it concerns the player only when the
     player sits in the hegemon's bloc — a deny design aimed at some other
     hegemon is not about France, however many listed regions France holds."""
+    player = getattr(world, "player_nation", "France")
+    return _agenda_concerns_bloc_of(nation, player, world)
+
+
+def _agenda_concerns_bloc_of(nation: str, anchor: str, world) -> bool:
+    """The anchor-general body of `agenda_concerns_player_bloc` (AI-5b:
+    emergent designs make grudges point at non-player authors, so the
+    grudge query below takes an author). Player-anchor calls are
+    byte-identical to the pre-refactor function."""
     view = get_active_agenda(nation, world)
     if view is None or view.survival:
         return False
-    player = getattr(world, "player_nation", "France")
     if view.type == "acquire_regions":
-        player_bloc = set(world.get_bloc_members(player))
+        anchor_bloc = set(world.get_bloc_members(anchor))
         for region_name in view.regions:
             if _controlled_by_self_or_vassal(world, nation, region_name):
                 continue
-            if _region_controller(world, region_name) in player_bloc:
+            if _region_controller(world, region_name) in anchor_bloc:
                 return True
         return False
     if view.type == "deny_regions":
@@ -596,13 +604,13 @@ def agenda_concerns_player_bloc(nation: str, world) -> bool:
         if hegemon is None or share < HEGEMON_BLOC_SHARE_FLOOR:
             return False
         bloc = set(world.get_bloc_members(hegemon))
-        if player not in bloc:
+        if anchor not in bloc:
             return False
         return any(_region_controller(world, r) in bloc for r in view.regions)
     if view.type == "contain_hegemon":
         hegemon, share = _hegemon(world, nation)
         floor = float(view.params.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
-        return hegemon == player and share >= floor
+        return hegemon == anchor and share >= floor
     return False
 
 
@@ -856,10 +864,17 @@ def get_paymaster_subsidy_amount(world, payer: str) -> int:
     return int(min(AGENDA_SUBSIDY_CAP, amount))
 
 
-def get_agenda_grudge_nations(world) -> List[str]:
+def get_agenda_grudge_nations(world, author: Optional[str] = None) -> List[str]:
     """NA-3 §5.8 — the post-peace grudge: nations at peace with the player
     whose active acquire/deny design remains denied by the player's bloc
     and whose war with the player ENDED within AGENDA_GRUDGE_TURNS.
+
+    AI-5b generalises the query to `(victim, author)`: pass `author` to
+    ask which courts grudge THAT nation instead of the player — emergent
+    designs (revanche after a partition) make grudges point at non-player
+    authors, and Stage E's tests read the generalised form. The default
+    (author=None → the player) is byte-identical to the pre-Stage-E
+    function, which is what the §5.8 threat contributor consumes.
 
     "Ended" is PER-NATION (adversarial-review fix): the durable side
     record on a war instance is `participant_meta[nation]["side"]` — the
@@ -879,7 +894,7 @@ def get_agenda_grudge_nations(world) -> List[str]:
     bloc, or the court takes them) dissolves the grudge the same turn —
     the R156 payoff.
     """
-    player = getattr(world, "player_nation", "France")
+    player = author or getattr(world, "player_nation", "France")
     current_turn = int(getattr(world, "current_turn", 0))
     instances = getattr(world, "war_instances", None) or {}
 
@@ -929,7 +944,7 @@ def get_agenda_grudge_nations(world) -> List[str]:
             continue
         if view.type not in ("acquire_regions", "deny_regions"):
             continue
-        if agenda_concerns_player_bloc(nation, world):
+        if _agenda_concerns_bloc_of(nation, player, world):
             grudged.append(nation)
     return sorted(grudged)
 

@@ -1626,13 +1626,25 @@ def process_turn(world) -> List[Dict]:
 
 def find_autonomous_attack_target(world, marshal):
     """Glory-seeking target priority: the WEAKEST adjacent at-war enemy
-    (desperate, not smart). Returns (enemy_marshal, region_name) or None."""
+    (desperate, not smart). Returns (enemy_marshal, region_name) or None.
+
+    AI-5 (§4.5, the jealousy wire): the EC-M proxy finally has a real
+    faction to serve — when the marshal's OWN COURT holds a live acquire
+    design, an enemy standing on one of its unmet target provinces
+    outranks a merely weaker one (Bernadotte hunts his glory where the
+    Emperor wants the map redrawn). Preference only, never eligibility:
+    with no design overlap among the reachable enemies, the weakest-first
+    behaviour is byte-identical."""
     region = world.regions.get(marshal.location)
     if region is None:
         return None
     reachable = {marshal.location} | set(
         getattr(region, "adjacent_regions", []) or [])
+    from backend.game_logic.agendas import get_agenda_military_targets
+    design_frontier = set(
+        get_agenda_military_targets(marshal.nation, world))
     best = None
+    best_key = None
     for enemy in world.marshals.values():
         if enemy.nation == marshal.nation or enemy.strength <= 0:
             continue
@@ -1642,8 +1654,14 @@ def find_autonomous_attack_target(world, marshal):
             continue
         if enemy.location not in reachable:
             continue
-        if best is None or enemy.strength < best.strength:
+        # Sort key: design-frontier enemies first (0 < 1), weakest within
+        # each band — so a court with no design keeps today's pure
+        # weakest-first ordering byte-identically.
+        key = (0 if enemy.location in design_frontier else 1,
+               enemy.strength)
+        if best is None or key < best_key:
             best = enemy
+            best_key = key
     if best is None:
         return None
     return best, best.location

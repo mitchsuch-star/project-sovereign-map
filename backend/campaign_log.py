@@ -252,6 +252,11 @@ CAMPAIGN_LOG_TYPES = {
     # §16.1-8 the exclusive ruling — an eclipse coalition yields to the
     # anti-France process the turn France's own alarm crosses brewing.
     "coalition_dissolved_for_france",
+    # AI-5b Stage E (§3.6) — a humiliated court promotes its grievance
+    # into a real design (emergent designs), and a beaten-then-courted
+    # great power reverses into a partner (beat 5, the volte-face).
+    "design_promoted",
+    "volte_face",
 }
 
 # ============================================================================
@@ -345,6 +350,8 @@ CATEGORY_MAP = {
     "ai_proposal_accepted": "diplomacy",
     "agenda_shift": "diplomacy",
     "agenda_violation": "diplomacy",
+    "design_promoted": "diplomacy",
+    "volte_face": "diplomacy",
     "nation_formed": "diplomacy",
     "ai_proposal_counter_failed": "diplomacy",
     "ai_proposal_rejected": "diplomacy",
@@ -648,12 +655,16 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # DPF-1 says diplomacy has no fog. A crisis, its demand, its
         # ending, a guarantor marching, and a congress are court
         # knowledge across Europe.
+        # AI-5b Stage E: a promoted design and a volte-face are court
+        # knowledge too — a sworn revanche and a great power changing
+        # sides are the two loudest things a chancery can do.
         if event_type in ("allegiance_auction_opened",
                           "allegiance_auction_resolved",
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
                           "third_party_peace",
-                          "coalition_dissolved_for_france"):
+                          "coalition_dissolved_for_france",
+                          "design_promoted", "volte_face"):
             filtered.append(event)
             continue
 
@@ -1848,6 +1859,21 @@ def format_event_oneliner(event: dict) -> str:
         prev = display_nation(event.get("previous_target", "Unknown"))
         return (f"The coalition against {prev} dissolves — Europe "
                 f"remembers who the real danger is")
+
+    if event_type == "design_promoted":
+        nation = display_nation(event.get("nation", "Unknown"))
+        author = display_nation(event.get("author", "Unknown"))
+        regions = list(event.get("regions") or [])
+        first = regions[0] if regions else "its provinces"
+        tail = f" and {len(regions) - 1} more" if len(regions) > 1 else ""
+        return (f"REVANCHE: {nation} swears to retake {first}{tail} — "
+                f"{author} is not forgiven")
+
+    if event_type == "volte_face":
+        nation = display_nation(event.get("nation", "Unknown"))
+        partner = display_nation(event.get("partner", "Unknown"))
+        return (f"THE VOLTE-FACE: {nation}, beaten and then courted, "
+                f"takes {partner}'s hand")
 
     if event_type == "allegiance_auction_opened":
         nation = display_nation(event.get("nation", "Unknown"))

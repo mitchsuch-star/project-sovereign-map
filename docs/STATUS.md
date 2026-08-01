@@ -4,17 +4,19 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ▶ WHAT'S NEXT (as of July 31, 2026 — end of the Battle Diorama session)
+> ### ▶ WHAT'S NEXT (as of July 31, 2026 — end of the AI Intent Stage E session)
 >
-> **Row IGR is BUILD-COMPLETE** (~~A~~ ~~B~~ ~~D~~ ~~F~~ ~~E~~ ~~G~~; ~~C~~ withdrawn) and
-> **row BD (Battle Diorama Tier A) is BUILT + LANDED + ✅ VERIFIED WORKING IN-GAME BY THE
-> USER (July 31, 2026, post-fix)** — landing record `docs/BATTLE_DIORAMA_SPEC.md` §14 +
-> the §14.1 wiring-fix addendum (`2ea50d1`), evidence pack
-> `docs/audits/BD_TABLEAU_{TRIUMPH,DEFEAT,MIDCASCADE}_2026_07_31.png`.
+> **AI Intent Stage E ("Consequence and Character") is BUILT + LANDED — the WHOLE §11.1
+> row including both slip candidates** (AI-5 all six wires · AI-5b(i) emergent designs ·
+> AI-5b(ii) the volte-face, NOT slipped · AI-5c the Arbiter's Offer, kept per §16.1-3) —
+> **landing record `docs/AI_INTENT_SPEC.md` §18, authoritative.** Zero new serialized
+> fields, zero `.gd` touches; M1–M7 AND the 40-turn `BASELINE_SERIES` byte-identical
+> WITHOUT re-recording (every Stage E mechanic waits for a played moment).
 >
-> 1. **▶ NEXT: AI Intent Stage E** (`AI_INTENT_SPEC.md` §11 — consequence & character:
->    AI-5 wires · AI-5b(i) emergent designs Core · AI-5c the Arbiter's Offer, may slip)
->    → Stage F (the stage) → Stage G (AI-V, carrying the D1 band).
+> 1. **▶ NEXT: AI Intent Stage F** (`AI_INTENT_SPEC.md` §11 — the stage: AI-6 cap +
+>    relevance weighting · AI-6b tempo + unclaimed beats · AI-6c client surfaces incl.
+>    the intent/mirror/subsidy/third-party-war renders and pin 20's live in-game pass)
+>    → Stage G (AI-V, carrying the D1 band).
 >
 > 2. **⚠ still open: the IGR-G before/after visual sign-off**
 >    (`docs/audits/IGR_G*_2026_07_31.png` — settlement popup sizing + map-stack
@@ -24,6 +26,57 @@
 >
 > **Nothing is blocked on a user decision right now** — the IGR-G sign-off can ride the
 > next ordinary play session.
+
+### ✅ AI Intent Stage E — "Consequence and Character" — LANDED July 31, 2026
+
+**User direction: "do next step of project code and commit and push when done, feel free
+to improve upon anything the spec is weak or unclear on." Landing record =
+`docs/AI_INTENT_SPEC.md` §18 (authoritative).** The whole Stage E row shipped, both slip
+candidates included — beat 5 fires under the harness, so the written-predicate fallback
+was never needed. Suite **15,437/3**, ruff clean, M1–M7 + `BASELINE_SERIES`
+byte-identical (no re-record needed), zero new serialized fields, zero `.gd` diffs
+(pin 20's live pass belongs to Stage F, as sited).
+
+- **AI-5b(i) emergent designs** (`backend/game_logic/emergent_designs.py`): the
+  humiliated court promotes its grievance into a REAL front-inserted `acquire_regions`
+  entry ("Revanche") riding the serialized deck store — derived partition/capital-loss
+  triggers + the new durable `punitive_settlement` memory written at ALL THREE ratify
+  seams (multilateral, third-party, bilateral — from APPLIED clauses only) + the §3.3
+  renege-grievance route; max one per nation ever; player + vassals excluded; survival
+  override outranks then activation-on-clear (constraint (c), both halves pinned);
+  announced as the `design_promoted` beat (town-crier visible).
+  `get_agenda_grudge_nations` generalised to `(victim, author)` — player default
+  byte-identical.
+- **AI-5b(ii) the volte-face**: `volte_face_receptive` (beaten within 15 turns + defeat
+  still showing + NEVER punitively stripped + courted to the alliance floor 40) → the
+  beaten court PROPOSES the alliance itself (P-VolteFace, sited above P-Intent/P3 —
+  at boot threat 85 a shelter-first ordering would silence the beat forever) → beat 5
+  fires at the `_ratify_treaty` ALLIANCE chokepoint, and the deck-advance is FREE
+  (in-bloc containment goes dormant → Russia turns to `gulf_and_straits`, §12.2's
+  object; if the alliance breaks, containment wakes — Tilsit collapses into 1812
+  unscripted).
+- **AI-5c the Arbiter's Offer**: `process_mediation_offers` — a non-belligerent
+  contain-design major (incl. a court that separate-peaced OUT of the very war — the
+  Tilsit-Russia ruling) offers brokered terms over a weary French war (WE floor 60)
+  through the EXISTING incoming-settlement machinery (a `mediator` provenance on the
+  same offer/popup/accept/reject plumbing — no new dtype). Accept credits (+8
+  relations); refusal is derived-only: the pin-8 refusal record + intent's new
+  `WEIGHT_MEDIATION_REBUFFED` (+6, expires with the record's 12-turn window) — refusing
+  mediation IS the coalition ramp, by machinery.
+- **The wires**: NA-5 gated on the CLIMBED ladder (`against == player` + rung ≥ coerce;
+  fixtures re-tuned to the real derivation — Potsdam's arithmetic; yield → descent
+  pinned) · P1.75 commissions while PREPARING (coerce+ at peace — Blücher before Jena) ·
+  jealousy's glory hunt prefers the nation's design frontier (deckless byte-identical) ·
+  the bandwagon→vassalage on-ramp (`offer_vassalage` "Offer of Submission" at the
+  exhausted ALLIANCE rung, relation ≥ 40, WPS-B cap pre-checked both sides — voluntary
+  loyalty 80; the AI-hegemon mirror submits in place) · formations proven end-to-end
+  through the Stage D settlement path (assurance, no new code) · economy verified
+  landed (sponsor executor = AI-2b's record; paymaster stays the special case;
+  WE→intent read pinned).
+- Campaign-log types 140 → **142** (`design_promoted`, `volte_face`; five count pins
+  flipped consciously); both beats HIGH dispatch templates + one-liners.
+- Tests: `test_ai_intent_emergent_designs.py` (37) + `test_ai_intent_system_wiring.py`
+  (16) + `test_ai_intent_mediation.py` (12); ultimatum + phase-audit fixtures re-tuned.
 
 ### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
 

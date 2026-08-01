@@ -1945,6 +1945,18 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "THE CONGRESS: {proposer} and {accepter} have made their peace "
         "without France. {consequence}"
     ),
+    # AI-5b(i) (§3.6) — the world writes content the author did not:
+    # a humiliated court promotes its grievance into a real design.
+    "design_promoted": (
+        "REVANCHE: {nation} will not forgive {author} the loss of "
+        "{province_line}. A new design hardens in their court."
+    ),
+    # AI-5b(ii) beat 5 (§4.6a) — The Volte-Face: the beaten great power,
+    # courted rather than humiliated, reverses in one signing. Tilsit.
+    "volte_face": (
+        "THE VOLTE-FACE: {nation}, beaten and then courted, takes "
+        "{partner}'s hand. {gaze}"
+    ),
     # Nation Agendas NA-6 §11.8 stage 1 — the dispatch LEADS with a
     # proclamation (values arrive humanized: both display names).
     "nation_formed": (
@@ -2041,6 +2053,10 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "crisis_passed": "HIGH",
     "guarantee_called": "HIGH",
     "third_party_peace": "HIGH",
+    # AI-5b (Stage E): both are beats — a sworn revanche and a great
+    # power changing sides are events, never routine ladder lines.
+    "design_promoted": "HIGH",
+    "volte_face": "HIGH",
     # Eclipse-coalition variants: Europe's business, not France's crisis.
     "diplomatic_coalition_formed_other": "MEDIUM",
     "diplomatic_coalition_dissolved_other": "MEDIUM",

@@ -1338,6 +1338,17 @@ def ratify_settlement_confirm(
         world, plan=plan, settlement_terms=settlement_terms,
     )
 
+    # AI-5b(i) (§3.6): a settlement that STRIPS a court — its capital, or
+    # two-plus provinces in one signing — leaves a durable
+    # `punitive_settlement` memory (author, provinces, turn). The
+    # emergent-design poll reads it; the volte-face is foreclosed by it.
+    # APPLIED clauses only — what actually transferred, never the ask.
+    from backend.game_logic.emergent_designs import (
+        collect_cessions_from_clauses, record_punitive_cessions,
+    )
+    record_punitive_cessions(
+        world, collect_cessions_from_clauses(applied_clauses))
+
     # Spec §11 ratification ordering line 1239: invalidate war-instance
     # indexes + Balance of Europe / hegemony / bloc caches before any
     # cross-war reaction reader runs in the next slice.

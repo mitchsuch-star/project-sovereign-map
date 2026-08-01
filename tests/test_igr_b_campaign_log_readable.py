@@ -532,7 +532,7 @@ class TestEndpoint:
 class TestContracts:
 
     def test_no_new_event_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 140
+        assert len(CAMPAIGN_LOG_TYPES) == 142
 
     def test_the_collapse_is_not_inside_the_filter(self):
         """51 test call sites depend on `filter_campaign_log`'s contract."""

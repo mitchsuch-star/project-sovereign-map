@@ -194,7 +194,7 @@ class TestA1HardBlockCopy:
 
     def test_no_new_event_type(self):
         """A1 is display-only — the log taxonomy must not move."""
-        assert len(CAMPAIGN_LOG_TYPES) == 140
+        assert len(CAMPAIGN_LOG_TYPES) == 142
 
 
 # ══════════════════════════════════════════════════════════════════════════
