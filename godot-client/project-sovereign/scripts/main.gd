@@ -210,6 +210,12 @@ var marshal_petition_dialog = null  # Jealousy v3.2: the marshal-petition channe
 var proclamation_popup = null  # NA-6b: The Proclamation, a formation landmark (layer 117)
 var pending_proclamation_data = null  # NA-6b: stashed card, shown when control returns
 
+# BD: the Battle Diorama tableau (layer 121)
+var battle_diorama = null
+var pending_diorama_data = null   # stashed payload, raised when control returns
+var last_battle_diorama = null    # latest payload for the "⚔ View the field" link
+var _diorama_standalone := false  # dismissal owns the input chain only when true
+
 # Load Game Dialog (Phase 6: Save/Load)
 var load_dialog = null
 
@@ -318,6 +324,17 @@ func _ready():
 	enemy_phase_dialog = dialog_manager.register("enemy_phase", "res://scenes/enemy_phase_dialog.tscn")
 	if enemy_phase_dialog:
 		enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)
+		# BD: "⚔ View the field" links inside the enemy-phase dialog open the
+		# tableau OVER it (layer 121 > 118) without disturbing its input hold.
+		enemy_phase_dialog.view_field_requested.connect(_on_view_field_requested)
+
+	# BD: the Battle Diorama. Dismissal continues the control-return chain
+	# exactly like the Proclamation (stash → raise when control returns).
+	battle_diorama = dialog_manager.register("battle_diorama", "res://scenes/battle_diorama.tscn")
+	if battle_diorama:
+		battle_diorama.dismissed.connect(_on_battle_diorama_dismissed)
+	# BD: the terminal's own "⚔ View the field" replay link.
+	output_display.meta_clicked.connect(_on_output_meta_clicked)
 
 	glorious_charge_dialog = dialog_manager.register("glorious_charge", "res://scenes/glorious_charge_dialog.tscn")
 	if glorious_charge_dialog:
@@ -1251,6 +1268,92 @@ func _stash_proclamation(response: Dictionary) -> void:
 	if response.has("nation_proclamation") and response.nation_proclamation != null:
 		pending_proclamation_data = response.nation_proclamation
 
+
+# ── BD: the Battle Diorama stash-and-raise (the NA-6b discipline) ──────────
+# The tableau is STASHED at response arrival and raised only when control
+# returns, after the whole response has rendered — never above it.
+
+func _stash_diorama(response: Dictionary) -> void:
+	# The player's own battle: auto-play whenever the payload is significant
+	# (the eval §7 Q2 predicate — a battle the player ordered is the payoff
+	# of their own command; one click skips it).
+	var payload = response.get("battle_diorama")
+	if payload is Dictionary and not payload.is_empty():
+		last_battle_diorama = payload
+		if bool(payload.get("significant", false)):
+			pending_diorama_data = payload
+
+	# Enemy-phase battles arrive UNINVITED — only a DRAMATIC battle on the
+	# player's own line seizes the screen (a broken line, a fallen province,
+	# a decisive field). Routine incoming raids stay one click away behind
+	# the dialog's "⚔ View the field" links (eval §2 fun-curve).
+	var phase = response.get("enemy_phase")
+	if phase is Dictionary:
+		var best = null
+		var best_weight := -1
+		for nation in phase.get("nations", {}):
+			var nation_data = phase.nations[nation]
+			for action in nation_data.get("actions", []):
+				if not (action is Dictionary):
+					continue
+				var p = action.get("battle_diorama")
+				if not (p is Dictionary) or p.is_empty():
+					continue
+				if str(p.get("player_side", "")) == "":
+					continue
+				if not bool(p.get("dramatic", false)):
+					continue
+				var weight := int(p.get("attacker", {}).get("casualties_total", 0)) \
+					+ int(p.get("defender", {}).get("casualties_total", 0))
+				if weight > best_weight:
+					best_weight = weight
+					best = p
+		if best != null:
+			last_battle_diorama = best
+			pending_diorama_data = best
+
+
+func _show_pending_diorama() -> bool:
+	"""Raise a stashed tableau. True when shown — the caller must then NOT
+	re-enable input; `_on_battle_diorama_dismissed` owns that."""
+	if pending_diorama_data == null or battle_diorama == null:
+		return false
+	var data = pending_diorama_data
+	pending_diorama_data = null
+	_diorama_standalone = true
+	battle_diorama.show_diorama(data, true)
+	return true
+
+
+func _on_battle_diorama_dismissed():
+	if not _diorama_standalone:
+		return  # opened over another surface (enemy dialog / terminal link)
+	_diorama_standalone = false
+	if _show_pending_proclamation():
+		return
+	if _show_pending_envoy_digest():
+		return
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _on_view_field_requested(payload: Dictionary) -> void:
+	# Opened over the enemy-phase dialog: fresh battle → full cinematic;
+	# closing returns focus to the dialog beneath (its input hold stands).
+	if battle_diorama == null or not (payload is Dictionary):
+		return
+	_diorama_standalone = false
+	battle_diorama.show_diorama(payload, true)
+
+
+func _on_output_meta_clicked(meta) -> void:
+	var meta_str := str(meta)
+	if meta_str == "diorama:last" and last_battle_diorama != null:
+		_diorama_standalone = false
+		# A re-view renders the settled final frame instantly (eval §7 Q1 —
+		# the Replay button inside runs the sequence again on demand).
+		battle_diorama.show_diorama(last_battle_diorama, false)
+
 func _show_pending_proclamation() -> bool:
 	"""Show a stashed Proclamation. True when shown — the caller must then
 	NOT re-enable input; `_on_proclamation_dismissed` owns that."""
@@ -1281,6 +1384,8 @@ func _return_control_to_player() -> void:
 	`strategic_reports`. Hanging the card off one seam stranded it on the
 	normal case, not an edge case.
 	"""
+	if _show_pending_diorama():
+		return  # BD: _on_battle_diorama_dismissed re-enables input
 	if _show_pending_proclamation():
 		return  # _on_proclamation_dismissed re-enables input
 	if _show_pending_envoy_digest():
@@ -1451,6 +1556,7 @@ func _on_command_result(response):
 	if typeof(response) == TYPE_DICTIONARY:
 		_stash_proclamation(response)
 		_stash_envoy_digest(response)
+		_stash_diorama(response)  # BD: same discipline — stash before routing
 
 	# ═══════════════════════════════════════════════════════════
 	# DEBUG TRACE: Exact step-by-step debugging
@@ -1599,6 +1705,12 @@ func _on_command_result(response):
 	_process_active_wars(response)
 
 	add_output("")
+
+	# BD: the battle tableau first — the freshest moment of the response —
+	# then the Proclamation landmark, then the letter-book. Each dismissal
+	# continues the chain.
+	if _show_pending_diorama():
+		return  # _on_battle_diorama_dismissed re-enables input
 
 	# NA-6b: the landmark comes LAST, after the whole response has
 	# rendered — never above it. An earlier version returned before this
@@ -1819,7 +1931,13 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	if region_conquered:
 		var region_name = event.get("region_name", "territory")
 		add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
-	
+
+	# BD: every battle with a tableau payload keeps a replay link in the
+	# terminal — the auto-play case for re-viewing, the routine case for a
+	# first look ("⚔ View the field", eval §7 Q1).
+	if event.get("diorama") is Dictionary and battle_diorama != null:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=diorama:last]⚔ View the field[/url][/color]")
+
 	_show_action_cost(action_info)
 
 func _display_berthier_report(report: Dictionary):

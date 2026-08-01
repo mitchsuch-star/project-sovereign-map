@@ -7,7 +7,10 @@ and source URL was verified against its live source page before download.
 git-ignored, but the **usable shipped assets are force-tracked** (`git add -f`) so the repo
 is self-contained and the portability tests pass on any clone — fonts (`.ttf` + `OFL.txt`),
 portraits, icon/border/heraldry/ornament/decor SVG+PNG+JPG, the two icon `LICENSE` files,
-textures, and audio WAVs (198 files, ~77 MB). **Deliberately NOT tracked** (remain ignored to
+textures, and the unpacked audio files (the bulk of the audio pool remains INSIDE the zips —
+the "198 WAVs force-tracked" this note once claimed was doc-drift, corrected July 31, 2026 by
+the Battle Diorama slice: on disk are the two parchment WAVs plus `audio/battle/`'s cannon +
+drum sting). **Deliberately NOT tracked** (remain ignored to
 keep git history lean): the working `*.zip` master pools, the source `*.psd` files, and the
 stray `movies.avi`. Adding a new asset to a tracked subdir therefore needs another `git add -f`.
 Godot `.import` sidecars are generated + committed in UI-1 (the editor has not imported yet).
@@ -77,12 +80,19 @@ already drop-in recolorable.
 
 ---
 
-## Audio — `assets/audio/ui/` (CC0 — no attribution)
+## Audio — `assets/audio/` (CC0 — no attribution)
 
-Kenney Interface Sounds + RPG Audio (CC0), an OpenGameArt CC0 cannon/bang pack, and two CC0
-parchment open/close WAVs. Covers click/hover/confirm/error, coins, cloth, distant cannon,
-panel open/close. Gaps (deferred, not blocking): a drum/fife turn-start sting, dedicated
-quill-scratch, dedicated wax-seal stamp — approximated from the RPG pack for now.
+`assets/audio/ui/`: Kenney Interface Sounds + RPG Audio (CC0), an OpenGameArt CC0
+cannon/bang pack ("25 CC0 bang/firework sfx", https://opengameart.org/content/25-cc0-bang-firework-sfx),
+and two CC0 parchment open/close WAVs. Covers click/hover/confirm/error, coins, cloth,
+distant cannon, panel open/close.
+
+`assets/audio/battle/` (Battle Diorama, July 31, 2026): `cannon_thud.ogg` is `cannon_02.ogg`
+extracted unmodified from the CC0 bang pack above; `drum_sting.wav` is **self-authored CC0**,
+synthesized deterministically by `tools/gen_battle_audio.py` (the same own-pipeline route as
+the war-table pieces) — this closes the "drum/fife sting" gap the July-17 eval documented.
+Remaining gaps (deferred, not blocking): dedicated quill-scratch, dedicated wax-seal stamp —
+approximated from the RPG pack for now.
 
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 

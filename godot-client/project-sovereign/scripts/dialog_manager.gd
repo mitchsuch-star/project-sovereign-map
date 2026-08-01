@@ -29,7 +29,10 @@ class_name DialogManager
 #   117: proclamation_popup (NA-6b — The Proclamation, spec §11.8 stage 2)
 #   118: enemy_phase_dialog
 #   119: mailbox_panel
-#   120: pause_menu (always on top)
+#   120: pause_menu (always on top of the 101-119 band)
+#   121: battle_diorama (BD — above enemy_phase so "⚔ View the field" opens
+#        over it; pause cannot stack above it because a visible modal blocks
+#        the ESC ladder, so 120-vs-121 never actually contest)
 # =============================================================================
 
 var _dialogs: Dictionary = {}  # name -> {node, modal}

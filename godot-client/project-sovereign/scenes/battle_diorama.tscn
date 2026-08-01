@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle_diorama.gd" id="1_script"]
+
+; BD (Battle Diorama, row BD) — the carved-wood battle tableau.
+; Layer 121: above the enemy-phase dialog (118) so "⚔ View the field" opens
+; over it. The whole tray is built procedurally in the script — this scene is
+; deliberately skeletal so layout lives in ONE place (battle_diorama.gd).
+[node name="BattleDiorama" type="CanvasLayer"]
+layer = 121
+visible = false
+script = ExtResource("1_script")

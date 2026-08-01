@@ -57,6 +57,26 @@ static func pieces_available() -> bool:
 	return ResourceLoader.exists(_texture_path("infantry", "body", "r"))
 
 
+# ── BD (Battle Diorama) public accessors ────────────────────────────────────
+# The diorama's figures reuse THESE sprites and THIS texture cache — one
+# carved-wood identity across the map and the tableau. Kept as thin public
+# delegates so the diorama never reaches into underscore internals.
+
+static func layer_texture(arm_key: String, layer: String, facing_key: String) -> Texture2D:
+	return _load_texture(arm_key, layer, facing_key)
+
+
+static func legible_tint(c: Color) -> Color:
+	# Same value-floor lift the map standees use (see _legible_tint) so a
+	# nation's coat colour reads identically on both surfaces.
+	const VALUE_FLOOR := 0.5
+	var v := maxf(c.r, maxf(c.g, c.b))
+	if v >= VALUE_FLOOR or v <= 0.001:
+		return c
+	var k := VALUE_FLOOR / v
+	return Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0), c.a)
+
+
 func setup(arm_key: String, facing_key: String, nation_color: Color, frame_px: float) -> void:
 	arm = arm_key if arm_key in VALID_ARMS else "infantry"
 	facing = facing_key if facing_key in ["r", "l"] else "r"
@@ -106,12 +126,8 @@ func _legible_tint(c: Color) -> Color:
 	# into the pewter relief. Lift only genuinely dark hues to a value floor,
 	# scaling all channels equally so the hue is preserved; mid/light nations
 	# (France navy, Austria gold, Papal near-white) pass through untouched.
-	const VALUE_FLOOR := 0.5
-	var v := maxf(c.r, maxf(c.g, c.b))
-	if v >= VALUE_FLOOR or v <= 0.001:
-		return c
-	var k := VALUE_FLOOR / v
-	return Color(minf(c.r * k, 1.0), minf(c.g * k, 1.0), minf(c.b * k, 1.0), c.a)
+	# Single source: the BD static below (the diorama shares the exact lift).
+	return WarTablePiece.legible_tint(c)
 
 
 func set_facing(facing_key: String) -> void:

@@ -4,31 +4,25 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ▶ WHAT'S NEXT (as of July 26, 2026 — end of the IGR-E session)
+> ### ▶ WHAT'S NEXT (as of July 31, 2026 — end of the Battle Diorama session)
 >
-> **The IGR queue** (`docs/INGAME_REVIEW_FIXES_SPEC.md`, gate record §5):
-> ~~IGR-A~~ ✅ · ~~IGR-B~~ ✅ · ~~IGR-D~~ ✅ · ~~IGR-F~~ ✅ · ~~IGR-E~~ ✅ → **▶ IGR-G**.
-> ~~IGR-C~~ withdrawn pre-gate. **IGR-G is the last slice in the row.**
+> **Row IGR is BUILD-COMPLETE** (~~A~~ ~~B~~ ~~D~~ ~~F~~ ~~E~~ ~~G~~; ~~C~~ withdrawn) and
+> **row BD (Battle Diorama Tier A) is BUILT + LANDED** — landing record
+> `docs/BATTLE_DIORAMA_SPEC.md` §14, evidence pack
+> `docs/audits/BD_TABLEAU_{TRIUMPH,DEFEAT,MIDCASCADE}_2026_07_31.png`.
 >
-> 1. **▶ IGR-G — two legibility fixes.** ⚠️ **Bring these to the user WITH SCREENSHOTS
->    before building** (spec §5 gate note). G1 re-weights `Utils.clamp_centered_panel`,
->    a helper shared by every centre-anchored popup — IGR-F already hit its
->    authored-rect-is-a-ceiling behaviour from the other side and has a worked example.
->    G2 is a **third** tuning pass over map furniture whose visual sign-off has been
->    open since U5.
+> 1. **▶ NEXT: AI Intent Stage E** (`AI_INTENT_SPEC.md` §11 — consequence & character:
+>    AI-5 wires · AI-5b(i) emergent designs Core · AI-5c the Arbiter's Offer, may slip)
+>    → Stage F (the stage) → Stage G (AI-V, carrying the D1 band).
 >
-> 2. **Worth deciding beside those screenshots: IGR-X4 (P2)** — the W6-8 estate
->    confiscation windfall is **always exactly 0 gold** (it reads effective income after
->    capture leaves stability ≤ 25, so the player pays −10 relations and marshal trust
->    for nothing). Its fix re-bases a blessed W6-8/ES-7 number — a shape change — so it
->    **escalates to the user**; full row with owner/landing/done-when in
->    `BUG_FIXES.md` §IGR-E (alongside P3 rows IGR-X5–X9).
+> 2. **⚠ open visual sign-offs, one pass in-game covers both:** the IGR-G before/after
+>    pack (`docs/audits/IGR_G*_2026_07_31.png`) AND the new Battle Diorama in live play
+>    (the tableau auto-plays on the first significant battle; `⚔ View the field` sits on
+>    every battle line; the sign-off question is whether the significance gate FEELS
+>    right — eval §2's fun-curve is the yardstick).
 >
-> **Then:** the Battle Diorama (ROADMAP row **BD**, eval verdict BUILD-IT), followed
-> by AI Intent Stage E (`AI_INTENT_SPEC.md` §11).
->
-> **Nothing is blocked on a user decision right now** except IGR-G's screenshots (and
-> the IGR-X4 escalation above, which can ride the same conversation).
+> **Nothing is blocked on a user decision right now** — both sign-offs can ride the next
+> ordinary play session.
 
 ### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
 
@@ -2226,7 +2220,64 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
-> **▶ NEXT SESSION STARTS HERE (updated July 31, 2026, nineteenth entry): ROW IGR IS
+> **▶ NEXT SESSION STARTS HERE (updated July 31, 2026, twentieth entry): THE BATTLE
+> DIORAMA (row BD, Tier A) IS BUILT + LANDED — next is `AI_INTENT_SPEC.md` §11 Stage E.**
+>
+> **BD LANDED July 31, 2026, second session that day, under the user's direction
+> ("do this phase but please make it truly exceptional … add to the game's drama").**
+> Landing record = `docs/BATTLE_DIORAMA_SPEC.md` §14 (authoritative); evidence pack =
+> `docs/audits/BD_TABLEAU_{TRIUMPH,DEFEAT,MIDCASCADE}_2026_07_31.png`. Suite
+> **15,368/3** (the 6 "errors" in the raw run are the documented PYTHONIOENCODING
+> subprocess artifact — all 74 tests in those two files pass with the variable stripped),
+> ruff clean, parse harness EXIT=0 (report regenerated), headless boot 0 `SCRIPT ERROR`,
+> and a live runtime smoke drove the tableau through final-frame → cinematic → skip →
+> replay → close with zero errors.
+>
+> - **The backend half** — `backend/game_logic/battle_diorama.py`: the eval-§6
+>   `contingents[]` payload assembled in `_execute_attack` (one builder, solo AND
+>   coordinated), riding BOTH transports (whitelisted `battle_diorama` result field +
+>   `events[0].diorama` for the enemy phase). Committed strengths from a new
+>   all-participant pre-battle snapshot; the dead `casualty_distribution` finally read;
+>   statuses {engaged, reinforced, failed_arrive, routed(primary), destroyed};
+>   the grudge-explains-gap line (player side only); fog: player battles full, third-party
+>   at FULL only, enemy no-shows at FULL-of-their-region only. Two predicates:
+>   `significant` (the blessed §7-Q2 arms, "named" read as the Great tier — recorded
+>   interpretation) gates the player's own auto-play; `dramatic` (decisive/great/rout/
+>   conquest/multi-corps) gates the UNINVITED enemy-phase auto-play — resolving the
+>   eval's internal §7-Q2-vs-§2 tension toward its own fun-curve. `register`
+>   {triumph/defeat/grim/observer} = the §7-Q6 defender's-eye framing as code.
+> - **The frontend half** — `battle_diorama.tscn/.gd` (layer 121) + `diorama_figure.gd` +
+>   `portrait_locket.gd`: the carved-wood tray (walnut + gold + filigree + green baize +
+>   upper-right lamp), the map's OWN carved-oak pieces as figures (shared texture cache,
+>   public `WarTablePiece.layer_texture`/`legible_tint`), the fixed topple verb (rotate
+>   78° about the feet + darken + long shadow; base stays), real heraldry standards that
+>   fall and — on a decisive field — are TAKEN across the centre line, sepia-brass
+>   portrait lockets (monogram fallback, glass greys on a rout, standing ★), odometers
+>   (red only) bound to the cascade, the register-toned banner, Berthier's verdict typed
+>   LAST in IM Fell, the engraved Cinzel nameplate + wax seal + triumph laurels.
+>   Cannon thud (CC0 extract) + a SELF-AUTHORED deterministic snare sting
+>   (`tools/gen_battle_audio.py` — the own-pipeline route closing the eval's drum gap);
+>   "Battle sounds" toggle in pause Settings (the game's first audio setting).
+> - **Wiring:** the NA-6b stash-and-raise discipline in BOTH control-return tails
+>   (diorama first, then Proclamation, then letter-book); `⚔ View the field` links in the
+>   terminal (output meta_clicked — first use) and on every enemy-phase battle line
+>   (opens OVER the dialog); the most violent dramatic player-involved enemy-phase battle
+>   auto-plays when the dialog closes; repeat views open settled instantly with [Replay].
+> - **Found by the visual pass:** a re-open mid-cinematic kept the OLD battle's odometer
+>   tween ticking over the new frame (`show_diorama` now kills the sequence first) + a
+>   seal/laurel collision. Parse harness extended with all five touched + three new
+>   scripts and the scene (the IGR-E runtime-registration gap class).
+> - `tests/test_battle_diorama.py` (**43**); `THIRD_PARTY_LICENSES.md` battle-audio
+>   entries + the "198 WAVs" doc-drift the eval flagged corrected.
+> - **⚠ open: live visual sign-off** on the tableau in ordinary play (does the
+>   significance gate FEEL right?) — rides the same in-game pass as the IGR-G pack.
+> - **Deferred stays owned** (eval §6 OUT list verbatim): withdrew-status, per-corps rout,
+>   clickable grievance, proportional counts, terrain backdrop (named follow-up), Battle
+>   Gallery (own gate), Tier B/C (measure Tier A live first), ambient loops.
+>
+> *(This entry supersedes the nineteenth.)*
+
+> **[Superseded July 31, 2026 (second session) — BD landed] ▶ (nineteenth entry): ROW IGR IS
 > BUILD-COMPLETE — next is the Battle Diorama (row BD), then `AI_INTENT_SPEC.md` §11
 > Stage E.**
 >

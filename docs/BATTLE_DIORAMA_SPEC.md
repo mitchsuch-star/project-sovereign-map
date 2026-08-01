@@ -1,15 +1,16 @@
-# Battle Diorama Popup — PRELIMINARY SPEC (for Fable review)
+# Battle Diorama Popup — SPEC (Tier A LANDED)
 
-> **STATUS: ✅ REVIEWED + QUEUED July 17, 2026 — sequenced AFTER Nation Agendas.** The Fable
-> review this masthead once waited on RAN July 17, 2026 (**evaluation of record =
+> **STATUS: ✅ TIER A BUILT + LANDED July 31, 2026 — landing record = §14 (authoritative),
+> evidence pack = `docs/audits/BD_TABLEAU_{TRIUMPH,DEFEAT,MIDCASCADE}_2026_07_31.png`.**
+> The Fable review RAN July 17, 2026 (**evaluation of record =
 > `docs/audits/BATTLE_DIORAMA_EVAL_2026_07_17.md`, authoritative wherever it and this spec
 > disagree — verdict BUILD-IT, fun 7/10**), and the queue decision was made the same day
-> (user-directed): **the Tier-A slice is IN the queue, slotted AFTER the 8.5 Nation Agendas
-> design gate** — no longer competing for the centerpiece slot. Named landing = ROADMAP
-> §Current Phase Queue row **BD** + the STATUS tracking line. **Scope of record = eval §6**
-> (the bounded slice: the medium backend `contingents[]` half + the significance-gated Godot
-> tableau; the eval §5 cuts stand; completion = eval §6 DoD + `tests/test_battle_diorama.py`).
-> Numbers, art choices, and layout below remain illustrative where the eval has not pinned them.
+> (user-directed): **the Tier-A slice slotted AFTER the 8.5 Nation Agendas design gate**.
+> Named landing = ROADMAP §Current Phase Queue row **BD** + the STATUS tracking line.
+> **Scope of record = eval §6** (the bounded slice: the medium backend `contingents[]` half +
+> the significance-gated Godot tableau; the eval §5 cuts stand; completion = eval §6 DoD +
+> `tests/test_battle_diorama.py`). Numbers, art choices, and layout below remain illustrative
+> where the eval or §14 has not pinned them.
 
 ## 1. The idea in one line
 
@@ -334,3 +335,149 @@ against live source → synthesis). Where it and this spec disagree, **the memo 
   Nation Agendas keeps the 8.5 centerpiece slot; the diorama is QUEUED as the follow-on Tier-A slice.**
 
 The interactive hero mockup (spec §6) implements most of the art-brief as a feel-of-the-thing proof.
+
+---
+
+## 14. LANDING RECORD — Tier A BUILT July 31, 2026 (authoritative)
+
+**Evidence pack:** `docs/audits/BD_TABLEAU_TRIUMPH_2026_07_31.png` (the Great-Battle
+coalition frame — 3 French corps + Bernadotte on the reserve shelf with his grudge, Mack
+routed and his eagle taken across the line, Hohenlohe destroyed),
+`BD_TABLEAU_DEFEAT_2026_07_31.png` (the defender's-eye gut-punch — crimson "THE LINE IS
+BROKEN", the player's tricolor planted at the victor's rank, the enemy standard advanced
+onto the player's half), `BD_TABLEAU_MIDCASCADE_2026_07_31.png` (the lines closed,
+pre-topple). Captured from the live scene via a throwaway fixture harness (deleted).
+
+### Backend half — `backend/game_logic/battle_diorama.py` (display-only, GR6)
+
+- **`build_battle_diorama(...)`** assembles the eval-§6 `contingents[]` payload inside
+  `_execute_attack` (ONE builder, both the solo and coordinated branches), attached to BOTH
+  transports: the top-level `battle_diorama` result field (whitelisted in `main.py`
+  `_COMMAND_RESULT_SIMPLE_FIELDS` — the register-or-dropped trap closed) and
+  `events[0]["diorama"]` (the enemy-phase transport, fog-filtered with the action).
+- **Per-corps figures:** `committed` from a NEW all-participant pre-battle snapshot
+  (`snapshot_pre_battle_strengths`, captured before support bombardment / resolve_battle /
+  take_casualties mutate anyone — the eval's "extend `_co6_lead_pre_strength` to all
+  participants"); `casualties` from the once-dead `casualty_distribution` maps (now read);
+  leads' `remaining` = the battle event's own figure (shown = the number every other
+  surface prints). `def_distribution` initialized on both paths (was coordinated-only).
+- **Status vocabulary** exactly the four states with data + arithmetic `destroyed`:
+  `engaged` (fought where it stood) / `reinforced` (marched via the arrival system) /
+  `failed_arrive` (with the muster vocabulary compressed to shelf labels — "awaits explicit
+  orders" / "fate intervened on the march" / "weighed his own ambitions") / `routed`
+  (primary pair only, per the eval cut) / `destroyed` (remaining ≤ 0). `withdrew` stays
+  CUT (unmodeled).
+- **The grudge line** rides a player-side no-show carrying `jealous_of` — worded as
+  explanation ("He resents Davout's glory."), never causation (eval §3: grudge→no-show).
+  Enemy grudges never leak (the jealousy proxy is not player-readable).
+- **Fog contract** (eval de-risk must #1): player fought → both sides full (the battle IS
+  the intel; `update_intel_from_battle` grants the region FULL at every resolve site);
+  player absent → payload exists only at FULL region visibility (mirrors
+  `_filter_enemy_phase_by_visibility`); an enemy corps that FAILED TO ARRIVE reveals its
+  own region, not the battle — included only at FULL visibility of its location; player
+  no-shows always show.
+- **Significance vs drama — two predicates, one conscious interpretation:**
+  `significant` = the eval's blessed §7-Q2 arms (decisive / player-involved / named) with
+  the "named" arm read as the **Great tier** — the literal reading gates nothing, since
+  EVERY field battle composes an ordinal name (recorded interpretation, not an oversight).
+  `dramatic` (decisive / great / any rout or destruction / conquest / multi-corps) narrows
+  the UNINVITED surface only: enemy-phase auto-play. This resolves the eval's internal
+  tension (§7-Q2's literal player-marshal arm would auto-play the routine incoming raids
+  its own §2 fun-curve calls net-negative) in favor of its thesis: the player's OWN attack
+  auto-plays whenever significant (the payoff of their own order, one click to skip);
+  an UNINVITED battle seizes the screen only when dramatic.
+- **`register`** derives the §7-Q6 framing (Fable's call, now code):
+  `triumph` / `defeat` / `grim` / `observer` — the player's line is ALWAYS the near/left
+  side; a defeat is a gut-punch (crimson banner, "THE LINE IS BROKEN" for a broken
+  defense, the victor's standard advancing onto the player's baize), never a mirrored
+  enemy triumph.
+- Flourishes: `crowned` (the STANDING glory laurel, pre-battle state per the eval),
+  `origin_nation` (an assimilated ex-vassal corps flies its own colours — the one true
+  mixed-standards read the engine produces today), `observation` + `enemy_voice`
+  self-contained on the payload. Cap = 4 corps/side + honest `reserve_count` tail; the
+  shelf never crowds out the line.
+- **Boundary (GR9):** field battles only (`resolve_battle` results). Garrison assaults,
+  bombardments, and glorious-charge redirects keep their existing surfaces (they compose
+  no battle name either — eval §3). The auto-bombardment-kill early return carries no
+  tableau (no battle was fought).
+
+### Frontend half — `scenes/battle_diorama.tscn` + `scripts/battle_diorama.gd` (layer 121)
+
+- **The carved-wood tray** per eval §8: walnut tray + crisp gold border + filigree corners
+  (the U3 discipline — never a muddy full-texture frame), green-baize stage with a darker
+  felt band, warm additive lamp pool from upper-right (the direction baked into the
+  sprites), vignette above the figures, dashed gold clash line + ⚔.
+- **The figures ARE the map's pieces:** `scenes/diorama_figure.gd` (`DioramaFigure`)
+  composites the same four-layer carved-oak sprites through the same texture cache
+  (`WarTablePiece.layer_texture` / `legible_tint` — new thin public statics; the instance
+  `_legible_tint` now delegates so the lift stays single-source). The **fixed topple
+  verb**: rotate ~78° about the feet + darken toward bare timber + the baked shadow
+  stretches into a long cast — base disc and ground shadow STAY PUT; opacity-ghosting
+  structurally unavailable. Figures per corps by arm (5 foot / 4 horse / 3 guns); the
+  toppled FRACTION encodes losses (count stays fixed — the eval's anti-proportional
+  ruling); the cascade breaks from the clash-side flank.
+- **Standards that fall and are taken:** each corps plants a real pole flying its nation's
+  own heraldry SVG (`Utils.nation_flag_path`, pennant-polygon fallback). A routed/destroyed
+  corps' standard tilts and drops; on a decisive field the beaten LEAD's eagle slides
+  across the centre line to the victor's side; on a defeat the victor's standard advances
+  onto the player's half (the §7-Q6 alarm register).
+- **Portrait lockets:** `scripts/portrait_locket.gd` (`PortraitLocket`) — the Generals-card
+  portraits sepia-duotoned + vignetted + ellipse-cropped by ONE shared shader inside a
+  drawn brass bezel with a catchlight; gold-monogram fallback (no corps is faceless); the
+  glass goes grey when the corps breaks; the standing ★ rides the rim.
+- **The sequence** (~4 s, any click skips): cannon thud + tray reveal → figures placed →
+  the lines close → the cascade topple bound to the odometers (the count and the collapse
+  are one event; red ONLY in the tally) → standards fall / the eagle taken (+ drum sting
+  on a decisive field) → the register-toned banner → **Berthier's verdict types in last**
+  (IM Fell italic; the enemy commander's W6-6 line beneath). Skip rebuilds the settled
+  frame deterministically (no tween bookkeeping); repeat views open settled instantly with
+  [Replay]; `show_diorama` kills any prior sequence FIRST (a re-open mid-cinematic was
+  ticking the old battle's odometers over the new frame — caught by the visual pass).
+- **Nameplate:** engraved Cinzel brass plate (battle name · province · turn) + the wax
+  seal overhanging its edge; laurels flank it on a triumph only.
+- **Audio:** `assets/audio/battle/cannon_thud.ogg` (extracted from the CC0 bang pack) +
+  `drum_sting.wav` — **self-authored CC0, synthesized by `tools/gen_battle_audio.py`**
+  (deterministic numpy snare: crescendo roll into two accents over a field-drum boom; the
+  own-pipeline route, closing the eval's documented drum-gap instead of shipping a metal
+  pot). One `AudioStreamPlayer`, no bed loop, honoured by a new `UiSettings.get_battle_sfx`
+  toggle ("Battle sounds", pause-menu Settings — the game's first audio setting).
+
+### Wiring
+
+- **Player attack:** `_stash_diorama` at response arrival (the NA-6b stash discipline);
+  raised in the control-return tails (BEFORE the Proclamation — the freshest moment first;
+  dismissal chains proclamation → letter-book → input). The terminal battle line always
+  keeps a gold `⚔ View the field` link (`output_display.meta_clicked` now connected —
+  first use); re-views open settled.
+- **Enemy phase:** every battle line in the dialog with a payload gets its own
+  `⚔ View the field` link (opens OVER the dialog, layer 121 > 118, input hold undisturbed);
+  after the dialog closes, the single most violent dramatic player-involved battle
+  auto-plays via `_return_control_to_player`. AI-vs-AI battles never auto-play.
+- **Objection-proceed attacks** carry the payload for free (`_build_result_response`
+  forwards all executor keys).
+- Parse harness extended (the IGR-E runtime-registration gap class): battle_diorama.gd /
+  portrait_locket.gd / enemy_phase_dialog.gd / pause_menu.gd / ui_settings.gd +
+  war_table_piece.gd / diorama_figure.gd + the battle_diorama.tscn instantiation check.
+
+### Verification
+
+- `tests/test_battle_diorama.py` (43): single-army AND multi-army through the REAL attack
+  path, per-corps casualties summing to the event surface, statuses, the no-show shelf +
+  grudge + enemy-grudge negative, fog PARTIAL-vs-FULL both for third-party battles and
+  enemy no-show regions, significance + drama + register matrices, cap + reserve tail,
+  arm/crown/origin flourishes, whitelist registration, JSON round-trip, enemy-phase event
+  transport.
+- Parse harness EXIT=0 (report regenerated); headless boot 0 SCRIPT ERROR; a live
+  runtime smoke drove instantiate → final frame → cinematic → mid-cinematic skip →
+  replay → close with zero errors and all assertions green (throwaway harness, deleted).
+- `THIRD_PARTY_LICENSES.md`: battle-audio entries added; the "198 WAVs force-tracked"
+  doc-drift the eval flagged corrected.
+
+### Deferred (owned)
+
+Everything the eval §6 marked OUT stays out with its owner: withdrew-status / per-corps
+rout / clickable grievance beat / proportional counts / terrain backdrop (named follow-up,
+needs a payload field) / Battle Gallery (own gate, persistence question) / Tier B/C
+(hold until Tier A is measured live) / ambient loops. **Live measurement of the tableau in
+ordinary play belongs to the next in-game review** (the standing cadence), where the
+significance gate's feel is the thing to watch.

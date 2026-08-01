@@ -476,6 +476,9 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "cavalry_terrain_message",
     "bombardment_advisory",
     "battle_report",
+    # BD: the Battle Diorama tableau payload (display-only, fog-gated at
+    # build time in battle_diorama.build_battle_diorama)
+    "battle_diorama",
     "reinforcement_messages",
     "coordination_tutorial",
     "opening_attack_guidance",

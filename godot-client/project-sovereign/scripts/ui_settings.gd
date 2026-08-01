@@ -90,3 +90,14 @@ static func get_ui_scale() -> float:
 
 static func set_ui_scale(scale: float) -> void:
 	_write_num("display", "ui_scale", clampf(scale, MIN_UI_SCALE, MAX_UI_SCALE))
+
+
+# --- Battle sound effects (BD: the diorama's cannon thud + drum sting) ---
+# The game's first audio — one boolean, honoured by every diorama sound call.
+static func get_battle_sfx() -> bool:
+	return bool(_config().get_value("audio", "battle_sfx", true))
+
+
+static func set_battle_sfx(enabled: bool) -> void:
+	_config().set_value("audio", "battle_sfx", enabled)
+	_config().save(PATH)

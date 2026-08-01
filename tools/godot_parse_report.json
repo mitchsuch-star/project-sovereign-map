@@ -15,6 +15,12 @@
       "instantiate_ok": true,
       "load_ok": true,
       "path": "res://scenes/europe_map_smoke.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/battle_diorama.tscn"
     }
   ],
   "scripts": [
@@ -100,6 +106,36 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/battle_diorama.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/portrait_locket.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/enemy_phase_dialog.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/pause_menu.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/ui_settings.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -125,7 +161,19 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scenes/map_label_layer.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/war_table_piece.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/diorama_figure.gd"
     }
   ],
-  "timestamp": "2026-07-31T19:14:36Z"
+  "timestamp": "2026-08-01T01:45:16Z"
 }

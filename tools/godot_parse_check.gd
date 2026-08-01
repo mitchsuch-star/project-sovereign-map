@@ -42,6 +42,14 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# error in it passed this harness EXIT=0 and surfaced only in a live
 	# boot. It renders a gold figure the player decides on; guard it.
 	"res://scripts/capture_choice_dialog.gd",
+	# BD (Battle Diorama): the tableau + its locket are runtime-registered
+	# (same IGR-E gap class); the enemy-phase dialog gained the view-field
+	# links; pause_menu/ui_settings gained the battle-sfx toggle.
+	"res://scripts/battle_diorama.gd",
+	"res://scripts/portrait_locket.gd",
+	"res://scripts/enemy_phase_dialog.gd",
+	"res://scripts/pause_menu.gd",
+	"res://scripts/ui_settings.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -55,6 +63,10 @@ const MAP_CRITICAL_SCRIPTS = [
 	"res://scenes/europe_map_smoke.gd",
 	"res://scenes/map.gd",
 	"res://scenes/map_label_layer.gd",
+	# BD: the shared piece art (public accessors added) + the diorama's
+	# falling figure — both live under scenes/.
+	"res://scenes/war_table_piece.gd",
+	"res://scenes/diorama_figure.gd",
 ]
 
 # Map Slice 7: headless scene-instantiation checks. instantiate() attaches
@@ -64,6 +76,7 @@ const MAP_CRITICAL_SCRIPTS = [
 const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/main.tscn",
 	"res://scenes/europe_map_smoke.tscn",
+	"res://scenes/battle_diorama.tscn",  # BD: runtime-registered modal
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"

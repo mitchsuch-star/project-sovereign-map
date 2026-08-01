@@ -56,6 +56,13 @@ func _ready():
 	ui_scale_slider.drag_started.connect(_on_scale_drag_started)
 	ui_scale_slider.drag_ended.connect(_on_scale_drag_ended)
 	reset_scale_button.pressed.connect(_on_reset_scale)
+	# BD: the Battle Diorama's sound toggle (the game's first audio) — built
+	# in code so the settings box needs no scene surgery.
+	var sfx_toggle := CheckButton.new()
+	sfx_toggle.text = "Battle sounds"
+	sfx_toggle.button_pressed = UiSettings.get_battle_sfx()
+	sfx_toggle.toggled.connect(func(on): UiSettings.set_battle_sfx(on))
+	settings_box.add_child(sfx_toggle)
 	_add_asset_credits()
 	_set_new_game_confirmation_visible(false)
 	hide()

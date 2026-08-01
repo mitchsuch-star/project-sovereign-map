@@ -4026,6 +4026,16 @@ class CombatExecutor:
 
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
+        # BD (Battle Diorama): every participant's strength at muster,
+        # captured BEFORE support bombardment / resolve_battle /
+        # take_casualties mutate anyone — the contingents' committed
+        # figures (display-only, GR6).
+        from backend.game_logic.battle_diorama import (
+            build_battle_diorama, snapshot_pre_battle_strengths,
+        )
+        _bd_pre_strengths = snapshot_pre_battle_strengths(
+            atk_participants, def_participants)
+
         # Jealousy v3.2 (spec §3): the grievance as fuel — a jealous marshal
         # attacking ALONE (no same-side participants) fights at +15%.
         # Transient stamp consumed by get_attack_modifier; cleared with the
@@ -4241,6 +4251,7 @@ class CombatExecutor:
         # caller distributes among participants (Session 62).
         # ════════════════════════════════════════════════════════════
         atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
+        def_distribution = {}  # BD: initialized both paths — the diorama builder reads it
         if is_coordinated_battle:
             # CO-1/CO-1b: committed reinforcement strength adds to the clash,
             # personality- & relationship-scaled (single source, GR1-safe read).
@@ -5061,6 +5072,30 @@ class CombatExecutor:
             }],
             "new_state": game_state
         }
+
+        # ════════════════════════════════════════════════════════════
+        # BD (Battle Diorama): the self-contained tableau payload — one
+        # builder for the solo and coordinated paths, fog-gated inside.
+        # Rides BOTH surfaces: the top-level result field (the player's
+        # own command response, whitelisted in main.py) and the battle
+        # event (the enemy-phase transport, filtered with the action).
+        # ════════════════════════════════════════════════════════════
+        _bd_payload = build_battle_diorama(
+            world=world, attacker=marshal, defender=enemy_marshal,
+            battle_result=battle_result, battle_region=battle_region_name,
+            atk_participants=atk_participants,
+            def_participants=def_participants,
+            pre_strengths=_bd_pre_strengths,
+            atk_distribution=atk_distribution,
+            def_distribution=def_distribution,
+            attacker_reinforcements=attacker_reinforcements,
+            defender_reinforcements=defender_reinforcements,
+            region_conquered=conquered,
+            total_engaged=total_engaged_strength,
+        )
+        if _bd_payload:
+            result["battle_diorama"] = _bd_payload
+            result["events"][0]["diorama"] = _bd_payload
 
         # Phase 6.1: Pass cavalry terrain message through as separate field
         # so Godot can display it in structured UI (not just embedded in description text)

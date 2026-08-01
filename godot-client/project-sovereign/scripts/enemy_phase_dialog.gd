@@ -9,6 +9,9 @@ extends CanvasLayer
 # =============================================================================
 
 signal dismissed
+# BD: a "⚔ View the field" link was clicked — main.gd opens the tableau
+# over this dialog (layer 121 > 118); the dialog's input hold stands.
+signal view_field_requested(payload: Dictionary)
 
 # UI References
 @onready var panel_container = $PanelContainer
@@ -20,9 +23,14 @@ signal dismissed
 # Utils.NATION_COLORS (single source, all 20 nations) — see _get_nation_color.
 const COLOR_ERROR = "cd5c5c"
 
+# BD: tableau payloads for this phase's battles, indexed by the meta link.
+var _diorama_payloads: Array = []
+
 func _ready():
 	# Connect button signal
 	continue_button.pressed.connect(_on_continue_pressed)
+	# BD: battle lines carry [url=diorama:N] view-field links.
+	content_label.meta_clicked.connect(_on_content_meta_clicked)
 
 	# Hide by default
 	hide()
@@ -40,6 +48,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	title_label.text = "ENEMY PHASE - Turn %d" % turn
 
 	# Build content
+	_diorama_payloads = []
 	var content = ""
 
 	var nations = enemy_phase.get("nations", {})
@@ -278,6 +287,15 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	if defender.get("forced_retreat", false):
 		result += "[color=#" + COLOR_ERROR + "]    " + defender_name + " forced to retreat![/color]\n"
 
+	# BD: the tableau link — every battle that carried a diorama payload is
+	# one click from its field (the routine-raid case; the dramatic case
+	# auto-plays after this dialog closes).
+	var diorama = event.get("diorama")
+	if diorama is Dictionary and not diorama.is_empty():
+		_diorama_payloads.append(diorama)
+		result += "[color=#" + Utils.COLOR_GOLD + "]    [url=diorama:" \
+			+ str(_diorama_payloads.size() - 1) + "]⚔ View the field[/url][/color]\n"
+
 	# Fort degradation
 	if event.get("fortification_degraded", false):
 		var fort_old = int(event.get("fortification_old", 0) * 100)
@@ -437,6 +455,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_on_continue_pressed()
+
+func _on_content_meta_clicked(meta) -> void:
+	"""BD: open the tableau for a battle line's view-field link."""
+	var meta_str := str(meta)
+	if not meta_str.begins_with("diorama:"):
+		return
+	var idx := int(meta_str.trim_prefix("diorama:"))
+	if idx < 0 or idx >= _diorama_payloads.size():
+		return
+	view_field_requested.emit(_diorama_payloads[idx])
+
 
 func _on_continue_pressed():
 	"""Handle continue button press."""
