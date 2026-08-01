@@ -1,9 +1,14 @@
 # AI Intent — Phase Spec (v1.4 — gate record · phased build plan · the four review passes)
 
-> **Status: DESIGN GATE HELD July 20, 2026 — §6 (D1–D7) is authoritative and has survived every
-> subsequent pass untouched. Stages A–F are BUILT** (§14 A+B · §15 C · §17 D · §18 E · §19 F,
-> each authoritative); the D6 re-check between Stage C and Stage D was **held July 24, 2026 —
-> gate record §16**. Remaining: Stage G (AI-V, carrying the D1 band), per §11.
+> **Status: THE PHASE IS BUILD-COMPLETE — Stage G ran August 1, 2026 and the phase CLOSES.**
+> The design gate was held July 20, 2026 — §6 (D1–D7) is authoritative and survived every
+> subsequent pass untouched. Stages A–F are BUILT (§14 A+B · §15 C · §17 D · §18 E · §19 F,
+> each authoritative); the D6 re-check between Stage C and Stage D was held July 24, 2026 —
+> gate record §16. **Stage G (AI-V) landing record = §20 (authoritative): the three-arm sweep +
+> the scripted-France arm ran GREEN (sweep memo `docs/audits/AI_V_SWEEP_2026_08_01.md`), the §7
+> DoD is disposed line-by-line, §7a resolved 5-of-7 with written predicates on both misses, and
+> the D1 band resolved as 0-with-written-predicate (the AI-3r §8.2 disposition, re-measured over
+> 10 seeds). Open user-side item: the Stage E+F visual half (pin 20, on STATUS).**
 >
 > **How to read this document.**
 > - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
@@ -3252,3 +3257,89 @@ untouched; the exemption tuple enumerates the Stage E pair) · pin 20 ✓ with t
 half open as recorded above · tests: `test_ai_intent_narration.py` (19) +
 `test_ai_intent_client_surfaces.py` (19); suite green (count in STATUS), ruff clean,
 M1–M7 untouched (no combat-path code), campaign-log count pins untouched at 142.
+
+---
+
+## 20. Landing record — Stage G, "The Reckoning" *(August 1, 2026; authoritative)*
+
+**Built and run:** AI-V per §4.7 / §11.1 Stage G — the three ambient arms + the scripted-France
+arm, the standing assurance pin set, and the scored creative pass. **Zero production-code
+changes** (the MC-V precedent held: assurance and evaluation only; the one candidate defect —
+the rear reserve "growing" under a second front — dissected to correct behaviour: third-party
+relations cooling a band, max-not-sum intact). **Full evidence = `docs/audits/AI_V_SWEEP_2026_08_01.md`.**
+
+### What landed
+
+- **`tools/ai_v_sweep.py`** — the committed sweep driver (the AI-3r probe was session-scratch;
+  the phase's acceptance harness is not allowed to be). Single-run digest capture (read-only:
+  intents via the production per-turn cache, the dispatch queue read without draining, the
+  event log drained per turn by object identity — the IGR-B eviction trap), the ambient idiom
+  byte-compatible with the pin-16a baseline, subprocess-per-run process-fresh determinism, and
+  the FranceScript arm: sponsor → staged moment → buy-off → guarantee → renege → outbid →
+  Continental System → the Tilsit staging with the volte accept through the §5b.3 conflict
+  confirm. Seven engine-seam findings from runs 1–7 are documented at their fix sites in the
+  script (the pre-crisis guarantee deterring its own receipt; the income phase repaying a
+  staged bankruptcy; the busy-holder staging flipping the coveter into the BANDWAGON branch;
+  the war_1 fold window; the idle-mailbox dedup deadlock on `_has_pending_proposal_from`'s
+  target_nation arm; `decision_reason` living at context level).
+- **`tests/test_ai_intent_assurance.py` (43)** — the §8 owner row: Arm A control in-suite (two
+  subprocess runs byte-identical AND the runner's threat series == `BASELINE_SERIES` verbatim —
+  one constant, two consumers, conscious re-records flow to both); Arm B variance (the spec
+  triple + Tier-1 deck invariance); the arm-(a) ambient DoD pins (D1 channel discrimination +
+  alarm, Q3 both failure shapes, the narration cap in the wild, the downward mirror, the
+  courting stream, the soap-opera number, the beat texture, exhaustion-driven pair peaces, the
+  machine-readable formation predicate, pin 21's run-level no-silent-vanish, the WARTIME
+  homogeneity guard, in-character observables); the arm-(b) scripted pins (instruments through
+  real gates, the bought-off receipt, beat 4, the signed volte + §12.2 deck aim, the upward
+  mirror, the honest outbid record); **the §13 Q2 multi-front set** (fold semantics measured —
+  same-originator declarations fold, reversed originators produce distinct instances; peace and
+  armistice isolation byte-pinned; exhaustion survives a partial peace; settlement-track
+  independence through the real `attempt_third_party_settlement`; the rear reserve max-not-sum
+  pinned both clamped and unclamped); and the MC-V both-sides kits.
+- **The sweep memo** — arm tables, the §7 DoD disposed line-by-line, the §7a scene map
+  (5-of-7 reached: Schönbrunn, Jena, Tilsit, Pitt's subsidy, the Continental System; scenes 1
+  and 7 blocked with written predicates — the passive-France hegemony share and the standing
+  AI-3b cut), the §13 review, and the scored creative pass (distinct statesmen 8.0 · the
+  player has something to do 8.0 · the living balance 6.5 — the honest weak edge · legibility
+  8.5).
+
+### The measured headlines
+
+- **Arm A GREEN** — byte-identical control across processes, anchored to the standing baseline.
+- **Arm B GREEN** — every seed differs in boot dispositions AND the spec triple at held K.
+- **Arm C (N=10, seed and K varying)**: council wars **0/10** (the AI-3r §8.2 predicate holds
+  post-Stage-E — the emergent revanches exist on every seed but their bearers are beaten,
+  broke or in survival and the exposure calculus refuses their wars); seam-channel wars 0–2;
+  pair peaces (beat 6) on EVERY seed with both parties' exhaustion rising into them; agenda
+  shifts 4–10; emergent promotions 2–4; soap-opera share 0.91–0.98 (reported per pin 13);
+  the narration cap held at 2 on every turn of every run; commissions fired ambient with no
+  bankruptcy (Q3 clean).
+- **Arm (b)**: beats 2, 4, 5, 6, 7 + `design_promoted`/`agenda_shift` live in one 24-turn run;
+  the pin-21 receipt names `bought_off`; the mirror rises 82→97 on the renege against the
+  passive arm's decay to 22; Russia signs the volte through the conflict confirm and re-aims at
+  `gulf_and_straits` (Sweden — the 1808 Finnish War, unscripted). Per-seed honesty: the volte
+  fired on historical; on ulm/austerlitz the R49 exhaustion shed emptied the staged defeat the
+  same turn ("the defeat still shows" correctly failed) — predicate written.
+
+### Dispositions
+
+- **The D1 band** resolves as **0-with-written-predicate** over 10 seeds — the disposition
+  AI-3r §8.2 recorded and the exit review accepted, now re-measured on the final system. The
+  moment conjunction is a played-world event; deterministic reachability stays pinned in the
+  war-decision suites and the scripted arm walks beats 2→7 live.
+- **§7a**: 5-of-7 across the arm union, both misses carrying written predicates — **MET**.
+- **Beat 3 (`coercive_demand`)** stays unit-pinned (Stage D) — the scripted crisis was bought
+  off at the buy rung BY DESIGN, and NA-5's ultimatum is the player-facing coerce beat
+  (live-verified July 25).
+- **Routed forward: nothing new.** The scene-1/7 halves and the D1 played-moment measurement
+  ride the standing predicates to the first long human campaign; the Stage E+F visual half
+  stays the user's open pin-20 item on STATUS.
+
+### Exit criteria check (§11.1 Stage G)
+
+The full §7 DoD — every line disposed in the memo §5 table (met, met-with-shape-note, or
+predicate-resolved; none silently dropped) ✓ · §7a ≥5-of-7 across the arm union ✓ · the
+scored creative pass in `docs/audits/` ✓ · suite green (count in STATUS), ruff clean, zero
+production diffs, campaign-log pins untouched at 142, M1–M7 and `BASELINE_SERIES`
+byte-identical by construction (the control arm asserts the latter every suite run).
+**THE AI INTENT PHASE IS CLOSED.**

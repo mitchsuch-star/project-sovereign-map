@@ -4,31 +4,66 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ▶ WHAT'S NEXT (as of August 1, 2026 — end of the AI Intent Stage F session)
+> ### ▶ WHAT'S NEXT (as of August 1, 2026 — end of the AI Intent Stage G session)
 >
-> **AI Intent Stages E AND F are BUILT + LANDED.** Stage E ("Consequence and Character",
-> July 31 — record §18 + the four-lens review §18.1) and **Stage F ("The Stage",
-> August 1 — record `docs/AI_INTENT_SPEC.md` §19, authoritative)**: the narration cap
-> (2 relevance-ranked routine lines + one tail, beats structurally exempt incl. the
-> Stage E pair), the fresh tempo pin (one foregrounded crisis world-wide), and the
-> §4.6b client surfaces — FOREIGN WARS on the war panel with cause + fogged bleed,
-> the casus-belli line on the war detail, and the three D5 instrument verbs as
-> honest-availability wizard chips mirroring the executor's own gates.
+> **THE AI INTENT PHASE IS CLOSED.** Stage G (AI-V, "The Reckoning") ran August 1, 2026 —
+> landing record `AI_INTENT_SPEC.md` §20, sweep memo `docs/audits/AI_V_SWEEP_2026_08_01.md`,
+> standing pins `tests/test_ai_intent_assurance.py` (43), driver `tools/ai_v_sweep.py`
+> (committed). Arms A/B GREEN (byte-identical control anchored to `BASELINE_SERIES`;
+> variance on every seed at held ambient K), Arm C measured over 10 seeds (council wars
+> 0-with-written-predicate — the AI-3r §8.2 disposition re-confirmed post-Stage-E; pair
+> peaces + emergent promotions + the narration cap on EVERY seed), the scripted-France arm
+> walked beats 2/4/5/6/7 live in one run (the pin-21 bought-off receipt; the renege mirror
+> 82→97; the volte-face signed through the conflict confirm and aimed at Finland). §7 DoD
+> disposed line-by-line; §7a = 5-of-7 with written predicates on both misses; scored
+> creative pass: statesmen 8.0 · counterplay 8.0 · living balance 6.5 (the honest weak
+> edge — ambient council wars need a played moment) · legibility 8.5. Zero production-code
+> changes (the MC-V precedent).
 >
-> 1. **▶ NEXT: AI Intent Stage G — AI-V** (`AI_INTENT_SPEC.md` §11 — the three-arm
->    sweep (control / variance / acceptance) + the scripted-France arm; the full §7
->    DoD; §7a ≥5-of-7 across the arm union; carries the D1 band measurement (AI-3r
->    arm (a)) and the Q2 multi-front assertion set; the scored creative pass lands in
->    `docs/audits/`). Stage G closes the AI Intent phase.
+> 1. **⚠ open visual sign-offs for the next play session** (user eyes, all queued): the
+>    IGR-G before/after pack (`docs/audits/IGR_G*_2026_07_31.png`); the BD
+>    significance-gate FEEL watch; and **pin 20's visual half for Stages E+F** — the
+>    FOREIGN WARS section, the casus-belli line, the three instrument chips, the
+>    REVANCHE/VOLTE-FACE beats and the two routine intent lines on screen in the running
+>    client. That play session doubles as the first PLAYED-world re-measure of the AI-V
+>    weak edge (the living balance / D1 moment conjunction).
 >
-> 2. **⚠ open visual sign-offs for the next play session**: the IGR-G before/after pack
->    (`docs/audits/IGR_G*_2026_07_31.png`); the BD significance-gate FEEL watch; and
->    **pin 20's visual half for Stages E+F** — the FOREIGN WARS section, the
->    casus-belli line, the three instrument chips, the REVANCHE/VOLTE-FACE beats and
->    the two routine intent lines on screen in the running client (backend payloads +
->    parse/boot verified headless; the renders ride existing surfaces).
+> 2. **▶ NEXT PHASE — the ROADMAP spine resumes**: with 8.5's arc complete (Batch Q ✅ ·
+>    CR-6 ✅ · NA ✅ · BD ✅ · AI ✅), the spine's next named items are **STEAM PAGE + LLC →
+>    Phase 9 (Advisors) → 10 (Character & People) → 11 (Britain naval/subsidy) → Pre-EA**
+>    (incl. the Victory & Objectives Pass). Routing between them is the user's call at the
+>    next session.
 >
-> **Nothing is blocked on a user decision right now.**
+> **Nothing is blocked on a user decision right now** (the phase-routing choice above is
+> the natural next one to make).
+>
+> ### ✅ AI Intent Stage G — "The Reckoning" — RAN August 1, 2026 (the phase closes)
+>
+> **User direction: "code this commit and push." Landing record = `AI_INTENT_SPEC.md` §20
+> (authoritative); evidence = `docs/audits/AI_V_SWEEP_2026_08_01.md`.** Suite **15,528/3**,
+> ruff clean, zero production diffs, campaign-log pins untouched at 142, M1–M7 green,
+> `BASELINE_SERIES` asserted verbatim by the new control-arm pin every suite run.
+>
+> - **`tools/ai_v_sweep.py`** — the committed three-arm + scripted-France driver (the
+>   AI-3r probe was session-scratch; the acceptance harness is not allowed to be).
+>   Read-only capture (the IGR-B event-log eviction trap handled by per-turn id-drain),
+>   ambient idiom byte-compatible with the pin-16a baseline, subprocess-per-run
+>   determinism, and the FranceScript arm whose seven run-N findings are documented at
+>   their fix sites (a map of the engine's real seams: the pre-crisis guarantee deterring
+>   its own receipt · the income phase repaying staged bankruptcy before the poll · the
+>   busy-holder staging flipping the coveter into the BANDWAGON branch · the war_1 fold
+>   window · the idle-mailbox dedup deadlock · `decision_reason` at context level).
+> - **`tests/test_ai_intent_assurance.py` (43)** — Arm A control in-suite; Arm B variance
+>   (spec triple + Tier-1 deck invariance); arm-(a) DoD pins (channel discrimination, Q3
+>   shapes, cap-in-the-wild, both mirror directions, courting, soap-opera number, beat
+>   texture, exhaustion-driven pair peaces, the machine-readable formation predicate, pin
+>   21 run-level, the WARTIME homogeneity guard); arm-(b) scripted pins; the §13 **Q2
+>   multi-front set** (fold semantics measured; peace/armistice isolation byte-pinned;
+>   exhaustion survives a partial peace; settlement-track independence through the real
+>   machinery; rear reserve max-not-sum pinned clamped AND unclamped); both-sides kits.
+> - **One false alarm dissected, no production defect**: the reserve "growing" under a
+>   second front is third-party relations cooling a band (two aggressive declarations
+>   chill Russia 0.3→0.6) — max-not-sum intact.
 >
 > ### ✅ AI Intent Stage F — "The Stage" — LANDED August 1, 2026
 >
