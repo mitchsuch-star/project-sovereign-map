@@ -33,7 +33,7 @@
 to improve upon anything the spec is weak or unclear on." Landing record =
 `docs/AI_INTENT_SPEC.md` §18 (authoritative).** The whole Stage E row shipped, both slip
 candidates included — beat 5 fires under the harness, so the written-predicate fallback
-was never needed. Suite **15,437/3**, ruff clean, M1–M7 + `BASELINE_SERIES`
+was never needed. Suite **15,437/3 at `ddf7b05`, 15,447/3 after the §18.1 review round**, ruff clean, M1–M7 + `BASELINE_SERIES`
 byte-identical (no re-record needed), zero new serialized fields, zero `.gd` diffs
 (pin 20's live pass belongs to Stage F, as sited).
 
@@ -75,8 +75,25 @@ byte-identical (no re-record needed), zero new serialized fields, zero `.gd` dif
   WE→intent read pinned).
 - Campaign-log types 140 → **142** (`design_promoted`, `volte_face`; five count pins
   flipped consciously); both beats HIGH dispatch templates + one-liners.
-- Tests: `test_ai_intent_emergent_designs.py` (37) + `test_ai_intent_system_wiring.py`
-  (16) + `test_ai_intent_mediation.py` (12); ultimatum + phase-audit fixtures re-tuned.
+- **A four-lens adversarial review (correctness · pins/GR · falsifiability · design
+  fidelity) then confirmed 1 P1 + 3 MED + 8 LOW — ALL FIXED pre-push (addendum §18.1)**:
+  headline P1 — the mediation producer was structurally DEAD in production (the standard
+  offer producer runs first and consumes every eligible war) and aimed at the wrong wars;
+  re-gated so the per-war clock is transparent to the arbiter while a live offer still
+  blocks — the arbiter now steps in exactly when the belligerents' own courier is spent
+  (Prague 1813), regression-tested on the real pipeline sequence. Plus: the punitive
+  record refined to HOMELAND-ONLY with the author charged over the same filtered set
+  (surrendering conquests is the fortune of war, not a partition — a mis-charged durable
+  author could have volte-face-foreclosed the wrong pair forever); the volte-face courier
+  deck-gated (pin 18/N1) + never re-proposing to a standing ally; the on-ramp's two arms
+  made floor-identical (band ≥2 both sides, release-cooldown pre-checks, AI cooldown only
+  on a SEALED submission); bilateral wars pinned unmediatable as a recorded v1 bound; two
+  masked negative controls closed (the NA-5 against-conjunct, the bandwagon-rung floor);
+  the coerce-climb fixture arithmetic corrected in place (measured weight 80, not 74 —
+  the allies-committed +6 also fires); and the Stage F handoff recorded — AI-6's cap
+  pins MUST enumerate `design_promoted`/`volte_face` beside the seven beats.
+- Tests: `test_ai_intent_emergent_designs.py` (43) + `test_ai_intent_system_wiring.py`
+  (18) + `test_ai_intent_mediation.py` (14); ultimatum + phase-audit fixtures re-tuned.
 
 ### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
 

@@ -1414,7 +1414,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             volte_face_receptive,
         )
         cooldowns = _get_cooldowns(world)
-        if (cooldowns.get(f"{nation}|volte_face", 0) <= 0
+        # Review fixes: (a) DECK-gated — a deckless court (the whole
+        # legacy fixture world, pin 18/N1) keeps its pre-Stage-E rung
+        # behaviour byte-identically; the volte-face is a deck-world
+        # mechanic whose payoff IS the deck advance. (b) A court ALREADY
+        # at full alliance never re-proposes — the same-state ratify
+        # would refuse an offer the AI itself forced.
+        if ((getattr(world, "agendas", {}) or {}).get(nation)
+                and world.get_diplomatic_state(nation, player) != "ALLIANCE"
+                and cooldowns.get(f"{nation}|volte_face", 0) <= 0
                 and volte_face_receptive(world, nation, player)
                 and not _is_on_cooldown(nation, "alliance", world,
                                         war_score)):
@@ -1571,8 +1579,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 # The Confederation of the Rhine, chosen not imposed.
                 # Arrives as a refusable OFFER (the auction rule);
                 # honest-availability: never offered when the power cap
-                # would refuse the acceptance.
+                # or the release cooldown would refuse the acceptance.
+                # The >=2 band floor mirrors the AI-hegemon arm exactly
+                # (GR5, review fix): no crown moves below the reveal
+                # threshold on either side of the board.
                 hegemon == player
+                and _hegemony_signal_band(share) >= 2
                 and already_in_hegemon_bloc
                 and world.get_diplomatic_state(nation, player) == "ALLIANCE"
                 and is_minor_or_secondary
@@ -1581,7 +1593,10 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             ):
                 from backend.game_logic.intent import get_nation_intent
                 cooldowns = _get_cooldowns(world)
+                release_cooldowns = getattr(
+                    world, "vassal_release_cooldowns", {}) or {}
                 if (get_nation_intent(nation, world).price == "bandwagon"
+                        and int(release_cooldowns.get(nation, 0) or 0) <= 0
                         and cooldowns.get(
                             f"{nation}|offer_vassalage", 0) <= 0):
                     from backend.game_logic.diplomacy import (
@@ -1661,8 +1676,11 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 relation_h = int(world.nation_relations.get(
                     world._make_diplo_key(nation, hegemon), 0) or 0)
                 cooldowns = _get_cooldowns(world)
+                release_cooldowns = getattr(
+                    world, "vassal_release_cooldowns", {}) or {}
                 if (get_nation_intent(nation, world).price == "bandwagon"
                         and relation_h >= VASSAL_ONRAMP_RELATION
+                        and int(release_cooldowns.get(nation, 0) or 0) <= 0
                         and cooldowns.get(
                             f"{nation}|offer_vassalage", 0) <= 0):
                     # The same WPS-B pre-check the player-facing arm
@@ -1674,14 +1692,19 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                     )
                     if check_vassalage_power_cap(
                             world, hegemon, nation)["allowed"]:
-                        cooldowns[f"{nation}|offer_vassalage"] = int(
-                            OFFER_VASSALAGE_COOLDOWN_TURNS)
-                        _set_cooldowns(world, cooldowns)
                         from backend.game_logic.vassal import (
                             create_vassal_treaty,
                         )
-                        create_vassal_treaty(
+                        outcome = create_vassal_treaty(
                             world, hegemon, nation, generosity_bonus=2)
+                        # Review fix: the cooldown is the price of a
+                        # SEALED submission, never of a refusal — a
+                        # create blocked by a gate the pre-checks cannot
+                        # see retries next season at trivial cost.
+                        if outcome.get("success"):
+                            cooldowns[f"{nation}|offer_vassalage"] = int(
+                                OFFER_VASSALAGE_COOLDOWN_TURNS)
+                            _set_cooldowns(world, cooldowns)
         except Exception as exc:
             from backend.utils.debug import debug_print
             debug_print(
@@ -3855,9 +3878,27 @@ def process_mediation_offers(world) -> List[Dict]:
     consequence only: no new threat namespace, no auto-join). Russia's
     1806 feelers; Metternich's armed mediation of 1813.
 
+    ELIGIBILITY (review fix — the P1 that made the first cut dead code):
+    the standard producer runs FIRST each turn and emits for every fully
+    eligible war, stamping the per-war clock — so a gate requiring full
+    standard eligibility could never fire in production, and would have
+    aimed the arbiter at exactly the wars the belligerents were about to
+    settle THEMSELVES. Mediation is for the wars they won't: the
+    structural arms of `_settlement_offer_eligible_for_war` must hold
+    (live, multi-party, player participant, leaders known — the accept
+    path's own preconditions), but the per-war producer CLOCK is
+    transparent to the arbiter (`cooldown_active` passes; a pending or
+    promoted offer still blocks — one live offer per war, re-checked
+    explicitly because the eligibility's first-refusal-wins ordering
+    masks pending behind the clock, the SC-30 idiom). In play: the
+    belligerent's own courier is spent, the war grinds on, the arbiter
+    steps in — Prague 1813. Bilateral French wars stay unmediatable in
+    v1 (the multi-party arm is a real bound, recorded in §18 — they
+    settle on the treaty layer, which the mediated review cannot stage);
+    that bound joins AI-vs-AI mediation at the exit review.
+
     At most ONE mediation world-wide per turn; the mediator's cooldown is
-    set at ISSUE (lapse-safe, the NA-5 idiom). AI-vs-AI mediation is
-    deferred to the exit review — the player-facing half is the fun half.
+    set at ISSUE (lapse-safe, the NA-5 idiom).
     """
     player = getattr(world, "player_nation", "France")
     current_turn = int(getattr(world, "current_turn", 0))
@@ -3881,10 +3922,15 @@ def process_mediation_offers(world) -> List[Dict]:
         war = war_instances[war_id]
         if not isinstance(war, dict):
             continue
-        if _settlement_offer_eligible_for_war(
-                world, war, player=player, current_turn=current_turn,
-        ) is not None:
-            continue
+        refusal = _settlement_offer_eligible_for_war(
+            world, war, player=player, current_turn=current_turn,
+        )
+        if refusal not in (None, "cooldown_active"):
+            continue  # a structural refusal binds the arbiter too
+        if (_settlement_offer_already_pending(pending, war_id=str(war_id))
+                or _settlement_offer_already_promoted(
+                    world, war_id=str(war_id))):
+            continue  # one live offer per war, whoever carried it
         side_by_nation = war.get("side_by_nation") or {}
         leader = _settlement_offer_opposing_side_leader(
             war, player_side=side_by_nation.get(player))

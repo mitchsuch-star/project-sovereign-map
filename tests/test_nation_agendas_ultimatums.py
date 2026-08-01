@@ -75,10 +75,14 @@ def _make_ultimatum_ready(world, nation="Prussia", region="Hanover"):
     true story of every historical ultimatum of the period: relation COLD
     (-45, +8), France busy in ONE other war (+6 opportunism — one war, so
     the legacy P7 rung at >=2 stays quiet), France's armies weary
-    (war_exhaustion 120, +5). Base 55 + 19 = 74 >= the coerce floor;
-    jitter is 0 on the suite's pinned historical seed. Potsdam, November
-    1805: the demand came when Napoleon was stretched, not on a quiet
-    morning."""
+    (war_exhaustion 120, +5), and — measured, not designed — France's
+    ALLIES committed (+6, intent's N3 term: the pacify loop clears only
+    the player's own pairs, so boot allies Spain and Bavaria remain at
+    war with Britain). Measured weight = 55 + 8 + 6 + 5 + 6 = **80** —
+    inside [coerce 72, fight 85), margin to the fight floor is 5, not
+    11; jitter is 0 on the suite's pinned historical seed. Potsdam,
+    November 1805: the demand came when Napoleon was stretched, not on
+    a quiet morning."""
     for other in list(world.get_active_nations()):
         if other == world.player_nation:
             continue

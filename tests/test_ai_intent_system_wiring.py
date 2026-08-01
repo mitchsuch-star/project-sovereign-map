@@ -66,7 +66,9 @@ def _pacify_all_wars_of(world, nation):
 def _make_coercive(world, nation):
     """The coerce climb from the REAL derivation (the ultimatum-fixture
     arithmetic): relation cold (-45, +8), France busy in one war (+6),
-    France weary (+5) — base 55 + 19 = 74 >= the coerce floor of 72."""
+    France weary (+5), plus the measured allies-committed +6 (Spain and
+    Bavaria remain at war with Britain — only player pairs get
+    pacified) — weight 80, inside [coerce 72, fight 85)."""
     world.nation_relations[
         world._make_diplo_key(world.player_nation, nation)] = -45
     war_key = world._make_diplo_key(world.player_nation, "Britain")
@@ -116,6 +118,49 @@ class TestNA5CoerceRung:
         view = get_nation_intent("Prussia", world)
         assert view.against != "France"
         assert _generate_agenda_ultimatum("Prussia", world) is None
+
+    def test_against_conjunct_isolated_with_a_demandable_target(self, world):
+        """Review fix pinned (the masked negative control): the player
+        HOLDS a demandable design target, the court stands at coerce —
+        but its obstacle derives to a THIRD power holding more of the
+        design, so no ultimatum reaches Paris. Deleting the
+        `against == player` conjunct alone fails exactly this test:
+        every other gate (demandable, rung, cooldowns, strength) is
+        deliberately held open."""
+        from backend.game_logic.ai_diplomacy import (
+            _generate_agenda_ultimatum,
+            _ultimatum_demandable_regions,
+        )
+        _pacify_all_wars_of(world, "Austria")
+        _pacify_player_wars(world)
+        world.threat_level = 0
+        # redeem_italy: Milan with FRANCE (demandable), Piedmont + Savoy
+        # with PRUSSIA (the plurality holder -> the derived obstacle).
+        world.regions["Milan"].controller = "France"
+        world.regions["Piedmont"].controller = "Prussia"
+        world.regions["Savoy"].controller = "Prussia"
+        world.invalidate_active_nations_cache()
+        # The coerce climb vs PRUSSIA (the obstacle): cold relation,
+        # Prussia busy in one war, Prussia weary.
+        world.nation_relations[
+            world._make_diplo_key("Austria", "Prussia")] = -45
+        war_key = world._make_diplo_key("Prussia", "Britain")
+        world.diplomatic_states[war_key] = "WAR"
+        world.war_start_turns[war_key] = int(world.current_turn)
+        world.war_exhaustion["Prussia"] = 120
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.strength = 2000
+            elif m.nation == "Austria":
+                m.strength = 40000
+        world.invalidate_bloc_members_cache()
+        view = get_nation_intent("Austria", world)
+        assert view.against == "Prussia"
+        assert rung_index(view.price) >= rung_index("coerce")
+        assert _ultimatum_demandable_regions("Austria", world) == ["Milan"]
+        assert _generate_agenda_ultimatum("Austria", world) is None, (
+            "the coerce rung points at the obstacle, never sideways at "
+            "whoever happens to hold one province")
 
     def test_yield_descends_the_ladder(self, world):
         """§3.1a descent at the NA-5 seam: the ceded target satisfies the
@@ -299,6 +344,29 @@ class TestVassalageOnRamp:
             process_diplomatic_phase,
         )
         self._ally_denmark(world, relation=VASSAL_ONRAMP_RELATION - 20)
+        proposal = process_diplomatic_phase("Denmark", world)
+        assert proposal is None or (
+            proposal.get("proposal_type") != "offer_vassalage")
+
+    def test_bandwagon_rung_is_the_floor(self, world, monkeypatch):
+        """Review fix pinned (the missing negative control): with the
+        hegemon share and every OTHER floor held open but Denmark's
+        intent left REAL (its guard deck caps at `align` — it can never
+        truly read bandwagon), no crown is offered. Deleting the
+        `price == "bandwagon"` clause alone fails exactly this test —
+        without it the wire degrades to 'every allied minor at relation
+        40 offers its crown', the pre-intent behaviour this slice
+        replaced."""
+        from backend.game_logic import coalition
+        monkeypatch.setattr(coalition, "_identify_max_bloc_share",
+                            lambda w: ("France", 0.55))
+        from backend.game_logic.ai_diplomacy import (
+            process_diplomatic_phase,
+        )
+        self._ally_denmark(world)
+        view = get_nation_intent("Denmark", world)
+        assert view.price != "bandwagon", (
+            "precondition: the REAL derivation must sit off the rung")
         proposal = process_diplomatic_phase("Denmark", world)
         assert proposal is None or (
             proposal.get("proposal_type") != "offer_vassalage")

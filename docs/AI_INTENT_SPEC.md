@@ -3040,9 +3040,105 @@ active when it clears) ✓ max-one ✓ player/vassal exclusions ✓ save round-t
 **beat 5 FIRED under the harness** (`test_alliance_ratify_fires_beat_and_advances_the_deck`:
 the alliance lands, THE VOLTE-FACE announces, Russia's deck advances to `gulf_and_straits`) —
 the written-predicate arm unused ✓ · the promotion beat + the shift-beat interplay live in the
-turn pipeline ✓ · tests: `test_ai_intent_emergent_designs.py` (37) +
-`test_ai_intent_system_wiring.py` (16) + `test_ai_intent_mediation.py` (12), plus the
-re-tuned ultimatum suites; suite **15,437/3**, ruff clean, **M1–M7 AND the 40-turn
+turn pipeline ✓ · tests: `test_ai_intent_emergent_designs.py` (43) +
+`test_ai_intent_system_wiring.py` (18) + `test_ai_intent_mediation.py` (14) — counts as of
+the §18.1 review round — plus the re-tuned ultimatum suites; suite **15,447/3**, ruff clean, **M1–M7 AND the 40-turn
 `BASELINE_SERIES` byte-identical WITHOUT re-recording** (the ambient run never partitions a
 court, never frees an arbiter, never courts a beaten power — Stage E's mechanics all wait for
 a PLAYED moment, which is where the D6 vignette wants them).
+
+### 18.1 The review round — four lenses, 1 P1 + 3 MED + 8 LOW confirmed, ALL FIXED *(July 31, 2026, pre-push)*
+
+A four-lens adversarial pass (correctness · golden-rule/pin compliance · test falsifiability ·
+design fidelity) ran against the landed commit `ddf7b05`. Everything confirmed was fixed in the
+follow-up commit; the §18 corrections below AMEND the record above where the two disagree.
+
+- **[P1, correctness] The mediation producer was structurally dead on its only production call
+  path — and aimed at the wrong wars.** The first cut required FULL standard-offer eligibility,
+  but `process_settlement_offer_phase` runs first each turn and emits for every eligible war
+  (stamping the per-war clock + a pending offer), so mediation could never fire in a real game —
+  and had it fired, it would have served exactly the wars the belligerents were about to settle
+  THEMSELVES. **Fixed as the eligibility §12.5 actually wants**: the STRUCTURAL arms bind
+  (live, multi-party, player participant, leaders known — the accept path's own preconditions),
+  the per-war producer CLOCK is transparent (`cooldown_active` passes), and a pending/promoted
+  offer still blocks (one live offer per war, re-checked explicitly past the first-refusal-wins
+  masking — the SC-30 idiom). In play: the belligerent's own courier is spent, the war grinds
+  on, the arbiter steps in mid-cooldown — Prague 1813. Regression test = the real pipeline
+  sequence (`test_arbiter_steps_in_when_the_standard_courier_is_spent`).
+- **[MED, recorded bound] Bilateral French wars stay unmediatable in v1** — the multi-party
+  structural arm binds the arbiter (a bilateral war settles on the treaty layer, which the
+  mediated review cannot stage). Pinned loudly (`test_bilateral_wars_stay_on_the_treaty_layer`
+  fails the moment the bound is relaxed); joins AI-vs-AI mediation at the exit review.
+- **[MED ×3 converged] The punitive record refined to HOMELAND-ONLY, author included** (this
+  amends §18's bar sentence): the bar is capital, or >= 2 of the victim's OWN
+  `nation_starting_regions` provinces in one signing; `territory_return` never counts (a
+  return restores prior ownership); and the AUTHOR is the plurality receiver OF THE HOMELAND
+  PROVINCES — the collect shape now carries (province, receiver) pairs so a settlement handing
+  the victim's conquests to one court and its homeland to another blames the court that took
+  the homeland (the record is durable and feeds the volte-face foreclosure forever; the first
+  cut could foreclose the WRONG pair). Surrendering conquests is the fortune of war, not a
+  partition — a court that merely lost its winnings stays volte-face-eligible. Consequence
+  stated out loud: a healed or soil-less grievance does not promote — the acquire entry needs
+  an object; a punitive record whose provinces were since recovered, or a bargain broken by a
+  non-holder, promotes nothing until soil is lost again.
+- **[MED, pin 18/N1] The volte-face courier gained two gates**: DECK-gated (a deckless court —
+  the whole legacy fixture world — keeps its pre-Stage-E rungs byte-identically; the mechanic's
+  payoff IS the deck advance) and never fired at a pair ALREADY at full alliance (the
+  same-state ratify would refuse an offer the AI itself forced). Both pinned. The §18
+  "Europe-scoped (the war_council idiom)" sentence is corrected: the emergent poll carries the
+  literal `sovereign_map` gate; mediation is deckless-gated; the courier is deck-gated — same
+  pinned OUTCOME (legacy + bare inert), three mechanisms. And the bare-world pin is now
+  honestly scoped: `test_legacy_world_is_inert` covers the LEGACY rollback; the
+  `SOVEREIGN_SCENARIO=none` bare flag world is Europe-SHAPED, so the poll legitimately runs
+  there and is quiet only because nothing is lost at boot — §3.6's "the world writes content"
+  applies to any Europe world BY DECISION (a deckless nation acquiring its first design by
+  humiliation is the Peninsular-War case, not an accident).
+- **[MED, design fidelity — the §3.6-4 routing, recorded properly]** The volte-face reverses
+  through the POST-SETTLEMENT alliance chokepoint, not a settlement clause: the settlement
+  vocabulary's only alliance instrument is `forced_alliance`, which resets relations to 0 —
+  the humiliation door, pinned to never fire beat 5. "In one settlement" is honoured as ONE
+  SIGNING (the alliance document that flips enemy to partner); the generous peace that
+  precedes it is the settlement layer's role. And **the sponsor branch is the player's
+  optional follow-up via the existing AI-2b `sponsor_design` verb, not auto-wired** —
+  Talleyrand names the design the reversal aims at; the aiming itself is the standing
+  machinery (the advanced design feeds `get_agenda_military_targets`, NA-3 targeting and the
+  war council organically — AI-V measures whether Russia actually reaches Finland).
+- **[LOW, GR5] The on-ramp's two arms are now floor-identical**: the player arm gained the
+  `>= 2` hegemony-band floor the AI arm always had (no crown moves below the reveal threshold
+  on either side); both arms pre-check the release cooldown (honest availability for the
+  recently-released class); and the AI-AI arm stamps its cooldown only on a SEALED submission
+  (a create blocked by a gate the pre-checks cannot see retries at trivial cost, exactly as
+  the arm's own comment promised).
+- **[LOW, §12.5 accept credit] "Mediator credited (relations, design satisfaction)" is in
+  practice relations-only** — a contain design's satisfaction derives from hegemony share,
+  which a brokered peace does not move; the satisfied-arbiter question homes at the exit
+  review.
+- **[LOW ×2, falsifiability] Two masked negative controls closed**: the NA-5 gate's
+  `against == player` conjunct now has an isolating test (the player holds a demandable
+  target, the obstacle derives to a third power at coerce → no ultimatum reaches Paris), and
+  the on-ramp's `price == "bandwagon"` floor has a real-derivation control (Denmark's guard
+  deck caps at `align`; deleting the clause alone fails it — without it the wire degrades to
+  "every allied minor at relation 40 offers its crown", the pre-intent behaviour). Plus:
+  `WEIGHT_MEDIATION_REBUFFED` pinned nonzero (a zero constant would delete the §12.5 ramp
+  with the suite green), the volte-face/alliance floor equality drift-pinned
+  (`VOLTE_FACE_RELATION_FLOOR == STATE_RELATION_REQUIREMENTS["ALLIANCE"]`), and the
+  `_jitter_drift` indirection inlined.
+- **[LOW, honesty] The fixture arithmetic corrected in place**: the coerce-climb fixtures
+  measure weight **80**, not 74 — the allies-committed term (+6, intent's N3) also fires
+  because only PLAYER pairs are pacified and boot allies Spain/Bavaria remain at war with
+  Britain. Inside [coerce 72, fight 85), margin to the fight floor 5. Docstrings in all three
+  fixture sites now say so.
+- **[Stage F handoff, recorded]** `design_promoted` and `volte_face` are beat-class events
+  outside §4.6a's seven-beat registry (legitimately — §11.2's ownership rule: AI-5b owns
+  §3.6's "announced as a beat" promise). **AI-6's cap / never-collapsed pins MUST enumerate
+  both (or exempt by event class), and the AI-V beats assertion counts them beside the
+  seven** — else the cap machinery could lawfully collapse the phase's marquee announcements,
+  the exact jealousy failure §4.6a exists to prevent.
+
+Non-findings worth keeping: zero new serialized fields VERIFIED both directions (deck-store
+deepcopy, memory-store deepcopy, cooldown passthrough, transient proposal fields never
+serialized); the three ratify seams are on disjoint paths (no double punitive write per
+settlement); the promotion latch + id collision guard are redundant-by-design; the exited-
+participant mediator ruling implemented as recorded; every §18 "pinned" claim traced to a
+real, correctly-named test; GR8 clean (no region scans; the war-instance scan in
+`volte_face_receptive` is event-bounded and required by retention 10 < window 15).

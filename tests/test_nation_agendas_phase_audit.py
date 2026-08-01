@@ -378,7 +378,9 @@ class TestVoidUltimatum:
         # climb from the real derivation (the test_nation_agendas_
         # ultimatums fixture arithmetic): relation cold (-45, +8), France
         # busy in ONE other war (+6; below P7's >=2 gate), France weary
-        # (WE 120, +5) — 55 + 19 = 74 >= the coerce floor.
+        # (WE 120, +5), plus the measured allies-committed +6 (Spain and
+        # Bavaria stay at war with Britain — only player pairs are
+        # pacified) = weight 80, inside [coerce 72, fight 85).
         world.nation_relations[
             world._make_diplo_key(world.player_nation, self.ISSUER)] = -45
         war_key = world._make_diplo_key(world.player_nation, "Britain")

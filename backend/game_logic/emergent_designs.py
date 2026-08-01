@@ -90,24 +90,42 @@ EMERGENT_DESIGN_TITLE = "Revanche"
 
 # ═══════════════════ the durable punitive record ═════════════════════════
 
-def record_punitive_cessions(world, cessions: Dict[str, Tuple[List[str], Dict[str, int]]]) -> List[Dict]:
+def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]]) -> List[Dict]:
     """Write durable `punitive_settlement` memories for every victim whose
     losses in ONE settlement meet the punitive bar. `cessions` maps
-    victim -> (provinces_lost, {receiver: count}); the recorded author is
-    the plurality receiver (deterministic tie-break: name order).
+    victim -> ordered (province, receiver) pairs; the recorded author is
+    the plurality receiver OF THE HOMELAND PROVINCES (deterministic
+    tie-break: name order).
+
+    ONLY the victim's own HOMELAND counts (`nation_starting_regions`):
+    surrendering conquests back is the fortune of war, not a partition —
+    Austria handing Prussian soil back to Prussia is beaten, not
+    humiliated, and must stay volte-face-eligible. Tilsit stripped
+    Prussia of PRUSSIAN land; that is the record this writes. The author
+    is charged over the SAME filtered set (review fix: a settlement that
+    hands the victim's conquests to one court and its homeland to
+    another must blame the court that took the homeland — the record is
+    durable and feeds the volte-face foreclosure forever).
 
     Called from all three ratify seams. Returns the records written."""
     from backend.game_logic.settlement_reactions import _add_settlement_memory
     written: List[Dict] = []
-    for victim, (provinces, receivers) in cessions.items():
-        if not victim or not provinces:
+    for victim, pairs in cessions.items():
+        if not victim or not pairs:
             continue
+        homeland = set((getattr(world, "nation_starting_regions", {}) or {})
+                       .get(victim, []) or [])
+        homeland_pairs = [(p, r) for p, r in pairs if p in homeland]
+        if not homeland_pairs:
+            continue
+        provinces = [p for p, _r in homeland_pairs]
         capital = world.get_nation_capital(victim)
         if (len(provinces) < PUNITIVE_SETTLEMENT_MIN_PROVINCES
                 and capital not in provinces):
             continue
-        if not receivers:
-            continue
+        receivers: Dict[str, int] = {}
+        for _p, receiver in homeland_pairs:
+            receivers[receiver] = receivers.get(receiver, 0) + 1
         author = max(sorted(receivers), key=lambda n: receivers[n])
         record = _add_settlement_memory(
             world,
@@ -124,16 +142,21 @@ def record_punitive_cessions(world, cessions: Dict[str, Tuple[List[str], Dict[st
     return written
 
 
-def collect_cessions_from_clauses(clauses) -> Dict[str, Tuple[List[str], Dict[str, int]]]:
+def collect_cessions_from_clauses(clauses) -> Dict[str, List[Tuple[str, str]]]:
     """Aggregate applied territory clauses into the `record_punitive_cessions`
-    shape. Tolerant of both clause dialects: `from`/`from_nation`,
-    `to`/`to_nation`, `regions` list or singular `region`."""
-    out: Dict[str, Tuple[List[str], Dict[str, int]]] = {}
+    shape — victim -> ordered (province, receiver) pairs, the first
+    receiver winning a duplicated province. Tolerant of both clause
+    dialects: `from`/`from_nation`, `to`/`to_nation`, `regions` list or
+    singular `region`.
+
+    `territory_return` is deliberately EXCLUDED — a return restores prior
+    ownership by definition; nobody is partitioned by giving back what
+    was taken."""
+    out: Dict[str, List[Tuple[str, str]]] = {}
     for clause in clauses or []:
         if not isinstance(clause, dict):
             continue
-        if clause.get("type") not in ("territory_cede", "territory",
-                                      "territory_return"):
+        if clause.get("type") not in ("territory_cede", "territory"):
             continue
         victim = clause.get("from_nation") or clause.get("from")
         receiver = clause.get("to_nation") or clause.get("to")
@@ -145,11 +168,13 @@ def collect_cessions_from_clauses(clauses) -> Dict[str, Tuple[List[str], Dict[st
             names.append(single)
         if not names:
             continue
-        provinces, receivers = out.setdefault(str(victim), ([], {}))
+        pairs = out.setdefault(str(victim), [])
+        seen = {p for p, _r in pairs}
         for name in names:
-            if name not in provinces:
-                provinces.append(str(name))
-        receivers[str(receiver)] = receivers.get(str(receiver), 0) + len(names)
+            if str(name) in seen:
+                continue
+            seen.add(str(name))
+            pairs.append((str(name), str(receiver)))
     return out
 
 

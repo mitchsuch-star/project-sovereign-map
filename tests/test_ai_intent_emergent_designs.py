@@ -220,12 +220,18 @@ class TestPromotion:
         # And no re-promotion after the load (the latch is the entry).
         assert process_emergent_designs(restored) == []
 
-    def test_bare_world_is_inert(self):
-        """The Europe scoping (the war_council idiom): the bare suite
-        world and the legacy rollback never run the poll."""
-        bare = WorldState()
-        assert getattr(bare, "sovereign_map", "legacy") != "europe"
-        assert process_emergent_designs(bare) == []
+    def test_legacy_world_is_inert(self):
+        """The Europe scoping: the legacy rollback world never runs the
+        poll at all (review fix: this pin covers LEGACY — the
+        `SOVEREIGN_SCENARIO=none` bare flag world is Europe-SHAPED, so
+        the poll legitimately runs there and stays quiet only because
+        nothing is lost at boot; §3.6's 'the world writes content'
+        applies to any Europe world by recorded decision — a deckless
+        nation acquiring its FIRST design by humiliation is the
+        Peninsular-War case, not an accident)."""
+        legacy = WorldState()
+        assert getattr(legacy, "sovereign_map", "legacy") != "europe"
+        assert process_emergent_designs(legacy) == []
 
     def test_authored_id_collision_skips(self, world):
         """A scenario that authors `revanche_prussia` owns the name —
@@ -269,31 +275,49 @@ class TestPunitiveRecord:
     def test_bar_two_provinces_or_capital(self, world):
         # Two provinces: punitive.
         record_punitive_cessions(world, {
-            "Prussia": (["Silesia", "Posen"], {"France": 2})})
+            "Prussia": [("Silesia", "France"), ("Posen", "France")]})
         assert get_settlement_memories(
             world, subject="Prussia", memory_type=PUNITIVE_MEMORY_TYPE)
         # One non-capital province: not punitive.
         record_punitive_cessions(world, {
-            "Austria": (["Tyrol"], {"France": 1})})
+            "Austria": [("Tyrol", "France")]})
         assert not get_settlement_memories(
             world, subject="Austria", memory_type=PUNITIVE_MEMORY_TYPE)
         # The capital alone: punitive.
         capital = world.get_nation_capital("Austria")
         record_punitive_cessions(world, {
-            "Austria": ([capital], {"France": 1})})
+            "Austria": [(capital, "France")]})
         assert get_settlement_memories(
             world, subject="Austria", memory_type=PUNITIVE_MEMORY_TYPE)
         assert PUNITIVE_SETTLEMENT_MIN_PROVINCES == 2
 
     def test_author_is_plurality_receiver(self, world):
         record_punitive_cessions(world, {
-            "Prussia": (["Silesia", "Posen", "Berlin"],
-                        {"France": 1, "Austria": 2})})
+            "Prussia": [("Silesia", "Austria"), ("Posen", "Austria"),
+                        ("Berlin", "France")]})
         records = get_settlement_memories(
             world, subject="Prussia", memory_type=PUNITIVE_MEMORY_TYPE)
         assert records[0]["actor"] == "Austria"
         # Durable — a partition is not forgotten.
         assert records[0]["expires_on_turn"] is None
+
+    def test_author_is_charged_over_homeland_only(self, world):
+        """Review fix pinned: a settlement handing Prussia's CONQUESTS to
+        Austria (3 provinces of Austrian soil Prussia held) and Prussia's
+        HOMELAND to France (2 provinces) blames FRANCE — the court that
+        took the homeland — not the plurality receiver of the whole
+        package. The record is durable and feeds the volte-face
+        foreclosure; a mis-charged author would foreclose the wrong
+        pair forever."""
+        record_punitive_cessions(world, {
+            "Prussia": [("Tyrol", "Austria"), ("Styria", "Austria"),
+                        ("Bohemia", "Austria"),
+                        ("Silesia", "France"), ("Posen", "France")]})
+        records = get_settlement_memories(
+            world, subject="Prussia", memory_type=PUNITIVE_MEMORY_TYPE)
+        assert records and records[0]["actor"] == "France"
+        assert set(records[0]["payload"]["provinces"]) == {
+            "Silesia", "Posen"}
 
     def test_collect_handles_both_clause_dialects(self, world):
         cessions = collect_cessions_from_clauses([
@@ -304,9 +328,25 @@ class TestPunitiveRecord:
             {"type": "gold_indemnity", "from": "Prussia", "to": "France",
              "amount": 500},
         ])
-        provinces, receivers = cessions["Prussia"]
-        assert provinces == ["Silesia", "Posen"]
-        assert receivers == {"France": 2}
+        assert cessions["Prussia"] == [
+            ("Silesia", "France"), ("Posen", "France")]
+
+    def test_losing_conquests_is_not_a_partition(self, world):
+        """Austria surrendering PRUSSIAN soil it held is beaten, not
+        humiliated — only the victim's own homeland counts, so the
+        volte-face stays open to a court that merely lost its winnings."""
+        record_punitive_cessions(world, {
+            "Austria": [("Silesia", "Prussia"), ("Posen", "Prussia")]})
+        assert not get_settlement_memories(
+            world, subject="Austria", memory_type=PUNITIVE_MEMORY_TYPE)
+
+    def test_returns_never_count(self, world):
+        """A territory_return restores prior ownership by definition —
+        nobody is partitioned by giving back what was taken."""
+        assert collect_cessions_from_clauses([
+            {"type": "territory_return", "from": "France",
+             "to": "Prussia", "regions": ["Silesia", "Posen"]},
+        ]) == {}
 
     def test_bilateral_ratify_writes_the_record(self, world):
         """The _ratify_treaty seam: a harsh bilateral peace stripping two
@@ -424,16 +464,27 @@ def _beat_and_court(world, power="Russia", hegemon="France",
 
 
 class TestVolteFaceEligibility:
+    def test_courted_floor_equals_the_alliance_ratify_gate(self):
+        """Drift pin (review fix): §18's 'the courier never offers what
+        the treaty gate would refuse' rests on these two constants being
+        EQUAL — retune either alone and the offer-then-refuse hole
+        silently reopens."""
+        from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
+        assert VOLTE_FACE_RELATION_FLOOR == (
+            STATE_RELATION_REQUIREMENTS["ALLIANCE"])
+
     def test_beaten_then_courted_is_receptive(self, world):
         _beat_and_court(world)
         assert volte_face_receptive(world, "Russia", "France") is True
 
     def test_punitive_record_forecloses_forever(self, world):
         """Generosity is the doctrine: a partition (durable record)
-        closes this path — humiliation and reversal never coexist."""
+        closes this path — humiliation and reversal never coexist.
+        Lithuania and Livonia are RUSSIAN homeland (Finland is Swedish
+        in 1805 — it is the gulf design's object, not Russia's soil)."""
         _beat_and_court(world)
         record_punitive_cessions(world, {
-            "Russia": (["Finland", "Lithuania"], {"France": 2})})
+            "Russia": [("Lithuania", "France"), ("Livonia", "France")]})
         assert volte_face_receptive(world, "Russia", "France") is False
 
     def test_sworn_revanche_forecloses(self, world):
@@ -505,6 +556,36 @@ class TestVolteFaceCourier:
         assert first is not None and first["decision_reason"] == "volte_face"
         second = process_diplomatic_phase("Russia", world)
         assert second is None or second.get("decision_reason") != "volte_face"
+
+    def test_courier_never_fires_on_a_deckless_court(self, world):
+        """Pin 18/N1 (review fix): the volte-face is a deck-world
+        mechanic — its payoff IS the deck advance — so a deckless court
+        (the whole legacy fixture world) keeps its pre-Stage-E rungs
+        byte-identically."""
+        from backend.game_logic.ai_diplomacy import (
+            process_diplomatic_phase,
+        )
+        _beat_and_court(world)
+        world.agendas.pop("Russia", None)
+        world.invalidate_bloc_members_cache()
+        proposal = process_diplomatic_phase("Russia", world)
+        assert proposal is None or (
+            proposal.get("decision_reason") != "volte_face")
+
+    def test_courier_never_re_proposes_to_a_standing_ally(self, world):
+        """Review fix: an already-allied pair never gets the courier —
+        the same-state ratify would refuse an offer the AI itself
+        forced onto the mailbox."""
+        from backend.game_logic.ai_diplomacy import (
+            process_diplomatic_phase,
+        )
+        _beat_and_court(world)
+        key = world._make_diplo_key("Russia", "France")
+        world.diplomatic_states[key] = "ALLIANCE"
+        world.invalidate_bloc_members_cache()
+        proposal = process_diplomatic_phase("Russia", world)
+        assert proposal is None or (
+            proposal.get("decision_reason") != "volte_face")
 
 
 class TestVolteFaceBeat:

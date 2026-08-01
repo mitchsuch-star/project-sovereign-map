@@ -121,6 +121,63 @@ class TestProducer:
         world.ai_settlement_cooldowns = {}
         assert process_mediation_offers(world) == []
 
+    def test_arbiter_steps_in_when_the_standard_courier_is_spent(self, world):
+        """THE P1 REGRESSION (review): in the real turn pipeline the
+        standard producer runs FIRST and consumes every eligible war —
+        a mediation gate demanding full standard eligibility could never
+        fire in production, and would have served exactly the wars the
+        belligerents were about to settle themselves. The arbiter serves
+        the wars they WON'T: the per-war producer clock is transparent
+        to it, a live offer still blocks. Sequence = the real pipeline:
+        standard offer emitted → same-turn mediation waits (one live
+        offer per war) → the player answers, the clock still runs →
+        the arbiter steps in mid-cooldown. Prague 1813."""
+        from backend.game_logic.ai_diplomacy import (
+            process_settlement_offer_phase,
+        )
+        _free_the_arbiter(world, "Russia")
+        _weary_boot_war(world)
+        standard = process_settlement_offer_phase(world)
+        assert standard, "precondition: the standard courier fires first"
+        assert "mediator" not in standard[0]
+        war_id = standard[0]["war_id"]
+        assert process_mediation_offers(world) == [], (
+            "one live offer per war — the arbiter waits its turn")
+        # The player answers (the handler drains the pending store);
+        # the war's own producer clock has turns left to run.
+        world.pending_settlement_dialogues = []
+        assert int(world.ai_settlement_cooldowns.get(war_id, 0)) > int(
+            world.current_turn)
+        produced = process_mediation_offers(world)
+        assert len(produced) == 1
+        assert produced[0]["mediator"] == "Russia"
+        assert produced[0]["war_id"] == war_id
+
+    def test_bilateral_wars_stay_on_the_treaty_layer(self, world):
+        """Recorded v1 BOUND (review, §18): the structural multi-party
+        arm binds the arbiter too — a bilateral French war settles on
+        the treaty layer, which the mediated review cannot stage. If
+        this pin ever fails, the §18 bound was relaxed and the record
+        must say so. Joins AI-vs-AI mediation at the exit review."""
+        _free_the_arbiter(world, "Russia")
+        _weary_boot_war(world)
+        turn = int(world.current_turn)
+        world.war_instances["bilateral_test"] = {
+            "war_id": "bilateral_test",
+            "created_turn": max(0, turn - 5),
+            "ended_turn": None,
+            "side_by_nation": {"France": "attackers",
+                               "Ottoman": "defenders"},
+            "active_participants": ["France", "Ottoman"],
+            "participant_meta": {
+                "France": {"side": "attackers"},
+                "Ottoman": {"side": "defenders"},
+            },
+        }
+        world.war_exhaustion["Ottoman"] = MEDIATION_WE_FLOOR + 40
+        produced = process_mediation_offers(world)
+        assert all(o["war_id"] != "bilateral_test" for o in produced)
+
     def test_a_belligerent_arbiter_never_speaks(self, world):
         """An armistice is a paused war, not neutrality — the agendas
         doctrine applies to good offices too."""
@@ -205,6 +262,10 @@ class TestResolution:
         from backend.game_logic.settlement_offers import (
             handle_incoming_settlement_offer_action,
         )
+        # A zero constant would silently delete the §12.5 ramp ("refusing
+        # mediation IS the coalition ramp") with the suite green — pin
+        # the mechanism nonzero; the magnitude stays in-band tunable.
+        assert WEIGHT_MEDIATION_REBUFFED > 0
         offer = self._produce(world)
         world.invalidate_bloc_members_cache()
         view = get_nation_intent("Russia", world)
@@ -216,12 +277,16 @@ class TestResolution:
         world.invalidate_bloc_members_cache()
         weight_after = get_nation_intent("Russia", world).weight
         assert weight_after - weight_before == WEIGHT_MEDIATION_REBUFFED
-        # The record's window closes; the grudge cools by itself.
+        # The record's window closes; the grudge cools by itself. On the
+        # suite's pinned historical seed the jitter is 0 at every turn
+        # and nothing else in Russia's weight is turn-sensitive across
+        # the jump, so cooling lands EXACTLY on the pre-refusal weight —
+        # if the expiry never happened this reads weight_before + 6 and
+        # fails.
         world.current_turn = int(world.current_turn) + 13
         world.invalidate_bloc_members_cache()
         cooled = get_nation_intent("Russia", world).weight
-        assert cooled == weight_before + _jitter_drift(world, cooled,
-                                                       weight_before)
+        assert cooled == weight_before
 
     def test_accept_opens_the_review_and_credits_the_mediator(self, world):
         from backend.game_logic.settlement_offers import (
@@ -243,10 +308,3 @@ class TestResolution:
         doctrine) — only an answered rejection writes the record."""
         self._produce(world)
         assert get_refused_asks(world, "Russia", "France") == []
-
-
-def _jitter_drift(world, cooled, before):
-    """The historical seed pins jitter to 0, so cooling lands exactly on
-    the pre-refusal weight; the helper exists to make the equality's
-    meaning explicit rather than magic."""
-    return 0
