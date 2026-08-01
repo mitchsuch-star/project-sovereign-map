@@ -1935,7 +1935,19 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	# BD: every battle with a tableau payload keeps a replay link in the
 	# terminal — the auto-play case for re-viewing, the routine case for a
 	# first look ("⚔ View the field", eval §7 Q1).
-	if event.get("diorama") is Dictionary and battle_diorama != null:
+	#
+	# THE STASH LIVES HERE, at the render chokepoint — not only in
+	# _on_command_result. A real attack frequently resolves through a
+	# DIFFERENT endpoint (the W6-4 muster "Attack Anyway" interrupt, an
+	# objection Proceed, a capture-choice follow-up), whose handlers call
+	# _display_result but never ran the stash: the link rendered dead
+	# (last_battle_diorama stayed null) and nothing auto-played. Stashing
+	# where the link is drawn makes the two structurally inseparable.
+	var diorama = event.get("diorama")
+	if diorama is Dictionary and not diorama.is_empty() and battle_diorama != null:
+		last_battle_diorama = diorama
+		if bool(diorama.get("significant", false)):
+			pending_diorama_data = diorama
 		add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=diorama:last]⚔ View the field[/url][/color]")
 
 	_show_action_cost(action_info)
@@ -3086,6 +3098,10 @@ func _on_objection_response(response):
 
 	_update_war_panel_visibility()
 	add_output("")
+	# BD: an objection Proceed resolves the objected attack — raise its
+	# stashed tableau at this flow's own control return.
+	if _show_pending_diorama():
+		return  # _on_battle_diorama_dismissed re-enables input
 	command_input.grab_focus()
 
 
@@ -3402,6 +3418,10 @@ func _on_capture_choice_response(response):
 
 	_update_war_panel_visibility()
 	add_output("")
+	# BD: the capture choice arrives ON a battle's response — the tableau
+	# waits behind the plunder/secure decision and raises here.
+	if _show_pending_diorama():
+		return  # _on_battle_diorama_dismissed re-enables input
 	command_input.grab_focus()
 
 
@@ -3642,6 +3662,10 @@ func _on_glorious_charge_response(response):
 	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	add_output("")
+	# BD: uniform control-return raise (charges carry no payload today —
+	# scope boundary — so this is a no-op unless a stash is pending).
+	if _show_pending_diorama():
+		return  # _on_battle_diorama_dismissed re-enables input
 	command_input.grab_focus()
 
 
@@ -3831,6 +3855,10 @@ func _process_next_interrupt():
 		pending_strategic_response = null
 		pending_enemy_phase_response = null
 		_update_war_panel_visibility()
+		# BD: a muster-confirmed "Attack Anyway" resolves a battle inside
+		# this flow — raise its stashed tableau now that control returns.
+		if _show_pending_diorama():
+			return  # _on_battle_diorama_dismissed re-enables input
 		set_input_enabled(true)
 		command_input.grab_focus()
 
