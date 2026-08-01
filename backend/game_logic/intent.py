@@ -37,7 +37,7 @@ drifts DOWN the perceived ladder (threat decay does the work).
 """
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from backend.game_logic.agendas import (
     AgendaView,
@@ -458,6 +458,151 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
         "price_display": price_display,
         "summary": summary,
     }
+
+
+# ── AI-6 — the narration cap (§4.6, Stage F) ─────────────────────────────
+
+# Blessed numbers (in-band tunable; shape escalates). The cap governs
+# ROUTINE ladder movement ONLY (§4.6's v1.2 amendment): the §4.6a beats
+# are EVENTS on their own dispatch types and are structurally exempt —
+# this module's collapse never sees them.
+INTENT_DISPATCH_CAP = 2            # routine movement lines per dispatch
+RELEVANCE_CONCERNS_FRANCE = 2.0    # the design is about France's bloc
+RELEVANCE_BORDERS_FRANCE = 1.5     # the court stands on France's frontier
+RELEVANCE_FAR = 1.0                # a quarrel at the Danube
+
+# The §4.6a beat types (seven) plus Stage E's two beat-class events
+# (§18.1 handoff: the cap machinery must never collapse them — the exact
+# jealousy failure §4.6a exists to prevent). Kept beside the cap so the
+# exemption is one auditable tuple, asserted by the never-collapsed pin.
+NARRATION_EXEMPT_EVENT_TYPES = (
+    # beat 1 rides the incoming-proposal transport (not a dispatch line);
+    # beats 2-7 + the Stage E pair are dispatch events:
+    "crisis_brewing",          # beat 2 — and the fore-warning contract
+    "coercive_demand",         # beat 3 (AI-AI arm)
+    "broken_bargain",          # beat 4
+    "volte_face",              # beat 5 (Stage E)
+    "third_party_peace",       # beat 6
+    "crisis_passed",           # beat 7
+    "design_promoted",         # §3.6-3's own announced beat (Stage E)
+    "guarantee_called",        # D5-3's plea — never routine
+    "agenda_shift",            # the want changing IS an event (NA-1)
+)
+
+
+def _relevance(nation: str, view: IntentView, world) -> float:
+    """Weight multiplier for the §4.6 relevance rule: `weight` alone
+    cannot tell a Prussian design on Hanover from a Russo-Ottoman
+    quarrel at the Danube. Derived, cheap (cached reads only)."""
+    player = getattr(world, "player_nation", "France")
+    if view.against:
+        effective = world._top_overlord(view.against) or view.against
+        if effective == player:
+            return RELEVANCE_CONCERNS_FRANCE
+    from backend.game_logic.agendas import agenda_concerns_player_bloc
+    if agenda_concerns_player_bloc(nation, world):
+        return RELEVANCE_CONCERNS_FRANCE
+    # The AI-3r adjacency read: a WorldState method, one cached pass for
+    # all nations (the exposure calculus' own substrate).
+    for neighbour in world.get_neighbouring_nations(nation):
+        effective = world._top_overlord(neighbour) or neighbour
+        if effective == player:
+            return RELEVANCE_BORDERS_FRANCE
+    return RELEVANCE_FAR
+
+
+def process_intent_movements(world) -> List[Dict]:
+    """AI-6 (§4.6, Stage F): the dispatch reports ROUTINE movement on the
+    ladder as news — a court hardening, a court easing — under the hard
+    cap: at most INTENT_DISPATCH_CAP lines per dispatch, chosen by
+    weight x proximity-to-French-interest, the rest collapsed into ONE
+    "other courts stir" tail. The far war still happens and still shows
+    in the ledger; it just does not spend the player's two lines.
+
+    Movement = the PRICE rung changing while the WANT stands. A want
+    change is the agenda_shift beat's news (NA-1) and stays silent here;
+    survival postures belong to the crisis machinery; first observation
+    records silently (the nation_agenda_seen idiom — boot decks must not
+    spam turn 1). Dispatch-only by design: rung weather is texture, the
+    campaign log stays for events.
+
+    The poll runs once per turn AFTER process_agenda_shifts (the shift
+    beat updates the want first, so a want-change turn never double
+    announces). Deckless / legacy worlds: every court reads indifferent
+    with no want — the seen map stays empty and nothing emits (pin 18).
+    """
+    seen = getattr(world, "nation_intent_seen", None)
+    if seen is None:
+        world.nation_intent_seen = {}
+        seen = world.nation_intent_seen
+
+    player = getattr(world, "player_nation", "France")
+    vassals = getattr(world, "vassals", {}) or {}
+    movements: List[Dict] = []
+    for nation in sorted(world.get_active_nations()):
+        if nation == player or nation in vassals:
+            continue
+        view = get_nation_intent(nation, world)
+        if view.want_id is None or view.survival:
+            # No want (or the Knife at the Throat — the crisis machinery
+            # owns that drama): clear the record silently.
+            seen.pop(nation, None)
+            continue
+        current = f"{view.want_id}|{view.price}"
+        previous = seen.get(nation)
+        seen[nation] = current
+        if previous is None:
+            continue  # first observation is bookkeeping, never news
+        prev_want, _, prev_price = previous.partition("|")
+        if prev_want != view.want_id:
+            continue  # the want changed — agenda_shift announced it
+        if prev_price == view.price:
+            continue
+        movements.append({
+            "nation": nation,
+            "view": view,
+            "climbed": rung_index(view.price) > rung_index(prev_price),
+        })
+
+    if not movements:
+        return []
+
+    for movement in movements:
+        view = movement["view"]
+        movement["rank"] = float(view.weight) * _relevance(
+            movement["nation"], view, world)
+    movements.sort(key=lambda m: (-m["rank"], m["nation"]))
+
+    from backend.game_logic.agendas import _live_nation_name
+    from backend.game_logic.dispatch import queue_dispatch_event
+    events: List[Dict] = []
+    for movement in movements[:INTENT_DISPATCH_CAP]:
+        view = movement["view"]
+        nation_display = _live_nation_name(world, movement["nation"])
+        price_display = PRICE_DISPLAY.get(view.price, view.price)
+        vars_ = {
+            "nation": nation_display,
+            "want": view.want_title or "its design",
+            "price": price_display.lower(),
+        }
+        event_type = ("intent_hardens" if movement["climbed"]
+                      else "intent_eases")
+        queue_dispatch_event(world, event_type, vars_, "always")
+        events.append({
+            "type": event_type,
+            "nation": movement["nation"],
+            "price": view.price,
+        })
+    overflow = len(movements) - INTENT_DISPATCH_CAP
+    if overflow > 0:
+        queue_dispatch_event(world, "intent_movement_tail", {
+            "count": str(overflow),
+            "plural": "" if overflow == 1 else "s",
+            "verb": "s" if overflow == 1 else "",
+            "poss": "its" if overflow == 1 else "their",
+        }, "always")
+        events.append({"type": "intent_movement_tail", "count": overflow})
+    return events
 
 
 # ── AI-1b — the mirror (§3.5) ────────────────────────────────────────────

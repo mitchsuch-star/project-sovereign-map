@@ -178,6 +178,16 @@ def build_active_wars(world) -> Dict[str, Any]:
         # block when no war_instance is wired (early game / synthetic).
         contribution = _resolve_contribution_share(world, france, opponent)
 
+        # AI-6c (§4.6): a war's reason is carried and shown wherever the
+        # war appears — the Stage D stamp, read off the instance when one
+        # covers this pair (an AI-declared war names its design; player
+        # wars keep their objective block below).
+        stated_instance = (getattr(world, "war_instances", None) or {}).get(
+            contribution.get("war_id") or "")
+        stated_reason = ""
+        if isinstance(stated_instance, dict):
+            stated_reason = str(stated_instance.get("stated_reason") or "")
+
         settlement_eligibility = _evaluate_settlement_eligibility(
             world, contribution.get("war_id", ""),
         )
@@ -203,6 +213,7 @@ def build_active_wars(world) -> Dict[str, Any]:
             "duration": duration,
             "started_turn": started,
             "trend": trend,
+            "stated_reason": stated_reason,
             "battles_fought": battles_fought,
             "decisive_won": decisive_won,
             "recent_battles": recent_battles,
@@ -356,7 +367,76 @@ def build_active_wars(world) -> Dict[str, Any]:
     return {
         "wars": wars,
         "coalition": coalition_info,
+        # AI-6c (Stage F, §4.6b): the wars France is NOT in — the panel
+        # previously dropped every one of them, so "let them bleed while
+        # France rearms" was unreadable on the HUD.
+        "foreign_wars": _build_foreign_wars(world),
     }
+
+
+def _build_foreign_wars(world) -> List[Dict[str, Any]]:
+    """AI-6c (§4.6b): compact rows for live third-party wars. The war's
+    EXISTENCE, sides and STATED REASON are court knowledge across Europe
+    (DPF-1 — beat 6 already reports their endings town-crier-wide); the
+    exhaustion NUMBERS stay military intel, fogged to PARTIAL+ exactly
+    like the France-war rows above. Bounded by live war instances —
+    never a region scan (GR8)."""
+    from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+    from backend.models.intel import PARTIAL, VISIBILITY_PRIORITY
+
+    france = world.player_nation
+    exhaustion = getattr(world, "war_exhaustion", {}) or {}
+    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
+
+    def _fogged_we(nation: str) -> Optional[int]:
+        vis = _get_nation_visibility(nation, world)
+        if VISIBILITY_PRIORITY.get(vis, 0) >= partial_priority:
+            return int(exhaustion.get(nation, 0) or 0)
+        return None
+
+    rows: List[Dict[str, Any]] = []
+    for war_id in sorted((getattr(world, "war_instances", None) or {})):
+        instance = world.war_instances[war_id]
+        if not isinstance(instance, dict):
+            continue
+        if instance.get("ended_turn") is not None:
+            continue
+        side_by_nation = instance.get("side_by_nation") or {}
+        participants = list(instance.get("active_participants")
+                            or side_by_nation.keys())
+        if france in participants:
+            continue
+        attackers = [n for n in participants
+                     if side_by_nation.get(n) == "attackers"]
+        defenders = [n for n in participants
+                     if side_by_nation.get(n) == "defenders"]
+        if not attackers or not defenders:
+            continue
+        attacker_leader = str(instance.get("attacker_leader") or "")
+        defender_leader = str(instance.get("defender_leader") or "")
+        attackers = _leader_first(attackers, attacker_leader)
+        defenders = _leader_first(defenders, defender_leader)
+        lead_attacker = attackers[0]
+        lead_defender = defenders[0]
+        started = int(instance.get("created_turn") or 0)
+        rows.append({
+            "war_id": str(war_id),
+            "attackers": attackers,
+            "defenders": defenders,
+            # NA-6 §11.8-3: never a dead name on an always-on surface.
+            "attackers_display": " + ".join(
+                formed_display_name(world, n) for n in attackers),
+            "defenders_display": " + ".join(
+                formed_display_name(world, n) for n in defenders),
+            "duration": int(world.current_turn) - started,
+            "attacker_exhaustion": _fogged_we(lead_attacker),
+            "defender_exhaustion": _fogged_we(lead_defender),
+            # The Stage D stamps: a war's reason is carried and shown
+            # wherever the war appears (§4.6's fifth deliverable).
+            "stated_reason": str(instance.get("stated_reason") or ""),
+            "ai_initiated": bool(instance.get("ai_initiated")),
+        })
+    return rows
 
 
 def _collapse_shared_war_instance_rows(

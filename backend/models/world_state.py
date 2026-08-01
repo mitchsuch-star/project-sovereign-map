@@ -517,6 +517,12 @@ class WorldState:
         # shift beat's dedup across save/load (the last_expectation_seen
         # idiom). "" records an observed no-agenda state.
         self.nation_agenda_seen: Dict[str, str] = {}
+        # AI-6 (Stage F, §4.6): the routine ladder-movement dedup —
+        # nation -> "want_id|price" as last announced. The sibling of
+        # nation_agenda_seen with identical treatment: first observation
+        # silent, want-changes silent (agenda_shift owns them), only a
+        # same-want RUNG change makes a line.
+        self.nation_intent_seen: Dict[str, str] = {}
         # NA-6 §11.1/§11.10-1: the formation latch — tag -> {id, sponsor,
         # turn}. Formation is PERMANENT and once-only; the tag never
         # changes (serialization safety), only the display identity.
@@ -5396,6 +5402,8 @@ class WorldState:
                 getattr(self, "statecraft", {}) or {}),
             "nation_agenda_seen": {str(k): str(v)
                                    for k, v in self.nation_agenda_seen.items()},
+            "nation_intent_seen": {str(k): str(v)
+                                   for k, v in self.nation_intent_seen.items()},
             # deepcopy, NOT the flat str() arm above: NA-6 records are
             # dicts and would stringify (the §11.1 Dict[str, str] shape
             # was amended to Dict[str, dict] by §11.10 decision 1).
@@ -5867,6 +5875,12 @@ class WorldState:
         world.nation_agenda_seen = {
             str(k): str(v)
             for k, v in (data.get("nation_agenda_seen") or {}).items()
+        }
+        # AI-6: pre-Stage-F saves read {} — the first post-load poll
+        # records silently (the seen-map idiom), never a line burst.
+        world.nation_intent_seen = {
+            str(k): str(v)
+            for k, v in (data.get("nation_intent_seen") or {}).items()
         }
         # NA-6: the formation latch. Absent on pre-NA-6 saves = nothing has
         # formed. deepcopy for the same aliasing reason as `agendas`.
@@ -7760,6 +7774,11 @@ class WorldState:
         from backend.game_logic.emergent_designs import process_emergent_designs
         process_emergent_designs(self)
         process_agenda_shifts(self)
+        # AI-6 (Stage F): routine ladder movement AFTER the shift poll —
+        # a want-change turn is agenda_shift's news and stays silent on
+        # the rung channel; only a same-want rung change is "weather".
+        from backend.game_logic.intent import process_intent_movements
+        process_intent_movements(self)
 
         # ════════════════════════════════════════════════════════════
         # FOG OF WAR - Recalculate visibility (Phase 6 Session 33)

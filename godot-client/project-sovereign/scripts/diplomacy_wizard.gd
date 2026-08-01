@@ -672,7 +672,7 @@ func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 	settlement to the correct war_instance), emit the structured signal so
 	main.gd can call `send_structured_command` instead of free-text parsing.
 	"""
-	var command = _build_command(action_id, _selected_nation)
+	var command = _build_command(action_id, _selected_nation, action_payload)
 	if not command:
 		_show_error("Unknown diplomatic action: " + action_id)
 		return
@@ -729,9 +729,23 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 	return {}
 
 
-func _build_command(action_id: String, nation: String) -> String:
+func _build_command(action_id: String, nation: String, action_payload: Dictionary = {}) -> String:
 	"""Map wizard action ID to the command string the backend expects."""
 	match action_id:
+		# AI-6c (Stage F, §4.6b): the three D5 instrument verbs — typed
+		# command echoes (the UI-6 chip idiom); the backend chip payload
+		# carries the aim and the default amount so the echo names the
+		# whole bargain.
+		"sponsor_design":
+			var aim = str(action_payload.get("aim", ""))
+			var amount = int(float(action_payload.get("amount", 200)))
+			if aim == "":
+				return "sponsor " + nation + ", " + str(amount) + " gold"
+			return "sponsor " + nation + " against " + aim + ", " + str(amount) + " gold"
+		"buy_off_design":
+			return "buy off " + nation
+		"guarantee_nation":
+			return "guarantee " + nation
 		"propose_armistice":
 			return "propose armistice with " + nation
 		"propose_peace":

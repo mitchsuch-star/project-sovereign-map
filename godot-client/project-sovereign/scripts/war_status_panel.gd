@@ -152,7 +152,10 @@ func update_wars(data: Dictionary) -> void:
 			child.queue_free()
 
 	var wars = data.get("wars", [])
-	if wars.is_empty():
+	var foreign_wars = data.get("foreign_wars", [])
+	# AI-6c (§4.6b): Europe's own wars keep the panel alive even when
+	# France herself is at peace — that is exactly when they matter.
+	if wars.is_empty() and foreign_wars.is_empty():
 		hide()
 		return
 
@@ -178,6 +181,14 @@ func update_wars(data: Dictionary) -> void:
 	for w in wars:
 		if w.get("status", "") == "armistice":
 			_add_armistice_card(w)
+
+	# ── Foreign wars (AI-6c §4.6b): the wars France is NOT in — court
+	# knowledge across Europe, compact and dim; the tooltip carries the
+	# cause and the bleed ("let them bleed while France rearms").
+	if not foreign_wars.is_empty():
+		_add_foreign_wars_header()
+		for fw in foreign_wars:
+			_add_foreign_war_row(fw)
 
 	show()
 	_fit_panel_to_content()
@@ -349,6 +360,42 @@ func _add_armistice_card(war_data: Dictionary):
 	elif projected == "war":
 		btn.tooltip_text = "Armistice with %s — %d turns left, on course to collapse back to war unless relations heal." % [opponent_display, remaining]
 	btn.pressed.connect(func(): card_clicked.emit(opponent, "armistice", str(war_data.get("war_instance_id", ""))))
+	vbox.add_child(btn)
+
+
+func _add_foreign_wars_header():
+	var lbl = Label.new()
+	lbl.text = " FOREIGN WARS"
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", COLOR_DIMMED)
+	vbox.add_child(lbl)
+
+
+func _add_foreign_war_row(fw: Dictionary):
+	"""AI-6c (§4.6b): one third-party war, unclickable (the ledger and the
+	war room own its depth) — hover carries duration, cause and the two
+	leaders' exhaustion where French intelligence can see it."""
+	var att = str(fw.get("attackers_display", "?"))
+	var def_side = str(fw.get("defenders_display", "?"))
+	var btn = Button.new()
+	btn.text = att + " vs " + def_side
+	btn.flat = true
+	btn.custom_minimum_size = Vector2(0, 16)
+	btn.add_theme_font_size_override("font_size", 9)
+	btn.add_theme_color_override("font_color", COLOR_DIMMED)
+	var lines: Array = []
+	lines.append("%s vs %s — turn %d of their war." % [
+		att, def_side, int(float(fw.get("duration", 0)))])
+	var reason = str(fw.get("stated_reason", ""))
+	if reason != "":
+		lines.append("Cause: " + reason + ".")
+	var att_we = fw.get("attacker_exhaustion")
+	var def_we = fw.get("defender_exhaustion")
+	if att_we != null or def_we != null:
+		var att_s = "?" if att_we == null else str(int(float(att_we)))
+		var def_s = "?" if def_we == null else str(int(float(def_we)))
+		lines.append("Exhaustion — %s: %s · %s: %s" % [att, att_s, def_side, def_s])
+	btn.tooltip_text = "\n".join(lines)
 	vbox.add_child(btn)
 
 

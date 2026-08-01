@@ -10501,6 +10501,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             ult_reason = "Insufficient DP"
         actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
 
+    # AI-6c (Stage F, §4.6b): the courting surface — the three D5
+    # instrument verbs as honest-availability chips, the Stage C
+    # deferral landed. State-independent (a design is courted at peace
+    # or in another court's war alike; the executor's own gates are
+    # mirrored here so a disabled chip always names its reason).
+    actions.extend(_instrument_actions(world, player, target_nation))
+
     # DPF-2: Cancel mission — only if active mission targets THIS nation
     if active_mission and active_mission.get("target") == target_nation:
         initial = int(active_mission.get("initial_relation") or 0)
@@ -10530,6 +10537,143 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "likelihood": "",
         })
 
+    return actions
+
+
+def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
+    """AI-6c (§4.6b): wizard chips for sponsor_design / buy_off_design /
+    guarantee_nation, availability pre-computed from the SAME gates the
+    executor refuses on (`diplomatic_executor._execute_*` — mirrored,
+    never re-invented; a chip the click would refuse is a lie).
+
+    Deck-scoping: the two DESIGN verbs render only on worlds that carry
+    decks (`world.agendas`) — on the legacy fixture world every court is
+    deckless and three permanently dead chips would be clutter, not
+    honesty. The guarantee is world-agnostic like the D5 record itself.
+    """
+    from backend.game_logic.instruments import (
+        INSTRUMENT_DP_COST,
+        compute_buyoff_price,
+        guarantors_of,
+    )
+    from backend.game_logic.intent import get_nation_intent
+
+    actions: List[Dict] = []
+    dp_available = int(getattr(world, "diplomatic_points", 0) or 0)
+    treasury = int((getattr(world, "nation_gold", {}) or {})
+                   .get(player, 0) or 0)
+    at_war = world.is_at_war(player, target_nation)
+    has_decks = bool(getattr(world, "agendas", {}) or {})
+
+    def _chip(action_id: str, display: str, available: bool,
+              reason: str, effect: str, **extra) -> Dict:
+        row = {
+            "action": action_id,
+            "display_name": display,
+            "dp_cost": int(INSTRUMENT_DP_COST),
+            "gold_cost": int(extra.pop("gold_cost", 0)),
+            "available": bool(available),
+            "disabled_reason": "" if available else reason,
+            "disabled_reason_display": "" if available else reason,
+            "effect_text": effect,
+            "likelihood": "",
+        }
+        row.update(extra)
+        return row
+
+    if has_decks:
+        view = get_nation_intent(target_nation, world)
+        has_design = view.want_id is not None and not view.survival
+        aim = view.against or ""
+
+        # ── Sponsor their design (D5-2) ──
+        # Gate ORDER mirrors the executor: the DP preflight refuses
+        # before any verb-specific gate does (shown = what the click
+        # would actually say first).
+        amount = 200  # the chip's default subsidy; the typed verb takes any
+        if dp_available < INSTRUMENT_DP_COST:
+            sponsor_ok, reason = False, "Insufficient DP (need 1)."
+        elif at_war:
+            sponsor_ok, reason = False, "France is at war with this court."
+        elif not has_design:
+            sponsor_ok, reason = False, "No live design to sponsor."
+        elif not aim:
+            sponsor_ok, reason = False, "Their design stands against no one."
+        elif aim == player:
+            sponsor_ok, reason = (
+                False, "Their design is aimed at France herself.")
+        elif player in guarantors_of(world, aim):
+            sponsor_ok, reason = (
+                False, "France guarantees their aim — sponsoring would "
+                       "renege on the pledge.")
+        elif any(r.get("kind") == "sponsorship"
+                 and r.get("payer") == player
+                 and r.get("recipient") == target_nation
+                 and r.get("aim") == aim
+                 for r in getattr(world, "directed_sponsorships", []) or []):
+            sponsor_ok, reason = False, "The compact already stands."
+        elif treasury < amount * 4:
+            sponsor_ok, reason = (
+                False, f"The treasury cannot sustain the subsidy "
+                       f"(needs {amount * 4}g in hand).")
+        else:
+            sponsor_ok, reason = True, ""
+        from backend.display_names import display_nation as _dn
+        aim_display = _dn(aim) if aim else "their rival"
+        actions.append(_chip(
+            "sponsor_design",
+            f"Sponsor Their Design ({amount}g/turn)",
+            sponsor_ok, reason,
+            f"Aim their court at {aim_display} — gold flows, the compact "
+            f"binds both ends (§3.3).",
+            gold_cost=amount, aim=aim, amount=amount,
+        ))
+
+        # ── Buy off their design (D5-1) ──
+        price = compute_buyoff_price(world, target_nation)
+        if dp_available < INSTRUMENT_DP_COST:
+            buyoff_ok, reason = False, "Insufficient DP (need 1)."
+        elif at_war:
+            buyoff_ok, reason = False, "France is at war with this court."
+        elif not has_design or price is None:
+            buyoff_ok, reason = (
+                False, "They want nothing that gold can put to sleep.")
+        elif treasury < int(price):
+            buyoff_ok, reason = (
+                False, f"Their price is {int(price)}g — the treasury "
+                       f"holds {treasury}g.")
+        else:
+            buyoff_ok, reason = True, ""
+        price_label = f" ({int(price)}g)" if price is not None else ""
+        actions.append(_chip(
+            "buy_off_design",
+            f"Buy Off Their Design{price_label}",
+            buyoff_ok, reason,
+            "The design sleeps while the bargain stands — and waking it "
+            "by betrayal is the strongest casus belli in Europe.",
+            gold_cost=int(price or 0), price=int(price or 0),
+        ))
+
+    # ── Guarantee them (D5-3, world-agnostic) ──
+    if dp_available < INSTRUMENT_DP_COST:
+        guarantee_ok, reason = False, "Insufficient DP (need 1)."
+    elif at_war:
+        guarantee_ok, reason = False, "France is at war with this court."
+    elif ((getattr(world, "vassals", {}) or {})
+          .get(target_nation, {}) or {}).get("lord") == player:
+        guarantee_ok, reason = (
+            False, "Already under French protection as a vassal.")
+    elif player in guarantors_of(world, target_nation):
+        guarantee_ok, reason = False, "The guarantee already stands."
+    else:
+        guarantee_ok, reason = True, ""
+    actions.append(_chip(
+        "guarantee_nation",
+        "Guarantee Their Borders",
+        guarantee_ok, reason,
+        "Raises every coveter's bar for war (-8 weight) — and stakes "
+        "French credibility on the pledge being honoured.",
+    ))
     return actions
 
 

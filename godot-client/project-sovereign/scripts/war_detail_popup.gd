@@ -393,6 +393,13 @@ func _render_war_detail(w: Dictionary):
 	# Duration
 	bbcode += "Duration: " + str(duration) + " turns (since Turn " + str(started) + ")\n"
 
+	# AI-6c (§4.6): a war's reason is shown wherever the war appears —
+	# the Stage D stamp (an AI-declared war names the design it fights
+	# for; blank rows render nothing).
+	var stated_reason = str(w.get("stated_reason", ""))
+	if stated_reason != "":
+		bbcode += "Casus belli: " + stated_reason + "\n"
+
 	# War exhaustion
 	if we != null:
 		var we_int = int(float(we))

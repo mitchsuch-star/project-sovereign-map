@@ -1951,6 +1951,22 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "REVANCHE: {nation} will not forgive {author} the loss of "
         "{province_line}. A new design hardens in their court."
     ),
+    # AI-6 (§4.6, Stage F) — routine ladder movement, capped at
+    # INTENT_DISPATCH_CAP lines per dispatch (weight x relevance), the
+    # rest collapsed into the single tail line. Beats are events on
+    # their own types and never pass through the cap.
+    "intent_hardens": (
+        "The court of {nation} hardens over {want} — prepared now to go "
+        "as far as {price}."
+    ),
+    "intent_eases": (
+        "The court of {nation} eases over {want} — {price} is now the "
+        "length of its tether."
+    ),
+    "intent_movement_tail": (
+        "And {count} other court{plural} stir{verb} at {poss} own "
+        "design{plural}."
+    ),
     # AI-5b(ii) beat 5 (§4.6a) — The Volte-Face: the beaten great power,
     # courted rather than humiliated, reverses in one signing. Tilsit.
     "volte_face": (
@@ -2057,6 +2073,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # power changing sides are events, never routine ladder lines.
     "design_promoted": "HIGH",
     "volte_face": "HIGH",
+    # AI-6 (Stage F): the ROUTINE lines the cap governs — deliberately
+    # below every beat, and the tail below the lines it summarises.
+    "intent_hardens": "MEDIUM",
+    "intent_eases": "LOW",
+    "intent_movement_tail": "LOW",
     # Eclipse-coalition variants: Europe's business, not France's crisis.
     "diplomatic_coalition_formed_other": "MEDIUM",
     "diplomatic_coalition_dissolved_other": "MEDIUM",

@@ -1,9 +1,9 @@
 # AI Intent — Phase Spec (v1.4 — gate record · phased build plan · the four review passes)
 
 > **Status: DESIGN GATE HELD July 20, 2026 — §6 (D1–D7) is authoritative and has survived every
-> subsequent pass untouched. Stages A–E are BUILT** (§14 A+B · §15 C · §17 D · §18 E, each
-> authoritative); the D6 re-check between Stage C and Stage D was **held July 24, 2026 — gate
-> record §16**. Remaining: Stage F (the stage) → G (AI-V), per §11.
+> subsequent pass untouched. Stages A–F are BUILT** (§14 A+B · §15 C · §17 D · §18 E · §19 F,
+> each authoritative); the D6 re-check between Stage C and Stage D was **held July 24, 2026 —
+> gate record §16**. Remaining: Stage G (AI-V, carrying the D1 band), per §11.
 >
 > **How to read this document.**
 > - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
@@ -3142,3 +3142,113 @@ settlement); the promotion latch + id collision guard are redundant-by-design; t
 participant mediator ruling implemented as recorded; every §18 "pinned" claim traced to a
 real, correctly-named test; GR8 clean (no region scans; the war-instance scan in
 `volte_face_receptive` is event-bounded and required by retention 10 < window 15).
+
+---
+
+## 19. Landing record — Stage F, "The Stage" *(August 1, 2026; authoritative)*
+
+**Built and landed in one session under the user's standing direction ("whats next commit push
+and assure status updated"). The whole §11.1 Stage F row: AI-6 (the narration cap + relevance
+weighting) · AI-6b (the tempo pin + the unclaimed-beat duties) · AI-6c (the client surfaces —
+third-party wars on the war panel, the war's reason shown, the courting-surface wizard chips).**
+ONE new serialized field (`nation_intent_seen`); three `.gd` files touched under the full XR-1
+rule (parse harness 25 covered / 0 failures, headless boot 0 `SCRIPT ERROR`); the new payloads
+live-verified over HTTP on a fresh backend (the stale-backend trap caught and killed in the
+act — the hygiene memory earning its keep).
+
+### AI-6 — routine ladder movement, capped (`intent.process_intent_movements`)
+
+- **The lines**: the dispatch finally reports movement ON the ladder as news — `intent_hardens`
+  ("The court of {nation} hardens over {want} — prepared now to go as far as {price}.") and
+  `intent_eases`, dispatch-only by design (rung weather is texture; the campaign log stays for
+  events — zero new campaign-log types, the five count pins stand at 142).
+- **Movement = the PRICE rung changing while the WANT stands**, detected against the new
+  serialized `nation_intent_seen` map (nation -> "want|price", the `nation_agenda_seen` idiom
+  exactly): first observation silent (boot decks never spam turn 1), want-changes silent
+  (agenda_shift owns them — the poll runs immediately AFTER `process_agenda_shifts` in
+  `_advance_turn_internal`, so a want-change turn never double-announces), survival silent
+  (the crisis machinery owns that drama), pre-Stage-F saves read `{}` and record silently.
+- **THE CAP (§4.6, the three pins)**: at most `INTENT_DISPATCH_CAP = 2` movement lines per
+  dispatch, ranked by `weight x relevance` — relevance 2.0 when the design concerns France
+  (`against` resolves to the player, or `agenda_concerns_player_bloc`), 1.5 when the court
+  borders France's bloc (the AI-3r `get_neighbouring_nations` cached read), 1.0 for the
+  quarrel at the Danube — the overflow collapsed into ONE grammatical tail ("And N other
+  courts stir at their own designs."). The cap lives in the PRODUCER, so the exemption is
+  structural: beats ride their own event types and the collapse never sees them.
+  `test_relevance_beats_raw_weight` pins the §4.6 sentence directly: a weight-90 Danube
+  quarrel loses both slots to weight-50/48 France-concerned designs.
+- **The exemption registry** (`NARRATION_EXEMPT_EVENT_TYPES`): the dispatch-borne beats
+  (crisis_brewing · coercive_demand · broken_bargain · volte_face · third_party_peace ·
+  crisis_passed · guarantee_called · agenda_shift) **plus the Stage E beat-class pair
+  `design_promoted` / `volte_face` — the §18.1 handoff discharged and pinned**
+  (`test_exempt_tuple_carries_the_stage_e_pair`); a five-beat + four-movement turn shows
+  every beat untouched (`test_beats_are_never_capped_or_collapsed`).
+
+### AI-6b — tempo + the unclaimed duties
+
+- **The tempo pin, written FRESH** (no prior test asserted it): two LIVE crises — both courts
+  held at `fight` so neither cools mid-poll — and after `process_war_council`'s promotion
+  pass exactly ONE is foregrounded, the OLDEST (`test_one_foregrounded_crisis_worldwide`).
+  The §4.6a failure mode ("four simultaneous crises reading as noise" — how jealousy buried
+  its own best moment twice) stays structurally impossible.
+- The unclaimed-beat duty was exactly the §18.1 enumeration above; no other beat was
+  orphaned (every §4.6a beat landed with its owning row, §11.2's rule held).
+
+### AI-6c — the client surfaces (§4.6b)
+
+- **Third-party wars reach the HUD**: `build_active_wars` gains `foreign_wars` — the wars
+  France is NOT in, which the panel previously dropped wholesale (the §4.6b table's own
+  finding). Rows carry sides (leader-first, formation-aware display names — never a dead
+  name on an always-on surface), duration, the Stage D `stated_reason` stamp (court
+  knowledge — diplomacy has no fog), and the two leaders' exhaustion fogged to PARTIAL+
+  exactly like the France-war rows (the war's existence is public; the armies' state is
+  military intel). `war_status_panel.gd` renders the dim FOREIGN WARS section (unclickable
+  rows, hover carries cause + bleed — "let them bleed while France rearms", readable at
+  last), and the panel now stays alive when France herself is at peace — exactly when
+  Europe's wars matter most.
+- **The war's reason, shown where the war appears** (§4.6's fifth deliverable): France's own
+  war rows carry `stated_reason` off the instance stamp; `war_detail_popup.gd` renders the
+  "Casus belli:" line when present (an AI-declared war names the design it fights for;
+  player wars keep their objective block).
+- **The courting surface** (the Stage C deferral, owner AI-6c): `_instrument_actions` in
+  diplomacy.py appends the three D5 verbs to the wizard's per-nation action list as
+  honest-availability chips whose gates MIRROR the executor's own refusals in the
+  executor's own ORDER (DP preflight first — shown = what the click would actually say):
+  sponsor (aim + 200g/turn named, the x4 sustain bar, the guarantor-renege block, the
+  duplicate-compact block), buy-off (the live `compute_buyoff_price` IN the label — "Buy
+  Off Their Design (1008g)" — with the treasury named in the refusal), guarantee (the
+  vassal/duplicate blocks; world-agnostic like the D5 record). The two DESIGN verbs are
+  deck-scoped (three permanently dead chips on the legacy world would be clutter, not
+  honesty — recorded decision); a vassal court gets vassal management, not courtship (the
+  early-return branch, pinned). `diplomacy_wizard.gd._build_command` gains the three
+  typed-command echoes in the golden-corpus phrasings ("sponsor X against AIM, 200 gold" —
+  the aim rides the chip payload; raw tags, which is what the parser matches). End-to-end
+  honesty pinned: an AVAILABLE chip's typed command SUCCEEDS through the real executor
+  (`test_chip_gates_mirror_the_executor`).
+
+### Pin 20 — the stage's own exit line, honestly stated
+
+Parse harness EXIT 0 (25 scripts, 0 failures) · headless boot 0 `SCRIPT ERROR` · the new
+payloads verified over HTTP on a fresh backend (chips with live availability + prices;
+`foreign_wars` + `stated_reason` on every response's `active_wars`). **The VISUAL half —
+the FOREIGN WARS section, the casus-belli line, the three chips and the two dispatch lines
+on screen in the running client — remains open for the user's next session**, exactly as
+Stage B's landing recorded its own render half; the surfaces ride existing renderers
+(dispatch_view renders all registered dispatch types; the panel/popup/wizard edits are the
+render). No new dtype, no PopupQueue slot, no main.gd whitelist entry needed anywhere in
+the stage.
+
+### Serialization
+
+ONE new field: `nation_intent_seen` (Dict[str, str], the `nation_agenda_seen` idiom —
+to_dict/from_dict flat string maps, pre-Stage-F saves default `{}`, enforcement test
+satisfied by attribute==key). `SAVE_FORMAT_REFERENCE.md` row added.
+
+### Exit criteria check (§11.1 Stage F)
+
+The narration pins — cap ✓ (`test_cap_two_lines_plus_one_tail`, cap pinned at the blessed
+2) · exemption ✓ (structural + asserted) · never-collapsed ✓ (beats survive a crowded turn
+untouched; the exemption tuple enumerates the Stage E pair) · pin 20 ✓ with the visual
+half open as recorded above · tests: `test_ai_intent_narration.py` (19) +
+`test_ai_intent_client_surfaces.py` (19); suite green (count in STATUS), ruff clean,
+M1–M7 untouched (no combat-path code), campaign-log count pins untouched at 142.

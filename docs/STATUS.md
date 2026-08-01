@@ -4,28 +4,70 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ▶ WHAT'S NEXT (as of July 31, 2026 — end of the AI Intent Stage E session)
+> ### ▶ WHAT'S NEXT (as of August 1, 2026 — end of the AI Intent Stage F session)
 >
-> **AI Intent Stage E ("Consequence and Character") is BUILT + LANDED — the WHOLE §11.1
-> row including both slip candidates** (AI-5 all six wires · AI-5b(i) emergent designs ·
-> AI-5b(ii) the volte-face, NOT slipped · AI-5c the Arbiter's Offer, kept per §16.1-3) —
-> **landing record `docs/AI_INTENT_SPEC.md` §18, authoritative.** Zero new serialized
-> fields, zero `.gd` touches; M1–M7 AND the 40-turn `BASELINE_SERIES` byte-identical
-> WITHOUT re-recording (every Stage E mechanic waits for a played moment).
+> **AI Intent Stages E AND F are BUILT + LANDED.** Stage E ("Consequence and Character",
+> July 31 — record §18 + the four-lens review §18.1) and **Stage F ("The Stage",
+> August 1 — record `docs/AI_INTENT_SPEC.md` §19, authoritative)**: the narration cap
+> (2 relevance-ranked routine lines + one tail, beats structurally exempt incl. the
+> Stage E pair), the fresh tempo pin (one foregrounded crisis world-wide), and the
+> §4.6b client surfaces — FOREIGN WARS on the war panel with cause + fogged bleed,
+> the casus-belli line on the war detail, and the three D5 instrument verbs as
+> honest-availability wizard chips mirroring the executor's own gates.
 >
-> 1. **▶ NEXT: AI Intent Stage F** (`AI_INTENT_SPEC.md` §11 — the stage: AI-6 cap +
->    relevance weighting · AI-6b tempo + unclaimed beats · AI-6c client surfaces incl.
->    the intent/mirror/subsidy/third-party-war renders and pin 20's live in-game pass)
->    → Stage G (AI-V, carrying the D1 band).
+> 1. **▶ NEXT: AI Intent Stage G — AI-V** (`AI_INTENT_SPEC.md` §11 — the three-arm
+>    sweep (control / variance / acceptance) + the scripted-France arm; the full §7
+>    DoD; §7a ≥5-of-7 across the arm union; carries the D1 band measurement (AI-3r
+>    arm (a)) and the Q2 multi-front assertion set; the scored creative pass lands in
+>    `docs/audits/`). Stage G closes the AI Intent phase.
 >
-> 2. **⚠ still open: the IGR-G before/after visual sign-off**
->    (`docs/audits/IGR_G*_2026_07_31.png` — settlement popup sizing + map-stack
->    spacing/labels). The BD popup itself is user-confirmed; what remains for BD is a
->    soft WATCH item, not a sign-off: whether the significance gate FEELS right over a
->    longer session (eval §2's fun-curve) — belongs to the next ordinary in-game review.
+> 2. **⚠ open visual sign-offs for the next play session**: the IGR-G before/after pack
+>    (`docs/audits/IGR_G*_2026_07_31.png`); the BD significance-gate FEEL watch; and
+>    **pin 20's visual half for Stages E+F** — the FOREIGN WARS section, the
+>    casus-belli line, the three instrument chips, the REVANCHE/VOLTE-FACE beats and
+>    the two routine intent lines on screen in the running client (backend payloads +
+>    parse/boot verified headless; the renders ride existing surfaces).
 >
-> **Nothing is blocked on a user decision right now** — the IGR-G sign-off can ride the
-> next ordinary play session.
+> **Nothing is blocked on a user decision right now.**
+>
+> ### ✅ AI Intent Stage F — "The Stage" — LANDED August 1, 2026
+>
+> **User direction: "whats next commit push and assure status updated." Landing record =
+> `docs/AI_INTENT_SPEC.md` §19 (authoritative).** Suite **15,485/3**, ruff clean, parse
+> harness 25/0, headless boot 0 `SCRIPT ERROR`, new payloads live-verified over HTTP
+> (a STALE backend answered first — killed per the hygiene memory, re-verified fresh).
+> ONE new serialized field (`nation_intent_seen`); campaign-log count pins untouched
+> at 142 (the routine lines are dispatch-only by design).
+>
+> - **AI-6**: `intent.process_intent_movements` — routine ladder movement as dispatch
+>   news (`intent_hardens`/`intent_eases`), detected on the new seen-map (first
+>   observation silent, want-changes silent — agenda_shift owns them, survival silent),
+>   CAPPED at 2 lines per dispatch ranked by weight × proximity-to-French-interest
+>   (2.0 concerns-France / 1.5 borders-the-bloc / 1.0 far), overflow collapsed into one
+>   grammatical "other courts stir" tail. The cap lives in the PRODUCER so the beat
+>   exemption is structural; `NARRATION_EXEMPT_EVENT_TYPES` enumerates the seven
+>   dispatch beats + `design_promoted`/`volte_face` (the §18.1 handoff discharged).
+>   `test_relevance_beats_raw_weight` pins §4.6's own sentence: a weight-90 Danube
+>   quarrel loses both slots to weight-50/48 France-concerned designs.
+> - **AI-6b**: the tempo pin written FRESH (nothing had asserted it): two LIVE crises →
+>   exactly one foregrounded after the war-council promotion pass, the oldest first.
+> - **AI-6c**: `build_active_wars` gains `foreign_wars` (sides leader-first with
+>   formation-aware names, duration, the Stage D `stated_reason` stamp — court
+>   knowledge, no fog — and leader exhaustion fogged PARTIAL+ like the France rows);
+>   France's own rows carry `stated_reason`; `war_status_panel.gd` renders the dim
+>   FOREIGN WARS section (panel stays alive when France is at peace — exactly when
+>   Europe's wars matter) + `war_detail_popup.gd`'s "Casus belli:" line;
+>   `diplomacy.py._instrument_actions` appends sponsor/buy-off/guarantee chips to the
+>   wizard's action list with availability mirroring the executor's gates IN ORDER
+>   (DP preflight first — the house "Insufficient DP" copy, aligned after the suite
+>   caught the drift), live buy-off price in the label, deck-scoped design verbs
+>   (recorded decision), vassal courts excluded by the early-return branch;
+>   `diplomacy_wizard.gd` echoes the golden-corpus typed commands (the chip payload
+>   carries the aim). End-to-end honesty pinned: an available chip's typed command
+>   succeeds through the real executor.
+> - Tests: `test_ai_intent_narration.py` (19) + `test_ai_intent_client_surfaces.py`
+>   (19); one pre-existing pin (`test_insufficient_dp_grays_out`) caught the DP-copy
+>   drift and the chips were aligned to it, not vice versa.
 
 ### ✅ AI Intent Stage E — "Consequence and Character" — LANDED July 31, 2026
 
