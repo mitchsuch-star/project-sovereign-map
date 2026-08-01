@@ -7,22 +7,23 @@
 > ### ▶ WHAT'S NEXT (as of July 31, 2026 — end of the Battle Diorama session)
 >
 > **Row IGR is BUILD-COMPLETE** (~~A~~ ~~B~~ ~~D~~ ~~F~~ ~~E~~ ~~G~~; ~~C~~ withdrawn) and
-> **row BD (Battle Diorama Tier A) is BUILT + LANDED** — landing record
-> `docs/BATTLE_DIORAMA_SPEC.md` §14, evidence pack
+> **row BD (Battle Diorama Tier A) is BUILT + LANDED + ✅ VERIFIED WORKING IN-GAME BY THE
+> USER (July 31, 2026, post-fix)** — landing record `docs/BATTLE_DIORAMA_SPEC.md` §14 +
+> the §14.1 wiring-fix addendum (`2ea50d1`), evidence pack
 > `docs/audits/BD_TABLEAU_{TRIUMPH,DEFEAT,MIDCASCADE}_2026_07_31.png`.
 >
 > 1. **▶ NEXT: AI Intent Stage E** (`AI_INTENT_SPEC.md` §11 — consequence & character:
 >    AI-5 wires · AI-5b(i) emergent designs Core · AI-5c the Arbiter's Offer, may slip)
 >    → Stage F (the stage) → Stage G (AI-V, carrying the D1 band).
 >
-> 2. **⚠ open visual sign-offs, one pass in-game covers both:** the IGR-G before/after
->    pack (`docs/audits/IGR_G*_2026_07_31.png`) AND the new Battle Diorama in live play
->    (the tableau auto-plays on the first significant battle; `⚔ View the field` sits on
->    every battle line; the sign-off question is whether the significance gate FEELS
->    right — eval §2's fun-curve is the yardstick).
+> 2. **⚠ still open: the IGR-G before/after visual sign-off**
+>    (`docs/audits/IGR_G*_2026_07_31.png` — settlement popup sizing + map-stack
+>    spacing/labels). The BD popup itself is user-confirmed; what remains for BD is a
+>    soft WATCH item, not a sign-off: whether the significance gate FEELS right over a
+>    longer session (eval §2's fun-curve) — belongs to the next ordinary in-game review.
 >
-> **Nothing is blocked on a user decision right now** — both sign-offs can ride the next
-> ordinary play session.
+> **Nothing is blocked on a user decision right now** — the IGR-G sign-off can ride the
+> next ordinary play session.
 
 ### ✅ IGR-E — Plunder earns its prompt — LANDED July 26, 2026
 
@@ -2269,8 +2270,22 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 >   scripts and the scene (the IGR-E runtime-registration gap class).
 > - `tests/test_battle_diorama.py` (**43**); `THIRD_PARTY_LICENSES.md` battle-audio
 >   entries + the "198 WAVs" doc-drift the eval flagged corrected.
-> - **⚠ open: live visual sign-off** on the tableau in ordinary play (does the
->   significance gate FEEL right?) — rides the same in-game pass as the IGR-G pack.
+> - **Post-landing fix, same day (`2ea50d1`), from the user's live report** ("clicked
+>   view the field and nothing happened and nothing popped when I attacked"): the
+>   stash-and-raise lived ONLY in `_on_command_result`, but a real attack frequently
+>   resolves through a DIFFERENT handler — the W6-4 muster "Attack Anyway" interrupt, an
+>   objection Proceed, or behind the plunder/secure capture prompt — which rendered the
+>   battle (and the link, off the event copy) without ever arming the popup. The stash
+>   now lives INSIDE `_display_battle_result` (the render chokepoint — link and stash
+>   structurally inseparable) and the raise was added at the four missing control-return
+>   tails (interrupt-queue drain, objection tail, capture-choice tail, glorious-charge
+>   tail). Verified end-to-end against a fresh backend on a side port (boot Ney-vs-Mack
+>   carries the payload; the follow-up battle reproduced the capture-gated flow exactly).
+>   **A second live factor: a backend started BEFORE the feature serves no payloads —
+>   restart backend AND client after pulling.** **✅ The user then confirmed the tableau
+>   works in-game.**
+> - **BD watch item (soft, next in-game review):** does the significance gate FEEL right
+>   over a longer session (eval §2's fun-curve)? The popup mechanism itself is confirmed.
 > - **Deferred stays owned** (eval §6 OUT list verbatim): withdrew-status, per-corps rout,
 >   clickable grievance, proportional counts, terrain backdrop (named follow-up), Battle
 >   Gallery (own gate), Tier B/C (measure Tier A live first), ambient loops.

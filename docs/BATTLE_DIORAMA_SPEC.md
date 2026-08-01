@@ -481,3 +481,27 @@ needs a payload field) / Battle Gallery (own gate, persistence question) / Tier 
 (hold until Tier A is measured live) / ambient loops. **Live measurement of the tableau in
 ordinary play belongs to the next in-game review** (the standing cadence), where the
 significance gate's feel is the thing to watch.
+
+### §14.1 Post-landing addendum — the render-chokepoint fix (July 31, 2026, `2ea50d1`)
+
+The user's first live session reported the exact double symptom "clicked View the field
+and nothing happened / nothing popped when I attacked." Root cause: the stash-and-raise
+lived ONLY in `_on_command_result`, but a real attack frequently resolves through a
+DIFFERENT handler — the W6-4 muster **"Attack Anyway" interrupt**
+(`_on_interrupt_response`), an **objection Proceed** (`_on_objection_response`), or
+behind the **plunder/secure capture prompt** — all of which render the battle via
+`_display_result` without arming the popup. The terminal link still drew (it reads the
+EVENT copy) while `last_battle_diorama` stayed null: a dead link and no auto-play, from
+one cause.
+
+**The fix is structural:** the stash moved INSIDE `_display_battle_result` — the one
+chokepoint every rendered battle passes through — so the link and the stash are
+inseparable by construction; the raise was added at the four control-return tails that
+lacked it (`_process_next_interrupt` queue drain, the objection tail, the capture-choice
+tail — the tableau waits politely behind the plunder/secure decision — and the
+glorious-charge tail for uniformity, a no-op by scope). Verified end-to-end against a
+fresh backend on a side port: the boot Ney-vs-Mack attack carries the payload on
+/command, and the follow-up battle reproduced the capture-gated flow live. **Deployment
+note that was the report's second half: a backend/client started BEFORE this feature
+serves/renders no payloads — restart BOTH after pulling.** ✅ **The user then confirmed
+the tableau working in-game.**
