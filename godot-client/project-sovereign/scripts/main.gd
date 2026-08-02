@@ -505,6 +505,10 @@ func _ready():
 				# UI-6: per-card order chips (Fortify/Drill) — typed commands
 				if instance.has_signal("order_command"):
 					instance.order_command.connect(_on_reward_command)
+			elif config[0] == "ledger":
+				# NV-6: THE ADMIRALTY's order chips (posture, the Diversion)
+				if instance.has_signal("naval_command"):
+					instance.naval_command.connect(_on_naval_command)
 			elif config[0] == "diplomatic_ledger":
 				# UI-6: Vassals-tab action chips + wizard handoff + assess verb
 				if instance.has_signal("vassal_command"):
@@ -4503,6 +4507,29 @@ func _on_vassal_command_result(response):
 	_on_command_result(response)
 	if top_bar and top_bar.screens.has("diplomatic_ledger"):
 		var ledger_screen = top_bar.screens["diplomatic_ledger"]
+		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
+			ledger_screen.refresh_if_open()
+
+
+func _on_naval_command(command: String):
+	"""NV-6 — an Admiralty chip. Same pipeline as a typed command, then
+	refresh the strategic ledger in place so posture, the Crossings board
+	and the gate terms all update under the click."""
+	if command.is_empty() or _chip_command_in_flight:
+		return
+	_chip_command_in_flight = true
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	set_input_enabled(false)
+	api_client.send_command(command, _on_naval_command_result)
+
+
+func _on_naval_command_result(response):
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("ledger"):
+		var ledger_screen = top_bar.screens["ledger"]
 		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
 			ledger_screen.refresh_if_open()
 

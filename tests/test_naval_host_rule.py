@@ -321,3 +321,174 @@ class TestTheContinentalSystemIsHonest:
         total = naval.continental_ports_total(world)
         closed_now = cs["closure_pct"] / 100.0 * total
         assert naval.cs_closure_tier((closed_now + needed) / total) >= 1
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §9 — NV-6, the Admiralty's chips
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheAdmiraltyChips:
+    """Before NV-6 the ONLY interactive naval affordance in the whole game
+    was the region panel's "Lay down ships" chip: posture, the expedition
+    and the Grand Diversion were typed-command only, and THE ADMIRALTY was
+    read-only text at the bottom of a ledger tab. Every chip below carries
+    the same typed command a player would write, and its enabled state is
+    the real gate (the §11.6 honest-availability idiom)."""
+
+    def test_the_posture_chip_offers_the_other_station(self, world):
+        world.player_nation = "France"
+        chips = naval.build_admiralty_report(world)["chips"]
+        commands = [c["command"] for c in chips]
+        assert "blockade the enemy" in commands      # France boots on guard
+        assert "guard home waters" not in commands   # never offer the status quo
+        naval.get_fleet(world, "France")["posture"] = "blockade"
+        flipped = [c["command"] for c in naval.build_admiralty_report(world)["chips"]]
+        assert "guard home waters" in flipped
+        assert "blockade the enemy" not in flipped
+
+    def test_every_chip_command_actually_parses(self, world):
+        """A chip that types a command the parser does not know is a dead
+        button. Route each one through the real parser the terminal uses."""
+        from backend.ai.llm_client import LLMClient
+        world.player_nation = "France"
+        client = LLMClient()
+        naval_actions = {"set_fleet_posture", "naval_diversion",
+                         "naval_expedition", "build_fleet"}
+        chips = naval.build_admiralty_report(world)["chips"]
+        assert chips
+        for chip in chips:
+            parsed = client._parse_with_mock(chip["command"], {"world": world})
+            assert parsed.action in naval_actions, (
+                f"chip {chip['command']!r} parsed as {parsed.action!r}")
+
+    def test_the_landing_chip_command_parses_too(self, world):
+        """The region panel's chip types `land <Marshal> in <Region>` — the
+        same grammar the corpus pins."""
+        from backend.ai.llm_client import LLMClient
+        french = world.get_marshals_by_nation("France")
+        marshal = french[0]
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        options = naval.expedition_landing_options(world, "France")
+        region = sorted(options)[0]
+        parsed = LLMClient()._parse_with_mock(
+            f"land {marshal.name} in {region}", {"world": world})
+        assert parsed.action == "naval_expedition"
+
+    def test_a_withheld_chip_states_why(self, world):
+        """§10's standing rule at the chip layer: no disabled affordance
+        ever appears without a present-tense reason."""
+        world.player_nation = "France"
+        for chip in naval.build_admiralty_report(world)["chips"]:
+            if not chip["enabled"]:
+                assert chip["reason"], f"{chip['label']} is dark and silent"
+
+    def test_the_diversion_chip_warns_about_the_trap_it_cannot_gate(self, world):
+        """The verb does not require a staged camp and is deliberately not
+        being made to — but spending a once-per-war card to open two turns
+        of water with no army on the beach is a trap, so the chip says so.
+        A warning, never a lie: it stays clickable, because it works."""
+        world.player_nation = "France"
+        chips = {c["command"]: c for c in
+                 naval.build_admiralty_report(world)["chips"]}
+        diversion = chips["order the diversion"]
+        assert diversion["enabled"] is True
+        assert "no army is staged" in diversion["note"]
+        assert str(naval.DIVERSION_SUCCESS_PCT) in diversion["note"]
+
+    def test_the_warning_clears_once_the_camp_is_staged(self, world):
+        """Positive control — the note is derived, not decoration."""
+        world.player_nation = "France"
+        rec = naval.get_fleet(world, "France")
+        camp = list(rec.get("camp_provinces") or [])
+        assert camp, "the scenario authors France's Boulogne camp"
+        french = world.get_marshals_by_nation("France")
+        french[0].location = camp[0]
+        french[0].strength = naval.DESCENT_CAMP_MIN_TROOPS + 1000
+        rec["camp_turns"] = naval.DESCENT_CAMP_STAGED_TURNS
+        world._build_marshal_index()
+        chips = {c["command"]: c for c in
+                 naval.build_admiralty_report(world)["chips"]}
+        assert "no army is staged" not in chips["order the diversion"]["note"]
+
+    def test_the_unmet_diversion_terms_are_still_enumerated(self, world):
+        """When the verb really is gated, the chip carries the reason."""
+        world.player_nation = "France"
+        naval.get_fleet(world, "France")["diversion_used"] = True
+        chips = {c["command"]: c for c in
+                 naval.build_admiralty_report(world)["chips"]}
+        diversion = chips["order the diversion"]
+        assert diversion["enabled"] is False
+        assert "not yet spent" in diversion["reason"]
+
+    def test_a_fleetless_court_is_offered_nothing(self, world):
+        """Austria keeps ports and no navy — the block renders, the orders
+        do not."""
+        world.player_nation = "Austria"
+        report = naval.build_admiralty_report(world)
+        assert report["own_fleet"] is None
+        assert report["chips"] == []
+
+
+class TestTheLandingChips:
+    def test_the_landing_chip_reaches_a_host_shore(self, world):
+        """The expedition is the one naval verb that needs a destination,
+        so its chip lives on the map where a destination is chosen."""
+        french = world.get_marshals_by_nation("France")
+        marshal = french[0]
+        marshal.location = "Brittany"        # a French yard
+        marshal.strength = 10000
+        world._build_marshal_index()
+        options = naval.expedition_landing_options(world, "France")
+        assert "Munster" in options          # Ireland — the DEF-5 rider
+        entry = [o for o in options["Munster"] if o["marshal"] == marshal.name]
+        assert entry and entry[0]["strength"] == 10000
+
+    def test_the_quoted_odds_are_the_odds_that_are_rolled(self, world):
+        """IGR-E's shown = applied, at the chip: the panel prints the same
+        number `expedition_slip_odds` gives the confirm and the resolver."""
+        french = world.get_marshals_by_nation("France")
+        marshal = french[0]
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        options = naval.expedition_landing_options(world, "France")
+        for region, corps_list in options.items():
+            for corps in corps_list:
+                assert corps["odds"] == naval.expedition_slip_odds(
+                    world, "France", region, corps["strength"])["odds"]
+
+    def test_a_march_is_never_offered_as_a_voyage(self, world):
+        """`_resolve_expedition_target` refuses a land-adjacent province
+        ("march there; the fleet is for crossings the army cannot make"),
+        so the chip must not offer one either."""
+        french = world.get_marshals_by_nation("France")
+        marshal = french[0]
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        options = naval.expedition_landing_options(world, "France")
+        brittany = world.regions["Brittany"]
+        for neighbour in brittany.adjacent_regions:
+            if naval.is_sea_link(world, "Brittany", neighbour):
+                continue
+            offered = [o["marshal"] for o in options.get(neighbour, [])]
+            assert marshal.name not in offered, (
+                f"{neighbour} is one march away — no transports needed")
+
+    def test_a_corps_over_the_lift_gets_no_chip(self, world):
+        for marshal in world.get_marshals_by_nation("France"):
+            marshal.location = "Brittany"
+            marshal.strength = naval.EXPEDITION_MAX_TROOPS + 1
+        world._build_marshal_index()
+        assert naval.expedition_landing_options(world, "France") == {}
+
+    def test_the_overlay_carries_the_landings_to_the_panel(self, world):
+        french = world.get_marshals_by_nation("France")
+        french[0].location = "Brittany"
+        french[0].strength = 10000
+        world._build_marshal_index()
+        overlay = naval.map_naval_overlay(world)
+        assert overlay["expedition_landings"]
+        assert overlay["ship_cost"] == naval.SHIP_COST

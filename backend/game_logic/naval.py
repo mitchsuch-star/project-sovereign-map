@@ -1510,6 +1510,64 @@ def build_admiralty_report(world) -> Dict:
          "met": True},
     ]
     report["expedition_terms"] = expedition_terms
+
+    # ── NV-6: the chips (§9's "usability" clause, the §11.6 honest idiom) ──
+    # Every naval verb but `build_fleet` was typed-command only. Each chip
+    # below carries the SAME typed command a player would write and the
+    # SAME gate the executor applies, so a shown chip is a chip that works
+    # and a withheld one says why in present tense.
+    chips: List[Dict] = []
+    if own and own_ships > 0:
+        posture = str(own.get("posture", "guard"))
+        if posture == "blockade":
+            chips.append({
+                "command": "guard home waters",
+                "label": "Recall to home waters",
+                "reason": "", "enabled": True,
+                "note": "covers every crossing touching our own coast"})
+        else:
+            blockadable = [n for n in world.get_nations_at_war_with(player)
+                           if get_fleet(world, n) is not None]
+            chips.append({
+                "command": "blockade the enemy",
+                "label": "Blockade the enemy",
+                "enabled": bool(blockadable),
+                "reason": ("" if blockadable else
+                           "no enemy at sea to blockade"),
+                "note": ("closes " + ", ".join(sorted(blockadable))
+                         if blockadable else "")})
+        if not report["diversion_available"]:
+            unmet = [t["text"] for t in diversion_terms if not t["met"]]
+            chips.append({
+                "command": "order the diversion",
+                "label": "The Grand Diversion",
+                "enabled": False,
+                "reason": "; ".join(unmet), "note": ""})
+        else:
+            # The verb does NOT require a staged camp, and deliberately is
+            # not being made to — but spending a once-per-war card to open
+            # two turns of water with no army on the beach is a trap, so
+            # the chip says so instead of quietly letting it happen.
+            note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
+            if not camp_staged(world, player):
+                note += "; no army is staged to use the open water"
+            chips.append({
+                "command": "order the diversion",
+                "label": "The Grand Diversion",
+                "enabled": True, "reason": "", "note": note})
+    report["chips"] = chips
+
+    # The expedition needs a DESTINATION, and the map is where a
+    # destination is chosen — so its chip lives on the region panel (see
+    # `expedition_landings` in map_naval_overlay) and the Admiralty block
+    # only names the corps that are ready to sail and where from.
+    report["embark_ready"] = [
+        {"marshal": m.name, "strength": int(m.strength),
+         "location": m.location}
+        for m in sorted(world.get_marshals_by_nation(player),
+                        key=lambda m: -int(m.strength))
+        if (0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+            and m.location in yards)]
     return report
 
 
@@ -1537,7 +1595,54 @@ def map_naval_overlay(world) -> Dict:
             # sites + the live price, never hardcoded client-side.
             "player_dockyards": (controlled_dockyards(world, player)
                                  if player else []),
-            "ship_cost": int(SHIP_COST)}
+            "ship_cost": int(SHIP_COST),
+            # NV-6: {region: [{marshal, strength, odds}]} — which corps may
+            # land HERE and at what odds, resolved server-side through the
+            # same eligibility the executor applies and the same
+            # `expedition_slip_odds` the confirm quotes and the resolver
+            # rolls (shown = applied). A chip that appears is a chip that
+            # sails; the region panel never guesses.
+            "expedition_landings": (expedition_landing_options(world, player)
+                                    if player else {})}
+
+
+def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
+    """NV-6 — the region panel's landing chips. Mirrors
+    NavalExecutor._resolve_expedition_target's eligibility exactly: a
+    coastal province that is not where the corps already stands and is not
+    reachable by an ordinary land march."""
+    if not has_naval_layer(world) or not get_fleet(world, nation):
+        return {}
+    yards = set(controlled_dockyards(world, nation))
+    corps = [m for m in world.get_marshals_by_nation(nation)
+             if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+             and (m.location in yards
+                  or (_controller(world, m.location) != nation
+                      and getattr(world.regions.get(m.location), "is_coastal",
+                                  False)))]
+    if not corps:
+        return {}
+    options: Dict[str, List[Dict]] = {}
+    for region_name, region in world.regions.items():
+        if not getattr(region, "is_coastal", False):
+            continue
+        for marshal in corps:
+            if region_name == marshal.location:
+                continue
+            origin = world.regions.get(marshal.location)
+            if origin is not None and region_name in (
+                    getattr(origin, "adjacent_regions", []) or []):
+                if not is_sea_link(world, marshal.location, region_name):
+                    continue  # march there; the fleet is for what feet cannot
+            quote = expedition_slip_odds(world, nation, region_name,
+                                         int(marshal.strength))
+            options.setdefault(region_name, []).append({
+                "marshal": marshal.name,
+                "strength": int(marshal.strength),
+                "odds": int(quote["odds"]),
+                "from": marshal.location,
+            })
+    return options
 
 
 def nation_is_penned_in(world, nation: str) -> bool:

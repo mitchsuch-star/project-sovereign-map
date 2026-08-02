@@ -9,6 +9,12 @@ extends CanvasLayer
 # =============================================================================
 
 signal closed
+# NV-6: an Admiralty chip — the same typed-command pipeline every other
+# chip surface uses (main.gd owns the send + the in-place refresh).
+signal naval_command(command: String)
+
+# NV-6: the Admiralty chip pill, matching the region panel's `_CHIP_BG`.
+const _NAVAL_CHIP_BG = "233043"
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -42,6 +48,15 @@ func _ready():
 
 	# Wire meta_clicked for cancel buttons in Orders tab
 	content_area.meta_clicked.connect(_on_meta_clicked)
+
+	# NV-P1 (routed at the NV-V visual pass, pre-existing): the ledger
+	# ignored the mouse wheel. The RichTextLabel defaults to
+	# MOUSE_FILTER_STOP, so it consumed the wheel event before its own
+	# ScrollContainer parent ever saw it — and THE ADMIRALTY block sits at
+	# the bottom of a long ECONOMY list, which is where it started to bite.
+	# PASS still delivers _gui_input (so meta_clicked and every chip on
+	# this screen keep working) and then lets the parent scroll.
+	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 
 	# Build tab styles
 	_active_tab_style = StyleBoxFlat.new()
@@ -536,7 +551,15 @@ func _render_admiralty_block() -> String:
 			if not (cx is Dictionary):
 				continue
 			var verdict = str(cx.get("verdict", "open"))
-			var cx_color = Utils.COLOR_ERROR if verdict == "shut" else (Utils.COLOR_SUCCESS if verdict == "window" else Utils.COLOR_TEXT)
+			var cx_color = Utils.COLOR_TEXT
+			if verdict == "shut":
+				cx_color = Utils.COLOR_ERROR
+			elif verdict == "landing":
+				# NV-4: the water is ours, the shore is not — amber, matching
+				# the map's own tint for the same link.
+				cx_color = Utils.COLOR_ORANGE
+			elif verdict == "window":
+				cx_color = Utils.COLOR_SUCCESS
 			bbcode += "  [color=#" + cx_color + "]" + str(cx.get("line", "")) + "[/color]\n"
 	var div_terms = adm.get("diversion_terms", [])
 	if div_terms is Array and div_terms.size() > 0:
@@ -547,6 +570,48 @@ func _render_admiralty_block() -> String:
 			var met = bool(term.get("met", false))
 			var mark = "[color=#" + Utils.COLOR_SUCCESS + "]+[/color]" if met else "[color=#" + Utils.COLOR_ERROR + "]x[/color]"
 			bbcode += "  " + mark + " " + str(term.get("text", "")) + "\n"
+	bbcode += _render_admiralty_orders(adm)
+	return bbcode
+
+
+func _render_admiralty_orders(adm: Dictionary) -> String:
+	"""NV-6 — the Admiralty's orders as clickable chips. Every naval verb
+	but `build_fleet` used to be typed-command only. Each chip carries the
+	same typed command a player would write, and its enabled state comes
+	from the backend gate (honest availability, the section 11.6 idiom): a
+	shown chip works, a withheld one states why in present tense."""
+	var chips = adm.get("chips", [])
+	var ready = adm.get("embark_ready", [])
+	if not (chips is Array) or chips.is_empty():
+		return ""
+	var bbcode = "\n[color=#" + Utils.COLOR_HEADER + "]Orders to the Admiralty[/color]\n"
+	for chip in chips:
+		if not (chip is Dictionary):
+			continue
+		var label = str(chip.get("label", ""))
+		var enabled = bool(chip.get("enabled", false))
+		bbcode += "  "
+		if enabled:
+			bbcode += Utils.bb_button_chip("do:" + str(chip.get("command", "")),
+				label, Utils.COLOR_GOLD, _NAVAL_CHIP_BG)
+			var note = str(chip.get("note", ""))
+			if note != "":
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + note + "[/color]"
+		else:
+			bbcode += "[color=#" + Utils.COLOR_GREY + "]" + label + " — " \
+				+ str(chip.get("reason", "not available")) + "[/color]"
+		bbcode += "\n"
+	if ready is Array and ready.size() > 0:
+		# The expedition's chip lives on the map, where its destination is
+		# actually chosen — say so rather than offering a verb with no object.
+		var names: Array = []
+		for corps in ready:
+			if corps is Dictionary:
+				names.append(str(corps.get("marshal", "")) + " ("
+					+ Utils.format_number(int(corps.get("strength", 0))) + " at "
+					+ str(corps.get("location", "")) + ")")
+		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ready to embark: " \
+			+ ", ".join(names) + " — click a coastal province to choose the landing.[/color]\n"
 	return bbcode
 
 
@@ -733,6 +798,19 @@ func _on_meta_clicked(meta):
 		var marshal_name = meta_str.substr(7)
 		if _api_client_ref:
 			_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)
+	elif meta_str.begins_with("do:"):
+		# NV-6: an Admiralty chip carries its full typed command — the same
+		# string a player would type; the executor owns every gate.
+		var command = meta_str.substr("do:".length())
+		if command != "":
+			naval_command.emit(command)
+
+
+func refresh_if_open() -> void:
+	"""NV-6 — re-pull after a chip command so posture/crossings/gate terms
+	update in place (the diplomatic-ledger idiom)."""
+	if visible and _api_client_ref:
+		_api_client_ref.get_ledger(_on_ledger_received)
 
 
 func _on_cancel_result(_response):

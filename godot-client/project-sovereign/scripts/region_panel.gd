@@ -245,6 +245,30 @@ func _render() -> void:
 					+ "  [color=#" + Utils.COLOR_GREY + "]a keel in this yard[/color]")
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
+
+	# NV-6: THE LANDING. The expedition is the one naval verb that needs a
+	# destination, and this panel is where a destination is chosen — so its
+	# chip lives here, on ANY coastal province (ours, theirs, or a host's),
+	# outside the owner branches above. Eligibility and the quoted odds are
+	# both resolved server-side by the same functions the executor and the
+	# resolver use, so a chip that appears is a chip that sails.
+	var naval = _map_node.naval_overlay if (_map_node != null and "naval_overlay" in _map_node) else {}
+	if naval is Dictionary:
+		var landings = naval.get("expedition_landings", {})
+		if landings is Dictionary and landings.has(_region):
+			for corps in landings[_region]:
+				if not (corps is Dictionary):
+					continue
+				var who = str(corps.get("marshal", ""))
+				var odds = int(corps.get("odds", 0))
+				action_rows.append("  " + Utils.bb_button_chip(
+					"do:land " + who + " in " + _region,
+					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
+					+ "  [color=#" + Utils.COLOR_GREY + "]"
+					+ Utils.format_number(int(corps.get("strength", 0)))
+					+ " men from " + str(corps.get("from", "")) + " · "
+					+ str(odds) + " in 100 slip past[/color]")
+
 	if action_rows.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]ACTIONS[/color]\n"
 		for row in action_rows:
