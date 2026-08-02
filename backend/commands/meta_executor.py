@@ -25,8 +25,11 @@ from backend.display_names import proposal_display_name as _proposal_display_nam
 # AP each, no fee (the recurring premium is the cost).
 # recruit_marshal: Marshal Recruitment (Jealousy v3.2 final phase) — an
 # administrative act like recruit/build; the AI admin phase shares it (GR5).
+# build_fleet: DEF-5 naval (NAVAL_SPEC N2) — laying down a ship is an
+# administrative act (1 admin AP + 400g in-executor); the AI rung shares it.
 ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
-                 "grant_pension", "revoke_pension", "recruit_marshal"}
+                 "grant_pension", "revoke_pension", "recruit_marshal",
+                 "build_fleet"}
 
 
 def _filter_tactical_events_by_fog(events: list, world) -> list:
@@ -253,6 +256,13 @@ class MetaExecutor:
         rente_val = int(income_data.get("rente_cost", 0))
         # EC-U2: infrastructure maintenance is its own Net component too
         infrastructure_val = int(income_data.get("infrastructure", 0))
+        # DEF-5 naval: the Admiralty (war ship upkeep) + the blockade's
+        # trade suspension are their own Net components too
+        admiralty_val = int(income_data.get("admiralty", 0))
+        blockade_val = 0
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import blockade_trade_loss
+            blockade_val = int(blockade_trade_loss(world).get(nation, 0))
         spent_val = saved_gold_spent.get(nation, 0)
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
@@ -262,7 +272,8 @@ class MetaExecutor:
         net_val = treasury - treasury_before_turn
         other_val = net_val - (income_val - occupation_val - contributions_val
                                - war_effort_val - dotation_val
-                               - rente_val - infrastructure_val - upkeep_val)
+                               - rente_val - infrastructure_val
+                               - admiralty_val - blockade_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
         spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
         other_str = ""
@@ -274,6 +285,8 @@ class MetaExecutor:
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
+        admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
+        blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
         # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure.
         # EC-U3: the Grande Armée premium is part of that surcharge — name it
         # separately so a France paying a big army-size premium sees why.
@@ -290,7 +303,7 @@ class MetaExecutor:
             surcharge_str = f" (incl. {surcharge_val}g over-limit)"
         else:
             surcharge_str = ""
-        message += f"\n\nIncome: {income_val}g{occupation_str}{contributions_str}{war_effort_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{occupation_str}{contributions_str}{war_effort_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -308,6 +321,8 @@ class MetaExecutor:
             "war_effort": int(war_effort_val),
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),
+            "admiralty": int(admiralty_val),
+            "blockade": int(blockade_val),
             "upkeep": int(upkeep_val),
             "other": int(other_val),
             "spent": int(spent_val),
@@ -534,6 +549,26 @@ ECONOMY (Admin AP - the new imperial economy):
     secure and stabilize them to cut the bill. Homeland is free.
   - Capturing a province holding an enemy marshal's estate offers
     CONFISCATE (gold windfall + his lasting grudge) or RESPECT.
+
+THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
+  build ships - "build ships" / "lay down a ship" (1 Admin AP +
+               400g). 2 keels/turn at most - 1 under blockade.
+               New crews come aboard GREEN; only sea-time drills
+               a navy. Ships are laid down in a yard we control.
+  blockade   - "blockade the enemy" (1 AP) - the fleet pins EVERY
+               at-war enemy's ports at once: their trade halves,
+               their crews rot at anchor while ours drill.
+  guard      - "guard home waters" (1 AP) - cover every crossing
+               that touches our own coast.
+  land       - "land Soult in Munster" (2 AP) - a small expedition
+               (15,000 men or fewer) slips past the patrols at
+               QUOTED odds; Ireland is reachable, an army is not.
+  diversion  - "order the diversion" (1 AP, once per war) - the
+               fleet draws the enemy off station: succeed and the
+               Strait lies open two turns; fail and be brought to
+               battle coming home.
+  - An army cannot walk a sea crossing a hostile fleet commands -
+    the map draws a shut strait CRIMSON, an open window GOLD.
 
 DIPLOMACY (via Talleyrand - or press F1 for the wizard):
   assess     - "Talleyrand, assess our situation" (the war room -

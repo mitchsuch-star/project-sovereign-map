@@ -219,6 +219,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "recent_battles": recent_battles,
             "war_exhaustion": war_exhaustion,
             "army_strength": army_strength,
+            # DEF-5 naval §9: one naval line per belligerent with a fleet.
+            # PUBLIC data (the recorded fog ruling — period newspapers
+            # printed orders of battle); empty string when fleet-less.
+            "naval_line": _naval_line(world, opponent),
             "status": "war",
             "in_coalition": in_coalition,
             "is_coalition_leader": is_coalition_leader,
@@ -372,6 +376,22 @@ def build_active_wars(world) -> Dict[str, Any]:
         # France rearms" was unreadable on the HUD.
         "foreign_wars": _build_foreign_wars(world),
     }
+
+
+def _naval_line(world, nation: str) -> str:
+    """DEF-5 naval §9: the belligerent's fleet in one line — ships, readiness,
+    posture, blockade state. Empty for fleet-less nations / worlds."""
+    from backend.game_logic.naval import get_fleet, is_blockaded
+    rec = get_fleet(world, nation)
+    if not rec or int(rec.get("ships", 0) or 0) <= 0:
+        return ""
+    posture = str(rec.get("posture", "guard"))
+    line = (f"{int(rec['ships'])} sail of the line — readiness "
+            f"{int(rec.get('readiness', 0))}, "
+            f"{'on blockade' if posture == 'blockade' else 'guarding home waters'}")
+    if is_blockaded(world, nation):
+        line += " (UNDER BLOCKADE — pinned in port)"
+    return line
 
 
 def _build_foreign_wars(world) -> List[Dict[str, Any]]:

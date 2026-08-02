@@ -257,6 +257,22 @@ CAMPAIGN_LOG_TYPES = {
     # great power reverses into a partner (beat 5, the volte-face).
     "design_promoted",
     "volte_face",
+    # DEF-5 naval (NAVAL_SPEC §8 — the appended types, 142→156 flipped
+    # consciously at NV-0..NV-3): the Wooden Wall's events.
+    "fleet_laid_down",          # a keel goes down (NV-0)
+    "fleet_posture",            # blockade/guard order (NV-0)
+    "blockade_begins",          # a nation comes under blockade (NV-1)
+    "blockade_broken",          # the blockade lifts (NV-1)
+    "cs_tier_shift",            # Continental System closure tier change (NV-1)
+    "strait_open",              # a crossing verdict flips open (NV-3)
+    "strait_shut",              # a crossing verdict flips shut (NV-3)
+    "boulogne_camp",            # the descent camp is staged (NV-3)
+    "trafalgar",                # a DECISIVE fleet action (NV-2)
+    "fleet_action",             # an indecisive fleet action (NV-2)
+    "expedition_landed",        # the H4 gamble lands (NV-2)
+    "expedition_intercepted",   # caught at sea, corps bled (NV-2)
+    "expedition_turned_back",   # the patrols close the passage (NV-2)
+    "naval_turnback",           # an AI army halted at a covered strait (NV-2)
 }
 
 # ============================================================================
@@ -346,6 +362,21 @@ CATEGORY_MAP = {
     "vassal_transferred": "diplomacy",   # VS-5
     "vassal_defected": "diplomacy",      # VS-6
     "coalition_member_left": "diplomacy",
+    # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
+    "fleet_laid_down": "economy",
+    "fleet_posture": "command",
+    "blockade_begins": "economy",
+    "blockade_broken": "economy",
+    "cs_tier_shift": "economy",
+    "strait_open": "combat",
+    "strait_shut": "combat",
+    "boulogne_camp": "combat",
+    "trafalgar": "combat",
+    "fleet_action": "combat",
+    "expedition_landed": "combat",
+    "expedition_intercepted": "combat",
+    "expedition_turned_back": "combat",
+    "naval_turnback": "combat",
     # R8 Session 6: 16 previously-silent event types
     "ai_proposal_accepted": "diplomacy",
     "agenda_shift": "diplomacy",
@@ -1874,6 +1905,92 @@ def format_event_oneliner(event: dict) -> str:
         partner = display_nation(event.get("partner", "Unknown"))
         return (f"THE VOLTE-FACE: {nation}, beaten and then courted, "
                 f"takes {partner}'s hand")
+
+    # ── DEF-5 naval (NV-0..NV-3) ──────────────────────────────────────
+    if event_type == "fleet_laid_down":
+        nation = display_nation(event.get("nation", "Unknown"))
+        return (f"{nation} lays down a ship of the line "
+                f"({int(event.get('ships', 0))} sail, readiness "
+                f"{int(event.get('readiness', 0))})")
+
+    if event_type == "fleet_posture":
+        nation = display_nation(event.get("nation", "Unknown"))
+        posture = event.get("posture", "guard")
+        return (f"{nation}'s fleet stands out on blockade" if posture == "blockade"
+                else f"{nation}'s fleet returns to guard home waters")
+
+    if event_type == "blockade_begins":
+        nation = display_nation(event.get("nation", "Unknown"))
+        blockader = display_nation(event.get("blockader", "Unknown"))
+        return f"BLOCKADE: {blockader} closes {nation}'s ports — trade halved, crews rot at anchor"
+
+    if event_type == "blockade_broken":
+        nation = display_nation(event.get("nation", "Unknown"))
+        return f"The blockade of {nation} is broken — her ports breathe again"
+
+    if event_type == "cs_tier_shift":
+        target = display_nation(event.get("target", "Unknown"))
+        pct = int(event.get("closure_pct", 0))
+        tier = int(event.get("tier", 0))
+        if tier > 0:
+            return (f"THE CONTINENTAL SYSTEM: {pct}% of the Continent's ports "
+                    f"closed — {target}'s war-weariness rises +{tier}/turn")
+        return (f"The Continental System loosens — {pct}% of the Continent's "
+                f"ports closed, {target} breathes")
+
+    if event_type == "strait_open":
+        a, b = event.get("link_a"), event.get("link_b")
+        if a and b:
+            return f"THE STRAIT LIES OPEN: the {a}–{b} crossing can be forced"
+        nation = display_nation(event.get("nation", "Unknown"))
+        against = display_nation(event.get("against", "Unknown"))
+        return (f"THE STRAIT LIES OPEN: {nation}'s diversion draws the "
+                f"{against} fleet off station")
+
+    if event_type == "strait_shut":
+        a = event.get("link_a", "?")
+        b = event.get("link_b", "?")
+        coverer = display_nation(event.get("coverer", "")) if event.get("coverer") else ""
+        tail = f" — {coverer} commands the water" if coverer else ""
+        return f"The {a}–{b} crossing is shut{tail}"
+
+    if event_type == "boulogne_camp":
+        nation = display_nation(event.get("nation", "Unknown"))
+        against = display_nation(event.get("against", "Unknown"))
+        return (f"THE CAMP: {nation} masses {event.get('strength', 0):,} men "
+                f"on the invasion coast — {against} watches the water")
+
+    if event_type in ("trafalgar", "fleet_action"):
+        winner = display_nation(event.get("winner", "Unknown"))
+        loser = display_nation(event.get("loser", "Unknown"))
+        if event.get("decisive"):
+            return (f"TRAFALGAR: {winner}'s line shatters {loser}'s fleet — "
+                    f"a decisive action at sea")
+        return f"Action at sea: {winner}'s squadrons get the better of {loser}"
+
+    if event_type == "expedition_landed":
+        marshal = event.get("marshal", "The expedition")
+        target = event.get("target", "?")
+        return (f"THE LANDING: {marshal} puts {int(event.get('troops', 0)):,} "
+                f"men ashore at {target}")
+
+    if event_type == "expedition_intercepted":
+        marshal = event.get("marshal", "The expedition")
+        coverer = display_nation(event.get("coverer", "the enemy"))
+        return (f"INTERCEPTED: {coverer}'s squadrons catch {marshal}'s "
+                f"transports at sea — {int(event.get('troops_lost', 0)):,} men lost")
+
+    if event_type == "expedition_turned_back":
+        marshal = event.get("marshal", "The expedition")
+        target = event.get("target", "?")
+        return f"{marshal}'s expedition to {target} is turned back at sea"
+
+    if event_type == "naval_turnback":
+        marshal = event.get("marshal", "An army")
+        nation = display_nation(event.get("nation", ""))
+        a, b = event.get("link_a", "?"), event.get("link_b", "?")
+        prefix = f"{nation}'s {marshal}" if nation else marshal
+        return f"{prefix} halts at the {a}–{b} crossing — hostile sail command the water"
 
     if event_type == "allegiance_auction_opened":
         nation = display_nation(event.get("nation", "Unknown"))

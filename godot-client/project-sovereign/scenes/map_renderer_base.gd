@@ -1193,13 +1193,71 @@ func _build_connection_nodes():
 			if key_text in drawn_connections:
 				continue
 
-			segments.append({
+			var segment := {
 				"start": _world_to_layer_position(start_pos),
 				"end": _world_to_layer_position(end_pos),
-			})
+				"a": region_name,
+				"b": adjacent,
+			}
+			# DEF-5 naval §9: verdict tint — the drawn dashed route answers
+			# "can this army cross?" where the move is being considered.
+			var verdict := _naval_verdict_for_link(region_name, adjacent)
+			if verdict == "shut":
+				segment["color"] = Color(0.85, 0.25, 0.25, 0.9)
+				segment["width"] = 3.0
+			elif verdict == "window":
+				segment["color"] = Color(0.95, 0.78, 0.2, 0.95)
+				segment["width"] = 3.0
+			segments.append(segment)
 			drawn_connections[key_text] = true
 
 	connection_layer.set_connections(segments, colors.get("connection", Color(0.6, 0.6, 0.6)), 2.0)
+	_refresh_port_glyphs()
+
+
+# DEF-5 naval (NAVAL_SPEC §9 v1.0.4): the map's two render arms ride the
+# game-state summary's `naval_overlay` — sea-link verdicts (player
+# perspective) + blockaded dockyard provinces. Absent/empty = dormant.
+var naval_overlay: Dictionary = {}
+
+
+func update_naval_overlay(overlay) -> void:
+	if overlay is Dictionary:
+		naval_overlay = overlay
+	else:
+		naval_overlay = {}
+	if connection_layer != null:
+		_build_connection_nodes()
+
+
+func _naval_verdict_for_link(a: String, b: String) -> String:
+	var verdicts = naval_overlay.get("sea_link_verdicts", [])
+	if not (verdicts is Array):
+		return ""
+	for entry in verdicts:
+		if not (entry is Dictionary):
+			continue
+		var ea := str(entry.get("link_a", ""))
+		var eb := str(entry.get("link_b", ""))
+		if (ea == a and eb == b) or (ea == b and eb == a):
+			return str(entry.get("verdict", ""))
+	return ""
+
+
+func _refresh_port_glyphs() -> void:
+	if connection_layer == null:
+		return
+	var glyphs: Array = []
+	var ports = naval_overlay.get("blockaded_ports", [])
+	if ports is Array and ports.size() > 0:
+		var positions = _get_active_region_positions()
+		for port_name in ports:
+			var pos = positions.get(str(port_name), null)
+			if pos != null:
+				# Offset the anchor glyph off the piece/label anchor so it
+				# reads as a port marker, not a unit.
+				glyphs.append(_world_to_layer_position(pos) + Vector2(14, -14))
+	connection_layer.set_port_glyphs(glyphs)
 
 
 func _build_region_nodes():

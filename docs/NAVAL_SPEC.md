@@ -666,6 +666,150 @@ actually names (`strait_open`/`strait_shut`, `cs_tier_shift` added).
 
 ---
 
+## §14. THE BUILD — landing record (August 2, 2026, AUTHORITATIVE where it
+## amends the body; NV-0..NV-3 landed in ONE session under the user's
+## "start coding the navy, follow the spec, fill gaps as found" directive,
+## which stands as the §12 gate approval at recommended defaults: Q1(a)
+## one-record model · Q2(a) all three arcs · Q3(a) NV-D1 deferred ·
+## Q4(a) public counts · Q5(a) EA promotion · Q6 numbers blessed ·
+## Q7 both texture options OUT)
+
+**What landed** — the whole §11 slice ladder except NV-V's live-playthrough
+half (owned below):
+
+- **NV-0 The Admiralty:** `backend/game_logic/naval.py` (the ONE domain
+  module: store/pooling/coverage/blockade/closure/crossing/expedition/
+  diversion/fleet-action/tick/AI, every §7 constant) +
+  `backend/commands/naval_executor.py` (the four verbs, vassal_executor
+  idiom, `_acting_nation` GR5) + the authored `navies` block in
+  `europe_1805.json` (15 rows, 26 continental ports) + validator
+  `_validate_navies` + `world.fleets` serialization (beat baselines under
+  the dunder `__naval__` meta key — the jealousy `__levels__` idiom) + the
+  full 12-step new-action checklist ×4 incl. 6 corpus rows +
+  `MOCK_REACHABLE_ACTIONS` + help's ADMIRALTY section. `build_fleet` is
+  ADMIN (1 AP + 400g in-executor); posture/diversion 1 CP, expedition 2 CP
+  (blessed defaults). `test_naval_substrate.py` (50).
+- **NV-1 The Blockade War:** untargeted blockade predicate; trade ×0.5 as
+  the signed **"Blockade"** Net component on the EC-W1 gross-plus-suspension
+  pattern (the chokepoint stays GROSS — every existing trade pin survives;
+  the loss applies at `process_trade_income`, the single mutating caller —
+  an equivalent-placement note vs the spec's "at the chokepoint" phrasing);
+  the **"Admiralty"** upkeep component; `trade_dominance` absorbing BOTH
+  naval_income literals (income site closure-scaled ×(1−closure) floor
+  0.4, suspended under blockade; power-score site STATIC — closure never
+  feeds coalition math, recorded); island WE +2; CS closure (boot fact
+  10/26 = 38% pinned) + N11 tiers + `cs_tier_shift`;
+  blockade_begins/broken beats. Boot delta MEASURED = the spec's own
+  −175 − 90 = **−265/turn, France net 2,107 → 1,842**; the E1 absorption
+  metric stays in-band at 0.555 (no E1 re-tune needed — the band held).
+  `test_naval_blockade_cs.py` (28).
+- **NV-2 Crossings & Free Ireland:** `crossing_check` at EVERY movement
+  seam — player move (sited BEFORE the enemy-presence check so "use
+  ATTACK" is never a false suggestion, and before the fogged
+  walk-in-blind arm: fog never smuggles an army past the RN), cavalry
+  2-hop legs, the ATTACK arm (amphibious assaults refused), reinforcement
+  eligibility rule 2b, glorious-charge advance, general-attack step,
+  reckless-cavalry auto-move, `_can_ai_move_to(origin=...)` threaded at
+  all 18 AI candidate sites + the retreat helpers, forced-retreat
+  demotion with the **Corunna clause** (a cornered army takes to the
+  boats rather than break in place), PF-8 `blocked_naval` stall arms
+  (MOVE_TO + PURSUE), the `naval_turnback` campaign-log line at the AI
+  chokepoint. The expedition: quote-then-confirm on the EXISTING
+  clarification channel (registered by main.py's generic
+  awaiting_clarification arm — no new dialogue type), whole-corps ≤15k
+  (a larger corps is told to `garrison` the excess first — the split
+  ships as its own existing verb, recorded), embark from an owned yard
+  at home OR any coast abroad (the §4.3 beachhead-return promise), an
+  unopposed sailing is administrative (odds 100), landings fall through
+  `_attempt_region_capture` (capture-choice, estates, EC-W1 — the land
+  game inherits everything). Ireland: authored formable row + `erin_free`
+  deck + "The Irish Question" + companion rows (desire profile,
+  Talleyrand, power tier minor, Utils color measured 13.2/7.88 over the
+  perceptual floors, heraldry SVG imported); formables count pin 5→6.
+  `test_naval_channel_gate.py` (28) + `test_naval_free_ireland.py` (13)
+  honoring the DEF-5 rider verbatim.
+- **NV-3 The Descent:** camp tick on the authored provinces (40k, staged
+  at 2, `boulogne_camp` once) + Britain's derived guard flip (the
+  blockade LAPSES — the two-front tension live) + `naval_diversion`
+  (once-per-war, seeded 45%, reset at full peace; failure = §4.4 at bad
+  readiness = Trafalgar as it happened) + window decrement +
+  strait_open/shut verdict-flip beats + A1/A4 pinned + the London landing
+  end-to-end through the opened gate. `test_naval_descent.py` (21).
+
+**Spec gaps found and closed while building (the user's standing "make
+sure nothing is gapped" instruction):**
+
+1. **Geography (×2):** the map has no province named "Holland" — the
+   Dutch dockyard is authored at **Amsterdam** (the Texel roadstead); the
+   map's Wessex is drawn INLAND — Britain's third yard is authored at
+   **East Anglia** (the Nore/Medway) instead.
+2. **A4's worked arithmetic omitted Russia** (§5.3.4/§13.5 quoted Britain
+   alone at 100/50): the spec's OWN §3.1 pooling adds Russia's Baltic
+   squadron to Britain's coverage (Britain|Russia allied, both at war
+   with France, same guard mode) → coverage ≈110, windowed ≈55. The
+   anchor's falsifiable SHAPE holds exactly — full Combined Fleet +
+   window = 1.07 ≥ 0.9 OPENS, no-Spain subset 0.74 SHUT, no-window 0.53
+   hopeless — and the 1805 conclusion (it needed Spain; Trafalgar ended
+   it) is unchanged. Measured values pinned in `test_naval_descent.py`.
+3. **Blockade needs naval presence:** a court with NO navies row
+   (landlocked Bavaria) cannot be blockaded — a ports-only row CAN
+   (its sea trade flows through the authored port).
+4. **A ships-0 court that conquers a yard may found a navy** (Austria
+   taking Naples' yard lays green keels); a court with NO navies row
+   has no establishment to found (both pinned).
+5. **Expedition target eligibility reads `is_coastal`** — the ONE
+   scoped consumer (§3.4's ban covers coverage/closure/building, all
+   still authored-only); over-true is merely permissive for landings
+   and DEF-8 stays untriggered.
+6. **N8's expedition curve fixed at NV-2** (the spec's mandate):
+   `95 − 2.0/1000 men − 13 × min(weight × ratio, 4.5)`, weight 2.2
+   covered-link / 0.3 open-water, window +25pp & coverage halved.
+   Measured at boot: Ireland 12k = 64 (band 55–65), Channel 15k = 12
+   (≤15). A3 holds.
+7. **`guard home waters` vs the hold family:** the phrase must claim its
+   words BEFORE the bare "guard" keyword (corpus row pins it).
+8. **The §9 "naval line" fog note operationalized:** `war_status`
+   belligerent rows carry `naval_line` (public data per the recorded
+   ruling).
+
+**Conscious pins flipped (each in its file with a dated note):**
+campaign-log types 142→156 (14 naval types incl. `naval_turnback`, ×5
+pins); the economy identity mirrors gain the two components (×5 files);
+the London-rush DEF-6 test sinks the RN to reach the garrison layer it
+owns (the naval refusal is A5's pin); the formables shape-parity test
+exempts `fleets` (a carved client is born without a navy — §3.4a, not
+drift); `BASELINE_SERIES` re-recorded ONCE, divergence index 5 = the very
+turn the old run walked the Channel (attribution self-evident);
+`test_nonplayer_slots_live_and_bounded`'s ambient liveness half became a
+deterministic producer probe (the ambient zero is HONEST — the gate cut
+the cross-Channel conquests that fed it; AI-3r discipline). M1–M7:
+byte-identical WITHOUT re-record (the harness worlds fight no naval war).
+
+**Recorded decisions:** naval beats are NOT added to
+`NARRATION_EXEMPT_EVENT_TYPES` — they are queued directly via
+`queue_dispatch_event`, structurally outside the intent producer's cap,
+and extending that tuple would churn its sweep-duplicate + pin for
+documentation only. The existing CS −75g/member pinch is KEPT (the
+members' sacrifice) — closure/tiers/trade_dominance are ADDITIVE on fleet
+worlds. Marshal objections/defiance do NOT fire on naval verbs in v1
+(the odds confirm is the expedition's friction; display maps carry the
+rows). The strait verdict beats fire from the per-turn tick + the
+diversion's own emitters; mid-turn posture flips announce next tick.
+
+**NV-V status:** the deterministic half RAN — anchors A1 (28-turn/18,000g
+parity arithmetic), A3 (64/12 measured), A4 (measured shape), A5 (the
+headline, both directions) all pinned green; A2's arithmetic arm pinned
+(WE caps ≤12 turns under 80% closure + blockade; the full sue-path
+measure belongs to the live playthrough). Live HTTP verify PASSED on a
+fresh backend: the Admiralty block (45 sail / guard / CS 38% / the
+Blockade board naming France −175), `build ships` laying a keel at 400g
+with the green-crew fold, the expedition's honest yard refusal.
+**OPEN (the user's next play session):** the in-client visual pass —
+map verdict tints/anchor glyphs, THE ADMIRALTY ledger block, the dockyard
+chip, the war-room naval line — plus the played-world A2 strangulation
+arc and the naval pillar score. DEF-5 and DEF-6's demotion arm CLOSE on
+that pass; the MAP-plan rows are annotated now.
+
 *Companion reading: `MAP_IMPLEMENTATION_PLAN.md` DEF-5/6/7/8 (the map contracts this spec
 consumes), `NATION_AGENDAS_SPEC.md` §11.4/§20/§21 (the creation machinery Ireland rides),
 `ECONOMY_REVISIT_SPEC.md` + EC-W (the ledger recipe every naval component threads).*

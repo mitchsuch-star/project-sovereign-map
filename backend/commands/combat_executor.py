@@ -604,6 +604,13 @@ class CombatExecutor:
         # Rule 2: Adjacent region (not same region, not distant)
         if marshal.location not in region.adjacent_regions:
             return False
+        # Rule 2b (DEF-5 naval §4.1): a reinforcing corps cannot cross a
+        # sea link a hostile fleet covers — the RN interdicts the muster.
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import crossing_allowed
+            if not crossing_allowed(world, marshal.nation,
+                                    marshal.location, region.name):
+                return False
         # Rule 3: strength > 0
         if marshal.strength <= 0:
             return False
@@ -3224,6 +3231,17 @@ class CombatExecutor:
                                     "success": False,
                                     "message": f"{marshal.name} cannot enter {best_next} — diplomatic restrictions."
                                 }
+                        # DEF-5 naval §4.1: the approach may not walk a covered strait
+                        if getattr(world, "fleets", None):
+                            from backend.game_logic.naval import crossing_check
+                            _cross = crossing_check(world, marshal.nation,
+                                                    marshal.location, best_next)
+                            if not _cross["allowed"]:
+                                return {
+                                    "success": False,
+                                    "message": _cross["message"],
+                                    "blocked_naval": _cross["coverer"],
+                                }
 
                         old_location = marshal.location
                         marshal.move_to(best_next)
@@ -3478,6 +3496,31 @@ class CombatExecutor:
         if not enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
             enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
+
+        # ════════════════════════════════════════════════════════════
+        # THE CROSSING GATE — attack arm (DEF-5 naval §4.1). An assault
+        # whose battle stands ACROSS a covered sea link is an amphibious
+        # attack the hostile fleet interdicts: "a blockade that stops
+        # MOVE but not ATTACK is not a blockade." Same predicate as the
+        # movement seam, both sides (GR5); one truthiness read dormant.
+        # ════════════════════════════════════════════════════════════
+        if getattr(world, "fleets", None):
+            _battle_region_name = None
+            if enemy_marshal and enemy_marshal.location != marshal.location:
+                _battle_region_name = enemy_marshal.location
+            elif not enemy_marshal and resolved_target != marshal.location:
+                _battle_region_name = resolved_target
+            if _battle_region_name:
+                from backend.game_logic.naval import crossing_check
+                _cross = crossing_check(world, marshal.nation,
+                                        marshal.location, _battle_region_name)
+                if not _cross["allowed"]:
+                    return {
+                        "success": False,
+                        "message": _cross["message"],
+                        "blocked_naval": _cross["coverer"],
+                        "naval_ratio": _cross["ratio"],
+                    }
 
         # ════════════════════════════════════════════════════════════
         # AUTO WAR DECLARATION (Phase 8 Session 2)
@@ -5779,7 +5822,15 @@ class CombatExecutor:
         attacker_won = combat_result.get("attacker_won", False)
         movement_msg = ""
         if attacker_won and marshal.strength > 0:
-            if marshal.location != charge_battle_region:
+            # DEF-5 naval §4.1: cavalry does not swim — a charge's advance
+            # never crosses a covered strait (the battle itself was fought
+            # at range; the squadron holds the water).
+            _charge_cross_ok = True
+            if getattr(world, "fleets", None) and marshal.location != charge_battle_region:
+                from backend.game_logic.naval import crossing_allowed
+                _charge_cross_ok = crossing_allowed(
+                    world, marshal.nation, marshal.location, charge_battle_region)
+            if marshal.location != charge_battle_region and _charge_cross_ok:
                 marshal.move_to(charge_battle_region)
                 charge_attrition = self._executor._calculate_movement_attrition(marshal, charge_battle_region, world)
                 combat_result["attacker_moved"] = True
@@ -6327,6 +6378,20 @@ class CombatExecutor:
             if path and len(path) > 1:
                 # Move to next region on path
                 next_region = path[1]  # path[0] is current location
+
+                # DEF-5 naval §4.1: the general-attack approach may not walk
+                # a covered strait (the path planner is edge-blind; refuse
+                # the hop here with the honest reason).
+                if getattr(world, "fleets", None):
+                    from backend.game_logic.naval import crossing_check
+                    _cross = crossing_check(world, closest_marshal.nation,
+                                            closest_marshal.location, next_region)
+                    if not _cross["allowed"]:
+                        return {
+                            "success": False,
+                            "message": _cross["message"],
+                            "blocked_naval": _cross["coverer"],
+                        }
 
                 # Execute the move
                 old_location = closest_marshal.location

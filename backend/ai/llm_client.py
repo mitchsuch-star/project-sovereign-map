@@ -1142,6 +1142,11 @@ class LLMClient:
             action = "attack"
         elif "wait" in command_lower or "stand by" in command_lower or re.search(r'\bpass\b', command_lower):
             action = "wait"  # Free action - marshal passes turn
+        # DEF-5 naval ordering guard: "guard home waters" is the fleet
+        # posture phrase, not a land HOLD — it must claim the words before
+        # the hold family's bare "guard" keyword eats them.
+        elif "home waters" in command_lower:
+            action = "set_fleet_posture"
         elif any(kw in command_lower for kw in [
             "hold at all costs", "hold your ground", "hold position",
             "hold the line", "stand fast", "stand firm",
@@ -1206,6 +1211,33 @@ class LLMClient:
         # ES-7 second pass review fix: "raise Ney's pension" is the top-up
         # verb, not a levy — the rente family passes through to the pension
         # branches below.
+        # DEF-5 naval (NAVAL_SPEC §9 typed grammar). ORDERING RULES: the
+        # build_fleet branch must run BEFORE troop-recruit ("raise a fleet"
+        # contains "raise") and BEFORE the generic build branch ("build
+        # ships" contains "build"); the expedition's \bland\b never matches
+        # "landing"/"Holland" (word boundaries) and excludes "land to"
+        # (the VS-3 grant phrasing).
+        elif (re.search(r'\blay down\b', command_lower)
+              or re.search(r'\b(build|raise|construct|launch|expand)\b.{0,20}\b(ship|ships|fleet|navy|sail)\b', command_lower)
+              or "build the fleet" in command_lower):
+            action = "build_fleet"
+        elif (re.search(r'\bblockade\b', command_lower)
+              or "home waters" in command_lower
+              or (re.search(r'\bfleet\b', command_lower)
+                  and re.search(r'\b(guard|recall|port|station)\b', command_lower))):
+            action = "set_fleet_posture"
+        elif (re.search(r'\bdiversion\b', command_lower)
+              or "draw off the fleet" in command_lower
+              or "draw them off" in command_lower):
+            action = "naval_diversion"
+        elif ("expedition" in command_lower
+              or re.search(r'\bembark\b', command_lower)
+              or re.search(r"\bland\b\s+(?!to\b)(?:[\w']+\s+){0,2}(?:in|at|on)\b",
+                           command_lower)):
+            # "land Soult in Munster" / "land the corps at Ulster" — the
+            # two-word window keeps "hold the land between the rivers"
+            # (and every "land to" VS-3 grant phrasing) on their own paths.
+            action = "naval_expedition"
         # Marshal Recruitment (Jealousy v3.2): "commission Grouchy" /
         # "recruit (a new) marshal Grouchy" / "appoint Grouchy to the
         # marshalate". ORDERING RULE: must run BEFORE the troop-recruit

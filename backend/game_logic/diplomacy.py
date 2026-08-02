@@ -3120,7 +3120,16 @@ def calculate_national_power(nation: str, world, *,
                 if region:
                     power += region.income_value // 2
 
-    if nation == "Britain" and len(nation_regions) > 0:
+    # DEF-5 naval: on a fleets world the authored trade_dominance absorbs
+    # the Britain coastal-count literal here too (§13.4 — both naval_income
+    # sites retire together). STATIC (not closure-scaled): power score is
+    # potential, and closure-coupling it would feed the CS into coalition/
+    # hegemony math the spec never asked for (recorded decision, NV-1).
+    _naval_power_rec = (getattr(world, "fleets", None) or {}).get(nation)
+    if isinstance(_naval_power_rec, dict) and _naval_power_rec.get("trade_dominance"):
+        power += min(BRITISH_NAVAL_INCOME_POWER,
+                     int(_naval_power_rec["trade_dominance"]))
+    elif nation == "Britain" and len(nation_regions) > 0:
         coastal_count = sum(
             1 for rname in nation_regions
             if (region := world.regions.get(rname)) and _region_is_coastal_for_power(rname, region)
@@ -9198,16 +9207,31 @@ def calculate_trade_income(world) -> Dict[str, int]:
 def process_trade_income(world) -> Dict[str, int]:
     """Calculate and apply trade income from diplomatic states.
 
-    Returns dict of {nation: trade_income} for display.
+    DEF-5 naval (NAVAL_SPEC §4.2): a blockaded nation's trade is halved —
+    applied HERE, the single mutating caller, while `calculate_trade_income`
+    keeps returning the GROSS figure (the EC-W1 Contributions pattern:
+    gross shown, the suspension its own signed "Blockade" Net component via
+    naval.blockade_trade_loss). Fleet-less worlds: loss map empty,
+    byte-identical.
+
+    Returns dict of {nation: trade_income APPLIED} for display.
     """
     trade_by_nation = calculate_trade_income(world)
 
-    # Apply to nation_gold
-    for nation, income in trade_by_nation.items():
-        if nation in world.nation_gold:
-            world.nation_gold[nation] += int(income)
+    blockade_losses: Dict[str, int] = {}
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import blockade_trade_loss
+        blockade_losses = blockade_trade_loss(world)
 
-    return trade_by_nation
+    # Apply to nation_gold (gross − blockade loss)
+    applied: Dict[str, int] = {}
+    for nation, income in trade_by_nation.items():
+        net_income = int(income) - int(blockade_losses.get(nation, 0))
+        applied[nation] = net_income
+        if nation in world.nation_gold:
+            world.nation_gold[nation] += int(net_income)
+
+    return applied
 
 
 def _process_armistice_expiration(world) -> List[Dict]:

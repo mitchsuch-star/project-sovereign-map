@@ -50,6 +50,10 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/enemy_phase_dialog.gd",
 	"res://scripts/pause_menu.gd",
 	"res://scripts/ui_settings.gd",
+	# DEF-5 naval (NV surfaces): the Admiralty ledger block + the dockyard
+	# chip touched these; the XR-1 rule adds every touched script.
+	"res://scripts/strategic_ledger.gd",
+	"res://scripts/region_panel.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -67,6 +71,8 @@ const MAP_CRITICAL_SCRIPTS = [
 	# falling figure — both live under scenes/.
 	"res://scenes/war_table_piece.gd",
 	"res://scenes/diorama_figure.gd",
+	# DEF-5 naval: verdict tints + port glyphs on the connection layer.
+	"res://scenes/map_connection_layer.gd",
 ]
 
 # Map Slice 7: headless scene-instantiation checks. instantiate() attaches

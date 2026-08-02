@@ -180,6 +180,8 @@ var top_bar = null
 # Map reference
 @onready var map_area = $MapArea
 var _pending_initial_map_data: Dictionary = {}
+# DEF-5 naval: the map overlay that rides the same boot stash (NAVAL_SPEC section 9)
+var _pending_initial_naval_overlay: Dictionary = {}
 var _pending_initial_map_topology: Dictionary = {}
 var _initial_map_bootstrapped: bool = false
 var _initial_topology_failed: bool = false
@@ -630,9 +632,10 @@ func _on_connection_test(response):
 			if DEBUG_VERBOSE:
 				print("MAIN: Connection test - map_data found, awaiting topology bootstrap")
 			if _initial_map_bootstrapped:
-				map_area.update_all_regions(response.game_state.map_data)
+				_update_map_from_game_state(response.game_state)
 			else:
 				_pending_initial_map_data = response.game_state.map_data.duplicate(true)
+				_pending_initial_naval_overlay = response.game_state.get("naval_overlay", {}).duplicate(true)
 				_try_finalize_initial_map_bootstrap()
 		elif DEBUG_VERBOSE:
 			print("⚠️  MAIN: Connection test - NO map_data in response!")
@@ -675,6 +678,14 @@ func _on_map_topology_received(response):
 	_try_finalize_initial_map_bootstrap()
 
 
+func _update_map_from_game_state(game_state: Dictionary) -> void:
+	# One seam for every map refresh: regions + the DEF-5 naval overlay
+	# (sea-link verdict tint + port blockade glyphs, NAVAL_SPEC section 9).
+	map_area.update_all_regions(game_state.map_data)
+	if map_area.has_method("update_naval_overlay"):
+		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
+
+
 func _try_finalize_initial_map_bootstrap() -> void:
 	if _initial_map_bootstrapped or map_area == null:
 		return
@@ -685,7 +696,10 @@ func _try_finalize_initial_map_bootstrap() -> void:
 		map_area.set_region_topology(_pending_initial_map_topology)
 	if not _pending_initial_map_data.is_empty():
 		map_area.update_all_regions(_pending_initial_map_data)
+		if map_area.has_method("update_naval_overlay"):
+			map_area.update_naval_overlay(_pending_initial_naval_overlay)
 	_pending_initial_map_data.clear()
+	_pending_initial_naval_overlay.clear()
 	_pending_initial_map_topology.clear()
 	map_area.visible = true
 	_initial_map_bootstrapped = true
@@ -2776,7 +2790,7 @@ func _sync_response_hud(response: Dictionary):
 		if response.has("game_state") and response.game_state.has("manpower_pools"):
 			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 	_update_diplomatic_top_bar(response)
 	if notification_bar and response.has("notifications"):
 		notification_bar.update_notifications(response.notifications)
@@ -2977,7 +2991,7 @@ func _on_objection_response(response):
 		if response.has("game_state") and response.game_state.has("manpower_pools"):
 			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 
 		# Battle report if defiant action caused combat
 		if response.has("battle_report"):
@@ -3044,7 +3058,7 @@ func _on_objection_response(response):
 			if response.has("game_state") and response.game_state.has("manpower_pools"):
 				_apply_manpower(response.game_state.manpower_pools)
 			if response.has("game_state") and response.game_state.has("map_data"):
-				map_area.update_all_regions(response.game_state.map_data)
+				_update_map_from_game_state(response.game_state)
 			_display_result(response)
 
 		# Then show redemption dialog
@@ -3075,7 +3089,7 @@ func _on_objection_response(response):
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 
 		# Display result
 		_display_result(response)
@@ -3193,7 +3207,7 @@ func _on_redemption_response(response):
 
 		# Update map
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 
 		# Display result based on choice
 		var choice = response.get("choice", "")
@@ -3335,7 +3349,7 @@ func _show_capture_choice_dialog(response):
 	if response.has("game_state") and response.game_state.has("manpower_pools"):
 		_apply_manpower(response.game_state.manpower_pools)
 	if response.has("game_state") and response.game_state.has("map_data"):
-		map_area.update_all_regions(response.game_state.map_data)
+		_update_map_from_game_state(response.game_state)
 
 	add_output("")
 	if capture_data is Dictionary and str(capture_data.get("stage", "capture")) == "estate":
@@ -3402,7 +3416,7 @@ func _on_capture_choice_response(response):
 		if response.has("game_state") and response.game_state.has("manpower_pools"):
 			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
 
@@ -3646,7 +3660,7 @@ func _on_glorious_charge_response(response):
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 
 		# Display result
 		_display_result(response)
@@ -3808,7 +3822,7 @@ func _on_interrupt_response(response):
 		if response.has("game_state") and response.game_state.has("manpower_pools"):
 			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
-			map_area.update_all_regions(response.game_state.map_data)
+			_update_map_from_game_state(response.game_state)
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
 

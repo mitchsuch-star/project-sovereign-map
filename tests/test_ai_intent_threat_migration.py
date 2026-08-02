@@ -91,10 +91,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # session was measured in isolation FIRST: byte-identical, 72/72 — this
 # re-record is attributed to the pursuit guard alone. The pin's job from
 # here stays the same: catch UNINTENDED drift.
+# Prior series (PT-F1, August 1, 2026):
+#   [85, 86, 84, 82, 80, 78, 76, 74, 71, 68, 65, 70, 75, 72, 69, 59, 56,
+#    53, 53, 50, 50, 47, 47, 44, 41, 38, 38, 35, 32, 29, 32, 35, 35, 32,
+#    32, 32, 29, 26, 23, 20, 20]
+#
+# RE-RECORDED CONSCIOUSLY ONCE at DEF-5 NAVAL NV-0..NV-3 (August 2, 2026):
+# the Wooden Wall goes live on the shipped scenario — Britain's boot
+# blockade (France/Spain/Holland readiness rot + trade halved), the
+# Admiralty upkeep, the CS closure squeeze on Britain's trade_dominance,
+# and above all the §4.1 CROSSING GATE. Divergence index 5 IS the
+# attribution: turn 5 was where the old ambient run walked an army over
+# the London–Flanders link (the "Spain besieges London" believability
+# defect this phase exists to kill — AI_V_SWEEP §10.5 rank 2); with the
+# Royal Navy commanding the Channel that history is structurally
+# impossible, and the whole tail re-derives lower (a Europe where the
+# island is safe accrues less anti-France alarm). One re-record, one
+# cause, spec-predicted (NAVAL_SPEC §7 boot deltas + §11 NV-0).
 BASELINE_SERIES = [
-    85, 86, 84, 82, 80, 78, 76, 74, 71, 68, 65, 70, 75, 72, 69, 59, 56,
-    53, 53, 50, 50, 47, 47, 44, 41, 38, 38, 35, 32, 29, 32, 35, 35, 32,
-    32, 32, 29, 26, 23, 20, 20,
+    85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 70, 67, 64, 69, 66, 53, 50,
+    55, 52, 49, 46, 51, 48, 45, 42, 42, 39, 36, 33, 33, 30, 27, 24, 24,
+    21, 18, 18, 15, 12, 12, 9,
 ]
 
 
@@ -136,19 +153,29 @@ class TestStep4SeriesPin:
         no-accrual invariant is consciously INVERTED (AI_INTENT_SPEC §17).
         What must still hold: every slot is clamped 0-100, and on the
         historical 40-turn run no non-player slot reaches the brewing
-        tier (D3's gravity — France remains the story of the age)."""
+        tier (D3's gravity — France remains the story of the age).
+
+        DEF-5 naval flip (conscious, the AI-3r honest-zero discipline):
+        the ambient run's non-player accrual came from CROSS-CHANNEL
+        conquests — the very walks the §4.1 crossing gate now refuses —
+        so the measured ambient value is an HONEST ZERO with a written
+        predicate, and the liveness half of this pin moves to a direct
+        producer probe (the machinery, not the ambient board, is what
+        must stay alive)."""
         tbt = payload["threat_by_target"]
-        accrued = {n: v for n, v in tbt.items()
-                   if n != "France" and v > 0}
         for nation, value in tbt.items():
             assert 0 <= value <= 100, f"{nation} slot out of clamp: {value}"
             if nation != "France":
                 assert value < 60, (
                     f"{nation} reached the brewing tier ({value}) on the "
                     f"historical ambient run — D3's gravity should hold")
-        # The migration is LIVE: at least one non-player deed accrued
-        # somewhere in 40 turns of four boot wars (battle wins, captures).
-        assert accrued, "steps 5-6 appear dead: no non-player slot ever accrued"
+        # Liveness (deterministic probe): the per-target producer accrues
+        # a non-player slot when handed a non-player actor.
+        probe = WorldState.from_scenario(str(SCENARIO_PATH))
+        before = int(getattr(probe, "threat_by_target", {}).get("Austria", 0))
+        add_threat(probe, 7, "test_probe", target="Austria")
+        assert probe.threat_by_target["Austria"] == before + 7, (
+            "steps 5-6 appear dead: the non-player slot did not accrue")
 
     def test_scalar_mirrors_player_slot_throughout(self, payload):
         assert payload["scalar_mirror_ok"] is True

@@ -396,6 +396,14 @@ func _render_economy():
 	var infrastructure = int(econ.get("infrastructure", 0))
 	if infrastructure > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Infrastructure: -" + str(infrastructure) + "g[/color]\n"
+	# DEF-5 naval (NV-1): the blockade's trade suspension + the Admiralty's
+	# war ship upkeep — signed Net components (same SC-33 contract).
+	var blockade = int(econ.get("blockade", 0))
+	if blockade > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Blockade: -" + str(blockade) + "g  (trade halved under enemy sail)[/color]\n"
+	var admiralty = int(econ.get("admiralty", 0))
+	if admiralty > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Admiralty: -" + str(admiralty) + "g[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).
@@ -457,7 +465,82 @@ func _render_economy():
 			var cturns = int(item.get("turns_remaining", 0))
 			bbcode += "  " + cregion + ": " + cbuilding + " (" + str(cturns) + " turns)\n"
 
+	bbcode += _render_admiralty_block()
+
 	content_area.text = bbcode
+
+
+func _render_admiralty_block() -> String:
+	# DEF-5 naval (NAVAL_SPEC §9): THE ADMIRALTY — own fleet, the Blockade
+	# board (both directions), CS closure, the Crossings verdict lines and
+	# the honest gate terms. Backend-derived, shown = applied; absent or
+	# inactive on fleet-less worlds (the arm renders nothing).
+	var adm = cached_data.get("admiralty", {})
+	if not (adm is Dictionary) or not adm.get("active", false):
+		return ""
+	var bbcode = "\n[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
+	var fleet = adm.get("own_fleet")
+	if fleet is Dictionary:
+		var posture = str(fleet.get("posture", "guard"))
+		var posture_line = "blockade — every enemy port watched" if posture == "blockade" else "guard — home waters covered"
+		bbcode += "  Fleet: " + str(int(fleet.get("ships", 0))) + " sail of the line — readiness " + str(int(fleet.get("readiness", 0)))
+		var admiral = str(fleet.get("admiral", ""))
+		if admiral != "":
+			bbcode += "  (Adm. " + admiral + ")"
+		bbcode += "\n  Posture: " + posture_line + "\n"
+		var yards = fleet.get("yards", [])
+		if yards is Array and yards.size() > 0:
+			var laid = int(fleet.get("laid_this_turn", 0))
+			var rate = int(fleet.get("build_rate", 2))
+			bbcode += "  Yards: " + ", ".join(PackedStringArray(yards)) + "  (" + str(laid) + "/" + str(rate) + " keels this turn)\n"
+		var window = int(fleet.get("window_turns", 0))
+		if window > 0:
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + str(window) + " turn(s) remain[/color]\n"
+		var camp_strength = int(fleet.get("camp_strength", 0))
+		if camp_strength > 0:
+			var camp_turns = int(fleet.get("camp_turns", 0))
+			bbcode += "  The Camp: " + _format_number(camp_strength) + " men on the invasion coast"
+			if camp_turns >= 2:
+				bbcode += "  [color=#" + Utils.COLOR_WARNING + "](STAGED — the enemy has seen it)[/color]"
+			bbcode += "\n"
+	else:
+		bbcode += "  We keep no fleet in commission.\n"
+	var cs = adm.get("continental_system")
+	if cs is Dictionary:
+		var tier = int(cs.get("tier", 0))
+		var cs_line = "  The Continental System: " + str(int(cs.get("closure_pct", 0))) + "% of the Continent's ports closed"
+		if tier > 0:
+			cs_line += " — " + Utils.humanize_nation_keys_in_text(str(cs.get("target", ""))) + "'s war-weariness rising +" + str(tier) + "/turn"
+		bbcode += cs_line + "\n"
+	var board = adm.get("blockade_board", [])
+	if board is Array and board.size() > 0:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Blockade Board[/color]\n"
+		for row in board:
+			if not (row is Dictionary):
+				continue
+			var row_nation = Utils.humanize_nation_keys_in_text(str(row.get("nation", "?")))
+			var row_blockader = Utils.humanize_nation_keys_in_text(str(row.get("blockader", "?")))
+			var row_color = Utils.COLOR_ERROR if row.get("against_us", false) else (Utils.COLOR_SUCCESS if row.get("ours", false) else Utils.COLOR_TEXT)
+			bbcode += "  [color=#" + row_color + "]" + row_nation + " — blockaded by " + row_blockader + ": " + str(row.get("effects", "")) + "[/color]\n"
+	var crossings = adm.get("crossings", [])
+	if crossings is Array and crossings.size() > 0:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Crossings[/color]\n"
+		for cx in crossings:
+			if not (cx is Dictionary):
+				continue
+			var verdict = str(cx.get("verdict", "open"))
+			var cx_color = Utils.COLOR_ERROR if verdict == "shut" else (Utils.COLOR_SUCCESS if verdict == "window" else Utils.COLOR_TEXT)
+			bbcode += "  [color=#" + cx_color + "]" + str(cx.get("line", "")) + "[/color]\n"
+	var div_terms = adm.get("diversion_terms", [])
+	if div_terms is Array and div_terms.size() > 0:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Grand Diversion[/color]  (\"order the diversion\")\n"
+		for term in div_terms:
+			if not (term is Dictionary):
+				continue
+			var met = bool(term.get("met", false))
+			var mark = "[color=#" + Utils.COLOR_SUCCESS + "]+[/color]" if met else "[color=#" + Utils.COLOR_ERROR + "]x[/color]"
+			bbcode += "  " + mark + " " + str(term.get("text", "")) + "\n"
+	return bbcode
 
 
 func _render_intel():

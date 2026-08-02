@@ -1939,7 +1939,7 @@ class EnemyAI:
                     adj_region = world.get_region(adj_name)
                     if not adj_region:
                         continue
-                    if not self._can_ai_move_to(world, nation, adj_name):
+                    if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                         continue  # DLF-12: diplomatic permission check
 
                     adj_cap = adj_region.supply_capacity
@@ -2062,7 +2062,7 @@ class EnemyAI:
             else:
                 # Not yet arrived - continue moving toward locked destination
                 # DLF-12: Check diplomatic permission — armistice may have been declared
-                if not self._can_ai_move_to(world, marshal.nation, recovery_dest):
+                if not self._can_ai_move_to(world, marshal.nation, recovery_dest, origin=marshal.location):
                     ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked — clearing lock")
                     # IGR-X1 (P1): `del` REMOVED the attribute, and
                     # `Marshal.to_dict` reads `self._recovery_destination`
@@ -2902,7 +2902,7 @@ class EnemyAI:
                 if adj_name in visited:
                     continue
                 # DLF-12: diplomatic permission (skip for capital recapture — sovereign right)
-                if not is_capital_target and not self._can_ai_move_to(world, nation, adj_name):
+                if not is_capital_target and not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue
                 # Check for enemy-occupied region
                 enemies_there = [
@@ -3000,7 +3000,7 @@ class EnemyAI:
 
         if best_dist >= 2:
             for adj_name in marshal_region.adjacent_regions:
-                if not self._can_ai_move_to(world, nation, adj_name):
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue
                 adj_dist = world.get_distance(adj_name, best_target)
                 if adj_dist < best_dist:
@@ -3293,7 +3293,7 @@ class EnemyAI:
                     }
                 else:
                     # DLF-12: diplomatic permission check
-                    if not self._can_ai_move_to(world, nation, ally.location):
+                    if not self._can_ai_move_to(world, nation, ally.location, origin=marshal.location):
                         continue
                     # Can move directly to ally
                     ai_debug(f"    -> Moving to support {ally.name} at {ally.location}")
@@ -3321,7 +3321,7 @@ class EnemyAI:
                 ]
                 if enemies_there:
                     continue
-                if not self._can_ai_move_to(world, nation, adj_name):
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue  # DLF-12
 
                 dist = world.get_distance(adj_name, ally.location)
@@ -3400,7 +3400,7 @@ class EnemyAI:
                         enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                         if enemies_there:
                             continue  # Still don't walk into enemy-occupied regions
-                        if not self._can_ai_move_to(world, nation, adj_name):
+                        if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                             continue  # DLF-12
                         dist = world.get_distance(adj_name, target_region)
                         if dist < best_dist:
@@ -3423,7 +3423,7 @@ class EnemyAI:
                         adj_name for adj_name in marshal_region.adjacent_regions
                         if adj_name not in visited
                         and not world.get_hostile_marshals_in_region_indexed(adj_name, nation)
-                        and self._can_ai_move_to(world, nation, adj_name)  # DLF-12
+                        and self._can_ai_move_to(world, nation, adj_name, origin=marshal.location)  # DLF-12
                     ]
                     if fallback_dests:
                         fallback = random.choice(fallback_dests)
@@ -3559,7 +3559,7 @@ class EnemyAI:
             enemies_there = self._get_hostile_marshals_in_region(adj_name, nation, world)
             if enemies_there:
                 continue
-            if not self._can_ai_move_to(world, nation, adj_name):
+            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                 continue  # DLF-12
 
             dist = world.get_distance(adj_name, target_ally.location)
@@ -3856,7 +3856,7 @@ class EnemyAI:
                 enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
                 if enemies_there:
                     continue
-                if not self._can_ai_move_to(world, nation, adj_name):
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue  # DLF-12
                 score = self._score_artillery_position(adj_name, marshal, nation, world)
                 if score > best_score:
@@ -3909,7 +3909,7 @@ class EnemyAI:
                 if enemies_there:
                     ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
                     continue
-                if not self._can_ai_move_to(world, nation, adj_name):
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue  # DLF-12
 
                 dist = world.get_distance(adj_name, target_region)
@@ -3962,7 +3962,7 @@ class EnemyAI:
                     enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
                     if enemies_there:
                         continue
-                    if not self._can_ai_move_to(world, nation, adj_name):
+                    if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                         continue  # DLF-12
 
                     score = 0
@@ -4032,7 +4032,7 @@ class EnemyAI:
                         enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
                         if enemies_there:
                             continue
-                        if not self._can_ai_move_to(world, nation, adj_name):
+                        if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                             continue  # DLF-12
                         dist = world.get_distance(adj_name, target_region)
                         if dist >= current_dist:
@@ -4070,7 +4070,7 @@ class EnemyAI:
                             enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
                             if enemies_there:
                                 continue
-                            if not self._can_ai_move_to(world, nation, adj_name):
+                            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                                 continue  # DLF-12
                             adj_region = world.get_region(adj_name)
                             if not adj_region:
@@ -4270,15 +4270,26 @@ class EnemyAI:
                 "action": "wait"
             }
 
-    def _can_ai_move_to(self, world, nation: str, region_name: str) -> bool:
+    def _can_ai_move_to(self, world, nation: str, region_name: str,
+                        origin: str = None) -> bool:
         """Check if nation has diplomatic permission to enter a region (DLF-12).
 
         Wraps diplomacy.can_enter_territory with region lookup.
         Returns True for own/unclaimed territory, WAR, or OPEN_MOVEMENT_STATES.
+
+        DEF-5 naval §4.1 (the AI-3c pattern): when `origin` is given and the
+        hop is a covered sea link, the candidate is filtered OUT here so the
+        AI never selects a crossing the shared movement gate would refuse —
+        no AP burned on a doomed order, no thrash. Every call site passes
+        its deciding marshal's location.
         """
         region = world.get_region(region_name)
         if not region:
             return False
+        if (origin is not None and getattr(world, "fleets", None)):
+            from backend.game_logic.naval import crossing_allowed
+            if not crossing_allowed(world, nation, origin, region_name):
+                return False
         controller = getattr(region, 'controller', None)
         if not controller or controller == nation:
             return True
@@ -4303,6 +4314,18 @@ class EnemyAI:
             adj_region = world.get_region(adj_name)
             if not adj_region:
                 continue
+
+            # DEF-5 naval §4.1: a retreat prefers land routes — a covered
+            # strait is skipped here; the executor's Corunna clause still
+            # exists for the player path, and an AI corps with only water
+            # left falls through to the desperation walk below (which the
+            # threaded _can_ai_move_to now also gates — it breaks in place
+            # rather than swimming, the honest outcome for a trapped army).
+            if getattr(world, "fleets", None):
+                from backend.game_logic.naval import crossing_allowed
+                if not crossing_allowed(world, nation,
+                                        marshal.location, adj_name):
+                    continue
 
             # Check if controlled by this nation
             if adj_region.controller == nation:
@@ -4330,7 +4353,7 @@ class EnemyAI:
             enemies_there = self._get_hostile_marshals_in_region(adj_name, nation, world)
             if enemies_there:
                 continue
-            if not self._can_ai_move_to(world, nation, adj_name):
+            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                 continue  # DLF-12
             adj_region = world.get_region(adj_name)
             controller = getattr(adj_region, "controller", None) if adj_region else None
@@ -5011,6 +5034,16 @@ class EnemyAI:
             commission = find_ai_commission(world, nation, treasury)
             if commission:
                 return commission
+
+        # Priority 1.8: LAY DOWN A SHIP (DEF-5 naval §6, the P1.75 idiom).
+        # At war + treasury > 2× cost + a live naval want (blockaded, or its
+        # own blockade outmatched) — the SAME priced verb the player types;
+        # the gate is naval.check_build_fleet, shown = applied.
+        if "build_fleet" not in skip_actions and getattr(world, "fleets", None):
+            from backend.game_logic.naval import find_ai_build_fleet
+            fleet_order = find_ai_build_fleet(world, nation, treasury)
+            if fleet_order:
+                return fleet_order
 
         # Priority 2: Build market at highest-income region (Phase 6.2 Audit Fix #8)
         if "build" not in skip_actions and treasury >= 350:
@@ -5729,7 +5762,7 @@ class EnemyAI:
             enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
             if enemies_there:
                 continue
-            if not self._can_ai_move_to(world, nation, adj_name):
+            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                 continue  # DLF-12
             d = world.get_distance(adj_name, best_dest)
             if d < best_step_dist:
@@ -5913,7 +5946,7 @@ class EnemyAI:
                     enemies_blocking = world.get_hostile_marshals_in_region_indexed(move_adj, nation)
                     if enemies_blocking:
                         continue
-                    if not self._can_ai_move_to(world, nation, move_adj):
+                    if not self._can_ai_move_to(world, nation, move_adj, origin=marshal.location):
                         continue  # DLF-12
                     dist = world.get_distance(move_adj, best_ally.location)
                     current_dist = world.get_distance(marshal.location, best_ally.location)
@@ -6021,7 +6054,7 @@ class EnemyAI:
                 enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                 if enemies_there:
                     continue
-                if not self._can_ai_move_to(world, nation, adj_name):
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue  # DLF-12
 
                 score = 10  # Base score for being near ally
@@ -6233,6 +6266,24 @@ class EnemyAI:
 
         result = self.executor.execute(command, game_state)
         result["ai_action"] = action
+
+        # DEF-5 naval §9: a notable AI turn-back at a covered strait renders
+        # as an ordinary campaign-log line, never a popup. The candidate
+        # filters make this rare — it fires only when the world changed
+        # between decision and execution (a posture flip mid-phase).
+        if (not result.get("success") and result.get("blocked_naval")):
+            world = game_state.get("world")
+            if world is not None:
+                marshal_obj = world.get_marshal(action.get("marshal") or "")
+                world.log_event({
+                    "type": "naval_turnback",
+                    "turn": int(world.current_turn),
+                    "marshal": str(action.get("marshal") or ""),
+                    "nation": str(getattr(marshal_obj, "nation", "") or ""),
+                    "link_a": str(getattr(marshal_obj, "location", "") or ""),
+                    "link_b": str(action.get("target") or ""),
+                    "coverer": str(result.get("blocked_naval") or ""),
+                })
 
         # ════════════════════════════════════════════════════════════
         # AI STRATEGIC SCORING (Phase 5): Apply bonuses to AI marshals

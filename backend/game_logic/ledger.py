@@ -45,6 +45,11 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     else:
         authority_label = "Weak"
 
+    # DEF-5 naval §9 — THE ADMIRALTY block (rendered inside the economy
+    # tab; {"active": False} on fleet-less worlds and the .gd arm skips).
+    from backend.game_logic.naval import build_admiralty_report
+    admiralty_report = build_admiralty_report(world)
+
     return {
         "forces": _build_forces(world, player),
         "territories": _build_territories(world, player),
@@ -52,6 +57,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         "intel": _build_intel(world, player),
         "manpower": _build_manpower(world, player),
         "orders": _build_orders(world, player),
+        "admiralty": admiralty_report,
         "authority": int(authority),
         "authority_label": authority_label,
         "actions_remaining": int(world.actions_remaining),
@@ -244,11 +250,21 @@ def _build_economy(world, player: str) -> dict:
     # structures — its own signed Net component, rendered as an
     # "Infrastructure" line (same SC-33 contract; NET_GOLD_COMPONENTS-guarded).
     infrastructure = int(income_data.get("infrastructure", 0))
+    # DEF-5 naval N3: the fleet's war upkeep — its own signed "Admiralty"
+    # Net component (same SC-33 contract).
+    admiralty = int(income_data.get("admiralty", 0))
 
-    # Trade income from diplomatic states (read-only calculation)
+    # Trade income from diplomatic states (read-only calculation).
+    # DEF-5 naval §4.2: trade stays GROSS here (the EC-W1 pattern) and the
+    # blockade's halving is its own signed "Blockade" Net component — the
+    # applied gold is gross − loss (process_trade_income).
     from backend.game_logic.diplomacy import calculate_trade_income
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player, 0))
+    blockade = 0
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import blockade_trade_loss
+        blockade = int(blockade_trade_loss(world).get(player, 0))
 
     # Admin bonus (unused AP → gold)
     admin_bonus = int(world._calculate_admin_bonus(player))
@@ -319,7 +335,7 @@ def _build_economy(world, player: str) -> dict:
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
         + settlement_gold - occupation - contributions - war_effort
         - dotation_skim - rente_cost
-        - infrastructure - upkeep_base - upkeep_surcharge
+        - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
     )
 
     # Construction queue: iterate player regions with active builds
@@ -355,6 +371,8 @@ def _build_economy(world, player: str) -> dict:
         "vassal_tribute": vassal_tribute,
         "settlement_gold": settlement_gold,
         "settlement_streams": settlement_streams,
+        "blockade": blockade,
+        "admiralty": admiralty,
         "occupation": occupation,
         "contributions": contributions,
         "war_effort": war_effort,

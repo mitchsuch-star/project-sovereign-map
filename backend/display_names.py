@@ -51,6 +51,10 @@ ACTION_DISPLAY = {
     "sponsor_design": "sponsors",                     # AI-2b (D5-2)
     "buy_off_design": "buys off",                     # AI-2b (D5-1)
     "guarantee_nation": "guarantees",                 # AI-2b (D5-3)
+    "build_fleet": "lays down a ship",                # DEF-5 naval (NV-0)
+    "set_fleet_posture": "orders the fleet to",       # DEF-5 naval (NV-0)
+    "naval_expedition": "embarks an expedition to",   # DEF-5 naval (NV-2)
+    "naval_diversion": "orders the grand diversion",  # DEF-5 naval (NV-3)
 }
 
 # ============================================================================
@@ -122,6 +126,10 @@ OBJECTION_DISPLAY = {
     "sponsor_design": "sponsoring a design",        # AI-2b (no objections in v1)
     "buy_off_design": "buying off a design",        # AI-2b (no objections in v1)
     "guarantee_nation": "pledging a guarantee",     # AI-2b (no objections in v1)
+    "build_fleet": "laying down a ship",            # DEF-5 naval (no objections in v1)
+    "set_fleet_posture": "re-tasking the fleet",    # DEF-5 naval (no objections in v1)
+    "naval_expedition": "embarking on the transports",  # DEF-5 naval (no objections in v1)
+    "naval_diversion": "the grand diversion",       # DEF-5 naval (no objections in v1)
 }
 
 # ============================================================================
@@ -167,6 +175,10 @@ DEFIANCE_DISPLAY = {
     "sponsor_design": "sponsored a design",        # AI-2b (no defiance in v1)
     "buy_off_design": "bought off a design",       # AI-2b (no defiance in v1)
     "guarantee_nation": "pledged a guarantee",     # AI-2b (no defiance in v1)
+    "build_fleet": "laid down a ship",             # DEF-5 naval (no defiance in v1)
+    "set_fleet_posture": "re-tasked the fleet",    # DEF-5 naval (no defiance in v1)
+    "naval_expedition": "embarked an expedition",  # DEF-5 naval (no defiance in v1)
+    "naval_diversion": "ordered the diversion",    # DEF-5 naval (no defiance in v1)
 }
 
 # ============================================================================

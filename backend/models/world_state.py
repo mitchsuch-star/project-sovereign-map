@@ -540,6 +540,16 @@ class WorldState:
         # nations CAN form on one tick (the vassal_rebellion_imminent_popups
         # precedent). Drained one per response by the delivery seams.
         self.nation_proclamation_popups: List[Dict] = []
+        # DEF-5 "The Wooden Wall" (docs/NAVAL_SPEC.md §3.1/§8): the ONE
+        # naval store — nation -> {ships, readiness, posture, camp_turns,
+        # diversion_used, window_turns, + authored ports/dockyards/island/
+        # admiral/trade_dominance/camp_provinces}. Ships-0 rows are
+        # ports-only (the closure denominator); the dunder META_KEY entry
+        # holds derived-state beat baselines (the jealousy __levels__
+        # idiom). Empty → every naval hook dormant (legacy world, every
+        # fixture: boot-zero by construction). Populated by from_scenario
+        # from the scenario `navies` block via naval.boot_fleets_from_navies.
+        self.fleets: Dict[str, dict] = {}
 
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
@@ -626,6 +636,14 @@ class WorldState:
             "sponsor_design": 0,
             "buy_off_design": 0,
             "guarantee_nation": 0,
+            # DEF-5 naval (NAVAL_SPEC §9): build_fleet is 1 ADMIN AP
+            # (ADMIN_ACTIONS) + 400g in-executor; the posture order is a
+            # cheap command; the expedition is a real commitment (the
+            # garrison-detachment price); the diversion a fleet order.
+            "build_fleet": 1,
+            "set_fleet_posture": 1,
+            "naval_expedition": 2,
+            "naval_diversion": 1,
         }
 
         # ============================================================
@@ -3599,10 +3617,27 @@ class WorldState:
         home_regions = set(self.nation_starting_regions.get(marshal_nation, []) or [])
         home_capital = self.get_nation_capital(marshal_nation)
 
+        # DEF-5 naval §4.1 — a forced retreat prefers land routes over a
+        # covered strait, but a cornered army may still take to the boats
+        # (the Corunna clause: blocking every candidate would soft-lock an
+        # army whose only exit is the water). Implemented as a candidate
+        # DEMOTION: covered crossings are skipped in the main pass and
+        # reconsidered only if nothing else exists.
+        naval_demoted: List[str] = []
+        _naval_gate = None
+        if getattr(self, "fleets", None):
+            from backend.game_logic.naval import crossing_allowed as _naval_gate
+
         # Check ADJACENT regions only (distance 1)
         for candidate_name in current_region.adjacent_regions:
             candidate_region = self.get_region(candidate_name)
             if not candidate_region:
+                continue
+
+            if (_naval_gate is not None
+                    and not _naval_gate(self, marshal_nation,
+                                        marshal.location, candidate_name)):
+                naval_demoted.append(candidate_name)
                 continue
 
             controller = candidate_region.controller
@@ -3693,6 +3728,26 @@ class WorldState:
                 result = tier[0]["name"]
                 debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} ({label}, home={tier[0]['is_home']}, dist_to_capital={tier[0]['dist_to_capital']})")
                 return result
+
+        # DEF-5 Corunna clause: every land exit is gone — take to the boats
+        # across the covered strait rather than break in place (evacuation
+        # under fire is historically real and the alternative is a
+        # soft-locked army standing on soil it cannot legally hold).
+        for candidate_name in naval_demoted:
+            candidate_region = self.get_region(candidate_name)
+            if not candidate_region:
+                continue
+            enemies_there = [m for m in self.get_marshals_in_region(candidate_name)
+                             if m.nation != marshal_nation and m.strength > 0
+                             and self.is_at_war(marshal_nation, m.nation)]
+            if enemies_there:
+                continue
+            controller = candidate_region.controller
+            if (controller is not None and controller != marshal_nation
+                    and self.is_at_war(marshal_nation, controller)):
+                continue
+            debug_print(f"  [RETREAT RESULT] {marshal_name} evacuates by sea to {candidate_name} (Corunna clause)")
+            return candidate_name
 
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
@@ -4397,18 +4452,36 @@ class WorldState:
             # deeper by its own forts.
             infrastructure_cost //= 2
 
-        # British naval income — abstracted trade dominance / colonial revenue
-        # Scales from authored coastal metadata, avoiding per-map hardcoded province names.
-        if nation == "Britain" and len(nation_regions) > 0:
+        # Naval trade dominance (DEF-5 §4.2/§5.1): on a fleets world the
+        # authored `trade_dominance` ABSORBS the old Britain coastal-count
+        # literal — scaled ×(1 − CS closure), floor ×0.4, suspended entirely
+        # under blockade. The legacy arm below stays byte-identical for
+        # fleet-less worlds (N1: the fixture pins 150+50×coastal, cap 300).
+        naval_income = 0
+        _naval_dominance = None
+        if getattr(self, "fleets", None):
+            from backend.game_logic.naval import trade_dominance_income
+            _naval_dominance = trade_dominance_income(self, nation)
+        if _naval_dominance is not None:
+            naval_income = int(_naval_dominance)
+        elif nation == "Britain" and len(nation_regions) > 0:
+            # British naval income — abstracted trade dominance / colonial
+            # revenue, scaled from authored coastal metadata (legacy worlds).
             coastal_count = sum(
                 1 for r in nation_regions
                 if (region := self.regions.get(r)) and getattr(region, "is_coastal", False)
             )
             naval_income = min(300, 150 + 50 * coastal_count)
-        else:
-            naval_income = 0
         total_income += naval_income
         # Trade income applied separately via diplomacy.calculate_trade_income()
+
+        # DEF-5 N3 — the Admiralty: 2g/ship/turn at war only ("laid up in
+        # ordinary" at peace). Its own signed Net component, boot-zero on
+        # fleet-less worlds by construction.
+        admiralty_cost = 0
+        if getattr(self, "fleets", None):
+            from backend.game_logic.naval import ship_upkeep
+            admiralty_cost = int(ship_upkeep(self, nation))
 
         # ES-7 second pass (§0.6.8): the rente bill — treasury cost of the
         # nation's pensions (premium-priced). Deliberately NO bankruptcy
@@ -4444,6 +4517,9 @@ class WorldState:
             # EC-U2: per-turn maintenance of built structures — a signed Net
             # component of its own (income stays GROSS), the conquest-free sink.
             "infrastructure": int(infrastructure_cost),
+            # DEF-5 N3: the fleet's war upkeep — its own signed "Admiralty"
+            # Net component (0 at peace, 0 on fleet-less worlds).
+            "admiralty": int(admiralty_cost),
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
@@ -4454,6 +4530,7 @@ class WorldState:
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
                 "infrastructure": int(infrastructure_cost),
+                "admiralty": int(admiralty_cost),
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -4700,10 +4777,13 @@ class WorldState:
         rente_cost = int(income_data.get("rente_cost", 0))
         # EC-U2: infrastructure maintenance — same seam both sides (GR5).
         infrastructure = int(income_data.get("infrastructure", 0))
+        # DEF-5 N3: the Admiralty (war-time ship upkeep) — same seam both
+        # sides (GR5); 0 on fleet-less worlds by construction.
+        admiralty = int(income_data.get("admiralty", 0))
 
         net = (income_data["income"] - occupation - contributions - war_effort
                - dotation_skim - rente_cost
-               - infrastructure - upkeep_data["total"] + admin_bonus)
+               - infrastructure - admiralty - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
         # NOTE: Bankruptcy check moved to _advance_turn_internal() AFTER all
@@ -4718,6 +4798,7 @@ class WorldState:
         rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
         infrastructure_str = (f", -{infrastructure} infrastructure"
                               if infrastructure > 0 else "")
+        admiralty_str = f", -{admiralty} admiralty" if admiralty > 0 else ""
         return {
             "nation": nation,
             "income": income_data["income"],
@@ -4727,6 +4808,7 @@ class WorldState:
             "dotation_skim": dotation_skim,
             "rente_cost": rente_cost,
             "infrastructure": infrastructure,
+            "admiralty": admiralty,
             "upkeep": upkeep_data["total"],
             "upkeep_halved": upkeep_data["halved"],
             "admin_bonus": int(admin_bonus),
@@ -4738,7 +4820,7 @@ class WorldState:
                        f"+{income_data['income']} income"
                        f"{occupation_str}{contributions_str}{war_effort_str}"
                        f"{dotation_str}{rente_str}"
-                       f"{infrastructure_str}, "
+                       f"{infrastructure_str}{admiralty_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
                        f" = {'+' if net >= 0 else ''}{net} net")
@@ -5411,6 +5493,9 @@ class WorldState:
             # NA-6c: the carve catalogue. deepcopy for the same aliasing
             # reason as `agendas` — templates nest province LISTS and decks.
             "formable_nations": copy.deepcopy(self.formable_nations),
+            # DEF-5 naval: the ONE store — records nest dockyard lists and
+            # the META beat-baseline dict, so deepcopy (the agendas idiom).
+            "fleets": copy.deepcopy(self.fleets),
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -5894,6 +5979,15 @@ class WorldState:
         world.formable_nations = {
             str(k): copy.deepcopy(dict(v or {}))
             for k, v in (data.get("formable_nations") or {}).items()
+        }
+        # DEF-5 naval: the ONE store round-trips as saved (absent → {} —
+        # every pre-naval save loads with the layer dormant). The scenario
+        # path does NOT ride this key: from_scenario transforms the authored
+        # `navies` block via naval.boot_fleets_from_navies AFTER the wars
+        # are seeded, so boot postures derive against live diplomacy.
+        world.fleets = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("fleets") or {}).items()
         }
         # NA-6c §11.10 decision 6 / seam-map L1: `nation_capitals` is
         # deliberately NOT serialized — it is rebuilt from the authored
@@ -6765,6 +6859,15 @@ class WorldState:
                 world.diplomatic_states[pair] = "WAR"
                 world.war_start_turns.setdefault(pair, int(world.current_turn))
 
+        # DEF-5 naval (NAVAL_SPEC §3.2/§6): transform the authored `navies`
+        # block into live fleet records. MUST run after the starting-wars
+        # seeding above — boot postures derive from live diplomacy (Britain
+        # at war → the boot blockade that pins France's readiness, H2).
+        navies_block = scenario_data.get("navies")
+        if navies_block:
+            from backend.game_logic.naval import boot_fleets_from_navies
+            boot_fleets_from_navies(world, navies_block)
+
         # 1805 scenario authoring: nations that START without marshals are
         # deliberately army-less (e.g. Hanover disbanded since Artlenburg),
         # not "eliminated". Pre-seed the enemy-phase notification dedupe so
@@ -7150,6 +7253,14 @@ class WorldState:
             # LAST_KNOWN / UNKNOWN: enemy not shown in enemies dict
 
         summary["enemies"] = filtered_enemies
+
+        # DEF-5 naval §9 (v1.0.4 legibility contract): the two MAP render
+        # arms ride the summary the client already consumes — sea-link
+        # verdict tint + the port blockade glyph. Fog-clean (Q4: fleet
+        # dispositions are PUBLIC data); absent key on fleet-less worlds.
+        if getattr(self, "fleets", None):
+            from backend.game_logic.naval import map_naval_overlay
+            summary["naval_overlay"] = map_naval_overlay(self)
 
         return summary
 
@@ -7571,6 +7682,18 @@ class WorldState:
         cleared = self._dialogue_manager.clear_stale(self.current_turn)
         if cleared:
             self.incoming_proposal_popup = None  # Fix 8: Clear paired popup too
+
+        # ════════════════════════════════════════════════════════════
+        # THE ADMIRALTY TICK (DEF-5 naval — NAVAL_SPEC §3.3/§5.3/§6)
+        # AI postures derived + readiness/camp/window ticked + blockade &
+        # strait beats. Sited AFTER the diplomacy passes (coverage reads
+        # final war states) and BEFORE the income phase, so this turn's
+        # trade ×0.5 and trade_dominance scaling read this turn's blockade
+        # verdict. Dormant (one truthiness read) on fleet-less worlds.
+        # ════════════════════════════════════════════════════════════
+        if self.fleets:
+            from backend.game_logic.naval import process_naval_turn
+            tactical_events.extend(process_naval_turn(self))
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
@@ -10548,6 +10671,21 @@ class WorldState:
                                        f"diplomatic restrictions prevent entry!"
                         })
                         continue  # Skip to next marshal
+
+                    # DEF-5 naval §4.1: reckless cavalry does not ride the
+                    # Channel — the all-nations auto-move honors the gate.
+                    if getattr(self, "fleets", None):
+                        from backend.game_logic.naval import crossing_allowed
+                        if not crossing_allowed(self, marshal.nation,
+                                                marshal.location, next_region):
+                            events.append({
+                                "type": "reckless_blocked",
+                                "marshal": marshal.name,
+                                "recklessness": recklessness,
+                                "message": f"[Cavalry][!] {marshal.name} wants to ride toward {enemy.name} but "
+                                           f"hostile sail command the {marshal.location}–{next_region} crossing!"
+                            })
+                            continue  # Skip to next marshal
 
                     old_location = marshal.location
                     marshal.move_to(next_region)

@@ -217,6 +217,41 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 10,
         },
     },
+    # DEF-5 naval (NAVAL_SPEC §9 typed grammar): the expedition carries a
+    # marshal + a landing province; the fleet orders are nation-level.
+    {
+        "input": "land {m1} in {region} with the transports",
+        "output": {
+            "matched": True,
+            "marshals": ["{m1}"],
+            "action": "naval_expedition",
+            "target": "{region}",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
+    {
+        "input": "blockade the enemy's ports",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "set_fleet_posture",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 10,
+        },
+    },
+    {
+        "input": "lay down a ship of the line",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "build_fleet",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",

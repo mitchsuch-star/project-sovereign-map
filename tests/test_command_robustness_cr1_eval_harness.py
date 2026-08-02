@@ -60,6 +60,9 @@ MOCK_REACHABLE_ACTIONS = [
     # AI-2b (AI_INTENT_SPEC §6 D5): the counter-instrument verbs —
     # sponsor/subsidize/licence, buy off/pay off, guarantee (nation-gated).
     "sponsor_design", "buy_off_design", "guarantee_nation",
+    # DEF-5 naval (NAVAL_SPEC §9): the Wooden Wall's four verbs.
+    "build_fleet", "set_fleet_posture", "naval_expedition",
+    "naval_diversion",
 ]
 
 

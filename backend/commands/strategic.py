@@ -951,6 +951,16 @@ class StrategicOrderProcessor:
                 f"Secure open borders or declare war to pass.")
             return broken
 
+        # DEF-5 naval §4.1 (the PF-8 idiom): a march stalled at a covered
+        # strait breaks with the honest naval reason — the pathfinder is
+        # edge-blind, so a reroute would plan the same crossing again.
+        if last_fail is not None and last_fail.get("blocked_naval"):
+            reason = last_fail.get("message") or (
+                f"hostile sail command the crossing toward {destination}")
+            return self._break_order(
+                marshal, world,
+                f"{marshal.name}'s march halts at the water's edge — {reason}")
+
         return {
             "marshal": marshal.name,
             "command": "MOVE_TO",
@@ -1395,6 +1405,15 @@ class StrategicOrderProcessor:
                 marshal, world,
                 f"{marshal.name}'s pursuit halts — {reason} "
                 f"Secure open borders or declare war to pass.")
+
+        # DEF-5 naval §4.1: a pursuit ends at a covered strait with the
+        # honest reason (the quarry has the sea at its back).
+        if last_fail is not None and last_fail.get("blocked_naval"):
+            reason = last_fail.get("message") or (
+                f"hostile sail command the crossing toward {order.target}")
+            return self._break_order(
+                marshal, world,
+                f"{marshal.name}'s pursuit halts at the water's edge — {reason}")
 
         return {
             "marshal": marshal.name,

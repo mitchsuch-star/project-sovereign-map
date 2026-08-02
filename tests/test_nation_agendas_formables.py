@@ -1550,7 +1550,9 @@ from backend.game_logic.settlement_validation import (  # noqa: E402
 )
 from backend.nation_config import NATION_POWER_TIERS   # noqa: E402
 
-CARVE_TAGS = ("DuchyOfWarsaw", "Normandy", "RomanRepublic")
+# DEF-5 naval NV-2: Ireland joins the catalogue (the Free Ireland carve,
+# NAVAL_SPEC section 5.2 — the DEF-5 rider's contract).
+CARVE_TAGS = ("DuchyOfWarsaw", "Normandy", "RomanRepublic", "Ireland")
 
 
 def _war(world, a, b):
@@ -1703,6 +1705,13 @@ class TestCarveCreatesANation:
         missing = []
         for attr in sorted(vars(world)):
             if attr.startswith("_"):
+                continue
+            # DEF-5 naval (conscious exemption, NOT drift): `fleets` is the
+            # AUTHORED naval establishment — KingdomOfItaly appears only as
+            # a ports-only closure row (NAVAL_SPEC §3.2), and a carved
+            # client is born without a navy or authored ports (§3.4a:
+            # ships change hands by no other door).
+            if attr == "fleets":
                 continue
             value = getattr(world, attr)
             if isinstance(value, (dict, list)) and "KingdomOfItaly" in value:
@@ -2880,9 +2889,10 @@ class TestFormablesPayload:
         assert ("C", "DuchyOfWarsaw") in rows
         assert ("C", "Normandy") in rows
         assert ("C", "RomanRepublic") in rows
+        assert ("C", "Ireland") in rows
         assert ("T", "KingdomOfItaly") in rows
         assert ("T", "Holland") in rows
-        assert payload["count"] == len(payload["formables"]) == 5
+        assert payload["count"] == len(payload["formables"]) == 6
 
     def test_rows_are_never_hidden_and_never_dead(self, world):
         """§11.6-8: an unavailable row states exactly what is missing."""

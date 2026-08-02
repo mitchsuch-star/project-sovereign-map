@@ -74,8 +74,15 @@ def test_flanders_depot_blocks_p45_walk_in():
 def test_london_rush_intercepted_by_differentiated_garrison():
     """DEF-6 completion pin: a French rush on an undefended London is
     intercepted by the 25k major-capital garrison — the first two assaults
-    leave it above the 5,000 collapse floor; capture takes three."""
+    leave it above the 5,000 collapse floor; capture takes three.
+
+    DEF-5 naval flip (conscious, the pin NV-3 predicted): the Channel is
+    now the Royal Navy's — this test's rush needs the sea first, so the RN
+    is SUNK here to reach the garrison layer it actually pins. The
+    naval-gated refusal itself is pinned in test_naval_channel_gate.py
+    (A5); this test keeps owning the GARRISON differentiation."""
     world = _load()
+    world.fleets["Britain"]["ships"] = 0  # DEF-5: clear the sea lane
     ney = world.marshals["Ney"]
     ney.location = "Flanders"       # the Channel crossing, adjacent to London
     ney.strength = 35000

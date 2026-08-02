@@ -4,6 +4,74 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ THE WOODEN WALL IS BUILT — NV-0..NV-3 LANDED IN ONE SESSION (August 2, 2026)
+>
+> **User direction: "start coding the navy — follow the spec, make sure nothing is
+> gapped, add quality, commit and push."** That directive stands as the §12 GATE
+> APPROVAL at recommended defaults (Q1 one-record model · Q2 all three arcs · Q3
+> NV-D1 deferred · Q4 public counts · **Q5 naval v1 promoted into EA scope** · Q6
+> numbers blessed · Q7 texture options OUT). **Landing record = `NAVAL_SPEC.md`
+> §14, authoritative** — including the eight spec gaps found and closed in build
+> (Amsterdam not "Holland" and East Anglia not inland-Wessex as dockyards; A4's
+> worked math omitted Russia's POOLED Baltic squadron — the anchor's shape holds
+> at measured 1.07/0.74/0.53; blockade requires authored naval presence; a
+> conquered yard can found a ports-only court's navy; the N8 odds curve fixed and
+> measured 64/12 vs anchors 55–65/≤15).
+>
+> - **The layer:** `backend/game_logic/naval.py` + `naval_executor.py` (four verbs
+>   through the shared executor, GR5) + the authored `navies` block (15 rows, 26
+>   continental ports) + validator + ONE serialized store `world.fleets` (beat
+>   baselines under the `__naval__` dunder — the jealousy idiom) + the 12-step
+>   checklist ×4 + 6 corpus rows + help's ADMIRALTY section.
+> - **A5 THE HEADLINE, live:** Spain/France can NEVER walk Flanders→London (the
+>   refusal names "the Royal Navy — 100 sail against our 54"); Britain's boot
+>   descents still pass at 2.05×. The gate covers EVERY seam: moves, cavalry legs,
+>   ATTACKS (an amphibious assault is refused), reinforcement musters, AI candidate
+>   filters (18 sites origin-threaded — no AP thrash), charges, reckless cavalry,
+>   forced retreats (demoted, with the **Corunna clause** sea-escape when cornered),
+>   PF-8 `blocked_naval` stall arms, the `naval_turnback` log line.
+> - **The blockade war:** Britain boots blockading (untargeted v1.0.3) — France/
+>   Spain/Holland rot toward readiness 50, France bleeds the MEASURED −175 trade
+>   ("Blockade") − 90 upkeep ("Admiralty") = **−265/turn, net 2,107→1,842, E1
+>   absorption 0.555 still in-band (no retune)**; trade_dominance absorbs both
+>   naval_income literals (Britain boots at 184 = 300 × (1−38% closure)); CS 2.0
+>   closure boot fact 10/26 pinned, tiers +1/+2/+3 WE, island clause +2.
+> - **Free Ireland:** the DEF-5 rider honored VERBATIM — expedition (boot odds 64
+>   in the 55–65 band) → capture → clause flips → `create_client` → vassal republic
+>   with the dormant `erin_free` deck that WAKES on independence; "The Irish
+>   Question" grudge; once-only; GR5 predicate pinned nation-neutral; formables
+>   count 5→6; Utils color measured over both perceptual floors; harp SVG imported.
+> - **The Descent:** camp (staged at 2 → `boulogne_camp`) → Britain's DERIVED guard
+>   flip (the blockade lapses — two-front tension, no scripting) → the Grand
+>   Diversion (45% seeded, once per war; failure = fleet action at bad readiness =
+>   **Trafalgar as it happened**, gutting Spain too via H6 pooled losses) → the
+>   window (coverage halved, floor 0.9) → the London landing end-to-end.
+> - **Conscious flips, all dated in-file:** campaign-log 142→156 (14 naval types);
+>   5 economy identity mirrors gain the two components; the London-rush DEF-6 test
+>   sinks the RN to keep owning the garrison layer; shape-parity exempts `fleets`;
+>   **`BASELINE_SERIES` re-recorded ONCE — divergence index 5 IS the old run's
+>   Channel walk**; the ambient non-player-threat liveness pin became a producer
+>   probe (the ambient zero is honest — AI-3r discipline). **M1–M7 byte-identical
+>   WITHOUT re-record.**
+> - **Verification:** suite **15,748/3 → all green after flips** (140 naval tests
+>   across 5 files); ruff clean (backend + tests); Godot import + parse harness
+>   EXIT=0 (28 scripts incl. the three touched + map_connection_layer); live HTTP
+>   on a fresh backend — the Admiralty block, the Blockade board naming France
+>   −175, `build ships` laying a keel with the green-crew fold, the expedition's
+>   honest yard refusal. Surfaces: THE ADMIRALTY ledger block (+ Blockade board +
+>   Crossings verdicts + gate terms), map sea-link verdict tints + port anchor
+>   glyphs (riding `naval_overlay` on the summary), the region-panel dockyard chip,
+>   the war-room `naval_line`, 10 dispatch beat templates.
+> - **⚠ OPEN (next play session):** the in-client visual pass (tints/glyphs/
+>   Admiralty/chip) + the played-world A2 strangulation arc + the naval pillar
+>   score — NV-V's live half; DEF-5/DEF-6 close on it.
+>
+> **WHAT'S NEXT:** 1. **NV-V live half** (play session: visual pass + A2 arc +
+> naval pillar score); 2. the long quiet-France campaign (living-balance/D1
+> vehicle — can double as the naval live pass); 3. the ROADMAP spine: STEAM PAGE +
+> LLC → Phase 9 (Advisors) → 10 → 11 (naval v1 now IN EA scope per Q5) → Pre-EA
+> (Victory Pass) — routing = the user's call.
+
 > ### ✅ SIGN-OFFS PASSED + THE NAVAL SPEC AUTHORED — August 1, 2026 (fourth session that day)
 >
 > **User direction: "mark gameplay test as passed; build naval spec — it can be

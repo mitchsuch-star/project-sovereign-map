@@ -41,6 +41,7 @@ from backend.commands.capture_executor import CaptureExecutor
 from backend.commands.economy_executor import EconomyExecutor
 from backend.commands.tactical_executor import TacticalExecutor
 from backend.commands.movement_executor import MovementExecutor
+from backend.commands.naval_executor import NavalExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 
 # Combat methods delegated to CombatExecutor (R10A+R10B backward compat)
@@ -165,6 +166,7 @@ class CommandExecutor:
         self._economy = EconomyExecutor(self)
         self._tactical = TacticalExecutor(self)
         self._movement = MovementExecutor(self)
+        self._naval = NavalExecutor(self)
         self._meta = MetaExecutor(self)
         print("Command Executor initialized")
 
@@ -1638,6 +1640,17 @@ class CommandExecutor:
             result = self._diplomatic._execute_buy_off_design(command, game_state)
         elif action == "guarantee_nation":
             result = self._diplomatic._execute_guarantee_nation(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # NAVAL COMMANDS (DEF-5 "The Wooden Wall", NAVAL_SPEC §9)
+        # ════════════════════════════════════════════════════════════
+        elif action == "build_fleet":
+            result = self._naval._execute_build_fleet(command, game_state)
+        elif action == "set_fleet_posture":
+            result = self._naval._execute_set_fleet_posture(command, game_state)
+        elif action == "naval_expedition":
+            result = self._naval._execute_naval_expedition(command, game_state)
+        elif action == "naval_diversion":
+            result = self._naval._execute_naval_diversion(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             # ESP-EV-4: the raw text rides on the command dict so the attack

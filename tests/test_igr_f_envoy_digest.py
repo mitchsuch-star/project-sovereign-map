@@ -821,7 +821,7 @@ class TestUntouched:
     def test_no_new_campaign_log_type(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
 
-        assert len(CAMPAIGN_LOG_TYPES) == 142
+        assert len(CAMPAIGN_LOG_TYPES) == 156  # 142->156 flipped consciously: DEF-5 naval NV-0..NV-3 appends 14 types (NAVAL_SPEC section 8)
 
     def test_no_new_dialogue_type(self):
         assert "envoy_digest" not in DialogueManager.DIALOGUE_PRIORITY

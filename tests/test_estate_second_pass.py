@@ -325,7 +325,10 @@ class TestRenteEconomySeam:
         assert "-120 rentes" in result["message"]
         expected_net = (result["income"] - result["occupation"]
                         - result["dotation_skim"] - 120
-                        - result["upkeep"] + result["admin_bonus"])
+                        - result["upkeep"] + result["admin_bonus"]
+                        # DEF-5 naval (conscious flip): boot France pays the
+                        # Admiralty (90) on the 1805 world.
+                        - result["admiralty"])
         assert result["net"] == expected_net
         assert world.nation_gold["France"] == gold_before + expected_net
 

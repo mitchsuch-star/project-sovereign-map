@@ -241,6 +241,31 @@ class MovementExecutor:
         # FOG-AWARE (Session 37): Only block if player can SEE enemies there.
         # If fogged, marshal walks in blind and discovers engagement on arrival.
         # ════════════════════════════════════════════════════════════
+        # ════════════════════════════════════════════════════════════
+        # THE CROSSING GATE (DEF-5 naval — NAVAL_SPEC §4.1). One
+        # predicate, both sides (GR5): an army may not walk a sea link a
+        # hostile fleet covers below ratio. A flat refusal, never a roll
+        # — a player never loses 40,000 men to a movement order. Sited
+        # BEFORE the enemy-presence check (the water is the first
+        # reality; "use ATTACK" would be a false suggestion when the
+        # attack is also sea-gated) and before the fogged walk-in-blind
+        # arm (fog never smuggles an army past the Royal Navy). The
+        # structured flag rides the PF-8 idiom so a strategic-march
+        # stall breaks with the naval reason instead of re-stalling
+        # silently. Dormant in one truthiness read on fleet-less worlds.
+        # ════════════════════════════════════════════════════════════
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import crossing_check
+            _crossing = crossing_check(world, marshal.nation,
+                                       marshal.location, target_name)
+            if not _crossing["allowed"]:
+                return {
+                    "success": False,
+                    "message": _crossing["message"],
+                    "blocked_naval": _crossing["coverer"],
+                    "naval_ratio": _crossing["ratio"],
+                }
+
         marshals_at_dest = world.get_marshals_in_region(target_name)
         enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
 
@@ -405,16 +430,36 @@ class MovementExecutor:
             # get_enemies_in_region, so the tactical path is made consistent here.
             intermediate = None
             blocked_intermediate = None
+            naval_blocked_leg = None
             for adj_name in current_region.adjacent_regions:
                 adj_region = world.get_region(adj_name)
                 if adj_region and target_name in adj_region.adjacent_regions:
                     if world.get_enemies_in_region(adj_name, marshal.nation):
                         blocked_intermediate = adj_name
                         continue
+                    # DEF-5 §4.1: BOTH legs of a 2-tile hop must clear the
+                    # crossing gate — a cavalry hop cannot skip the Channel.
+                    if getattr(world, "fleets", None):
+                        from backend.game_logic.naval import crossing_check
+                        leg1 = crossing_check(world, marshal.nation,
+                                              marshal.location, adj_name)
+                        leg2 = crossing_check(world, marshal.nation,
+                                              adj_name, target_name)
+                        if not leg1["allowed"] or not leg2["allowed"]:
+                            naval_blocked_leg = (leg1 if not leg1["allowed"]
+                                                 else leg2)
+                            continue
                     intermediate = adj_name
                     break
 
             if not intermediate:
+                if naval_blocked_leg and not blocked_intermediate:
+                    return {
+                        "success": False,
+                        "message": naval_blocked_leg["message"],
+                        "blocked_naval": naval_blocked_leg["coverer"],
+                        "naval_ratio": naval_blocked_leg["ratio"],
+                    }
                 if blocked_intermediate:
                     return {
                         "success": False,
@@ -954,11 +999,18 @@ class MovementExecutor:
                     if m.nation != marshal.nation and m.strength > 0
                     and world.is_at_war(marshal.nation, m.nation)
                 ]
+                from backend.game_logic.naval import crossing_allowed
                 if enemies_there:
                     reason = f"enemy forces under {enemies_there[0].name} hold it"
                 elif (controller is not None and controller != marshal.nation
                         and world.is_at_war(marshal.nation, controller)):
                     reason = f"it is {controller}-held soil and we are at war"
+                elif (getattr(world, "fleets", None)
+                      and not crossing_allowed(world, marshal.nation,
+                                               marshal.location, stated_name)):
+                    # DEF-5 §4.1 — the retreat SUBSTITUTES with the named
+                    # naval reason (the IGR-A3 rule: never refuse).
+                    reason = "hostile sail command that crossing"
                 else:
                     best_region = stated_name
             if reason:

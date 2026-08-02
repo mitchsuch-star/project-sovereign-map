@@ -102,6 +102,8 @@ NATION_POWER_TIERS: Dict[str, str] = {
     "DuchyOfWarsaw": "minor",
     "Normandy": "minor",
     "RomanRepublic": "minor",
+    # DEF-5 naval NV-2: the Free Ireland carve (two provinces).
+    "Ireland": "minor",
 }
 
 # Fallback when `NATION_POWER_TIERS` lacks an explicit authored entry —

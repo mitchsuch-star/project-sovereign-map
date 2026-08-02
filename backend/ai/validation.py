@@ -23,7 +23,7 @@ from .schemas import ParseResult
 # executor's fuzzy matcher can NAME the unknown place instead of reporting a
 # missing destination (Sweep-5). Other actions keep the clear-silently
 # recovery (the executor picks a sensible co-located target).
-_TARGET_PASSTHROUGH_ACTIONS: Set[str] = {"move", "scout"}
+_TARGET_PASSTHROUGH_ACTIONS: Set[str] = {"move", "scout", "naval_expedition"}
 
 # Actions that require marshal + validation
 VALID_ACTIONS: Set[str] = {
@@ -102,6 +102,11 @@ VALID_ACTIONS: Set[str] = {
     "sponsor_design",    # "sponsor Prussia against Austria, 200 gold" (0 = licence)
     "buy_off_design",    # "buy off Prussia" — compensation, price derived
     "guarantee_nation",  # "guarantee Saxony" — pledge to defend
+    # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9): the four verbs.
+    "build_fleet",       # "build ships" / "lay down a ship" — 1 admin AP + 400g
+    "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
+    "naval_expedition",  # "land Soult in Munster" — the H4 gamble, marshal-carried
+    "naval_diversion",   # "order the diversion" — the §5.3 Grand Diversion
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -125,6 +130,11 @@ META_ACTIONS: Set[str] = {
     "sponsor_design",
     "buy_off_design",
     "guarantee_nation",
+    # DEF-5 naval — nation-level fleet orders, no marshal needed
+    # (naval_expedition is deliberately NOT here: it carries a corps).
+    "build_fleet",
+    "set_fleet_posture",
+    "naval_diversion",
     # Diplomatic actions — no marshal needed
     "diplomatic_break",
     "diplomatic_downgrade",

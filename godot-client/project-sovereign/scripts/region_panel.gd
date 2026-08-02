@@ -232,6 +232,17 @@ func _render() -> void:
 		if needs_repair:
 			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair", Utils.COLOR_WARNING, _CHIP_BG)
 				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works[/color]")
+
+		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
+		# sites, price quoted from the backend's live constant (honest-chip
+		# idiom; the executor still gates gold/AP/rate).
+		var overlay = _map_node.naval_overlay if (_map_node != null and "naval_overlay" in _map_node) else {}
+		if overlay is Dictionary:
+			var yards = overlay.get("player_dockyards", [])
+			if yards is Array and _region in yards:
+				var ship_cost = int(overlay.get("ship_cost", 400))
+				action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
+					+ "  [color=#" + Utils.COLOR_GREY + "]a keel in this yard[/color]")
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
 	if action_rows.size() > 0:

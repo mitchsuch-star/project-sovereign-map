@@ -60,6 +60,10 @@ NET_GOLD_COMPONENTS = {
     "dotation_skim": -1,
     "rente_cost": -1,
     "infrastructure": -1,
+    # DEF-5 naval (NV-0/NV-1): the blockade's trade suspension and the
+    # fleet's war upkeep — both boot-zero on fleet-less worlds.
+    "blockade": -1,
+    "admiralty": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
 }

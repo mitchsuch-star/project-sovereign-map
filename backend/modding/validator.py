@@ -792,6 +792,93 @@ def _validate_statecraft(result, data: dict, known_nations: set) -> None:
                     f"got {value}")
 
 
+def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
+    """DEF-5 naval (NAVAL_SPEC §3.2/§8): the authored `navies` block —
+    per-nation {ships 0-150, readiness 40-100 (required when ships > 0),
+    ports >= 0, dockyards owned provinces, island bool, trade_dominance
+    >= 0, camp_provinces known provinces}. A ships-0 row is a ports-only
+    entry (the closure denominator) and must not author fleet fields.
+    D7 discipline: the validator is the gate — runtime never re-clamps."""
+    if "navies" not in data:
+        return
+    navies = data.get("navies")
+    if not isinstance(navies, dict):
+        result.add_error(
+            "navies", f"Must be an object, got {type(navies).__name__}")
+        return
+    region_names: Set[str] = set()
+    controllers: Dict[str, str] = {}
+    if isinstance(data.get("regions"), dict):
+        for rname, region_data in data["regions"].items():
+            region_names.add(rname)
+            if isinstance(region_data, dict):
+                controller = (region_data.get("controller")
+                              or region_data.get("starting_controller"))
+                if controller:
+                    controllers[rname] = controller
+    for nation, row in navies.items():
+        path = f"navies.{nation}"
+        if not isinstance(row, dict):
+            result.add_error(path, "Navy entry must be an object")
+            continue
+        if known_nations and nation not in known_nations:
+            result.add_warning(path, f"Unknown nation '{nation}' (no "
+                                     "provinces, marshals or player slot)")
+        ships = row.get("ships", 0)
+        if isinstance(ships, bool) or not isinstance(ships, int) or not (0 <= ships <= 150):
+            result.add_error(f"{path}.ships",
+                             f"Must be an integer 0-150, got {ships!r}")
+            continue
+        if ships > 0:
+            readiness = row.get("readiness")
+            if (isinstance(readiness, bool) or not isinstance(readiness, int)
+                    or not (40 <= readiness <= 100)):
+                result.add_error(
+                    f"{path}.readiness",
+                    f"A fleet requires readiness 40-100, got {readiness!r}")
+        elif "readiness" in row:
+            result.add_error(
+                f"{path}.readiness",
+                "A ports-only row (ships 0) must not author fleet fields")
+        ports = row.get("ports", 0)
+        if isinstance(ports, bool) or not isinstance(ports, int) or ports < 0:
+            result.add_error(f"{path}.ports",
+                             f"Must be a non-negative integer, got {ports!r}")
+        if "island" in row and not isinstance(row["island"], bool):
+            result.add_error(f"{path}.island", "Must be a boolean")
+        td = row.get("trade_dominance")
+        if td is not None and (isinstance(td, bool)
+                               or not isinstance(td, int) or td < 0):
+            result.add_error(f"{path}.trade_dominance",
+                             f"Must be a non-negative integer, got {td!r}")
+        if "admiral" in row and not isinstance(row["admiral"], str):
+            result.add_error(f"{path}.admiral", "Must be a string")
+        for key in ("dockyards", "camp_provinces"):
+            if key not in row:
+                continue
+            provs = row[key]
+            if not isinstance(provs, list) or not provs:
+                result.add_error(f"{path}.{key}",
+                                 "Must be a non-empty list of provinces")
+                continue
+            for prov in provs:
+                if region_names and prov not in region_names:
+                    result.add_error(f"{path}.{key}",
+                                     f"Unknown province '{prov}'")
+                elif (key == "dockyards" and controllers
+                        and controllers.get(prov) not in (None, nation)):
+                    result.add_error(
+                        f"{path}.{key}",
+                        f"Dockyard '{prov}' is not {nation}-controlled at "
+                        f"boot (held by {controllers.get(prov)}) — a yard "
+                        "is authored where its nation starts; conquest "
+                        "grants yards at runtime (§3.4a)")
+        if ships == 0 and "dockyards" in row:
+            result.add_error(f"{path}.dockyards",
+                             "A ports-only row (ships 0) authors no "
+                             "dockyards — it cannot build (§3.2)")
+
+
 def validate_scenario(
     scenario_path_or_data: Any,
     check_adjacency: bool = True
@@ -1263,6 +1350,9 @@ def validate_scenario(
     if data.get("player_nation"):
         statecraft_known.add(data["player_nation"])
     _validate_statecraft(result, data, statecraft_known)
+
+    # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
+    _validate_navies(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

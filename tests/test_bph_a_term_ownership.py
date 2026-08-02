@@ -300,7 +300,7 @@ class TestPeaceRatifiedCampaignLog:
         # Stage C review fixes (July 24, 2026): +1 instrument_lapsed — an
         # instrument ending WITHOUT a breaker (term served / ward
         # aggression / unattributable war) must still reach the record.
-        assert len(CAMPAIGN_LOG_TYPES) == 142
+        assert len(CAMPAIGN_LOG_TYPES) == 156  # 142->156 flipped consciously: DEF-5 naval NV-0..NV-3 appends 14 types (NAVAL_SPEC section 8)
 
     def test_format_peace_oneliner(self):
         event = {

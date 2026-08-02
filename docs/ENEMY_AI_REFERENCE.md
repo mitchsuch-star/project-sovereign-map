@@ -748,6 +748,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | 1.5 | Estate endowment / rente | ES-7 reward rung — endow an expectation-shortfall marshal with an estate, falling back to a rente when no province is endowable (Economy Revisit S7 + §0.6.8) |
 | 1.6 | Vassal shore-up | VP-D6 — bleeding vassal: invest → cede province (VS-3 grant) → grant autonomy, through the shared executor |
 | 1.75 | Commission a marshal | The Marshalate — at war + standing roster < 3 + treasury >= cost+1000 (`recruitment.find_ai_commission`) |
+| 1.8 | Lay down a ship | DEF-5 naval (NAVAL_SPEC §6) — at war + treasury > 2×SHIP_COST + a live naval want (blockaded, or its own blockade outmatched); the SAME priced `build_fleet` verb + `naval.check_build_fleet` gate the player uses (`naval.find_ai_build_fleet`) |
 | 2 | Build market | At highest-income region |
 | 3 | Build supply depot | At capital or major city; within each tier, prefers regions adjacent to enemy territory (forward logistics, Phase 6.2.H) |
 | 4 | Build fortification | At border regions |

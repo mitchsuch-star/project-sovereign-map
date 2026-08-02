@@ -656,14 +656,22 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # EC-U2: infrastructure maintenance — same treatment (its own Net component)
     infrastructure = int(income_data.get("infrastructure", 0))
 
-    # Trade income from diplomatic states (read-only calculation)
+    # Trade income from diplomatic states (read-only calculation).
+    # DEF-5 naval: gross trade shown; the blockade loss and the Admiralty
+    # upkeep are their own components (the EC-W1 pattern).
     from backend.game_logic.diplomacy import calculate_trade_income
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player_nation, 0))
+    blockade = 0
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import blockade_trade_loss
+        blockade = int(blockade_trade_loss(world).get(player_nation, 0))
+    admiralty = int(income_data.get("admiralty", 0))
 
     treasury_delta = int(income + trade_income - occupation - contributions
                          - war_effort - dotation_skim
-                         - rente_cost - infrastructure - upkeep)
+                         - rente_cost - infrastructure
+                         - blockade - admiralty - upkeep)
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the
@@ -756,6 +764,11 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # the briefing announces WHEN a marshal starts expecting more
         "rente_cost": rente_cost,
         "expectation_rises": expectation_rises,
+        # DEF-5 naval: the blockade's trade loss + the Admiralty upkeep —
+        # both in treasury_delta above, both named here so the briefing can
+        # explain the squeeze
+        "blockade": blockade,
+        "admiralty": admiralty,
         # ES-3 (S5): over-limit breakdown rides the dispatch so the morning
         # projection can explain a heavy upkeep (treasury_delta above already
         # includes the surcharge via upkeep_data["total"]).
@@ -1973,6 +1986,45 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "THE VOLTE-FACE: {nation}, beaten and then courted, takes "
         "{partner}'s hand. {gaze}"
     ),
+    # DEF-5 naval (NAVAL_SPEC §9 dispatch beats — state-change only,
+    # never per-turn repetition; the two strait beats carry a prebuilt
+    # {line} because two emitters share the type).
+    "blockade_begins": (
+        "BLOCKADE: {blockader} closes {nation}'s ports. Trade is halved "
+        "and the fleet is pinned at anchor, where crews rot."
+    ),
+    "blockade_broken": (
+        "The blockade of {nation} is broken — her ports breathe, her "
+        "crews may drill again."
+    ),
+    "boulogne_camp": (
+        "THE CAMP: {nation} has massed {strength} men on the invasion "
+        "coast. {against} has seen it — expect the fleet home to guard "
+        "the water."
+    ),
+    "strait_open": "THE STRAIT: {line}.",
+    "strait_shut": "THE STRAIT: {line}.",
+    "cs_tier_shift": (
+        "THE CONTINENTAL SYSTEM {direction}: {closure_pct}% of the "
+        "Continent's ports are closed to {target}."
+    ),
+    "trafalgar": (
+        "TRAFALGAR: {winner_admiral}'s line has shattered the {loser} "
+        "fleet — {loser_ships_lost} sail lost in a decisive action. "
+        "{winner} commands the sea."
+    ),
+    "fleet_action": (
+        "ACTION AT SEA: {winner}'s squadrons under {winner_admiral} get "
+        "the better of {loser} — {loser_ships_lost} sail lost."
+    ),
+    "expedition_landed": (
+        "THE LANDING: {marshal} has put {troops} men ashore at {target}."
+    ),
+    "expedition_intercepted": (
+        "INTERCEPTED AT SEA: {coverer}'s patrols caught {marshal}'s "
+        "transports off {target} — {troops_lost} men lost to the guns "
+        "and the water."
+    ),
     # Nation Agendas NA-6 §11.8 stage 1 — the dispatch LEADS with a
     # proclamation (values arrive humanized: both display names).
     "nation_formed": (
@@ -2073,6 +2125,18 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # power changing sides are events, never routine ladder lines.
     "design_promoted": "HIGH",
     "volte_face": "HIGH",
+    # DEF-5 naval beats: the campaign-defining moments ride HIGH, the
+    # economic tides MEDIUM.
+    "trafalgar": "HIGH",
+    "strait_open": "HIGH",
+    "strait_shut": "HIGH",
+    "boulogne_camp": "HIGH",
+    "expedition_landed": "HIGH",
+    "expedition_intercepted": "HIGH",
+    "fleet_action": "MEDIUM",
+    "blockade_begins": "MEDIUM",
+    "blockade_broken": "MEDIUM",
+    "cs_tier_shift": "MEDIUM",
     # AI-6 (Stage F): the ROUTINE lines the cap governs — deliberately
     # below every beat, and the tail below the lines it summarises.
     "intent_hardens": "MEDIUM",

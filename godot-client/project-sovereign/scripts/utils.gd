@@ -79,6 +79,10 @@ const NATION_COLORS = {
 	"DuchyOfWarsaw": Color(0.8, 0.275, 0.35),
 	"Normandy": Color(0.725, 0.425, 0.175),
 	"RomanRepublic": Color(0.4, 0.425, 0.475),
+	# DEF-5 naval NV-2 (Free Ireland): emerald-teal — measured with the set
+	# present: blended worst pair 13.2 vs Ottoman (floor 12.0), fogged 7.88
+	# (floor 7.0); the set minimums stay 13.2 / 7.66.
+	"Ireland": Color(0.0, 0.73, 0.60),
 }
 
 # === Nation Display Names (map labels / player-facing surfaces) ===

@@ -194,7 +194,7 @@ class TestA1HardBlockCopy:
 
     def test_no_new_event_type(self):
         """A1 is display-only — the log taxonomy must not move."""
-        assert len(CAMPAIGN_LOG_TYPES) == 142
+        assert len(CAMPAIGN_LOG_TYPES) == 156  # 142->156 flipped consciously: DEF-5 naval NV-0..NV-3 appends 14 types (NAVAL_SPEC section 8)
 
 
 # ══════════════════════════════════════════════════════════════════════════

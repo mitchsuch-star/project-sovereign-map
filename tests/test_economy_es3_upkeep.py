@@ -246,6 +246,9 @@ class TestThreading:
             + econ["treaty_gold"] + econ["vassal_tribute"]
             + econ["settlement_gold"] - econ["upkeep_base"]
             - econ["upkeep_surcharge"]
+            # DEF-5 naval (conscious flip): boot France is blockaded and
+            # pays the Admiralty — the identity mirror carries both.
+            - econ["blockade"] - econ["admiralty"]
         )
         assert signed_sum == econ["net"]
 

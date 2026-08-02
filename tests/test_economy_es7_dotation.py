@@ -341,6 +341,7 @@ class TestIncomeRedirect:
         assert world.nation_gold["France"] == gold_before + result["net"]
         assert result["net"] == (result["income"] - result["occupation"]
                                  - result["dotation_skim"] - result["upkeep"]
+                                 - result["admiralty"]  # DEF-5 (90 at boot)
                                  + result["admin_bonus"])
 
     def test_estate_exempt_from_occupation_is_deliberate(self, world):
@@ -602,6 +603,8 @@ class TestThreading:
             + econ["settlement_gold"] - econ["occupation"]
             - econ["dotation_skim"] - econ["upkeep_base"]
             - econ["upkeep_surcharge"]
+            # DEF-5 naval (conscious flip): the 1805 world bills both.
+            - econ["blockade"] - econ["admiralty"]
         )
         assert signed_sum == econ["net"]
 
@@ -635,7 +638,10 @@ class TestThreading:
         trade = calculate_trade_income(world).get("France", 0)
         assert situation["treasury_delta"] == (
             income_data["income"] + trade - income_data["occupation"]
-            - income_data["dotation_skim"] - upkeep_data["total"])
+            - income_data["dotation_skim"] - upkeep_data["total"]
+            # DEF-5 naval (conscious flip): the dispatch projection now
+            # carries the blockade loss + the Admiralty bill.
+            - situation["blockade"] - situation["admiralty"])
 
     def test_dispatch_gd_renders_unmet_marshals(self):
         src = (REPO / "godot-client" / "project-sovereign" / "scripts"

@@ -2834,6 +2834,14 @@ NATION_DESIRE_PROFILES = {
         "diplomatic_lever": "revolution",
         "weakness": "sacrilege",
     },
+    "Ireland": {
+        "covets_regions": [],
+        "values_gold": "medium",
+        "values_territory": "low",
+        "values_ap": "low",
+        "diplomatic_lever": "liberation",
+        "weakness": "the sea",
+    },
     "Sardinia": {
         "covets_regions": ["Piedmont"],
         "values_gold": "medium",
@@ -2923,6 +2931,8 @@ TALLEYRAND_COMMENTARY = {
     ("Normandy", "hostile_deal"): "Rouen will not deal warmly with the crown it was carved from. Expect the coldness of a creature that fears reabsorption.",
     ("RomanRepublic", "neutral_deal"): "The Republic sits on the Pope's chair and finds it uncomfortable. It wants recognition more than it wants gold.",
     ("RomanRepublic", "hostile_deal"): "Rome answers coldly - and every Catholic court in Europe is watching how we treat what we put in the Holy Father's place.",
+    ("Ireland", "neutral_deal"): "Dublin owes its republic to our transports, Sire - and knows the Royal Navy has a long memory. They will bargain, but their eye never leaves the water.",
+    ("Ireland", "hostile_deal"): "The Irish directory grows cold. A republic born of one fleet can be ended by another, and they have begun to wonder whose.",
     # --- Coveted unavailable (France doesn't control what they want) ---
     ("Prussia", "coveted_unavailable"): "Hardenberg dreams of Saxony, but it is not yet ours to offer. Conquer it first, Sire, and he will come to the table eagerly.",
     ("Austria", "coveted_unavailable"): "Metternich yearns for Bavaria, but we do not hold it. Secure it first, and these negotiations transform entirely.",

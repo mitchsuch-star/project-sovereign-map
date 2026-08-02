@@ -13,7 +13,15 @@ Absorption metric: drains / gross, where
 
 ═══ MEASURED ANCHORS (EC-U3 re-tune, July 14, 2026) ═══
 
-  turn-1 France:                     absorption 55.5%  net +2,107
+  DEF-5 naval note (August 2, 2026, conscious): the Wooden Wall adds the
+  boot blockade — France pays −175 trade ("Blockade") − 90 ship upkeep
+  ("Admiralty") = −265/turn, so the treasury NET is now +1,842. The E1
+  absorption METRIC below is unchanged at 0.555 (its drains list is the
+  land economy — the naval bill is its own guarded component family), so
+  the band holds WITHOUT retune; the naval halves are pinned exactly in
+  test_naval_blockade_cs.py::TestBootDelta.
+
+  turn-1 France:                     absorption 55.5%  net +2,107 (pre-naval; +1,842 with the fleet bill)
   doubled empire, fresh (hostile):   absorption 84%+   (heavily absorbed)
   doubled empire, steady state
     (pacified + doubled army

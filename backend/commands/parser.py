@@ -270,6 +270,11 @@ class CommandParser:
             "revoke_pension",   # "revoke Ney's rente"
             # Marshal Recruitment (Jealousy v3.2 final phase)
             "recruit_marshal",  # "commission Grouchy" — 1 admin AP + gold
+            # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9)
+            "build_fleet",       # "build ships" — 1 admin AP + 400g
+            "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
+            "naval_expedition",  # "land Soult in Munster" — the H4 gamble
+            "naval_diversion",   # "order the diversion" — §5.3
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

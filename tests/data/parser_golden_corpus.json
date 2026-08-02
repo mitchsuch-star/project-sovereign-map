@@ -3585,6 +3585,67 @@
     },
     "source": "IGR-A3 (the attack arm is NOT board-independent)",
     "notes": "The spec claimed the attack arm 'refuses'; measured, it only refused because Asturias happened to be empty. With an enemy standing there it staged a commit-able muster 1,500km away. The parser now carries the nation name and the combat executor names the court."
+  },
+  {
+    "id": "naval-build-ships",
+    "utterance": "build ships",
+    "world": "1805",
+    "expected": {
+      "action": "build_fleet"
+    },
+    "source": "tests/test_naval_substrate.py::TestNavalVerbParsing",
+    "notes": "DEF-5 NV-0 (NAVAL_SPEC section 9 typed grammar). The build_fleet branch must run BEFORE the generic build branch ('build ships' contains 'build') and before troop-recruit."
+  },
+  {
+    "id": "naval-raise-a-fleet",
+    "utterance": "raise a fleet",
+    "world": "1805",
+    "expected": {
+      "action": "build_fleet"
+    },
+    "source": "tests/test_naval_substrate.py::TestNavalVerbParsing",
+    "notes": "DEF-5 NV-0: the recruit-collision guard — 'raise' belongs to troop recruiting unless the object is naval."
+  },
+  {
+    "id": "naval-blockade-britain",
+    "utterance": "blockade Britain",
+    "world": "1805",
+    "expected": {
+      "action": "set_fleet_posture"
+    },
+    "source": "tests/test_naval_substrate.py::TestNavalVerbParsing",
+    "notes": "DEF-5 NV-0: the blockade is UNTARGETED (v1.0.3) — the named court is flavor; the posture covers every at-war enemy at once."
+  },
+  {
+    "id": "naval-guard-home-waters",
+    "utterance": "guard home waters",
+    "world": "1805",
+    "expected": {
+      "action": "set_fleet_posture"
+    },
+    "source": "tests/test_naval_substrate.py::TestNavalVerbParsing",
+    "notes": "DEF-5 NV-0: the guard posture phrase — deliberately NOT bare 'guard' (a land order like 'Ney, guard Paris' must stay tactical)."
+  },
+  {
+    "id": "naval-land-soult-in-munster",
+    "utterance": "land Soult in Munster with 12,000 men",
+    "world": "1805",
+    "expected": {
+      "action": "naval_expedition",
+      "marshal": "Soult"
+    },
+    "source": "tests/test_naval_channel_gate.py::TestExpeditionVerb",
+    "notes": "DEF-5 NV-2 (the H4 verb): the two-word-window regex — 'land <marshal> in <province>' fires while 'hold the land between the rivers' and the VS-3 'grant land to X' stay on their own paths."
+  },
+  {
+    "id": "naval-order-the-diversion",
+    "utterance": "order the diversion",
+    "world": "1805",
+    "expected": {
+      "action": "naval_diversion"
+    },
+    "source": "tests/test_naval_descent.py::TestDiversion",
+    "notes": "DEF-5 NV-3 (section 5.3.3a the Grand Diversion). 'order' must not be eaten by the cancel family (whose keywords are 'cancel/halt/abort order')."
   }
  ]
 }
