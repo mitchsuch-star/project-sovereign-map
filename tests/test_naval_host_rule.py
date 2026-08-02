@@ -270,9 +270,13 @@ class TestTheBuildCeiling:
 
 
 class TestTheRepairedCandidateFilters:
-    """The two rungs NV-2's threading missed. Both were issuing orders the
-    executor then refused — 20+ logged turn-backs across a 22-turn run,
-    now 2 (the genuine mid-phase-change case the log line exists for)."""
+    """The THREE rungs NV-2's threading missed. Each was issuing orders the
+    executor then refused, logging a turn-back every time: 20+ across a
+    22-turn ambient run. Fixing P4.5 and P4.25 took it to 2, and those last
+    two were Moore and Shrapnel ordered onto Castanos across the Channel by
+    P4 — the attack rung. Measured after all three: ZERO turn-backs over 30
+    turns, and `BASELINE_SERIES` byte-identical, because every order these
+    gates remove was already being refused."""
 
     def test_undefended_capture_reads_the_crossing_gate(self, world, ai):
         british = world.get_marshals_by_nation("Britain")
@@ -285,6 +289,25 @@ class TestTheRepairedCandidateFilters:
         naval.get_fleet(world, "France")["ships"] = 0
         offered = ai._find_undefended_capture(marshal, "Britain", world)
         assert offered is not None and offered["target"] == "Normandy"
+
+    def test_the_attack_rung_reads_the_crossing_gate(self, world, ai):
+        """P4. An amphibious assault on a MARSHAL across a sea link was
+        scored and ordered, then refused by combat_executor's own gate."""
+        british = world.get_marshals_by_nation("Britain")
+        marshal = british[0]
+        marshal.location = "London"
+        marshal.strength = 30000
+        marshal.artillery = False
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Normandy"
+        french.strength = 8000
+        world._build_marshal_index()
+        assert ai._find_attack_opportunity(marshal, "Britain", world) is None
+        # Control: with the covering fleet gone the same target is offered,
+        # so the skip is the naval gate and not a broken ratio.
+        naval.get_fleet(world, "France")["ships"] = 0
+        offered = ai._find_attack_opportunity(marshal, "Britain", world)
+        assert offered is not None and offered["target"] == french.name
 
     def test_garrison_assault_reads_the_crossing_gate(self, world, ai):
         british = world.get_marshals_by_nation("Britain")
@@ -412,15 +435,32 @@ class TestTheAdmiraltyChips:
                  naval.build_admiralty_report(world)["chips"]}
         assert "no army is staged" not in chips["order the diversion"]["note"]
 
-    def test_the_unmet_diversion_terms_are_still_enumerated(self, world):
-        """When the verb really is gated, the chip carries the reason."""
+    def test_a_withheld_chip_reads_forwards_not_backwards(self, world):
+        """Caught LIVE, August 2, 2026. The gate-terms rows read as
+        CONDITIONS ("+ the diversion not yet spent this war") because they
+        sit beside a tick — but a disabled chip renders "<label> —
+        <reason>", so reusing the condition text there said "The Grand
+        Diversion — the diversion not yet spent this war", i.e. exactly
+        backwards. Every term now carries its own negative phrasing."""
         world.player_nation = "France"
         naval.get_fleet(world, "France")["diversion_used"] = True
-        chips = {c["command"]: c for c in
-                 naval.build_admiralty_report(world)["chips"]}
+        report = naval.build_admiralty_report(world)
+        chips = {c["command"]: c for c in report["chips"]}
         diversion = chips["order the diversion"]
         assert diversion["enabled"] is False
-        assert "not yet spent" in diversion["reason"]
+        assert diversion["reason"] == "the diversion is already spent this war"
+        # ...and the CONDITION phrasing survives where it belongs, beside
+        # the tick, so the two surfaces did not merge into one compromise.
+        spent = [t for t in report["diversion_terms"]
+                 if "spent" in t["text"]][0]
+        assert spent["text"] == "the diversion not yet spent this war"
+        assert spent["met"] is False
+
+    def test_every_term_carries_both_phrasings(self, world):
+        world.player_nation = "France"
+        for term in naval.build_admiralty_report(world)["diversion_terms"]:
+            assert term["text"] and term["unmet"]
+            assert term["text"] != term["unmet"]
 
     def test_a_fleetless_court_is_offered_nothing(self, world):
         """Austria keeps ports and no navy — the block renders, the orders

@@ -915,7 +915,21 @@ These are concrete code paths that previous spec text covers implicitly but does
 
 ## Active Bug Specs
 
-### NV-P1: the Strategic Ledger panel ignores the mouse wheel (found by the NV-V visual playtest, August 2, 2026)
+### ~~NV-P1: the Strategic Ledger panel ignores the mouse wheel~~ ✅ FIXED August 2, 2026 (NV-6)
+
+**Cause, confirmed:** the ledger's content area is a `RichTextLabel`
+inside a `ScrollContainer`, and a `RichTextLabel` defaults to
+`MOUSE_FILTER_STOP` — it consumed the wheel event before its own parent
+ever saw it. Dragging the thumb worked because the drag lands on the
+scrollbar, not on the label. Fixed in `strategic_ledger.gd::_ready()` with
+`content_area.mouse_filter = Control.MOUSE_FILTER_PASS`: PASS still
+delivers `_gui_input`, so `meta_clicked` and every chip on the screen keep
+working, and then lets the parent scroll. Guessed correctly in the row
+below ("likely one `mouse_filter` line") — recorded because the guess was
+worth something. Landed with the NV-6 Admiralty chips, which is what made
+it bite hardest.
+
+<details><summary>Original report</summary>
 
 **Problem statement.** In the live client the Strategic Ledger's content
 area does not scroll on mouse wheel. During the naval visual pass the
@@ -939,6 +953,11 @@ one `mouse_filter` / `ScrollContainer` focus line). **Completion
 definition:** wheel scrolling works in every ledger sub-tab.
 **Behavior test:** a `.gd` source pin that the scroll container accepts
 wheel input, plus a live wheel check in the next in-client review.
+</details>
+
+⚠ **Still open:** the live wheel check in the client — the fix is a
+one-line filter change with no headless test that can prove a wheel event
+reaches a `ScrollContainer`. Verify on the next play session.
 
 ### NV-P2 (recorded, working-as-designed): a blockading Britain stops tinting a crossing it owns outright
 

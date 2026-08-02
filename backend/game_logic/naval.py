@@ -1508,13 +1508,22 @@ def build_admiralty_report(world) -> Dict:
     # Honest gate terms IN ORDER (the §11.6 idiom) for the two gambles.
     own_ships = int((own or {}).get("ships", 0) or 0)
     at_war_any = bool(world.get_nations_at_war_with(player))
+    # NV-6: each term carries its own NEGATIVE phrasing. The gate-terms
+    # rows read as conditions ("+ the diversion not yet spent this war"),
+    # which is right beside a tick — but a disabled chip renders
+    # "<label> — <reason>", and reusing the condition text there said
+    # "The Grand Diversion — the diversion not yet spent this war", i.e.
+    # exactly backwards. Caught live.
     diversion_terms = [
-        {"text": "a fleet in commission", "met": own_ships > 0},
+        {"text": "a fleet in commission", "met": own_ships > 0,
+         "unmet": "we keep no fleet in commission"},
         {"text": "at war with a naval power", "met": bool(
             at_war_any and any(world.is_at_war(player, n)
-                               for n, _r in iter_fleets(world)))},
+                               for n, _r in iter_fleets(world))),
+         "unmet": "no naval power is at war with us"},
         {"text": "the diversion not yet spent this war",
-         "met": not bool((own or {}).get("diversion_used"))},
+         "met": not bool((own or {}).get("diversion_used")),
+         "unmet": "the diversion is already spent this war"},
     ]
     report["diversion_terms"] = diversion_terms
     report["diversion_available"] = all(t["met"] for t in diversion_terms)
@@ -1552,7 +1561,8 @@ def build_admiralty_report(world) -> Dict:
                 "note": ("closes " + ", ".join(sorted(blockadable))
                          if blockadable else "")})
         if not report["diversion_available"]:
-            unmet = [t["text"] for t in diversion_terms if not t["met"]]
+            unmet = [t.get("unmet") or t["text"]
+                     for t in diversion_terms if not t["met"]]
             chips.append({
                 "command": "order the diversion",
                 "label": "The Grand Diversion",

@@ -511,7 +511,7 @@ a falsifiable test.
 | NV-D1 | CS neutral coercion — the Portugal ultimatum, the Peninsula trap | NA follow-on gate (rides the NA-5 ultimatum machinery), post-NV-V | `test_cs_coercion.py` |
 | NV-D2 | Copenhagen 1807 — Britain's pre-emptive fleet seizure of a neutral | Same NA follow-on gate (it is an agenda behavior, not a naval one) | seizure event pins |
 | NV-D3 | Privateers / commerce-raid posture | Econ pass 3 successor, if the blockade layer measures thin | raid-income pins |
-| NV-D4 | Naval battle presentation (diorama-class) | `BATTLE_DIORAMA_SPEC.md` Tier-B/C gate | visual pack |
+| ~~NV-D4~~ | ~~Naval battle presentation (diorama-class)~~ | **✅ CLOSED — re-opened and BUILT at the August 2, 2026 user gate ("a battle screen like for battles?"); landing record §15.5** | `test_naval_diorama.py` (22) + `docs/audits/NV7_NAVAL_DIORAMA_TRAFALGAR_2026_08_02.png` |
 | NV-D5 | Colonies / Egypt / the wider world — referenced NOWHERE in v1 copy | Post-EA expansion table (ROADMAP) — its own future gate defines scope + completion | copy-scan pin at NV-0: no colonial strings ship on any v1 surface |
 | NV-D6 | DEF-8 full `is_coastal` re-derivation | Stays at DEF-8, **not triggered** (§3.4 — v1 reads authored data only) | DEF-8's own row |
 | NV-D7 | Weather/season on expeditions (Bantry's gale) | NV-V verdict decides if the odds curve needs it | curve re-bless |
@@ -881,3 +881,186 @@ that pass; the MAP-plan rows are annotated now.
 *Companion reading: `MAP_IMPLEMENTATION_PLAN.md` DEF-5/6/7/8 (the map contracts this spec
 consumes), `NATION_AGENDAS_SPEC.md` §11.4/§20/§21 (the creation machinery Ireland rides),
 `ECONOMY_REVISIT_SPEC.md` + EC-W (the ledger recipe every naval component threads).*
+
+---
+
+## §15. NV-4 · NV-5 · NV-6 · NV-7 — THE SECOND PASS (landing record,
+## August 2, 2026, AUTHORITATIVE where it amends the body)
+
+User-directed: *"do another pass on naval, make sure it works and the ux is
+fleshed out; does Normandy make sense for England to land at, how do we abstract
+them entering on Portugal irl? do we need buttons anywhere, better visual rep, a
+battle screen like for battles?"* Four decisions were put back and all four were
+taken at the recommended default. **This section is the gate record and the
+landing record together.**
+
+### 15.1 What the measurement found first
+
+A 16-turn ambient probe (historical seed, the `tools/ai_v_sweep.py` idiom) on
+NV-3's master:
+
+| Measured | Reading |
+|---|---|
+| Moore marched **30,000 men** ashore at Normandy on turn 1 and stood in **Berry by turn 2**; Paget drifted Orleanais → Flanders → Rhineland → **Gelderland** | The crossing gate asked only "is the water covered?", never "is the far shore hostile?" — so naval superiority bought a free, uncapped, unopposed landing on enemy home soil, twice the transports' cap |
+| `naval_expedition` never fired, on any turn, for anyone | It was **strictly dominated**: nobody rolls odds with 15k when 30k marches for free |
+| Spain laid a keel **every turn forever** (30 → 44 sail by turn 16, ~70 by turn 40) for +2.5 effective points | The AI build rung had no notion of "enough"; every green hull folded readiness back to the blockade floor |
+| A turn-back logged **every other turn for the whole run** | THREE AI candidate rungs were missed by NV-2's threading entirely |
+| CS closure boots at **38.5%** against a 40% first notch | The headline percentage was true and inert, with no way to tell from the surface |
+| One interactive naval affordance in the entire game ("Lay down ships") | Posture, expedition and the Diversion were typed-command only |
+
+### 15.2 The Normandy answer, and Portugal
+
+The **crossing** was right — 111px, the historic descent coast, and far better
+than the Flanders → central-France walk NV-3 replaced. What was wrong is what
+followed. No British field army landed on French home soil in this period; the
+army was small and went where a **host** received it: Portugal 1808 (Wellesley
+put **15,000** men ashore at Mondego Bay — the transports' cap is historically
+exact), Sicily, Hanover 1805, the Helder, Walcheren.
+
+**NV-4 THE HOST RULE (§4.1a).** A sea link may not be MARCHED into a province
+held by a court the mover is at war with, while any hostile fleet still covers
+that water. Sited in `crossing_check`, the single-source predicate, so all ~25
+gate seams inherit it; sited AFTER the ratio arm, so it can only change the
+verdict for a mover who already commands the sea — a mover the water has
+already turned back hears the stronger, truer refusal, and the blast radius is
+the one case it was built for. Two escape hatches, both real and both pinned:
+
+- **Uncontested water is an administrative ferry.** Beat the covering fleet and
+  the army lands, unlimited. That is what "France can still be invaded, after
+  the Royal Navy is beaten" means mechanically.
+- **A §5.3 window waives it.** Drawing the enemy off station IS the moment the
+  army crosses; the Descent would be unwinnable if the rule outlived the window
+  it was designed alongside.
+
+And once the shore is ours the link is ours: the rule gates the FIRST landing,
+never the reinforcement of one that succeeded (Torres Vedras, not a raid).
+
+New verdict `landing` with its own amber map tint, its own **DEFENDED SHORE**
+Crossings line and its own dispatch beat — never "SHUT", because the water is
+not lost and a player who reads a naval defeat that never happened builds the
+wrong fleet. `link_verdicts` now evaluates the player's own direction of travel,
+the gate having become directional.
+
+### 15.3 NV-5 — the AI's naval life, so the rule opens a door
+
+- **`find_ai_expedition`** sails for a shore that will RECEIVE an army before it
+  ever considers an enemy beach. A **host** is an ally, a vassal, or a friend at
+  `AI_EXPEDITION_HOST_RELATION` (25) or better — and the shipped 1805 board
+  reads exactly right through that filter: **Portugal 40** and Naples 30 are
+  hosts, Denmark/Hanover/Sardinia at 0 are not. No army walks onto an
+  indifferent neutral's soil.
+- **`nation_is_penned_in`** is land REACHABILITY, not adjacency. The first cut
+  called *France* penned too — at boot it has no enemy on its border either, it
+  simply has not marched. One land-only BFS, cached per turn for all nations.
+- **Measured after:** Britain lands at **LISBON on turn 11** and fights up
+  through Galicia → Asturias → Bordelais. Over 30 turns it runs three
+  expeditions (Lisbon, Piedmont, Artois) and Paget reaches Limousin. Moore's
+  30,000 stay home, being over the lift — which is where Britain's home army
+  actually was until 1808.
+- **The establishment ceiling** (`AI_FLEET_CEILING_FACTOR` 1.5 × the AUTHORED
+  fleet, recorded at boot as `established`): Spain now halts at 45 sail. A
+  DECISION ceiling on the AI only — the player's brakes stay the §3.5 three.
+  Plus a deeper treasury reserve so a naval program never starves the army.
+- **`find_ai_diversion`** — dormant on the shipped board (France is the player),
+  live the moment anyone else wears that shoe.
+- **Three pre-existing AI bugs fixed:** P4 attack, P4.25 garrison assault and
+  P4.5 undefended capture all lacked the crossing gate, so the council ordered a
+  barred crossing, had it refused at the executor and logged a turn-back.
+  **20+ turn-backs over 22 turns → ZERO over 30.**
+- **The Continental System stops lying by omission:** below the lowest notch the
+  surface says "not yet biting" and names the ports that close the next one
+  (measured at boot: 38% closed, next notch 40%, **one more port**).
+
+### 15.4 NV-6 — the chips
+
+`Orders to the Admiralty` in the ledger block, on the §11.6 honest-availability
+idiom: each chip carries the same typed command a player would write, its
+enabled state IS the executor's gate, and a withheld chip states why in present
+tense (pinned: no chip is ever dark and silent; and every chip command is pinned
+to actually parse, because a chip that types a command the parser does not know
+is a dead button). The posture chip offers the station the fleet is NOT holding
+and names who a blockade would close.
+
+**The landing chip lives on the region panel**, because the expedition is the
+one naval verb that needs a destination and the map is where a destination is
+chosen. `expedition_landing_options` mirrors the executor's own target
+eligibility and quotes `expedition_slip_odds` — the same function the confirm
+prints and the resolver rolls. A chip that appears is a chip that sails.
+
+**The Grand Diversion warns about the trap it cannot gate:** the verb does not
+require a staged camp and is deliberately not being made to, but spending a
+once-per-war card to open two turns of water with no army on the beach is a
+trap, so the chip says so and stays clickable, because it works.
+
+**NV-P1 fixed** (pre-existing): the ledger's `RichTextLabel` defaulted to
+`MOUSE_FILTER_STOP` and ate the wheel before its own `ScrollContainer` saw it.
+
+### 15.5 NV-7 — the Naval Diorama (row **NV-D4 re-opened and CLOSED**)
+
+The same tableau the land battles get, in the same payload shape, rendered by
+the same scene — and the mapping is the model, not a metaphor. §4.4's resolver
+already bleeds every fleet that pooled on a side (H6), so its own per-nation
+loss dict IS the order of battle: a CONTINGENT is a pooled navy, COMMITTED is
+sail of the line, CASUALTIES are ships taken or sunk, the ARM is `ship`. On the
+shipped board France's line comes up as **Villeneuve 45, Gravina 30, Verhuell
+12** against **Nelson 100 and Senyavin 20** — the historical picture,
+unprompted, because the pooling rule was already right.
+
+The **ship is the fourth war-table piece**, carved by the same offline generator
+in the same timber (`tools/gen_war_table_pieces.py`, 24 → 32 sprites). Diorama-
+only and pinned so: Q1(a) keeps the naval model to one national fleet record, so
+nothing on the map is a ship.
+
+Presentation follows the fiction: chart-blue stage with ruled swell lines, SAIL
+LOST odometers, "45 → 20 sail" (45 → 20 alone reads as a rout of twenty men), a
+sea vocabulary on the banner (**THE SEA IS OURS / THE FLEET IS BROKEN / X HOLDS
+THE SEA** — nothing is carried and no field is held), the waters engraved on the
+plate because there are no sea zones to name, and the verdict spoken by **THE
+ADMIRALTY** rather than by Berthier, who has no business reporting a fleet
+action. The verdict names what a naval defeat MEANS — the crossing gate — so the
+player reads a strategic fact and not a scoreline.
+
+Built at the resolver (the BD §14.1 lesson applied before it could bite): the
+tableau is created at the ONE seam every fleet action passes through, and the
+terminal's replay link is emitted where it is stashed. Both surfaces open
+unconditionally — there are exactly two ways to cause a fleet action and both
+stake a campaign on it.
+
+Evidence: `docs/audits/NV7_NAVAL_DIORAMA_TRAFALGAR_2026_08_02.png`, rendered
+from a real payload through the real scene by the committed harness
+`tools/naval_diorama_screenshot.gd`.
+
+### 15.6 Pins flipped consciously (each dated in its file)
+
+- Three `test_naval_channel_gate.py` pins that asserted Britain's free march.
+  The RATIO is asserted UNCHANGED alongside the flip, so the change is provably
+  the host rule and not a naval reversal.
+- The `test_ai_square_thrash.py` reproduction shape moved ashore to
+  Normandy/Maine after that file's OWN coverage guard caught its breaker going
+  dead — exactly what the guard is for.
+- The war-table pieces drift guard extended 24 → 32 sprites, so every U4 quality
+  check now applies to the ship.
+- **`BASELINE_SERIES` re-recorded ONCE**, divergence index 1 = the turn Britain
+  used to take Normandy. **The attribution was verified by experiment, not
+  argument:** with `HOST_RULE_ACTIVE` flipped False and every other NV-4/NV-5
+  change left in place, the series reproduces the prior record byte-identically
+  — so the expedition rung, the build ceiling and the three repaired filters are
+  all threat-neutral and this re-record has exactly one cause. The tail runs
+  lower and reaches 0 because the ambient France conquers nothing AND is invaded
+  by nobody; that is the honest reading of a quiet France (AI-3r §8.2).
+- **M1–M7 byte-identical throughout, without re-record.**
+
+### 15.7 Also fixed in passing
+
+"the France fleet" → "the French fleet": `display_names` now owns
+`NATION_DEMONYMS` as the R7 single source and `strategic_parser` reads it, so
+the parse side and the prose side cannot drift.
+
+### 15.8 Still open
+
+The played **A2 strangulation arc** and the **naval pillar score** (both
+inherited from NV-V and untouched by this pass — they need a played campaign,
+not a probe), plus the live wheel check for NV-P1 and a visual sign-off on the
+new surfaces: the amber DEFENDED SHORE tint, the Admiralty chips, the region-
+panel landing chip, and the naval diorama in motion (the still is evidence; the
+cinematic tween is checked live).

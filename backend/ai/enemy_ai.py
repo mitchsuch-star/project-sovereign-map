@@ -2492,6 +2492,21 @@ class EnemyAI:
                         ai_debug(f"    SKIPPING {enemy.name} - path blocked by {blocker}")
                         continue
 
+                # DEF-5 naval §4.1 — the crossing gate. The THIRD rung NV-2's
+                # candidate threading missed (after P4.5 capture and P4.25
+                # garrison assault, both fixed at NV-5): an amphibious assault
+                # on a marshal across a sea link was scored, ordered, refused
+                # by combat_executor's own gate and logged as a turn-back.
+                # Measured: the last 2 turn-backs of a 24-turn ambient run
+                # were Moore and Shrapnel ordered onto Castanos across the
+                # Channel. Origin-aware, so it reads the host rule too.
+                if getattr(world, "fleets", None):
+                    from backend.game_logic.naval import crossing_allowed
+                    if not crossing_allowed(world, nation, marshal.location,
+                                            enemy.location):
+                        ai_debug(f"    P4: {enemy.name} is across barred water")
+                        continue
+
                 # Calculate base strength ratio using combined allied strength for decision
                 combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
                 base_ratio = combined_strength / enemy.strength

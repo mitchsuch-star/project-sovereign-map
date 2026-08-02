@@ -4,6 +4,83 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ THE NAVAL SECOND PASS — NV-4..NV-7 LANDED (August 2, 2026)
+>
+> **User direction: "do another pass on naval, make sure it works and the ux is
+> fleshed out; does Normandy make sense for England to land at, how do we
+> abstract them entering on Portugal irl? do we need buttons anywhere, better
+> visual rep, a battle screen like for battles?"** Four decisions put back, all
+> four taken at the recommended default. **Gate + landing record =
+> `NAVAL_SPEC.md` §15, authoritative.**
+>
+> **Measured first** (16-turn ambient probe, historical seed, the `ai_v_sweep`
+> idiom): Britain's Moore marched **30,000 men** ashore at Normandy on turn 1 —
+> twice the transports' cap — and stood in **Berry by turn 2**; `naval_expedition`
+> never fired for anyone because it was **strictly dominated**; a blockaded Spain
+> laid a keel **every turn forever** (30 → 44 by turn 16, ~70 by turn 40) for
+> +2.5 effective points; a turn-back was logged **every other turn**; the
+> Continental System's headline 38.5% closure sat below its own 40% first notch
+> and did nothing, with no way to tell; and the only interactive naval
+> affordance in the whole game was one chip.
+>
+> - **NV-4 THE HOST RULE.** The crossing gate now reads the far SHORE as well as
+>   the water: a sea link may not be MARCHED into a province held by a court you
+>   are at war with while a hostile fleet still covers it. In the single-source
+>   predicate, so ~25 seams inherit it; sited AFTER the ratio arm, so it can only
+>   change the verdict for someone who already commands the sea. Both escape
+>   hatches real and pinned — uncontested water is an administrative ferry (beat
+>   the fleet and land unlimited), and a §5.3 window WAIVES it (drawing the enemy
+>   off station is precisely when the army crosses; the Descent stays winnable).
+>   It gates the FIRST landing, never the reinforcement of one that succeeded.
+>   New `landing` verdict with an amber map tint and a **DEFENDED SHORE** line —
+>   never "SHUT", because the water is not lost.
+> - **NV-5 THE AI'S NAVAL LIFE.** `find_ai_expedition` sails for a shore that
+>   will RECEIVE an army before it considers a beach; a **host** is an ally, a
+>   vassal, or a friend at 25+ — and the shipped board reads exactly right
+>   through that filter (**Portugal 40**, Naples 30 · Denmark/Hanover/Sardinia
+>   0). `nation_is_penned_in` is land REACHABILITY, not adjacency (the first cut
+>   called France penned too). **Measured: Britain lands at LISBON on turn 11**
+>   and fights up through Galicia → Asturias → Bordelais; over 30 turns it runs
+>   three expeditions and Paget reaches Limousin. Moore's 30,000 stay home, being
+>   over the lift — where Britain's home army actually was until 1808. Plus the
+>   establishment build ceiling (Spain halts at 45), the diversion rung, the
+>   honest CS surface, and **three pre-existing AI bugs**: P4 attack, P4.25
+>   garrison assault and P4.5 undefended capture all lacked the crossing gate.
+>   **20+ turn-backs over 22 turns → ZERO over 30.**
+> - **NV-6 THE ADMIRALTY'S CHIPS.** Posture and the Grand Diversion as honest-
+>   availability chips in the ledger block (a withheld chip states why; every
+>   chip command is pinned to actually parse); the **landing chip on the region
+>   panel**, where a destination is chosen, quoting the same odds the resolver
+>   rolls. The Diversion warns about the trap it cannot gate (a once-per-war card
+>   spent with no army staged). **NV-P1 FIXED** — the ledger's RichTextLabel
+>   defaulted to `MOUSE_FILTER_STOP` and ate the wheel before its own
+>   ScrollContainer saw it.
+> - **NV-7 THE NAVAL DIORAMA** (row **NV-D4 re-opened and CLOSED**). The same
+>   tableau, same payload shape, same scene. The mapping is the model: §4.4
+>   already bleeds every pooled fleet, so its loss dict IS the order of battle —
+>   **Villeneuve 45, Gravina 30, Verhuell 12 against Nelson 100 and Senyavin
+>   20**, the historical picture unprompted. The **ship is the fourth war-table
+>   piece** from the same generator (24 → 32 sprites), diorama-only. Chart-blue
+>   stage, SAIL LOST odometers, "45 → 20 sail", a sea vocabulary on the banner,
+>   and the verdict spoken by **THE ADMIRALTY** — not Berthier, who has no
+>   business reporting a fleet action. Evidence:
+>   `docs/audits/NV7_NAVAL_DIORAMA_TRAFALGAR_2026_08_02.png`.
+>
+> **Pins flipped consciously:** three channel-gate pins (the ratio asserted
+> UNCHANGED alongside, so the flip is provably the host rule and not a naval
+> reversal); the square-thrash shape moved ashore after that file's own coverage
+> guard caught its breaker going dead; the pieces drift guard 24 → 32; and
+> **`BASELINE_SERIES` re-recorded ONCE**, divergence index 1 — **attribution
+> verified by experiment**: with `HOST_RULE_ACTIVE` flipped False and everything
+> else left in place, the series reproduces the prior record byte-identically.
+> M1–M7 byte-identical without re-record. Suite **15,822/3**, ruff clean, Godot
+> parse harness EXIT=0.
+>
+> **⚠ Open:** the played A2 strangulation arc + the naval pillar score (both need
+> a played campaign, not a probe), the live wheel check for NV-P1, and a visual
+> sign-off on the new surfaces — the amber DEFENDED SHORE tint, the Admiralty
+> chips, the region-panel landing chip, and the diorama in motion.
+
 > ### ✅ THE WOODEN WALL IS BUILT — NV-0..NV-3 LANDED IN ONE SESSION (August 2, 2026)
 >
 > **User direction: "start coding the navy — follow the spec, make sure nothing is
