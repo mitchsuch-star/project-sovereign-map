@@ -864,6 +864,12 @@ class EnemyAI:
         # Track marshals who have already changed stance this turn (prevent spam)
         self._stance_changed_this_turn: set = set()
 
+        # PT-F6: a marshal forms square at most ONCE per phase. His own next
+        # action (attack/move/stance change) breaks it silently via
+        # _auto_break_square, which sets no ai_square_cooldown — without this
+        # latch P2.5 re-forms it and the phase reads form/break/re-form farce.
+        self._squares_formed_this_turn: set = set()
+
         # NOTE: Cooldown decrements moved to decrement_all_cooldowns() — called once
         # per turn in turn_manager.py, NOT per-nation (V2-20/21 fix).
 
@@ -1038,6 +1044,12 @@ class EnemyAI:
             # Track successful stance changes to prevent spam
             if selected_action["action"] == "stance_change":
                 self._stance_changed_this_turn.add(selected_action["marshal"])
+
+            # PT-F6: latch on the EXECUTED formation (never during evaluation —
+            # the ai_square_cooldown stamp inside _evaluate_marshal is the
+            # documented anti-pattern this deliberately avoids).
+            if selected_action["action"] == "form_square":
+                self._squares_formed_this_turn.add(selected_action["marshal"])
 
             # Track successful attacks to prevent same attacker→target repetition
             if selected_action["action"] == "attack" and selected_action.get("target"):
@@ -1281,6 +1293,15 @@ class EnemyAI:
                 # Skip stance changes for marshals who already changed this turn
                 if action.get("action") == "stance_change":
                     if self._should_skip_stance_change(action.get("marshal")):
+                        continue
+                    # PT-F6: a marshal standing in square holds his posture —
+                    # a stance change would break the formation he just paid
+                    # for (the S5-1 fortify guards' missing sibling). P2.5's
+                    # break rung owns the deliberate exit; attack/move breaks
+                    # stay legal (abandoning the square for a blow is a
+                    # choice, fidgeting out of it is farce).
+                    if getattr(marshal, 'square_formation', False):
+                        ai_debug(f"  [SKIP] {marshal.name} in square — stance change would break it")
                         continue
 
                 marshal_priority = self._get_marshal_priority_for_turn_order(marshal, world)
@@ -1659,9 +1680,16 @@ class EnemyAI:
                         "action": "break_square",
                     }, 2)
             else:
-                # FORM square if cavalry adjacent, no artillery, and not on cooldown
+                # FORM square if cavalry adjacent, no artillery, and not on cooldown.
+                # PT-F6: and never twice in one phase — if this marshal already
+                # formed square this phase, his own later action broke it
+                # (attack/move/stance change through _auto_break_square), and
+                # re-forming is the square-thrash the transcript reads as farce.
                 cooldown = getattr(marshal, 'ai_square_cooldown', 0)
-                if adj_cavalry and not adj_artillery and cooldown <= 0:
+                formed_this_phase = marshal.name in getattr(
+                    self, '_squares_formed_this_turn', set())
+                if (adj_cavalry and not adj_artillery and cooldown <= 0
+                        and not formed_this_phase):
                     ai_debug("  P2.5: Cavalry threat, no artillery — forming square")
                     return ({
                         "marshal": marshal.name,
