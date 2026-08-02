@@ -1064,3 +1064,72 @@ not a probe), plus the live wheel check for NV-P1 and a visual sign-off on the
 new surfaces: the amber DEFENDED SHORE tint, the Admiralty chips, the region-
 panel landing chip, and the naval diorama in motion (the still is evidence; the
 cinematic tween is checked live).
+
+### 15.9 The tightening review (same day — user-directed: "make all fixes
+### found... look for bugs, assure UX/UI and functionality is tight, no
+### ham-fisted solutions")
+
+An adversarial pass over §15's own work plus the seams it touches. Five
+defects found by hunting, all fixed; three candidates investigated and
+cleared; one flagged decision re-examined and kept.
+
+**Fixed:**
+
+1. **THE NEUTRALITY BYPASS (the consent gate).** The land game asks a
+   neutral's leave before an army enters; the sea game did not — an
+   expedition could put a corps on ANY neutral's coast with zero diplomacy
+   (France lands in Copenhagen, no consequence machinery). Closed with the
+   SAME predicate the AI's targeting already used, made public
+   (`is_expedition_host`, GR5 single source): own soil is a sealift, an
+   at-war shore is the verb's point, anyone else must RECEIVE us — ally,
+   vassal, or relation ≥ `AI_EXPEDITION_HOST_RELATION`. Enforced at the
+   executor's target resolver AND mirrored in `expedition_landing_options`
+   so the chip never offers a landing the executor refuses. The refusal
+   quotes the bar and both doors ("court them first, or make it war").
+   Free Ireland and the Descent are war targets — untouched, pinned.
+2. **GUNS DO NOT CARRY ACROSS A STRAIT.** Measured: with both Channel
+   fleets sunk, a London battery bombarded a French corps in Flanders —
+   `success=True` across 30km of open sea. The attack-arm crossing gate
+   refuses a COVERED link, but uncontested water read "open" (the ferry
+   rule) and fell through to the bombardment branch. The rule is PHYSICAL,
+   not naval-control, so it lives at the single `_execute_bombardment`
+   seam both call sites use (normal route + SUPPORT auto-bombard), both
+   sides, whoever owns the water. P4's artillery branch skips the target
+   too, so the council never scores an order it cannot give.
+3. **COUNTER-PUNCH STAYS A LAND REFLEX.** `_get_counter_punch_action`
+   scanned raw `adjacent_regions` — sea links included — so a cautious
+   marshal in London kept offering a Channel counter-punch the executor
+   refused every time (the square-thrash log's own failure shape, live in
+   production). Gated with `crossing_allowed`, host rule included; the
+   land reflex is pinned intact by a control arm.
+4. **THE TURN-BACK LOG NAMES REAL WATER.** An ATTACK's target is a MARSHAL
+   name and the raw value produced "the London–Castanos crossing"
+   (measured). The logger resolves a marshal target to its region.
+5. **THE ENEMY PHASE CARRIES THE SEA.** The client's enemy-phase stash
+   scanned only `battle_diorama`, so a fleet action fought in the enemy
+   phase (the player's fleet intercepting an AI expedition) could never
+   auto-play. The passthrough was already safe (`_build_visible_enemy_
+   phase` strips only `new_state`); the scan now reads both keys, same
+   player-side + dramatic bar.
+
+**Investigated and cleared:** overwatch is same-region only (no
+cross-water fire possible); `_build_visible_enemy_phase` passes
+`naval_diorama` through untouched; the probe's Piedmont landing is
+legitimate (Kingdom of Italy had entered the war — an enemy beach, not a
+neutral), and its missing `expedition_landed` event is the known IGR-B
+500-cap eviction, not a rule breach.
+
+**Re-examined and kept:** the AI build ceiling (1.5× the authored
+establishment). Flagged at landing as possibly blunt; re-read against the
+board it is the right shape — Spain halting at 45 sail is Cádiz's real
+establishment, and a Combined Fleet of France 45 + Spain 45 + Holland 12
+pooling at 0.8 approaches the Royal Navy's 100+20, which is exactly the
+1805 arithmetic that made Trafalgar necessary. The ceiling is authored-
+data-derived, not a magic number.
+
+**Also:** the help ADMIRALTY section now states the host rule, the
+consent rule and the landing chip; `SAVE_FORMAT_REFERENCE` documents
+`established`. Measured after: **zero** turn-backs over 30 turns, no
+neutral landings, `BASELINE_SERIES` byte-identical WITHOUT re-record
+(every order the new gates remove was already being refused — same
+convergence the P4 gate showed). Suite 15,837/3.

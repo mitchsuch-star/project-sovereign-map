@@ -346,6 +346,26 @@ class NavalExecutor:
             return {"success": False, "message": (
                 f"{name} lies adjacent by land — march there; the fleet is "
                 "for crossings the army cannot make.")}
+        # NV-4 review (Aug 2, 2026) — THE CONSENT GATE. The land game asks
+        # a neutral's leave before an army enters; the sea game did not,
+        # so an expedition could put a corps on ANY neutral's coast with
+        # no diplomacy at all — the neutrality-bypass hole. The rule is
+        # the SAME predicate the AI's own targeting already used (GR5,
+        # single source): our own soil is a sealift, an at-war shore is
+        # the verb's whole point, and anyone else must actually RECEIVE
+        # us — an ally, a vassal, or a court at
+        # AI_EXPEDITION_HOST_RELATION or better (Portugal, 1808).
+        holder = getattr(region, "controller", None)
+        if (holder and holder != marshal.nation
+                and not world.is_at_war(marshal.nation, holder)
+                and not naval.is_expedition_host(world, marshal.nation, holder)):
+            from backend.display_names import display_nation
+            return {"success": False, "message": (
+                f"{display_nation(holder)} has not opened her ports to our "
+                f"army, Sire — a court receives an expedition only as a "
+                f"friend (relation {naval.AI_EXPEDITION_HOST_RELATION} or "
+                f"better), an ally, or a vassal. Court them first, or make "
+                f"it war.")}
         return name
 
     # ──────────────────────────────────────────────────────────────────

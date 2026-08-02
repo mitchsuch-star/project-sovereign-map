@@ -76,6 +76,29 @@
 > M1–M7 byte-identical without re-record. Suite **15,822/3**, ruff clean, Godot
 > parse harness EXIT=0.
 >
+> **THE TIGHTENING REVIEW (same day, user-directed "look for bugs, no ham-fisted
+> solutions") — record = `NAVAL_SPEC.md` §15.9.** Five defects found by hunting,
+> ALL FIXED: **the neutrality bypass** (an expedition could land on ANY neutral's
+> coast with zero diplomacy — closed with the consent gate, `is_expedition_host`
+> made the ONE public predicate the executor, the chips and the AI all read;
+> own soil = sealift, at-war = the verb's point, anyone else must RECEIVE us);
+> **guns do not carry across a strait** (measured: with both Channel fleets sunk
+> a London battery shelled Flanders, success=True — the crossing gate refuses
+> covered water but uncontested water read "open"; the physical rule now lives at
+> the single bombardment seam, both call sites, plus the P4 artillery skip);
+> **counter-punch stays a land reflex** (the cautious rung offered Channel
+> retaliations the executor refused every time); **the turn-back log names real
+> water** ("the London–Castanos crossing" — a marshal name resolved to its
+> region); **the enemy phase carries the sea** (the client stash scanned only
+> `battle_diorama`, so an enemy-phase fleet action could never auto-play).
+> Cleared: overwatch (same-region only), the enemy-phase passthrough, the
+> probe's Piedmont landing (KoI had entered the war — an enemy beach). The AI
+> build ceiling re-examined and KEPT: Spain halting at 45 is Cádiz's real
+> establishment, and France 45 + Spain 45 + Holland 12 pooled at 0.8 vs the
+> RN's 100+20 is exactly the arithmetic that made Trafalgar necessary. Zero
+> turn-backs over 30 turns; `BASELINE_SERIES` byte-identical WITHOUT re-record;
+> suite **15,837/3**.
+>
 > **⚠ Open:** the played A2 strangulation arc + the naval pillar score (both need
 > a played campaign, not a probe), the live wheel check for NV-P1, and a visual
 > sign-off on the new surfaces — the amber DEFENDED SHORE tint, the Admiralty

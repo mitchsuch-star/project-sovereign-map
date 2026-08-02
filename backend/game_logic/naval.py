@@ -1651,6 +1651,15 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
     for region_name, region in world.regions.items():
         if not getattr(region, "is_coastal", False):
             continue
+        # NV-4 review — the consent gate, mirrored: the chip must not offer
+        # a landing the executor refuses. Own soil = sealift; at-war = the
+        # verb's point; anyone else must be a host (the same predicate the
+        # executor and the AI read).
+        holder = _controller(world, region_name)
+        if (holder and holder != nation
+                and not world.is_at_war(nation, holder)
+                and not is_expedition_host(world, nation, holder)):
+            continue
         for marshal in corps:
             if region_name == marshal.location:
                 continue
@@ -1719,7 +1728,7 @@ def nation_is_penned_in(world, nation: str) -> bool:
     return penned
 
 
-def _is_expedition_host(world, nation: str, holder: str) -> bool:
+def is_expedition_host(world, nation: str, holder: str) -> bool:
     """NV-5: will this court receive our army? An ally or a vassal always
     will; anyone else needs real friendship. Measured on the shipped 1805
     board: Britain–Portugal 40 (the oldest alliance in Europe, and the
@@ -1786,7 +1795,7 @@ def find_ai_expedition(world, nation: str) -> Optional[Dict]:
             if not is_sea_link(world, region_name, adj))
         if holder in enemies:
             rank = 2
-        elif borders_the_war and _is_expedition_host(world, nation, holder):
+        elif borders_the_war and is_expedition_host(world, nation, holder):
             rank = 0
         else:
             continue

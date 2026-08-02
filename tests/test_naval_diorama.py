@@ -235,3 +235,21 @@ class TestTheShipPieceExists:
         with open(os.path.join("backend", "models", "marshal.py"),
                   encoding="utf-8") as handle:
             assert '"ship"' not in handle.read()
+
+
+class TestTheEnemyPhaseCarriesTheSea:
+    def test_the_stash_scans_the_naval_key_too(self):
+        """The enemy-phase stash originally read only , so
+        a fleet action fought in the enemy phase (the player's fleet
+        intercepting an AI expedition, an AI diversion caught) could never
+        auto-play. The passthrough itself was already safe —
+        _build_visible_enemy_phase strips only  — so the gap was
+        purely the client scan. Static source pin, the U5 idiom."""
+        import os
+        gd = os.path.join("godot-client", "project-sovereign", "scripts",
+                          "main.gd")
+        with open(gd, encoding="utf-8") as handle:
+            source = handle.read()
+        stash = source.split("func _stash_diorama")[1].split("func ")[0]
+        assert 'action.get("naval_diorama")' in stash
+        assert 'action.get("battle_diorama")' in stash

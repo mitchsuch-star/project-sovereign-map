@@ -2477,6 +2477,30 @@ class CombatExecutor:
             }
 
         # ════════════════════════════════════════════════════════════
+        # NV-4 review (Aug 2, 2026): GUNS DO NOT CARRY ACROSS A STRAIT.
+        # A PHYSICAL rule, not a naval-control one — which is why it lives
+        # here at the single bombardment seam and not in crossing_check.
+        # The attack-arm crossing gate already refuses a COVERED link, but
+        # once the covering fleet was sunk the water read "open" and a
+        # London battery could shell Flanders across 30km of sea (measured:
+        # success=True with both fleets at 0). Range across water is an
+        # expedition's problem; a battery's is powder and ballistics.
+        # Same seam both call sites (normal route + SUPPORT auto-bombard),
+        # both sides (GR5). Dormant in one read on fleet-less worlds —
+        # legacy maps have no sea links, so is_sea_link is always False.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.naval import is_sea_link
+        if is_sea_link(world, marshal.location, defender.location):
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal.name}'s guns cannot reach {defender.location} — "
+                    f"no battery carries across open water, Sire. The sea is "
+                    f"the fleet's business."
+                ),
+            }
+
+        # ════════════════════════════════════════════════════════════
         # BOMBARDMENT LIMIT CHECK: max 2 per turn
         # ════════════════════════════════════════════════════════════
         if getattr(marshal, 'bombardments_this_turn', 0) >= 2:

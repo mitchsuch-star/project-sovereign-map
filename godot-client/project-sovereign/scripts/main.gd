@@ -1323,7 +1323,15 @@ func _stash_diorama(response: Dictionary) -> void:
 			for action in nation_data.get("actions", []):
 				if not (action is Dictionary):
 					continue
+				# NV-7 review: an enemy-phase FLEET ACTION (the player's own
+				# fleet intercepting an AI expedition, an AI diversion
+				# caught) carries `naval_diorama`, not `battle_diorama` —
+				# the original scan read only the land key, so the sea
+				# tableau could never stash from the enemy phase. Same
+				# player-side + dramatic bar as the land battles.
 				var p = action.get("battle_diorama")
+				if not (p is Dictionary) or p.is_empty():
+					p = action.get("naval_diorama")
 				if not (p is Dictionary) or p.is_empty():
 					continue
 				if str(p.get("player_side", "")) == "":

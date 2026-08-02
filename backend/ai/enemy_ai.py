@@ -2356,6 +2356,18 @@ class EnemyAI:
         adjacent_enemies = []
         for enemy in enemies:
             if enemy.strength > 0 and enemy.location in marshal_region.adjacent_regions:
+                # NV-4 review: `adjacent_regions` includes sea links, so a
+                # cautious marshal in London kept offering a counter-punch
+                # across the Channel — refused at the executor every time
+                # (the square-thrash log's own failure shape). The crossing
+                # gate reads the host rule too, so the retaliation stays a
+                # LAND reflex unless the water is genuinely open.
+                if getattr(world, "fleets", None):
+                    from backend.game_logic.naval import crossing_allowed
+                    if not crossing_allowed(world, nation, marshal.location,
+                                            enemy.location):
+                        ai_debug(f"    P3.25: {enemy.name} is across barred water")
+                        continue
                 adjacent_enemies.append(enemy)
 
         if not adjacent_enemies:
@@ -2479,6 +2491,16 @@ class EnemyAI:
                     if getattr(enemy, 'broken', False) or getattr(enemy, 'retreating', False):
                         ai_debug(f"    P4: Skipping broken/retreating target {enemy.name} for bombardment")
                         continue
+                    # NV-4 review: guns do not carry across a strait —
+                    # even UNCONTESTED water (where the crossing gate below
+                    # passes, the ferry rule). The executor's bombardment
+                    # seam refuses this physically; skipping here keeps the
+                    # council from scoring an order it cannot give.
+                    if getattr(world, "fleets", None):
+                        from backend.game_logic.naval import is_sea_link
+                        if is_sea_link(world, marshal.location, enemy.location):
+                            ai_debug(f"    P4: {enemy.name} is across open water — no bombardment")
+                            continue
 
                 # ════════════════════════════════════════════════════════════
                 # BUG #3 FIX: Validate path for distance > 1 attacks
@@ -6347,13 +6369,21 @@ class EnemyAI:
             world = game_state.get("world")
             if world is not None:
                 marshal_obj = world.get_marshal(action.get("marshal") or "")
+                # NV-4 review: an ATTACK's target is a MARSHAL name, and
+                # the raw value produced log lines like "the London–Castanos
+                # crossing" (measured on the 24-turn probe). Resolve to the
+                # target's REGION so the line names a real stretch of water.
+                far_end = str(action.get("target") or "")
+                target_marshal = world.get_marshal(far_end) if far_end else None
+                if target_marshal is not None:
+                    far_end = str(target_marshal.location or "")
                 world.log_event({
                     "type": "naval_turnback",
                     "turn": int(world.current_turn),
                     "marshal": str(action.get("marshal") or ""),
                     "nation": str(getattr(marshal_obj, "nation", "") or ""),
                     "link_a": str(getattr(marshal_obj, "location", "") or ""),
-                    "link_b": str(action.get("target") or ""),
+                    "link_b": far_end,
                     "coverer": str(result.get("blocked_naval") or ""),
                 })
 

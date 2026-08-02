@@ -196,10 +196,10 @@ class TestTheExpeditionRung:
         """No army walks onto an indifferent neutral's soil. The shipped
         board reads exactly right through this filter: Portugal 40 and
         Naples 30 receive an army, Denmark/Hanover/Sardinia at 0 do not."""
-        assert naval._is_expedition_host(world, "Britain", "Portugal") is True
-        assert naval._is_expedition_host(world, "Britain", "Naples") is True
-        assert naval._is_expedition_host(world, "Britain", "Denmark") is False
-        assert naval._is_expedition_host(world, "Britain", "France") is False
+        assert naval.is_expedition_host(world, "Britain", "Portugal") is True
+        assert naval.is_expedition_host(world, "Britain", "Naples") is True
+        assert naval.is_expedition_host(world, "Britain", "Denmark") is False
+        assert naval.is_expedition_host(world, "Britain", "France") is False
 
     def test_the_council_reads_the_same_odds_the_player_is_quoted(self, world):
         """GR5 + IGR-E's shown=applied: the rung consults
@@ -532,3 +532,191 @@ class TestTheLandingChips:
         overlay = naval.map_naval_overlay(world)
         assert overlay["expedition_landings"]
         assert overlay["ship_cost"] == naval.SHIP_COST
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The August 2 tightening review — five defects found by hunting, fixed
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheConsentGate:
+    """THE NEUTRALITY BYPASS, closed. The land game asks a neutral's leave
+    before an army enters; the sea game did not — an expedition could put a
+    corps on ANY neutral's coast with zero diplomacy. The rule is now the
+    SAME predicate the AI's own targeting already used (GR5, one source):
+    own soil is a sealift, an at-war shore is the verb's point, anyone else
+    must actually RECEIVE us."""
+
+    def _embark(self, world, marshal, target):
+        from backend.commands.executor import CommandExecutor
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        return CommandExecutor()._naval._execute_naval_expedition(
+            {"marshal": marshal.name, "region": target, "confirmed": True,
+             "_acting_nation": "France"}, {"world": world})
+
+    def test_an_uninvited_neutral_shore_is_refused(self, world):
+        """France–Naples boots at −30: no host, no war, no landing."""
+        marshal = world.get_marshals_by_nation("France")[0]
+        result = self._embark(world, marshal, "Naples")
+        assert result["success"] is False
+        assert "opened her ports" in result["message"]
+        assert str(naval.AI_EXPEDITION_HOST_RELATION) in result["message"]
+
+    def test_a_courted_neutral_becomes_a_host(self, world):
+        """Positive control: raise the relation past the bar and the SAME
+        landing sails — the refusal was consent, not geography."""
+        marshal = world.get_marshals_by_nation("France")[0]
+        key = world._make_diplo_key("France", "Naples")
+        world.nation_relations[key] = naval.AI_EXPEDITION_HOST_RELATION
+        result = self._embark(world, marshal, "Naples")
+        assert "opened her ports" not in str(result.get("message", ""))
+
+    def test_an_enemy_shore_needs_no_leave(self, world):
+        """The verb's whole point — Munster is Britain's and Britain is the
+        enemy; the Free Ireland arc is untouched by the consent gate."""
+        marshal = world.get_marshals_by_nation("France")[0]
+        result = self._embark(world, marshal, "Munster")
+        assert "opened her ports" not in str(result.get("message", ""))
+
+    def test_own_soil_is_a_sealift(self, world):
+        """Brittany → Provence by sea: moving a corps between our own
+        ports past Gibraltar, at quoted odds — real, and allowed."""
+        marshal = world.get_marshals_by_nation("France")[0]
+        result = self._embark(world, marshal, "Provence")
+        assert "opened her ports" not in str(result.get("message", ""))
+
+    def test_the_landing_chips_mirror_the_gate(self, world):
+        """The chip must not offer a landing the executor refuses."""
+        marshal = world.get_marshals_by_nation("France")[0]
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        options = naval.expedition_landing_options(world, "France")
+        assert "Naples" not in options          # −30: not a host
+        assert "Copenhagen" not in options      # Denmark 10: not a host
+        assert "Munster" in options             # the enemy's shore
+
+    def test_the_ai_reads_the_same_predicate(self, world):
+        """GR5: `find_ai_expedition` and the executor consult ONE function,
+        so the AI can never order a landing the executor would refuse."""
+        assert naval.is_expedition_host(world, "Britain", "Portugal") is True
+        assert naval.is_expedition_host(world, "France", "Naples") is False
+
+
+class TestGunsDoNotCarryAcrossAStrait:
+    """Measured: with both Channel fleets sunk, a London battery bombarded
+    a French corps in Flanders — success=True, across 30km of open sea.
+    The attack-arm crossing gate refuses a COVERED link, but uncontested
+    water read "open" and fell through to the bombardment branch. The rule
+    is PHYSICAL, so it lives at the one bombardment seam both call sites
+    use, whoever owns the water."""
+
+    def test_the_shelling_across_the_strait_is_refused(self, world):
+        from backend.commands.executor import CommandExecutor
+        executor = CommandExecutor()
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Flanders"
+        french.strength = 20000
+        battery = world.get_marshals_by_nation("Britain")[0]
+        battery.artillery = True
+        battery.location = "London"
+        battery.strength = 8000
+        world._build_marshal_index()
+        # The exact measured shape: uncontested water.
+        naval.get_fleet(world, "France")["ships"] = 0
+        naval.get_fleet(world, "Britain")["ships"] = 0
+        result = executor._combat._execute_bombardment(
+            battery, french, world, {"world": world})
+        assert result["success"] is False
+        assert "open water" in result["message"]
+
+    def test_land_bombardment_is_untouched(self, world):
+        """Control: the same battery over a LAND border still fires."""
+        from backend.commands.executor import CommandExecutor
+        executor = CommandExecutor()
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Normandy"
+        battery = world.get_marshals_by_nation("Britain")[0]
+        battery.artillery = True
+        battery.strength = 8000
+        # Britain holds Normandy's land neighbour for the control arm.
+        world.regions["Maine"].controller = "Britain"
+        world.invalidate_active_nations_cache()
+        battery.location = "Maine"
+        world._build_marshal_index()
+        result = executor._combat._execute_bombardment(
+            battery, french, world, {"world": world})
+        assert result["success"] is True
+
+    def test_the_ai_never_scores_the_impossible_shot(self, world, ai):
+        """P4's artillery branch skips a sea-link target even when the
+        water is uncontested — the council must not order a refusal."""
+        battery = world.get_marshals_by_nation("Britain")[0]
+        battery.artillery = True
+        battery.location = "London"
+        battery.strength = 8000
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Flanders"
+        french.strength = 6000
+        world._build_marshal_index()
+        naval.get_fleet(world, "France")["ships"] = 0
+        naval.get_fleet(world, "Britain")["ships"] = 0
+        offered = ai._find_attack_opportunity(battery, "Britain", world)
+        assert not (offered and offered.get("target") in
+                    (french.name, "Flanders"))
+
+
+class TestCounterPunchStaysALandReflex:
+    def test_no_counter_punch_across_barred_water(self, world, ai):
+        """`adjacent_regions` includes sea links, so a cautious marshal in
+        London kept offering a Channel counter-punch the executor refused
+        every time — the square-thrash log's own failure shape, live in
+        production."""
+        moore = world.get_marshal("Moore")
+        moore.location = "London"
+        moore.strength = 25000
+        moore.counter_punch_available = True
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Flanders"
+        french.strength = 20000
+        world._build_marshal_index()
+        action = ai._get_counter_punch_action(moore, "Britain", world)
+        assert not (action and action.get("target") == french.name)
+
+    def test_the_land_counter_punch_survives(self, world, ai):
+        """Control: the same reflex against a land-adjacent enemy fires."""
+        moore = world.get_marshal("Moore")
+        world.regions["Normandy"].controller = "Britain"
+        world.invalidate_active_nations_cache()
+        moore.location = "Normandy"
+        moore.strength = 25000
+        moore.counter_punch_available = True
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Maine"          # land-adjacent to Normandy
+        french.strength = 15000
+        world._build_marshal_index()
+        action = ai._get_counter_punch_action(moore, "Britain", world)
+        assert action is not None and action.get("target") == french.name
+
+
+class TestTheTurnbackLogNamesRealWater:
+    def test_a_marshal_target_resolves_to_its_region(self, world, ai):
+        """An ATTACK's target is a MARSHAL name, and the raw value produced
+        log lines like "the London–Castanos crossing" (measured on the
+        24-turn probe). The logger now resolves it to the region."""
+        french = world.get_marshals_by_nation("France")[0]
+        french.location = "Flanders"
+        french.strength = 20000
+        moore = world.get_marshal("Moore")
+        moore.location = "London"
+        world._build_marshal_index()
+        result = ai._execute_action(
+            {"marshal": moore.name, "action": "attack",
+             "target": french.name}, {"world": world})
+        assert result["success"] is False
+        turnbacks = [e for e in world.event_log
+                     if e.get("type") == "naval_turnback"]
+        assert turnbacks, "the refusal should have logged a turn-back"
+        assert turnbacks[-1]["link_b"] == "Flanders"
+        assert turnbacks[-1]["link_b"] in world.regions

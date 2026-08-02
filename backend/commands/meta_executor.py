@@ -563,6 +563,13 @@ THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
   land       - "land Soult in Munster" (2 AP) - a small expedition
                (15,000 men or fewer) slips past the patrols at
                QUOTED odds; Ireland is reachable, an army is not.
+               A neutral shore must RECEIVE us (a friend, ally or
+               vassal); an enemy's needs no leave. Click a coastal
+               province on the map for the landing chip.
+  NOTE: an army never MARCHES onto a defended enemy coast - while
+        any hostile fleet watches the water, a hostile shore is
+        taken by expedition or not at all. Sink the covering fleet
+        and the crossing becomes an open ferry.
   diversion  - "order the diversion" (1 AP, once per war) - the
                fleet draws the enemy off station: succeed and the
                Strait lies open two turns; fail and be brought to
