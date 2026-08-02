@@ -12,7 +12,19 @@
 > hulls, only sea-time buys a navy), and the **no-prize ruling** (conquering a dockyard
 > grants the YARD, never ships; an eliminated nation's fleet disperses; seizure = the
 > NV-D2 Copenhagen family). The fast road to naval weight is DIPLOMACY (§5.3 pooling),
-> with its authored discount — exactly the historical Combined-Fleet answer. Nothing in this
+> with its authored discount — exactly the historical Combined-Fleet answer.
+> **v1.0.3 — August 2, 2026, THE CODE-GROUNDED FEASIBILITY & COST REVIEW (user-directed;
+> full record = §13):** every claimed seam verified against master and named; **measured
+> boot economy** (France net +2,107/turn) re-blessed `SHIP_COST` 150→**400g** (a ship must
+> out-price a fortification, not undercut a depot); **shipyards confirmed NOT a building**
+> — the dockyard ruling is recorded (§13.3, deferral NV-D9); and TWO structural
+> corrections the arithmetic forced: the blockade is now **untargeted** (covers/pins ALL
+> at-war enemies — the RN's simultaneous Brest/Ferrol/Cadiz/Texel watch; a targeted
+> blockade let Spain drill to 100 untouched and broke anchor A4) and readiness gained the
+> **war drill ceiling 75** vs a superior hostile fleet (unbounded recovery let the Descent
+> oscillate open whenever Britain massed the Channel). §5.3's worked math restated at the
+> ceiling; A4 holds; the boot-rush variant recorded as live-by-design at the diversion's
+> 45%. Nothing in this
 > document is built. Owner rows consumed: `MAP_IMPLEMENTATION_PLAN.md` **DEF-5** (+ the
 > Free Ireland rider), **DEF-6** (Channel edge — demotes to the naval-gated crossing here),
 > **DEF-8** (explicitly NOT consumed — §3.4); ROADMAP **Phase 11** (Britain naval/subsidy
@@ -97,7 +109,7 @@ world.fleets: Dict[str, dict]  # keyed by nation, present only for nations with 
 # {
 #   "ships": int,            # ships-of-the-line equivalent (the only strength number)
 #   "readiness": int,        # 40..100, the H2 mechanic
-#   "posture": {"mode": "guard" | "blockade", "target": str | None},
+#   "posture": "guard" | "blockade",   # v1.0.3: UNTARGETED — blockade covers all at-war enemies
 #   "camp_turns": int,       # §5.3 Descent prep counter (France-side; 0 for everyone else)
 #   "diversion_used": bool,  # §5.3 — one Grand Diversion per war
 #   "window_turns": int,     # §5.3 — turns of open Channel remaining (0 = shut)
@@ -114,14 +126,15 @@ computed at read time from diplomatic state — no pool object, nothing new seri
 |--------|-------|-----------|------------------------|--------------|-------------------------|
 | Britain | 100 | 100 | Nelson | — (island) | London, Wessex, Cornwall |
 | France | 45 | 70 | Villeneuve | 4 | Brittany, Provence, Flanders, Bordelais |
-| Spain | 30 | 65 | Gravina | 3 | Galicia + the Cádiz stand-in province (fixed at NV-0 against the map's southern carve) |
+| Spain | 30 | 65 | Gravina | 3 | Galicia (Ferrol) + Toledo (the Cádiz stand-in — v1.0.3: the map's southern carve is Morocco/Aragon/Leon/Galicia/La Mancha/Asturias/Toledo/Madrid/Balearics; Toledo is the southern seat) |
 | Denmark | 18 | 80 | Bille | 2 | Copenhagen |
 | Ottoman | 15 | 60 | — | 3 | Constantinople |
 | Holland | 12 | 70 | Verhuell | 2 | Holland (the Texel) |
 | Russia | 20 | 65 | Senyavin | 2 | Estonia |
-| Portugal | 10 | 70 | — | 2 | Lisbon province |
+| Portugal | 10 | 70 | — | 2 | Lisbon (province verified on the map) |
 | Sweden | 10 | 70 | — | 2 | Scania |
 | Naples | 5 | 60 | — | 1 | Naples |
+| *ports-only rows (v1.0.3)* | 0 | — | — | Austria 1 (Trieste) · Prussia 1 · Hanover 1 · KingdomOfItaly 1 · PapalStates 1 | — (no fleet record created at ships 0; the row exists so §5.1's closure denominator is authored, not derived) |
 
 France's 70 readiness at boot **is** the Brest/Toulon rot (H2) — Britain's boot blockade
 (§6) pins it there until the pressure lifts. Admirals are strings for dispatch flavor,
@@ -139,18 +152,27 @@ produces his outcomes. If the gate wants the *name* to carry a number anyway, th
 option is ONE authored `admiral_quality` multiplier (Britain 1.1, France 0.95, default
 1.0) applied in §4.4 fleet actions only — never coverage — gate **Q7**, default OUT.
 
-### 3.3 Readiness (the whole H2 economy in three rules)
+### 3.3 Readiness (the whole H2 economy in four rules — v1.0.3 shape)
 
 - Blockading fleet: holds 100 (sea time drills crews).
-- Blockaded fleet (an enemy blockade-mode fleet targeting you at effective ≥ **1.25×**
-  yours): −5/turn, floor 50. It may still sortie/fight — at that readiness.
-- Otherwise (guard, uncontested): +5/turn toward 100.
+- **The blockade is untargeted (v1.0.3):** a blockade-mode fleet covers and pins EVERY
+  nation its owner is at war with, judged per target by the same ratio — blockaded means
+  *some at-war enemy in blockade mode has effective ≥ 1.25× yours*. This is what the RN
+  actually did (Brest, Ferrol, Cadiz and the Texel watched simultaneously — the reason
+  Britain carries 100 hulls), and it closes the hole the review found: a France-targeted
+  blockade left Spain free to drill to 100 and walk the §5.3 math open.
+- Blockaded fleet: −5/turn, floor 50. It may still sortie/fight — at that readiness.
+- Otherwise: +5/turn — toward **`NAVY_DRILL_CEILING = 75` while at war with a superior
+  hostile fleet** (crews drill in the roadstead; only sea room makes a 100), toward 100
+  in peace or for the superior fleet itself. v1.0.3: without this ceiling, Britain
+  massing the Channel against a staged descent lapsed its own blockade and let the
+  Combined Fleet recover to parity — the Descent oscillated open by procedure, no gamble
+  needed.
 - **Green crews (v1.0.2):** newly commissioned ships join at readiness **40** and fold in
   by weighted average. At the honest drip (2/turn into 45 hulls) the dilution is gentle;
   a sustained crash program visibly drags the fleet down toward green — you can see your
   navy getting bigger and worse at once, which is Villeneuve's Spanish problem made
   mechanical.
-
 ### 3.4a Ships change hands by NO other door (v1.0.2 ruling)
 
 Fleets are national, never provincial. Conquering a dockyard province grants the **yard**
@@ -168,8 +190,10 @@ rate cap means 45→90 ships is ~23 turns *minimum* regardless of treasury (anch
 cannot crash-build a navy, which is the fact Napoleon ran into); **(2) PRESSURE** — a
 blockaded nation builds at 1/turn, so escaping RN pressure is a prerequisite of
 out-building it, not a result; **(3) WORK-UP** — green crews (§3.3) mean new hulls arrive
-at 40 readiness and only uncontested sea-time turns them into a navy. Cost (150g, 1 admin
-AP per `build_fleet` order) merely keeps the drip from being free.
+at 40 readiness and only uncontested sea-time turns them into a navy. Cost (**400g** + 1
+admin AP per ship — the §13.2 measured re-bless; the full-rate drip is ~38% of France's
+boot net) makes the program a real budget rivalry with recruitment without ever becoming
+the wall.
 
 ### 3.4 What this deliberately does NOT read
 
@@ -189,7 +213,8 @@ Moving an army across a `sea_links` pair is free **unless a hostile fleet covers
 Coverage (derived at read time, ~10 fleets, GR8-trivial):
 
 - A **guard** fleet covers every sea link touching its own nation's provinces.
-- A **blockade** fleet covers every sea link touching its *target's* provinces.
+- A **blockade** fleet covers every sea link touching the provinces of ANY nation its
+  owner is at war with (v1.0.3 — untargeted, the simultaneous watch).
 
 One predicate — `naval.crossing_check(world, mover_nation, from, to)` — consulted at BOTH
 movement seams (player executor validation + enemy-AI movement gates, the AI-3c pattern):
@@ -206,8 +231,8 @@ nothing changes on any uncontested link; the legacy world (no fleets) changes no
 
 ### 4.2 Blockade — the economic siege
 
-A nation is UNDER BLOCKADE when a hostile blockade-mode fleet targets it at effective
-≥ 1.25×. Effects, all ledger-legible:
+A nation is UNDER BLOCKADE when an at-war enemy in blockade mode has effective ≥ 1.25×
+its own (per-target test, untargeted posture — §3.3). Effects, all ledger-legible:
 
 - Trade income (`TRADE_INCOME` pairs) **×0.5** for the blockaded nation — applied at the
   `calculate_trade_income` chokepoint, shown as a signed **"Blockade"** Net component
@@ -270,13 +295,19 @@ cap). It becomes the H5 siege while keeping every existing seam:
 - **Closure** = Σ authored `ports` of (France + vassals auto-joined + CS members + allies
   at war with Britain) ÷ Σ all continental `ports`. Existing membership machinery untouched
   (settlement clause writes members; puppet/satellite auto-join; autonomous drop-out; the
-  coalition decay bonus stays).
+  coalition decay bonus stays). **The boot fact (v1.0.3, computed from the §3.2 authored
+  weights):** France 4 + Holland 2 + KingdomOfItaly 1 + at-war-with-Britain Spain 3 = 10
+  of 26 continental ports ≈ **38% — one diplomatic move short of the first WE tier**. The
+  System opens as an achievable early goal, not a distant abstraction.
 - Britain's `trade_dominance` income scales **×(1 − closure)**, floor ×0.4 (smugglers and
   licences — the system leaked, historically and here).
 - Britain war-weariness: closure ≥40% → +1/turn, ≥60% → +2, ≥80% → +3 — feeding the
   existing WE → `effective_peace_threshold` → sue-for-peace machinery. **This is the new
   win path: Britain can be brought to the table without a single soldier crossing water**
-  (anchor A2).
+  (anchor A2). It compounds for free (v1.0.3): Britain already boots at WE 60
+  (`world_state.py:1354`), and the EC-W2 war-effort skim is treasury × WE — so every
+  closure tier also deepens Britain's own gold bleed through machinery that already
+  ships.
 - Ledger line: "The Continental System — 62% of the Continent's ports closed; Britain's
   war-weariness rising +2/turn." Neutral coercion (Portugal, the Peninsula trap) is
   **NV-D1, deferred with an owner** (§10).
@@ -315,19 +346,27 @@ The full H3 chain, every step visible to both sides:
    Artois, Normandy, Brittany) sets `camp_turns` ticking. At 2, the descent is *staged* —
    and Britain has seen it coming since turn one (**"boulogne_camp"** beat, Britain-side).
 2. **Britain reacts (derived, §6):** posture flips blockade→guard, massing the Channel.
-   Consequence the player can exploit: the blockade of Brest/Toulon LAPSES — French
-   readiness starts climbing. The two-front tension is automatic, no scripting.
+   Consequence the player can exploit: the blockade of Brest/Toulon LAPSES — French and
+   allied readiness starts climbing, but only to the war drill ceiling of 75 (§3.3); the
+   two-front tension is automatic, no scripting, and waiting alone can never open the
+   Strait (v1.0.3 — the oscillation hole is closed).
 3. **The window** — any one of: **(a) The Grand Diversion** (`naval_diversion`, once per
    war): the fleet sails to draw the RN west — seeded 45%: success halves Britain's Channel
    coverage for 2 turns (`window_turns`, shown in the Admiralty block: "The Strait lies
    open — 2 turns"); failure = intercepted returning = §4.4 at bad readiness = **Trafalgar,
    as it happened**. **(b)** Win a fleet action outright. **(c)** Pooled parity (H6).
-4. **The crossing:** during a window the §4.1 MOVE floor drops to **0.9×**. The boot math,
-   worked: France 45×0.70 = 31.5; + Spain (30×0.65×0.8 = 15.6) + Batavia (12×0.70×0.8 =
-   6.7) ≈ **53.8 effective** vs Britain's 100 — hopeless; vs **50 during a diversion
-   window** → ratio 1.08 → **the Combined Fleet with a successful diversion opens the
-   Strait, and nothing less does**. The mechanics *re-derive Napoleon's actual 1805 plan*,
-   including why it needed Spain and why Trafalgar ended it.
+4. **The crossing:** during a window the §4.1 MOVE floor drops to **0.9×**. The math,
+   worked at the v1.0.3 drill ceiling (fleets recovered to 75 while Britain guards):
+   France 45×0.75 = 33.75; + Spain (30×0.75×0.8 = 18.0) + Batavia (12×0.75×0.8 = 7.2) ≈
+   **59 effective** vs Britain's 100 — hopeless (0.59); vs **50 during a diversion
+   window** → ratio **1.18** → the Strait opens at the 0.9× floor. Without Spain the
+   pool is 41 → 0.82 — **shut. The Combined Fleet with a successful diversion opens the
+   Strait, and nothing less does.** (The pre-rot boot-rush variant — readiness ~70/65/70
+   before the blockade bites → ≈54 vs 50 = 1.08 — is also live behind the diversion's
+   45%, telegraphed two turns by the camp: accepted as the H3 truth, since this is
+   precisely what Napoleon believed possible in the summer of 1805; measured at NV-3.)
+   The mechanics *re-derive the actual 1805 plan*, including why it needed Spain and why
+   Trafalgar ended it.
 5. **The landing:** London, its 25k tier garrison, and everything after is the existing
    land game (the DEF-6 pins flip consciously at NV-3, recorded).
 
@@ -342,8 +381,9 @@ endings.
 One cheap per-turn posture derivation in `naval.py` (iterates the ~10-entry fleets dict —
 GR8-trivial), same executor verbs as the player:
 
-- **Britain:** at war with France → `blockade France`; a staged descent camp or live window
-  → `guard` (the §5.3.2 feedback). Peace → `guard`.
+- **Britain:** at war → `blockade` (untargeted, v1.0.3 — the simultaneous watch pins
+  every enemy fleet); a staged descent camp or live window → `guard` (the §5.3.2
+  feedback). Peace → `guard`.
 - **Everyone else:** `guard` home waters. Fleet-holding minors never bankrupt on upkeep
   because peacetime upkeep is zero (§7 N3).
 - **AI build rung:** at war + treasury > 2× cost + a live naval want (blockaded, or its
@@ -358,11 +398,11 @@ GR8-trivial), same executor verbs as the player:
 | # | Constant | Default | Note |
 |---|----------|---------|------|
 | N1 | Authored navies | §3.2 table | Tier-1 content, fixed per seed (D7: no band, no variance) |
-| N2 | `SHIP_COST` / `SHIP_BUILD_RATE` / `NEW_SHIP_READINESS` | 150g + 1 admin AP / 2 per turn (1 if every dockyard blockaded) / joins at 40 | 45 ships to RN parity ≈ 6,750g + 23 turns → anchor A1; the §3.5 three brakes |
+| N2 | `SHIP_COST` / `SHIP_BUILD_RATE` / `NEW_SHIP_READINESS` | **400g** + 1 admin AP / 2 per turn (1 if every dockyard blockaded) / joins at 40 | §13.2 measured re-bless (a ship out-prices a fortification, never undercuts a depot); 45 ships to RN parity ≈ 18,000g + 23 turns → anchor A1; the §3.5 three brakes |
 | N3 | `SHIP_UPKEEP_WAR` | 2g/ship/turn **at war only** | "Laid up in ordinary" at peace; France boot +90g/turn, Britain +200 (offset by trade_dominance); signed "Admiralty" Net component |
-| N4 | `BLOCKADE_RATIO` | 1.25× effective | Same threshold as the crossing pass — one number to learn |
+| N4 | `BLOCKADE_RATIO` | 1.25× effective, judged per at-war target (untargeted posture, v1.0.3) | Same threshold as the crossing pass — one number to learn |
 | N5 | Blockade effects | trade ×0.5 · island WE +2/turn · trade_dominance ×(1−closure), floor ×0.4 | §4.2/§5.1 |
-| N6 | Readiness tick | ±5/turn, floor 50, cap 100 | §3.3 |
+| N6 | Readiness tick | ±5/turn, floor 50; recovery caps at `NAVY_DRILL_CEILING=75` while at war with a superior hostile fleet, 100 otherwise (v1.0.3) | §3.3 |
 | N7 | `POOL_ALLIED` | 0.8 | H6 |
 | N8 | Expedition | max 15,000 men · Ireland boot slip 55–65% · corps loss 30% on interception | anchors A3/A4; curve fixed at NV-2, measured table published |
 | N9 | Diversion / window | 45% · 2 turns · MOVE floor 1.25×→0.9× · expedition +25pp | §5.3 |
@@ -377,14 +417,18 @@ GR8-trivial), same executor verbs as the player:
   continental war revival.
 - **A3:** boot Ireland expedition (12k, unescorted) lands 55–65% of seeds; boot Channel
   crossing without a window: refused (not a roll).
-- **A4:** the §5.3.4 worked example holds on the shipped scenario: Combined-Fleet pool +
-  successful diversion ≥ 0.9× — and no proper subset of it is.
+- **A4 (restated v1.0.3):** the §5.3.4 worked example holds on the shipped scenario AT
+  THE DRILL CEILING: Combined-Fleet pool + successful diversion ≥ 0.9× (measured shape:
+  59 vs 50 = 1.18) — and no proper subset of it is (no-Spain 41 → 0.82, shut). The
+  pre-rot boot-rush at ~1.08 is live-by-design behind the 45% diversion, camp-telegraphed.
 - **A5 (the headline):** `test_naval_channel_gate` — a hostile army can NEVER walk
   London↔Flanders below ratio; **Spain besieging London turn 5 becomes structurally
   impossible** while Britain's own boot descents still pass.
-- **Boot deltas** (conscious, recorded at NV-0/NV-1): France −90 upkeep and a measured
-  trade-cut under the boot blockade; `BASELINE_SERIES` re-records ONCE, attributed (the
-  IGR-X4 discipline); M1–M7 byte-identical throughout (no navies in harness worlds).
+- **Boot deltas** (conscious, MEASURED — §13.2): France −175 trade (350 × 0.5 under the
+  boot blockade) − 90 ship upkeep ≈ **−265/turn ≈ 12.6% of the measured +2,107 net** —
+  re-blessed at NV-1 with the E1-family discipline; `BASELINE_SERIES` re-records ONCE,
+  attributed (the IGR-X4 discipline); M1–M7 byte-identical throughout (no navies in
+  harness worlds).
 
 ---
 
@@ -416,7 +460,8 @@ GR8-trivial), same executor verbs as the player:
   corpus rows): `build_fleet` · `set_fleet_posture` · `naval_expedition` ·
   `naval_diversion`. Typed grammar: "build ships", "blockade Britain", "guard home
   waters", "land Soult in Munster with 12,000 men", "order the diversion".
-- **Region panel:** "Lay down ships (150g)" chip on owned dockyard provinces.
+- **Region panel:** "Lay down ships (400g)" chip on owned dockyard provinces (the price
+  quoted from the live constant, never hardcoded — the honest-chip idiom).
 - **Dispatch beats** (existing transport, NARRATION_EXEMPT additions): blockade begins/
   broken · expedition sailed/landed/intercepted · trafalgar · boulogne_camp.
 - **War room:** one naval line per belligerent with a fleet. **Fog ruling (recorded):**
@@ -438,6 +483,7 @@ GR8-trivial), same executor verbs as the player:
 | NV-D6 | DEF-8 full `is_coastal` re-derivation | Stays at DEF-8, **not triggered** (§3.4 — v1 reads authored data only) | DEF-8's own row |
 | NV-D7 | Weather/season on expeditions (Bantry's gale) | NV-V verdict decides if the odds curve needs it | curve re-bless |
 | NV-D8 | Ambient AI expeditions/diversions (an AI France invading Ireland unprompted) | The first post-naval AI review (AI-V cadence) | predicate → ambient pins |
+| NV-D9 | A buildable "Naval Yard" structure — unlocks a SITE where none is authored, NEVER raises the national build rate (§13.3: the rate cap is the time wall and stays national) | Econ pass 3 successor, opened only if NV-V measures site scarcity as dull | yard-site pins |
 
 ## §11. Build slices (each lands whole, suite-green, with its record)
 
@@ -486,6 +532,83 @@ GR8-trivial), same executor verbs as the player:
   structural model already carries British talent); (b) a deliberate "sortie / offer
   battle" verb (§4.4 — the collision model carries the RN-seeks/France-declines truth).
   Re-open either at NV-V only if the played battles measure flat.
+
+---
+
+## §13. Feasibility & cost review (v1.0.3 — code-grounded, docs-only; August 2, 2026)
+
+User-directed pre-gate pass: *"evaluate cost; see if shipyards are even a building; fully
+review the spec for feasibility."* Every number below was measured on master (world booted
+via `WorldState.from_scenario` on the shipped `europe_1805.json`, historical seed).
+
+### 13.1 Measured boot economy (what costs are priced against)
+
+**France:** income 3,400 + trade 350 + admin 50 + vassal tribute 937 ≈ 4,737 gross;
+upkeep 2,630 (incl. the Grande-Armée surcharge 882) → **net +2,107/turn**, treasury 800.
+**Britain:** 11 provinces at 1,500 income + trade 350 + the 300 naval read ≈ 2,150 gross,
+treasury 2,000 — and **war_exhaustion already boots at 60** (`world_state.py:1354`), so
+the §5.1 closure tiers push an already-weary belligerent, not a fresh one.
+
+### 13.2 The cost re-bless (150 → 400g)
+
+At 150g a ship-of-the-line undercut a supply depot (300g) and cost less than half a
+fortification (400g) — wrong against history and against the game's own price ladder
+(buildings 250–400g · war-priced recruits · marshal commissions 3,500–6,000g). Re-blessed
+**`SHIP_COST` = 400g** (the fortification price, top of the building band): the full-rate
+drip is 800g/turn ≈ **38% of France's measured net** — a genuine budget rivalry with
+recruitment — and the 45-ship parity program ≈ 18,000g + 23 turns. Time remains the
+binding brake (§3.5); the gold brake now at least engages. Upkeep stands at 2g/ship at
+war (France 90, Britain 200 — Britain's fully offset by the absorbed `trade_dominance`
+300). **Boot delta, concrete:** the boot blockade costs France −175 trade (measured 350 ×
+0.5) − 90 upkeep ≈ **−265/turn ≈ 12.6% of net** — conscious, in-band, re-blessed at NV-1.
+
+### 13.3 Shipyards are NOT a building today — the ruling of record
+
+Verified: `BUILDING_TYPES` (`economy_executor.py`) is supply_depot 300g/2t · fortification
+400g/3t · training_ground 250g/2t · watchtower 250g/2t — **no naval structure exists**,
+and buildings are REGION-SLOTTED with per-region construction timers while `build_fleet`
+is a NATIONAL order. The ruling: dockyards stay **authored scenario data**
+(`navies.dockyards`), deliberately OUTSIDE the building family — a buyable yard would
+sell the §3.5 time wall, because the build rate is national, not per-yard. The
+region-panel chip on a dockyard province is a convenience entry to the national order and
+consumes no building slot. **NV-D9** (§10) owns the only sanctioned future: a buildable
+Naval Yard that unlocks a SITE, never rate.
+
+### 13.4 Seam verification (every load-bearing claim → the code that carries it)
+
+| Claim | Seam, verified on master | Verdict |
+|---|---|---|
+| §4.1 crossing gate | `movement_executor.py` adjacency validation (the `adjacent_regions` membership checks, e.g. :948 "it is not adjacent") + the strategic first-step gates (the CR-5 `_inferred_first_step_gate` precedent) + enemy-AI movement scoring | FITS — one predicate at named seams |
+| §4.2 trade ×0.5 | `diplomacy.calculate_trade_income` (:9158) is the single chokepoint (ledger, dispatch, income phase all call it) | FITS |
+| naval_income absorption | `world_state.py:4400` (income) + `diplomacy.py:3128` (power score) — both sites found; both retire onto authored `trade_dominance` | FITS |
+| WE coupling | `world.war_exhaustion: Dict[str,int]` 0–200 (`world_state.py:1016`) + the EC-W2 treasury skim + `effective_peace_threshold` (`ai_diplomacy.py:500`) | FITS — and compounds free: closure raises Britain's WE, WE scales Britain's war-effort gold bleed |
+| "Admiralty"/"Blockade" ledger rows | the SC-33 `NET_GOLD_COMPONENTS` guard + the `ledger.py` economy dict (war_effort/contributions siblings measured live this pass) | FITS — two more family members |
+| §5.2 Ireland | `formations.py` catalogue (`formable_nations` serialized on the world; template = provinces + display_name + optional flag/aggrieved, class-blind identity normalization) + the `create_client` clause | FITS — Ireland is one authored row |
+| Dispatch beats | `queue_dispatch_event(world, type, payload, "always")` — verified live inside `apply_continental_system` | FITS |
+| `world.fleets` name | zero collisions in `backend/` (measured) | CLEAN |
+| Expedition marshal placement | precedent: captured marshals are relocated cross-map by executor code today | FITS |
+| Geography | Portugal's `Lisbon` province exists; Spain's southern carve has no Andalusia → Toledo named the Cádiz stand-in (§3.2) | CORRECTED IN PLACE |
+
+### 13.5 The two structural corrections the arithmetic forced
+
+1. **The untargeted blockade** (§3.1/§3.3/§4.1/§6): with a France-targeted blockade,
+   Spain and the Batavian squadron drilled to 100 unmolested and the pooled §5.3 math
+   opened the Channel with no gamble at all — anchor A4 was FALSE as first written.
+   Untargeted matches what the RN actually did (Brest, Ferrol, Cadiz, the Texel — watched
+   simultaneously; the reason Britain carries 100 hulls) and makes the record SMALLER
+   (the target field is deleted).
+2. **The war drill ceiling** (`NAVY_DRILL_CEILING = 75`, §3.3): unbounded +5/turn
+   recovery meant Britain's own defensive reaction (guard on a staged camp) un-pinned
+   every enemy fleet toward 100 — stage a camp, wait, and the Strait opened by procedure.
+   With the ceiling the §5.3.4 math holds at steady state (pool 59 vs windowed 50 = 1.18
+   ≥ 0.9; the no-Spain subset 41 → 0.82, shut), and the pre-rot boot-rush (~1.08) stays
+   live strictly behind the diversion's 45% — recorded as the H3 truth, measured at NV-3.
+
+**Verdict: FEASIBLE as specced.** No claim in §3–§9 requires machinery that does not
+exist; every coupling lands on a verified seam; the two holes the review found are closed
+above; costs are now priced against measured income rather than assumption. The remaining
+unknowns are tuning (the expedition odds curve, the CS pace), and both are owned by their
+slices' measured-table discipline.
 
 ---
 
