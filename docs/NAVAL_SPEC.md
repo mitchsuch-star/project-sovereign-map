@@ -1,6 +1,11 @@
 # NAVAL_SPEC.md — "The Wooden Wall": the naval abstraction, the blockade war, and the liberation of Ireland (DEF-5)
 
-> **v1.0 — AUTHORED August 1, 2026. STATUS: DRAFT FOR USER GATE (§12).** Nothing in this
+> **v1.0 — AUTHORED August 1, 2026. STATUS: DRAFT FOR USER GATE (§12).**
+> **v1.0.1 — August 2, 2026, pre-gate Q&A amendments (user questions):** the §3.2 admiral-talent
+> ruling (structural, not a stat — with the one-number option recorded), the §4.4 trigger
+> enumeration (battles fire in exactly two situations, never ordered), the §9 **Crossings
+> verdict line** + `strait_open`/`strait_shut` flip beats (closes the "do we SEE when the
+> Channel becomes crossable?" gap), and gate **Q7** (texture options, default OUT). Nothing in this
 > document is built. Owner rows consumed: `MAP_IMPLEMENTATION_PLAN.md` **DEF-5** (+ the
 > Free Ireland rider), **DEF-6** (Channel edge — demotes to the naval-gated crossing here),
 > **DEF-8** (explicitly NOT consumed — §3.4); ROADMAP **Phase 11** (Britain naval/subsidy
@@ -117,6 +122,16 @@ never objects. `ports` is the CS closure weight (§5.1) — authored precisely s
 `is_coastal` flag is never consumed (DEF-8 stays un-triggered). Numbers are gate-blessed
 defaults (§12 Q6), in-band tunable.
 
+**The admiral-talent ruling (v1.0.1, recorded):** British admiral quality is carried
+STRUCTURALLY, not as a stat — the 100-ship mass, boot readiness 100 vs France's 70, and
+the H2 asymmetry (blockade duty trains the blockader while the blockaded rots) *are* the
+talent model. That is the historically honest attribution: Trafalgar's edge was sea-time
+and gunnery cadence, not a hero bonus — Nelson's genius was knowing his fleet could cash
+a melee the enemy's couldn't. So "Nelson" stays a display string, and the system already
+produces his outcomes. If the gate wants the *name* to carry a number anyway, the recorded
+option is ONE authored `admiral_quality` multiplier (Britain 1.1, France 0.95, default
+1.0) applied in §4.4 fleet actions only — never coverage — gate **Q7**, default OUT.
+
 ### 3.3 Readiness (the whole H2 economy in three rules)
 
 - Blockading fleet: holds 100 (sea time drills crews).
@@ -195,7 +210,16 @@ or across a covered link. Resolves the same turn (no in-flight limbo state):
 
 ### 4.4 The fleet action — Trafalgar in one resolver
 
-When escort meets interceptor, or a diversion fails (§5.3): `naval.resolve_fleet_action`
+**Triggers, enumerated (v1.0.1 — the complete list):** a fleet action fires in exactly
+two situations, both "you gambled and lost the roll" — **(1)** an expedition fails its
+slip check and is intercepted (§4.3); **(2)** a Grand Diversion fails and is caught
+coming home (§5.3). It is never orderable, never ambient, and the AI never initiates one
+in v1 — a campaign sees a handful at most, each one a named event. (A deliberate "sortie
+/ offer battle" verb is the recorded gate option **Q7**, default OUT: historically the RN
+sought battle and France's whole problem was declining it — the collision model carries
+that truth.)
+
+When those collide: `naval.resolve_fleet_action`
 compares effective strengths (readiness already inside). Ship losses by ratio
 (lanchester-lite): loser 20% + 15%×min(r−1, 1), winner 8%/max(r, 1), seeded jitter ±10%.
 Ratio ≥ 1.5 → **decisive**: loser an extra −20%, the **"trafalgar"** dispatch beat fires
@@ -348,6 +372,14 @@ GR8-trivial), same executor verbs as the player:
 - **Strategic Ledger — "THE ADMIRALTY" block:** own fleet (ships/readiness/posture/
   admiral), hostile blockade line with its cost, CS closure %, expedition/descent
   availability as honest gate terms IN ORDER (the §11.6 idiom).
+- **The Crossings verdict line (v1.0.1):** the Admiralty block lists every sea link
+  touching the player's provinces or armies with a live verdict quoting the SAME ratio
+  the §4.1 predicate reads (shown = applied): "OPEN — uncovered" / "OPEN — ours 1.3×
+  theirs" / "SHUT — the Royal Navy at 3.2× (blockade)" / "WINDOW — open 2 more turns".
+  When a verdict FLIPS, the **`strait_open` / `strait_shut` dispatch beats** fire
+  (state-change only, never per-turn repetition; beat-exempt from the narration cap like
+  the others). The player never has to *derive* crossability from fleet arithmetic — the
+  game announces the moment the Channel opens, which is the §5.3 window's whole drama.
 - **Verbs** (4, through the shared executor + the full 12-step new-action checklist +
   corpus rows): `build_fleet` · `set_fleet_posture` · `naval_expedition` ·
   `naval_diversion`. Typed grammar: "build ships", "blockade Britain", "guard home
@@ -417,6 +449,11 @@ GR8-trivial), same executor verbs as the player:
   · (b) keep post-EA and accept the Channel absurdity through EA.
 - **Q6 — The numbers.** Bless N1–N11 + anchors A1–A5 as defaults (in-band tunable;
   structural changes escalate) [RECOMMENDED].
+- **Q7 — Texture options (v1.0.1), both DEFAULT OUT [RECOMMENDED: neither in v1].**
+  (a) `admiral_quality` one-number multiplier in fleet actions (§3.2 ruling — the
+  structural model already carries British talent); (b) a deliberate "sortie / offer
+  battle" verb (§4.4 — the collision model carries the RN-seeks/France-declines truth).
+  Re-open either at NV-V only if the played battles measure flat.
 
 ---
 
