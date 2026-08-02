@@ -74,10 +74,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # byte-identical; the live call swap alone flips it), and the confiscations
 # were counted by a live spy because the 500-cap event log had EVICTED all
 # four rows by turn 40 — the same trap IGR-B's landing record documents.
+#
+# RE-RECORDED CONSCIOUSLY ONCE at PT-F1 (August 1, 2026): the pursuit-
+# capture guard (BUG_FIXES.md §Live-Playthrough) — a battle-advance may
+# only transfer soil of a court the victor is AT WAR with. A live spy on
+# the guard (the IGR-X4 idiom: the 500-cap log would have evicted the
+# rows) found the OLD baseline world contained exactly two silent
+# third-party annexations, both now blocked:
+#   turn 5 — Austria's Mack pursued into BERLIN, Prussia's CAPITAL, a
+#            court Austria was at PEACE with (the old run flipped it);
+#   turn 6 — Britain's Moore pursued into Brunswick, HANOVER's soil (a
+#            court in personal union with Britain, historically).
+# Prussia keeping its capital is a structurally different (and finally
+# sensible) Europe, so the series diverges from index 5 on — identical
+# through index 4. The square-thrash latch (PT-F6) that landed the same
+# session was measured in isolation FIRST: byte-identical, 72/72 — this
+# re-record is attributed to the pursuit guard alone. The pin's job from
+# here stays the same: catch UNINTENDED drift.
 BASELINE_SERIES = [
-    85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 62, 59, 46, 43, 40, 37, 34,
-    31, 28, 33, 30, 27, 24, 27, 27, 24, 21, 18, 15, 18, 18, 15, 15, 20,
-    23, 20, 25, 25, 22, 22, 22,
+    85, 86, 84, 82, 80, 78, 76, 74, 71, 68, 65, 70, 75, 72, 69, 59, 56,
+    53, 53, 50, 50, 47, 47, 44, 41, 38, 38, 35, 32, 29, 32, 35, 35, 32,
+    32, 32, 29, 26, 23, 20, 20,
 ]
 
 

@@ -417,7 +417,12 @@ class CombatResolver:
 
                 elif personality == "cautious":
                     if strength_ratio < 1.0:
-                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds. (Cautious: -10% attack)"
+                        # PT-D1: the -10% is priced on the marshal's SOLO ratio.
+                        # When reinforcers are committed the muster header speaks
+                        # in the joint frame, so this line must say which frame
+                        # it is using or the two read as a contradiction.
+                        _alone = " alone" if committed_attacker > 0 else ""
+                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_alone}. (Cautious: -10% attack)"
                     if current_stance == Stance.AGGRESSIVE:
                         if not attacker_personality_message:
                             attacker_personality_message = f"{attacker.name} is hesitant in aggressive posture. (Cautious: -5% attack)"

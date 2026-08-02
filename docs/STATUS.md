@@ -4,6 +4,91 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ THE RE-MEASURE FIX MENU — BUILT COMPLETE August 1, 2026 (third session that day)
+>
+> **User direction: "do the fixes from the audit but make the decision yourself to make
+> the game as good as possible commit and push when done."** All six routed findings from
+> the played-world re-measure (`AI_V_SWEEP_2026_08_01.md` §10) LANDED — the §Live-
+> Playthrough section in `BUG_FIXES.md` is now **10/10 FIXED** and the four PT-D rows in
+> `DESIGN_REFINEMENT.md` are struck with landing records. Two commits (PT-F6 isolated per
+> its own harness discipline, then the rest), suite **15,572/3**, ruff clean, parse
+> harness EXIT=0, boot smoke 0 SCRIPT ERROR.
+>
+> - **PT-F6 the AI square-thrash** (own commit): reproduced deterministically FIRST — the
+>   neutered-latch control arm still walks `form → attack → form → attack → form`, the
+>   exact live Moore farce — then cut to ≤1 formation per marshal per phase by an
+>   execution-seam latch (`_squares_formed_this_turn`) + the in-square stance guard (the
+>   S5-1 fortify guards' missing sibling, at the central candidate filter). Production
+>   transcript: "forms square → counter-punches (square broken) → fortifies" — the break
+>   is a choice now, not a fidget. **Harness verdict: M1–M7 + `BASELINE_SERIES`
+>   byte-identical in isolation, 72/72 — no re-record for this slice.**
+>   `tests/test_ai_square_thrash.py` (6).
+> - **PT-F1 pursuit capture of neutral/allied soil — the delegated gate DECIDED as the
+>   row recommended: (i) neutrals → the pin-15 War Purpose flow; (iii) allies/vassals →
+>   pursuit ≠ conquest.** ONE predicate (`_pursuit_capture_guard`, keyed on the region's
+>   controller at transfer time) guards all four capture doors (battle-advance,
+>   auto-bombardment advance, glorious charge, and the reckless auto-charge's bare
+>   assignment in world_state). Neutrals: the advance HALTS at the frontier and the
+>   SAME `war_purpose_selection` dialogue the undefended-territory gate uses is staged
+>   (closure core hoisted, shared verbatim); allies: the victor advances as LIBERATOR
+>   and the province stays its owner's — the boot-Ulm strike now frees BAVARIAN Swabia
+>   for Bavaria. GR5: same predicate both sides, the AI's answer is restraint (its wars
+>   belong to the Stage-D machinery, never to a pursuit's momentum).
+>   `tests/test_neutral_soil_pursuit_capture.py` (7, both live shapes + at-war control).
+> - **⛏ `BASELINE_SERIES` RE-RECORDED CONSCIOUSLY ONCE (attributed to PT-F1, the IGR-X4
+>   discipline):** a live spy on the guard found the OLD baseline world contained two
+>   silent third-party annexations — **turn 5: Austria's Mack annexing BERLIN, Prussia's
+>   CAPITAL, at peace with Austria; turn 6: Britain's Moore seizing Hanover's Brunswick**
+>   (Hanover — in personal union with Britain). The standing baseline was built on the
+>   exact absurdity the fix closes; Prussia keeping its capital is a structurally
+>   different (and finally sensible) ambient Europe, series divergent from index 5.
+>   Attribution clean: PT-F6 measured byte-identical in isolation first; every other fix
+>   is presentation-only. Record at the constant.
+> - **PT-D4 move-chains** → `main._collapse_enemy_move_chains`: 3+ hop-continuous moves
+>   per marshal collapse into ONE `forced_march` entry at the view layer (after the fog
+>   filter; stages = the destinations today's bullets already disclosed; origin named
+>   only at FULL intel; attrition summed; conquest events preserved so a recapture chain
+>   lists each fall under the one march line; own non-move action or discontinuity breaks
+>   the chain; interleaved other marshals don't). + render arm in `enemy_phase_dialog.gd`.
+> - **PT-D1 muster one-voice odds** → the header names the committed joint figure the
+>   CO-2 verdict is priced on ("24,000; 41,000 with the muster committed"); the cautious
+>   solo line says "at unfavorable odds **alone**" whenever reinforcers committed (the
+>   −10% stays priced on the solo ratio — the blessed mechanic; the copy names its frame).
+> - **PT-D2 diorama taxonomy** → statuses {refused, failed_arrive, out_of_reach} keyed on
+>   the Session-61a trust-dock line (literal/crown = refusal BY CHOICE; low_score/fate =
+>   honest failure) + **muster-promise parity** (`_inject_muster_promises`: every WILL
+>   JOIN name renders with SOME status — the live Murat erasure closed); `.gd` predicates
+>   read the absence family as a set so an unknown status can never render as a fighting
+>   block. Spec vocabulary updated.
+> - **PT-D3 letter-book coherence** → the row title follows the terms-derived display the
+>   payload already carries (title always matches the lead clause); the STABLE context
+>   label stays on `proposal_type` for the batching predicate.
+> - Tests this session: `test_ai_square_thrash.py` (6) + `test_neutral_soil_pursuit_capture.py`
+>   (7) + `test_enemy_phase_presentation.py` (13) + diorama +5/2 flipped + digest +2.
+>
+> ### ▶ WHAT'S NEXT (updated August 1, 2026 — after the fix-menu session)
+>
+> **THE AI INTENT PHASE IS CLOSED and the re-measure's fix menu is BUILT.** Remaining:
+>
+> 1. **⚠ open visual sign-offs for the next play session** (user eyes, all queued): the
+>    IGR-G before/after pack (`docs/audits/IGR_G*_2026_07_31.png`); the BD
+>    significance-gate FEEL watch; **pin 20's visual half for Stages E+F** (FOREIGN WARS,
+>    casus-belli line, instrument chips, beats on screen); and NEW from this session —
+>    the forced-march line, the muster committed figure, and the diorama's refused /
+>    out-of-reach shelf in the running client.
+> 2. **The long quiet-France campaign** (30+ turns, France passive mid-game) — the only
+>    vehicle that can move living balance off 6.5 / measure the D1 band; can double as
+>    the sign-off play session in item 1.
+> 3. **DEF-5 (naval)** — the believability ceiling (Spain besieged London turn 5; the
+>    Channel walks both ways). Owner row `MAP_IMPLEMENTATION_PLAN.md`; ROADMAP Phase 11
+>    is its spine home.
+> 4. **▶ the ROADMAP spine**: STEAM PAGE + LLC → Phase 9 (Advisors) → 10 (Character &
+>    People) → 11 (Britain naval/subsidy) → Pre-EA (incl. the Victory & Objectives
+>    Pass). Routing is the user's call at the next session.
+>
+> **Nothing is blocked on a user decision** — the PT-F1 gate was delegated and is
+> decided + recorded (`BUG_FIXES.md` §Live-Playthrough).
+>
 > ### ✅ THE PLAYED-WORLD RE-MEASURE + FIX SESSION — August 1, 2026 (second session that day)
 >
 > **User direction: "do a live playthrough and add items to the most recent creative audit
@@ -57,38 +142,9 @@
 >   payloads over HTTP — foreign_wars shape, casus-belli field, instrument chips with live
 >   prices, beats in the dispatch stream — not the pixels).
 >
-> ### ▶ WHAT'S NEXT (as of August 1, 2026 — end of the AI Intent Stage G session)
->
-> **THE AI INTENT PHASE IS CLOSED.** Stage G (AI-V, "The Reckoning") ran August 1, 2026 —
-> landing record `AI_INTENT_SPEC.md` §20, sweep memo `docs/audits/AI_V_SWEEP_2026_08_01.md`,
-> standing pins `tests/test_ai_intent_assurance.py` (43), driver `tools/ai_v_sweep.py`
-> (committed). Arms A/B GREEN (byte-identical control anchored to `BASELINE_SERIES`;
-> variance on every seed at held ambient K), Arm C measured over 10 seeds (council wars
-> 0-with-written-predicate — the AI-3r §8.2 disposition re-confirmed post-Stage-E; pair
-> peaces + emergent promotions + the narration cap on EVERY seed), the scripted-France arm
-> walked beats 2/4/5/6/7 live in one run (the pin-21 bought-off receipt; the renege mirror
-> 82→97; the volte-face signed through the conflict confirm and aimed at Finland). §7 DoD
-> disposed line-by-line; §7a = 5-of-7 with written predicates on both misses; scored
-> creative pass: statesmen 8.0 · counterplay 8.0 · living balance 6.5 (the honest weak
-> edge — ambient council wars need a played moment) · legibility 8.5. Zero production-code
-> changes (the MC-V precedent).
->
-> 1. **⚠ open visual sign-offs for the next play session** (user eyes, all queued): the
->    IGR-G before/after pack (`docs/audits/IGR_G*_2026_07_31.png`); the BD
->    significance-gate FEEL watch; and **pin 20's visual half for Stages E+F** — the
->    FOREIGN WARS section, the casus-belli line, the three instrument chips, the
->    REVANCHE/VOLTE-FACE beats and the two routine intent lines on screen in the running
->    client. That play session doubles as the first PLAYED-world re-measure of the AI-V
->    weak edge (the living balance / D1 moment conjunction).
->
-> 2. **▶ NEXT PHASE — the ROADMAP spine resumes**: with 8.5's arc complete (Batch Q ✅ ·
->    CR-6 ✅ · NA ✅ · BD ✅ · AI ✅), the spine's next named items are **STEAM PAGE + LLC →
->    Phase 9 (Advisors) → 10 (Character & People) → 11 (Britain naval/subsidy) → Pre-EA**
->    (incl. the Victory & Objectives Pass). Routing between them is the user's call at the
->    next session.
->
-> **Nothing is blocked on a user decision right now** (the phase-routing choice above is
-> the natural next one to make).
+> *(The fix menu this session queued — PT-F6 + PT-D1/D2/D4, the PT-F1 gate, ranked in
+> §10.5 — was BUILT COMPLETE the same day by the third session; see the top entry. The
+> living WHAT'S NEXT is there.)*
 >
 > ### ✅ AI Intent Stage G — "The Reckoning" — RAN August 1, 2026 (the phase closes)
 >

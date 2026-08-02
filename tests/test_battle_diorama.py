@@ -84,7 +84,7 @@ def _battle_result(outcome="attacker_victory", victor="Ney",
 def _build(world, attacker, defender, battle_result, *, region="Waterloo",
            atk_participants=None, def_participants=None, pre=None,
            atk_dist=None, def_dist=None, atk_reinf=None, def_reinf=None,
-           conquered=False, total_engaged=0):
+           conquered=False, total_engaged=0, muster_rows=None):
     atk_participants = atk_participants or [attacker]
     def_participants = def_participants or [defender]
     if pre is None:
@@ -97,7 +97,8 @@ def _build(world, attacker, defender, battle_result, *, region="Waterloo",
         atk_distribution=atk_dist or {}, def_distribution=def_dist or {},
         attacker_reinforcements=atk_reinf or [],
         defender_reinforcements=def_reinf or [],
-        region_conquered=conquered, total_engaged=total_engaged)
+        region_conquered=conquered, total_engaged=total_engaged,
+        muster_rows=muster_rows)
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -299,8 +300,9 @@ class TestNoShowShelf:
             world, ney, mack, _battle_result(),
             atk_reinf=[{"marshal": "Bernadotte", "arrived": False,
                         "reason": "eyes_on_a_crown"}])
+        # PT-D2: an ambition-driven no-show is a REFUSAL, not a failed march.
         shelf = [c for c in payload["attacker"]["contingents"]
-                 if c["status"] == "failed_arrive"]
+                 if c["status"] == "refused"]
         assert len(shelf) == 1
         assert shelf[0]["name"] == "Bernadotte"
         assert shelf[0]["absence_reason"] == "weighed his own ambitions"
@@ -316,8 +318,10 @@ class TestNoShowShelf:
             world, ney, mack, _battle_result(),
             atk_reinf=[{"marshal": "Soult", "arrived": False,
                         "reason": "literal_personality"}])
+        # PT-D2: the live Soult case — a literal awaiting orders REFUSED to
+        # march; rendering him "failed_arrive" misattributed the choice.
         shelf = [c for c in payload["attacker"]["contingents"]
-                 if c["status"] == "failed_arrive"]
+                 if c["status"] == "refused"]
         assert shelf[0]["absence_reason"] == "awaits explicit orders"
 
     def test_enemy_grudge_never_leaks(self):
@@ -330,6 +334,111 @@ class TestNoShowShelf:
         world = _world(ney, mack)
         payload = _build(world, ney, mack, _battle_result())
         assert "grudge" not in payload["defender"]["contingents"][0]
+
+
+class TestContingentTaxonomyPTD2:
+    """PT-D2 (Aug-1 re-measure): refusal, failed roll, and out-of-reach are
+    different dramas and get different statuses; and every marshal the
+    muster block promised (WILL JOIN) appears with SOME status."""
+
+    def test_failed_roll_still_reads_failed_arrive(self):
+        # The honest failed march (low_score / fate) keeps its status —
+        # the taxonomy narrows `failed_arrive`, it does not rename it.
+        ney = _mk("Ney", "Waterloo", 40000)
+        murat = _mk("Murat", "Belgium", 20000)
+        mack = _mk("Mack", "Waterloo", 30000, nation="Austria")
+        world = _world(ney, murat, mack)
+        payload = _build(
+            world, ney, mack, _battle_result(),
+            atk_reinf=[{"marshal": "Murat", "arrived": False,
+                        "reason": "low_score"}])
+        entry = next(c for c in payload["attacker"]["contingents"]
+                     if c["name"] == "Murat")
+        assert entry["status"] == "failed_arrive"
+
+    def test_muster_promise_parity_out_of_reach(self):
+        """The live Murat case: promised WILL JOIN at muster, silently
+        dropped by the resolve ladder (no reinforcement record at all) —
+        absent from the tableau entirely. Now he shelves as out_of_reach."""
+        ney = _mk("Ney", "Waterloo", 40000)
+        murat = _mk("Murat", "Belgium", 20000)
+        mack = _mk("Mack", "Waterloo", 30000, nation="Austria")
+        world = _world(ney, murat, mack)
+        payload = _build(
+            world, ney, mack, _battle_result(),
+            atk_reinf=[],  # the silent drop — no record was ever written
+            muster_rows=[{"marshal": "Murat", "will_join": True,
+                          "reason": "answers_the_guns"}])
+        entry = next((c for c in payload["attacker"]["contingents"]
+                      if c["name"] == "Murat"), None)
+        assert entry is not None, (
+            "a promised joiner vanished from the tableau — the exact "
+            "erasure the re-measure flagged")
+        assert entry["status"] == "out_of_reach"
+        assert entry["absence_reason"] == "the field moved beyond his reach"
+
+    def test_every_will_join_name_has_some_status(self):
+        """The parity contract, stated as the audit states it."""
+        ney = _mk("Ney", "Waterloo", 40000)
+        lannes = _mk("Lannes", "Waterloo", 25000)
+        murat = _mk("Murat", "Belgium", 20000)
+        soult = _mk("Soult", "Belgium", 22000, personality="literal")
+        mack = _mk("Mack", "Waterloo", 30000, nation="Austria")
+        world = _world(ney, lannes, murat, soult, mack)
+        muster = [
+            {"marshal": "Lannes", "will_join": True},
+            {"marshal": "Murat", "will_join": True},
+            {"marshal": "Soult", "will_join": False,
+             "reason": "literal_awaits_orders"},
+        ]
+        payload = _build(
+            world, ney, mack, _battle_result(),
+            atk_participants=[ney, lannes],
+            atk_dist={"Ney": 2000, "Lannes": 1000},
+            atk_reinf=[{"marshal": "Lannes", "arrived": True}],
+            muster_rows=muster)
+        names = {c["name"]: c["status"]
+                 for c in payload["attacker"]["contingents"]}
+        for row in muster:
+            if row["will_join"]:
+                assert row["marshal"] in names, (
+                    f"WILL JOIN promise erased: {row['marshal']}")
+        assert names["Lannes"] == "reinforced"
+        assert names["Murat"] == "out_of_reach"
+
+    def test_parity_never_duplicates_an_arrived_marshal(self):
+        ney = _mk("Ney", "Waterloo", 40000)
+        lannes = _mk("Lannes", "Waterloo", 25000)
+        mack = _mk("Mack", "Waterloo", 30000, nation="Austria")
+        world = _world(ney, lannes, mack)
+        payload = _build(
+            world, ney, mack, _battle_result(),
+            atk_participants=[ney, lannes],
+            atk_dist={"Ney": 2000, "Lannes": 1000},
+            atk_reinf=[{"marshal": "Lannes", "arrived": True}],
+            muster_rows=[{"marshal": "Lannes", "will_join": True}])
+        assert sum(1 for c in payload["attacker"]["contingents"]
+                   if c["name"] == "Lannes") == 1
+
+    def test_absence_family_share_the_shelf_slot_rules(self):
+        """_cap_side treats the whole absence family as shelf stock: none
+        of them crowd the fought line or count into committed_total."""
+        ney = _mk("Ney", "Waterloo", 40000)
+        soult = _mk("Soult", "Belgium", 22000, personality="literal")
+        murat = _mk("Murat", "Belgium", 20000)
+        mack = _mk("Mack", "Waterloo", 30000, nation="Austria")
+        world = _world(ney, soult, murat, mack)
+        payload = _build(
+            world, ney, mack, _battle_result(),
+            atk_reinf=[{"marshal": "Soult", "arrived": False,
+                        "reason": "literal_personality"}],
+            muster_rows=[{"marshal": "Murat", "will_join": True}])
+        side = payload["attacker"]
+        assert side["committed_total"] == 40000, (
+            "absent corps must not inflate the committed line")
+        statuses = {c["status"] for c in side["contingents"]
+                    if c["name"] in ("Soult", "Murat")}
+        assert statuses == {"refused", "out_of_reach"}
 
 
 # ════════════════════════════════════════════════════════════════════════

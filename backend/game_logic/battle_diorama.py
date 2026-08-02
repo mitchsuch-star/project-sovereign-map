@@ -25,10 +25,16 @@ Fog contract (the eval's de-risk must #1):
   require FULL visibility of their location; the player's own no-shows
   always show (the Bernadotte drama is a player-side read).
 
-Status vocabulary is deliberately the four states with real data behind them
-(eval §5 cut `withdrew` as unmodeled): engaged / reinforced / failed_arrive /
-routed (primary pair only) — plus `destroyed`, which is arithmetic
-(casualties consumed the corps), not a new model state.
+Status vocabulary (PT-D2, Aug-1 re-measure, extends the eval §5 set):
+engaged / reinforced / routed (primary pair only) / destroyed, plus the
+absence family the tableau's shelf renders — `refused` (a by-design
+character refusal: the literal who awaits orders, the jealous eye on a
+crown — the same taxonomy the Session-61a trust dock blessed),
+`failed_arrive` (he tried; the roll or fate stopped him), and
+`out_of_reach` (he promised at muster but the resolve ladder dropped him —
+the field moved beyond his reach). The live defect: Soult, who REFUSED to
+march, rendered as `failed_arrive`; Murat, who promised and failed his
+roll, was absent from the tableau entirely (muster-promise parity below).
 """
 
 from typing import Dict, List, Optional
@@ -53,6 +59,14 @@ _ABSENCE_LABELS = {
     "eyes_on_a_crown": "weighed his own ambitions",
 }
 _ABSENCE_DEFAULT = "could not reach the field"
+
+# PT-D2: refusal is a CHOICE, a failed arrival is not — the same line the
+# Session-61a trust dock draws (it exempts by-design character refusals
+# and docks only the honest failed roll).
+_REFUSAL_REASONS = ("literal_personality", "eyes_on_a_crown")
+
+# The absence family — every status the shelf (not the line) renders.
+ABSENT_STATUSES = ("failed_arrive", "refused", "out_of_reach")
 
 
 def marshal_arm(marshal) -> str:
@@ -174,16 +188,50 @@ def _side_contingents(world, lead, participants: list, distribution: dict,
             intel = world.get_region_intel(absent.location)
             if getattr(intel, "visibility", None) != FULL:
                 continue
+        # PT-D2: a refusal renders as a refusal, not as a failed march.
+        reason = r.get("reason", "")
+        status = "refused" if reason in _REFUSAL_REASONS else "failed_arrive"
         entry = _contingent(
             absent,
             committed=int(getattr(absent, "strength", 0)),
             casualties=0,
             remaining=int(getattr(absent, "strength", 0)),
-            status="failed_arrive", lead=False, world=world)
+            status=status, lead=False, world=world)
         entry["absence_reason"] = _ABSENCE_LABELS.get(
-            r.get("reason", ""), _ABSENCE_DEFAULT)
+            reason, _ABSENCE_DEFAULT)
         contingents.append(entry)
 
+    return contingents
+
+
+def _inject_muster_promises(contingents: List[dict], muster_rows, world):
+    """PT-D2 muster-promise parity: every WILL JOIN name appears with SOME
+    status. The preview ladder (_muster_reason) and the resolve ladder
+    (_is_reinforcement_eligible) are parallel re-implementations — a
+    marshal can promise at muster and be dropped silently at resolve (the
+    live Murat case). Whoever promised and is in neither the fought line
+    nor the shelf lands here as `out_of_reach`."""
+    if not muster_rows:
+        return contingents
+    present = {c.get("name") for c in contingents}
+    for row in muster_rows:
+        if not row.get("will_join"):
+            continue
+        name = row.get("marshal", "")
+        if not name or name in present:
+            continue
+        promised = world.marshals.get(name)
+        if promised is None:
+            continue
+        entry = _contingent(
+            promised,
+            committed=int(getattr(promised, "strength", 0)),
+            casualties=0,
+            remaining=int(getattr(promised, "strength", 0)),
+            status="out_of_reach", lead=False, world=world)
+        entry["absence_reason"] = "the field moved beyond his reach"
+        contingents.append(entry)
+        present.add(name)
     return contingents
 
 
@@ -191,8 +239,8 @@ def _cap_side(contingents: List[dict]) -> dict:
     """Fixed cap + honest tail (eval §7 Q3): the shelf never crowds out the
     line — fought corps take the cap first, no-shows keep one slot when the
     line is full (the gap IS the drama)."""
-    fought = [c for c in contingents if c["status"] != "failed_arrive"]
-    absent = [c for c in contingents if c["status"] == "failed_arrive"]
+    fought = [c for c in contingents if c["status"] not in ABSENT_STATUSES]
+    absent = [c for c in contingents if c["status"] in ABSENT_STATUSES]
     shown_fought = fought[:MAX_CONTINGENTS_PER_SIDE]
     reserve = len(fought) - len(shown_fought)
     shown_absent = absent[:max(1, MAX_CONTINGENTS_PER_SIDE - len(shown_fought))] \
@@ -204,7 +252,7 @@ def _cap_side(contingents: List[dict]) -> dict:
         "casualties_total": int(sum(c["casualties"] for c in contingents)),
         "committed_total": int(sum(
             c["committed"] for c in contingents
-            if c["status"] != "failed_arrive")),
+            if c["status"] not in ABSENT_STATUSES)),
     }
 
 
@@ -237,7 +285,8 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
                          attacker_reinforcements: list,
                          defender_reinforcements: list,
                          region_conquered: bool,
-                         total_engaged: int) -> Optional[dict]:
+                         total_engaged: int,
+                         muster_rows: Optional[list] = None) -> Optional[dict]:
     """Assemble the Battle Diorama payload, or None when fog says the player
     may not see this field. Display-only; every figure is either already on
     the battle event surface or derived from it."""
@@ -259,10 +308,14 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
             return None
 
     outcome = str(battle_result.get("outcome", ""))
-    attacker_side = _cap_side(_side_contingents(
+    atk_contingents = _side_contingents(
         world, attacker, atk_participants, atk_distribution,
         battle_result.get("attacker", {}) or {},
-        attacker_reinforcements, pre_strengths, player_involved))
+        attacker_reinforcements, pre_strengths, player_involved)
+    # PT-D2: the muster block is the attacker's promise ledger — parity
+    # applies to the side that mustered.
+    atk_contingents = _inject_muster_promises(atk_contingents, muster_rows, world)
+    attacker_side = _cap_side(atk_contingents)
     attacker_side["nation"] = atk_nation
     defender_side = _cap_side(_side_contingents(
         world, defender, def_participants, def_distribution,

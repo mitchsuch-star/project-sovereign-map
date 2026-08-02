@@ -10353,7 +10353,21 @@ class WorldState:
                             if m.location == auto_charge_battle_region and m.strength > 0 and m.nation != marshal.nation
                             and self.is_at_war(marshal.nation, m.nation)
                         ]
-                        if not remaining and not cap_region.has_building("fortification"):
+                        # PT-F1 mirror: the auto-charge's bare controller
+                        # assignment bypassed the executor funnel — the same
+                        # rule applies: soil of a court the charger is not
+                        # AT WAR with never transfers by pursuit.
+                        third_party_soil = (
+                            cap_region.controller
+                            and not self.is_at_war(marshal.nation, cap_region.controller)
+                        )
+                        if third_party_soil:
+                            if not remaining:
+                                conquest_msg = (
+                                    f" {auto_charge_battle_region} remains "
+                                    f"{cap_region.controller}'s soil — the charge "
+                                    f"was against the enemy, not the province.")
+                        elif not remaining and not cap_region.has_building("fortification"):
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
                             conquered = True

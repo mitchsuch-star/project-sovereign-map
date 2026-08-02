@@ -3,11 +3,13 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: August 1, 2026 (**Live-Playthrough Aug-1 section added** — 10 defects from
-> the played-world creative-audit re-measure, 8 FIXED in-session with pins
-> (`tests/test_playthrough_fixes_2026_08_01.py`, 12), 2 ROUTED below (F1 neutral-soil
-> pursuit-capture, F6 AI square-thrash). Record: `docs/audits/AI_V_SWEEP_2026_08_01.md`
-> §10 + `docs/STATUS.md` top entry.)
+> Last Updated: August 1, 2026, second session (**Live-Playthrough Aug-1 section CLOSED**
+> — the 2 routed rows PT-F1 + PT-F6 FIXED under the user's delegated grant, alongside the
+> four PT-D design items; the section's 10 defects are now 10/10 FIXED. This session's
+> tests: `test_neutral_soil_pursuit_capture.py` (7), `test_ai_square_thrash.py` (6),
+> `test_enemy_phase_presentation.py` (13), diorama/digest extensions. Prior session:
+> 8 FIXED with pins (`tests/test_playthrough_fixes_2026_08_01.py`, 12). Record:
+> `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 + `docs/STATUS.md` top entry.)
 >
 > Last Updated: July 18, 2026 (**July-18 Playtest Sweep section added — ALL 25 rows FIXED**:
 > the two user-reported issues ("give them hell" did nothing; the settle-a-war window ran off
@@ -31,64 +33,97 @@
 ## Live-Playthrough Findings (August 1, 2026 — the played-world creative-audit re-measure)
 
 > Source: `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 (the full ledger and the scored
-> addendum live there). **F2/F3/F4/F5/F7/F8/F9/F10 were FIXED in-session** — pinned in
-> `tests/test_playthrough_fixes_2026_08_01.py` (12); the two rows below are the OPEN
-> routes.
+> addendum live there). **ALL 10 DEFECTS FIXED.** F2/F3/F4/F5/F7/F8/F9/F10 in the
+> re-measure session itself (`tests/test_playthrough_fixes_2026_08_01.py`, 12); PT-F1 +
+> PT-F6 in the second Aug-1 session under the user's delegated grant — struck rows below
+> carry the landing records.
 
-### PT-F1 — Pursuit-battle capture of neutral/allied soil has zero diplomatic consequence (P2, OPEN)
+### ~~PT-F1 — Pursuit-battle capture of neutral/allied soil has zero diplomatic consequence~~ (✅ FIXED August 1, 2026, P2)
 
-**Seen live twice.** (a) Mack routed into **Nassau (Hesse — at PEACE with France)**; Ney
-pursued, destroyed him, captured Nassau, got the plunder/secure prompt — and Hesse stayed
-`PEACE / relation 0`, then wrote France a *non-aggression letter*. Only the global threat
-scalar noticed (+15, unexplained on any surface). (b) Retro-discovered: **Swabia is
-BAVARIAN at boot** (Mack merely occupies it), so the session's Ulm capture transferred a
-bloc ALLY's province to France, equally unremarked.
+> **✅ FIXED August 1, 2026 (second session).** The one-question gate was delegated
+> ("make the decision yourself") and **decided as the row recommended: (i) for neutral
+> courts, (iii) for allies/vassals.** Landing record = this block; tests
+> `tests/test_neutral_soil_pursuit_capture.py` (7) cover both live shapes.
+>
+> **What shipped.** ONE predicate — `combat_executor._pursuit_capture_guard`, keyed on
+> the region's CONTROLLER at the moment of transfer — now guards all four capture doors:
+> the main battle-advance, the auto-bombardment advance, the glorious charge, and the
+> reckless auto-charge's bare controller assignment in `world_state.py` (the V2-53
+> simplified path, which bypassed the executor funnel entirely). Attacking the enemy ARMY
+> standing on a third party's soil stays legal — the annexation is what needs a war.
+> - **Neutral court (PEACE, attackable)** → the pin-15 War Purpose flow: the advance
+>   halts at the frontier ("Ney halts at the frontier of Nassau — Hesse's soil"), nothing
+>   transfers, and the player is offered the declaration through the SAME
+>   `war_purpose_selection` dialogue the undefended-territory gate stages (the closure's
+>   core hoisted to `_stage_war_purpose_selection`, shared verbatim). The Ansbach moment,
+>   as a choice.
+> - **Ally/vassal (`can_attack_nation` False)** → pursuit ≠ conquest: the victor advances
+>   as a LIBERATOR (driving Mack off Bavarian Swabia is the alliance working), the
+>   province stays its owner's, no plunder/secure prompt, no threat accrual for a
+>   province that never fell (the `+15 capital_capture` was already gated on `conquered`;
+>   the honest `+3 battle_win` stays).
+> - **GR5** — same predicate both sides; the AI's answer is RESTRAINT (no capture, no
+>   auto-declaration): its war decisions belong to the Stage-D machinery, never to a
+>   pursuit's momentum. Pinned: Mack destroying a French corps in Nassau leaves Hesse at
+>   PEACE and Nassau Hessian.
+>
+> **Both live cases pinned:** the Nassau shape (halt + staged dialogue + no threat spike)
+> and the literal boot-Ulm board (Mack occupies BAVARIAN Swabia; the strike now liberates
+> it for Bavaria), plus the at-war control arm (Tyrol still falls, plunder prompt intact).
+> Out-of-scope, noted for a future owner: a fortified-occupation timer that started at war
+> and completes after a peace is a different (pre-existing) shape and was not touched.
+>
+> **`BASELINE_SERIES` RE-RECORDED CONSCIOUSLY ONCE** (the IGR-X4 discipline; record at
+> the constant, `test_ai_intent_threat_migration.py`): a live spy on the guard found the
+> OLD baseline world contained exactly two silent third-party annexations — **turn 5,
+> Austria's Mack pursuing into BERLIN, Prussia's CAPITAL, at peace with Austria** (the
+> standing baseline had Prussia's capital flipping Austrian, unremarked), and turn 6,
+> Britain's Moore seizing Hanover's Brunswick. Both now halt at the frontier; Prussia
+> keeping Berlin is a structurally different (and finally sensible) Europe, so the series
+> diverges from index 5. Attribution is clean: PT-F6 was measured in isolation FIRST
+> (byte-identical, 72/72); every other fix this session is presentation-only. M1–M7 held
+> byte-identical throughout.
 
-**Mechanism.** Stage-D pin 15 closed the OPEN_MOVEMENT *movement*-capture hole (silent
-walk-in capture now stages War Purpose, both sides). The *battle-advance* capture path —
-attack an enemy marshal standing on third-party soil, win, advance — never passes that
-seam, so the region transfers to the victor with no declaration, no relation hit, no
-event line naming the violation.
+### ~~PT-F6 — The AI square-thrash: form/break/re-form in one enemy phase~~ (✅ FIXED August 1, 2026, P3)
 
-**Owner / landing.** Needs a one-question design gate (the same seam family Stage D
-used): does a battle-advance onto an uninvolved court's soil (i) stage the pin-15 War
-Purpose flow, (ii) price in relations/threat with a named event, or (iii) hand the
-province BACK to its owner after the battle (pursuit ≠ conquest)? Recommendation: (i)
-for neutral courts, (iii) for allies/vassals. Landing slice: one session, backend-only;
-completion = a `test_neutral_soil_pursuit_capture.py` behavior test covering both live
-cases (Nassau and boot-Swabia shapes); STATUS line on landing. Until then the AI cannot
-farm it (AI target selection is war-scoped) but a player can.
+> **✅ FIXED August 1, 2026 (second session), in its own commit per the row's
+> harness discipline.** The live shape — Moore forming square THREE times in one phase,
+> breaking it himself each time (stance change, then counter-punch, then re-form) — was
+> reproduced deterministically before the fix (the reproduction lives on as the test's
+> control arm) and cut to ≤1 formation per marshal per phase.
+>
+> **Mechanism confirmed:** the P2.5 break rung sets `ai_square_cooldown`, but
+> `_auto_break_square` (fired when the AI's own attack/move/stance change breaks the
+> square) set nothing — so the planner re-formed the square it had just broken. Two
+> halves, both at EXECUTION seams (never inside `_evaluate_marshal` — the
+> evaluation-time `ai_square_cooldown` stamp is the documented anti-pattern):
+> - **The latch** — `self._squares_formed_this_turn`, initialized with the per-phase
+>   state block, written on the executed formation, read in P2.5's form condition: a
+>   marshal forms square at most ONCE per enemy phase.
+> - **The stance guard** — the central candidate filter now skips `stance_change` for a
+>   marshal standing in square (the S5-1 fortify guards' missing sibling): the square IS
+>   the posture; P2.5's break rung owns the deliberate exit. Attack/move breaks stay
+>   legal — abandoning a square for a counter-blow is a choice, fidgeting out of it is
+>   farce. Production transcript now reads "forms square → counter-punches (square
+>   broken) → fortifies" — one formation, the break a choice.
+>
+> **Harness verdict (the conscious-re-record discipline): M1–M7 AND `BASELINE_SERIES`
+> byte-identical, 72/72 green before and after — NO re-record needed.** The ambient
+> 40-turn world never assembles the adjacent-cavalry-with-self-break conjunction; the
+> thrash was a played-world artifact. Tests: `tests/test_ai_square_thrash.py` (6 — the
+> phase-transcript ≤1 pin with a neutered-latch control arm that must still reproduce
+> the thrash, the stance-guard pin with its not-in-square positive control, and the
+> rung-level latch pin in the existing cooldown test's idiom).
 
-### PT-F6 — The AI square-thrash: form/break/re-form in one enemy phase (P3, OPEN)
+### PT-observations routed to owners (✅ ALL FOUR LANDED August 1, 2026, second session)
 
-**Seen live every phase from turn 3.** Moore formed square at Nivernais THREE times in
-one phase — breaking it himself each time (stance change, then counter-punch, then
-re-form); Archduke Charles and Castanos produced the same transcript shape. The AI's
-action planner does not model that its own next action breaks the square, so it burns
-actions and the enemy phase reads as farce (the concrete mechanism behind "the enemy
-phase as theater: 5.5" in the audit addendum §10.4).
-
-**Owner / landing.** `enemy_ai.py` action planning — a per-phase latch (a marshal who
-broke his own square this phase may not re-form it) is the minimal shape; suppressing
-square formation while further offensive actions are planned is the correct one.
-**Harness-sensitive**: any behaviour change here can move `BASELINE_SERIES` / M1–M7 —
-land in its own slice with the conscious-re-record discipline (the IGR-X4 precedent),
-never as a drive-by. Completion = a phase-transcript test asserting ≤1 square formation
-per marshal per enemy phase + harness verdict recorded; STATUS line on landing.
-
-### PT-observations routed to owners (no open bug row)
-
-- **Muster one-voice odds (CO-6 finisher):** "the balance of force looks favorable"
-  (joint committed force) beside "attacks cautiously at unfavorable odds" (solo ratio)
-  in one message — `DESIGN_REFINEMENT.md` §Live-Playthrough row PT-D1.
-- **Diorama contingent taxonomy:** a marshal who REFUSED to march renders as
-  `failed_arrive`; a promised joiner who failed his arrival roll is absent entirely —
-  `DESIGN_REFINEMENT.md` PT-D2 (BD polish family).
-- **Letter-book label coherence:** digest rows titled "Gift of Friendship" whose own
-  clauses read "Open Borders Agreement" — `DESIGN_REFINEMENT.md` PT-D3.
-- **Move-chain presentation** (Moore undoing a four-province campaign in one phase) —
-  `DESIGN_REFINEMENT.md` PT-D4; the naval gate itself stays owned by **DEF-5**, whose
-  urgency this session upgrades (Spain besieged London on turn 5).
+- ~~**Muster one-voice odds (CO-6 finisher)**~~ ✅ PT-D1 LANDED — struck row in
+  `DESIGN_REFINEMENT.md` §Live-Playthrough carries the landing record.
+- ~~**Diorama contingent taxonomy**~~ ✅ PT-D2 LANDED — ditto.
+- ~~**Letter-book label coherence**~~ ✅ PT-D3 LANDED — ditto.
+- ~~**Move-chain presentation**~~ ✅ PT-D4 LANDED — ditto; the naval gate itself stays
+  owned by **DEF-5**, whose urgency the re-measure upgraded (Spain besieged London on
+  turn 5 — "the believability ceiling").
 
 ---
 

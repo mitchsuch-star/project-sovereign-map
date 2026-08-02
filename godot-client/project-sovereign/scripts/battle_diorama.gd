@@ -38,6 +38,10 @@ const SHELF_H := 66.0
 const FIGURE_PX := 58.0
 const SHELF_FIGURE_PX := 44.0
 
+# PT-D2: the backend's absence family (battle_diorama.py ABSENT_STATUSES)
+# — statuses the shelf renders, never the line.
+const ABSENT_STATUSES := ["failed_arrive", "refused", "out_of_reach"]
+
 # ── Palette (colour rarity per the brief: wood, brass, baize; red = casualties)
 const WOOD_BG := Color(0.165, 0.118, 0.078, 1.0)        # walnut tray
 const WOOD_EDGE := Color(0.24, 0.175, 0.115, 1.0)
@@ -555,7 +559,9 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 	var contingents: Array = side.get("contingents", [])
 	var fought: Array = []
 	for c in contingents:
-		if str(c.get("status", "")) != "failed_arrive":
+		# PT-D2: the whole absence family stays off the line — an unknown
+		# status must never default to a fighting block.
+		if not (str(c.get("status", "")) in ABSENT_STATUSES):
 			fought.append(c)
 
 	var sw := _stage.size.x
@@ -740,7 +746,9 @@ func _make_standard(nation_color: Color, flag_key: String,
 func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 	var absent: Array = []
 	for c in side.get("contingents", []):
-		if str(c.get("status", "")) == "failed_arrive":
+		# PT-D2: refused / failed_arrive / out_of_reach all shelve; the
+		# absence_reason caption carries which it was.
+		if str(c.get("status", "")) in ABSENT_STATUSES:
 			absent.append(c)
 	if absent.is_empty():
 		return

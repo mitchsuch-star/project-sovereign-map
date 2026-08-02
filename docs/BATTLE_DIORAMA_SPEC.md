@@ -138,8 +138,13 @@ build assembles a display-only `contingents[]` list — marshal name, nation (of
 arm (derived from `marshal.cavalry`/`.artillery`), committed strength (**captured before
 `take_casualties` mutates it** — extend the `_co6_lead_pre_strength` snapshot at
 combat_executor.py:4000 to all participants), casualties (wire the dead `casualty_distribution`), and
-status ∈ **{engaged, reinforced, routed(primary-pair-only), failed_arrive}** (note: **`withdrew` is
-UNMODELED and cut** per Evaluation §5) — from `atk_participants`/`def_participants`, fog-filtered on
+status ∈ **{engaged, reinforced, routed(primary-pair-only), destroyed, refused, failed_arrive,
+out_of_reach}** (note: **`withdrew` is UNMODELED and cut** per Evaluation §5; the absence family
+**{refused, failed_arrive, out_of_reach}** landed with PT-D2, Aug 1 2026 — a by-design character
+refusal (`literal_personality`/`eyes_on_a_crown`, the Session-61a trust-dock taxonomy) renders
+`refused`, an honest failed roll keeps `failed_arrive`, and a WILL-JOIN muster promise the resolve
+ladder silently dropped shelves as `out_of_reach` via muster-promise parity — every promised name
+appears with SOME status) — from `atk_participants`/`def_participants`, fog-filtered on
 the enemy side, **registered in the serialization whitelist**. **No new serialized *world* fields**
 (the list is built per-battle on the response), but it is real per-battle assembly work.
 

@@ -134,6 +134,24 @@ func _format_action(action: Dictionary) -> String:
 				action_str += "attacks " + target
 		"move":
 			action_str += "moves to " + target
+		"forced_march":
+			# PT-D4: a 3+ hop chain collapsed server-side into one line —
+			# origin (when scouted) → each stage → terminus, losses summed.
+			var fm = action.get("forced_march", {})
+			var fm_stages: Array = fm.get("stages", [])
+			var fm_route = ""
+			if fm.has("from"):
+				fm_route = str(fm.get("from")) + " → "
+			for fm_i in range(fm_stages.size()):
+				if fm_i > 0:
+					fm_route += " → "
+				fm_route += str(fm_stages[fm_i])
+			if fm_route == "":
+				fm_route = target
+			action_str += "drives a forced march — " + fm_route
+			var fm_losses = int(fm.get("march_losses", 0))
+			if fm_losses > 0:
+				action_str += " (" + Utils.format_number(fm_losses) + " lost on the march)"
 		"defend":
 			action_str += "defends"
 		"fortify":

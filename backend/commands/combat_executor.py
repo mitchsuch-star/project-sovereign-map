@@ -846,9 +846,18 @@ class CombatExecutor:
 
     def _format_muster_lines(self, preview) -> str:
         """Compact text render of the muster block (1 line per marshal)."""
+        # PT-D1: the odds band is priced on the COMMITTED joint force
+        # (CO-2), so when reinforcers commit, the header must name that
+        # figure — otherwise "looks favorable" beside a weaker solo count
+        # reads as a contradiction with the personality line's solo frame.
+        attacker_display = f"{preview['attacker']['strength']:,}"
+        committed = int(preview['attacker'].get(
+            'committed_strength', preview['attacker']['strength']))
+        if committed > preview['attacker']['strength']:
+            attacker_display += f"; {committed:,} with the muster committed"
         lines = [
             f"MUSTER — {preview['attacker']['name']} "
-            f"({preview['attacker']['strength']:,}) vs "
+            f"({attacker_display}) vs "
             f"{preview['target']['name']} "
             f"({preview['target']['strength_display']}) at "
             f"{preview['target']['location']} — the balance of force looks "
@@ -2898,38 +2907,15 @@ class CombatExecutor:
 
         def _stage_war_purpose_for_attack(target_nation: str) -> Dict:
             """Stage WPS-A purpose selection instead of auto-declaring by attack."""
-            from backend.game_logic.diplomacy import get_available_war_objectives
-
-            objectives = get_available_war_objectives(world, marshal.nation, target_nation)
-            options = []
-            for obj in objectives:
-                if obj.get("available"):
-                    options.append({
-                        "label": obj.get("label", obj.get("type", "Objective")),
-                        "action": "select_war_objective",
-                        "objective_type": obj.get("type"),
-                        "target_nation": target_nation,
-                    })
-            options.append({"label": "Back Out", "action": "reconsider"})
-            world.dialogue_manager.replace({
-                "type": "war_purpose_selection",
-                "target_nation": target_nation,
-                "message": f"Choose your war purpose against {target_nation}.",
-                "objectives": objectives,
-                "options": options,
-                "blocking": True,
-                "turn_created": int(world.current_turn),
-            })
+            popup = self._stage_war_purpose_selection(
+                world, marshal.nation, target_nation)
             return {
                 "success": True,
                 "message": (
                     f"Choose your war purpose against {target_nation}. "
                     "Issue the attack again after the declaration is settled."
                 ),
-                "war_purpose_popup": {
-                    "target_nation": target_nation,
-                    "objectives": objectives,
-                },
+                "war_purpose_popup": popup,
                 "diplomatic_dialogue": world.pending_diplomatic_dialogue,
                 "awaiting_diplomatic_response": True,
             }
@@ -4133,11 +4119,21 @@ class CombatExecutor:
             # Remove destroyed defender
             world.marshals.pop(enemy_marshal.name, None)
 
+            # PT-F1: same guard as the main battle-advance — the soil of a
+            # court we are not at war with never transfers by pursuit.
+            pursuit_block = self._pursuit_capture_guard(marshal, battle_region_name, world)
+
             # Advance attacker if not artillery
             advance_msg = ""
             if not getattr(marshal, 'artillery', False) and marshal.location != battle_region_name:
-                marshal.move_to(battle_region_name)
-                advance_msg = f" {marshal.name} advances into {battle_region_name}."
+                if pursuit_block and pursuit_block["arm"] == "neutral":
+                    advance_msg = (
+                        f" {marshal.name} halts at the frontier of "
+                        f"{battle_region_name} — {pursuit_block['owner']}'s soil, "
+                        f"and we are not at war with {pursuit_block['owner']}.")
+                else:
+                    marshal.move_to(battle_region_name)
+                    advance_msg = f" {marshal.name} advances into {battle_region_name}."
 
             # Attempt capture
             conquest_msg = ""
@@ -4149,7 +4145,18 @@ class CombatExecutor:
                     if m.location == battle_region_name and m.strength > 0 and m.nation != marshal.nation
                     and world.is_at_war(marshal.nation, m.nation)
                 ]
-                if not remaining_defenders:
+                if pursuit_block is not None and not remaining_defenders:
+                    if pursuit_block["arm"] == "ally":
+                        conquest_msg = pursuit_block["message"]
+                    if (pursuit_block["arm"] == "neutral"
+                            and marshal.nation == world.player_nation):
+                        self._stage_war_purpose_selection(
+                            world, marshal.nation, pursuit_block["owner"])
+                        conquest_msg = (
+                            f" To seize {battle_region_name} is to make war on "
+                            f"{pursuit_block['owner']} — choose our purpose, "
+                            f"or let the province stand.")
+                elif not remaining_defenders:
                     capture_result = self._attempt_region_capture(
                         marshal, battle_region_name, world, game_state, had_garrison=True)
                     if capture_result.get("captured"):
@@ -4923,7 +4930,12 @@ class CombatExecutor:
         print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={enemy_marshal.location if enemy_marshal.strength > 0 else 'DESTROYED'}")
         print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
 
+        # PT-F1: classify the region's OWNER before any advance — a pursuit
+        # may only transfer soil of a court we are AT WAR with.
+        pursuit_block = self._pursuit_capture_guard(marshal, target_location, world)
+
         # ARTILLERY: No advance on win — positional platform stays in place
+        pursuit_halted = False
         is_artillery_no_advance = getattr(marshal, 'artillery', False) and marshal.location != target_location
         if is_artillery_no_advance:
             if can_advance:
@@ -4932,20 +4944,30 @@ class CombatExecutor:
             print(f"[ATTACK MOVEMENT] Artillery {marshal.name} stays at {marshal.location} (no advance on win)")
         elif can_advance and marshal.strength > 0 and not getattr(self._executor, '_current_sortie', False):
             if marshal.location != target_location:
-                print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
-                marshal.move_to(target_location)
-                # Movement attrition on post-battle advance (Phase 6.2.F)
-                attrition_info = self._executor._calculate_movement_attrition(marshal, target_location, world)
-                if defender_fled and victor != marshal.name:
-                    movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
+                if pursuit_block and pursuit_block["arm"] == "neutral":
+                    # The frontier halt: no uninvited army on a peaceful
+                    # court's soil — the movement rule this seam mirrors.
+                    pursuit_halted = True
+                    movement_msg = (
+                        f" {marshal.name} halts at the frontier of "
+                        f"{target_location} — {pursuit_block['owner']}'s soil, "
+                        f"and we are not at war with {pursuit_block['owner']}.")
+                    print(f"[ATTACK MOVEMENT] PT-F1 frontier halt: {marshal.name} stays at {marshal.location}")
                 else:
-                    movement_msg = f" {marshal.name} advances into {target_location}."
-                if attrition_info["total_losses"] > 0:
-                    march_note = f" ({attrition_info['total_losses']:,} lost to march"
-                    if attrition_info.get("depot_bonus"):
-                        march_note += " — forward supply lines reduce losses"
-                    march_note += ")"
-                    movement_msg += march_note
+                    print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
+                    marshal.move_to(target_location)
+                    # Movement attrition on post-battle advance (Phase 6.2.F)
+                    attrition_info = self._executor._calculate_movement_attrition(marshal, target_location, world)
+                    if defender_fled and victor != marshal.name:
+                        movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
+                    else:
+                        movement_msg = f" {marshal.name} advances into {target_location}."
+                    if attrition_info["total_losses"] > 0:
+                        march_note = f" ({attrition_info['total_losses']:,} lost to march"
+                        if attrition_info.get("depot_bonus"):
+                            march_note += " — forward supply lines reduce losses"
+                        march_note += ")"
+                        movement_msg += march_note
             else:
                 print("[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
@@ -4967,8 +4989,24 @@ class CombatExecutor:
             print(f"[CONQUEST CHECK] target_location={target_location}, controller={target_region.controller}")
             print(f"[CONQUEST CHECK] remaining_defenders={[m.name for m in remaining_defenders]}")
 
+            if pursuit_block is not None and not remaining_defenders:
+                # PT-F1: no transfer. The ally arm advanced as liberator;
+                # the neutral arm halted at the frontier above. The player
+                # may still choose the war — the pin-15 dialogue, never a
+                # silent annexation.
+                if not pursuit_halted:
+                    conquest_msg = pursuit_block["message"]
+                if (pursuit_block["arm"] == "neutral"
+                        and marshal.nation == world.player_nation
+                        and can_advance and marshal.strength > 0):
+                    self._stage_war_purpose_selection(
+                        world, marshal.nation, pursuit_block["owner"])
+                    conquest_msg += (
+                        f" To seize it is to make war on "
+                        f"{pursuit_block['owner']} — choose our purpose, "
+                        f"or let the province stand.")
             # If no defenders left, attempt capture (may start occupation if fortified)
-            if not remaining_defenders:
+            elif not remaining_defenders:
                 capture_result = self._attempt_region_capture(
                     marshal, target_location, world, game_state, had_garrison=True)
                 if capture_result["captured"]:
@@ -5092,6 +5130,9 @@ class CombatExecutor:
             defender_reinforcements=defender_reinforcements,
             region_conquered=conquered,
             total_engaged=total_engaged_strength,
+            # PT-D2 muster-promise parity: every WILL JOIN name renders
+            # with SOME status even when the resolve ladder dropped him.
+            muster_rows=(muster_preview or {}).get("rows"),
         )
         if _bd_payload:
             result["battle_diorama"] = _bd_payload
@@ -5775,7 +5816,21 @@ class CombatExecutor:
                     if m.location == charge_battle_region and m.strength > 0 and m.nation != marshal.nation
                     and world.is_at_war(marshal.nation, m.nation)
                 ]
-                if not remaining_defenders:
+                # PT-F1: the charge's momentum carried the cavalry in, but a
+                # third party's soil still never transfers by pursuit.
+                pursuit_block = self._pursuit_capture_guard(
+                    marshal, charge_battle_region, world)
+                if pursuit_block is not None and not remaining_defenders:
+                    conquest_msg = pursuit_block["message"]
+                    if (pursuit_block["arm"] == "neutral"
+                            and marshal.nation == world.player_nation):
+                        self._stage_war_purpose_selection(
+                            world, marshal.nation, pursuit_block["owner"])
+                        conquest_msg += (
+                            f" To seize it is to make war on "
+                            f"{pursuit_block['owner']} — choose our purpose, "
+                            f"or let the province stand.")
+                elif not remaining_defenders:
                     capture_result = self._attempt_region_capture(
                         marshal, charge_battle_region, world, game_state, had_garrison=True
                     )
@@ -5988,6 +6043,82 @@ class CombatExecutor:
         elif getattr(region, 'watchtower', 'none') == "under_construction":
             region.watchtower = "none"
             region.watchtower_turns_remaining = 0
+
+    def _stage_war_purpose_selection(self, world, attacker_nation: str,
+                                     target_nation: str) -> dict:
+        """Push the WPS-A war-purpose selection dialogue (the pin-15
+        machinery) and return the popup payload. Shared by the undefended
+        -territory attack gate and the PT-F1 pursuit-capture guard."""
+        from backend.game_logic.diplomacy import get_available_war_objectives
+
+        objectives = get_available_war_objectives(
+            world, attacker_nation, target_nation)
+        options = []
+        for obj in objectives:
+            if obj.get("available"):
+                options.append({
+                    "label": obj.get("label", obj.get("type", "Objective")),
+                    "action": "select_war_objective",
+                    "objective_type": obj.get("type"),
+                    "target_nation": target_nation,
+                })
+        options.append({"label": "Back Out", "action": "reconsider"})
+        world.dialogue_manager.replace({
+            "type": "war_purpose_selection",
+            "target_nation": target_nation,
+            "message": f"Choose your war purpose against {target_nation}.",
+            "objectives": objectives,
+            "options": options,
+            "blocking": True,
+            "turn_created": int(world.current_turn),
+        })
+        return {"target_nation": target_nation, "objectives": objectives}
+
+    def _pursuit_capture_guard(self, marshal, region_name: str, world) -> Optional[dict]:
+        """PT-F1 (Aug-1 played-world re-measure): a battle-advance may only
+        TRANSFER the soil of a court the victor is AT WAR with. Attacking
+        the enemy army standing on a third party's province stays legal —
+        the annexation is what needs a war.
+
+        Seen live twice: Ney destroyed Mack in Nassau (Hesse, at PEACE) and
+        Nassau silently became French; and the Ulm strike transferred
+        Swabia — BAVARIAN soil Mack merely occupied — from a bloc ally.
+        Pin-15 closed the movement-capture hole; this closes its
+        battle-advance sibling at the same seam family, keyed off the
+        region's controller at the moment of transfer (GR5: one predicate,
+        both sides — the player chooses via the War Purpose dialogue, the
+        AI restrains, since its war decisions belong to the Stage-D
+        machinery, never to a pursuit's momentum).
+
+        Returns None when capture may proceed, else:
+          {"arm": "ally"|"neutral", "owner": str, "message": str}
+        Neutral arm additionally means the ADVANCE halts (an uninvited army
+        on a peaceful court's soil is the movement rule this mirrors);
+        the ally arm advances but never transfers — pursuit is not conquest.
+        """
+        region = world.get_region(region_name)
+        owner = getattr(region, "controller", None) if region else None
+        if not owner or owner == marshal.nation:
+            return None
+        if world.is_at_war(marshal.nation, owner):
+            return None
+        if not world.can_attack_nation(marshal.nation, owner):
+            rel = ("vassal" if world.get_diplomatic_state(
+                marshal.nation, owner) == "VASSAL" else "ally")
+            return {
+                "arm": "ally",
+                "owner": owner,
+                "message": (
+                    f" {region_name} remains {owner}'s soil — we drove the "
+                    f"enemy from our {rel}'s province; it is not ours to take."),
+            }
+        return {
+            "arm": "neutral",
+            "owner": owner,
+            "message": (
+                f" {region_name} is {owner}'s soil, and we are not at war "
+                f"with {owner}. {marshal.name} halts at the edge of conquest."),
+        }
 
     def _get_ai_capture_choice(self, marshal, region, world) -> str:
         """AI decides plunder vs secure based on personality.

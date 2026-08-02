@@ -536,6 +536,146 @@ def _include_command_redemption_event(response: dict, result: dict, world) -> No
         print(f"[ALERT] REDEMPTION TRIGGERED for {redemption_event['marshal']}")
 
 
+def _move_chain_event(action: dict) -> dict | None:
+    """The move event a chain hop is stitched by — None if not a pure,
+    successful move with a from/to record (anything else is a barrier)."""
+    if not action.get("success"):
+        return None
+    ai_action = action.get("ai_action") or {}
+    if ai_action.get("action") != "move":
+        return None
+    for evt in action.get("events") or []:
+        if (isinstance(evt, dict) and evt.get("type") == "move"
+                and evt.get("from") and evt.get("to")):
+            return evt
+    return None
+
+
+def _forced_march_entry(chain: list[dict], world) -> dict:
+    """One entry for a marshal's whole chain: hop DESTINATIONS named (the
+    set today's separate bullets already disclose), attrition summed, all
+    hop events preserved (a capture-on-move keeps its conquest event, so
+    the fall of each province still renders under the one march line).
+    The origin is named only when the player's own intel there is FULL —
+    it is the one name the per-hop bullets never disclosed."""
+    hops = [_move_chain_event(a) for a in chain]
+    stages = [h["to"] for h in hops]
+    origin = hops[0]["from"]
+    losses = sum(int(h.get("march_losses", 0) or 0) for h in hops)
+    marshal_name = (chain[0].get("ai_action") or {}).get("marshal", "")
+
+    merged = {k: v for k, v in chain[-1].items() if k != "events"}
+    events = []
+    for a in chain:
+        events.extend(a.get("events") or [])
+    merged["events"] = events
+    merged["ai_action"] = {
+        "marshal": marshal_name,
+        "action": "forced_march",
+        "target": stages[-1],
+    }
+    forced = {
+        "stages": stages,
+        "to": stages[-1],
+        "hops": len(stages),
+        "march_losses": losses,
+    }
+    route = list(stages)
+    try:
+        if world.get_region_intel(origin).visibility == FULL:
+            forced["from"] = origin
+            route = [origin] + route
+    except Exception:
+        pass
+    merged["forced_march"] = forced
+    loss_note = f", {losses:,} lost on the march" if losses > 0 else ""
+    merged["message"] = (
+        f"{marshal_name} drives a forced march — "
+        f"{' → '.join(route)} ({len(stages)} stages{loss_note})"
+    )
+    return merged
+
+
+def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
+    """PT-D4 (Aug-1 played-world re-measure): a corps legally chains 3-4
+    moves per enemy phase (symmetric AP), but 3-4 separate "moves to X"
+    bullets read as teleportation — the loudest contributor to the
+    addendum's "enemy phase as theater: 5.5". Chains of 3+ hops render as
+    ONE forced-march line. Presentation only: runs AFTER the fog filter,
+    merges only entries that survived it, and never touches the moves
+    themselves. A marshal's own non-move action (or a hop discontinuity)
+    breaks his chain; other marshals' interleaved entries do not.
+    """
+    for nation, nation_data in cleaned_phase.get("nations", {}).items():
+        actions = nation_data.get("actions", [])
+        if len(actions) < 3:
+            continue
+
+        # Per-marshal open segments: name -> list of action indices.
+        segments: dict[str, list[int]] = {}
+        closed: list[list[int]] = []
+
+        def _flush(name: str):
+            seg = segments.pop(name, None)
+            if seg and len(seg) >= 3:
+                closed.append(seg)
+
+        for idx, action in enumerate(actions):
+            ai_action = action.get("ai_action") or {}
+            name = ai_action.get("marshal", "")
+            if not name:
+                continue
+            evt = _move_chain_event(action)
+            if evt is None:
+                _flush(name)
+                continue
+            seg = segments.get(name)
+            if seg:
+                prev_evt = _move_chain_event(actions[seg[-1]])
+                if prev_evt and prev_evt.get("to") == evt.get("from"):
+                    seg.append(idx)
+                    continue
+                _flush(name)
+            segments[name] = [idx]
+        for name in list(segments):
+            _flush(name)
+
+        if not closed:
+            continue
+
+        replace_at = {seg[-1]: seg for seg in closed}
+        drop = {i for seg in closed for i in seg[:-1]}
+        rebuilt = []
+        for idx, action in enumerate(actions):
+            if idx in drop:
+                continue
+            if idx in replace_at:
+                chain = [actions[i] for i in replace_at[idx]]
+                rebuilt.append(_forced_march_entry(chain, world))
+            else:
+                rebuilt.append(action)
+        nation_data["actions"] = rebuilt
+        nation_data["action_count"] = len(rebuilt)
+
+    # Keep the fog filter's invariants: totals and summary reflect the
+    # entries actually shown.
+    total = 0
+    rebuilt_summary = []
+    for nation, nation_data in cleaned_phase.get("nations", {}).items():
+        entries = nation_data.get("actions", [])
+        total += len(entries)
+        for action in entries:
+            ai_action = action.get("ai_action") or {}
+            if ai_action:
+                entry = f"{ai_action.get('marshal', 'Unknown')}: {ai_action.get('action', 'unknown')}"
+                if ai_action.get("target"):
+                    entry += f" → {ai_action.get('target')}"
+                rebuilt_summary.append(entry)
+    cleaned_phase["total_actions"] = total
+    cleaned_phase["summary"] = rebuilt_summary
+    return cleaned_phase
+
+
 def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     """Serialize enemy-phase data and apply fog filtering for Godot."""
     cleaned_phase = {
@@ -573,6 +713,7 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     raw_total = cleaned_phase.get("total_actions", 0)
     raw_nations = list(cleaned_phase.get("nations", {}).keys())
     cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
+    cleaned_phase = _collapse_enemy_move_chains(cleaned_phase, world)
 
     if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
         return cleaned_phase

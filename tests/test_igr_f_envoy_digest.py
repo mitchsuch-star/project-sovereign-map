@@ -347,6 +347,29 @@ class TestDigestPayload:
         assert row["mailbox_id"] == dialogue["mailbox_id"]
         assert row["dialogue_id"] == dialogue["dialogue_id"]
 
+    def test_ptd3_row_title_follows_the_lead_clause(self):
+        """PT-D3 (Aug-1 re-measure): a friendly_gift whose terms were
+        rewritten to open_borders must not be titled 'Gift of Friendship'
+        above a lead clause reading 'Proposal: Open Borders Agreement' —
+        the header follows the terms the letter actually carries."""
+        world = _world()
+        _deliver(world, "Bavaria", "friendly_gift", terms_type="open_borders")
+        row = build_envoy_digest(world)["items"][0]
+        assert row["proposal_type_display"] == "Open Borders Agreement", (
+            "the row title contradicted the row's own clauses")
+        lead = str(row["clauses"][0]) if row["clauses"] else ""
+        assert row["proposal_type_display"] in lead, (
+            "title/lead-clause coherence is the whole point of the fix")
+        # The STABLE label stays for the batching predicate (the guard
+        # test below this class depends on it).
+        assert row["proposal_type"] == "friendly_gift"
+
+    def test_ptd3_agreeing_labels_stay_byte_stable(self):
+        world = _world()
+        _deliver(world, "Hesse", "non_aggression")
+        row = build_envoy_digest(world)["items"][0]
+        assert row["proposal_type_display"] == "Non-Aggression Pact"
+
     def test_the_active_letter_is_listed_first_and_marked(self):
         world = _world()
         _deliver(world, "Bavaria", "open_borders")

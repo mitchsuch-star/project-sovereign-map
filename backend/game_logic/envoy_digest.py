@@ -100,13 +100,24 @@ def _digest_row(dialogue: Dict, world, *, is_active: bool) -> Dict:
     nation = dialogue.get("target_nation") or context.get("source_nation") or ""
     proposal_type = str(context.get("proposal_type", ""))
 
+    # PT-D3 (Aug-1 re-measure): the row TITLE follows the terms the letter
+    # actually carries. A friendly_gift at relation < 0 is rewritten into an
+    # open_borders proposal downstream, so titling the row "Gift of
+    # Friendship" above a lead clause reading "Proposal: Open Borders
+    # Agreement" contradicts the row's own body. The payload's
+    # proposal_type_display is terms-derived (mailbox_payloads builds it
+    # from terms["type"]); the STABLE context label stays on
+    # `proposal_type` untouched — the batching predicate keys on it.
+    title = str(payload.get("proposal_type_display", "") or "") \
+        or proposal_display_name(proposal_type)
+
     return {
         "mailbox_id": int(dialogue.get("mailbox_id", 0)),
         "dialogue_id": int(dialogue.get("dialogue_id", -1)),
         "from_nation": nation,
         "power_tier": world.get_power_tier(nation) or _POWER_TIER_DEFAULT,
         "proposal_type": proposal_type,
-        "proposal_type_display": proposal_display_name(proposal_type),
+        "proposal_type_display": title,
         "diplomat_name": str(payload.get("diplomat_name", "")),
         "diplomat_line": str(payload.get("diplomat_line", "")),
         "clauses": list(payload.get("clauses", [])),
