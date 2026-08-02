@@ -5,7 +5,14 @@
 > ruling (structural, not a stat — with the one-number option recorded), the §4.4 trigger
 > enumeration (battles fire in exactly two situations, never ordered), the §9 **Crossings
 > verdict line** + `strait_open`/`strait_shut` flip beats (closes the "do we SEE when the
-> Channel becomes crossable?" gap), and gate **Q7** (texture options, default OUT). Nothing in this
+> Channel becomes crossable?" gap), and gate **Q7** (texture options, default OUT).
+> **v1.0.2 — August 2, 2026 (user: "it should be tough to increase fleet"):** the §3.5
+> **three-brakes** statement of record (time is the wall, gold is deliberately the weakest
+> brake), **green-crew dilution** (new ships join at readiness 40 — crash-building buys
+> hulls, only sea-time buys a navy), and the **no-prize ruling** (conquering a dockyard
+> grants the YARD, never ships; an eliminated nation's fleet disperses; seizure = the
+> NV-D2 Copenhagen family). The fast road to naval weight is DIPLOMACY (§5.3 pooling),
+> with its authored discount — exactly the historical Combined-Fleet answer. Nothing in this
 > document is built. Owner rows consumed: `MAP_IMPLEMENTATION_PLAN.md` **DEF-5** (+ the
 > Free Ireland rider), **DEF-6** (Channel edge — demotes to the naval-gated crossing here),
 > **DEF-8** (explicitly NOT consumed — §3.4); ROADMAP **Phase 11** (Britain naval/subsidy
@@ -138,6 +145,31 @@ option is ONE authored `admiral_quality` multiplier (Britain 1.1, France 0.95, d
 - Blockaded fleet (an enemy blockade-mode fleet targeting you at effective ≥ **1.25×**
   yours): −5/turn, floor 50. It may still sortie/fight — at that readiness.
 - Otherwise (guard, uncontested): +5/turn toward 100.
+- **Green crews (v1.0.2):** newly commissioned ships join at readiness **40** and fold in
+  by weighted average. At the honest drip (2/turn into 45 hulls) the dilution is gentle;
+  a sustained crash program visibly drags the fleet down toward green — you can see your
+  navy getting bigger and worse at once, which is Villeneuve's Spanish problem made
+  mechanical.
+
+### 3.4a Ships change hands by NO other door (v1.0.2 ruling)
+
+Fleets are national, never provincial. Conquering a dockyard province grants the **yard**
+(a build site) — never ships. An eliminated nation's fleet **disperses** (removed; no
+prize-taking in v1 — seizing an intact fleet is the NV-D2 Copenhagen family, owned there).
+Vassalization/alliance contributes ships only through §3.2 pooling at ×0.8. Net: the fast
+road to naval weight is diplomatic (Spain, the Batavian squadron), priced at the allied
+discount and the partner's own readiness — the Combined Fleet, with its historical flaws
+intact.
+
+### 3.5 The three brakes on fleet growth (v1.0.2 statement of record)
+
+Gold is deliberately the **weakest** brake. In order of bite: **(1) TIME** — the 2/turn
+rate cap means 45→90 ships is ~23 turns *minimum* regardless of treasury (anchor A1: you
+cannot crash-build a navy, which is the fact Napoleon ran into); **(2) PRESSURE** — a
+blockaded nation builds at 1/turn, so escaping RN pressure is a prerequisite of
+out-building it, not a result; **(3) WORK-UP** — green crews (§3.3) mean new hulls arrive
+at 40 readiness and only uncontested sea-time turns them into a navy. Cost (150g, 1 admin
+AP per `build_fleet` order) merely keeps the drip from being free.
 
 ### 3.4 What this deliberately does NOT read
 
@@ -326,7 +358,7 @@ GR8-trivial), same executor verbs as the player:
 | # | Constant | Default | Note |
 |---|----------|---------|------|
 | N1 | Authored navies | §3.2 table | Tier-1 content, fixed per seed (D7: no band, no variance) |
-| N2 | `SHIP_COST` / `SHIP_BUILD_RATE` | 150g / 2 per turn (1 if every dockyard blockaded) | 45 ships to RN parity ≈ 6,750g + 23 turns → anchor A1 |
+| N2 | `SHIP_COST` / `SHIP_BUILD_RATE` / `NEW_SHIP_READINESS` | 150g + 1 admin AP / 2 per turn (1 if every dockyard blockaded) / joins at 40 | 45 ships to RN parity ≈ 6,750g + 23 turns → anchor A1; the §3.5 three brakes |
 | N3 | `SHIP_UPKEEP_WAR` | 2g/ship/turn **at war only** | "Laid up in ordinary" at peace; France boot +90g/turn, Britain +200 (offset by trade_dominance); signed "Admiralty" Net component |
 | N4 | `BLOCKADE_RATIO` | 1.25× effective | Same threshold as the crossing pass — one number to learn |
 | N5 | Blockade effects | trade ×0.5 · island WE +2/turn · trade_dominance ×(1−closure), floor ×0.4 | §4.2/§5.1 |
