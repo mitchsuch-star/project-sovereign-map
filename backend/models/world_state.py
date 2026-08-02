@@ -391,6 +391,49 @@ DEFAULT_MANPOWER_POOLS = {
 }
 
 
+def _reconcile_saved_adjacency(regions: Dict[str, "Region"]) -> int:
+    """NV-9 — SAVE MIGRATION for a registry edge the map no longer draws.
+
+    `adjacent_regions` is serialized per region, but the registry
+    (`europe.json`) is the single source for adjacency AND for `sea_links`.
+    When NV-8c cut London↔Flanders, an older save reloaded with the edge
+    still walkable while `is_sea_link` — which reads the LIVE registry —
+    answered False for it: the crossing gate early-returns "open" on a
+    non-sea-link, so that one edge became a free, ungated Channel march
+    and both the A5 headline and the host rule silently vanished on it.
+
+    So a REGISTRY world's adjacency is reconciled against the live
+    registry: an edge the registry no longer has is dropped.
+
+    SCOPE IS ALL-OR-NOTHING, and it has to be. The first cut reconciled
+    per-province and pruned TEN edges out of the legacy 19-region fixture
+    — because eleven legacy names (Paris, Berlin, Bohemia, ...) also exist
+    on the Europe map with completely different neighbours. Name overlap
+    is not identity. A world is a registry world only when EVERY province
+    it holds is one the registry knows; the legacy fixture fails that on
+    Belgium/Waterloo/Lyon and is left untouched, as N1 requires, and so is
+    any mod that adds a province of its own. Returns the number of edges
+    pruned (0 on every current save).
+    """
+    if not regions:
+        return 0
+    try:
+        live = create_europe_regions()
+    except Exception:
+        return 0
+    if any(name not in live for name in regions):
+        return 0  # not the registry's world — the SAVE is the source
+    pruned = 0
+    for name, region in regions.items():
+        allowed = set(getattr(live[name], "adjacent_regions", []) or [])
+        current = list(getattr(region, "adjacent_regions", []) or [])
+        kept = [adj for adj in current if adj in allowed]
+        if len(kept) != len(current):
+            pruned += len(current) - len(kept)
+            region.adjacent_regions = kept
+    return pruned
+
+
 class WorldState:
     """
     The complete game state.
@@ -1912,6 +1955,13 @@ class WorldState:
         # AI-3r §2.7: the land-neighbour map reads region control only —
         # same mutation family, same chokepoint.
         self._neighbouring_nations_cache = None
+        # NV-9: `naval.nation_is_penned_in` walks the land graph over
+        # region CONTROL, so it belongs to the same family. It was cached
+        # per TURN alone, which went stale the moment a conquest landed
+        # mid-turn: an island power that had just taken a continental
+        # foothold still read "penned" for the rest of the phase and could
+        # embark another expedition it no longer needed.
+        self._naval_penned_cache = None
         # B-Hegemony: bloc membership depends on vassalage + active nations,
         # so any seam that invalidates the active-nations cache also
         # invalidates the bloc-members cache.
@@ -6043,6 +6093,7 @@ class WorldState:
             world.regions = {}
             for name, region_data in data["regions"].items():
                 world.regions[name] = Region.from_dict(region_data)
+            _reconcile_saved_adjacency(world.regions)
 
         # ═══════ MARSHALS ═══════
         if data.get("marshals"):

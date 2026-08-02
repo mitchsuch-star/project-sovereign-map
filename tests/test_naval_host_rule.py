@@ -216,10 +216,51 @@ class TestTheExpeditionRung:
             world, "Britain", order["target"], 12000)
         assert quote["odds"] >= naval.AI_EXPEDITION_MIN_ODDS
 
+    def test_the_odds_floor_actually_turns_a_corps_back(self, world):
+        """MUTATION-TESTED (Aug 2 review): the assertion above is a
+        tautology on the boot board — every host shore quotes 100 (the
+        guard fleets cover only their OWN coasts), so 100 >= 55 could
+        never fail and the floor was unpinned suite-wide. Here the water
+        is genuinely watched: France blockades, which covers every link
+        touching an at-war enemy, and a corps at the lift's ceiling drags
+        the quote under the council's floor. Raising the floor above the
+        quote must change the ANSWER, not merely the arithmetic."""
+        marshal = world.get_marshals_by_nation("Britain")[0]
+        marshal.location = "London"
+        marshal.strength = naval.EXPEDITION_MAX_TROOPS
+        world._build_marshal_index()
+        order = naval.find_ai_expedition(world, "Britain")
+        assert order is not None, "the fixture must offer a landing to refuse"
+        quote = naval.expedition_slip_odds(
+            world, "Britain", order["target"], naval.EXPEDITION_MAX_TROOPS)
+        original = naval.AI_EXPEDITION_MIN_ODDS
+        try:
+            naval.AI_EXPEDITION_MIN_ODDS = int(quote["odds"]) + 1
+            raised = naval.find_ai_expedition(world, "Britain")
+            assert raised is None or raised["target"] != order["target"], (
+                "the floor did not turn the corps back — it is inert")
+        finally:
+            naval.AI_EXPEDITION_MIN_ODDS = original
+
     def test_an_army_that_can_march_does_not_sail(self, world):
         """The rung is a door for the penned, not a teleporter. Give
         Britain a continental foothold with a land border onto the war and
-        the council stops embarking."""
+        the council stops embarking.
+
+        MUTATION-TESTED (Aug 2 review): the first cut left Moore at his
+        boot 30,000 — over the transports' lift — so the None came from
+        the embarkable filter and the penned-in gate could be DELETED with
+        the whole file still green. The corps below fits the transports
+        and stands at a yard, so this rung's only remaining refusal is the
+        gate the test is named for; deleting it now turns this red."""
+        marshal = world.get_marshals_by_nation("Britain")[0]
+        marshal.location = "London"          # a controlled dockyard
+        marshal.strength = 12000             # inside the lift
+        world._build_marshal_index()
+        # Provocation control: penned, this corps DOES sail.
+        assert naval.nation_is_penned_in(world, "Britain") is True
+        assert naval.find_ai_expedition(world, "Britain") is not None
+        # Now give Britain a land war and the same corps stays home.
         world.regions["Normandy"].controller = "Britain"
         world.invalidate_active_nations_cache()
         assert naval.nation_is_penned_in(world, "Britain") is False

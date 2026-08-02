@@ -659,6 +659,48 @@ def crossing_allowed(world, mover_nation: str,
     return crossing_check(world, mover_nation, from_region, to_region)["allowed"]
 
 
+def crossing_check_reach(world, mover_nation: str,
+                         from_region: str, to_region: str) -> Dict:
+    """NV-9 — THE REACH GATE: the crossing predicate for a strike whose
+    range is 2, where the water may lie on the MIDDLE leg.
+
+    The direct-pair check is blind to it: `is_sea_link(Paris, London)` is
+    False, so `crossing_check` early-returns "open" and a cavalry charge
+    Paris→(Normandy)→London resolves a battle across water the Royal Navy
+    commands — and, on victory, ADVANCES INTO LONDON. Measured on master
+    at 89576c5: Murat ended his charge standing in London. The 2-tile MOVE
+    seam has always checked both legs (`movement_executor` §4.1); this is
+    that model made the single source, so every ranged strike inherits it.
+
+    Returns the DIRECT verdict when the destination is one step away. At
+    range 2 it returns `open` if ANY intermediate route clears both legs
+    (a strike may go round the water), and otherwise the blocking verdict
+    of the best route — the honest refusal naming the sea that stopped it."""
+    direct = crossing_check(world, mover_nation, from_region, to_region)
+    if not has_naval_layer(world) or not direct["allowed"]:
+        return direct
+    origin = world.regions.get(from_region)
+    dest = world.regions.get(to_region)
+    if origin is None or dest is None:
+        return direct
+    if to_region in (getattr(origin, "adjacent_regions", []) or []):
+        return direct  # one step: the direct verdict IS the whole path
+    blocked: Optional[Dict] = None
+    for middle in getattr(origin, "adjacent_regions", []) or []:
+        mid_region = world.regions.get(middle)
+        if mid_region is None:
+            continue
+        if to_region not in (getattr(mid_region, "adjacent_regions", []) or []):
+            continue
+        leg1 = crossing_check(world, mover_nation, from_region, middle)
+        leg2 = crossing_check(world, mover_nation, middle, to_region)
+        if leg1["allowed"] and leg2["allowed"]:
+            return direct  # a dry route exists — the strike goes round
+        if blocked is None:
+            blocked = leg1 if not leg1["allowed"] else leg2
+    return blocked if blocked is not None else direct
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # THE FLEET ACTION (§4.4 — consequence 4: Trafalgar in one resolver)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1552,14 +1594,19 @@ def build_admiralty_report(world) -> Dict:
         else:
             blockadable = [n for n in world.get_nations_at_war_with(player)
                            if get_fleet(world, n) is not None]
+            # NV-9 (R7): the chip note is player-facing prose, so the tags
+            # go through the display chokepoint — "closes KingdomOfItaly"
+            # was reachable the moment Italy entered the war.
+            from backend.display_names import display_nation
             chips.append({
                 "command": "blockade the enemy",
                 "label": "Blockade the enemy",
                 "enabled": bool(blockadable),
                 "reason": ("" if blockadable else
                            "no enemy at sea to blockade"),
-                "note": ("closes " + ", ".join(sorted(blockadable))
-                         if blockadable else "")})
+                "note": ("closes " + ", ".join(
+                    sorted(display_nation(n) for n in blockadable))
+                    if blockadable else "")})
         if not report["diversion_available"]:
             unmet = [t.get("unmet") or t["text"]
                      for t in diversion_terms if not t["met"]]

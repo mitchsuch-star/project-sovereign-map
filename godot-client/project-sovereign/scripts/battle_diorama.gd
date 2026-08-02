@@ -598,7 +598,9 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 	# The honest tail: corps the cap could not seat.
 	var reserve := int(side.get("reserve_count", 0))
 	if reserve > 0:
-		var tail := _mk_label(_stage, "+%d corps in reserve" % reserve, 11,
+		# NV-9: "corps" is a land word — a sea overflow is squadrons.
+		var reserve_word := "squadrons astern" if _is_naval() else "corps in reserve"
+		var tail := _mk_label(_stage, "+%d %s" % [reserve, reserve_word], 11,
 				Color(Utils.COLOR_DIMMED))
 		tail.position = Vector2(
 			14.0 if is_left else sw - 150.0,
@@ -873,6 +875,14 @@ func _laurel_layout(register: String) -> void:
 # ─────────────────────────────────────────────────────────────────────────────
 
 func _decisive() -> bool:
+	# NV-9: a fleet action ALWAYS carries a victor, so the land grammar
+	# ("attacker_victory" == decisive) made every sea action decisive —
+	# the indecisive banner was dead code, and a squadron that merely had
+	# the better of it read "THE SEA IS OURS" while the Admiralty said the
+	# enemy drew off in order, on the same screen. §4.4 computes the real
+	# answer (ratio >= 1.5) and the payload carries it.
+	if _is_naval():
+		return bool(_data.get("decisive", false))
 	return str(_data.get("outcome", "")) in [
 		"attacker_victory", "defender_victory", "mutual_destruction"]
 

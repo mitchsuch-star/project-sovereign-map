@@ -76,7 +76,7 @@ func _get_region_positions() -> Dictionary:
 func _get_region_connections() -> Dictionary:
 	# Bitmap map: land adjacency reads as shared borders on the art — drawing
 	# all 248 land edges would bury it. Only the registry's hand-authored sea
-	# links (invisible on the art, gameplay-walkable — e.g. London<->Flanders)
+	# links (invisible on the art, gameplay-walkable — e.g. London<->Normandy)
 	# get connection lines. `sea_links` holds numeric Region_NNN index pairs;
 	# translate through the retained id->name map so the segments speak the
 	# backend's name-keyed scheme. DEF-7 registry edits flow through untouched.

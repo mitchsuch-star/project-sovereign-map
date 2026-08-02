@@ -2523,9 +2523,12 @@ class EnemyAI:
                 # were Moore and Shrapnel ordered onto Castanos across the
                 # Channel. Origin-aware, so it reads the host rule too.
                 if getattr(world, "fleets", None):
-                    from backend.game_logic.naval import crossing_allowed
-                    if not crossing_allowed(world, nation, marshal.location,
-                                            enemy.location):
+                    # NV-9: the REACH form — a cavalry candidate at range 2
+                    # may put the water on its middle leg, which the direct
+                    # pair cannot see.
+                    from backend.game_logic.naval import crossing_check_reach
+                    if not crossing_check_reach(world, nation, marshal.location,
+                                                enemy.location)["allowed"]:
                         ai_debug(f"    P4: {enemy.name} is across barred water")
                         continue
 

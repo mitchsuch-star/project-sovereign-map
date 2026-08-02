@@ -653,6 +653,8 @@ MUSTER_REASON_DISPLAY = {
     "square_formation": "stands in square and cannot march",
     # VS-4: assimilated ex-vassal contingent whose homeland wavers
     "vassal_wavering": "will not march — his homeland's loyalty wavers",
+    # NV-9: reinforcement Rule 2b — the sea between him and the guns
+    "sea_barred": "cannot reach the guns — the enemy's sail lie between",
 }
 
 TRUST_TIER_DISPLAY = {

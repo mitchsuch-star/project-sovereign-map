@@ -67,9 +67,20 @@ def _side(world, principal: str, enemy: str, losses: Dict[str, int]) -> dict:
     reconstructed as (live + lost), because the resolver has already applied
     the losses by the time this runs — the pre-battle line of battle is what
     the tableau must show."""
-    members = [principal] + sorted(
+    # NV-9: seed from the LOSSES dict, which is §4.4's own record of who
+    # bled on this side and is therefore the order of battle itself.
+    # `iter_fleets` yields only ships > 0, so a squadron ANNIHILATED in
+    # the action vanished from the line entirely — its dead uncounted,
+    # `casualties_total` under the Admiralty's own figure on the same
+    # screen. The pooled scan still runs, for a partner who fought and
+    # lost nothing.
+    members = [principal]
+    for member in sorted(losses):
+        if member != principal:
+            members.append(member)
+    members += sorted(
         partner for partner, _rec in naval.iter_fleets(world)
-        if partner != principal
+        if partner != principal and partner not in losses
         and naval._is_pooled_partner(world, principal, partner, enemy))
     contingents: List[dict] = []
     for member in members:

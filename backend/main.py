@@ -1104,8 +1104,22 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
         for action in nation_data.get("actions", []):
             # Check 1: Does this action involve a player marshal? (battle)
             involves_player = False
+
+            # NV-9: A FLEET ACTION the player fought. The battle arm below
+            # recognises only "battle"/"bombardment" event types, and a
+            # §4.4 action emits none of those — an intercepted AI
+            # expedition leaves the AI marshal at its home yard (never
+            # FULL for the player) and a caught diversion carries no
+            # marshal at all, so BOTH fell to the region check and were
+            # suppressed. The player's own fleet could lose thirty sail in
+            # the enemy phase and hear nothing. The diorama builder has
+            # already answered "is the player in this" — read it.
+            _sea = action.get("naval_diorama")
+            if isinstance(_sea, dict) and _sea.get("player_side") is not None:
+                involves_player = True
+
             events = action.get("events", [])
-            if isinstance(events, list):
+            if not involves_player and isinstance(events, list):
                 for evt in events:
                     if isinstance(evt, dict):
                         # Battle events with player involvement

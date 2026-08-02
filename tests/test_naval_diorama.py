@@ -253,3 +253,45 @@ class TestTheEnemyPhaseCarriesTheSea:
         stash = source.split("func _stash_diorama")[1].split("func ")[0]
         assert 'action.get("naval_diorama")' in stash
         assert 'action.get("battle_diorama")' in stash
+
+
+    def test_the_visibility_filter_lets_the_players_own_action_through(self):
+        """NV-9 — the CLIENT scan was only half the fix. The server's
+        enemy-phase visibility filter recognises "battle"/"bombardment"
+        event types for its involves-player arm, and a §4.4 fleet action
+        emits neither: an intercepted AI expedition leaves the AI marshal
+        at its home yard (never FULL for the player) and a caught
+        diversion carries no marshal at all, so both were suppressed
+        server-side before the client ever looked. The player's own fleet
+        could lose thirty sail in the enemy phase in total silence."""
+        import backend.main as main_module
+        world = WorldState.from_scenario(SCENARIO)
+        action = naval.resolve_fleet_action(world, "France", "Britain")
+        payload = action["naval_diorama"]
+        assert payload["player_side"] is not None, "France must be IN this"
+        phase = {"nations": {"Britain": {"actions": [{
+            "ai_action": {"marshal": None, "action": "naval_diversion"},
+            "events": [{"type": "expedition_intercepted"}],
+            "naval_diorama": payload,
+        }]}}, "total_actions": 1, "summary": []}
+        filtered = main_module._filter_enemy_phase_by_visibility(phase, world)
+        kept = filtered["nations"].get("Britain", {}).get("actions", [])
+        assert kept, "the player's own fleet action was suppressed"
+        assert kept[0]["naval_diorama"]["player_side"] is not None
+
+    def test_a_third_party_action_still_obeys_the_fog(self):
+        """Negative control — the new arm is scoped to actions the player
+        is IN, so an action between two other courts keeps falling to the
+        ordinary region-visibility rule."""
+        import backend.main as main_module
+        world = WorldState.from_scenario(SCENARIO)
+        action = naval.resolve_fleet_action(world, "Britain", "Denmark")
+        payload = action["naval_diorama"]
+        assert payload["player_side"] is None
+        phase = {"nations": {"Britain": {"actions": [{
+            "ai_action": {"marshal": None, "action": "naval_diversion"},
+            "events": [{"type": "trafalgar"}],
+            "naval_diorama": payload,
+        }]}}, "total_actions": 1, "summary": []}
+        filtered = main_module._filter_enemy_phase_by_visibility(phase, world)
+        assert not filtered["nations"].get("Britain", {}).get("actions", [])

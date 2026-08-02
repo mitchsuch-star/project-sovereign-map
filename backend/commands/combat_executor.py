@@ -679,6 +679,19 @@ class CombatExecutor:
         # Co-located friendlies share the field (and the casualties).
         if candidate.location == battle_region:
             return True, "shares_the_field"
+        # NV-9 (shown = applied): reinforcement Rule 2b refuses a corps
+        # across a covered sea link, but this ladder had no naval arm —
+        # so the muster preview listed a corps as ANSWERING THE GUNS that
+        # the crossing gate then silently withheld. Newly common because
+        # NV-5's expedition puts armies on the far side of water: a corps
+        # landed at Normandy fights while London's garrison is "coming".
+        # Sited above every will-join arm, including has_support_order,
+        # because a SUPPORT order does not override Rule 2b either.
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import crossing_allowed
+            if not crossing_allowed(world, nation, candidate.location,
+                                    battle_region):
+                return False, "sea_barred"
         if getattr(candidate, 'broken', False) \
                 or getattr(candidate, 'retreat_recovery', 0) != 0 \
                 or getattr(candidate, 'retreated_this_turn', False):
@@ -1069,6 +1082,20 @@ class CombatExecutor:
                 for attr in self._COORDINATION_FIELDS:
                     if hasattr(m, attr):
                         setattr(m, attr, 0.0)
+
+    def _naval_advance_allowed(self, marshal, destination: str, world) -> bool:
+        """NV-9 — may this marshal ADVANCE onto `destination` after a
+        battle? One seam for every post-combat move (the attack advance,
+        the charge advance, the pursuit), so no victory can carry an army
+        over water its enemy commands. Reads the host rule too: a beaten
+        garrison does not make a defended shore friendly."""
+        if not getattr(world, "fleets", None):
+            return True
+        if marshal.location == destination:
+            return True
+        from backend.game_logic.naval import crossing_check_reach
+        return crossing_check_reach(
+            world, marshal.nation, marshal.location, destination)["allowed"]
 
     def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str,
                              world: WorldState, defender_name: str = None) -> int:
@@ -3535,9 +3562,14 @@ class CombatExecutor:
             elif not enemy_marshal and resolved_target != marshal.location:
                 _battle_region_name = resolved_target
             if _battle_region_name:
-                from backend.game_logic.naval import crossing_check
-                _cross = crossing_check(world, marshal.nation,
-                                        marshal.location, _battle_region_name)
+                # NV-9: the REACH gate, not the direct pair. A cavalry
+                # strike at range 2 may put the water on its MIDDLE leg —
+                # measured on master, Murat charged Paris→(Normandy)→
+                # London and ended the turn standing in London.
+                from backend.game_logic.naval import crossing_check_reach
+                _cross = crossing_check_reach(world, marshal.nation,
+                                              marshal.location,
+                                              _battle_region_name)
                 if not _cross["allowed"]:
                     return {
                         "success": False,
@@ -3545,6 +3577,29 @@ class CombatExecutor:
                         "blocked_naval": _cross["coverer"],
                         "naval_ratio": _cross["ratio"],
                     }
+
+        # ════════════════════════════════════════════════════════════
+        # NV-9: GUNS DO NOT CARRY ACROSS A STRAIT — checked HERE, above
+        # the declaration, not only at the bombardment seam far below.
+        # The crossing gate is deliberately sited before the declaration
+        # ("the water is the first reality"), and at PEACE nothing covers
+        # a strait, so a peacetime bombardment order sailed through the
+        # gate, bought a war at the war-purpose card, and only THEN met
+        # the physical refusal. A player must never pay for a war to be
+        # told the order was impossible all along.
+        # ════════════════════════════════════════════════════════════
+        if (getattr(marshal, "artillery", False) and enemy_marshal
+                and marshal.location != enemy_marshal.location):
+            from backend.game_logic.naval import is_sea_link
+            if is_sea_link(world, marshal.location, enemy_marshal.location):
+                return {
+                    "success": False,
+                    "message": (
+                        f"{marshal.name}'s guns cannot reach "
+                        f"{enemy_marshal.location} — no battery carries "
+                        f"across open water, Sire. The sea is the fleet's "
+                        f"business."),
+                }
 
         # ════════════════════════════════════════════════════════════
         # AUTO WAR DECLARATION (Phase 8 Session 2)
@@ -5020,6 +5075,21 @@ class CombatExecutor:
                         f"{target_location} — {pursuit_block['owner']}'s soil, "
                         f"and we are not at war with {pursuit_block['owner']}.")
                     print(f"[ATTACK MOVEMENT] PT-F1 frontier halt: {marshal.name} stays at {marshal.location}")
+                elif (getattr(world, "fleets", None)
+                      and not self._naval_advance_allowed(
+                          marshal, target_location, world)):
+                    # NV-9: the ADVANCE is a move, and a move across water
+                    # the enemy commands is the one thing the whole naval
+                    # phase exists to refuse. The victor holds the field
+                    # and stays on his own shore — the same shape as the
+                    # PT-F1 frontier halt directly above.
+                    pursuit_halted = True
+                    movement_msg = (
+                        f" {marshal.name} holds the shore — the enemy's "
+                        f"sail still command the water between him and "
+                        f"{target_location}, and no victory ashore puts "
+                        f"boats under an army.")
+                    print(f"[ATTACK MOVEMENT] NV-9 naval halt: {marshal.name} stays at {marshal.location}")
                 else:
                     print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                     marshal.move_to(target_location)
@@ -5766,6 +5836,28 @@ class CombatExecutor:
                           f"Distance: {distance}, Range: {marshal.movement_range}"
             }
 
+        # ════════════════════════════════════════════════════════════
+        # NV-9 THE CROSSING GATE — the charge's INITIATION, not just its
+        # advance. Only the advance was gated, so a reckless squadron
+        # could fight the full 2x-damage battle across water the Royal
+        # Navy commands and simply not move — free, repeatable, and the
+        # exact thing the attack arm refuses outright two thousand lines
+        # up ("a blockade that stops MOVE but not ATTACK is not a
+        # blockade"). The reach form covers the range-2 middle leg.
+        # ════════════════════════════════════════════════════════════
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import crossing_check_reach
+            _charge_cross = crossing_check_reach(
+                world, marshal.nation, marshal.location,
+                target_marshal.location)
+            if not _charge_cross["allowed"]:
+                return {
+                    "success": False,
+                    "message": _charge_cross["message"],
+                    "blocked_naval": _charge_cross["coverer"],
+                    "naval_ratio": _charge_cross["ratio"],
+                }
+
         # Check for leapfrog (same as normal attack)
         if distance == 2:
             origin_region = world.get_region(marshal.location)
@@ -5849,11 +5941,9 @@ class CombatExecutor:
             # DEF-5 naval §4.1: cavalry does not swim — a charge's advance
             # never crosses a covered strait (the battle itself was fought
             # at range; the squadron holds the water).
-            _charge_cross_ok = True
-            if getattr(world, "fleets", None) and marshal.location != charge_battle_region:
-                from backend.game_logic.naval import crossing_allowed
-                _charge_cross_ok = crossing_allowed(
-                    world, marshal.nation, marshal.location, charge_battle_region)
+            # NV-9: one advance seam for every post-combat move, reach-aware.
+            _charge_cross_ok = self._naval_advance_allowed(
+                marshal, charge_battle_region, world)
             if marshal.location != charge_battle_region and _charge_cross_ok:
                 marshal.move_to(charge_battle_region)
                 charge_attrition = self._executor._calculate_movement_attrition(marshal, charge_battle_region, world)

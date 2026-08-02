@@ -61,7 +61,15 @@ def test_channel_depot_blocks_p45_walk_in():
 
     NV-8c (Aug 2, 2026): the Flanders line is cut, so the beach this test
     owns is NORMANDY — the one remaining Channel crossing. Flanders keeps
-    its depot (an expedition can still land there over open water)."""
+    its depot (an expedition can still land there over open water).
+
+    NV-9 (Aug 2, review): MUTATION-TESTED and repaired. NV-5 added the
+    crossing-gate skip at the head of P4.5, so Normandy was excluded
+    before the garrison was ever consulted — this test passed with the
+    depot set to ZERO and the DEF-6 behaviour was unpinned. The naval
+    layer is therefore neutralised below (France's fleet sunk = the
+    crossing is an uncontested ferry) so that the DEPOT is the only thing
+    left that can refuse the walk-in, which is what DEF-6 owns."""
     from backend.ai.enemy_ai import EnemyAI
 
     world = _load()
@@ -70,10 +78,26 @@ def test_channel_depot_blocks_p45_walk_in():
     assert world.regions["Normandy"].garrison_strength >= 5000
     assert world.regions["Flanders"].garrison_strength >= 5000
 
+    # Neutralise the naval gate so the depot must do the work alone.
+    from backend.game_logic import naval
+    naval.get_fleet(world, "France")["ships"] = 0
+    assert naval.crossing_allowed(world, "Britain", "London", "Normandy"), (
+        "the fixture must leave the crossing OPEN — otherwise the naval "
+        "gate answers and the depot is never consulted")
+
     ai = EnemyAI(CommandExecutor())
     ai._reset_enemy_query_cache(world)
     action = ai._find_undefended_capture(moore, "Britain", world)
     assert action is None or action.get("target") != "Normandy"
+
+    # Provocation control: drop the depot and the SAME scan offers it —
+    # so the refusal above is the garrison, demonstrably.
+    world.regions["Normandy"].garrison_strength = 0
+    ai._reset_enemy_query_cache(world)
+    offered = ai._find_undefended_capture(moore, "Britain", world)
+    assert offered is not None and offered.get("target") == "Normandy", (
+        "the depot-blocks-P4.5 behaviour is no longer provoked by this "
+        "fixture — re-derive it before trusting the pin above")
 
 
 def test_london_rush_intercepted_by_differentiated_garrison():

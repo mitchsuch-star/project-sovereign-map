@@ -1193,3 +1193,93 @@ turn 11 — and by turn 30 Moore's 25,000 stand at a Normandy held by
 AUSTRIA, because a coalition ally took the beach, the shore became a
 host, and Britain reinforced an allied beachhead across water it
 commands. Emergent, correct, and the whole design in one sentence.
+
+### 15.11 NV-9 — the adversarial review answered (August 2, 2026)
+
+A 6-lens find→refute fleet over the day's whole naval range
+(`7b9cf91..89576c5`) returned 16 findings. **The refuters were cut short
+by a credit exhaustion, so "unrefuted" was treated as UNVERIFIED, not
+confirmed** — every claim below was re-derived by hand, and the headline
+reproduced exactly as reported. Ten fixes, each mutation-tested.
+
+**THE P1 — the cavalry Channel hop.** Measured on master at 89576c5:
+Murat (cavalry, range 2) at Paris, `attack Moore` at London → the battle
+resolved and **Murat ended the turn standing in London**, across water
+the Royal Navy commands at 1.9×. `crossing_check` gates the DIRECT pair,
+and `is_sea_link(Paris, London)` is False, so it early-returned "open" —
+the water was on the MIDDLE leg. The 2-tile MOVE seam had checked both
+legs since NV-2; the attack, the charge and the post-victory advance had
+not. Fixed as `naval.crossing_check_reach`, the movement seam's own model
+made the single source: the direct verdict at range 1 (byte-identical),
+and at range 2 "open" only if some intermediate route clears BOTH legs —
+a strike may go round the water, never through it. Wired at the attack
+gate, the AI's P4 scan (GR5), and a new `_naval_advance_allowed` seam
+that answers for every post-combat move.
+
+**The other nine:**
+
+1. **The Glorious Charge had no gate at initiation** — only its advance
+   was checked, so a reckless squadron could fight the full 2×-damage
+   battle across the Channel for free and simply not move. The verb the
+   attack arm refuses outright cannot be a bypass.
+2. **Guns across a strait were refused BELOW the war declaration.** At
+   peace nothing covers a strait, so a peacetime bombardment order passed
+   the crossing gate, staged the war-purpose card, bought the war — and
+   only then met the physical refusal. Moved above the declaration: a
+   player must never pay for a war to be told the order was impossible.
+3. **The muster preview promised a corps the crossing gate withholds.**
+   Rule 2b refuses a reinforcement across covered water, but the preview
+   ladder had no naval arm — newly common because NV-5's own expedition
+   puts armies on the far side of water. New `sea_barred` reason with its
+   player-facing line.
+4. **`_decisive()` read the LAND grammar**, and a fleet action always
+   carries a victor — so every sea action was "decisive", the indecisive
+   banners were dead code, and an indecisive win read THE SEA IS OURS
+   directly above an Admiralty verdict saying the enemy drew off in
+   order. The payload already carried §4.4's real answer; the scene now
+   reads it.
+5. **An annihilated pooled squadron vanished from the tableau.**
+   `iter_fleets` yields only ships > 0 and runs AFTER losses are applied,
+   so a squadron sunk in the action lost its contingent, its SUNK label
+   and its dead — the odometer disagreeing with the verdict on the same
+   screen. The line is now seeded from the LOSSES dict, which is §4.4's
+   own record of who bled.
+6. **The enemy-phase fix was only half a fix.** NV-8's client scan was
+   right, but the SERVER's visibility filter recognises only
+   "battle"/"bombardment" for its involves-player arm: an intercepted AI
+   expedition leaves the AI marshal at its home yard and a caught
+   diversion carries no marshal at all, so both were suppressed before
+   the client ever looked — the player's own fleet could lose thirty sail
+   in silence. The filter now reads the builder's own `player_side`.
+   Third-party actions still obey the fog (negative control pinned).
+7. **A pre-NV-8c save reloaded the dead edge walkable and UNGATED** —
+   `adjacent_regions` is serialized, but `is_sea_link` reads the live
+   registry, so that one edge became a free Channel march with neither the
+   A5 headline nor the host rule on it. Fixed with an all-or-nothing load
+   migration; **the first cut was per-province and pruned TEN edges out of
+   the legacy 19-region fixture**, because eleven legacy names also exist
+   on the Europe map with different neighbours. Name overlap is not
+   identity — caught by the test, N1 preserved.
+8. **`nation_is_penned_in` went stale mid-turn** — cached per TURN alone,
+   so an island power that had just taken a continental foothold still
+   read "penned" for the rest of the phase. Hooked to the existing
+   ownership-invalidation chokepoint, where it belongs.
+9. **Three copy/legibility leaks:** the blockade chip's note skipped the
+   R7 chokepoint ("closes KingdomOfItaly" was reachable), the sea
+   overflow row said "corps in reserve", and three docs still asserted
+   London↔Flanders as a present-tense live link.
+
+**Four tests were repaired because they were not testing anything**, each
+proven by deleting the code they claimed to pin and watching the suite
+stay green: the penned-in gate (the None came from the transport-lift
+filter), the AI odds floor (a tautology — every host shore quotes 100 on
+the boot board), the DEF-6 depot pin (NV-5's own crossing skip had taken
+over the refusal; the naval layer is now neutralised so the depot must do
+the work, with a provocation control), and both retreat arms (neither
+shape provoked the demotion; rebuilt so a FRIENDLY sea exit outranks
+at-war land, which only the demotion can refuse).
+
+**Verification:** 7/7 targeted mutations caught, suite **15,864/3**, ruff
+clean, M1–M7 green, `BASELINE_SERIES` byte-identical WITHOUT re-record
+(every order these gates remove was already being refused), Godot parse
+harness EXIT=0. `tests/test_naval_reach_gate.py` (20).

@@ -238,23 +238,73 @@ class TestAICandidateFilter:
 
 
 class TestRetreatArms:
+    """NV-9 (Aug 2 review): MUTATION-TESTED and repaired. Both pins used
+    to pass with the whole naval demotion DELETED — a French marshal at
+    the beach preferred friendly Paris to at-war London on the ordinary
+    priorities alone, and the British arm's crossing was ratio-allowed and
+    never demoted at all. Neither shape provoked the code it documented.
+
+    The shape below does: every LAND exit is at-war soil (tier 5) while
+    the sea exit is FRIENDLY (tier 2), so the covered crossing is the best
+    candidate by the ordinary rules and only the demotion can refuse it."""
+
+    def _cornered_at_the_beach(self, world, land_holder="Austria"):
+        """France holds a London beachhead; Normandy's land exits are all
+        at-war soil. Returns the marshal standing at Normandy."""
+        world.regions["London"].controller = "France"
+        for name in ("Berry", "Artois", "Maine", "Paris"):
+            world.regions[name].controller = land_holder
+        world.invalidate_active_nations_cache()
+        assert world.is_at_war("France", land_holder)
+        # Clear the beachhead: an enemy standing in London would be
+        # skipped for PRESENCE and mask the naval rule entirely.
+        for other in list(world.marshals.values()):
+            if other.location == "London" and other.nation != "France":
+                other.location = "Highlands"
+        return _place(world, "Ney", "Normandy")
+
     def test_forced_retreat_prefers_land(self, world):
-        """get_safe_retreat_destination demotes a covered crossing."""
-        french = world.get_marshals_by_nation("France")
-        marshal = _place(world, french[0].name, "Normandy")
-        dest = world.get_safe_retreat_destination(marshal.name)
-        assert dest != "London"
+        """The demotion: a covered crossing loses to a land route even
+        when the crossing is friendly ground and the land is the enemy's."""
+        self._cornered_at_the_beach(world)
+        assert not naval.crossing_allowed(world, "France", "Normandy", "London")
+        dest = world.get_safe_retreat_destination("Ney")
+        assert dest is not None
+        assert dest != "London", (
+            "the army retreated across water the Royal Navy commands")
+        assert dest in world.regions["Normandy"].adjacent_regions
+
+    def test_the_crossing_wins_once_the_sea_is_ours(self, world):
+        """PROVOCATION CONTROL — the same board with the covering fleet
+        sunk. If this does not flip to London the shape has stopped
+        exercising the demotion and the pin above is vacuous."""
+        self._cornered_at_the_beach(world)
+        naval.get_fleet(world, "Britain")["ships"] = 0
+        naval.get_fleet(world, "Russia")["ships"] = 0
+        assert naval.crossing_allowed(world, "France", "Normandy", "London")
+        assert world.get_safe_retreat_destination("Ney") == "London"
 
     def test_the_corunna_clause(self, world):
-        """When every land exit is enemy-held, the army takes to the boats
-        rather than break in place — evacuation under fire is real."""
-        british = world.get_marshals_by_nation("Britain")
-        marshal = _place(world, british[0].name, "Normandy")
-        # Make every Normandy land neighbour a war-held French province
-        # (they are — France holds them and is at war with Britain), so the
-        # only non-war exit is the London crossing... which France covers.
+        """When every land exit is gone, the army takes to the boats
+        rather than break in place — evacuation under fire is real. The
+        demotion is a DEMOTION, not a wall."""
+        marshal = self._cornered_at_the_beach(world)
+        # Remove every land exit outright: a DISTINCT enemy army stands in
+        # each (one marshal cannot block four provinces at once).
+        exits = ("Berry", "Artois", "Maine", "Paris")
+        blockers = [m for m in world.marshals.values()
+                    if m.nation != "France" and m.strength > 0
+                    and world.is_at_war("France", m.nation)][:len(exits)]
+        assert len(blockers) == len(exits), "not enough enemy armies to corner him"
+        for name, blocker in zip(exits, blockers):
+            world.regions[name].garrison_strength = 0
+            blocker.location = name
+            blocker.strength = max(blocker.strength, 5000)
+        world._build_marshal_index()
+        assert not naval.crossing_allowed(world, "France", "Normandy", "London")
         dest = world.get_safe_retreat_destination(marshal.name)
-        assert dest == "London"  # the sea exit, Corunna-style
+        assert dest == "London", (
+            "a cornered army must take the boats, not break in place")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
