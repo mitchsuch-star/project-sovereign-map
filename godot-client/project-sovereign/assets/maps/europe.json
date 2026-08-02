@@ -4580,7 +4580,8 @@
         "Region_011",
         "Region_032",
         "Region_067",
-        "Region_093"
+        "Region_093",
+        "Region_116"
       ],
       "name": "Normandy",
       "starting_controller": "France",
@@ -5631,6 +5632,7 @@
       "interactive": true,
       "adjacent": [
         "Region_063",
+        "Region_094",
         "Region_103",
         "Region_109",
         "Region_118"
@@ -6859,6 +6861,10 @@
     [
       95,
       41
+    ],
+    [
+      116,
+      94
     ]
   ]
 }

@@ -116,8 +116,17 @@ def test_london_rush_intercepted_by_differentiated_garrison():
 def test_britain_cannot_take_france_unopposed_over_five_turns():
     """DEF-6 behavior test (seeded live probe, turns 1-5, passive France):
     Paris never falls, and any France-starting province Britain does take
-    was taken through the fought Flanders gate — never a free walk (the
-    only Britain->France entry carries the >=5,000 depot)."""
+    was entered through a FOUGHT Channel gate — never a free walk.
+
+    DEF-5 naval amendment (August 2, 2026, user-directed): Flanders is no
+    longer the sole Britain→France door. The registry gained the short
+    London↔Normandy crossing (111px — the historic descent beach) precisely
+    so a British landing comes ashore on the Norman coast instead of only
+    through the Low Countries, whose Flanders↔Orleanais edge fed straight
+    into the French interior. Both beaches carry the same 12,000-man
+    Channel depot, so the DEF-6 rule the test actually owns is unchanged
+    and now stated generally: whichever beach Britain uses, its garrison
+    must have been ground down in combat first."""
     random.seed(20260702)  # AI mood rolls ride the global random module
     world = _load()
     france_start = {
@@ -135,10 +144,16 @@ def test_britain_cannot_take_france_unopposed_over_five_turns():
         if world.regions[name].controller == "Britain"
     }
     if british_gains:
-        # Flanders is the sole Britain->France gateway; taking it means the
-        # depot was ground down in garrison combat (never a P4.5 walk-in).
-        assert "Flanders" in british_gains
-        assert world.regions["Flanders"].garrison_strength == 0
+        # A landing happened: it came through a Channel beach, and that
+        # beach's depot was fought to zero (never a P4.5 walk-in).
+        beaches = {"Flanders", "Normandy"}
+        taken_beaches = british_gains & beaches
+        assert taken_beaches, (
+            f"Britain holds French soil {sorted(british_gains)} without "
+            f"holding a Channel beach — that is a walk-in, not a landing"
+        )
+        for beach in taken_beaches:
+            assert world.regions[beach].garrison_strength == 0
 
 
 # ══════════════════════════ knife-edge (a): Charles at the supply cap ══════════════════════════

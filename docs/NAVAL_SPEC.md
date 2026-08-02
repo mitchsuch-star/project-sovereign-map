@@ -736,6 +736,37 @@ half (owned below):
   strait_open/shut verdict-flip beats + A1/A4 pinned + the London landing
   end-to-end through the opened gate. `test_naval_descent.py` (21).
 
+**THE NORMAN BEACH (user-directed follow-up, same day):** *"make it so
+British land in Normandy if they do land, not in the middle of the
+country."* Measured first: the ambient run had Britain crossing at
+**Flanders** — 352px east of London, one of the map's longest sea links —
+and then walking **Flanders→Orleanais→Nivernais→Burgundy→Savoy**, i.e.
+straight into central France (the same shape as the July-17 "Britain stood
+in Orleanais" defect). Normandy sits 111px from London, well inside the
+map's 55–449px sea-link span range, and is the historic descent coast.
+**Fix:** the registry gained **London↔Normandy** as a 19th sea link (with
+the mutual walkable adjacency the DEF-7 contract requires), and the
+scenario's `region_overrides` gives Normandy the SAME 12,000-man
+Channel-coast depot Flanders carries — the DEF-6 rule ("a beachhead is
+never a free walk-in") applied to the new beach, which matters doubly
+because Normandy is one march from Paris. **Measured after:** Britain
+comes ashore at **Normandy on turn 1**, grinding the depot down in TWO
+garrison assaults before breaking out. The crossing gate covers the new
+link symmetrically and A5 holds on it (Britain 2.05× passes; France 0.54
+shut both ways). Recorded observations, NOT changed: `Normandy↔Berry`
+(162px) and `Flanders↔Orleanais` (128px) are each the longest LAND edge
+out of their province and are the interior leaks a landed army uses — but
+this map's adjacency is derived from DRAWN shared borders, so cutting them
+would make the map visually lie (two provinces that touch but cannot be
+marched between). They are left for a user ruling after the visual pass.
+Pins: `test_naval_channel_gate.py::test_the_descent_beach_is_normandy` +
+the other-way gate + the beach-depot pin; the DEF-6 balance test's "Flanders
+is the sole gateway" clause is consciously generalised to "whichever beach
+Britain uses, its depot was fought to zero"; `BASELINE_SERIES` re-recorded
+a SECOND time (divergence index 9 — a Britain contesting the Norman coast
+in front of Paris keeps French alarm higher through the midgame than one
+drifting into the Low Countries); M1–M7 byte-identical throughout.
+
 **Spec gaps found and closed while building (the user's standing "make
 sure nothing is gapped" instruction):**
 

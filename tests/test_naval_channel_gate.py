@@ -73,6 +73,32 @@ class TestChannelGateHeadline:
         assert verdict["allowed"] is True
         assert verdict["ratio"] >= naval.CROSSING_RATIO
 
+    def test_the_descent_beach_is_normandy(self, world):
+        """User-directed (August 2, 2026): a British landing comes ashore on
+        the NORMAN COAST, not through the Low Countries into the French
+        interior. The registry gained London↔Normandy — the SHORT Channel
+        crossing (111px against Flanders's 352px, one of the map's longest
+        links) and the historic descent beach. Measured: Britain lands at
+        Normandy on turn 1 of the ambient run."""
+        assert naval.is_sea_link(world, "London", "Normandy")
+        verdict = naval.crossing_check(world, "Britain", "London", "Normandy")
+        assert verdict["allowed"] is True
+        assert verdict["ratio"] >= naval.CROSSING_RATIO
+
+    def test_the_norman_beach_is_gated_the_other_way(self, world):
+        """A5 holds on the NEW crossing too — the beach is a door Britain
+        owns, not a two-way street. France cannot walk it to London."""
+        verdict = naval.crossing_check(world, "France", "Normandy", "London")
+        assert verdict["allowed"] is False
+        assert verdict["coverer"] == "Britain"
+
+    def test_the_beach_is_never_a_free_walk_in(self, world):
+        """The DEF-6 rule applied to the new beachhead: a Channel-coast
+        depot garrisons Normandy exactly as it does Flanders — which matters
+        doubly here, Normandy being one march from Paris."""
+        assert world.regions["Normandy"].garrison_strength == 12000
+        assert world.regions["Flanders"].garrison_strength == 12000
+
     def test_uncontested_links_stay_free(self, world):
         """The Danish straits at peace: no hostile coverage, no change."""
         assert naval.crossing_check(

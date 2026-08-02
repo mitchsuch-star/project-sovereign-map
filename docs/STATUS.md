@@ -62,6 +62,25 @@
 >   Crossings verdicts + gate terms), map sea-link verdict tints + port anchor
 >   glyphs (riding `naval_overlay` on the summary), the region-panel dockyard chip,
 >   the war-room `naval_line`, 10 dispatch beat templates.
+> - **THE NORMAN BEACH (user-directed, same session):** *"make it so British
+>   land in Normandy if they do land, not in the middle of the country."*
+>   MEASURED the defect first — Britain crossed at Flanders (352px, one of the
+>   map's longest links) then walked Flanders→Orleanais→Nivernais→Burgundy→
+>   Savoy into central France, the same shape as the July-17 "Britain stood in
+>   Orleanais" defect. The registry gained **London↔Normandy** (111px — the
+>   historic descent coast, well inside the map's 55–449px span range) with the
+>   walkable adjacency DEF-7 requires, and Normandy now carries the SAME
+>   12,000-man Channel depot as Flanders (DEF-6: a beachhead is never a free
+>   walk-in — doubly so one march from Paris). **Measured after: Britain comes
+>   ashore at NORMANDY on turn 1, grinding the depot down in two garrison
+>   assaults before breaking out.** A5 holds on the new link (Britain 2.05×
+>   passes, France 0.54 shut both ways). Left for a user ruling after the visual
+>   pass: `Normandy↔Berry` (162px) and `Flanders↔Orleanais` (128px) are the
+>   longest LAND edges out of their provinces and are the interior leaks a
+>   landed army uses — but adjacency here is derived from DRAWN shared borders,
+>   so cutting them would make the map visually lie. `BASELINE_SERIES`
+>   re-recorded a second time (divergence index 9, attributed); M1–M7
+>   byte-identical throughout.
 > - **⚠ OPEN (next play session):** the in-client visual pass (tints/glyphs/
 >   Admiralty/chip) + the played-world A2 strangulation arc + the naval pillar
 >   score — NV-V's live half; DEF-5/DEF-6 close on it.

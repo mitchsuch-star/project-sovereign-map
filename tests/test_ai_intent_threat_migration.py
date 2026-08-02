@@ -108,10 +108,30 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # impossible, and the whole tail re-derives lower (a Europe where the
 # island is safe accrues less anti-France alarm). One re-record, one
 # cause, spec-predicted (NAVAL_SPEC §7 boot deltas + §11 NV-0).
+# Prior series (DEF-5 naval NV-0..NV-3, earlier the same day):
+#   [85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 70, 67, 64, 69, 66, 53, 50,
+#    55, 52, 49, 46, 51, 48, 45, 42, 42, 39, 36, 33, 33, 30, 27, 24, 24,
+#    21, 18, 18, 15, 12, 12, 9]
+#
+# RE-RECORDED CONSCIOUSLY ONCE at THE NORMAN BEACH (August 2, 2026,
+# user-directed: "make it so British land in Normandy if they do land, not
+# in the middle of the country"). The registry gained the short
+# London↔Normandy sea link (111px — the historic descent coast) beside the
+# long London↔Flanders hop (352px, one of the map's longest, whose
+# Flanders↔Orleanais edge fed a landing straight into central France).
+# Sea links are ALSO walkable adjacency (the DEF-7 contract), so continental
+# pathfinding legitimately changed: measured, Britain now comes ashore at
+# NORMANDY on turn 1 — fighting through its 12,000-man Channel depot in two
+# garrison assaults (the DEF-6 rule, never a walk-in) instead of rolling
+# through Flanders into Amsterdam. Divergence index 9 is that campaign
+# re-shaping: a Britain contesting the Norman coast in front of Paris keeps
+# French alarm HIGHER through the midgame (the tail runs ~8 above the
+# previous record) rather than drifting off into the Low Countries. One
+# re-record, one cause; M1–M7 stayed byte-identical throughout.
 BASELINE_SERIES = [
-    85, 86, 84, 82, 80, 77, 74, 71, 68, 65, 70, 67, 64, 69, 66, 53, 50,
-    55, 52, 49, 46, 51, 48, 45, 42, 42, 39, 36, 33, 33, 30, 27, 24, 24,
-    21, 18, 18, 15, 12, 12, 9,
+    85, 86, 84, 82, 80, 77, 74, 71, 68, 73, 81, 78, 75, 80, 77, 74, 61,
+    66, 63, 60, 57, 62, 59, 56, 53, 53, 50, 47, 44, 44, 41, 38, 35, 35,
+    32, 29, 26, 26, 23, 20, 17,
 ]
 
 
