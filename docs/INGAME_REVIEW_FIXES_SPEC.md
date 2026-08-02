@@ -1335,8 +1335,8 @@ traffic unaffected.
 > the user signs off on a before/after pair instead of a pre-build pause:
 > `docs/audits/IGR_G1_SETTLEMENT_BEFORE/AFTER_2026_07_31.png` +
 > `IGR_G2_STACKS_BEFORE/AFTER[_ZOOM]_2026_07_31.png`.
-> **⚠ open: user visual sign-off on both AFTER shots** (the standing UI
-> sign-off convention).
+> **✅ user visual sign-off on both AFTER shots PASSED August 1, 2026** (the
+> standing UI sign-off convention — closed with the play-session pass).
 >
 > **G1 — measured, fixed, re-measured.** A deterministic evidence harness
 > (`tools/settlement_popup_screenshot.gd` — instantiates the REAL
@@ -1584,8 +1584,8 @@ IGR-A/B/C first, then bringing G1 and G2 to the user **with screenshots**.
 ~~`IGR-B` (Q1)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-D` (Q2, ends with the live
 Proclamation sighting)~~ ✅ **LANDED July 25, 2026** → ~~`IGR-F`~~ ✅ **LANDED July 26, 2026**
 → ~~`IGR-E` (Q4)~~ ✅ **LANDED July 26, 2026** → ~~`IGR-G`~~ ✅ **LANDED July 31, 2026**
-(before/after screenshot pack under the user's delegated grant — ⚠ visual sign-off open).
-**IGR-C is withdrawn. ROW IGR IS BUILD-COMPLETE.**
+(before/after screenshot pack under the user's delegated grant — ✅ visual sign-off
+PASSED August 1, 2026). **IGR-C is withdrawn. ROW IGR IS BUILD-COMPLETE — nothing open.**
 
 **The same July-31 session closed the routed X-backlog under the same grant** (landing
 records = the struck rows in `BUG_FIXES.md` §IGR-E and §In-Game Review): **IGR-X4** (the

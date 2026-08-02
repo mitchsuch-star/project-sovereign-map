@@ -485,7 +485,9 @@ rout / clickable grievance beat / proportional counts / terrain backdrop (named 
 needs a payload field) / Battle Gallery (own gate, persistence question) / Tier B/C
 (hold until Tier A is measured live) / ambient loops. **Live measurement of the tableau in
 ordinary play belongs to the next in-game review** (the standing cadence), where the
-significance gate's feel is the thing to watch.
+significance gate's feel is the thing to watch. **✅ First feel pass: PASSED by the user
+August 1, 2026 (the play-session sign-off) — the significance gate ships as tuned; future
+in-game reviews keep the standing cadence.**
 
 ### §14.1 Post-landing addendum — the render-chokepoint fix (July 31, 2026, `2ea50d1`)
 

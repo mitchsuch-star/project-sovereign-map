@@ -8,7 +8,8 @@
 > the scripted-France arm ran GREEN (sweep memo `docs/audits/AI_V_SWEEP_2026_08_01.md`), the §7
 > DoD is disposed line-by-line, §7a resolved 5-of-7 with written predicates on both misses, and
 > the D1 band resolved as 0-with-written-predicate (the AI-3r §8.2 disposition, re-measured over
-> 10 seeds). Open user-side item: the Stage E+F visual half (pin 20, on STATUS).**
+> 10 seeds). The Stage E+F visual half (pin 20) ✅ **PASSED by the user August 1, 2026 —
+> the phase has NO open items.**
 >
 > **How to read this document.**
 > - **Building?** Start at **§11 — the phased build plan** (Stages A–G, per-stage scope, entry/exit
@@ -2437,8 +2438,8 @@ contain-inactive-in-bloc pin (→ gulf_and_straits, the Tilsit route).
 **Exit criteria check (§11.1):** Stage A — pins 14(a)+22 green ✓ · six-clause historian harness ✓ ·
 validator + MODDING_FORMAT rows ✓ · suite + M1–M7 byte-identical on historical ✓. Stage B — boot
 intents pinned against authored 1805 ✓ · renders live (parse harness EXIT=0, headless boot 0
-`SCRIPT ERROR`; the **pin-20 live in-game visual pass remains open** for the user's next session —
-backend payloads + renders verified headless only) ✓* · AI-2a byte-identical player-flow pin green
+`SCRIPT ERROR`; the **pin-20 live in-game visual pass** was headless-only at landing —
+**✅ PASSED by the user August 1, 2026**) ✓ · AI-2a byte-identical player-flow pin green
 (suite) ✓.
 
 ## 15. Landing record — Stage C, "The Bargaining Table" *(July 24, 2026, same session as A+B; authoritative)*
@@ -3333,7 +3334,7 @@ relations cooling a band, max-not-sum intact). **Full evidence = `docs/audits/AI
   (live-verified July 25).
 - **Routed forward: nothing new.** The scene-1/7 halves and the D1 played-moment measurement
   ride the standing predicates to the first long human campaign; the Stage E+F visual half
-  stays the user's open pin-20 item on STATUS.
+  ✅ **PASSED by the user August 1, 2026** — pin 20 is fully closed.
 
 ### Exit criteria check (§11.1 Stage G)
 

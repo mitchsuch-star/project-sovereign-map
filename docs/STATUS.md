@@ -4,6 +4,43 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ SIGN-OFFS PASSED + THE NAVAL SPEC AUTHORED — August 1, 2026 (fourth session that day)
+>
+> **User direction: "mark gameplay test as passed; build naval spec — it can be
+> abstracted; look into history; balance fun with lean design and usability."** Docs-only
+> session: zero code, zero tests changed.
+>
+> - **The play-session visual sign-offs are ALL PASSED (user, August 1, 2026)** — the
+>   standing UI sign-off convention has **no open items**: pin-20's Stage E+F visual half
+>   (closed in `AI_INTENT_SPEC.md` header + §14 exit check + §20), the IGR-G before/after
+>   pack (closed in `INGAME_REVIEW_FIXES_SPEC.md` §2/§6), the BD significance-gate feel
+>   watch (closed in `BATTLE_DIORAMA_SPEC.md` — the gate ships as tuned), and the Aug-1
+>   trio (forced-march line, muster committed figure, diorama refused/out-of-reach shelf).
+> - **DEF-5 NAVAL: the spec is AUTHORED → `docs/NAVAL_SPEC.md` v1.0 "The Wooden Wall" —
+>   USER GATE PENDING (spec §12, Q1–Q6 at recommended defaults).** The abstraction the
+>   user directed: NO naval map layer — one serialized store (`world.fleets`: ships /
+>   readiness / posture), two postures, four verbs, zero new screens. Four consequences:
+>   the **crossing gate** (headline anchor A5 — Spain besieging London turn 5 becomes
+>   structurally impossible while Britain's own boot descents still pass), the **blockade**
+>   (trade ×0.5 + island-clause WE — and CS 2.0 closure gives France a **Britain sue-path
+>   without invasion**, the win condition the game lacks), the **expedition** (Bantry-scale
+>   evasion odds → **Free Ireland** rides the NA-6c carve machinery exactly per the DEF-5
+>   rider's completion definition, deck `erin_free`, `test_naval_free_ireland.py`), and the
+>   **fleet action** (Trafalgar resolver, no land-combat code touched). The §5.3 Descent
+>   chain re-derives the actual 1805 math: Combined-Fleet pooling + a successful Grand
+>   Diversion opens the Strait at 1.08× — and nothing less does. History table §1 (H1–H7:
+>   Bantry 1796, the Boulogne window, blockade-rots-the-blockaded, Berlin Decree), numbers
+>   N1–N11 + falsifiable anchors A1–A5, slices **NV-0 Admiralty → NV-1 Blockade War →
+>   NV-2 Crossings & Free Ireland → NV-3 Descent → NV-V**. Deferrals all owned (§10
+>   NV-D1..D8 — Copenhagen, Portugal coercion, privateers; DEF-8 explicitly NOT consumed).
+>   Routing updates: MAP plan DEF-5 row, ROADMAP §Phase-11 + EA-scope note (gate Q5
+>   recommends promoting naval v1 INTO EA scope), CLAUDE.md queue + Document Map.
+>
+> **WHAT'S NEXT:** 1. **the NAVAL GATE** (spec §12) → NV-0..NV-V build; 2. the long
+> quiet-France campaign (living-balance/D1 vehicle — unchanged, can double as the first
+> naval playtest once NV lands); 3. the spine: STEAM PAGE + LLC → Phase 9 (Advisors) →
+> 10 → 11 (its Britain row consumes this spec) → Pre-EA. Routing = the user's call.
+>
 > ### ✅ THE RE-MEASURE FIX MENU — BUILT COMPLETE August 1, 2026 (third session that day)
 >
 > **User direction: "do the fixes from the audit but make the decision yourself to make
