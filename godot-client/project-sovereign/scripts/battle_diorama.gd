@@ -644,18 +644,20 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# NV-7: a hull fills most of its 256px frame where a soldier fills a
 	# third of his, so the land spread packed a squadron into one blob.
 	# Ships get room to read as a LINE of battle, which is the whole point
-	# of the formation they are in.
-	var spread := 52.0 if arm == "ship" else 30.0
+	# of the formation they are in. NV-8b: and they sail LARGER — three
+	# small ships on a wide sea read sparse; a liner has presence.
+	var fig_px := FIGURE_PX * 1.3 if arm == "ship" else FIGURE_PX
+	var spread := 66.0 if arm == "ship" else 30.0
 	var rear := count - mini(count, 3)
 	for j in range(rear):
 		var f := DioramaFigure.new()
-		f.setup(arm, facing, nation_color, FIGURE_PX * 0.94)
+		f.setup(arm, facing, nation_color, fig_px * 0.94)
 		f.position = Vector2((j - (rear - 1) / 2.0) * spread + 6.0, -22.0)
 		block.add_child(f)
 		figures.append(f)
 	for j in range(mini(count, 3)):
 		var f := DioramaFigure.new()
-		f.setup(arm, facing, nation_color, FIGURE_PX)
+		f.setup(arm, facing, nation_color, fig_px)
 		f.position = Vector2((j - (mini(count, 3) - 1) / 2.0) * spread, 0.0)
 		block.add_child(f)
 		figures.append(f)
@@ -669,10 +671,17 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var falling: Array = figures.slice(0, fallen)
 	var standing: Array = figures.slice(fallen, figures.size())
 
-	# The corps standard — planted mid-rank, clash side.
-	var standard := _make_standard(nation_color, color_key, is_left)
-	standard.position = Vector2(38.0 if is_left else -38.0, 0.0)
-	block.add_child(standard)
+	# The corps standard — planted mid-rank, clash side. NOT at sea (NV-8b):
+	# on the naval tableau the land poles floated in open water, and a rear
+	# squadron's standard drew OVER the front block's locket (the live pass
+	# caught Russia's colours covering Nelson's face). Every ship already
+	# carries her own faction ensign at the spanker peak — the sea needs no
+	# second flag.
+	var standard: Node2D = null
+	if not _is_naval():
+		standard = _make_standard(nation_color, color_key, is_left)
+		standard.position = Vector2(38.0 if is_left else -38.0, 0.0)
+		block.add_child(standard)
 
 	# Locket + labels above the block (Control children of the Node2D).
 	# Left side: locket outboard-left, text flows right toward the line.
@@ -707,7 +716,12 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 
 	var status_l: Label = null
 	if status in ["routed", "destroyed"]:
-		status_l = _mk_label(block, status.to_upper(), 11, CRIMSON)
+		# NV-8b: the sea has its own words — a squadron STRIKES her
+		# colours; a squadron lost is SUNK. "ROUTED" is a land verb.
+		var status_word := status.to_upper()
+		if _is_naval():
+			status_word = "STRUCK" if status == "routed" else "SUNK"
+		status_l = _mk_label(block, status_word, 11, CRIMSON)
 		status_l.visible = false
 	elif status == "reinforced":
 		status_l = _mk_label(block, "marched to the guns", 10,
@@ -1034,6 +1048,8 @@ func _schedule_standards(at: float) -> void:
 			if b["status"] not in ["routed", "destroyed"]:
 				continue
 			var std: Node2D = b["standard"]
+			if std == null:
+				continue  # NV-8b: no standards at sea
 			var fall_dir := -1.0 if b["is_left"] else 1.0
 			_seq.parallel().tween_property(
 				std, "rotation", deg_to_rad(64.0) * fall_dir, 0.5) \
@@ -1064,6 +1080,8 @@ func _schedule_standards(at: float) -> void:
 			if bool(b["data"].get("lead", false)) \
 					and b["status"] not in ["routed", "destroyed"]:
 				var std2: Node2D = b["standard"]
+				if std2 == null:
+					break  # NV-8b: no advancing standard at sea
 				_seq.parallel().tween_property(
 					std2, "position:x", std2.position.x - 60.0, 0.9) \
 					.set_delay(at + 0.4) \
@@ -1160,10 +1178,11 @@ func _apply_final_frame_instant() -> void:
 				if b["status_label"] != null:
 					b["status_label"].visible = true
 				var std: Node2D = b["standard"]
-				std.rotation = deg_to_rad(64.0) * (-1.0 if b["is_left"] else 1.0)
-				std.modulate.a = 0.85
-				if _decisive() and bool(b["data"].get("lead", false)):
-					std.position.x += 300.0 if b["is_left"] else -300.0
+				if std != null:  # NV-8b: no standards at sea
+					std.rotation = deg_to_rad(64.0) * (-1.0 if b["is_left"] else 1.0)
+					std.modulate.a = 0.85
+					if _decisive() and bool(b["data"].get("lead", false)):
+						std.position.x += 300.0 if b["is_left"] else -300.0
 	_odo_left.text = Utils.format_number(int(sides[0].get("casualties_total", 0)))
 	_odo_right.text = Utils.format_number(int(sides[1].get("casualties_total", 0)))
 	_banner.visible = true

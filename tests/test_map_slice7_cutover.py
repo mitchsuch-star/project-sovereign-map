@@ -242,12 +242,16 @@ def test_sea_links_all_translate_to_known_provinces():
         a = id_to_name.get("Region_%03d" % int(pair[0]))
         b = id_to_name.get("Region_%03d" % int(pair[1]))
         assert a and b and a != b, f"untranslatable sea link {pair}"
-    # DEF-6's cross-Channel link is the flagship case:
+    # The cross-Channel link is the flagship case. NV-8c (Aug 2, 2026,
+    # user-directed): the long London–Flanders line is CUT — Normandy is
+    # the one Channel crossing, the historic descent coast. Both halves
+    # pinned: the beach present, the old line gone.
     named = {
         frozenset((id_to_name["Region_%03d" % int(p[0])], id_to_name["Region_%03d" % int(p[1])]))
         for p in sea_links
     }
-    assert frozenset(("London", "Flanders")) in named
+    assert frozenset(("London", "Normandy")) in named
+    assert frozenset(("London", "Flanders")) not in named
 
 
 def test_smoke_scene_runs_the_smoke_subclass():

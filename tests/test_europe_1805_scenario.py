@@ -146,8 +146,10 @@ def test_region_control_and_garrisons_injected(world1805):
 
     DEF-6 (Slice 8): capital garrisons are tier-differentiated on Europe —
     majors 25k, secondary courts 15k, minors 10k — and the scenario's
-    region_overrides stamps the Flanders Channel-coast depot (12k) so the
-    London<->Flanders sea link is never a free walk into France."""
+    region_overrides stamps the Channel-coast depots (12k) so a Channel
+    beach is never a free walk into France (NV-8c: the crossing itself is
+    London<->Normandy; Flanders keeps its depot against open-water
+    landings)."""
     assert world1805.regions["Paris"].controller == "France"
     assert world1805.regions["Swabia"].controller == "Bavaria"
     assert world1805.regions["Milan"].controller == "KingdomOfItaly"

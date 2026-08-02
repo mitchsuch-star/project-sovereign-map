@@ -54,21 +54,26 @@ def world1805() -> WorldState:
 # ══════════════════════════ DEF-6: the cross-Channel link ══════════════════════════
 
 
-def test_flanders_depot_blocks_p45_walk_in():
+def test_channel_depot_blocks_p45_walk_in():
     """Moore's live-observed turn-1 walk-in is closed: with the 12k Channel
-    depot, P4.5 (undefended capture) can never pick Flanders — entry into
-    France via the sea link requires a garrison assault (opposed)."""
+    depot, P4.5 (undefended capture) can never pick the beach — entry into
+    France via the sea link requires a garrison assault (opposed).
+
+    NV-8c (Aug 2, 2026): the Flanders line is cut, so the beach this test
+    owns is NORMANDY — the one remaining Channel crossing. Flanders keeps
+    its depot (an expedition can still land there over open water)."""
     from backend.ai.enemy_ai import EnemyAI
 
     world = _load()
     moore = world.marshals["Moore"]
     assert moore.location == "London"
+    assert world.regions["Normandy"].garrison_strength >= 5000
     assert world.regions["Flanders"].garrison_strength >= 5000
 
     ai = EnemyAI(CommandExecutor())
     ai._reset_enemy_query_cache(world)
     action = ai._find_undefended_capture(moore, "Britain", world)
-    assert action is None or action.get("target") != "Flanders"
+    assert action is None or action.get("target") != "Normandy"
 
 
 def test_london_rush_intercepted_by_differentiated_garrison():
@@ -84,7 +89,8 @@ def test_london_rush_intercepted_by_differentiated_garrison():
     world = _load()
     world.fleets["Britain"]["ships"] = 0  # DEF-5: clear the sea lane
     ney = world.marshals["Ney"]
-    ney.location = "Flanders"       # the Channel crossing, adjacent to London
+    # NV-8c: the Flanders line is cut — Normandy is the Channel crossing.
+    ney.location = "Normandy"
     ney.strength = 35000
     world.marshals["Moore"].location = "Highlands"  # London left undefended
     world.actions_remaining = 99

@@ -533,67 +533,115 @@ def build_artillery():
 # stage (no map arm exists for fleets: NAVAL_SPEC Q1(a) keeps the model to one
 # national record, so there is nothing on the map for a ship piece to BE).
 def build_ship():
+    # NV-8a (Aug 2, 2026, user visual pass): REBUILT UNDER SAIL. The first
+    # cut furled every sail to its yard, and at 58px a stack of furled yards
+    # reads as pancakes — worse when the figure fell, when the mast-and-yard
+    # assembly read as spoked WHEELS on the tableau. A ship of the line is
+    # recognised by her pyramid of set canvas, so she now carries it:
+    # courses and topsails drawn full, a jib to the bowsprit, a gaff
+    # spanker aft, the faction ensign at the spanker peak. Canvas is pale
+    # carved timber (the piece stays a carved object, not a painting).
     body, coat = new_layer(), new_layer()
     u = SS * 1.05
-    # The hull sits ON the turned base, not in it: a first pass put the keel
-    # at the base's own centre line and the ship read as half-sunk in her
-    # own stand. `gy` is the SHIP's waterline; make_base/faction_base_rim
-    # keep using GY, so the base is unchanged and only the ship rides up.
-    gy, cx = GY - 13 * SS, CX
+    # The hull sits ON the turned base, not in it (first-pass lesson kept):
+    # gy is the SHIP's waterline; make_base/faction_base_rim keep using GY.
+    gy, cx = GY - 11 * SS, CX
+    CANVAS = (222, 204, 168, 255)     # pale carved canvas
+    CANVAS_DK = (192, 172, 136, 255)  # sail foot shade / outline
 
-    # --- hull: a two-decker's tumblehome, bow to the right ---
+    # --- hull: long two-decker, bow to the RIGHT ---
     hull = [
-        (cx - 62 * u, gy - 14 * u),                      # stern quarter
-        (cx - 58 * u, gy - 2 * u), (cx - 20 * u, gy + 3 * u),
-        (cx + 30 * u, gy + 1 * u), (cx + 58 * u, gy - 8 * u),   # forefoot
-        (cx + 66 * u, gy - 16 * u),                      # beakhead
-        (cx + 46 * u, gy - 20 * u), (cx - 40 * u, gy - 22 * u),
+        (cx - 64 * u, gy - 28 * u),                       # stern taffrail
+        (cx - 58 * u, gy - 4 * u), (cx - 26 * u, gy + 2 * u),
+        (cx + 24 * u, gy + 2 * u), (cx + 52 * u, gy - 5 * u),
+        (cx + 64 * u, gy - 17 * u),                       # beakhead
+        (cx + 46 * u, gy - 22 * u), (cx - 42 * u, gy - 24 * u),
     ]
     smooth_fill(body, hull, OAK)
-    stroke(body, hull, WALNUT_DK, 1.5 * SS, closed=True, smooth=True)
-    # the two gun strakes — the whole reason she reads as a ship of the line
-    for k, dy in enumerate((10.0, 17.5)):
-        strake = [(cx - 56 * u, gy - dy * u), (cx + 54 * u, gy - (dy + 4) * u)]
-        stroke(body, strake, WALNUT, 2.0 * SS)
-        for port in range(11):
-            px = cx - 52 * u + port * 9.6 * u
-            py = gy - (dy + 0.4 * port) * u
-            disc(body, px, py, 1.9 * u, 1.6 * u, WALNUT_DK)
-    # stern gallery + a lifted quarterdeck rail
+    stroke(body, hull, WALNUT_DK, 1.6 * SS, closed=True, smooth=True)
+    # the two gun strakes with their ports — what makes her a LINER
+    for k, dy in enumerate((11.0, 18.0)):
+        stroke(body, [(cx - 56 * u, gy - dy * u),
+                      (cx + 48 * u, gy - (dy + 3) * u)], WALNUT, 2.0 * SS)
+        for port in range(9):
+            px = cx - 50 * u + port * 12.0 * u
+            py = gy - (dy + 0.28 * port) * u
+            disc(body, px, py, 2.0 * u, 1.7 * u, WALNUT_DK)
+    # stern gallery (the captain's windows) + rail
     smooth_fill(body, [
-        (cx - 62 * u, gy - 14 * u), (cx - 66 * u, gy - 30 * u),
-        (cx - 44 * u, gy - 32 * u), (cx - 42 * u, gy - 20 * u),
+        (cx - 64 * u, gy - 28 * u), (cx - 56 * u, gy - 31 * u),
+        (cx - 50 * u, gy - 23 * u), (cx - 56 * u, gy - 7 * u),
+        (cx - 62 * u, gy - 9 * u),
     ], OAK_DK)
-    stroke(body, [(cx - 64 * u, gy - 30 * u), (cx - 12 * u, gy - 26 * u)],
-           OAK_HI, 1.6 * SS)
+    stroke(body, [(cx - 60 * u, gy - 25 * u), (cx - 52 * u, gy - 25 * u)],
+           OAK_HI, 1.4 * SS)
+    # bowsprit, steeved up from the beakhead
+    stroke(body, [(cx + 54 * u, gy - 21 * u), (cx + 88 * u, gy - 42 * u)],
+           WOOD, 2.6 * SS)
 
-    # --- three masts, raked aft, with furled-course yards ---
-    masts = ((cx - 34 * u, 96.0), (cx + 2 * u, 112.0), (cx + 34 * u, 92.0))
-    for mx, height in masts:
+    def square_sail(mx, y_top, half_head, half_foot, h):
+        """One set square sail: head on its yard, foot billowing down-and-
+        out. Big simple shapes — it must read at 58px."""
+        pts = [
+            (mx - half_head * u, y_top), (mx + half_head * u, y_top),
+            (mx + half_foot * u, y_top + h * 0.78 * u),
+            (mx, y_top + h * u),                    # curved billow at foot
+            (mx - half_foot * u, y_top + h * 0.78 * u),
+        ]
+        smooth_fill(body, pts, CANVAS)
+        stroke(body, pts, CANVAS_DK, 1.3 * SS, closed=True, smooth=True)
+        # the yard the head is bent to
+        stroke(body, [(mx - (half_head + 3) * u, y_top),
+                      (mx + (half_head + 3) * u, y_top)], WOOD_DK, 1.8 * SS)
+
+    # --- three masts (stern left → mizzen, main, fore), sails SET ---
+    # Tuned at NV-8a round 2: the first set crowded — adjacent stacks
+    # merged into one canvas blob at 58px. Each mast now owns a distinct
+    # column (wider spacing, narrower sails, real gaps), the classic
+    # three-pyramid silhouette with sky between the stacks.
+    # (x, height above waterline, [(half_head, half_foot, sail_h), ...]
+    #  listed topgallant-first, drawn downward)
+    masts = [
+        (cx - 44 * u, 82.0, [(9.0, 11.0, 14.0)]),                     # mizzen
+        (cx - 2 * u, 120.0, [(7.0, 9.0, 11.0), (11.0, 13.0, 16.0),
+                             (14.0, 17.0, 20.0)]),                    # main
+        (cx + 36 * u, 102.0, [(9.0, 11.0, 14.0),
+                              (12.0, 15.0, 18.0)]),                   # fore
+    ]
+    for mx, height, sails in masts:
         top = gy - height * u
-        stroke(body, [(mx, gy - 20 * u), (mx - 5 * u, top)], WOOD, 2.6 * SS)
-        for frac, half in ((0.42, 26.0), (0.66, 19.0), (0.85, 12.0)):
-            yy = gy - 20 * u - (height - 20.0) * u * frac
-            xx = mx - 5 * u * frac
-            stroke(body, [(xx - half * u, yy + 1.5 * u),
-                          (xx + half * u, yy - 1.5 * u)], WOOD_DK, 2.0 * SS)
-            # canvas: pale carved timber, furled tight to the yard
-            smooth_fill(body, [
-                (xx - half * 0.92 * u, yy + 1.0 * u),
-                (xx + half * 0.92 * u, yy - 2.0 * u),
-                (xx + half * 0.86 * u, yy + 4.0 * u),
-                (xx - half * 0.86 * u, yy + 7.0 * u),
-            ], OAK_HI if frac < 0.7 else BREECH)
-    # bowsprit
-    stroke(body, [(cx + 56 * u, gy - 22 * u), (cx + 84 * u, gy - 36 * u)],
-           WOOD, 2.4 * SS)
+        stroke(body, [(mx, gy - 22 * u), (mx, top)], WOOD, 2.6 * SS)
+        # masthead visible above the top sail (the truck)
+        y = top + 5 * u
+        for half_head, half_foot, h in sails:   # topgallant down to course
+            square_sail(mx, y, half_head, half_foot, h)
+            y += (h + 5.0) * u
 
-    # --- the ensign at the mizzen peak: the faction's one colour hit ---
-    ex, ey = cx - 39 * u, gy - 96 * u
+    # --- the spanker: gaff sail aft of the mizzen ---
+    mz = cx - 44 * u
+    gaff_peak = (mz - 24 * u, gy - 68 * u)
+    spanker = [
+        (mz, gy - 62 * u), gaff_peak,
+        (mz - 20 * u, gy - 30 * u), (mz, gy - 28 * u),
+    ]
+    smooth_fill(body, spanker, CANVAS_DK)
+    stroke(body, spanker, WALNUT, 1.3 * SS, closed=True, smooth=True)
+    stroke(body, [(mz, gy - 62 * u), gaff_peak], WOOD_DK, 1.8 * SS)  # gaff
+
+    # --- headsail: one modest jib between bowsprit and the fore course ---
+    # (round 3: a full-height jib merged with the fore stack into one blob;
+    # it stays BELOW the fore topsail so the fore column keeps its shape)
+    jib = [(cx + 82 * u, gy - 38 * u), (cx + 54 * u, gy - 60 * u),
+           (cx + 54 * u, gy - 26 * u)]
+    smooth_fill(body, jib, CANVAS)
+    stroke(body, jib, CANVAS_DK, 1.2 * SS, closed=True, smooth=True)
+
+    # --- the ensign at the spanker peak: the faction's one colour hit ---
+    ex, ey = gaff_peak
     faction_fill(coat, [
-        (ex, ey), (ex - 26 * u, ey - 5 * u),
-        (ex - 22 * u, ey + 5 * u), (ex - 26 * u, ey + 14 * u),
-        (ex, ey + 11 * u),
+        (ex, ey), (ex - 20 * u, ey - 5 * u),
+        (ex - 17 * u, ey + 4 * u), (ex - 20 * u, ey + 12 * u),
+        (ex, ey + 9 * u),
     ])
     faction_base_rim(coat, 0.92)
     return {"base": make_base(0.92), "shadow": make_shadow(0.92),

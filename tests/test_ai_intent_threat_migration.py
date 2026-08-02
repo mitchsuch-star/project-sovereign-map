@@ -152,9 +152,26 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   [85, 86, 84, 82, 80, 77, 74, 71, 68, 73, 81, 78, 75, 80, 77, 74, 61,
 #    66, 63, 60, 57, 62, 59, 56, 53, 53, 50, 47, 44, 44, 41, 38, 35, 35,
 #    32, 29, 26, 26, 23, 20, 17]
+#
+# RE-RECORDED CONSCIOUSLY ONCE at NV-8c (August 2, 2026, user-directed:
+# "looks like there is still a line connecting england to flanders").
+# The long London↔Flanders sea link (352px) is CUT from the registry —
+# sea_links 19 → 18 and both adjacency folds — leaving London↔Normandy
+# as the ONE Channel crossing, which is what the Norman-beach re-stage
+# had always meant. Divergence index 12 is pathfinding: continental
+# distances that used to route through the Flanders hop lengthen by a
+# turn or two, so the same events land a beat later and the tail
+# stretches accordingly (the shape is the prior series time-shifted,
+# which is exactly what a removed edge does). Deterministic across two
+# processes; single registry-data cause, self-evident from the diff —
+# the Norman-beach precedent.
+# Prior series (the NV-4 host-rule record, earlier the same day):
+#   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 60, 57, 57, 44, 41,
+#    38, 38, 35, 32, 29, 29, 26, 23, 20, 17, 14, 14, 11, 8, 5, 2, 2, 0,
+#    0, 0, 0, 0, 0, 0]
 BASELINE_SERIES = [
-    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 60, 57, 57, 44, 41,
-    38, 38, 35, 32, 29, 29, 26, 23, 20, 17, 14, 14, 11, 8, 5, 2, 2, 0,
+    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 63, 60, 60, 57, 44,
+    41, 41, 38, 35, 32, 32, 29, 26, 23, 20, 17, 17, 14, 11, 8, 5, 5, 2,
     0, 0, 0, 0, 0, 0,
 ]
 

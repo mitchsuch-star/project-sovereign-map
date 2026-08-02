@@ -1,6 +1,6 @@
 """NV-2 — Crossings & the fleet action (docs/NAVAL_SPEC.md §11).
 
-THE HEADLINE (anchor A5): a hostile army can NEVER walk London↔Flanders
+THE HEADLINE (anchor A5): a hostile army can NEVER walk the Channel crossing
 below ratio — Spain besieging London on turn 5 (the August-1 re-measure's
 rank-2 believability defect) becomes structurally impossible, while
 Britain's own boot descents still pass on ratio (H7).
@@ -55,7 +55,7 @@ class TestChannelGateHeadline:
     def test_spain_can_never_walk_to_london(self, world):
         """The August-1 absurdity, dead: Spain's pooled ~31 effective vs
         the Royal Navy's 100 → SHUT, flat, no dice."""
-        verdict = naval.crossing_check(world, "Spain", "Flanders", "London")
+        verdict = naval.crossing_check(world, "Spain", "Normandy", "London")
         assert verdict["allowed"] is False
         assert verdict["verdict"] == "shut"
         assert verdict["coverer"] == "Britain"
@@ -65,7 +65,7 @@ class TestChannelGateHeadline:
 
     def test_france_cannot_walk_to_london_either(self, world):
         assert not naval.crossing_check(
-            world, "France", "Flanders", "London")["allowed"]
+            world, "France", "Normandy", "London")["allowed"]
 
     def test_britain_commands_the_water_but_may_not_march_ashore(self, world):
         """NV-4 THE HOST RULE — pin CONSCIOUSLY FLIPPED (August 2, 2026).
@@ -81,7 +81,7 @@ class TestChannelGateHeadline:
         and the numbers below prove the flip is the host rule and not a
         naval reversal — but the far shore is enemy country, so the march
         is refused and the expedition is named as the door."""
-        verdict = naval.crossing_check(world, "Britain", "London", "Flanders")
+        verdict = naval.crossing_check(world, "Britain", "London", "Normandy")
         # The water is still Britain's — the ratio is untouched.
         assert verdict["ratio"] >= naval.CROSSING_RATIO
         # The shore is not.
@@ -169,13 +169,13 @@ class TestChannelGateHeadline:
     def test_executor_refuses_the_walk(self, world, executor):
         """The seam itself: a Spanish marshal ordered across the Channel is
         refused with the naval message + the PF-8 structured flag."""
-        marshal = _place(world, "Gravina", "Flanders") if world.get_marshal(
+        marshal = _place(world, "Gravina", "Normandy") if world.get_marshal(
             "Gravina") else None
         if marshal is None:
             # Use any Spanish marshal from the authored roster.
             spanish = world.get_marshals_by_nation("Spain")
             assert spanish, "scenario authors a Spanish marshal"
-            marshal = _place(world, spanish[0].name, "Flanders")
+            marshal = _place(world, spanish[0].name, "Normandy")
         result = executor._movement._execute_move(
             marshal, "London", world, _game_state(world))
         assert result["success"] is False
@@ -185,7 +185,7 @@ class TestChannelGateHeadline:
         """'A blockade that stops MOVE but not ATTACK is not a blockade' —
         the amphibious assault across a covered link is refused."""
         spanish = world.get_marshals_by_nation("Spain")
-        marshal = _place(world, spanish[0].name, "Flanders")
+        marshal = _place(world, spanish[0].name, "Normandy")
         result = executor.execute(
             {"command": {"marshal": marshal.name, "action": "attack",
                          "target": "London", "type": "specific",
@@ -198,7 +198,7 @@ class TestChannelGateHeadline:
         """A corps cannot muster INTO a battle across a covered link —
         control arm: sink the RN and the SAME muster becomes eligible, so
         the refusal is isolated to the naval rule."""
-        marshal = _place(world, "Ney", "Flanders")
+        marshal = _place(world, "Ney", "Normandy")
         primary = _place(world, "Davout", "London")
         gated = executor._combat._is_reinforcement_eligible(
             marshal, primary, "London", "France", world)
@@ -214,7 +214,7 @@ class TestAICandidateFilter:
         from backend.ai.enemy_ai import EnemyAI
         ai = EnemyAI(CommandExecutor())
         assert ai._can_ai_move_to(world, "Spain", "London",
-                                  origin="Flanders") is False
+                                  origin="Normandy") is False
         # Destination-only calls (no origin) keep their old answer.
         assert ai._can_ai_move_to(world, "Spain", "London") is True
 
@@ -230,7 +230,7 @@ class TestAICandidateFilter:
         the flip is the host rule and not a broken candidate filter."""
         from backend.ai.enemy_ai import EnemyAI
         ai = EnemyAI(CommandExecutor())
-        assert ai._can_ai_move_to(world, "Britain", "Flanders",
+        assert ai._can_ai_move_to(world, "Britain", "Normandy",
                                   origin="London") is False
         # Britain's own Irish crossing — its own soil, never gated.
         assert ai._can_ai_move_to(world, "Britain", "Ulster",
@@ -241,7 +241,7 @@ class TestRetreatArms:
     def test_forced_retreat_prefers_land(self, world):
         """get_safe_retreat_destination demotes a covered crossing."""
         french = world.get_marshals_by_nation("France")
-        marshal = _place(world, french[0].name, "Flanders")
+        marshal = _place(world, french[0].name, "Normandy")
         dest = world.get_safe_retreat_destination(marshal.name)
         assert dest != "London"
 
@@ -249,8 +249,8 @@ class TestRetreatArms:
         """When every land exit is enemy-held, the army takes to the boats
         rather than break in place — evacuation under fire is real."""
         british = world.get_marshals_by_nation("Britain")
-        marshal = _place(world, british[0].name, "Flanders")
-        # Make every Flanders land neighbour a war-held French province
+        marshal = _place(world, british[0].name, "Normandy")
+        # Make every Normandy land neighbour a war-held French province
         # (they are — France holds them and is at war with Britain), so the
         # only non-war exit is the London crossing... which France covers.
         dest = world.get_safe_retreat_destination(marshal.name)
@@ -440,7 +440,7 @@ class TestAITurnbackLine:
         executor = CommandExecutor()
         ai = EnemyAI(executor)
         spanish = world.get_marshals_by_nation("Spain")
-        marshal = _place(world, spanish[0].name, "Flanders")
+        marshal = _place(world, spanish[0].name, "Normandy")
         ai._execute_action(
             {"marshal": marshal.name, "action": "move", "target": "London"},
             _game_state(world))

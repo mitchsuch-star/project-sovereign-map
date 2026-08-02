@@ -1133,3 +1133,63 @@ consent rule and the landing chip; `SAVE_FORMAT_REFERENCE` documents
 neutral landings, `BASELINE_SERIES` byte-identical WITHOUT re-record
 (every order the new gates remove was already being refused — same
 convergence the P4 gate showed). Suite 15,837/3.
+
+### 15.10 NV-8 — the user's visual pass answered (August 2, 2026; the
+### diorama screenshot review: "fix all of those... is it realistic...
+### still a line connecting england to flanders... assure ai knows it can
+### land units in allies with coasts")
+
+**NV-8a — the ship rebuilt UNDER SAIL.** The first carving furled every
+sail to its yard, and at 58px a stack of furled yards read as pancakes —
+worse when the figure fell, when the mast-and-yard assembly read as spoked
+WHEELS lying on the baize (the user's screenshot, exactly). A ship of the
+line is recognised by her pyramid of set canvas, so she carries it now:
+three distinct mast columns with courses and topsails drawn full, a jib to
+the bowsprit, a gaff spanker aft, gun strakes with ports, a stern gallery,
+and the faction ensign at the spanker peak. Three visual iterations
+(blob → distinct columns → jib shrunk below the fore topsail), previewed
+tinted at 58/96/256px each round. Still 100% generator-derived (the U4
+contract), 32 sprites re-exported + re-imported.
+
+**NV-8b — the sea's own presentation.**
+- **A ship FOUNDERS; she does not topple.** The land verb's 78° fall is
+  what made the wheels. `DioramaFigure.founder()`: heel 26° away from the
+  enemy, settle 9px into the base, darken toward waterlogged timber, over
+  0.7s — a ship dies with weight. `topple()` routes ships there
+  automatically, so the tableau code needed no arm-awareness.
+- **No land standards at sea.** The corps poles floated in open water, the
+  captured-eagle animation dragged a tricolor across the British line, and
+  a rear squadron's standard drew OVER Nelson's locket (the screenshot's
+  worst overlap). Every ship already flies her faction ensign at the
+  spanker peak — the sea needs no second flag. All three standard
+  consumers null-guarded.
+- **STRUCK / SUNK,** never "ROUTED" — a squadron strikes her colours.
+- **Presence:** ship figures render at 1.3× with a 66px line spread — a
+  liner is not a skirmisher.
+
+**NV-8c — the Flanders line is CUT.** User-flagged: "looks like there is
+still a line connecting england to flanders." The 352px London↔Flanders
+sea link is removed from the registry (sea_links 19 → 18, both adjacency
+folds), leaving **London↔Normandy as the ONE Channel crossing** — which is
+what the Norman-beach re-stage had always meant. Flanders keeps its
+authored 12k depot (an expedition can still land there over open water)
+and stays a camp province and a dockyard. Re-pointed consciously: the A5
+headline pins, the executor/reinforcement/retreat/Corunna seams, the
+descent window arithmetic (identical numbers — the ratio maths is
+fleet-based, only the link's existence matters), the DEF-6 walk-in and
+London-rush pins, the slice-7 registry pin (now asserts the Flanders pair
+ABSENT), and the square-thrash shapes. `BASELINE_SERIES` re-recorded once
+— divergence index 12 is pathfinding (routes through the Flanders hop
+lengthen by a turn; the shape is the prior series time-shifted, which is
+exactly what a removed edge does), deterministic across two processes.
+M1–M7 byte-identical.
+
+**NV-8d — allies with coasts, assured.** Three explicit arms through the
+ONE public predicate: a formal ALLIANCE opens the ports at ANY relation
+(the state, not the mood, is the treaty); the AI rung embarks for the
+allied coast under that alliance; and the player lands on allied Spain's
+Galicia (GR5 both ways). Probe evidence: Britain still lands at Lisbon
+turn 11 — and by turn 30 Moore's 25,000 stand at a Normandy held by
+AUSTRIA, because a coalition ally took the beach, the shore became a
+host, and Britain reinforced an allied beachhead across water it
+commands. Emergent, correct, and the whole design in one sentence.

@@ -120,7 +120,9 @@ def _stance_breaker_shape(world):
     stance change — which would break the square just formed."""
     moore = world.marshals["Moore"]
     murat = world.marshals["Murat"]
-    murat.location = "Flanders"
+    # NV-8c: the Flanders line is cut — Normandy is the link adjacent to
+    # London, so the invasion-scare cavalry threat stands there now.
+    murat.location = "Normandy"
     murat.strength = 40000
     moore.stance = Stance.NEUTRAL
     moore.counter_punch_available = False
@@ -207,7 +209,7 @@ class TestInSquareStanceGuard:
 class TestLatchAtTheRung:
     def _eval(self, ai, world):
         moore = world.marshals["Moore"]
-        world.marshals["Murat"].location = "Flanders"
+        world.marshals["Murat"].location = "Normandy"  # NV-8c: the link
         world.marshals["Murat"].strength = 40000
         ai._enter_indexed_evaluation_scope(world)
         try:

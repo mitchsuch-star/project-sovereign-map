@@ -32,9 +32,10 @@ def world():
 
 
 def _mass_the_camp(world, strength=45000):
-    """Put a Grand Army in Flanders (an authored camp province)."""
+    """Put a Grand Army at Normandy (an authored camp province — and,
+    since NV-8c cut the Flanders line, the invasion beach itself)."""
     ney = world.get_marshal("Ney")
-    ney.location = "Flanders"
+    ney.location = "Normandy"
     ney.strength = strength
     world._build_marshal_index()
     return ney
@@ -127,7 +128,7 @@ class TestA4WorkedExample:
 
     def test_without_a_window_the_strait_is_hopeless(self, world):
         _at_drill_ceiling(world)
-        verdict = naval.crossing_check(world, "France", "Flanders", "London")
+        verdict = naval.crossing_check(world, "France", "Normandy", "London")
         assert not verdict["allowed"]
         # ≈59 pooled effective — the spec's mover-side arithmetic exactly.
         assert verdict["mover_effective"] == pytest.approx(59.0, abs=1.0)
@@ -138,7 +139,7 @@ class TestA4WorkedExample:
         coverage → ≥ 0.9. The mechanics re-derive the actual 1805 plan."""
         _at_drill_ceiling(world)
         world.fleets["France"]["window_turns"] = 2
-        verdict = naval.crossing_check(world, "France", "Flanders", "London")
+        verdict = naval.crossing_check(world, "France", "Normandy", "London")
         assert verdict["allowed"], verdict
         assert verdict["verdict"] == "window"
         assert verdict["ratio"] == pytest.approx(1.07, abs=0.03)
@@ -150,7 +151,7 @@ class TestA4WorkedExample:
         _at_drill_ceiling(world)
         world.fleets["France"]["window_turns"] = 2
         world.fleets["Spain"]["ships"] = 0
-        verdict = naval.crossing_check(world, "France", "Flanders", "London")
+        verdict = naval.crossing_check(world, "France", "Normandy", "London")
         assert not verdict["allowed"]
         assert verdict["ratio"] == pytest.approx(0.74, abs=0.03)
         assert verdict["ratio"] < naval.WINDOW_CROSSING_FLOOR
@@ -238,7 +239,7 @@ class TestGrandDiversion:
         """The verdict-flip machinery announces the Strait closing again —
         the §5.3 window's whole drama is that the game says when."""
         _at_drill_ceiling(world)
-        _mass_the_camp(world)  # keeps a tracked link at Flanders
+        _mass_the_camp(world)  # keeps the Channel link tracked at Normandy
         world.fleets["France"]["window_turns"] = 1
         naval.process_naval_turn(world)  # records the OPEN verdict, decrements to 0
         world.fleets["Britain"]["posture"] = "guard"

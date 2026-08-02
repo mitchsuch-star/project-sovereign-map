@@ -5302,8 +5302,7 @@
         "Region_104",
         "Region_106",
         "Region_110",
-        "Region_112",
-        "Region_116"
+        "Region_112"
       ],
       "name": "Flanders",
       "starting_controller": "France",
@@ -5634,7 +5633,6 @@
         "Region_063",
         "Region_094",
         "Region_103",
-        "Region_109",
         "Region_118"
       ],
       "name": "London",
@@ -6790,10 +6788,6 @@
     "def7_pass": "July 2, 2026 cross-Baltic mini-pass: 10 compressed land edges cut (Scania-Berlin/Brunswick/Jutland, EastPrussia-Finland, Posen-Finland/Livonia, Brandenburg-Livonia, Hanover-Oslo, Oldenburg-Oslo, Jutland-Brunswick), 4 demoted to sea links (Livonia-Pomerania, Livonia-Finland, Scania-Pomerania, Finland-Estonia), 2 connectivity sea links added (Oslo-Jutland, Scania-Gothland), Hanover-Jutland kept as the Holstein land bridge, Estonia-EastPrussia kept as the Courland stand-in; DEF-8: is_coastal corrected to false for Franche-Comte/Munich/Bern/Tyrol/Milan. adjacent edge count 258 -> 250; sea_links 12 -> 18."
   },
   "sea_links": [
-    [
-      116,
-      109
-    ],
     [
       47,
       70

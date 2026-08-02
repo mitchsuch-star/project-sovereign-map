@@ -616,7 +616,7 @@ class TestGunsDoNotCarryAcrossAStrait:
         from backend.commands.executor import CommandExecutor
         executor = CommandExecutor()
         french = world.get_marshals_by_nation("France")[0]
-        french.location = "Flanders"
+        french.location = "Normandy"
         french.strength = 20000
         battery = world.get_marshals_by_nation("Britain")[0]
         battery.artillery = True
@@ -657,14 +657,14 @@ class TestGunsDoNotCarryAcrossAStrait:
         battery.location = "London"
         battery.strength = 8000
         french = world.get_marshals_by_nation("France")[0]
-        french.location = "Flanders"
+        french.location = "Normandy"
         french.strength = 6000
         world._build_marshal_index()
         naval.get_fleet(world, "France")["ships"] = 0
         naval.get_fleet(world, "Britain")["ships"] = 0
         offered = ai._find_attack_opportunity(battery, "Britain", world)
         assert not (offered and offered.get("target") in
-                    (french.name, "Flanders"))
+                    (french.name, "Normandy"))
 
 
 class TestCounterPunchStaysALandReflex:
@@ -678,7 +678,7 @@ class TestCounterPunchStaysALandReflex:
         moore.strength = 25000
         moore.counter_punch_available = True
         french = world.get_marshals_by_nation("France")[0]
-        french.location = "Flanders"
+        french.location = "Normandy"
         french.strength = 20000
         world._build_marshal_index()
         action = ai._get_counter_punch_action(moore, "Britain", world)
@@ -706,7 +706,7 @@ class TestTheTurnbackLogNamesRealWater:
         log lines like "the London–Castanos crossing" (measured on the
         24-turn probe). The logger now resolves it to the region."""
         french = world.get_marshals_by_nation("France")[0]
-        french.location = "Flanders"
+        french.location = "Normandy"
         french.strength = 20000
         moore = world.get_marshal("Moore")
         moore.location = "London"
@@ -718,5 +718,48 @@ class TestTheTurnbackLogNamesRealWater:
         turnbacks = [e for e in world.event_log
                      if e.get("type") == "naval_turnback"]
         assert turnbacks, "the refusal should have logged a turn-back"
-        assert turnbacks[-1]["link_b"] == "Flanders"
+        assert turnbacks[-1]["link_b"] == "Normandy"
         assert turnbacks[-1]["link_b"] in world.regions
+
+
+class TestAlliesReceiveTheArmy:
+    """User assurance (Aug 2, 2026): "assure ai knows it can land units in
+    allies with coasts i.e Britain and Portugal." Three explicit arms — the
+    FORMAL alliance, the warm friendship, and the player's own ally — all
+    through the ONE public predicate."""
+
+    def test_a_formal_ally_is_always_a_host_whatever_the_relation(self, world):
+        """ALLIANCE state alone opens the ports — even at relation 0, an
+        ally receives the army (the state, not the mood, is the treaty)."""
+        world.diplomatic_states[world._make_diplo_key("Britain", "Portugal")] = "ALLIANCE"
+        key = world._make_diplo_key("Britain", "Portugal")
+        world.nation_relations[key] = 0
+        assert naval.is_expedition_host(world, "Britain", "Portugal") is True
+
+    def test_the_ai_expedition_lands_on_the_allied_coast(self, world):
+        """The full rung under a formal alliance: Britain embarks for
+        Portugal's shore — Mondego Bay as a treaty operation."""
+        world.diplomatic_states[world._make_diplo_key("Britain", "Portugal")] = "ALLIANCE"
+        british = world.get_marshals_by_nation("Britain")
+        marshal = british[0]
+        marshal.location = "London"
+        marshal.strength = 12000
+        world._build_marshal_index()
+        order = naval.find_ai_expedition(world, "Britain")
+        assert order is not None
+        assert world.regions[order["target"]].controller == "Portugal"
+
+    def test_the_player_lands_on_an_allied_coast_too(self, world):
+        """GR5 the other way: France and Spain are co-belligerent allies at
+        boot, so the player may put a corps ashore at Galicia."""
+        assert world.get_diplomatic_state("France", "Spain") == "ALLIANCE"
+        from backend.commands.executor import CommandExecutor
+        marshal = world.get_marshals_by_nation("France")[0]
+        marshal.location = "Brittany"
+        marshal.strength = 10000
+        world._build_marshal_index()
+        result = CommandExecutor()._naval._execute_naval_expedition(
+            {"marshal": marshal.name, "region": "Galicia", "confirmed": True,
+             "_acting_nation": "France"}, {"world": world})
+        assert "opened her ports" not in str(result.get("message", ""))
+        assert result.get("success") is not False

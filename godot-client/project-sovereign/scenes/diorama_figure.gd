@@ -27,6 +27,16 @@ const TOPPLE_TINT := Color(0.52, 0.47, 0.44, 1.0)
 const GREY_TINT := Color(0.62, 0.62, 0.66, 0.9)   # the no-show shelf wash
 const LONG_SHADOW_STRETCH := 2.3
 
+# NV-8b (Aug 2, 2026 visual pass): a SHIP does not topple like a soldier.
+# The 78-degree fall turned the mast-and-yard assembly into spoked WHEELS
+# lying on the baize — the single worst read on the naval tableau. A
+# beaten ship LISTS: she heels ~26 degrees, settles by the stern into her
+# base, and darkens toward waterlogged timber. The base disc and its
+# shadow stay put, same as the land verb — she founders AT her station.
+const FOUNDER_DEG := 26.0
+const FOUNDER_SETTLE_PX := 9.0
+const FOUNDER_TINT := Color(0.42, 0.40, 0.42, 1.0)
+
 var arm: String = "infantry"
 var facing: String = "r"
 var toppled := false
@@ -96,7 +106,11 @@ func lean_in(px: float, delay: float) -> void:
 
 func topple(delay: float, instant := false) -> void:
 	"""The fall. Rotation direction is BACKWARD — away from the enemy the
-	figure faces — so a breaking line visibly gives ground."""
+	figure faces — so a breaking line visibly gives ground. A SHIP routes
+	to founder() instead: she lists and settles, never cartwheels."""
+	if arm == "ship":
+		founder(delay, instant)
+		return
 	if toppled or _tilt == null:
 		return
 	toppled = true
@@ -127,6 +141,34 @@ func topple(delay: float, instant := false) -> void:
 		_tween.parallel().tween_property(shadow, "scale", long_shadow, 0.34) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		_tween.parallel().tween_property(shadow, "modulate:a", 0.85, 0.34)
+
+
+func founder(delay: float, instant := false) -> void:
+	"""NV-8b — the sea's fall: heel ~26 degrees away from the enemy,
+	settle down into the base, darken toward waterlogged timber. Slower
+	than a soldier's drop — a ship dies with weight."""
+	if toppled or _tilt == null:
+		return
+	toppled = true
+	var dir := -1.0 if facing == "r" else 1.0
+	var target_rot := deg_to_rad(FOUNDER_DEG) * dir
+	var settle := Vector2(0.0, FOUNDER_SETTLE_PX)
+
+	if instant:
+		_tilt.rotation = target_rot
+		_tilt.position += settle
+		_tilt.modulate = FOUNDER_TINT
+		return
+
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	_tween = create_tween()
+	_tween.tween_interval(delay)
+	_tween.tween_property(_tilt, "rotation", target_rot, 0.7) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tween.parallel().tween_property(_tilt, "position", _tilt.position + settle, 0.7) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_tween.parallel().tween_property(_tilt, "modulate", FOUNDER_TINT, 0.7)
 
 
 func grey_out() -> void:
