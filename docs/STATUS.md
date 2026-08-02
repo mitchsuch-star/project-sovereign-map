@@ -81,9 +81,27 @@
 >   so cutting them would make the map visually lie. `BASELINE_SERIES`
 >   re-recorded a second time (divergence index 9, attributed); M1–M7
 >   byte-identical throughout.
-> - **⚠ OPEN (next play session):** the in-client visual pass (tints/glyphs/
->   Admiralty/chip) + the played-world A2 strangulation arc + the naval pillar
->   score — NV-V's live half; DEF-5/DEF-6 close on it.
+> - **✅ NV-V LIVE VISUAL PASS: PASSED (August 2, 2026)** — driven in the real
+>   client, fresh backend, turns 1–2. Confirmed on screen: the Channel's
+>   **Y-fork of crimson SHUT links** from London (Flanders + the new Normandy
+>   beach), red **anchor glyphs** on the blockaded dockyards, both 12k depot
+>   markers; **THE ADMIRALTY** block complete (45 sail / readiness 70 / Adm.
+>   Villeneuve, *Yards … 0/1 keels this turn* — the blockaded rate, shown =
+>   applied — CS 38%, the **Blockade Board** naming France −175 / Holland /
+>   Spain −100, **The Crossings** incl. *London–Normandy: SHUT — the Royal Navy
+>   at 1.9×*, the Grand Diversion's three green gate terms); the signed
+>   **Blockade −175g / Admiralty −90g** ledger lines with Net +1842g; the
+>   region-panel **"Lay down ships (400g)"** chip on Brittany; the
+>   `blockade_begins` beat in the campaign log; and `Normandy captured by
+>   Britain` on turn 1 with the British red wedge sitting on the Channel coast
+>   opposite England. Routed, neither caused by this phase: **NV-P1** the
+>   Strategic Ledger panel ignores the mouse wheel (pre-existing — the same
+>   family as the IGR terminal-wheel fix; it bites here because THE ADMIRALTY
+>   renders below a long income list) and **NV-P2** recorded
+>   working-as-designed (a blockading Britain stops tinting a crossing once it
+>   owns both ends — §3.3's posture rule).
+> - **⚠ STILL OPEN for the user:** the played-world A2 strangulation arc + the
+>   naval pillar score — the rest of NV-V; DEF-5/DEF-6 close on those.
 >
 > **WHAT'S NEXT:** 1. **NV-V live half** (play session: visual pass + A2 arc +
 > naval pillar score); 2. the long quiet-France campaign (living-balance/D1

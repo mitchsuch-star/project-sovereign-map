@@ -827,6 +827,43 @@ worlds. Marshal objections/defiance do NOT fire on naval verbs in v1
 rows). The strait verdict beats fire from the per-turn tick + the
 diversion's own emitters; mid-turn posture flips announce next tick.
 
+**NV-V LIVE HALF — THE VISUAL PASS: PASSED (August 2, 2026).** Driven in
+the real client (fresh backend, fresh 2560×1400 client, turns 1–2). Every
+§9 surface confirmed ON SCREEN:
+
+- **The map's two render arms** — the Channel draws a **Y-fork of crimson
+  dashed links from London** (east to Flanders, south to the new Normandy
+  beach), both SHUT to France; the Mediterranean links touching French
+  Corsica are crimson too (the untargeted blockade, as specified); **red
+  anchor glyphs** sit on the blockaded dockyards (Brittany, Provence,
+  Amsterdam); both 12,000-man Channel depots show their garrison markers.
+- **THE ADMIRALTY ledger block** — renders complete: *Fleet: 45 sail of the
+  line — readiness 70 (Adm. Villeneuve)* · *Posture: guard — home waters
+  covered* · *Yards: Bordelais, Brittany, Flanders, Provence (0/1 keels
+  this turn)* — note the **0/1**, the blockaded build rate, shown = applied
+  · *The Continental System: 38% of the Continent's ports closed* · **The
+  Blockade Board** naming France (crimson, −175/turn), Holland and Spain
+  (−100/turn) with their effects · **The Crossings** with live verdicts
+  incl. *London–Normandy: SHUT — the Royal Navy at 1.9×* · **The Grand
+  Diversion** with its three gate terms all green.
+- **The signed Net components** — *Blockade: −175g (trade halved under
+  enemy sail)* and *Admiralty: −90g* in gold beside Upkeep, Net +1842g.
+- **The region-panel dockyard chip** — *Lay down ships (400g) · a keel in
+  this yard* on Brittany, price from the live constant.
+- **The beats** — `blockade_begins` in the campaign log: *"BLOCKADE:
+  Britain closes France's ports — trade halved, crews rot at anchor"*.
+- **The Norman landing on the board** — `Normandy captured by Britain` on
+  turn 1, and the map shows the British red wedge on the **Channel coast
+  opposite England**, which is the whole point of the beach change.
+
+Two findings routed to `BUG_FIXES.md`, neither caused by this phase:
+**NV-P1** the Strategic Ledger panel ignores the mouse wheel (pre-existing;
+THE ADMIRALTY block sits below a long income list, so it bites here) and
+**NV-P2** recorded working-as-designed (a blockading Britain stops tinting
+a crossing once it owns both ends — §3.3's posture rule, re-filed never).
+Still open for the user: the played A2 strangulation arc and the naval
+pillar score.
+
 **NV-V status:** the deterministic half RAN — anchors A1 (28-turn/18,000g
 parity arithmetic), A3 (64/12 measured), A4 (measured shape), A5 (the
 headline, both directions) all pinned green; A2's arithmetic arm pinned

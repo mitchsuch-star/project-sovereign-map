@@ -915,6 +915,45 @@ These are concrete code paths that previous spec text covers implicitly but does
 
 ## Active Bug Specs
 
+### NV-P1: the Strategic Ledger panel ignores the mouse wheel (found by the NV-V visual playtest, August 2, 2026)
+
+**Problem statement.** In the live client the Strategic Ledger's content
+area does not scroll on mouse wheel. During the naval visual pass the
+ECONOMY tab's content (income-by-region, then THE ADMIRALTY block at the
+bottom) could only be reached by DRAGGING the scrollbar thumb — 60 wheel
+clicks with the cursor squarely inside the content area moved nothing,
+while a thumb drag scrolled instantly.
+
+**Why it matters.** THE ADMIRALTY block renders at the END of the economy
+tab, so on a France with many provinces the whole naval surface sits below
+a long income list that a player will instinctively try to wheel past.
+Same family as the IGR fix "the command terminal swallowed the mouse
+wheel" — this is the ledger's turn.
+
+**Scope.** PRE-EXISTING, not caused by the naval slices (the naval work
+appended a render arm to `_render_economy`; it added no scroll handling
+and changed none). Reproduced on `strategic_ledger.gd`'s panel.
+
+**Owner / landing.** The next UI pass (or a standalone fix — it is likely
+one `mouse_filter` / `ScrollContainer` focus line). **Completion
+definition:** wheel scrolling works in every ledger sub-tab.
+**Behavior test:** a `.gd` source pin that the scroll container accepts
+wheel input, plus a live wheel check in the next in-client review.
+
+### NV-P2 (recorded, working-as-designed): a blockading Britain stops tinting a crossing it owns outright
+
+Observed in the same pass: once Britain captured Normandy, the
+London–Normandy sea link's map tint went from crimson (SHUT) to the
+neutral/uncovered dash. That is `naval._fleet_covers_link` behaving
+exactly as `NAVAL_SPEC.md` §3.3/§4.1 specify — a **blockade** posture
+covers links touching an at-war ENEMY's provinces, and with Britain
+holding BOTH ends neither endpoint qualifies (a **guard** posture, which
+covers links touching its own provinces, would still cover it). It reads
+correctly in fiction too: an internal ferry between two British-held
+shores is not a contested strait. **Recorded so it is never re-filed as a
+bug**; re-open only if a played session shows a player exploiting an
+own-both-ends crossing.
+
 ### PL-30: Godot crash after a masked proposal result
 
 **Problem statement**
