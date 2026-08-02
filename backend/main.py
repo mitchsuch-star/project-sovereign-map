@@ -480,6 +480,10 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     # BD: the Battle Diorama tableau payload (display-only, fog-gated at
     # build time in battle_diorama.build_battle_diorama)
     "battle_diorama",
+    # NV-7: the same tableau for a §4.4 fleet action. Built at the
+    # resolver, so a naval battle can never reach the player without its
+    # picture (the BD §14.1 lesson).
+    "naval_diorama",
     "reinforcement_messages",
     "coordination_tutorial",
     "opening_attack_guidance",

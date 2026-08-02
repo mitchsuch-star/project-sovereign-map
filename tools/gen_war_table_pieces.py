@@ -523,6 +523,83 @@ def build_artillery():
             "body": body, "coat": coat}
 
 
+# =============================================================================
+#  SHIP OF THE LINE  (NV-7) — a carved two-decker for the naval diorama
+# =============================================================================
+# Same carved-timber language as the three land arms, and deliberately the same
+# turned base disc: this is a WAR-TABLE piece, not an illustration of the sea.
+# The faction accent is the ensign at the mizzen peak plus the painted base rim
+# — the two places every other arm puts it. Only ever rendered on the diorama
+# stage (no map arm exists for fleets: NAVAL_SPEC Q1(a) keeps the model to one
+# national record, so there is nothing on the map for a ship piece to BE).
+def build_ship():
+    body, coat = new_layer(), new_layer()
+    u = SS * 1.05
+    # The hull sits ON the turned base, not in it: a first pass put the keel
+    # at the base's own centre line and the ship read as half-sunk in her
+    # own stand. `gy` is the SHIP's waterline; make_base/faction_base_rim
+    # keep using GY, so the base is unchanged and only the ship rides up.
+    gy, cx = GY - 13 * SS, CX
+
+    # --- hull: a two-decker's tumblehome, bow to the right ---
+    hull = [
+        (cx - 62 * u, gy - 14 * u),                      # stern quarter
+        (cx - 58 * u, gy - 2 * u), (cx - 20 * u, gy + 3 * u),
+        (cx + 30 * u, gy + 1 * u), (cx + 58 * u, gy - 8 * u),   # forefoot
+        (cx + 66 * u, gy - 16 * u),                      # beakhead
+        (cx + 46 * u, gy - 20 * u), (cx - 40 * u, gy - 22 * u),
+    ]
+    smooth_fill(body, hull, OAK)
+    stroke(body, hull, WALNUT_DK, 1.5 * SS, closed=True, smooth=True)
+    # the two gun strakes — the whole reason she reads as a ship of the line
+    for k, dy in enumerate((10.0, 17.5)):
+        strake = [(cx - 56 * u, gy - dy * u), (cx + 54 * u, gy - (dy + 4) * u)]
+        stroke(body, strake, WALNUT, 2.0 * SS)
+        for port in range(11):
+            px = cx - 52 * u + port * 9.6 * u
+            py = gy - (dy + 0.4 * port) * u
+            disc(body, px, py, 1.9 * u, 1.6 * u, WALNUT_DK)
+    # stern gallery + a lifted quarterdeck rail
+    smooth_fill(body, [
+        (cx - 62 * u, gy - 14 * u), (cx - 66 * u, gy - 30 * u),
+        (cx - 44 * u, gy - 32 * u), (cx - 42 * u, gy - 20 * u),
+    ], OAK_DK)
+    stroke(body, [(cx - 64 * u, gy - 30 * u), (cx - 12 * u, gy - 26 * u)],
+           OAK_HI, 1.6 * SS)
+
+    # --- three masts, raked aft, with furled-course yards ---
+    masts = ((cx - 34 * u, 96.0), (cx + 2 * u, 112.0), (cx + 34 * u, 92.0))
+    for mx, height in masts:
+        top = gy - height * u
+        stroke(body, [(mx, gy - 20 * u), (mx - 5 * u, top)], WOOD, 2.6 * SS)
+        for frac, half in ((0.42, 26.0), (0.66, 19.0), (0.85, 12.0)):
+            yy = gy - 20 * u - (height - 20.0) * u * frac
+            xx = mx - 5 * u * frac
+            stroke(body, [(xx - half * u, yy + 1.5 * u),
+                          (xx + half * u, yy - 1.5 * u)], WOOD_DK, 2.0 * SS)
+            # canvas: pale carved timber, furled tight to the yard
+            smooth_fill(body, [
+                (xx - half * 0.92 * u, yy + 1.0 * u),
+                (xx + half * 0.92 * u, yy - 2.0 * u),
+                (xx + half * 0.86 * u, yy + 4.0 * u),
+                (xx - half * 0.86 * u, yy + 7.0 * u),
+            ], OAK_HI if frac < 0.7 else BREECH)
+    # bowsprit
+    stroke(body, [(cx + 56 * u, gy - 22 * u), (cx + 84 * u, gy - 36 * u)],
+           WOOD, 2.4 * SS)
+
+    # --- the ensign at the mizzen peak: the faction's one colour hit ---
+    ex, ey = cx - 39 * u, gy - 96 * u
+    faction_fill(coat, [
+        (ex, ey), (ex - 26 * u, ey - 5 * u),
+        (ex - 22 * u, ey + 5 * u), (ex - 26 * u, ey + 14 * u),
+        (ex, ey + 11 * u),
+    ])
+    faction_base_rim(coat, 0.92)
+    return {"base": make_base(0.92), "shadow": make_shadow(0.92),
+            "body": body, "coat": coat}
+
+
 # ── wood grain: multiply near-vertical timber grain into the figure ─────────
 def add_grain(body):
     """Multiply subtle near-vertical wood grain into the figure so it reads as
@@ -577,7 +654,8 @@ def add_relief(body, coat):
 
 
 # ── assembly / export ───────────────────────────────────────────────────────
-ARMS = {"infantry": build_infantry, "cavalry": build_cavalry, "artillery": build_artillery}
+ARMS = {"infantry": build_infantry, "cavalry": build_cavalry,
+        "artillery": build_artillery, "ship": build_ship}
 LAYER_ORDER = ["shadow", "base", "coat", "body"]  # bottom -> top (body edges over coat)
 
 

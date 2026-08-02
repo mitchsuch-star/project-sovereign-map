@@ -63,7 +63,15 @@ const AUDIO_CANNON := "res://assets/audio/battle/cannon_thud.ogg"
 const AUDIO_DRUM := "res://assets/audio/battle/drum_sting.wav"
 
 # Figures per corps by arm — a line of foot, a squadron, a battery.
-const FIGURES_BY_ARM := {"infantry": 5, "cavalry": 4, "artillery": 3}
+# NV-7 adds "ship": a squadron is three sail on the table, the same count
+# the batteries get — a line of battle reads as a line, not a crowd.
+const FIGURES_BY_ARM := {"infantry": 5, "cavalry": 4, "artillery": 3, "ship": 3}
+
+# NV-7 — the sea. A fleet action plays on the same tray, on chart-blue
+# instead of green felt: the tableau is still a war table, and the one
+# thing it must say at a glance is "this is not a field".
+const CHART_SEA := Color(0.098, 0.153, 0.216, 1.0)
+const CHART_SEA_EDGE := Color(0.063, 0.098, 0.145, 1.0)
 
 # ── State
 var _data: Dictionary = {}
@@ -445,9 +453,18 @@ func _radial_texture(inner: Color, outer: Color) -> GradientTexture2D:
 
 func _draw_stage() -> void:
 	var r := Rect2(Vector2.ZERO, _stage_canvas.size)
-	# Baize with a darker felt border band.
-	_stage_canvas.draw_rect(r, BAIZE_EDGE)
-	_stage_canvas.draw_rect(r.grow(-5.0), BAIZE)
+	# Baize with a darker felt border band — chart-blue for a sea action.
+	var naval := _is_naval()
+	_stage_canvas.draw_rect(r, CHART_SEA_EDGE if naval else BAIZE_EDGE)
+	_stage_canvas.draw_rect(r.grow(-5.0), CHART_SEA if naval else BAIZE)
+	if naval:
+		# A few ruled swell lines: an admiralty chart, not an ocean.
+		var rows := int(_stage_canvas.size.y / 34.0)
+		for i in range(1, rows):
+			var y := 5.0 + i * 34.0
+			_stage_canvas.draw_line(
+				Vector2(9.0, y), Vector2(_stage_canvas.size.x - 9.0, y),
+				Color(0.28, 0.42, 0.55, 0.13), 1.0)
 	# The brass tray lip at the stage's foot.
 	_stage_canvas.draw_rect(
 		Rect2(0.0, _stage_canvas.size.y - 4.0, _stage_canvas.size.x, 4.0),
@@ -512,8 +529,10 @@ func _populate(final_frame: bool) -> void:
 	# Odometers.
 	var left_name := Utils.display_nation_name(str(left.get("nation", "")))
 	var right_name := Utils.display_nation_name(str(right.get("nation", "")))
-	_odo_left_cap.text = left_name.to_upper() + " LOSSES"
-	_odo_right_cap.text = right_name.to_upper() + " LOSSES"
+	# NV-7: a fleet action is counted in hulls, not men — say which.
+	var loss_word := " SAIL LOST" if _is_naval() else " LOSSES"
+	_odo_left_cap.text = left_name.to_upper() + loss_word
+	_odo_right_cap.text = right_name.to_upper() + loss_word
 	_odo_left_cap.position = Vector2(14.0, 8.0)
 	_odo_left.position = Vector2(14.0, 22.0)
 	_odo_right_cap.size = Vector2(220.0, 16.0)
@@ -622,7 +641,11 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 
 	# Figures: rear rank first (draws behind), then the front rank.
 	var figures: Array = []
-	var spread := 30.0
+	# NV-7: a hull fills most of its 256px frame where a soldier fills a
+	# third of his, so the land spread packed a squadron into one blob.
+	# Ships get room to read as a LINE of battle, which is the whole point
+	# of the formation they are in.
+	var spread := 52.0 if arm == "ship" else 30.0
 	var rear := count - mini(count, 3)
 	for j in range(rear):
 		var f := DioramaFigure.new()
@@ -672,9 +695,12 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	name_l.horizontal_alignment = text_align
 
 	var remaining := int(c.get("remaining", 0))
+	# NV-7: a squadron is counted in sail, and 45 → 38 needs the unit said
+	# out loud or it reads as a rout of thirty-eight men.
+	var unit := " sail" if str(c.get("arm", "")) == "ship" else ""
 	var strength_l := _mk_label(
-		block, "%s → %s" % [Utils.format_number(committed),
-		Utils.format_number(remaining)], 11, Color(BONE_HEX))
+		block, "%s → %s%s" % [Utils.format_number(committed),
+		Utils.format_number(remaining), unit], 11, Color(BONE_HEX))
 	strength_l.position = Vector2(text_x, -138.0)
 	strength_l.size = Vector2(text_w, 14.0)
 	strength_l.horizontal_alignment = text_align
@@ -796,8 +822,12 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 
 func _nameplate_layout() -> void:
 	_plate_name.text = str(_data.get("battle_name", "")).to_upper()
+	# NV-7: a fleet action has no province to engrave — it is named for its
+	# waters, exactly as the log names it.
+	var place := str(_data.get("waters", "")) if _is_naval() \
+		else str(_data.get("region", ""))
 	_plate_sub.text = "%s · TURN %d" % [
-		str(_data.get("region", "")).to_upper(), int(_data.get("turn", 0))]
+		place.to_upper(), int(_data.get("turn", 0))]
 	# Measure after text set.
 	_nameplate.reset_size()
 	await get_tree().process_frame
@@ -833,8 +863,31 @@ func _decisive() -> bool:
 		"attacker_victory", "defender_victory", "mutual_destruction"]
 
 
+func _is_naval() -> bool:
+	"""NV-7 — a §4.4 fleet action rather than a land battle. Set by the
+	backend builder; everything it changes here is presentation."""
+	return bool(_data.get("naval", false))
+
+
 func _banner_text(register: String) -> String:
 	var outcome := str(_data.get("outcome", ""))
+	if _is_naval():
+		# NV-7: the sea has its own vocabulary. Nothing is "carried" and no
+		# field is held — a fleet action is decided by who is left in
+		# possession of the water.
+		match register:
+			"triumph":
+				return "THE SEA IS OURS" if _decisive() else "THE ENEMY DRAWS OFF"
+			"defeat":
+				return "THE FLEET IS BROKEN" if _decisive() else "WE BEAR AWAY"
+			"grim":
+				return "AN ACTION WITHOUT ISSUE"
+			_:
+				var victor := _victor_nation()
+				if victor != "" and _decisive():
+					return "%s HOLDS THE SEA" % \
+						Utils.display_nation_name(victor).to_upper()
+				return "AN INDECISIVE ACTION"
 	match register:
 		"triumph":
 			if _data.get("great_battle", false):
@@ -1057,8 +1110,12 @@ func _verdict_bbcode() -> String:
 	var text := ""
 	var observation := str(_data.get("observation", ""))
 	if observation != "":
+		# NV-7: Berthier is the Emperor's chief of staff and has no
+		# business reporting a fleet action — the sea answers to the
+		# Admiralty.
+		var speaker := "The Admiralty" if _is_naval() else "Berthier"
 		text += "[center][i]%s[/i][/center]" % Utils.bbcode_color(
-			"Berthier: “%s”" % observation, Utils.COLOR_OBSERVATION)
+			"%s: “%s”" % [speaker, observation], Utils.COLOR_OBSERVATION)
 	var voice := str(_data.get("enemy_voice", ""))
 	if voice != "":
 		if text != "":

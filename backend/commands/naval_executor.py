@@ -290,6 +290,9 @@ class NavalExecutor:
                     f"before the convoy scatters home.{sea_line}"),
                 "events": [{"type": "expedition_intercepted",
                             "marshal": marshal.name, "target": target}]}
+            # NV-7: the escort was brought to action — the player watches it.
+            if action and action.get("naval_diorama"):
+                result["naval_diorama"] = action["naval_diorama"]
         else:
             result = {
                 "success": True, "landed": False, "odds": int(outcome["odds"]),

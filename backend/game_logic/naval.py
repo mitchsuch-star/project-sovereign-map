@@ -727,6 +727,17 @@ def resolve_fleet_action(world, attacker: str, defender: str,
         "losses": losses, "battle_name": battle_name,
     }
     _log_fleet_action(world, result)
+    # NV-7: the tableau. Built HERE, at the one seam every fleet action
+    # passes through, so no caller can produce an action that has no
+    # picture — the BD §14.1 lesson (the link and the stash must be
+    # structurally inseparable from the render).
+    from backend.game_logic.naval_diorama import build_naval_diorama
+    diorama = build_naval_diorama(world, result)
+    if diorama:
+        # Rides the result only — the client stashes and raises it on
+        # control return, exactly as it does the land tableau. Nothing new
+        # is serialized onto the world.
+        result["naval_diorama"] = diorama
     return result
 
 
@@ -1022,6 +1033,10 @@ def resolve_diversion(world, nation: str) -> Dict:
     return {
         "success": True, "window": False, "against": hostile,
         "fleet_action": action,
+        # NV-7: this is Trafalgar's own arm — the diversion caught coming
+        # home at bad readiness. If any battle in this game deserves a
+        # tableau, it is this one.
+        "naval_diorama": action.get("naval_diorama"),
         "message": (
             f"The diversion is caught coming home — the fleet is brought to "
             f"battle at bad readiness and loses {ships_lost} sail. "

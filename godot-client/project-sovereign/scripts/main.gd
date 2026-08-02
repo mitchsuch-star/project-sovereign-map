@@ -1301,6 +1301,15 @@ func _stash_diorama(response: Dictionary) -> void:
 		if bool(payload.get("significant", false)):
 			pending_diorama_data = payload
 
+	# NV-7: a fleet action. There are exactly two ways to cause one and
+	# both stake a campaign on it, so it always auto-plays — the backend
+	# builder says so with significant=true rather than the client deciding.
+	var sea = response.get("naval_diorama")
+	if sea is Dictionary and not sea.is_empty():
+		last_battle_diorama = sea
+		if bool(sea.get("significant", false)):
+			pending_diorama_data = sea
+
 	# Enemy-phase battles arrive UNINVITED — only a DRAMATIC battle on the
 	# player's own line seizes the screen (a broken line, a fallen province,
 	# a decisive field). Routine incoming raids stay one click away behind
@@ -1822,6 +1831,16 @@ func _display_result(response):
 	# Common Peace: compact result feedback after the confirm popup resolves.
 	if response.has("settlement_result_feedback") and response.settlement_result_feedback is Dictionary:
 		_display_settlement_result_feedback(response.settlement_result_feedback)
+
+	# NV-7: a fleet action's replay link. Stashed at the same place it is
+	# drawn (the BD §14.1 lesson) so the link and the tableau can never
+	# come apart — and drawn AFTER the message, so the player reads what
+	# happened before being offered the chance to watch it again.
+	var naval_tableau = response.get("naval_diorama")
+	if naval_tableau is Dictionary and not naval_tableau.is_empty() \
+			and battle_diorama != null:
+		last_battle_diorama = naval_tableau
+		add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=diorama:last]⚓ View the action[/url][/color]")
 
 	# Berthier's Bombardment Advisory - shown when artillery crumbles enemy forts
 	var bombardment_advisory = response.get("bombardment_advisory", "")

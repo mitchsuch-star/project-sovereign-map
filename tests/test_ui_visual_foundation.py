@@ -52,7 +52,11 @@ PORTRAIT_EXTS = (".jpg", ".png", ".jpeg", ".webp")
 
 # ── War-Table Pieces (UI-4, spec §7) ────────────────────────────────────────
 PIECES_DIR = GODOT_PROJ / "assets" / "ui" / "pieces"
-PIECE_ARMS = ("infantry", "cavalry", "artillery")
+# NV-7 adds "ship" — the fourth carved piece, from the same generator, for
+# the naval diorama. It is DIORAMA-only (NAVAL_SPEC Q1(a) keeps the naval
+# model to one national fleet record, so nothing on the map is a ship), but
+# it is a war-table piece and every quality check below applies to it.
+PIECE_ARMS = ("infantry", "cavalry", "artillery", "ship")
 PIECE_LAYERS = ("base", "shadow", "coat", "body")  # bottom->top compositing order
 PIECE_FACINGS = ("r", "l")                          # nose-right + mirrored
 
@@ -387,7 +391,8 @@ ALL_PIECE_FILES = [
 ]
 
 
-def test_pieces_dir_has_all_24_sprites():
+def test_pieces_dir_has_the_whole_canonical_set():
+    # (24 at U4; 32 since NV-7 added the ship.)
     assert PIECES_DIR.is_dir(), f"missing war-table pieces dir {PIECES_DIR}"
     for name in ALL_PIECE_FILES:
         assert (PIECES_DIR / name).exists(), f"missing piece sprite {name}"
