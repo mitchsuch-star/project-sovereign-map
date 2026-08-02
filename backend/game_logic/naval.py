@@ -54,6 +54,19 @@ BLOCKADE_RATIO = 1.25
 CROSSING_RATIO = 1.25
 WINDOW_CROSSING_FLOOR = 0.9    # N9 — during a §5.3 window only
 
+# NV-4 "THE HOST RULE" (§4.1a) — an opposed landing is not a march. Marching
+# a sea link INTO a province held by a court we are at war with is refused
+# while ANY hostile fleet still covers that water: an army does not stroll
+# ashore against a defended coast. The two doors that remain are the two
+# history used — put ≤EXPEDITION_MAX_TROOPS into the transports, or beat the
+# fleet that covers the passage (uncontested water = an administrative
+# ferry, unlimited). A §5.3 window WAIVES the rule: drawing the enemy off
+# station is precisely the moment the army crosses, which is the Descent's
+# whole point. Landing on our OWN, an ally's or a neutral's shore was never
+# gated — that is the Portugal case (Mondego Bay 1808), and it is why
+# Britain's army reaches the Continent at all.
+HOST_RULE_ACTIVE = True
+
 # N5 — blockade effects
 BLOCKADE_TRADE_FACTOR = 0.5
 ISLAND_BLOCKADE_WE = 2         # island clause (H5) — authored `island: true`
@@ -105,6 +118,15 @@ CS_WE_TIERS = ((0.80, 3), (0.60, 2), (0.40, 1))
 # §5.3 — the Descent camp
 DESCENT_CAMP_MIN_TROOPS = 40000
 DESCENT_CAMP_STAGED_TURNS = 2
+
+# NV-5 — the AI's naval DECISION constants (§6). These bound what the
+# council chooses, never what the rules allow: the player's own brakes are
+# untouched (§3.5's three), and every mechanic stays GR5-symmetric.
+AI_FLEET_CEILING_FACTOR = 1.5    # × the AUTHORED establishment
+AI_FLEET_TREASURY_RESERVE = 4    # × SHIP_COST held back for the army
+AI_EXPEDITION_MIN_ODDS = 55      # below this the council will not risk a corps
+AI_EXPEDITION_MIN_TROOPS = 3000  # a corps, not a raiding party
+AI_EXPEDITION_HOST_RELATION = 25  # a shore that will actually receive an army
 
 # AP prices (blessed defaults; build_fleet additionally sits in ADMIN_ACTIONS)
 EXPEDITION_AP_COST = 2
@@ -198,6 +220,11 @@ def boot_fleets_from_navies(world, navies: Optional[dict]) -> None:
                 "diversion_used": False,
                 "window_turns": 0,
                 "built_this_turn": 0,
+                # NV-5: the authored establishment — what this court's yards
+                # and seamen actually support. The AI's build ceiling reads
+                # it (the player's does not; the player's brakes stay gold
+                # and time). Never mutated after boot.
+                "established": ships,
             })
         fleets[nation] = rec
     world.fleets = fleets
@@ -521,6 +548,18 @@ def covering_fleets(world, mover_nation: str,
     return covers
 
 
+def is_hostile_shore(world, mover_nation: str, to_region: str) -> bool:
+    """NV-4 (§4.1a): is `to_region` held by a court `mover_nation` is at war
+    with? The ONE reading of "opposed" — own soil, an ally's soil and a
+    neutral's soil are all hosts, and a host is never stormed."""
+    if not HOST_RULE_ACTIVE:
+        return False
+    holder = _controller(world, to_region)
+    if not holder or holder == mover_nation:
+        return False
+    return bool(world.is_at_war(mover_nation, holder))
+
+
 def crossing_check(world, mover_nation: str,
                    from_region: str, to_region: str) -> Dict:
     """THE predicate (§4.1) — consulted at every movement seam, both sides
@@ -531,7 +570,9 @@ def crossing_check(world, mover_nation: str,
         {"allowed", "verdict", "coverer", "coverage", "mover_effective",
          "ratio", "floor", "window", "message"}
 
-    verdict ∈ open (uncovered) · open_ratio · window · shut.
+    verdict ∈ open (uncovered) · open_ratio · window · shut · landing.
+    `landing` is NV-4's host rule (§4.1a): the water is ours but the far
+    shore is enemy country and still watched — an expedition, not a march.
     No dice on ordinary MOVE — a refusal is flat, never a roll."""
     result = {
         "allowed": True, "verdict": "open", "coverer": None,
@@ -561,7 +602,28 @@ def crossing_check(world, mover_nation: str,
         "floor": floor,
         "window": window_open,
     })
-    if allowed:
+    if allowed and not window_open and is_hostile_shore(
+            world, mover_nation, to_region):
+        # NV-4 the host rule (§4.1a). Sited AFTER the ratio arm so it can
+        # only ever change the verdict for a mover who already commands the
+        # water — a mover the ratio has already turned back hears the
+        # stronger, truer refusal. Uncontested water never reaches here
+        # (no covers → early return), so beating the covering fleet
+        # outright still opens the shore.
+        result["allowed"] = False
+        result["verdict"] = "landing"
+        holder = _controller(world, to_region)
+        from backend.display_names import display_nation
+        result["message"] = (
+            f"{to_region} is enemy country, Sire, and "
+            f"{_fleet_label(coverer, get_fleet(world, coverer) or {})} still "
+            f"watches that water. An army does not march ashore onto a "
+            f"defended coast — that is a landing, not a march. Put a corps "
+            f"of {EXPEDITION_MAX_TROOPS:,} men or fewer into the transports, "
+            f"or break the fleet that covers the passage."
+            + (f" {display_nation(holder)} holds the shore."
+               if holder else ""))
+    elif allowed:
         result["verdict"] = "window" if window_open else "open_ratio"
     else:
         result["verdict"] = "shut"
@@ -581,10 +643,12 @@ def crossing_check(world, mover_nation: str,
 
 
 def _fleet_label(nation: str, rec: dict) -> str:
-    from backend.display_names import display_nation
+    from backend.display_names import nation_adjective
     if nation == "Britain":
         return "the Royal Navy"
-    return f"the {display_nation(nation)} fleet"
+    # Adjectival, not the raw tag: "the French fleet", never "the France
+    # fleet" (spotted in the NV-4 refusal copy, August 2, 2026).
+    return f"the {nation_adjective(nation)} fleet"
 
 
 def crossing_allowed(world, mover_nation: str,
@@ -1076,16 +1140,39 @@ def _link_key(pair: frozenset) -> str:
     return "|".join(sorted(pair))
 
 
+def _player_travel_direction(world, player: str, a: str, b: str):
+    """NV-4: the crossing gate is DIRECTIONAL now (the host rule reads the
+    far shore), so the Crossings board must evaluate the direction the
+    player would actually travel — outward from the end we hold or stand
+    on. With both ends ours (or neither) the sorted order is kept, which is
+    the pre-NV-4 behaviour byte-for-byte."""
+    ours = set(world.get_nation_regions(player))
+    for marshal in world.get_marshals_by_nation(player):
+        if marshal.strength > 0 and marshal.location:
+            ours.add(marshal.location)
+    a_ours, b_ours = a in ours, b in ours
+    if b_ours and not a_ours:
+        return b, a
+    return a, b
+
+
 def link_verdicts(world) -> Dict[str, Dict]:
     """{link_key: crossing_check verdict} for the player-relevant links —
-    the SAME predicate the movement gate reads (shown = applied)."""
+    the SAME predicate the movement gate reads (shown = applied). The key
+    stays the sorted pair (stable for the flip-beat store and the map
+    payload); the VERDICT is computed for the player's own direction of
+    travel (`from_region`/`to_region` ride the dict)."""
     player = getattr(world, "player_nation", None)
     out: Dict[str, Dict] = {}
     if not player or not has_naval_layer(world):
         return out
     for pair in _tracked_links(world):
         a, b = sorted(pair)
-        out[_link_key(pair)] = crossing_check(world, player, a, b)
+        origin, dest = _player_travel_direction(world, player, a, b)
+        verdict = crossing_check(world, player, origin, dest)
+        verdict["from_region"] = origin
+        verdict["to_region"] = dest
+        out[_link_key(pair)] = verdict
     return out
 
 
@@ -1112,10 +1199,16 @@ def _emit_verdict_flips(world, before: Dict[str, str],
             "link_a": a, "link_b": b,
             "coverer": verdict.get("coverer") or "",
         })
+        coverer = verdict.get("coverer")
         if now_open:
             line = f"the {a}–{b} crossing stands open to our armies"
+        elif now == "landing":
+            # NV-4: not "shut" — the water is ours, the shore is not. Say
+            # which, or the player reads a naval defeat that never happened.
+            dest = verdict.get("to_region") or b
+            line = (f"the {a}–{b} crossing is ours to sail, but {dest} is a "
+                    f"defended shore — only an expedition puts men on it")
         else:
-            coverer = verdict.get("coverer")
             tail = (f" — {display_nation(coverer)} commands the water"
                     if coverer else "")
             line = f"the {a}–{b} crossing is shut{tail}"
@@ -1343,12 +1436,29 @@ def build_admiralty_report(world) -> Dict:
     target = trade_dominance_nation(world)
     if target:
         closure = closure_against(world, target)
+        total_ports = continental_ports_total(world)
+        # NV-5 legibility: the shipped board boots at 38.5% closure and the
+        # lowest tier needs 40% — so the headline percentage was true and
+        # did nothing, with no way to tell from the surface. Name the next
+        # notch and what it costs, in ports, so the number is a target
+        # rather than a decoration.
+        next_threshold = None
+        for pct, _tier in sorted(CS_WE_TIERS):
+            if closure < pct:
+                next_threshold = pct
+                break
         report["continental_system"] = {
             "target": target,
             "closure_pct": int(round(closure * 100)),
             "tier": int(cs_closure_tier(closure)),
-            "ports_closed": int(round(closure * continental_ports_total(world))),
-            "ports_total": int(continental_ports_total(world)),
+            "ports_closed": int(round(closure * total_ports)),
+            "ports_total": int(total_ports),
+            "next_tier_pct": (int(round(next_threshold * 100))
+                              if next_threshold is not None else None),
+            "ports_to_next_tier": (
+                max(1, int(-(-(next_threshold * total_ports
+                              - closure * total_ports) // 1)))
+                if next_threshold is not None else None),
         }
 
     # The Crossings verdict lines (§9 v1.0.1) — the SAME predicate the
@@ -1362,6 +1472,11 @@ def build_admiralty_report(world) -> Dict:
         elif v == "open_ratio":
             line = (f"{a}–{b}: OPEN — ours "
                     f"{verdict['ratio']:.1f}× theirs")
+        elif v == "landing":
+            # NV-4 (§4.1a): the water is ours; the shore is not.
+            line = (f"{a}–{b}: DEFENDED SHORE — "
+                    f"{verdict.get('to_region', b)} must be taken by "
+                    f"expedition, not marched into")
         elif v == "window":
             own_rec = get_fleet(world, player) or {}
             line = (f"{a}–{b}: WINDOW — open "
@@ -1425,16 +1540,207 @@ def map_naval_overlay(world) -> Dict:
             "ship_cost": int(SHIP_COST)}
 
 
+def nation_is_penned_in(world, nation: str) -> bool:
+    """NV-5 (§6): does this court hold NO province with a LAND border onto a
+    court it is at war with? Then its army reaches the war only by sea —
+    which is Britain's whole strategic situation, and after NV-4 it is a
+    real one rather than a walk across the Channel.
+
+    ADJACENCY IS NOT THE TEST, and the first cut of this function got that
+    wrong: at boot France has no province touching an at-war enemy either
+    (its neighbours are all clients and neutrals) — yet France is plainly
+    not an island power, it simply has not marched yet. The real question
+    is REACHABILITY: walking only over land edges, from any province we
+    hold, can the army arrive at an enemy at all? Britain: no, ever.
+    France: yes, straight through Bavaria into Austria.
+
+    One land-only breadth-first walk over ≤126 nodes, cached per TURN for
+    every nation at once (GR8). Deliberately not serialized — it derives
+    from ownership and war state, both of which round-trip on their own."""
+    turn = int(getattr(world, "current_turn", 0))
+    cache = getattr(world, "_naval_penned_cache", None)
+    if cache is None or cache[0] != turn:
+        cache = (turn, {})
+        world._naval_penned_cache = cache
+    if nation in cache[1]:
+        return cache[1][nation]
+
+    enemies = set(world.get_nations_at_war_with(nation))
+    penned = bool(enemies)
+    if enemies:
+        seen = set(world.get_nation_regions(nation))
+        frontier = list(seen)
+        while frontier and penned:
+            region_name = frontier.pop()
+            region = world.regions.get(region_name)
+            if region is None:
+                continue
+            for adjacent in getattr(region, "adjacent_regions", []) or []:
+                if adjacent in seen:
+                    continue
+                if is_sea_link(world, region_name, adjacent):
+                    continue  # water is not a road
+                if _controller(world, adjacent) in enemies:
+                    penned = False
+                    break
+                seen.add(adjacent)
+                frontier.append(adjacent)
+    cache[1][nation] = penned
+    return penned
+
+
+def _is_expedition_host(world, nation: str, holder: str) -> bool:
+    """NV-5: will this court receive our army? An ally or a vassal always
+    will; anyone else needs real friendship. Measured on the shipped 1805
+    board: Britain–Portugal 40 (the oldest alliance in Europe, and the
+    reason Wellesley had a port at all), Britain–Naples 30 — both hosts;
+    Denmark, Hanover and Sardinia sit at 0 and are not."""
+    if world.is_at_war(nation, holder):
+        return False
+    if world.get_diplomatic_state(nation, holder) in _POOLING_STATES:
+        return True
+    if getattr(world, "vassals", None) and world.vassals.get(holder, {}).get(
+            "lord") == nation:
+        return True
+    key = world._make_diplo_key(nation, holder)
+    return int(world.nation_relations.get(key, 0)) >= AI_EXPEDITION_HOST_RELATION
+
+
+def find_ai_expedition(world, nation: str) -> Optional[Dict]:
+    """NV-5 (§6, promoting NV-D8's expedition arm) — how Britain's army
+    reaches the Continent now that NV-4 has closed the Channel to marching.
+
+    History is the algorithm (§1): Britain's army went where a HOST received
+    it. Portugal 1808 — Wellesley put 15,000 men ashore at Mondego Bay
+    because the oldest alliance in Europe opened its ports, and marched into
+    Spain from there. Sicily, Hanover 1805, the Helder. So the target search
+    is ordered: a friendly or neutral shore that BORDERS the war first, an
+    open enemy beach only if no host will have us.
+
+    Returns a `naval_expedition` command dict (the same verb, the same
+    executor, the same odds the player is quoted — GR5) or None."""
+    if not has_naval_layer(world) or not world.get_nations_at_war_with(nation):
+        return None
+    rec = get_fleet(world, nation)
+    if not rec or int(rec.get("ships", 0) or 0) <= 0:
+        return None
+    if not nation_is_penned_in(world, nation):
+        return None  # the army has a land war to fight; it marches
+    yards = set(controlled_dockyards(world, nation))
+    if not yards:
+        return None
+
+    enemies = set(world.get_nations_at_war_with(nation))
+    contested = {m.location for m in world.marshals.values()
+                 if m.strength > 0 and m.nation in enemies}
+
+    # Candidate landings, best first. `rank` 0 = a HOST shore on the war's
+    # doorstep (Mondego Bay), 2 = an open enemy beach when no host will
+    # have us. A host is a court that will actually receive an army: an
+    # ally, or a friend at AI_EXPEDITION_HOST_RELATION or better. Britain's
+    # authored 1805 board reads exactly right through that filter —
+    # Portugal 40 and Naples 30 are hosts, Denmark/Hanover/Sardinia at 0
+    # are not, and no army walks onto an indifferent neutral's soil.
+    candidates: List[Tuple[int, int, str]] = []
+    for region_name, region in world.regions.items():
+        if not getattr(region, "is_coastal", False):
+            continue
+        if region_name in contested:
+            continue  # never land into a defended beachhead
+        holder = _controller(world, region_name)
+        if not holder or holder == nation:
+            continue  # our own soil is a garrison, not an expedition
+        borders_the_war = any(
+            _controller(world, adj) in enemies
+            for adj in (getattr(region, "adjacent_regions", []) or [])
+            if not is_sea_link(world, region_name, adj))
+        if holder in enemies:
+            rank = 2
+        elif borders_the_war and _is_expedition_host(world, nation, holder):
+            rank = 0
+        else:
+            continue
+        candidates.append((rank, -int(getattr(region, "income_value", 0) or 0),
+                           region_name))
+    if not candidates:
+        return None
+    candidates.sort()
+
+    # The corps: the largest that the transports will lift, from a yard.
+    embarkable = [
+        m for m in world.get_marshals_by_nation(nation)
+        if (m.strength >= AI_EXPEDITION_MIN_TROOPS
+            and m.strength <= EXPEDITION_MAX_TROOPS
+            and m.location in yards
+            and not getattr(m, "is_captured", False))]
+    if not embarkable:
+        return None
+    marshal = max(embarkable, key=lambda m: m.strength)
+
+    for _rank, _income, target in candidates:
+        if target == marshal.location:
+            continue
+        quote = expedition_slip_odds(world, nation, target,
+                                     int(marshal.strength))
+        if int(quote["odds"]) < AI_EXPEDITION_MIN_ODDS:
+            continue
+        return {"marshal": marshal.name, "action": "naval_expedition",
+                "target": target, "region": target, "confirmed": True,
+                "_acting_nation": nation}
+    return None
+
+
+def find_ai_diversion(world, nation: str) -> Optional[Dict]:
+    """NV-5 (§6) — the §5.3 Grand Diversion as an AI decision. A court whose
+    invasion army is STAGED and whose ports are shut has exactly one card:
+    draw the blockading fleet off station. Dormant on the shipped board
+    (France is the player), live the moment anyone else wears that shoe."""
+    if not has_naval_layer(world):
+        return None
+    rec = get_fleet(world, nation)
+    if not rec or int(rec.get("ships", 0) or 0) <= 0:
+        return None
+    if rec.get("diversion_used") or int(rec.get("window_turns", 0) or 0) > 0:
+        return None
+    if not camp_staged(world, nation):
+        return None  # no army on the beach — a window would open onto nothing
+    if not _island_war_enemies(world, nation):
+        return None
+    return {"marshal": None, "action": "naval_diversion", "target": None,
+            "_acting_nation": nation}
+
+
+def ai_fleet_ceiling(world, nation: str) -> int:
+    """NV-5 — what this court's yards and seamen support: AI_FLEET_CEILING_
+    FACTOR × the AUTHORED establishment (§3.2). Measured defect this closes:
+    on the August-2 probe a blockaded Spain laid down one keel every turn
+    forever (30 → 44 sail by turn 16, still climbing, ~70 by turn 40) for a
+    net gain of 2.5 effective points, because every green hull folded its
+    readiness back down to the blockade floor. The rung had no notion of
+    'enough'. This is a DECISION ceiling on the AI only — the player's
+    brakes stay the §3.5 three (gold, the rate cap, yards held)."""
+    rec = get_fleet(world, nation) or {}
+    # Legacy saves predate `established`; fall back to the live count so an
+    # older campaign inherits a ceiling at its current size rather than 0.
+    established = int(rec.get("established", rec.get("ships", 0)) or 0)
+    return int(round(established * AI_FLEET_CEILING_FACTOR))
+
+
 def find_ai_build_fleet(world, nation: str, treasury: int) -> Optional[Dict]:
-    """§6 — the AI build rung (the P1.75 idiom): at war + treasury > 2× cost
-    + a live naval want (blockaded, or its own blockade outmatched). Same
-    priced verb as the player."""
+    """§6 — the AI build rung (the P1.75 idiom): at war + a war chest that
+    survives the keel + a live naval want (blockaded, or its own blockade
+    outmatched) + room under the establishment ceiling. Same priced verb as
+    the player."""
     rec = get_fleet(world, nation)
     if not rec or "readiness" not in rec:
         return None
     if not world.get_nations_at_war_with(nation):
         return None
-    if int(treasury) <= 2 * SHIP_COST:
+    # NV-5: a deeper reserve than the old 2× — a naval program must never be
+    # the reason an army goes unrecruited.
+    if int(treasury) <= AI_FLEET_TREASURY_RESERVE * SHIP_COST:
+        return None
+    if int(rec.get("ships", 0) or 0) >= ai_fleet_ceiling(world, nation):
         return None
     want = is_blockaded(world, nation)
     if not want and rec.get("posture") == "blockade":

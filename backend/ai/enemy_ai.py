@@ -3063,6 +3063,21 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: not at war with {adj_region.controller}")
                 continue
 
+            # DEF-5 naval §4.1 — the crossing gate. This rung was MISSED by
+            # NV-2's 18 threaded candidate sites: an undefended enemy
+            # province across a sea link was offered as an ordinary capture
+            # with no naval check at all, so the order was issued, refused
+            # at the executor, and logged as a turn-back. Measured on the
+            # NV-4 probe: Britain re-ordered Moore across the Channel every
+            # other turn for sixteen turns. Origin-aware, so it reads the
+            # host rule too (GR5 — the same predicate the player meets).
+            if getattr(world, "fleets", None):
+                from backend.game_logic.naval import crossing_allowed
+                if not crossing_allowed(world, nation, marshal.location,
+                                        adj_name):
+                    ai_debug("        -> Skip: the crossing is barred")
+                    continue
+
             # Check if undefended (no enemy marshals present AND no garrison)
             defenders = self._get_hostile_marshals_in_region(adj_name, nation, world)
 
@@ -3146,6 +3161,19 @@ class EnemyAI:
             # Skip garrisons of nations we're not at war with
             if adj_region.controller and not world.is_at_war(nation, adj_region.controller):
                 continue
+
+            # DEF-5 naval §4.1 — the crossing gate. The SECOND rung NV-2's
+            # candidate threading missed: an amphibious assault on a
+            # garrison across a sea link was offered, ordered, refused at
+            # the executor and logged as a turn-back. Measured on the NV-4
+            # probe: Moore was re-ordered London→Normandy every other turn
+            # for twenty turns. Origin-aware (reads the host rule too).
+            if getattr(world, "fleets", None):
+                from backend.game_logic.naval import crossing_allowed
+                if not crossing_allowed(world, nation, marshal.location,
+                                        adj_name):
+                    ai_debug(f"    P4.25: {adj_name} is across barred water")
+                    continue
 
             # Calculate garrison effective defense for AI decision
             terrain_bonus = TERRAIN_DEFENSE_BONUS.get(adj_region.terrain, 0.0)
@@ -4897,7 +4925,13 @@ class EnemyAI:
             # VP-D6: the vassal shore-up arms carry structured fields the
             # shared executor reads (the VS-3 grant's region pick, the
             # autonomy arm's explicit level) — never re-derived from text.
-            for extra_key in ("region", "new_level"):
+            # NV-5 adds `confirmed`: the expedition's quote-then-confirm
+            # channel is a PLAYER affordance (the odds are shown before the
+            # corps sails). The council has already read the same odds
+            # through the same function, so it commits in one step rather
+            # than opening a clarification dialogue no one is there to
+            # answer.
+            for extra_key in ("region", "new_level", "confirmed"):
                 if extra_key in action:
                     command["command"][extra_key] = action[extra_key]
 
@@ -5044,6 +5078,29 @@ class EnemyAI:
             fleet_order = find_ai_build_fleet(world, nation, treasury)
             if fleet_order:
                 return fleet_order
+
+        # Priority 1.85: THE EXPEDITION (NV-5, promoting the naval §10 NV-D8
+        # arm). How a sea power's army reaches a war it cannot march to —
+        # the door NV-4's host rule left open. Britain embarks for a shore
+        # that will RECEIVE it (Portugal 1808) rather than storming the
+        # Norman coast. Same verb, same odds, same executor as the player.
+        if ("naval_expedition" not in skip_actions
+                and getattr(world, "fleets", None)):
+            from backend.game_logic.naval import find_ai_expedition
+            expedition = find_ai_expedition(world, nation)
+            if expedition:
+                return expedition
+
+        # Priority 1.9: THE GRAND DIVERSION (NV-5). A court whose invasion
+        # army is staged and whose ports are shut has one card to play.
+        # Dormant on the shipped board — France is the player — and live the
+        # moment anyone else wears that shoe (GR5).
+        if ("naval_diversion" not in skip_actions
+                and getattr(world, "fleets", None)):
+            from backend.game_logic.naval import find_ai_diversion
+            diversion = find_ai_diversion(world, nation)
+            if diversion:
+                return diversion
 
         # Priority 2: Build market at highest-income region (Phase 6.2 Audit Fix #8)
         if "build" not in skip_actions and treasury >= 350:

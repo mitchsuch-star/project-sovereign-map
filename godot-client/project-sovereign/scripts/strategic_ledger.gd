@@ -511,7 +511,14 @@ func _render_admiralty_block() -> String:
 		var cs_line = "  The Continental System: " + str(int(cs.get("closure_pct", 0))) + "% of the Continent's ports closed"
 		if tier > 0:
 			cs_line += " — " + Utils.humanize_nation_keys_in_text(str(cs.get("target", ""))) + "'s war-weariness rising +" + str(tier) + "/turn"
+		else:
+			# NV-5: below the lowest notch the percentage is true and inert.
+			# Say so, and say what closes the next one.
+			cs_line += " — [color=#" + Utils.COLOR_GREY + "]not yet biting[/color]"
 		bbcode += cs_line + "\n"
+		var next_pct = cs.get("next_tier_pct")
+		if next_pct != null:
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + str(int(cs.get("ports_to_next_tier", 0))) + " more port(s) closed to them.[/color]\n"
 	var board = adm.get("blockade_board", [])
 	if board is Array and board.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Blockade Board[/color]\n"

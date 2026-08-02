@@ -74,24 +74,10 @@ NON_REGION_TARGET_PHRASES = (
 # CR-0: irregular demonyms for live-nation generic-target classification
 # ("pursue the austrians" is a generic order, not a region named
 # "The Austrians"). Regular nations derive below (-a → +"n", else +"ian").
-_NATION_DEMONYM_OVERRIDES = {
-    "britain": "british",
-    "france": "french",
-    "spain": "spanish",
-    "sweden": "swedish",
-    "denmark": "danish",
-    "naples": "neapolitan",
-    "netherlands": "dutch",
-    "holland": "dutch",
-    "ottoman": "ottoman",
-    "portugal": "portuguese",
-    "switzerland": "swiss",
-    "saxony": "saxon",
-    "piedmont": "piedmontese",
-    "hesse": "hessian",
-    "papalstates": "papal",
-    "kingdomofitaly": "italian",
-}
+# R7 single source: the table now lives in display_names beside the other
+# nation-name translations, so the parse side and the prose side ("the
+# French fleet") can never drift apart.
+from backend.display_names import NATION_DEMONYMS as _NATION_DEMONYM_OVERRIDES
 
 
 def _nation_demonyms(world) -> list:

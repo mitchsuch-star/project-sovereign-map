@@ -84,6 +84,46 @@ def display_nation(nation: str) -> str:
 
 
 # ============================================================================
+# NATION ADJECTIVES — "the French fleet", never "the France fleet"
+# The SINGLE source (R7). `ai/strategic_parser.py` reads the same table for
+# the parse side, so a nation added in one place is understood in both.
+# ============================================================================
+
+NATION_DEMONYMS = {
+    "britain": "british",
+    "france": "french",
+    "spain": "spanish",
+    "sweden": "swedish",
+    "denmark": "danish",
+    "naples": "neapolitan",
+    "netherlands": "dutch",
+    "holland": "dutch",
+    "ottoman": "ottoman",
+    "portugal": "portuguese",
+    "switzerland": "swiss",
+    "saxony": "saxon",
+    "piedmont": "piedmontese",
+    "hesse": "hessian",
+    "papalstates": "papal",
+    "kingdomofitaly": "italian",
+}
+
+
+def nation_adjective(nation: str) -> str:
+    """The adjectival form, capitalised for prose: France → French,
+    Austria → Austrian, Prussia → Prussian. Regular nations derive
+    (-a → +'n', else +'ian'), which is why the table only holds the
+    irregulars."""
+    base = str(nation or "").lower()
+    if not base:
+        return ""
+    demonym = NATION_DEMONYMS.get(base)
+    if demonym is None:
+        demonym = base + "n" if base.endswith("a") else base + "ian"
+    return demonym[:1].upper() + demonym[1:]
+
+
+# ============================================================================
 # OBJECTION DISPLAY — gerund form for objection context
 # Source: campaign_log.py _OBJECTION_DISPLAY
 # ============================================================================

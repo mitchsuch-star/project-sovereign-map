@@ -128,10 +128,34 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # French alarm HIGHER through the midgame (the tail runs ~8 above the
 # previous record) rather than drifting off into the Low Countries. One
 # re-record, one cause; M1–M7 stayed byte-identical throughout.
+#
+# RE-RECORDED CONSCIOUSLY ONCE at NV-4 THE HOST RULE (August 2, 2026,
+# user-gated: "how do we abstract them entering on Portugal IRL?").
+# An opposed landing stopped being an ordinary march: a sea link may no
+# longer be walked INTO a province held by a court the mover is at war
+# with while any hostile fleet still covers that water. Britain therefore
+# no longer takes Normandy on turn 1 — DIVERGENCE INDEX 1 IS THAT TURN,
+# and the attribution was verified by experiment, not by argument: with
+# HOST_RULE_ACTIVE flipped to False and every other NV-4/NV-5 change left
+# in place, this series reproduces the prior record BYTE-IDENTICALLY. So
+# the AI expedition rung, the establishment build ceiling and the two
+# repaired candidate filters are all threat-neutral, and this re-record
+# has exactly one cause.
+#
+# The tail runs lower and reaches 0 because the ambient France (unplayed)
+# now conquers nothing AND is invaded by nobody: Britain's army sails for
+# Lisbon on turn 11 and fights its way up through Spain instead, so
+# Europe's alarm at France decays undisturbed. That is the honest reading
+# of a quiet France, and it is the shape the AI-3r probe already recorded
+# for ambient runs (§8.2: the warlike 1805 designs all target the player).
+# Prior series (THE NORMAN BEACH, earlier the same day):
+#   [85, 86, 84, 82, 80, 77, 74, 71, 68, 73, 81, 78, 75, 80, 77, 74, 61,
+#    66, 63, 60, 57, 62, 59, 56, 53, 53, 50, 47, 44, 44, 41, 38, 35, 35,
+#    32, 29, 26, 26, 23, 20, 17]
 BASELINE_SERIES = [
-    85, 86, 84, 82, 80, 77, 74, 71, 68, 73, 81, 78, 75, 80, 77, 74, 61,
-    66, 63, 60, 57, 62, 59, 56, 53, 53, 50, 47, 44, 44, 41, 38, 35, 35,
-    32, 29, 26, 26, 23, 20, 17,
+    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 60, 57, 57, 44, 41,
+    38, 38, 35, 32, 29, 29, 26, 23, 20, 17, 14, 14, 11, 8, 5, 2, 2, 0,
+    0, 0, 0, 0, 0, 0,
 ]
 
 

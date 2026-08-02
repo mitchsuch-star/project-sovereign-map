@@ -1205,6 +1205,13 @@ func _build_connection_nodes():
 			if verdict == "shut":
 				segment["color"] = Color(0.85, 0.25, 0.25, 0.9)
 				segment["width"] = 3.0
+			elif verdict == "landing":
+				# NV-4 the host rule: the water is ours, the far shore is
+				# enemy country. Amber reads "passable, but not by marching"
+				# — deliberately neither the crimson of a shut sea nor the
+				# gold of an open window.
+				segment["color"] = Color(0.88, 0.55, 0.18, 0.92)
+				segment["width"] = 3.0
 			elif verdict == "window":
 				segment["color"] = Color(0.95, 0.78, 0.2, 0.95)
 				segment["width"] = 3.0

@@ -90,14 +90,28 @@ def _counter_punch_shape(world):
 
     Phase script this provokes (latch neutered):
     form_square -> counter-punch attack (breaks it) -> form_square -> ...
-    """
+
+    THE SHAPE MOVED ASHORE (NV-4, August 2, 2026). It used to stand Moore
+    in London against Murat across the Channel at Flanders, and the whole
+    test rested on Moore ATTACKING over that water. The naval host rule
+    refuses an amphibious assault as an ordinary attack, so the breaker
+    stopped firing and this file's own coverage guard caught it — exactly
+    what that guard is for. Re-derived on land: a British beachhead in
+    Normandy with Murat's cavalry one march away at Maine. The square
+    trigger (adjacent enemy cavalry) and the breaker (a counter-punch that
+    can actually be delivered) are both real again, and nothing about what
+    is under test changed."""
     moore = world.marshals["Moore"]
     murat = world.marshals["Murat"]
     assert getattr(murat, "cavalry", False), "the shape needs real cavalry"
-    murat.location = "Flanders"  # adjacent to London
+    world.regions["Normandy"].controller = "Britain"
+    world.invalidate_active_nations_cache()
+    moore.location = "Normandy"  # the beachhead — land contact with France
+    murat.location = "Maine"     # land-adjacent to Normandy
     murat.strength = 40000       # the counter-punch loses; cavalry stays
     moore.stance = Stance.DEFENSIVE
     moore.counter_punch_available = True
+    world._build_marshal_index()
     return moore
 
 

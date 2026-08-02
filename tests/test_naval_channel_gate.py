@@ -67,23 +67,78 @@ class TestChannelGateHeadline:
         assert not naval.crossing_check(
             world, "France", "Flanders", "London")["allowed"]
 
-    def test_britains_boot_descents_still_pass(self, world):
-        """H7: 100+Russia pooled vs France's covering ~54 → ratio ≥ 1.25."""
+    def test_britain_commands_the_water_but_may_not_march_ashore(self, world):
+        """NV-4 THE HOST RULE — pin CONSCIOUSLY FLIPPED (August 2, 2026).
+
+        Was: `test_britains_boot_descents_still_pass` asserted allowed=True
+        on London→Flanders, i.e. the Royal Navy's superiority bought a free,
+        uncapped, unopposed march onto French home soil. That is the
+        August-2 probe's measured defect (Moore walked 30,000 men ashore —
+        TWICE the transports' 15,000 cap — and was in Berry by turn 2), and
+        it made `naval_expedition` a strictly dominated verb.
+
+        Now: the ratio arm still passes — Britain DOES command that water,
+        and the numbers below prove the flip is the host rule and not a
+        naval reversal — but the far shore is enemy country, so the march
+        is refused and the expedition is named as the door."""
         verdict = naval.crossing_check(world, "Britain", "London", "Flanders")
-        assert verdict["allowed"] is True
+        # The water is still Britain's — the ratio is untouched.
         assert verdict["ratio"] >= naval.CROSSING_RATIO
+        # The shore is not.
+        assert verdict["allowed"] is False
+        assert verdict["verdict"] == "landing"
+        assert "transports" in verdict["message"]
+        assert f"{naval.EXPEDITION_MAX_TROOPS:,}" in verdict["message"]
 
     def test_the_descent_beach_is_normandy(self, world):
         """User-directed (August 2, 2026): a British landing comes ashore on
         the NORMAN COAST, not through the Low Countries into the French
         interior. The registry gained London↔Normandy — the SHORT Channel
         crossing (111px against Flanders's 352px, one of the map's longest
-        links) and the historic descent beach. Measured: Britain lands at
-        Normandy on turn 1 of the ambient run."""
+        links) and the historic descent beach.
+
+        NV-4 amends the arrival, not the beach: Normandy is still where
+        Britain comes ashore, but it comes ashore by EXPEDITION now."""
         assert naval.is_sea_link(world, "London", "Normandy")
         verdict = naval.crossing_check(world, "Britain", "London", "Normandy")
-        assert verdict["allowed"] is True
         assert verdict["ratio"] >= naval.CROSSING_RATIO
+        assert verdict["verdict"] == "landing"
+        # ...and the expedition really is open on that beach (the door the
+        # refusal names is a door that exists — §10's standing rule).
+        odds = naval.expedition_slip_odds(
+            world, "Britain", "Normandy", naval.EXPEDITION_MAX_TROOPS)
+        assert odds["odds"] > 0
+
+    def test_a_host_shore_is_never_gated(self, world):
+        """The Portugal case (Mondego Bay 1808) — the whole point of the
+        host rule. Britain is NOT at war with Portugal, so a Portuguese
+        shore is a host, not an objective: nothing about the naval layer
+        stands between a British army and a friendly port."""
+        assert not world.is_at_war("Britain", "Portugal")
+        assert naval.is_hostile_shore(world, "Britain", "Normandy") is True
+        assert naval.is_hostile_shore(world, "Britain", "Lisbon") is False
+        assert naval.is_hostile_shore(world, "Britain", "London") is False
+
+    def test_beating_the_covering_fleet_opens_the_shore(self, world):
+        """The rule's own escape hatch, and the reason it is not a wall:
+        uncontested water is an administrative ferry. Sink the fleet that
+        covers the passage and the army marches ashore unlimited."""
+        assert naval.crossing_check(
+            world, "Britain", "London", "Normandy")["verdict"] == "landing"
+        naval.get_fleet(world, "France")["ships"] = 0
+        after = naval.crossing_check(world, "Britain", "London", "Normandy")
+        assert after["allowed"] is True
+        assert after["verdict"] == "open"
+
+    def test_the_window_waives_the_host_rule(self, world):
+        """§5.3: drawing the enemy off station IS the moment the army
+        crosses — the Descent would be unwinnable if the host rule outlived
+        the window it was designed around."""
+        naval.get_fleet(world, "France")["window_turns"] = 2
+        verdict = naval.crossing_check(world, "France", "Normandy", "London")
+        assert naval.is_hostile_shore(world, "France", "London") is True
+        # Whatever the ratio says, the host rule is not what decides it.
+        assert verdict["verdict"] != "landing"
 
     def test_the_norman_beach_is_gated_the_other_way(self, world):
         """A5 holds on the NEW crossing too — the beach is a door Britain
@@ -163,11 +218,23 @@ class TestAICandidateFilter:
         # Destination-only calls (no origin) keep their old answer.
         assert ai._can_ai_move_to(world, "Spain", "London") is True
 
-    def test_britain_the_superior_still_crosses(self, world):
+    def test_britain_the_superior_may_not_march_ashore(self, world):
+        """NV-4 — pin CONSCIOUSLY FLIPPED (August 2, 2026), the AI half of
+        the host rule. Was: the superior fleet's candidate scan accepted a
+        French beach, which is how the 16-turn ambient probe put Moore in
+        Berry by turn 2 and Paget in Gelderland by turn 16. The AI reads
+        the SAME predicate the player does (GR5), so it stops offering
+        itself an opposed landing as an ordinary march.
+
+        Control arm: the identical scan onto a HOST shore still passes, so
+        the flip is the host rule and not a broken candidate filter."""
         from backend.ai.enemy_ai import EnemyAI
         ai = EnemyAI(CommandExecutor())
         assert ai._can_ai_move_to(world, "Britain", "Flanders",
-                                  origin="London") is True
+                                  origin="London") is False
+        # Britain's own Irish crossing — its own soil, never gated.
+        assert ai._can_ai_move_to(world, "Britain", "Ulster",
+                                  origin="Highlands") is True
 
 
 class TestRetreatArms:
