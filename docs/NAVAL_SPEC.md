@@ -13,6 +13,14 @@
 > grants the YARD, never ships; an eliminated nation's fleet disperses; seizure = the
 > NV-D2 Copenhagen family). The fast road to naval weight is DIPLOMACY (§5.3 pooling),
 > with its authored discount — exactly the historical Combined-Fleet answer.
+> **v1.0.4 — August 2, 2026, THE ASSURANCE PASS (user-directed; record = §13.6):** the §9
+> **legibility contract table** — one named answer per naval state to "where do I SEE it?"
+> — adding the two MAP render arms the spec had missed (sea-link verdict tint + port
+> blockade glyph: the map is where movement decisions are made) and the Admiralty
+> **Blockade board** (who blockades whom, effects quoted both directions); the §10 GR9
+> tightening (every deferral row now carries a falsifiable test — NV-D5 gained the
+> copy-scan pin; the no-player-facing-promise rule stated as the standing preamble); §8's
+> appended campaign-log type list reconciled with the beats §9 actually names.
 > **v1.0.3 — August 2, 2026, THE CODE-GROUNDED FEASIBILITY & COST REVIEW (user-directed;
 > full record = §13):** every claimed seam verified against master and named; **measured
 > boot economy** (France net +2,107/turn) re-blessed `SHIP_COST` 150→**400g** (a ship must
@@ -440,14 +448,29 @@ GR8-trivial), same executor verbs as the player:
   schema (ships 0–150, readiness 40–100, ports ≥0, dockyards must be owned provinces,
   island bool) + `MODDING_FORMAT.md` rows.
 - No new dialogue types, no popup-queue slots, no campaign-log renumbering beyond appended
-  types (`trafalgar`, `blockade_begins/broken`, `expedition_landed/intercepted`,
-  `boulogne_camp` — pins flip consciously at each slice).
+  types (`trafalgar` · `blockade_begins`/`blockade_broken` · `expedition_landed`/
+  `expedition_intercepted` · `boulogne_camp` · `strait_open`/`strait_shut` (v1.0.1) ·
+  `cs_tier_shift` (v1.0.4) — pins flip consciously at each slice).
 
-## §9. Surfaces (the "usability" clause — all existing patterns)
+## §9. Surfaces — the legibility contract (the "usability" clause — all existing patterns)
+
+**The contract table (v1.0.4): every naval state has ONE named answer to "where do I see
+it?", every figure shown is the figure applied, and every surface is an existing pattern.**
+
+| Naval state | Where the player sees it |
+|---|---|
+| **Can this army cross this link?** | **The map**: the drawn dashed sea-link routes tint by live verdict — normal = open/uncontested · crimson + anchor glyph = shut to your movement · gold = window open — so the answer is visible where the move is being considered · the Admiralty **Crossings verdict line** (ratio quoted) · and if a move is ordered anyway, the refusal names both numbers |
+| **Is a nation under blockade — and where?** | **The map**: a blockade glyph on the blockaded nation's dockyard provinces (the watchtower-glyph idiom) · the Admiralty **Blockade board** — one row per blockaded nation, blockader named, effects quoted ("France — trade halved (−175/turn); the fleet pinned in port") · the region panel info block on any of its coastal provinces · the war-room belligerent line |
+| **What is MY blockade doing to them?** | The Blockade board's own-squadron rows ("Our squadrons close Britain's ports — their trade halved, weariness +2/turn") · the enemy's weariness row in the war-detail popup (the AI-4c labelled row, already rendered) |
+| **What is being blockaded costing ME?** | The signed **"Blockade"** Net component in the strategic ledger and the dispatch treasury delta — the EC-U2 recipe, same family as Contributions/War Effort |
+| **The Continental System** | Admiralty closure % · the ledger CS line naming the live tier ("62% of the Continent's ports closed — Britain's weariness +2/turn") · the `cs_tier_shift` beat when a tier is crossed |
+| **The window / the camp** | `strait_open`/`strait_shut` beats · the WINDOW verdict row with its countdown · the gold map tint; the camp: the French side reads the counter in the Admiralty, Britain's side gets the `boulogne_camp` beat |
+| **Expedition / descent availability** | Honest gate terms IN ORDER in the Admiralty (the §11.6 idiom) · odds quoted on the confirm (shown = applied) |
+| **AI symmetry** | The same predicate gates AI movement silently; a notable AI turn-back at a strait renders as an ordinary campaign-log line, never a popup |
 
 - **Strategic Ledger — "THE ADMIRALTY" block:** own fleet (ships/readiness/posture/
-  admiral), hostile blockade line with its cost, CS closure %, expedition/descent
-  availability as honest gate terms IN ORDER (the §11.6 idiom).
+  admiral), the **Blockade board** (both directions, per the contract table), CS closure
+  %, expedition/descent availability as honest gate terms IN ORDER (the §11.6 idiom).
 - **The Crossings verdict line (v1.0.1):** the Admiralty block lists every sea link
   touching the player's provinces or armies with a live verdict quoting the SAME ratio
   the §4.1 predicate reads (shown = applied): "OPEN — uncovered" / "OPEN — ours 1.3×
@@ -461,17 +484,27 @@ GR8-trivial), same executor verbs as the player:
   `naval_diversion`. Typed grammar: "build ships", "blockade Britain", "guard home
   waters", "land Soult in Munster with 12,000 men", "order the diversion".
 - **Region panel:** "Lay down ships (400g)" chip on owned dockyard provinces (the price
-  quoted from the live constant, never hardcoded — the honest-chip idiom).
+  quoted from the live constant, never hardcoded — the honest-chip idiom); the info block
+  on any coastal province of a blockaded nation states the blockade and its effect
+  (fog-clean — Q4 public data).
 - **Dispatch beats** (existing transport, NARRATION_EXEMPT additions): blockade begins/
-  broken · expedition sailed/landed/intercepted · trafalgar · boulogne_camp.
+  broken · expedition sailed/landed/intercepted · trafalgar · boulogne_camp ·
+  strait_open/strait_shut · cs_tier_shift — all state-change-only, never per-turn.
 - **War room:** one naval line per belligerent with a fleet. **Fog ruling (recorded):**
   fleet counts and postures are PUBLIC (period newspapers printed orders of battle; the
   §3.6 "no fog on dispositions" precedent). The only uncertainty is outcome timing —
   seeded, like everything else.
-- **Godot cost:** ledger block + one chip + beat lines through existing renderers. No new
-  scenes. XR-1 boot rule applies to any touched `.gd`.
+- **Godot cost:** ledger block + one chip + beat lines + the two map render arms
+  (sea-link verdict tint + port blockade glyph) on the EXISTING map layers — the data
+  rides the map summary payload the client already consumes. No new scenes. XR-1 boot
+  rule applies to any touched `.gd`.
 
 ## §10. Deferred, with owners (GR9 — none of these are promises in v1 copy)
+
+**The standing rule (v1.0.4, audited — §13.6):** no row below appears in v1 player-facing
+copy — no disabled affordances, no "coming soon" strings, no dead references; refusal and
+advisory text names present-tense facts only. Every row carries an owner, a landing, and
+a falsifiable test.
 
 | Row | What | Owner / landing | Test on landing |
 |-----|------|-----------------|-----------------|
@@ -479,7 +512,7 @@ GR8-trivial), same executor verbs as the player:
 | NV-D2 | Copenhagen 1807 — Britain's pre-emptive fleet seizure of a neutral | Same NA follow-on gate (it is an agenda behavior, not a naval one) | seizure event pins |
 | NV-D3 | Privateers / commerce-raid posture | Econ pass 3 successor, if the blockade layer measures thin | raid-income pins |
 | NV-D4 | Naval battle presentation (diorama-class) | `BATTLE_DIORAMA_SPEC.md` Tier-B/C gate | visual pack |
-| NV-D5 | Colonies / Egypt / the wider world | Post-EA table (ROADMAP) | — |
+| NV-D5 | Colonies / Egypt / the wider world — referenced NOWHERE in v1 copy | Post-EA expansion table (ROADMAP) — its own future gate defines scope + completion | copy-scan pin at NV-0: no colonial strings ship on any v1 surface |
 | NV-D6 | DEF-8 full `is_coastal` re-derivation | Stays at DEF-8, **not triggered** (§3.4 — v1 reads authored data only) | DEF-8's own row |
 | NV-D7 | Weather/season on expeditions (Bantry's gale) | NV-V verdict decides if the odds curve needs it | curve re-bless |
 | NV-D8 | Ambient AI expeditions/diversions (an AI France invading Ireland unprompted) | The first post-naval AI review (AI-V cadence) | predicate → ambient pins |
@@ -489,7 +522,7 @@ GR8-trivial), same executor verbs as the player:
 
 - **NV-0 — The Admiralty (substrate):** `navies` authoring + validator + `world.fleets`
   boot + serialization + upkeep/ledger component + `build_fleet` + `set_fleet_posture` +
-  readiness tick + boot postures (Britain blockades France) + N1 legacy/dormancy pins +
+  readiness tick + boot postures (Britain blockades — untargeted, §3.3) + N1 legacy/dormancy pins +
   corpus rows + the Admiralty ledger block. `test_naval_substrate.py`. BASELINE_SERIES
   conscious re-record lands HERE, once.
 - **NV-1 — The Blockade War:** coverage/blockade predicate + trade/trade_dominance/WE
@@ -609,6 +642,27 @@ exist; every coupling lands on a verified seam; the two holes the review found a
 above; costs are now priced against measured income rather than assumption. The remaining
 unknowns are tuning (the expedition odds curve, the CS pace), and both are owned by their
 slices' measured-table discipline.
+
+### 13.6 The GR9 + legibility assurance pass (v1.0.4 — user-directed)
+
+**Deferral audit — CLEAN.** Every deferral-family phrase in the body ("v1", "deferred",
+"stays", "owned", "may slip") was swept: each resolves to an owned §10 row or an explicit
+§12 gate option (Q2's slip clause writes its owner row at decision time; Q7's texture
+options re-open only at NV-V). All nine §10 rows now carry owner + landing + a
+falsifiable test — NV-D5, the one bare row, gained the copy-scan pin. The standing rule
+is stated in the §10 preamble: **nothing deferred appears in v1 player-facing copy** — no
+disabled affordances, no "coming soon" strings; refusals name present-tense facts (a
+crossing is refused because "the Royal Navy commands the Strait — 100 sail against 31",
+never because a feature is missing).
+
+**Legibility audit — one gap found and closed.** The §9 surfaces were ledger-complete but
+MAP-silent: the player weighs movement on the war table, and the spec's only crossing
+answers lived in the Admiralty text block and the refusal message. Closed by the two map
+render arms (sea-link verdict tint + port blockade glyph, riding the existing map summary
+payload) and the Admiralty **Blockade board** (who blockades whom, effects quoted in both
+directions). The §9 contract table is now the normative answer to "where do I see it" for
+every naval state; §8's appended campaign-log type list was reconciled with the beats §9
+actually names (`strait_open`/`strait_shut`, `cs_tier_shift` added).
 
 ---
 
