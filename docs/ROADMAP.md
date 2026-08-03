@@ -39,6 +39,47 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 
 ---
 
+## ▶ THE ROAD TO EARLY ACCESS — the sequence (re-planned August 3, 2026)
+
+> **This is the live forward queue.** It supersedes the old
+> `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine, which the user unpinned
+> ("re-jigger the plan as you see fit, steam page doesn't have to be next").
+> Full reasoning, the four rejected alternatives, the judges and the
+> self-dissent: **`docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`**.
+>
+> **Honest total: ~22–30 build sessions plus two non-coding tracks** — two
+> to four months at this project's demonstrated cadence. The largest single
+> variance is position 4, which is exactly why it sits at 4.
+
+| # | Item | Size | Why here |
+|---|------|------|----------|
+| **1** | **The long quiet-France PLAYED campaign** — 30+ turns, France passive mid-game. **Extended brief:** also score the *enemy-phase-as-theater* pillar and narration — PT-D1..D4 and PT-F6 landed Aug 1 and have **never been re-measured**, so narration 6.0 is stale evidence. | play session | The only vehicle for six open evidence items, and it produces the transcript everything downstream reads. Closes DEF-5/DEF-6: naval pillar score · played A2 sue-path · NV-P1 wheel check · NV-4..11 visual sign-off · NV-V remainder (A1–A5, NV-D7/D8, Q7) · living-balance/D1 band. |
+| **2** | **LLC + Steamworks onboarding** — entity → EIN → bank → Steam Direct fee → tax interview → app entry. **Parallel track; starts the same week as 1.** | non-coding | The only item with weeks of *calendar* lead time and zero code dependency. Gating it behind a narration feature converts legal latency into lost wishlists for nothing. |
+| **3** | ~~**Asset backup**~~ ✅ **DONE August 3, 2026** (this commit) + campaign triage | session | `europe_visual.png` + `europe_lookup.png` were **untracked** (`.gitignore:40`) and existed on exactly one disk. Force-added. ⚠ **The source PSD is still not in the repo — a user action.** |
+| **4** | **THE SHIPPABLE BUILD — "it runs on someone else's computer"** — frozen-bundle data path; regenerate the spec (it predates the July-18 SDK migration); **first-ever Godot client export**; client supervises the backend (child process, negotiated port, honest boot screen); saves under `%APPDATA%`; **a real main menu** + in-client API-key field replacing the `config.txt` ritual + the shipping name/icon (`project.godot` still says "Project Sovereign"); run it on a machine with no Python. **Done = a stranger unzips it and plays in mock mode without editing a text file.** | multi-session | **Nobody has ever produced a build of this game.** `deploy/` is dated March 10, 2026 — pre-cutover — and would ship a server with **no world** behind a launcher demanding a key the game does not need. Whether that is one session or two weeks *is the schedule*. Measure it while nothing is promised. Also collapses the BYOK/monetization row. |
+| **5** | **Playtest Round 0** — 3–5 testers on the exported build, two questions only: *could you launch it*, and *did you know what to do in ten minutes*. | non-coding | Every measurement in this project's history has been the developer or an agent. Cheapest possible falsification of positions 6–12. Expect the unsigned-executable SmartScreen flag here — no test in the suite can see it. |
+| **6** | **Victory & Objectives — GATE, then VP-1 "The Emperor's Designs"** (France's own agenda deck on the NA substrate). Into the gate: objective-shaped **not** a region race; 2–3 paths; branch irreversible; **mark the triumph and continue** (protects EC-6); defeat rides existing W6-7 attrition. Carry the churn number: **42 test files, 115 `game_over` assertions.** | gate + multi-session | **The game cannot end** — `turn_manager.py:1099` returns `game_over: False` on every Europe world. Unblocked one day ago: `NATION_AGENDAS_SPEC` §9's own blocker was *"design the pass after DEF-5 lands"*, and DEF-5 landed Aug 2. Unblocks All-Dead Loss, Napoleon Comparison and 8.5 Campaign Objectives — and honest store copy. |
+| **7** | **VP-2 "The Ending"** — un-gate `_check_victory_conditions` for **design satisfaction only**, triumph screen, keep-playing arm, Napoleon Comparison, the chosen loss condition. **Surface the replay frame:** Stage A's seed + authored variance bands already make every Europe open differently and the game has never told anyone. | multi-session | The arc closes. Split from VP-1 so each lands green against those 115 assertions. Three replay drivers, two already paid for. |
+| **8** | **Music & Sound (Core)** — audio-manager autoload (there is none), Master/Music/SFX/UI buses, volume sliders, wire the two orphaned parchment WAVs, license-verify the three unopened zips. Sourcing starts at 4. ⚠ the cleared CC0 packs are SFX, not orchestral — PD *scores* and PD *recordings* are separate questions. | multi-session | **There is no music in this game**: one `AudioStreamPlayer`, no bus, no autoload. Largest perceived-quality jump per session available, and the true trailer blocker. |
+| **9** | **Marshal Voice Tier 1 + XR-5** — author aggressive + cautious banks on the proven `enemy_voice.py` pattern. **Conditional: only if position 1's re-measure shows composition is fixed** — otherwise this slot becomes a second enemy-phase composition slice. | session–multi | `marshal_voice.py` exists and is **one-third built** (literal only). Cheapest lever on the weak pillar, zero LLM cost, mock-safe. |
+| **10** | **STEAM PAGE GOES LIVE** | non-coding | All four real prerequisites now exist: Steamworks account (2), a build that runs elsewhere (4), a sentence about what a campaign is *for* (6–7), screenshots from the shipping export (4). |
+| **11** | **CR-6 *proper* — Conversational Objection Negotiation.** Gate first: may the LLM classify a free-text rebuttal into the **existing deterministic** Insist/Trust/Compromise buckets? That is the GR6 boundary case and the user's call. Mock fallback = today's three buttons. | gate + multi-session | The most VISION-central unbuilt feature in the repo. Placed after 8–9 deliberately: if the gate returns *no*, the trailer is already made of 7–9 and nothing is stranded. **Note: the CR-6 gate slot was consumed once by the S5-D1 bare-attack mini-gate — this is the other CR-6.** |
+| **12** | **Tutorial System + short Waterloo scenario + R159** — build `TutorialManager` (deferred from 6.5, never built), populate from `TUTORIAL_SCRIPT.md`, use the legacy 19-region world as the on-ramp (`SOVEREIGN_MAP=legacy`, zero code change). | multi-session | Late on purpose: a tutorial teaches *final* mechanics, and everything that changes mechanics is above this line. Refund-rate control. |
+| **13** | **Pre-EA hardening + Playtest Round 1** — UI-2d-1 first (the only open soft-lock class), then IGR-X9, EWC-F1/F2, S5-4; sweep NAD-1..4, VP-D2/D3, S5-D3; complete Settings; **code signing** so an unsigned PyInstaller server does not trip SmartScreen; 8–12 external testers. | multi-session | The open defect list is genuinely five rows, all P2/P3 — this codebase is in unusually good repair, so this is small. |
+| **14** | **Trailer** — commissioned at 9, delivered here, onto a page that has been accumulating wishlists since 10. | non-coding | Its true prerequisites — audio, personality lines, a payoff moment, a validated loop — are all landed by here. |
+| **15** | **EARLY ACCESS** | — | Ships a game that runs on a stranger's computer, ends, teaches itself, has sound, and whose marshals speak in three voices. |
+
+**The three decisions this encodes** (each overrulable — memo §2):
+1. **Packaging before content, at 4.** Almost everything left is content on a proven engine; exactly one item's size is genuinely unknown and it is invisible to every planning doc in the repo.
+2. **The ending before all content polish, and it is mark-and-continue, never a race.** A game that cannot end is not shippable, and three rows are *blocked* behind `sandbox_mode`.
+3. **The narrative budget goes to the pitch (CR-6, Marshal Voice), not the newspaper (Gazette) or the stat block (Advisors).** `backend/game_logic/` contains **zero LLM calls today** — the Gazette is not a content slice, it is an architecture slice.
+
+**Cut to post-EA, each with a named owner row** (memo §4): Events System · Gazette "Le Moniteur" · Imperial Governance (merge the duplicated `:548`/`:725` rows first) · Voice-to-Text · the Advisors stat half.
+
+**The dissent, kept because it may be right** (memo §5): the measured floor is not packaging, it is **the enemy phase as theater at 5.5** — the lowest score any pillar has received, never re-measured since its five fixes landed Aug 1. **Position 1 arbitrates it**, and if that re-measure comes back below 6.5 the composition slice moves to position 3, ahead of the shippable build.
+
+---
+
 ## Quick Status
 
 | Phase | Name | Status |
@@ -67,7 +108,7 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 | **IGR** | **In-Game Review Fixes & Improvements** | **✅ BUILD-COMPLETE July 31, 2026** — IGR-A..G + the X-backlog. |
 | **NV** | **DEF-5 Naval — "The Wooden Wall"** | **✅ BUILT COMPLETE August 2, 2026** — NV-0..NV-11 + NV-V + DP-1. ⚠ open on **evidence** (a played campaign) and **one user decision** (the adjacency ruling). |
 | **EC-P3** | **Economy pass 3 (deferred-decision owner)** | **Not yet scheduled** — created Aug 3, 2026 to home five orphaned econ items. |
-| -- | **STEAM PAGE + LLC** | **After 8.5** |
+| -- | **STEAM PAGE + LLC** | **SPLIT August 3, 2026** — LLC+Steamworks at position 2 (no entry condition, start now) · store page at 10 · trailer at 14. The old "after 8.5, gazette working" condition is RETIRED. |
 | 9 | Advisors (Minimal) | Planned |
 | 10 | Character & People (Minimal) | Planned |
 | 11 | Britain (naval/subsidy) & Imperial Governance | **▶ MOSTLY LANDED EARLY — residue = the Imperial Governance promotion only.** The vassal core landed Jul 14–16 (row VD: VS-R + Slice 0 + VS-3..VS-6 + VP-D1/VP-D6); **the Britain naval/subsidy half landed Aug 2** (row NV — blockade, the Continental System's teeth, expeditions, the paymaster's purse). |
@@ -653,15 +694,58 @@ These ideas are downstream of the post-diplomacy command-layer queue above. Do n
 
 ---
 
-## STEAM PAGE + LLC
+## STEAM PAGE + LLC — SPLIT INTO THREE (re-planned August 3, 2026)
 
-**After Phase 8.5.** Marshal voice, gazette, audio, and EU4-style map all working. This is when the game is trailerworthy.
+> **The old entry condition is RETIRED.** It read: *"After Phase 8.5.
+> Marshal voice, gazette, audio, and EU4-style map all working."* All four
+> were checked against the repo: EU4-style map **met** (cutover + U1–U6 +
+> war-table pieces + shader hover + serif labels); Marshal Voice T1 **one
+> third built** (`marshal_voice.py` exposes the literal bank only); Gazette
+> **zero** (two forward-comments in `world_state.py`); audio **effectively
+> zero** (one `AudioStreamPlayer`, no autoload, no bus).
+>
+> It was not false — it was stale in three more damaging ways. It bundled
+> one legal item with weeks of external lead time behind three build items,
+> so an LLC waited on a narration feature. It omitted the two things that
+> actually gate a store page: **a legal entity** and **a build that runs on
+> a machine that is not the developer's** — neither appears in it. And it
+> named the wrong build item: since it was written the game grew the Battle
+> Diorama, a naval theatre with its own Trafalgar tableau, the Proclamation
+> ceremony, formable nations and a living AI diplomatic layer — every one
+> more trailerworthy than a newspaper screen. **A gazette is not trailer
+> footage**, and it is the one named item that gates neither a page nor a
+> trailer while having kept the page waiting.
+>
+> Reasoning: `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` §3.
 
-- Commission trailer showing command typing + objection popup + map
-- Set up LLC for business entity
-- Steam page with screenshots using commissioned Europe map
-- Begin wishlist accumulation — every month without a page is lost wishlists
-- Work with Claude Chat on store page copy, descriptions, tags
+### STEAM: LLC + Steamworks entity — **position 2**
+
+*Entry condition: **none**. Start immediately; it gates the page, not the
+reverse.*
+
+Legal entity → EIN → business bank → Steam Direct app fee → tax/banking
+interview → app entry. Weeks of external lead time, zero code dependency.
+**Nothing in the build queue may be sequenced ahead of this.**
+
+### STEAM: Store page — **position 10**
+
+*Entry condition: (a) a completed Steamworks account; (b) an exported build
+that runs on a machine that is not the developer's; (c) one sentence stating
+what a campaign is FOR — i.e. the Victory & Objectives Pass has landed.*
+
+Screenshots come from the shipping export, not a dev run. Existing evidence
+packs (`BD_TABLEAU_*`, `IGR_G*`, `NV7_NAVAL_DIORAMA_TRAFALGAR`) are already
+page-quality. **Publish without the trailer** — it can be added to a live
+page, and every month without a page is lost wishlists.
+
+### STEAM: Trailer — commissioned at 9, delivered at **position 14**
+
+*Entry condition: Music & Sound (Core) + Marshal Voice Tier 1 + one polished
+60-second loop with a payoff moment.*
+
+~~Gazette~~ — **struck**: a newspaper screen is not trailer footage and gates
+nothing a trailer needs. ~~EU4-style map~~ — **satisfied July 2026**; stop
+citing it as a blocker.
 
 ---
 

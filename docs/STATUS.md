@@ -2880,10 +2880,31 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 >
 > **~~⚠ ONE USER DECISION IS DUE~~ ✅ RULED + CLOSED August 3, 2026** — the `Normandy↔Berry` / `Flanders↔Orleanais` adjacency ruling. The user ruled "Normandy but not Flanders" and delegated the landing. **NEITHER EDGE IS CUT.** Flanders↔Orleanais kept (NV-8c already removed the London↔Flanders sea link, so Flanders cannot be landed at — the edge is purely internal now). Normandy↔Berry built, measured, REVERTED: across 5 seeds the cut left Britain with MORE territory (11.8→13.0 mean) while France lost Paris on **5 of 5 seeds** instead of holding it on 3 — it is France's own lateral road, and Paris is Normandy's SHORTEST edge (96px), so the cut could never have stopped the walk inland. Record + evidence: `NAVAL_SPEC.md` §15.15.
 >
-> **Then the ROADMAP spine (routing = the user's call):** the remaining Phase 8.5 content
-> → STEAM PAGE + LLC → 9 (Advisors) → 10 (Character & People) → 11 (Imperial Governance
-> promotion only — the vassal core landed Jul 14–16 and the Britain naval/subsidy half
-> landed Aug 2) → Pre-EA (incl. the **Victory & Objectives Pass**) → EA.
+> **Add to position 1's brief (August 3):** also score the **enemy-phase-as-theater**
+> pillar and narration. `AI_V_SWEEP_2026_08_01.md:472` records a twelfth pillar at
+> **5.5** — the lowest any pillar has scored — diagnosed at `:482` as *"it was never the
+> dispatch prose, it is the enemy-phase composition."* Its five fixes (PT-D1..D4, PT-F6)
+> landed Aug 1 and have **never been re-measured**, so narration 6.0 is stale evidence.
+> **This re-measure arbitrates the plan's own dissent:** if the enemy phase comes back
+> below 6.5, a composition slice moves to position 3, ahead of the shippable build.
+>
+> **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026** — the old
+> `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is superseded. The sequence now lives
+> in **`ROADMAP.md` §THE ROAD TO EARLY ACCESS**, with the full reasoning, four rejected
+> alternatives, judges and self-dissent in **`docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`**.
+> The short version — 15 positions, ~22–30 build sessions plus two non-coding tracks:
+>
+> 1. the played campaign (above) · **2. LLC + Steamworks — no entry condition, start this
+> week, it runs in PARALLEL with everything** · ~~3. asset backup~~ ✅ done Aug 3 ·
+> **4. THE SHIPPABLE BUILD** (nobody has ever produced a build of this game; `deploy/` is
+> pre-cutover and ships **no world**) · 5. Playtest Round 0 · **6–7. Victory & Objectives**
+> (the game cannot end — `turn_manager.py:1099`) · 8. Music & Sound · 9. Marshal Voice T1 ·
+> **10. Steam page goes live** · 11. CR-6 proper · 12. Tutorial · 13. hardening + Round 1 ·
+> 14. trailer · **15. EARLY ACCESS**.
+>
+> **Cut to post-EA** with named owner rows: Events System · Gazette · Imperial Governance ·
+> Voice-to-Text · the Advisors stat half. **The STEAM entry condition was RETIRED** — it
+> gated an LLC on a gazette; a gazette is not trailer footage.
 > **Nothing in the live queue is blocked on a gate.**
 
 > **[Superseded August 3, 2026 — AI Intent CLOSED Aug 1; the naval phase BUILT Aug 2.]**
