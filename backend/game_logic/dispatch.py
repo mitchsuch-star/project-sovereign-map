@@ -73,6 +73,60 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
 }
 
 # One prose template per headline class, in Berthier's register.
+# ════════════════════════════════════════════════════════════════════════
+# PC-7 (quiet-France played campaign, Aug 3 2026): STANDING vs EVENT classes.
+#
+# Measured over 42 played turns: `estate_eroding` led 21 of 41 dispatches
+# (51%), with a run of SEVEN consecutive turns and the byte-identical
+# sentence about Davout's household twelve times — while the treasury held
+# 39,000g and the remedy cost 180g/turn. The first line the player reads
+# every turn was the most repetitive text in the game, and it crowded out
+# the thing actually killing that campaign (an army starving on supply
+# attrition, strength ratio 55% → 11%, never once the lead).
+#
+# The cause is a category error in the weight table: most classes are
+# EVENT-derived off a one-turn event-log window, so on a quiet turn they do
+# not exist — but these two are STATE predicates that re-manufacture their
+# candidate every turn until the player acts. Weight 55 then wins by
+# walkover, forever. The July-19 anti-repeat guard had two holes: it
+# compared exact rendered TEXT rather than class, and it was gated behind
+# `len(candidates) > 1`, so the sole-candidate turns — exactly the ones that
+# produced the seven-turn run — skipped it entirely.
+#
+# The rule here is deliberately NOT suppression. `CREATIVE_AUDIT_2026_07_19`
+# §308 says a standing crisis is "demoted to a sub-beat (never suppressed)",
+# and `test_creative_audit_2026_07_19.py::test_headline_keeps_its_lead_when_
+# it_is_the_only_news` pins it. Suppressing a lone standing crisis would have
+# turned the seven-turn run into seven turns of being told nothing at all,
+# which is worse than repetition. So: yield the lead when there is other
+# news, and when there is not, ESCALATE the wording instead of repeating it.
+# ════════════════════════════════════════════════════════════════════════
+STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil"})
+
+# Consecutive turns a standing class may hold the lead before it must yield
+# to any other candidate. Blessed default, display-only, tunable in band.
+STANDING_LEAD_MAX = 2
+
+# Escalating variants for a standing class that keeps the lead because it is
+# genuinely the only news. Indexed by how long it has led; the last entry is
+# the terminal register. The base template is streak 1.
+_STANDING_ESCALATION: Dict[str, List[str]] = {
+    "estate_eroding": [
+        "Sire — Marshal {marshal} has now gone unrewarded {turns} turns. The "
+        "staff have noticed which of us he no longer looks at.",
+        "Sire — {turns} turns without settlement on Marshal {marshal}. A "
+        "rente would close it today; the arrears will not close themselves.",
+        "Sire — Marshal {marshal}'s grievance is {turns} turns old and has "
+        "stopped being a household matter. It is now a question of the army.",
+    ],
+    "enemy_on_our_soil": [
+        "Sire — {turns} turns now with enemy colours on French soil. The "
+        "country is watching to see how long we permit it.",
+        "Sire — the enemy has stood on our ground {turns} turns. Every turn "
+        "of it is worth a province to their recruiting sergeants.",
+    ],
+}
+
 _HEADLINE_TEMPLATES: Dict[str, str] = {
     "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
@@ -147,12 +201,15 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     }
     candidates: List[Dict[str, Any]] = []
 
-    def _add(cls: str, **fields):
+    def _add(cls: str, identity: str = "", **fields):
         text = _HEADLINE_TEMPLATES[cls].format(**fields)
         candidates.append({
             "class": cls,
             "weight": int(HEADLINE_WEIGHTS[cls]),
             "text": text,
+            # PC-7: standing classes carry WHO/WHAT they are about, so the
+            # lead-streak survives the text changing underneath it.
+            "identity": identity or cls,
         })
 
     for e in window:
@@ -262,7 +319,8 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             defenders_line = f"{' and '.join(defenders)} stand in his path."
         else:
             defenders_line = "No French corps stands in his path."
-        _add("enemy_on_our_soil", enemy=enemy_name, region=region_name,
+        _add("enemy_on_our_soil", identity=f"enemy_on_our_soil:{region_name}",
+             enemy=enemy_name, region=region_name,
              defenders_line=defenders_line)
         break  # one such headline candidate is enough
 
@@ -276,12 +334,24 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 continue
             if (get_expectation(m) > get_satisfaction(m, world)
                     and is_eroding(m, world)):
-                _add("estate_eroding", marshal=m.name)
+                _add("estate_eroding",
+                     identity=f"estate_eroding:{m.name}", marshal=m.name)
                 break
 
     if not candidates:
         return None
 
+    return _select_headline(world, candidates)
+
+
+def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Choose the lead from scored candidates and record what led.
+
+    Extracted from `_build_headline` (PC-7) so the whole rule — weight order,
+    the July-19 exact-repeat demotion, and the standing-class cooldown — is
+    one testable source rather than a tail nobody could reach without
+    building a world.
+    """
     candidates.sort(key=lambda c: c["weight"], reverse=True)
 
     # Creative audit July 19 2026: several candidates are STATE-based
@@ -302,7 +372,46 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                 candidates.insert(0, candidates.pop(_i))
                 break
 
+    # ── PC-7: the standing-class lead cooldown ──────────────────────────
+    # The memory is its OWN serialized field, not a read of the prior
+    # dispatch: `_build_headline` returns None on a candidate-free turn and
+    # the caller then never writes `dispatch["headline"]`, so a memory
+    # nested in the dispatch would be wiped by exactly the quiet turns that
+    # a passive campaign is made of — freeing the standing class to lead
+    # again immediately, which is the defect.
+    memory = dict(getattr(world, "headline_lead_memory", None) or {})
+    top_candidate = candidates[0]
+    streak = 0
+    if (top_candidate["class"] == memory.get("class")
+            and top_candidate["identity"] == memory.get("identity")):
+        streak = int(memory.get("streak") or 0)
+
+    if top_candidate["class"] in STANDING_HEADLINE_CLASSES and streak >= STANDING_LEAD_MAX:
+        # Yield to any other candidate; the standing one falls to a sub-beat
+        # through the loop below, so it is reported, never deleted.
+        for _i, _c in enumerate(candidates):
+            if _c["identity"] != top_candidate["identity"]:
+                candidates.insert(0, candidates.pop(_i))
+                break
+        else:
+            # Genuinely the only news. It keeps the lead — the July-19 rule —
+            # but says something new about how long it has gone unanswered.
+            variants = _STANDING_ESCALATION.get(top_candidate["class"]) or []
+            if variants:
+                step = min(streak - STANDING_LEAD_MAX, len(variants) - 1)
+                marshal = top_candidate.get("identity", "").split(":", 1)[-1]
+                candidates[0] = dict(top_candidate, text=variants[step].format(
+                    marshal=marshal, turns=streak + 1))
+
     top = candidates[0]
+    world.headline_lead_memory = {
+        "class": top["class"],
+        "identity": top["identity"],
+        "streak": (streak + 1
+                   if (top["class"] == memory.get("class")
+                       and top["identity"] == memory.get("identity"))
+                   else 1),
+    }
     seen_texts = {top["text"]}
     sub_beats = []
     for c in candidates[1:]:
@@ -541,9 +650,21 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         dispatch["prisoners"] = prisoners
 
     # Berthier note depends on marshals + situation (+ the headline, W6-3)
+    # PC-7: the headline arm is priority 0 and short-circuits the ENTIRE
+    # note ladder, so while a standing class holds the lead Berthier can
+    # never reach "the treasury is exhausted", the treasury-bleeding note or
+    # the idle-marshal note. Measured: 21 turns of a byte-identical note
+    # about the estate rolls while an army starved. Once a standing class
+    # has held the lead past its cooldown, hand the note back to the ladder
+    # so the closing line can say something the opening line did not.
+    _lead_class = (headline or {}).get("class", "")
+    _memory = getattr(world, "headline_lead_memory", None) or {}
+    if (_lead_class in STANDING_HEADLINE_CLASSES
+            and int(_memory.get("streak") or 0) > STANDING_LEAD_MAX):
+        _lead_class = ""
     dispatch["berthier_note"] = _pick_berthier_note(
         world, player_nation, dispatch["marshals"], dispatch["situation"],
-        headline_class=(headline or {}).get("class", ""),
+        headline_class=_lead_class,
     )
 
     # ════════════════════════════════════════════════════════════

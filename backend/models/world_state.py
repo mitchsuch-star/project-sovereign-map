@@ -832,6 +832,13 @@ class WorldState:
         # ============================================================
         # Stored by build_morning_dispatch() each turn, exposed via GET /dispatch
         self.last_morning_dispatch: dict = {}
+        # PC-7: which headline class/identity last LED the dispatch and
+        # for how many consecutive turns. Its own field rather than a read
+        # of last_morning_dispatch, because _build_headline returns None on
+        # a candidate-free turn and the caller then never writes the
+        # headline key — so a nested memory would be wiped by exactly the
+        # quiet turns a passive campaign is made of.
+        self.headline_lead_memory: dict = {}
 
         # ============================================================
         # COORDINATION TUTORIAL (Session 66)
@@ -5620,6 +5627,7 @@ class WorldState:
 
             # ═══════ MORNING DISPATCH (Session A) ═══════
             "last_morning_dispatch": self.last_morning_dispatch.copy() if self.last_morning_dispatch else {},
+            "headline_lead_memory": dict(self.headline_lead_memory) if self.headline_lead_memory else {},
 
             # ═══════ COORDINATION TUTORIAL (Session 66) ═══════
             "coordination_tutorial_shown": self.coordination_tutorial_shown,
@@ -6195,6 +6203,7 @@ class WorldState:
 
         # ═══════ MORNING DISPATCH (Session A) ═══════
         world.last_morning_dispatch = data.get("last_morning_dispatch", {})
+        world.headline_lead_memory = data.get("headline_lead_memory", {}) or {}
 
         # ═══════ COORDINATION TUTORIAL (Session 66) ═══════
         world.coordination_tutorial_shown = data.get("coordination_tutorial_shown", False)

@@ -82,6 +82,37 @@
 > he stands, player square-tutorial copy inside the enemy's report).
 >
 > Suite **16,080 / 3** (was 16,042/3), ruff clean, no `.gd` touched.
+>
+> **Second session, same day — the three recommendations built.** PC-2, PC-3 (display
+> half) and PC-7 FIXED; the economy recommendation was redirected by the user to a
+> research fleet rather than built. Measured before → after on a fresh 30-turn drive:
+> verbatim duplicate phase lines **30 → 0**, fortify/wait thrash **41 → 0**,
+> `estate_eroding` headline share **51% → 30%**, longest identical-class run **7 → 4**,
+> and turns 3–4 of a run now escalate — *"Marshal Ney has now gone unrewarded 3 turns.
+> The staff have noticed which of us he no longer looks at."* then *"4 turns without
+> settlement on Marshal Ney. A rente would close it today."*
+>
+> **Both composition fixes live at the VIEW layer, deliberately and with the experiment
+> recorded.** The producer-side fortify latch (`_fortified_this_turn`, PT-F6 discipline)
+> was built and measured first: it diverges `BASELINE_SERIES` at index 2 **and collapses
+> the AI-V §4.7 variance signature** — two seeds then agree on war count, war turns *and*
+> fight-rung courts. Attribution was verified by experiment (disabling the latch
+> reproduces both pins byte-identically), so it was reverted: **weakening a behaviour
+> guarantee to fix a narration complaint is the wrong trade.** The 2 wasted AP and the
+> defeated stagnation counter stay OPEN as a balance row with the diff and the measurement
+> already in hand. M1–M7 and `BASELINE_SERIES` byte-identical, **no re-record**.
+>
+> PC-7 adds ONE serialized field, `headline_lead_memory` — its own field rather than a
+> read of `last_morning_dispatch`, because `_build_headline` returns `None` on a
+> candidate-free turn and a nested memory would be wiped by exactly the quiet turns a
+> passive campaign is made of. A yielded standing crisis is **demoted to a sub-beat, never
+> suppressed** (`CREATIVE_AUDIT_2026_07_19` §308 and its pin): seven turns of silence would
+> be worse than seven turns of repetition. Selection tail extracted to `_select_headline`;
+> the `test_creative_audit_2026_07_19` body-scrape pin was updated **consciously** to
+> follow it and made stricter while it was open.
+>
+> `tests/test_pc2_pc7_enemy_phase_and_headline.py` (20). Suite **16,100 / 3**, ruff clean,
+> no `.gd` touched.
 
 > ### ✅ PARSE-NEG — THE PARSER EVALUATION AND ITS FIXES (August 3, 2026)
 >

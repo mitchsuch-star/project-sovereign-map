@@ -332,12 +332,29 @@ def test_headline_keeps_its_lead_when_it_is_the_only_news(europe_world):
 
 
 def test_headline_rotation_is_wired_into_the_real_builder():
-    """Pin the production seam, not just the behaviour."""
+    """Pin the production seam, not just the behaviour.
+
+    PC-7 (Aug 3, 2026) extracted the selection tail out of `_build_headline`
+    into `_select_headline`, so this pin's original body-scrape stopped
+    finding the rule it guards. Updated CONSCIOUSLY to follow the code, and
+    made stricter while it was open: it now asserts both that the builder
+    delegates and that the rule lives in the extracted function — the old
+    form would have passed if the rotation had been deleted from one and
+    never added to the other.
+    """
     src = open("backend/game_logic/dispatch.py", encoding="utf-8").read()
-    body = src[src.index("def _build_headline"):]
-    body = body[:body.index("\ndef ")]
-    assert "last_morning_dispatch" in body
-    assert "_prev_text" in body
+
+    builder = src[src.index("def _build_headline"):]
+    builder = builder[:builder.index("\ndef ")]
+    assert "_select_headline(" in builder, "the builder no longer delegates"
+
+    chooser = src[src.index("def _select_headline"):]
+    chooser = chooser[:chooser.index("\ndef ")]
+    assert "last_morning_dispatch" in chooser
+    assert "_prev_text" in chooser
+    # PC-7's own half of the rule, pinned in the same place.
+    assert "STANDING_HEADLINE_CLASSES" in chooser
+    assert "headline_lead_memory" in chooser
 
 
 # ══════════════════════════════════════════════════════════════════════

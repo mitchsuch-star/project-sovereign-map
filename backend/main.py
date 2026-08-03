@@ -752,6 +752,84 @@ def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
         nation_data["action_count"] = len(rebuilt)
 
     # Keep the fog filter's invariants: totals and summary reflect the
+    # ── PC-2: drop a marshal's REPEATED no-op within one phase ──────────
+    # `wait` costs 0 AP, so the AI loop re-selects the same marshal and
+    # `_evaluate_marshal` — being stateless about "I already waited" —
+    # returns the identical dict. The only brake is a `_consecutive_waits
+    # >= 2` latch, whose own comment reads "2 waits = nothing useful to do":
+    # the design REQUIRES a second wasted no-op to detect idleness, and that
+    # second no-op is appended to the results and shipped. Measured: 30
+    # verbatim duplicate lines across 41 phases, 23 of them one Bavarian
+    # marshal holding position (he is authored `literal`, and P8's literal
+    # arm is one of five `wait` producers with no `None` sibling).
+    #
+    # Fixed at the VIEW layer beside PT-D4's move-chain collapse, by the same
+    # precedent and for the same reason: the producer's `action_count` and
+    # `max_total_actions` break are computed before the append, so pruning
+    # inside the loop would desynchronise the budget and reach BASELINE_SERIES.
+    # Here nothing but the rendering changes, and it covers all five
+    # producers rather than the one that happened to be loudest.
+    #
+    # ── PC-3: and drop a fortify he undoes in the same breath ───────────
+    # P5 fortifies (the marshal is not yet dug in, so P3.5 declined and fell
+    # through); the executor sets `fortified` at once; the next loop
+    # iteration re-runs the ladder from the top, P3.5 now applies, and its
+    # CHECK 2 unfortifies him. The existing guards are one-directional —
+    # `_unfortified_this_turn` and `ai_refortify_cooldown` block
+    # unfortify → re-fortify and nothing blocks fortify → unfortify — which
+    # is why that is the only shape ever observed (41 thrash occurrences in
+    # 41 phases; Brunswick on turns 14/16/18, the arithmetic of the 2-turn
+    # cooldown). PT-F6 is square-scoped and does not reach it.
+    #
+    # Collapsed here rather than latched in the producer, DELIBERATELY: the
+    # producer fix was built and measured, and it diverges BASELINE_SERIES
+    # at index 2 AND collapses the AI-V §4.7 variance signature (two seeds
+    # then agree on war count, war turns and fight-rung courts). Attribution
+    # was verified by experiment — disabling the latch reproduces both pins
+    # byte-identically. Weakening a behaviour guarantee to fix a narration
+    # complaint is the wrong trade, so the 2 wasted AP and the defeated
+    # stagnation counter stay OPEN as a balance row with the experiment
+    # already done; what the player READS is fixed here, at the layer
+    # PT-D4 established for exactly this.
+    for nation_data in cleaned_phase.get("nations", {}).values():
+        actions = nation_data.get("actions", [])
+
+        def _verb(entry):
+            return (entry.get("ai_action") or {}).get("action")
+
+        def _who(entry):
+            return (entry.get("ai_action") or {}).get("marshal")
+
+        def _undone_fortify(index) -> int:
+            """Index of the unfortify that cancels actions[index], else -1.
+            Only the marshal's OWN next action counts — other marshals'
+            entries interleave freely and break nothing."""
+            name = _who(actions[index])
+            if not name:
+                return -1
+            for ahead in range(index + 1, len(actions)):
+                if _who(actions[ahead]) != name:
+                    continue
+                return ahead if _verb(actions[ahead]) == "unfortify" else -1
+            return -1
+
+        dropped, seen_waits, kept = set(), set(), []
+        for index, action in enumerate(actions):
+            if index in dropped:
+                continue
+            if _verb(action) == "wait":
+                key = (_who(action), (action.get("message") or "").strip())
+                if key in seen_waits:
+                    continue
+                seen_waits.add(key)
+            if _verb(action) == "fortify":
+                cancels = _undone_fortify(index)
+                if cancels != -1:
+                    dropped.add(cancels)
+                    continue
+            kept.append(action)
+        nation_data["actions"] = kept
+
     # entries actually shown.
     total = 0
     rebuilt_summary = []
