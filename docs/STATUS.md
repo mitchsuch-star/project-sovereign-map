@@ -99,7 +99,51 @@
 > turn-backs over 30 turns; `BASELINE_SERIES` byte-identical WITHOUT re-record;
 > suite **15,837/3**.
 >
-> **⚠ Open:** the played A2 strangulation arc + the naval pillar score (both need
+> **THE ADVERSARIAL REVIEW + THE DRIVEN ARC (NV-9 / NV-10, same day)** —
+> records `NAVAL_SPEC.md` §15.11–§15.12. A 6-lens find→refute fleet over the
+> whole naval range returned 16 findings; **the refuters were cut short by a
+> credit exhaustion, so "unrefuted" was treated as UNVERIFIED and every claim
+> re-derived by hand.** Ten fixes, 7/7 targeted mutations caught.
+> **THE P1 reproduced exactly:** Murat (cavalry, range 2) at Paris attacked
+> Moore at London and **ended the turn standing in London** — the crossing gate
+> reads the DIRECT pair, and the water was on the MIDDLE leg. Fixed as
+> `crossing_check_reach` (the 2-tile MOVE seam's own model, made the single
+> source) at the attack gate, the AI's P4 scan, and a new `_naval_advance_allowed`
+> seam for every post-combat move. Also: the Glorious Charge had no gate at
+> INITIATION; guns-across-a-strait were refused BELOW the war declaration (the
+> player bought a war for an impossible order); the muster preview promised a
+> corps Rule 2b withholds; `_decisive()` read the land grammar so every sea
+> action was "decisive" and an indecisive win contradicted the Admiralty on the
+> same screen; an ANNIHILATED pooled squadron vanished from the tableau; NV-8's
+> enemy-phase fix was half a fix (the SERVER filter suppressed a fleet action the
+> player FOUGHT); a pre-NV-8c save reloaded the dead edge walkable AND ungated;
+> `nation_is_penned_in` went stale mid-turn. **FOUR TESTS WERE REPAIRED BECAUSE
+> THEY WERE NOT TESTING ANYTHING** — each proven by deleting the code it claimed
+> to pin and watching the suite stay green. **The save migration's first cut was
+> itself a bug**: per-province, it pruned TEN edges out of the legacy fixture,
+> because eleven legacy names also exist on the Europe map with different
+> neighbours — name overlap is not identity; the test caught it, N1 preserved.
+>
+> **NV-10 — the A2 arc DRIVEN** (`tools/a2_strangulation_drive.py`, committed).
+> A scripted France marched on **Portugal** — Junot 1807, the System's own
+> founding act. Driving it found what reading could not: France took all four
+> Portuguese provinces by turn 12 and the closure went **DOWN**, 38.5% → 23.1%.
+> `closure_against` counted ports by NATION and read only who was AT WAR, so an
+> overrun neutral still counted as open — the System could not express its own
+> central move. A court whose CAPITAL is held by a power at war with the target
+> now counts as closed. **Measured after: Soult takes Lisbon turn 9, closure
+> 38.5% → 42.3%, `cs_tier_shift` fires to tier 1**; then turn 16 it falls back as
+> Spain and the Kingdom of Italy make their own peace and their ports re-open —
+> the arc working, fragility included. **Recorded honestly:** Britain's weariness
+> hits its 200 cap by turn 28 and still does not sue. That is the diplomacy
+> layer's threshold, not the naval layer's, and it is filed for that owner rather
+> than papered over. Suite **15,868/3**, `BASELINE_SERIES` byte-identical, M1–M7
+> green. Evidence: `docs/audits/NV9_NAVAL_DIORAMA_FINAL_2026_08_02.png`.
+>
+> **⚠ Open:** the **naval pillar score** (wants a human playing a campaign, not a
+> scripted drive), the live wheel check for NV-P1, a visual sign-off on the new
+> surfaces, and — for the peace-threshold owner — a capped war-weariness that
+> does not itself bring a court to the table. The played A2 arc is CLOSED (both need
 > a played campaign, not a probe), the live wheel check for NV-P1, and a visual
 > sign-off on the new surfaces — the amber DEFENDED SHORE tint, the Admiralty
 > chips, the region-panel landing chip, and the diorama in motion.
