@@ -600,6 +600,96 @@ def _forced_march_entry(chain: list[dict], world) -> dict:
     return merged
 
 
+# ════════════════════════════════════════════════════════════════════════
+# PC-0 (quiet-France played campaign, Aug 3 2026): the pending-interrupt
+# router is a keyword matcher that runs ABOVE the parser and returns before
+# it, so none of PARSE-NEG's clause guards were reaching it. Two defects,
+# both reproduced live:
+#
+#   1. Raw `in` matching had no word boundaries, and "flee" is a substring
+#      of "fleet" — so EVERY naval order in the game answered a cornered
+#      marshal's last stand as "attempt breakout". Typing
+#      "set the fleet to raid commerce" with Massena cornered rolled the
+#      escape at -10% and lost him ("raise a fleet" is a golden-corpus row).
+#   2. No negation guard: `"attack" in cmd_lower` fires on every negated
+#      form, and the attack branch is tested BEFORE the hold branch. So
+#      PARSE-NEG's own headline sentence — "hold your position, do not
+#      attack" — resolves to HOLD at the parser and to ATTACK here.
+#
+# The corpus eval calls `CommandParser.parse` directly and never traverses
+# this router, which is why 514 green rows could not see either one.
+#
+# Extracted to a pure function so the mapping is one testable source.
+# ════════════════════════════════════════════════════════════════════════
+_INTERRUPT_KEYWORDS = (
+    # (option that must be offered, keywords, resolved choice preference)
+    ("fight_to_the_last", ("fight", "last stand", "to the last", "die"),
+     ("fight_to_the_last",)),
+    ("attempt_breakout", ("breakout", "break out", "escape", "cut out", "flee"),
+     ("attempt_breakout",)),
+    (None, ("investigate", "march to", "guns", "attack", "charge", "join",
+            "commit", "proceed"),
+     ("investigate", "attack", "attack_anyway")),
+    (None, ("continue", "ignore", "keep going", "carry on", "press on",
+            "push on", "push through"),
+     ("continue_order", "attack_anyway")),
+    (None, ("hold", "stay", "stop", "wait", "halt"), ("hold_position",)),
+    (None, ("go around", "reroute", "avoid"), ("go_around",)),
+    (None, ("cancel", "abort", "belay"), ("cancel_order",)),
+)
+
+
+def _mentions_whole(text: str, keyword: str) -> bool:
+    """Whole-word (or whole-phrase) containment. `flee` must not match
+    `fleet`; `cut` must not match `executed`."""
+    return re.search(r"(?<![a-z])" + re.escape(keyword) + r"(?![a-z])",
+                     text) is not None
+
+
+def _interrupt_choice_from_text(cmd_lower: str, options) -> Optional[str]:
+    """Map a typed reply to one of a pending interrupt's `options`.
+
+    Returns None when nothing matches, which lets the command fall through
+    to the normal parse pipeline — where PARSE-NEG's guards apply and a
+    genuinely negated order is refused rather than executed affirmatively.
+    """
+    from backend.ai.clause_guards import mentions_stand_down, strip_negated_clauses
+
+    options = options or []
+
+    # PARSE-NEG: read what SURVIVES the negation, exactly as the parser does.
+    # "hold your position, do not attack" -> "hold your position" -> hold.
+    # "do not attack" -> nothing survives -> no route, parser refuses.
+    effective, _negated = strip_negated_clauses(cmd_lower)
+    effective = effective.lower()
+
+    # "stop attacking" / "attack no more" is a STAND-DOWN, never an assault.
+    # Without this the attack branch (tested first) wins on the bare verb.
+    if mentions_stand_down(effective):
+        for candidate in ("cancel_order", "hold_position"):
+            if candidate in options:
+                return candidate
+        return None
+
+    for required, keywords, preferences in _INTERRUPT_KEYWORDS:
+        if required is not None and required not in options:
+            continue
+        # "avoid" is a PARSE-NEG negation marker ("avoid attacking") AND the
+        # affirmative label of this very option ("avoid them" = go around).
+        # Answering an offered option is not negating an order, and both
+        # readings land on go_around here, so this one branch reads the raw
+        # text — otherwise the guard blanks the answer to the game's own
+        # question and the reply falls through to the parser unanswered.
+        haystack = cmd_lower if "go_around" in preferences else effective
+        if not any(_mentions_whole(haystack, kw) for kw in keywords):
+            continue
+        for candidate in preferences:
+            if candidate in options:
+                return candidate
+        return None
+    return None
+
+
 def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
     """PT-D4 (Aug-1 played-world re-measure): a corps legally chains 3-4
     moves per enemy phase (symmetric AP), but 3-4 separate "moves to X"
@@ -1523,43 +1613,7 @@ def execute_command(request: CommandRequest):
                 options = pending.get("options", [])
                 interrupt_type = pending.get("interrupt_type", "")
 
-                # Map natural language to response choices
-                choice = None
-                # W6-7: last-stand answers first — "fight" must not fall
-                # into the generic attack mapping below.
-                if "fight_to_the_last" in options and any(
-                        kw in cmd_lower for kw in
-                        ["fight", "last stand", "to the last", "die "]):
-                    choice = "fight_to_the_last"
-                elif "attempt_breakout" in options and any(
-                        kw in cmd_lower for kw in
-                        ["breakout", "break out", "escape", "cut", "flee"]):
-                    choice = "attempt_breakout"
-                elif any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join", "commit", "proceed"]):
-                    # W6-4 muster gates offer "attack_anyway" (not "attack") —
-                    # without this mapping, typing the popup's own label
-                    # ("attack anyway") fell through to the parser as a FRESH
-                    # ungated attack by a defaulted marshal (found live in the
-                    # ES-7 second-pass integration audit, July 11 2026).
-                    choice = ("investigate" if "investigate" in options
-                              else "attack" if "attack" in options
-                              else "attack_anyway" if "attack_anyway" in options
-                              else None)
-                elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on", "push on", "push through"]):
-                    # Sweep-5 live finding: a contact_bad_odds / muster gate
-                    # offers attack_anyway but no continue_order, so a natural
-                    # "press on" fell through to a bewildered LLM parse. When
-                    # the order can only continue THROUGH the enemy, pressing
-                    # on IS attacking anyway.
-                    choice = ("continue_order" if "continue_order" in options
-                              else "attack_anyway" if "attack_anyway" in options
-                              else None)
-                elif any(kw in cmd_lower for kw in ["hold", "stay", "stop", "wait", "halt"]):
-                    choice = "hold_position" if "hold_position" in options else None
-                elif any(kw in cmd_lower for kw in ["go around", "reroute", "avoid"]):
-                    choice = "go_around" if "go_around" in options else None
-                elif any(kw in cmd_lower for kw in ["cancel", "abort", "belay"]):
-                    choice = "cancel_order" if "cancel_order" in options else None
+                choice = _interrupt_choice_from_text(cmd_lower, options)
 
                 if choice:
                     print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "

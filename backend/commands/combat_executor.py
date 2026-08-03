@@ -5233,7 +5233,21 @@ class CombatExecutor:
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
                 "region_conquered": conquered,
-                "region_name": resolved_target if conquered else None,
+                # PC-1 (quiet-France played campaign, Aug 3 2026): this was
+                # `resolved_target`, which is only a REGION when the attacker
+                # named a region. `resolved_target` is reassigned to a region
+                # solely in the fuzzy-region branch (~:3374); when the target
+                # is a marshal, the `enemy_by_name` branch takes
+                # `target_location = enemy_by_name.location` (~:3425) and
+                # leaves `resolved_target` holding the MAN's name. The enemy
+                # AI always targets marshals by name, so every AI conquest
+                # shipped the wrong noun: measured 8 of 8 conquest events in
+                # a 42-turn campaign carried "Ney" / "Deroy" / "Massena" /
+                # "Paget" here, and both clients render it as a capture —
+                # `enemy_phase_dialog.gd:291` and `main.gd:1977-1978` print
+                # "⚑ Ney captured! ⚑" when a PROVINCE fell. The comment at
+                # ~:5114 already warned against exactly this substitution.
+                "region_name": target_location if conquered else None,
                 "flanking_bonus": flanking_bonus,
                 "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
                 "vindication": vindication_result,

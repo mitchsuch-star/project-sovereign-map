@@ -4,6 +4,85 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ POSITION 1 — THE QUIET-FRANCE PLAYED CAMPAIGN (August 3, 2026)
+>
+> **User direction: "do the campaign then see where we can improve anything."**
+> 42 turns driven live over HTTP against a fresh backend on the shipped 1805 board
+> (`LLM_MODE=anthropic`, `SOVEREIGN_SEED=historical`) — the Ulm concentration played
+> actively to turn 5, then **France passive** to turn 42. **Evidence pack =
+> `docs/audits/QUIET_FRANCE_CAMPAIGN_2026_08_03.md`; dispositions =
+> `BUG_FIXES.md` §Quiet-France Played Campaign, authoritative.**
+>
+> **The arbitration result.** The **enemy phase as theater re-scores 6.0 — below the 6.5
+> target.** `ROAD_TO_EA_REPLAN_2026_08_03.md` §5 wrote the consequence in advance: *"if
+> that re-measure comes back below 6.5 the composition slice moves to position 3, ahead of
+> the shippable build."* **The plan's own dissent is upheld.** PT-D1's muster odds and
+> PT-D2's diorama taxonomy are real wins and were seen working; but PT-F6 fixed *square*
+> thrash only, and the composed transcript still reads as farce whenever two mechanisms
+> stack — the original complaint, verbatim. Measured: **30** verbatim duplicate lines in
+> 41 phases, **41** fortify/unfortify + wait×2 thrash occurrences, **22** repeat-attacks by
+> one marshal in one phase, and *The Great Battle of Swabia* used twice for two different
+> battles three turns apart.
+>
+> **The D1 band is MET, and measured in a played world for the first time** — 2
+> AI-initiated wars in 42 turns (t15 Austria→Bavaria, t17 Spain→Britain, both *"stated
+> cause: conquest"*) against the 1–4-per-40 acceptance band. Alongside: 6 third-party
+> congresses, 3 unprompted REVANCHE promotions, a vassal rebellion, an elimination, and
+> Britain fighting its own Peninsular war (it **plundered Bordelais** — the IGR-E AI arm
+> live in the wild). **AI aliveness 6.5 → 8.0.**
+>
+> **Naval scores 7.0, first time.** The blockade is a real mounting cost (−175 → −306/turn),
+> the Admiralty block is complete and honest, crossings render SHUT with the live ratio
+> (1.9× → 3.7×). **But the A2 sue-path is structurally unreachable defensively**: CS closure
+> only rises by taking ports, so a France that stops conquering watches it *fall*
+> (38% → 23%, never reaching the 40% first notch). That is a finding, not a failed test.
+>
+> **Two P1s, both found by playing, both invisible to 16,042 green tests — and one of them
+> re-opened yesterday's defect class on a different code path.**
+>
+> - **PC-0 — the `/command` interrupt router re-opens PARSE-NEG.** It matches raw substrings
+>   and RETURNS *before* the parser, so the `clause_guards` that landed the previous day
+>   never reach it. `hold your position, do not attack` — PARSE-NEG's own headline sentence —
+>   parses as HOLD at the parser and **as ATTACK here**. And `"flee"` is a substring of
+>   `"fleet"`, so **every naval order in the game** answers a cornered marshal's last stand
+>   as `attempt_breakout`: at turn 42 I typed `set the fleet to raid commerce` with Massena
+>   cornered, and **lost him to captivity** while the fleet posture never changed. The
+>   corpus cannot see it — `parser_eval` calls `CommandParser.parse` directly and never
+>   traverses this router. FIXED: one pure `_interrupt_choice_from_text`, word boundaries,
+>   `strip_negated_clauses` first, stand-down routed to cancel/hold, `avoid` carved out
+>   (it is both a negation marker and this option's own affirmative label).
+>   `test_pc0_interrupt_router_guards.py` (34) with a negative control that re-runs the old
+>   rule and asserts it fails.
+> - **PC-1 — a province falls and the game says a MARSHAL was captured.** The battle event
+>   carried `region_name: resolved_target`, which holds the *man's* name whenever the target
+>   was a marshal — which is always, for the AI. **8 of 8** conquests in the campaign carried
+>   `Ney` / `Deroy` / `Massena` / `Paget` / `Bernadotte`, and both clients render the key as
+>   a place (`⚑ Ney captured! ⚑`). The comment ten lines above already warned against this
+>   substitution and IGR-X8 edited the same dict without noticing. FIXED: one token.
+>   `test_pc1_conquest_names_the_region.py` (4), mutation-tested 2-of-4-fail.
+>
+> **Two of my own readings were corrected by the refuter fleet and the corrections are
+> recorded, not dropped:** the forced-retreat capture *is* real, one-phase, and *is*
+> announced (next turn's dispatch headlines it at weight 100) — the defect is the wrong
+> noun, not silence; and "one marshal takes five actions in a phase" is
+> **working-as-designed** (the budget is per *nation*, `ENEMY_AI_REFERENCE.md:35`; full
+> round-robin is an explicit Post-EA row; AUD-e's behaviour half was dropped at 8.EVAL) —
+> my count was also inflated by admin-phase entries.
+>
+> Eight rows routed OPEN, all with seams: PC-2 the AI spends two actions saying nothing
+> (P8's catch-all `else` returns `wait` unconditionally, `wait` costs 0 AP, and the only
+> brake is a `>= 2` latch — so idleness costs a *second* wasted no-op to detect, and it
+> ships); PC-3 fortify/unfortify thrash (PT-F6 is square-scoped); PC-4 battle-name
+> collision; PC-5 the diorama observation contradicting its own contingent list; PC-6
+> flanking origins naming provinces the attacker does not hold; **PC-7 the dispatch headline
+> stuck on `estate_eroding` for 21 of 41 turns** (identical sentence ×12, byte-identical
+> Berthier note, treasury 39,000g — the cheapest lift on the narration pillar); PC-8 the
+> first-step interrupt pricing solo strength; PC-9 the copy/tray family (50 alerts, 7×
+> "Ney is cornered", a turn-3 alert live at turn 42, `The Switzerland`, `en_route` to where
+> he stands, player square-tutorial copy inside the enemy's report).
+>
+> Suite **16,080 / 3** (was 16,042/3), ruff clean, no `.gd` touched.
+
 > ### ✅ PARSE-NEG — THE PARSER EVALUATION AND ITS FIXES (August 3, 2026)
 >
 > **User direction: "do full evaluation of parser and all fixes required."**
