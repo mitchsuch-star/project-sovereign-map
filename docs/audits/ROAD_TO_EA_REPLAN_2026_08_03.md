@@ -179,3 +179,68 @@ Six of seven Phase 11 rows (`:721-727`) have landed — the Quick Status row alr
 4. **The CR-6 gate returns "yes, and it is large."** Then it moves ahead of the store page — I would rather delay the page by three sessions than publish a promise I have not yet built. This is the one item where I would let the marketing wait for the build.
 
 **Two things I would not reorder on any evidence:** the LLC starting now (it is free and it is pure calendar), and the asset backup (five minutes against total loss of a paid commission that exists on exactly one disk).
+---
+
+## AMENDMENTS — the EA-scope refund test (August 3, 2026, same day)
+
+The user pressure-tested three of this plan's calls: *"we have no sound and
+such is that an issue?"*, *"and llm integration not set up for users etc"*,
+*"and no news reel etc"*. A four-probe / four-refuter panel answered them.
+**Two of the orchestrator's own claims were corrected, and the panel found
+something worse than all three questions.**
+
+**Sound — NOT an issue; the premise was wrong.** I had said the game is
+"silent except during a battle tableau". `battle_diorama.py:344` sets
+`significant = decisive or player_involved or great_battle`, and
+`player_involved` is true for **any battle the player fights** — which fires
+the cannon (`battle_diorama.gd:1229`) within minutes and constantly
+thereafter. The honest model is **"battle audio, no soundtrack"**, which is
+ordinary for EA strategy. Position 8 holds. Only the *shell* (autoload, bus
+layout, sliders) moves to 4, because that is where the main menu, Settings
+and `%APPDATA%` work already is.
+
+**News reel — NOT an issue; the cut stands, and it is more redundant than
+this memo argued.** The Morning Dispatch (`dispatch.py`, 2,552 lines)
+already builds a scored newspaper every turn: `_build_headline` weighs
+fog-visible events across 13 classes, wrapped in a situation column, a
+foreign-affairs column, and a signed headline-aware editorial. Decisively,
+`ROADMAP:601` scopes the EA gazette as *"written from French perspective"* —
+single-voice, French, periodic prose. **That is the Dispatch.** The
+architecture reason is KEPT, not demoted: the cut row says "via single LLM
+call", so the objection targets exactly what is being cut.
+
+**LLM for users — an issue, but the named half was already owned** (the
+in-client key field is position 4, with the right Done criterion). The
+unowned half is far worse and is now filed as **PARSE-NEG**.
+
+### PARSE-NEG — the finding that outranks all three questions
+
+`should_use_llm` escalates only **below** confidence 0.7. Reproduced
+first-hand on the shipped board, keyless:
+
+- `Ney, never attack Mack` → **attack**, 0.90
+- `Ney, don't attack` → **attack**, 0.90
+- `how do I attack?` → **attack**, 0.80
+- `Ney, hold until Davout arrives then attack` → **attack now**, 0.90
+- `Ney, if Mack advances fall back to Alsace` → **move now**, 0.95
+
+All above the gate, so **the LLM is never consulted — buying a key does not
+fix it**. Negation contains the same keywords as its affirmative, so it
+scores *higher* and is structurally shielded from the one component that
+could catch it. Full row, four sub-defects and the bounded fix:
+`BUG_FIXES.md` §PARSE-NEG. It is a correctness bug, not a scope decision,
+and it does not wait for position 11.
+
+**Also found:** making mock the shipped default **arms the cheat console** —
+`meta_executor.py:2037-2043` refuses cheats only when `live_client_armed`,
+which is false without a key. Not a code bug; a design assumption ("mock
+means dev") that position 4's own mock-default decision invalidates.
+Re-gate on explicit debug, in that same slice (~1 hour).
+
+**Dismissed as non-gaps** (checked, not assumed): save/load UI exists;
+save migration is sane (`FORMAT_VERSION=3`, hard-reject with a clear
+message); turn latency 23.1ms under a 15× tripwire; main menu is 4(f);
+tutorial is 12; code signing is 13.
+
+**Net plan change: positions 3, 4, 5, 8 and 10 amended. No 16th position.
+Nothing moves in front of Victory.**

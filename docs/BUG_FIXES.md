@@ -30,6 +30,78 @@
 
 ---
 
+
+## PARSE-NEG — the fast parser is confidently WRONG above the LLM escalation gate (filed August 3, 2026)
+
+> **P1. Not a mock-mode gap — an API key does not fix it.** Found by the
+> EA-scope refund panel; **reproduced first-hand** on the shipped 1805 board
+> through the production `LLMClient.parse_command` call, keyless.
+
+`llm_client.should_use_llm` escalates to the LLM only when fast-parse
+confidence is **below** `LLM_FALLBACK_CONFIDENCE_THRESHOLD = 0.7`. Every row
+below lands **above** it — so the LLM is never consulted, in any mode, with
+or without a key. The golden corpus never caught it because these phrasings
+are not in it.
+
+| typed | parsed as | conf | escalates? |
+|---|---|---|---|
+| `Ney, attack Mack` *(control)* | attack, Ney | 0.90 | no — correct |
+| `Davout, fortify` *(control)* | fortify, Davout | 0.90 | no — correct |
+| **`Ney, never attack Mack`** | **attack**, Ney | **0.90** | **no** |
+| **`Ney, don't attack`** | **attack**, Ney | **0.90** | **no** |
+| **`Ney, hold your position, do not attack`** | **attack**, Ney | **0.90** | **no** |
+| **`how do I attack?`** | **attack** | **0.80** | **no** |
+| **`Ney, hold until Davout arrives then attack`** | **attack** immediately | **0.90** | **no** |
+| **`Ney, if Mack advances fall back to Alsace`** | **move** to Alsace, condition dropped | **0.95** | **no** |
+| `Soult, dig in where you are` | fortify, conf 0.55 | 0.55 | yes — correctly escalates |
+
+**Four distinct defects, one shared cause** — keyword presence outranks
+sentence meaning, and the confidence score does not know it:
+
+1. **Negation inverted.** `never attack` / `don't attack` / `do not attack`
+   all issue the attack. This is the severe one: a player loses an army for
+   using a word correctly.
+2. **Interrogatives read as imperatives.** `how do I attack?` issues an
+   attack at 0.80 — a help question becomes an order.
+3. **Sequencing collapsed.** `hold until Davout arrives then attack` attacks
+   now. (CR-2 handles `then` for *two clauses*; the `until X` precondition
+   is dropped.)
+4. **Conditionals dropped.** `if Mack advances fall back to Alsace` moves
+   immediately at 0.95 — the highest confidence in the set, on a sentence
+   whose entire meaning is the condition.
+
+**Why the confidence gate makes it worse rather than better.** The gate
+exists so cheap parses skip the LLM. But confidence is computed from
+keyword-match strength, and a negated sentence contains the *same keywords*
+as its affirmative — so negation SCORES HIGHER, not lower, and is
+structurally shielded from the one component that could catch it. The fix
+must lower confidence (or refuse) on these shapes, not add another
+downstream guard.
+
+**Scope of the fix (bounded, no gate needed):**
+- a negation pre-check ahead of action selection — `never`, `don't`/`do not`,
+  `stop`, `cancel`, `no longer`, `rather than`, `instead of`;
+- an interrogative pre-check — leading `how`/`what`/`why`/`can I`/`should I`,
+  or a trailing `?`;
+- treat `until` / `if` / `unless` / `when` as the CR-2 clause-boundary family
+  already handles `then`, and demote confidence below 0.7 so the LLM is
+  actually consulted;
+- **golden-corpus rows for every line in the table above**, since step 12 of
+  the new-action checklist exists precisely to stop this class from
+  regressing.
+
+**Do NOT "fix" it by raising the threshold.** That escalates everything and
+makes the game LLM-dependent — the opposite of the EA framing, where mock
+is the shipped default.
+
+Reproduction: `LLMClient(); parse_command(text, world)` against
+`europe_1805.json`, `LLM_MODE=mock`, no key. Verified August 3, 2026.
+
+**Owner:** the plan's position 11 (CR-6 proper) is where this class of work
+lives, but this defect is a correctness bug and should not wait for a gate.
+Recorded in `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` §amendments.
+
+
 ## Live-Playthrough Findings (August 1, 2026 — the played-world creative-audit re-measure)
 
 > Source: `docs/audits/AI_V_SWEEP_2026_08_01.md` §10 (the full ledger and the scored
