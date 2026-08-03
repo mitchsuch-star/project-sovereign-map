@@ -236,11 +236,11 @@
    "utterance": "how is the war going",
    "world": "any",
    "expected": {
-    "success": false,
-    "error_contains": "Unknown action"
+    "success": true,
+    "action": "help"
    },
    "source": "tests/test_phase4_batch1_parser.py::TestParserCollisions::test_how_is_war_going_not_diplomatic",
-   "notes": "NEGATIVE assertion only: action != diplomatic_declare_war (bare 'war' in a question must not trigger war declaration). No positive expectation pinned."
+   "notes": "PARSE-NEG (Aug 3, 2026) - PIN FLIPPED CONSCIOUSLY. The original assertion was negative only (action != diplomatic_declare_war); the 'Unknown action' shape was incidental, a WH-question simply being unparseable so Berthier shrugged at it. The interrogative guard now routes it to `help`, which still satisfies the source test's real contract (bare 'war' in a question must not declare one) and answers the player instead of shrugging. The source test is unchanged and still green."
   },
   {
    "id": "break-treaty-with-austria",
@@ -3646,6 +3646,332 @@
     },
     "source": "tests/test_naval_descent.py::TestDiversion",
     "notes": "DEF-5 NV-3 (section 5.3.3a the Grand Diversion). 'order' must not be eaten by the cancel family (whose keywords are 'cancel/halt/abort order')."
+  },
+
+  {
+    "id": "parseneg-never-attack-refuses",
+    "utterance": "Ney, never attack Mack",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "attack"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — the headline row",
+    "notes": "Parsed as attack at confidence 0.95, ABOVE the 0.7 LLM-fallback gate, so no key could ever have corrected it. A negated sentence carries the same keywords as its affirmative, which is why it scored HIGHER than the order it inverted."
+  },
+  {
+    "id": "parseneg-dont-attack-refuses",
+    "utterance": "Ney, don't attack",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "attack"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 2"
+  },
+  {
+    "id": "parseneg-do-not-attack-refuses",
+    "utterance": "Ney, do not attack",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "attack"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 3",
+    "notes": "Also fabricated the target 'Brabant' out of the word 'not'."
+  },
+  {
+    "id": "parseneg-hold-position-do-not-attack",
+    "utterance": "Ney, hold your position, do not attack",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "hold",
+      "marshal": "Ney"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 4",
+    "notes": "The scoping half of the fix, and the reason a blanket refusal would have been wrong: the sentence contains a perfectly good order. Only the negated clause is removed; what survives is HOLD. The old parse was attack, with the target string 'your position, do not attack'."
+  },
+  {
+    "id": "parseneg-negated-clause-not-in-target",
+    "utterance": "Ney, hold. Do not attack.",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "hold",
+      "strategic_type": "HOLD"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Two sentences. The strategic layer used to take '. Do Not Attack.' as the province being held."
+  },
+  {
+    "id": "parseneg-recovered-order-after-negation",
+    "utterance": "Ney, without attacking, move to Lorraine",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "target": "Lorraine"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Was attack. The order is in the main clause; the negation only qualifies it."
+  },
+  {
+    "id": "parseneg-instead-of-attacking-fortify",
+    "utterance": "Ney, instead of attacking, fortify",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "fortify",
+      "marshal": "Ney"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Was attack — the contrastive alternative outranked the actual order."
+  },
+  {
+    "id": "parseneg-diplomatic-negation-refuses",
+    "utterance": "don't declare war on Austria",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "diplomatic_declare_war"
+    },
+    "source": "PARSE-NEG — found by the evaluation, not in the filed table",
+    "notes": "The worst of the family: a negated sentence DECLARED WAR, an irreversible nation-level act, at confidence 0.95. The guard runs before diplomatic routing for exactly this reason."
+  },
+  {
+    "id": "parseneg-talleyrand-negation-refuses",
+    "utterance": "Talleyrand, do not propose peace with Austria",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "diplomatic_proposal"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "The negation leaves a bare address, which used to fall through on the diplomat-name rule and open the proposal flow anyway."
+  },
+  {
+    "id": "parseneg-stop-attacking-is-cancel",
+    "utterance": "Ney, stop attacking",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "cancel",
+      "marshal": "Ney"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Standing an order down is CANCEL, not a refusal — the intent is unambiguous. Was attack, with the target 'Estonia' fuzzed out of the word 'attacking'."
+  },
+  {
+    "id": "parseneg-attack-no-more-is-cancel",
+    "utterance": "Ney, attack no more",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "cancel"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Was attack, targeting 'Moore' — the British marshal, one edit away from the word 'more'."
+  },
+  {
+    "id": "parseneg-stop-the-war-still-peace",
+    "utterance": "Talleyrand, stop the war with Britain",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "type": "diplomatic",
+      "diplo": {
+        "proposal_type": "peace"
+      }
+    },
+    "source": "PARSE-NEG guard — the stand-down predicate must stay narrow",
+    "notes": "Duplicate utterance of talleyrand-stop-the-war-with-britain, kept deliberately: this row exists to fail if the stand-down predicate is ever widened past ORDER nouns and starts eating peace proposals."
+  },
+  {
+    "id": "parseneg-how-do-i-attack",
+    "utterance": "how do I attack?",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "help"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 5",
+    "notes": "Issued the attack at 0.80 and fabricated the target 'Buxhowden'. A player asking how the game works lost a corps for it."
+  },
+  {
+    "id": "parseneg-can-i-attack-mack",
+    "utterance": "can I attack Mack?",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "help"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "Worse than the filed row: this one resolved the target too, so the question executed as a real assault on Mack at 0.90."
+  },
+  {
+    "id": "parseneg-should-i-attack",
+    "utterance": "should I attack?",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "help"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "Used to hard-fail with \"Did you mean 'Soult'? ('should' not found)\" — the marshal fuzzy scan reading an auxiliary verb as a name."
+  },
+  {
+    "id": "parseneg-polite-order-still-marches",
+    "utterance": "would you have Ney attack Mack",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "attack",
+      "marshal": "Ney",
+      "target": "Mack"
+    },
+    "source": "PARSE-NEG guard — the question predicate must stay narrow",
+    "notes": "The counter-example that shapes is_question: `would`/`will`/`shall` are excluded from the interrogative leads because they front polite ORDERS."
+  },
+  {
+    "id": "parseneg-talleyrand-question-still-advisory",
+    "utterance": "Talleyrand, should we declare war on Prussia?",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "type": "diplomatic",
+      "diplo": {
+        "action": "diplomatic_advisory"
+      }
+    },
+    "source": "PARSE-NEG guard — regression pin",
+    "notes": "Talleyrand's desk answers questions better than the help screen does, so the clause guards yield to it. This row caught two of the fix's own regressions during the build: the should-inversion rule fired on 'should WE', and the guards were blanking a question's clauses before diplomatic routing could read them."
+  },
+  {
+    "id": "parseneg-conditional-refuses",
+    "utterance": "Ney, if Mack advances fall back to Lorraine",
+    "world": "1805",
+    "expected": {
+      "success": false,
+      "not_action": "move"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 7",
+    "notes": "Marched to Lorraine immediately at 0.95 — the highest confidence in the whole filed set, on a sentence whose entire meaning is the condition. The engine holds no 'if', so the honest answer is that no order was issued."
+  },
+  {
+    "id": "parseneg-when-clause-refuses",
+    "utterance": "Ney, when Davout arrives, attack",
+    "world": "any",
+    "expected": {
+      "success": false,
+      "not_action": "attack"
+    },
+    "source": "PARSE-NEG — found by the evaluation"
+  },
+  {
+    "id": "parseneg-after-clause-refuses",
+    "utterance": "Ney, move to Lorraine after Davout arrives",
+    "world": "1805",
+    "expected": {
+      "success": false,
+      "not_action": "move"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "Also produced the phantom destination 'Lorraine After Davout Arrives'."
+  },
+  {
+    "id": "parseneg-until-then-attack-holds",
+    "utterance": "Ney, hold until Davout arrives then attack",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "hold",
+      "strategic_type": "HOLD"
+    },
+    "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 6",
+    "notes": "Attacked immediately. `until` is the ONE condition the engine implements, so it is scoped rather than refused: the keyword inside the subordinate clause no longer outranks the main verb, and the StrategicCondition survives intact."
+  },
+  {
+    "id": "parseneg-unless-elliptical-holds",
+    "utterance": "Ney, unless attacked, hold position",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "hold"
+    },
+    "source": "PARSE-NEG authored",
+    "notes": "Was attack — from the word 'attacked' inside the subordinate clause. A one-word elliptical clause is not a checkable condition, so the main order stands; the two-word floor is what keeps `cr2-when-ready-then-retreat-not-split` green."
+  },
+  {
+    "id": "parseneg-retreat-if-outnumbered-executes",
+    "utterance": "Ney, retreat if outnumbered",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "retreat"
+    },
+    "source": "PARSE-NEG — pinned as ACCEPTED behaviour, not as ideal",
+    "notes": "The elliptical floor cuts both ways: 'if outnumbered' is one word, so this retreats now. Recorded deliberately so the trade-off is visible rather than discovered later. A real conditional-order system is CR-6/CR-7 scope."
+  },
+  {
+    "id": "parseneg-go-to-region",
+    "utterance": "Ney, go to Lorraine",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "marshal": "Ney",
+      "target": "Lorraine"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "About as plain as an order gets, and it was UNPARSEABLE. The move keyword list carried 'head to', 'proceed to', 'travel to' and 'ride to' but never 'go to'."
+  },
+  {
+    "id": "parseneg-go-to-war-still-diplomatic",
+    "utterance": "go to war with Britain",
+    "world": "any",
+    "expected": {
+      "success": true,
+      "action": "diplomatic_declare_war"
+    },
+    "source": "PARSE-NEG guard — the 'go to' addition must not march on the province 'war'",
+    "notes": "Duplicate utterance of go-to-war-with-britain, kept deliberately as the collision pin for the new move keyword."
+  },
+  {
+    "id": "parseneg-destination-is-the-last-preposition",
+    "utterance": "Ney, I want you to move to Lorraine",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "move",
+      "target": "Lorraine"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "The destination regex anchored on the FIRST preposition, so this marched on the phantom province 'Move To Lorraine' at confidence 0.95."
+  },
+  {
+    "id": "parseneg-no-phantom-target-from-prose",
+    "utterance": "Ney, form square",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "form_square",
+      "target": null
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "The free-text target scan fuzzed the word 'square' into the province Normandy. Same seam produced Brabant from 'not', Buxhowden from 'how', Naples from 'able', White Russia from 'happens', Ulster from 'lost', Wales from 'thinking' and Crete from 'rente' — every one of them at 0.9, as the province a marshal was ordered to take."
+  },
+  {
+    "id": "parseneg-hold-the-pass-is-hold",
+    "utterance": "Ney, hold the pass",
+    "world": "1805",
+    "expected": {
+      "success": true,
+      "action": "hold",
+      "strategic_type": "HOLD"
+    },
+    "source": "PARSE-NEG — found by the evaluation",
+    "notes": "Two defects in four words: 'pass' the noun triggered the turn-passing verb (action WAIT), and the leftover noun fuzzed into a standing HOLD on Nassau. The target now stays the player's own word, so the executor answers \"Region 'Pass' not found. Nearby: ...\" — the Sweep-5 contract."
   }
  ]
 }

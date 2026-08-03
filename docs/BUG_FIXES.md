@@ -31,7 +31,14 @@
 ---
 
 
-## PARSE-NEG — the fast parser is confidently WRONG above the LLM escalation gate (filed August 3, 2026)
+## ~~PARSE-NEG — the fast parser is confidently WRONG above the LLM escalation gate~~ (filed August 3, 2026 — ✅ **FIXED August 3, 2026**)
+
+> **✅ FIXED August 3, 2026.** The whole family, plus eight more defects the
+> fix's own evaluation turned up. **Landing record = §PARSE-NEG landing below**
+> (immediately after the filed analysis, which is kept verbatim because its
+> reasoning about *why the confidence gate shields negation* is the design
+> constraint the fix had to satisfy). New module `backend/ai/clause_guards.py`;
+> tests `tests/test_parse_negation.py` (94) + 26 golden-corpus rows.
 
 > **P1. Not a mock-mode gap — an API key does not fix it.** Found by the
 > EA-scope refund panel; **reproduced first-hand** on the shipped 1805 board
@@ -100,6 +107,108 @@ Reproduction: `LLMClient(); parse_command(text, world)` against
 **Owner:** the plan's position 11 (CR-6 proper) is where this class of work
 lives, but this defect is a correctness bug and should not wait for a gate.
 Recorded in `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` §amendments.
+
+
+### PARSE-NEG landing record — August 3, 2026
+
+**What ran first.** A full evaluation of the parse pipeline before any fix:
+~130 utterances across nine families driven through the production call shape
+`CommandParser.parse(text, llm_game_state, world=world)` on the shipped 1805
+board, keyless. It confirmed all five filed rows and found **eight more
+defects of the same class**, three of them worse than anything filed.
+
+**The severest finding is not in the filed table.** `don't declare war on
+Austria` **declared war**, at confidence 0.95 — an irreversible, nation-level
+act, from a negation. So did `Talleyrand, do not propose peace with Austria`
+(proposed it) and `do not invade Prussia` (declared). The filed table sampled
+only the military verbs; the diplomatic routes sit *above* them in the same
+keyword chain and were never checked.
+
+**The second class the evaluation exposed: phantom provinces.** The free-text
+target scan fuzzy-matched ordinary English into real places and shipped the
+result as the province a marshal was ordered to take — **not** →
+Brabant, **how** → Buxhowden, **able** → Naples, **happens** → White Russia,
+**lost** → Ulster, **thinking** → Wales, **more** → Moore (the British
+marshal), **relieved** → Rhineland, **square** → Normandy, **rente** → Crete,
+**pass** → Nassau. `Ney, form square` and `Ney, hold the pass` — plain orders,
+no negation anywhere — were affected. All at 0.8–0.9.
+
+**And two plain gaps.** `Ney, go to Alsace` was **unparseable** (the move
+keyword list carried "head to", "proceed to", "travel to" and "ride to" but
+never "go to"); and the destination regex anchored on the FIRST preposition,
+so `Ney, I want you to move to Lorraine` marched on the phantom province
+"Move To Lorraine".
+
+**The fix, and why it is not the one the row prescribes.** The row asks for the
+confidence to be demoted "so the LLM is actually consulted". Confidence *is*
+demoted — but escalation is **declined for a refusal**, deliberately
+(`_should_fallback_to_llm`, commented in place). Under forced tool-use every
+model reply must name an action from the enum, and the one sentence we would
+be handing over is the one whose only verb the player forbade. The guard is
+what makes that safe: it does not refuse whenever it sees a negation, it
+**removes the negated clause and re-reads what is left**, so
+`Ney, hold your position, do not attack` now parses as HOLD and never reaches
+the refusal at all. What remains is only the case where there is no order for
+a model to find. Mock is the shipped EA default, so a live-only escape hatch
+could not have been the primary fix either way.
+
+| # | Fix | Seam |
+|---|---|---|
+| 1 | **Clause guards** — negated and conditional clauses are blanked with SPACES (never spliced, so every position-aware rule downstream keeps its indices) before any routing reads the text | NEW `backend/ai/clause_guards.py`; wired at the top of `llm_client._parse_with_mock`, after cheat/debug so literal arguments are never blanked |
+| 2 | **Negation refusal** when the negation consumed every word that could name an order — checked once before diplomatic routing (which returns early) and once after action selection | `llm_client._refusal_result`, new `ParseResult.refusal` |
+| 3 | **`until` scoped, not refused** — it is the one condition `StrategicCondition` implements, so its clause runs to end-of-utterance and the keyword inside it stops outranking the main verb | `clause_guards._UNTIL_CLAUSE_END_RE` |
+| 4 | **Conditional refusal** for `if`/`unless`/`when`/`once`/`after`/`as soon as`/`should <third party>` — gated on a **two-word clause**, which is what keeps the corpus pin `cr2-when-ready-then-retreat-not-split` green | `clause_guards.strip_condition_clauses` |
+| 5 | **Stand-down → cancel** — "stop attacking" / "attack no more" are unambiguous, so they route to the existing cancel action rather than a refusal | `clause_guards.mentions_stand_down` |
+| 6 | **Question → help** — sited AFTER diplomatic routing so Talleyrand's advisory desk keeps its own, better answer | `clause_guards.is_question` |
+| 7 | **Phantom-province gate** — a general English stopword list *plus* an independent typo-shape gate (same first letter, edit distance ≤2), because neither alone catches both "square"→Normandy and "relieved"→Rhineland | `parser._NON_TARGET_WORDS`, `parser._plausible_name_typo`, applied to the free-text scan AND the strategic region fuzzy |
+| 8 | **Destination = the LAST preposition**, with a widened tail-cutter | `llm_client` Sweep-5 fallback |
+| 9 | **`go to <region>`**, guarded against "go to war" | `llm_client` move keywords |
+| 10 | **`pass` the noun ≠ pass the turn** — "hold the pass" was answered with WAIT | `llm_client` wait branch, article lookbehinds |
+| 11 | **Target never spans a sentence or subordinate clause** | `strategic_parser._clean_target_text` |
+| 12 | **A refusal is a finished verdict** — fuzzy matching returns early, or it replaced the verdict ("Talleyrand, do not propose peace" became *"Did you mean 'Ney'?"*) | `parser._apply_fuzzy_matching` |
+| 13 | **Berthier says what he read** — a specific line per refusal kind, never the generic shrug, and it bills 0 AP | `main.py` |
+
+**Two of the fix's own regressions were caught by its own counter-example
+pins, not by review:** the should-inversion rule fired on "should **we**"
+(taking `Talleyrand, should we declare war on Prussia?` — a working advisory
+request — down to a bare address and a marshal-typo error), and the guards were
+blanking a question's clauses *before* diplomatic routing could read them. Both
+are now regression rows in the corpus and in
+`TestGuardsStayNarrow::test_talleyrands_desk_keeps_its_own_answer_for_questions`.
+
+**Falsification.** Every guard trades safety for reach, so the counter-examples
+are pinned as hard as the defects: polite orders still march
+("would you have Ney attack Mack"), `no quarter` is still an attack idiom,
+"Talleyrand, stop the war with Britain" is still a peace proposal, "stop
+Davout's pension" is still a revoke, "go to war with Britain" is still a
+declaration, typos still auto-correct ("viena" → Vienna, "Mac" → Mack), and
+cheat arguments are never blanked. Across the **324 pre-existing corpus
+utterances only four trip a guard**, all of them questions, and three of those
+are Talleyrand's and keep their advisory answer.
+
+**Consciously flipped pin (one).** `how-is-the-war-going` pinned
+`success: false, error_contains: "Unknown action"`. Its source test asserts only
+`action != diplomatic_declare_war`, which `help` satisfies; the shrug was
+incidental. Flipped to `action: "help"`, source test unchanged and green.
+
+**Accepted, pinned, NOT ideal.** `Ney, retreat if outnumbered` still retreats
+now — the two-word floor that protects `when ready then retreat` also lets a
+one-word elliptical condition through. Pinned as
+`parseneg-retreat-if-outnumbered-executes` so the trade-off is visible rather
+than discovered later. A real conditional-order system is CR-6/CR-7 scope.
+
+**Verification.** Suite **16,042 passed / 3 skipped** (was 15,901/3), ruff
+clean, golden corpus **514/514**, and live-verified over HTTP against a fresh
+backend on the 1805 board (refusal lines, the recovered HOLD, `go to Lorraine`
+marching Rhineland→Lorraine, `stop attacking` cancelling). No `.gd` touched.
+
+**Routed, not fixed (new row).** `executor.py:300` answers an unknown province
+with *"Nearby: Wales, Balearics, Ulster"* — the list is fuzzy **name**
+similarity, not geography, so the word "Nearby" is a lie. Left alone because
+that exact wording is the documented Sweep-5 contract in three places
+(`SWEEP_5_LIVE_EVIDENCE_2026_07_16.md`, `STATUS.md`, `generic_targets.py`);
+re-labelling it belongs to whoever next opens that contract. **PARSE-NEG-X1**,
+P3.
 
 
 ## Live-Playthrough Findings (August 1, 2026 — the played-world creative-audit re-measure)

@@ -33,6 +33,13 @@ from .providers import get_provider, PROVIDERS
 from .validation import validate_parse_result
 from .attack_vocabulary import mentions_attack
 from .recruit_arm import extract_requested_arm
+from .clause_guards import (
+    has_executable_residue,
+    is_question,
+    mentions_stand_down,
+    strip_condition_clauses,
+    strip_negated_clauses,
+)
 
 # Load environment variables
 load_dotenv()
@@ -470,6 +477,21 @@ class LLMClient:
         if fast_result.confidence >= LLM_FALLBACK_CONFIDENCE_THRESHOLD:
             return False
 
+        # PARSE-NEG: a deliberate no-order refusal is TERMINAL, in both modes.
+        # The deterministic layer did not fail to understand "Ney, never attack
+        # Mack" — it understood it exactly and correctly concluded that no order
+        # was given. Handing that sentence to a model under forced tool-use,
+        # where every reply must name an action from the enum, is how the
+        # forbidden order gets issued after all. A DEVIATION from the
+        # BUG_FIXES §PARSE-NEG prescription ("demote below 0.7 so the LLM is
+        # consulted"), taken because the guard now recovers the real order
+        # whenever one survives the negated clause — "hold your position, do
+        # not attack" parses as HOLD and never reaches here — so what remains
+        # is only the case where there is nothing for a model to find. Richer
+        # conversational handling is CR-6's, on its own gate.
+        if fast_result.refusal:
+            return False
+
         # No game state: can't build good prompt (marshals, positions, etc.)
         if game_state is None:
             return False
@@ -787,6 +809,37 @@ class LLMClient:
 
         return random.choice(templates)
 
+    def _refusal_result(self, original_text: str, reason: str,
+                        phrase: str) -> ParseResult:
+        """PARSE-NEG: the parser understood the sentence and there is no order.
+
+        Deliberately NOT a `matched` result — it carries action "unknown" so
+        every downstream consumer (validation, the executor, the campaign log)
+        treats it as "nothing was ordered", which is the truth. What makes it
+        different from an ordinary shrug is `refusal`: main.py answers it with
+        a specific Berthier line naming what the player forbade, instead of the
+        generic "I cannot interpret that order".
+
+        Confidence stays at the honest 0.5. It is `_should_fallback_to_llm`
+        that declines to escalate (see the comment there), not a fake score.
+        """
+        return ParseResult(
+            matched=False,
+            command_type="tactical",
+            marshals=[],
+            action="unknown",
+            target=None,
+            ambiguity=75,
+            strategic_score=0,
+            interpretation=f"No order issued — {phrase}",
+            confidence=0.5,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=original_text,
+            refusal=reason,
+            refusal_phrase=phrase,
+        )
+
     def _parse_with_mock(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
         """
         Mock parser using simple keyword matching.
@@ -830,6 +883,63 @@ class LLMClient:
                 cheat_type=cheat_type,
                 cheat_args=cheat_args,
             )
+
+        # ════════════════════════════════════════════════════════════
+        # PARSE-NEG: SENTENCE-SHAPE GUARDS (backend/ai/clause_guards.py)
+        #
+        # Everything below this block selects an action by scanning for
+        # keywords, and a negated sentence carries the SAME keywords as its
+        # affirmative — so "Ney, never attack Mack" attacked at confidence
+        # 0.95, above the 0.7 LLM-fallback gate, in every mode and with or
+        # without a key. The only place a guard can work is here: before any
+        # routing reads the text.
+        #
+        # Clauses are blanked with SPACES, never spliced, so every
+        # position-aware rule further down (CR-2 executor eligibility, the
+        # "Marshal <Name>" capture, the unresolved-address demotion) keeps its
+        # indices. `original_text` stays the record of what the player typed.
+        #
+        # Runs AFTER the cheat block so a cheat argument is never blanked, and
+        # BEFORE diplomatic routing so "don't declare war on Austria" cannot
+        # declare one. Debug/save/load are literal-argument commands and are
+        # exempted for the same reason as cheat.
+        # ════════════════════════════════════════════════════════════
+        original_text = command_text
+        stand_down = False
+        negation_applied = False
+        # A QUESTION is exempt from every guard below. The guards exist to stop
+        # an ORDER being mis-issued; blanking a question's clauses only destroys
+        # the words the routes downstream need — it took
+        # "Talleyrand, should we declare war on Prussia?" (a working advisory
+        # request) down to a bare address and a marshal-typo error.
+        if not (command_lower.startswith(("/debug", "debug ", "save"))
+                or command_lower.strip() == "load"
+                or is_question(command_text)):
+            stand_down = mentions_stand_down(command_lower)
+            guarded, negation_applied = strip_negated_clauses(command_text)
+            guarded, condition_refuses = strip_condition_clauses(guarded)
+
+            # A condition the engine cannot hold open. Issuing the order NOW is
+            # the defect: "if Mack advances fall back to Alsace" marched on the
+            # turn it was typed, at the highest confidence in the whole set.
+            if condition_refuses:
+                return self._refusal_result(
+                    original_text, "conditional",
+                    "a conditional order (the engine holds no 'if')")
+
+            # The negation consumed every word that could have named an order.
+            # Checked here because the diplomatic routes below return EARLY —
+            # without it, "Talleyrand, do not propose peace with Austria" fell
+            # through on the bare-address rule and opened the nation picker.
+            if negation_applied:
+                address = ADDRESS_TOKEN_RE.match(original_text)
+                if not has_executable_residue(
+                        guarded, address.group(1) if address else None):
+                    return self._refusal_result(
+                        original_text, "negation", "an order NOT to act")
+
+            command_text = guarded
+            command_lower = guarded.lower()
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand
@@ -955,6 +1065,41 @@ class LLMClient:
             return self._parse_diplomatic_command(command_text, command_lower)
         if re.search(r'\bcourt\b(?!\s+martial)', command_lower):
             return self._parse_diplomatic_command(command_text, command_lower)
+
+        # ════════════════════════════════════════════════════════════
+        # PARSE-NEG: A QUESTION IS NOT AN ORDER.
+        # "how do I attack?" issued the attack at confidence 0.80 and "can I
+        # attack Mack?" at 0.90 — a player asking how the game works lost a
+        # corps for it. Two other question forms were WORSE than wrong: the
+        # marshal fuzzy scan turned "should I attack?" into "Did you mean
+        # 'Soult'?" and "does fortify help?" into "Did you mean 'Davout'?".
+        #
+        # Sited AFTER diplomatic routing on purpose: Talleyrand's desk has its
+        # own, better answer for a question ("Talleyrand, should we declare war
+        # on Prussia?" -> diplomatic_advisory), and the feasibility/advisory
+        # arms already read the question mark themselves.
+        #
+        # `help` rather than a refusal because it is the honest answer to
+        # "how do I ..." — it costs no AP and it is what a bare "?" already
+        # does. A question-answering Berthier belongs to CR-6.
+        # ════════════════════════════════════════════════════════════
+        # Read the ORIGINAL: the clause guards above may have blanked the very
+        # question mark or subject the test keys on ("why can't I move?").
+        if is_question(original_text):
+            return ParseResult(
+                matched=True,
+                command_type="tactical",
+                marshals=[],
+                action="help",
+                target=None,
+                ambiguity=5,
+                strategic_score=0,
+                interpretation="Question — showing the command reference",
+                confidence=0.8,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=original_text,
+            )
 
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
@@ -1109,6 +1254,16 @@ class LLMClient:
             action = "cancel"
         elif command_lower.strip() in ("halt", "stop", "cancel", "abort"):
             action = "cancel"
+        # PARSE-NEG: "Ney, stop attacking" and "Ney, attack no more" both
+        # ordered the attack, because the cancel keywords above only cover
+        # "cancel order"-shaped phrasings and "attack" won the chain. Standing
+        # an order down IS cancel — a better answer than a refusal, since the
+        # player's intent is unambiguous. The predicate is narrow enough that
+        # "Talleyrand, stop the war with Britain" (a peace proposal) and
+        # "stop Davout's pension" (a revoke) keep their own routes; both are
+        # pinned in the golden corpus.
+        elif stand_down:
+            action = "cancel"
         # Cavalry recklessness (Phase 3) — must check BEFORE "attack" to avoid "charge" being eaten.
         # ORDERING RULE: More-specific keywords must come BEFORE generic ones.
         # Use \b word boundaries to prevent substring false positives (e.g. "bypass" matching "pass").
@@ -1140,7 +1295,12 @@ class LLMClient:
         # and AFTER the artillery block so "bombard" keeps its own branch.
         elif mentions_attack(command_lower):
             action = "attack"
-        elif "wait" in command_lower or "stand by" in command_lower or re.search(r'\bpass\b', command_lower):
+        # PARSE-NEG evaluation: "pass" is the turn-passing verb, never the
+        # noun. "Ney, hold the pass" — a plain order — was answered with WAIT
+        # (and a HOLD on the fuzzy-matched province Nassau). The article
+        # lookbehinds keep the bare verb working.
+        elif "wait" in command_lower or "stand by" in command_lower or re.search(
+                r'(?<!the )(?<!a )(?<!this )(?<!that )\bpass\b', command_lower):
             action = "wait"  # Free action - marshal passes turn
         # DEF-5 naval ordering guard: "guard home waters" is the fleet
         # posture phrase, not a land HOLD — it must claim the words before
@@ -1183,7 +1343,16 @@ class LLMClient:
             # while "head TO Vienna" marched).
             "head for", "ride for", "ride to", "set off for", "set out for",
             "set off to", "set out to", "make haste to", "make haste for",
-        ]) or re.search(r'\bmove\b', command_lower) or re.search(
+        ]) or (
+            # PARSE-NEG evaluation: "Ney, go to Alsace" — about as plain as an
+            # order gets — was UNPARSEABLE. The list carried "head to",
+            # "proceed to", "travel to" and "ride to" but never the commonest
+            # verb of all. Guarded against "go to war", which the diplomatic
+            # war-declaration route above claims when it names a nation, and
+            # which must not become a march on the province "war".
+            re.search(r'\bgo(?:es)?\s+(?:to|into|towards?|for)\b', command_lower)
+            and "go to war" not in command_lower
+        ) or re.search(r'\bmove\b', command_lower) or re.search(
             # Possessive-object forms: "take your corps to Ulm", "bring your
             # men to Vienna". Anchored on the corps noun + a destination
             # preposition so they cannot shadow the reinforce/SUPPORT family
@@ -1563,11 +1732,29 @@ class LLMClient:
         # directional/generic words.
         if target is None and action == "move" and not re.search(
                 r"\b(?:support|reinforce|join|help|aid)\b", command_lower):
-            dest = re.search(
+            # PARSE-NEG evaluation: the destination is what follows the LAST
+            # preposition, not the first. Anchored on the first, "I would like
+            # to move to Alsace" produced the phantom province "Move To Alsace"
+            # and "Ney, I want you to move to Alsace" did the same — both at
+            # confidence 0.9+, so the executor was handed a destination no map
+            # contains. `finditer` + last-match fixes the head; the widened
+            # tail-cutter fixes "move to Alsace after Davout arrives", which
+            # had been marching to "Alsace After Davout Arrives".
+            _dest_re = re.compile(
                 r"\b(?:to|towards?|into)\s+(?:the\s+)?"
                 r"([A-Za-z][A-Za-z '\-]{2,40}?)"
-                r"(?:\s+(?:via|until|then|and)\s.*)?[.!?]?\s*$",
-                command_lower)
+                r"(?:\s+(?:via|until|then|and|after|once|when|while|before"
+                r"|if|unless|so|because|in\s+order)\s.*)?[.!?]?\s*$",
+                re.IGNORECASE)
+            # finditer alone is not enough: the first match already runs to
+            # end-of-string, so the later preposition falls inside it and is
+            # never offered. Anchor a fresh attempt at each preposition and
+            # keep the LAST that succeeds.
+            dest = None
+            for _prep in re.finditer(r"\b(?:to|towards?|into)\b", command_lower):
+                _m = _dest_re.match(command_lower, _prep.start())
+                if _m:
+                    dest = _m
             if dest:
                 phrase = dest.group(1).strip()
                 generic = {"north", "south", "east", "west", "front", "rear",
@@ -1597,6 +1784,15 @@ class LLMClient:
         # Medium confidence: recognized action only
         # Low confidence: unknown action (triggers LLM fallback in live mode)
         matched = (action != "unknown")
+
+        # PARSE-NEG: the negation removed every word that could have named an
+        # order and the keyword chain found nothing in what was left. Answer
+        # with the refusal rather than a generic shrug — the parser knows
+        # exactly what the player said and that they forbade it.
+        if negation_applied and not matched:
+            return self._refusal_result(
+                original_text, "negation", "an order NOT to act")
+
         if matched:
             if marshal and target:
                 confidence = 0.95  # Very confident: action + marshal + target
@@ -1630,7 +1826,11 @@ class LLMClient:
             mode="mock",
             key_source=self.key_source,
             target_stance=target_stance,
-            raw_command=command_text,
+            # PARSE-NEG: the RECORD is always what the player typed, never the
+            # clause-guarded working copy — downstream consumers (CR-5
+            # delegation attribution, the campaign-log quote, the recruit-arm
+            # re-derivation) quote raw_command back to the player.
+            raw_command=original_text,
             requested_type=requested_type,
         )
 

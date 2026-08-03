@@ -4,6 +4,89 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ PARSE-NEG — THE PARSER EVALUATION AND ITS FIXES (August 3, 2026)
+>
+> **User direction: "do full evaluation of parser and all fixes required."**
+> ROADMAP position 0 is CLOSED. **Landing record = `BUG_FIXES.md` §PARSE-NEG
+> landing, authoritative;** contract for CR-6 = `COMMAND_ROBUSTNESS_SPEC.md` §8.
+>
+> **The evaluation ran first**, before any fix: ~130 utterances across nine
+> families through the production call shape
+> `CommandParser.parse(text, llm_game_state, world=world)` on the shipped 1805
+> board, keyless. It confirmed all five filed rows and found **eight more
+> defects of the same class** — three of them worse than anything filed.
+>
+> - **The severest was not in the filed table.** `don't declare war on Austria`
+>   **DECLARED WAR**, at confidence 0.95. So did `do not invade Prussia`;
+>   `Talleyrand, do not propose peace with Austria` proposed it. The filed table
+>   sampled the military verbs only — the diplomatic routes sit *above* them in
+>   the same keyword chain and nobody had checked them.
+> - **Phantom provinces.** The free-text target scan fuzzy-matched ordinary
+>   English into real places and shipped the result as the province a marshal
+>   was ordered to take: *not*→Brabant, *how*→Buxhowden, *able*→Naples,
+>   *happens*→White Russia, *lost*→Ulster, *thinking*→Wales, *more*→**Moore**
+>   (the British marshal), *relieved*→Rhineland, *square*→Normandy,
+>   *rente*→Crete, *pass*→Nassau. `Ney, form square` and `Ney, hold the pass` —
+>   plain orders with no negation in them — were affected, at 0.9.
+> - **Two plain gaps.** `Ney, go to Alsace` was **unparseable** (the move
+>   keyword list had "head to", "proceed to", "travel to", "ride to" — never
+>   "go to"); and the destination regex anchored on the FIRST preposition, so
+>   `Ney, I want you to move to Lorraine` marched on "Move To Lorraine".
+>
+> **The fix is subtractive, and that is the whole design.** New
+> `backend/ai/clause_guards.py` blanks negated and conditional clauses **with
+> spaces** — never splicing, because every position-aware rule downstream (the
+> CR-2 eligibility scan, the "Marshal &lt;Name&gt;" capture, the unresolved-address
+> demotion) indexes into the text. The guards never pick an action; they only
+> change what the existing keyword chain reads. So the parser **removes the
+> negation and re-reads what is left**: `Ney, hold your position, do not attack`
+> now parses as **HOLD**, `instead of attacking, fortify` as **fortify**,
+> `without attacking, move to Lorraine` as **move**. It refuses only when no
+> order survives.
+>
+> **One recorded deviation.** The row prescribes demoting confidence "so the LLM
+> is actually consulted". Confidence *is* demoted — but a refusal does **not**
+> escalate. Under forced tool-use every model reply must name an action from the
+> enum, and the one sentence we would hand over is the one whose only verb the
+> player forbade. Because the guard recovers the real order whenever one exists,
+> what reaches the refusal is only the case where there is nothing for a model
+> to find. Mock is the shipped EA default, so a live-only escape hatch could not
+> have been the primary fix either way. Commented at the call site.
+>
+> **Also fixed:** stand-down → cancel ("stop attacking", "attack no more");
+> question → help, sited *after* diplomatic routing so Talleyrand's advisory
+> desk keeps precedence; `until` scoped rather than refused (it is the one
+> condition `StrategicCondition` implements); "pass" the noun no longer fires
+> the turn-passing verb; a refusal short-circuits fuzzy matching (it had been
+> *replacing* the verdict — "Talleyrand, do not propose peace" came back as
+> *"Did you mean 'Ney'?"*); and Berthier answers each refusal kind with its own
+> line, at 0 AP.
+>
+> **Two of the fix's own regressions were caught by its own counter-example
+> pins, not by review** — the should-inversion rule fired on "should **we**",
+> and the guards were blanking a question's clauses before diplomatic routing
+> could read them. Both are now regression rows.
+>
+> **Falsification.** Counter-examples are pinned as hard as the defects: polite
+> orders still march, `no quarter` is still an attack idiom, "stop the war with
+> Britain" is still a peace proposal, "stop Davout's pension" is still a revoke,
+> "go to war with Britain" is still a declaration, typos still auto-correct,
+> cheat arguments are never blanked. **Of the 324 pre-existing corpus utterances
+> only four trip a guard**, all questions, three of them Talleyrand's and
+> unchanged. **One pin flipped consciously** (`how-is-the-war-going`: its source
+> test only ever asserted `!= diplomatic_declare_war`, which `help` satisfies).
+> **One accepted-not-ideal pin recorded** (`Ney, retreat if outnumbered` still
+> retreats now — the two-word floor that protects `when ready then retreat` lets
+> a one-word elliptical through; CR-6/CR-7 owns real conditionals).
+>
+> Suite **16,042 passed / 3 skipped** (was 15,901/3), ruff clean, corpus
+> **514/514** (was 467), `tests/test_parse_negation.py` (94) + 26 corpus rows,
+> no `.gd` touched. Live-verified over HTTP on a fresh backend against the 1805
+> board. Routed not fixed: **PARSE-NEG-X1** (P3) — `executor.py:300` labels
+> fuzzy *name* similarity as "Nearby", which is geography it does not have;
+> left alone because that wording is the documented Sweep-5 contract in three
+> places.
+
 > ### ✅ THE NAVAL SECOND PASS — NV-4..NV-11 LANDED (August 2, 2026)
 >
 > **User direction: "do another pass on naval, make sure it works and the ux is

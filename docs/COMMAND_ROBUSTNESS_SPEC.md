@@ -272,3 +272,49 @@ A bare `attack` with no marshal named auto-picked a marshal into a **real battle
 The gating lives at the **dispatch seam**, so the direct-call unit tests in `test_auto_assign_attack.py` (24) call the executor methods directly, bypass the resolver, and **stay green** — the "conscious pin flip" the finding anticipated turned out to be unnecessary. New behavior is pinned by `tests/test_cr6_bare_attack_gating.py` (13: resolver verdicts + full-pipeline muster (b) / objection routing (c) / clarification (a) / passthrough / GR5 guard + the Finding-1 regression below). Full suite **13,627/3**, ruff clean, no `.gd` touched.
 
 **Pre-ship adversarial review (find→verify, 6 agents) — one real regression caught + fixed before commit:** threading `command` (which carries the raw typed text) into the rewritten named attack armed the **ESP-EV-4 guessed-target guard** (`_execute_attack`, ~`:3211`), so `attack them all` / `attack <typo-region>` were **falsely refused** ("names no foe or province our maps know") — the raw words never grounded the resolver's own pick. **Fix:** the guessed-target guard stands down for a `_auto_assigned` command — the target was resolved *deterministically* (the game chose it, the player did not type it), which is a delegation, matching the guard's own "delegated → let it fly" rule. The guard still fires for a player-typed `specific` attack (its real purpose — catching an LLM target substitution). One cosmetic fix folded (the auto-pick note no longer prepends onto a pre-battle glorious-charge prompt). Findings 3a/3b (a clarification could list a retreating marshal → honest block message; provenance drops on the objection-confirm round-trip) accepted as minor/pre-existing.
+
+---
+
+## §8 PARSE-NEG — sentence-shape guards ✅ LANDED August 3, 2026
+
+**Not a CR slice and not gated** — a correctness bug found by the EA-scope
+refund panel and fixed on the ROADMAP's position 0. Recorded here because this
+spec owns the parse pipeline and because §8 constrains what CR-6 may assume.
+
+**Full landing record: `docs/BUG_FIXES.md` §PARSE-NEG landing.** In one line:
+the fast parser selected an action by keyword and scored its confidence by how
+many identifiers it matched, never by whether the sentence meant the keyword —
+so a negated order carried the *same* keywords as its affirmative, scored
+HIGHER, cleared the 0.7 escalation gate and executed. `Ney, never attack Mack`
+attacked; `don't declare war on Austria` declared war.
+
+**What CR-6 inherits, and must not undo:**
+
+1. **`backend/ai/clause_guards.py` is the single source** for the four
+   sentence-shape predicates (negation, condition, stand-down, question). Any
+   new consumer reads it rather than re-deriving; `parser.py` already shares
+   `strip_negated_clauses` for the strategic detector.
+2. **Clauses are blanked with SPACES, never spliced.** Every position-aware
+   rule in the pipeline — the CR-2 executor-eligibility scan, the
+   "Marshal &lt;Name&gt;" capture, the CR-2 unresolved-address demotion — indexes
+   into the command text. A length-changing edit moves all of them silently.
+3. **The guards are subtractive, not decisive.** They only change what text the
+   existing keyword chain reads. They never pick an action. A refusal happens
+   when the chain finds nothing in what survives — never because a marker was
+   present.
+4. **A refusal does not escalate to the LLM** (`_should_fallback_to_llm`). This
+   is the one recorded deviation from the filed prescription; the reasoning is
+   in the landing record and at the call site. If CR-6's gate returns *yes* on
+   free-text classification, this is the boundary that gets re-opened — with
+   the constraint that a model must never be able to re-derive an action the
+   player explicitly forbade.
+5. **Conditional orders are refused, not executed now.** `if`/`unless`/`when`/
+   `once`/`after` with a real (two-word) clause issue nothing. `until` is the
+   sole exception because `StrategicCondition` implements it. **A real
+   conditional-order system is CR-6/CR-7 scope**, and `Ney, retreat if
+   outnumbered` is pinned as accepted-not-ideal until it exists
+   (`parseneg-retreat-if-outnumbered-executes`).
+6. **A question routes to `help`, after diplomatic routing.** Talleyrand's
+   advisory desk answers a question better than the command reference does and
+   keeps precedence. A question-answering Berthier is CR-6's to build; when it
+   exists, it replaces the `help` route, not the guard.

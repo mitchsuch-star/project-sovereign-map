@@ -13,6 +13,7 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
+from backend.ai.clause_guards import strip_negated_clauses
 from backend.ai.generic_targets import normalize_target
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
@@ -95,6 +96,80 @@ def _closest_by_edit_distance(word: str, names, limit: int = 1):
     word_lower = word.lower()
     hits = [n for n in names if _edit_distance_at_most(word_lower, n.lower(), limit)]
     return hits[0] if len(hits) == 1 else None
+
+
+# PARSE-NEG evaluation: ordinary English words the free-text target scan below
+# used to fuzzy-match into real provinces. The loose partial-ratio scorer is
+# what made the corpus of victims so strange — "not" became Brabant, "how"
+# Buxhowden, "able" Naples, "happens" White Russia, "lost" Ulster, "thinking"
+# Wales, "square" Normandy, "rente" Crete — and every one of them rode out at
+# confidence 0.9, above the LLM-fallback gate, as the province a marshal was
+# ordered to attack. This list is the first of two independent gates; the
+# second (`_plausible_name_typo`) catches the ones no stopword list can, such
+# as "relieved" -> Rhineland.
+_NON_TARGET_WORDS = frozenset({
+    # determiners / quantifiers / degree
+    "all", "any", "both", "each", "every", "few", "many", "more", "most",
+    "much", "less", "least", "no", "none", "some", "such", "own", "same",
+    "other", "another", "enough", "very", "too", "quite", "rather", "just",
+    "only", "even", "still", "again", "also", "once", "twice",
+    # pronouns / possessives beyond the existing deixis list
+    "his", "hers", "its", "ours", "yours", "theirs", "who", "whom", "whose",
+    "what", "which", "why", "how", "when", "where", "whether",
+    # auxiliaries / modals / common verbs that are never place names
+    "are", "was", "were", "been", "being", "has", "have", "had", "does",
+    "did", "done", "will", "would", "shall", "should", "can", "could",
+    "may", "might", "must", "let", "get", "got", "put", "keep", "kept",
+    "make", "made", "take", "took", "give", "gave", "come", "came", "went",
+    "know", "knew", "think", "thought", "thinking", "want", "wanted",
+    "need", "needed", "like", "liked", "seem", "look", "looking", "tell",
+    "told", "say", "said", "ask", "asked", "able", "unable", "happens",
+    "happen", "happened", "lost", "lose", "win", "won", "sure", "please",
+    "possible", "impossible", "ready", "relieved", "relief",
+    # prepositions / conjunctions / connectives
+    "about", "above", "across", "after", "against", "along", "among",
+    "around", "away", "back", "because", "before", "behind", "below",
+    "beneath", "beside", "between", "beyond", "but", "down", "during",
+    "except", "from", "into", "near", "off", "onto", "out", "over",
+    "past", "since", "than", "through", "toward", "towards", "under",
+    "until", "unless", "upon", "with", "within", "without", "while",
+    "whilst", "however", "instead", "therefore", "though", "although",
+    # military prose nouns that are not places
+    "attacking", "attacked", "defending", "defended", "moving", "moved",
+    "holding", "held", "advance", "advancing", "retreating", "retreated",
+    "position", "positions", "ground", "line", "lines", "flank", "flanks",
+    "front", "rear", "centre", "center", "wing", "wings", "square",
+    "formation", "column", "columns", "corps", "division", "brigade",
+    "regiment", "battalion", "battery", "guns", "gun", "cannon", "sabre",
+    "bridge", "river", "road", "roads", "hill", "hills", "ridge", "wood",
+    "woods", "village", "town", "city", "fort", "forts", "pass", "passes",
+    "field", "fields", "supply", "supplies", "orders", "order", "command",
+    "battle", "war", "campaign", "victory", "defeat", "casualties",
+    "morale", "strength", "men", "soldier", "soldiers", "prisoners",
+    "rente", "pension", "estate", "duchy", "treasury", "gold",
+})
+
+# Words shorter than this can only bind as an EXACT name — a three-letter
+# fuzzy hit is noise, not a typo.
+_MIN_FUZZY_TARGET_LEN = 4
+
+
+def _plausible_name_typo(word: str, candidate: str) -> bool:
+    """True when `word` is close enough to `candidate` to be a typed mistake.
+
+    The fuzzy matcher scores by partial ratio, which rewards a short word for
+    being contained in a long name — that is how "relieved" scored high enough
+    against "Rhineland" (shared 'r', similar length, almost no letters in
+    common) to become a marshal's destination. Real typos stay within a couple
+    of edits AND keep their first letter, which is the same shape the CR-1
+    marshal-scan guard uses; this is its target-side twin.
+    """
+    if len(word) < _MIN_FUZZY_TARGET_LEN:
+        return False
+    if word[:1].lower() != candidate[:1].lower():
+        return False
+    limit = 2 if len(word) >= 6 else 1
+    return _edit_distance_at_most(word.lower(), candidate.lower(), limit)
 
 
 def _is_nation_demonym(target: Optional[str], world) -> bool:
@@ -367,6 +442,14 @@ class CommandParser:
             Tuple of (updated llm_result, error_dict or None)
             error_dict is set if an invalid marshal name was detected
         """
+        # PARSE-NEG: a refusal is a finished verdict — the parser read the
+        # sentence and there is no order in it. Fuzzy matching has nothing to
+        # correct here, and letting it run REPLACED the verdict: the addressed
+        # name of "Talleyrand, do not propose peace with Austria" was fuzzed
+        # into "Did you mean 'Ney'?", which lost the refusal and told the
+        # player something false about what went wrong.
+        if llm_result.get("refusal"):
+            return (llm_result, None)
         known_enemies = self._get_known_enemies(world)
         # CR-0: rosters come from the live world when available — the
         # hardcoded legacy lists are only the no-world/no-game_state fallback.
@@ -728,6 +811,12 @@ class CommandParser:
             # protects it — and "hell" auto-corrects into the province Algiers.
             # Single-sourced with the vocabulary that introduced the idioms.
             skip_words.extend(IDIOM_FILLER_WORDS)
+            # PARSE-NEG evaluation: and the same rule for ordinary English. The
+            # two lists above were assembled defect-by-defect from whatever
+            # playtest had just produced a phantom province; _NON_TARGET_WORDS
+            # is the general case, so "Ney, form square" stops marching on
+            # Normandy and "Ney, hold the pass" stops holding Nassau.
+            skip_words.extend(_NON_TARGET_WORDS)
             # Also skip the marshal name if identified
             if llm_result.get("marshal"):
                 skip_words.append(llm_result["marshal"].lower())
@@ -781,7 +870,18 @@ class CommandParser:
                     all_targets
                 )
 
-                if target_result["action"] in ["exact", "auto_correct"]:
+                # PARSE-NEG evaluation: an EXACT name still binds outright, but
+                # an auto-correct must now look like a typed mistake. Without
+                # this second gate the partial-ratio scorer kept promoting
+                # sentence words no stopword list would ever catch — "relieved"
+                # became Rhineland, and "Ney, hold until relieved" issued a HOLD
+                # on a province 400km away, at confidence 0.9.
+                if target_result["action"] == "exact":
+                    llm_result["target"] = target_result["match"]
+                    break
+                if (target_result["action"] == "auto_correct"
+                        and _plausible_name_typo(
+                            word, target_result.get("match") or "")):
                     llm_result["target"] = target_result["match"]
                     break
 
@@ -1039,7 +1139,15 @@ class CommandParser:
                 # ════════════════════════════════════════════════════════════
                 if world is not None:
                     marshal_name = command_dict.get("marshal")
-                    strategic = detect_strategic_command(effective_text, marshal_name, world)
+                    # PARSE-NEG: the strategic layer reads the raw utterance
+                    # too, so it needs the same negation guard the action chain
+                    # got — "Ney, march to Vienna, do not attack Mack" would
+                    # otherwise still trip _detect_attack_on_arrival and arrive
+                    # swinging. Only the NEGATION half is applied: blanking
+                    # condition clauses here would destroy the `until …` that
+                    # StrategicCondition exists to parse.
+                    strategic_text, _ = strip_negated_clauses(effective_text)
+                    strategic = detect_strategic_command(strategic_text, marshal_name, world)
                     if strategic:
                         result["is_strategic"] = True
                         result["strategic_type"] = strategic["strategic_type"]
@@ -1058,12 +1166,27 @@ class CommandParser:
                             # deploy/relocate/journey to Austria" all created a
                             # real MOVE_TO order to Asturias, because only the
                             # bare "move to" phrasing reaches the guarded path.
-                            if resolve_typed_nation(strategic_target, world):
-                                pass  # keep the nation verbatim; the executor names it
+                            _strategic_nation = resolve_typed_nation(
+                                strategic_target, world)
+                            if _strategic_nation:
+                                # Keep the NATION, but in its canonical casing —
+                                # the tactical ladder above already does this,
+                                # and the bare `pass` here shipped the player's
+                                # own lowercase ("Ney, proceed to Bavaria to
+                                # support Davout" ordered a march to "bavaria").
+                                strategic_target = _strategic_nation
                             else:
                                 fuzzy_result = self.fuzzy_matcher.match_with_context(
                                     strategic_target, self._get_known_regions(world))
-                                if fuzzy_result["action"] in ("exact", "auto_correct"):
+                                # PARSE-NEG evaluation: the same typo-shape gate
+                                # the tactical scan got. Ungated, this promoted
+                                # any leftover noun into a province — "Ney, hold
+                                # the pass" became a standing HOLD on Nassau.
+                                if fuzzy_result["action"] == "exact" or (
+                                        fuzzy_result["action"] == "auto_correct"
+                                        and _plausible_name_typo(
+                                            strategic_target,
+                                            fuzzy_result.get("match") or "")):
                                     strategic_target = fuzzy_result["match"]
                         elif strategic.get("target_type") == "marshal":
                             all_marshals = self._get_player_marshals(world) + self._get_known_enemies(world)
@@ -1104,6 +1227,13 @@ class CommandParser:
                     "partial_marshal": llm_result.get("marshal"),
                     "partial_target": llm_result.get("target"),
                 }
+                # PARSE-NEG: this is not a failure to understand — the parser
+                # read the sentence exactly and there is no order in it. main.py
+                # answers with a specific Berthier line instead of the generic
+                # recovery shrug.
+                if llm_result.get("refusal"):
+                    failure["refusal"] = llm_result["refusal"]
+                    failure["refusal_phrase"] = llm_result.get("refusal_phrase")
                 if llm_result.get("llm_error"):
                     failure["llm_error"] = True  # CR-3(c)
                 return failure

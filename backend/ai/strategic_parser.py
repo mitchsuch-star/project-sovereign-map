@@ -470,6 +470,19 @@ def _clean_target_text(text: str) -> Optional[str]:
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)
+    # PARSE-NEG: a target never spans a sentence boundary. "Ney, hold your
+    # position, do not attack" produced the HOLD target "your position, do not
+    # attack" and "Ney, hold. Do not attack." produced ". Do Not Attack." —
+    # both title-cased into the Strategic Ledger as the province being held.
+    # Region names contain no commas or terminal punctuation, so cutting here
+    # can only ever discard prose.
+    text = re.split(r'[,;.!?]', text, maxsplit=1)[0].strip()
+    # …nor a subordinate clause. Same shape as the purpose-clause cut below,
+    # for the temporal/conditional connectors: "march to Milan after Davout
+    # arrives" must not hold "Milan After Davout Arrives".
+    text = re.sub(
+        r'\s+(?:after|once|when|while|before|unless|if|because|since)\s+\w+.*$',
+        '', text, flags=re.IGNORECASE)
     # F3 fix: cut a trailing prepositional/qualifier clause so a support/move
     # target resolves to the marshal or region name rather than the whole phrase:
     # "Soult with fresh troops" → "Soult", "Davout using the cavalry" → "Davout".

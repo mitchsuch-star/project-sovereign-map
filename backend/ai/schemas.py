@@ -73,6 +73,16 @@ class ParseResult:
     # result["message"]); intentionally NOT serialized onto any model class.
     flavor: Optional[str] = None
     suggestion: Optional[str] = None
+    # PARSE-NEG: why the fast parser deliberately issued NO order — "negation"
+    # ("Ney, never attack Mack") or "conditional" ("if Mack advances, fall
+    # back"). Distinct from an ordinary unknown-action shrug: here the parser
+    # understood the sentence exactly and the correct answer is that no order
+    # exists. main.py renders a specific Berthier line for it instead of the
+    # generic recovery, and `_should_fallback_to_llm` treats it as terminal —
+    # consulting a model to re-derive an action from a sentence whose only verb
+    # was forbidden would re-open the very bug this guards.
+    refusal: Optional[str] = None
+    refusal_phrase: Optional[str] = None  # the words the player used, for the reply
 
     # Metadata
     confidence: float = 0.9
@@ -127,6 +137,11 @@ class ParseResult:
             result["flavor"] = self.flavor
         if self.suggestion:
             result["suggestion"] = self.suggestion
+        # PARSE-NEG: only emitted on a deliberate no-order refusal, so the dict
+        # shape is unchanged for every ordinary parse.
+        if self.refusal:
+            result["refusal"] = self.refusal
+            result["refusal_phrase"] = self.refusal_phrase
         if self.standing_order:
             result["standing_order"] = self.standing_order
         if self.condition:
@@ -203,6 +218,8 @@ class ParseResult:
             interpretation_reason=data.get("interpretation_reason"),
             alternatives=data.get("alternatives", []),
             llm_error=data.get("llm_error", False),
+            refusal=data.get("refusal"),
+            refusal_phrase=data.get("refusal_phrase"),
         )
 
 

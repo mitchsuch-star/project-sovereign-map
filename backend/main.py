@@ -2000,6 +2000,39 @@ def execute_command(request: CommandRequest):
                     return _build_result_response(name_clarification, world)
 
             # ════════════════════════════════════════════════════════════
+            # PARSE-NEG: A DELIBERATE NO-ORDER. The parser understood the
+            # sentence perfectly — "Ney, never attack Mack" is an instruction
+            # NOT to act, and "if Mack advances, fall back" is a condition the
+            # engine cannot hold open. Both used to execute the affirmative at
+            # confidence 0.9+. Answering with the generic "I cannot interpret
+            # that order" would be a second, smaller lie: Berthier says what he
+            # read and what he did about it.
+            # ════════════════════════════════════════════════════════════
+            if not parsed.get("success") and parsed.get("refusal"):
+                if parsed["refusal"] == "conditional":
+                    refusal_msg = (
+                        "Berthier sets down his pen. \"Sire, that is a "
+                        "contingency, not an order — I have no way to hold a "
+                        "dispatch until the enemy moves. Nothing has been "
+                        "relayed. Give me the order for THIS turn and I shall "
+                        "carry it at once; a standing order I can hold is "
+                        "'hold until Davout arrives'.\"")
+                else:
+                    refusal_msg = (
+                        "Berthier lowers the dispatch. \"Then no order goes "
+                        "out, Sire — I have relayed nothing. If a standing "
+                        "order is to be stood down, say 'cancel his order'; "
+                        "otherwise tell me what the marshal IS to do.\"")
+                return build_base_response(
+                    world, success=False, message=refusal_msg,
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
+
+            # ════════════════════════════════════════════════════════════
             # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
             # with in-character Berthier clarification. Only fires for
             # type-1 parse failures; marshal typos & validation errors
