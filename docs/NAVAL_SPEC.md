@@ -758,7 +758,13 @@ shut both ways). Recorded observations, NOT changed: `Normandy↔Berry`
 out of their province and are the interior leaks a landed army uses — but
 this map's adjacency is derived from DRAWN shared borders, so cutting them
 would make the map visually lie (two provinces that touch but cannot be
-marched between). They are left for a user ruling after the visual pass.
+marched between). ~~They are left for a user ruling after the visual pass.~~
+**✅ RULED August 3, 2026 — NEITHER EDGE IS CUT (§15.15).** The "interior
+leaks a landed army uses" reading was half the picture: `Normandy↔Berry` is
+France's OWN lateral road, and measurement across five seeds showed cutting
+it left Britain with MORE territory while France lost Paris on 5 of 5 seeds
+instead of holding it on 3. Paris is Normandy's *shortest* edge (96px), so
+the cut could never have stopped the walk inland regardless.
 Pins: `test_naval_channel_gate.py::test_the_descent_beach_is_normandy` +
 the other-way gate + the beach-depot pin; the DEF-6 balance test's "Flanders
 is the sole gateway" clause is consciously generalised to "whichever beach
@@ -1068,16 +1074,11 @@ the parse side and the prose side cannot drift.
 
 ### 15.8 Still open
 
-**⚠ ONE USER DECISION IS DUE — the adjacency ruling.** `Normandy↔Berry`
-(162px) and `Flanders↔Orleanais` (128px) were left "for a user ruling after
-the visual pass" (§15 / the NV-8c record). **That precondition was met on
-August 2** — so the ruling is now due, and it is the only genuine *design
-decision* on this list. These are the longest LAND edges out of their
-provinces and are the interior route a landed British army actually walks
-inland. Cutting them stops the walk; but this map's adjacency is derived from
-DRAWN shared borders, so cutting them would make the map visually lie. Worth
-ruling **before** the played campaign, so that run measures the intended
-topology.
+**~~⚠ ONE USER DECISION IS DUE — the adjacency ruling.~~ ✅ RULED AND CLOSED
+August 3, 2026 — see §15.15. NEITHER EDGE IS CUT.** The user ruled "Normandy
+but not Flanders"; measurement then showed the Normandy cut fails on its own
+terms, and the call was delegated ("make the call on the landing"), so it was
+NOT landed. Both edges stand. Full record and evidence: §15.15.
 
 **Open on evidence, not permission** — each needs a human playing a campaign,
 not another probe:
@@ -1487,3 +1488,83 @@ provocation control, and a three-seam mutation (writer key, cleanup pop,
 load filter) fails 13 of the 24, the 11 survivors being the controls
 themselves and the seams the mutation did not touch. Suite **15,901/3**;
 M1–M7 and `BASELINE_SERIES` byte-identical without re-record.
+
+### 15.15 The adjacency ruling — asked, measured, and NOT landed (August 3, 2026)
+
+**The ruling.** The user ruled: *"I say Normandy but not Flanders"* — cut
+`Normandy↔Berry`, keep `Flanders↔Orleanais` — and delegated execution:
+*"make the call on the landing."*
+
+**Flanders↔Orleanais: KEPT, and the user's instinct was right for a reason
+the spec had not written down.** NV-8c removed the `London↔Flanders` sea
+link, so **Flanders can no longer be landed at at all**. `Flanders↔Orleanais`
+is now a purely internal French edge; cutting it would have been a map-lie
+with zero gameplay benefit. Closed as ruled.
+
+**Normandy↔Berry: NOT CUT.** The cut was built, measured, and reverted.
+
+The rationale on file was *"the interior leaks a landed army uses."* Two
+things were wrong with it.
+
+**First, the edge is not what stops the walk inland.** Normandy's edges,
+measured from the registry anchors:
+
+| edge | length | |
+|---|---|---|
+| Berry | 162px | the proposed cut |
+| Maine | 120px | |
+| London | 111px | the sea link (the Norman beach) |
+| Artois | 105px | |
+| **Paris** | **96px** | **Normandy's SHORTEST edge** |
+
+Paris is one march from the beach either way. Cutting Berry could never have
+stopped an inland walk; at most it removes a *bypass* — the ability to reach
+central-south France without going near Paris or the coast.
+
+**Second, and decisively: it is France's road, and the player is France.**
+Measured on the ambient 40-turn sim (a passive France, the same instrument
+the `BASELINE_SERIES` pin runs), across five campaign seeds:
+
+| | edge present | edge CUT |
+|---|---|---|
+| France at turn 40, mean | 17.8 provinces | **15.2** |
+| French home soil lost, mean | 10.2 | **12.8** |
+| **Paris still French** | **3 of 5 seeds** | **0 of 5** |
+| Britain's holdings, mean | 11.8 | **13.0 — up** |
+| threat scalar, mean | 5.8 | 26.8 |
+
+**The cut fails on its own terms.** It was meant to contain the invader, and
+the invader finished with *more* territory on average, while France lost
+Paris on every single seed instead of holding it on three. `Normandy↔Berry`
+is France's lateral link between the north-west and the centre; severing it
+costs the defender interior lines far more than it costs an amphibious
+attacker, who begins adjacent to the capital regardless.
+
+The call, delegated, is therefore: **do not land it.** Both edges stand, the
+registry is unchanged, `BASELINE_SERIES` needed no re-record, and the map
+does not lie.
+
+**Method note, because it nearly produced a false answer.** The first two
+probe runs disagreed with the pinned baseline and I briefly believed the
+world had changed under me. The cause was mine: `PYTHONHASHSEED` is fixed at
+interpreter startup, so setting it *inside* the probe is a no-op — set
+iteration order feeds AI decisions (pin 14(c)), and both runs were
+hash-randomised. Exported from the caller, the probe reproduces
+`BASELINE_SERIES` byte-for-byte, which is what made the comparison
+trustworthy. Any future probe of this kind must export the seed, not assign
+it.
+
+**If the effect is still wanted**, the lever is the landing rather than
+France's roads — the NV-4 host rule and the crossing gate already own that
+surface, and tightening either is measurable in the same harness. A drawn
+border is not the place to fix an invasion route.
+
+**Routed, not fixed:** `tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_pair_peace_is_exhaustion_driven`
+failed three times in a row during this session and has not reproduced
+since, including under a deliberate mutation. It passes in the full suite
+and passed on eight consecutive targeted re-runs. An `LLM_MODE`-inheritance
+hypothesis was raised and **disproved** — `ai_v_sweep.run_one` already forces
+`LLM_MODE=mock` before importing the backend, so the proposed pin was a
+no-op and was reverted rather than shipped as a fix for something it does not
+fix. The flake is real, pre-existing at HEAD, and unexplained; it belongs to
+whoever next touches the AI-V sweep.
