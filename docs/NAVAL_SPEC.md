@@ -1283,3 +1283,49 @@ at-war land, which only the demotion can refuse).
 clean, M1–M7 green, `BASELINE_SERIES` byte-identical WITHOUT re-record
 (every order these gates remove was already being refused), Godot parse
 harness EXIT=0. `tests/test_naval_reach_gate.py` (20).
+
+### 15.12 NV-10 — THE A2 STRANGULATION ARC, DRIVEN (August 2, 2026)
+
+The last open naval item, and it was open because it needed a *played*
+world rather than a probe. Driven with `tools/a2_strangulation_drive.py`
+(committed): a scripted France marches on **PORTUGAL** — Junot, 1807, the
+Continental System's own central act, undertaken precisely to shut Lisbon
+to British trade — with every order going through the real executor and
+the ambient world running live underneath.
+
+**Driving it found what reading it could not.** France took all four
+Portuguese provinces by turn 12 and the closure went **DOWN**, 38.5% →
+23.1%. Conquering a coast has to CLOSE it.
+
+Cause: `closure_against` counted ports by NATION and read only who a
+court was AT WAR with. Ports are authored per-nation (§3.2 deliberately
+keeps the denominator authored), so a neutral whose coastline had been
+overrun still counted as *open* to Britain — the System could not express
+its own founding move. **NV-10:** a court whose CAPITAL is held by a
+power at war with the target counts as closed. The conqueror keeps the
+harbour, and the conqueror is at war. Scoped tight and pinned in all four
+directions: the boot arithmetic is untouched (nobody is conquered at
+boot), a conquest by a court at PEACE with the target closes nothing, and
+losing a non-capital province changes nothing — the capital is the same
+overrun threshold the rest of the game uses.
+
+**Measured after, on the same drive:** Soult takes Lisbon on turn 9, the
+closure flips **38.5% → 42.3%**, and `cs_tier_shift` fires to **tier 1** —
+Britain's war-weariness begins taking the squeeze (+9/turn against the
++8 baseline). Then on turn 16 it falls back to tier 0 as Spain and the
+Kingdom of Italy make their own peace with Britain and their ports
+re-open. That is the arc working, including its fragility: **the System is
+only as good as the coalition holding it**, which is the historical fact
+the whole mechanic exists to dramatise.
+
+**Recorded honestly — the arc's remaining half is NOT naval.** Britain's
+weariness reaches the 200 cap by turn 28 and Britain still does not sue.
+The A2 acceptance arm was always "WE caps ≤12 turns under **80%** closure
++ blockade", and one conquered minor buys tier 1, not 80% — so this run
+does not falsify it. What it does show is that a capped war-weariness does
+not by itself drive a court to the table; that is the diplomacy layer's
+threshold, not the naval layer's, and it is filed as the open question
+for the peace-threshold owner rather than papered over here.
+
+The **naval pillar score** stays open on purpose: it wants a human playing
+a campaign, not a scripted drive.

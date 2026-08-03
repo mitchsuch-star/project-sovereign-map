@@ -473,6 +473,25 @@ def closure_against(world, target: str) -> float:
                     and vstate.get("autonomy", AUTONOMY_SATELLITE)
                     in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)):
                 counted = True
+            else:
+                # NV-10 — THE CONQUERED COAST. Ports are authored per
+                # NATION (§3.2 keeps the denominator authored), and until
+                # now the numerator read only who a court was AT WAR with
+                # — so overrunning a neutral's coastline did nothing to
+                # the System. Measured on the scripted A2 drive: France
+                # took all four Portuguese provinces by turn 12 and the
+                # closure went DOWN. That is backwards, and it is the
+                # System's own central act: Napoleon invaded Portugal in
+                # 1807 precisely to shut Lisbon to British trade. A
+                # court whose CAPITAL is held by a power at war with the
+                # target no longer opens its harbours to that target —
+                # the conqueror does, and the conqueror is at war.
+                capital = world.get_nation_capital(nation)
+                region = world.regions.get(capital) if capital else None
+                holder = getattr(region, "controller", None)
+                if (holder and holder != nation
+                        and world.is_at_war(holder, target)):
+                    counted = True
         if counted:
             closed += ports
     return closed / float(total)

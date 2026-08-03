@@ -355,3 +355,70 @@ class TestTheDioramaTellsOneStory:
         with open(gd, encoding="utf-8") as handle:
             source = handle.read()
         assert "squadrons astern" in source
+
+
+class TestTheConqueredCoast:
+    """NV-10 — found by DRIVING the A2 strangulation arc, not by reading.
+
+    The scripted drive marched Soult and Lannes on Portugal (Junot, 1807 —
+    the Continental System's own central act, undertaken precisely to shut
+    Lisbon to British trade). France took all four Portuguese provinces by
+    turn 12 and the closure went DOWN, 38.5% → 23.1%. Conquering a coast
+    has to CLOSE it.
+
+    Cause: `closure_against` read only who a court was AT WAR with, and
+    ports are authored per NATION (§3.2 deliberately keeps the denominator
+    authored). A neutral whose coastline had been overrun still counted as
+    open. A court whose CAPITAL is held by a power at war with the target
+    now counts as closed — the conqueror keeps the harbour, and the
+    conqueror is at war.
+
+    Measured after: taking Lisbon flips 38.5% → 42.3% and fires the
+    `cs_tier_shift` to tier 1 on turn 9 of the same drive.
+    """
+
+    def test_the_boot_fact_is_untouched(self, world):
+        """§5.1's pinned boot arithmetic — nobody is conquered at boot, so
+        the new arm must contribute exactly nothing."""
+        assert naval.closure_against(world, "Britain") == pytest.approx(
+            10 / 26, abs=0.001)
+        assert naval.cs_closure_tier(
+            naval.closure_against(world, "Britain")) == 0
+
+    def test_taking_the_capital_closes_the_coast(self, world):
+        """The historical act, as a unit: Lisbon falls, Portugal's two
+        ports join the closure, and the System crosses its first notch."""
+        before = naval.closure_against(world, "Britain")
+        capital = world.get_nation_capital("Portugal")
+        assert capital, "Portugal must have an authored capital"
+        world.regions[capital].controller = "France"
+        world.invalidate_active_nations_cache()
+        after = naval.closure_against(world, "Britain")
+        assert after > before
+        portuguese_ports = int(world.fleets["Portugal"].get("ports", 0))
+        total = naval.continental_ports_total(world)
+        assert after == pytest.approx(before + portuguese_ports / total,
+                                      abs=0.001)
+        assert naval.cs_closure_tier(after) == 1
+
+    def test_a_neutral_conqueror_closes_nothing(self, world):
+        """Scoped: the harbour shuts to the TARGET only when its new owner
+        is at war with the target. A conquest by a court at peace with
+        Britain leaves Britain's trade alone."""
+        before = naval.closure_against(world, "Britain")
+        capital = world.get_nation_capital("Portugal")
+        world.regions[capital].controller = "Austria"   # Britain's ally
+        world.invalidate_active_nations_cache()
+        assert not world.is_at_war("Austria", "Britain")
+        assert naval.closure_against(world, "Britain") == pytest.approx(
+            before, abs=0.001)
+
+    def test_a_court_still_holding_its_capital_is_untouched(self, world):
+        """Losing a province is not losing the war — only the capital
+        flips the reading, which is the same threshold the rest of the
+        game uses for a court being overrun."""
+        before = naval.closure_against(world, "Britain")
+        world.regions["Porto"].controller = "France"    # not the capital
+        world.invalidate_active_nations_cache()
+        assert naval.closure_against(world, "Britain") == pytest.approx(
+            before, abs=0.001)
