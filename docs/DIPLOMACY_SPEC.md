@@ -950,6 +950,12 @@ Example: Relation +40 → +20 acceptance
 
 **R143 Stalemate duration:** `+1 per stalemate turn, cap +15`. Uses `ai_stalemate_counters`. Rewards patience in prolonged conflicts.
 
+> **DP-1 (August 2, 2026):** `ai_stalemate_counters` is keyed by **PAIR**, via
+> `ai_diplomacy.stalemate_counter_key` — the one key the writer, `cleanup_war_end`
+> and this reader all use. It used to be keyed by NATION, so a court's peace with
+> one enemy wiped its deadlock clock against every other and a multi-front power
+> could never finish the P2 stalemate rung. Record: `NAVAL_SPEC.md` §15.14.
+
 **R144 Territory sweetener:** Value raised from +5 to +8 per region ceded (see Deal Sweetener table below).
 
 **R145 Gold lump sweetener:** Rate doubled from +1/200 to +1/100 gold offered.

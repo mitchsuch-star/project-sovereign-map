@@ -655,14 +655,16 @@ class TestR102AndR110WarEndCleanup:
         assert diplo_key not in world.war_scores
 
     def test_stalemate_counters_cleared(self):
+        """DP-1: the counter is keyed by PAIR, so war-end clears exactly
+        the one clock — not every clock belonging to either belligerent."""
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Austria")
-        world.ai_stalemate_counters = {"France": 5, "Austria": 3, "Prussia": 2}
+        elsewhere = world._make_diplo_key("Austria", "Prussia")
+        world.ai_stalemate_counters = {diplo_key: 5, elsewhere: 2}
         cleanup_war_end(world, diplo_key)
-        assert "France" not in world.ai_stalemate_counters
-        assert "Austria" not in world.ai_stalemate_counters
-        # Unrelated nation's counter persists
-        assert world.ai_stalemate_counters.get("Prussia") == 2
+        assert diplo_key not in world.ai_stalemate_counters
+        # Austria's OTHER war keeps its clock — the DP-1 defect.
+        assert world.ai_stalemate_counters.get(elsewhere) == 2
 
     def test_no_crash_without_stalemate_counters(self):
         world = make_world()

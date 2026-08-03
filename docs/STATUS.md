@@ -134,19 +134,59 @@
 > now counts as closed. **Measured after: Soult takes Lisbon turn 9, closure
 > 38.5% → 42.3%, `cs_tier_shift` fires to tier 1**; then turn 16 it falls back as
 > Spain and the Kingdom of Italy make their own peace and their ports re-open —
-> the arc working, fragility included. **Recorded honestly:** Britain's weariness
-> hits its 200 cap by turn 28 and still does not sue. That is the diplomacy
-> layer's threshold, not the naval layer's, and it is filed for that owner rather
-> than papered over. Suite **15,868/3**, `BASELINE_SERIES` byte-identical, M1–M7
-> green. Evidence: `docs/audits/NV9_NAVAL_DIORAMA_FINAL_2026_08_02.png`.
+> the arc working, fragility included. ~~**Recorded honestly:** Britain's weariness
+> hits its 200 cap by turn 28 and still does not sue.~~ **← THAT CLAIM WAS FALSE
+> and is corrected below (DP-1).** Suite **15,868/3**, `BASELINE_SERIES`
+> byte-identical, M1–M7 green.
+> Evidence: `docs/audits/NV9_NAVAL_DIORAMA_FINAL_2026_08_02.png`.
 >
 > **⚠ Open:** the **naval pillar score** (wants a human playing a campaign, not a
-> scripted drive), the live wheel check for NV-P1, a visual sign-off on the new
-> surfaces, and — for the peace-threshold owner — a capped war-weariness that
-> does not itself bring a court to the table. The played A2 arc is CLOSED (both need
-> a played campaign, not a probe), the live wheel check for NV-P1, and a visual
-> sign-off on the new surfaces — the amber DEFENDED SHORE tint, the Admiralty
-> chips, the region-panel landing chip, and the diorama in motion.
+> scripted drive), the live wheel check for NV-P1, and a visual sign-off on the
+> new surfaces — the amber DEFENDED SHORE tint, the Admiralty chips, the
+> region-panel landing chip, and the diorama in motion.
+
+> ### ✅ DP-1 — THE DEADLOCK CLOCK THAT COULD NEVER FINISH (August 2, 2026)
+>
+> **User direction: "fix diplomacy bug, be thorough."** Record =
+> `NAVAL_SPEC.md` §15.14 (the A2 drive found it; the fix is in diplomacy).
+>
+> **First, a correction I owe the record.** The NV-10 entry above said *"Britain's
+> weariness hits its 200 cap by turn 28 and still does not sue."* **That was
+> false, and the fault was my probe, not the game** — the observer keyed on a
+> proposal's `from_nation`, but an AI overture carries its source in
+> `context.source_nation`, so it saw nothing and I reported nothing happening.
+> Britain sued twice in that very run.
+>
+> **Instrumenting the real pipeline found a different and worse defect.**
+> `ai_stalemate_counters` was keyed by NATION while meaning *"how many
+> consecutive turns has this PAIR been deadlocked"*, and `cleanup_war_end` (R110)
+> popped it for **both nations of any war that ended**. Britain fought France,
+> Spain and Holland at once — so **every separate peace it signed with a minor
+> reset its France clock**, and the P2 stalemate rung, which for a never-fought
+> pair across the Channel needs `P2_NO_CONTACT_ESCAPE_TURNS`, could never
+> finish. The reader was worse than the writer: `calculate_acceptance` looked the
+> counter up under the **proposer's** name, so France asking Britain for terms
+> priced France's deadlock.
+>
+> **Measured, same seed, 30 turns, the two runs differing in the key and nothing
+> else:** legacy — the clock climbs to 14, is **wiped** at T15, climbs to 9, is
+> **wiped** at T25, **and then sits at zero for the rest of the run**; pair-keyed
+> — it climbs monotonically to 30 and Britain returns to the table at T15, T22
+> and T29. The point is not "one more proposal": it is that **a court whose
+> deadlock clock cannot accumulate stops coming to the table for the rest of the
+> campaign**, and it gets worse the longer the war and the more fronts it has —
+> exactly the strangled-Britain case the A2 arc exists to produce.
+>
+> One canonical key (`ai_diplomacy.stalemate_counter_key`) for writer, cleanup
+> and reader alike. R110's intent preserved exactly — ending a war still clears
+> *that* war's clock. Nothing else moved. Legacy saves' nation keys are **dropped,
+> not migrated** (which war they counted is unknowable, and that ambiguity is the
+> defect); cost is one clock restarting, ≤15 turns, self-healing. **Sibling scan
+> clean** — `armistice_cooldowns`/`war_start_turns`/`cascade_triggered` are
+> already pair-keyed and `war_exhaustion` is legitimately per-nation with R49's
+> guard. `test_dp1_stalemate_counter_pair_keyed.py` (24), every assertion carrying
+> a provocation control; a three-seam mutation fails 13 of 24. Suite
+> **15,901/3**, M1–M7 and `BASELINE_SERIES` byte-identical without re-record.
 
 > ### ✅ THE WOODEN WALL IS BUILT — NV-0..NV-3 LANDED IN ONE SESSION (August 2, 2026)
 >

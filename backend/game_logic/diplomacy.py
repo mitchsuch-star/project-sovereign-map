@@ -4503,11 +4503,18 @@ def cleanup_war_end(world, diplo_key: str, *,
     cascade_triggered -= to_remove
     world.cascade_triggered = cascade_triggered
 
-    # R110: Clear stalemate counters for the war pair nations
+    # R110: Clear the stalemate counter for THIS war pair.
+    #
+    # DP-1 (Aug 2, 2026): it used to pop both NATIONS, and the counter was
+    # nation-keyed — so a court's peace with one enemy wiped its deadlock
+    # clock against every other. Measured: Britain, deadlocked with France
+    # for 30 turns under the Continental System, twice reached 14 of the 15
+    # turns the never-fought stalemate exit requires and was reset to 0
+    # both times by its own separate peaces with Spain and Holland. It
+    # could never sue. The counter is keyed by PAIR now, so ending one war
+    # clears one clock.
     stalemate_counters = getattr(world, 'ai_stalemate_counters', {})
-    if len(parts) == 2:
-        stalemate_counters.pop(parts[0], None)
-        stalemate_counters.pop(parts[1], None)
+    stalemate_counters.pop(diplo_key, None)
     world.ai_stalemate_counters = stalemate_counters
 
     # Force-retreat displaced marshals from hostile territory (C1 armistice deadlock fix)
@@ -6696,8 +6703,12 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # ── Stalemate Duration (R143: +1/stalemate turn, cap +15) ──
     stalemate_duration_mod = 0
     if current_diplo_state == "WAR":
+        # DP-1: read the counter for THIS pair (it is pair-keyed now), not
+        # a nation-wide number that any of the target's other wars set.
+        from backend.game_logic.ai_diplomacy import stalemate_counter_key
         stalemate_counters = getattr(world, 'ai_stalemate_counters', {})
-        target_stalemate = stalemate_counters.get(target, 0)
+        target_stalemate = stalemate_counters.get(
+            stalemate_counter_key(proposer, target, world), 0)
         stalemate_duration_mod = min(15, target_stalemate)
 
     # ── Hegemony Target Modifier (v2.4.3 §9.1) ──

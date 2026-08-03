@@ -696,10 +696,31 @@ class TestMiscSmells:
     """Remaining smell verifications."""
 
     def test_stalemate_counter_resets_on_non_stalemate(self):
-        """Stalemate counter resets to 0 when war score moves outside -10..+10."""
-        from backend.game_logic.ai_diplomacy import _update_stalemate_counter
+        """Stalemate counter resets to 0 when war score moves outside -10..+10.
+
+        DP-1 (Aug 2, 2026): the counter takes the OPPONENT now and is keyed
+        by pair — a deadlock belongs to a war, not to a court."""
+        from backend.game_logic.ai_diplomacy import (
+            _update_stalemate_counter, stalemate_counter_key)
         world = make_world()
-        world.ai_stalemate_counters = {"Prussia": 4}
+        key = stalemate_counter_key("Prussia", "France", world)
+        world.ai_stalemate_counters = {key: 4}
         # War score outside stalemate range
-        _update_stalemate_counter("Prussia", 30, world)
-        assert world.ai_stalemate_counters["Prussia"] == 0
+        _update_stalemate_counter("Prussia", "France", 30, world)
+        assert world.ai_stalemate_counters[key] == 0
+
+    def test_stalemate_counter_is_per_war_not_per_court(self):
+        """THE DP-1 DEFECT, at the writer: two of Prussia's wars keep two
+        independent clocks. Nation-keying made them one, so a deadlock with
+        Austria reset the deadlock with France."""
+        from backend.game_logic.ai_diplomacy import (
+            _update_stalemate_counter, stalemate_counter_key)
+        world = make_world()
+        vs_france = stalemate_counter_key("Prussia", "France", world)
+        vs_austria = stalemate_counter_key("Prussia", "Austria", world)
+        assert vs_france != vs_austria
+        world.ai_stalemate_counters = {vs_france: 9, vs_austria: 2}
+        # A decisive swing in the AUSTRIAN war resets only that clock.
+        _update_stalemate_counter("Prussia", "Austria", 40, world)
+        assert world.ai_stalemate_counters[vs_austria] == 0
+        assert world.ai_stalemate_counters[vs_france] == 9

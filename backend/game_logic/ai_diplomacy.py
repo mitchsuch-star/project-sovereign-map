@@ -659,18 +659,47 @@ def ai_should_accept_liberation_peace(nation: str, opponent: str,
 # STALEMATE TRACKING
 # ═══════════════════════════════════════════════════════════════
 
-def _update_stalemate_counter(nation: str, war_score: int, world) -> int:
-    """Update and return stalemate counter for a nation.
+def stalemate_counter_key(nation: str, opponent: str, world) -> str:
+    """DP-1: the stalemate counter is a property of a WAR, not of a court.
+
+    It was keyed by NATION, which broke it two ways at once — see
+    `_update_stalemate_counter`. This is the one key both the writer and
+    every reader use; it is the canonical unordered pair key, so a saved
+    counter survives whichever side is asked about it."""
+    make_key = getattr(world, "_make_diplo_key", None)
+    if callable(make_key):
+        return make_key(nation, opponent)
+    return "|".join(sorted([nation, opponent]))
+
+
+def _update_stalemate_counter(nation: str, opponent: str, war_score: int,
+                              world) -> int:
+    """Update and return the stalemate counter for THIS WAR.
 
     Increments if war_score is between -10 and +10, resets otherwise.
+
+    DP-1 (Aug 2, 2026) — KEYED BY PAIR, not by nation. Measured defect:
+    Britain, deadlocked with France for 30 turns under the Continental
+    System, never once sued for peace. The P2 stalemate rung needs 15
+    consecutive deadlocked turns for a pair that has never fought
+    (P2_NO_CONTACT_ESCAPE_TURNS) — and Britain reached 14 twice and was
+    reset to 0 both times, because `cleanup_war_end` (diplomacy.py, R110)
+    pops the counter for BOTH nations of ANY war that ends, and Britain
+    was simultaneously at war with Spain and Holland. One court's peace
+    with Spain wiped its deadlock clock against France.
+
+    That is the whole reason a strangled but unbeaten power could never
+    come to the table: not the peace threshold, but a clock that could
+    never finish. Keyed by pair, an unrelated peace no longer touches it.
     """
     counters = getattr(world, 'ai_stalemate_counters', {})
+    key = stalemate_counter_key(nation, opponent, world)
     if -10 <= war_score <= 10:
-        counters[nation] = counters.get(nation, 0) + 1
+        counters[key] = counters.get(key, 0) + 1
     else:
-        counters[nation] = 0
+        counters[key] = 0
     world.ai_stalemate_counters = counters
-    return counters[nation]
+    return counters[key]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1332,7 +1361,8 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
 
     # Update stalemate counter
     if is_at_war:
-        stalemate_turns = _update_stalemate_counter(nation, war_score, world)
+        stalemate_turns = _update_stalemate_counter(
+            nation, player, war_score, world)
     else:
         stalemate_turns = 0
 

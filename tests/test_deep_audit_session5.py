@@ -343,32 +343,53 @@ class TestFix6DiplomaticDefiancePipeline:
 # ═══════════════════════════════════════════════════════════
 
 class TestFix7StaleamteCounterCleared:
-    """ai_stalemate_counters should be cleared when war ends."""
+    """The stalemate counter is cleared when THIS war ends.
+
+    DP-1 (Aug 2, 2026) — PINS CONSCIOUSLY FLIPPED. The counter used to be
+    keyed by NATION and cleanup popped BOTH nations of the ending pair, so
+    a court's peace with one enemy wiped its deadlock clock against every
+    other. Measured: Britain, deadlocked with France for 30 turns under
+    the Continental System, twice reached 14 of the 15 turns the
+    never-fought stalemate exit needs and was reset to 0 both times by its
+    own separate peaces. The counter is keyed by PAIR now, so ending one
+    war clears exactly one clock."""
 
     def test_stalemate_counter_cleared_on_war_end(self):
         world = _make_world()
-        world.ai_stalemate_counters = {"Austria": 5, "Prussia": 3}
         diplo_key = world._make_diplo_key("Austria", "France")
+        world.ai_stalemate_counters = {diplo_key: 5}
         world.diplomatic_states[diplo_key] = "WAR"
         world.war_start_turns = {diplo_key: 1}
 
         from backend.game_logic.diplomacy import cleanup_war_end
         cleanup_war_end(world, diplo_key)
 
-        assert world.ai_stalemate_counters.get("Austria") is None
-        # France should also be cleared (it's in the key)
-        assert world.ai_stalemate_counters.get("France", None) is None
+        assert world.ai_stalemate_counters.get(diplo_key) is None
 
-    def test_stalemate_counter_other_nation_preserved(self):
+    def test_another_war_of_the_same_nation_survives(self):
+        """THE DEFECT ITSELF. Austria is at war with France AND Prussia;
+        making peace with France must not touch its Prussian clock."""
         world = _make_world()
-        world.ai_stalemate_counters = {"Austria": 5, "Prussia": 3}
+        with_france = world._make_diplo_key("Austria", "France")
+        with_prussia = world._make_diplo_key("Austria", "Prussia")
+        world.ai_stalemate_counters = {with_france: 5, with_prussia: 12}
+
+        from backend.game_logic.diplomacy import cleanup_war_end
+        cleanup_war_end(world, with_france)
+
+        assert world.ai_stalemate_counters.get(with_france) is None
+        assert world.ai_stalemate_counters.get(with_prussia) == 12
+
+    def test_stalemate_counter_other_pair_preserved(self):
+        world = _make_world()
         diplo_key = world._make_diplo_key("Austria", "France")
+        other = world._make_diplo_key("Prussia", "Russia")
+        world.ai_stalemate_counters = {diplo_key: 5, other: 3}
 
         from backend.game_logic.diplomacy import cleanup_war_end
         cleanup_war_end(world, diplo_key)
 
-        # Prussia's counter should still exist
-        assert world.ai_stalemate_counters.get("Prussia") == 3
+        assert world.ai_stalemate_counters.get(other) == 3
 
 
 # ═══════════════════════════════════════════════════════════

@@ -6301,7 +6301,15 @@ class WorldState:
                     dm._next_mailbox_id += 1
                 dm.push(dialogue)
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
-        world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
+        # DP-1 (Aug 2, 2026): the stalemate counter is keyed by PAIR now
+        # ("A|B"), not by nation. A pre-DP-1 save's nation keys are dropped
+        # rather than migrated — WHICH war the count belonged to is
+        # unknowable from a nation key, and that ambiguity IS the defect.
+        # The cost is bounded: one clock restarts, at most 15 turns.
+        world.ai_stalemate_counters = {
+            k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()
+            if "|" in k
+        }
         # AI-2a: the refusal record — a pre-AI-2a save reads {} (no
         # refusals were ever recorded, honestly).
         world.diplomatic_refusals = {

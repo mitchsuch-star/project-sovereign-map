@@ -1318,14 +1318,30 @@ re-open. That is the arc working, including its fragility: **the System is
 only as good as the coalition holding it**, which is the historical fact
 the whole mechanic exists to dramatise.
 
-**Recorded honestly — the arc's remaining half is NOT naval.** Britain's
-weariness reaches the 200 cap by turn 28 and Britain still does not sue.
-The A2 acceptance arm was always "WE caps ≤12 turns under **80%** closure
-+ blockade", and one conquered minor buys tier 1, not 80% — so this run
-does not falsify it. What it does show is that a capped war-weariness does
-not by itself drive a court to the table; that is the diplomacy layer's
-threshold, not the naval layer's, and it is filed as the open question
-for the peace-threshold owner rather than papered over here.
+**Recorded honestly — the arc's remaining half is NOT naval.** The A2
+acceptance arm was always "WE caps ≤12 turns under **80%** closure +
+blockade", and one conquered minor buys tier 1, not 80% — so this run does
+not falsify it.
+
+> **CORRECTION (August 2, 2026, same day).** This section originally read
+> *"Britain's weariness reaches the 200 cap by turn 28 and Britain still
+> does not sue."* **That claim was false, and the fault was my probe, not
+> the game.** The observer keyed on a proposal's `from_nation`, but an AI
+> overture carries its source in `context.source_nation` — so it saw
+> nothing and I reported nothing happening. Instrumenting the real
+> pipeline shows Britain suing for an armistice **twice** in that 30-turn
+> drive, at T15 and T24.
+>
+> Driving it properly did find a real defect, but a different and worse
+> one, now fixed as **DP-1** (`test_dp1_stalemate_counter_pair_keyed.py`):
+> the P2 stalemate counter was keyed by NATION while meaning *"how long
+> has this PAIR been deadlocked"*, and `cleanup_war_end` popped it for both
+> nations of any ending war — so **Britain's separate peaces with Spain and
+> Holland wiped its France clock.** Measured on the same seeded drive: the
+> clock climbed to 14, was destroyed at T15, climbed to 9, was destroyed at
+> T25, **and then flatlined at zero for the rest of the run** — a Britain
+> that would never sue again. Pair-keyed it climbs monotonically to 30 and
+> Britain returns to the table at T15, T22 and T29. See §15.14.
 
 The **naval pillar score** stays open on purpose: it wants a human playing
 a campaign, not a scripted drive.
@@ -1371,3 +1387,71 @@ first cut asserted Russia's 20 sail lose exactly zero and the jitter made
 it 1, i.e. 5%, which is proportional and correct. **The assertion was
 wrong, not the code**; the pin now reads every winning contingent's rate
 against its own side's.
+
+### 15.14 DP-1 — the deadlock clock that could never finish (August 2, 2026)
+
+Not a naval defect. The A2 strangulation drive found it, so the trail is
+recorded here; the fix is in the diplomacy layer.
+
+**The symptom.** A Britain strangled by the Continental System, its war
+weariness pinned at the 200 cap, would go silent partway through a
+campaign and never sue for peace again.
+
+**The cause, in one sentence.** `world.ai_stalemate_counters` was keyed by
+NATION while meaning *"how many consecutive turns has this PAIR been
+deadlocked"* — and `cleanup_war_end` (R110) popped it for **both nations of
+any war that ended**.
+
+Britain fought France, Spain and Holland at once. The P2 stalemate rung
+wants N consecutive deadlocked turns, and for a pair that has never come
+to blows that is `P2_NO_CONTACT_ESCAPE_TURNS` — which Britain and France,
+separated by the Channel, structurally are. Every separate peace Britain
+signed with a minor reset its clock against France.
+
+Two failure modes, one root cause:
+
+* **cross-war reset** — ending war X clears the clock for unrelated war Y
+* **cross-war bleed** — deadlock in war X counts toward suing in war Y
+  (and the reader was worse than the writer: `calculate_acceptance` looked
+  up the counter under the *proposer's* name, so France asking Britain for
+  terms priced **France's** deadlock, not Britain's)
+
+**Measured, same seed, 30 turns, the two runs differing in the key and
+nothing else** (`scratchpad/dp1_run.py`, `DP1=0|1`):
+
+| | legacy (nation-keyed) | fixed (pair-keyed) |
+|---|---|---|
+| clock trajectory | 1→14, **wiped**, 1→9, **wiped**, then 0 for six turns | 1→30, monotonic |
+| peak | 14 | 30 |
+| Britain's overtures | T15, T24 | T15, T22, T29 |
+
+The two histories share an opening and diverge once behaviour does, so the
+right reading is not "one more proposal" — it is the **shape**: the legacy
+clock dies and then stays dead, and a court whose deadlock clock cannot
+accumulate is a court that stops coming to the table for the rest of the
+campaign. The longer the war and the more fronts it has, the worse it
+gets: exactly the strangled-Britain case the A2 arc exists to produce.
+
+**The fix.** One canonical key, `ai_diplomacy.stalemate_counter_key`, used
+by the writer, the cleanup and the acceptance reader alike — the world's
+own `_make_diplo_key` pair key, so either side may ask and both get the
+same clock. R110's intent is preserved exactly: ending a war still clears
+*that war's* clock. Nothing else moved — the −10..+10 deadlock band, the
+rung thresholds and the R143 cap are byte-identical.
+
+**Load migration.** A pre-DP-1 save's nation keys are **dropped, not
+migrated**: which war a nation-keyed count belonged to is unknowable, and
+that ambiguity *is* the defect. The cost is bounded and self-healing — one
+clock restarts, at most 15 turns.
+
+**Sibling scan.** Every other store `cleanup_war_end` touches was checked
+for the same shape. `armistice_cooldowns`, `war_start_turns` and
+`cascade_triggered` are already pair-keyed; `war_exhaustion` is
+legitimately per-nation and already guarded by R49's "no other active
+wars" check. The stalemate counter was the only mismatch.
+
+`test_dp1_stalemate_counter_pair_keyed.py` (24) — every assertion carries a
+provocation control, and a three-seam mutation (writer key, cleanup pop,
+load filter) fails 13 of the 24, the 11 survivors being the controls
+themselves and the seams the mutation did not touch. Suite **15,901/3**;
+M1–M7 and `BASELINE_SERIES` byte-identical without re-record.

@@ -154,7 +154,8 @@ class TestAIDiplomacyTriggers:
         # AUD-b: the pair must have actually fought for the fast stalemate exit.
         _record_pair_battle(world, "Prussia")
         # Pre-set stalemate counter to 4 (process_diplomatic_phase will increment to 5)
-        world.ai_stalemate_counters = {"Prussia": 4}
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", "Prussia"): 4}
         proposal = process_diplomatic_phase("Prussia", world)
         assert proposal is not None
         assert proposal["source"] == "Prussia"
@@ -169,7 +170,8 @@ class TestAIDiplomacyTriggers:
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10
         # No battle recorded on the pair.
-        world.ai_stalemate_counters = {"Prussia": 4}  # -> 5 after increment
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", "Prussia"): 4}  # -> 5
         proposal = process_diplomatic_phase("Prussia", world)
         # 5 turns of contactless stalemate is below the no-contact escape (15).
         assert proposal is None or "armistice" not in proposal.get("proposal_type", "")
@@ -182,7 +184,8 @@ class TestAIDiplomacyTriggers:
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10
         # No battle on the pair; counter one below the escape threshold.
-        world.ai_stalemate_counters = {"Prussia": 14}  # -> 15 after increment
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", "Prussia"): 14}  # -> 15
         proposal = process_diplomatic_phase("Prussia", world)
         assert proposal is not None
         assert "armistice" in proposal["proposal_type"]
@@ -642,12 +645,25 @@ class TestSession4Serialization:
         assert world2.dialogue_manager.get_mailbox_count() >= 1
 
     def test_ai_stalemate_counters_roundtrip(self):
-        """ai_stalemate_counters serializes and back."""
+        """ai_stalemate_counters serializes and back.
+
+        DP-1 (Aug 2, 2026): keyed by PAIR now, not by nation."""
         world = make_world()
-        world.ai_stalemate_counters = {"Prussia": 5, "Britain": 2}
+        a = world._make_diplo_key("France", "Prussia")
+        b = world._make_diplo_key("France", "Britain")
+        world.ai_stalemate_counters = {a: 5, b: 2}
         data = world.to_dict()
         world2 = WorldState.from_dict(data)
-        assert world2.ai_stalemate_counters == {"Prussia": 5, "Britain": 2}
+        assert world2.ai_stalemate_counters == {a: 5, b: 2}
+
+    def test_ai_stalemate_counters_legacy_nation_keys_dropped(self):
+        """DP-1 load migration: a pre-DP-1 save's nation keys name no war,
+        so they are dropped rather than guessed at. See
+        tests/test_dp1_stalemate_counter_pair_keyed.py for the why."""
+        world = make_world()
+        data = world.to_dict()
+        data["ai_stalemate_counters"] = {"Prussia": 5, "Britain": 2}
+        assert WorldState.from_dict(data).ai_stalemate_counters == {}
 
     def test_all_four_fields_in_to_dict(self):
         """Session 4 fields present in to_dict output (diplomatic_queue eliminated)."""

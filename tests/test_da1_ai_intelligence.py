@@ -261,7 +261,9 @@ class TestA3P2PatienceWE:
         holds for the much longer no-contact escape). These A3 tests exercise the
         patience-window math, so they represent a war that has been fought.
         """
-        world.ai_stalemate_counters = {nation: turns}
+        # DP-1: the counter is keyed by PAIR (this war is vs France).
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", nation): turns}
         key = world._make_diplo_key("France", nation)
         world.battle_records.setdefault(key, []).append({
             "turn": world.current_turn, "winner": None,
@@ -545,7 +547,8 @@ class TestA2CoalitionGuard:
         set_diplomat_personality(world, "Prussia", "loyalist")
         set_relation(world, "France", "Prussia", 20)
         set_war_score(world, "Prussia", "France", 0)  # Stalemate range
-        world.ai_stalemate_counters = {"Prussia": 4}
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", "Prussia"): 4}
         # AUD-b: a real stalemate presupposes real combat on the pair.
         world.battle_records.setdefault(
             world._make_diplo_key("France", "Prussia"), []
@@ -1088,7 +1091,8 @@ class TestIntegration:
         # P1 threshold: -40 + 3 = -37
         # P2 patience: max(2, 5 - 2) = 3
         set_war_score(world, "Prussia", "France", 0)  # Stalemate
-        world.ai_stalemate_counters = {"Prussia": 2}
+        world.ai_stalemate_counters = {
+            world._make_diplo_key("France", "Prussia"): 2}
         # AUD-b: a real stalemate presupposes real combat on the pair.
         world.battle_records.setdefault(
             world._make_diplo_key("France", "Prussia"), []
