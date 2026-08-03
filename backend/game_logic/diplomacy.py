@@ -4505,7 +4505,7 @@ def cleanup_war_end(world, diplo_key: str, *,
 
     # R110: Clear the stalemate counter for THIS war pair.
     #
-    # DP-1 (Aug 2, 2026): it used to pop both NATIONS, and the counter was
+    # DP-1 (Aug 3, 2026): it used to pop both NATIONS, and the counter was
     # nation-keyed — so a court's peace with one enemy wiped its deadlock
     # clock against every other. Measured: Britain, deadlocked with France
     # for 30 turns under the Continental System, twice reached 14 of the 15

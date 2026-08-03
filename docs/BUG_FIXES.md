@@ -366,7 +366,7 @@ the dplo window is too big for the screen when in settle a war."*
 
 ---
 
-## Sweep-5 Findings — July 16, 2026 (P0 FIXED; 5 routed OPEN)
+## Sweep-5 Findings — July 16, 2026 (P0 FIXED; **S5-1/2/3/5 FIXED in Batch Q Chunk 1, July 16**; only **S5-4** remains, deferred to the Pre-EA Dialogue Robustness row)
 
 > From the Combat Overhaul **Sweep 5** (Parsing/UX) 12-component adversarial review over
 > fresh live evidence — memo `docs/audits/SWEEP_5_2026_07_16.md`, live captures
@@ -491,11 +491,11 @@ User reported: (1) "Ney attack doesn't work / attack doesn't work", (2) "can't d
 | 4 | P2 | PL-26 | **FIXED** | Combat feels hopeless because the obvious opener teaches the wrong lesson | Fixed Apr 12, 2026 |
 | 5 | P3 | PL-29 | **FIXED** | No new-game / restart endpoint | Fixed Apr 12, 2026 |
 
-**Current routed next step:** the **Creative-Audit Findings** below are the open defect queue (July 10, 2026). BUG-CA-7 (dialogue-stack misroute) is the priority item. Overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
+**Current routed-open set (August 3, 2026)** — the Creative-Audit rows below are ALL FIXED and are kept as a record: **IGR-X9** (razing sheds the EC-U2 bill — homed at ROADMAP row **EC-P3**) · **EWC-F1** / **EWC-F2** · **UI-2d-1** · **S5-4** (Pre-EA Dialogue Robustness) · **NV-P1's live wheel check** (§NV-P1 — evidence, not code). Historical note: BUG-CA-7 (dialogue-stack misroute) was the priority item. Overall routing lives in `docs/ROADMAP.md` §Current Phase Queue.
 
 ---
 
-## Creative-Audit Findings (July 10, 2026) — OPEN
+## Creative-Audit Findings (July 10, 2026) — ✅ ALL TEN FIXED (Wave 6, July 10, 2026)
 
 > Routed from `docs/audits/CREATIVE_AUDIT_2026_07_10.md` (the §8 fun-factor capstone). All were **confirmed live** on the shipped 1805 campaign (turns 1–5, LLM_MODE=anthropic). Per §8 discipline they were routed, not fixed (only trivial legibility slips were fixed inline — commit-tracked, tests in `tests/test_creative_audit_legibility_fixes_2026_07_10.py`). Owning component = `AUDIT_GUIDELINE.md` section.
 
@@ -915,7 +915,7 @@ These are concrete code paths that previous spec text covers implicitly but does
 
 ## Active Bug Specs
 
-### ~~NV-P1: the Strategic Ledger panel ignores the mouse wheel~~ ✅ FIXED August 2, 2026 (NV-6)
+### ~~NV-P1: the Strategic Ledger panel ignores the mouse wheel~~ ✅ FIXED August 2, 2026 (NV-6) — ⚠ **live wheel check still OPEN**
 
 **Cause, confirmed:** the ledger's content area is a `RichTextLabel`
 inside a `ScrollContainer`, and a `RichTextLabel` defaults to

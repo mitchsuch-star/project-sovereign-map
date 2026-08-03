@@ -698,7 +698,7 @@ class TestMiscSmells:
     def test_stalemate_counter_resets_on_non_stalemate(self):
         """Stalemate counter resets to 0 when war score moves outside -10..+10.
 
-        DP-1 (Aug 2, 2026): the counter takes the OPPONENT now and is keyed
+        DP-1 (Aug 3, 2026): the counter takes the OPPONENT now and is keyed
         by pair — a deadlock belongs to a war, not to a court."""
         from backend.game_logic.ai_diplomacy import (
             _update_stalemate_counter, stalemate_counter_key)

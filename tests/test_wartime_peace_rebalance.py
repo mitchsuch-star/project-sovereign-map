@@ -40,7 +40,7 @@ def make_war_world(turns_at_war=0, relation=-40, stalemate=0):
     if stalemate > 0:
         if not hasattr(world, 'ai_stalemate_counters'):
             world.ai_stalemate_counters = {}
-        # DP-1 (Aug 2, 2026): the stalemate counter is keyed by PAIR, not by
+        # DP-1 (Aug 3, 2026): the stalemate counter is keyed by PAIR, not by
         # nation — a court's peace with ONE enemy used to wipe its deadlock
         # clock against every other, which is why a strangled Britain could
         # not keep a stalemate long enough to sue.

@@ -1,5 +1,5 @@
 """
-DP-1 (Aug 2, 2026) — the stalemate counter belongs to a WAR, not to a court.
+DP-1 (Aug 3, 2026) — the stalemate counter belongs to a WAR, not to a court.
 
 THE DEFECT, as measured. Britain, strangled by the Continental System and
 deadlocked with France for thirty turns, never once sued for peace. The

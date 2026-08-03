@@ -950,7 +950,7 @@ Example: Relation +40 → +20 acceptance
 
 **R143 Stalemate duration:** `+1 per stalemate turn, cap +15`. Uses `ai_stalemate_counters`. Rewards patience in prolonged conflicts.
 
-> **DP-1 (August 2, 2026):** `ai_stalemate_counters` is keyed by **PAIR**, via
+> **DP-1 (August 3, 2026):** `ai_stalemate_counters` is keyed by **PAIR**, via
 > `ai_diplomacy.stalemate_counter_key` — the one key the writer, `cleanup_war_end`
 > and this reader all use. It used to be keyed by NATION, so a court's peace with
 > one enemy wiped its deadlock clock against every other and a multi-front power

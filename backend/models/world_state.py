@@ -6301,7 +6301,7 @@ class WorldState:
                     dm._next_mailbox_id += 1
                 dm.push(dialogue)
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
-        # DP-1 (Aug 2, 2026): the stalemate counter is keyed by PAIR now
+        # DP-1 (Aug 3, 2026): the stalemate counter is keyed by PAIR now
         # ("A|B"), not by nation. A pre-DP-1 save's nation keys are dropped
         # rather than migrated — WHICH war the count belonged to is
         # unknowable from a nation key, and that ambiguity IS the defect.

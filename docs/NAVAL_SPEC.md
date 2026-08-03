@@ -872,11 +872,21 @@ measure belongs to the live playthrough). Live HTTP verify PASSED on a
 fresh backend: the Admiralty block (45 sail / guard / CS 38% / the
 Blockade board naming France −175), `build ships` laying a keel at 400g
 with the green-crew fold, the expedition's honest yard refusal.
-**OPEN (the user's next play session):** the in-client visual pass —
+~~**OPEN (the user's next play session):** the in-client visual pass —
 map verdict tints/anchor glyphs, THE ADMIRALTY ledger block, the dockyard
-chip, the war-room naval line — plus the played-world A2 strangulation
-arc and the naval pillar score. DEF-5 and DEF-6's demotion arm CLOSE on
-that pass; the MAP-plan rows are annotated now.
+chip, the war-room naval line.~~ **✅ THE VISUAL PASS PASSED the same day** —
+see "NV-V LIVE HALF — THE VISUAL PASS: PASSED (August 2, 2026)" above in
+this same section; every §9 surface was confirmed on screen.
+
+**STILL OPEN after that pass:** the **played-world A2 sue-path** and the
+**naval pillar score** — both need a human playing a campaign, not a probe.
+Note that §15.12 drove the A2 arc *scripted* and explicitly does **not**
+falsify the 80%-closure acceptance arm, so the played measure is still owed.
+Also open: the NV-P1 live wheel check, a visual sign-off on the NV-4..NV-11
+**second-pass** surfaces, and the NV-V remainder (anchors A1–A5 measured in a
+played world, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check).
+DEF-5 and DEF-6's demotion arm CLOSE on those; the MAP-plan rows are
+annotated now.
 
 *Companion reading: `MAP_IMPLEMENTATION_PLAN.md` DEF-5/6/7/8 (the map contracts this spec
 consumes), `NATION_AGENDAS_SPEC.md` §11.4/§20/§21 (the creation machinery Ireland rides),
@@ -1058,12 +1068,34 @@ the parse side and the prose side cannot drift.
 
 ### 15.8 Still open
 
-The played **A2 strangulation arc** and the **naval pillar score** (both
-inherited from NV-V and untouched by this pass — they need a played campaign,
-not a probe), plus the live wheel check for NV-P1 and a visual sign-off on the
-new surfaces: the amber DEFENDED SHORE tint, the Admiralty chips, the region-
-panel landing chip, and the naval diorama in motion (the still is evidence; the
-cinematic tween is checked live).
+**⚠ ONE USER DECISION IS DUE — the adjacency ruling.** `Normandy↔Berry`
+(162px) and `Flanders↔Orleanais` (128px) were left "for a user ruling after
+the visual pass" (§15 / the NV-8c record). **That precondition was met on
+August 2** — so the ruling is now due, and it is the only genuine *design
+decision* on this list. These are the longest LAND edges out of their
+provinces and are the interior route a landed British army actually walks
+inland. Cutting them stops the walk; but this map's adjacency is derived from
+DRAWN shared borders, so cutting them would make the map visually lie. Worth
+ruling **before** the played campaign, so that run measures the intended
+topology.
+
+**Open on evidence, not permission** — each needs a human playing a campaign,
+not another probe:
+
+- the **naval pillar score**;
+- the **played A2 sue-path**. ~~The A2 strangulation arc.~~ ✅ The arc itself
+  was DRIVEN at NV-10 (§15.12) — but *scripted*, and §15.12 explicitly does
+  **not** falsify the 80%-closure acceptance arm, so the played sue-path
+  measure is still owed;
+- the **NV-P1 live wheel check** (a one-line `mouse_filter` change no headless
+  test can prove);
+- a **visual sign-off** on the second-pass surfaces: the amber DEFENDED SHORE
+  tint, the Admiralty chips, the region-panel landing chip, and the naval
+  diorama in motion (the still is evidence; the cinematic tween is checked
+  live);
+- the **NV-V remainder DEF-5 closes on**: anchors A1–A5 measured in a played
+  world, the NV-D7 (weather/season) and NV-D8 (ambient expedition) verdicts,
+  and the Q7 texture-option re-open check.
 
 ### 15.9 The tightening review (same day — user-directed: "make all fixes
 ### found... look for bugs, assure UX/UI and functionality is tight, no
@@ -1388,7 +1420,7 @@ it 1, i.e. 5%, which is proportional and correct. **The assertion was
 wrong, not the code**; the pin now reads every winning contingent's rate
 against its own side's.
 
-### 15.14 DP-1 — the deadlock clock that could never finish (August 2, 2026)
+### 15.14 DP-1 — the deadlock clock that could never finish (August 3, 2026)
 
 Not a naval defect. The A2 strangulation drive found it, so the trail is
 recorded here; the fix is in the diplomacy layer.

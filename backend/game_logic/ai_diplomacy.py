@@ -678,7 +678,7 @@ def _update_stalemate_counter(nation: str, opponent: str, war_score: int,
 
     Increments if war_score is between -10 and +10, resets otherwise.
 
-    DP-1 (Aug 2, 2026) — KEYED BY PAIR, not by nation. Measured defect:
+    DP-1 (Aug 3, 2026) — KEYED BY PAIR, not by nation. Measured defect:
     Britain, deadlocked with France for 30 turns under the Continental
     System, never once sued for peace. The P2 stalemate rung needs 15
     consecutive deadlocked turns for a pair that has never fought

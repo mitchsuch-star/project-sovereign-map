@@ -647,7 +647,7 @@ class TestSession4Serialization:
     def test_ai_stalemate_counters_roundtrip(self):
         """ai_stalemate_counters serializes and back.
 
-        DP-1 (Aug 2, 2026): keyed by PAIR now, not by nation."""
+        DP-1 (Aug 3, 2026): keyed by PAIR now, not by nation."""
         world = make_world()
         a = world._make_diplo_key("France", "Prussia")
         b = world._make_diplo_key("France", "Britain")

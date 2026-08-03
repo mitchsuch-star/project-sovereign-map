@@ -4,7 +4,7 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
-> ### ✅ THE NAVAL SECOND PASS — NV-4..NV-7 LANDED (August 2, 2026)
+> ### ✅ THE NAVAL SECOND PASS — NV-4..NV-11 LANDED (August 2, 2026)
 >
 > **User direction: "do another pass on naval, make sure it works and the ux is
 > fleshed out; does Normandy make sense for England to land at, how do we
@@ -140,12 +140,47 @@
 > byte-identical, M1–M7 green.
 > Evidence: `docs/audits/NV9_NAVAL_DIORAMA_FINAL_2026_08_02.png`.
 >
+> **NV-8 — the user's visual pass answered** (record `NAVAL_SPEC.md` §15.10), from a
+> screenshot of the naval tableau plus four asks. The ship art was rebuilt **under
+> sail** (three mast columns, jib, gaff spanker, gun strakes) in the same offline
+> generator as the land pieces, 24 → 32 sprites. The diorama learned a sea grammar:
+> a sunk ship **founders** (heels 26°, settles, darkens) rather than toppling like an
+> infantry block; no land heraldry standards at sea; STRUCK / SUNK rather than the
+> land verdict words. **And the London↔Flanders sea link was CUT** — Britain had a
+> 352px crossing onto one of the map's longest edges, the July-17 "Britain stood in
+> Orleanais" shape; the registry drops to **18 sea links** and both adjacency folds
+> go with it, with a save migration for worlds that stored the dead edge.
+> `BASELINE_SERIES` re-recorded once, attributed. Ally-landing was assured in the
+> same pass: the AI sails for a shore that will RECEIVE an army, which is how
+> Britain lands at Lisbon rather than storming a beach.
+>
+> **NV-11 — the casualty spread, asked** (record `NAVAL_SPEC.md` §15.13), from the
+> user's question *"did we address if the casualty spread made any sense?"* — which
+> had never been asked. The **shape** checks out: a decisive action computes loser
+> 55% / winner 3.9% against Trafalgar's real 66.7% / 0.0%, now pinned as a band. One
+> thing did not: `_apply_side_losses` floored every loss at `max(1, …)`, so on the
+> **winning** side a 1-sail ally was **annihilated every single time** (100%), a
+> 2-sail ally lost half. Rounding alone is the honest rule and the historical one.
+> The losing side is untouched **by arithmetic, not by a branch** — at 55% even a
+> lone hull rounds to 1. Pinned as proportionality, not an exact figure, because the
+> ±10% seeded jitter legitimately moves a squadron across a rounding line.
+>
 > **⚠ Open:** the **naval pillar score** (wants a human playing a campaign, not a
-> scripted drive), the live wheel check for NV-P1, and a visual sign-off on the
-> new surfaces — the amber DEFENDED SHORE tint, the Admiralty chips, the
-> region-panel landing chip, and the diorama in motion.
+> scripted drive), the played **A2 sue-path** (§15.12 explicitly does NOT falsify the
+> 80%-closure acceptance arm), the live wheel check for NV-P1, a visual sign-off on
+> the new surfaces — the amber DEFENDED SHORE tint, the Admiralty chips, the
+> region-panel landing chip, and the diorama in motion — and the **NV-V remainder**
+> DEF-5 closes on (anchors A1–A5 in a played world, the NV-D7/NV-D8 verdicts, the Q7
+> texture re-open check).
+>
+> **⚠ USER DECISION DUE** — its precondition (the visual pass) was met Aug 2: the
+> **`Normandy↔Berry` (162px) / `Flanders↔Orleanais` (128px)** adjacency ruling
+> (`NAVAL_SPEC.md` §15). The longest LAND edges out of their provinces, and the
+> interior route a landed British army actually walks. Cutting them stops the walk
+> inland; but adjacency here is derived from DRAWN shared borders, so cutting them
+> makes the map visually lie.
 
-> ### ✅ DP-1 — THE DEADLOCK CLOCK THAT COULD NEVER FINISH (August 2, 2026)
+> ### ✅ DP-1 — THE DEADLOCK CLOCK THAT COULD NEVER FINISH (August 3, 2026)
 >
 > **User direction: "fix diplomacy bug, be thorough."** Record =
 > `NAVAL_SPEC.md` §15.14 (the A2 drive found it; the fix is in diplomacy).
@@ -392,7 +427,12 @@
 > - Tests this session: `test_ai_square_thrash.py` (6) + `test_neutral_soil_pursuit_capture.py`
 >   (7) + `test_enemy_phase_presentation.py` (13) + diorama +5/2 flipped + digest +2.
 >
-> ### ▶ WHAT'S NEXT (updated August 1, 2026 — after the fix-menu session)
+> ### WHAT'S NEXT — as of August 1, 2026 (a dated session record, NOT the live pointer)
+>
+> **[Superseded August 3, 2026. Items 1 and 3 are CLOSED — the user PASSED every visual
+> sign-off on Aug 1, and DEF-5 was BUILT COMPLETE NV-0..NV-11 on Aug 2. The live forward
+> pointer is the "NEXT SESSION STARTS HERE" banner in §Next Steps; this section is kept
+> as the record of what the Aug-1 session handed forward.]**
 >
 > **THE AI INTENT PHASE IS CLOSED and the re-measure's fix menu is BUILT.** Remaining:
 >
@@ -1447,7 +1487,7 @@ BEHIND the AI stages by user direction — row BD stands.**
   line) — headless-verified only. **▶ NEXT: user in-game review (NA-6c/6d + the new AI surfaces) →
   Battle Diorama (row BD) → §11 Stage C (the bargaining table) → ⛩ THE RE-CHECK.**
 
-**THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
+**[Historical — the July 2, 2026 re-staging snapshot. Every gate named below has since been held; see Quick Stats for live state.]** **THE REAL-MAP CUTOVER IS COMPLETE** (Slices 1–9 + 7.5 + the DEF-7 registry mini-pass all LANDED — full record below) **and the Phase 8 Peace Deals arc is functionally complete**: the Gate 4 end-of-queue smoke RAN July 2, 2026 (11 findings fixed at `7635229`; **gate passage recordable once the user confirms the residual eyes-only visual checklist** — see the July 2 Gate-4 entry below); **✅ SLICE G1 LANDED July 2, 2026 at `1a9da53`** (Request Terms lifecycle — SC-30 closed — + the D-G1-1(a) armistice-paradox exemption); **✅ SC-32 / Slice G2 closure bookkeeping DONE July 2, 2026** (this re-staging session — ledger rows updated, spec masthead bumped; SC-32 is formally CLOSED). **Routing authority: `docs/ROADMAP.md` §Current Phase Queue** (re-staged July 2) + the Next Steps section below. Immediate user gates: Gate 4 visual half · Slice H design gate (`docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`) · Command Robustness scope ✅ BLESSED (CR-5 detailed scope blessed July 5, 2026 — `COMMAND_ROBUSTNESS_SPEC.md` §6) · Economy Revisit decisions (`docs/ECONOMY_REVISIT_SPEC.md`) · Marshal Content Pass gate (`docs/MARSHAL_CONTENT_PASS_SPEC.md`).
 
 ### 🧠 AI INTENT SPEC v1.4 ✅ July 24, 2026 — the structure & creative pass (docs-only)
 
@@ -2715,7 +2755,7 @@ The commissioned Europe map art arrived as a **layered PSD** (`map final1.psd`).
 
 **The settlement Gate 4 manual smoke + Slice G/G1 are re-sequenced to run AFTER the map cutover** (they were next-up; the Active Settlement Gate section below is still valid, just sequenced behind this map work).
 
-## Active Settlement Gate
+## Active Settlement Gate — CLOSED (Gate 4 PASSED July 3, 2026; no live successors)
 
 **July 2, 2026 (second entry) — ✅ SLICE G1 LANDED (the Request Terms lifecycle + the D-G1-1(a) armistice-paradox exemption; plan user-approved same day; suite `10781 passed, 1 skipped`; ruff clean; Godot parse harness 17 scripts / 0 failures; live-verified over HTTP on the shipped 1805 boot):** The July-2 reconciliation left G1 exactly one unbuilt promise — the SC-30 Request Terms lifecycle — and it now ships complete: **(state)** `world.settlement_terms_requests` keyed by war_id (`requested/granted/refused`, clocks, `answering_leader`; serialized + `SAVE_FORMAT_REFERENCE.md` row); **(verb)** `request_terms` (structured `/command` + typed "request terms from X"; 1 DP; click-time affordance re-run; full new-action checklist wiring incl. the mock-parser routing gate); **(affordance)** `evaluate_request_terms_affordance` (settlement_routes) — the cleanup-spec no-false-affordance contract: ABSENT on every structural block (incl. an explicit one-active-offer guard that the eligibility function's first-refusal-wins ordering would otherwise mask behind `cooldown_active`), DISABLED-with-named-clock only for deterministic temporal blocks (pending answer / request cooldown / war-too-young), AVAILABLE otherwise — packed per-war as `request_terms_state` in `build_active_wars`; **(AI answer)** `_resolve_settlement_terms_requests` runs BEFORE the periodic producer scan each AI phase: GRANT emits a real `incoming_settlement_offer` through the SHARED `_emit_settlement_offer_for_war` emission (Building Blocks) tagged `requested_by_player: true`, bypassing the producer's periodic cooldown while writing BOTH clocks; REFUSE when the answering leader is decisively winning (`get_war_score_for >= REQUEST_TERMS_REFUSAL_WAR_SCORE = 30`) — voiced by the court's NAMED diplomat via `resolve_named_diplomat` (chancery fallback, never anonymous), notification + campaign-log beat, and the refusal also quiets the periodic producer (a court that refuses to name terms does not spontaneously offer them the same phase); LAPSE with a Talleyrand notice when the war changes shape; **(voice)** `settlement_request_terms_sent_talleyrand` / `_refused_court` / `_lapsed_talleyrand` in Voice Bible §16.1 (SC-32 D5 boundary verified); **(UI)** the War Detail `Request Terms` button renders from the affordance block (absent never renders; disabled carries the pre-click reason — G4F-16 pattern) and sends the structured action; no new dialogue type (a granted request speaks through the existing offer popup/mailbox). **D-G1-1(a) (user-approved):** the BPH-C §10.1 alliance-paradox HARD_STOP now gates bilateral PEACE only — armistice variants send (live-verified: peace mount blocks naming Spain, the armistice mounts clean and DISPATCHES on the shipped boot, un-dead-ending the counseled armistice ladder for ally-entangled courts). **Tests (+24 net):** the two spec-named absence-form tests INVERTED to the live lifecycle (`test_ask_for_terms_visible_only_when_request_terms_state_can_actually_advance`, `test_ask_for_terms_click_produces_observable_state_change_not_just_copy` — the latter through the exact Godot wire shape), new `tests/test_settlement_request_terms.py` (15: verb/DP/refusal/grant/one-active-offer/lapse/serialization/voice/wiring + Godot source pins), W1 whitelist-sync extended over `request_terms`, the two `CAMPAIGN_LOG_TYPES` count pins re-pinned 87→90, +3 campaign-log beat types. **Live smoke evidence** (`smoke_logs/g1_request_terms_smoke2.py`): available→requested-with-clock→granted→answerable on war_1; the mailbox row now reads "Settlement offer: France vs Britain" (the E-5 residual — `war_label` stamped at promote); Castlereagh voices the refusal on the cheat-shifted winning leg with the 5-turn re-request clock. **SC-30 closes; the cleanup-spec row is updated to LIVE. Remaining Slice-G family work: G2 follow-through + Slice H (cleanup spec), and the Gate-4 visual-half confirmation (user).**
 
@@ -2752,7 +2792,7 @@ The commissioned Europe map art arrived as a **layered PSD** (`map final1.psd`).
 
 Before Gate 4 manual settlement UI smoke, set `SOVEREIGN_SMOKE_START=settlement_multilateral` for the shared France vs Britain + Prussia war. Run `SOVEREIGN_SMOKE_START=settlement_losing` for concession-baseline and losing-side authoring paths, and run `SOVEREIGN_SMOKE_START=settlement_rejected` separately for blocked-popup, SC-10b / SC-28 / SC-28b recovery, scoped-draft, no-direct-pair-action, and actionability-gated War Detail paths. Use `SOVEREIGN_SMOKE_START=settlement_multiwar_ambiguity` for the required same-nation multi-war ambiguity check; Gate 4 step 1 cannot close unless smoke evidence names this fixture and records the rendered disambiguation or hidden-action outcome. The losing and rejected fixtures are both required; one cannot stand in for the other.
 
-## Verification Snapshot
+## Verification Snapshot — Settlement arc (HISTORICAL; the arc closed July 3, 2026)
 
 Slice G / AI-ally settlement agency cut/ship ownership is no longer blocked on the rejected, losing, multiwar ambiguity, surrender, recurring-gold, forced-alliance Continental toggle differential, same-war off-editor, incoming-offer mailbox/popup fixture smoke paths, or `DWL-SET-SC5R`. The SC-5R backend/editor repair now provides the edit-capable counter-draft surface, Submit for Review path, scoped draft preservation, active-vs-archived routing, and executable Godot parse evidence; Gate 4 manual smoke evidence remains the player-quality release gate. SC-32 landing ownership remains tracked rather than open-ended, and SC-29 / SC-30 / SC-31 / SC-33 remain regression-covered after landing.
 
@@ -2771,14 +2811,14 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 | DWL-SET-SC31 | `Surrender terms` + dependency clause types (`vassalage` / `subjugation` / `liberation`) | LANDED | Settlement UI Cleanup SC-31 / G2-Slice-8 | G2-Slice-8 shipped May 14, 2026 with `SETTLEMENT_LIVE_CLAUSE_TYPES`, dependency eligibility helpers, the `[peace, harshest-legal-dependency]` surrender preset (subjugation-then-vassalage order), the `author_surrender_terms` blocked-popup action + dialogue handler with click-time revalidation, the `surrender_preset` propagation through staging / ratify / reactions / `settlement_summary`, applied_clauses_preview rows for dependency clauses, Voice Bible §16.1 surrender/dependency families, the `SOVEREIGN_SMOKE_START=settlement_surrender` fixture, Godot popup banners, and Codex audit repair `codex-2026-05-14-settlement-G2-Slice-8` | Dependency clauses live in `available_clause_types[]`, surrender preset authors a deterministic concrete dependency package only when `losing_for_concession_baseline=true` AND a power-cap-legal dependency exists, ratification mutates real vassal state by explicit `from`/`to` direction even when the player is surrendering, and history/dispatch/ledger/Voice Bible §16.1 render the dependency consequence | `tests/test_settlement_dependency_clauses.py` (39 tests: clause-control schema inversion, closed-taxonomy validator rejection, eligibility helpers, surrender preset deterministic ordering + fallback, payload schema, blocked-popup CTA visibility, dialogue handler replace-confirm / click-time revalidation / no-overwrite, player-side surrender ratification mutation, `settlement_summary.surrender_preset` propagation, applied_clauses preview fields, smoke fixture, Voice Bible families) | DWL row was previously two entries (dependency clause types + surrender preset); merged into a single LANDED row because the slice ships them together |
 | DWL-SET-SC32 | Broader settlement agency | LANDED | Settlement UI Cleanup SC-32 / Slice G2 | G2-Slice-G2a, G2e, G2d, G2b, G2c, and G2f landed on master | SC-32 v0.32 outcomes are closed: AI counterproposals, Wait-for-Enemy-Offer / Ask-for-Terms, voluntary alignment, conference / veto, and request_consultation / request_redress_after_settlement are cut with absence tests; `request_open_settlement` and `warn_against_sellout` ally petitions ship as solicited advisory mailbox items; `request_reward_or_restoration` and `demand_bargain_honor` are deferred to Slice H with absence tests; same-war replace-confirm ships; D7 remains solicited only. | `test_settlement_agency_landing_ledger_has_no_unowned_backlog_controls` plus the G2b/G2c/G2d/G2e/G2f behavior and absence suites named in `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32 | Closed by the May 28, 2026 all-completed-audit-punch-list repair. **SC-32's formal close condition (after-G1 ordering per spec §Slice G2) completed July 2, 2026** — G1/SC-30 landed at `1a9da53`; closure bookkeeping executed the same day. Future settlement-agency work needs a new owner row/spec amendment; the one surviving deferred sub-outcome (Slice H petitions) is owned by `docs/SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md` (awaiting design gate). |
 | DWL-SET-SC33 | Recurring gold payments (`gold_per_turn`) | LANDED | Settlement UI Cleanup SC-33 / G2-Slice-9 | G2-Slice-9 shipped May 14, 2026 with editor-live `gold_per_turn`, validator bounds (`amount >= 10`, `1 <= turns <= 20`), projected-solvency `gold_payment_budget_conflict`, `world.recurring_settlement_payments` storage, the per-turn `process_recurring_settlement_payments` processor wired into `advance_turn` between vassal tribute and the bankruptcy check, four cancellation conditions (payer eliminated / payer vassalized / recipient eliminated / renewed war), `amount * turns` harshness projection at the lump-sum weight, `applied_clauses_preview` value fields (`payer_balance_before`, `payer_balance_after_first_payment`, `projected_total_obligation`, `first_payment_turn`), Voice Bible §16.1 `settlement_recurring_gold_authored / _ratified / _completed_talleyrand`, dispatch templates for `settlement_recurring_gold_paid / _partial / _completed / _cancelled`, and `SOVEREIGN_SMOKE_START=settlement_recurring_gold` fixture. | `gold_per_turn` lives in `CLAUSE_CONTROL_SCHEMA` with `enabled=True, visibility="live"`; ratification registers a recurring obligation without moving gold immediately; the income-phase processor transfers `min(amount, balance)` once per turn, decrements `turns_remaining`, and removes the record on natural completion; harshness uses full projected obligation; old saves default `recurring_settlement_payments` to `[]`. | `tests/test_settlement_recurring_gold.py` (27 tests: SC-33 4 required + clause-control schema live + validator amount/duration/budget conflict bounds + minimum/maximum bound acceptance + display registry coverage + ratification registers obligation + public ratify/advance-turn processing + real eliminated-nation cancellation through the WorldState path + first-tick gold transfer + decrement + partial payment + natural completion + four cancellation conditions + save/load round trip + default-empty pre-SC-33 saves + harshness projection finite vs perpetual + smoke fixture + wizard structured payload acceptance + player-facing popup author/dispatch/replace-confirm coverage). | DWL row was ACTIVE_DEFERRED, now LANDED; canonical clause schema marks `gold_per_turn` as `Live after SC-33 / G2-Slice-9`. |
-| DWL-DIP-E7 | `DIPLOMACY_SPEC.md` E7 defiance floor redesign | **DECIDED at 8.EVAL July 16, 2026** — lands in the 8.5 Batch Q | 8.EVAL gate record `docs/audits/EVAL_8_2026_07_16.md` §1 | Verification found the floor DORMANT: at boot authority 100 the curve computes 0.00 and the 2% floor IS the rate for the whole early-mid campaign — the sabotage/discovery/redemption arc + two shipped popups are near-dead content; spec §3a also still documents the PL-23-retired trust term | **Decision: authority-banded floor** (Jealousy §0.2-11b boot-dormancy precedent — NOT a flat raise); fix the §3a spec drift in the same slice; verify the sabotage-discovery popup live once | Re-pinned defiance probability tests at the banded values + a live popup check | Build slice in the Phase-8.5 opening Batch Q |
+| DWL-DIP-E7 | `DIPLOMACY_SPEC.md` E7 defiance floor redesign | **✅ LANDED July 16, 2026** in the 8.5 Batch Q Chunk 2 — `backend/commands/diplomatic_defiance.py` `STRONG_EMPEROR_DEFIANCE_FLOOR` + `_defiance_floor_for_authority` (:41/:44/:99/:131) | 8.EVAL gate record `docs/audits/EVAL_8_2026_07_16.md` §1 | Verification found the floor DORMANT: at boot authority 100 the curve computes 0.00 and the 2% floor IS the rate for the whole early-mid campaign — the sabotage/discovery/redemption arc + two shipped popups are near-dead content; spec §3a also still documents the PL-23-retired trust term | **Decision: authority-banded floor** (Jealousy §0.2-11b boot-dormancy precedent — NOT a flat raise); fix the §3a spec drift in the same slice; verify the sabotage-discovery popup live once | Re-pinned defiance probability tests at the banded values + a live popup check | Build slice in the Phase-8.5 opening Batch Q |
 | DWL-DIP-AIAI | `DIPLOMACY_SPEC.md` old AI-AI diplomacy deferral | LANDED | Phase 8 Session 8D / AI diplomacy | Already landed | `process_ai_ai_diplomatic_phase`, AI-AI treaty state changes, dispatch, fog visibility, and campaign-log routing exist | Existing AI-AI diplomacy / dispatch / campaign-log tests | Old "Session 8 deferred" note is historical only |
 | DWL-DIP-TRADE | `DIPLOMACY_SPEC.md` trade income deferred to Session 2 | LANDED | Phase 8 Session 2 diplomacy | Already landed | Diplomatic-state trade income is applied during income phase and shown in economy surfaces | Existing trade-income and ledger tests | Old Session 1B deferral is historical only |
 | DWL-DIP-CONTINENTAL | DD7 `Full Continental System` | LANDED | Phase 8 / Coalition / Peace Deals WPS-C | Already landed | Continental System membership, income effect, forced-alliance membership, dispatch, and save/load are live | Existing Continental System and WPS-C tests | No separate "full" placeholder remains |
 | DWL-DIP-FOGINTEL | DD7 fog-filtered diplomatic intel | LANDED | Fog / ledger / dispatch systems | Already landed | Diplomatic AI-AI state visibility uses PARTIAL+ rules; player-facing strength/status paths use fog-filtered helpers | Existing fog, dispatch, ledger, and campaign-log tests | Future intel polish must get a new owner row |
 | DWL-DIP-CAMPAIGNLOG | DD7 campaign-log diplomatic events | LANDED | Campaign log / dispatch systems | Already landed | Diplomacy events including AI-AI treaty and peace/settlement families route through campaign log filters/oneliners | Existing campaign-log enforcement and diplomacy event tests | Old display-only gap is closed |
 | DWL-DIP-SPECIALBONUS | DD7 special acceptance bonuses | LANDED | Diplomacy acceptance formula | Already landed | `SPECIAL_BONUSES` feed `special_desire_bonus` and surface in acceptance components | Existing acceptance and session 8D tests | Future tuning is balance polish, not a missing mechanic |
-| DWL-DIP-METTERNICH | DD7 Metternich armed mediation | **DECIDED at 8.EVAL July 16, 2026: BUILD, re-specced small** — lands in the 8.5 Batch Q | 8.EVAL gate record `docs/audits/EVAL_8_2026_07_16.md` §1 | Verification: never built; the spec'd "+5 coalition bonus" concept maps to nothing in code; rejecting an AI proposal today costs only a 3-turn cooldown — consequence-free | **Decision: rejecting a Schemer-authored PEACE-family proposal (armistice/peace only — never subsidy/trade asks) applies a once-per-rejection, 5-turn-expiring war-pressure marker on the existing coalition-threat substrate**; AI-only, GR5-clean, anti-stacking guarded; retire the stale `DIPLOMACY_SPEC.md §5c` "+5" text at landing | Rejection → expiring Austria war-pressure test + no-fire-on-subsidy-asks guard test | Build slice in the Phase-8.5 opening Batch Q |
+| DWL-DIP-METTERNICH | DD7 Metternich armed mediation | **✅ LANDED July 16, 2026** in the 8.5 Batch Q Chunk 2 — `backend/game_logic/coalition.py` `record_schemer_peace_rejection` + `schemer_rejection_pressure` (:784/:801/:809) | 8.EVAL gate record `docs/audits/EVAL_8_2026_07_16.md` §1 | Verification: never built; the spec'd "+5 coalition bonus" concept maps to nothing in code; rejecting an AI proposal today costs only a 3-turn cooldown — consequence-free | **Decision: rejecting a Schemer-authored PEACE-family proposal (armistice/peace only — never subsidy/trade asks) applies a once-per-rejection, 5-turn-expiring war-pressure marker on the existing coalition-threat substrate**; AI-only, GR5-clean, anti-stacking guarded; retire the stale `DIPLOMACY_SPEC.md §5c` "+5" text at landing | Rejection → expiring Austria war-pressure test + no-fire-on-subsidy-asks guard test | Build slice in the Phase-8.5 opening Batch Q |
 | DWL-DIP-RENAME | Carved-vassal player rename example | REMOVED | None | N/A | No active command promise; do not show rename command examples until a future naming/customization spec owns it | Deferred-word scan shows no active "rename vassal" promise | Removed because it is low-value polish with no current UI/editor surface |
 | DWL-DIP-CONFERENCE | Old "Peace conference (multi-nation)" note | SUPERSEDED | Imperial Settlement / possible future Congress System | Current common-peace needs are owned by Imperial Settlement; no Congress work starts without a new spec | Treat old peace-conference promise as superseded by common peace. A future Congress System must open a new design gate if desired | Peace Deals / settlement spec audits confirm common-peace ownership | No separate conference minigame is planned |
 
@@ -2790,11 +2830,11 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **Current master verification (July 10, 2026 — Wave 6 CLOSED):** full suite **`12,253 passed, 2 skipped`** (+279 across the wave: W6-0..W6-11 test files); ruff clean; Godot parse report regenerated July 9 (17 scripts + 2 scenes OK). |
-| **Current Phase** | **✅ Wave 6 Fun-Factor Build COMPLETE July 10, 2026 (all 12 slices W6-0..W6-11; spec §15 DoD recorded; the §0 re-score MEASURED all four target pillars MET — narration 7.5, combat legibility 7, incoming 7, drama 7.5; memo §9).** **▶ NEXT: the Marshal Content Pass DESIGN GATE** (`docs/MARSHAL_CONTENT_PASS_SPEC.md`, USER-gated; DO NOT CODE before approval — MC-0 display fix exempt). Behind it: the full audit arc CLOSED (July 9–10) and Wave 6 landed everything it filed. Standing user tuning flags: the E1 turn-1 anchor (36.9% vs aspirational 55–70%; spec S7 note); the Wave-6 blessed numbers are in-band tunable (spec §14 ledger). Command Robustness COMPLETE (CR-0..CR-5b); Map cutover COMPLETE; **Phase 8 Peace Deals FULLY COMPLETE** (no live settlement successors). |
-| **Next Roadmap Gate** | **~~8.EVAL~~ ✅ HELD + CLOSED July 16, 2026** (record `docs/audits/EVAL_8_2026_07_16.md`). **Next gates are inside Phase 8.5:** the CR-6 mini-gate (S5-D1 bare-attack gating) and the 8.5 design gate proper (Events/Goals/National Identity — Nation Agendas core). Batch Q (the kept S-items) is gate-free and runs first. |
-| **Blockers** | **NONE for the EC build** — the EC-2 gate is ✅ BLESSED July 9, 2026 (record: `ECONOMY_REVISIT_SPEC.md §0.6.7`; retunes inside the blessed band need no new gate, structural changes do). Remaining user gates elsewhere in the queue: CR-6 (later); MC-1 ability set; EC-2 *pass 2* (ES-4 + ES-7b, its own gate). The July-2 re-staging defects are ALL FIXED (parser-roster P0 → CR-0; AP reset → EC-0; ability display → MC-0, landed `685bfd1`). |
-| **Code Coverage** | ~71% (backend/) |
+| **Tests Passing** | **Current master verification (August 3, 2026 — HEAD `e3edb4e`, DP-1):** full suite **`15,901 passed, 3 skipped`**; ruff clean; Godot import+parse harness EXIT=0, report regenerated August 2 (`tools/godot_parse_report.json` — 28 scripts + 3 scenes, 0 failures); headless boot 0 `SCRIPT ERROR`; M1–M7 and `BASELINE_SERIES` byte-identical without re-record. |
+| **Current Phase** | **✅ DEF-5 NAVAL "The Wooden Wall" BUILT COMPLETE — NV-0..NV-11 + NV-V LANDED August 2, 2026** (records `NAVAL_SPEC.md` §14 = NV-0..NV-3, §15 = the second pass; the §12 gate and the NV-4..7 gate both taken at recommended defaults), plus **DP-1** the pair-keyed stalemate-counter fix (§15.14, HEAD `e3edb4e`). Behind it: **AI Intent CLOSED** (Stages A–G + the AI-V sweep, Aug 1 — `AI_INTENT_SPEC.md` §20); **Battle Diorama Tier A** (Jul 31, user-verified in game); **row IGR build-complete** (Jul 31); **Nation Agendas NA-0..NA-6d** (Jul 17–19); **Combat Overhaul program CLOSED** (Jul 16, overall 6.4→≈7.6). **▶ NEXT: a long human-played quiet-France campaign** — the living-balance / D1-band vehicle, which doubles as the naval live pass. **Routing beyond that = the user's call.** **⚠ One USER DECISION is DUE:** the `Normandy↔Berry` / `Flanders↔Orleanais` adjacency ruling (`NAVAL_SPEC.md` §15 / :756) — its precondition, the visual pass, was met Aug 2. |
+| **Next Roadmap Gate** | **NONE currently blocking.** Held + closed: ~~8.EVAL~~ (Jul 16, `docs/audits/EVAL_8_2026_07_16.md`) · ~~CR-6 mini-gate~~ (Jul 16, `COMMAND_ROBUSTNESS_SPEC.md` §7) · ~~the 8.5 design gate = Nation Agendas~~ (Jul 17, `NATION_AGENDAS_SPEC.md` §0) · ~~the naval §12 gate~~ (Aug 2, recommended defaults incl. Q5 = naval v1 into EA scope) · ~~the NV-4..7 gate~~ (Aug 2, four decisions at default). **Open but not blocking, each with its own gate:** Pre-EA Victory & Objectives Pass · CR-6 *proper* (Conversational Objection Negotiation) · EC-2 **pass 2** (ES-4 + ES-7b) · the Battle Gallery · DEF-12 full map modes · IGR-X9 (homed at the econ gate — see ROADMAP row EC-P3). |
+| **Blockers** | **NONE.** No item in the live queue is blocked on a user gate. The nearest thing to a blocker is **evidence, not permission**: DEF-5/DEF-6 cannot close until a human plays a campaign (the naval pillar score, the played A2 sue-path, the NV-4..NV-11 visual sign-off, the NV-P1 live wheel check, and the NV-V remainder — anchors A1–A5 measured in a played world, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check). |
+| **Code Coverage** | ~71% (backend/) — **last measured February 18, 2026 (`bb3392b`); not re-measured since, treat as indicative only.** |
 
 ---
 
@@ -2803,6 +2843,56 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
+> **▶ NEXT SESSION STARTS HERE (updated August 3, 2026, twenty-first entry): THE NAVAL
+> PHASE (DEF-5) IS BUILT COMPLETE NV-0..NV-11 AND DP-1 IS FIXED — next is a long
+> human-played campaign that closes the remaining measurements, then the ROADMAP spine
+> at the user's routing.**
+>
+> **HEAD `e3edb4e` · suite 15,901 passed / 3 skipped · ruff clean · Godot import+parse
+> harness EXIT=0 (28 scripts + 3 scenes, 0 failures) · headless boot 0 `SCRIPT ERROR` ·
+> M1–M7 and `BASELINE_SERIES` byte-identical without re-record.**
+>
+> **Landing records (authoritative):** `NAVAL_SPEC.md` §14 (NV-0..NV-3 "The Wooden Wall")
+> + §15 (the second pass NV-4..NV-11, incl. §15.14 = DP-1) · `AI_INTENT_SPEC.md`
+> §18/§19/§20 — **the AI Intent phase is CLOSED** (Stages A–G + the AI-V sweep, Aug 1;
+> pin 20's visual half signed off the same day) · `BATTLE_DIORAMA_SPEC.md` §14/§14.1
+> (Jul 31, user-verified in game).
+>
+> **▶ DO THIS NEXT — ONE session, a played campaign.** It is the only vehicle for four
+> open measurements, and it closes them together:
+>
+> 1. **The long quiet-France campaign** (30+ turns, France passive mid-game) — the only
+>    thing that moves living balance off 6.5 and measures the D1 played moment
+>    (`AI_INTENT_SPEC.md` §20 Dispositions; `AI_WAR_DECISION_SPEC.md` §8.2 — ambient
+>    council wars measured **0 over 40 turns on every seed with the blocking predicate
+>    WRITTEN**; that is a reachability result, not a regression, and it needs a played
+>    moment rather than another probe).
+> 2. **Score the naval pillar** and drive the **played A2 sue-path** (`NAVAL_SPEC.md`
+>    §15.8 / §15.12 — the arc was driven *scripted* at NV-10; §15.12 explicitly does NOT
+>    falsify the 80%-closure acceptance arm, so the played measure is still owed).
+> 3. **Visual sign-off on the NV-4..NV-11 surfaces** — the amber DEFENDED SHORE tint,
+>    the Admiralty posture/Diversion chips, the region-panel landing chip, and the naval
+>    diorama in motion — plus the **NV-P1 live wheel check** (`BUG_FIXES.md` §NV-P1: a
+>    one-line `mouse_filter` change no headless test can prove).
+> 4. **The NV-V remainder DEF-5 closes on:** anchors A1–A5 measured in a *played* world,
+>    the NV-D7 (weather/season) and NV-D8 (ambient expedition) verdicts, and the Q7
+>    texture-option re-open check.
+>
+> **⚠ ONE USER DECISION IS DUE** — its precondition, the visual pass, was met Aug 2:
+> the **`Normandy↔Berry` (162px) / `Flanders↔Orleanais` (128px)** adjacency ruling
+> (`NAVAL_SPEC.md` §15). These are the longest LAND edges out of their provinces and are
+> the interior route a landed British army actually uses to walk inland. Cutting them
+> stops the walk; but this map's adjacency is derived from DRAWN shared borders, so
+> cutting them makes the map visually lie. **Worth ruling before the campaign, so the
+> played run measures the intended topology.**
+>
+> **Then the ROADMAP spine (routing = the user's call):** the remaining Phase 8.5 content
+> → STEAM PAGE + LLC → 9 (Advisors) → 10 (Character & People) → 11 (Imperial Governance
+> promotion only — the vassal core landed Jul 14–16 and the Britain naval/subsidy half
+> landed Aug 2) → Pre-EA (incl. the **Victory & Objectives Pass**) → EA.
+> **Nothing in the live queue is blocked on a gate.**
+
+> **[Superseded August 3, 2026 — AI Intent CLOSED Aug 1; the naval phase BUILT Aug 2.]**
 > **▶ NEXT SESSION STARTS HERE (updated July 31, 2026, twentieth entry): THE BATTLE
 > DIORAMA (row BD, Tier A) IS BUILT + LANDED — next is `AI_INTENT_SPEC.md` §11 Stage E.**
 >
@@ -2953,6 +3043,7 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 > **Also still open and unchanged:** Battle Diorama (row **BD**), then `AI_INTENT_SPEC.md` §11
 > Stage E. *(This entry supersedes the seventeenth.)*
 
+> **[Superseded July 26, 2026 — IGR-F landed.]**
 > **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, seventeenth entry): IGR-F, plus
 > INVESTIGATE THE PEACE RELATION FLOOR (`BUG_FIXES.md` IGR-X3).**
 >
@@ -3002,6 +3093,7 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 > Stage E. *(The sixteenth-entry text below is superseded where it conflicts; kept for the
 > AI-3r record.)*
 
+> **[Superseded July 25, 2026 — AI-3r was gated AND built the same day.]**
 > **▶ NEXT SESSION STARTS HERE (updated July 25, 2026, sixteenth entry): THE ⚠️ AI-3r GATE.**
 > The pin-20 live in-game pass is HELD and its 8 defects are landed (`17385bf` + `cdbea59`, top
 > entry above): Stage B's mirror/Design/Intent/Weariness rows, Stage C's purse/compacts/auction and
