@@ -1326,7 +1326,7 @@ pytest tests/ -v
 
 #### Step 7: Manual Test
 
-1. Start backend: `python backend/main.py`
+1. Start backend: `python -m backend.main`  *(module form is REQUIRED post-cutover — `CLAUDE.md:38`)*
 2. Open Godot client
 3. Verify Murat appears at Lyon
 4. Hover to check tooltip stats

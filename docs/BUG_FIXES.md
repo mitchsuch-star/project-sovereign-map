@@ -438,6 +438,27 @@ the dplo window is too big for the screen when in settle a war."*
 
 ---
 
+
+## EA-SCOPE findings — filed August 3, 2026 (the refund-test panel)
+
+> Companion rows to **PARSE-NEG** above. Same panel, same session; each
+> verified first-hand by the orchestrator before filing.
+
+| id | sev | defect | disposition |
+|---|---|---|---|
+| **EAS-1** | **P2** | **Making mock the shipped default ARMS THE CHEAT CONSOLE.** `meta_executor.py:2037-2043` computes `live_client_armed = key_source != "none"` and refuses cheats only when armed, so a **keyless build leaves the cheat surface OPEN** — and `parser.py` routes any typed `cheat ` prefix. This is not a code bug: the assumption "mock means developer" was true when mock was a test mode. **Position 4's own decision to make mock the shipped default is what invalidates it.** | Re-gate on **explicit debug alone**, in the same slice that makes mock the default (ROADMAP position 4, ~1 hour). Do not fix earlier — today's behaviour is correct for today's build. |
+| **EAS-2** | P3 | **The campaign log has no importance tier.** `campaign_log.gd` renders every row at the same size, coloured by *category*, never by weight. IGR-B fixed the VOLUME half of the July-25 complaint (26 rows → 5); the other half — *"the one dramatic line sat at the bottom in identical styling"* — is still literally true. | Files against the **enemy-phase composition** work, NOT against the gazette (cut) and NOT into the pre-EA queue. If ROADMAP position 1's re-measure sends a composition slice to position 3, this rides it. |
+| ~~**EAS-3**~~ | ✅ **FIXED Aug 3, 2026** | **`main.gd:663` shipped a player-facing command that fails.** The unreachable-backend error told the player *"Start the Python server: python backend/main.py"* — wrong since the real-map cutover, which requires the module form (`CLAUDE.md:38`: *"Run the backend as `-m backend.main`"*). It is the ONE message a stuck player reads, and it sent them to a command that errors. | Fixed in place → `python -m backend.main`. **`docs/ADDING_CONTENT.md:1329` carries the same stale command** and is fixed with it. |
+| **EAS-4** | P3 | **`test_ai_intent_assurance.py::TestArmAAmbientDoD::test_pair_peace_is_exhaustion_driven` is intermittently flaky.** Failed three times in one session, then would not reproduce across eight consecutive targeted re-runs *including under deliberate mutation*. Passes in the full suite. An `LLM_MODE`-inheritance hypothesis was raised and **DISPROVED** — `ai_v_sweep.run_one` already forces `LLM_MODE=mock` before importing the backend, so the proposed pin was a no-op and was **reverted rather than shipped as a fix for something it does not fix**. | Real, pre-existing at HEAD, **unexplained**. Belongs to whoever next touches the AI-V sweep. Full account: `NAVAL_SPEC.md` §15.15. |
+
+**Checked and dismissed as non-gaps** (verified, not assumed): save/load UI
+exists (`load_dialog.gd` + pause menu) · save migration is sane
+(`FORMAT_VERSION=3`, hard-reject with a clear message) · turn latency 23.1ms
+under a 15× tripwire, so no frozen-UI problem · main menu is ROADMAP position
+4(f) · tutorial is 12 · SmartScreen/code-signing is 13 · difficulty and
+achievements are explicitly cut with owner rows.
+
+
 ## Sweep-5 Findings — July 16, 2026 (P0 FIXED; **S5-1/2/3/5 FIXED in Batch Q Chunk 1, July 16**; only **S5-4** remains, deferred to the Pre-EA Dialogue Robustness row)
 
 > From the Combat Overhaul **Sweep 5** (Parsing/UX) 12-component adversarial review over

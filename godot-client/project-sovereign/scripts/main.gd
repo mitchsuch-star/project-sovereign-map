@@ -660,7 +660,7 @@ func _on_connection_test(response):
 		set_input_enabled(true)
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python backend/main.py[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python -m backend.main[/color]")
 		add_output("")
 
 
