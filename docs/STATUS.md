@@ -2843,10 +2843,26 @@ Use this ledger as the current routing layer for any active `deferred`, `future`
 
 > The pre-cutover Next Steps section (April–June vintage; it still routed to Slice B3 and an art-blocked renderer) moved to `docs/archive/STATUS_NEXT_STEPS_PRE_RESTAGING_2026_07.md`. **The forward queue now lives in `docs/ROADMAP.md` §Current Phase Queue** — this section is the short live mirror.
 
-> **▶ NEXT SESSION STARTS HERE (updated August 3, 2026, twenty-first entry): THE NAVAL
-> PHASE (DEF-5) IS BUILT COMPLETE NV-0..NV-11 AND DP-1 IS FIXED — next is a long
-> human-played campaign that closes the remaining measurements, then the ROADMAP spine
-> at the user's routing.**
+> **▶ NEXT SESSION STARTS HERE (updated August 3, 2026, twenty-first entry): FIX
+> PARSE-NEG FIRST — then the long human-played campaign, then the re-planned road to
+> Early Access.**
+>
+> **⚠ POSITION 0 — PARSE-NEG, and it comes before the road.** The fast parser is
+> confidently WRONG *above* the LLM escalation gate, so an API key does not fix it and
+> the golden corpus never caught it. Reproduced first-hand on the shipped 1805 board,
+> keyless: `Ney, never attack Mack` → **attack** at 0.90 · `Ney, don't attack` →
+> **attack** at 0.90 · `how do I attack?` → **attack** at 0.80 · `hold until Davout
+> arrives then attack` → **attack now** · `if Mack advances fall back to Alsace` →
+> **move now** at 0.95. Negation contains the same keywords as its affirmative, so it
+> scores HIGHER and is structurally shielded from the one component that could catch it.
+> It is a correctness bug, not a scope decision; it needs no gate; and it is the only
+> defect in the whole EA-scope review that can lose a player their campaign because of a
+> word they used correctly. Fix + four sub-defects: **`BUG_FIXES.md` §PARSE-NEG**.
+> Companion rows **EAS-1..4** sit beneath it (EAS-3 already fixed).
+>
+> **Then:** THE NAVAL PHASE (DEF-5) IS BUILT COMPLETE NV-0..NV-11 AND DP-1 IS FIXED —
+> next is a long human-played campaign that closes the remaining measurements, then the
+> re-planned road to EA.
 >
 > **HEAD `e3edb4e` · suite 15,901 passed / 3 skipped · ruff clean · Godot import+parse
 > harness EXIT=0 (28 scripts + 3 scenes, 0 failures) · headless boot 0 `SCRIPT ERROR` ·
