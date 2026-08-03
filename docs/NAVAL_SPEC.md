@@ -1329,3 +1329,45 @@ for the peace-threshold owner rather than papered over here.
 
 The **naval pillar score** stays open on purpose: it wants a human playing
 a campaign, not a scripted drive.
+
+### 15.13 NV-11 — the casualty spread, asked (August 2, 2026)
+
+User question: *"did we address if the casualty spread here made any
+sense?"* It had not been asked. NV-9 fixed how losses are DISPLAYED (an
+annihilated squadron vanishing, the odometer disagreeing with the
+verdict) without ever asking whether the numbers themselves were right.
+
+**The shape checks out against history.** On the shipped board a decisive
+action computes **loser 55% / winner 3.9%**; Trafalgar was **66.7% / 0.0%**
+(Combined Fleet 33 of the line, 22 taken or destroyed; Royal Navy 27, none
+lost). Slightly gentler on the loser and slightly harsher on the winner
+than the real thing — a reasonable softening, and the strategic point of
+the whole naval layer survives: a decisive action guts the loser and
+barely scratches the winner. Pinned in a band so a future tune cannot
+quietly flatten it.
+
+**One thing did not make sense.** `_apply_side_losses` floored every loss
+at `max(1, ...)`, so on the WINNING side a small ally bled wildly out of
+proportion:
+
+| squadron | raw | lost | rate |
+|---|---|---|---|
+| 100 sail | 3.90 | 4 | 4.0% |
+| 12 sail | 0.47 | 1 | 8.3% |
+| 5 sail | 0.20 | 1 | **20.0%** |
+| 2 sail | 0.08 | 1 | **50.0%** |
+| 1 sail | 0.04 | 1 | **100.0%** |
+
+A lone-hull ally was **annihilated every single time its side WON** — and
+that is the very case NV-9 had just taught the tableau to render, without
+anyone asking why it was happening. Rounding alone is the honest rule and
+the historical one (the Royal Navy lost zero ships at Trafalgar). The
+losing side is untouched **by arithmetic, not by a branch**: at 55% even a
+lone hull rounds to 1 and still goes down. No blessed constant moved.
+
+Pinned as PROPORTIONALITY rather than an exact figure, because the ±10%
+seeded jitter legitimately moves a squadron across a rounding line — a
+first cut asserted Russia's 20 sail lose exactly zero and the jitter made
+it 1, i.e. 5%, which is proportional and correct. **The assertion was
+wrong, not the code**; the pin now reads every winning contingent's rate
+against its own side's.

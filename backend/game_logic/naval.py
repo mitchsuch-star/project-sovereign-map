@@ -824,7 +824,16 @@ def _apply_side_losses(world, principal: str, enemy: str, frac: float) -> Dict[s
         ships = int(rec.get("ships", 0) or 0)
         if ships <= 0:
             continue
-        lost = max(1, int(round(ships * frac))) if frac > 0 else 0
+        # NV-11: proportional, with NO minimum-of-one floor. The floor
+        # made a small ally's losses wildly disproportionate on the
+        # WINNING side — at the measured winner fraction of 3.9% a
+        # 100-sail flagship lost 4.0% while a 5-sail squadron lost 20%,
+        # a 2-sail squadron 50%, and a 1-sail ally was ANNIHILATED every
+        # single time its side won. Rounding alone is the honest rule and
+        # it is also the historical one: the Royal Navy lost ZERO ships
+        # at Trafalgar. The losing side is unaffected — at 55% even a
+        # lone hull rounds to 1 and still goes down.
+        lost = int(round(ships * frac)) if frac > 0 else 0
         lost = min(lost, ships)
         rec["ships"] = int(ships - lost)
         out[member] = int(lost)

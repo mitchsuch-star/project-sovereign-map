@@ -422,3 +422,95 @@ class TestTheConqueredCoast:
         world.invalidate_active_nations_cache()
         assert naval.closure_against(world, "Britain") == pytest.approx(
             before, abs=0.001)
+
+
+class TestTheCasualtySpread:
+    """NV-11 — the user's question: "did we address if the casualty spread
+    here made any sense?" It had not been asked. Asking it found one.
+
+    The SHAPE checks out against history. On the shipped board a decisive
+    action computes loser 55% / winner 3.9%; Trafalgar was 66.7% / 0.0%.
+    A decisive fleet action guts the loser and barely scratches the
+    winner, which is the whole strategic point of the naval layer.
+
+    But `_apply_side_losses` floored every loss at max(1, ...), so on the
+    WINNING side a small ally bled wildly out of proportion: 100 sail lost
+    4.0%, 5 sail lost 20%, 2 sail lost 50%, and a 1-sail ally was
+    ANNIHILATED every single time its side WON. Rounding alone is the
+    honest rule — and the historical one.
+    """
+
+    def test_a_small_ally_does_not_die_for_winning(self, world):
+        frac = naval.FLEET_ACTION_WINNER_BASE / 2.05   # the measured ratio
+        for ships in (1, 2, 5, 12):
+            lost = int(round(ships * frac))
+            assert lost == 0, (
+                f"a {ships}-sail squadron loses {lost} at the winner's "
+                f"{frac:.3f} — the floor is back")
+
+    def test_the_flagship_still_bleeds(self, world):
+        """Control: removing the floor must not make the winner immune."""
+        frac = naval.FLEET_ACTION_WINNER_BASE / 2.05
+        assert int(round(100 * frac)) >= 1
+
+    def test_the_losing_side_is_untouched(self, world):
+        """At 55% even a lone hull rounds to 1 and still goes down, so the
+        change is scoped to the winner's side by arithmetic, not by a
+        branch that could drift."""
+        frac = (naval.FLEET_ACTION_LOSER_BASE + naval.FLEET_ACTION_LOSER_SCALE
+                + naval.FLEET_ACTION_DECISIVE_EXTRA)
+        for ships in (1, 2, 5, 30, 45):
+            assert int(round(ships * frac)) >= 1
+
+    def test_the_spread_still_reproduces_trafalgar(self, world):
+        """The shape the layer exists for: the loser is gutted, the winner
+        is scratched. Guards against a future tune quietly flattening it."""
+        result = naval.resolve_fleet_action(world, "France", "Britain")
+        assert result["decisive"] is True
+        payload = result["naval_diorama"]
+        loser_side = ("attacker" if result["loser"] == result["attacker"]
+                      else "defender")
+        winner_side = "defender" if loser_side == "attacker" else "attacker"
+        loser_pct = (payload[loser_side]["casualties_total"]
+                     / max(1, payload[loser_side]["committed_total"]))
+        winner_pct = (payload[winner_side]["casualties_total"]
+                      / max(1, payload[winner_side]["committed_total"]))
+        assert 0.40 <= loser_pct <= 0.75, loser_pct
+        assert winner_pct <= 0.10, winner_pct
+        assert loser_pct > winner_pct * 4
+
+    def test_no_squadron_bleeds_out_of_proportion_in_a_victory(self, world):
+        """The real contract, and the one that survives the seeded jitter:
+        on the WINNING side every squadron's loss RATE stays close to the
+        side's own. Under the floor a 5-sail ally lost 20% beside a
+        100-sail flagship's 4.0% — five times the rate for being small.
+
+        (A first cut asserted Russia's 20 sail lose exactly zero; the
+        jitter pushed 0.78 over the rounding line to 1, i.e. 5% — which is
+        proportional and fine. The assertion was wrong, not the code.)"""
+        result = naval.resolve_fleet_action(world, "France", "Britain")
+        assert result["winner"] == "Britain"
+        winner_losses = result["losses"][result["winner"]]
+        side = ("attacker" if result["winner"] == result["attacker"]
+                else "defender")
+        payload = result["naval_diorama"][side]
+        side_rate = (payload["casualties_total"]
+                     / max(1, payload["committed_total"]))
+        for contingent in payload["contingents"]:
+            rate = contingent["casualties"] / max(1, contingent["committed"])
+            assert rate <= side_rate * 2.5 + 0.01, (
+                f"{contingent['nation']} lost {rate:.1%} against the side's "
+                f"{side_rate:.1%} — the minimum-of-one floor is back")
+        # ...and every squadron that sailed is still SHOWN, whatever it
+        # lost (NV-9's contract, including the zero case).
+        assert set(winner_losses) <= {c["nation"]
+                                      for c in payload["contingents"]}
+
+    def test_a_tiny_ally_survives_a_victory_intact(self, world):
+        """The sharpest form: a lone-hull ally on the winning side. Under
+        the floor it was destroyed EVERY time its side won."""
+        naval.get_fleet(world, "Russia")["ships"] = 1
+        result = naval.resolve_fleet_action(world, "France", "Britain")
+        assert result["winner"] == "Britain"
+        assert result["losses"]["Britain"].get("Russia") == 0
+        assert naval.get_fleet(world, "Russia")["ships"] == 1
