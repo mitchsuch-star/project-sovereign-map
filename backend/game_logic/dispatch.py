@@ -668,14 +668,16 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
     if estate:
         title = estate.get("title") or (
             f"the estate at {estate['region']}" if estate.get("region") else "")
+    # The ascent is an APPOSITIVE and must close with a comma, or the
+    # sentence runs on: "Ney, crowned three turns ago has been beaten".
     if crown_turn is not None and title:
         rise = (f"{who}, crowned {_turns_ago_phrase(crown_turn, now)} and "
-                f"endowed with {title}")
+                f"endowed with {title},")
     elif crown_turn is not None:
-        rise = f"{who}, crowned {_turns_ago_phrase(crown_turn, now)}"
+        rise = f"{who}, crowned {_turns_ago_phrase(crown_turn, now)},"
     elif title:
         rise = (f"{who}, endowed with {title} "
-                f"{_turns_ago_phrase(estate.get('turn'), now)}")
+                f"{_turns_ago_phrase(estate.get('turn'), now)},")
     else:                                   # unreachable while rose is set
         rise = who
 
@@ -688,27 +690,29 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
     elif consecutive == 1:
         fall = "has been beaten in the field"
     elif fled >= 1:
-        fall = "has fallen back"
+        fall = "has been driven back"
     else:
         fall = "has lost what it bought him"
 
     # No "Sire — " prefix here: the headline template owns the register
     # (the `war_touches_us` idiom), and the roster note is not addressed.
-    parts = [f"{rise} {fall}"]
+    head = f"{rise} {fall}"
 
     # ── the dispossession and the laurels, when they are the same story ──
+    # Built WITHOUT leading conjunctions, so the join can place exactly one.
+    tail: List[str] = []
     if lost_estate and lost_estate.get("region"):
         by = lost_estate.get("by") or ""
         taker = formed_display_name(world, by) if by else "the enemy"
-        parts.append(f"and {taker} holds {lost_estate['region']} now")
+        tail.append(f"{taker} holds {lost_estate['region']} now")
     if crown_lost:
-        parts.append("the laurels have passed to another")
+        tail.append("the laurels have passed to another")
 
-    if len(parts) == 1:
-        return parts[0] + "."
-    if len(parts) == 2:
-        return f"{parts[0]} — {parts[1]}."
-    return f"{parts[0]} — {parts[1]}, and {parts[2]}."
+    if not tail:
+        return head + "."
+    if len(tail) == 1:
+        return f"{head} — and {tail[0]}."
+    return f"{head} — {tail[0]}, and {tail[1]}."
 
 
 def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
@@ -759,6 +763,7 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
     defeats: Dict[str, List[int]] = {}          # marshal -> defeat turns
     attackers: Dict[str, List[tuple]] = {}      # marshal -> [(turn, attacker)]
     retreats: Dict[str, int] = {}               # marshal -> retreat count
+    routs: Dict[str, int] = {}                  # marshal -> FORCED only
     # CA8-9 rise/fall inputs — all already logged, no new producers.
     crowned: Dict[str, int] = {}                # marshal -> turn crowned
     endowed: Dict[str, Dict[str, Any]] = {}     # marshal -> {turn,title,region}
@@ -785,6 +790,14 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
             name = e.get("marshal", "")
             if name:
                 retreats[name] = retreats.get(name, 0) + 1
+                # CA8-9 review fix: a VOLUNTARY withdrawal is not a fall.
+                # `movement_executor`'s own retreat verb logs this same event
+                # type; only the four rout sites stamp `forced: True`
+                # (the discipline CA8-5 landed for `own_broken`). Counted
+                # separately so `fled_across` keeps its pre-CA8-9 meaning and
+                # its pins — the reversal reads THIS one.
+                if e.get("forced"):
+                    routs[name] = routs.get(name, 0) + 1
         elif etype == "glory_crowned":
             # Producer is player-nation-only (jealousy.py:321), but the
             # nation guard is kept explicit so a future producer widening
@@ -847,8 +860,10 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
         rose = crown_turn is not None or estate is not None
         # A fall the reversal can hang on. Dispossession and the lost crown
         # count on their own — they ARE the fall in the played campaign —
-        # so a single defeat beside them is enough.
-        fell = (consecutive >= 1 or bool(hunted_by) or fled >= 1
+        # so a single defeat beside them is enough. Retreats count only when
+        # FORCED: an ordered withdrawal must never be narrated as a ruin.
+        routed = routs.get(m.name, 0)
+        fell = (consecutive >= 1 or bool(hunted_by) or routed >= 1
                 or lost_estate is not None or crown_lost)
         reversal = bool(rose and fell)
 
@@ -879,7 +894,7 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
             reversal_line = _compose_reversal_line(
                 world, m, crown_turn=crown_turn, estate=estate,
                 lost_estate=lost_estate, crown_lost=crown_lost,
-                consecutive=consecutive, hunted_by=hunted_by, fled=fled)
+                consecutive=consecutive, hunted_by=hunted_by, fled=routed)
 
         arcs[m.name] = {
             "consecutive_defeats": int(consecutive),

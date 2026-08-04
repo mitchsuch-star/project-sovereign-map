@@ -1168,3 +1168,90 @@ class TestCA825BlockedPathKeepsTheDiorama:
         out = _carry_combat_fields({"success": True}, {"battle_report": None})
         assert "battle_diorama" not in out
         assert "battle_report" not in out
+
+
+class TestCA89ReviewFixes:
+    """Found by rendering the sentence rather than asserting keywords on it —
+    the schema-shaped tests above all passed while the prose was wrong."""
+
+    def _arc(self, events, turn=10, crowned_now=False):
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney", location="Bohemia",
+                                      strength=18000)
+        world = WorldFactory.with_marshals([ney], current_turn=turn)
+        world.event_log = list(events)
+        ney.glory_crowned = crowned_now
+        return dispatch_mod._build_marshal_arcs(world, "France").get("Ney")
+
+    CROWN = {"type": "glory_crowned", "marshal": "Ney", "nation": "France",
+             "turn": 7}
+    BEAT = {"type": "battle", "turn": 10, "attacker": "ArchdukeCharles",
+            "defender": "Ney", "attacker_nation": "Austria",
+            "defender_nation": "France", "outcome": "attacker_victory",
+            "location": "Bohemia", "defender_casualties": 2218}
+
+    def test_the_ascent_is_a_closed_appositive(self):
+        """"Ney, crowned three turns ago has been beaten" is a run-on."""
+        line = self._arc([self.CROWN, self.BEAT],
+                         crowned_now=True)["reversal_line"]
+        assert "ago, has been" in line, line
+
+    def test_an_ordered_withdrawal_is_not_a_ruin(self):
+        """FALSIFIABLE NEGATIVE. `movement_executor`'s own retreat verb logs
+        the same `retreat` event type as a rout; only the four rout sites
+        stamp `forced: True` (the discipline CA8-5 landed for `own_broken`).
+        Without that check a crowned marshal the player simply repositioned
+        was narrated as a tragedy."""
+        arc = self._arc([self.CROWN,
+                         {"type": "retreat", "marshal": "Ney",
+                          "nation": "France", "turn": 10,
+                          "region": "Bohemia"}],
+                        crowned_now=True)
+        assert arc is None, arc
+
+    def test_a_forced_rout_still_counts_as_a_fall(self):
+        """The mirror of the above — the flag is what separates them."""
+        arc = self._arc([self.CROWN,
+                         {"type": "retreat", "marshal": "Ney",
+                          "nation": "France", "turn": 10, "forced": True,
+                          "region": "Bohemia"}],
+                        crowned_now=True)
+        assert arc is not None
+        assert "driven back" in arc["reversal_line"]
+
+    def test_the_tail_carries_exactly_one_conjunction(self):
+        line = self._arc([
+            self.CROWN,
+            {"type": "dotation_granted", "marshal": "Ney", "nation": "France",
+             "region": "Carniola", "title": "the Duchy of Carniola",
+             "turn": 8},
+            self.BEAT,
+            {"type": "estate_confiscated", "marshal": "Ney",
+             "nation": "France", "region": "Carniola",
+             "confiscated_by": "Austria", "turn": 10},
+        ])["reversal_line"]
+        assert "— and" not in line, line
+        assert line.count(" and ") == 2, line          # rise-join + tail-join
+        assert line.endswith("."), line
+
+    def test_no_sentence_is_left_dangling(self):
+        """Every reachable shape ends in a full stop and never doubles
+        punctuation or leaves an em-dash hanging."""
+        cases = [
+            [self.CROWN, self.BEAT],
+            [self.CROWN, {"type": "dotation_granted", "marshal": "Ney",
+                          "nation": "France", "region": "Carniola",
+                          "title": "", "turn": 8}, self.BEAT],
+            [self.CROWN, {"type": "estate_confiscated", "marshal": "Ney",
+                          "nation": "France", "region": "Carniola",
+                          "confiscated_by": "", "turn": 10}],
+        ]
+        for ev in cases:
+            arc = self._arc(ev, crowned_now=True)
+            if not arc or not arc["reversal_line"]:
+                continue
+            line = arc["reversal_line"]
+            assert line.endswith("."), line
+            assert ".." not in line and ",," not in line, line
+            assert "—." not in line and "  " not in line, line
+            assert "None" not in line, line
