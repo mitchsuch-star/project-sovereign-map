@@ -56,16 +56,25 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > below the 6.5 target), which is what moved the composition slice ahead of the
 > shippable build. Position 3 (Aug 4) then closed every remaining PC row.
 >
-> **▶ NEXT = POSITION 3.5: "Spec review for econ"** — the user's routing, verbatim:
-> *"skip this, make step after these fixes 'spec review for econ'"* and, on the GR9
-> debt, *"make it part of spec review"*. It owns
-> `docs/audits/PEACETIME_ECONOMY_RESEARCH_2026_08_03.md` **§6 Q1–Q6** AND **EC-7 /
-> ES-6** (`ECONOMY_REVISIT_SPEC.md:175` — a dated trigger that fired July 9, 2026 and
-> was never opened; it owns the manpower half of the failure the played campaign
-> produced, and needs a landing slice or an explicit cut). Building "The Levy and the
-> Camp" (row EC-P3) is **downstream of the review, not part of it** — the bundle was
-> declined. Position 2 (LLC + Steamworks) still has no entry condition and can start
-> in parallel today; position 4 is the shippable build.
+> **▶ POSITION 3.5 "Spec review for econ" was HELD August 4, 2026 — record =
+> `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md`, authoritative. ⚠ ONE USER RULING IS DUE:
+> §6's recommended slice.** Verdict: **half the Aug-3 recommendation ships, half should
+> not be built.** #1(a) "The Levy is open" verified to the digit — build it. **#1(b)
+> `Marshal.readiness` REJECTED** — it duplicates `morale` (already 0.90×–1.50× vs
+> readiness's 0.90×–1.00×), the mechanic it wants **already ships end to end** (green
+> conscripts at morale 40 + weighted dilution + `training_ground` raising it to 70 +
+> Moore's Shorncliffe floor — that building IS the Camp of Boulogne, and the memo calls
+> its effect "no measurable peacetime effect"), and the design was derived from a false
+> premise (drill's bonus is a **one-shot consumable**, `combat.py:436-440`).
+> **Replacement = "drill restores morale"**: zero new serialized fields, zero new UI,
+> GR5 free, existing `get_combat_effectiveness` chokepoint — because **morale never
+> moves in peacetime**, so today you can debase a corps by rebuilding it and never train
+> it back. **Q2's strength-share threat term CONFIRMED** (no military term exists in
+> `coalition.py`; France 31.5% of Europe's 600,000 at boot, so ~40% is boot-safe).
+> Q3/Q4/Q5 at the memo's defaults. **Q6: recommend an explicit CUT of EC-7 / ES-6**, its
+> intent re-homed to the supply-strain headline. Row EC-P3 stays the owner of the rest.
+> Position 2 (LLC + Steamworks) still has no entry condition and can start in parallel
+> today; position 4 is the shippable build.
 >
 > **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — nobody has ever produced a build of this game, and `deploy/` is pre-cutover and bundles **no world**; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >
