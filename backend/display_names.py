@@ -1158,6 +1158,55 @@ def with_indefinite_article(phrase: str) -> str:
     return f"{article} {phrase}"
 
 
+# PC-9 (quiet-France played campaign, Aug 3 2026): "The Switzerland has
+# ceased to exist." A state's name takes a definite article when it names an
+# INSTITUTION (a Duchy, a Republic, a Confederation) or is a plural/compound
+# ("the United Provinces", "the Two Sicilies"), and takes none when it is a
+# bare proper noun. Carved clients are authored both ways — "Duchy of Warsaw"
+# and "Poland" flow through the same sentence — so the article cannot be
+# hardcoded into the template.
+_INSTITUTION_WORDS = frozenset({
+    "duchy", "duchies", "kingdom", "republic", "confederation", "empire",
+    "electorate", "principality", "states", "provinces", "union", "league",
+    "netherlands", "sicilies", "cantons",
+})
+# Leading modifiers that make the whole name definite even when no
+# institution noun follows ("the United Netherlands", "the Two Sicilies").
+_DEFINITE_ARTICLE_HEADS = frozenset({
+    "united", "grand", "holy", "papal", "free", "two", "helvetic",
+    "batavian", "ligurian", "cisalpine",
+})
+
+
+def takes_definite_article(name: str) -> bool:
+    """Whether a state's display name reads with a leading "the"."""
+    clean = humanize_entity_name(str(name or "")).strip()
+    if not clean:
+        return False
+    words = [w.lower() for w in clean.split()]
+    if words[0] == "the":
+        return False  # already carries its own article
+    if words[0] in _DEFINITE_ARTICLE_HEADS:
+        return True
+    if any(w in _INSTITUTION_WORDS for w in words):
+        return True
+    # "Kingdom of Italy" / "Confederation of the Rhine" — an " of " compound
+    # names an institution even when the noun itself is unlisted.
+    return "of" in words
+
+
+def with_definite_article(name: str, capitalize: bool = False) -> str:
+    """Render a state name with "the" only where English wants it.
+
+    "Duchy of Warsaw" -> "the Duchy of Warsaw"; "Switzerland" -> "Switzerland".
+    `capitalize` for sentence-initial use ("The Duchy of Warsaw has…").
+    """
+    clean = humanize_entity_name(str(name or "")).strip()
+    if not clean or not takes_definite_article(clean):
+        return clean
+    return f"{'The' if capitalize else 'the'} {clean}"
+
+
 def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
     result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)

@@ -2,9 +2,13 @@
 
 Battles accumulate history per region: "Battle of Swabia" → "Second Battle
 of Swabia" → … → "13th Battle of Swabia"; titanic engagements (total
-engaged ≥ 80,000 incl. arrived reinforcements) read "The Great Battle of
-Swabia" (the Great tier REPLACES the ordinal). Counts live in the
-serialized `WorldState.battle_counts`; the single naming site is
+engaged ≥ 80,000 incl. arrived reinforcements) are marked "Great".
+
+PC-4 (Aug 3, 2026) flipped the Great tier from REPLACING the ordinal to
+MODIFYING it: replacement both collided (the same name for two battles) and
+holed the sequence (the swallowed "Fourth"), because the counter was
+consumed either way. Counts live in the serialized
+`WorldState.battle_counts`; the single naming site is
 `_execute_attack` and every consumer (battle message/report event, campaign
 log, war HUD `recent_battles`) reads the same composed name.
 """
@@ -41,13 +45,45 @@ class TestComposeBattleName:
         assert (world.compose_battle_name("Swabia", 79999)
                 == "Second Battle of Swabia")
 
-    def test_great_tier_replaces_ordinal(self):
+    def test_great_tier_modifies_the_ordinal(self):
+        """PC-4: pin flipped consciously. The Great tier used to REPLACE the
+        ordinal; it now modifies it, because replacement consumed the counter
+        anyway and so produced both a duplicate name and a gap."""
         world = WorldFactory.basic()
         world.compose_battle_name("Swabia")
         world.compose_battle_name("Swabia")
-        # Their third meeting, but titanic — the Great form wins outright.
+        # Their third meeting, and titanic — both facts survive.
         assert (world.compose_battle_name("Swabia", 120000)
-                == "The Great Battle of Swabia")
+                == "The Great Third Battle of Swabia")
+
+    def test_a_second_great_battle_never_reuses_the_first_ones_name(self):
+        """PC-4's headline: Swabia produced 'The Great Battle of Swabia'
+        twice, three turns apart, for two different battles."""
+        world = WorldFactory.basic()
+        first = world.compose_battle_name("Swabia", 120000)
+        world.compose_battle_name("Swabia")
+        world.compose_battle_name("Swabia")
+        second = world.compose_battle_name("Swabia", 120000)
+        assert first == "The Great Battle of Swabia"
+        assert second != first
+        assert second == "The Great Fourth Battle of Swabia"
+
+    def test_the_ordinal_sequence_has_no_holes(self):
+        """PC-4's other half: a great battle at count 4 used to swallow
+        'Fourth', so the player read Third then Fifth."""
+        world = WorldFactory.basic()
+        names = [
+            world.compose_battle_name("Swabia", 120000),  # 1, great
+            world.compose_battle_name("Swabia"),          # 2
+            world.compose_battle_name("Swabia"),          # 3
+            world.compose_battle_name("Swabia", 120000),  # 4, great
+            world.compose_battle_name("Swabia"),          # 5
+            world.compose_battle_name("Swabia"),          # 6
+        ]
+        assert len(set(names)) == len(names), f"duplicate battle name: {names}"
+        for ordinal in ("Second", "Third", "Fourth", "Fifth", "Sixth"):
+            assert any(ordinal in n for n in names), \
+                f"{ordinal} missing from the series: {names}"
 
     def test_regions_count_independently(self):
         world = WorldFactory.basic()

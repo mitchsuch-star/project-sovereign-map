@@ -864,6 +864,63 @@ class CombatExecutor:
             )
         return preview
 
+    def _bad_odds_muster_note(self, marshal, enemy, world) -> str:
+        """PC-8 (quiet-France played campaign, Aug 3 2026): the staff's
+        addendum to a delegation-inferred bad-odds warning.
+
+        The CR-5 gate prices the acting marshal's SOLO strength, and that is
+        correct and stays: it is *his* reading of *his* corps against a dug-in
+        enemy, and re-pricing it on the joint force flips the canonical case
+        from unfavorable to favorable (solo ratio 0.6705 → joint 1.0297) and
+        breaks the pin that makes the gate reachable at all. What was wrong is
+        that the modal then said "in greater strength" and stopped — while on
+        `press on` the muster committed two more corps and the battle was
+        fought at ~68k against 52k. The player was deciding without the one
+        fact that decided it.
+
+        So the marshal's read is left alone and Berthier appends what the
+        marshal cannot see: who will march, and the figure they make together.
+        Reads the SAME muster ladder the attack path's preview does
+        (`_muster_reason` → `_committed_reinforcement_strength`), so the two
+        surfaces cannot drift. Returns "" when nobody would answer.
+
+        Player-nation only — the muster preview's own call site carries the
+        same guard (`marshal.nation == world.player_nation`), and this is
+        copy on a modal only the player ever sees.
+        """
+        if world is None:
+            return ""
+        if marshal.nation != getattr(world, "player_nation", "France"):
+            return ""
+        battle_region = enemy.location
+        region = world.get_region(battle_region)
+        adjacent = set(region.adjacent_regions) if region else set()
+        will_join = []
+        for m in world.marshals.values():
+            if (m.nation != marshal.nation or m.name == marshal.name
+                    or m.strength <= 0):
+                continue
+            if m.location != battle_region and m.location not in adjacent:
+                continue
+            joins, _code = self._muster_reason(
+                m, marshal, battle_region, marshal.nation, world)
+            if joins:
+                will_join.append(m)
+        if not will_join:
+            return ""
+        committed = self._committed_reinforcement_strength(
+            marshal, will_join, world)
+        if committed <= 0:
+            return ""
+        # Same prose form the coordination observations use — one source for
+        # "A", "A and B", "A, B and C".
+        from backend.game_logic.battle_report import _join_names
+        names = _join_names([m.name for m in will_join])
+        joint = int(marshal.strength + committed)
+        return (f" Berthier adds: {names} would answer the guns — "
+                f"{joint:,} in all, against {int(marshal.strength):,} of "
+                f"{marshal.name}'s own.")
+
     def _format_muster_lines(self, preview) -> str:
         """Compact text render of the muster block (1 line per marshal)."""
         # PT-D1: the odds band is priced on the COMMITTED joint force
@@ -2286,6 +2343,15 @@ class CombatExecutor:
         marshal.captured_turn = int(world.current_turn)
         marshal.strength = 0
         marshal.pending_interrupt = None
+        # PC-9: the "is cornered — decide his fate" rail notice is an ASK.
+        # Once he is taken there is nothing left to decide, and a notice that
+        # outlives its decision is what left a turn-3 alert live at turn 42.
+        try:
+            world.notifications.dismiss_by_type(
+                "marshal_last_stand",
+                lambda n: n.get("details", {}).get("marshal") == marshal.name)
+        except Exception:
+            pass
         marshal.strategic_order = None
         marshal.holding_position = False
         marshal.hold_region = ""
@@ -2691,7 +2757,8 @@ class CombatExecutor:
         marshal._acted_this_turn = True  # Prevents idle increment at turn end
 
         # Record attack for flanking system (bombardment counts)
-        world.record_attack(marshal.name, marshal.location, target_location)
+        world.record_attack(marshal.name, marshal.location, target_location,
+                            marshal.nation)
 
         # Record battle for cannon fire detection (hearing the guns)
         world.record_battle(target_location, marshal.name, defender.name, "bombardment")
@@ -3970,15 +4037,22 @@ class CombatExecutor:
         origin_region = marshal.location  # Capture origin BEFORE any movement
         target_location = enemy_marshal.location
 
-        # Record this attack for flanking calculation
-        world.record_attack(marshal.name, origin_region, target_location)
+        # Record this attack for flanking calculation.
+        # PC-6: the pincer is counted among the ATTACKER'S OWN columns. Two
+        # armies contesting one province used to pool their approaches, so
+        # each side was handed a flanking bonus for the other side's march —
+        # and the message named the enemy's start line as a friendly one.
+        world.record_attack(marshal.name, origin_region, target_location,
+                            marshal.nation)
 
         # Calculate flanking bonus based on all attacks this turn
-        flanking_info = world.calculate_flanking_bonus(target_location)
+        flanking_info = world.calculate_flanking_bonus(target_location,
+                                                       marshal.nation)
         flanking_bonus = flanking_info["bonus"]
 
         # Generate flanking message if applicable
-        flanking_message = world.get_flanking_message(marshal.name, origin_region, target_location)
+        flanking_message = world.get_flanking_message(
+            marshal.name, origin_region, target_location, marshal.nation)
 
         # ════════════════════════════════════════════════════════════
         # CAVALRY CHARGE (Phase 2.8): Ney can attack from 2 regions away
@@ -4655,6 +4729,15 @@ class CombatExecutor:
             "defender_hostile_forced_participants": [],
             "defender_hostile_refused": [],
             "defender_devoted_allies": [],
+            # PC-5 (quiet-France played campaign, Aug 3 2026): who actually
+            # STOOD on the field, per side — the same lists the diorama's
+            # fought line is built from. The Berthier observation could say
+            # "held the field alone" over a tableau showing three engaged
+            # corps because the failed-reinforcement branch never had a way
+            # to ask whether anyone else was there. Display-only; the primary
+            # is always element one (_get_casualty_participants).
+            "attacker_participants": [p.name for p in atk_participants],
+            "defender_participants": [p.name for p in def_participants],
         }
         # Classify each side's participants by relationship toward that
         # side's primary combatant.
@@ -5640,11 +5723,21 @@ class CombatExecutor:
                 marshal.hold_region = ""
             strategic_cancel_msg = f" Strategic order ({old_order.command_type}) cancelled."
 
+        # PC-9 (quiet-France played campaign, Aug 3 2026): the second line is
+        # a rule addressed to the PLAYER ("any order you give…"), and it was
+        # appended unconditionally — so it rode the enemy phase and appeared
+        # under [Austria], instructing the player about the discipline of an
+        # Austrian square. The mechanic is symmetric; the tutorial sentence is
+        # not, because only one side takes orders from the reader.
+        is_player = marshal.nation == getattr(world, "player_nation", "France")
+        square_discipline_note = (
+            "\nAny order — even one that fails — will break the discipline "
+            "required to hold square." if is_player else "")
         message = fortify_break_msg + (
             f"{marshal.name} forms square at {marshal.location}! "
             f"Bayonets bristle in all directions. (+5% defense, cavalry -40%, "
-            f"but artillery +50% damage vs packed ranks){strategic_cancel_msg}\n"
-            f"Any order — even one that fails — will break the discipline required to hold square."
+            f"but artillery +50% damage vs packed ranks){strategic_cancel_msg}"
+            f"{square_discipline_note}"
         )
 
         return {
@@ -5905,7 +5998,8 @@ class CombatExecutor:
                 }
 
         # V2-51: Record attack direction for flanking bonus
-        world.record_attack(marshal.name, marshal.location, target_marshal.location)
+        world.record_attack(marshal.name, marshal.location,
+                            target_marshal.location, marshal.nation)
 
         # Execute combat with 2x damage multiplier
         recklessness_before = getattr(marshal, 'recklessness', 0)

@@ -1583,7 +1583,11 @@ class StrategicExecutor:
             "success": True,
             "requires_input": True,
             "pending_interrupt": marshal.pending_interrupt,
-            "message": describe_inferred_bad_odds(marshal.name, enemy.name),
+            # PC-8: the marshal's read stays solo; Berthier names the muster.
+            "message": describe_inferred_bad_odds(
+                marshal.name, enemy.name,
+                self._executor._combat._bad_odds_muster_note(
+                    marshal, enemy, world)),
             "strategic_order": True,
             "strategic_type": order.command_type,
             "first_step_interrupt": True,
@@ -1726,7 +1730,11 @@ class StrategicExecutor:
             }
             if inferred:
                 from backend.commands.delegation import describe_inferred_bad_odds
-                bad_odds_msg = describe_inferred_bad_odds(marshal.name, enemy.name)
+                # PC-8: the marshal's read stays solo; Berthier names the muster.
+                bad_odds_msg = describe_inferred_bad_odds(
+                    marshal.name, enemy.name,
+                    self._executor._combat._bad_odds_muster_note(
+                        marshal, enemy, world))
             else:
                 bad_odds_msg = (f"{marshal.name}: '{enemy.name} blocks the path at "
                                 f"{blocked_region}. Odds unfavorable. Your orders?'")

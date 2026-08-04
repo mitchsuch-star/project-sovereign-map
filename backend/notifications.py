@@ -138,6 +138,13 @@ def create_notification(
         "message": message,
         "turn_created": int(turn_created),
         "details": details or {},
+        # PC-9 (quiet-France played campaign, Aug 3 2026): the tray reached
+        # its 50-alert cap with SEVEN rows reading "Ney is cornered". The
+        # rendered title carries the repeat marker, so the stable identity is
+        # kept separately — otherwise the second repeat stops matching the
+        # first and the collapse only ever works once.
+        "base_title": title,
+        "repeat_count": 1,
     }
 
 
@@ -155,8 +162,64 @@ class NotificationCollector:
     def __init__(self):
         self._pending: List[Dict[str, Any]] = []
 
+    # PC-9: the SUBJECT a notification is about, in the order producers write
+    # it. Two rows sharing a type and a headline are the same live fact only
+    # if they are about the same party — "alliance Accepted" for Prussia and
+    # for Austria are two facts (PF-5 pins exactly that), while "Ney is
+    # cornered" twice is one.
+    _SUBJECT_KEYS = ("marshal", "counterpart", "target_nation", "nation",
+                     "vassal", "region", "war_id")
+
+    @classmethod
+    def _identity(cls, notification: Dict[str, Any]) -> tuple:
+        """Stable (type, headline, subject) identity for repeat collapsing.
+
+        Falls back to `title` so notifications restored from a pre-PC-9 save
+        still collapse.
+        """
+        details = notification.get("details") or {}
+        subject = ""
+        for key in cls._SUBJECT_KEYS:
+            value = details.get(key)
+            if value:
+                subject = f"{key}={value}"
+                break
+        return (
+            notification.get("type", ""),
+            notification.get("base_title") or notification.get("title", ""),
+            subject,
+        )
+
     def add(self, notification: Dict[str, Any]) -> None:
-        """Add a notification to the pending list. Auto-trims oldest NORMAL if over cap."""
+        """Add a notification, collapsing an un-dismissed repeat of itself.
+
+        PC-9: a re-fired alert REFRESHES the row it duplicates rather than
+        adding another. The tray is a list of things still true, not a log —
+        the campaign log is the log — so seven identical "Ney is cornered"
+        rows conveyed exactly as much as one, while filling the 50-row cap
+        that then silently starved everything else. The surviving row keeps
+        the newest message and turn, takes the higher priority of the two,
+        and carries the count in its title so the repetition is still visible.
+
+        Auto-trims oldest NORMAL if over cap.
+        """
+        identity = self._identity(notification)
+        for existing in self._pending:
+            if self._identity(existing) != identity:
+                continue
+            count = int(existing.get("repeat_count", 1)) + 1
+            base = existing.get("base_title") or existing.get("title", "")
+            existing["repeat_count"] = count
+            existing["base_title"] = base
+            existing["title"] = f"{base} (x{count})"
+            existing["message"] = notification.get("message", existing.get("message", ""))
+            existing["turn_created"] = int(notification.get("turn_created",
+                                                           existing.get("turn_created", 0)))
+            existing["priority"] = max(int(existing.get("priority", 0)),
+                                       int(notification.get("priority", 0)))
+            if notification.get("details"):
+                existing["details"] = notification["details"]
+            return
         self._pending.append(notification)
         self._enforce_cap()
 

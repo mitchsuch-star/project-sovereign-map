@@ -1056,6 +1056,14 @@ def _derive_marshal_status(marshal, world) -> tuple:
         letter = (" (to the letter)"
                   if getattr(marshal, "personality", "") == "literal" else "")
         if cmd == "MOVE_TO":
+            # PC-9 (quiet-France played campaign, Aug 3 2026): the dispatch
+            # reported a marshal "Moving to Swabia" while he was standing in
+            # Swabia. The order outlives the arrival on some paths, and the
+            # status line read the ORDER rather than the man. Report where he
+            # is when those are the same place — the Orders tab still shows
+            # the standing order, so nothing is hidden.
+            if target and target == marshal.location:
+                return "arrived", f"Arrived at {marshal.location}.{letter}"
             return "en_route", f"Moving to {target}.{letter}"
         elif cmd == "PURSUE":
             return "en_route", f"Pursuing {target}.{letter}"
@@ -2008,8 +2016,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # Audit 2026-07-09 fix 3.1: name the actual lord — this event also fires
     # for AI-lord vassalizations (treaty ratification / settlement clauses),
     # where "French protection" misattributed the act.
+    # PC-9: the article is resolved per-name in _render_diplomatic_event, not
+    # hardcoded here — a carved client may be an institution ("the Duchy of
+    # Warsaw") or a bare state ("Switzerland"), and the same sentence serves
+    # both. Live: "The Switzerland has ceased to exist."
     "diplomatic_carved_vassal_created": "{carved_name} has been established under the protection of {protector}.",
-    "diplomatic_carved_vassal_dissolved": "The {carved_name} has ceased to exist.",
+    "diplomatic_carved_vassal_dissolved": "{carved_name} has ceased to exist.",
     "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
     "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed the {treaty_type}.",
     "diplomatic_treaty_payment_failed": "{from_nation} cannot meet treaty obligations to {to_nation} ({amount_paid}/{amount_due} gold paid).",
@@ -2501,6 +2513,16 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:
         return f"Diplomatic event: {event_type}"
+    if event_type in ("diplomatic_carved_vassal_created",
+                      "diplomatic_carved_vassal_dissolved"):
+        # PC-9: "the Duchy of Warsaw" but plain "Switzerland". Both sentences
+        # are sentence-initial, so the article capitalizes. `carved_name` in
+        # the event payload stays the RAW tag for any mechanical reader.
+        from backend.display_names import display_nation, with_definite_article
+        template_vars = dict(template_vars)
+        template_vars["carved_name"] = with_definite_article(
+            display_nation(template_vars.get("carved_name", "")),
+            capitalize=True)
     try:
         return template.format(**template_vars)
     except (KeyError, IndexError):

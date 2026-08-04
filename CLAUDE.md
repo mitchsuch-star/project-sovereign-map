@@ -42,25 +42,30 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 3, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,042 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,136 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
 >
-> **Last landed:** ~~**PARSE-NEG**~~ ✅ **August 3, 2026** — the full parser evaluation and its fixes (landing record `BUG_FIXES.md` §PARSE-NEG landing; CR-6 contract `COMMAND_ROBUSTNESS_SPEC.md` §8). Before it: DEF-5 **NAVAL "The Wooden Wall"** NV-0..NV-11 + NV-V (Aug 2) · **AI Intent CLOSED** (Aug 1) · **Battle Diorama Tier A** (Jul 31, user-verified) · **row IGR build-complete** (Jul 31).
+> **Last landed:** ~~**ROADMAP position 3 — THE COMPOSITION SLICE**~~ ✅ **August 4, 2026** (landing record `BUG_FIXES.md` §Quiet-France → *The composition slice*). The user scoped it to (a)–(c) and **declined the econ bundle**, routing that work to a new **position 3.5 "Spec review for econ"**. All ten quiet-France rows are now closed. Headlines: **PC-6 was filed as a copy defect and is a MECHANICS defect** — the flanking tracker keyed on the contested region alone, so two armies over one province pooled approaches and each was paid a coordination bonus for the *other's* march; **PC-3's balance half is fixed at the FORTIFY side, not the unfortify side** (`_check_threats` was the one fortify rung missing the engaged guard its three siblings carry, while P0 unfortifies unconditionally — self-cancelling by construction), so the reverted latch's measured cost is not re-paid; PC-4 makes battle-name uniqueness structural; PC-5 gates the solitude claim on a verified participant list; PC-8 keeps the gate solo-priced and lets Berthier name the muster; PC-9 closes all four copy/tray items. `test_pc3_pc9_composition.py` (34), **12-mutation sweep with one inert pin found and split**, M1–M7 + `BASELINE_SERIES` byte-identical (no re-record — and that is a fact about the harness, not the fix: it has no same-province two-sided battle and no repeated cornering). Before it: **PARSE-NEG** (Aug 3) · **the quiet-France played campaign** (Aug 3) · DEF-5 **NAVAL "The Wooden Wall"** NV-0..NV-11 + NV-V (Aug 2) · **AI Intent CLOSED** (Aug 1) · **Battle Diorama Tier A** (Jul 31, user-verified) · **row IGR build-complete** (Jul 31).
 >
 > **PARSE-NEG in one paragraph (read before touching the parse pipeline).** The fast parser picked an action by keyword and scored confidence by how many identifiers it matched, never by whether the sentence *meant* the keyword — so a negated order carried the SAME keywords as its affirmative, scored HIGHER, cleared the 0.7 escalation gate, and executed. The evaluation that preceded the fix found **eight more defects beyond the five filed**, headline **`don't declare war on Austria` DECLARED WAR at 0.95** (the filed table sampled only military verbs; the diplomatic routes sit above them in the same chain) plus a phantom-province family (*not*→Brabant, *more*→**Moore**, *square*→Normandy, *relieved*→Rhineland — shipped as the province a marshal was ordered to take) and two plain gaps (`go to <region>` unparseable; the destination regex read the FIRST preposition). Fix = new **`backend/ai/clause_guards.py`**: negated/conditional clauses are blanked **with spaces, never spliced** (every position-aware rule downstream indexes into the text), the guards are **subtractive and never pick an action**, and the parser **removes the negation and re-reads what is left** — "hold your position, do not attack" → HOLD — refusing only when no order survives. **A refusal does not escalate to the LLM** (recorded deviation from the filed prescription; under forced tool-use every reply must name an action, and the sentence in hand is the one whose verb the player forbade). Companions **EAS-1..4** stay open (EAS-3 fixed; EAS-1 belongs to position 4).
 >
-> **▶ POSITION 1 IS DONE (Aug 3, 2026)** — 42 turns played live; record
-> `docs/audits/QUIET_FRANCE_CAMPAIGN_2026_08_03.md`; two P1s fixed (`98bf1f3`) plus
-> PC-2/PC-3/PC-7 (`1df5a36`). **The re-score arbitrated the plan's own dissent and the
-> dissent WON: enemy-phase-as-theater 5.5 → 6.0, below the 6.5 target — so the
-> composition slice has taken POSITION 3, ahead of the shippable build.**
+> **▶ POSITIONS 1 AND 3 ARE DONE.** Position 1 (Aug 3) — 42 turns played live;
+> record `docs/audits/QUIET_FRANCE_CAMPAIGN_2026_08_03.md`; its re-score arbitrated
+> the plan's own dissent and **the dissent WON** (enemy-phase-as-theater 5.5 → 6.0,
+> below the 6.5 target), which is what moved the composition slice ahead of the
+> shippable build. Position 3 (Aug 4) then closed every remaining PC row.
 >
-> **▶ NEXT = POSITION 3: the composition slice**, with the econ memo's first slice
-> ("The Levy and the Camp", row EC-P3) **recommended to bundle with it but NOT yet
-> approved** — it is gated on the user's ruling on
-> `docs/audits/PEACETIME_ECONOMY_RESEARCH_2026_08_03.md` §6 Q1–Q6. Position 2 (LLC +
-> Steamworks) still has no entry condition and can start in parallel today.
+> **▶ NEXT = POSITION 3.5: "Spec review for econ"** — the user's routing, verbatim:
+> *"skip this, make step after these fixes 'spec review for econ'"* and, on the GR9
+> debt, *"make it part of spec review"*. It owns
+> `docs/audits/PEACETIME_ECONOMY_RESEARCH_2026_08_03.md` **§6 Q1–Q6** AND **EC-7 /
+> ES-6** (`ECONOMY_REVISIT_SPEC.md:175` — a dated trigger that fired July 9, 2026 and
+> was never opened; it owns the manpower half of the failure the played campaign
+> produced, and needs a landing slice or an explicit cut). Building "The Levy and the
+> Camp" (row EC-P3) is **downstream of the review, not part of it** — the bundle was
+> declined. Position 2 (LLC + Steamworks) still has no entry condition and can start
+> in parallel today; position 4 is the shippable build.
 >
 > **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — nobody has ever produced a build of this game, and `deploy/` is pre-cutover and bundles **no world**; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >
@@ -68,7 +73,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **⚠ OPEN ON EVIDENCE, NOT PERMISSION** (all need a human playing, not another probe): the naval **pillar score** · the **played A2 sue-path** · the **NV-P1 live wheel check** · a **visual sign-off** on the NV-4..NV-11 surfaces · the **NV-V remainder** (anchors A1–A5 played, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check). **Nothing in the live queue is blocked on a gate.**
 >
-> **Open with their own gates, none blocking:** Pre-EA Victory & Objectives Pass · CR-6 *proper* · EC-2 pass 2 · the Battle Gallery · DEF-12 map modes · **row EC-P3** (the new owner for IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9).
+> **Open with their own gates, none blocking:** Pre-EA Victory & Objectives Pass · CR-6 *proper* · EC-2 pass 2 · the Battle Gallery · DEF-12 map modes · **row EC-P3** (the new owner for IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9; its §6 Q1–Q6 ruling and the EC-7/ES-6 debt are position 3.5's, not this row's).
 
 - ~~Gate 4 visual half~~ **✅ PASSED July 3, 2026** (user confirmed the 5-item eyes-only checklist; passage recorded in STATUS.md + the cleanup spec masthead; the DWL-DIP-E7 / DWL-DIP-METTERNICH 8.EVAL triggers are LIVE).
 - ~~Slice H~~ **✅ LANDED July 3, 2026** (gate approved v1.0 + implemented same day): `request_reward_or_restoration` + `demand_bargain_honor` are LIVE (Grant/Decline/Honor through the restage seam; `ally_petition` dial-protected provenance; `ally_petition_state` serialized; tests in `test_settlement_slice_h_ally_petitions.py`). **The settlement arc is fully closed — no live successors.** SC-32 formally CLOSED; do NOT rebuild G2 sub-slices.

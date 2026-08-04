@@ -4,6 +4,75 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ POSITION 3 — THE COMPOSITION SLICE (August 4, 2026)
+>
+> **User direction: scope it to (a)–(c); the econ bundle is declined and becomes
+> its own step.** The user answered the position-3 scoping question with *"skip
+> this, make step after these fixes 'spec review for econ'"* and, on the Q6 GR9
+> debt, *"make it part of spec review"*. So the six remaining PC rows shipped
+> alone, and **ROADMAP position 3.5 "Spec review for econ" now owns the
+> peacetime memo's §6 Q1–Q6 AND the month-old EC-7 / ES-6 dated trigger.**
+> Landing record = `BUG_FIXES.md` §Quiet-France → *The composition slice*.
+>
+> **All ten rows from the played campaign are now closed.** Six landed here:
+>
+> - **PC-3 (balance half)** — fixed at the **fortify** side rather than the
+>   unfortify side, which is the whole point. `_check_threats` (P3) folds
+>   same-region enemies into its own "adjacent" list and was the ONE fortify
+>   site in `enemy_ai.py` without the engaged guard its three siblings already
+>   carry, while P0's engaged-while-fortified arm unfortifies
+>   **unconditionally** — so the pair was self-cancelling by construction. It
+>   is literally the S5-1 argument written one line below it. **The reverted
+>   latch's measurement stands and is not re-paid:** that one blocked the
+>   *unfortify*, taking away the AI's escape from a fortified position; this
+>   blocks a fortify P0 was always going to undo, so no reachable state is
+>   removed — only the round trip to it.
+> - **PC-6 was filed as a copy defect and is a MECHANICS defect.** The flanking
+>   tracker keys on the contested region and nothing else, so two armies
+>   fighting over one province pooled their approaches and **each side was paid
+>   a coordination bonus for the other's march**. The line naming a French
+>   province as an Austrian start line was telling the truth about a wrong
+>   number. `record_attack` now carries the nation; omitting it preserves the
+>   legacy pooling, so 40+ `test_true_flanking` pins are untouched.
+> - **PC-4** — the Great tier *replaced* the ordinal while still *consuming* the
+>   counter, which is one line causing both a duplicate name and a hole in the
+>   sequence. It now modifies the ordinal, so uniqueness is structural rather
+>   than a de-duplication pass. W6-2's `test_great_tier_replaces_ordinal` was
+>   flipped **consciously** and renamed.
+> - **PC-5** — the "held the field alone" bank is split out and reachable only
+>   when our side's participant list is exactly the primary, gated on new
+>   display-only participant lists that are the same ones the diorama's fought
+>   line is built from. **A missing list is not evidence of solitude:** when we
+>   cannot check, we do not claim it.
+> - **PC-8** — the gate stays solo-priced *because that is right*, not merely
+>   because a CR-5 pin constrains it: it is the marshal weighing his own corps.
+>   Berthier now appends who would march and the joint figure, read off the same
+>   muster ladder the attack path's preview uses, so the two cannot drift.
+> - **PC-9** — all four: the square rule is player-scoped, the definite article
+>   is resolved per name (`the Duchy of Warsaw` / `Switzerland`), a MOVE_TO to
+>   where the man stands reports `arrived`, and the tray collapses repeats.
+>
+> **A 12-mutation sweep over the new pins found one inert** — the last-stand
+> notification test passed with its own fix disabled, because `_capture_marshal`
+> cleaned up behind it (`fight_to_the_last` ends in capture on every path). Split
+> into two tests, one per seam, with the breakout roll forced. 12 of 12 caught.
+>
+> **The tray fix's first cut was wrong and PF-5's own pin caught it.** Keying the
+> collapse on `(type, title)` immediately broke
+> `test_proposal_result_two_targets_both_survive` — two courts share the headline
+> "alliance Accepted". The key is now subject-scoped.
+>
+> **Reported, not buried:** all three behaviour-touching fixes leave M1–M7 and
+> `BASELINE_SERIES` byte-identical, **no re-record** — which means the ambient
+> 40-turn harness never exercises them. It has no same-province two-sided battle
+> and no repeated cornering. Reachability is proven deterministically by the unit
+> pins, not by the sweep; byte-identity here is evidence about the harness, not
+> about the fix.
+>
+> `tests/test_pc3_pc9_composition.py` (34) + 2 net-new W6-2 pins. Suite
+> 16,100 → **16,136 / 3 skipped**, ruff clean, golden corpus 514/514, **no `.gd`
+> touched**.
+
 > ### ✅ POSITION 1 — THE QUIET-FRANCE PLAYED CAMPAIGN (August 3, 2026)
 >
 > **User direction: "do the campaign then see where we can improve anything."**

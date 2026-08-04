@@ -444,10 +444,22 @@ _OBSERVATIONS = {
         "Reinforcements from {ally} bolstered {marshal}'s position — though {failed_ally} never arrived, Sire.",
         "{ally}'s timely arrival aided {marshal}. {failed_ally}, however, {failed_was} conspicuously absent.",
     ],
+    # PC-5 (quiet-France played campaign, Aug 3 2026): this bank is split.
+    # The "held the field alone" line was fired over a tableau listing three
+    # engaged corps and 64,943 men committed — it is a claim about who ELSE
+    # was on the field, and nothing was checking. The lines below are true
+    # whenever a called-for corps failed to arrive, whoever else was present.
     "coordination_reinforcement_failure": [
         "{ally} failed to arrive in time. {marshal}'s army fought without expected support.",
-        "Where was {ally}? {marshal} held the field alone — reinforcement never came.",
         "{marshal} fought without {ally}'s support. The roads, or the will, proved insufficient.",
+        "{ally} never reached the guns. The battle was decided without them, Sire.",
+    ],
+    # Only reachable when our side's participant list is exactly the primary:
+    # the solitude is verified, not assumed.
+    "coordination_reinforcement_failure_alone": [
+        "Where was {ally}? {marshal} held the field alone — reinforcement never came.",
+        "{marshal} stood alone, Sire. {ally} never came.",
+        "Not one corps reached {marshal}. {ally} was expected; {marshal} fought the battle single-handed.",
     ],
     "coordination_hostile_forced": [
         "{ally}'s presence brought numbers if not cooperation, Sire. They fought — as ordered — but every step beside {marshal} was teeth gritted.",
@@ -628,11 +640,20 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         our_hostile_forced = coordination.get("hostile_forced_participants", [])
         our_hostile_refused = coordination.get("hostile_refused", [])
         our_devoted_allies = coordination.get("devoted_allies", [])
+        our_participants = coordination.get("attacker_participants")
     else:
         our_type_count = coordination.get("defender_type_count", 0)
         our_hostile_forced = coordination.get("defender_hostile_forced_participants", [])
         our_hostile_refused = coordination.get("defender_hostile_refused", [])
         our_devoted_allies = coordination.get("defender_devoted_allies", [])
+        our_participants = coordination.get("defender_participants")
+
+    # PC-5: "held the field alone" is a claim about the rest of the field.
+    # A MISSING participants list is not evidence of solitude — when we
+    # cannot check, we do not claim it. (The list is absent only on the
+    # first-pass call from inside resolve_battle, where the reinforcement
+    # branches below are unreachable anyway.)
+    fought_alone = bool(our_participants) and len(our_participants) <= 1
 
     # Priority 0.5: Full combined arms triangle (3/3 unit types) — our side
     if our_type_count >= 3:
@@ -673,8 +694,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Priority 0.8: All reinforcements failed (our side)
     if failed:
         failed_names = _join_names([r.get("marshal", "") for r in failed])
-        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_failure"]),
-                     ally=failed_names)
+        bank = ("coordination_reinforcement_failure_alone" if fought_alone
+                else "coordination_reinforcement_failure")
+        return _fill(random.choice(_OBSERVATIONS[bank]), ally=failed_names)
 
     # Priority 0.6: Support auto-bombardment (Session 68)
     support_bombardment_damage = battle_result.get("support_bombardment_total_damage", 0)

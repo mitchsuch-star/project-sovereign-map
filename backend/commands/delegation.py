@@ -325,19 +325,29 @@ def describe_cautious_delegation(match: DelegationMatch,
             f'assault instead.')
 
 
-def describe_inferred_bad_odds(marshal_name: str, enemy_name: str) -> str:
+def describe_inferred_bad_odds(marshal_name: str, enemy_name: str,
+                               muster_note: str = "") -> str:
     """One-modal bad-odds confirm copy for a delegation-INFERRED aggressive
     assault into a fortified / superior force (§6.3c legibility — the surface
     NAMES the acting marshal's reading; Acc #7). Used ONLY for delegation-
     inferred orders; an explicitly-typed order keeps the generic contact message
     and never triggers this modal. Deterministic template (mock-safe, Golden-
-    Rule-6-safe — no LLM echo; word-echoing is CR-5b)."""
+    Rule-6-safe — no LLM echo; word-echoing is CR-5b).
+
+    PC-8 (Aug 3 2026): ``muster_note`` carries the staff's addendum — who
+    would march and the joint figure they make. The marshal's own reading is
+    solo BY DESIGN (it is his corps he is weighing, and the CR-5 gate prices
+    it that way), so the note is appended rather than folded in; it is built
+    by ``CombatExecutor._bad_odds_muster_note`` off the same muster ladder the
+    attack path's preview uses. Empty when nobody would answer the guns.
+    """
     # Humanize the enemy KEY so a camelCase name (ArchdukeCharles) never reaches
     # this modal (R7). The acting marshal is always an authored-clean player name.
     enemy_display = humanize_entity_name(enemy_name)
     return (f"{marshal_name} reads this as a call to give battle, Sire — but "
             f"{enemy_display} stands dug in and in greater strength. He will "
-            f"charge on your word. Confirm the assault, or hold him back?")
+            f"charge on your word.{muster_note} Confirm the assault, or hold "
+            f"him back?")
 
 
 # ── CR-5b Flavor Echoing (COMMAND_ROBUSTNESS_SPEC §6.4 rider (a)) ────────────

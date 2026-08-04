@@ -2315,6 +2315,26 @@ class EnemyAI:
                     # Artillery should bombard, not fortify — let P4 handle
                     if getattr(marshal, 'artillery', False):
                         return None
+                    # PC-3 balance half (quiet-France played campaign, Aug 3
+                    # 2026): don't fortify with an enemy standing in the same
+                    # region. This rung folds same-region enemies into its
+                    # "adjacent" list (see above) and so was the ONE fortify
+                    # site in this file without the engaged guard that P5
+                    # (:3703) and both P8 arms (:4174, :4274) already carry.
+                    # P0 unfortifies an engaged fortified marshal
+                    # UNCONDITIONALLY, so the pair was self-cancelling by
+                    # construction: fortify, then unfortify, 2 of 4 AP spent
+                    # for no state change — 41 occurrences in 42 turns.
+                    #
+                    # This is not the reverted latch. That one blocked the
+                    # UNFORTIFY, taking away the AI's escape from a fortified
+                    # position and collapsing the AI-V §4.7 variance
+                    # signature. This blocks a fortify that P0 was always
+                    # going to undo, so no reachable state is removed — only
+                    # the round trip to it. Exactly the S5-1 argument one
+                    # line below, applied to the same rung.
+                    if self._get_hostile_marshals_in_same_region(marshal, world):
+                        return None
                     # S5-1: never fortify while holding square — breaking a valid
                     # square to fortify (then re-forming next turn) is a
                     # self-cancelling loop that burns nation-turns.

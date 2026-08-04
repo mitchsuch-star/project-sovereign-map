@@ -253,6 +253,16 @@ class StrategicOrderProcessor:
                 return {"success": False,
                         "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid)}"}
             marshal.pending_interrupt = None
+            # PC-9: the rail notice exists only to make an UNANSWERED last
+            # stand visible. It was never retired when the player answered,
+            # so a turn-3 alert was still sitting in the tray at turn 42 —
+            # for a marshal whose fate had been decided 39 turns earlier.
+            try:
+                world.notifications.dismiss_by_type(
+                    "marshal_last_stand",
+                    lambda n: n.get("details", {}).get("marshal") == marshal.name)
+            except Exception:
+                pass
             enemy = world.get_marshal(pending.get("enemy", ""))
             combat = self.executor._combat
             if choice == "fight_to_the_last":
@@ -1026,7 +1036,11 @@ class StrategicOrderProcessor:
             "interrupt_type": "contact_bad_odds",
             "enemy": target.name,
             "location": marshal.location,
-            "message": describe_inferred_bad_odds(marshal.name, target.name),
+            # PC-8: the marshal's read stays solo; Berthier names the muster.
+            "message": describe_inferred_bad_odds(
+                marshal.name, target.name,
+                self.executor._combat._bad_odds_muster_note(
+                    marshal, target, world)),
             "options": options,
         }
 
@@ -2501,7 +2515,11 @@ class StrategicOrderProcessor:
                 order.last_contact_turn = world.current_turn
                 if inferred:
                     from backend.commands.delegation import describe_inferred_bad_odds
-                    msg = describe_inferred_bad_odds(marshal.name, enemy.name)
+                    # PC-8: solo read, mustered addendum.
+                    msg = describe_inferred_bad_odds(
+                        marshal.name, enemy.name,
+                        self.executor._combat._bad_odds_muster_note(
+                            marshal, enemy, world))
                 elif is_fog_discovery:
                     msg = (f"{marshal.name}: 'Enemy forces discovered at "
                            f"{blocked_region}! Destination held by {enemy.name}. "

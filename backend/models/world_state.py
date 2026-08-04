@@ -3825,17 +3825,31 @@ class WorldState:
         Battles accumulate history per region: "Battle of X" -> "Second
         Battle of X" -> ... -> "13th Battle of X". A titanic engagement
         (total engaged >= GREAT_BATTLE_THRESHOLD, both sides incl. arrived
-        reinforcements) reads "The Great Battle of X" — the Great tier
-        REPLACES the ordinal when both apply. Only resolve_battle results
-        are named (garrison assaults / bombardments never call this).
+        reinforcements) is marked "Great". Only resolve_battle results are
+        named (garrison assaults / bombardments never call this).
+
+        PC-4 (quiet-France played campaign, Aug 3 2026): the Great tier used
+        to REPLACE the ordinal outright while still CONSUMING the counter, so
+        Swabia produced "The Great Battle of Swabia" (t1), "Second", "Third",
+        then **"The Great Battle of Swabia" again** (t3) — a name reused for
+        two different battles three turns apart, with "Fourth" silently
+        swallowed. Two defects from one line: a collision and a hole in the
+        sequence. The ordinal now always names the battle's place in the
+        region's series, and "Great" is a modifier ON that series rather than
+        a replacement for it — so the first titanic battle still reads "The
+        Great Battle of X" and a later one reads "The Great Fourth Battle of
+        X". Uniqueness is structural (the counter is strictly increasing),
+        not a de-duplication pass.
         """
         count = int(self.battle_counts.get(region_name, 0)) + 1
         self.battle_counts[region_name] = count
-        if int(total_engaged) >= self.GREAT_BATTLE_THRESHOLD:
-            return f"The Great Battle of {region_name}"
+        great = int(total_engaged) >= self.GREAT_BATTLE_THRESHOLD
         if count == 1:
-            return f"Battle of {region_name}"
+            return (f"The Great Battle of {region_name}" if great
+                    else f"Battle of {region_name}")
         ordinal = self._BATTLE_ORDINALS.get(count, f"{count}th")
+        if great:
+            return f"The Great {ordinal} Battle of {region_name}"
         return f"{ordinal} Battle of {region_name}"
 
     # W6-7 Marshal Fates: a released prisoner reforms with a cadre.
@@ -10922,7 +10936,8 @@ class WorldState:
     # FLANKING SYSTEM (Phase 2.5)
     # ========================================
 
-    def record_attack(self, attacker_name: str, origin_region: str, target_region: str) -> Dict:
+    def record_attack(self, attacker_name: str, origin_region: str, target_region: str,
+                      nation: Optional[str] = None) -> Dict:
         """
         Record an attack for flanking bonus calculation.
         MUST be called BEFORE marshal moves to target.
@@ -10931,6 +10946,13 @@ class WorldState:
             attacker_name: Name of attacking marshal
             origin_region: Where the attacker is BEFORE moving
             target_region: Where the attack is directed
+            nation: The attacker's nation. PC-6 (Aug 3 2026) — the tracker
+                was side-BLIND: it keyed on the contested region alone, so
+                two armies fighting each other over the same province pooled
+                their origins and each was credited with the OTHER's approach
+                as a friendly pincer. Live: `Mack flanks from Swabia while
+                allies attack from Rhineland!` — Rhineland was French. Omit
+                for the legacy nation-blind behaviour (pre-existing tests).
 
         Returns:
             Dict with attack record info
@@ -10940,6 +10962,7 @@ class WorldState:
         attack_record = {
             "attacker": attacker_name,
             "origin": origin_region,
+            "nation": nation,
             "timestamp": int(self._action_counter)
         }
 
@@ -10951,7 +10974,8 @@ class WorldState:
 
         return attack_record
 
-    def calculate_flanking_bonus(self, target_region: str) -> Dict:
+    def calculate_flanking_bonus(self, target_region: str,
+                                 nation: Optional[str] = None) -> Dict:
         """
         Calculate flanking bonus based on UNIQUE attack origins.
 
@@ -10960,6 +10984,9 @@ class WorldState:
 
         Args:
             target_region: The region being attacked
+            nation: When given, only that nation's own attacks count toward
+                the pincer (PC-6 — see ``record_attack``). Omit for the
+                legacy nation-blind pooling.
 
         Returns:
             Dict with:
@@ -10976,6 +11003,8 @@ class WorldState:
             }
 
         attacks = self.attacks_this_turn[target_region]
+        if nation is not None:
+            attacks = [a for a in attacks if a.get("nation") == nation]
         origins = set()
 
         for attack in attacks:
@@ -11004,7 +11033,8 @@ class WorldState:
             "message": message
         }
 
-    def get_flanking_message(self, attacker_name: str, origin: str, target_region: str) -> Optional[str]:
+    def get_flanking_message(self, attacker_name: str, origin: str, target_region: str,
+                             nation: Optional[str] = None) -> Optional[str]:
         """
         Generate appropriate flanking message for THIS attack based on previous attacks.
 
@@ -11012,11 +11042,13 @@ class WorldState:
             attacker_name: Name of current attacker
             origin: Origin region of current attacker
             target_region: Target region being attacked
+            nation: The attacker's nation — the message names that nation's
+                OWN converging columns and nobody else's (PC-6).
 
         Returns:
             Flanking message string or None if no flanking bonus
         """
-        flanking_info = self.calculate_flanking_bonus(target_region)
+        flanking_info = self.calculate_flanking_bonus(target_region, nation)
 
         if flanking_info["bonus"] == 0:
             return None
@@ -11024,16 +11056,32 @@ class WorldState:
         origins = flanking_info["unique_origins"]
         other_origins = [o for o in origins if o != origin]
 
+        # PC-6, second half: a marshal who is already standing IN the
+        # contested province is not flanking anything — he is the anvil.
+        # Live: `ArchdukeCharles flanks from Swabia…` while attacking into
+        # Swabia. The bonus is unchanged; only the verb it is described with.
+        in_contact = (origin == target_region)
+
         if flanking_info["bonus"] == 1:
             # Classic flanking
             if other_origins:
+                if in_contact:
+                    return (f"{attacker_name} holds them at {origin} while "
+                            f"allies attack from {other_origins[0]}! "
+                            f"(+1 coordination)")
                 return f"{attacker_name} flanks from {origin} while allies attack from {other_origins[0]}! (+1 coordination)"
         elif flanking_info["bonus"] == 2:
             # Triple pincer
             if len(other_origins) >= 2:
+                if in_contact:
+                    return (f"{attacker_name} completes the encirclement from "
+                            f"within {origin}! (+2 coordination)")
                 return f"{attacker_name} completes the encirclement from {origin}! (+2 coordination)"
         elif flanking_info["bonus"] == 3:
             # Complete encirclement
+            if in_contact:
+                return (f"{attacker_name} seals the encirclement from within "
+                        f"{origin}! (+3 coordination)")
             return f"{attacker_name} seals the encirclement from {origin}! (+3 coordination)"
 
         return None
