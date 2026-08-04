@@ -599,8 +599,23 @@ class TestPlunderParity:
 class TestEconomyReportNetFix:
     def test_report_net_includes_infrastructure(self, world):
         """EC-W5b: the treasury report's net must equal the applied net when
-        structures exist (infrastructure was missing from the report)."""
+        structures exist (infrastructure was missing from the report).
+
+        RE-PINNED CONSCIOUSLY by CA8-10 (creative audit, Aug 4 2026). This
+        test used to hand-recompute the expected net from a SUBSET of the
+        streams — which is the exact hand-assembly that let admiralty,
+        blockade, trade income, treaty gold and vassal tribute go missing
+        and made the two income screens disagree by 124%. Re-deriving the
+        same subset in the test could only ever confirm the report matched
+        its own omissions.
+
+        The invariant EC-W5b actually wanted is that the report agrees with
+        the surface whose Net is pinned to the signed sum of its declared
+        components (`NET_GOLD_COMPONENTS`). That is what is asserted now,
+        and it holds for every future stream without editing this test.
+        """
         from backend.commands.executor import CommandExecutor
+        from backend.game_logic.ledger import _build_economy
         region = _french_region(world)
         region.buildings.append({"type": "supply_depot", "damaged": False})
         executor = CommandExecutor()
@@ -609,18 +624,7 @@ class TestEconomyReportNetFix:
             {"action": "economy"}, game_state)
         event = next(e for e in result["events"] if e["type"] == "economy_report")
         assert event["infrastructure"] > 0
-        income_data = world.calculate_turn_income("France")
-        upkeep_data = world.calculate_turn_upkeep("France")
-        admin_bonus = world.admin_actions_remaining * 25
-        expected_net = (income_data["income"]
-                        - income_data["occupation"]
-                        - income_data["contributions"]
-                        - income_data["war_effort"]
-                        - income_data["dotation_skim"]
-                        - income_data["rente_cost"]
-                        - income_data["infrastructure"]
-                        - upkeep_data["total"] + admin_bonus)
-        assert event["net"] == expected_net
+        assert event["net"] == int(_build_economy(world, "France")["net"])
 
 
 # ═══════════════════════ The playtest-shape acceptance ══════════════════════

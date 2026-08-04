@@ -31,7 +31,7 @@
 ---
 
 
-## Creative Audit — filed August 4, 2026 (**10 of 28 FIXED**, see landing record below)
+## Creative Audit — filed August 4, 2026 (**15 of 28 FIXED, 1 REFUTED**, see landing record below)
 
 > ### ✅ LANDING RECORD — CA8 sweep 1, August 4, 2026
 >
@@ -94,6 +94,58 @@
 > why it should be gated). **CA8-26** is design call **CA8-D6**. **CA8-6/21** must land
 > together and are the only `.gd` work in the set. The rest (CA8-7/8/9/10/11/12/16/17/19/
 > 20/24/25/28) are untouched and stay routed to ROADMAP position 13.
+>
+> ### ✅ LANDING RECORD — CA8 sweep 2, August 4, 2026 (same day)
+>
+> **Fixed: CA8-6 + CA8-21 (together, as the memo requires), CA8-7, CA8-10, CA8-11.**
+> **CA8-12 REFUTED against the shipped client — see below.** Tests: the same file, now 50.
+> Suite 16,209 → **16,221 / 3 skipped**; ruff clean; **Godot parse harness EXIT=0**
+> (3 `.gd` touched: `enemy_phase_dialog.gd`, `utils.gd`, and the palette constant).
+>
+> - **CA8-6** — the six fall-through verbs (`grant_dotation`, `grant_pension`,
+>   `form_square`, `break_square`, `garrison`, `naval_expedition`) get render arms built
+>   from **structured fields**. The memo's two hazards are respected by construction:
+>   nothing here reads `message`, so the origin-vs-destination fog gap and the
+>   second-person player-addressed prose cannot leak. Pinned by a test that asserts the
+>   arms exist *and* that the function body never reads a `message` key.
+> - **CA8-21** — `_decree_preamble(world, acting_nation)`. France's wording is
+>   byte-identical; a foreign court no longer issues an *Imperial* decree, and
+>   Talleyrand's commerce aphorism and the address to "Sire" no longer editorialise
+>   inside Vienna's council. Landed with CA8-6, never after it, exactly as filed.
+> - **CA8-7** — `enemy_phase_dialog.gd` now renders `enemy_voice`, above Berthier's
+>   observation (the enemy speaks on the field; the staff comments afterwards), in a new
+>   cool `COLOR_ENEMY_VOICE` so the two narrators are never confused. A falsifiable
+>   negative pins that the backend still attaches the key — a render arm over a key
+>   nobody sets is worse than no arm.
+> - **CA8-10** — the treasury report **stops hand-assembling its net** and reads
+>   `ledger._build_economy`, whose Net is pinned to the signed sum of its declared
+>   components. That is the defect class, not just the instance: EC-W5b had fixed the
+>   same bug for infrastructure alone, one stream at a time, and admiralty (already
+>   sitting in the dict this report was reading), blockade, trade, treaty gold and vassal
+>   tribute were still missing. New render lines for each. The War Effort explanation is
+>   un-guarded, because turn 1 — the only turn the played campaign opened this screen —
+>   had `war_effort == 0` and so printed nothing about a drain that reached −1,238g.
+> - **CA8-11** — `find_nearest_marshal_to_region` computed the per-marshal reasons and
+>   threw them away; they are now stashed and stated ("out of range — 4 regions away,
+>   range 1"), with the rule named and a working alternative offered. The `levy_open`
+>   headline states the condition it had been advertising a price and a place without.
+>
+> **CA8-12 is REFUTED against the shipped client, and this is the audit's own method
+> caveat firing on the audit.** The finding was measured from an HTTP transcript, where
+> the digest payload genuinely does ride every response. In the client it does not
+> repeat: `main.gd` latches it per turn (`_envoy_digest_shown_turn` / `_pending_envoy_
+> digest_turn`, with the reason written at `_show_pending_envoy_digest`), and `title`,
+> `headline` **and** `deadline_note` are all rendered by `mailbox_panel.gd`
+> `_build_digest_caption`. Nothing was changed. The corroborating evidence the row cites
+> — 17 `offer_lapsed` events and ~60 DP generated against one spent — is real, but it is
+> a different finding (the player ignoring the mailbox) and needs its own row rather than
+> a fix aimed at repetition that does not occur.
+>
+> **One inert pin found by the sweep and replaced:** the War Effort test set
+> `war_exhaustion` to 4, which made `war_effort` non-zero and quietly exercised the OLD
+> branch. The fixture is now the shipped boot — France at war on turn 1 with
+> `war_effort == 0` — which is the audit's actual case, asserted rather than constructed.
+> Final: **8/8 valid mutations killed.**
 
 ## Creative Audit — the remaining rows (filed August 4, 2026)
 
@@ -135,13 +187,13 @@
 
 | id | claim | seam |
 |---|---|---|
-| **CA8-6** | Six AI-reachable verbs fall through the client's 15-arm `match` to `action_type.replace("_"," ")` — live-proven here: `Deroy grant dotation Bohemia`, `ArchdukeCharles grant pension`, `Castanos form square` (**9 of 74 actions, 12%**). ⚠ The fix is **not** to pipe `message` through: two verified hazards (the fog filter gates on destination while raw move text names the origin; the prose is second-person player-addressed) | `enemy_phase_dialog.gd:128-181` |
-| **CA8-7** | `enemy_voice` has exactly **one** consumer in the whole client (`battle_diorama.gd:1147`). Charles's arc — *"I trade ground for time. Time is on my side."* — is generated for both directions and dropped in the enemy phase | `enemy_phase_dialog.gd:328-362` |
+| ~~**CA8-6**~~ ✅ | Six AI-reachable verbs fall through the client's 15-arm `match` to `action_type.replace("_"," ")` — live-proven here: `Deroy grant dotation Bohemia`, `ArchdukeCharles grant pension`, `Castanos form square` (**9 of 74 actions, 12%**). ⚠ The fix is **not** to pipe `message` through: two verified hazards (the fog filter gates on destination while raw move text names the origin; the prose is second-person player-addressed) | `enemy_phase_dialog.gd:128-181` |
+| ~~**CA8-7**~~ ✅ | `enemy_voice` has exactly **one** consumer in the whole client (`battle_diorama.gd:1147`). Charles's arc — *"I trade ground for time. Time is on my side."* — is generated for both directions and dropped in the enemy phase | `enemy_phase_dialog.gd:328-362` |
 | **CA8-8** | Grievance templates carry no recurrence register, so a legal escalation reads as a state bug: one dispatch printed *cooled with time* → *appears envious* → *has become entrenched* for the same pair. `jealousy.py:520-524` holds exactly three expression strings. And an undocumented rung 3.5 (`dispatch.py:1490`) starved the idle-marshal rung below it — Murat sat idle 9 turns, never mentioned | `jealousy.py:520`, `dispatch.py:1490` |
 | **CA8-9** | The campaign told a five-beat tragedy (crowned → ennobled → broken → dispossessed → laurels passed) and **not one line refers to any other**. `dispatch.py:547-601` builds arcs only from defeats/retreats/attackers — the arc machinery can narrate a marshal being beaten and never one rising | `dispatch.py:547` |
-| **CA8-10** | The two screens reporting income disagree by **124%** (report `+926g` vs end-turn `+2073g`, same turn). `economy_executor.py:86-92` omits admiralty, blockade, trade and vassal tribute. War Effort ran −8 → −1,238 with its explanation guarded by `if war_effort > 0` | `economy_executor.py:86` |
-| **CA8-11** | Position 3.5's levy headline advertises `10,000 foot cost 450 gold **at Paris**`; `recruit 10000 infantry at Paris` → *"No marshal is available to receive reinforcements at Paris"*. `find_nearest_marshal_to_region` filters on `movement_range` (1 for infantry) | `world_state.py:4287` |
-| **CA8-12** | The envoy digest re-prints every pending letter in full on **every** response — eleven identical ~60-word paragraphs in one turn, attached to `plunder` and `move` results. Its `title` and `deadline_note` appear in the transcript **not at all**. 17 `offer_lapsed` events; ~60 DP generated against **one** spent | `envoy_digest.py:175-221` |
+| ~~**CA8-10**~~ ✅ | The two screens reporting income disagree by **124%** (report `+926g` vs end-turn `+2073g`, same turn). `economy_executor.py:86-92` omits admiralty, blockade, trade and vassal tribute. War Effort ran −8 → −1,238 with its explanation guarded by `if war_effort > 0` | `economy_executor.py:86` |
+| ~~**CA8-11**~~ ✅ | Position 3.5's levy headline advertises `10,000 foot cost 450 gold **at Paris**`; `recruit 10000 infantry at Paris` → *"No marshal is available to receive reinforcements at Paris"*. `find_nearest_marshal_to_region` filters on `movement_range` (1 for infantry) | `world_state.py:4287` |
+| ~~**CA8-12**~~ ⚠ REFUTED | The envoy digest re-prints every pending letter in full on **every** response — eleven identical ~60-word paragraphs in one turn, attached to `plunder` and `move` results. Its `title` and `deadline_note` appear in the transcript **not at all**. 17 `offer_lapsed` events; ~60 DP generated against **one** spent | `envoy_digest.py:175-221` |
 | ~~**CA8-13**~~ ✅ | Liberating **French homeland** opens a mandatory prompt asking whether to burn it, and blocks the turn. IGR-E's own-soil guard was scoped to the AI branch; its landing record says the player modal was untouched | `build_capture_choice` |
 | ~~**CA8-14**~~ ✅ | A retreating AI marshal captures the province he just fled into, same phase, at −35% effectiveness. P-1 "capture current region" sits **above** the `retreated_this_turn` limiter; the player's equivalent guard is nested under a `nation == player_nation` check. *(Two of three legs of the first-pass claim were refuted — the drill lock IS nation-agnostic and the AI does unfortify first.)* | `enemy_ai.py:1448`, `executor.py:809` |
 | ~~**CA8-15**~~ ✅ | A bare `[Prussia]` header with nothing under it — **self-inflicted by the composition slice**: `main.py:794-831` rewrites `nation_data["actions"]` with no empty-nation prune, and PC-3's fortify→unfortify arm drops both entries. The fog filter is innocent (`main.py:1346` does prune) | `main.py:794` |
@@ -154,7 +206,8 @@
 
 | id | claim |
 |---|---|
-| **CA8-20, 21, 24, 25** | See memo §4 (estate valued at income 0; decree actor-branching — **land with CA8-6, never after it**; war-room battle counter vs "what stirred Europe"; diorama on the interrupt-resolved battle and the garrison assault) |
+| ~~**CA8-21**~~ ✅ | Decree actor-branching — FIXED Aug 4, 2026 with CA8-6 (`_decree_preamble`) |
+| **CA8-20, 24, 25** | See memo §4 (estate valued at income 0; decree actor-branching — **land with CA8-6, never after it**; war-room battle counter vs "what stirred Europe"; diorama on the interrupt-resolved battle and the garrison assault) |
 | ~~**CA8-22**~~ ✅ | `region_lost` needed an estate-holder branch — FIXED Aug 4, 2026 as the `region_lost_estate` class at weight 76 |
 | ~~**CA8-23**~~ ✅ | `campaign_log.py:2185` → `PROPOSAL_TYPE_DISPLAY` — FIXED Aug 4, 2026 at all ten sites via one `_proposal_label` helper |
 | **CA8-28** | The same unknown province gets a suggestion or a shrug by verb: `move`/`go to Venetia` → *"Did you mean 'Vienna'?"*; `march`/`march south to Venetia` → *"I could not make out a destination"*. The 2-AP strategic path lacks the 1-AP tactical path's resolution. *(Corrects my own first-pass claim that these phrasings fail to parse — they do not.)* |

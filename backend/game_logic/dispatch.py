@@ -190,9 +190,14 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "war_touches_us": "Sire — {line}",
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
+    # CA8-11: the headline names a price and a place, so it must also name
+    # the condition — recruits join a marshal who can reach the depot, and
+    # in the played campaign every French marshal was in Germany or Italy
+    # while the briefing kept advertising Paris.
     "levy_open": ("Sire — the establishment stands {headroom} men under the "
                   "ordinance, and the depots hold {pool}. {amount} foot cost "
-                  "{price} gold at {capital}."),
+                  "{price} gold at {capital}, where a marshal must stand to "
+                  "receive them."),
     "europe_at_war": "Sire — {aggressor} has declared war on {target}. The stated cause: {reason}.",
     "europe_crisis": "Sire — {nation} moves toward war with {target}. The design is open; the timing is not.",
     "europe_congress": "Sire — {proposer} and {accepter} have made peace without us.",

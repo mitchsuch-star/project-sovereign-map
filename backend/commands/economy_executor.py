@@ -44,6 +44,50 @@ def region_has_friendly_supply(region) -> bool:
         return False
 
 
+def _recruit_block_reason(world) -> str:
+    """Why no marshal could take the recruits — CA8-11.
+
+    Position 3.5's levy headline advertises `10,000 foot cost 450 gold at
+    Paris`, and `recruit 10000 infantry at Paris` answered *"No marshal is
+    available to receive reinforcements at Paris, Sire."* with no reason
+    given, in the state a Napoleonic campaign is normally in: every marshal
+    in Germany or Italy, and infantry carrying `movement_range` 1. The
+    affordance built to give the treasury a use was unusable at the place
+    its own headline names.
+
+    `find_nearest_marshal_to_region` already computed the per-marshal
+    reasons and discarded them. This states them, and names the rule.
+    """
+    blocked = list(getattr(world, "_last_nearest_marshal_block", None) or [])
+    if not blocked:
+        return ""
+    shown = "; ".join(blocked[:3])
+    more = f" (and {len(blocked) - 3} others)" if len(blocked) > 3 else ""
+    return (f" Recruits join a marshal who can reach the depot: {shown}"
+            f"{more}. March a corps within range, or name one directly "
+            f"(\"recruit 10000 infantry with Ney\").")
+
+
+def _decree_preamble(world, acting_nation: str) -> str:
+    """Who is issuing this reward, and in what register.
+
+    CA8-21 (creative audit, Aug 4 2026): the reward decrees were one
+    f-string with no actor branch, while `acting_nation` sat in scope four
+    lines above and was ignored — so Bavaria, an electorate, issued an
+    *Imperial* decree, and the Austrian court addressed Napoleon as "Sire".
+    Latent until now only because the client does not render the enemy
+    phase's `message` field (CA8-6); it goes live the moment that is fixed,
+    which is why the two land together.
+
+    France's own council keeps its exact wording, byte-for-byte.
+    """
+    player = getattr(world, "player_nation", "France")
+    if acting_nation == player:
+        return "By Imperial decree"
+    from backend.display_names import humanize_entity_name
+    return f"By decree of the court of {humanize_entity_name(acting_nation)}"
+
+
 class EconomyExecutor:
     """Handles economy, recruitment, garrison, building, and repair commands."""
 
@@ -88,9 +132,37 @@ class EconomyExecutor:
         # net (the applied net in process_income_phase subtracts it), so the
         # projection lied whenever structures existed.
         infrastructure = int(income_data.get("infrastructure", 0))
-        net = (income_data["income"] - occupation - contributions - war_effort
-               - dotation_skim - rente_cost - infrastructure
-               - upkeep_data["total"] + admin_bonus)
+        # ════════════════════════════════════════════════════════════════
+        # CA8-10 (creative audit, Aug 4 2026): the two screens that report
+        # France's income disagreed by 124% — on turn 1 the treasury report
+        # projected `+926g` while the end-turn line for the same turn read
+        # `Net: +2073g`, with a different upkeep, a different surcharge, a
+        # Grande Armée line the report did not carry and an `Other: +1320g`
+        # it had never heard of. A new player literally cannot answer "how
+        # much money do I make."
+        #
+        # Cause: this net was hand-assembled from a subset of the streams.
+        # It omitted `admiralty` — which sits in the SAME `income_data`
+        # dict it was already reading and IS subtracted by the applied net —
+        # and omitted blockade, trade income, treaty gold and vassal
+        # tribute entirely. EC-W5b had fixed exactly this defect for
+        # infrastructure three lines above, one stream at a time.
+        #
+        # The fix is to stop hand-assembling. `ledger._build_economy` is the
+        # surface whose Net is pinned to equal the signed sum of its
+        # declared components (`NET_GOLD_COMPONENTS`, the reconciliation
+        # guard), so this report now reads its figures from there. Adding a
+        # future gold stream can no longer desynchronise the two screens,
+        # because there is only one place left that knows the answer.
+        # ════════════════════════════════════════════════════════════════
+        from backend.game_logic.ledger import _build_economy
+        econ = _build_economy(world, nation)
+        net = int(econ["net"])
+        trade_income = int(econ.get("trade_income", 0))
+        blockade = int(econ.get("blockade", 0))
+        admiralty = int(econ.get("admiralty", 0))
+        vassal_tribute = int(econ.get("vassal_tribute", 0))
+        treaty_gold = int(econ.get("treaty_gold", 0))
         treasury = world.nation_gold.get(nation, 0)
 
         # Build detailed report
@@ -140,11 +212,40 @@ class EconomyExecutor:
                     f"(enemy army on our soil)"
                 )
 
+        # CA8-10: trade, and the blockade eating it. Both were absent, and
+        # trade is one of the largest single streams a naval power moves.
+        if trade_income:
+            lines.append(f"\n  Trade: +{trade_income}g  (treaty trade income)")
+        if blockade:
+            lines.append(f"  Blockade: -{blockade}g  "
+                         f"(enemy fleets close our ports)")
+        if vassal_tribute:
+            lines.append(f"\n  Vassal tribute: +{vassal_tribute}g")
+        if treaty_gold:
+            sign = "+" if treaty_gold >= 0 else ""
+            lines.append(f"\n  Treaty gold: {sign}{treaty_gold}g/turn")
+
         # EC-W2: the war consuming the war chest (scaled by war exhaustion)
+        #
+        # CA8-10: the explanation used to be guarded by `if war_effort > 0`,
+        # so on turn 1 — the only turn the played campaign ever opened this
+        # report — it was 0 and printed nothing. War Effort then ran
+        # -8 -> -122 -> -538 -> -1,238 with its cause never stated on any
+        # surface the player saw. A zero is not a reason to withhold the
+        # mechanic; it is the cheapest moment to teach it.
+        we_val = int(getattr(world, "war_exhaustion", {}).get(nation, 0) or 0)
         if war_effort > 0:
-            we_val = int(getattr(world, "war_exhaustion", {}).get(nation, 0) or 0)
             lines.append(f"\n  War Effort: -{war_effort}g  "
                          f"(war exhaustion {we_val} drains the war chest)")
+        elif we_val > 0 or world.get_nations_at_war_with(nation):
+            lines.append(f"\n  War Effort: -0g  (war exhaustion {we_val} — "
+                         f"this grows with every turn at war and is charged "
+                         f"against the treasury)")
+
+        # CA8-10: the fleet's own bill, which sits in the same income dict
+        # this report was already reading and was simply never subtracted.
+        if admiralty:
+            lines.append(f"\n  Admiralty: -{admiralty}g  (fleet upkeep)")
 
         # ES-7 (S7): estate endowments — full income redirected to marshals
         if dotation_skim > 0:
@@ -354,7 +455,11 @@ class EconomyExecutor:
             if not result:
                 return {
                     "success": False,
-                    "message": f"Berthier scans the dispatches. 'No marshal is available to receive reinforcements at {location_specified}, Sire.'"
+                    "message": (
+                        f"Berthier scans the dispatches. 'No marshal is "
+                        f"available to receive reinforcements at "
+                        f"{location_specified}, Sire.'"
+                        f"{_recruit_block_reason(world)}")
                 }
 
             marshal, distance = result
@@ -369,7 +474,9 @@ class EconomyExecutor:
             if not result:
                 return {
                     "success": False,
-                    "message": "Berthier scans the dispatches. 'No marshal is available to receive reinforcements, Sire.'"
+                    "message": ("Berthier scans the dispatches. 'No marshal "
+                                "is available to receive reinforcements, "
+                                "Sire.'" + _recruit_block_reason(world))
                 }
 
             marshal, distance = result
@@ -991,6 +1098,7 @@ class EconomyExecutor:
         })
 
         fee_note = f" Investiture: {fee} gold." if fee > 0 else ""
+        decree = _decree_preamble(world, acting_nation)
         if satisfaction >= expectation:
             standing = "His expectation is met — his loyalty will bleed no further."
         else:
@@ -998,7 +1106,7 @@ class EconomyExecutor:
                         f"holds {satisfaction}g/turn — the endowment falls short.")
         return {
             "success": True,
-            "message": (f"By Imperial decree, Marshal {marshal.name} is endowed "
+            "message": (f"{decree}, Marshal {marshal.name} is endowed "
                         f"with {region_name} and styled {title}. Its revenues "
                         f"({estate_income}g/turn) now sustain his household, "
                         f"not the treasury.{fee_note} {standing}"),
@@ -1104,14 +1212,22 @@ class EconomyExecutor:
 
         resize_note = (f" (his previous rente of {previous}g/turn is folded in)"
                        if previous > 0 else "")
+        decree = _decree_preamble(world, acting_nation)
+        # CA8-21: Talleyrand's aphorism, and the address to the Emperor, are
+        # France's own council speaking. A foreign court gets the same facts
+        # without either.
+        if acting_nation == getattr(world, "player_nation", "France"):
+            gloss = (f"{cost}g/turn — paper is dearer than land, Sire, and "
+                     f"it buys no title. It holds his loyalty for exactly "
+                     f"as long as it is paid.")
+        else:
+            gloss = f"{cost}g/turn. It buys no title, and it holds only while paid."
         return {
             "success": True,
-            "message": (f"By Imperial decree, Marshal {marshal.name} is granted "
+            "message": (f"{decree}, Marshal {marshal.name} is granted "
                         f"a rente of {face}g/turn upon the treasury{resize_note}. "
                         f"With fees and arrears it will cost the crown "
-                        f"{cost}g/turn — paper is dearer than land, Sire, and "
-                        f"it buys no title. It holds his loyalty for exactly "
-                        f"as long as it is paid."),
+                        f"{gloss}"),
             "events": [{
                 "type": "rente_granted",
                 "marshal": marshal.name,

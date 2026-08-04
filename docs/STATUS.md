@@ -41,6 +41,31 @@
 > **CA8-D6** — all three move blessed arithmetic or a commented design decision.
 > CA8-27 in particular is a one-line `or`-split, which is exactly why it should go
 > through its gate rather than ride a bug sweep.
+>
+> ### ✅ CA8 SWEEP 2 — LANDED August 4, 2026 (same session)
+>
+> **CA8-6 + CA8-21 (together, as the memo requires), CA8-7, CA8-10, CA8-11 fixed.**
+> Suite 16,209 → **16,221 / 3 skipped**; ruff clean; **Godot parse harness EXIT=0**,
+> 3 `.gd` touched. Running total: **15 of 28 rows fixed, 1 refuted.**
+>
+> The enemy phase stops printing debug tokens (six AI verbs got render arms built from
+> **structured fields** — never `message`, whose two fog and register hazards the memo
+> names), and the antagonist finally speaks in the phase where his story happens.
+> The treasury report **stops hand-assembling its net** and reads `ledger._build_economy`,
+> which is the defect class rather than the instance: EC-W5b had fixed the same bug for
+> infrastructure alone, and admiralty — sitting in the very dict the report was already
+> reading — plus blockade, trade, treaty gold and vassal tribute were still missing.
+>
+> **CA8-12 is REFUTED against the shipped client — the audit's own method caveat firing
+> on the audit.** The digest was measured repeating in an HTTP transcript; in the client
+> `main.gd` latches it per turn and `mailbox_panel.gd` already renders `title`,
+> `headline` and `deadline_note`. Nothing changed. Its corroborating evidence (17
+> `offer_lapsed`, ~60 DP generated against one spent) is real but is a different
+> finding and needs its own row.
+>
+> **One more inert pin found and replaced** (the War Effort test constructed a fixture
+> that exercised the old branch; it is now the shipped boot, which is the audit's actual
+> case). 8/8 valid mutations killed.
 
 > ### 🔍 CREATIVE AUDIT — HELD August 4, 2026 (after position 3.5; queue NOT re-routed)
 >

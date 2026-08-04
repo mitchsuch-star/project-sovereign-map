@@ -21,6 +21,11 @@ const COLOR_FEEDBACK = "b8a0d9"
 const COLOR_DISPATCH = "c9b878"
 const COLOR_BERTHIER = "B8860B"
 const COLOR_OBSERVATION = "DAA520"
+# CA8-7: the enemy commander's own line. A cool tone against
+# Berthier's gold, so the two narrators are never confused for one
+# another in the enemy phase (battle_diorama.gd dims it instead --
+# there the speaker is already labelled by position on the tableau).
+const COLOR_ENEMY_VOICE = "9aaec9"
 const COLOR_TEXT = "eeeeee"
 const COLOR_DIMMED = "808080"
 const COLOR_WARNING = "e0c060"

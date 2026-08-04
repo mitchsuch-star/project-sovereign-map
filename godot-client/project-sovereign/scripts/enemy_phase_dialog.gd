@@ -175,6 +175,42 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "builds " + building_type + " at " + target
 		"repair":
 			action_str += "repairs " + target
+		# --------------------------------------------------------
+		# CA8-6 (creative audit, Aug 4 2026): six AI-reachable verbs
+		# fell through to action_type.replace("_", " ") and printed the
+		# debug token -- live-proven as "Deroy grant dotation Bohemia",
+		# "ArchdukeCharles grant pension" and "Castanos form square",
+		# 12% of one campaign's AI actions. That is exactly the failure
+		# CLAUDE.md's Don't-Do list names.
+		#
+		# Sourced from STRUCTURED FIELDS, deliberately NOT by piping the
+		# server's `message`: that prose is second-person player-addressed
+		# feedback ("Sire", "Use 'unfortify'"), and the fog filter gates
+		# on a marshal's DESTINATION while a raw move message names the
+		# ORIGIN unconditionally -- PT-D4 withholds origin below FULL
+		# intel. Both hazards are avoided by never reading that field.
+		# --------------------------------------------------------
+		"grant_dotation":
+			if target != "":
+				action_str += "is endowed with " + target
+			else:
+				action_str += "is endowed with an estate"
+		"grant_pension":
+			action_str += "is granted a rente upon the treasury"
+		"form_square":
+			action_str += "forms square"
+		"break_square":
+			action_str += "breaks from square"
+		"garrison":
+			if target != "":
+				action_str += "detaches a garrison at " + target
+			else:
+				action_str += "detaches a garrison"
+		"naval_expedition":
+			if target != "":
+				action_str += "embarks an expedition for " + target
+			else:
+				action_str += "embarks an expedition"
 		_:
 			action_str += action_type.replace("_", " ")
 			if target:
@@ -353,6 +389,28 @@ func _format_berthier_report(report: Dictionary) -> String:
 			var sign = "+" if m.get("type", "") == "bonus" else "-"
 			parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
 		result += "[color=#" + COLOR_RPT + "]    Defense: " + def_name + " (" + ", ".join(PackedStringArray(parts)) + ")[/color]\n"
+
+	# --------------------------------------------------------------
+	# CA8-7 (creative audit, Aug 4 2026): the enemy commander speaks.
+	#
+	# `enemy_voice` is generated for BOTH directions by
+	# combat_executor.py, and had exactly ONE consumer in the whole
+	# client (battle_diorama.gd) -- so on the player's own battles the
+	# line surfaced fine, and in the enemy phase, where the antagonist's
+	# story actually happens, it was produced and dropped. Archduke
+	# Charles's arc across twelve turns ("I trade ground for time. Time
+	# is on my side.") reached the player only if they opened a diorama
+	# or scrolled a log. It is the best-written enemy content in the
+	# game and it was mute in its own scene.
+	#
+	# Placed ABOVE Berthier's observation deliberately: the enemy speaks
+	# on the field, and the staff comments afterwards.
+	# --------------------------------------------------------------
+	var enemy_voice = str(report.get("enemy_voice", ""))
+	if enemy_voice != "":
+		result += ("[color=#" + Utils.COLOR_ENEMY_VOICE + "]    "
+			+ Utils.humanize_nation_keys_in_text(enemy_voice) + "[/color]
+")
 
 	# Observation
 	var observation = report.get("observation", "")

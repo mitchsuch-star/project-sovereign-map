@@ -8,6 +8,7 @@ five P2/P3 rows (CA8-13/14/15/18/23). CA8-26 and CA8-27 are design calls and
 stay at their gates (CA8-D6 / CA8-D2).
 """
 
+import pathlib
 import random
 
 import pytest
@@ -310,6 +311,164 @@ class TestCA85DispatchStutter:
                 if "broken army flees" in head or "vulnerable" in head:
                     assert '"forced": True' in head, (
                         f"a rout site in {mod.__name__} does not stamp forced")
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-6 / CA8-21 — the enemy phase stops printing debug tokens
+# ════════════════════════════════════════════════════════════════════════
+
+_GD = (pathlib.Path(__file__).resolve().parents[1] / "godot-client"
+       / "project-sovereign" / "scripts")
+
+
+class TestCA86RawActionVerbs:
+    """The six AI-reachable verbs that fell through to
+    `action_type.replace("_", " ")` and printed the debug token."""
+
+    FALLTHROUGH = ["grant_dotation", "grant_pension", "form_square",
+                   "break_square", "garrison", "naval_expedition"]
+
+    def test_every_fallthrough_verb_now_has_a_render_arm(self):
+        src = (_GD / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
+        body = src.split("func _format_action", 1)[1].split("\nfunc ", 1)[0]
+        for verb in self.FALLTHROUGH:
+            assert f'"{verb}":' in body, (
+                f"{verb} still renders as its raw action_type token")
+
+    def test_the_arms_never_read_the_message_field(self):
+        """The audit named two verified hazards in piping `message`: the fog
+        filter gates on a marshal's DESTINATION while raw move prose names
+        the ORIGIN, and the prose is second-person player-addressed."""
+        src = (_GD / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
+        body = src.split("func _format_action", 1)[1].split("\nfunc ", 1)[0]
+        assert 'ai_action.get("message"' not in body
+        assert 'action.get("message"' not in body
+
+
+class TestCA821DecreeRegister:
+    """`acting_nation` was in scope and ignored, so an electorate issued an
+    *Imperial* decree and a foreign court addressed Napoleon as "Sire"."""
+
+    def test_france_keeps_its_exact_wording(self):
+        from backend.commands.economy_executor import _decree_preamble
+        world = WorldState(player_nation="France")
+        assert _decree_preamble(world, "France") == "By Imperial decree"
+
+    def test_a_foreign_court_does_not_decree_imperially(self):
+        from backend.commands.economy_executor import _decree_preamble
+        world = WorldState(player_nation="France")
+        out = _decree_preamble(world, "Bavaria")
+        assert "Imperial" not in out
+        assert "Bavaria" in out
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-7 — the enemy commander speaks in his own scene
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA87EnemyVoiceInEnemyPhase:
+
+    def test_the_report_renderer_consumes_enemy_voice(self):
+        src = (_GD / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
+        body = src.split("func _format_berthier_report", 1)[1]
+        body = body.split("\nfunc ", 1)[0]
+        assert 'report.get("enemy_voice"' in body, (
+            "the antagonist is still mute in the phase where his story happens")
+
+    def test_the_backend_still_attaches_it(self):
+        """FALSIFIABLE NEGATIVE: a render arm over a key nobody sets is
+        worse than no arm at all."""
+        import inspect
+        src = inspect.getsource(CombatExecutor)
+        assert 'result["battle_report"]["enemy_voice"]' in src
+
+    def test_the_two_narrators_are_visually_distinct(self):
+        src = (_GD / "utils.gd").read_text(encoding="utf-8")
+        assert "COLOR_ENEMY_VOICE" in src
+        # Berthier's gold must not be reused for the man he is fighting.
+        import re
+        voice = re.search(r'COLOR_ENEMY_VOICE = "([0-9A-Fa-f]{6})"', src)
+        berthier = re.search(r'COLOR_BERTHIER = "([0-9A-Fa-f]{6})"', src)
+        assert voice and berthier
+        assert voice.group(1).lower() != berthier.group(1).lower()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-10 — the two income screens agree
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA810IncomeScreensAgree:
+
+    def test_the_report_net_is_the_ledger_net(self):
+        from backend.game_logic.ledger import _build_economy
+        world = WorldState(sovereign_map="europe")
+        executor = CommandExecutor()
+        res = executor._economy._execute_economy(
+            {"action": "economy"}, {"world": world})
+        event = next(e for e in res["events"] if e["type"] == "economy_report")
+        assert event["net"] == int(_build_economy(world, world.player_nation)["net"])
+
+    def test_the_report_does_not_reassemble_the_net_by_hand(self):
+        """The defect class, not just the instance: every stream added since
+        has had to be remembered in two places, and admiralty/blockade/
+        trade/tribute were not."""
+        import inspect
+        from backend.commands import economy_executor as econ_mod
+        src = inspect.getsource(econ_mod.EconomyExecutor._execute_economy)
+        assert "_build_economy" in src
+
+    def test_war_effort_explains_itself_at_zero(self):
+        """It was guarded by `if war_effort > 0`, and turn 1 — the only turn
+        the played campaign ever opened this report — was 0. It then ran
+        -8 -> -122 -> -538 -> -1,238 with its cause never stated on any
+        surface the player saw.
+
+        The fixture is deliberately the SHIPPED BOOT, which is exactly the
+        audit's case: France at war on turn 1 with war_effort still 0. An
+        earlier version of this test set `war_exhaustion` to 4, which made
+        war_effort non-zero and quietly exercised the OLD branch — found by
+        a mutation sweep, and the reason the fixture is now stated rather
+        than constructed.
+        """
+        world = WorldState(sovereign_map="europe")
+        nation = world.player_nation
+        assert int(world.calculate_turn_income(nation).get("war_effort", 0)) == 0, (
+            "fixture: boot war_effort must be 0 for this to be the audit's case")
+        assert world.get_nations_at_war_with(nation), "fixture: France boots at war"
+        executor = CommandExecutor()
+        res = executor._economy._execute_economy(
+            {"action": "economy"}, {"world": world})
+        assert "War Effort" in res["message"], (
+            "the drain that grew to -1,238g is still unexplained on the one "
+            "turn a new player reads this screen")
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-11 — the levy names its own condition
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA811RecruitRefusal:
+
+    def test_the_refusal_names_the_reason(self):
+        world = WorldState(player_nation="France")
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.location = "Rome"        # far from Paris, range 1
+        world.invalidate_active_nations_cache()
+        executor = CommandExecutor()
+        res = executor._economy._execute_recruit(
+            {"action": "recruit", "amount": 10000, "unit_type": "infantry",
+             "target": "Paris"}, {"world": world})
+        if res.get("success"):
+            pytest.skip("fixture: a marshal was still in range of Paris")
+        assert "out of range" in res["message"] or "too weak" in res["message"], (
+            f"the refusal still gives no reason: {res['message']}")
+        assert "recruit" in res["message"].lower()
+
+    def test_the_headline_states_the_marshal_requirement(self):
+        tpl = dispatch_mod._HEADLINE_TEMPLATES["levy_open"]
+        assert "marshal must stand" in tpl, (
+            "the headline advertises a price and a place but not the condition")
 
 
 # ════════════════════════════════════════════════════════════════════════

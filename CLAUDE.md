@@ -44,7 +44,20 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,209 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,221 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+>
+> **~~CA8 SWEEP 2~~ ✅ August 4, 2026** (same session; landing record `BUG_FIXES.md`
+> §Creative Audit): **CA8-6 + CA8-21** landed together as the memo requires — six
+> AI-reachable verbs stopped rendering as raw snake_case, via arms built from
+> **structured fields** (never `message`: the fog filter gates on DESTINATION while raw
+> move prose names the ORIGIN, and the prose is player-addressed) — plus **CA8-7** the
+> enemy commander now speaks in the enemy phase, **CA8-10** the treasury report reads
+> `ledger._build_economy` instead of hand-assembling a net that omitted admiralty /
+> blockade / trade / treaty gold / vassal tribute, and **CA8-11** the recruit refusal
+> names its reason and the levy headline states its condition. **CA8-12 REFUTED against
+> the shipped client** (the digest already latches per turn and the caption already
+> renders — the audit's own method caveat firing on the audit). Running total
+> **15 of 28 fixed, 1 refuted**; still gated: CA8-3 + CA8-27 (CA8-D2), CA8-26 (CA8-D6).
 >
 > **Last landed: ~~CA8 SWEEP 1~~ ✅ August 4, 2026** (landing record `BUG_FIXES.md`
 > §Creative Audit): **10 of the audit's 28 rows fixed** — every gate-free P1

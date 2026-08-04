@@ -4344,7 +4344,15 @@ class WorldState:
 
         if not ready_marshals:
             debug_print("   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
+            # CA8-11 (creative audit, Aug 4 2026): the reason was computed
+            # here and thrown away, so the refusal upstream said only "No
+            # marshal is available" — while the dispatch headline that had
+            # just advertised the levy named the very province being
+            # refused. Stashed rather than returned so every existing
+            # caller's `if not result:` stays byte-identical.
+            self._last_nearest_marshal_block = list(filtered_out)
             return None
+        self._last_nearest_marshal_block = []
 
         # Sort by DISTANCE (nearest first), then by strength as tiebreaker
         ready_marshals.sort(key=lambda x: (x[1], -x[0].strength))
