@@ -31,7 +31,7 @@
 ---
 
 
-## Creative Audit — filed August 4, 2026 (**19 of 28 FIXED, 1 REFUTED**, see landing records below)
+## Creative Audit — filed August 4, 2026 (**18 of 28 FIXED, 1 REFUTED**, see landing records below)
 
 > ### ✅ LANDING RECORD — CA8 sweep 3 (the narration pillar), August 4, 2026
 >

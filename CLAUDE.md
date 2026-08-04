@@ -48,7 +48,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **~~CA8 SWEEP 3 — THE NARRATION PILLAR~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit): **CA8-9 + CA8-8 + CA8-25**, running total
-> **19 of 28 fixed, 1 refuted**. The two prior sweeps fixed sentences; these change how
+> **18 of 28 fixed, 1 refuted**. The two prior sweeps fixed sentences; these change how
 > the arcs are BUILT. **CA8-9** = one `if` — the arc builder discarded the victory
 > outcomes on the `battle` event it already parsed, and never read `glory_crowned` /
 > `dotation_granted` / `estate_confiscated`, all of which were already in

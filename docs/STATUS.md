@@ -7,7 +7,7 @@
 > ### ✅ CA8 SWEEP 3 — THE NARRATION PILLAR — LANDED August 4, 2026
 >
 > Landing record = **`BUG_FIXES.md` §Creative Audit** (authoritative).
-> **CA8-9, CA8-8, CA8-25 fixed** — running total **19 of 28, 1 refuted**.
+> **CA8-9, CA8-8, CA8-25 fixed** — running total **18 of 28, 1 refuted**.
 > `tests/test_creative_audit_ca8_2026_08_04.py` (+33, now 83). Suite 16,221 →
 > **16,281 / 3 skipped**; ruff clean; corpus 514/514; **M1–M7 and `BASELINE_SERIES`
 > byte-identical without re-record**; zero `.gd` touched.
