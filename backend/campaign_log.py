@@ -1387,6 +1387,13 @@ def format_event_oneliner(event: dict) -> str:
         nation = event.get("nation", "")
         target = event.get("target", "a rival")
         personality = event.get("personality", "")
+        # CA8-8: this channel composes its own sentence and had the same
+        # three-string monoculture as the dispatch. A recurrence reads
+        # differently from a first quarrel; `fires` is absent on pre-CA8-8
+        # saves, which falls through to the first-time wording.
+        if int(event.get("fires", 1) or 1) >= 2:
+            return (f"{_name_tag(marshal, nation)} takes up his grievance "
+                    f"against {target} again")
         if personality == "aggressive":
             return (f"{_name_tag(marshal, nation)}, envious of {target}'s "
                     f"victories, grows restless for glory")
@@ -1410,6 +1417,22 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
         target = event.get("target", "a rival")
+        # CA8-8: the payload has always carried `level` and this formatter
+        # ignored it, so a tier-1 escalation the dispatch describes as "a
+        # matter of concern" was logged as "entrenched" — the same event
+        # contradicting itself across two surfaces on the same turn.
+        # Absent on pre-CA8-8 saves; the old wording is the fallback.
+        # 2 / 3 are jealousy.ESCALATION_PERMANENT_LEVEL and
+        # ESCALATION_MUTUAL_LEVEL — inlined rather than imported, because
+        # this is a display module and jealousy.py imports the log's own
+        # helpers (a cycle for two integers is a poor trade).
+        level = int(event.get("level", 2) or 2)
+        if level <= 1:
+            return (f"The rivalry between {_name_tag(marshal, nation)} and "
+                    f"{target} is now a matter of concern among the staff")
+        if level >= 3:
+            return (f"The feud between {_name_tag(marshal, nation)} and "
+                    f"{target} is mutual — each schemes against the other")
         return (f"The rivalry between {_name_tag(marshal, nation)} and "
                 f"{target} has become entrenched")
 

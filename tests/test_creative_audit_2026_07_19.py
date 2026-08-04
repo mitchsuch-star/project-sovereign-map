@@ -209,22 +209,40 @@ def test_autonomous_warning_text_humanizes_both_names():
 def test_every_jealousy_expression_fits_the_he_has_slot():
     """The expressions fill 'he has {expression}', so each must be a past
     participle. 'restless for glory' is an adjective phrase and produced the
-    live line 'he has restless for glory.'"""
-    src = open("backend/game_logic/jealousy.py", encoding="utf-8").read()
-    block = src[src.index('"aggressive": "grown'):]
-    block = block[:block.index("}.get(")]
-    values = re.findall(r'"(?:aggressive|cautious|literal)":\s*"([^"]+)"', block)
-    assert len(values) == 3, values
-    for v in values:
-        assert v.split()[0] in ("grown", "thrown"), f"'he has {v}' is not grammatical"
-    assert "restless for glory" in " ".join(values)
-    assert "grown restless for glory" in values
+    live line 'he has restless for glory.'
+
+    Re-anchored August 4, 2026 (CA8-8) from a source scrape to the real
+    structure. The old form did `src.index('"aggressive": "grown')` and
+    sliced to `'}.get('`, which required the bank to be an inline dict
+    literal of exactly three strings — so it could not survive the variant
+    banks CA8-8 needed, and it only ever checked the three values that
+    happened to be first. Asserting over the imported dict covers EVERY
+    variant, which is the property the July 19 defect actually needs.
+    """
+    banks = jealousy._JEALOUSY_EXPRESSIONS
+    assert set(banks) == {"aggressive", "cautious", "literal"}, sorted(banks)
+    flat = [v for bank in banks.values() for v in bank]
+    assert len(flat) >= 3
+    for v in flat:
+        assert v.split()[0] in ("grown", "thrown"), (
+            f"'he has {v}' is not grammatical")
+    # The default arm fills the same slot and is reachable for any
+    # personality outside the three implemented types.
+    assert jealousy._JEALOUSY_EXPRESSION_DEFAULT.split()[0] in ("grown",
+                                                                "thrown")
+    # Every variant must be distinct, or the bank buys no variety.
+    assert len(set(flat)) == len(flat), flat
+    assert "grown restless for glory" in banks["aggressive"]
 
 
 def test_aggressive_grievance_line_reads_grammatically():
-    assert "he has grown restless for glory" == f"he has {'grown restless for glory'}"
     src = open("backend/game_logic/jealousy.py", encoding="utf-8").read()
     assert '"aggressive": "restless for glory"' not in src
+    # CA8-8: assert the property over the live bank rather than restating a
+    # literal to itself (the old first line compared a constant to an
+    # f-string of the same constant and could never fail).
+    for v in jealousy._JEALOUSY_EXPRESSIONS["aggressive"]:
+        assert f"he has {v}".startswith("he has grown")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -247,12 +265,30 @@ def test_dispatch_no_longer_lists_the_retired_notice_type():
 
 
 def test_fired_line_still_names_both_men_and_the_laurels():
-    """Folding the notice away must not lose the target's side of the story."""
-    src = open("backend/game_logic/jealousy.py", encoding="utf-8").read()
-    idx = src.index('"type": "jealousy_fired"')
-    window = src[idx:idx + 900]
-    assert "_envious" in window and "_envied" in window
-    assert "laurels" in window
+    """Folding the notice away must not lose the target's side of the story.
+
+    Re-anchored August 4, 2026 (CA8-8) from a 900-character source window to
+    the RENDERED line. The old form asserted on `src[idx:idx+900]` measured
+    from the first `"type": "jealousy_fired"` — a fixed-width scrape of the
+    same family the IGR-B review found overshooting four route bodies. It
+    was satisfied by a comment that happened to contain the word, and it
+    broke when a comment was added between the log write and the message
+    build, neither of which is the behaviour it exists to protect. Firing
+    the grievance and reading the sentence is strictly stronger: it fails if
+    either man goes unnamed no matter how the producer is laid out.
+    """
+    from tests.conftest import MarshalFactory, WorldFactory
+    ney = MarshalFactory.infantry(name="Ney", personality="aggressive")
+    davout = MarshalFactory.infantry(name="Davout")
+    world = WorldFactory.with_marshals([ney, davout], current_turn=4)
+    events = []
+    jealousy.apply_jealousy(world, ney, davout, delta=3, threshold=2,
+                            events=events)
+    fired = [e for e in events if e["type"] == "jealousy_fired"]
+    assert len(fired) == 1, events
+    line = fired[0]["message"]
+    assert "Ney" in line and "Davout" in line, line
+    assert "laurels" in line, line
 
 
 # ══════════════════════════════════════════════════════════════════════

@@ -4,6 +4,80 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ CA8 SWEEP 3 — THE NARRATION PILLAR — LANDED August 4, 2026
+>
+> Landing record = **`BUG_FIXES.md` §Creative Audit** (authoritative).
+> **CA8-9, CA8-8, CA8-25 fixed** — running total **19 of 28, 1 refuted**.
+> `tests/test_creative_audit_ca8_2026_08_04.py` (+33, now 83). Suite 16,221 →
+> **16,254 / 3 skipped**; ruff clean; corpus 514/514; **M1–M7 and `BASELINE_SERIES`
+> byte-identical without re-record**; zero `.gd` touched.
+>
+> Narration had missed its 6.5 target at three separate measurements (Jul 10, Jul 25,
+> Aug 4), and the Aug-3 quiet-France re-score independently put enemy-phase-as-theater
+> at 6.0. Sweeps 1 and 2 fixed sentences; **these two rows change how the arcs are
+> built.**
+>
+> **CA8-9 — one `if`.** The arc builder could narrate a marshal being beaten and never
+> one rising: the four victory outcomes arrive on the `battle` event it already parsed
+> and were discarded, and `glory_crowned` / `dotation_granted` / `estate_confiscated`
+> were already in `world.log_event` and never read. The five beats now join into one
+> sentence that reaches the **headline** — the arc had been confined to a roster table
+> cell, and the `arc_note` that ships beside it **is read by no `.gd` file at all**.
+> A rise with **no** fall builds no arc, which is what keeps **CA8-26 gated rather than
+> accidentally built**. The crown loss is derived from live state because only the crown
+> *gain* writes a log event — so no new event type, and the five files pinning
+> `len(CAMPAIGN_LOG_TYPES) == 156` are untouched.
+>
+> **CA8-8 — display only, deliberately.** The "cooled / envious / entrenched" triple is
+> **legal state** (step 1 clears `jealous_of`; step 3's only exclusion is
+> `if marshal.jealous_of: continue`, so the man just cleared is re-evaluated in the same
+> pass). Touching the trigger would move M7 — whose slack is `1 <= first <= 8` — and
+> `BASELINE_SERIES`, since `jealous_of` is read back inside combat's reinforcement and
+> coordination math. So the fix is a **recurrence register derived from
+> `jealousy_history`**, a list of fire turns already serialized: zero new fields, pinned
+> by a test naming four plausible invented ones. Also fixed: the tier-2 promise *"the
+> wound will not close on its own"* being falsified two turns later by its own cooling
+> line, and a real cross-surface contradiction — the campaign log had always been handed
+> `level` and ignored it, so a tier-1 escalation read *"a matter of concern"* in the
+> dispatch and *"entrenched"* in the log **on the same turn**.
+>
+> **Two claims in the session brief were corrected by reading the code.** The arc note
+> overwriting `status_note` is **not** the bug — it is pinned deliberate design
+> (`test_arc_upgrades_the_status_note`); the defect is that a Berthier rung **parsed
+> prose at all**, and the sharp edge is that the shape `"4 defeats in as many turns"`
+> parsed *cleanly* and compared a defeat tally to an idle threshold, so **a marshal
+> beaten four turns running was reported to the Emperor as growing impatient for
+> action**. And the "second expression bank at `jealousy.py:1547`" does not exist — that
+> line is a single unkeyed restlessness string; the real second bank is in
+> `campaign_log.py`, a separate **producer** that composes its own sentences and was
+> fixed alongside.
+>
+> **CA8-25 — one tuple entry.** Filed as "no diorama is built" for the `press on`
+> battle; refuted. It **is** built and then discarded — the blocked-path arms rebuild a
+> fresh response through `_COMBAT_PASSTHROUGH_FIELDS`, which carried `battle_report` and
+> not `battle_diorama`.
+>
+> **21-mutation sweep, one INERT pin found and replaced** (the ladder-docstring test
+> asserted `"3.5" in doc`, satisfied by the explanatory paragraph below the list, so it
+> passed with the ladder entry deleted). Final **21/21 killed**. Byte-identity is
+> recorded as a fact about the harness, not proof of safety — expected here by
+> mechanism, since `dispatch.py`/`campaign_log.py` are absent from the sweep's import
+> set and the only `log_event` change is one added **key**, not row volume.
+>
+> **Deliberately NOT built, with the map's corrections filed against each row:** CA8-19
+> (**gate it** — a combat-system change wearing a copy row's clothes; full parity moves
+> M1–M7 *and* `BASELINE_SERIES`, and it hides three separately-landable latent defects,
+> incl. a **production-dead** garrison-stomp glory exemption and an AI army repulsed from
+> a French garrison accruing **no war exhaustion at all**), CA8-17 (**the row's mechanism
+> is wrong** — nothing is title-cased, so the cheap fix does not exist; it needs a spoken-
+> register vocabulary, which is authoring scope), CA8-16 (**two of its numbers are wrong**
+> — 19 speakers not 8, `"in its path"` 3 not 14 — and the finding survives both on an
+> independent metric; `len(variants) == 2` is hard-pinned twice), CA8-20 (a sort-key
+> change **cannot** fix it; needs a filter at the AI call site, and it moves AI behaviour),
+> CA8-28 (a parser slice — three messages, three tripwires, and the golden corpus
+> **cannot** pin it because `parser_eval` never constructs an executor). CA8-3/CA8-24/
+> CA8-27 stay at **CA8-D2**, CA8-26 at **CA8-D6**.
+>
 > ### ✅ CA8 SWEEP 1 — LANDED August 4, 2026 (same day as the audit)
 >
 > **User direction: *"make creative audit fixes chunk as much as you can in a work

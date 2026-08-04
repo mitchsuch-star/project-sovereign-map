@@ -55,6 +55,14 @@ BAND_MIDPOINTS: Dict[str, int] = {
 HEADLINE_WEIGHTS: Dict[str, int] = {
     "home_captured": 100,       # own homeland region captured by enemy
     "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
+    # CA8-9 (creative audit, Aug 4 2026): a marshal's fall told together
+    # with the rise it reverses. Ranked one ABOVE the bare `own_broken` for
+    # exactly the reason `region_lost_estate` sits above `region_lost` — it
+    # is the SAME event told better, and one of the two sentences is about a
+    # man with a history. It absorbs the plain fall candidate for that
+    # marshal rather than sitting on top of it (see `_build_headline`), so
+    # the sub-beat never restates the headline.
+    "marshal_reversal": 91,
     "own_broken": 90,           # own marshal broken / force-retreated
     "own_mauled": 85,           # own marshal lost >=25% strength
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
@@ -175,6 +183,12 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
 _HEADLINE_TEMPLATES: Dict[str, str] = {
     "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
+    # CA8-9: the joined arc. The whole sentence is composed backend-side by
+    # `_compose_reversal_line` because its shape varies with how many acts
+    # the campaign actually produced (crowned / endowed / beaten /
+    # dispossessed / uncrowned), and a fixed template would have to invent
+    # the beats it lacks.
+    "marshal_reversal": "Sire — {line}",
     "own_broken": "Sire — {marshal}'s corps has been broken at {region}. He must reform before he fights again.",
     "own_mauled": "Sire — {marshal} was mauled at {region}: {casualties} men lost in a single action.",
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
@@ -231,6 +245,9 @@ def _crisis_cause_headline(cause: str) -> str:
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "home_captured": "France herself is under the enemy's boot, Sire. Every other matter is secondary.",
     "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
+    # CA8-9: Berthier closes on the man, not the ledger — the note answers
+    # the arc the headline opened.
+    "marshal_reversal": "He was the best of us a fortnight ago, Sire. Men remember being raised, and they remember being left.",
     "own_broken": "I have ordered the remnants collected, Sire. Do not commit them until they reform.",
     "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
     "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
@@ -480,6 +497,35 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
              price=f"{_levy['infantry_price']:,}",
              capital=_capital)
 
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-9: the marshal's fall, told with the rise it reverses.
+    #
+    # Runs LAST and ABSORBS the plain fall candidate for the same man rather
+    # than merely outranking it. The CA8-5 dedupe keys on (class, identity),
+    # so a `marshal_reversal` at weight 91 sitting above `own_broken` at 90
+    # would lead with the joined sentence and then restate the bare one as
+    # its own sub-beat — the exact duplicate-beat shape CA8-5 was landed to
+    # kill. Absorption is by identity, so a DIFFERENT marshal's break on the
+    # same turn is untouched and still gets its own beat.
+    #
+    # A pure ascent cannot reach here: `reversal_line` is only composed when
+    # the arc carries a fall as well as a rise, which is what keeps CA8-26
+    # (no headline class for a French success) gated rather than
+    # accidentally built.
+    #
+    # Second call to `_build_marshal_arcs` this dispatch (the roster builder
+    # makes the other). Bounded: one pass over a 500-capped event log plus
+    # the marshal roster, once per turn — not a hot path.
+    # ────────────────────────────────────────────────────────────────────
+    for _name, _arc in _build_marshal_arcs(world, player_nation).items():
+        if not _arc.get("reversal_line"):
+            continue
+        _absorbed = {f"own_broken:{_name}", f"own_mauled:{_name}"}
+        candidates[:] = [c for c in candidates
+                         if c.get("identity") not in _absorbed]
+        _add("marshal_reversal", identity=f"marshal_reversal:{_name}",
+             line=_arc["reversal_line"])
+
     if not candidates:
         return None
 
@@ -592,18 +638,131 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _turns_ago_phrase(turn: Optional[int], now: int) -> str:
+    """'this turn' / 'last turn' / 'three turns ago' — CA8-9 joins beats
+    that are up to five turns apart, so the gap has to be spoken."""
+    if turn is None:
+        return ""
+    gap = int(now) - int(turn)
+    if gap <= 0:
+        return "this turn"
+    if gap == 1:
+        return "last turn"
+    _words = {2: "two", 3: "three", 4: "four", 5: "five"}
+    return f"{_words.get(gap, str(gap))} turns ago"
+
+
+def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
+                           crown_lost, consecutive, hunted_by, fled) -> str:
+    """CA8-9: ONE sentence that names the rise and the fall together.
+
+    The played campaign's five beats were each individually correct and
+    mutually unaware. This is the join — it never invents a beat, it only
+    states the two the event log already recorded, in order.
+    """
+    now = int(world.current_turn)
+    who = humanize_entity_name(marshal.name)
+
+    # ── the ascent ────────────────────────────────────────────────────────
+    title = ""
+    if estate:
+        title = estate.get("title") or (
+            f"the estate at {estate['region']}" if estate.get("region") else "")
+    if crown_turn is not None and title:
+        rise = (f"{who}, crowned {_turns_ago_phrase(crown_turn, now)} and "
+                f"endowed with {title}")
+    elif crown_turn is not None:
+        rise = f"{who}, crowned {_turns_ago_phrase(crown_turn, now)}"
+    elif title:
+        rise = (f"{who}, endowed with {title} "
+                f"{_turns_ago_phrase(estate.get('turn'), now)}")
+    else:                                   # unreachable while rose is set
+        rise = who
+
+    # ── the fall, strongest first ─────────────────────────────────────────
+    if hunted_by:
+        fall = (f"has been hunted across the frontier by "
+                f"{humanize_entity_name(hunted_by)}")
+    elif consecutive >= 2:
+        fall = f"has been beaten {consecutive} turns running"
+    elif consecutive == 1:
+        fall = "has been beaten in the field"
+    elif fled >= 1:
+        fall = "has fallen back"
+    else:
+        fall = "has lost what it bought him"
+
+    # No "Sire — " prefix here: the headline template owns the register
+    # (the `war_touches_us` idiom), and the roster note is not addressed.
+    parts = [f"{rise} {fall}"]
+
+    # ── the dispossession and the laurels, when they are the same story ──
+    if lost_estate and lost_estate.get("region"):
+        by = lost_estate.get("by") or ""
+        taker = formed_display_name(world, by) if by else "the enemy"
+        parts.append(f"and {taker} holds {lost_estate['region']} now")
+    if crown_lost:
+        parts.append("the laurels have passed to another")
+
+    if len(parts) == 1:
+        return parts[0] + "."
+    if len(parts) == 2:
+        return f"{parts[0]} — {parts[1]}."
+    return f"{parts[0]} — {parts[1]}, and {parts[2]}."
+
+
 def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
     """W6-3 §5.3: derive per-marshal drama chains from the recent event-log
     window (last ~5 turns; bounded scan, GR8-safe) — no new serialized state.
 
     Returns marshal_name -> {consecutive_defeats, hunted_by, fled_across,
-    line} for marshals with an active chain; max 3 lines per dispatch,
-    highest-stakes first.
+    rise, reversal_line, line} for marshals with an active chain; max 3
+    lines per dispatch, highest-stakes first.
+
+    ════════════════════════════════════════════════════════════════════════
+    CA8-9 (creative audit, Aug 4 2026): THE ARC COULD NARRATE A FALL AND
+    NEVER A RISE.
+
+    The played campaign told a complete five-beat tragedy and joined none of
+    it: Ney crowned (T3) -> ennobled Duke of Carniola (T8) -> broken at
+    Bohemia (T10) -> the estate confiscated by Austria the same turn (T10) ->
+    "the laurels have passed" (T12), that last one a bare warning bullet
+    wedged between a supply note and a congratulation. Not one line referred
+    to any other, though the engine knew the connection at battle time — the
+    diorama payload for that very battle carries `"name": "Ney"` with
+    `"crowned": true` while reporting him losing 2,218 men.
+
+    The blindness was ONE `if`, not a missing vocabulary. The four victory
+    outcomes arrive on the same `battle` event this loop already parses and
+    were thrown away; `glory_crowned`, `dotation_granted` and
+    `estate_confiscated` were all already in `world.log_event` and simply
+    never read here.
+
+    Two deliberate derivations, because the obvious sources do not exist:
+      - THE CROWN LOSS has no `log_event` twin (only the GAIN branch writes
+        one, `jealousy.py:333-337`) and `glory_crown_lost` is not a
+        campaign-log type. It is derived instead from live serialized state:
+        crowned inside the window + `marshal.glory_crowned` now False.
+      - "HE TOOK THE PROVINCE" is not derivable at all — every
+        `region_captured` producer writes {region, captured_by,
+        captured_from, method} and names no marshal. Do not add an ascent
+        arm for it here expecting the event to carry a man.
+
+    Rise data ENRICHES existing arcs and never creates one on its own, so
+    the `== {}` and cap-of-3 pins hold unchanged. The reversal — a rise and
+    a fall inside one window — is the only new way in, and it requires a
+    fall, so a pure ascent can never manufacture an arc (nor, by
+    construction, a headline: see CA8-26, which is gated).
+    ════════════════════════════════════════════════════════════════════════
     """
     window_start = world.current_turn - 5
     defeats: Dict[str, List[int]] = {}          # marshal -> defeat turns
     attackers: Dict[str, List[tuple]] = {}      # marshal -> [(turn, attacker)]
     retreats: Dict[str, int] = {}               # marshal -> retreat count
+    # CA8-9 rise/fall inputs — all already logged, no new producers.
+    crowned: Dict[str, int] = {}                # marshal -> turn crowned
+    endowed: Dict[str, Dict[str, Any]] = {}     # marshal -> {turn,title,region}
+    dispossessed: Dict[str, Dict[str, Any]] = {}  # marshal -> {turn,region,by}
 
     for e in world.event_log:
         turn = e.get("turn", 0)
@@ -626,6 +785,25 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
             name = e.get("marshal", "")
             if name:
                 retreats[name] = retreats.get(name, 0) + 1
+        elif etype == "glory_crowned":
+            # Producer is player-nation-only (jealousy.py:321), but the
+            # nation guard is kept explicit so a future producer widening
+            # cannot leak an enemy's rise into the player's dispatch.
+            name = e.get("marshal", "")
+            if name and e.get("nation", player_nation) == player_nation:
+                crowned[name] = int(turn)
+        elif etype == "dotation_granted":
+            name = e.get("marshal", "")
+            if name and e.get("nation", player_nation) == player_nation:
+                endowed[name] = {"turn": int(turn),
+                                 "title": e.get("title", ""),
+                                 "region": e.get("region", "")}
+        elif etype == "estate_confiscated":
+            name = e.get("marshal", "")
+            if name and e.get("nation", player_nation) == player_nation:
+                dispossessed[name] = {"turn": int(turn),
+                                      "region": e.get("region", ""),
+                                      "by": e.get("confiscated_by", "")}
 
     arcs: Dict[str, Dict[str, Any]] = {}
     for m in world.marshals.values():
@@ -657,7 +835,24 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
                 break
 
         fled = retreats.get(m.name, 0)
-        stakes = (consecutive >= 2) or hunted_by or (fled >= 2)
+
+        # ── CA8-9: the ascent half, and the reversal that joins them ──────
+        crown_turn = crowned.get(m.name)
+        estate = endowed.get(m.name)
+        lost_estate = dispossessed.get(m.name)
+        # The crown loss has no event of its own — a crowning inside the
+        # window against a marshal who no longer wears it IS the loss.
+        crown_lost = bool(crown_turn is not None
+                          and not getattr(m, "glory_crowned", False))
+        rose = crown_turn is not None or estate is not None
+        # A fall the reversal can hang on. Dispossession and the lost crown
+        # count on their own — they ARE the fall in the played campaign —
+        # so a single defeat beside them is enough.
+        fell = (consecutive >= 1 or bool(hunted_by) or fled >= 1
+                or lost_estate is not None or crown_lost)
+        reversal = bool(rose and fell)
+
+        stakes = (consecutive >= 2) or hunted_by or (fled >= 2) or reversal
         if not stakes:
             continue
 
@@ -670,17 +865,37 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
         elif consecutive >= 2:
             line = (f"{consecutive} defeats in as many turns — "
                     f"{int(m.strength):,} men remain at {m.location}.")
-        else:
+        elif fled >= 2:
             line = (f"Has fallen back {fled} times in five turns — "
                     f"now at {m.location} with {int(m.strength):,} men.")
+        else:
+            # Reversal-only entry: the fall is the dispossession or the
+            # lost crown, so the roster note states the standing, not a
+            # defeat tally that would read as zero.
+            line = (f"Stands at {m.location} with {int(m.strength):,} men.")
+
+        reversal_line = ""
+        if reversal:
+            reversal_line = _compose_reversal_line(
+                world, m, crown_turn=crown_turn, estate=estate,
+                lost_estate=lost_estate, crown_lost=crown_lost,
+                consecutive=consecutive, hunted_by=hunted_by, fled=fled)
 
         arcs[m.name] = {
             "consecutive_defeats": int(consecutive),
             "hunted_by": hunted_by,
             "fled_across": int(fled),
             "line": line,
-            # Stakes score for the max-3 cap: hunted > defeats > retreats.
-            "_stakes": (2 if hunted_by else 0) + consecutive + fled,
+            # CA8-9 ascent/reversal payload. `reversal_line` is the joined
+            # sentence; empty when the arc is a fall with no rise behind it.
+            "rose": bool(rose),
+            "crown_lost": crown_lost,
+            "estate_lost": bool(lost_estate),
+            "reversal_line": reversal_line,
+            # Stakes score for the max-3 cap: a reversal outranks a bare
+            # chain — it is the only arc that carries two acts.
+            "_stakes": ((2 if hunted_by else 0) + consecutive + fled
+                        + (4 if reversal else 0)),
         }
 
     # Cap: max 3 arc lines per dispatch, highest-stakes first.
@@ -1268,7 +1483,12 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
         morale_val = int(marshal.morale)
 
         arc = arcs.get(marshal.name)
-        arc_note = arc["line"] if arc else ""
+        # CA8-9: when the arc carries a reversal, the JOINED sentence is the
+        # note — a man who was crowned and is now dispossessed is not
+        # described by his defeat tally alone.
+        arc_note = ""
+        if arc:
+            arc_note = arc.get("reversal_line") or arc["line"]
         if arc_note:
             status_note = arc_note
 
@@ -1279,6 +1499,16 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
             "status": status,
             "status_note": status_note,
             "arc_note": arc_note,
+            # CA8-8/CA8-9: the idle count as an INT beside the prose. Rung 4
+            # of Berthier's ladder used to recover it by `int(note.split()
+            # [0])` off `status_note` — a slot the arc note legitimately
+            # overwrites (pinned: test_arc_upgrades_the_status_note). Two
+            # of the three arc shapes then raised and the rung was skipped;
+            # the third ("4 defeats in as many turns") PARSED, and compared
+            # a defeat count against an idle threshold — so a marshal beaten
+            # four turns running was reported to the Emperor as growing
+            # impatient for action.
+            "idle_turns": int(getattr(marshal, "idle_turns", 0) or 0),
             "danger": _derive_danger(marshal, world, player_nation,
                                      supply_turns),
             "trust": trust_val,
@@ -1583,9 +1813,24 @@ def _pick_berthier_note(
     1. Marshal broken
     2. Bankrupt
     3. Treasury negative delta
+    3.5 A live grievance among the marshals (Jealousy v3.2 §5)
     4. Aggressive marshal idle 4+ turns
     5. All marshals at full readiness
     6. Default
+
+    CA8-8 (creative audit, Aug 4 2026): rung 3.5 was real, undocumented, and
+    STARVING the rung below it. Berthier closed 7 of 11 played dispatches on
+    the byte-identical "The marshals' rivalries demand attention, Sire" and
+    never once mentioned Murat standing idle at Rhineland with 19,312 men
+    for nine turns while the army bled.
+
+    The spec ordering is NOT changed — §5 places a live grievance above
+    idle_restless deliberately. What changed is that rung 3.5 now says
+    WHICH grievance and, when the aggrieved marshal is also the idle one
+    (which is the usual case — being passed over is what the grievance is
+    ABOUT), it names the idleness in the same breath. One sentence, both
+    jobs, and the actionable fact stops being unreachable behind a rung
+    that outranks it.
     """
     if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
         return _HEADLINE_BERTHIER_NOTES[headline_class]
@@ -1609,6 +1854,15 @@ def _pick_berthier_note(
 
     # 3.5 Jealousy v3.2 (spec §5 priority: below broken/bankrupt/bleeding,
     # above idle_restless) — a live grievance among the marshals.
+    #
+    # CA8-8: this used to say the same eleven words every turn and name no
+    # rival, no cause and no remedy. It now names WHO he resents, and — when
+    # the aggrieved man is also the idle one — says so in the same sentence,
+    # because that is not a coincidence: being passed over is what the
+    # grievance IS. The rung below is thereby no longer starved of its only
+    # actionable fact.
+    _idle_by_name = {m.get("name"): int(m.get("idle_turns", 0) or 0)
+                     for m in marshals_data}
     try:
         from backend.game_logic.jealousy import any_player_grievance
         if any_player_grievance(world):
@@ -1617,7 +1871,20 @@ def _pick_berthier_note(
                 if m.nation == player_nation and getattr(m, "jealous_of", None)
             ]
             if jealous:
-                names = ", ".join(m.name for m in jealous[:2])
+                first = jealous[0]
+                rival = humanize_entity_name(
+                    getattr(first, "jealous_of", "") or "")
+                who = humanize_entity_name(first.name)
+                idle = _idle_by_name.get(first.name, 0)
+                if len(jealous) == 1 and rival and idle >= 4:
+                    return (f"{who} nurses a grievance against {rival}, Sire "
+                            f"— and has stood idle {idle} turns. Those are "
+                            f"the same fact.")
+                if len(jealous) == 1 and rival:
+                    return (f"{who} nurses a grievance against {rival}, Sire. "
+                            f"The rivalry wants settling before it is tested.")
+                names = ", ".join(humanize_entity_name(m.name)
+                                  for m in jealous[:2])
                 return (f"The marshals' rivalries demand attention, Sire — "
                         f"{names} nurse{'s' if len(jealous) == 1 else ''} a "
                         f"grievance.")
@@ -1625,22 +1892,29 @@ def _pick_berthier_note(
         pass
 
     # 4. Aggressive marshal idle 4+ turns
+    #
+    # CA8-8: reads the INT the roster row now carries. It used to recover the
+    # count with `int(status_note.split()[0])` — a slot the arc note
+    # legitimately overwrites (pinned by test_arc_upgrades_the_status_note),
+    # so two of three arc shapes raised and were swallowed, and the third,
+    # "N defeats in as many turns", parsed CLEANLY and compared a defeat
+    # tally to an idle threshold. A marshal beaten four turns running was
+    # reported to the Emperor as growing impatient for action.
     restless = [m for m in marshals_data if m["status"] == "idle_restless"]
     for m in restless:
-        # idle_restless triggers at 3+, but Berthier note at 4+ (escalation)
-        # We can check the note text for "4 turns" but safer to just check
-        # if any restless marshal exists and note mentions 4+
-        note = m.get("status_note", "")
-        # Parse turns from note: "N turns idle."
-        try:
-            turns = int(note.split()[0])
-            if turns >= 4:
-                return f"{m['name']} grows impatient, Sire. He will require action soon."
-        except (ValueError, IndexError):
-            pass
+        # Status fires at 3+; the note escalates at 4+ (deliberate dead zone,
+        # pinned negatively by test_idle_restless_three_turns_no_note).
+        if int(m.get("idle_turns", 0) or 0) >= 4:
+            return (f"{m['name']} grows impatient, Sire. He will require "
+                    f"action soon.")
 
     # 5. All marshals at full readiness (no broken, retreating, drilling)
-    non_ready_statuses = {"broken", "retreating", "drilling"}
+    #
+    # CA8-8: `idle_restless` joins the list. Without it, an army with a
+    # marshal standing still for three turns was told "Your armies stand
+    # ready, Sire. The initiative is ours." — the failure below rung 4 was
+    # not a silent default but an active and false reassurance.
+    non_ready_statuses = {"broken", "retreating", "drilling", "idle_restless"}
     all_ready = all(m["status"] not in non_ready_statuses for m in marshals_data)
     if all_ready and marshals_data:
         return "Your armies stand ready, Sire. The initiative is ours."

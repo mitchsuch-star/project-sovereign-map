@@ -584,9 +584,14 @@ class TestBerthierNote:
         assert "bleeds" in note.lower()
 
     def test_idle_restless_at_four_turns(self):
+        # CA8-8 (Aug 4, 2026): the rung reads the structured `idle_turns`
+        # the roster row now carries, not `int(status_note.split()[0])`.
+        # `status_note` is kept here deliberately — see
+        # test_idle_rung_ignores_the_prose_note below, which pins that the
+        # prose is no longer consulted at all.
         marshals = [
             {"name": "Ney", "status": "idle_restless", "strength": 50000,
-             "status_note": "4 turns idle."},
+             "status_note": "4 turns idle.", "idle_turns": 4},
         ]
         situation = {"bankrupt": False, "treasury_delta": 100}
         note = _pick_berthier_note(None, "France", marshals, situation)
@@ -597,7 +602,7 @@ class TestBerthierNote:
         """3 turns idle triggers status but NOT Berthier note (needs 4+)."""
         marshals = [
             {"name": "Ney", "status": "idle_restless", "strength": 50000,
-             "status_note": "3 turns idle."},
+             "status_note": "3 turns idle.", "idle_turns": 3},
         ]
         situation = {"bankrupt": False, "treasury_delta": 100}
         note = _pick_berthier_note(None, "France", marshals, situation)

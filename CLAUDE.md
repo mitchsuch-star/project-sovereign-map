@@ -44,7 +44,44 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,221 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,254 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+>
+> **~~CA8 SWEEP 3 — THE NARRATION PILLAR~~ ✅ August 4, 2026** (landing record
+> `BUG_FIXES.md` §Creative Audit): **CA8-9 + CA8-8 + CA8-25**, running total
+> **19 of 28 fixed, 1 refuted**. The two prior sweeps fixed sentences; these change how
+> the arcs are BUILT. **CA8-9** = one `if` — the arc builder discarded the victory
+> outcomes on the `battle` event it already parsed, and never read `glory_crowned` /
+> `dotation_granted` / `estate_confiscated`, all of which were already in
+> `world.log_event`; the five beats now join into one sentence that reaches the
+> **headline** rather than the roster cell (and the `arc_note` beside it is read by **no
+> `.gd` file at all**). A rise with no fall builds no arc — that is what keeps **CA8-26
+> gated rather than accidentally built** — and the crown loss is derived from live state,
+> so no new event type and the `len(CAMPAIGN_LOG_TYPES) == 156` pins in five files hold.
+> **CA8-8** = **display only, deliberately**: the cooled/envious/entrenched triple is
+> legal state, and touching the trigger would move M7 (slack `1 <= first <= 8`) and
+> `BASELINE_SERIES` because `jealous_of` is read back inside combat's reinforcement math —
+> so the recurrence register is derived from the already-serialized `jealousy_history`,
+> **zero new fields**; plus the tier-2 "the wound will not close on its own" no longer
+> falsified by its own cooling line two turns later, and a real cross-surface
+> contradiction closed (the campaign log had always been handed `level` and ignored it, so
+> one escalation read "a matter of concern" in the dispatch and "entrenched" in the log on
+> the same turn). **Two brief claims corrected by reading:** `status_note = arc_note` is
+> pinned deliberate design, not the bug — the defect is a Berthier rung parsing prose,
+> and its sharp edge is that `"4 defeats in as many turns"` parsed CLEANLY, so **a marshal
+> beaten four turns running was reported as growing impatient for action**; and the
+> "second bank at `jealousy.py:1547`" does not exist (that line is one unkeyed string —
+> the real second bank is `campaign_log.py`, a separate producer, fixed alongside).
+> **CA8-25** = one tuple entry: the diorama was **built and then discarded** by
+> `_COMBAT_PASSTHROUGH_FIELDS`. **21/21 mutations killed after one INERT pin of my own was
+> found and replaced.** M1–M7 + `BASELINE_SERIES` byte-identical **without re-record**,
+> recorded as a fact about the harness rather than proof of safety. No `.gd`.
+> **Not built, each with the pre-build map's correction filed against its row:** CA8-19
+> (**gate it** — combat-system change; hides three latent defects incl. a production-dead
+> glory exemption and zero war exhaustion for a repulsed AI attacker), CA8-17 (row's
+> mechanism is wrong — nothing is title-cased, so the cheap fix does not exist), CA8-16
+> (two of its numbers wrong, finding survives), CA8-20 (needs a filter, not a sort key;
+> moves AI behaviour), CA8-28 (parser slice; the golden corpus **cannot** pin it). Still
+> gated: CA8-3/24/27 (CA8-D2), CA8-26 (CA8-D6).
 >
 > **~~CA8 SWEEP 2~~ ✅ August 4, 2026** (same session; landing record `BUG_FIXES.md`
 > §Creative Audit): **CA8-6 + CA8-21** landed together as the memo requires — six

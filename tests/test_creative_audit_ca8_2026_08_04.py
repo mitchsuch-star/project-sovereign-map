@@ -18,6 +18,7 @@ from backend.commands.combat_executor import CombatExecutor
 from backend.commands.delegation import describe_inferred_bad_odds
 from backend.commands.executor import CommandExecutor
 from backend.game_logic import dispatch as dispatch_mod
+from backend.game_logic import jealousy
 from backend.game_logic.coalition import get_threat_tier
 from backend.models.region import get_starting_controllers
 from backend.models.world_state import WorldState, is_own_soil_recapture
@@ -698,3 +699,472 @@ class TestCA823ProposalLabel:
         })
         assert "proposal" in line
         assert "Unknown" not in line
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-9 — the campaign told a five-beat tragedy and joined none of it
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA89TheArcJoinsTheBeats:
+    """Crowned (T3) -> ennobled Duke of Carniola (T8) -> broken at Bohemia
+    (T10) -> estate confiscated (T10) -> the laurels have passed (T12), and
+    not one line referred to any other. The arc builder read only defeats,
+    retreats and attackers, so it could narrate a marshal being BEATEN and
+    never one RISING.
+    """
+
+    def _world(self, turn=10):
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney", location="Bohemia",
+                                      strength=18000)
+        world = WorldFactory.with_marshals([ney], current_turn=turn)
+        world.event_log = []
+        return world, ney
+
+    def _crown(self, world, turn, marshal="Ney"):
+        world.event_log.append({"type": "glory_crowned", "marshal": marshal,
+                                "nation": "France", "turn": turn})
+
+    def _endow(self, world, turn, region="Carniola",
+               title="the Duchy of Carniola", marshal="Ney"):
+        world.event_log.append({"type": "dotation_granted", "marshal": marshal,
+                                "nation": "France", "region": region,
+                                "title": title, "turn": turn})
+
+    def _confiscate(self, world, turn, region="Carniola", marshal="Ney"):
+        world.event_log.append({"type": "estate_confiscated",
+                                "marshal": marshal, "nation": "France",
+                                "region": region, "confiscated_by": "Austria",
+                                "turn": turn})
+
+    def _beat(self, world, turn, marshal="Ney"):
+        world.event_log.append({
+            "type": "battle", "turn": turn, "attacker": "ArchdukeCharles",
+            "defender": marshal, "attacker_nation": "Austria",
+            "defender_nation": "France", "outcome": "attacker_victory",
+            "location": "Bohemia", "defender_casualties": 2218})
+
+    # ── the join itself ──────────────────────────────────────────────────
+
+    def test_the_whole_tragedy_becomes_one_sentence(self):
+        world, ney = self._world(turn=10)
+        self._crown(world, 7)
+        self._endow(world, 8)
+        self._beat(world, 10)
+        self._confiscate(world, 10)
+        ney.glory_crowned = False        # the laurels have passed
+        arc = dispatch_mod._build_marshal_arcs(world, "France")["Ney"]
+        line = arc["reversal_line"]
+        # the rise
+        assert "crowned" in line
+        assert "Duchy of Carniola" in line
+        # the fall
+        assert "beaten" in line
+        # the dispossession, named with its taker
+        assert "Austria" in line and "Carniola" in line
+        # and the crown, derived from live state with no event of its own
+        assert "laurels" in line
+        assert arc["crown_lost"] is True and arc["estate_lost"] is True
+
+    def test_the_gap_between_beats_is_spoken(self):
+        """Beats up to five turns apart must not read as simultaneous."""
+        world, ney = self._world(turn=10)
+        self._crown(world, 7)
+        self._beat(world, 10)
+        line = dispatch_mod._build_marshal_arcs(
+            world, "France")["Ney"]["reversal_line"]
+        assert "three turns ago" in line, line
+
+    # ── falsifiable negatives ────────────────────────────────────────────
+
+    def test_a_pure_ascent_makes_no_arc_and_no_headline(self):
+        """CA8-26 (no headline class for a French success) is GATED. The
+        reversal must be structurally unable to build it: a rise with no
+        fall produces no arc at all, so it can never reach the headline."""
+        world, ney = self._world(turn=8)
+        self._crown(world, 7)
+        self._endow(world, 8)
+        ney.glory_crowned = True
+        assert dispatch_mod._build_marshal_arcs(world, "France") == {}
+
+    def test_a_fall_with_no_rise_keeps_the_plain_arc(self):
+        """The pre-CA8-9 behaviour is untouched when there is no ascent.
+
+        Two DIFFERENT attackers, deliberately: one attacker twice running is
+        the `hunted_by` arm, which outranks the defeat tally.
+        """
+        world, ney = self._world(turn=10)
+        for turn, foe in ((9, "ArchdukeCharles"), (10, "Blucher")):
+            world.event_log.append({
+                "type": "battle", "turn": turn, "attacker": foe,
+                "defender": "Ney", "attacker_nation": "Austria",
+                "defender_nation": "France",
+                "outcome": "attacker_victory", "location": "Bohemia",
+                "defender_casualties": 2218})
+        arc = dispatch_mod._build_marshal_arcs(world, "France")["Ney"]
+        assert arc["reversal_line"] == ""
+        assert arc["rose"] is False
+        assert "defeats in as many turns" in arc["line"]
+
+    def test_an_enemy_rise_is_never_read(self):
+        world, ney = self._world(turn=10)
+        world.event_log.append({"type": "glory_crowned", "marshal": "Ney",
+                                "nation": "Austria", "turn": 8})
+        self._beat(world, 10)
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney")
+        assert arc is None or arc["reversal_line"] == ""
+
+    # ── the headline seam ────────────────────────────────────────────────
+
+    def test_the_reversal_outranks_the_bare_fall(self):
+        w = dispatch_mod.HEADLINE_WEIGHTS
+        assert w["marshal_reversal"] > w["own_broken"] > w["own_mauled"]
+
+    def test_the_reversal_absorbs_the_plain_fall_beat(self):
+        """CA8-5 dedupes on (class, identity), so a reversal ABOVE
+        `own_broken` would have led with the joined sentence and restated
+        the bare one as its own sub-beat — the duplicate-beat shape CA8-5
+        was landed to kill."""
+        world, ney = self._world(turn=10)
+        self._crown(world, 8)
+        self._endow(world, 8)
+        ney.glory_crowned = False
+        world.event_log.append({"type": "retreat", "marshal": "Ney",
+                                "nation": "France", "turn": 10,
+                                "forced": True, "region": "Bohemia"})
+        head = dispatch_mod._build_headline(world, "France")
+        assert head["class"] == "marshal_reversal"
+        joined = " ".join(head["sub_beats"])
+        assert "corps has been broken" not in joined, head["sub_beats"]
+
+    def test_another_marshals_break_is_not_absorbed(self):
+        """FALSIFIABLE NEGATIVE for the absorption: it is keyed on the man,
+        so a different marshal breaking the same turn keeps his own beat."""
+        from tests.conftest import MarshalFactory
+        world, ney = self._world(turn=10)
+        soult = MarshalFactory.infantry(name="Soult", location="Tyrol",
+                                        strength=9000)
+        world.marshals["Soult"] = soult
+        self._crown(world, 8)
+        ney.glory_crowned = False
+        for who in ("Ney", "Soult"):
+            world.event_log.append({"type": "retreat", "marshal": who,
+                                    "nation": "France", "turn": 10,
+                                    "forced": True, "region": "Bohemia"})
+        head = dispatch_mod._build_headline(world, "France")
+        assert head["class"] == "marshal_reversal"
+        assert any("Soult" in b for b in head["sub_beats"]), head["sub_beats"]
+
+    def test_the_roster_note_prefers_the_joined_line(self):
+        world, ney = self._world(turn=10)
+        self._crown(world, 8)
+        self._endow(world, 8)
+        self._beat(world, 10)
+        ney.glory_crowned = False
+        rows = dispatch_mod._build_marshal_status(world, "France")
+        row = next(r for r in rows if r["name"] == "Ney")
+        assert "crowned" in row["arc_note"]
+        assert row["status_note"] == row["arc_note"]
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-8 — every grievance byte-identical, no recurrence register, and an
+#         inserted rung starving the one below it
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA88GrievanceRecurrence:
+    """One dispatch printed, in this order: "...has cooled with time" /
+    "...appears envious of..." / "...has become entrenched." The STATE is
+    legal — the timer expires, `jealous_of` clears, and step 3 re-evaluates
+    the man just cleared. The defect is that no template carried a
+    recurrence register, so a legal escalation was indistinguishable from a
+    state bug on the page.
+    """
+
+    def _pair(self, turn=5, personality="aggressive"):
+        from tests.conftest import MarshalFactory, WorldFactory
+        murat = MarshalFactory.infantry(name="Murat", personality=personality)
+        davout = MarshalFactory.infantry(name="Davout")
+        world = WorldFactory.with_marshals([murat, davout], current_turn=turn)
+        return world, murat, davout
+
+    def _fire(self, world, a, b, turn=None):
+        if turn is not None:
+            world.current_turn = turn
+        events = []
+        jealousy.apply_jealousy(world, a, b, delta=3, threshold=2,
+                                events=events)
+        a.jealous_of = None          # the timer expires between fires
+        return next(e["message"] for e in events
+                    if e["type"] == "jealousy_fired")
+
+    # ── the register ─────────────────────────────────────────────────────
+
+    def test_a_first_grievance_reads_as_fresh_news(self):
+        world, murat, davout = self._pair()
+        line = self._fire(world, murat, davout, turn=5)
+        assert "again" not in line
+        assert "appears envious of" in line
+
+    def test_a_second_grievance_says_again_and_how_long_it_held(self):
+        world, murat, davout = self._pair()
+        self._fire(world, murat, davout, turn=5)
+        line = self._fire(world, murat, davout, turn=9)
+        assert "again" in line, line
+        assert "4 turns after it cooled" in line, line
+
+    def test_a_third_grievance_counts(self):
+        world, murat, davout = self._pair()
+        self._fire(world, murat, davout, turn=3)
+        self._fire(world, murat, davout, turn=5)
+        line = self._fire(world, murat, davout, turn=8)
+        assert "for the third time" in line, line
+
+    def test_the_same_turn_refire_names_itself(self):
+        """The exact played sequence: cleared and re-fired inside ONE
+        council, two lines below the sentence announcing it had cooled."""
+        world, murat, davout = self._pair()
+        self._fire(world, murat, davout, turn=6)
+        line = self._fire(world, murat, davout, turn=6)
+        assert "the same day it was set aside" in line, line
+
+    # ── the monoculture ──────────────────────────────────────────────────
+
+    def test_the_expression_is_not_one_fixed_string_per_personality(self):
+        """Measured in the played campaign: an aggressive marshal ALWAYS
+        said "grown restless for glory" — three strings for the whole game.
+        """
+        world, murat, davout = self._pair()
+        seen = {self._fire(world, murat, davout, turn=t)
+                for t in (3, 6, 9, 12, 15)}
+        expressions = {s.split(" — he has ")[-1] for s in seen}
+        assert len(expressions) > 1, expressions
+
+    def test_every_personality_has_a_bank(self):
+        for p in ("aggressive", "cautious", "literal"):
+            assert len(jealousy._JEALOUSY_EXPRESSIONS[p]) >= 2
+
+    def test_the_expression_is_deterministic(self):
+        """RNG-free: the same campaign must render the same words twice."""
+        picks = []
+        for _ in range(2):
+            world, murat, davout = self._pair()
+            picks.append(self._fire(world, murat, davout, turn=5))
+        assert picks[0] == picks[1]
+
+    # ── the falsified promise ────────────────────────────────────────────
+
+    def test_an_entrenched_wound_does_not_close_on_its_own(self):
+        """Tier 2 announces "The wound will not close on its own" and
+        applies a permanent -1. Two turns later the grievance timer expired
+        and the game said the resentment had "cooled with time", falsifying
+        its own sentence in front of the player. Both were true of
+        DIFFERENT things; the line now says which one cooled."""
+        world, murat, davout = self._pair()
+        jealousy._set_escalation_level(murat, "Davout",
+                                       jealousy.ESCALATION_PERMANENT_LEVEL)
+        murat.jealous_of = "Davout"
+        events = []
+        jealousy.clear_jealousy(world, murat, resolved_by_action=False,
+                                events=events, reason="time")
+        line = next(e["message"] for e in events
+                    if e["type"] == "jealousy_resolved")
+        assert "cooled with time" not in line, line
+        assert "has not been" in line, line
+
+    def test_an_ordinary_grievance_still_cools_with_time(self):
+        """FALSIFIABLE NEGATIVE: the plain wording survives for a pair the
+        game never called permanent."""
+        world, murat, davout = self._pair()
+        murat.jealous_of = "Davout"
+        murat.jealousy_history = {"Davout": [4]}
+        events = []
+        jealousy.clear_jealousy(world, murat, resolved_by_action=False,
+                                events=events, reason="time")
+        line = next(e["message"] for e in events
+                    if e["type"] == "jealousy_resolved")
+        assert "cooled with time" in line
+
+    # ── the second channel ───────────────────────────────────────────────
+
+    def test_the_campaign_log_stops_calling_a_tier_one_wound_entrenched(self):
+        """The payload has always carried `level` and the formatter ignored
+        it, so the same event read "a matter of concern" in the dispatch and
+        "entrenched" in the log on the same turn."""
+        line = format_event_oneliner({
+            "type": "jealousy_escalation", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France", "level": 1})
+        assert "entrenched" not in line, line
+        assert "matter of concern" in line
+
+    def test_the_campaign_log_still_says_entrenched_at_tier_two(self):
+        line = format_event_oneliner({
+            "type": "jealousy_escalation", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France", "level": 2})
+        assert "entrenched" in line
+
+    def test_a_pre_ca8_save_keeps_the_old_wording(self):
+        """`level` is absent on saves written before this landed."""
+        line = format_event_oneliner({
+            "type": "jealousy_escalation", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France"})
+        assert "entrenched" in line
+
+    def test_the_campaign_log_marks_a_recurrence(self):
+        first = format_event_oneliner({
+            "type": "jealousy_fired", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France",
+            "personality": "aggressive", "fires": 1})
+        again = format_event_oneliner({
+            "type": "jealousy_fired", "turn": 9, "marshal": "Murat",
+            "target": "Davout", "nation": "France",
+            "personality": "aggressive", "fires": 3})
+        assert "again" in again and "again" not in first
+
+    # ── the contract ─────────────────────────────────────────────────────
+
+    def test_the_register_adds_no_serialized_field(self):
+        """It is derived from `jealousy_history`, a list of fire turns that
+        was already serialized and already read by `_lifetime_fires`."""
+        from tests.conftest import MarshalFactory
+        keys = set(MarshalFactory.infantry(name="X").to_dict())
+        assert "jealousy_history" in keys
+        for invented in ("jealousy_recurrence", "jealousy_last_cleared_turn",
+                         "jealousy_fire_count", "last_grievance_turn"):
+            assert invented not in keys
+
+
+class TestCA88TheStarvedRung:
+    """Berthier closed 7 of 11 played dispatches on the byte-identical "The
+    marshals' rivalries demand attention, Sire" and never once mentioned
+    Murat standing idle at Rhineland with 19,312 men for nine turns."""
+
+    SITUATION = {"bankrupt": False, "treasury_delta": 100}
+
+    def _note(self, marshals, world=None):
+        return dispatch_mod._pick_berthier_note(
+            world, "France", marshals, dict(self.SITUATION))
+
+    def test_the_idle_rung_reads_the_integer_not_the_prose(self):
+        """The rung recovered the count with `int(status_note.split()[0])`
+        off a slot the arc note legitimately overwrites (pinned by
+        test_arc_upgrades_the_status_note)."""
+        note = self._note([{
+            "name": "Murat", "status": "idle_restless", "strength": 19312,
+            "status_note": "Hunted by Archduke Charles across 2 frontiers "
+                           "- stands at Rhineland with 19,312 men.",
+            "idle_turns": 9}])
+        assert "Murat" in note and "impatient" in note.lower()
+
+    def test_a_beaten_marshal_is_not_reported_as_impatient(self):
+        """FALSIFIABLE NEGATIVE, and the sharper half of the bug: the arc
+        shape "4 defeats in as many turns" PARSED cleanly and compared a
+        defeat tally against an idle threshold, so a marshal beaten four
+        turns running was reported to the Emperor as growing impatient for
+        action."""
+        note = self._note([{
+            "name": "Ney", "status": "idle_restless", "strength": 8000,
+            "status_note": "4 defeats in as many turns - 8,000 men remain "
+                           "at Bohemia.",
+            "idle_turns": 0}])
+        assert "impatient" not in note.lower(), note
+
+    def test_an_idle_army_is_never_called_ready(self):
+        """Below rung 4 the ladder used to reach "Your armies stand ready,
+        Sire. The initiative is ours." - not a silent default but an active
+        and false reassurance about an army standing still."""
+        note = self._note([{
+            "name": "Murat", "status": "idle_restless", "strength": 19312,
+            "status_note": "3 turns idle.", "idle_turns": 3}])
+        assert "stand ready" not in note.lower(), note
+        assert "initiative is ours" not in note.lower(), note
+
+    def test_the_grievance_note_names_the_rival(self):
+        from tests.conftest import MarshalFactory, WorldFactory
+        murat = MarshalFactory.infantry(name="Murat", personality="aggressive")
+        davout = MarshalFactory.infantry(name="Davout")
+        murat.jealous_of = "Davout"
+        murat.jealousy_turns_remaining = 3
+        world = WorldFactory.with_marshals([murat, davout], current_turn=5)
+        note = self._note([{"name": "Murat", "status": "awaiting",
+                            "strength": 19312, "status_note": "",
+                            "idle_turns": 0}], world=world)
+        assert "Davout" in note, note
+
+    def test_the_grievance_note_names_the_idleness_when_both_are_true(self):
+        """Being passed over is what the grievance IS - one sentence, both
+        jobs, and the actionable fact stops being unreachable behind a rung
+        that outranks it."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        murat = MarshalFactory.infantry(name="Murat", personality="aggressive")
+        davout = MarshalFactory.infantry(name="Davout")
+        murat.jealous_of = "Davout"
+        murat.jealousy_turns_remaining = 3
+        world = WorldFactory.with_marshals([murat, davout], current_turn=9)
+        note = self._note([{"name": "Murat", "status": "idle_restless",
+                            "strength": 19312, "status_note": "9 turns idle.",
+                            "idle_turns": 9}], world=world)
+        assert "Davout" in note and "9 turns" in note, note
+
+    def test_the_documented_ladder_matches_the_code(self):
+        """The docstring listed six rungs and never mentioned the jealousy
+        rung inserted above the idle one.
+
+        Anchored to the numbered LIST, not to the substring "3.5": the
+        mutation sweep for this slice caught the first version passing with
+        the ladder entry deleted, because the explanatory paragraph below
+        the list also says "3.5".
+        """
+        import re
+        doc = dispatch_mod._pick_berthier_note.__doc__ or ""
+        rungs = [ln.strip() for ln in doc.splitlines()
+                 if re.match(r"^\s*3\.5\s", ln)]
+        assert len(rungs) == 1, doc
+        assert "grievance" in rungs[0].lower(), rungs
+        # and it must sit between the treasury rung and the idle rung
+        order = [doc.index(x) for x in ("3. Treasury", "3.5 ", "4. Aggressive")]
+        assert order == sorted(order), order
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-25 — the diorama was built and then discarded
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA825BlockedPathKeepsTheDiorama:
+    """Filed as "no diorama is built" for the `press on` resolution — the
+    played campaign's largest battle, 82,072 men massed. It IS built: every
+    `attack_anyway` arm re-enters `_execute_attack`. The blocked-path arms
+    rebuild a fresh response through an allowlist that never carried it.
+    """
+
+    def test_the_allowlist_carries_the_diorama(self):
+        from backend.commands import strategic as strategic_mod
+        assert "battle_diorama" in strategic_mod._COMBAT_PASSTHROUGH_FIELDS
+
+    def test_a_rebuilt_response_keeps_the_payload(self):
+        from backend.commands.strategic import _carry_combat_fields
+        inner = {
+            "battle_diorama": {"significant": True, "contingents": [1, 2]},
+            "battle_report": {"x": 1},
+            "new_state": "must not travel",
+        }
+        out = _carry_combat_fields({"success": True, "message": "rebuilt"},
+                                   inner)
+        assert out["battle_diorama"]["significant"] is True
+        assert out["battle_report"] == {"x": 1}
+
+    def test_the_allowlist_is_still_an_allowlist(self):
+        """FALSIFIABLE NEGATIVE: widening it must not have turned it into a
+        blanket copy — `new_state` carries circular refs and must never
+        reach a response."""
+        from backend.commands.strategic import _carry_combat_fields
+        out = _carry_combat_fields(
+            {"success": True}, {"new_state": object(), "secret": 1})
+        assert "new_state" not in out
+        assert "secret" not in out
+
+    def test_absent_payload_adds_no_key(self):
+        from backend.commands.strategic import _carry_combat_fields
+        out = _carry_combat_fields({"success": True}, {"battle_report": None})
+        assert "battle_diorama" not in out
+        assert "battle_report" not in out

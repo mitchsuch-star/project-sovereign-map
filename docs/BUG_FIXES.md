@@ -31,8 +31,111 @@
 ---
 
 
-## Creative Audit — filed August 4, 2026 (**15 of 28 FIXED, 1 REFUTED**, see landing record below)
+## Creative Audit — filed August 4, 2026 (**19 of 28 FIXED, 1 REFUTED**, see landing records below)
 
+> ### ✅ LANDING RECORD — CA8 sweep 3 (the narration pillar), August 4, 2026
+>
+> **Fixed and landed: CA8-9, CA8-8, CA8-25.** Tests:
+> `tests/test_creative_audit_ca8_2026_08_04.py` (+33, now 83). Suite 16,221 →
+> **16,254 / 3 skipped**, ruff clean, corpus 514/514. **M1–M7 and `BASELINE_SERIES`
+> byte-identical without re-record.** No `.gd` touched.
+>
+> Narration had missed its 6.5 target at three separate measurements (Jul 10, Jul 25,
+> Aug 4). The previous two sweeps fixed sentences; these two rows change how the arcs
+> are BUILT.
+>
+> **CA8-9 — the arc builder could narrate a fall and never a rise.** The played campaign
+> told a five-beat tragedy (crowned T3 → ennobled Duke of Carniola T8 → broken at Bohemia
+> T10 → estate confiscated the same turn → "the laurels have passed" T12) and not one
+> line referred to any other. The blindness was **one `if`**: the four victory outcomes
+> arrive on the same `battle` event `_build_marshal_arcs` already parsed and were thrown
+> away, and `glory_crowned` / `dotation_granted` / `estate_confiscated` were all already
+> in `world.log_event` and simply never read there. A new `_compose_reversal_line` joins
+> the acts into one sentence, and it reaches the **headline** — not the roster table cell
+> the arc had been confined to.
+>
+> Three findings that changed the build, all from the pre-build seam map:
+> - **The crown loss has no event to read.** Only the crown *gain* branch writes a
+>   `log_event`; `glory_crown_lost` is not a campaign-log type and its message names only
+>   the loser. It is therefore **derived from live serialized state** — crowned inside the
+>   window plus `marshal.glory_crowned` now false. Zero new event types, so none of the
+>   five files pinning `len(CAMPAIGN_LOG_TYPES) == 156` move.
+> - **The headline route needs no Godot change** (the client reads only `text` and
+>   `sub_beats`), whereas wiring the existing `arc_note` — which ships on the wire and
+>   which **no `.gd` file reads** — would have needed two client edits to reach the very
+>   table cell that was the complaint.
+> - **`region_captured` names no marshal** in any of its six producers, so "he took the
+>   province" is not derivable and no ascent arm was written expecting it.
+>
+> The reversal **absorbs** the plain `own_broken`/`own_mauled` candidate for the same man
+> rather than outranking it: CA8-5 dedupes on `(class, identity)`, so a new class at
+> weight 91 above `own_broken` at 90 would have led with the joined sentence and restated
+> the bare one as its own sub-beat — the exact duplicate-beat shape CA8-5 was landed to
+> kill. Absorption is keyed on the marshal, pinned by a negative (another marshal breaking
+> the same turn keeps his beat). **A rise with no fall builds no arc at all**, which is
+> what keeps **CA8-26 gated rather than accidentally built**.
+>
+> **CA8-8 — no recurrence register, a monoculture, and a starved rung.**
+> - The triple ("cooled with time" / "appears envious" / "entrenched" in one dispatch) is
+>   **legal state**, confirmed by reading: step 1 expires the timer and clears
+>   `jealous_of`; step 3's only exclusion is `if marshal.jealous_of: continue`, so the man
+>   just cleared is re-evaluated in the same pass. **This landed as a display fix only** —
+>   no trigger, ordering, rate limit or timer was touched, because those feed `jealous_of`,
+>   which M7 (slack `1 <= first <= 8`) and `BASELINE_SERIES` both read through combat's
+>   reinforcement and coordination math. The register is derived from
+>   `jealousy_history[target]`, a list of fire turns already serialized and already read by
+>   `_lifetime_fires`: **zero new fields**, pinned by a test that names four plausible
+>   invented ones and asserts their absence.
+> - Expression **variant banks** replace the three fixed strings, selected RNG-free via
+>   `campaign_variance.seeded_int` keyed on the pair and the recurrence index.
+> - **"The wound will not close on its own" was falsified two turns later** when the timer
+>   expired and the game said the resentment had cooled. Both sentences were true of
+>   different things — the grievance timer expires, the permanent −1 between the two men
+>   does not — so the cooling line now says which one cooled.
+> - **The campaign log is a second PRODUCER, not a consumer** (jealousy's `log_event`
+>   payloads carry no `message`; the log composes its own sentence from structured
+>   fields), and the two channels had already diverged: the payload has always carried
+>   `level` and the formatter ignored it, so a tier-1 escalation read "a matter of concern"
+>   in the dispatch and "entrenched" in the log **on the same turn**. Fixed, with the
+>   pre-CA8-8-save fallback pinned.
+>
+> **The starved rung.** Berthier closed 7 of 11 dispatches on the byte-identical "The
+> marshals' rivalries demand attention, Sire" and never once mentioned Murat idle at
+> Rhineland with 19,312 men for nine turns. The spec ordering is **unchanged** (Jealousy
+> §5 puts a grievance above `idle_restless` deliberately); what changed is that rung 3.5
+> now names the rival and, when the aggrieved man is also the idle one, says so in the
+> same sentence — being passed over is what the grievance *is*.
+>
+> **The brief framed the arc note as destroying the idle count. It is not the bug** —
+> `status_note = arc_note` is pinned deliberate design (`test_arc_upgrades_the_status_note`).
+> The defect is that a ladder rung **parsed prose at all**: two of three arc shapes raised
+> and were swallowed, and the third, `"4 defeats in as many turns"`, **parsed cleanly and
+> compared a defeat tally against an idle threshold** — so a marshal beaten four turns
+> running was reported to the Emperor as growing impatient for action. The row now carries
+> a structured `idle_turns`. Also: below rung 4 the ladder reached "Your armies stand
+> ready, Sire. The initiative is ours." — not a silent default but an **active false
+> reassurance** about an army standing still; `idle_restless` joins the non-ready set.
+>
+> **CA8-25 — the diorama was built and then DISCARDED.** Filed as "no diorama is built"
+> for the `press on` resolution (the campaign's largest battle, 82,072 massed); that is
+> **refuted**. Every `attack_anyway` arm re-enters `_execute_attack` and sets the payload.
+> `muster_confirm` returns the inner result verbatim and it survives; the blocked-path arms
+> rebuild a fresh dict through `_COMBAT_PASSTHROUGH_FIELDS`, which carried `battle_report`
+> and not `battle_diorama`. **One tuple entry.** Returning the inner result raw is not an
+> option — those arms deliberately rewrite `message`/`order_cleared` — so the allowlist is
+> the correct seam, pinned by a negative that `new_state` still cannot travel.
+>
+> **21-mutation sweep, one INERT pin found and replaced:** the ladder-docstring test
+> asserted `"3.5" in doc`, which the explanatory paragraph below the list also satisfies,
+> so it passed with the ladder entry deleted. Re-anchored to the numbered list and to the
+> rung's position between the treasury and idle rungs. Final **21/21 killed**.
+>
+> **Byte-identity is a fact about the harness, not proof of safety** — stated per the
+> file's own rule. It is expected here by mechanism: `dispatch.py` and `campaign_log.py`
+> are absent from the sweep's import set, the BASELINE runner never builds a dispatch, and
+> the only `log_event` change is one added **key** (`fires`), not a change in row volume,
+> which is what `agendas.py`'s 500-cap fail-safe is sensitive to.
+>
 > ### ✅ LANDING RECORD — CA8 sweep 1, August 4, 2026
 >
 > **Fixed and landed: CA8-1, CA8-2, CA8-4, CA8-5** (four of the five P1s — every one that
@@ -189,28 +292,28 @@
 |---|---|---|
 | ~~**CA8-6**~~ ✅ | Six AI-reachable verbs fall through the client's 15-arm `match` to `action_type.replace("_"," ")` — live-proven here: `Deroy grant dotation Bohemia`, `ArchdukeCharles grant pension`, `Castanos form square` (**9 of 74 actions, 12%**). ⚠ The fix is **not** to pipe `message` through: two verified hazards (the fog filter gates on destination while raw move text names the origin; the prose is second-person player-addressed) | `enemy_phase_dialog.gd:128-181` |
 | ~~**CA8-7**~~ ✅ | `enemy_voice` has exactly **one** consumer in the whole client (`battle_diorama.gd:1147`). Charles's arc — *"I trade ground for time. Time is on my side."* — is generated for both directions and dropped in the enemy phase | `enemy_phase_dialog.gd:328-362` |
-| **CA8-8** | Grievance templates carry no recurrence register, so a legal escalation reads as a state bug: one dispatch printed *cooled with time* → *appears envious* → *has become entrenched* for the same pair. `jealousy.py:520-524` holds exactly three expression strings. And an undocumented rung 3.5 (`dispatch.py:1490`) starved the idle-marshal rung below it — Murat sat idle 9 turns, never mentioned | `jealousy.py:520`, `dispatch.py:1490` |
-| **CA8-9** | The campaign told a five-beat tragedy (crowned → ennobled → broken → dispossessed → laurels passed) and **not one line refers to any other**. `dispatch.py:547-601` builds arcs only from defeats/retreats/attackers — the arc machinery can narrate a marshal being beaten and never one rising | `dispatch.py:547` |
+| ~~**CA8-8**~~ ✅ | Grievance templates carry no recurrence register, so a legal escalation reads as a state bug: one dispatch printed *cooled with time* → *appears envious* → *has become entrenched* for the same pair. `jealousy.py:520-524` holds exactly three expression strings. And an undocumented rung 3.5 (`dispatch.py:1490`) starved the idle-marshal rung below it — Murat sat idle 9 turns, never mentioned | `jealousy.py:520`, `dispatch.py:1490` |
+| ~~**CA8-9**~~ ✅ | The campaign told a five-beat tragedy (crowned → ennobled → broken → dispossessed → laurels passed) and **not one line refers to any other**. `dispatch.py:547-601` builds arcs only from defeats/retreats/attackers — the arc machinery can narrate a marshal being beaten and never one rising | `dispatch.py:547` |
 | ~~**CA8-10**~~ ✅ | The two screens reporting income disagree by **124%** (report `+926g` vs end-turn `+2073g`, same turn). `economy_executor.py:86-92` omits admiralty, blockade, trade and vassal tribute. War Effort ran −8 → −1,238 with its explanation guarded by `if war_effort > 0` | `economy_executor.py:86` |
 | ~~**CA8-11**~~ ✅ | Position 3.5's levy headline advertises `10,000 foot cost 450 gold **at Paris**`; `recruit 10000 infantry at Paris` → *"No marshal is available to receive reinforcements at Paris"*. `find_nearest_marshal_to_region` filters on `movement_range` (1 for infantry) | `world_state.py:4287` |
 | ~~**CA8-12**~~ ⚠ REFUTED | The envoy digest re-prints every pending letter in full on **every** response — eleven identical ~60-word paragraphs in one turn, attached to `plunder` and `move` results. Its `title` and `deadline_note` appear in the transcript **not at all**. 17 `offer_lapsed` events; ~60 DP generated against **one** spent | `envoy_digest.py:175-221` |
 | ~~**CA8-13**~~ ✅ | Liberating **French homeland** opens a mandatory prompt asking whether to burn it, and blocks the turn. IGR-E's own-soil guard was scoped to the AI branch; its landing record says the player modal was untouched | `build_capture_choice` |
 | ~~**CA8-14**~~ ✅ | A retreating AI marshal captures the province he just fled into, same phase, at −35% effectiveness. P-1 "capture current region" sits **above** the `retreated_this_turn` limiter; the player's equivalent guard is nested under a `nation == player_nation` check. *(Two of three legs of the first-pass claim were refuted — the drill lock IS nation-agnostic and the AI does unfortify first.)* | `enemy_ai.py:1448`, `executor.py:809` |
 | ~~**CA8-15**~~ ✅ | A bare `[Prussia]` header with nothing under it — **self-inflicted by the composition slice**: `main.py:794-831` rewrites `nation_data["actions"]` with no empty-nation prune, and PC-3's fortify→unfortify arm drops both entries. The fog filter is innocent (`main.py:1346` does prune) | `main.py:794` |
-| **CA8-16** | `hegemony_pressure` is a monoculture: 8 courts, 2 variants each, rotated by `(turn + len(name)) % len(variants)`. Three literally begin *"has watched France grow"*; `grep -c "in its path\|in the path"` = **14**. DEF-1 verified each line in isolation; the player reads them stacked two per turn | `diplomatic_templates.py:606` |
-| **CA8-17** | Three named diplomats with three authored registers get one identical sentence, and a raw scorer key is put in their mouths as speech: *"Settlement legitimacy is the sticking point before they will sign."* | `diplomatic_templates.py:2140` |
+| **CA8-16** | `hegemony_pressure` is a monoculture, rotated by `(turn + len(name)) % len(variants)`. **Two of the row's own numbers corrected Aug 4, 2026 (sweep 3 map), and the finding survives both:** it is **19 named speakers + 5 registers, not 8 courts**, and the `"in its path"` count in `diplomatic_templates.py` is **3, not 14** (no scoping reproduces 14). *"2 variants each"* is exactly right and **universal** — the distribution over all 24 banks is `Counter({2: 24})`, i.e. 48 lines. The monoculture survives on an independent metric: across those 48 lines, "power" 13, "rather" 13, "grow" 12, "reach" 8, "greatness" 7, "shadow" 6 — three separate courts independently reach for the same rising-tide image. **NOT built in sweep 3: the cost is authoring, not selection.** `len(variants) == 2` is hard-pinned twice (`test_w6_incoming_voice.py:118`, `test_nation_agendas.py:728`) so growing the banks is a conscious flip, and the rotation contract is pinned both ways. 19 of the 48 lines are bespoke per-court copy a mechanical fix cannot generate. The cheapest genuine improvement is **re-keying** the rotation (adding a relation-band or proposal-type term), which preserves both halves of the determinism pin | `diplomatic_templates.py:606` |
+| **CA8-17** | Three named diplomats with three authored registers get one identical sentence, and a table label is put in their mouths as speech: *"Settlement legitimacy is the sticking point before they will sign."* **The row's MECHANISM is wrong, and correcting it removes the cheap fix (Aug 4, 2026, sweep 3 map — the player-visible sentence was first reproduced byte-for-byte from production).** Nothing is title-cased: `display_names.py:962` is a **hand-authored sentence-case UI label**, and the `.title()` call lives only in `_fallback_display_name`, which is unreachable because all 11 scorer keys are present. So there is no "un-title-case it" repair — **every** possible value is a deliberate noun-phrase column label being spliced into a diplomat's mouth. The real fix is a second, **spoken-register** vocabulary keyed on the same 11 component names, plus per-diplomat arms — authoring scope, which is where the hidden gate is. **NOT built in sweep 3.** When it is: match the LIVE override idiom (`settlement_offers.py:430-458`, a nation→suffix map with an explicit `_chancery` fallback re-lookup), **not** the five dead families at `diplomatic_templates.py:1562-1641` (no backend reader, and they lack the fallback arm). Tripwires: `test_settlement_refront_slice1.py:724` requires the speaker's name literally in every line; `:772-789` bans "conference"/"congress"/"veto"; and `_MissingSettlementSlot.__missing__` renders raw `{braces}` to the player with **no exception and no test failure** if a template gains a slot the call site does not supply | `diplomatic_templates.py:2140-2143`, `:2318-2322` |
 | ~~**CA8-18**~~ ✅ | `get_threat_tier` has **no Formed arm**, so a coalition formed on turn 1 is labelled "Brewing" for 12 straight turns while the payload carries `coalition_brewing: false`. This is also why position 3.5's `military_establishment` term was **unmeasurable in play** — it fired into a bar already at 91–97 | `coalition.py:1882` |
-| **CA8-19** | Garrison assault is a separate, banner-free resolver — no terrain, fort, personality, coordination, muster or reinforcement | `combat_executor.py:1930` |
+| **CA8-19** ⚠ **GATE IT** | Garrison assault is a separate, banner-free resolver — no terrain, fort, personality, coordination, muster or reinforcement. **Re-scoped Aug 4, 2026 (sweep 3 pre-build map): this is a combat-system change wearing a copy row's clothes, and it was deliberately NOT built in a narration sweep.** `_resolve_garrison_combat` never calls `resolve_battle` — no dice, no morale, no `defender_bonus`, no variance, no rout machinery, and it composes terrain+fort **multiplicatively** where the field path adds. It returns before the muster gate, so no muster/reinforcement/overwatch/flanking/participant list/casualty distribution runs and every attacker loss lands on the lead marshal. Full parity moves **M1–M7 *and* `BASELINE_SERIES`** (enemy AI P4.25 takes this path), needs a defender object that does not exist (every field helper takes a Marshal or a participant list), and would consume `compose_battle_name` ordinals whose docstring explicitly excludes garrison assaults — shifting every later field-battle name and the PC-4 uniqueness guarantee. **It also owns the garrison half of CA8-25**: this path emits `garrison_assault`/`conquest`, never a `battle` event, and the client's stash-and-link chokepoint is reached only for `events[0].type == "battle"`. **Three separately-landable latent defects found inside it, each smaller and safer than the parity work** — (i) coordination is recomputed and never cleared (both pipeline calls pass `skip_coordination_clear: True`), leaving transients stamped on every eligible marshal; (ii) the garrison-stomp glory exemption is **production-dead** — step 10.5 is gated on a truthy `battle_result` the garrison path always passes as `None`, so `jealousy`'s `is_garrison_stomp` branch has never executed and no call site anywhere passes `is_garrison=True`; (iii) the garrison-hold war-exhaustion branch is unreachable because the hold ctx sets `defender_won: True`, so **an AI army repulsed from a French garrison accrues no war exhaustion at all** | `combat_executor.py:1966-2213` |
 
 ### P3
 
 | id | claim |
 |---|---|
 | ~~**CA8-21**~~ ✅ | Decree actor-branching — FIXED Aug 4, 2026 with CA8-6 (`_decree_preamble`) |
-| **CA8-20, 24, 25** | See memo §4 (estate valued at income 0; decree actor-branching — **land with CA8-6, never after it**; war-room battle counter vs "what stirred Europe"; diorama on the interrupt-resolved battle and the garrison assault) |
+| **CA8-20, 24**, ~~**25**~~ ✅ | See memo §4 (estate valued at income 0; war-room battle counter vs "what stirred Europe"). **CA8-25 half-FIXED Aug 4, 2026 (sweep 3):** the *interrupt-resolved* battle now keeps its diorama — the payload was built and discarded by an allowlist, not missing. **The garrison-assault half is NOT fixed and is now homed at CA8-19 below**, where it belongs: `_resolve_garrison_combat` emits `garrison_assault`/`conquest`, never a `battle` event, so it could not render a diorama even if one were built. CA8-24 remains gated with CA8-3 (same pairwise-vs-aggregate root cause). **CA8-20 fix shape corrected Aug 4, 2026 (sweep 3 map); NOT built — it changes AI behaviour and so carries `BASELINE_SERIES` exposure a narration sweep should not spend.** A **sort-key change cannot fix it**: the list is *already* sorted descending on that exact metric, and on fresh conquest every candidate is 0. Only a **filter** makes arm 2 (the rente) fire, closing the gap in one action. A bare `> 0` filter is also insufficient — `get_estate_income` additionally skips **disrupted** regions while the eligibility list has no disruption term, so a 200g disrupted province sorts first and still yields nothing. Place it **at the AI call site (`enemy_ai.py:5406`), not inside `dotation.py`**: that function is shared by three player surfaces and by the listed⇒eligible invariant (`test_w6_estate_confiscation.py:352-354`), and `test_economy_es7_dotation.py:723-730` pins the descending order — a sort-key change reds it, a call-site filter does not. Player half stays homed as XR-4 |
 | ~~**CA8-22**~~ ✅ | `region_lost` needed an estate-holder branch — FIXED Aug 4, 2026 as the `region_lost_estate` class at weight 76 |
 | ~~**CA8-23**~~ ✅ | `campaign_log.py:2185` → `PROPOSAL_TYPE_DISPLAY` — FIXED Aug 4, 2026 at all ten sites via one `_proposal_label` helper |
-| **CA8-28** | The same unknown province gets a suggestion or a shrug by verb: `move`/`go to Venetia` → *"Did you mean 'Vienna'?"*; `march`/`march south to Venetia` → *"I could not make out a destination"*. The 2-AP strategic path lacks the 1-AP tactical path's resolution. *(Corrects my own first-pass claim that these phrasings fail to parse — they do not.)* |
+| **CA8-28** | The same unknown province gets a suggestion or a shrug by verb: `move`/`go to Venetia` → *"Did you mean 'Vienna'?"*; `march`/`march south to Venetia` → *"I could not make out a destination"*. The 2-AP strategic path lacks the 1-AP tactical path's resolution. *(Corrects my own first-pass claim that these phrasings fail to parse — they do not.)* **Scoped Aug 4, 2026 (sweep 3 map); NOT built — it is a parser slice, not a narration one.** The split is deliberate at the keyword layer (`strategic_parser.py:209-227`) and accidental at the resolver layer: tactical goes through `executor._fuzzy_match_region` (which owns BOTH the "Did you mean" and "Nearby:" arms), strategic through a pure substring scan `strategic_executor._resolve_region_from_phrase:24-47` with no suggestion list. **Scope is three messages, not one** — HOLD shares the seam, and PURSUE/SUPPORT have their own suggestion-free strings. Three tripwires: (a) do **not** loosen `parser.py:1185-1191`, which discards the already-computed `suggest` tier — its `_plausible_name_typo` guard is a PARSE-NEG pin ("Ney, hold the pass" → HOLD on Nassau); (b) keep the IGR-A3 nation arm FIRST or "march to Austria" suggests Asturias again; (c) keep `variable_action_cost: 0` on the refusal. **The golden corpus cannot pin this** — `parser_eval.evaluate_entry` never constructs an executor, so a corpus row would give false assurance; the pin must be executor-level |
 
 ### Append to existing rows — do NOT re-file
 

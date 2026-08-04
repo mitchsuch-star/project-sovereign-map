@@ -503,6 +503,101 @@ def _lifetime_fires(marshal, target_name: str) -> int:
     return len(fires)
 
 
+# ════════════════════════════════════════════════════════════════════════
+# CA8-8 (creative audit, Aug 4 2026): EVERY GRIEVANCE WAS BYTE-IDENTICAL
+# TO THE LAST, AND NOTHING SIGNALLED RECURRENCE.
+#
+# Measured over one played campaign: "appears envious of" x9, "has not seen
+# laurels while" x6, "cooled with time" x6 — because there were exactly
+# three expression strings, keyed on personality, so an aggressive marshal
+# ALWAYS said "grown restless for glory".
+#
+# Worse, one dispatch printed, in this order:
+#   [good]    Murat's resentment of Davout has cooled with time.
+#   [warning] ...Murat appears envious of Davout's laurels...
+#   [warning] The rivalry ... has become entrenched.
+# That state is LEGAL — step 1 expires the timer and clears `jealous_of`,
+# step 3's only exclusion is `if marshal.jealous_of: continue`, so the man
+# just cleared is re-evaluated in the same pass and may re-fire. The defect
+# is that no template carried a recurrence register: nothing said "again",
+# so a legal escalation was indistinguishable from a state bug on the page.
+#
+# THIS IS A DISPLAY FIX ONLY. No trigger, ordering, rate limit or timer is
+# touched — those feed `jealous_of`, which M7 and the AI-intent
+# BASELINE_SERIES both read through combat's reinforcement/coordination
+# math. The register is derived from `jealousy_history[target]`, a list of
+# fire TURNS that is already serialized and already read by
+# `_lifetime_fires`. Zero new fields.
+# ════════════════════════════════════════════════════════════════════════
+# Every entry fills the slot "he has {expression}", so every entry must be
+# a past participle — pinned by
+# test_creative_audit_2026_07_19::test_every_jealousy_expression_fits_the_
+# he_has_slot, which the July 19 audit landed after the live line "he has
+# restless for glory" reached a player.
+_JEALOUSY_EXPRESSIONS: Dict[str, List[str]] = {
+    "aggressive": [
+        "grown restless for glory",
+        "grown loud at the staff table about who is given the honours",
+        "grown impatient for something worth the doing",
+    ],
+    "cautious": [
+        "grown cold and withholding",
+        "grown careful about what he commits to paper",
+        "grown quiet in the way the staff have learned to read",
+    ],
+    "literal": [
+        "thrown himself into his post with obsessive diligence",
+        "thrown himself at his returns and his pickets like a man proving "
+        "a point",
+        "grown scrupulous to the point of reproach",
+    ],
+}
+_JEALOUSY_EXPRESSION_DEFAULT = "grown resentful"
+
+
+def _expression_for(world, marshal, target_name: str, fires: int) -> str:
+    """Pick the grievance expression. Deterministic and RNG-free — keyed on
+    the campaign seed plus the pair and which recurrence this is, so the
+    same quarrel does not use the same words twice and two different
+    quarrels do not sound like one man."""
+    bank = _JEALOUSY_EXPRESSIONS.get(marshal.personality)
+    if not bank:
+        return _JEALOUSY_EXPRESSION_DEFAULT
+    try:
+        from backend.game_logic.campaign_variance import seeded_int
+        seed = str(getattr(world, "campaign_seed", "") or "historical")
+        idx = seeded_int(
+            seed, f"jealousy_expression::{marshal.name}::{target_name}"
+                  f"::{max(1, int(fires))}", 0, len(bank) - 1)
+    except Exception:
+        idx = max(0, (int(fires) - 1)) % len(bank)
+    return bank[idx % len(bank)]
+
+
+_ORDINALS = {2: "second", 3: "third", 4: "fourth", 5: "fifth"}
+
+
+def _recurrence_clause(marshal, target_name: str, turn: int) -> str:
+    """The register that says this has happened before — derived entirely
+    from the already-serialized list of fire turns. Empty on a first fire,
+    which is the only case that may read as fresh news."""
+    history = [int(t) for t in
+               getattr(marshal, "jealousy_history", {}).get(target_name, [])]
+    fires = len(history)
+    if fires <= 1:
+        return ""
+    gap = turn - history[-2] if len(history) >= 2 else 0
+    if gap <= 0:
+        # Cleared and re-fired inside one council — the case that read as a
+        # bug because the cooling line is printed two lines above this one.
+        return " once more, the same day it was set aside"
+    if fires >= 3:
+        return f" for the {_ORDINALS.get(fires, f'{fires}th')} time"
+    if gap == 1:
+        return " again, a single turn after it cooled"
+    return f" again, {gap} turns after it cooled"
+
+
 def apply_jealousy(world, marshal, target, delta: int, threshold: int,
                    events: List[Dict], forced: bool = False) -> None:
     """Set the grievance: fields, history, escalation, expression setup,
@@ -514,14 +609,14 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
     marshal.jealousy_history.setdefault(target.name, []).append(turn)
 
     is_player = marshal.nation == world.player_nation
-    # Creative audit July 19 2026: these fill the slot "he has {expression}",
-    # so every entry must be a past participle. "restless for glory" is an
-    # adjective phrase and produced the live line "he has restless for glory."
-    expression = {
-        "aggressive": "grown restless for glory",
-        "cautious": "grown cold and withholding",
-        "literal": "thrown himself into his post with obsessive diligence",
-    }.get(marshal.personality, "grown resentful")
+    # CA8-8: the expression is drawn from a per-personality bank (see
+    # `_JEALOUSY_EXPRESSIONS`) instead of being one fixed string per
+    # personality. Every entry is still a past participle filling
+    # "he has {expression}" — the July 19 2026 pin holds over the whole bank.
+    _fires = _lifetime_fires(marshal, target.name)
+    expression = _expression_for(world, marshal, target.name, _fires)
+    # CA8-8: "again", "for the third time", "the same day it was set aside".
+    _recur = _recurrence_clause(marshal, target.name, turn)
 
     world.log_event({
         "type": "jealousy_fired",
@@ -529,6 +624,11 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         "target": target.name,
         "nation": marshal.nation,
         "personality": marshal.personality,
+        # CA8-8: the campaign log composes its OWN sentence from these
+        # structured fields (it never reads `message`), so it needs the
+        # recurrence count to avoid the identical monoculture the dispatch
+        # had. New key on an existing type — no CAMPAIGN_LOG_TYPES change.
+        "fires": _lifetime_fires(marshal, target.name),
     })
     if is_player:
         _envious = humanize_entity_name(marshal.name)
@@ -540,11 +640,17 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         # same news. The target's perspective (spec §5 v3, informational only)
         # is folded into this one line: it already names both men and who
         # holds the laurels, which is all the notice ever carried.
+        # CA8-8: a first grievance may read as fresh news; a recurrence must
+        # say so, or a legal re-fire looks like the game repeating itself.
+        if _recur:
+            _line = (f"Berthier reports that {_envious} resents {_envied}'s "
+                     f"laurels{_recur} — he has {expression}.")
+        else:
+            _line = (f"Berthier reports that {_envious} appears envious of "
+                     f"{_envied}'s laurels — he has {expression}.")
         events.append({
             "type": "jealousy_fired",
-            "message": (
-                f"Berthier reports that {_envious} appears envious of "
-                f"{_envied}'s laurels — he has {expression}."),
+            "message": _line,
             "nation": marshal.nation,
             "marshal": marshal.name,
             "target": target.name,
@@ -679,11 +785,35 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
                 "marshal": marshal.name,
             })
         else:
+            # ────────────────────────────────────────────────────────────
+            # CA8-8: "cooled with time" was told the same way whether this
+            # was the first quarrel or the fourth, and — worse — it was told
+            # about a pair the game had already announced as permanent:
+            # "The wound will not close on its own" (tier 2, which also
+            # applies a permanent -1 both directions), then two turns later
+            # the wound closes on its own, in front of the player.
+            #
+            # Both sentences were true of DIFFERENT things: the grievance
+            # timer expires, the standing between the two men does not. The
+            # fix is to say which one cooled.
+            # ────────────────────────────────────────────────────────────
+            # `_set_escalation_level` writes both directions together, so
+            # this marshal's own entry is the pair's level.
+            _level = get_escalation_level(marshal, target_name)
+            _times = _lifetime_fires(marshal, target_name)
+            if _level >= ESCALATION_PERMANENT_LEVEL:
+                _msg = (f"{marshal.name}'s resentment of {target_name} has "
+                        f"cooled for now. What was settled between them at "
+                        f"the staff table has not been.")
+            elif _times >= 3:
+                _msg = (f"{marshal.name}'s resentment of {target_name} has "
+                        f"cooled again. It has cooled {_times} times.")
+            else:
+                _msg = (f"{marshal.name}'s resentment of {target_name} has "
+                        f"cooled with time.")
             events.append({
                 "type": "jealousy_resolved",
-                "message": (
-                    f"{marshal.name}'s resentment of {target_name} has "
-                    f"cooled with time."),
+                "message": _msg,
                 "nation": marshal.nation,
                 "marshal": marshal.name,
             })

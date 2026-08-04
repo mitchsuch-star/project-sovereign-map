@@ -44,6 +44,24 @@ _COMBAT_PASSTHROUGH_FIELDS = (
     "bombardment_advisory",
     "pending_capture_choice",
     "capture_data",
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-25 (creative audit, Aug 4 2026): the diorama was BUILT AND THEN
+    # DISCARDED on the interrupt-resolved routes.
+    #
+    # The audit filed this as "no diorama is built" for the `press on`
+    # resolution — the played campaign's LARGEST battle, 82,072 men massed.
+    # That is not what happens: every `attack_anyway` arm re-enters
+    # `_execute_attack`, which sets `battle_diorama` on its result exactly
+    # as it does for a normal attack. The `muster_confirm` route returns
+    # that result verbatim and the payload survives; the blocked-path arms
+    # here rebuild a FRESH dict through this allowlist — which deliberately
+    # rewrites `message`/`order_cleared`, so returning the inner result raw
+    # is not an option — and the allowlist simply never carried it.
+    #
+    # One tuple entry, no new machinery: the biggest battle a player can
+    # fight stops being the one battle they cannot look at.
+    # ────────────────────────────────────────────────────────────────────
+    "battle_diorama",
 )
 
 
