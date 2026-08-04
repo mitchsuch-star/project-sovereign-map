@@ -50,7 +50,17 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **PARSE-NEG in one paragraph (read before touching the parse pipeline).** The fast parser picked an action by keyword and scored confidence by how many identifiers it matched, never by whether the sentence *meant* the keyword — so a negated order carried the SAME keywords as its affirmative, scored HIGHER, cleared the 0.7 escalation gate, and executed. The evaluation that preceded the fix found **eight more defects beyond the five filed**, headline **`don't declare war on Austria` DECLARED WAR at 0.95** (the filed table sampled only military verbs; the diplomatic routes sit above them in the same chain) plus a phantom-province family (*not*→Brabant, *more*→**Moore**, *square*→Normandy, *relieved*→Rhineland — shipped as the province a marshal was ordered to take) and two plain gaps (`go to <region>` unparseable; the destination regex read the FIRST preposition). Fix = new **`backend/ai/clause_guards.py`**: negated/conditional clauses are blanked **with spaces, never spliced** (every position-aware rule downstream indexes into the text), the guards are **subtractive and never pick an action**, and the parser **removes the negation and re-reads what is left** — "hold your position, do not attack" → HOLD — refusing only when no order survives. **A refusal does not escalate to the LLM** (recorded deviation from the filed prescription; under forced tool-use every reply must name an action, and the sentence in hand is the one whose verb the player forbade). Companions **EAS-1..4** stay open (EAS-3 fixed; EAS-1 belongs to position 4).
 >
-> **▶ NEXT = POSITION 1:** a long quiet-France PLAYED campaign — 30+ turns, France passive mid-game. Six open evidence items, plus the re-score of the **enemy-phase-as-theater** pillar (5.5, the lowest ever recorded) which arbitrates the plan's own dissent. **Position 2 (LLC + Steamworks) has no entry condition and can start in parallel today.**
+> **▶ POSITION 1 IS DONE (Aug 3, 2026)** — 42 turns played live; record
+> `docs/audits/QUIET_FRANCE_CAMPAIGN_2026_08_03.md`; two P1s fixed (`98bf1f3`) plus
+> PC-2/PC-3/PC-7 (`1df5a36`). **The re-score arbitrated the plan's own dissent and the
+> dissent WON: enemy-phase-as-theater 5.5 → 6.0, below the 6.5 target — so the
+> composition slice has taken POSITION 3, ahead of the shippable build.**
+>
+> **▶ NEXT = POSITION 3: the composition slice**, with the econ memo's first slice
+> ("The Levy and the Camp", row EC-P3) **recommended to bundle with it but NOT yet
+> approved** — it is gated on the user's ruling on
+> `docs/audits/PEACETIME_ECONOMY_RESEARCH_2026_08_03.md` §6 Q1–Q6. Position 2 (LLC +
+> Steamworks) still has no entry condition and can start in parallel today.
 >
 > **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — nobody has ever produced a build of this game, and `deploy/` is pre-cutover and bundles **no world**; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >
