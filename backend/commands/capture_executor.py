@@ -185,7 +185,8 @@ class CaptureExecutor:
         IGR-X4: priced by the single source in dotation.py — the old
         effective-income read here was structurally 0 on every province."""
         from backend.game_logic.dotation import (
-            confiscation_windfall, derive_title, find_enemy_estate_holder,
+            confiscation_windfall, derive_estate_noun, derive_title,
+            find_enemy_estate_holder,
         )
         holder = find_enemy_estate_holder(world, region.name,
                                           world.player_nation)
@@ -209,7 +210,7 @@ class CaptureExecutor:
         response["capture_data"] = estate_pending
         response["message"] += (
             f"\n\nSire — {region.name} sustains Marshal {holder.name}'s "
-            f"household (the {title.replace('Duke of', 'Duchy of')}). "
+            f"household ({derive_estate_noun(region.name)}). "
             f"Confiscate the estate (+{estate_pending['windfall']:,} gold; "
             f"{holder.nation} will not forgive it) or respect the title "
             f"({holder.nation} will remember the courtesy)?")
@@ -218,6 +219,7 @@ class CaptureExecutor:
         """Resolve the confiscate/respect question (stage 2)."""
         from backend.game_logic.dotation import (
             apply_estate_confiscation, apply_estate_respect,
+            derive_estate_noun,
         )
         region = world.get_region(pending.get("region", ""))
         holder = world.marshals.get(pending.get("estate_holder", ""))
@@ -263,8 +265,8 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             return {
                 "success": True,
-                "message": (f"Marshal {holder.name}'s title stands — the "
-                            f"{outcome['title'].replace('Duke of', 'Duchy of')} "
+                "message": (f"Marshal {holder.name}'s title stands — "
+                            f"{derive_estate_noun(region.name)} "
                             f"keeps its revenues under our occupation. "
                             f"{holder.nation} will remember the courtesy."),
                 "events": [{

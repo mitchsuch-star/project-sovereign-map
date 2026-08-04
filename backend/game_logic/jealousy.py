@@ -580,22 +580,43 @@ _ORDINALS = {2: "second", 3: "third", 4: "fourth", 5: "fifth"}
 def _recurrence_clause(marshal, target_name: str, turn: int) -> str:
     """The register that says this has happened before — derived entirely
     from the already-serialized list of fire turns. Empty on a first fire,
-    which is the only case that may read as fresh news."""
+    which is the only case that may read as fresh news.
+
+    ════════════════════════════════════════════════════════════════════════
+    CA8-9/CA8-8 REVIEW FIX — the interval is FIRE-TO-FIRE, and the first
+    draft called it "turns after it cooled".
+
+    `jealousy_history` records fire turns and nothing else, so no
+    cooled-to-refire interval is derivable without new state, which this
+    slice's zero-new-fields contract forbids. A grievance stands for
+    `_duration_for()` = 2-5 turns before the timer can expire, so the
+    printed figure overstated the true time-since-cooling by exactly the
+    duration on the timer path — and by however long it stood on the early
+    paths (ladder shift, battle resolution, confrontation cuts). There was
+    NO reachable case in which it was correct, and in the marquee scenario
+    it printed "again, 2 turns after it cooled" directly beneath the line
+    saying it had just cooled. The noun is now the one the data supports.
+
+    The dropped `gap == 1` arm was doubly wrong: a one-turn fire gap means
+    the grievance was cleared EARLY, i.e. by action, so it had not "cooled"
+    at all.
+    ════════════════════════════════════════════════════════════════════════
+    """
     history = [int(t) for t in
                getattr(marshal, "jealousy_history", {}).get(target_name, [])]
     fires = len(history)
     if fires <= 1:
         return ""
-    gap = turn - history[-2] if len(history) >= 2 else 0
+    gap = turn - history[-2]
     if gap <= 0:
-        # Cleared and re-fired inside one council — the case that read as a
-        # bug because the cooling line is printed two lines above this one.
+        # Cleared and re-fired inside one council. Reachable via the tier-3
+        # mutual spiral: it sets a pair's grievance mid-loop while that
+        # marshal's own snapshotted candidate fires again the same turn,
+        # because the apply loop never re-checks `jealous_of`.
         return " once more, the same day it was set aside"
     if fires >= 3:
         return f" for the {_ORDINALS.get(fires, f'{fires}th')} time"
-    if gap == 1:
-        return " again, a single turn after it cooled"
-    return f" again, {gap} turns after it cooled"
+    return f" again, {gap} turns after the last"
 
 
 def apply_jealousy(world, marshal, target, delta: int, threshold: int,
@@ -678,6 +699,7 @@ def _check_escalation(world, marshal, target, events: List[Dict],
     qualifies = stored_rel <= -1 or fires >= ESCALATION_LIFETIME_FIRES
     if not qualifies:
         return
+    _mutual_applied = False
     level = min(ESCALATION_MUTUAL_LEVEL,
                 max(get_escalation_level(marshal, target.name),
                     get_escalation_level(target, marshal.name)) + 1)
@@ -728,6 +750,15 @@ def _check_escalation(world, marshal, target, events: List[Dict],
         if _is_standing(target) and getattr(target, "jealous_of", None) != marshal.name:
             apply_jealousy(world, target, marshal,
                            delta=1, threshold=1, events=events, forced=True)
+            # CA8-8 review fix: the campaign log rendered "each schemes
+            # against the other" off `level` alone, but the level advances
+            # to 3 whether or not this guard passes — a target who is
+            # `retreating` fails `_is_standing`, so the reciprocity is
+            # SKIPPED while the log still announced a mutual feud, on a
+            # marshal with no grievance, no derived -1 and no withholding
+            # effect. One reviewer saw the false line on eight consecutive
+            # turns. The producer knows; now it says so.
+            _mutual_applied = True
             if is_player:
                 events.append({
                     "type": "jealousy_escalation",
@@ -745,6 +776,9 @@ def _check_escalation(world, marshal, target, events: List[Dict],
         "target": target.name,
         "nation": marshal.nation,
         "level": get_escalation_level(marshal, target.name),
+        # Whether the tier-3 reciprocity actually APPLIED (see above). New
+        # key on an existing type — no CAMPAIGN_LOG_TYPES change.
+        "mutual": bool(_mutual_applied),
     })
 
 
@@ -806,8 +840,16 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
                         f"cooled for now. What was settled between them at "
                         f"the staff table has not been.")
             elif _times >= 3:
+                # CA8-8 review fix: `_lifetime_fires` counts FIRES, not
+                # coolings. `clear_jealousy` writes nothing to that list on
+                # either branch, and an action resolution takes the surge
+                # branch above ("grievance is satisfied") — a different word,
+                # a different event and a +10% surge. So "It has cooled 3
+                # times" was false whenever any earlier episode was settled
+                # by a victory, and it contradicted the game's own earlier
+                # lines. The number is now named for what it counts.
                 _msg = (f"{marshal.name}'s resentment of {target_name} has "
-                        f"cooled again. It has cooled {_times} times.")
+                        f"cooled. The quarrel has flared {_times} times.")
             else:
                 _msg = (f"{marshal.name}'s resentment of {target_name} has "
                         f"cooled with time.")

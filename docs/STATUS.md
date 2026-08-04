@@ -9,7 +9,7 @@
 > Landing record = **`BUG_FIXES.md` §Creative Audit** (authoritative).
 > **CA8-9, CA8-8, CA8-25 fixed** — running total **19 of 28, 1 refuted**.
 > `tests/test_creative_audit_ca8_2026_08_04.py` (+33, now 83). Suite 16,221 →
-> **16,254 / 3 skipped**; ruff clean; corpus 514/514; **M1–M7 and `BASELINE_SERIES`
+> **16,281 / 3 skipped**; ruff clean; corpus 514/514; **M1–M7 and `BASELINE_SERIES`
 > byte-identical without re-record**; zero `.gd` touched.
 >
 > Narration had missed its 6.5 target at three separate measurements (Jul 10, Jul 25,
@@ -63,6 +63,31 @@
 > recorded as a fact about the harness, not proof of safety — expected here by
 > mechanism, since `dispatch.py`/`campaign_log.py` are absent from the sweep's import
 > set and the only `log_event` change is one added **key**, not row volume.
+>
+> **⚠ A 129-agent adversarial review (8 lenses, 2 skeptics per finding) then took 11 more
+> fixes and 10 corrections to this slice's own claims.** It found more than the slice's own
+> 21-mutation sweep, and its closing critique is recorded because it was fair: that sweep's
+> mutations were chosen *around the tests* rather than around the seams, which is why three
+> lenses each found a surviving mutation on their first attempt. **The headline finding is
+> mine to own: `marshal_reversal` re-created the exact defect PC-7 was landed to kill** — a
+> state-derived class reading a SIX-turn window while every sibling reads two, and absent
+> from `STANDING_HEADLINE_CLASSES`, so PC-7's cooldown, the note hand-back and the July-19
+> exact-repeat demotion were all structurally unreachable (the sentence changes every turn
+> as `_turns_ago_phrase` counts up, so the strings are never equal). Measured: the same
+> reversal led **four to six consecutive dispatches** and froze Berthier's closing note,
+> burying a bankruptcy, a war declaration and a broken corps. Also fixed: `crown_lost`
+> alone was satisfying the fall predicate, so **a colleague winning a battle** produced a
+> marshal's weight-91 tragedy; the absorption deleted an `own_mauled` beat for a battle
+> France **won**; the recurrence interval was fire-to-fire but said *"after it cooled"*,
+> printing a fabricated gap directly beneath the line saying it had just cooled; and the
+> campaign log asserted a mutual feud the engine had skipped, seen on eight consecutive
+> turns. **CA8-25 turned out half-landed on the wrong half** — the typed route worked, the
+> popup route the UI actually presents did not, and the command line is disabled while that
+> modal is up, so clicking the button and typing the same answer gave different outcomes;
+> **fixed with one line in `main.gd`, so the slice now touches `.gd` — parse harness EXIT=0,
+> 28 scripts.** Three INERT seams the review found are now pinned, including a roster field
+> that could be hardcoded to 0 with all 16,259 tests green while killing the very rung CA8-8
+> exists to cure. Full record in `BUG_FIXES.md` §Creative Audit.
 >
 > **Deliberately NOT built, with the map's corrections filed against each row:** CA8-19
 > (**gate it** — a combat-system change wearing a copy row's clothes; full parity moves

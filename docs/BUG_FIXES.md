@@ -37,7 +37,7 @@
 >
 > **Fixed and landed: CA8-9, CA8-8, CA8-25.** Tests:
 > `tests/test_creative_audit_ca8_2026_08_04.py` (+33, now 83). Suite 16,221 →
-> **16,254 / 3 skipped**, ruff clean, corpus 514/514. **M1–M7 and `BASELINE_SERIES`
+> **16,281 / 3 skipped**, ruff clean, corpus 514/514. **M1–M7 and `BASELINE_SERIES`
 > byte-identical without re-record.** No `.gd` touched.
 >
 > Narration had missed its 6.5 target at three separate measurements (Jul 10, Jul 25,
@@ -135,6 +135,103 @@
 > are absent from the sweep's import set, the BASELINE runner never builds a dispatch, and
 > the only `log_event` change is one added **key** (`fires`), not a change in row volume,
 > which is what `agendas.py`'s 500-cap fail-safe is sensitive to.
+>
+> #### ⚠ ADVERSARIAL REVIEW ROUND 2 — 129 agents, 8 lenses, 2 skeptics per finding
+>
+> **60 raw findings; 11 survived both skeptics; ALL FIXED, plus 10 corrections to this
+> slice's own claims.** The review was run against commit `e5b18c1` and its fixes landed
+> in `d912176` + the follow-up. It found more than the slice's own 21-mutation sweep did,
+> and its closing critique is recorded because it was fair: *that sweep's mutation set was
+> chosen around the tests rather than around the seams*, which is why three separate
+> lenses each found a surviving mutation on their first attempt. The round-2 sweep walks
+> the seams instead.
+>
+> **The headline finding, and it is mine to own: `marshal_reversal` re-created the exact
+> defect PC-7 was landed to kill.** Every other headline candidate is scored from a
+> two-turn event window, or is declared in `STANDING_HEADLINE_CLASSES` so PC-7's cooldown
+> governs it. The reversal was neither — it consumed the arc builder's **six-turn** window
+> plus live `glory_crowned` state — so both suppressors were structurally unreachable, and
+> the July-19 exact-repeat demotion could not catch it either, because `_turns_ago_phrase`
+> rewrites the sentence every turn ("last turn" → "two turns ago" → …) so the strings are
+> never equal. Measured: **the same reversal led four to six consecutive dispatches at
+> weight 91 and froze Berthier's closing note for the whole run**, burying a bankruptcy, a
+> declaration of war and a genuinely broken corps. Fixed by gating the candidate on the
+> fall being **current news** (the arc keeps its six-turn memory for the roster note), which
+> bounds the lead by construction and needs no new cooldown.
+>
+> **`crown_lost` was not a fall.** `recompute_crowns` clears the flag whenever a
+> same-nation marshal out-scores the holder — *on a French success* — and since
+> `crown_lost` implies `crown_turn is not None`, which is itself a disjunct of `rose`, one
+> event satisfied **both halves** of `rose and fell`. A marshal who fought nothing,
+> retreated nowhere and lost no estate produced the top headline because a colleague won a
+> battle. It is now the tail clause only. Related: the crown is **vacated** on a
+> top-of-ladder tie, so *"the laurels have passed to another"* was a flat falsehood —
+> nobody holds them; the line now checks for a successor.
+>
+> **The absorption deleted beats it never restated.** Keyed on the marshal rather than on
+> which act the composer chose, it deleted an `own_mauled` beat for a battle France **won**
+> — 12,000 casualties that then appeared nowhere in the dispatch. Now conditional on the
+> fall arm: a defeat absorbs the maul, a rout absorbs the break, a dispossession or a hunt
+> absorbs nothing.
+>
+> **The recurrence interval was never correct.** `jealousy_history` records fire turns
+> only, so `turn - history[-2]` is fire-to-fire; the first draft called it *"turns after it
+> cooled"*, and a grievance stands 2–5 turns before the timer can expire. In the marquee
+> case it printed *"again, 2 turns after it cooled"* **directly beneath the line saying it
+> had just cooled**. The seam map had warned there is no clear-turn record and I wrote the
+> phrasing anyway; the noun is now the one the data supports, and a falsifiable negative
+> sweeps every arm for the false one. Same class: *"It has cooled N times"* counted
+> **fires**, so an action-satisfied grievance was reported as a cooling — now *"the quarrel
+> has flared N times"*.
+>
+> **The campaign log asserted a mutual feud the engine had skipped.** The escalation level
+> advances to 3 whether or not the tier-3 reciprocity applied (it is guarded on the target
+> being STANDING, so a marshal mid-rout is skipped), and the formatter branched on `level`
+> alone — one reviewer saw the false line on **eight consecutive turns**. The producer now
+> stamps `mutual`; absent on old saves, which falls through to the weaker claim.
+>
+> **Also fixed:** the roster's max-3 display cap was deleting a 4th-ranked reversal before
+> the headline could score it (`cap=None` for the headline arm); *"endowed with Duke of
+> Carniola"* — `derive_title` returns a **personal honorific**, and the estate noun is now
+> single-sourced as `dotation.derive_estate_noun`, back-filling the two hand-rolled
+> `.replace("Duke of", "Duchy of")` sites; and the `marshal_reversal` Berthier note
+> asserted the crown and *"a fortnight"* as fixed facts when `rose` is satisfied by an
+> estate grant alone and the gap ranges 0–5 turns (`"fortnight"` was a hapax in the whole
+> backend, against a game that defines no turn length).
+>
+> **CA8-25 was only half-landed, and the wrong half.** The typed `press on` route works;
+> the **popup** route — the one the UI presents, and the only one reachable while the modal
+> is up, because `_show_interrupt_popup` disables the command line — never called
+> `_stash_diorama`. Clicking the button and typing the same answer gave different outcomes.
+> Fixed with one line in `main.gd`, **so this slice does now touch `.gd`**: parse harness
+> EXIT=0, 28 scripts.
+>
+> **Three INERT seams found by the review, all now pinned:** the roster row's `idle_turns`
+> could be hardcoded to 0 with all 16,259 tests green (killing the very rung CA8-8 exists
+> to cure); the `fires` producer→consumer wire was unobserved and the `fires == 2` boundary
+> — the common case — untested in either direction; and the `own_mauled` half of the
+> absorption had no coverage at all.
+>
+> **Corrections to this slice's own claims, recorded in place** (comments and docstrings
+> updated at each site): *"a pure ascent cannot reach here"* was true only because
+> `crown_lost` was **classified** as a fall — true by definition, not by behaviour, which
+> is why four reviewers read the code as contradicting it (CA8-26 itself does remain
+> gated); *"the sub-beat never restates the headline"* was keyed on the wrong thing;
+> *"a reversal outranks a bare chain"* is false, since `consecutive + fled` is unbounded
+> against a constant `+4`; the `gap <= 0` comment named a case that cannot reach that arm
+> (the real path is the tier-3 spiral); the rung-3.5 docstring claimed a general
+> improvement that is gated on there being exactly **one** aggrieved marshal; a comment in
+> `test_dispatch.py` cited a test name **that exists nowhere in the repository**; and the
+> `_endow` fixture pinned a title string **no producer emits**, which is why the
+> "endowed with Duke of" defect passed its own test twice.
+>
+> **Refuted by the skeptics and recorded** (the review's own list): CA8-25 is *not* inert on
+> the typed route; the "five identical rebuild seams" claim is wrong — the other four
+> forward `events` verbatim, which is exactly why only `strategic.py` needed the top-level
+> key; `_ORDINALS`' `"21th"` fallback is unreachable (measured ceiling: 2 fires over 60
+> ambient turns, 5 over 200) and is pre-existing house style at three sites; and the
+> campaign log's recurrence arm **increased** variance rather than replacing one
+> monoculture with another (measured 2 distinct rows → 4).
 >
 > ### ✅ LANDING RECORD — CA8 sweep 1, August 4, 2026
 >

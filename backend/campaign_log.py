@@ -1430,7 +1430,13 @@ def format_event_oneliner(event: dict) -> str:
         if level <= 1:
             return (f"The rivalry between {_name_tag(marshal, nation)} and "
                     f"{target} is now a matter of concern among the staff")
-        if level >= 3:
+        # CA8-8 review fix: the level advances to 3 whether or not the
+        # tier-3 reciprocity actually applied — the producer skips it when
+        # the target is not STANDING (e.g. mid-rout recovery) — so this arm
+        # asserted a mutual feud against a marshal with no grievance at all.
+        # `mutual` is absent on pre-fix saves, which falls through to the
+        # entrenched wording rather than to the stronger claim.
+        if level >= 3 and event.get("mutual"):
             return (f"The feud between {_name_tag(marshal, nation)} and "
                     f"{target} is mutual — each schemes against the other")
         return (f"The rivalry between {_name_tag(marshal, nation)} and "

@@ -310,6 +310,13 @@ class TestMarshalStatus:
         ney_entry = next(m for m in marshals if m["name"] == "Ney")
         assert ney_entry["status"] == "idle_restless"
         assert "4" in ney_entry["status_note"]
+        # CA8-8 review fix: the row's structured `idle_turns` had NOTHING
+        # pinning it — hardcoding it to 0 left all 16,259 tests green while
+        # Berthier's rung 4 and the new rung-3.5 idle fold both went
+        # silently dead, which is the exact failure that row exists to cure.
+        # Every `impatient` assertion in the repo calls _pick_berthier_note
+        # with a hand-built dict that supplies `idle_turns` itself.
+        assert ney_entry["idle_turns"] == 4
 
     def test_idle_cautious_not_restless(self):
         """Cautious marshals don't show idle_restless."""
@@ -586,9 +593,13 @@ class TestBerthierNote:
     def test_idle_restless_at_four_turns(self):
         # CA8-8 (Aug 4, 2026): the rung reads the structured `idle_turns`
         # the roster row now carries, not `int(status_note.split()[0])`.
-        # `status_note` is kept here deliberately — see
-        # test_idle_rung_ignores_the_prose_note below, which pins that the
-        # prose is no longer consulted at all.
+        # `status_note` is kept here deliberately — the pins that the prose
+        # is no longer consulted live in
+        # tests/test_creative_audit_ca8_2026_08_04.py::
+        # TestCA88TheStarvedRung::test_the_idle_rung_reads_the_integer_not_
+        # the_prose, with ::test_a_beaten_marshal_is_not_reported_as_
+        # impatient as the negative arm. (An earlier version of this comment
+        # cited a test name that existed nowhere in the repository.)
         marshals = [
             {"name": "Ney", "status": "idle_restless", "strength": 50000,
              "status_note": "4 turns idle.", "idle_turns": 4},

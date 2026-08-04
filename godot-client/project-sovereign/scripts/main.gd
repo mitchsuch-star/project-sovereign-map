@@ -3836,6 +3836,19 @@ func _on_interrupt_choice_made(marshal_name: String, response_type: String, choi
 
 func _on_interrupt_response(response):
 	"""Handle backend response to interrupt choice."""
+	# CA8-25: stash BEFORE routing, the same discipline as _on_command_result
+	# (:1599). The blocked-path arms rebuild a fresh response through the
+	# backend's _COMBAT_PASSTHROUGH_FIELDS allowlist, which carries
+	# `battle_diorama` at the top level but drops `events` entirely — so
+	# `_display_battle_result`, the only other reader of a diorama and the
+	# only place the "View the field" link is drawn, is never reached. And
+	# this is the PRIMARY route, not the fallback: _show_interrupt_popup
+	# disables the command line, so while the modal is up the typed
+	# `press on` answer (which does work) is not even reachable. Without
+	# this line, clicking the button the game presents and typing the same
+	# answer gave two different outcomes.
+	if typeof(response) == TYPE_DICTIONARY:
+		_stash_diorama(response)
 	if response.success:
 		# A muster "Attack Anyway" RESOLVES a battle — render it with the same
 		# battle / After-Action formatting a direct attack gets, not a flat

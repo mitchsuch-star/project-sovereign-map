@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,254 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,281 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
 >
 > **~~CA8 SWEEP 3 — THE NARRATION PILLAR~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit): **CA8-9 + CA8-8 + CA8-25**, running total
@@ -71,10 +71,27 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > beaten four turns running was reported as growing impatient for action**; and the
 > "second bank at `jealousy.py:1547`" does not exist (that line is one unkeyed string —
 > the real second bank is `campaign_log.py`, a separate producer, fixed alongside).
-> **CA8-25** = one tuple entry: the diorama was **built and then discarded** by
-> `_COMBAT_PASSTHROUGH_FIELDS`. **21/21 mutations killed after one INERT pin of my own was
-> found and replaced.** M1–M7 + `BASELINE_SERIES` byte-identical **without re-record**,
-> recorded as a fact about the harness rather than proof of safety. No `.gd`.
+> **CA8-25** = the diorama was **built and then discarded** by
+> `_COMBAT_PASSTHROUGH_FIELDS`. M1–M7 + `BASELINE_SERIES` byte-identical **without
+> re-record**, recorded as a fact about the harness rather than proof of safety.
+> **⚠ A 129-agent adversarial review then took 11 more fixes + 10 corrections to the
+> slice's own claims** (record `BUG_FIXES.md` §Creative Audit): headline —
+> **`marshal_reversal` re-created the exact defect PC-7 was landed to kill**, a
+> state-derived class reading a SIX-turn window while every sibling reads two and absent
+> from `STANDING_HEADLINE_CLASSES`, so the cooldown, the note hand-back AND the July-19
+> repeat-demotion were all structurally unreachable (the sentence changes every turn, so
+> the strings never match); measured **4–6 consecutive leads** burying a bankruptcy, a war
+> declaration and a broken corps — now gated on the fall being current news. Plus:
+> `crown_lost` alone satisfied the fall predicate, so **a colleague's victory** made a
+> marshal's tragedy; the absorption deleted an `own_mauled` beat for a battle France
+> **won**; the recurrence interval was fire-to-fire while saying *"after it cooled"*; the
+> log asserted a mutual feud the engine had skipped; *"endowed with **Duke** of Carniola"*
+> (single-sourced now as `dotation.derive_estate_noun`); and **CA8-25 was half-landed on
+> the wrong half** — the popup route the UI presents never stashed, and the command line is
+> disabled while that modal is up, **so the slice now touches `.gd` (parse harness EXIT=0,
+> 28 scripts)**. Three INERT seams pinned, incl. a roster field that could be hardcoded to
+> 0 with the whole suite green. The review's fair closing critique — my first mutation set
+> was chosen *around the tests, not the seams* — is recorded, and round 2 walks the seams.
 > **Not built, each with the pre-build map's correction filed against its row:** CA8-19
 > (**gate it** — combat-system change; hides three latent defects incl. a production-dead
 > glory exemption and zero war exhaustion for a repulsed AI attacker), CA8-17 (row's

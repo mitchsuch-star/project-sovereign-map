@@ -247,7 +247,15 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
     # CA8-9: Berthier closes on the man, not the ledger — the note answers
     # the arc the headline opened.
-    "marshal_reversal": "He was the best of us a fortnight ago, Sire. Men remember being raised, and they remember being left.",
+    #
+    # Review fix: the first draft asserted the crown ("he was the best of
+    # us") and a fixed interval ("a fortnight ago"). `rose` is satisfied by
+    # an ESTATE GRANT alone, and the gap ranges 0-5 turns, so both claims
+    # were false for most instances — and "fortnight" was a hapax in the
+    # whole backend against a game that defines no turn length. Every other
+    # entry in this table is true for every instance of its class; this one
+    # now is too.
+    "marshal_reversal": "Men remember being raised, Sire, and they remember being left.",
     "own_broken": "I have ordered the remnants collected, Sire. Do not commit them until they reform.",
     "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
     "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
@@ -500,29 +508,77 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     # ────────────────────────────────────────────────────────────────────
     # CA8-9: the marshal's fall, told with the rise it reverses.
     #
-    # Runs LAST and ABSORBS the plain fall candidate for the same man rather
-    # than merely outranking it. The CA8-5 dedupe keys on (class, identity),
-    # so a `marshal_reversal` at weight 91 sitting above `own_broken` at 90
-    # would lead with the joined sentence and then restate the bare one as
-    # its own sub-beat — the exact duplicate-beat shape CA8-5 was landed to
-    # kill. Absorption is by identity, so a DIFFERENT marshal's break on the
-    # same turn is untouched and still gets its own beat.
+    # Runs LAST and ABSORBS the fall candidate it restates, rather than
+    # merely outranking it. The CA8-5 dedupe keys on (class, identity), so a
+    # `marshal_reversal` at weight 91 sitting above `own_broken` at 90 would
+    # lead with the joined sentence and then restate the bare one as its own
+    # sub-beat — the exact duplicate-beat shape CA8-5 was landed to kill.
+    # Absorption is by identity AND by which act the composer chose, so a
+    # DIFFERENT marshal's break on the same turn is untouched, and a beat the
+    # reversal does NOT narrate survives to be a sub-beat.
+    #
+    # Known residual (review §2.2, deliberately not fixed here): on the
+    # confiscation path the headline tail "Austria holds Carniola now" and
+    # the surviving anonymous `region_lost` sub-beat state the same map fact
+    # one line apart. Absorbing `region_lost` would suppress a province loss
+    # whenever any marshal had an arc, which is worse.
     #
     # A pure ascent cannot reach here: `reversal_line` is only composed when
-    # the arc carries a fall as well as a rise, which is what keeps CA8-26
-    # (no headline class for a French success) gated rather than
-    # accidentally built.
+    # the arc carries a fall as well as a rise, and since the review removed
+    # `crown_lost` from that predicate, every remaining fall term is a real
+    # misfortune (a defeat, a hunt, a forced rout, a dispossession) rather
+    # than a classification. That is what keeps CA8-26 (no headline class
+    # for a French success) gated rather than accidentally built — the first
+    # draft's version of this sentence was true only by definition, and four
+    # reviewers independently read the code as contradicting it.
     #
     # Second call to `_build_marshal_arcs` this dispatch (the roster builder
     # makes the other). Bounded: one pass over a 500-capped event log plus
     # the marshal roster, once per turn — not a hot path.
     # ────────────────────────────────────────────────────────────────────
-    for _name, _arc in _build_marshal_arcs(world, player_nation).items():
+    for _name, _arc in _build_marshal_arcs(world, player_nation,
+                                           cap=None).items():
         if not _arc.get("reversal_line"):
             continue
-        _absorbed = {f"own_broken:{_name}", f"own_mauled:{_name}"}
-        candidates[:] = [c for c in candidates
-                         if c.get("identity") not in _absorbed]
+        # ── The fall must be CURRENT NEWS ────────────────────────────────
+        # CA8-9 review fix (the review's headline finding). The arc builder
+        # reads a SIX-turn window; every other headline candidate is scored
+        # from the two-turn window above. `marshal_reversal` was therefore a
+        # state-derived class that re-manufactured its candidate every turn
+        # — and it was not in STANDING_HEADLINE_CLASSES, so PC-7's cooldown
+        # and the Berthier note hand-back were both structurally unreachable,
+        # while the July-19 exact-repeat demotion could not catch it either
+        # because `_turns_ago_phrase` rewrites the sentence every turn
+        # ("last turn" -> "two turns ago" -> ...). Measured: the same
+        # reversal led four to six consecutive dispatches at weight 91 and
+        # froze Berthier's closing note for the whole run, burying a
+        # bankruptcy, a declaration of war and a genuinely broken corps.
+        # That is verbatim the defect PC-7 was landed to kill.
+        #
+        # Gating on the fall's own turn bounds the lead by construction and
+        # needs no new cooldown: the arc keeps its six-turn memory for the
+        # ROSTER note, but it may only take the lead on the turn the fall
+        # actually happened. This also stops a five-turn-old defeat being
+        # presented as this turn's news.
+        _fall_turn = _arc.get("fall_turn")
+        if _fall_turn is None or int(_fall_turn) < world.current_turn - 1:
+            continue
+        # ── Absorb ONLY the beat the reversal actually restates ──────────
+        # CA8-9 review fix: absorption was keyed on the marshal, not on
+        # which act the composer chose, so a reversal whose fall clause was
+        # a dispossession deleted a battle France WON and its 12,000
+        # casualties, which appeared nowhere else in the dispatch. Demoting
+        # instead of deleting is not the answer either — that reinstates the
+        # CA8-5 duplicate-beat shape when the reversal genuinely does
+        # restate the beat.
+        _absorbed = set()
+        if _arc.get("fall_arm") == "defeat":
+            _absorbed.add(f"own_mauled:{_name}")
+        elif _arc.get("fall_arm") == "rout":
+            _absorbed.add(f"own_broken:{_name}")
+        if _absorbed:
+            candidates[:] = [c for c in candidates
+                             if c.get("identity") not in _absorbed]
         _add("marshal_reversal", identity=f"marshal_reversal:{_name}",
              line=_arc["reversal_line"])
 
@@ -664,19 +720,24 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
     who = humanize_entity_name(marshal.name)
 
     # ── the ascent ────────────────────────────────────────────────────────
-    title = ""
-    if estate:
-        title = estate.get("title") or (
-            f"the estate at {estate['region']}" if estate.get("region") else "")
+    # CA8-9 review fix: the ESTATE is the object of "endowed with", not the
+    # man's honorific. `derive_title` returns "Duke of Carniola" — the only
+    # value any producer writes — so interpolating it here printed "endowed
+    # with Duke of Carniola". Built from the region through the same single
+    # source the capture prompts use.
+    estate_noun = ""
+    if estate and estate.get("region"):
+        from backend.game_logic.dotation import derive_estate_noun
+        estate_noun = derive_estate_noun(estate["region"])
     # The ascent is an APPOSITIVE and must close with a comma, or the
     # sentence runs on: "Ney, crowned three turns ago has been beaten".
-    if crown_turn is not None and title:
+    if crown_turn is not None and estate_noun:
         rise = (f"{who}, crowned {_turns_ago_phrase(crown_turn, now)} and "
-                f"endowed with {title},")
+                f"endowed with {estate_noun},")
     elif crown_turn is not None:
         rise = f"{who}, crowned {_turns_ago_phrase(crown_turn, now)},"
-    elif title:
-        rise = (f"{who}, endowed with {title} "
+    elif estate_noun:
+        rise = (f"{who}, endowed with {estate_noun} "
                 f"{_turns_ago_phrase(estate.get('turn'), now)},")
     else:                                   # unreachable while rose is set
         rise = who
@@ -706,7 +767,16 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
         taker = formed_display_name(world, by) if by else "the enemy"
         tail.append(f"{taker} holds {lost_estate['region']} now")
     if crown_lost:
-        tail.append("the laurels have passed to another")
+        # CA8-9 review fix: `recompute_crowns` VACATES the crown on a
+        # top-of-ladder tie, so "passed to another" was a flat falsehood
+        # whenever two marshals drew level — nobody holds them. The engine's
+        # own sibling line says only "the laurels have passed", deliberately.
+        _successor = any(
+            getattr(p, "glory_crowned", False)
+            for p in world.marshals.values()
+            if p.nation == marshal.nation and p.name != marshal.name)
+        tail.append("the laurels have passed to another" if _successor
+                    else "the laurels sit vacant")
 
     if not tail:
         return head + "."
@@ -715,7 +785,8 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
     return f"{head} — {tail[0]}, and {tail[1]}."
 
 
-def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
+def _build_marshal_arcs(world, player_nation: str,
+                        cap: Optional[int] = 3) -> Dict[str, Dict[str, Any]]:
     """W6-3 §5.3: derive per-marshal drama chains from the recent event-log
     window (last ~5 turns; bounded scan, GR8-safe) — no new serialized state.
 
@@ -764,6 +835,7 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
     attackers: Dict[str, List[tuple]] = {}      # marshal -> [(turn, attacker)]
     retreats: Dict[str, int] = {}               # marshal -> retreat count
     routs: Dict[str, int] = {}                  # marshal -> FORCED only
+    rout_turns: Dict[str, List[int]] = {}       # marshal -> forced-rout turns
     # CA8-9 rise/fall inputs — all already logged, no new producers.
     crowned: Dict[str, int] = {}                # marshal -> turn crowned
     endowed: Dict[str, Dict[str, Any]] = {}     # marshal -> {turn,title,region}
@@ -798,6 +870,7 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
                 # its pins — the reversal reads THIS one.
                 if e.get("forced"):
                     routs[name] = routs.get(name, 0) + 1
+                    rout_turns.setdefault(name, []).append(int(turn))
         elif etype == "glory_crowned":
             # Producer is player-nation-only (jealousy.py:321), but the
             # nation guard is kept explicit so a future producer widening
@@ -858,14 +931,42 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
         crown_lost = bool(crown_turn is not None
                           and not getattr(m, "glory_crowned", False))
         rose = crown_turn is not None or estate is not None
-        # A fall the reversal can hang on. Dispossession and the lost crown
-        # count on their own — they ARE the fall in the played campaign —
-        # so a single defeat beside them is enough. Retreats count only when
-        # FORCED: an ordered withdrawal must never be narrated as a ruin.
+        # ────────────────────────────────────────────────────────────────
+        # A fall the reversal can hang on.
+        #
+        # CA8-9 review fix — `crown_lost` is NOT a fall. `recompute_crowns`
+        # clears the flag whenever a same-nation marshal out-scores the
+        # holder, i.e. on a French SUCCESS, and vacates it entirely on a
+        # tie. Since `crown_lost` implies `crown_turn is not None`, which is
+        # itself a disjunct of `rose`, one event satisfied BOTH halves of
+        # `rose and fell` — so a marshal who fought nothing, retreated
+        # nowhere and lost no estate produced a weight-91 tragedy headline
+        # because a colleague won a battle. It stays as the TAIL clause it
+        # already was, so a crown lost beside a real fall is still narrated.
+        #
+        # Retreats count only when FORCED: an ordered withdrawal must never
+        # be narrated as a ruin (the CA8-5 discipline).
+        # ────────────────────────────────────────────────────────────────
         routed = routs.get(m.name, 0)
         fell = (consecutive >= 1 or bool(hunted_by) or routed >= 1
-                or lost_estate is not None or crown_lost)
+                or lost_estate is not None)
         reversal = bool(rose and fell)
+
+        # Which act the composer will narrate, and when it happened — the
+        # headline arm needs both: it absorbs only the beat it restates, and
+        # it must not present a five-turn-old defeat as this turn's news.
+        if hunted_by:
+            fall_arm = "hunted"
+        elif consecutive >= 1:
+            fall_arm = "defeat"
+        elif routed >= 1:
+            fall_arm = "rout"
+        else:
+            fall_arm = "estate"
+        _fall_turns = list(d_turns) + list(rout_turns.get(m.name, []))
+        if lost_estate:
+            _fall_turns.append(int(lost_estate.get("turn", 0)))
+        fall_turn = max(_fall_turns) if _fall_turns else None
 
         stakes = (consecutive >= 2) or hunted_by or (fled >= 2) or reversal
         if not stakes:
@@ -907,16 +1008,27 @@ def _build_marshal_arcs(world, player_nation: str) -> Dict[str, Dict[str, Any]]:
             "crown_lost": crown_lost,
             "estate_lost": bool(lost_estate),
             "reversal_line": reversal_line,
-            # Stakes score for the max-3 cap: a reversal outranks a bare
-            # chain — it is the only arc that carries two acts.
+            "fall_arm": fall_arm if reversal else "",
+            "fall_turn": fall_turn,
+            # Stakes score for the roster's max-3 display cap. NOT a claim
+            # that a reversal outranks a bare chain: `consecutive + fled` is
+            # unbounded, so a long chain legitimately scores higher. The
+            # headline arm no longer consumes the capped dict (see `cap`),
+            # so a 4th-ranked reversal is scored rather than deleted.
             "_stakes": ((2 if hunted_by else 0) + consecutive + fled
                         + (4 if reversal else 0)),
         }
 
-    # Cap: max 3 arc lines per dispatch, highest-stakes first.
-    if len(arcs) > 3:
+    # Display cap: max 3 arc lines per dispatch, highest-stakes first.
+    #
+    # CA8-9 review fix: this cap was authored for the ROSTER's display lines
+    # and the headline arm was reading the same capped dict, so a 4th-ranked
+    # reversal was deleted before it could be scored — not demoted to a
+    # sub-beat, and absent from the roster too. `cap=None` lets the headline
+    # arm see every arc; it picks exactly one candidate by weight anyway.
+    if cap is not None and len(arcs) > cap:
         keep = sorted(arcs.items(), key=lambda kv: kv[1]["_stakes"],
-                      reverse=True)[:3]
+                      reverse=True)[:cap]
         arcs = dict(keep)
     for arc in arcs.values():
         arc.pop("_stakes", None)
@@ -1841,11 +1953,16 @@ def _pick_berthier_note(
 
     The spec ordering is NOT changed — §5 places a live grievance above
     idle_restless deliberately. What changed is that rung 3.5 now says
-    WHICH grievance and, when the aggrieved marshal is also the idle one
-    (which is the usual case — being passed over is what the grievance is
-    ABOUT), it names the idleness in the same breath. One sentence, both
-    jobs, and the actionable fact stops being unreachable behind a rung
-    that outranks it.
+    WHICH grievance and, when the aggrieved marshal is also the idle one,
+    names the idleness in the same breath.
+
+    SCOPE, corrected after review: both new arms are gated on there being
+    exactly ONE aggrieved player marshal. With two or more — reachable
+    (`MAX_FIRES_PER_NATION_TURN = 2`) and guaranteed by the tier-3 mutual
+    spiral, which makes the target jealous back by construction — the
+    pre-CA8-8 collective sentence still returns. Rung 4 also remains
+    shadowed by any live grievance, which is spec §5's deliberate ordering
+    and not something this row changes. Widening either belongs at a gate.
     """
     if headline_class and headline_class in _HEADLINE_BERTHIER_NOTES:
         return _HEADLINE_BERTHIER_NOTES[headline_class]

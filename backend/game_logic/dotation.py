@@ -126,6 +126,20 @@ def derive_title(region_name: str) -> str:
     return f"Duke of {region_name}"
 
 
+def derive_estate_noun(region_name: str) -> str:
+    """The ESTATE, not the man — "the Duchy of Swabia".
+
+    `derive_title` returns a personal honorific ("Duke of Swabia"), which is
+    the object of *styled*, never of *endowed with*. Three call sites were
+    already reaching for this noun by hand — two `.replace("Duke of",
+    "Duchy of")` patches in `capture_executor` and the help text's own
+    "Endow Ney with the Duchy of Swabia" — and the CA8-9 review found a
+    fourth site interpolating the honorific after the wrong preposition and
+    printing "endowed with Duke of Carniola" to the player.
+    """
+    return f"the Duchy of {region_name}"
+
+
 # ═══════════════════════════ CORE QUERIES ═════════════════════════════════
 
 def is_dotation_world(world) -> bool:

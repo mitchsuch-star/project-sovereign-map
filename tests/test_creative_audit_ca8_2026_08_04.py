@@ -18,6 +18,7 @@ from backend.commands.combat_executor import CombatExecutor
 from backend.commands.delegation import describe_inferred_bad_odds
 from backend.commands.executor import CommandExecutor
 from backend.game_logic import dispatch as dispatch_mod
+from backend.game_logic import dotation as _dotation
 from backend.game_logic import jealousy
 from backend.game_logic.coalition import get_threat_tier
 from backend.models.region import get_starting_controllers
@@ -726,10 +727,17 @@ class TestCA89TheArcJoinsTheBeats:
                                 "nation": "France", "turn": turn})
 
     def _endow(self, world, turn, region="Carniola",
-               title="the Duchy of Carniola", marshal="Ney"):
+               title=None, marshal="Ney"):
+        # Review fix: the title MUST come from the real producer. The first
+        # draft hardcoded "the Duchy of Carniola" — a string no producer in
+        # the repo emits — so the assertion below passed while production
+        # rendered "endowed with Duke of Carniola".
+        from backend.game_logic.dotation import derive_title
         world.event_log.append({"type": "dotation_granted", "marshal": marshal,
                                 "nation": "France", "region": region,
-                                "title": title, "turn": turn})
+                                "title": derive_title(region)
+                                if title is None else title,
+                                "turn": turn})
 
     def _confiscate(self, world, turn, region="Carniola", marshal="Ney"):
         world.event_log.append({"type": "estate_confiscated",
@@ -757,7 +765,11 @@ class TestCA89TheArcJoinsTheBeats:
         line = arc["reversal_line"]
         # the rise
         assert "crowned" in line
-        assert "Duchy of Carniola" in line
+        # The ESTATE is the object of "endowed with", never the man's
+        # honorific — `derive_title` returns "Duke of Carniola".
+        from backend.game_logic.dotation import derive_estate_noun
+        assert derive_estate_noun("Carniola") in line, line
+        assert "endowed with Duke of" not in line, line
         # the fall
         assert "beaten" in line
         # the dispossession, named with its taker
@@ -907,11 +919,28 @@ class TestCA88GrievanceRecurrence:
         assert "appears envious of" in line
 
     def test_a_second_grievance_says_again_and_how_long_it_held(self):
+        """The interval is FIRE-TO-FIRE, and must be named as such.
+
+        Corrected after review: the first version of this test pinned
+        "4 turns after it cooled", which is never true — `jealousy_history`
+        records fire turns only, and a grievance stands 2-5 turns before the
+        timer can expire, so the figure overstated time-since-cooling by the
+        whole duration. The test pinned the defect.
+        """
         world, murat, davout = self._pair()
         self._fire(world, murat, davout, turn=5)
         line = self._fire(world, murat, davout, turn=9)
         assert "again" in line, line
-        assert "4 turns after it cooled" in line, line
+        assert "4 turns after the last" in line, line
+
+    def test_no_grievance_line_claims_a_cooling_interval(self):
+        """FALSIFIABLE NEGATIVE for the above, over every reachable arm:
+        the data cannot support a cooled-to-refire interval, so no arm may
+        assert one."""
+        world, murat, davout = self._pair()
+        for turn in (3, 5, 6, 9, 14):
+            line = self._fire(world, murat, davout, turn=turn)
+            assert "after it cooled" not in line, line
 
     def test_a_third_grievance_counts(self):
         world, murat, davout = self._pair()
@@ -1223,7 +1252,8 @@ class TestCA89ReviewFixes:
         line = self._arc([
             self.CROWN,
             {"type": "dotation_granted", "marshal": "Ney", "nation": "France",
-             "region": "Carniola", "title": "the Duchy of Carniola",
+             "region": "Carniola",
+             "title": _dotation.derive_title("Carniola"),
              "turn": 8},
             self.BEAT,
             {"type": "estate_confiscated", "marshal": "Ney",
@@ -1255,3 +1285,347 @@ class TestCA89ReviewFixes:
             assert ".." not in line and ",," not in line, line
             assert "—." not in line and "  " not in line, line
             assert "None" not in line, line
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-9/CA8-8 — the 129-agent adversarial review of e5b18c1
+#
+# Every pin below corresponds to a finding that survived TWO independent
+# skeptics. Three of them (§1.11) exist because the seam was unobserved by
+# a 16,259-test suite: the review's closing note was that the slice's own
+# 21-mutation sweep "was chosen around the tests rather than around the
+# seams", which was fair.
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA89ReviewRound2:
+
+    def _world(self, turn=10, marshals=("Ney",)):
+        from tests.conftest import MarshalFactory, WorldFactory
+        ms = [MarshalFactory.infantry(name=n, location="Bohemia",
+                                      strength=27000) for n in marshals]
+        world = WorldFactory.with_marshals(ms, current_turn=turn)
+        world.event_log = []
+        return world
+
+    def _crown(self, w, turn, who="Ney"):
+        w.event_log.append({"type": "glory_crowned", "marshal": who,
+                            "nation": "France", "turn": turn})
+
+    def _endow(self, w, turn, who="Ney", region="Carniola"):
+        from backend.game_logic.dotation import derive_title
+        w.event_log.append({"type": "dotation_granted", "marshal": who,
+                            "nation": "France", "region": region,
+                            "title": derive_title(region), "turn": turn})
+
+    def _beat(self, w, turn, who="Ney", cas=9000, foe="ArchdukeCharles"):
+        w.event_log.append({
+            "type": "battle", "turn": turn, "attacker": foe, "defender": who,
+            "attacker_nation": "Austria", "defender_nation": "France",
+            "outcome": "attacker_victory", "location": "Bohemia",
+            "defender_casualties": cas})
+
+    def _rout(self, w, turn, who="Ney"):
+        w.event_log.append({"type": "retreat", "marshal": who,
+                            "nation": "France", "turn": turn,
+                            "forced": True, "region": "Bohemia"})
+
+    # ── §1.2 crown_lost is not a fall ────────────────────────────────────
+
+    def test_a_colleagues_victory_is_not_this_marshals_tragedy(self):
+        """`recompute_crowns` clears `glory_crowned` when a same-nation
+        marshal out-scores the holder — i.e. on a FRENCH SUCCESS. Because
+        `crown_lost` implies `crown_turn is not None`, which is itself a
+        disjunct of `rose`, one event satisfied BOTH halves of `rose and
+        fell`: a marshal who fought nothing and lost nothing produced a
+        weight-91 tragedy headline."""
+        w = self._world(turn=9)
+        self._crown(w, 7)                       # crowned, then overtaken
+        arcs = dispatch_mod._build_marshal_arcs(w, "France")
+        assert arcs == {}, arcs
+
+    def test_a_crown_lost_beside_a_real_fall_is_still_narrated(self):
+        """FALSIFIABLE NEGATIVE: `crown_lost` survives as the TAIL clause."""
+        w = self._world(turn=10)
+        self._crown(w, 7)
+        self._beat(w, 10)
+        line = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]["reversal_line"]
+        assert "laurels" in line, line
+
+    def test_a_vacant_crown_is_not_claimed_by_another(self):
+        """`recompute_crowns` VACATES the crown on a top-of-ladder tie, so
+        "the laurels have passed to another" was a flat falsehood — nobody
+        holds them."""
+        w = self._world(turn=10, marshals=("Ney", "Davout"))
+        self._crown(w, 7)
+        self._beat(w, 10)
+        for m in w.marshals.values():
+            m.glory_crowned = False             # tie -> crown vacated
+        line = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]["reversal_line"]
+        assert "passed to another" not in line, line
+        assert "vacant" in line, line
+
+    def test_a_real_successor_is_named_as_one(self):
+        w = self._world(turn=10, marshals=("Ney", "Davout"))
+        self._crown(w, 7)
+        self._beat(w, 10)
+        w.marshals["Davout"].glory_crowned = True
+        line = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]["reversal_line"]
+        assert "passed to another" in line, line
+
+    # ── §1.1 the reversal must be current news ───────────────────────────
+
+    def test_a_stale_fall_never_takes_the_lead(self):
+        """The arc builder reads a SIX-turn window; every other headline
+        candidate is scored from a two-turn one. `marshal_reversal` was
+        therefore a state-derived class that re-manufactured its candidate
+        every turn — and was not in STANDING_HEADLINE_CLASSES, so PC-7's
+        cooldown could not govern it and the July-19 exact-repeat demotion
+        could not catch it (the sentence changes every turn as
+        `_turns_ago_phrase` counts up). Measured: 4-6 consecutive leads."""
+        w = self._world(turn=13)
+        self._crown(w, 8)
+        self._endow(w, 8)
+        self._beat(w, 9)                        # four turns stale
+        arc = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]
+        assert arc["reversal_line"], "the roster note keeps its 6-turn memory"
+        head = dispatch_mod._build_headline(w, "France")
+        assert head is None or head["class"] != "marshal_reversal", head
+
+    def test_a_fresh_fall_does_take_the_lead(self):
+        """FALSIFIABLE NEGATIVE for the staleness gate."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        self._endow(w, 8)
+        self._beat(w, 10)
+        head = dispatch_mod._build_headline(w, "France")
+        assert head["class"] == "marshal_reversal", head
+
+    def test_the_lead_cannot_repeat_for_more_than_two_turns(self):
+        """The property the gate buys, stated directly."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        self._endow(w, 8)
+        self._beat(w, 10)
+        leads = []
+        for t in (10, 11, 12, 13, 14):
+            w.current_turn = t
+            w.last_morning_dispatch = None
+            head = dispatch_mod._build_headline(w, "France")
+            leads.append((head or {}).get("class", ""))
+        assert leads.count("marshal_reversal") <= 2, leads
+
+    # ── §1.3 absorb only what the reversal restates ──────────────────────
+
+    def test_a_battle_france_won_is_never_deleted(self):
+        """The absorption was keyed on the MARSHAL, not on which act the
+        composer chose, so a reversal whose fall clause was a dispossession
+        deleted an `own_mauled` beat for a battle France WON — 12,000
+        casualties that then appeared nowhere in the dispatch."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        self._endow(w, 8)
+        w.event_log.append({
+            "type": "estate_confiscated", "marshal": "Ney",
+            "nation": "France", "region": "Carniola",
+            "confiscated_by": "Austria", "turn": 10})
+        # Ney ATTACKS and wins, losing 33% of a pre-battle 36,000.
+        w.event_log.append({
+            "type": "battle", "turn": 10, "attacker": "Ney",
+            "defender": "Mack", "attacker_nation": "France",
+            "defender_nation": "Austria", "outcome": "attacker_victory",
+            "location": "Bohemia", "attacker_casualties": 9000})
+        head = dispatch_mod._build_headline(w, "France")
+        whole = head["text"] + " " + " ".join(head["sub_beats"])
+        assert "9,000" in whole, (head["text"], head["sub_beats"])
+
+    def test_the_beat_the_reversal_does_restate_is_still_absorbed(self):
+        """FALSIFIABLE NEGATIVE: CA8-5's duplicate-beat shape must not
+        return where the reversal genuinely narrates the same act."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        self._rout(w, 10)
+        head = dispatch_mod._build_headline(w, "France")
+        assert head["class"] == "marshal_reversal"
+        assert not any("has been broken" in b for b in head["sub_beats"]), \
+            head["sub_beats"]
+
+    def test_a_hunted_reversal_absorbs_nothing(self):
+        """Found INERT by the round-2 seam sweep: nothing pinned the third
+        arm. The `hunted` line names the PURSUER and no casualty figure, so
+        it restates neither the maul nor the break — absorbing either would
+        delete a fact the headline never gives back."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        for t in (9, 10):                       # same attacker -> hunted
+            self._beat(w, t, cas=9000)
+        arc = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]
+        assert arc["fall_arm"] == "hunted", arc["fall_arm"]
+        assert "hunted across the frontier" in arc["reversal_line"]
+        head = dispatch_mod._build_headline(w, "France")
+        assert head["class"] == "marshal_reversal"
+        whole = head["text"] + " " + " ".join(head["sub_beats"])
+        assert "9,000" in whole, (head["text"], head["sub_beats"])
+
+    def test_the_own_mauled_half_of_the_absorption_is_observed(self):
+        """§1.11c — this half was INERT: both absorption tests staged a
+        forced retreat, so nothing exercised `own_mauled`."""
+        w = self._world(turn=10)
+        self._crown(w, 8)
+        self._beat(w, 10, cas=9000)             # 33% of 27,000 -> mauled
+        head = dispatch_mod._build_headline(w, "France")
+        assert head["class"] == "marshal_reversal"
+        assert not any("was mauled" in b for b in head["sub_beats"]), \
+            head["sub_beats"]
+
+    # ── §1.7 the roster cap must not delete a headline ───────────────────
+
+    def test_the_display_cap_does_not_delete_the_reversal(self):
+        """The max-3 cap was authored for the ROSTER's display lines, and
+        the headline arm consumed the same capped dict, so a 4th-ranked
+        reversal was deleted before it could be scored."""
+        names = ("Alpha", "Bravo", "Cid", "Zed")
+        w = self._world(turn=10, marshals=names)
+        for who in ("Alpha", "Bravo", "Cid"):
+            for t in (9, 10):
+                self._beat(w, t, who=who)
+                self._rout(w, t, who=who)
+        self._crown(w, 8, who="Zed")
+        self._endow(w, 8, who="Zed")
+        w.event_log.append({"type": "estate_confiscated", "marshal": "Zed",
+                            "nation": "France", "region": "Carniola",
+                            "confiscated_by": "Austria", "turn": 10})
+        capped = dispatch_mod._build_marshal_arcs(w, "France")
+        assert len(capped) == 3, "the roster cap is unchanged"
+        head = dispatch_mod._build_headline(w, "France")
+        assert head["class"] == "marshal_reversal", head
+
+    # ── §1.8 the estate, not the honorific ───────────────────────────────
+
+    def test_the_estate_is_the_object_of_endowed_with(self):
+        w = self._world(turn=10)
+        self._endow(w, 9)
+        self._beat(w, 10)
+        line = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]["reversal_line"]
+        assert "endowed with Duke of" not in line, line
+        assert "endowed with the Duchy of Carniola" in line, line
+
+    def test_the_estate_noun_is_single_sourced(self):
+        """The two hand-rolled `.replace('Duke of','Duchy of')` sites are
+        gone — one helper now owns the noun."""
+        import pathlib
+        src = pathlib.Path("backend/commands/capture_executor.py").read_text(
+            encoding="utf-8")
+        assert "replace('Duke of'" not in src
+        assert 'replace("Duke of"' not in src
+
+    # ── §1.10 the closing note asserts nothing instance-specific ─────────
+
+    def test_the_closing_note_is_true_of_every_instance(self):
+        note = dispatch_mod._HEADLINE_BERTHIER_NOTES["marshal_reversal"]
+        for claim in ("fortnight", "best of us", "crowned"):
+            assert claim not in note, note
+
+
+class TestCA88ReviewRound2:
+
+    def _pair(self, turn=5):
+        from tests.conftest import MarshalFactory, WorldFactory
+        murat = MarshalFactory.infantry(name="Murat", personality="aggressive")
+        davout = MarshalFactory.infantry(name="Davout")
+        world = WorldFactory.with_marshals([murat, davout], current_turn=turn)
+        return world, murat, davout
+
+    # ── §1.5 the number is named for what it counts ──────────────────────
+
+    def test_the_flare_count_is_not_called_a_cooling_count(self):
+        """`_lifetime_fires` counts FIRES. `clear_jealousy` writes nothing to
+        that list, and an action resolution takes the surge branch — a
+        different word, a different event and a +10% surge — so "It has
+        cooled 3 times" was false whenever an earlier episode was settled by
+        a victory, contradicting the game's own earlier lines."""
+        world, murat, davout = self._pair()
+        murat.jealous_of = "Davout"
+        murat.jealousy_history = {"Davout": [3, 8, 14]}
+        events = []
+        jealousy.clear_jealousy(world, murat, resolved_by_action=False,
+                                events=events, reason="time")
+        line = next(e["message"] for e in events
+                    if e["type"] == "jealousy_resolved")
+        assert "cooled 3 times" not in line, line
+        assert "flared 3 times" in line, line
+
+    # ── §1.6 the log may not assert a feud the engine skipped ────────────
+
+    def test_the_log_only_claims_a_mutual_feud_when_one_applied(self):
+        """The level advances to 3 whether or not the reciprocity applied —
+        the producer skips it when the target is not STANDING (mid-rout) —
+        so the log announced a mutual feud against a marshal with no
+        grievance at all. One reviewer saw it on eight consecutive turns."""
+        line = format_event_oneliner({
+            "type": "jealousy_escalation", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France", "level": 3,
+            "mutual": False})
+        assert "each schemes" not in line, line
+        assert "entrenched" in line
+
+    def test_a_genuine_mutual_feud_still_reads_as_one(self):
+        line = format_event_oneliner({
+            "type": "jealousy_escalation", "turn": 3, "marshal": "Murat",
+            "target": "Davout", "nation": "France", "level": 3,
+            "mutual": True})
+        assert "each schemes" in line
+
+    def test_the_producer_stamps_whether_reciprocity_applied(self):
+        """§1.11b — the producer half was untested end to end."""
+        world, murat, davout = self._pair(turn=6)
+        murat.relationships["Davout"] = -2       # qualifies on every fire
+        davout.relationships["Murat"] = -2
+        jealousy._set_escalation_level(murat, "Davout", 2)
+        jealousy._set_escalation_level(davout, "Murat", 2)
+        davout.broken = True                     # not STANDING -> skipped
+        world.event_log = []
+        jealousy.apply_jealousy(world, murat, davout, delta=3, threshold=2,
+                                events=[])
+        esc = [e for e in world.event_log
+               if e["type"] == "jealousy_escalation"]
+        assert esc, world.event_log
+        assert esc[-1]["mutual"] is False, esc[-1]
+        assert davout.jealous_of != "Murat"
+
+    # ── §1.11b the fires seam, producer to consumer ──────────────────────
+
+    def test_the_fires_count_reaches_the_log_from_a_real_grievance(self):
+        """The producer wrote `fires` and the consumer read it, and NOTHING
+        connected them — both tests hand-built the dict. The `fires == 2`
+        boundary, the common case, was untested in either direction."""
+        world, murat, davout = self._pair(turn=3)
+        world.event_log = []
+        jealousy.apply_jealousy(world, murat, davout, delta=3, threshold=2,
+                                events=[])
+        murat.jealous_of = None
+        world.current_turn = 9
+        jealousy.apply_jealousy(world, murat, davout, delta=3, threshold=2,
+                                events=[])
+        fired = [e for e in world.event_log if e["type"] == "jealousy_fired"]
+        assert [e["fires"] for e in fired] == [1, 2], fired
+        first = format_event_oneliner({**fired[0], "turn": 3})
+        again = format_event_oneliner({**fired[1], "turn": 9})
+        assert "again" not in first, first
+        assert "again" in again, again
+
+
+    def test_the_idle_rung_fires_from_a_real_dispatch(self):
+        """§1.11a end to end: the roster PRODUCES the int and the ladder
+        CONSUMES it. Both halves were pinned only against hand-built rows,
+        so the wire between them was unobserved."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney", personality="aggressive")
+        world = WorldFactory.with_marshals([ney], current_turn=6)
+        ney.idle_turns = 9
+        world.event_log = []
+        rows = dispatch_mod._build_marshal_status(world, "France")
+        assert rows[0]["idle_turns"] == 9
+        note = dispatch_mod._pick_berthier_note(
+            world, "France", rows,
+            {"bankrupt": False, "treasury_delta": 100})
+        assert "impatient" in note.lower(), note
