@@ -4,6 +4,77 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ POSITION 3.5 — THE ECON SPEC REVIEW, HELD AND BUILT (August 4, 2026)
+>
+> **User direction: *"review the spec, see if this is truly the best way to fix
+> economy or if it needs retuned or if we have better solutions."*** Record =
+> `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md`; §6.1 is the landing record.
+>
+> **Verdict: half the August-3 recommendation ships, half should not be built —
+> because the engine already contains it, with four times the range.**
+>
+> Every load-bearing measurement in the memo re-derived exactly: France boots
+> **+59,000 over** its own force limit, France holds **13 building slots**
+> forever, **49 of 126** provinces can never build, a market on a `city` is
+> **−3/turn permanently**, and `coalition.py` has **no military threat term at
+> all**. So **#1(a) "The Levy is Open" is real and shipped.**
+>
+> **`Marshal.readiness` was REJECTED on three findings:**
+>
+> 1. **It duplicates `morale`** — already a serialized 0–100 condition stat
+>    feeding combat through `get_combat_effectiveness` at **0.90×–1.50×**,
+>    against readiness's 0.90×–1.00×.
+> 2. **The Camp of Boulogne already ships end to end.** `RECRUIT_MORALE = 40`
+>    green conscripts, weighted-average dilution into the receiving corps,
+>    **`training_ground` lifting that to 70**, Moore's Shorncliffe System
+>    flooring it at 60. The memo calls that building *"no measurable peacetime
+>    effect"*; measured, it is worth **~18% of a rebuilt army's combat power for
+>    250 gold**. The econ spec's own ES-9 row had already found this mechanic and
+>    already ruled *"no new field."*
+> 3. **The design was derived from a false premise** — *"drill and fortify buy
+>    permanent, non-decaying state"*. Drill's bonus is a **one-shot consumable**
+>    cleared at `combat.py:436-440`. The conclusion was right; the mechanism was
+>    not, and the mechanism is what #1(b) follows from.
+>
+> **Replacement, built: drill restores morale.** Measured — **morale never moves
+> in peacetime**, no regen tick anywhere, so the veteran/conscript axis was
+> **one-way**: a corps could be debased by rebuilding and never trained back.
+> `+10`, `+15` with a `training_ground`, capped at the existing 100. **Zero new
+> serialized fields, zero new UI, GR5 free** (the AI already drills).
+>
+> **Also landed:** the `military_establishment` threat term (symmetric,
+> boot-zero at France's 31.5% of Europe's 600,000, Europe-scoped after the first
+> cut cancelled a legacy fixture's −1 decay pin) · `levy_open` as a **STANDING**
+> headline riding PC-7's cooldown, which is why the flip beat needs no
+> serialized memory · the `supply_strain` headline at weight 72, naming
+> **whichever remedy is legal** (a depot is illegal in 16 of France's 28
+> provinces, so the obvious advice is often the advice the executor refuses).
+> **EC-7 / ES-6 CUT** with its three reasons recorded — the GR9 debt closed.
+>
+> **Q5's reasoning survives the review and is the deepest thing in the memo:**
+> the War Effort tax makes the treasury a **fixed point at 12.5× free cash
+> flow**, so *no gold sink can move the equilibrium* — ES-4 included.
+>
+> **Found in passing, and more serious than anything in the slice: the AI-V
+> assurance harness's seed pin was ESCAPABLE.** Every fixture in
+> `test_ai_intent_assurance.py` is module-scoped, and pytest builds
+> higher-scoped fixtures **before** function-scoped autouse ones — so all four
+> sweep runs ran outside conftest's `SOVEREIGN_SEED=historical` pin, on whatever
+> the developer's shell carried. The symptom is the worst kind:
+> `test_pair_peace_is_exhaustion_driven` flipped on this slice while the full
+> suite stayed green, because the *seed* differed between the two runs, not the
+> behaviour. `spawn_run` now writes the seed it was asked for into the child
+> environment; the file passes under a bare shell, the intended pin, and a
+> deliberately hostile `SOVEREIGN_SEED=austerlitz`.
+>
+> `tests/test_ec_levy_and_camp.py` (33) + `TestSweepSeedIsNotEscapable` (2).
+> **16-mutation sweep, one inert pin found and replaced** (the threat term's
+> test drove the function directly and never proved it was wired — this
+> project's most-repeated defect shape). Suite 16,136 → **16,171 / 3**, ruff
+> clean, corpus 514/514, Godot parse harness EXIT=0 (4 `.gd` touched),
+> live-verified over HTTP on a fresh backend. M1–M7 and `BASELINE_SERIES`
+> byte-identical, no re-record.
+
 > ### ✅ POSITION 3 — THE COMPOSITION SLICE (August 4, 2026)
 >
 > **User direction: scope it to (a)–(c); the econ bundle is declined and becomes

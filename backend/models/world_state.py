@@ -159,6 +159,30 @@ GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
 # is 0 at turn 1 and cannot break the E1 boot-solvency band. Sweep-tunable.
 EUROPE_INFRASTRUCTURE_UPKEEP = 40      # g per turn per built structure
 
+
+def _levy_status(world) -> dict:
+    """Lazy door onto `economy_executor.get_levy_status` — the single source.
+
+    Imported inside the call because `economy_executor` imports this module
+    at load time; the map summary is not a hot enough path for the lookup to
+    matter, and duplicating the pricing here would be exactly the drift the
+    single source exists to prevent.
+    """
+    from backend.commands.economy_executor import get_levy_status
+    return get_levy_status(world)
+
+
+def _drill_morale_note(marshal, gain: int) -> str:
+    """Shown = applied: name the morale the drill actually restored.
+
+    Empty when the corps was already at the cap, so a veteran corps that
+    drills for the shock bonus is not told about a gain it did not get.
+    """
+    if gain <= 0:
+        return ""
+    return (f" The ranks steady with the work: morale +{int(gain)} "
+            f"(now {int(marshal.morale)}).")
+
 # ═══ EC-W (Econ War-Coupling pass 3, memo docs/audits/ECON_WAR_COUPLING_
 # RESEARCH_2026_07_17.md §3) — the July-17 playtest defect: France's treasury
 # snowballed while its army was destroyed and Britain stood on home soil.
@@ -3809,6 +3833,49 @@ class WorldState:
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
 
+    # ════════════════════════════════════════════════════════════════
+    # THE CAMP OF BOULOGNE — drill restores morale
+    # (econ spec review, `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md` §3)
+    # ════════════════════════════════════════════════════════════════
+    # The engine already models raw conscripts: `RECRUIT_MORALE = 40`, and a
+    # levy dilutes the receiving corps by weighted average, so rebuilding an
+    # army debases it (⊕ 25,000 veterans + 50,000 levies: 1.50x -> 1.10x
+    # effectiveness). `training_ground` softens that to 70 and Moore's
+    # Shorncliffe System floors it at 60.
+    #
+    # What was missing is the other end: ⊕ measured Aug 4, 2026, morale NEVER
+    # moves in peacetime — no regen tick anywhere, and drill did not touch it.
+    # So the veteran/conscript axis was ONE-WAY: a corps could be debased by
+    # rebuilding it and never trained back, and the levy the played campaign
+    # needed carried a permanent hidden cost with no way to pay it off.
+    #
+    # Drill now repairs it, over turns, using the military AP that sat idle.
+    # No new serialized field (morale already serializes and already feeds
+    # combat through `get_combat_effectiveness`), no new number on the card,
+    # and GR5 is free — the AI already has drill rungs, so this fires for it
+    # with zero new decision code and zero enemy-phase cost.
+    #
+    # Blessed defaults, in-band tunable. At +10 a corps debased to 60 needs
+    # four drills to reach 100 — deliberately a campaign-scale investment,
+    # not a button. The training ground earns its second reason to exist.
+    DRILL_MORALE_GAIN = 10          # band 5-15
+    DRILL_MORALE_GAIN_TRAINED = 15  # band 10-20, with a training_ground here
+
+    def _apply_drill_morale(self, marshal) -> int:
+        """Raise a corps' morale on drill completion. Returns the gain applied.
+
+        Single source for both completion sites (the standard two-turn drill
+        and Soult's one-turn Drillmaster of Boulogne) — the payoff must not
+        depend on which arm produced it.
+        """
+        region = self.get_region(marshal.location)
+        trained = bool(region and region.has_building("training_ground"))
+        gain = (self.DRILL_MORALE_GAIN_TRAINED if trained
+                else self.DRILL_MORALE_GAIN)
+        before = int(marshal.morale)
+        marshal.adjust_morale(gain)
+        return int(marshal.morale) - before
+
     # W6-2 Dynamic Battle Naming — ordinal words for repeat engagements.
     _BATTLE_ORDINALS = {
         2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth", 6: "Sixth",
@@ -7151,6 +7218,11 @@ class WorldState:
                 "artillery": int(self.manpower_pools.get(self.player_nation, {}).get("artillery", 0)),
             },
             "player_nation": self.player_nation,
+            # "The Levy is Open" (econ spec review §6): nation-level, computed
+            # ONCE per summary — deliberately not per-region, so the region
+            # panel can say what the establishment allows without this
+            # becoming a 126-province scan (GR8).
+            "levy": _levy_status(self),
             "regions_controlled": len(self.get_player_regions()),
             "total_regions": len(self.regions),
             "map_data": map_data,
@@ -9576,6 +9648,7 @@ class WorldState:
                     marshal.drilling = False
                     marshal.drilling_locked = False
                     marshal.shock_bonus = 2  # +20% attack bonus (payoff unchanged)
+                    morale_gain = self._apply_drill_morale(marshal)
                     just_completed_drill.add(marshal.name)
                     debug_print(f"  [TACTICAL] DRILL COMPLETE (Drillmaster): {marshal.name} gains +20% shock bonus!")
                     events.append({
@@ -9583,8 +9656,11 @@ class WorldState:
                         "marshal": marshal.name,
                         "nation": marshal.nation,
                         "message": f"DRILL COMPLETE: {marshal.name}'s corps sharpens in a single day — "
-                                   f"Drillmaster of Boulogne. +20% attack bonus ready for next battle.",
-                        "shock_bonus": 2
+                                   f"Drillmaster of Boulogne. +20% attack bonus ready for next battle."
+                                   + _drill_morale_note(marshal, morale_gain),
+                        "shock_bonus": 2,
+                        "morale_gain": int(morale_gain),
+                        "morale": int(marshal.morale),
                     })
                 else:
                     # Transition from drilling to drilling_locked
@@ -9605,14 +9681,19 @@ class WorldState:
                     marshal.drilling = False
                     marshal.drilling_locked = False
                     marshal.shock_bonus = 2  # +20% attack bonus
+                    morale_gain = self._apply_drill_morale(marshal)
                     just_completed_drill.add(marshal.name)
                     debug_print(f"  [TACTICAL] DRILL COMPLETE: {marshal.name} gains +20% shock bonus!")
                     events.append({
                         "type": "drill_complete",
                         "marshal": marshal.name,
                         "nation": marshal.nation,
-                        "message": f"DRILL COMPLETE: {marshal.name}'s training is finished! +20% attack bonus ready for next battle.",
-                        "shock_bonus": 2
+                        "message": f"DRILL COMPLETE: {marshal.name}'s training is finished! "
+                                   f"+20% attack bonus ready for next battle."
+                                   + _drill_morale_note(marshal, morale_gain),
+                        "shock_bonus": 2,
+                        "morale_gain": int(morale_gain),
+                        "morale": int(marshal.morale),
                     })
 
             # ════════════════════════════════════════════════════════════

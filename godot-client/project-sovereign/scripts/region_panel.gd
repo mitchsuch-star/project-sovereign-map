@@ -203,7 +203,24 @@ func _render() -> void:
 		var recruit_chips = ""
 		for arm in ["infantry", "cavalry", "artillery"]:
 			recruit_chips += Utils.bb_button_chip("do:recruit " + arm + " in " + _region, arm.capitalize(), Utils.COLOR_GOLD, _CHIP_BG) + " "
-		action_rows.append("  Recruit: " + recruit_chips)
+		# "The Levy is Open" (econ spec review §6): say whether the ordinance
+		# permits it, right where the choice is made. The played campaign spent
+		# ten turns +59,000 over the limit, learned that recruiting was
+		# forbidden, and was never told when it stopped being true.
+		var levy = _map_node.levy_status if _map_node != null else {}
+		var levy_note = ""
+		if levy is Dictionary and int(levy.get("force_limit", 0)) > 0:
+			if int(levy.get("over_by", 0)) > 0:
+				levy_note = "  [color=#" + Utils.COLOR_WARNING + "]" \
+					+ Utils.format_number(int(levy.get("over_by", 0))) \
+					+ " over the ordinance[/color]"
+			else:
+				levy_note = "  [color=#" + Utils.COLOR_SUCCESS + "]" \
+					+ Utils.format_number(int(levy.get("headroom", 0))) \
+					+ " under — " + str(int(levy.get("infantry_price", 0))) + "g per " \
+					+ Utils.format_number(int(levy.get("infantry_amount", 0))) \
+					+ " foot[/color]"
+		action_rows.append("  Recruit: " + recruit_chips + levy_note)
 
 		# Build — every missing building while a slot is free (slot math from
 		# the fog-filtered payload; towns/rural report 0 slots so the row

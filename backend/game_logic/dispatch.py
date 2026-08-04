@@ -59,9 +59,21 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "own_mauled": 85,           # own marshal lost >=25% strength
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
     "region_lost": 75,          # any own/vassal region captured
+    # Econ spec review §5: an army starving is a slower catastrophe than a
+    # province falling and a faster one than a war declaration, so it sits
+    # BETWEEN them. Before this, `supply_attrition` was not in this table at
+    # all — the drain that took the played campaign from 189,000 men to
+    # 60,183 could never be the lead, while a 180g/turn household nag at
+    # weight 55 led half the dispatches.
+    "supply_strain": 72,
     "war_touches_us": 70,       # coalition tier change / war decl. vs us
     "ally_broken": 60,          # ally suffered a major defeat
     "estate_eroding": 55,       # ES-7 erosion began
+    # Econ spec review §6 (a): the establishment stands under the ordinance
+    # and the depots can fill it. Below every crisis and below the erosion
+    # nag — an opportunity never outranks a wound — but above Europe's own
+    # business, because it is France's own army.
+    "levy_open": 54,
     # AI-3/AI-4b (Stage D): Europe's own crises may LEAD the dispatch —
     # the vignette's "the dispatch leads with the one foregrounded
     # crisis" — but always below anything that touches France directly
@@ -101,7 +113,18 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
 # which is worse than repetition. So: yield the lead when there is other
 # news, and when there is not, ESCALATE the wording instead of repeating it.
 # ════════════════════════════════════════════════════════════════════════
-STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil"})
+# `levy_open` joins them for the same reason: it is a STATE predicate that
+# re-manufactures its candidate every turn the gate stands open, so without
+# the cooldown it would become the next stuck record. Riding PC-7's existing
+# machinery is also why "The Levy is Open" needs no serialized memory of the
+# over->under flip — the escalation ladder below says it better than a
+# one-shot beat could, and it keeps saying it while the offer stands.
+# `supply_strain` is standing for the same reason: a stack over capacity
+# re-manufactures its candidate every turn until the player moves it, so
+# without the cooldown the famine simply replaces the household nag as the
+# stuck record — fixing the symptom by swapping which sentence repeats.
+STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil",
+                                       "levy_open", "supply_strain"})
 
 # Consecutive turns a standing class may hold the lead before it must yield
 # to any other candidate. Blessed default, display-only, tunable in band.
@@ -125,6 +148,20 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "Sire — the enemy has stood on our ground {turns} turns. Every turn "
         "of it is worth a province to their recruiting sergeants.",
     ],
+    "supply_strain": [
+        "Sire — {turns} turns of famine at {region} now. {losses} gone, and "
+        "not one of them to the enemy. {remedy}",
+        "Sire — {who} have been {turns} turns over what {region} can feed. "
+        "{losses}. The country will ask where the army went. {remedy}",
+    ],
+    "levy_open": [
+        "Sire — {turns} turns now with the establishment under the ordinance "
+        "and the depots standing full. {headroom} men, and nobody has asked "
+        "for them.",
+        "Sire — the levy has stood open {turns} turns. {price} gold puts "
+        "{amount} foot in the line at {capital}; the conscripts do not "
+        "improve with keeping.",
+    ],
 }
 
 _HEADLINE_TEMPLATES: Dict[str, str] = {
@@ -134,9 +171,14 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "own_mauled": "Sire — {marshal} was mauled at {region}: {casualties} men lost in a single action.",
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
     "region_lost": "Sire — {region} has been taken by {captor}.",
+    "supply_strain": ("Sire — {who} stand {over} men over what {region} can "
+                      "feed. {losses} lost in {turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
+    "levy_open": ("Sire — the establishment stands {headroom} men under the "
+                  "ordinance, and the depots hold {pool}. {amount} foot cost "
+                  "{price} gold at {capital}."),
     "europe_at_war": "Sire — {aggressor} has declared war on {target}. The stated cause: {reason}.",
     "europe_crisis": "Sire — {nation} moves toward war with {target}. The design is open; the timing is not.",
     "europe_congress": "Sire — {proposer} and {accepter} have made peace without us.",
@@ -210,6 +252,11 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             # PC-7: standing classes carry WHO/WHAT they are about, so the
             # lead-streak survives the text changing underneath it.
             "identity": identity or cls,
+            # The template's own arguments, kept so the escalation ladder can
+            # re-render with them. Before this it could only substitute
+            # {marshal} and {turns}, which silently bounded what a standing
+            # class was allowed to say as it escalated.
+            "fields": dict(fields),
         })
 
     for e in window:
@@ -338,6 +385,33 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      identity=f"estate_eroding:{m.name}", marshal=m.name)
                 break
 
+    # The corps is starving (econ spec review §5). `supply_attrition` was not
+    # in HEADLINE_WEIGHTS at all, so an army bleeding 6% a turn — the drain
+    # that took the played campaign from 189,000 men to 60,183 — could never
+    # be the lead, while a 180g/turn household nag at weight 55 led half the
+    # dispatches. Fires on two consecutive turns of loss, so a single bad turn
+    # is not a crisis; names the number AND whichever remedy is legal.
+    _strain = _supply_strain_candidate(world, player_nation)
+    if _strain:
+        _add("supply_strain", identity=f"supply_strain:{_strain['region']}",
+             **_strain["fields"])
+
+    # "The Levy is Open" (econ spec review §6 (a)) — state-based, Europe-only.
+    # The measured defect: France boots +59,000 OVER its force limit, teaching
+    # ten turns of "recruitment is forbidden"; by turn 12 it stood under the
+    # limit with a full pool and nothing said so. Every figure below already
+    # existed — the game simply never spoke them.
+    from backend.commands.economy_executor import get_levy_status
+    _levy = get_levy_status(world, player_nation)
+    if _levy["open"]:
+        _capital = world.get_nation_capital(player_nation) or "the depots"
+        _add("levy_open",
+             headroom=f"{_levy['headroom']:,}",
+             pool=f"{_levy['infantry_pool']:,}",
+             amount=f"{_levy['infantry_amount']:,}",
+             price=f"{_levy['infantry_price']:,}",
+             capital=_capital)
+
     if not candidates:
         return None
 
@@ -400,8 +474,14 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
             if variants:
                 step = min(streak - STANDING_LEAD_MAX, len(variants) - 1)
                 marshal = top_candidate.get("identity", "").split(":", 1)[-1]
-                candidates[0] = dict(top_candidate, text=variants[step].format(
-                    marshal=marshal, turns=streak + 1))
+                fmt = dict(top_candidate.get("fields") or {})
+                # The identity-derived name stays authoritative (it is what
+                # the streak is keyed on); for `estate_eroding` the two agree,
+                # so existing escalation output is byte-identical.
+                fmt["marshal"] = marshal
+                fmt["turns"] = streak + 1
+                candidates[0] = dict(top_candidate,
+                                     text=variants[step].format(**fmt))
 
     top = candidates[0]
     world.headline_lead_memory = {
@@ -596,6 +676,93 @@ def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
         if name:
             result.setdefault(name, []).append(int(e.get("turn", 0)))
     return result
+
+
+def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, Any]]:
+    """The starving-corps headline's data, or None (econ spec review §5).
+
+    Two consecutive turns of loss in one province, our own marshals only.
+    Returns the WORST such province by cumulative loss so a two-front famine
+    leads with the one that is killing more men.
+
+    The remedy clause is the point. ⊕ `supply_depot`'s `allowed_in` is
+    capital/major_city/city, so it is ILLEGAL in 16 of France's 28 provinces
+    — telling a starving army in a town to build a depot is advice the
+    executor will refuse. Where a depot is legal we say so; where it is not
+    we name the real remedy, which is the one the played campaign never
+    took: disperse, using the military AP that sat idle.
+    """
+    from backend.models.region import BUILDING_TYPES
+    window = [e for e in world.event_log
+              if e.get("type") == "supply_attrition"
+              and e.get("nation") == player_nation
+              and e.get("turn", 0) >= world.current_turn - 2]
+    if not window:
+        return None
+
+    by_region: Dict[str, Dict[str, Any]] = {}
+    for e in window:
+        region_name = e.get("region", "")
+        if not region_name:
+            continue
+        slot = by_region.setdefault(
+            region_name, {"turns": set(), "losses": 0, "marshals": set()})
+        slot["turns"].add(int(e.get("turn", 0)))
+        slot["losses"] += int(e.get("losses", 0) or 0)
+        if e.get("marshal"):
+            slot["marshals"].add(e["marshal"])
+
+    persistent = {r: s for r, s in by_region.items() if len(s["turns"]) >= 2}
+    if not persistent:
+        return None
+    region_name = max(persistent, key=lambda r: persistent[r]["losses"])
+    slot = persistent[region_name]
+
+    region = world.get_region(region_name)
+    if region is None:
+        return None
+    here = [m for m in world.get_marshals_in_region(region_name)
+            if m.nation == player_nation and m.strength > 0]
+    total = sum(int(m.strength) for m in here)
+    is_home = region.controller == player_nation
+    cap = int(region.supply_capacity * 1.5) if is_home else int(region.supply_capacity)
+    over = max(0, total - cap)
+
+    depot_ok = (region.region_type
+                in BUILDING_TYPES["supply_depot"]["allowed_in"])
+    already = region.has_building("supply_depot")
+    if already or not depot_ok:
+        why = (f"{region_name} already has its depot."
+               if already
+               else f"{region_name} is a {region.region_type.replace('_', ' ')} "
+                    f"— no depot may be laid there.")
+        remedy = f"{why} Move a corps, or continue to pay."
+    else:
+        remedy = (f"A supply depot at {region_name} would ease it; "
+                  f"dispersing a corps would end it.")
+
+    names = sorted(slot["marshals"]) or [m.name for m in here]
+    return {
+        "region": region_name,
+        "fields": {
+            "who": _join_marshal_names(names),
+            "over": f"{over:,}" if over > 0 else "more",
+            "region": region_name,
+            "losses": f"{int(slot['losses']):,} men",
+            "turns": str(len(slot["turns"])),
+            "remedy": remedy,
+        },
+    }
+
+
+def _join_marshal_names(names) -> str:
+    """"A", "A and B", "A, B and C" — the dispatch's own prose form."""
+    clean = [str(n) for n in names if str(n or "").strip()]
+    if not clean:
+        return "our corps"
+    if len(clean) == 1:
+        return clean[0]
+    return f"{', '.join(clean[:-1])} and {clean[-1]}"
 
 
 def build_morning_dispatch(world, tactical_events: Optional[List] = None,

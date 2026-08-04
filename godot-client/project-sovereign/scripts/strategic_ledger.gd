@@ -439,6 +439,27 @@ func _render_economy():
 	if grande_armee > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Grande Armée surcharge: -" + str(grande_armee) + "g[/color]\n"
 
+	# "The Levy is Open" (econ spec review §6). The force limit used to render
+	# ONLY inside the over-limit branch above — visible exactly while the gate
+	# was shut, and gone the moment it opened. It is now a standing line, and
+	# when there is room under the ordinance it says what the room costs.
+	var levy = econ.get("levy", {})
+	if levy is Dictionary and int(levy.get("force_limit", 0)) > 0:
+		var l_army = int(levy.get("army_strength", 0))
+		var l_limit = int(levy.get("force_limit", 0))
+		var l_room = int(levy.get("headroom", 0))
+		var l_over = int(levy.get("over_by", 0))
+		bbcode += "  Establishment: " + _format_number(l_army) + " / " + _format_number(l_limit)
+		if l_over > 0:
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "](" + _format_number(l_over) + " over the ordinance)[/color]\n"
+		else:
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "](" + _format_number(l_room) + " under)[/color]\n"
+		if bool(levy.get("open", false)):
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]The depots are open: " \
+				+ _format_number(int(levy.get("infantry_amount", 0))) + " foot for " \
+				+ str(int(levy.get("infantry_price", 0))) + "g" \
+				+ "  (pool " + _format_number(int(levy.get("infantry_pool", 0))) + ")[/color]\n"
+
 	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
 	var net_sign = "+" if net >= 0 else ""
 	bbcode += "  Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color]\n"

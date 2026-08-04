@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,136 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,171 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
 >
 > **Last landed:** ~~**ROADMAP position 3 — THE COMPOSITION SLICE**~~ ✅ **August 4, 2026** (landing record `BUG_FIXES.md` §Quiet-France → *The composition slice*). The user scoped it to (a)–(c) and **declined the econ bundle**, routing that work to a new **position 3.5 "Spec review for econ"**. All ten quiet-France rows are now closed. Headlines: **PC-6 was filed as a copy defect and is a MECHANICS defect** — the flanking tracker keyed on the contested region alone, so two armies over one province pooled approaches and each was paid a coordination bonus for the *other's* march; **PC-3's balance half is fixed at the FORTIFY side, not the unfortify side** (`_check_threats` was the one fortify rung missing the engaged guard its three siblings carry, while P0 unfortifies unconditionally — self-cancelling by construction), so the reverted latch's measured cost is not re-paid; PC-4 makes battle-name uniqueness structural; PC-5 gates the solitude claim on a verified participant list; PC-8 keeps the gate solo-priced and lets Berthier name the muster; PC-9 closes all four copy/tray items. `test_pc3_pc9_composition.py` (34), **12-mutation sweep with one inert pin found and split**, M1–M7 + `BASELINE_SERIES` byte-identical (no re-record — and that is a fact about the harness, not the fix: it has no same-province two-sided battle and no repeated cornering). Before it: **PARSE-NEG** (Aug 3) · **the quiet-France played campaign** (Aug 3) · DEF-5 **NAVAL "The Wooden Wall"** NV-0..NV-11 + NV-V (Aug 2) · **AI Intent CLOSED** (Aug 1) · **Battle Diorama Tier A** (Jul 31, user-verified) · **row IGR build-complete** (Jul 31).
 >
@@ -56,9 +56,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > below the 6.5 target), which is what moved the composition slice ahead of the
 > shippable build. Position 3 (Aug 4) then closed every remaining PC row.
 >
-> **▶ POSITION 3.5 "Spec review for econ" was HELD August 4, 2026 — record =
-> `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md`, authoritative. ⚠ ONE USER RULING IS DUE:
-> §6's recommended slice.** Verdict: **half the Aug-3 recommendation ships, half should
+> **▶ POSITION 3.5 "Spec review for econ" — HELD *and BUILT* August 4, 2026. Record =
+> `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md` (§6.1 = the landing record), authoritative.
+> The user approved the §6 slice and the Q6 cut; both are landed. Zero new serialized
+> fields across the whole slice.** Verdict: **half the Aug-3 recommendation ships, half should
 > not be built.** #1(a) "The Levy is open" verified to the digit — build it. **#1(b)
 > `Marshal.readiness` REJECTED** — it duplicates `morale` (already 0.90×–1.50× vs
 > readiness's 0.90×–1.00×), the mechanic it wants **already ships end to end** (green
@@ -71,10 +72,24 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > moves in peacetime**, so today you can debase a corps by rebuilding it and never train
 > it back. **Q2's strength-share threat term CONFIRMED** (no military term exists in
 > `coalition.py`; France 31.5% of Europe's 600,000 at boot, so ~40% is boot-safe).
-> Q3/Q4/Q5 at the memo's defaults. **Q6: recommend an explicit CUT of EC-7 / ES-6**, its
-> intent re-homed to the supply-strain headline. Row EC-P3 stays the owner of the rest.
-> Position 2 (LLC + Steamworks) still has no entry condition and can start in parallel
-> today; position 4 is the shippable build.
+> Q3/Q4/Q5 at the memo's defaults. **Q6: EC-7 / ES-6 CUT** with its three reasons recorded
+> (`ECONOMY_REVISIT_SPEC.md` Track 3 + Appendix A), its intent re-homed to the new
+> `supply_strain` headline. **Landed: (a) the levy single source read by ledger + map
+> summary + region panel — ⊕ boot 189,000/130,000 over by 59,000 at 654g, turn-12 state
+> headroom 58,180 at 450g; the ledger had rendered the force limit ONLY inside the
+> over-limit warning, i.e. exactly while the gate was shut · `levy_open` as a STANDING
+> headline riding PC-7's cooldown, so the flip beat needs no serialized memory · (a2)
+> `military_establishment` threat, symmetric, Europe-scoped after the 19-region fixture
+> cancelled a −1 decay pin · (b′) drill +10 morale / +15 with a `training_ground` · (c)
+> the `supply_strain` headline at weight 72, naming whichever remedy is LEGAL.**
+> `test_ec_levy_and_camp.py` (33), 16-mutation sweep (one inert pin found and replaced),
+> Godot parse EXIT=0, HTTP-verified. **Found in passing and more serious than anything in
+> the slice: the AI-V assurance harness's seed pin was ESCAPABLE** — its fixtures are
+> module-scoped and pytest builds those BEFORE function-scoped autouse ones, so all four
+> sweep runs ran on the developer's ambient `SOVEREIGN_SEED`; `spawn_run` now pins it into
+> the child env (`TestSweepSeedIsNotEscapable`). **▶ NEXT = position 4, THE SHIPPABLE
+> BUILD.** Position 2 (LLC + Steamworks) still has no entry condition and can start in
+> parallel today. Row EC-P3 keeps the rest of the econ backlog.
 >
 > **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — nobody has ever produced a build of this game, and `deploy/` is pre-cutover and bundles **no world**; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >

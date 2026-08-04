@@ -5,7 +5,7 @@ Extracted from executor.py: _execute_economy, _execute_recruit, _execute_garriso
 _execute_build, _execute_build_watchtower, _execute_repair.
 Also includes _calculate_recruit_cost, _extract_building_type, and garrison constants.
 """
-from typing import Dict
+from typing import Dict, Optional
 from backend.models.world_state import (
     WorldState,
     INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
@@ -1467,3 +1467,73 @@ class EconomyExecutor:
             "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": int(region.war_damage * 100)}],
             "new_state": game_state
         }
+
+
+# ════════════════════════════════════════════════════════════════════
+# "THE LEVY IS OPEN" — the establishment as a first-class number
+# (econ spec review, `docs/audits/ECON_SPEC_REVIEW_2026_08_04.md` §6)
+# ════════════════════════════════════════════════════════════════════
+# The played campaign's central finding: ⊕ France boots **+59,000 over**
+# its own force limit, so the first ten turns teach that recruitment is
+# forbidden; by turn 12 it was UNDER the limit with a full pool, and
+# nothing ever said the gate had re-opened. The engine computed every
+# figure and told the player none of them — the ledger rendered the force
+# limit ONLY inside `if over_limit_surcharge > 0`, i.e. exactly when the
+# gate was shut, and hid it the moment it opened.
+#
+# This is the single source every surface reads. No new serialized field:
+# all of it is derived from figures that already existed.
+
+# The pricing vehicle. `_calculate_recruit_cost` touches no instance state
+# beyond class constants, so one throwaway sub-executor prices the levy
+# without standing up a whole CommandExecutor (which prints, and which
+# world_state cannot import at module scope anyway).
+_LEVY_PRICER: Optional['EconomyExecutor'] = None
+
+
+def _levy_pricer() -> 'EconomyExecutor':
+    global _LEVY_PRICER
+    if _LEVY_PRICER is None:
+        _LEVY_PRICER = EconomyExecutor(None)
+    return _LEVY_PRICER
+
+
+def get_levy_status(world, nation: str = None) -> dict:
+    """Establishment headroom, the live infantry price, and the pool.
+
+    Returns int-only fields (GR2). `force_limit` 0 means "no limit" — the
+    legacy world — and every consumer must treat that as "do not render",
+    exactly as the existing ledger sentinel does.
+    """
+    nation = nation or world.player_nation
+    limit = world.get_force_limit(nation) or 0
+    upkeep = world.calculate_turn_upkeep(nation)
+    total = int(upkeep.get("total_strength", 0))
+    pool = int(world.manpower_pools.get(nation, {}).get("infantry", 0))
+
+    price = 0
+    capital = world.get_nation_capital(nation)
+    region = world.get_region(capital) if capital else None
+    if region is not None:
+        price = int(_levy_pricer()._calculate_recruit_cost(
+            region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,
+            nation=nation))
+
+    headroom = max(0, limit - total) if limit else 0
+    return {
+        "force_limit": int(limit),
+        "army_strength": int(total),
+        # Positive only on ONE side each — the two are never both non-zero,
+        # so a renderer can branch on whichever it finds.
+        "headroom": int(headroom),
+        "over_by": int(max(0, total - limit)) if limit else 0,
+        "infantry_price": int(price),
+        "infantry_amount": int(INFANTRY_RECRUIT_AMOUNT),
+        "infantry_pool": int(pool),
+        # The gate is OPEN when there is room under the ordinance AND the
+        # depots can actually fill it. Both halves matter: the played
+        # campaign had headroom from turn 12 and a full pool, and was told
+        # about neither.
+        "open": bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
+                     and pool >= INFANTRY_RECRUIT_AMOUNT),
+    }

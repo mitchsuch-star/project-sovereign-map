@@ -138,10 +138,35 @@ def test_every_standing_class_has_escalation_copy():
         assert len(set(variants)) == len(variants), f"{cls} repeats itself"
 
 
+def _placeholders(text: str) -> set:
+    import string
+    return {name for _lit, name, _spec, _conv
+            in string.Formatter().parse(text) if name}
+
+
 def test_escalation_copy_is_formattable():
+    """Every escalation variant must be renderable from the fields its OWN
+    class supplies, plus the two the selector always injects.
+
+    Pin CONSCIOUSLY widened August 4, 2026 (econ spec review §6): the ladder
+    used to be able to substitute only {marshal} and {turns}, which silently
+    bounded what a standing class was allowed to say as it escalated — and
+    `levy_open` needs to name the headroom and the price, which is the whole
+    point of it. `_add` now carries the template's own arguments onto the
+    candidate. Asserting AGAINST the base template's placeholder set is
+    stronger than the old fixed-kwargs render: it catches a typo in either
+    direction, and it fails if a variant invents a field the class cannot
+    supply.
+    """
     for cls, variants in dispatch_mod._STANDING_ESCALATION.items():
+        base = dispatch_mod._HEADLINE_TEMPLATES[cls]
+        allowed = _placeholders(base) | {"marshal", "turns"}
         for text in variants:
-            rendered = text.format(marshal="Ney", turns=5)
+            used = _placeholders(text)
+            assert used <= allowed, (
+                f"{cls} escalation uses {sorted(used - allowed)}, which the "
+                f"class's own template never supplies")
+            rendered = text.format(**{name: "X" for name in used})
             assert "{" not in rendered, f"{cls} left a placeholder unfilled"
             assert rendered.startswith("Sire"), f"{cls} breaks Berthier's register"
 

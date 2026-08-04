@@ -254,6 +254,56 @@ instead of a second tax. **It is a defect fix, and it should ride with #1(a).**
 
 **Not in it:** `Marshal.readiness` · ES-4 · ES-7b · anything with a per-turn decay clock.
 
+### 6.1 BUILT — August 4, 2026 (user approved the §6 slice and the Q6 cut)
+
+All four landed, plus the EC-7 / ES-6 cut. **Zero new serialized fields across the
+whole slice.** Tests `tests/test_ec_levy_and_camp.py` (33); **16-mutation sweep, one
+inert pin found and replaced**; suite 16,136 → **16,171 / 3**; ruff clean; corpus
+514/514; Godot parse harness EXIT=0 (4 `.gd` touched); live-verified over HTTP on a
+fresh backend.
+
+- **(a) The Levy is Open.** One source, `economy_executor.get_levy_status`, read by
+  the ledger, the map summary and the region panel. ⊕ Boot: 189,000 / 130,000, **over
+  by 59,000**, gate shut, price **654** (the over-limit multiplier, shown = applied).
+  ⊕ At the played campaign's turn-12 state: headroom 58,180, gate **open**, price
+  **450g per 10,000 foot at Paris** — the memo's own figure, quoted from the function
+  that charges it. **The defect was worse than filed:** `strategic_ledger.gd` rendered
+  the force limit only inside `if over_limit_surcharge > 0`, so the number appeared
+  exactly while the gate was shut and vanished the moment it opened. Now a standing
+  Establishment line.
+- **The flip beat needs no serialized memory.** `levy_open` is a STANDING headline
+  class (weight 54) riding PC-7's existing cooldown and escalation ladder — better
+  than the memo's once-per-flip design, because the offer keeps being reported while
+  it stands, and it cannot become the next stuck record. The ladder was generalised to
+  render each class's own template fields; that pin was widened consciously.
+- **(a2) The strength-share threat term.** `military_establishment`, symmetric, ⊕
+  boot-zero at 31.5% of Europe's 600,000. Europe-scoped (N1) after the first cut
+  turned `test_audit_part2::test_r1_base_decay_of_1` red by exactly cancelling that
+  test's −1 decay on the 19-region fixture.
+- **(b′) Drill restores morale.** `+10`, `+15` with a `training_ground`, capped at
+  the existing 100, through `get_combat_effectiveness`. Single source across both
+  completion arms. The one-way axis is closed.
+- **(c) The supply-strain headline.** Weight 72 — between a lost province and a war
+  declaration. Two consecutive turns of loss; names the stack, the excess, the
+  cumulative dead, and **whichever remedy is legal**. Also made STANDING, so the
+  famine cannot simply replace the household nag as the sentence that repeats.
+
+**A pre-existing defect found in passing, and it is the more serious finding.** The
+AI-V assurance harness's seed pin was **escapable**: every fixture in
+`test_ai_intent_assurance.py` is module-scoped, and pytest sets higher-scoped fixtures
+up **before** function-scoped autouse ones — so all four sweep runs were built outside
+conftest's `SOVEREIGN_SEED=historical` pin and inherited the developer's shell. The
+symptom is the worst kind: `test_pair_peace_is_exhaustion_driven` flipped on this
+slice while the full suite stayed green, because the *seed* differed between the two
+runs, not the behaviour. `spawn_run` now writes the seed it was asked for into the
+child environment, so `--seed` is authoritative; the file passes under a bare shell,
+the intended pin, and a deliberately hostile `SOVEREIGN_SEED=austerlitz`. Pinned two
+ways in `TestSweepSeedIsNotEscapable`, mutation-checked.
+
+**M1–M7 and `BASELINE_SERIES` byte-identical, no re-record** — and, as with the
+composition slice, that is a fact about the harness: the ambient trace never crosses
+the 40% share gate and its marshals do not complete drills.
+
 **Falsifiable acceptance test**, adapting the memo's: *in a 40-turn campaign where France goes
 passive at turn 5 — (i) France's strength at turn 40 is ≥60% of its turn-5 strength, **or** the
 transcript contains a turn on which the player declined a stated levy offer with headroom and

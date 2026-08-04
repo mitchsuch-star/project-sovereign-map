@@ -640,3 +640,49 @@ class TestBothSidesKits:
         for key in ("attackers", "defenders", "side_by_nation",
                     "participant_meta", "ended_turn", "end_reason"):
             assert key in instance
+
+
+class TestSweepSeedIsNotEscapable:
+    """Found August 4, 2026, during the EC-L slice.
+
+    Every fixture in this file is MODULE-scoped, and pytest sets higher-scoped
+    fixtures up BEFORE function-scoped autouse ones — so `hist1` and its
+    siblings were built OUTSIDE conftest's `SOVEREIGN_SEED=historical` pin and
+    inherited whatever the developer's shell carried. The symptom is the worst
+    kind: a DoD assertion that flips on an unrelated change while the full
+    suite stays green, because the seed differed between the two runs rather
+    than the behaviour. `spawn_run` now writes the seed it was ASKED for into
+    the child's environment, so `--seed` is authoritative.
+    """
+
+    def test_spawn_run_pins_the_seed_into_the_child_env(self, monkeypatch):
+        captured = {}
+
+        class _Proc:
+            returncode = 0
+            stdout = 'PAYLOAD={"derived": {}, "meta": {}}'
+            stderr = ""
+
+        def _fake_run(args, **kwargs):
+            captured["env"] = kwargs.get("env") or {}
+            captured["args"] = args
+            return _Proc()
+
+        monkeypatch.setattr(sweep.subprocess, "run", _fake_run)
+        monkeypatch.setenv("SOVEREIGN_SEED", "a_stale_developer_seed")
+        sweep.spawn_run("ulm", sweep.AMBIENT_K, 4)
+
+        assert captured["env"].get("SOVEREIGN_SEED") == "ulm"
+        assert "--seed" in captured["args"]
+        assert captured["args"][captured["args"].index("--seed") + 1] == "ulm"
+
+    def test_the_ambient_seed_cannot_change_what_the_pins_measure(self,
+                                                                  monkeypatch):
+        """The falsifiable half: the digest must not depend on the shell."""
+        monkeypatch.setenv("SOVEREIGN_SEED", "austerlitz")
+        hostile = sweep.spawn_run("historical", sweep.AMBIENT_K, 12)
+        monkeypatch.delenv("SOVEREIGN_SEED", raising=False)
+        bare = sweep.spawn_run("historical", sweep.AMBIENT_K, 12)
+        assert (hostile["derived"]["beats"] == bare["derived"]["beats"])
+        assert (len(hostile["derived"]["pair_peaces"])
+                == len(bare["derived"]["pair_peaces"]))

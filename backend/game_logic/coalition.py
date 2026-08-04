@@ -698,6 +698,72 @@ def describe_hegemon_bloc(world, hegemon: Optional[str], share: float) -> Dict:
 # §2a. THREAT ACCUMULATION
 # ════════════════════════════════════════════════════════════════
 
+# Econ spec review Q2 (`docs/audits/ECON_SPEC_REVIEW_2026_08_04.md` §4):
+# share of Europe's standing men above which a power's ARMY, not its map,
+# alarms the other courts. Blessed defaults, in-band tunable.
+#   ⊕ Boot shares measured Aug 4, 2026 on the shipped 1805 board:
+#     France 31.5% · Austria 21.0% · Prussia 13.0% · Russia 11.7% · rest <6%.
+#   The 0.40 gate therefore accrues NOTHING at boot for anyone — a pin.
+ESTABLISHMENT_THREAT_SHARE = 0.40      # band 0.35-0.50
+ESTABLISHMENT_THREAT_SHARE_HIGH = 0.55  # band 0.50-0.65
+ESTABLISHMENT_MIN_EUROPE_STRENGTH = 100_000  # below this the ratio is noise
+
+
+def _standing_strength_by_nation(world) -> Dict[str, int]:
+    """Live fielded strength per nation — one pass over the marshal roster.
+
+    Deliberately NOT a region scan (GR8), and deliberately the LIVE figure
+    rather than a force limit: this is what a foreign court could count.
+    Captured marshals sit at the captor's capital at strength 0 and so drop
+    out for free.
+    """
+    totals: Dict[str, int] = {}
+    for m in world.marshals.values():
+        s = int(getattr(m, "strength", 0) or 0)
+        if s <= 0:
+            continue
+        totals[m.nation] = totals.get(m.nation, 0) + s
+    return totals
+
+
+def _establishment_threat(world, france: str) -> None:
+    """Passive threat from the size of a nation's ARMY (econ review Q2).
+
+    Symmetric across every active non-vassal court — a vassal's corps are
+    its lord's sphere, the same carve-out the territorial arm above makes,
+    and a vassal's threat slot could never form a coalition anyway.
+
+    Europe-scoped (N1), like every other economy constant in this project.
+    The 19-region legacy fixture is four French corps against seven enemy
+    ones, so a SHARE gate trips there immediately and would perturb pins
+    that have nothing to do with this mechanic — the first run of it turned
+    `test_audit_part2::test_r1_base_decay_of_1` red by exactly cancelling
+    that test's −1 decay. The measurement this is derived from is the 1805
+    board's, and so is the mechanic.
+    """
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return
+    totals = _standing_strength_by_nation(world)
+    europe = sum(totals.values())
+    if europe < ESTABLISHMENT_MIN_EUROPE_STRENGTH:
+        return
+    vassal_set = set(getattr(world, "vassals", {}).keys())
+    for nation, strength in totals.items():
+        if nation in vassal_set:
+            continue
+        share = strength / europe
+        if share > ESTABLISHMENT_THREAT_SHARE_HIGH:
+            amount = 2
+        elif share > ESTABLISHMENT_THREAT_SHARE:
+            amount = 1
+        else:
+            continue
+        if nation == france:
+            add_threat(world, amount, "military_establishment")
+        else:
+            add_threat(world, amount, "military_establishment", target=nation)
+
+
 def add_threat(world, amount: int, source_key: str, target: str = None) -> int:
     """Add threat from an aggressive action (§2a).
 
@@ -1898,6 +1964,22 @@ def process_coalition_turn(world) -> List[Dict]:
             add_threat(world, int(increment), "hegemony_passive")
         else:
             add_threat(world, int(increment), "hegemony_passive", target=hegemon)
+
+    # ────────── 1c. The military establishment (econ spec review, Q2) ──────
+    # Every passive threat contributor above reads TERRITORY. Measured at the
+    # August-4 econ spec review: a power that grows stronger without growing
+    # bigger was invisible to Europe — which made "stop conquering, re-arm,
+    # let threat decay, strike a Europe that stopped watching" a dominant
+    # strategy, and it becomes reachable the moment "The Levy is Open" tells
+    # the player the gate has re-opened. Armies are the one thing every court
+    # in 1805 could actually count.
+    #
+    # Boot-zero by construction and symmetric (GR5): France stands at 31.5%
+    # of Europe's 600,000 standing men, so nobody accrues at boot. GR8-safe —
+    # one pass over `world.marshals` (~21 entries), never over regions. No new
+    # serialized field: `add_threat` keys by source string and `threat_by_target`
+    # has per-nation slots since AI-4a step 5.
+    _establishment_threat(world, france)
 
     # ────────── 2. Threat decay (§2b) ──────────
     # AI-4a step 5, the four standing contributors — the written decisions

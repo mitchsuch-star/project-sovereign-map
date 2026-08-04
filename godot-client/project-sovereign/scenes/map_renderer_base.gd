@@ -204,6 +204,9 @@ var region_visibility := {}
 var region_fogged_forces := {}
 var region_garrisons := {}
 var region_full_data := {}
+# Nation-level establishment status (econ spec review §6). Read by the region
+# panel's Recruit row; empty on the legacy world, where there is no limit.
+var levy_status := {}
 
 var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal := {}
@@ -2753,6 +2756,11 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 	_rebuild_dynamic_nodes()
 	_update_war_table_pieces()
 	queue_redraw()
+
+
+func update_levy(data: Dictionary) -> void:
+	"""Store the nation-level establishment status (econ spec review §6)."""
+	levy_status = data if data != null else {}
 
 
 func update_all_regions(map_data: Dictionary):

@@ -52,6 +52,10 @@ _THREAT_SOURCE_LABELS = {
     "region_control_80": "Controls 80%+ of map",
     "region_control_70": "Controls 70%+ of map",
     "region_control_60": "Controls 60%+ of map",
+    # Econ spec review Q2: the first passive contributor that reads the ARMY
+    # rather than the map. Named so the player can see that re-arming is
+    # visible to Europe — it is the counterweight to "The Levy is Open".
+    "military_establishment": "Keeps Europe's largest army",
     # NA-3 §5.8: the post-peace grudge names itself on the threat panel
     "agenda_grudge": "Denied national designs",
     # NA-5 §8: a defied ultimatum names itself too

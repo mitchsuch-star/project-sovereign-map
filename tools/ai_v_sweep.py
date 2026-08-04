@@ -893,6 +893,16 @@ def spawn_run(seed: str, ambient_base: int, turns: int,
     env.pop("SOVEREIGN_SCENARIO", None)
     env.pop("SOVEREIGN_MAP", None)
     env.pop("PYTHONIOENCODING", None)  # the cp1252 subprocess trap
+    # `--seed` is AUTHORITATIVE. Found August 4, 2026 during the EC-L slice:
+    # the assurance fixtures (`test_ai_intent_assurance.py`) are MODULE-scoped,
+    # and pytest sets higher-scoped fixtures up BEFORE function-scoped autouse
+    # ones — so they ran outside conftest's `SOVEREIGN_SEED=historical` pin and
+    # inherited whatever the developer's shell happened to carry. Every sweep
+    # pin in that file was therefore running on an unpinned seed, and the
+    # symptom is a DoD assertion that flips on an unrelated change while the
+    # full suite stays green. The seed the caller ASKED for now goes into the
+    # child's environment too, so the child cannot read a stale ambient one.
+    env["SOVEREIGN_SEED"] = str(seed)
     args = [sys.executable, str(Path(__file__).resolve()), "--run",
             "--seed", seed, "--ambient-base", str(ambient_base),
             "--turns", str(turns), "--emit"]

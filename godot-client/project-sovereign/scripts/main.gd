@@ -688,6 +688,11 @@ func _update_map_from_game_state(game_state: Dictionary) -> void:
 	map_area.update_all_regions(game_state.map_data)
 	if map_area.has_method("update_naval_overlay"):
 		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
+	# "The Levy is Open" (econ spec review §6): nation-level, so it rides the
+	# summary's top level rather than every province — the region panel reads
+	# it to say what the establishment allows without a per-region scan.
+	if map_area.has_method("update_levy"):
+		map_area.update_levy(game_state.get("levy", {}))
 
 
 func _try_finalize_initial_map_bootstrap() -> void:

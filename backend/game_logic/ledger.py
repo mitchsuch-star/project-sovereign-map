@@ -211,6 +211,12 @@ def _build_territories(world, player: str) -> list:
 # ECONOMY SECTION
 # ============================================================================
 
+def _levy_block(world) -> dict:
+    """Lazy door onto the single source (see `economy_executor.get_levy_status`)."""
+    from backend.commands.economy_executor import get_levy_status
+    return get_levy_status(world)
+
+
 def _build_economy(world, player: str) -> dict:
     """Build economy section."""
     income_data = world.calculate_turn_income(player)
@@ -387,6 +393,12 @@ def _build_economy(world, player: str) -> dict:
         "force_limit": int(upkeep_data.get("force_limit") or 0),
         "over_force_limit": bool(upkeep_data.get("over_limit", False)),
         "army_strength_total": int(upkeep_data.get("total_strength", 0)),
+        # "The Levy is Open" (econ spec review §6): headroom, the live price
+        # and the pool, from the SAME source the map summary and the region
+        # panel read. Before this the force limit reached the ledger but was
+        # rendered only inside the over-limit warning — visible exactly when
+        # the gate was shut, invisible the moment it opened.
+        "levy": _levy_block(world),
         "net": net,
         "bankruptcy_turns": int(world.bankruptcy_turns),
         "construction_queue": construction_queue,
