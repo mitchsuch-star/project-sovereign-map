@@ -422,8 +422,14 @@ def _assess_situation(world) -> Dict:
 
     # ── The coalition's intent (the posture, surfaced at last) ──
     threat = int(getattr(world, "threat_level", 0))
-    tier = str(get_threat_tier(threat))
     active_coalition = getattr(world, "active_coalition", None)
+    # CA8-18: Talleyrand does not call a standing coalition "Brewing".
+    _player = getattr(world, "player_nation", "France")
+    tier = str(get_threat_tier(
+        threat,
+        coalition_formed=bool(
+            active_coalition
+            and (active_coalition.get("target_nation") or _player) == _player)))
     if active_coalition:
         posture = str(active_coalition.get("strategic_posture")
                       or get_coalition_posture(world))

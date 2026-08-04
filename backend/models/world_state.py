@@ -296,11 +296,22 @@ def ai_prefers_plunder(marshal, world, region_name: str) -> bool:
     own-soil modal is untouched — asking the player is a deliberate choice;
     an AI looting itself is not a choice anyone would make.
     """
-    starting = (getattr(world, "_starting_controllers", None)
-                or get_starting_controllers())
-    if starting.get(region_name) == marshal.nation:
+    if is_own_soil_recapture(world, region_name, marshal.nation):
         return False
     return (getattr(marshal, "personality", None) or "") == "aggressive"
+
+
+def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
+    """True when `nation` is retaking soil that opened the campaign as its own.
+
+    That is a LIBERATION, not a conquest — and both sides need to know it.
+    IGR-E's review used this test inline to stop an AI sacking its own
+    homeland; CA8-13 (creative audit, Aug 4 2026) is the player half of the
+    same question, so it is now one predicate with one home.
+    """
+    starting = (getattr(world, "_starting_controllers", None)
+                or get_starting_controllers())
+    return starting.get(region_name) == nation
 
 
 def apply_plunder_effects(world, region, receiving_nation: str) -> int:
@@ -3523,6 +3534,13 @@ class WorldState:
         self.capture_region(region_name, marshal.nation)
 
         if marshal.nation == self.player_nation:
+            if is_own_soil_recapture(self, region_name, marshal.nation):
+                # CA8-13: no question is asked about liberating France.
+                region.stability = 25
+                region.plundered = False
+                self._last_occupation_capture_choice = "secure"
+                return (f" {region_name} is ours again — {marshal.name} "
+                        f"restores the Imperial administration.")
             self.pending_capture_choice = build_capture_choice(
                 self, region, marshal.name, old_controller)
             return (f" {region_name} captured by {marshal.nation}! Plunder it "
@@ -10468,9 +10486,11 @@ class WorldState:
                         enemy.retreat_recovery = 0
                         enemy.retreated_this_turn = True
                         forced_retreat_msg = f" {enemy.name}'s broken army flees to {retreat_to}!"
+                        # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
-                                        "from": old_enemy_loc, "to": retreat_to})
+                                        "from": old_enemy_loc, "to": retreat_to,
+                                        "forced": True})
                     else:
                         # Surrounded — broken army, survivors flee to safe spawn (V2-44, V2-65)
                         import random as _rng
@@ -10505,9 +10525,11 @@ class WorldState:
                         marshal.retreated_this_turn = True
                         marshal.clear_combat_transient_state()
                         forced_retreat_msg += f" {marshal.name}'s broken army flees to {retreat_to}!"
+                        # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
-                                        "from": old_atk_loc, "to": retreat_to})
+                                        "from": old_atk_loc, "to": retreat_to,
+                                        "forced": True})
                     else:
                         # V2-44: No valid retreat — marshal is broken (zombie prevention)
                         # V2-65: Safe spawn — capital may be enemy-occupied
@@ -10976,10 +10998,14 @@ class WorldState:
                     retreat_events.append({
                         "type": "retreat",
                         "marshal": marshal.name,
+                        # CA8-5: a morale collapse is a rout, and the dispatch
+                        # needs the nation to know whose corps broke.
+                        "nation": getattr(marshal, "nation", ""),
                         "from": old_location,
                         "to": retreat_to,
                         "reason": f"Morale: {marshal.morale}%, Strength: {marshal.strength:,}",
-                        "vulnerable": True
+                        "vulnerable": True,
+                        "forced": True,
                     })
 
                     debug_print(f"🏃 RETREAT: {marshal.name} flees {old_location} → {retreat_to}")

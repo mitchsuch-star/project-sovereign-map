@@ -690,6 +690,74 @@ def _interrupt_choice_from_text(cmd_lower: str, options) -> Optional[str]:
     return None
 
 
+def _collapse_enemy_phase_composition(cleaned_phase: dict) -> dict:
+    """PC-3/PC-7 composition collapse, plus CA8-15's empty-nation prune.
+
+    Extracted from `_collapse_enemy_move_chains` by CA8-15 (creative audit,
+    Aug 4 2026) so the prune is directly testable — the defect it fixes is
+    invisible from the endpoint unless a nation's whole visible phase
+    happens to collapse to nothing.
+    """
+    for nation_data in cleaned_phase.get("nations", {}).values():
+        actions = nation_data.get("actions", [])
+
+        def _verb(entry):
+            return (entry.get("ai_action") or {}).get("action")
+
+        def _who(entry):
+            return (entry.get("ai_action") or {}).get("marshal")
+
+        def _undone_fortify(index, actions=actions) -> int:
+            """Index of the unfortify that cancels actions[index], else -1.
+            Only the marshal's OWN next action counts — other marshals'
+            entries interleave freely and break nothing."""
+            name = _who(actions[index])
+            if not name:
+                return -1
+            for ahead in range(index + 1, len(actions)):
+                if _who(actions[ahead]) != name:
+                    continue
+                return ahead if _verb(actions[ahead]) == "unfortify" else -1
+            return -1
+
+        dropped, seen_waits, kept = set(), set(), []
+        for index, action in enumerate(actions):
+            if index in dropped:
+                continue
+            if _verb(action) == "wait":
+                key = (_who(action), (action.get("message") or "").strip())
+                if key in seen_waits:
+                    continue
+                seen_waits.add(key)
+            if _verb(action) == "fortify":
+                cancels = _undone_fortify(index)
+                if cancels != -1:
+                    dropped.add(cancels)
+                    continue
+            kept.append(action)
+        nation_data["actions"] = kept
+
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-15: PRUNE A NATION THIS PASS EMPTIED.
+    #
+    # The fog filter is innocent — `_filter_enemy_phase_by_visibility`'s
+    # `if filtered_actions:` already drops nations that filter to nothing.
+    # The collapse above runs AFTER it and had no such guard, and PC-3's
+    # fortify->unfortify arm removes BOTH entries, so a nation whose whole
+    # visible phase was one cancelled fortify kept its heading and lost its
+    # body. Godot prints the header before it touches the list
+    # (enemy_phase_dialog.gd:75-89), so a great power was announced by name
+    # in the enemy phase and then said nothing — on the one screen whose
+    # entire job is to report what Europe did.
+    #
+    # Self-inflicted by the composition slice, and fixed at the same layer.
+    # ────────────────────────────────────────────────────────────────────
+    nations = cleaned_phase.get("nations", {})
+    for nation in [n for n, d in nations.items() if not d.get("actions")]:
+        del nations[nation]
+    return cleaned_phase
+
+
 def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
     """PT-D4 (Aug-1 played-world re-measure): a corps legally chains 3-4
     moves per enemy phase (symmetric AP), but 3-4 separate "moves to X"
@@ -791,44 +859,7 @@ def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
     # stagnation counter stay OPEN as a balance row with the experiment
     # already done; what the player READS is fixed here, at the layer
     # PT-D4 established for exactly this.
-    for nation_data in cleaned_phase.get("nations", {}).values():
-        actions = nation_data.get("actions", [])
-
-        def _verb(entry):
-            return (entry.get("ai_action") or {}).get("action")
-
-        def _who(entry):
-            return (entry.get("ai_action") or {}).get("marshal")
-
-        def _undone_fortify(index) -> int:
-            """Index of the unfortify that cancels actions[index], else -1.
-            Only the marshal's OWN next action counts — other marshals'
-            entries interleave freely and break nothing."""
-            name = _who(actions[index])
-            if not name:
-                return -1
-            for ahead in range(index + 1, len(actions)):
-                if _who(actions[ahead]) != name:
-                    continue
-                return ahead if _verb(actions[ahead]) == "unfortify" else -1
-            return -1
-
-        dropped, seen_waits, kept = set(), set(), []
-        for index, action in enumerate(actions):
-            if index in dropped:
-                continue
-            if _verb(action) == "wait":
-                key = (_who(action), (action.get("message") or "").strip())
-                if key in seen_waits:
-                    continue
-                seen_waits.add(key)
-            if _verb(action) == "fortify":
-                cancels = _undone_fortify(index)
-                if cancels != -1:
-                    dropped.add(cancels)
-                    continue
-            kept.append(action)
-        nation_data["actions"] = kept
+    _collapse_enemy_phase_composition(cleaned_phase)
 
     # entries actually shown.
     total = 0

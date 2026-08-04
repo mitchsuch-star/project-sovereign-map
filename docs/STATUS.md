@@ -4,6 +4,104 @@
 
 ## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
 
+> ### ✅ CA8 SWEEP 1 — LANDED August 4, 2026 (same day as the audit)
+>
+> **User direction: *"make creative audit fixes chunk as much as you can in a work
+> session."*** Landing record = **`BUG_FIXES.md` §Creative Audit** (authoritative).
+>
+> **10 of the 28 routed rows fixed** — every P1 that is code-proven and gate-free
+> (**CA8-1, CA8-2, CA8-4, CA8-5**), four P2s (**CA8-13, CA8-14, CA8-15, CA8-18**) and two
+> P3s (**CA8-22, CA8-23**). `tests/test_creative_audit_ca8_2026_08_04.py` (38).
+> Suite 16,171 → **16,209 / 3 skipped**; ruff clean; **M1–M7 and `BASELINE_SERIES`
+> byte-identical without re-record**; zero `.gd` touched.
+>
+> **The headline is CA8-1, the audit's own §8 recommendation.** The defending army now
+> reports its massed strength and its allies' dead — both lines had existed only inside
+> `for r in attacker_reinforcements:` — and the coordinated casualty figure returns to the
+> whole-army total the campaign log prints. That is a **conscious flip of F1a** (Jul 6,
+> 2026), which had rewritten the corps total *down* to the lead's private share and so
+> created the 15× disagreement between the terminal and the log. Both readings were right
+> about the defect and wrong about the fix: the number was never the problem, the
+> possessive was — the line now names the *army*.
+>
+> **Honest note on byte-identity:** M1–M7 and `BASELINE_SERIES` are unchanged even though
+> **CA8-14 changes AI behaviour** (a marshal that routed this turn no longer annexes the
+> tile it fled into). That is a fact about the harness, not evidence the fix is inert —
+> the ambient run never puts a retreated marshal alone on undefended enemy soil. The
+> behaviour is pinned directly instead, in both directions.
+>
+> **A 20-mutation sweep found two inert pins and one invalid mutation**, all three
+> recorded rather than quietly re-run: CA8-2's recency fixture put one attrition turn
+> outside the scan window (so the filter was never exercised), CA8-4's test asserted the
+> enemy was named but not that its strength was stated — which was the entire finding —
+> and the apparent third survivor turned out to be a mutation that restored code the
+> zero-overage guard makes unreachable. Final: **18/18 valid mutations killed.**
+>
+> **Deliberately NOT built:** CA8-3 and CA8-27 are held at gate **CA8-D2** and CA8-26 at
+> **CA8-D6** — all three move blessed arithmetic or a commented design decision.
+> CA8-27 in particular is a one-line `or`-split, which is exactly why it should go
+> through its gate rather than ride a bug sweep.
+
+> ### 🔍 CREATIVE AUDIT — HELD August 4, 2026 (after position 3.5; queue NOT re-routed)
+>
+> **User direction: *"play the gam,e do a creative audit"*.** Record =
+> **`docs/audits/CREATIVE_AUDIT_2026_08_04.md`** (authoritative). Method: a **17-turn live
+> France/1805 campaign** driven over HTTP against the shipped board (`LLM_MODE=anthropic`,
+> `SOVEREIGN_SEED=historical`, master `e450b02`), then an **80-agent find→refute fleet**
+> (14.4M tokens, 0 errors) that verified every candidate against the code.
+>
+> **The campaign:** the Ulm concentration; Mack's army destroyed turn 3; Rhineland lost to
+> Austria and retaken; a jealous Massena dragging four corps into the Alps on his own
+> initiative; Ney crowned, ennobled Duke of Carniola, then broken at Bohemia and stripped of
+> the duchy by Austria; Vienna stormed turn 15 and Austria eliminated from the war.
+>
+> **Verdict — every re-scored pillar moved DOWN or held flat, and nothing regressed.**
+> combat 8.0→**6.5** · marshal drama 8.5→**7.5** · economy 7.5→**6.5** · diplomacy 7.0→**6.5** ·
+> narration **6.0 flat** (still under its 6.5 target) · command 7.5→**7.0** · aliveness 7.5→**7.0**.
+> Directional ≈**6.9** against ≈7.4 (Jul 25). Every scorer independently attributed the drop to
+> **campaign LENGTH** — the failure modes are accumulation failures a 9-turn pass cannot load.
+> The composition slice **worked**: all six PC rows verify live in the transcript (zero duplicate
+> hold lines, zero fortify/unfortify pairs, forced marches collapsed, battle names unique and
+> escalating). It fixed a layer below the problem.
+>
+> **The one-line verdict:** *France won every battle it fought, lost 83,000 men to hunger, ended
+> 44× richer than it started, and could not end the war — and the game narrated none of those
+> four facts as connected to each other.*
+>
+> **Routed, not built:** 28 defect rows → `BUG_FIXES.md` §Creative Audit (ALL OPEN);
+> 6 design gates → `DESIGN_REFINEMENT.md` §Creative Audit (CA8-D1..D6, each with a named owner
+> per GR9). **No production code was touched.**
+>
+> **Three code-proven P1s, unblocked (no gate, no new state):** **CA8-1** two shipped surfaces
+> report French casualties for the same battle and disagree by up to **15×** (`Ney 13` vs `197`),
+> because the massed-strength and ally-casualty lines sit inside `for r in attacker_reinforcements:`
+> — attacker-only, no defender equivalent in the file · **CA8-2** the `supply_strain` headline is
+> wrong four independent ways on the mechanic that killed ~43,000 men, led **6 of 12** dispatches,
+> and prescribes a depot the executor then refuses to build · **CA8-5** headline and both sub-beats
+> can be the same marshal/province/phase three times, and `own_broken` (weight 90, the right
+> sentence) is **structurally unreachable** in ordinary play.
+>
+> **Two design calls that explain the scores:** **CA8-26** — `HEADLINE_WEIGHTS` holds 15 classes
+> from 17 `_add()` sites and **not one is a French success**; 14 of 14 headlines this campaign were
+> misfortunes, and on the turn France stormed Vienna *and* Austria was eliminated the lead was
+> *"stand more men over what Bohemia can feed"*. The good news is not missing, it is **mis-filed**
+> in a notification bar where 8 of 20 entries are the same "grows bitter" nag. **CA8-27** —
+> `_build_base_terms:3381` reaches its *"when losing"* territory-cession branch on `relation < -50`
+> alone, and every war boots at −80/−90; holding Vienna at war score **+2**, Talleyrand drafted
+> `France cedes Nivernais` under *"terms appropriate to the current military situation"*.
+>
+> **⚠ Method caveat that governs every copy claim:** the shipped client does **not** read the
+> enemy-action `message` field — `enemy_phase_dialog.gd` rebuilds each line from `action_type`,
+> and six verbs fall through to raw snake_case (**measured: 12% of this campaign's AI actions**,
+> e.g. `ArchdukeCharles grant pension`). This invalidated 3 candidate findings and narrowed 2.
+> **13 of 59 candidates were killed by the refuters and 4 more narrowed**, including six of my own.
+>
+> **▶ ONE USER DECISION IS DUE — does any of this preempt position 4?** The audit deliberately did
+> not decide. §8 argues **CA8-1** is the highest-leverage change available and needs no gate; §2a
+> records that two independent scorers converged instead on the **per-nation fog fallback**
+> (CA8-15), one edit raising two pillars' floors. Both are session-sized; neither blocks a build.
+> **Default if unruled: proceed to position 4, sweep the CA8 rows at position 13.**
+
 > ### ✅ POSITION 3.5 — THE ECON SPEC REVIEW, HELD AND BUILT (August 4, 2026)
 >
 > **User direction: *"review the spec, see if this is truly the best way to fix

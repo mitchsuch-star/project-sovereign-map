@@ -282,7 +282,14 @@ class TestPlayerCaptureTriggersPopup:
     def test_player_undefended_capture_sets_popup(self):
         world, gs = make_game_state()
         executor = CommandExecutor()
-        # Lyon controlled by enemy, no enemy marshals there
+        # Lyon controlled by enemy, no enemy marshals there.
+        # CA8-13 (creative audit, Aug 4 2026): liberating France's OWN
+        # starting soil asks no plunder question, and Lyon is French
+        # homeland in this fixture — so the province must be declared
+        # foreign for this to be the conquest the test means to exercise.
+        from backend.models.region import get_starting_controllers
+        world._starting_controllers = {
+            **get_starting_controllers(), "Lyon": "Britain"}
         world.regions["Lyon"].controller = "Britain"
         for m in list(world.marshals.values()):
             if m.location == "Lyon":

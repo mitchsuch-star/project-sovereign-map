@@ -779,19 +779,7 @@ class CombatExecutor:
         nation = marshal.nation
 
         # Fog-banded target strength (player's own intel of that region).
-        intel = world.intel.get(battle_region)
-        target_strength_display = "strength unknown"
-        if intel is not None:
-            if intel.visibility == FULL:
-                target_strength_display = f"{int(enemy_marshal.strength):,} men"
-            else:
-                for km in intel.known_marshals:
-                    if km.get("name") == enemy_marshal.name and km.get("band"):
-                        target_strength_display = km["band"]
-                        break
-                else:
-                    if intel.strength_band and intel.strength_band != "no forces":
-                        target_strength_display = intel.strength_band
+        target_strength_display = self._fog_banded_strength(enemy_marshal, world)
 
         rows = []
         shared_casualty_note = ""
@@ -917,9 +905,49 @@ class CombatExecutor:
         from backend.game_logic.battle_report import _join_names
         names = _join_names([m.name for m in will_join])
         joint = int(marshal.strength + committed)
+        # ════════════════════════════════════════════════════════════════
+        # CA8-4 (creative audit, Aug 4 2026): this is the game's FIRST
+        # modal, and it inverted its own meaning. It read
+        #   "...would answer the guns — 82,072 in all, against 24,000 of
+        #    Ney's own."
+        # Read cold, "against" says the ENEMY has 82,072 — and the
+        # preceding clause, the marshal's own "Mack stands dug in and in
+        # greater strength", confirms the misreading. Both numbers were
+        # French, and Mack's was never printed at all.
+        #
+        # The readable form already existed one surface away — the muster
+        # preview's "Massena (21,606; 48,765 with the muster committed) vs
+        # ArchdukeJohn (16,543 men)". This now uses it, and takes the
+        # enemy figure through the SAME fog-banded helper the preview does,
+        # so a fogged enemy reads as its band and never as a leak.
+        # ════════════════════════════════════════════════════════════════
+        target_display = self._fog_banded_strength(enemy, world)
         return (f" Berthier adds: {names} would answer the guns — "
-                f"{joint:,} in all, against {int(marshal.strength):,} of "
-                f"{marshal.name}'s own.")
+                f"{marshal.name} {int(marshal.strength):,}, "
+                f"{joint:,} with the muster committed, against "
+                f"{enemy.name} ({target_display}).")
+
+    @staticmethod
+    def _fog_banded_strength(enemy_marshal, world) -> str:
+        """Player-honest strength display for an enemy marshal.
+
+        FULL visibility gives the exact count; anything less gives the
+        intel band ("substantial force"), and no intel at all gives
+        "strength unknown". Single source (CA8-4) so the bad-odds
+        interrupt and the muster preview cannot drift or leak.
+        """
+        from backend.models.intel import FULL
+        intel = world.intel.get(enemy_marshal.location) if world else None
+        if intel is None:
+            return "strength unknown"
+        if intel.visibility == FULL:
+            return f"{int(enemy_marshal.strength):,} men"
+        for km in intel.known_marshals:
+            if km.get("name") == enemy_marshal.name and km.get("band"):
+                return km["band"]
+        if intel.strength_band and intel.strength_band != "no forces":
+            return intel.strength_band
+        return "strength unknown"
 
     def _format_muster_lines(self, preview) -> str:
         """Compact text render of the muster block (1 line per marshal)."""
@@ -1348,15 +1376,39 @@ class CombatExecutor:
     @staticmethod
     def _rewrite_primary_casualties(description, atk_name, atk_raw, atk_share,
                                     def_name, def_raw, def_share):
-        """Rewrite a coordinated-battle description's casualty numbers from the
-        whole-corps raw total to each primary marshal's actual distributed share.
+        """Attribute a coordinated battle's casualties to the ARMY, not the man.
 
         resolve_battle formats the casualty line before the caller distributes
-        casualties across participants, so it names the primary marshal with the
-        entire corps' losses. This corrects the printed line for both the
-        "Casualties: <name> <n>" (tactical/stalemate) and "suffered <n> casualties"
-        (decisive-victory) templates. Reinforcers' losses are surfaced separately
-        via reinforcement_messages, so no figure is double-counted.
+        casualties across participants, so it names the primary marshal with
+        the entire corps' losses. This corrects the printed line for both the
+        "Casualties: <name> <n>" (tactical/stalemate) and "suffered <n>
+        casualties" (decisive-victory) templates.
+
+        ────────────────────────────────────────────────────────────────────
+        CA8-1 (creative audit, Aug 4 2026) — CONSCIOUS FLIP of the F1a fix
+        (playtest bug audit, Jul 6 2026).
+
+        F1a saw `Casualties: Ney 8,141` when Ney personally lost 2,171 and
+        rewrote the figure DOWN to the primary's distributed share. That
+        fixed the false personal attribution by breaking something worse:
+        the terminal and the campaign log then reported the same battle's
+        French casualties as `Ney 13` and `197` — a 15x disagreement,
+        reproduced on every coordinated battle of the played campaign
+        (`13,255/113` vs `13,255/514`; `Davout 56` vs `280`). A player who
+        notices two casualty figures for one battle stops trusting every
+        number in the game, including the true ones.
+
+        Both readings were right about the defect and wrong about the fix:
+        the number was never the problem, the possessive was. So the figure
+        goes back to the whole-army total the log already prints, and the
+        line names the army that took it. The per-marshal breakdown is
+        carried by reinforcement_messages ("his supporting allies lost N"),
+        now emitted for BOTH sides, so the parts still sum to the whole and
+        nothing is double-counted.
+
+        A side that fielded one corps has raw == share and is untouched —
+        a solo battle still reads as the man.
+        ────────────────────────────────────────────────────────────────────
         """
         if not description:
             return description
@@ -1365,9 +1417,10 @@ class CombatExecutor:
             if raw == share:
                 continue
             description = description.replace(
-                f"{name} {raw:,}", f"{name} {share:,}")
+                f"{name} {raw:,}", f"{name}'s army {raw:,}")
             description = description.replace(
-                f"suffered {raw:,} casualties", f"suffered {share:,} casualties")
+                f"{name} suffered {raw:,} casualties",
+                f"{name}'s army suffered {raw:,} casualties")
         return description
 
     def _apply_battle_effects_to_region(
@@ -2457,6 +2510,11 @@ class CombatExecutor:
                 "nation": getattr(marshal, "nation", ""),
                 "from": old_loc,
                 "to": retreat_to,
+                # CA8-5: this is a ROUT, not an ordered withdrawal. The
+                # dispatch's `own_broken` headline reads this flag; without
+                # it the class was unreachable in ordinary play (see
+                # dispatch.py). Voluntary retreats never carry it.
+                "forced": True,
             })
             # Recovery duration is command-aware (MC gate Q3): 3 turns baseline,
             # 2 for a high-command marshal who rallies 2 stages/turn.
@@ -4469,6 +4527,15 @@ class CombatExecutor:
             # here is still pre-distribution (casualties applied later).
             _co6_lead_pre_strength = int(marshal.strength)
             _co6_committed_attacker = committed_attacker
+            # CA8-1 (creative audit, Aug 4 2026): the SAME two numbers for the
+            # defending side. `combat.py:1098` puts the whole friendly stack
+            # into the defensive ratio — committed mass is the variable that
+            # decided every battle of the played campaign — and it was
+            # printed only for the attacker, i.e. only for the side that does
+            # not need it. When the player is attacked he was told
+            # "+25% mountains" and shown a 567:1 exchange.
+            _co6_lead_pre_strength_def = int(enemy_marshal.strength)
+            _co6_committed_defender = committed_defender
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=marshal,
                 defender=enemy_marshal,
@@ -5551,6 +5618,38 @@ class CombatExecutor:
                     reinf_messages.append(
                         f"His supporting allies lost {int(ally_casualties):,} men combined.")
 
+        # ════════════════════════════════════════════════════════════════
+        # CA8-1: THE DEFENDING ARMY IS AN ARMY. Mirror of the two lines
+        # above, which were both attacker-only with no defender equivalent
+        # anywhere in this file. Without them, a battle where the player
+        # massed five corps in defence reported his losses as the lead
+        # marshal's personal share — `Ney 13` against the campaign log's
+        # `197` for the same battle — and never once named the mass that
+        # won it. Massing was an invisible dominant strategy: the player
+        # could not see it, could not price it against the starvation it
+        # causes (the campaign's other headline), and on reading two
+        # casualty figures for one battle learned to distrust both.
+        # ════════════════════════════════════════════════════════════════
+        def_arrived = [r["marshal"] for r in defender_reinforcements
+                       if r.get("arrived")]
+        _co6_committed_def = int(locals().get("_co6_committed_defender", 0) or 0)
+        if def_arrived and _co6_committed_def > 0:
+            _co6_lead_def = int(locals().get("_co6_lead_pre_strength_def", 0) or 0)
+            joined_def = ", ".join(def_arrived)
+            reinf_messages.append(
+                f"{enemy_marshal.name} was reinforced — massed effective "
+                f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
+                f"committed ({joined_def}) = "
+                f"{_co6_lead_def + _co6_committed_def:,}.")
+        if def_arrived and def_distribution:
+            def_ally_casualties = sum(
+                def_distribution.get(name, 0) for name in def_arrived)
+            if def_ally_casualties > 0:
+                _plural = "allies" if len(def_arrived) > 1 else "ally"
+                reinf_messages.append(
+                    f"{enemy_marshal.name}'s supporting {_plural} lost "
+                    f"{int(def_ally_casualties):,} men.")
+
         if reinf_messages:
             result["reinforcement_messages"] = reinf_messages
 
@@ -6470,9 +6569,28 @@ class CombatExecutor:
             # Phase 6.2.E: Plunder/Secure choice
             ai_choice = None
             if marshal.nation == world.player_nation:
-                from backend.models.world_state import build_capture_choice
-                world.pending_capture_choice = build_capture_choice(
-                    world, region, marshal.name, old_controller)
+                # ────────────────────────────────────────────────────────
+                # CA8-13 (creative audit, Aug 4 2026): liberating your OWN
+                # homeland province opened a mandatory modal asking whether
+                # to burn it — and blocked end-turn until answered. The
+                # played campaign offered 600 gold to sack Rhineland forty
+                # lines after the treasury report listed Rhineland's 150g
+                # among France's own income. The player could not decline
+                # to have an opinion about sacking his own country.
+                #
+                # IGR-E's review installed exactly this guard on the AI
+                # branch and recorded the player modal as a deliberate
+                # choice. It is not one: there is no decision here, and the
+                # prompt asserts the province is foreign.
+                # ────────────────────────────────────────────────────────
+                from backend.models.world_state import (
+                    build_capture_choice, is_own_soil_recapture)
+                if is_own_soil_recapture(world, region_name, marshal.nation):
+                    self._apply_secure(region)
+                    ai_choice = "secure"
+                else:
+                    world.pending_capture_choice = build_capture_choice(
+                        world, region, marshal.name, old_controller)
             else:
                 # AI capture — auto-decide by personality
                 ai_choice = self._apply_ai_capture_choice(marshal, region, world, old_controller=old_controller)

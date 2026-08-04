@@ -259,12 +259,19 @@ class TestPC8BadOddsNamesTheMuster:
         assert "charge on your word. Berthier adds: X. Confirm" in msg
 
     def test_the_modal_is_unchanged_without_a_note(self):
-        """FALSIFIABLE NEGATIVE: the no-muster case is byte-stable."""
+        """FALSIFIABLE NEGATIVE: the no-muster case is byte-stable.
+
+        Pin RE-RECORDED CONSCIOUSLY by CA8-4 (creative audit, Aug 4 2026):
+        the closing question named two options while the payload has always
+        carried three (attack_anyway / hold_position / cancel_order). Only
+        the question changed; the marshal's reading is byte-identical.
+        """
         msg = describe_inferred_bad_odds("Ney", "Mack")
         assert msg == (
             "Ney reads this as a call to give battle, Sire — but Mack stands "
             "dug in and in greater strength. He will charge on your word. "
-            "Confirm the assault, or hold him back?")
+            "Confirm the assault, hold him where he stands, or cancel the "
+            "order?")
 
 
 # ════════════════════════════════════════════════════════════════════════

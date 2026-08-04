@@ -346,8 +346,13 @@ def describe_inferred_bad_odds(marshal_name: str, enemy_name: str,
     enemy_display = humanize_entity_name(enemy_name)
     return (f"{marshal_name} reads this as a call to give battle, Sire — but "
             f"{enemy_display} stands dug in and in greater strength. He will "
-            f"charge on your word.{muster_note} Confirm the assault, or hold "
-            f"him back?")
+            # CA8-4: the payload has always carried THREE options
+            # (attack_anyway / hold_position / cancel_order) while the
+            # question named two. A player who wants the order withdrawn
+            # rather than the marshal parked had to guess that the third
+            # existed.
+            f"charge on your word.{muster_note} Confirm the assault, hold "
+            f"him where he stands, or cancel the order?")
 
 
 # ── CR-5b Flavor Echoing (COMMAND_ROBUSTNESS_SPEC §6.4 rider (a)) ────────────

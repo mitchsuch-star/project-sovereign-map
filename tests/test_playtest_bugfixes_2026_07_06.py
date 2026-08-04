@@ -14,26 +14,36 @@ from backend.ai.strategic_parser import _classify_target, _clean_target_text
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
 
 
-# ── F1a: casualty line reports the primary's distributed share, not corps total ──
+# ── F1a: the coordinated casualty line names the ARMY, not the man ──
+#
+# CONSCIOUSLY FLIPPED by CA8-1 (creative audit, Aug 4 2026). F1a originally
+# rewrote the corps total DOWN to the primary's distributed share; that made
+# the terminal disagree with the campaign log by up to 15x on every
+# coordinated battle (`Ney 13` vs `197`). F1a's real finding — that the whole
+# corps' losses must not be attributed to one man personally — is preserved
+# by naming the army instead. See _rewrite_primary_casualties' docstring.
 
 class TestF1aPrimaryCasualties:
-    def test_tactical_line_rewritten_to_primary_share(self):
+    def test_tactical_line_attributes_corps_total_to_the_army(self):
         desc = ("Ney holds the line. Casualties: Ney 8,141, Mack 3,431. "
                 "Both armies remain in the field.")
         out = CombatExecutor._rewrite_primary_casualties(
             desc, "Ney", 8141, 2171, "Mack", 3431, 3431)
-        assert "Ney 2,171" in out
-        assert "Ney 8,141" not in out
-        # defender share unchanged (raw == share) — Mack line intact
+        # The figure is the whole-army total the campaign log prints...
+        assert "Ney's army 8,141" in out
+        # ...and it is no longer claimed as one man's personal loss.
+        assert "Casualties: Ney 8,141" not in out
+        # defender fielded one corps (raw == share) — Mack line intact
         assert "Mack 3,431" in out
+        assert "Mack's army" not in out
 
-    def test_decisive_victory_suffered_template_rewritten(self):
+    def test_decisive_victory_suffered_template_attributed_to_the_army(self):
         desc = ("Ney decisively defeats Mack! Mack's army is destroyed. "
                 "Ney suffered 8,141 casualties.")
         out = CombatExecutor._rewrite_primary_casualties(
             desc, "Ney", 8141, 2171, "Mack", 0, 0)
-        assert "suffered 2,171 casualties" in out
-        assert "8,141" not in out
+        assert "Ney's army suffered 8,141 casualties" in out
+        assert "Ney suffered 8,141" not in out
 
     def test_solo_battle_unchanged(self):
         # raw == share for both sides → description untouched

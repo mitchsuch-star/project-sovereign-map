@@ -38,7 +38,7 @@ import pytest
 
 from backend.commands.executor import CommandExecutor
 from backend.commands.combat_executor import CombatExecutor
-from backend.models.region import Region
+from backend.models.region import Region, get_starting_controllers
 from backend.models.world_state import (
     EUROPE_INFRASTRUCTURE_UPKEEP,
     PLUNDER_INCOME_MULTIPLIER,
@@ -400,6 +400,14 @@ class TestThePromptIsPriced:
         lyon = world.regions["Lyon"]
         lyon.controller = "Britain"
         lyon.stability = 80
+        # CA8-13 (creative audit, Aug 4 2026): the plunder question is only
+        # ever asked about FOREIGN soil — liberating your own homeland asks
+        # nothing and secures. Lyon is France's own starting province in the
+        # legacy fixture, so this scenario ("an enemy-held province France
+        # retakes") must declare it foreign or it is a liberation and the
+        # prompt correctly never appears.
+        world._starting_controllers = {
+            **get_starting_controllers(), "Lyon": "Britain"}
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
         ney.strength = 30000
@@ -886,6 +894,10 @@ class TestX8RouteParity:
         target = world.regions["Belgium"]
         target.controller = "Britain"
         target.garrison_strength = 0
+        # CA8-13: Belgium is French homeland in the legacy fixture; this
+        # scenario needs foreign soil or no question is asked at all.
+        world._starting_controllers = {
+            **get_starting_controllers(), "Belgium": "Britain"}
         for m in world.marshals.values():
             if m.location == "Belgium":
                 m.location = "London"

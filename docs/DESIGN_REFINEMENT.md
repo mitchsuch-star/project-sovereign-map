@@ -25,6 +25,27 @@
 
 ---
 
+## Creative Audit — Design Items (August 4, 2026)
+
+> Source: `docs/audits/CREATIVE_AUDIT_2026_08_04.md` (17-turn live France/1805 campaign at
+> master `e450b02`, 80-agent find→refute fleet). These are **design calls that need a gate** —
+> the defects from the same audit are routed to `BUG_FIXES.md` §Creative Audit.
+> Per **GR9** each row names an owner; none may be built inside an audit.
+
+| id | the finding | owner row | the question the gate must answer |
+|---|---|---|---|
+| **CA8-D1** | The conquest-free gold sink is **13 building slots for the whole game** (`region.py:107-113` × France's 1 capital / 4 major_city / 7 city; `BUILDING_TYPES` tops out at 400g) → lifetime sink 3,250–5,200g, **under two turns of net income**. Measured: treasury 671g → **29,496g** (44×) in 13 turns, with **88% of everything France earned unspendable** | **row EC-P3** (existing econ backlog owner) | What does gold buy after turn 6? Landing slice must define completion. The plunder prompt quoting a flat 600g for every 150-income city is downstream of this, not a separate row |
+| **CA8-D2** | Settlement leverage keys to a **pair**, not the war. `compute_side_pressure_score` already knew Austria sat at **43** while the war-status row and the offer producer both read the raw France↔Britain **0**. CA8-27 is the outgoing mirror: the peace generator concedes territory whenever `relation < -50`, i.e. in every war | **Pre-EA Victory & Objectives Pass** (existing open gate — war score → terms → ending is exactly its business) | Should the counterparty's leverage key to the war the player is actually fighting, and should a cession require a losing war score rather than hostile relations? Both have blessed-number consequences on acceptance and offer generation |
+| **CA8-D3** | The rival is not a person. `find_jealousy_target` (`jealousy.py:268`) recomputes from a rolling 8-turn window with no bias from `jealousy_history`; Murat's rival changed **four times** in twelve turns. One petition per pair per campaign, ever (`jealousy.py:558-563`) — one fired, on turn 1, and was re-served fifteen times | **new row, next marshal-content gate** | Should a marshal's grievance object have permanence, and should a petition re-fire when the escalation level rises? |
+| **CA8-D4** | `hegemony_pressure` monoculture — 8 courts, 2 authored variants each, rotated by `(turn + len(name)) % len(variants)`. This is thematic variance, not authorship: the prose is good, and DEF-1 verified each line in isolation while the player reads them stacked two per turn | **DEF-1 Roster Voices** (CLAUDE.md: *"owns the loose voice/copy backlog"*) | Does the enemy phase get its own voice register, or does it stay structured-field rendering? Pairs with CA8-6 / CA8-21 |
+| **CA8-D5** | The threat bar sat at **91–97 for all 12 turns**, so position 3.5's new `military_establishment` term (`coalition.py:729-762`) was **unmeasurable in play** — it fired into a bar already at its ceiling | **row EC-P3**, with **CA8-18 as its prerequisite** | Does anything new need to be measurable on a bar that boots near its ceiling? |
+| **CA8-D6** | **The morning dispatch has no headline class for a French success.** `HEADLINE_WEIGHTS` = 15 classes raised from 17 `_add()` sites; every one is a wound, an opportunity ranked below every wound *by comment* (`dispatch.py:71-73`: *"an opportunity never outranks a wound"*), or another power's business. There is no `region_taken`, `battle_won`, `capital_stormed` or `enemy_eliminated`. **14 of 14 headlines this campaign were misfortunes.** On the turn France stormed Vienna **and** Austria was eliminated, the lead was `stand more men over what Bohemia can feed`. The good news exists, but only in a notification bar where **8 of 20** entries are the same `dotation_erosion` nag — and the best-written sentence of the campaign (*"Austria has seized Carniola, the estate that funded Marshal Ney's honor. He will not forget it, Sire."*) is a notification title | **new row, next narration gate** — pairs with the Aug-3 enemy-phase-as-theater dissent that moved the composition slice to position 3 | Should the briefing be able to lead with a victory, and at what weight against a wound? The decision to revisit is that comment. Note this is the standing explanation for why narration scores 6 while event generation scores 8 — the events are good and the editor only publishes bad news |
+
+**Not deferred, closed at filing:** CA8-20's player half is **XR-4**; its AI half belongs beside
+IGR-X4 / IGR-X9 at **EC-P3**'s next econ tuning gate and needs no new row.
+
+---
+
 ## Live-Playthrough — Design Items (August 1, 2026 — ✅ ALL FOUR LANDED same day, second session)
 
 From the played-world creative-audit re-measure (memo = `docs/audits/AI_V_SWEEP_2026_08_01.md`

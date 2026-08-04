@@ -58,6 +58,14 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "own_broken": 90,           # own marshal broken / force-retreated
     "own_mauled": 85,           # own marshal lost >=25% strength
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
+    # CA8-22 (creative audit, Aug 4 2026): the same province, when it was a
+    # marshal's duchy. Ranked one above the bare map fact BECAUSE it is the
+    # same event told better — the played campaign generated
+    # "Austria has seized Carniola, the estate that funded Marshal Ney's
+    # honor. He will not forget it, Sire." on the very turn the dispatch led
+    # with the flat "Carniola has been taken by Austria." The better
+    # sentence existed and was routed to the notification bar.
+    "region_lost_estate": 76,
     "region_lost": 75,          # any own/vassal region captured
     # Econ spec review §5: an army starving is a slower catastrophe than a
     # province falling and a faster one than a war declaration, so it sits
@@ -171,8 +179,14 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "own_mauled": "Sire — {marshal} was mauled at {region}: {casualties} men lost in a single action.",
     "enemy_on_our_soil": "Sire — {enemy} has crossed into {region}. {defenders_line}",
     "region_lost": "Sire — {region} has been taken by {captor}.",
-    "supply_strain": ("Sire — {who} stand {over} men over what {region} can "
-                      "feed. {losses} lost in {turns} turns. {remedy}"),
+    "region_lost_estate": ("Sire — {captor} has taken {region} — the estate "
+                           "that funded Marshal {marshal}'s honour. He will "
+                           "not forget it."),
+    # CA8-2: states the establishment, the capacity and the overage, so the
+    # remedy "move a corps" finally has a target size.
+    "supply_strain": ("Sire — {who} stand {strength} men at {region}, which "
+                      "feeds {capacity}. {over} too many. {losses} lost in "
+                      "{turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
@@ -216,6 +230,13 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "own_mauled": "The butcher's bill is heavy, Sire. The army feels it.",
     "enemy_on_our_soil": "They are on our soil, Sire. The marshals await only your word.",
     "region_lost": "Ground lost can be retaken, Sire — but the longer they hold it, the harder the taking.",
+    "region_lost_estate": "He will expect it back, Sire — or its equal. An unpaid marshal is a slower loss than a province.",
+    # CA8-22 drive-by: the two classes added by the Aug-4 econ slice had no
+    # closing note, so the dispatch that led six of twelve briefings ended
+    # without Berthier saying anything at all. The lookup is guarded, so
+    # this was silent rather than broken.
+    "supply_strain": "Men lost to the roads are lost for nothing, Sire. Either the province feeds them or we spread them.",
+    "levy_open": "The depots are full and the ordinance allows it, Sire. Conscripts do not improve with keeping.",
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
     "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
     "estate_eroding": "A marshal who feels forgotten fights like one, Sire. The estate rolls want attention.",
@@ -267,22 +288,60 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             prev = e.get("captured_from", "")
             if captor and captor != player_nation:
                 if region in home_regions:
-                    _add("home_captured", region=region)
+                    _add("home_captured", f"home_captured:{region}", region=region)
                 elif prev == player_nation or prev in vassals_of_player:
-                    _add("region_lost", region=region,
-                         captor=formed_display_name(world, captor))
+                    # CA8-22: if the province was a marshal's endowment, the
+                    # human fact outranks the map fact — it is the same
+                    # event, and one of the two sentences is about a man.
+                    _holder = next(
+                        (m.name for m in world.marshals.values()
+                         if m.nation == player_nation
+                         and region in (getattr(m, "dotation_regions", None) or [])),
+                        "")
+                    if _holder:
+                        _add("region_lost_estate",
+                             f"region_lost:{region}", region=region,
+                             marshal=humanize_entity_name(_holder),
+                             captor=formed_display_name(world, captor))
+                    else:
+                        _add("region_lost", f"region_lost:{region}",
+                             region=region,
+                             captor=formed_display_name(world, captor))
         elif etype == "marshal_captured":
             _add("marshal_captured",
+                 f"marshal_captured:{e.get('marshal', '?')}",
                  marshal=humanize_entity_name(e.get("marshal", "?")),
                  captor=humanize_entity_name(e.get("captor", "the enemy")))
-        elif etype == "marshal_broken":
+        elif etype in ("marshal_broken", "retreat"):
+            # ────────────────────────────────────────────────────────────
+            # CA8-5 (creative audit, Aug 4 2026): `own_broken` carries the
+            # right sentence and outranks `own_mauled` at weight 90 — and it
+            # was STRUCTURALLY UNREACHABLE in ordinary play. `marshal_broken`
+            # occurs zero times across a 12-turn played campaign: the
+            # ordinary break logs `{"type": "retreat"}` (combat_executor.py
+            # :2455, world_state.py :10471/:10508/:10977) and `marshal_broken`
+            # is emitted only on the rare no-retreat-route SHATTERED branch.
+            # So the narration could not say "Ney's corps has been broken" at
+            # all, and the turn a corps routed led with the casualty count
+            # instead.
+            #
+            # A VOLUNTARY withdrawal is not a break — `movement_executor`'s
+            # own retreat verb logs the same event type. The four rout sites
+            # stamp `forced: True`; nothing else does, so the player's own
+            # ordered withdrawal never reads as a rout.
+            # ────────────────────────────────────────────────────────────
+            if etype == "retreat" and not e.get("forced"):
+                continue
             m_nation = e.get("nation", "")
             marshal_disp = humanize_entity_name(e.get("marshal", "?"))
-            region = e.get("region", e.get("location", "the field"))
+            region = e.get("region", e.get("location", e.get("from", "the field")))
             if m_nation == player_nation:
-                _add("own_broken", marshal=marshal_disp, region=region)
-            elif world.get_diplomatic_state(player_nation, m_nation) == "ALLIANCE":
-                _add("ally_broken", marshal=marshal_disp, region=region,
+                _add("own_broken", f"own_broken:{e.get('marshal', '?')}",
+                     marshal=marshal_disp, region=region)
+            elif (m_nation
+                    and world.get_diplomatic_state(player_nation, m_nation) == "ALLIANCE"):
+                _add("ally_broken", f"ally_broken:{e.get('marshal', '?')}",
+                     marshal=marshal_disp, region=region,
                      nation=humanize_entity_name(m_nation))
         elif etype == "battle":
             # Own marshal mauled: >=25% of pre-battle strength lost.
@@ -297,7 +356,11 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                     continue
                 pre = m.strength + casualties
                 if pre > 0 and casualties >= 0.25 * pre:
-                    _add("own_mauled", marshal=humanize_entity_name(name),
+                    # CA8-5: identity is the MAN, not the casualty figure.
+                    # Three distinct battles at one province in one phase are
+                    # one story, not three headline slots.
+                    _add("own_mauled", f"own_mauled:{name}",
+                         marshal=humanize_entity_name(name),
                          region=e.get("location", "the field"),
                          casualties=f"{casualties:,}")
         elif etype in ("diplomatic_war_declared", "war_declaration"):
@@ -492,12 +555,27 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
                        and top["identity"] == memory.get("identity"))
                    else 1),
     }
-    seen_texts = {top["text"]}
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-5: dedupe on (class, identity), not on rendered TEXT.
+    #
+    # The played campaign's climax rendered as a triplicate arithmetic
+    # report — `Ney was mauled at Bohemia: 2,218` / `2,099` / `2,269`, three
+    # genuinely distinct battles taking all three editorial slots on the one
+    # turn the player most needed the game to speak. Exact-text dedupe could
+    # never catch it: three casualty figures are three strings. The identity
+    # key that fixes it was already being computed four lines above and used
+    # only for streak memory.
+    #
+    # Text remains in the key so a class that renders identically from two
+    # different identities still collapses.
+    # ────────────────────────────────────────────────────────────────────
+    seen_keys = {(top["class"], top["identity"]), ("", top["text"])}
     sub_beats = []
     for c in candidates[1:]:
-        if c["text"] in seen_texts:
+        keys = ((c["class"], c["identity"]), ("", c["text"]))
+        if any(k in seen_keys for k in keys):
             continue
-        seen_texts.add(c["text"])
+        seen_keys.update(keys)
         sub_beats.append(c["text"])
         if len(sub_beats) >= 2:
             break
@@ -712,7 +790,20 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
         if e.get("marshal"):
             slot["marshals"].add(e["marshal"])
 
-    persistent = {r: s for r, s in by_region.items() if len(s["turns"]) >= 2}
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-2 (creative audit, Aug 4 2026): RECENCY. This picked by CUMULATIVE
+    # loss over a 3-turn window with no requirement that any of those turns
+    # be the current one, so turn 5 led with Munich quoting turn 4's frozen
+    # 11,251 while every attrition line on that same dispatch read Tyrol.
+    # The strain must be one the army is paying NOW.
+    #
+    # The predicate is "the latest turn the window actually saw", not
+    # `world.current_turn`: the dispatch is built after the turn advances,
+    # so pinning to the counter would silently match nothing.
+    # ────────────────────────────────────────────────────────────────────
+    latest_turn = max(int(e.get("turn", 0)) for e in window)
+    persistent = {r: s for r, s in by_region.items()
+                  if len(s["turns"]) >= 2 and latest_turn in s["turns"]}
     if not persistent:
         return None
     region_name = max(persistent, key=lambda r: persistent[r]["losses"])
@@ -727,6 +818,13 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
     is_home = region.controller == player_nation
     cap = int(region.supply_capacity * 1.5) if is_home else int(region.supply_capacity)
     over = max(0, total - cap)
+    # CA8-2 (a): the template said "stand MORE men over what X can feed" —
+    # a word that fired precisely when the overage was ZERO. There is no
+    # honest sentence to write when the stack is no longer over capacity:
+    # the strain has ended, and claiming it stands is the falsehood the
+    # played campaign led six of twelve dispatches with. Yield the slot.
+    if over <= 0:
+        return None
 
     depot_ok = (region.region_type
                 in BUILDING_TYPES["supply_depot"]["allowed_in"])
@@ -741,12 +839,29 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
         remedy = (f"A supply depot at {region_name} would ease it; "
                   f"dispersing a corps would end it.")
 
-    names = sorted(slot["marshals"]) or [m.name for m in here]
+    # ────────────────────────────────────────────────────────────────────
+    # CA8-2 (b)+(c): NAME THE MEN WHO ARE THERE. `slot["marshals"]`
+    # accumulates across the whole 3-turn window, and the live-occupancy
+    # fallback was unreachable whenever the window held any name at all —
+    # so a turn-8 headline named five marshals of whom FOUR were in other
+    # provinces, contradicted by the roster ten lines below on the same
+    # dispatch. Worse, `over` was computed live from `here` while the names
+    # came from the window: one sentence, two moments.
+    #
+    # Live occupancy is now authoritative and the window is only the
+    # fallback, so the whole sentence describes one instant.
+    # ────────────────────────────────────────────────────────────────────
+    names = [m.name for m in here] or sorted(slot["marshals"])
     return {
         "region": region_name,
         "fields": {
             "who": _join_marshal_names(names),
-            "over": f"{over:,}" if over > 0 else "more",
+            "over": f"{over:,}",
+            "strength": f"{total:,}",
+            # CA8-2: the capacity is stated. It appears on no screen the
+            # player can reach — `ledger.py` skips regions France does not
+            # control — so "move a corps" had no target size.
+            "capacity": f"{cap:,}",
             "region": region_name,
             "losses": f"{int(slot['losses']):,} men",
             "turns": str(len(slot["turns"])),
@@ -2088,8 +2203,14 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
     if threat < THREAT_TENSION_MIN:
         return None
 
-    tier = get_threat_tier(threat)
     _player = getattr(world, "player_nation", "France")
+    # CA8-18: a coalition that has FORMED against France is not "Brewing".
+    # Scoped to France's own coalition, exactly like the two sections below
+    # — an eclipse coalition aimed at another power must not relabel this.
+    _formed = bool(
+        is_coalition_active(world)
+        and (world.active_coalition.get("target_nation") or _player) == _player)
+    tier = get_threat_tier(threat, coalition_formed=_formed)
     section = {
         "threat_level": threat,
         "tier": tier,

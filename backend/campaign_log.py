@@ -42,6 +42,38 @@ def _display_defiance_action(action: str) -> str:
     return _DEFIANCE_DISPLAY.get(action, action.replace("_", " "))
 
 
+def _proposal_label(event: dict) -> str:
+    """Player-facing label for an event's proposal_type. Never the raw key.
+
+    CA8-23 (creative audit, Aug 4 2026): ten call sites in this module each
+    hand-rolled `(event.get("proposal_type") or "proposal").replace("_", " ")`,
+    so the campaign log announced the played campaign's most consequential
+    diplomatic event as *"an armistice losing proposal"* and buried it as
+    *"Austria's armistice losing offer lapsed unanswered"*. `display_names`
+    has mapped `armistice_losing` -> "Armistice" since PL-14; nobody asked it.
+    Exposing a raw internal key to the player is on this project's own
+    Don't-Do list.
+
+    `armistice_losing` was not the only leak — the same `.replace()` rendered
+    `design_purchase`, `sell_neutrality`, `offer_vassalage`, `broker_peace`,
+    `ultimatum_demand`, `friendly_gift` and `opportunistic` as their internal
+    tokens too. Routing through the map fixes the whole family at once and
+    leaves one place to add the next type.
+
+    Lower-cased because the campaign log writes sentences, not headings:
+    "Prussia rebuffs Austria (open borders agreement)". The map owns WHAT a
+    proposal is called; this module owns the register it is said in.
+
+    The empty case keeps the old literal so a type-less event still reads as
+    a sentence rather than "Unknown Proposal".
+    """
+    from backend.display_names import proposal_display_name
+    raw = str(event.get("proposal_type") or "").strip()
+    if not raw:
+        return "proposal"
+    return proposal_display_name(raw).lower()
+
+
 def _decision_reason_suffix(event: dict) -> str:
     reason = str(event.get("decision_reason", "") or "")
     if not reason:
@@ -1780,7 +1812,7 @@ def format_event_oneliner(event: dict) -> str:
         proposer = event.get("proposer", "Unknown")
         refused_by = event.get("refused_by") or event.get("recipient",
                                                           "Unknown")
-        ptype = (event.get("proposal_type") or "proposal").replace("_", " ")
+        ptype = _proposal_label(event)
         # IGR-B: a burst of these arrives collapsed into one row.
         count = int(event.get("collapsed_count") or 0)
         if count > 1:
@@ -2094,12 +2126,12 @@ def format_event_oneliner(event: dict) -> str:
     # ("Saxony rejected our open borders proposal" when we rejected Saxony's).
     if event_type == "ai_proposal_accepted":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"We accepted {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_rejected":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"We rejected {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_counter_failed":
@@ -2145,12 +2177,12 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "counter_offer_accepted":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"{source} accepted our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
 
     if event_type == "counter_offer_rejected":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"{source} rejected our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
 
     if event_type == "diplomatic_discrepancy":
@@ -2175,14 +2207,14 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "diplomatic_proposal_sent":
         target = event.get("target", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"Proposal sent to {target} ({proposal_type})"
 
     # PL-27/PL-34: Proposal queue visibility events
     if event_type == "proposal_arrived":
         from backend.display_names import with_indefinite_article
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return (f"An envoy from {source} has arrived with "
                 f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(event)}")
 
@@ -2263,17 +2295,17 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "proposal_expired_unseen":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"{source}'s {proposal_type} envoy departed — proposal expired unanswered"
 
     if event_type == "proposal_dropped_overflow":
         source = event.get("source", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"{source}'s {proposal_type} envoy turned away — too many waiting"
 
     if event_type == "offer_lapsed":
         nation = event.get("nation", "Unknown")
-        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        proposal_type = _proposal_label(event)
         return f"{nation}'s {proposal_type} offer lapsed unanswered"
 
     if event_type == "garrison_placed":

@@ -795,6 +795,13 @@ class TestContestedCapture:
         ney.occupation_turns_required = 1  # Completes on next tick
         belgium = world.get_region("Belgium")
         belgium.controller = "Britain"
+        # CA8-13 (creative audit, Aug 4 2026): Belgium is France's own
+        # starting soil here, and retaking your own homeland is a
+        # liberation that asks no plunder question. Declare it foreign so
+        # this stays the contested CONQUEST the test is about.
+        from backend.models.region import get_starting_controllers
+        world._starting_controllers = {
+            **get_starting_controllers(), "Belgium": "Britain"}
 
         # Move enemies far from Belgium so AI phase doesn't disrupt occupation
         for m in world.marshals.values():

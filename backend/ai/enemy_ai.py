@@ -1448,10 +1448,29 @@ class EnemyAI:
         # PRIORITY -1: CAPTURE CURRENT REGION
         # If standing on enemy territory with no enemy marshal present,
         # capture it immediately! (e.g., Prussia starts at British Netherlands)
+        #
+        # CA8-14 (creative audit, Aug 4 2026): ...but NOT with an army that
+        # routed this turn. This rung sat ABOVE the `retreated_this_turn`
+        # limiter below and jumped it, so the played campaign produced:
+        #   "Deroy retreats from Hungary to Bohemia. No friendly ground lies
+        #    open, Sire — Deroy falls back on Bohemia through hostile
+        #    country. (44 lost to march) Army begins recovery (currently at
+        #    -35% effectiveness)"
+        #   "Deroy marches from Bohemia into Bohemia unopposed! Captured:
+        #    Austria -> Bavaria"
+        # — one line apart, in the same phase. The player's own equivalent
+        # guard ("is recovering from retreat and cannot attack") is nested
+        # inside a player-nation branch in executor.py and is doubly
+        # unreachable for an AI marshal, so this is the seam where the two
+        # sides come back into line (GR5). Gating here rather than
+        # reordering the block keeps the limiter's own returns — the
+        # stance_change/wait pair whose appearance in the transcript proved
+        # it was live — exactly as they were.
         # ════════════════════════════════════════════════════════════
         current_region = world.get_region(marshal.location)
         if (current_region and current_region.controller != nation
                 and current_region.controller != "Neutral"
+                and not getattr(marshal, "retreated_this_turn", False)
                 and world.is_at_war(nation, current_region.controller)):
             enemies_here = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
             # Region with garrison >= 5000 is NOT undefended — requires assault via P4

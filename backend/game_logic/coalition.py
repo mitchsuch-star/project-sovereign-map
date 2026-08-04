@@ -1879,8 +1879,21 @@ def is_coalition_active(world) -> bool:
     return world.active_coalition is not None
 
 
-def get_threat_tier(threat_level: int) -> str:
-    """Get the threat tier name for a given threat level."""
+def get_threat_tier(threat_level: int, coalition_formed: bool = False) -> str:
+    """Get the threat tier name for a given threat level.
+
+    CA8-18 (creative audit, Aug 4 2026): there was no FORMED arm, so the
+    Third Coalition — formed on turn 1 and carrying `coalition_brewing:
+    false` in the very same payload — was labelled "Brewing" on all twelve
+    dispatches of the played campaign. The one gauge the player steers by
+    told him for the whole game that the thing which had already happened
+    was about to.
+
+    `coalition_formed` defaults False so every existing caller is
+    byte-identical; the two dispatch/advisory readers pass the live state.
+    """
+    if coalition_formed:
+        return "Formed"
     if threat_level >= THREAT_BREWING_MIN:
         return "Brewing"
     elif threat_level >= THREAT_MURMURS_MIN:

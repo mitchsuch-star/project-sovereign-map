@@ -44,7 +44,21 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,171 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+> **suite 16,209 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts + 3 scenes).**
+>
+> **Last landed: ~~CA8 SWEEP 1~~ ✅ August 4, 2026** (landing record `BUG_FIXES.md`
+> §Creative Audit): **10 of the audit's 28 rows fixed** — every gate-free P1
+> (**CA8-1** the defending army reports its mass and its allies' dead, and the coordinated
+> casualty figure returns to the whole-army total the log prints, a **conscious flip of
+> F1a** that closes the 15× terminal-vs-log disagreement · **CA8-2** all four supply-headline
+> defects incl. the capacity nobody could look up · **CA8-4** the first modal names the enemy
+> and all three options · **CA8-5** `(class, identity)` dedupe and `own_broken` made reachable
+> by stamping `forced: True` at the four rout sites) plus **CA8-13/14/15/18/22/23**.
+> `test_creative_audit_ca8_2026_08_04.py` (38); M1–M7 + `BASELINE_SERIES` byte-identical
+> **without re-record** (a fact about the harness — CA8-14 does change AI behaviour, and is
+> pinned directly instead); 20-mutation sweep found **2 inert pins + 1 invalid mutation**,
+> all recorded, final 18/18 killed; no `.gd`. **Held at their gates: CA8-3 + CA8-27 (CA8-D2),
+> CA8-26 (CA8-D6).**
 >
 > **Last landed:** ~~**ROADMAP position 3 — THE COMPOSITION SLICE**~~ ✅ **August 4, 2026** (landing record `BUG_FIXES.md` §Quiet-France → *The composition slice*). The user scoped it to (a)–(c) and **declined the econ bundle**, routing that work to a new **position 3.5 "Spec review for econ"**. All ten quiet-France rows are now closed. Headlines: **PC-6 was filed as a copy defect and is a MECHANICS defect** — the flanking tracker keyed on the contested region alone, so two armies over one province pooled approaches and each was paid a coordination bonus for the *other's* march; **PC-3's balance half is fixed at the FORTIFY side, not the unfortify side** (`_check_threats` was the one fortify rung missing the engaged guard its three siblings carry, while P0 unfortifies unconditionally — self-cancelling by construction), so the reverted latch's measured cost is not re-paid; PC-4 makes battle-name uniqueness structural; PC-5 gates the solitude claim on a verified participant list; PC-8 keeps the gate solo-priced and lets Berthier name the muster; PC-9 closes all four copy/tray items. `test_pc3_pc9_composition.py` (34), **12-mutation sweep with one inert pin found and split**, M1–M7 + `BASELINE_SERIES` byte-identical (no re-record — and that is a fact about the harness, not the fix: it has no same-province two-sided battle and no repeated cornering). Before it: **PARSE-NEG** (Aug 3) · **the quiet-France played campaign** (Aug 3) · DEF-5 **NAVAL "The Wooden Wall"** NV-0..NV-11 + NV-V (Aug 2) · **AI Intent CLOSED** (Aug 1) · **Battle Diorama Tier A** (Jul 31, user-verified) · **row IGR build-complete** (Jul 31).
 >
@@ -91,13 +105,44 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > BUILD.** Position 2 (LLC + Steamworks) still has no entry condition and can start in
 > parallel today. Row EC-P3 keeps the rest of the econ backlog.
 >
+> **▶ THE CREATIVE AUDIT WAS HELD August 4, 2026, AFTER position 3.5 — and it did NOT
+> re-route the queue; that is the user's call and it is OPEN.** Record =
+> **`docs/audits/CREATIVE_AUDIT_2026_08_04.md`** (authoritative; §2a is the
+> pillar→remediation map, §7 the routing, §8 the argued recommendation). A 17-turn live
+> France/1805 campaign + an 80-agent find→refute fleet. **Five pillars re-scored and every
+> one moved DOWN or held flat** — combat 8.0→**6.5** · marshal drama 8.5→**7.5** · economy
+> 7.5→**6.5** · diplomacy 7.0→**6.5** · narration **6.0 flat, still under its 6.5 target**;
+> command 7.5→**7.0**, aliveness 7.5→**7.0**. Directional ≈**6.9** vs ≈7.4 (Jul 25).
+> **NOTHING REGRESSED** — every scorer independently attributed the drop to campaign
+> LENGTH: these are accumulation failures a 9-turn pass cannot load. 28 defect rows →
+> `BUG_FIXES.md` §Creative Audit; 6 design gates → `DESIGN_REFINEMENT.md` §Creative Audit.
+> **Three P1s are code-proven and unblocked** (no gate, no new state): **CA8-1** the two
+> surfaces reporting French casualties disagree by up to **15×** and the mass/ally-casualty
+> lines are attacker-only · **CA8-2** the `supply_strain` headline is wrong four ways on the
+> mechanic that killed ~43,000 men · **CA8-5** headline + both sub-beats can be one event
+> three times. Two more are design calls: **CA8-26** the dispatch has **no headline class
+> for a French success** (15 classes / 17 `_add()` sites, all wounds — France stormed Vienna
+> and knocked Austria out, and the lead was *"stand more men over what Bohemia can feed"*)
+> and **CA8-27** the peace generator concedes territory whenever `relation < -50`, i.e. in
+> every war, winning or losing. **⚠ METHOD CAVEAT for anyone reading the transcript: the
+> shipped client does NOT render the enemy-action `message` field** — `enemy_phase_dialog.gd`
+> rebuilds each line from `action_type`, and 6 verbs fall through to raw snake_case
+> (measured: 12% of this campaign's AI actions). Check that key list, not an HTTP transcript.
+>
+> **⚠ ONE USER DECISION IS DUE: does any of the audit preempt position 4?** The audit did
+> not decide this. §8 argues CA8-1 is the highest-leverage change in the game and needs no
+> gate; §2a notes two independent scorers converged instead on the per-nation fog fallback
+> (**CA8-15**), one edit raising two pillars' floors. Both are session-sized. Position 4 is
+> unaffected either way — the audit found nothing that blocks a build. **Default if the user
+> does not rule: proceed to position 4 and sweep the CA8 rows at position 13.**
+>
 > **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — nobody has ever produced a build of this game, and `deploy/` is pre-cutover and bundles **no world**; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >
 > **~~⚠ ONE USER DECISION IS DUE~~ ✅ RULED + CLOSED August 3, 2026** — the `Normandy↔Berry` / `Flanders↔Orleanais` adjacency ruling. The user ruled "Normandy but not Flanders" and delegated the landing. **NEITHER EDGE IS CUT.** Flanders↔Orleanais kept (NV-8c already removed the London↔Flanders sea link, so Flanders cannot be landed at — the edge is purely internal now). Normandy↔Berry built, measured, REVERTED: across 5 seeds the cut left Britain with MORE territory (11.8→13.0 mean) while France lost Paris on **5 of 5 seeds** instead of holding it on 3 — it is France's own lateral road, and Paris is Normandy's SHORTEST edge (96px), so the cut could never have stopped the walk inland. Record + evidence: `NAVAL_SPEC.md` §15.15.
 >
 > **⚠ OPEN ON EVIDENCE, NOT PERMISSION** (all need a human playing, not another probe): the naval **pillar score** · the **played A2 sue-path** · the **NV-P1 live wheel check** · a **visual sign-off** on the NV-4..NV-11 surfaces · the **NV-V remainder** (anchors A1–A5 played, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check). **Nothing in the live queue is blocked on a gate.**
 >
-> **Open with their own gates, none blocking:** Pre-EA Victory & Objectives Pass · CR-6 *proper* · EC-2 pass 2 · the Battle Gallery · DEF-12 map modes · **row EC-P3** (the new owner for IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9; its §6 Q1–Q6 ruling and the EC-7/ES-6 debt are position 3.5's, not this row's).
+> **Open with their own gates, none blocking:** Pre-EA Victory & Objectives Pass · CR-6 *proper* · EC-2 pass 2 · the Battle Gallery · DEF-12 map modes · **row EC-P3** · **the 6 Creative-Audit gates CA8-D1..D6** (D1/D5 → row EC-P3 · D2 → Pre-EA Victory & Objectives · D3 → next marshal-content gate · D4 → DEF-1 · **D6 → a NEW narration gate**, pairs with the Aug-3 enemy-phase-as-theater dissent) (the new owner for IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9; its §6 Q1–Q6 ruling and the EC-7/ES-6 debt are position 3.5's, not this row's).
 
 - ~~Gate 4 visual half~~ **✅ PASSED July 3, 2026** (user confirmed the 5-item eyes-only checklist; passage recorded in STATUS.md + the cleanup spec masthead; the DWL-DIP-E7 / DWL-DIP-METTERNICH 8.EVAL triggers are LIVE).
 - ~~Slice H~~ **✅ LANDED July 3, 2026** (gate approved v1.0 + implemented same day): `request_reward_or_restoration` + `demand_bargain_honor` are LIVE (Grant/Decline/Honor through the restage seam; `ally_petition` dial-protected provenance; `ally_petition_state` serialized; tests in `test_settlement_slice_h_ally_petitions.py`). **The settlement arc is fully closed — no live successors.** SC-32 formally CLOSED; do NOT rebuild G2 sub-slices.

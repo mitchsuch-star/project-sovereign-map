@@ -273,6 +273,17 @@ def _line(pairs, ptype="open_borders"):
 
 
 class TestCollapsedLine:
+    """Sentence shapes for the collapsed refusal family.
+
+    NOTE (CA8-23, creative audit Aug 4 2026): the parenthesised proposal
+    label moved from a hand-rolled `raw_type.replace("_", " ")` to the
+    single source `PROPOSAL_TYPE_DISPLAY`, lower-cased for this module's
+    sentence register — so `open_borders` now reads "open borders
+    agreement" and `armistice_losing` reads "armistice" instead of the
+    internal scorer token "armistice losing". Every expectation below was
+    re-recorded for the label ONLY; the collapse shapes these tests exist
+    to pin are unchanged.
+    """
 
     def test_uncollapsed_arm_is_byte_identical(self):
         """The lone-refusal sentence must not move — it is pinned elsewhere."""
@@ -283,14 +294,14 @@ class TestCollapsedLine:
     def test_a_count_of_one_never_renders_the_aggregate(self):
         event = dict(_refusal("Austria", "Prussia"), collapsed_count=1)
         assert format_event_oneliner(event) == (
-            "Prussia rebuffs Austria (open borders)")
+            "Prussia rebuffs Austria (open borders agreement)")
 
     def test_a_short_bucket_loses_nothing_at_all(self):
         """One asker, three refusals: the aggregate names every court the
         three uncollapsed rows named, in one row. Collapsing is free."""
         line = _line([("Prussia", "Baden"), ("Prussia", "Hesse"),
                       ("Prussia", "Saxony")])
-        assert line == "Baden, Hesse and Saxony rebuff Prussia (open borders)"
+        assert line == "Baden, Hesse and Saxony rebuff Prussia (open borders agreement)"
 
     def test_a_short_bucket_loses_nothing_in_the_mirror_shape_either(self):
         """Measured live: this is the common two- and three-row bucket, and
@@ -298,30 +309,30 @@ class TestCollapsedLine:
         the cost of three names."""
         line = _line([("Baden", "Britain"), ("Hesse", "Britain"),
                       ("Saxony", "Britain")])
-        assert line == "Britain rebuffs Baden, Hesse and Saxony (open borders)"
+        assert line == "Britain rebuffs Baden, Hesse and Saxony (open borders agreement)"
 
     def test_one_proposer_against_a_crowd_counts_the_crowd(self):
         """The story: 'N courts rebuff X' — past listing, a count is the
         only readable form."""
         line = _line([("Prussia", f"Court{i}") for i in range(9)])
-        assert line == "9 courts rebuff Prussia (open borders)"
+        assert line == "9 courts rebuff Prussia (open borders agreement)"
 
     def test_one_refuser_against_a_crowd_counts_the_crowd(self):
         line = _line([(f"Court{i}", "Britain") for i in range(9)])
-        assert line == "Britain rebuffs 9 courts (open borders)"
+        assert line == "Britain rebuffs 9 courts (open borders agreement)"
 
     def test_few_proposers_are_named(self):
         """Measured live on turn 3 — the burst turn."""
         line = _line([("Prussia", "Baden"), ("Prussia", "Hesse"),
                       ("Bavaria", "Saxony"), ("Bavaria", "Hanover")])
         assert line == ("4 approaches from Prussia and Bavaria "
-                        "are rebuffed (open borders)")
+                        "are rebuffed (open borders agreement)")
 
     def test_three_proposers_use_the_oxford_join(self):
         line = _line([("Prussia", "Baden"), ("Bavaria", "Hesse"),
                       ("Saxony", "Hanover"), ("Saxony", "Naples")])
         assert line == ("4 approaches from Prussia, Bavaria and Saxony "
-                        "are rebuffed (open borders)")
+                        "are rebuffed (open borders agreement)")
 
     def test_few_refusers_are_named_too(self):
         """Measured live: turn 2 was 7 approaches falling on just 2 courts —
@@ -330,7 +341,7 @@ class TestCollapsedLine:
         pairs = [(f"P{i}", "Britain" if i % 2 else "Russia") for i in range(7)]
         line = _line(pairs)
         assert line == ("7 approaches to Russia and Britain "
-                        "are rebuffed (open borders)")
+                        "are rebuffed (open borders agreement)")
 
     def test_the_measured_burst_names_its_principal(self):
         """The real shape, taken off a live board: proposers
@@ -345,27 +356,27 @@ class TestCollapsedLine:
                  + [("Austria", f"R{i}") for i in range(4)]
                  + [("Denmark", "R0"), ("Bavaria", "R1")])
         assert _line(pairs) == ("16 approaches rebuffed, chiefly from "
-                                "Prussia (open borders)")
+                                "Prussia (open borders agreement)")
 
     def test_two_principals_are_named_when_neither_dominates_alone(self):
         pairs = ([("Prussia", f"R{i}") for i in range(6)]
                  + [("Austria", f"R{i}") for i in range(6)]
                  + [("Denmark", "R0"), ("Bavaria", "R1")])
         assert _line(pairs) == ("14 approaches rebuffed, chiefly from "
-                                "Prussia and Austria (open borders)")
+                                "Prussia and Austria (open borders agreement)")
 
     def test_a_crowded_refused_side_names_its_principal_too(self):
         pairs = ([(f"P{i}", "Britain") for i in range(9)]
                  + [(f"P{i}", f"R{i}") for i in range(4)])
         assert _line(pairs) == ("13 approaches rebuffed, chiefly by "
-                                "Britain (open borders)")
+                                "Britain (open borders agreement)")
 
     def test_a_genuinely_flat_burst_stays_anonymous(self):
         """Anonymity is CORRECT when no court carries the burst — the
         sentence must not invent a protagonist out of a diffuse season."""
         pairs = [(f"P{i}", f"R{i}") for i in range(6)]
         assert _line(pairs) == (
-            "6 approaches rebuffed among the courts (open borders)")
+            "6 approaches rebuffed among the courts (open borders agreement)")
 
     def test_naming_is_monotonic_as_fog_lifts(self):
         """Fog is re-evaluated at VIEW time, so a bucket gains members as
@@ -501,7 +512,7 @@ class TestEndpoint:
         payload = self._get(world)
         page = next(t for t in payload["turns"] if t["turn"] == 3)["events"]
         row = next(e for e in page if e["type"] == REFUSAL)
-        assert row["display"] == "23 courts rebuff Austria (open borders)"
+        assert row["display"] == "23 courts rebuff Austria (open borders agreement)"
 
     def test_the_endpoint_does_not_touch_the_model(self):
         world = _world_with_a_visible_burst()
