@@ -9,7 +9,7 @@ Fog-filtered: enemy intel uses RegionIntel visibility, never raw marshal data.
 
 from typing import Dict, List, Optional, Any
 
-from backend.display_names import humanize_entity_name
+from backend.display_names import humanize_entity_name, with_definite_article
 from backend.nation_config import get_player_nation
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
@@ -341,7 +341,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             _add("marshal_captured",
                  f"marshal_captured:{e.get('marshal', '?')}",
                  marshal=humanize_entity_name(e.get("marshal", "?")),
-                 captor=humanize_entity_name(e.get("captor", "the enemy")))
+                 # CA8 sweep 4: `captor` is a NATION TAG (combat_executor
+                 # stamps `captor_nation`), so `humanize_entity_name` — a
+                 # marshal-name humaniser — rendered "Kingdom Of Italy holds
+                 # him prisoner." at weight 95: a dead name AND a mis-case,
+                 # from the highest-weight headline in the file.
+                 captor=(formed_display_name(world, e["captor"])
+                         if e.get("captor") else "the enemy"))
         elif etype in ("marshal_broken", "retreat"):
             # ────────────────────────────────────────────────────────────
             # CA8-5 (creative audit, Aug 4 2026): `own_broken` carries the
@@ -372,7 +378,9 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                     and world.get_diplomatic_state(player_nation, m_nation) == "ALLIANCE"):
                 _add("ally_broken", f"ally_broken:{e.get('marshal', '?')}",
                      marshal=marshal_disp, region=region,
-                     nation=humanize_entity_name(m_nation))
+                     # CA8 sweep 4: the last `_add()` still passing a nation
+                     # tag through the marshal-name humaniser.
+                     nation=formed_display_name(world, m_nation))
         elif etype == "battle":
             # Own marshal mauled: >=25% of pre-battle strength lost.
             for side, cas_key in (("attacker", "attacker_casualties"),
@@ -765,7 +773,11 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
     if lost_estate and lost_estate.get("region"):
         by = lost_estate.get("by") or ""
         taker = formed_display_name(world, by) if by else "the enemy"
-        tail.append(f"{taker} holds {lost_estate['region']} now")
+        # CA8 sweep 4: PC-9 landed `with_definite_article` for exactly this —
+        # the same sentence says "endowed with THE Duchy of Carniola" two
+        # clauses earlier and then "Duchy of Normandy holds Berry now".
+        tail.append(f"{with_definite_article(taker)} holds "
+                    f"{lost_estate['region']} now")
     if crown_lost:
         # CA8-9 review fix: `recompute_crowns` VACATES the crown on a
         # top-of-ladder tie, so "passed to another" was a flat falsehood
@@ -852,7 +864,17 @@ def _build_marshal_arcs(world, player_nation: str,
             atk_nation = e.get("attacker_nation", "")
             def_nation = e.get("defender_nation", "")
             if def_nation == player_nation:
-                attackers.setdefault(dfn, []).append((turn, atk))
+                # CA8 sweep 4: this used to append on EVERY battle, with no
+                # reference to `outcome`, so a marshal who WON two defensive
+                # battles on consecutive turns was narrated as "hunted across
+                # the frontier" — the exact shape the CA8-9 review believed it
+                # had killed for `crown_lost`, surviving on a different term.
+                # It was spared the headline only by accident (`fall_turn`
+                # stays None for a pure win-hunt), which evaporates the moment
+                # one of the two is lost. Being hunted means being pressed,
+                # not being visited.
+                if not ("defender" in outcome and "victory" in outcome):
+                    attackers.setdefault(dfn, []).append((turn, atk))
                 if "attacker" in outcome and "victory" in outcome:
                     defeats.setdefault(dfn, []).append(turn)
             if (atk_nation == player_nation
@@ -860,7 +882,15 @@ def _build_marshal_arcs(world, player_nation: str,
                 defeats.setdefault(atk, []).append(turn)
         elif etype == "retreat":
             name = e.get("marshal", "")
-            if name:
+            # CA8 sweep 4: every sibling branch guards on nation and this one
+            # did not, while `world_state` logs retreats for ENEMY marshals by
+            # name. Reachable through vassal assimilation, which keeps the
+            # marshal's name and rewrites his nation: measured, a marshal who
+            # routed three times under Bavaria's flag, was assimilated, and
+            # was crowned under France, LED the French dispatch at weight 91
+            # with "has been driven back" — his service under his old flag
+            # following him across.
+            if name and e.get("nation", player_nation) == player_nation:
                 retreats[name] = retreats.get(name, 0) + 1
                 # CA8-9 review fix: a VOLUNTARY withdrawal is not a fall.
                 # `movement_executor`'s own retreat verb logs this same event
@@ -973,11 +1003,18 @@ def _build_marshal_arcs(world, player_nation: str,
             continue
 
         if hunted_by:
-            crossings = max(fled, 1)
-            frontier_word = "frontier" if crossings == 1 else "frontiers"
-            line = (f"Hunted by {humanize_entity_name(hunted_by)} across "
-                    f"{crossings} {frontier_word} — stands at {m.location} "
-                    f"with {int(m.strength):,} men.")
+            # CA8 sweep 4: `max(fled, 1)` invented a frontier crossing that
+            # never happened — "across 1 frontier" for a marshal who never
+            # withdrew. CA8-9 promoted this string into `status_note`, so it
+            # is the marshal's headline row now, not a secondary note.
+            hunter = humanize_entity_name(hunted_by)
+            if fled:
+                frontier_word = "frontier" if fled == 1 else "frontiers"
+                line = (f"Hunted by {hunter} across {fled} {frontier_word} — "
+                        f"stands at {m.location} with {int(m.strength):,} men.")
+            else:
+                line = (f"Hunted by {hunter} on consecutive turns — holds "
+                        f"{m.location} with {int(m.strength):,} men.")
         elif consecutive >= 2:
             line = (f"{consecutive} defeats in as many turns — "
                     f"{int(m.strength):,} men remain at {m.location}.")

@@ -1385,7 +1385,13 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "jealousy_fired":
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
-        target = event.get("target", "a rival")
+        # CA8 sweep 4: `marshal` reaches the player through `_name_tag`
+        # (which humanises the camelCase key) and `target` — a marshal name
+        # in the SAME sentence — did not: "envious of ArchdukeCharles's
+        # victories". Unreachable for the player today (every French roster
+        # and bench name is single-token, and the fog filter shows him only
+        # his own nation's jealousy rows), so this is symmetry, not urgency.
+        target = humanize_entity_name(event.get("target", "a rival"))
         personality = event.get("personality", "")
         # CA8-8: this channel composes its own sentence and had the same
         # three-string monoculture as the dispatch. A recurrence reads
@@ -1416,12 +1422,15 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "jealousy_escalation":
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
-        target = event.get("target", "a rival")
-        # CA8-8: the payload has always carried `level` and this formatter
+        target = humanize_entity_name(event.get("target", "a rival"))
+        # CA8-8: the payload carries `level` and this formatter
         # ignored it, so a tier-1 escalation the dispatch describes as "a
         # matter of concern" was logged as "entrenched" — the same event
         # contradicting itself across two surfaces on the same turn.
-        # Absent on pre-CA8-8 saves; the old wording is the fallback.
+        # CA8 sweep 4 corrects this note: `level` has been on the payload
+        # since the producer was written, so the default below is DEFENSIVE,
+        # not a compatibility shim. `fires` and `mutual` ARE new keys with
+        # live fallbacks; `level` is not one of them.
         # 2 / 3 are jealousy.ESCALATION_PERMANENT_LEVEL and
         # ESCALATION_MUTUAL_LEVEL — inlined rather than imported, because
         # this is a display module and jealousy.py imports the log's own
@@ -1445,7 +1454,7 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "jealousy_autonomous":
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
-        target = event.get("target", "the enemy")
+        target = humanize_entity_name(event.get("target", "the enemy"))
         return (f"{_name_tag(marshal, nation)} attacked {target} on his own "
                 f"initiative, hungry for glory")
 

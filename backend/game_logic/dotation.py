@@ -36,6 +36,8 @@ static, titleless. Neither dominates; the flip is the decision.
 import math
 from typing import Dict, List, Optional, Tuple
 
+from backend.game_logic.formations import formed_display_name
+
 # ═══════════════ E5 BLESSED CONSTANTS (§0.6.7, July 9, 2026) ═══════════════
 
 # Expectation: gold/turn a marshal feels owed per battle won, and its cap.
@@ -588,7 +590,12 @@ def apply_estate_confiscation(world, region, holder, capturer_nation: str,
             priority=NotificationPriority.HIGH,
             title=f"Marshal {holder.name}'s estate confiscated",
             message=(
-                f"{capturer_nation} has seized {region.name}, the estate "
+                # CA8 sweep 4: a raw nation tag in a player-facing
+                # notification — "KingdomOfItaly has seized ..." — while
+                # the dispatch narrating the SAME confiscation uses the
+                # R7 chokepoint.
+                f"{formed_display_name(world, capturer_nation)} has "
+                f"seized {region.name}, the estate "
                 f"that funded Marshal {holder.name}'s honor. He will not "
                 f"forget it, Sire."
             ),

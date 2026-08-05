@@ -13,6 +13,8 @@ never resolve the wrong question.
 """
 from typing import Dict, Optional
 
+from backend.game_logic.formations import formed_display_name
+
 
 class CaptureExecutor:
     """Handles post-capture plunder/secure choice."""
@@ -243,7 +245,8 @@ class CaptureExecutor:
             message = (f"The estate at {region.name} is confiscated! "
                        f"{outcome['windfall']:,} gold seized for the treasury. "
                        f"Marshal {holder.name}'s title is extinguished — "
-                       f"{holder.nation} will not forgive it.")
+                       f"{formed_display_name(world, holder.nation)} "
+                       f"will not forgive it.")
             if outcome["disapproving"]:
                 names = ", ".join(outcome["disapproving"])
                 message += (f" Your cautious marshals disapprove — property "

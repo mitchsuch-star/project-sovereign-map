@@ -2027,3 +2027,240 @@ class TestCA828StrategicDestinationSuggestion:
         target = hidden[0]
         res = _issue(europe_board, f"Davout, march to {target.name}")
         assert target.location not in (res.get("message") or ""), res.get("message")
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8 sweep 4 — the narration defects the sweep-3 review fleet named as
+# UNEXAMINED coverage rather than as findings. Four of them turned out to be
+# real, and two sit inside the very function the review declared clean.
+# ════════════════════════════════════════════════════════════════════════
+
+class TestSweep4MarshalArcs:
+    """`_build_marshal_arcs` — the retreat branch and the hunt predicate."""
+
+    def _world(self, turn=10):
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney", personality="aggressive")
+        world = WorldFactory.with_marshals([ney], current_turn=turn)
+        world.event_log = []
+        return world, ney
+
+    def test_a_marshals_service_under_a_dead_flag_does_not_lead_the_dispatch(self):
+        """The retreat/rout branch was the ONLY unguarded branch in the
+        function: every sibling checks nation and this one keyed on name
+        alone, while `world_state` logs retreats for ENEMY marshals by name.
+        Vassal assimilation is the live path — it keeps the name and rewrites
+        the nation — so a marshal's routs under his old flag followed him into
+        the French briefing and led it at weight 91."""
+        world, ney = self._world()
+        ney.nation = "France"
+        for t in (7, 8, 9):
+            world.event_log.append({"type": "retreat", "marshal": "Ney",
+                                    "nation": "Bavaria", "forced": True,
+                                    "turn": t})
+        world.event_log.append({"type": "glory_crowned", "marshal": "Ney",
+                                "nation": "France", "turn": 10})
+        arcs = dispatch_mod._build_marshal_arcs(world, "France")
+        arc = arcs.get("Ney", {})
+        assert arc.get("fled_across", 0) == 0, arc
+        assert arc.get("fall_arm") is None, arc
+
+    def test_the_same_routs_under_the_players_own_flag_still_count(self):
+        """Negative control — the guard must not silence a real fall."""
+        world, ney = self._world()
+        for t in (7, 8, 9):
+            world.event_log.append({"type": "retreat", "marshal": "Ney",
+                                    "nation": "France", "forced": True,
+                                    "turn": t})
+        world.event_log.append({"type": "glory_crowned", "marshal": "Ney",
+                                "nation": "France", "turn": 10})
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney", {})
+        assert arc.get("fled_across", 0) == 3, arc
+        assert arc.get("fall_arm") == "rout", arc
+
+    def test_winning_two_defensive_battles_is_not_being_hunted(self):
+        """`attackers` was populated on EVERY battle where the player was the
+        defender, with no reference to `outcome` — so a marshal who WON both
+        was narrated as 'hunted across the frontier'. This is verbatim the
+        shape the CA8-9 review believed it had killed for `crown_lost`,
+        surviving on a different term."""
+        world, ney = self._world()
+        for t in (9, 10):
+            world.event_log.append({
+                "type": "battle", "turn": t, "outcome": "defender_victory",
+                "attacker": "ArchdukeCharles", "defender": "Ney",
+                "attacker_nation": "Austria", "defender_nation": "France"})
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney", {})
+        assert not arc.get("hunted_by"), arc
+
+    def test_being_beaten_on_consecutive_turns_still_reads_as_a_hunt(self):
+        """Negative control for the same predicate."""
+        world, ney = self._world()
+        for t in (9, 10):
+            world.event_log.append({
+                "type": "battle", "turn": t, "outcome": "attacker_victory",
+                "attacker": "ArchdukeCharles", "defender": "Ney",
+                "attacker_nation": "Austria", "defender_nation": "France"})
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney", {})
+        assert arc.get("hunted_by") == "ArchdukeCharles", arc
+
+    def test_the_hunt_line_does_not_invent_a_frontier_crossing(self):
+        """`crossings = max(fled, 1)` reported 'across 1 frontier' for a
+        marshal who never withdrew — and CA8-9 promoted this string into the
+        roster's `status_note`, so it is his headline row now."""
+        world, ney = self._world()
+        for t in (9, 10):
+            world.event_log.append({
+                "type": "battle", "turn": t, "outcome": "attacker_victory",
+                "attacker": "ArchdukeCharles", "defender": "Ney",
+                "attacker_nation": "Austria", "defender_nation": "France"})
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney", {})
+        assert arc.get("fled_across", 0) == 0
+        assert "frontier" not in arc["line"] or "0 frontier" not in arc["line"]
+        assert "1 frontier" not in arc["line"], arc["line"]
+        assert "consecutive turns" in arc["line"], arc["line"]
+
+    def test_a_real_crossing_is_still_counted(self):
+        world, ney = self._world()
+        for t in (9, 10):
+            world.event_log.append({
+                "type": "battle", "turn": t, "outcome": "attacker_victory",
+                "attacker": "ArchdukeCharles", "defender": "Ney",
+                "attacker_nation": "Austria", "defender_nation": "France"})
+        world.event_log.append({"type": "retreat", "marshal": "Ney",
+                                "nation": "France", "turn": 10})
+        arc = dispatch_mod._build_marshal_arcs(world, "France").get("Ney", {})
+        assert "across 1 frontier" in arc["line"], arc["line"]
+
+
+class TestSweep4DeadNames:
+    """Nation tags reaching the player through a marshal-name humaniser."""
+
+    def test_the_captor_of_a_marshal_is_named_by_its_living_name(self):
+        """`marshal_captured` is the highest-weight headline in the file (95)
+        and it passed a NATION TAG through `humanize_entity_name`, which does
+        not re-case: 'Kingdom Of Italy holds him prisoner.'"""
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney")
+        world = WorldFactory.with_marshals([ney], current_turn=5)
+        world.event_log = [{"type": "marshal_captured", "marshal": "Ney",
+                            "captor": "KingdomOfItaly", "turn": 5}]
+        head = dispatch_mod._build_headline(world, "France") or {}
+        blob = " ".join(str(v) for v in head.values())
+        assert "KingdomOfItaly" not in blob and "Kingdom Of Italy" not in blob, blob
+        assert "Kingdom of Italy" in blob, blob
+
+    def test_the_confiscation_notification_names_the_living_state(self):
+        import inspect
+        from backend.game_logic import dotation as _dot
+        src = inspect.getsource(_dot)
+        assert 'f"{capturer_nation} has seized' not in src
+        assert "formed_display_name(world, capturer_nation)" in src
+
+    def test_the_confiscation_refusal_names_the_living_state(self):
+        import inspect
+        from backend.commands import capture_executor as _ce
+        src = inspect.getsource(_ce)
+        assert 'f"{holder.nation} will not forgive it."' not in src
+        assert "formed_display_name(world, holder.nation)" in src
+
+    def test_no_add_site_passes_a_nation_through_the_marshal_humaniser(self):
+        """The structural pin the sweep-3 review asked for: it would have
+        caught both of the sites fixed here, and will catch the next one."""
+        import inspect
+        import re
+        src = inspect.getsource(dispatch_mod._build_headline)
+        offenders = re.findall(
+            r"(?:nation|captor|taker|by)\s*=\s*humanize_entity_name\(", src)
+        assert offenders == [], offenders
+
+
+class TestSweep4EstateProse:
+    def test_the_taker_of_an_estate_keeps_its_article(self):
+        """PC-9 landed `with_definite_article` for exactly this: the same
+        sentence says 'endowed with THE Duchy of Carniola' two clauses before
+        'Duchy of Normandy holds Berry now'."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        from backend.game_logic import formations as _f
+        ney = MarshalFactory.infantry(name="Ney", personality="aggressive")
+        world = WorldFactory.with_marshals([ney], current_turn=10)
+
+        # A TITLED taker is the case: a bare nation name correctly takes no
+        # article, so the defect only shows once a formed/carved state holds
+        # the province. Patch the R7 identity, not the composer.
+        original = _f.formed_display_name
+        dispatch_mod.formed_display_name = (
+            lambda w, n: "Duchy of Normandy" if n == "Normandy" else original(w, n))
+        try:
+            line = dispatch_mod._compose_reversal_line(
+                world, ney, crown_turn=8, estate={"region": "Carniola"},
+                lost_estate={"region": "Berry", "by": "Normandy"},
+                crown_lost=False, consecutive=0, hunted_by="", fled=2)
+        finally:
+            dispatch_mod.formed_display_name = original
+        # Read the sentence, do not grep the source: the article is what the
+        # SAME sentence already uses two clauses earlier.
+        assert "endowed with the Duchy of Carniola" in line, line
+        assert "the Duchy of Normandy holds Berry now" in line, line
+
+
+class TestSweep4IncomingVoice:
+    """CA8-16's two gate-free halves. The re-key is NOT built — with two
+    variants per bank its image is {0,1}, so any turn-independent term is a
+    phase shift, and the 19 courts have disjoint banks so nothing decorrelates.
+    The authoring question goes to the gate with the measurement that settles
+    it: 72% of all diplomat lines in a 40-turn campaign are exact repeats."""
+
+    def _europe(self):
+        return WorldState.from_scenario(
+            "godot-client/project-sovereign/assets/maps/europe_1805.json")
+
+    def test_hardenberg_no_longer_speaks_the_generic_register_line(self):
+        from backend.game_logic.diplomatic_templates import (
+            _INCOMING_MOTIVE_LINES, _NAMED_MOTIVE_LINES)
+        generic = _INCOMING_MOTIVE_LINES[("hawk", "hegemony_pressure")]
+        named = _NAMED_MOTIVE_LINES[("Hardenberg", "hegemony_pressure")]
+        assert len(named) == 2                     # the pinned bank size holds
+        for g in generic:
+            assert g.format(nation="Prussia") not in named, g
+
+    def test_no_named_bank_is_the_register_bank_with_the_name_filled_in(self):
+        """Generalised: the defect was one row, the class is the file."""
+        from backend.game_logic.diplomatic_templates import (
+            _INCOMING_MOTIVE_LINES, _NAMED_MOTIVE_LINES)
+        from backend.models.diplomat import STARTING_DIPLOMATS
+        by_name = {}
+        for tag, rec in STARTING_DIPLOMATS.items():
+            raw = getattr(rec, "personality", "")
+            by_name[getattr(rec, "name", "")] = (
+                str(getattr(raw, "value", raw) or "").lower(), tag)
+        dupes = []
+        for (name, reason), lines in _NAMED_MOTIVE_LINES.items():
+            register, tag = by_name.get(name, ("", ""))
+            generic = _INCOMING_MOTIVE_LINES.get((register, reason))
+            if not generic:
+                continue
+            for g in generic:
+                if g.format(nation=tag) in lines:
+                    dupes.append((name, reason, g))
+        assert dupes == [], dupes
+
+    def test_a_named_envoy_keeps_his_attribution_on_the_register_fallback(self):
+        """16 of the 19 courts fall to the register bank for `agenda_pursuit`,
+        and every one of them silently lost its authored attribution:
+        'Araujo, measuring the room:' became a bare 'Araujo:'. Unpinned,
+        because the bespoke-voice test excludes that reason."""
+        from backend.game_logic.diplomatic_templates import (
+            compose_incoming_diplomat_line, _NAMED_MOTIVE_LINES)
+        world = self._europe()
+        world.current_turn = 4
+        for tag, expected in (("Portugal", "Araujo, measuring the room:"),
+                              ("Bavaria", "Montgelas, coolly reckoning the gains:"),
+                              ("Denmark", "Bernstorff, watchful and correct:")):
+            # the premise: this court has NO bespoke bank for the reason
+            name = expected.split(",")[0]
+            assert (name, "agenda_pursuit") not in _NAMED_MOTIVE_LINES
+            line = compose_incoming_diplomat_line(
+                world, nation=tag, proposal_type="non_aggression",
+                decision_reason="agenda_pursuit")
+            assert line.startswith(expected), line

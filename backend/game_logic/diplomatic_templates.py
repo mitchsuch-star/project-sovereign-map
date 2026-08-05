@@ -212,7 +212,14 @@ _NAMED_MOTIVE_LINES = {
         "Prussia does not forget — but she can postpone. We face the same foe.",
     ],
     ("Hardenberg", "hegemony_pressure"): [
-        "Europe grows uneasy at France's shadow, and Prussia would rather watch the roads than the frontier.",
+        # CA8 sweep 4: this slot used to hold the generic ("hawk",
+        # "hegemony_pressure") line verbatim with {nation} pre-filled as
+        # "Prussia" — a named override delivering a copy of the register line
+        # it exists to replace, and a measurable share of the row's own
+        # cross-speaker repetition. Re-authored in Hardenberg's register per
+        # the Voice Bible (blunt, prideful, honour-framed; never hedging,
+        # never wit). The bank is still 2 lines, so no pin moves.
+        "Berlin will not pretend otherwise: France stands too near the Rhine. Prussia would fix that line in ink before she fixes it in blood.",
         "Prussia does not bow. But Prussia can sign.",
     ],
     ("Hardenberg", "unknown_baseline"): [
@@ -597,7 +604,15 @@ def compose_incoming_diplomat_line(
         if register not in ("hawk", "schemer", "dove", "loyalist"):
             register = "chancery"
         variants = _INCOMING_MOTIVE_LINES[(register, reason)]
-        if register == "chancery" or name.startswith("The Chancery"):
+        # CA8 sweep 4: a NAMED envoy used to LOSE his authored attribution
+        # here — "Araujo, measuring the room:" became a bare "Araujo:" —
+        # simply because his reason had no bespoke bank. `agenda_pursuit` is
+        # exactly that case for 16 of the 19 courts, so the fallthrough is
+        # the common path, not the rare one. The words may come from the
+        # register; the voice announcing them is still his.
+        if name in _NAMED_ATTRIBUTIONS:
+            attribution = _NAMED_ATTRIBUTIONS[name]
+        elif register == "chancery" or name.startswith("The Chancery"):
             attribution = f"{name} conveys:" if name else "Their chancery conveys:"
         else:
             attribution = f"{name}:"
