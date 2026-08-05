@@ -79,7 +79,11 @@
 > ended 1,761g/turn in household bills with one marshal endowed to 1,137g against a
 > 300 cap. Re-record: reshaped tail, divergence index 12 (63→79), alarm ending at 36
 > rather than 0, because Austria stops giving her conquests away (treasury
-> 1,334→10,485) and stays a live belligerent. **Attribution verified by experiment:**
+> 1,334→10,485). **The first draft of that ledger paragraph was WRONG and this
+> slice's own review caught it** — it compared one arm with itself (13 vs 22 are
+> two metrics of the UNPATCHED run) and claimed Austria "stays a live
+> belligerent", when she is at WAR on all 40 turns in BOTH arms and ends LARGER
+> unpatched. Corrected in the ledger, here, and in CLAUDE.md. **Attribution verified by experiment:**
 > with the filter clause alone disabled the prior series reproduces byte-for-byte.
 >
 > **The sweep-3 review's four unexamined areas are closed.** Two were clean. Two hid

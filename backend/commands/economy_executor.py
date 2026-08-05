@@ -986,7 +986,7 @@ class EconomyExecutor:
         """
         from backend.game_logic.dotation import (
             check_estate_eligibility, compute_investiture_fee, derive_title,
-            get_expectation, get_satisfaction, is_dotation_world,
+            estate_yield, get_expectation, get_satisfaction, is_dotation_world,
             list_eligible_estates, strip_dead_estate_claims,
         )
 
@@ -1083,7 +1083,12 @@ class EconomyExecutor:
         # never buys trust (named negative-assertion test).
         marshal.dotation_regions.append(region_name)
         title = derive_title(region_name)
-        estate_income = int(region.get_effective_income())
+        # CA8 sweep 4 review: this figure went into the confirmation
+        # sentence AND both `dotation_granted` payloads while omitting the
+        # disruption term, so the message contradicted itself in one
+        # paragraph — "its revenues (200g/turn) now sustain his household"
+        # beside "now holds 0g/turn".
+        estate_income = estate_yield(world, region_name)
         expectation = get_expectation(marshal)
         satisfaction = get_satisfaction(marshal, world)
 

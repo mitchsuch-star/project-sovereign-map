@@ -82,7 +82,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > reach it, and every pin is executor-level; fixed in passing, naming a **fogged** foreign
 > army as a destination answered with its province (R5). **CA8-20 moved `BASELINE_SERIES`
 > consciously** (6 of 9 ambient grants closed 0g of the gap; reshaped tail, index 12
-> 63→79, alarm ending 36 not 0 because Austria stops giving her conquests away —
+> 63→79, alarm ending 36 not 0 because Austria stops giving her conquests away (the first draft of that ledger paragraph was WRONG — it compared one arm with itself and claimed a belligerency change that does not exist; **the review caught it and it is corrected in place**) —
 > **attribution verified by experiment**, the filter alone disabled reproduces the prior
 > series byte-for-byte). **The sweep-3 review's four unexamined areas are closed: two hid
 > real defects, BOTH inside the function that review declared clean** — the retreat branch

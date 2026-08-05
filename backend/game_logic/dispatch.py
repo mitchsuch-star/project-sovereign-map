@@ -752,8 +752,15 @@ def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
 
     # ── the fall, strongest first ─────────────────────────────────────────
     if hunted_by:
-        fall = (f"has been hunted across the frontier by "
-                f"{humanize_entity_name(hunted_by)}")
+        # CA8 sweep 4 review: the roster arm stopped inventing a frontier
+        # crossing and this one — the WEIGHT-91 HEADLINE, which is the string
+        # the player actually reads, since `reversal_line` supersedes `line`
+        # whenever it exists — kept asserting it unconditionally. `fled` here
+        # is the FORCED-rout count, so the crossing clause is only claimed
+        # when a rout really put him across one.
+        hunter = humanize_entity_name(hunted_by)
+        fall = (f"has been hunted across the frontier by {hunter}" if fled
+                else f"has been hunted on consecutive turns by {hunter}")
     elif consecutive >= 2:
         fall = f"has been beaten {consecutive} turns running"
     elif consecutive == 1:

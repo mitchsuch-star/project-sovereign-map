@@ -317,7 +317,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
     from backend.game_logic.dotation import (
         build_rente_offer, compute_investiture_fee, derive_title,
         get_estate_income, get_expectation, get_rente_cost,
-        get_satisfaction, is_dotation_world, is_eroding,
+        estate_yield, get_satisfaction, is_dotation_world, is_eroding,
         list_eligible_estates,
     )
 
@@ -362,7 +362,12 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
                 continue
             details.append({
                 "region": region_name,
-                "income": int(region.get_effective_income()),
+                # CA8 sweep 4 review: `get_effective_income` carries the
+                # stability term but NOT the EC-W1 disruption term, so a
+                # province with a hostile army standing on it was priced at
+                # its full 200g/turn on the button that endows it, and paid 0.
+                # `estate_yield` is the same predicate the payer uses.
+                "income": estate_yield(world, region_name),
             })
 
     # The Steward (§0.6.8 item 2): decision-relevant BEFORE endowing —

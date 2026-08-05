@@ -187,9 +187,21 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # THIS IS A RESHAPED TAIL, NOT A TIME SHIFT. Divergence at index 12
 # (63 -> 79); anti-France alarm now ends at 36 rather than 0. The cause is
 # Austria's economy, not the threat machinery: unpatched she ends
-# dotation_skim 1,761 / treasury 1,334, patched 1,037 / 10,485, so she
-# recruits on 13 turns instead of 22 and stays a live belligerent to the end
-# of the window. Britain commissions Wellesley instead of Shrapnel.
+# dotation_skim 1,761 / treasury 1,334, patched 1,037 / 10,485, so she levies
+# on 12 turns rather than 13, and in 15 levies rather than 23. Britain
+# commissions Wellesley instead of Shrapnel.
+#
+# CORRECTED Aug 4, 2026 by this slice's own review, and the correction is
+# worth keeping visible. This paragraph first read "recruits on 13 turns
+# instead of 22 and stays a live belligerent to the end of the window". BOTH
+# halves were wrong. 13 and 22 are two different metrics of the SAME
+# (unpatched) arm — executor dispatches vs Austria-attributed recruit rows in
+# a 500-capped `event_log` — so the sentence compared an arm with itself; the
+# patched figures are 12 and 15. And Austria is at WAR with France on all 40
+# turns in BOTH arms, ending LARGER unpatched (21 provinces / 125,395 men vs
+# 19 / 87,640), so "stays a live belligerent" named no difference the filter
+# made and was inverted on the quantitative readings. The tail is reshaped by
+# the fighting, not by Austria leaving the war.
 #
 # ATTRIBUTION VERIFIED BY EXPERIMENT, not by argument (the NV-4 idiom):
 # with the filter clause alone disabled — `list_paying_estates` returning

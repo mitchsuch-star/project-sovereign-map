@@ -55,16 +55,29 @@ def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
 
 
 def _visible_marshal_names(world, actor_nation: str) -> set:
-    """Marshal names `actor_nation` may resolve a destination against (R5)."""
-    names = {getattr(m, "name", "") for m in world.marshals.values()
-             if getattr(m, "nation", None) == actor_nation}
-    if actor_nation:
-        try:
-            names.update(getattr(e, "name", "")
-                         for e in world.get_visible_enemies(actor_nation))
-        except Exception:
-            pass
-    names.discard("")
+    """Marshal names `actor_nation` may resolve a destination against (R5).
+
+    VISIBILITY, not war status. The first cut of this guard used
+    `get_visible_enemies`, which is war-gated — so an ALLIED marshal the
+    player is rendering on his own map at full visibility stopped being a
+    legal destination and "Davout, march to join Deroy" degraded from a real
+    order to a shrug. Reading the fog directly subsumes `get_visible_enemies`
+    (identical PARTIAL line) and admits exactly the set already published in
+    the filtered game-state summary, so it reveals nothing new: a PARTIAL
+    region puts the marshal's name AND location into that payload already.
+    """
+    from backend.models.intel import PARTIAL
+    names = set()
+    for m in world.marshals.values():
+        name = getattr(m, "name", "")
+        if not name:
+            continue
+        if getattr(m, "nation", None) == actor_nation:
+            names.add(name)
+        elif actor_nation:
+            intel = world.get_region_intel(getattr(m, "location", ""))
+            if intel is not None and intel.visibility_at_least(PARTIAL):
+                names.add(name)
     return names
 
 

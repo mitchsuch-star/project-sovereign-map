@@ -1460,7 +1460,13 @@ class TestCA89ReviewRound2:
             self._beat(w, t, cas=9000)
         arc = dispatch_mod._build_marshal_arcs(w, "France")["Ney"]
         assert arc["fall_arm"] == "hunted", arc["fall_arm"]
-        assert "hunted across the frontier" in arc["reversal_line"]
+        # CA8 sweep 4 review: this line USED to assert "hunted across the
+        # frontier" — i.e. it pinned the fabrication. `_beat` logs no retreat,
+        # so this marshal crossed nothing; the roster arm had already stopped
+        # claiming otherwise and the headline arm had not. The subject of this
+        # test is absorption, asserted below.
+        assert "hunted on consecutive turns" in arc["reversal_line"]
+        assert "across the frontier" not in arc["reversal_line"]
         head = dispatch_mod._build_headline(w, "France")
         assert head["class"] == "marshal_reversal"
         whole = head["text"] + " " + " ".join(head["sub_beats"])
@@ -1743,6 +1749,41 @@ class TestCA819GarrisonSeams:
             world.get_marshal("Ney"), target, world, {"world": world})
         assert seen.get("Ney", 0.0) > 0.0, seen
 
+    def test_an_adjacent_gun_does_not_keep_its_overwatch_penalty_forever(self):
+        """CA8 sweep 4 review: the SAME class, one field over, and it
+        falsifies this slice's own claim that moving the names onto Marshal
+        closed it — the drift is in the REGION set, not the name list.
+        `_calculate_overwatch` stamps `overwatch_penalty` on every attack
+        participant, and artillery that reinforces from an ADJACENT province
+        deliberately never relocates, while the attack path's clear is keyed
+        on three regions that cannot contain his. So the gun stayed home
+        carrying a permanent attack penalty."""
+        world = WorldState()
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Britain")] = "WAR"
+        world.opening_attack_guidance_shown = True
+        world.marshals.clear()
+        ney = _mk_marshal("Ney", "Belgium", 40000, "France")
+        world.marshals["Ney"] = ney
+        gun = _mk_marshal("Drouot", "Netherlands", 12000, "France")
+        gun.artillery = True
+        world.marshals["Drouot"] = gun
+        foe = _mk_marshal("Wellington", "Waterloo", 20000, "Britain")
+        world.marshals["Wellington"] = foe
+        enemy_gun = _mk_marshal("BritArt", "Waterloo", 8000, "Britain")
+        enemy_gun.artillery = True
+        world.marshals["BritArt"] = enemy_gun
+
+        ex = CommandExecutor()
+        ex.execute({"command": {"marshal": "Ney", "action": "attack",
+                                "target": "Wellington"}}, {"world": world})
+        # He never moved — and he must not still be carrying the stamp.
+        assert gun.location == "Netherlands"
+        assert getattr(gun, "overwatch_penalty", 0.0) == 0.0, (
+            "the adjacent gun kept a permanent attack penalty")
+        for m in world.marshals.values():
+            assert getattr(m, "overwatch_penalty", 0.0) == 0.0, m.name
+
     def test_clear_combat_transient_state_holds_the_coordination_fields(self):
         """Its docstring promised 'any new combat-transient field MUST be added
         here' and it held none of the eleven — which is why the reckless-cavalry
@@ -1762,13 +1803,33 @@ class TestCA819GarrisonSeams:
         """The attacker is covered by `clear_combat_transient_state`; the
         defender needs a coordination-ONLY clear, because clearing his full
         transient state before the battle would strip `fortified` /
-        `square_formation` and change the fight."""
-        import inspect
-        from backend.models.world_state import WorldState as _WS
-        src = inspect.getsource(_WS._process_reckless_cavalry_turn_start)
-        assert "enemy.clear_coordination_transients()" in src
-        assert "enemy.clear_combat_transient_state()" not in src.split(
-            "resolve_battle")[0]
+        `square_formation` and change the fight.
+
+        CA8 sweep 4 review: this was an `inspect.getsource` substring pin and
+        a getsource pin cannot tell whether the line RUNS. Drive the real
+        turn-start pass and read the state instead — and assert the negative
+        half too, since the whole reason the clear is coordination-only is
+        that the full clear would move the battle."""
+        world = WorldState()
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Britain")] = "WAR"
+        world.marshals.clear()
+        ney = _mk_marshal("Ney", "Paris", 20000, "France")
+        ney.cavalry = True
+        ney.recklessness = 100
+        world.marshals["Ney"] = ney
+        foe = _mk_marshal("Wellington", "Belgium", 15000, "Britain")
+        world.marshals["Wellington"] = foe
+        # A stale stamp on the DEFENDER, and real combat state beside it.
+        foe.total_coordination_defense_bonus = 0.20
+        foe.total_coordination_attack_bonus = 0.25
+        foe.fortified = True
+        foe.square_formation = True
+        world._process_reckless_cavalry_turn_start()
+        assert getattr(foe, "total_coordination_defense_bonus", 0.0) == 0.0
+        assert getattr(foe, "total_coordination_attack_bonus", 0.0) == 0.0
+        # ... and the clear was COORDINATION-only: his combat state survives.
+        assert foe.fortified is True and foe.square_formation is True
 
     # ── (ii) the garrison exclusion from the glory ladder ────────────────
 
@@ -2018,15 +2079,63 @@ class TestCA828StrategicDestinationSuggestion:
     def test_a_fogged_army_is_not_a_destination(self, europe_board):
         """The marshal fallback inside `_resolve_region_from_phrase` used to
         scan EVERY marshal in the world, so naming a hidden foreign army
-        answered with the province it was standing in."""
-        hidden = [m for m in europe_board.marshals.values()
-                  if m.nation != "France"
-                  and m.name not in {e.name for e in
-                                     europe_board.get_visible_enemies("France")}]
-        assert hidden, "boot fog must hide someone for this to mean anything"
-        target = hidden[0]
-        res = _issue(europe_board, f"Davout, march to {target.name}")
-        assert target.location not in (res.get("message") or ""), res.get("message")
+        answered with the province it was standing in.
+
+        CA8 sweep 4 review: the first version of this test took
+        `hidden[0]` off a WAR-status filter, and boot dict order made that
+        **Deroy — an ALLY, at FULL visibility, drawn on the player's own map**.
+        So the pin was exercising the ally case while its name claimed the
+        opposite, and it locked in a regression (allied marshals stopped being
+        legal destinations) instead of catching one. Sample every AT-WAR army
+        the fog actually hides, and pin the positive direction beside it.
+        """
+        from backend.commands.strategic_executor import _resolve_region_from_phrase
+
+        at_war = {e.name for e in europe_board.get_enemies_of_nation("France")}
+        visible = {e.name for e in europe_board.get_visible_enemies("France")}
+        hidden = sorted(at_war - visible)
+        assert hidden, "boot fog must hide an enemy for this to mean anything"
+        for name in hidden:
+            assert _resolve_region_from_phrase(
+                europe_board, f"march to {name}", "France") is None, name
+            # Pinned at the resolver, NOT end to end: `parser.py` converts a
+            # bare MOVE_TO at an enemy marshal into PURSUE, so the executor
+            # route never reaches this seam and would pass for another
+            # reason. (That PURSUE path prints the fogged army's province —
+            # "Davout pursues Buxhowden (at Volhynia)" — which is a separate
+            # pre-existing question, routed rather than fixed here.)
+            assert _resolve_region_from_phrase(
+                europe_board, f"march to join {name}", "France") is None, name
+
+    def test_a_marshal_the_player_can_see_IS_a_destination(self, europe_board):
+        """The positive direction, unpinned in the first cut — deleting the
+        fallback outright ran the whole 16,331-test suite green. It also fixes
+        the ALLY regression: visibility, not war status, is the predicate."""
+        from backend.commands.strategic_executor import _resolve_region_from_phrase
+
+        ney = europe_board.get_marshal("Ney")
+        assert _resolve_region_from_phrase(
+            europe_board, "reinforce Ney", "France") == ney.location
+        seen = sorted({e.name for e in europe_board.get_visible_enemies("France")})
+        assert seen, "boot fog must reveal an enemy for this to mean anything"
+        for name in seen:                       # a visible ENEMY
+            assert _resolve_region_from_phrase(
+                europe_board, f"intercept {name}", "France"
+            ) == europe_board.get_marshal(name).location, name
+        from backend.models.intel import PARTIAL
+        at_war = {e.name for e in europe_board.get_enemies_of_nation("France")}
+        allies = [m for m in europe_board.marshals.values()
+                  if m.nation != "France" and m.name not in at_war
+                  and europe_board.get_region_intel(m.location) is not None
+                  and europe_board.get_region_intel(
+                      m.location).visibility_at_least(PARTIAL)]
+        # ... excluding any whose NAME is also a province: the F4 substring
+        # scan owns those and runs first by design.
+        allies = [m for m in allies if m.name not in europe_board.regions]
+        assert allies, "boot must show the player a non-enemy marshal"
+        for m in allies[:3]:                    # a visible NON-enemy
+            assert _resolve_region_from_phrase(
+                europe_board, f"join {m.name}", "France") == m.location, m.name
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -2165,13 +2274,38 @@ class TestSweep4DeadNames:
         assert "formed_display_name(world, holder.nation)" in src
 
     def test_no_add_site_passes_a_nation_through_the_marshal_humaniser(self):
-        """The structural pin the sweep-3 review asked for: it would have
-        caught both of the sites fixed here, and will catch the next one."""
+        """The structural pin the sweep-3 review asked for.
+
+        CA8 sweep 4 review: the first cut was a regex over four keyword names
+        and it killed **1 of 7** reintroductions — a paren-wrapped `nation=`,
+        and bare `target=` / `aggressor=` / `proposer=` at sibling `_add`
+        sites, all evaded it, and so did a verbatim repeat of the `captor=`
+        defect this very commit fixed. Its docstring promised to catch the
+        next one and could not. Inverted: walk the AST and allow-list the two
+        slots that legitimately carry a MARSHAL name, because the set of
+        correct uses is small and stable while the set of nation spellings is
+        not."""
+        import ast
         import inspect
-        import re
-        src = inspect.getsource(dispatch_mod._build_headline)
-        offenders = re.findall(
-            r"(?:nation|captor|taker|by)\s*=\s*humanize_entity_name\(", src)
+        import textwrap
+
+        tree = ast.parse(textwrap.dedent(
+            inspect.getsource(dispatch_mod._build_headline)))
+        marshal_slots = {"marshal", "enemy"}
+        offenders = []
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "_add"):
+                continue
+            for kw in node.keywords:
+                if kw.arg in marshal_slots:
+                    continue
+                for inner in ast.walk(kw.value):
+                    if (isinstance(inner, ast.Call)
+                            and isinstance(inner.func, ast.Name)
+                            and inner.func.id == "humanize_entity_name"):
+                        offenders.append(kw.arg)
         assert offenders == [], offenders
 
 
@@ -2228,12 +2362,19 @@ class TestSweep4IncomingVoice:
         """Generalised: the defect was one row, the class is the file."""
         from backend.game_logic.diplomatic_templates import (
             _INCOMING_MOTIVE_LINES, _NAMED_MOTIVE_LINES)
-        from backend.models.diplomat import STARTING_DIPLOMATS
+        from backend.models.diplomat import create_europe_diplomats
+        # CA8 sweep 4 review: `STARTING_DIPLOMATS` materialises the FIVE
+        # legacy courts, so this walked 5 speakers of the 19 that have banks —
+        # Hardenberg was in the covered set by luck. Build the map from the
+        # live Europe roster instead, and assert the coverage so the pin can
+        # never silently shrink again.
         by_name = {}
-        for tag, rec in STARTING_DIPLOMATS.items():
+        for tag, rec in create_europe_diplomats().items():
             raw = getattr(rec, "personality", "")
             by_name[getattr(rec, "name", "")] = (
                 str(getattr(raw, "value", raw) or "").lower(), tag)
+        banked = {name for (name, _reason) in _NAMED_MOTIVE_LINES}
+        assert len(banked & set(by_name)) >= 19, sorted(banked - set(by_name))
         dupes = []
         for (name, reason), lines in _NAMED_MOTIVE_LINES.items():
             register, tag = by_name.get(name, ("", ""))
@@ -2278,12 +2419,6 @@ class TestCA820EstateWorth:
             "godot-client/project-sovereign/assets/maps/europe_1805.json")
         homeland = set(world.nation_starting_regions.get("Austria", []))
         taken = []
-        for name in list(world.regions):
-            region = world.regions[name]
-            if (region.controller == "France"
-                    and name not in set(world.nation_starting_regions.get("France", []))
-                    and not getattr(region, "is_capital", False)):
-                continue
         for name in sorted(homeland):
             region = world.regions[name]
             if getattr(region, "is_capital", False) or region.region_type == "capital":
@@ -2390,12 +2525,87 @@ class TestCA820EstateWorth:
         assert (action or {}).get("action") == "grant_dotation", action
         assert action["target"] == paying[0], (action, paying[:3])
 
-    def test_the_erosion_advice_stops_recommending_a_worthless_estate(self):
+    def _erosion_notice(self, world):
+        """Drive the real producer and return the rendered message."""
+        from backend.notifications import DOTATION_EROSION
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.dotation_regions = []
+        marshal.pension = 0
+        marshal.battles_won = 8
+        # The boot world is on turn 1; the eroding branch needs a grace clock
+        # that STARTED, so move the clock forward before setting it.
+        world.current_turn = max(int(world.current_turn), _dotation.GRACE_TURNS + 2)
+        marshal.expectation_grace_turn = world.current_turn - _dotation.GRACE_TURNS
+        world.notifications.dismiss_all()
+        world._process_dotation_state()
+        # `get_pending()` yields DICTS keyed "type", not objects — reading
+        # `.notification_type` off them silently matched nothing.
+        notes = [n for n in world.notifications.get_pending()
+                 if n.get("type") == DOTATION_EROSION]
+        assert notes, "the erosion notice must fire for this fixture to mean anything"
+        return notes[-1]["message"], marshal
+
+    def test_the_erosion_advice_is_true_of_the_state_it_describes(self):
         """§0.6.8 item 4d says never tell the player to endow when no eligible
         province exists — but a province yielding 0g stops no erosion, so the
-        old predicate told the same lie in a longer sentence."""
-        import inspect
-        from backend.models import world_state as _ws
-        src = inspect.getsource(_ws.WorldState._process_dotation_state)
-        assert "list_paying_estates(self, marshal.nation)" in src
-        assert "list_eligible_estates(self, marshal.nation)" not in src
+        old predicate told the same lie in a longer sentence.
+
+        CA8 sweep 4 review: narrowing the predicate alone then made the ELSE
+        branch false — it said no conquered province *remains* while the
+        marshal's own card offered four by name on the same tick. Three arms
+        now, and this renders each one instead of grepping the source (the
+        first cut was an `inspect.getsource` pin that survived swapping the
+        two remedy strings outright).
+        """
+        # (a) land that PAYS -> endow him.
+        world, _taken = self._conquest_world(stability=100)
+        msg, marshal = self._erosion_notice(world)
+        assert _dotation.list_paying_estates(world, "France")
+        assert "endow him with an estate" in msg, msg
+
+        # (b) land that exists and yields NOTHING -> neither of the above.
+        world, taken = self._conquest_world(stability=25)
+        msg, marshal = self._erosion_notice(world)
+        listed = _dotation.list_eligible_estates(world, "France")
+        assert listed and not _dotation.list_paying_estates(world, "France")
+        assert "no conquered province remains" not in msg, msg
+        assert "yield him nothing yet" in msg, msg
+        # ... and the card is offering that very land on the same tick, which
+        # is the cross-surface contradiction the middle arm exists to end.
+        from backend.game_logic.marshal_overview import build_marshal_overview
+        card = next(c for c in build_marshal_overview(world)
+                    if c["name"] == marshal.name)
+        assert card["eligible_estates"], card
+
+        # (c) nothing conquered at all -> the original sentence, still true.
+        world = WorldState.from_scenario(
+            "godot-client/project-sovereign/assets/maps/europe_1805.json")
+        msg, _m = self._erosion_notice(world)
+        assert not _dotation.list_eligible_estates(world, "France")
+        assert "no conquered province remains" in msg, msg
+
+    def test_the_reward_dialog_quotes_what_the_estate_will_actually_pay(self):
+        """The button that endows a province priced it at full income while a
+        hostile army stood on it — `get_effective_income` carries the
+        stability term but not the EC-W1 disruption term. Same predicate as
+        the payer now, so the row still APPEARS (the player may still endow
+        against a recovery) and merely stops lying about the figure."""
+        from backend.game_logic.marshal_overview import build_marshal_overview
+        world, taken = self._conquest_world(stability=100)
+        rich = _dotation.list_paying_estates(world, "France")[0]
+        occupier = next(m for m in world.marshals.values() if m.nation == "Austria")
+        occupier.location = rich
+        occupier.strength = 20000
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
+        assert rich in world.get_disrupted_regions()
+
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.dotation_regions = []
+        marshal.battles_won = 8
+        card = next(c for c in build_marshal_overview(world)
+                    if c["name"] == marshal.name)
+        rows = {r["region"]: r["income"] for r in card["eligible_estate_details"]}
+        assert rows.get(rich) == 0, rows
+        # negative control: an undisrupted province is NOT zeroed for everyone.
+        clean = [r for r in rows if r not in world.get_disrupted_regions()]
+        assert clean and any(rows[r] > 0 for r in clean), rows

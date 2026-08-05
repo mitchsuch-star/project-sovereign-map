@@ -5029,7 +5029,8 @@ class WorldState:
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
             get_expectation, get_satisfaction, is_estate_respected,
-            list_paying_estates, log_estate_lost, prune_respected_estates,
+            list_eligible_estates, list_paying_estates, log_estate_lost,
+            prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below
@@ -5166,14 +5167,24 @@ class WorldState:
                 )
                 # §0.6.8 item 4d: honest advice — never tell the player to
                 # endow when no eligible province exists.
-                # CA8-20: "eligible" is not "useful". The contract above
-                # says never tell the player to endow when no eligible
-                # province exists — but a province that yields 0g stops no
-                # erosion, so recommending it was the same lie in a longer
-                # sentence.
+                # CA8-20: "eligible" is not "useful" — a province that
+                # yields 0g stops no erosion, so recommending it was the same
+                # lie in a longer sentence. But NARROWING the predicate alone
+                # made the else-branch false in turn: it says no conquered
+                # province REMAINS while the marshal's own card is offering
+                # four by name. Three arms, so each sentence is true of the
+                # state that reaches it. The middle one covers BOTH of
+                # `estate_yield`'s terms — a raw conquest that has not settled
+                # AND an EC-W1 province with a hostile army standing on it —
+                # so it must not promise that waiting is enough: a disrupted
+                # province does not settle, it drains.
                 if list_paying_estates(self, marshal.nation):
                     remedy = ("endow him with an estate or grant him a "
                               "rente to stop the erosion.")
+                elif list_eligible_estates(self, marshal.nation):
+                    remedy = ("the provinces we hold yield him nothing yet — "
+                              "endow one against its recovery, or grant a "
+                              "rente for gold now.")
                 else:
                     remedy = ("no conquered province remains to endow — "
                               "grant a rente, or let victory furnish an "

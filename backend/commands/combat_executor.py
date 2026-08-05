@@ -4505,7 +4505,12 @@ class CombatExecutor:
                 'battle_result': auto_kill_battle_result,
                 'conquered': bool(conquest_msg),
                 'is_auto_bombardment_kill': True,
-                'coordination_regions': (auto_kill_stamp_region,),
+                'coordination_regions': (
+                    auto_kill_stamp_region,
+                    # ... and the adjacent guns that overwatch stamped but
+                    # that never move (review finding, same class).
+                    *(a.location for a in artillery_reinforced_adjacent),
+                ),
             }, world)
 
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.
@@ -4981,10 +4986,18 @@ class CombatExecutor:
                         battle_result["log_battle_event"]["enemy_voice"] = _voice
 
         # Clear coordination transient fields (D5 + X1)
+        # CA8 sweep 4 review: three regions cannot cover every stamped
+        # marshal. `_calculate_overwatch` stamps `overwatch_penalty` on every
+        # attack participant, and artillery that reinforces from an ADJACENT
+        # province deliberately never relocates — so the gun stayed home
+        # carrying a permanent −3%..−9% attack that nothing ever cleared.
+        # Seed the set from the participants, which is the general form: the
+        # bug is not a missing name, it is a missing REGION.
         involved_regions = {marshal.location}
         if enemy_marshal.strength > 0:
             involved_regions.add(enemy_marshal.location)
         involved_regions.add(battle_region_name)
+        involved_regions.update(p.location for p in atk_participants)
         self._clear_coordination_fields(involved_regions, world)
 
         # Log battle event
