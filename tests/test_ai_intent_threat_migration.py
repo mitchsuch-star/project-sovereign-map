@@ -169,10 +169,41 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 60, 57, 57, 44, 41,
 #    38, 38, 35, 32, 29, 29, 26, 23, 20, 17, 14, 14, 11, 8, 5, 2, 2, 0,
 #    0, 0, 0, 0, 0, 0]
+#
+# RE-RECORDED CONSCIOUSLY ONCE at CA8-20 (August 4, 2026, creative-audit
+# sweep 4). The AI's estate grant rung stopped alienating provinces worth
+# nothing. `list_eligible_estates` sorts on `get_effective_income()`, which
+# is 0 at stability <= 25, and BOTH capture branches land inside that tier
+# (`_apply_secure` sets 25, `apply_plunder_effects` sets 10) — so on fresh
+# conquest every candidate is 0 and no ordering of [0,0,0,0] picks a payer.
+# Because arm 1 returns unconditionally on a NON-EMPTY list, the rente arm
+# below it was unreachable while any worthless province remained. Measured on
+# this very run: 6 of 9 grants closed 0g of the marshal's gap, and Austria
+# ended 1,761g/turn in household bills with ArchdukeJohn endowed to 1,137g
+# against a 300 expectation cap. The rung now filters on
+# `dotation.list_paying_estates` (income AND the EC-W1 disruption term, which
+# `list_eligible_estates` never had).
+#
+# THIS IS A RESHAPED TAIL, NOT A TIME SHIFT. Divergence at index 12
+# (63 -> 79); anti-France alarm now ends at 36 rather than 0. The cause is
+# Austria's economy, not the threat machinery: unpatched she ends
+# dotation_skim 1,761 / treasury 1,334, patched 1,037 / 10,485, so she
+# recruits on 13 turns instead of 22 and stays a live belligerent to the end
+# of the window. Britain commissions Wellesley instead of Shrapnel.
+#
+# ATTRIBUTION VERIFIED BY EXPERIMENT, not by argument (the NV-4 idiom):
+# with the filter clause alone disabled — `list_paying_estates` returning
+# `list_eligible_estates` verbatim — the prior series below reproduces
+# BYTE-FOR-BYTE. Single cause.
+#
+# Prior series (the CA8-20 record, i.e. everything above this block):
+#   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 63, 60, 60, 57, 44,
+#    41, 41, 38, 35, 32, 32, 29, 26, 23, 20, 17, 17, 14, 11, 8, 5, 5, 2,
+#    0, 0, 0, 0, 0, 0]
 BASELINE_SERIES = [
-    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 63, 60, 60, 57, 44,
-    41, 41, 38, 35, 32, 32, 29, 26, 23, 20, 17, 17, 14, 11, 8, 5, 5, 2,
-    0, 0, 0, 0, 0, 0,
+    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 79, 76, 84, 81, 86,
+    83, 70, 73, 78, 75, 72, 69, 69, 66, 63, 60, 60, 57, 54, 51, 54, 51,
+    48, 45, 45, 42, 39, 36, 36,
 ]
 
 

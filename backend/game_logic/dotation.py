@@ -382,6 +382,42 @@ def list_eligible_estates(world, nation: str) -> List[str]:
     return eligible
 
 
+def estate_yield(world, region_name: str) -> int:
+    """What this province would ACTUALLY pay a marshal endowed with it today.
+
+    CA8-20. The two terms are `get_estate_income`'s own, narrowed to one
+    region, so there is one source for "does an estate pay?":
+
+      * `get_effective_income()` is **0** at stability <= 25, and BOTH capture
+        branches land inside that tier (`_apply_secure` sets 25,
+        `apply_plunder_effects` sets 10). So on fresh conquest every candidate
+        yields nothing, whatever its base income.
+      * a DISRUPTED province (EC-W1: a hostile army standing on it) feeds
+        nobody — and `list_eligible_estates` has no disruption term at all, so
+        a 200g disrupted province sorts FIRST and still pays zero.
+
+    Deliberately NOT applied inside `list_eligible_estates`: that list is
+    shared with three player surfaces, and endowing a fresh conquest is a
+    legal, sometimes-correct player play because estates appreciate — the
+    reward dialog already discloses "covers 0g of 120g" and lets him choose.
+    """
+    if region_name in world.get_disrupted_regions():
+        return 0
+    region = world.regions.get(region_name)
+    return int(region.get_effective_income()) if region is not None else 0
+
+
+def list_paying_estates(world, nation: str) -> List[str]:
+    """`list_eligible_estates` narrowed to provinces that would pay TODAY.
+
+    Read by the AI grant rung and by the erosion notification's honest-advice
+    branch — the two callers that must not act on, or recommend, a province
+    worth nothing.
+    """
+    return [r for r in list_eligible_estates(world, nation)
+            if estate_yield(world, r) > 0]
+
+
 def compute_investiture_fee(marshal) -> int:
     """200g creates the title (first estate); adding land to an existing
     title is free of ceremony (1 AP only)."""

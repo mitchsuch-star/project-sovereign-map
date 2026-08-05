@@ -5029,7 +5029,7 @@ class WorldState:
         from backend.game_logic.dotation import (
             EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
             get_expectation, get_satisfaction, is_estate_respected,
-            list_eligible_estates, log_estate_lost, prune_respected_estates,
+            list_paying_estates, log_estate_lost, prune_respected_estates,
         )
 
         # W6-8: drop dead respect entries FIRST so the estate prune below
@@ -5166,7 +5166,12 @@ class WorldState:
                 )
                 # §0.6.8 item 4d: honest advice — never tell the player to
                 # endow when no eligible province exists.
-                if list_eligible_estates(self, marshal.nation):
+                # CA8-20: "eligible" is not "useful". The contract above
+                # says never tell the player to endow when no eligible
+                # province exists — but a province that yields 0g stops no
+                # erosion, so recommending it was the same lie in a longer
+                # sentence.
+                if list_paying_estates(self, marshal.nation):
                     remedy = ("endow him with an estate or grant him a "
                               "rente to stop the erosion.")
                 else:

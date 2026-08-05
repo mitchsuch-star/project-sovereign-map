@@ -2264,3 +2264,138 @@ class TestSweep4IncomingVoice:
                 world, nation=tag, proposal_type="non_aggression",
                 decision_reason="agenda_pursuit")
             assert line.startswith(expected), line
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-20 — the AI endowed provinces worth nothing
+# ════════════════════════════════════════════════════════════════════════
+
+class TestCA820EstateWorth:
+
+    def _conquest_world(self, stability):
+        """France holds four conquered provinces at a given stability."""
+        world = WorldState.from_scenario(
+            "godot-client/project-sovereign/assets/maps/europe_1805.json")
+        homeland = set(world.nation_starting_regions.get("Austria", []))
+        taken = []
+        for name in list(world.regions):
+            region = world.regions[name]
+            if (region.controller == "France"
+                    and name not in set(world.nation_starting_regions.get("France", []))
+                    and not getattr(region, "is_capital", False)):
+                continue
+        for name in sorted(homeland):
+            region = world.regions[name]
+            if getattr(region, "is_capital", False) or region.region_type == "capital":
+                continue
+            region.controller = "France"
+            region.stability = stability
+            taken.append(name)
+            if len(taken) == 4:
+                break
+        world.invalidate_active_nations_cache()
+        return world, taken
+
+    def test_a_freshly_secured_province_is_worth_nothing_to_endow(self):
+        """The mechanism, stated. `_apply_secure` sets stability 25 and
+        `get_effective_income` returns 0 at <= 25, so on fresh conquest EVERY
+        candidate scores 0 — which is why a sort-key change could not have
+        fixed this row and only a filter can."""
+        world, taken = self._conquest_world(stability=25)
+        # `taken` minus anything already endowed at boot (Ney holds Carniola).
+        listed = set(_dotation.list_eligible_estates(world, "France")) & set(taken)
+        assert listed, taken
+        assert all(_dotation.estate_yield(world, r) == 0 for r in listed)
+        assert not (set(_dotation.list_paying_estates(world, "France")) & listed)
+
+    def test_the_ai_will_not_alienate_a_province_that_pays_nothing(self):
+        world, taken = self._conquest_world(stability=25)
+        assert _dotation.list_paying_estates(world, "France") == []
+
+    def test_an_appreciated_province_is_endowable_again(self):
+        """Negative control: the filter must not close the mechanic."""
+        world, taken = self._conquest_world(stability=100)
+        listed = set(_dotation.list_eligible_estates(world, "France")) & set(taken)
+        # ... minus any the boot roster is standing on. (Austria's own
+        # marshals start inside her homeland, so at least one of these
+        # provinces is DISRUPTED at turn 1 — which is the disruption term
+        # doing its job, not a gap in the fixture.)
+        disrupted = world.get_disrupted_regions()
+        assert listed & disrupted, "the disruption arm should be exercised here"
+        paying = _dotation.list_paying_estates(world, "France")
+        assert (listed - disrupted) <= set(paying), (listed, disrupted, paying)
+        assert not (set(paying) & disrupted)
+        # ... and still richest-first, which is the half the sort already did.
+        incomes = [_dotation.estate_yield(world, r) for r in paying]
+        assert incomes == sorted(incomes, reverse=True)
+
+    def test_a_disrupted_province_is_rejected_even_when_it_is_rich(self):
+        """The half a bare `> 0` filter misses, and the half that never fires
+        ambiently: `get_estate_income` skips DISRUPTED regions while the
+        eligibility list has no disruption term at all, so a 200g province
+        with a hostile army standing on it sorted FIRST and still paid zero."""
+        world, taken = self._conquest_world(stability=100)
+        rich = _dotation.list_paying_estates(world, "France")[0]
+        # Park a hostile army on it (EC-W1 threshold is 1,000).
+        occupier = next(m for m in world.marshals.values() if m.nation == "Austria")
+        occupier.location = rich
+        occupier.strength = 20000
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
+        assert rich in world.get_disrupted_regions()
+        assert _dotation.estate_yield(world, rich) == 0
+        assert rich in _dotation.list_eligible_estates(world, "France")   # still listed
+        assert rich not in _dotation.list_paying_estates(world, "France")  # not granted
+
+    def test_the_player_may_still_choose_a_worthless_province(self):
+        """Sited at the AI call site DELIBERATELY. Estates appreciate, so
+        endowing a fresh conquest is a legal player play, and the reward
+        dialog already discloses 'covers 0g of 120g' and lets him decide.
+        Filtering inside `list_eligible_estates` would delete that choice."""
+        world, taken = self._conquest_world(stability=25)
+        listed = _dotation.list_eligible_estates(world, "France")
+        assert set(taken) <= set(listed)
+        for name in taken:
+            ok, _why = _dotation.check_estate_eligibility(world, "France", name)
+            assert ok, name
+
+    def test_the_ai_grant_rung_itself_refuses_a_worthless_province(self):
+        """FOUND BY MUTATION: everything above pins the HELPER, and reverting
+        the AI call site to the unfiltered list left all of it green — the
+        rung is the row. Driven through `_find_dotation_grant` itself."""
+        from backend.ai.enemy_ai import EnemyAI
+        world, taken = self._conquest_world(stability=25)
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.dotation_regions = []
+        marshal.pension = 0
+        marshal.battles_won = 8              # -> a real, unmet expectation
+        assert _dotation.get_shortfall(marshal, world) >= 80
+        assert _dotation.list_eligible_estates(world, "France"), "premise: land IS listed"
+        assert _dotation.list_paying_estates(world, "France") == []
+        action = EnemyAI(CommandExecutor())._find_dotation_grant(
+            "France", world, treasury=500)
+        assert (action or {}).get("action") != "grant_dotation", action
+
+    def test_the_ai_grant_rung_still_takes_a_province_that_pays(self):
+        """Negative control on the same seam."""
+        from backend.ai.enemy_ai import EnemyAI
+        world, taken = self._conquest_world(stability=100)
+        marshal = next(m for m in world.marshals.values() if m.nation == "France")
+        marshal.dotation_regions = []
+        marshal.pension = 0
+        marshal.battles_won = 8
+        paying = _dotation.list_paying_estates(world, "France")
+        assert paying
+        action = EnemyAI(CommandExecutor())._find_dotation_grant(
+            "France", world, treasury=500)
+        assert (action or {}).get("action") == "grant_dotation", action
+        assert action["target"] == paying[0], (action, paying[:3])
+
+    def test_the_erosion_advice_stops_recommending_a_worthless_estate(self):
+        """§0.6.8 item 4d says never tell the player to endow when no eligible
+        province exists — but a province yielding 0g stops no erosion, so the
+        old predicate told the same lie in a longer sentence."""
+        import inspect
+        from backend.models import world_state as _ws
+        src = inspect.getsource(_ws.WorldState._process_dotation_state)
+        assert "list_paying_estates(self, marshal.nation)" in src
+        assert "list_eligible_estates(self, marshal.nation)" not in src

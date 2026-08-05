@@ -5377,7 +5377,7 @@ class EnemyAI:
             AI_GRANT_SHORTFALL_THRESHOLD, RENTE_AI_TREASURY_FLOOR,
             RENTE_AI_TREASURY_MULT, compute_investiture_fee,
             compute_rente_face, get_rente_cost, get_shortfall,
-            is_dotation_world, list_eligible_estates,
+            is_dotation_world, list_paying_estates,
         )
         if not is_dotation_world(world):
             return None
@@ -5403,7 +5403,19 @@ class EnemyAI:
         # Arm 1 — land (better rate; appreciates).
         if ("grant_dotation" not in skip_actions
                 and treasury >= compute_investiture_fee(neediest)):
-            eligible = list_eligible_estates(world, nation)
+            # CA8-20: filter, do not re-sort. The list is ALREADY sorted
+            # descending on effective income; on fresh conquest every
+            # candidate is 0, so no ordering of [0,0,0,0] picks a payer.
+            # Measured on the ambient 40-turn board: 6 of 9 AI grants alienated
+            # a province for 0g of the marshal's gap, and because arm 1 returns
+            # unconditionally on a NON-EMPTY list, the rente below was
+            # unreachable while any worthless province remained — Austria ended
+            # 1,761g/turn in household bills with one marshal endowed to
+            # 1,137g against a 300 expectation cap. Filtered here rather than
+            # in `list_eligible_estates`: that list is three player surfaces
+            # too, and the player may legitimately endow a fresh conquest and
+            # wait for it to appreciate.
+            eligible = list_paying_estates(world, nation)
             if eligible:
                 return {
                     "action": "grant_dotation",
