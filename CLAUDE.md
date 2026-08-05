@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,331 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
+> **suite 16,334 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
 >
 > **~~CA8 SWEEP 4 — THE LAST UNGATED ROWS~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit; four commits `9ca0374`/`412204e`/`f132d2e`/`e97b1f9`):

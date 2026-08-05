@@ -11,7 +11,7 @@
 > **CA8-28 and CA8-20 fixed, plus the three latent defects inside CA8-19 and
 > CA8-16's two gate-free halves — running total 20 of 28, 1 refuted.**
 > `tests/test_creative_audit_ca8_2026_08_04.py` (+55, now 160) plus a rewritten
-> `TestGarrisonCombat`. Suite 16,281 → **16,331 / 3 skipped**; ruff clean;
+> `TestGarrisonCombat`. Suite 16,281 → **16,334 / 3 skipped**; ruff clean;
 > corpus 514/514; zero `.gd`. **M1–M7 byte-identical; `BASELINE_SERIES`
 > re-recorded ONCE, consciously, attribution proved by experiment.**
 >

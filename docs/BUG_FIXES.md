@@ -38,7 +38,7 @@
 > **Fixed and landed: CA8-28, CA8-20, the three latent defects inside CA8-19, and
 > CA8-16's two gate-free halves.** Four commits (`9ca0374`, `412204e`, `f132d2e`,
 > `e97b1f9`). Tests: `tests/test_creative_audit_ca8_2026_08_04.py` (+55, now 160)
-> plus a rewritten `TestGarrisonCombat`. Suite 16,281 → **16,331 / 3 skipped**,
+> plus a rewritten `TestGarrisonCombat`. Suite 16,281 → **16,334 / 3 skipped**,
 > ruff clean, corpus 514/514, no `.gd`. **`BASELINE_SERIES` re-recorded once,
 > consciously, with attribution proved by experiment (below). M1–M7 byte-identical
 > throughout.**
@@ -228,6 +228,66 @@
 > remaining shortfall, so the AI can still over-endow as provinces appreciate —
 > a sibling defect CA8-20's filter surfaces rather than solves.
 >
+>
+> ### ⚠ ADDENDUM — the sweep's own 59-agent review, same day (`a2a9e0c`)
+>
+> Held after the four commits, on a pre-snapshotted diff. **52 findings: 27
+> confirmed, 14 partial, 11 refuted. Four changed shipped behaviour, and two of
+> those were introduced or claimed by this sweep.**
+>
+> **Introduced here.** CA8-20 narrowed the erosion notice's predicate to "pays"
+> and left the else-branch copy written against the old one, so a player holding
+> four freshly-conquered provinces was told *"no conquered province remains to
+> endow"* while his own marshal card offered all four **by name on the same
+> tick**. Three arms now; the middle one covers both of `estate_yield`'s terms
+> and deliberately does not promise that waiting is enough, because a disrupted
+> province does not settle — it drains.
+>
+> **A claim in the CA8-19 commit message is FALSE and the review proved it.**
+> That message says moving the eleven field names onto `Marshal` means the
+> executor's clear and `clear_combat_transient_state` "cannot drift again". The
+> drift is not in the NAME list, it is in the REGION set: `_calculate_overwatch`
+> stamps `overwatch_penalty` on every attack participant, and artillery
+> reinforcing from an ADJACENT province deliberately never relocates, while the
+> attack path's clear is keyed on three regions that cannot contain his.
+> **Measured −9% attack, permanent** — same class, same read path, one field
+> over. The clear is now seeded from the participants, which is the general form.
+>
+> **The narration commit fixed one hunt line and left its twin** — the weight-91
+> HEADLINE, which is the string the player actually reads, since `reversal_line`
+> supersedes `line` whenever it exists. **The sweep's own test asserted the
+> fabrication.**
+>
+> **CA8-28's R5 guard keyed on WAR STATUS rather than visibility**, so an ALLIED
+> marshal drawn on the player's own map at full visibility stopped being a legal
+> destination and *"march to join Deroy"* degraded to a shrug. Worse: the R5 pin
+> sampled `hidden[0]`, which boot dict order makes **Deroy — an ally at full
+> visibility** — so the pin exercised the ally case while its name claimed the
+> opposite, and **locked the regression in rather than catching it**. Now keyed
+> on the fog directly, which subsumes `get_visible_enemies` at the same PARTIAL
+> line.
+>
+> **Pre-existing, fixed because the sweep made it self-contradictory:** two
+> player surfaces quoted an estate's income without the EC-W1 disruption term, so
+> the button that endows a province priced it at 200g/turn while an enemy army
+> stood on it and it paid 0.
+>
+> **THE LEDGER PARAGRAPH FOR THE `BASELINE_SERIES` RE-RECORD WAS FALSE**, and the
+> correction is kept visible rather than quietly swapped. *"Recruits on 13 turns
+> instead of 22"* compared one arm with itself — 13 and 22 are two different
+> metrics of the UNPATCHED run — and *"stays a live belligerent"* is inverted:
+> Austria is at WAR on all 40 turns in **both** arms and ends **larger**
+> unpatched. The series literal itself was re-verified correct, independently.
+>
+> **Three more inert pins closed:** the dead-name structural guard killed **1 of
+> 7** reintroductions (now an AST walk allow-listing the two slots that
+> legitimately carry a marshal name — 7/7); the reckless-charge defender clear
+> was an `inspect.getsource` substring match, which cannot tell whether the line
+> RUNS; and the register-bank duplicate guard walked **5 speakers of 19**, so
+> Hardenberg was covered by luck. Plus a dead loop shipped inside the CA8-20
+> fixture. **8-mutation re-check, 8/8 killed — including the two that survived
+> the first pass** (the overwatch leak had no test at all, and one mutation
+> string was wrong so that pin went unverified).
 > **Still at their gates: CA8-3 + CA8-24 + CA8-27 (CA8-D2), CA8-26 (CA8-D6),
 > CA8-16's authoring and CA8-17 (a narration/voice gate), CA8-19's parity work.**
 
