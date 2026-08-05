@@ -44,7 +44,57 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,281 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
+> **suite 16,331 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
+>
+> **~~CA8 SWEEP 4 — THE LAST UNGATED ROWS~~ ✅ August 4, 2026** (landing record
+> `BUG_FIXES.md` §Creative Audit; four commits `9ca0374`/`412204e`/`f132d2e`/`e97b1f9`):
+> **CA8-28 + CA8-20 + the three latent defects inside CA8-19 + CA8-16's two gate-free
+> halves**, running total **20 of 28 fixed, 1 refuted**. A **16-agent find→refute fleet
+> verified every filed claim against master BEFORE a line was written and corrected five
+> of them; two corrections changed what got built** — which is the argument for running
+> the fleet before the build, not only after it.
+> **The headline correction: CA8-19(iii)'s stated consequence is FALSE.** The dead `elif`
+> is real, but *"an AI army repulsed from a French garrison accrues no war exhaustion at
+> all"* is not — the arm ABOVE it already charges him, **measured Austria +6**, on every
+> cell of the running board. Deleted as dead code; repairing it by flipping the hold ctx
+> would SUPPRESS the defender's threat, decisive victory, coalition shock and war-score
+> record. **(i) is the live one and it is MECHANICS, not hygiene**: every garrison assault
+> since July stamped a coordination bonus on every marshal in the origin province that
+> nothing ever cleared — not `advance_turn`, not the tactical tick, and the fields are
+> unserialized so a save/load was the only reset — read back through
+> `_committed_reinforcement_strength` at a **measured +16.0% committed attacker strength**.
+> Two more seams of the same class found by probe: the auto-bombardment-kill exit advances
+> before calling the pipeline, and `clear_combat_transient_state` held **none** of the
+> eleven fields its own docstring promised (the reckless-cavalry charge, the one
+> `resolve_battle` site with no recompute either side, fought on leaked numbers). **(ii)
+> DECIDED, not left in a third state**: the production-dead garrison-stomp discriminator
+> DELETED and its rule STATED at the guard; the spec's defeat-side row is a recorded
+> divergence owned by the CA8-19 gate, because wiring it means ungating step 9.5, which
+> mutates `jealous_of`. **`TestGarrisonCombat` had never tested anything** — its fixture
+> looks up a region absent from the legacy world, so all seven returned early and garrison
+> combat ran **zero** times; re-sited, and **two failed on their first real run** (an
+> authority rise unobservable against boot's 100 ceiling; a `>=` tautology that survived
+> deleting the mechanic). **CA8-28's naive fix is a trap invisible to the pin meant to
+> catch it**: `_fuzzy_match_region` auto-corrects `Pass`→Nassau *silently*, and both
+> `test_parse_negation` and the golden corpus stop at `CommandParser.parse`, so the
+> parser's target stays `"Pass"` in both arms while the executor creates a 2-AP HOLD on
+> Nassau — hence `_plausible_name_typo` gates the auto-correct arm, only single tokens
+> reach it, and every pin is executor-level; fixed in passing, naming a **fogged** foreign
+> army as a destination answered with its province (R5). **CA8-20 moved `BASELINE_SERIES`
+> consciously** (6 of 9 ambient grants closed 0g of the gap; reshaped tail, index 12
+> 63→79, alarm ending 36 not 0 because Austria stops giving her conquests away —
+> **attribution verified by experiment**, the filter alone disabled reproduces the prior
+> series byte-for-byte). **The sweep-3 review's four unexamined areas are closed: two hid
+> real defects, BOTH inside the function that review declared clean** — the retreat branch
+> was its only unguarded one (a vassal-assimilated marshal's routs under Bavaria's flag
+> **led the French dispatch at weight 91**), and `hunted_by` was outcome-blind, so winning
+> two defensive battles narrated as *"hunted across the frontier"*. Mutation sweeps
+> **4/4, 7/7, 9/9, 6/6**, with **two inert pins found by mutation and replaced**.
+> **NOT BUILT with reasons on record: CA8-17** (90 authored strings, 11 of 19 courts are
+> DEF-1's, and it needs a **Voice Bible §16.1a amendment** — a gate; a reduced ~19–21-string
+> build is specified behind it) and **CA8-16's re-key** (proven cosmetic — two variants
+> make the key's image `{0,1}` and the courts' banks are disjoint). Still gated: CA8-3/24/27
+> (CA8-D2), CA8-26 (CA8-D6), CA8-19's parity work.
 >
 > **~~CA8 SWEEP 3 — THE NARRATION PILLAR~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit): **CA8-9 + CA8-8 + CA8-25**, running total

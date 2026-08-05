@@ -31,7 +31,206 @@
 ---
 
 
-## Creative Audit — filed August 4, 2026 (**18 of 28 FIXED, 1 REFUTED**, see landing records below)
+## Creative Audit — filed August 4, 2026 (**20 of 28 FIXED, 1 REFUTED**, see landing records below)
+
+> ### ✅ LANDING RECORD — CA8 sweep 4 (the last ungated rows), August 4, 2026
+>
+> **Fixed and landed: CA8-28, CA8-20, the three latent defects inside CA8-19, and
+> CA8-16's two gate-free halves.** Four commits (`9ca0374`, `412204e`, `f132d2e`,
+> `e97b1f9`). Tests: `tests/test_creative_audit_ca8_2026_08_04.py` (+55, now 160)
+> plus a rewritten `TestGarrisonCombat`. Suite 16,281 → **16,331 / 3 skipped**,
+> ruff clean, corpus 514/514, no `.gd`. **`BASELINE_SERIES` re-recorded once,
+> consciously, with attribution proved by experiment (below). M1–M7 byte-identical
+> throughout.**
+>
+> A 16-agent find→refute fleet verified every filed claim against master before a
+> line was written. **It corrected five of them, and two corrections changed what
+> got built.**
+>
+> **CA8-19 stays GATED, and its three latent defects are landed separately.**
+>
+> **(i) is the live one, and it is a MECHANICS defect, not the hygiene item it was
+> filed as.** `_resolve_garrison_combat` recomputes coordination (added July 2026)
+> while both its pipeline calls still passed `skip_coordination_clear: True` — a
+> flag written in March, when this path computed no coordination at all, and never
+> revisited when the recompute arrived. So every garrison assault stamped an attack
+> bonus on every eligible marshal in the origin province, and **nothing in the game
+> ever removed it**: not `advance_turn`, not the tactical tick, and the fields are
+> not serialized, so a save/load was the only reset. It is read back through
+> `_committed_reinforcement_strength` — **measured +16.0% committed attacker
+> strength with no marshal's strength changed** — which feeds combat resolution,
+> the CO-2 odds band and the CR-5 bad-odds modal the player decides on. **Two more
+> seams of the same class, neither in the filed row, both proven by probe:** the
+> auto-bombardment-kill exit of `_execute_attack` advances the attacker *before*
+> calling the pipeline, so `{attacker.location, battle_region}` had already lost
+> the origin; and `Marshal.clear_combat_transient_state` held **none** of the
+> eleven coordination fields despite its own docstring promising to hold every
+> combat-transient field — which is why the reckless-cavalry auto-charge, the one
+> `resolve_battle` call site with no recompute on either side, could fight on
+> leaked numbers. The names now live on `Marshal`, so the executor's clear and that
+> method cannot drift again.
+>
+> **(ii) was decided, not left in a third state.** The garrison-stomp glory
+> exemption was production-dead: `record_battle_glory`'s `is_garrison` argument
+> could never be true, because the garrison path passes `battle_result: None` and
+> the same guard already excluded it — the spec's rule was satisfied *by accident*,
+> and its only test was a direct unit call carrying a fifth argument the game
+> cannot produce. **DELETED**, and the rule it implemented is now **stated** at the
+> guard, which is stronger than a flag every caller must remember. Behaviour is
+> byte-identical and pinned end-to-end for the first time. **Divergence on record
+> for the CA8-19 gate:** spec §1's DEFEATS block exempts only "Garrison defense",
+> so a marshal *repulsed* from a garrison should read −1 and reads 0. Wiring that
+> arm means ungating step 9.5 as well, which **mutates `jealous_of`** — the derived
+> −1 that coordination, objections, reinforcement, muster and the enemy-AI ally
+> filter all read. That is drama behaviour with M7 exposure and it belongs with the
+> parity work, not in a copy sweep.
+>
+> **(iii)'s stated consequence is FALSE, and that is the headline correction.** The
+> `elif` is indeed unreachable — a garrison hold is a defender victory and its ctx
+> says so, so `elif defender_won:` always claims it first. But "an AI army repulsed
+> from a French garrison accrues no war exhaustion at all" is wrong: the arm above
+> it already charges him, **measured Austria +6**, and the full 3×2×2 matrix
+> accrues on every cell of the running board. Two independent agents reproduced it;
+> a third contradicted them and was itself refuted (its probe ran on a bare
+> `WorldState`, i.e. the legacy map, where the third-party arm is deliberately
+> Europe-gated). Deleted as dead code rather than repaired: flipping the hold ctx
+> would **suppress** the defender's `battle_win` threat, `decisive_victory`,
+> coalition shock and war-score record that the live arm grants.
+>
+> **Found while pinning (iii): `TestGarrisonCombat` has never tested anything.** Its
+> fixture looks up `"London"`, which does not exist in the 19-region legacy world,
+> so all seven tests returned at `if not london: return` and garrison combat was
+> invoked **zero** times. Re-sited, with the escape hatch replaced by an assertion.
+> **On their first real run two of them failed**: the authority test, because boot
+> authority sits at its 100 ceiling so a +5 capital bonus is unobservable; and the
+> war-exhaustion test was a tautology (`>= initial_we`, which cannot fail because
+> exhaustion only ever rises — deleting the mechanic kept it green, mutation-
+> verified). Both now pin exact numbers, plus the AI-repulsed mirror the filed row
+> said was broken. **Drive-by:** `test_attack_auto_move_refreshes_fog` gated on bare
+> success, which also admits the ATTACK→PURSUE upgrade where nothing moves — a
+> **~12% flake on clean master** (36/300 seeds, reproduced in a detached worktree),
+> now gated on the marshal having moved.
+>
+> **CA8-28 — and the naive fix is a trap whose regression is invisible to the pin
+> that exists to catch it.** `_fuzzy_match_region` auto-corrects `Pass`→Nassau,
+> `Line`→Berlin, `Guns`→Brunswick **silently** — no error, no prompt — so
+> delegating to it straight would give "Ney, hold the pass" a real 2-AP standing
+> HOLD on a province 200km away: the exact defect PARSE-NEG landed to kill. It
+> would not have been caught. `test_parse_negation.py` and the golden corpus both
+> call `CommandParser.parse` and never construct an executor, so under the naive
+> delegation the parser's target stays `"Pass"` in both arms, the assertion
+> (`target != "Nassau"`) passes, and the order exists anyway — measured on the
+> counterfactual. Hence: `_plausible_name_typo` gates the auto-correct arm; only
+> single **tokens** reach the fuzzy pass (phrases stay with the existing scan —
+> aiming a fuzzy matcher at a sentence is how that family got in); the arm sits
+> *after* the IGR-A3 nation check so "march to Austria" never suggests Asturias
+> again; and every pin is executor-level. PURSUE offered nothing and SUPPORT
+> offered an unranked dump of the whole roster; both now rank, and PURSUE suggests
+> only from `get_visible_enemies` — a ranked guess at a hidden army is free
+> intelligence. **Fixed in passing:** `_resolve_region_from_phrase`'s marshal
+> fallback scanned *every* marshal in the world, so naming a fogged foreign army
+> answered with the province it was standing in (R5).
+>
+> **CA8-20 — the row's fix shape was right for the wrong reason, and its cost was
+> understated.** A sort-key change cannot fix it (the list is already sorted on
+> that metric and on fresh conquest every candidate is 0), and a bare `> 0` filter
+> is insufficient (the eligibility list has no disruption term, so a 200g province
+> with a hostile army on it sorts first and still pays nothing). One predicate,
+> `dotation.estate_yield`, now carries `get_estate_income`'s own two terms narrowed
+> to a region. The row's *stated* reason for siting it at the AI call site — that
+> two named tests would red on an in-`dotation.py` change — **is false; neither
+> would.** The real reason is the player's choice: three player surfaces share that
+> list, estates appreciate, and the reward dialog already discloses "covers 0g of
+> 120g". Also wired at the erosion notification, which told the player to endow
+> whenever the list was non-empty — the same lie the §0.6.8 item-4d contract two
+> lines above it forbids. Measured cost of the defect: **6 of 9 ambient grants
+> closed 0g of the gap**, and since arm 1 returns unconditionally on a non-empty
+> list, the rente was unreachable while any worthless province remained — Austria
+> ended **1,761g/turn** in household bills with one marshal endowed to **1,137g**
+> against a 300 cap.
+>
+> **`BASELINE_SERIES` re-recorded once, consciously.** A reshaped tail, not a time
+> shift: divergence at index 12 (63 → 79), anti-France alarm ending at 36 rather
+> than 0, because Austria stops bankrupting herself (treasury 1,334 → 10,485) and
+> stays a live belligerent. **Attribution verified by experiment, not by argument:**
+> with the filter clause alone disabled the prior series reproduces byte-for-byte.
+>
+> **CA8-16 is NOT built as filed, and the gate row is corrected on three counts.**
+> Two gate-free defects were split out and fixed — Hardenberg's first
+> `hegemony_pressure` line was the generic hawk line with `{nation}` pre-filled as
+> "Prussia" (a named override delivering a copy of the register line it exists to
+> replace), and a **named envoy lost his authored attribution** whenever his reason
+> had no bespoke bank (`Araujo, measuring the room:` → `Araujo:`), which is 16 of 19
+> courts on `agenda_pursuit`, i.e. the common path. **The re-key is refused as
+> cosmetic churn:** with two variants the key's image is `{0,1}`, so any
+> turn-independent term is a phase shift, and the 19 courts hold *disjoint* banks so
+> the existing name term decorrelates nothing. `DESIGN_REFINEMENT` CA8-D4 now
+> records that the surface is **38 bespoke lines, not 19**; that it is pinned
+> **once**, on one bank, not twice (a third variant injected into all 24 banks runs
+> the full suite at 1 failed / 16,280 passed, so every bespoke bank grows with zero
+> pin flips, and the row's "growing the banks is a conscious flip" cost model was
+> false); that its question aimed at `enemy_phase_dialog.gd`, which is CA8-6/21's
+> surface; and the measurement that settles it — **72% of all diplomat lines
+> composed in a 40-turn campaign are exact repeats**.
+>
+> **The sweep-3 review's four unexamined areas, closed.** Two were clean (the
+> save/load round trip is lossless; the double `_build_marshal_arcs` call is pure
+> and costs 0.39ms). Two hid real defects, **both inside the function that review
+> declared clean**: the retreat/rout branch was the *only* unguarded branch in
+> `_build_marshal_arcs`, and vassal assimilation is the live path — measured, a
+> marshal who routed three times under Bavaria's flag, was assimilated, and was
+> crowned under France **led the French dispatch at weight 91**; and `hunted_by` was
+> **outcome-blind**, so winning two defensive battles on consecutive turns narrated
+> as "hunted across the frontier" — verbatim the shape the CA8-9 review believed it
+> had killed for `crown_lost`, surviving on a different term and spared the headline
+> only by the accident that `fall_turn` stays None for a pure win-hunt. Its line
+> invented its own evidence too: `max(fled, 1)` reported "across 1 frontier" for a
+> marshal who never withdrew. Plus three dead names — one of them
+> `marshal_captured`, the **highest-weight headline in the file (95)**, rendering
+> "Kingdom Of Italy holds him prisoner." — a missing definite article the same
+> sentence already uses, a raw `target` in the campaign log, and a CA8-8 comment
+> that asserted `level` was absent on old saves, which is false.
+>
+> **Mutation sweeps: 4/4, 7/7, 9/9, 6/6 killed. TWO INERT PINS FOUND AND REPLACED,
+> both by mutation rather than by review.** The multi-word CA8-28 test drove
+> "march to the Bavarian frontier" through the parser and passed with the guard
+> **deleted**, because the parser resolves that phrase upstream and the arm was
+> never reached — it now pins the helper directly and asserts the unguarded matcher
+> really would have answered "Did you mean 'Oran'?". And every CA8-20 test pinned
+> the *helper* while reverting the AI call site to the unfiltered list left all of
+> them green — the rung is the entire row, and two tests now drive
+> `_find_dotation_grant` itself in both directions.
+>
+> **NOT BUILT, with the reason recorded rather than deferred vaguely: CA8-17.** The
+> honest sizing is not the row's. The full per-diplomat build is **90 authored
+> strings** (9 phrase slots × 5 registers × 2 bands) — 2.4× the entire Slice-H ally-
+> petition arc — and it **cannot be completed anyway**, because 11 of the 19
+> reachable courts have named envoys whose registers the Voice Bible explicitly
+> homes to **DEF-1 Roster Voices**, so a "full" CA8-17 would silently annex another
+> row's scope. Worse, the fix contradicts its own normative source: **Voice Bible
+> §16.1a records the four current templates verbatim as committed exemplars**, so
+> the row requires a Bible amendment, not merely conformance. Two of the row's own
+> justifications are also wrong — the string is **not** title-cased (it is a hand-
+> authored sentence-case label; the `.title()` call is unreachable), and the "no
+> jargon" rule it invokes is scoped to bloc-naming lines. Found in passing and
+> worth more than the row: the same label is spoken **three times on one screen**
+> (Talleyrand's own popup heading says "the largest pressure remains Settlement
+> legitimacy" directly above the per-court table), and `_MissingSettlementSlot`
+> renders raw `{braces}` to the player with **no exception and no test failure**.
+> A reduced build — one spoken-register vocabulary over the 8 negative-capable
+> components plus per-register framings, ~19–21 strings, two files, no `.gd` — is
+> specified and buildable, but it needs the Bible amendment and therefore a gate.
+>
+> **Also routed, not fixed:** `strategic_executor`'s `dest`-only rebind leaves the
+> raw phrase on `order.target`, which `strategic.py` uses as HOLD's arrival
+> predicate — so that write-back is a change to the per-turn strategic tick, not
+> the display-only tidy it looks like. And nothing caps an AI grant at the
+> remaining shortfall, so the AI can still over-endow as provinces appreciate —
+> a sibling defect CA8-20's filter surfaces rather than solves.
+>
+> **Still at their gates: CA8-3 + CA8-24 + CA8-27 (CA8-D2), CA8-26 (CA8-D6),
+> CA8-16's authoring and CA8-17 (a narration/voice gate), CA8-19's parity work.**
+
 
 > ### ✅ LANDING RECORD — CA8 sweep 3 (the narration pillar), August 4, 2026
 >
@@ -397,20 +596,20 @@
 | ~~**CA8-13**~~ ✅ | Liberating **French homeland** opens a mandatory prompt asking whether to burn it, and blocks the turn. IGR-E's own-soil guard was scoped to the AI branch; its landing record says the player modal was untouched | `build_capture_choice` |
 | ~~**CA8-14**~~ ✅ | A retreating AI marshal captures the province he just fled into, same phase, at −35% effectiveness. P-1 "capture current region" sits **above** the `retreated_this_turn` limiter; the player's equivalent guard is nested under a `nation == player_nation` check. *(Two of three legs of the first-pass claim were refuted — the drill lock IS nation-agnostic and the AI does unfortify first.)* | `enemy_ai.py:1448`, `executor.py:809` |
 | ~~**CA8-15**~~ ✅ | A bare `[Prussia]` header with nothing under it — **self-inflicted by the composition slice**: `main.py:794-831` rewrites `nation_data["actions"]` with no empty-nation prune, and PC-3's fortify→unfortify arm drops both entries. The fog filter is innocent (`main.py:1346` does prune) | `main.py:794` |
-| **CA8-16** | `hegemony_pressure` is a monoculture, rotated by `(turn + len(name)) % len(variants)`. **Two of the row's own numbers corrected Aug 4, 2026 (sweep 3 map), and the finding survives both:** it is **19 named speakers + 5 registers, not 8 courts**, and the `"in its path"` count in `diplomatic_templates.py` is **3, not 14** (no scoping reproduces 14). *"2 variants each"* is exactly right and **universal** — the distribution over all 24 banks is `Counter({2: 24})`, i.e. 48 lines. The monoculture survives on an independent metric: across those 48 lines, "power" 13, "rather" 13, "grow" 12, "reach" 8, "greatness" 7, "shadow" 6 — three separate courts independently reach for the same rising-tide image. **NOT built in sweep 3: the cost is authoring, not selection.** `len(variants) == 2` is hard-pinned twice (`test_w6_incoming_voice.py:118`, `test_nation_agendas.py:728`) so growing the banks is a conscious flip, and the rotation contract is pinned both ways. 19 of the 48 lines are bespoke per-court copy a mechanical fix cannot generate. The cheapest genuine improvement is **re-keying** the rotation (adding a relation-band or proposal-type term), which preserves both halves of the determinism pin | `diplomatic_templates.py:606` |
-| **CA8-17** | Three named diplomats with three authored registers get one identical sentence, and a table label is put in their mouths as speech: *"Settlement legitimacy is the sticking point before they will sign."* **The row's MECHANISM is wrong, and correcting it removes the cheap fix (Aug 4, 2026, sweep 3 map — the player-visible sentence was first reproduced byte-for-byte from production).** Nothing is title-cased: `display_names.py:962` is a **hand-authored sentence-case UI label**, and the `.title()` call lives only in `_fallback_display_name`, which is unreachable because all 11 scorer keys are present. So there is no "un-title-case it" repair — **every** possible value is a deliberate noun-phrase column label being spliced into a diplomat's mouth. The real fix is a second, **spoken-register** vocabulary keyed on the same 11 component names, plus per-diplomat arms — authoring scope, which is where the hidden gate is. **NOT built in sweep 3.** When it is: match the LIVE override idiom (`settlement_offers.py:430-458`, a nation→suffix map with an explicit `_chancery` fallback re-lookup), **not** the five dead families at `diplomatic_templates.py:1562-1641` (no backend reader, and they lack the fallback arm). Tripwires: `test_settlement_refront_slice1.py:724` requires the speaker's name literally in every line; `:772-789` bans "conference"/"congress"/"veto"; and `_MissingSettlementSlot.__missing__` renders raw `{braces}` to the player with **no exception and no test failure** if a template gains a slot the call site does not supply | `diplomatic_templates.py:2140-2143`, `:2318-2322` |
+| **CA8-16** | `hegemony_pressure` is a monoculture, rotated by `(turn + len(name)) % len(variants)`. **Two of the row's own numbers corrected Aug 4, 2026 (sweep 3 map), and the finding survives both:** it is **19 named speakers + 5 registers, not 8 courts**, and the `"in its path"` count in `diplomatic_templates.py` is **3, not 14** (no scoping reproduces 14). *"2 variants each"* is exactly right and **universal** — the distribution over all 24 banks is `Counter({2: 24})`, i.e. 48 lines. The monoculture survives on an independent metric: across those 48 lines, "power" 13, "rather" 13, "grow" 12, "reach" 8, "greatness" 7, "shadow" 6 — three separate courts independently reach for the same rising-tide image. **NOT built in sweep 3: the cost is authoring, not selection.** `len(variants) == 2` is hard-pinned twice (`test_w6_incoming_voice.py:118`, `test_nation_agendas.py:728`) so growing the banks is a conscious flip, and the rotation contract is pinned both ways. 19 of the 48 lines are bespoke per-court copy a mechanical fix cannot generate. The cheapest genuine improvement was thought to be **re-keying** the rotation — **REFUSED Aug 4, 2026 (sweep 4) as cosmetic churn**: with two variants the key's image is `{0,1}`, so any turn-independent term is only a phase shift, and the 19 courts hold DISJOINT banks so the existing name term decorrelates nothing. **Three more of the row's facts corrected**: the authored surface is 38 bespoke lines, not 19; it is pinned ONCE, on one bank, not twice (a third variant injected into all 24 banks runs the FULL suite at 1 failed / 16,280 passed, so every bespoke bank grows with zero pin flips and the "conscious flip" cost model was false); and the measurement that settles the row is neither lexical nor structural — **72% of all diplomat lines composed in a 40-turn campaign are exact repeats** (Ottoman: 12 asks, 2 distinct lines), so bank SIZE is the only lever. **Two gate-free defects split out and FIXED**: Hardenberg's first `hegemony_pressure` line was the generic hawk line with `{nation}` pre-filled as "Prussia" — a named override delivering a copy of the register line it exists to replace — now re-authored, with a generalised pin rejecting the whole class; and a NAMED envoy lost his authored attribution whenever his reason had no bespoke bank (`Araujo, measuring the room:` → `Araujo:`), which is 16 of 19 courts on `agenda_pursuit`, i.e. the common path. The authoring question goes to the gate with `DESIGN_REFINEMENT` CA8-D4 rewritten | `diplomatic_templates.py:606` |
+| **CA8-17** | Three named diplomats with three authored registers get one identical sentence, and a table label is put in their mouths as speech: *"Settlement legitimacy is the sticking point before they will sign."* **The row's MECHANISM is wrong, and correcting it removes the cheap fix (Aug 4, 2026, sweep 3 map — the player-visible sentence was first reproduced byte-for-byte from production).** Nothing is title-cased: `display_names.py:962` is a **hand-authored sentence-case UI label**, and the `.title()` call lives only in `_fallback_display_name`, which is unreachable because all 11 scorer keys are present. So there is no "un-title-case it" repair — **every** possible value is a deliberate noun-phrase column label being spliced into a diplomat's mouth. The real fix is a second, **spoken-register** vocabulary keyed on the same 11 component names, plus per-diplomat arms — authoring scope, which is where the hidden gate is. **NOT built in sweep 3.** When it is: match the LIVE override idiom (`settlement_offers.py:430-458`, a nation→suffix map with an explicit `_chancery` fallback re-lookup), **not** the five dead families at `diplomatic_templates.py:1562-1641` (no backend reader, and they lack the fallback arm). Tripwires: `test_settlement_refront_slice1.py:724` requires the speaker's name literally in every line; `:772-789` bans "conference"/"congress"/"veto"; and `_MissingSettlementSlot.__missing__` renders raw `{braces}` to the player with **no exception and no test failure** if a template gains a slot the call site does not supply. **NOT BUILT in sweep 4, and the honest sizing is not the row's (Aug 4, 2026).** The full per-diplomat build is **90 authored strings** (9 phrase slots × 5 registers × 2 bands) — 2.4× the entire Slice-H ally-petition arc — and it **cannot be completed anyway**: 11 of the 19 reachable courts have named envoys whose registers the Voice Bible explicitly homes to **DEF-1 Roster Voices**, so a "full" CA8-17 would silently annex another row's scope. It also contradicts its own normative source — **Voice Bible §16.1a records the four current templates VERBATIM as committed exemplars**, so this needs a Bible AMENDMENT, which is a gate. Two further justifications in the row are wrong: the string is not title-cased at all (hand-authored sentence case; the `.title()` call is unreachable), and the "no jargon" rule it invokes is scoped to bloc-naming lines. Found in passing and larger than the row: the same label is spoken **three times on one screen** — Talleyrand's own popup heading reads *"the largest pressure remains Settlement legitimacy"* directly above the per-court table. A reduced build — one spoken-register vocabulary over the **8 negative-capable** components (not 11; only those can ever be a top blocker) plus per-register framings, ~19–21 strings, two files, no `.gd` — is specified and buildable behind that gate | `diplomatic_templates.py:2140-2143`, `:2318-2322` |
 | ~~**CA8-18**~~ ✅ | `get_threat_tier` has **no Formed arm**, so a coalition formed on turn 1 is labelled "Brewing" for 12 straight turns while the payload carries `coalition_brewing: false`. This is also why position 3.5's `military_establishment` term was **unmeasurable in play** — it fired into a bar already at 91–97 | `coalition.py:1882` |
-| **CA8-19** ⚠ **GATE IT** | Garrison assault is a separate, banner-free resolver — no terrain, fort, personality, coordination, muster or reinforcement. **Re-scoped Aug 4, 2026 (sweep 3 pre-build map): this is a combat-system change wearing a copy row's clothes, and it was deliberately NOT built in a narration sweep.** `_resolve_garrison_combat` never calls `resolve_battle` — no dice, no morale, no `defender_bonus`, no variance, no rout machinery, and it composes terrain+fort **multiplicatively** where the field path adds. It returns before the muster gate, so no muster/reinforcement/overwatch/flanking/participant list/casualty distribution runs and every attacker loss lands on the lead marshal. Full parity moves **M1–M7 *and* `BASELINE_SERIES`** (enemy AI P4.25 takes this path), needs a defender object that does not exist (every field helper takes a Marshal or a participant list), and would consume `compose_battle_name` ordinals whose docstring explicitly excludes garrison assaults — shifting every later field-battle name and the PC-4 uniqueness guarantee. **It also owns the garrison half of CA8-25**: this path emits `garrison_assault`/`conquest`, never a `battle` event, and the client's stash-and-link chokepoint is reached only for `events[0].type == "battle"`. **Three separately-landable latent defects found inside it, each smaller and safer than the parity work** — (i) coordination is recomputed and never cleared (both pipeline calls pass `skip_coordination_clear: True`), leaving transients stamped on every eligible marshal; (ii) the garrison-stomp glory exemption is **production-dead** — step 10.5 is gated on a truthy `battle_result` the garrison path always passes as `None`, so `jealousy`'s `is_garrison_stomp` branch has never executed and no call site anywhere passes `is_garrison=True`; (iii) the garrison-hold war-exhaustion branch is unreachable because the hold ctx sets `defender_won: True`, so **an AI army repulsed from a French garrison accrues no war exhaustion at all** | `combat_executor.py:1966-2213` |
+| **CA8-19** ⚠ **GATE IT** | Garrison assault is a separate, banner-free resolver — no terrain, fort, personality, coordination, muster or reinforcement. **Re-scoped Aug 4, 2026 (sweep 3 pre-build map): this is a combat-system change wearing a copy row's clothes, and it was deliberately NOT built in a narration sweep.** `_resolve_garrison_combat` never calls `resolve_battle` — no dice, no morale, no `defender_bonus`, no variance, no rout machinery, and it composes terrain+fort **multiplicatively** where the field path adds. It returns before the muster gate, so no muster/reinforcement/overwatch/flanking/participant list/casualty distribution runs and every attacker loss lands on the lead marshal. Full parity moves **M1–M7 *and* `BASELINE_SERIES`** (enemy AI P4.25 takes this path), needs a defender object that does not exist (every field helper takes a Marshal or a participant list), and would consume `compose_battle_name` ordinals whose docstring explicitly excludes garrison assaults — shifting every later field-battle name and the PC-4 uniqueness guarantee. **It also owns the garrison half of CA8-25**: this path emits `garrison_assault`/`conquest`, never a `battle` event, and the client's stash-and-link chokepoint is reached only for `events[0].type == "battle"`. **Three separately-landable latent defects found inside it — ALL THREE LANDED Aug 4, 2026 (sweep 4); the PARITY work stays gated.** (i) is a MECHANICS defect, not the hygiene item it was filed as: the stale stamp is read back through `_committed_reinforcement_strength`, **measured +16.0% committed attacker strength with no marshal's strength changed**, and two more seams of the same class were found and fixed (the auto-bombardment-kill exit, which advances before calling the pipeline; and `clear_combat_transient_state`, which held NONE of the eleven fields its own docstring promised — the reason the reckless-cavalry auto-charge could fight on leaked numbers). (ii) was DECIDED rather than left in a third state — the dead discriminator deleted and the rule STATED at the guard; the spec's defeat-side garrison row is a recorded divergence owned by this gate, because wiring it means ungating step 9.5, which mutates `jealous_of`. **(iii)'s stated consequence is FALSE**: the arm above the dead one already charges the repulsed attacker, measured Austria +6, on every cell of the running board — deleted as dead code, not repaired, since flipping the ctx would SUPPRESS the defender's threat, decisive victory, coalition shock and war-score record. **Found while pinning it: `TestGarrisonCombat`'s seven tests had NEVER invoked garrison combat** — the fixture looks up a region absent from the 19-region legacy world — and on their first real run two FAILED: one asserting an authority rise that boot's 100-ceiling makes unobservable, one a tautology that survived deleting the mechanic outright. Original finding text follows — (i) coordination is recomputed and never cleared (both pipeline calls pass `skip_coordination_clear: True`), leaving transients stamped on every eligible marshal; (ii) the garrison-stomp glory exemption is **production-dead** — step 10.5 is gated on a truthy `battle_result` the garrison path always passes as `None`, so `jealousy`'s `is_garrison_stomp` branch has never executed and no call site anywhere passes `is_garrison=True`; (iii) the garrison-hold war-exhaustion branch is unreachable because the hold ctx sets `defender_won: True`, so **an AI army repulsed from a French garrison accrues no war exhaustion at all** | `combat_executor.py:1966-2213` |
 
 ### P3
 
 | id | claim |
 |---|---|
 | ~~**CA8-21**~~ ✅ | Decree actor-branching — FIXED Aug 4, 2026 with CA8-6 (`_decree_preamble`) |
-| **CA8-20, 24**, ~~**25**~~ ✅ | See memo §4 (estate valued at income 0; war-room battle counter vs "what stirred Europe"). **CA8-25 half-FIXED Aug 4, 2026 (sweep 3):** the *interrupt-resolved* battle now keeps its diorama — the payload was built and discarded by an allowlist, not missing. **The garrison-assault half is NOT fixed and is now homed at CA8-19 below**, where it belongs: `_resolve_garrison_combat` emits `garrison_assault`/`conquest`, never a `battle` event, so it could not render a diorama even if one were built. CA8-24 remains gated with CA8-3 (same pairwise-vs-aggregate root cause). **CA8-20 fix shape corrected Aug 4, 2026 (sweep 3 map); NOT built — it changes AI behaviour and so carries `BASELINE_SERIES` exposure a narration sweep should not spend.** A **sort-key change cannot fix it**: the list is *already* sorted descending on that exact metric, and on fresh conquest every candidate is 0. Only a **filter** makes arm 2 (the rente) fire, closing the gap in one action. A bare `> 0` filter is also insufficient — `get_estate_income` additionally skips **disrupted** regions while the eligibility list has no disruption term, so a 200g disrupted province sorts first and still yields nothing. Place it **at the AI call site (`enemy_ai.py:5406`), not inside `dotation.py`**: that function is shared by three player surfaces and by the listed⇒eligible invariant (`test_w6_estate_confiscation.py:352-354`), and `test_economy_es7_dotation.py:723-730` pins the descending order — a sort-key change reds it, a call-site filter does not. Player half stays homed as XR-4 |
+| ~~**CA8-20**~~ ✅, **CA8-24**, ~~**25**~~ ✅ | See memo §4 (estate valued at income 0; war-room battle counter vs "what stirred Europe"). **CA8-25 half-FIXED Aug 4, 2026 (sweep 3):** the *interrupt-resolved* battle now keeps its diorama — the payload was built and discarded by an allowlist, not missing. **The garrison-assault half is NOT fixed and is now homed at CA8-19 below**, where it belongs: `_resolve_garrison_combat` emits `garrison_assault`/`conquest`, never a `battle` event, so it could not render a diorama even if one were built. CA8-24 remains gated with CA8-3 (same pairwise-vs-aggregate root cause). **CA8-20 FIXED Aug 4, 2026 (sweep 4). The shape corrected in sweep 3 was right; its stated REASON was not.** A **sort-key change cannot fix it**: the list is *already* sorted descending on that exact metric, and on fresh conquest every candidate is 0. Only a **filter** makes arm 2 (the rente) fire, closing the gap in one action. A bare `> 0` filter is also insufficient — `get_estate_income` additionally skips **disrupted** regions while the eligibility list has no disruption term, so a 200g disrupted province sorts first and still yields nothing. Place it **at the AI call site (`enemy_ai.py:5406`), not inside `dotation.py`**: that function is shared by three player surfaces and by the listed⇒eligible invariant (`test_w6_estate_confiscation.py:352-354`), and `test_economy_es7_dotation.py:723-730` pins the descending order. **Both of those test claims are FALSE — measured, neither reds on a filter placed inside `dotation.py`.** The real reason to site it at the call site is the PLAYER's choice: estates appreciate, and the reward dialog already discloses "covers 0g of 120g" and lets him take a fresh conquest anyway. Built as ONE predicate, `dotation.estate_yield` (the income term AND the EC-W1 disruption term), read by `list_paying_estates` at the AI rung **and** at the erosion notification — which had been telling the player to endow whenever the list was non-empty, the same lie §0.6.8 item-4d forbids. **`BASELINE_SERIES` re-recorded consciously once** (divergence index 12, 63→79; tail 0→36; Austria's treasury 1,334→10,485 because she stops giving her conquests away), attribution verified by experiment. **Still open, not claimed fixed:** nothing caps a grant at the remaining shortfall, so the AI can still over-endow as provinces appreciate — a sibling defect this filter surfaces rather than solves. Player half stays homed as XR-4 |
 | ~~**CA8-22**~~ ✅ | `region_lost` needed an estate-holder branch — FIXED Aug 4, 2026 as the `region_lost_estate` class at weight 76 |
 | ~~**CA8-23**~~ ✅ | `campaign_log.py:2185` → `PROPOSAL_TYPE_DISPLAY` — FIXED Aug 4, 2026 at all ten sites via one `_proposal_label` helper |
-| **CA8-28** | The same unknown province gets a suggestion or a shrug by verb: `move`/`go to Venetia` → *"Did you mean 'Vienna'?"*; `march`/`march south to Venetia` → *"I could not make out a destination"*. The 2-AP strategic path lacks the 1-AP tactical path's resolution. *(Corrects my own first-pass claim that these phrasings fail to parse — they do not.)* **Scoped Aug 4, 2026 (sweep 3 map); NOT built — it is a parser slice, not a narration one.** The split is deliberate at the keyword layer (`strategic_parser.py:209-227`) and accidental at the resolver layer: tactical goes through `executor._fuzzy_match_region` (which owns BOTH the "Did you mean" and "Nearby:" arms), strategic through a pure substring scan `strategic_executor._resolve_region_from_phrase:24-47` with no suggestion list. **Scope is three messages, not one** — HOLD shares the seam, and PURSUE/SUPPORT have their own suggestion-free strings. Three tripwires: (a) do **not** loosen `parser.py:1185-1191`, which discards the already-computed `suggest` tier — its `_plausible_name_typo` guard is a PARSE-NEG pin ("Ney, hold the pass" → HOLD on Nassau); (b) keep the IGR-A3 nation arm FIRST or "march to Austria" suggests Asturias again; (c) keep `variable_action_cost: 0` on the refusal. **The golden corpus cannot pin this** — `parser_eval.evaluate_entry` never constructs an executor, so a corpus row would give false assurance; the pin must be executor-level |
+| ~~**CA8-28**~~ ✅ | The same unknown province got a suggestion or a shrug by verb: `move to Venetia` → *"Did you mean 'Vienna'?"*; `march to Venetia` → *"I could not make out a destination"*. **FIXED Aug 4, 2026 (sweep 4)** — the split is deliberate at the keyword layer and accidental at the resolver: the strategic path had no fuzzy pass at all. New `StrategicExecutor._suggest_region_for_phrase` runs AFTER the phrase scan and AFTER the IGR-A3 nation arm, and MOVE_TO / HOLD / PURSUE / SUPPORT all answer now. **The naive delegation is a trap, and its regression is invisible to the pin that exists to catch it**: `_fuzzy_match_region` auto-corrects `Pass`→Nassau, `Line`→Berlin, `Guns`→Brunswick SILENTLY, so passing it straight through gives "hold the pass" a real 2-AP standing HOLD on Nassau — and `test_parse_negation.py` plus the golden corpus both stop at `CommandParser.parse`, so the parser's target stays `Pass` in both arms, the assertion passes, and the order exists anyway (measured on the counterfactual). Hence `_plausible_name_typo` gates the auto-correct arm, only single TOKENS reach it, and every pin is executor-level. PURSUE suggests only from `get_visible_enemies` (R5). **Fixed in passing:** the marshal fallback in `_resolve_region_from_phrase` scanned every marshal in the world, so naming a fogged foreign army answered with the province it was standing in. **Routed, not fixed:** the `dest`-only rebind leaves the raw phrase on `order.target`, which `strategic.py` uses as HOLD's arrival predicate — that write-back is a change to the per-turn strategic tick, not the display tidy it looks like |
 
 ### Append to existing rows — do NOT re-file
 
