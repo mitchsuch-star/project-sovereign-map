@@ -1853,3 +1853,177 @@ class TestCA819GarrisonSeams:
         # ... and the record IS there, so a future reader finds the reasoning.
         assert "CA8-19(iii)" in inspect.getsource(
             CombatExecutor._post_combat_pipeline)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-28 — the same misspelling got a suggestion or a shrug by VERB
+#
+# THE PIN MUST BE EXECUTOR-LEVEL. `parser_eval.evaluate_entry` makes exactly
+# one production call (`CommandParser.parse`) and never constructs an executor,
+# so a golden-corpus row would be false assurance. So would
+# tests/test_parse_negation.py, whose own `run()` helper is also parser-only:
+# under a NAIVE delegation the parser's target stays "Pass" in both arms — the
+# PARSE-NEG assertion (`target != "Nassau"`) passes — while the executor has
+# quietly created a 2-AP standing HOLD on Nassau. That is why the negative
+# control below asserts on the ORDER, not on the parse.
+# ════════════════════════════════════════════════════════════════════════
+
+_EUROPE = "godot-client/project-sovereign/assets/maps/europe_1805.json"
+
+
+@pytest.fixture()
+def europe_board(monkeypatch):
+    monkeypatch.delenv("SOVEREIGN_SCENARIO", raising=False)
+    monkeypatch.setenv("LLM_MODE", "mock")
+    return WorldState.from_scenario(_EUROPE)
+
+
+def _issue(world, text):
+    """Production shape: real parser -> real executor."""
+    from backend.commands.parser import CommandParser
+    random.seed(7)
+    parser = CommandParser(use_real_llm=False)
+    gs = {"world": world,
+          "marshals": {n: {"name": n} for n in world.marshals}}
+    parsed = parser.parse(text, gs, world=world)
+    return CommandExecutor().execute(parsed, {"world": world})
+
+
+class TestCA828StrategicDestinationSuggestion:
+
+    @pytest.mark.parametrize("text", [
+        "Davout, move to Venetia",          # tactical — already worked
+        "Davout, march to Venetia",         # strategic MOVE_TO
+        "Davout, march south to Venetia",   # directional lead-in
+        "Davout, hold Venetia",             # HOLD shares the seam
+    ])
+    def test_the_same_typo_gets_the_same_answer_whatever_the_verb(
+            self, europe_board, text):
+        res = _issue(europe_board, text)
+        assert res["success"] is False
+        assert "Venetia" in res["message"] and "Vienna" in res["message"], res["message"]
+
+    def test_the_low_confidence_arm_arrives_too(self, europe_board):
+        """Not just "Did you mean…?" — the "Nearby: …" tier as well."""
+        res = _issue(europe_board, "Davout, march to Bordeuex")
+        assert res["success"] is False
+        assert "Nearby:" in res["message"] and "Bordelais" in res["message"]
+
+    # ── the three tripwires ─────────────────────────────────────────────
+
+    def test_hold_the_pass_still_holds_and_creates_no_order(self, europe_board):
+        """THE LOAD-BEARING NEGATIVE CONTROL (PARSE-NEG).
+
+        `match_with_context("Pass", regions)` returns Nassau at the
+        auto-correct tier — silently, with no error dict — so a naive
+        delegation would have created a real 2-AP standing HOLD on a province
+        200km away and told the player he was holding a place called "Pass".
+        Assert on the ORDER and the AP, which is the half the parser-level pin
+        cannot express.
+        """
+        before = europe_board.actions_remaining
+        res = _issue(europe_board, "Davout, hold the pass")
+        assert res["success"] is False
+        assert "Nassau" not in res["message"], res["message"]
+        assert europe_board.get_marshal("Davout").strategic_order is None
+        assert europe_board.actions_remaining == before
+
+    # NOT parametrized with "the rear" -> Bearn, which also auto-corrects:
+    # the parser owns "rear" as a DIRECTION word ("rear of Rhineland" ->
+    # Lorraine) and resolves it before this seam is reached. That is a
+    # deliberate feature, so it is excluded here rather than silently passing
+    # for a reason unrelated to the guard under test.
+    @pytest.mark.parametrize("word,region", [
+        ("the pass", "Nassau"), ("the line", "Berlin"), ("the guns", "Brunswick"),
+    ])
+    def test_ordinary_english_never_becomes_a_province(
+            self, europe_board, word, region):
+        res = _issue(europe_board, f"Davout, march to {word}")
+        assert region not in (res.get("message") or ""), res.get("message")
+        assert europe_board.get_marshal("Davout").strategic_order is None
+
+    def test_the_nation_arm_still_runs_first(self, europe_board):
+        """IGR-A3. If the fuzzy pass were inserted above it, "march to Austria"
+        would suggest Asturias again."""
+        res = _issue(europe_board, "Davout, march to Austria")
+        assert res["success"] is False
+        assert "Asturias" not in res["message"]
+        assert "is a nation, not a province" in res["message"]
+
+    def test_the_phrase_scan_still_runs_first(self, europe_board):
+        """F4. A whole phrase naming a real province resolves to that province;
+        the fuzzy pass is a LAST arm, never a substitute."""
+        # Soult is the roster's literal — he never objects (W6-5), so the
+        # order lands on the marshal rather than in a pending objection, and
+        # the assertion is about resolution rather than about mood.
+        from backend.commands.strategic_executor import _resolve_region_from_phrase
+        # The ordering guarantee, directly: the phrase scan resolves this, so
+        # the new fuzzy arm is never consulted for it.
+        assert _resolve_region_from_phrase(
+            europe_board, "Archduke John At Tyrol", "France") == "Tyrol"
+        # And end to end. NOT `success is True`: the order IS created and
+        # pathed to Tyrol, and is then cleared because its first step is
+        # blocked by Mack at Swabia — a different, correct refusal. What must
+        # hold is that the phrase resolved and never leaked.
+        res = _issue(europe_board, "Soult, march on Archduke John at Tyrol")
+        msg = res.get("message") or ""
+        assert "could not make out" not in msg, msg
+        assert "Archduke John At Tyrol" not in msg, msg
+
+    def test_a_multi_word_phrase_keeps_the_honest_shrug(self, europe_board):
+        """Fuzzy matching a whole SENTENCE is how the PARSE-NEG family got in.
+        Only single tokens reach the new arm.
+
+        Pinned on the helper, not end to end: an earlier version of this test
+        drove `march to the Bavarian frontier` through the parser and passed
+        with the guard DELETED — the parser resolves that phrase upstream, so
+        the arm was never reached and the test proved nothing. Measured
+        directly, the same phrase would answer "Did you mean 'Oran'?".
+        """
+        ex = CommandExecutor()
+        strat = ex._strategic
+        for phrase in ("the Bavarian frontier", "the enemy camp",
+                       "his left flank", "the river crossing"):
+            assert strat._suggest_region_for_phrase(phrase, europe_board) == (None, None), phrase
+            # ... and the unguarded matcher really would have answered.
+            _region, err = ex._fuzzy_match_region(phrase, europe_board)
+            assert err is not None and (
+                "Did you mean" in err["message"] or "Nearby:" in err["message"])
+
+    def test_a_failed_resolution_is_free(self, europe_board):
+        for text in ("Davout, march to Venetia", "Davout, hold Venetia",
+                     "Davout, pursue Zzzqqx", "Davout, support Zzzqqx"):
+            before = europe_board.actions_remaining
+            res = _issue(europe_board, text)
+            assert res["success"] is False
+            assert europe_board.actions_remaining == before, text
+            assert res.get("variable_action_cost") == 0, text
+
+    # ── the other two of the "three messages" ───────────────────────────
+
+    def test_support_ranks_instead_of_dumping_the_roster(self, europe_board):
+        res = _issue(europe_board, "Ney, support Davot")
+        assert res["success"] is False
+        assert "Did you mean 'Davout'?" in res["message"], res["message"]
+
+    def test_pursue_suggests_only_what_fog_already_reveals(self, europe_board):
+        """R5. A ranked guess at a hidden army is free intelligence."""
+        visible = {e.name for e in europe_board.get_visible_enemies("France")}
+        assert "Mack" in visible and "Kutuzov" not in visible   # boot fog
+        hit = _issue(europe_board, "Ney, pursue Macck")
+        assert "Did you mean 'Mack'?" in hit["message"], hit["message"]
+        miss = _issue(europe_board, "Ney, pursue Kutuzow")
+        assert "Kutuzov" not in miss["message"], miss["message"]
+
+    def test_a_fogged_army_is_not_a_destination(self, europe_board):
+        """The marshal fallback inside `_resolve_region_from_phrase` used to
+        scan EVERY marshal in the world, so naming a hidden foreign army
+        answered with the province it was standing in."""
+        hidden = [m for m in europe_board.marshals.values()
+                  if m.nation != "France"
+                  and m.name not in {e.name for e in
+                                     europe_board.get_visible_enemies("France")}]
+        assert hidden, "boot fog must hide someone for this to mean anything"
+        target = hidden[0]
+        res = _issue(europe_board, f"Davout, march to {target.name}")
+        assert target.location not in (res.get("message") or ""), res.get("message")

@@ -21,7 +21,7 @@ from backend.commands.objection_v2 import (
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display
 
 
-def _resolve_region_from_phrase(world, phrase: str):
+def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
     """Best-effort resolve a messy MOVE_TO/HOLD target phrase to a real region.
 
     F4 (playtest): the parser/LLM occasionally returns an unparsed phrase
@@ -42,11 +42,30 @@ def _resolve_region_from_phrase(world, phrase: str):
             best = region_name
     if best is not None:
         return best
+    # CA8-28: the marshal fallback used to scan EVERY marshal in the world, so
+    # "march to <a fogged Ottoman army>" answered with that army's province —
+    # a free intel read (R5). Scope it to marshals the ordering nation may
+    # legitimately see: its own, and enemies fog already reveals.
+    visible = _visible_marshal_names(world, actor_nation)
     for marshal in world.marshals.values():
         name = getattr(marshal, "name", "")
-        if name and name.lower() in lowered:
+        if name and name.lower() in lowered and name in visible:
             return marshal.location
     return None
+
+
+def _visible_marshal_names(world, actor_nation: str) -> set:
+    """Marshal names `actor_nation` may resolve a destination against (R5)."""
+    names = {getattr(m, "name", "") for m in world.marshals.values()
+             if getattr(m, "nation", None) == actor_nation}
+    if actor_nation:
+        try:
+            names.update(getattr(e, "name", "")
+                         for e in world.get_visible_enemies(actor_nation))
+        except Exception:
+            pass
+    names.discard("")
+    return names
 
 
 class StrategicExecutor:
@@ -59,6 +78,72 @@ class StrategicExecutor:
     def __init__(self, parent_executor):
         """Initialize with reference to parent CommandExecutor for shared state access."""
         self._executor = parent_executor
+
+    # ════════════════════════════════════════════════════════════════════
+    # CA8-28 — the strategic verbs get the tactical path's fuzzy answers.
+    # ════════════════════════════════════════════════════════════════════
+
+    def _suggest_region_for_phrase(self, phrase: str, world):
+        """A last fuzzy pass over an unresolved MOVE_TO/HOLD destination.
+
+        Returns `(corrected_region_name, None)` for a confident typo fix,
+        `(None, error_dict)` for a "Did you mean…?" / "Nearby: …" answer, or
+        `(None, None)` to leave the caller's existing copy alone.
+
+        TWO GUARDS, both load-bearing:
+
+        1. **Only single tokens.** `_resolve_region_from_phrase` above exists
+           for PHRASES ("march on Archduke John at Tyrol", "the Bavarian
+           frontier"); a fuzzy matcher aimed at a whole sentence is how the
+           PARSE-NEG family got in. A single word that is not a province is a
+           misspelling, and misspellings are what fuzzy matching is for.
+
+        2. **`_plausible_name_typo` gates the silent auto-correct.** The
+           tactical chokepoint returns `(region, None)` — no error, no prompt —
+           for `Pass`→Nassau, `Line`→Berlin, `Guns`→Brunswick, `Rear`→Bearn.
+           Accepting that here would give "Ney, hold the pass" a real 2-AP
+           standing HOLD on a province 200km away: the exact defect PARSE-NEG
+           landed to kill, and the pin that covers it CANNOT see this — it
+           calls `CommandParser.parse` and never builds an executor, so the
+           parser's target stays "Pass" in both arms and the test passes while
+           the order is created. Same for the golden corpus.
+        """
+        from backend.commands.parser import _plausible_name_typo
+
+        token = (phrase or "").strip()
+        if not token or len(token.split()) != 1:
+            return (None, None)
+
+        region, err = self._executor._fuzzy_match_region(token, world)
+        if region is not None:
+            name = getattr(region, "name", "")
+            return (name, None) if _plausible_name_typo(token, name) else (None, None)
+        # A nation was already answered by the caller's own IGR-A3 arm.
+        if err and err.get("nation_named"):
+            return (None, None)
+        return (None, err)
+
+    def _closest_marshal_name(self, typed: str, candidates) -> Optional[str]:
+        """The nearest name in `candidates` to what the player typed, or None.
+
+        CA8-28's other two messages. `Cannot find 'Mak' to pursue.` offered
+        nothing at all and `Cannot find marshal 'Davot' to support.` offered an
+        unranked dump of the whole roster — neither is the tactical path's
+        "Did you mean…?". Same `_plausible_name_typo` gate as the region arm,
+        for the same reason: it must not turn an ordinary English word into a
+        confident guess at a person.
+        """
+        from backend.commands.parser import _plausible_name_typo
+
+        token = (typed or "").strip()
+        names = [n for n in candidates if n]
+        if not token or len(token.split()) != 1 or not names:
+            return None
+        result = self._executor.fuzzy_matcher.match_with_context(token, names)
+        match = result.get("match") or ""
+        if result.get("action") in ("exact", "auto_correct", "suggest") and match:
+            return match if _plausible_name_typo(token, match) else None
+        return None
 
     def _generate_mild_concern_message(self, marshal, action: str, order: Dict) -> str:
         """
@@ -454,13 +539,20 @@ class StrategicExecutor:
                         "message": f"{target} is a region, not a marshal. SUPPORT targets a friendly marshal.",
                         "suggestion": f"Try: '{marshal.name}, support Davout' — SUPPORT targets a friendly marshal, not a region."
                     }
+                roster = [m.name for m in world.marshals.values()
+                          if m.nation == marshal.nation and m.name != marshal.name]
+                # CA8-28: rank it. An unranked roster dump is not the tactical
+                # path's "Did you mean…?", and "support Davot" is a typo, not a
+                # request for the army list.
+                near = self._closest_marshal_name(target, roster)
+                msg = f"Cannot find marshal '{target}' to support."
+                if near:
+                    msg += f" Did you mean '{near}'?"
                 return {
                     "success": False,
-                    "message": f"Cannot find marshal '{target}' to support.",
-                    "suggestion": "Available French marshals: " + ", ".join(
-                        m.name for m in world.marshals.values()
-                        if m.nation == marshal.nation and m.name != marshal.name
-                    )
+                    "message": msg,
+                    "suggestion": "Available French marshals: " + ", ".join(roster),
+                    "variable_action_cost": 0,
                 }
             if ally.nation != marshal.nation:
                 return {
@@ -482,9 +574,19 @@ class StrategicExecutor:
                     strategic_type = "MOVE_TO"
                     target_type = "region"
                 else:
+                    # CA8-28: the barest of the three — no suggestion at all.
+                    # Suggest only from enemies fog already reveals (R5); a
+                    # ranked guess at a hidden army is free intelligence.
+                    visible = [getattr(e, "name", "") for e in
+                               world.get_visible_enemies(marshal.nation)]
+                    near = self._closest_marshal_name(target, visible)
+                    msg = f"Cannot find '{target}' to pursue."
+                    if near:
+                        msg += f" Did you mean '{near}'?"
                     return {
                         "success": False,
-                        "message": f"Cannot find '{target}' to pursue.",
+                        "message": msg,
+                        "variable_action_cost": 0,
                     }
             else:
                 # PT-5 FIX: Check war status BEFORE order creation to prevent AP waste
@@ -545,7 +647,8 @@ class StrategicExecutor:
             # region before pathfinding, and never leak an unresolved phrase.
             if (strategic_type in ("MOVE_TO", "HOLD")
                     and dest and dest not in world.regions):
-                resolved = _resolve_region_from_phrase(world, dest)
+                resolved = _resolve_region_from_phrase(
+                    world, dest, getattr(marshal, "nation", ""))
                 if resolved is None:
                     # IGR-A3: "Ney, march to Austria" reaches HERE, not the
                     # tactical region chokepoint — so the strategic verbs need
@@ -559,15 +662,30 @@ class StrategicExecutor:
                             "nation_named": nation,
                             "variable_action_cost": 0,
                         }
-                    return {
-                        "success": False,
-                        "message": (
-                            f"I could not make out a destination in that order, "
-                            f"Sire - name a province (e.g. '{marshal.name}, move "
-                            f"to {marshal.location}')."
-                        ),
-                        "variable_action_cost": 0,
-                    }
+                    # CA8-28: the same misspelling got a suggestion or a shrug
+                    # depending on the VERB — "move to Venetia" answered "Did
+                    # you mean 'Vienna'?" (the tactical path owns both fuzzy
+                    # arms) while "march to Venetia" answered "I could not make
+                    # out a destination". The split is deliberate at the keyword
+                    # layer and accidental here: this branch never had a fuzzy
+                    # pass at all. It runs AFTER the phrase scan and AFTER the
+                    # nation arm, so "march on Archduke John at Tyrol" and
+                    # "march to Austria" keep their existing answers.
+                    typo_fix, typo_err = self._suggest_region_for_phrase(dest, world)
+                    if typo_fix is not None:
+                        resolved = typo_fix
+                    elif typo_err is not None:
+                        return {**typo_err, "variable_action_cost": 0}
+                    else:
+                        return {
+                            "success": False,
+                            "message": (
+                                f"I could not make out a destination in that order, "
+                                f"Sire - name a province (e.g. '{marshal.name}, move "
+                                f"to {marshal.location}')."
+                            ),
+                            "variable_action_cost": 0,
+                        }
                 dest = resolved
 
             if dest and dest != marshal.location:
