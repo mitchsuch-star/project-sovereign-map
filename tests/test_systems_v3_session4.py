@@ -150,7 +150,12 @@ class TestAttackAutoMove:
 
         with patch.object(world, 'calculate_visibility') as mock_vis:
             result = execute_attack(world, "Ney", "Wellington")
-            if result["success"]:
+            # Drive-by, CA8 sweep 4: this used to read `if result["success"]`,
+            # which also admits the ATTACK->PURSUE upgrade — a success in which
+            # nothing moves and no fog refresh is owed. Measured 36/300 seeds
+            # took that branch, i.e. a ~12% flake on a clean master. Gate on the
+            # thing the test is named for: the marshal actually auto-moved.
+            if result["success"] and ney.location != "Paris":
                 assert mock_vis.called
 
     def test_attack_auto_move_applies_attrition(self):
@@ -496,7 +501,17 @@ class TestAutoChargeAdvance:
 # ═══════════════════════════════════════════════════════
 
 class TestGarrisonCombat:
-    """Garrison combat should update fog, record battles, update authority/coalition, apply war damage."""
+    """Garrison combat should update fog, record battles, update authority/coalition, apply war damage.
+
+    CA8-19(iii), Aug 2026 — THIS CLASS USED TO TEST NOTHING. `_setup_garrison_battle`
+    looked up `"London"`, which does not exist in the 19-region legacy world
+    `make_world()` builds, so every test hit `if not london: return` and
+    `_resolve_garrison_combat` was invoked ZERO times. Re-sited onto Berlin (a
+    real legacy region); the `if not X: return` escape hatch is replaced by an
+    assertion, so the class can never silently go vacuous again.
+    """
+
+    TARGET = "Berlin"
 
     def _setup_garrison_battle(self, garrison_strength=8000):
         """Set up a garrison assault scenario."""
@@ -504,16 +519,17 @@ class TestGarrisonCombat:
         ney = make_marshal(name="Ney", location="Belgium", strength=40000)
         place_marshals(world, ney)
 
-        # Set up a capital with garrison (Britain controls London)
-        london = world.get_region("London")
-        if london:
-            london.controller = "Britain"
-            london.garrison_strength = garrison_strength
-            london.garrison_detachment = False
-            # Ney must be adjacent to London
-            ney.location = "London"  # Attack from within reach
+        target = world.get_region(self.TARGET)
+        assert target is not None, (
+            f"{self.TARGET} must exist in the legacy world — this class is "
+            "vacuous the moment it does not"
+        )
+        target.controller = "Britain"
+        target.garrison_strength = garrison_strength
+        target.garrison_detachment = False
+        ney.location = self.TARGET   # Attack from within reach
 
-        return world, ney, london
+        return world, ney, target
 
     def _execute_garrison_attack(self, world, ney, target_region):
         """Execute a garrison attack directly."""
@@ -524,78 +540,71 @@ class TestGarrisonCombat:
 
     def test_garrison_combat_updates_fog(self):
         """Intel should be updated after garrison battle."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=3000)
-        if not london:
-            return
+        world, ney, target = self._setup_garrison_battle(garrison_strength=3000)
 
         with patch.object(world, 'update_intel_from_battle') as mock_intel:
-            result = self._execute_garrison_attack(world, ney, london)
+            self._execute_garrison_attack(world, ney, target)
             assert mock_intel.called
-            mock_intel.assert_called_with(london.name, world.current_turn)
+            mock_intel.assert_called_with(target.name, world.current_turn)
 
     def test_garrison_combat_adds_coalition_threat(self):
         """Coalition threat should increase when player captures a garrison."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=3000)
-        if not london:
-            return
+        world, ney, target = self._setup_garrison_battle(garrison_strength=3000)
 
         initial_threat = world.threat_level
-        result = self._execute_garrison_attack(world, ney, london)
+        result = self._execute_garrison_attack(world, ney, target)
 
         assert result["success"]
-        # If garrison collapsed, threat should increase (battle_win = +3)
-        if london.garrison_strength == 0:
-            assert world.threat_level > initial_threat
+        assert target.garrison_strength == 0      # the garrison DID collapse
+        assert world.threat_level > initial_threat
 
     def test_garrison_combat_records_battle(self):
         """battles_this_turn should be populated after garrison battle."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=3000)
-        if not london:
-            return
+        world, ney, target = self._setup_garrison_battle(garrison_strength=3000)
 
-        result = self._execute_garrison_attack(world, ney, london)
+        result = self._execute_garrison_attack(world, ney, target)
 
         assert result["success"]
         assert len(world.battles_this_turn) > 0
         battle = world.battles_this_turn[-1]
-        assert battle["location"] == london.name
+        assert battle["location"] == target.name
 
     def test_garrison_combat_updates_authority(self):
-        """Authority should change after garrison battle."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=3000)
-        if not london:
-            return
+        """Authority should change after garrison battle.
+
+        CA8-19(iii): this assertion had never executed. On its first real run it
+        FAILED — boot authority is 100, which is the ceiling, so a +5 capital
+        bonus is unobservable. The scenario, not the assertion, was wrong: start
+        off the cap and pin the exact grant.
+        """
+        world, ney, target = self._setup_garrison_battle(garrison_strength=3000)
 
         # Mark as capital for authority bonus
-        london.is_capital = True
-        initial_authority = world.authority_tracker.authority
-        result = self._execute_garrison_attack(world, ney, london)
+        target.is_capital = True
+        world.authority_tracker.authority = 50
+        self._execute_garrison_attack(world, ney, target)
 
-        if london.garrison_strength == 0:
-            # Capital capture should give authority bonus
-            assert world.authority_tracker.authority > initial_authority
+        assert target.garrison_strength == 0
+        # Capital capture is +5; Ney (40,000) is not outnumbered, so that is all.
+        assert world.authority_tracker.authority == 55
 
     def test_garrison_combat_applies_war_damage(self):
         """Region war_damage should increase after garrison battle."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=8000)
-        if not london:
-            return
+        world, ney, target = self._setup_garrison_battle(garrison_strength=8000)
 
-        initial_damage = london.war_damage
-        result = self._execute_garrison_attack(world, ney, london)
+        initial_damage = target.war_damage
+        result = self._execute_garrison_attack(world, ney, target)
 
         assert result["success"]
-        assert london.war_damage > initial_damage
+        assert target.war_damage > initial_damage
 
     def test_garrison_holds_records_battle(self):
         """battles_this_turn should be populated even when garrison holds."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=80000)
-        if not london:
-            return
+        world, ney, target = self._setup_garrison_battle(garrison_strength=80000)
 
         # Weak attacker so garrison holds
         ney.strength = 5000
-        result = self._execute_garrison_attack(world, ney, london)
+        result = self._execute_garrison_attack(world, ney, target)
 
         assert result["success"]
         assert len(world.battles_this_turn) > 0
@@ -603,15 +612,47 @@ class TestGarrisonCombat:
         assert battle["result"] == "defender_victory"
 
     def test_garrison_holds_war_exhaustion(self):
-        """Attacker war exhaustion should increase when garrison holds."""
-        world, ney, london = self._setup_garrison_battle(garrison_strength=80000)
-        if not london:
-            return
+        """The repulsed ATTACKER pays, by an exact amount.
+
+        CA8-19(iii): the old assertion was `>= initial_we`, which cannot fail —
+        `add_war_exhaustion_from_battle` only ever increases — so deleting the
+        mechanic outright kept it green (mutation-verified). Pin the number.
+        """
+        world, ney, target = self._setup_garrison_battle(garrison_strength=80000)
 
         ney.strength = 10000
-        initial_we = world.war_exhaustion.get("France", 0)
-        result = self._execute_garrison_attack(world, ney, london)
+        assert world.war_exhaustion.get("France", 0) == 0
+        result = self._execute_garrison_attack(world, ney, target)
 
-        # Attacker took losses, war exhaustion should increase
-        # (depends on casualty count >= 1000 for the formula)
-        assert world.war_exhaustion.get("France", 0) >= initial_we
+        # attacker_damage_ratio saturates at its 0.35 cap against a garrison
+        # this size, so losses are exactly 3,500 and WE is 3,500 // 1,000.
+        assert result["success"]
+        assert target.garrison_strength > 0        # the garrison HELD
+        assert world.war_exhaustion["France"] == 3
+        # The garrison's owner did not lose the battle and pays nothing.
+        assert world.war_exhaustion.get("Britain", 0) == 0
+
+    def test_garrison_holds_war_exhaustion_for_an_enemy_attacker(self):
+        """The mirror the filed CA8-19(iii) row said was broken, and is not.
+
+        The row claimed "an AI army repulsed from a French garrison accrues no
+        war exhaustion at all" because the `is_garrison` arm of step 13 is
+        unreachable. The arm above it — `defender_nation == france` — already
+        charges the attacker, and that is what this pins.
+        """
+        world = make_world()
+        wellington = make_enemy(name="Wellington", location="Paris", strength=10000)
+        place_marshals(world, wellington)
+        paris = world.get_region("Paris")
+        assert paris is not None
+        paris.controller = "France"
+        paris.garrison_strength = 80000
+        paris.garrison_detachment = False
+
+        assert world.war_exhaustion.get("Britain", 0) == 0
+        result = self._execute_garrison_attack(world, wellington, paris)
+
+        assert result["success"]
+        assert paris.garrison_strength > 0
+        assert world.war_exhaustion["Britain"] == 3
+        assert world.war_exhaustion.get("France", 0) == 0

@@ -10400,6 +10400,15 @@ class WorldState:
 
                 # Clear attacker's combat transient state before combat (V2-48/V2-49)
                 marshal.clear_combat_transient_state()
+                # CA8-19(i): this is the ONE resolve_battle call site with no
+                # coordination recompute on either side — the other three
+                # (combat_executor.py attack / auto-kill / charge) all recompute
+                # first, which is what overwrites a stale stamp everywhere else.
+                # The attacker is covered by the line above; the defender needs
+                # a COORDINATION-ONLY clear, because clearing his full transient
+                # state here would strip `fortified` / `square_formation` and
+                # change the battle.
+                enemy.clear_coordination_transients()
 
                 # Region fortification bonus for defender (V2-45)
                 auto_charge_fort_bonus = 0.25 if enemy_region and enemy_region.has_building("fortification") else 0.0
@@ -10599,7 +10608,7 @@ class WorldState:
                     self, marshal, enemy, _ac_atk_won, _ac_def_won,
                     int(combat_result.get("attacker", {}).get("casualties", 0)),
                     int(combat_result.get("defender", {}).get("casualties", 0)),
-                    conquered=False, is_garrison=False,
+                    conquered=False,
                     pre_attacker_strength=int(pre_battle_atk),
                     pre_defender_strength=int(pre_battle_def),
                     attacker_participants=_ac_atk_parts,

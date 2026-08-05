@@ -138,11 +138,17 @@ def _append_glory(marshal, turn: int, points: int) -> None:
 
 
 def _victory_points(casualties_own: int, casualties_enemy: int,
-                    conquered: bool, outnumbered: bool,
-                    is_garrison_stomp: bool) -> int:
-    """Glory for a victory (spec §1). Garrison stomps earn nothing."""
-    if is_garrison_stomp:
-        return 0
+                    conquered: bool, outnumbered: bool) -> int:
+    """Glory for a victory (spec §1).
+
+    CA8-19(ii): the `is_garrison_stomp` parameter is GONE. Spec §1's
+    "Garrison stomp: +0" is now enforced structurally, one layer up, by the
+    `not is_garrison` term on the pipeline's glory step — a garrison assault
+    never reaches this function at all. The parameter could never be True in
+    production (the garrison path passes `battle_result: None`, which the same
+    guard already excluded), so it was a rule the caller had to remember
+    rather than one the engine held.
+    """
     points = 1
     if casualties_own > 0 and casualties_enemy >= 2 * casualties_own:
         points += 1          # decisive win (>= 2:1 in your favor)
@@ -180,7 +186,7 @@ def _defeat_points(casualties_own: int, casualties_enemy: int,
 def record_battle_glory(world, attacker, defender, attacker_won: bool,
                         defender_won: bool, attacker_casualties: int,
                         defender_casualties: int, conquered: bool,
-                        is_garrison: bool, pre_attacker_strength: int,
+                        pre_attacker_strength: int,
                         pre_defender_strength: int,
                         attacker_participants: Optional[List] = None,
                         defender_participants: Optional[List] = None) -> None:
@@ -189,8 +195,12 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
 
     Primaries score the full formula; non-primary participants
     (coordination/reinforcement) record base +/-1 only (spec §0.2 item 4).
-    Defensive victories score normally (EC-A); the garrison-stomp exemption
-    applies only to an attacker beating a garrison (is_garrison ctx).
+    Defensive victories score normally (EC-A).
+
+    CA8-19(ii): garrison assaults never arrive here. Spec §1's garrison-stomp
+    exemption used to ride an `is_garrison` argument that no production caller
+    could set; it is now the `not is_garrison` term on the pipeline's glory
+    step, so the ladder excludes garrison combat in both directions.
     """
     turn = int(world.current_turn)
     atk_outnumbered = pre_attacker_strength < pre_defender_strength
@@ -200,7 +210,7 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
         if attacker_won:
             _append_glory(attacker, turn, _victory_points(
                 attacker_casualties, defender_casualties,
-                conquered, atk_outnumbered, is_garrison))
+                conquered, atk_outnumbered))
         elif defender_won:
             _append_glory(attacker, turn, _defeat_points(
                 attacker_casualties, defender_casualties,
@@ -210,8 +220,7 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
         if defender_won:
             _append_glory(defender, turn, _victory_points(
                 defender_casualties, attacker_casualties,
-                conquered=False, outnumbered=def_outnumbered,
-                is_garrison_stomp=False))
+                conquered=False, outnumbered=def_outnumbered))
         elif attacker_won:
             _append_glory(defender, turn, _defeat_points(
                 defender_casualties, attacker_casualties,

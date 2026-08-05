@@ -606,6 +606,30 @@ class Marshal:
         # buff live for battles before the next recompute).
         self.glory_crowned: bool = False
 
+    # CA8-19(i): the transient coordination stamp. These are written by
+    # CombatExecutor._calculate_coordination_context, read back by
+    # get_attack_modifier / get_defense_modifier, and are NOT serialized —
+    # they are meant to live only between a recompute and the battle that
+    # consumes it. The names live HERE, on the object that carries them, so
+    # the executor's clear and clear_combat_transient_state below cannot
+    # drift apart (they did: the latter's own docstring promised to hold
+    # every combat-transient field and held none of these).
+    COORDINATION_TRANSIENT_FIELDS = (
+        'total_coordination_attack_bonus', 'total_coordination_defense_bonus',
+        '_display_combined_arms_atk', '_display_combined_arms_def',
+        '_display_coordination_atk', '_display_coordination_def',
+        '_display_dedicated_atk', '_display_dedicated_def',
+        '_display_adjacent_atk',
+        'overwatch_penalty',        # Session 68: enemy artillery suppression
+        '_jealousy_solo_attack',    # Jealousy v3.2: +15% solo-attack stamp
+    )
+
+    def clear_coordination_transients(self) -> None:
+        """Drop the transient coordination stamp. Single source of truth."""
+        for attr in self.COORDINATION_TRANSIENT_FIELDS:
+            if hasattr(self, attr):
+                setattr(self, attr, 0.0)
+
     def clear_combat_transient_state(self):
         """Clear all transient combat state. Single source of truth.
 
@@ -613,6 +637,7 @@ class Marshal:
         on army break in executor._apply_forced_retreat_or_break().
         Any new combat-transient field MUST be added here.
         """
+        self.clear_coordination_transients()
         self.drilling = False
         self.drilling_locked = False
         self.shock_bonus = 0

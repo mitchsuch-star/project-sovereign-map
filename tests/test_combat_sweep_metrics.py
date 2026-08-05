@@ -558,7 +558,7 @@ def measure_m7(horizon=8):
             J.record_battle_glory(
                 world, marshal, enemy, atk_won, def_won,
                 res["attacker"]["casualties"], res["defender"]["casualties"],
-                conquered=False, is_garrison=False,
+                conquered=False,
                 pre_attacker_strength=pre_atk, pre_defender_strength=pre_def)
 
         world._jealousy_processed_turn = None

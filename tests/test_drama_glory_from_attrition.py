@@ -76,7 +76,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, ney, mack, attacker_won=False, defender_won=False,
             attacker_casualties=1000, defender_casualties=3000,
-            conquered=False, is_garrison=False,
+            conquered=False,
             pre_attacker_strength=40000, pre_defender_strength=40000)
         assert J.get_glory_score(ney, world.current_turn) == J.STALEMATE_GLORY
         # the out-bled defender earns nothing from this exchange
@@ -89,7 +89,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, ney, mack, attacker_won=False, defender_won=False,
             attacker_casualties=4000, defender_casualties=1500,
-            conquered=False, is_garrison=False,
+            conquered=False,
             pre_attacker_strength=40000, pre_defender_strength=40000)
         assert J.get_glory_score(mack, world.current_turn) == J.STALEMATE_GLORY
         assert J.get_glory_score(ney, world.current_turn) == 0
@@ -99,7 +99,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, ney, mack, attacker_won=False, defender_won=False,
             attacker_casualties=2000, defender_casualties=2200,
-            conquered=False, is_garrison=False,
+            conquered=False,
             pre_attacker_strength=40000, pre_defender_strength=40000)
         assert J.get_glory_score(ney, world.current_turn) == 0
         assert J.get_glory_score(mack, world.current_turn) == 0
@@ -112,7 +112,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, ney, mack, attacker_won=False, defender_won=False,
             attacker_casualties=0, defender_casualties=0,
-            conquered=True, is_garrison=False,
+            conquered=True,
             pre_attacker_strength=40000, pre_defender_strength=40000)
         assert J.get_glory_score(ney, world.current_turn) == J.STALEMATE_GLORY
 
@@ -122,7 +122,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, ney, mack, attacker_won=True, defender_won=False,
             attacker_casualties=1000, defender_casualties=3000,
-            conquered=True, is_garrison=False,
+            conquered=True,
             pre_attacker_strength=40000, pre_defender_strength=40000)
         # 1 base + 1 decisive + 1 territory = 3 (not the DR-1 flat +1)
         assert J.get_glory_score(ney, world.current_turn) == 3
@@ -134,7 +134,7 @@ class TestStalemateGlory:
         J.record_battle_glory(
             world, mack, ney, attacker_won=False, defender_won=False,
             attacker_casualties=800, defender_casualties=2000,
-            conquered=False, is_garrison=False,
+            conquered=False,
             pre_attacker_strength=30000, pre_defender_strength=30000)
         assert J.get_glory_score(mack, world.current_turn) == J.STALEMATE_GLORY
         assert J.get_glory_score(ney, world.current_turn) == 0

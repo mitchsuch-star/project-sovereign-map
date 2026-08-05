@@ -10,6 +10,7 @@ from backend.models.world_state import (
     PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
 )
+from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
@@ -1149,24 +1150,18 @@ class CombatExecutor:
 
         return reinforcement_results
 
-    # Transient coordination field names for cleanup after combat (D5 + X1)
-    _COORDINATION_FIELDS = [
-        'total_coordination_attack_bonus', 'total_coordination_defense_bonus',
-        '_display_combined_arms_atk', '_display_combined_arms_def',
-        '_display_coordination_atk', '_display_coordination_def',
-        '_display_dedicated_atk', '_display_dedicated_def',
-        '_display_adjacent_atk',
-        'overwatch_penalty',  # Session 68: enemy artillery suppression (transient)
-        '_jealousy_solo_attack',  # Jealousy v3.2: +15% solo-attack stamp (transient)
-    ]
+    # Transient coordination field names for cleanup after combat (D5 + X1).
+    # CA8-19(i): the names now live on Marshal — the object that carries the
+    # fields — so this list and Marshal.clear_combat_transient_state cannot
+    # drift. Kept as a class attribute because it is pinned by name
+    # (tests/test_auto_bombardment_overwatch.py).
+    _COORDINATION_FIELDS = list(Marshal.COORDINATION_TRANSIENT_FIELDS)
 
     def _clear_coordination_fields(self, regions: set, world: WorldState) -> None:
         """Clear all transient coordination fields from marshals in the given regions."""
         for m in world.marshals.values():
             if m.location in regions:
-                for attr in self._COORDINATION_FIELDS:
-                    if hasattr(m, attr):
-                        setattr(m, attr, 0.0)
+                m.clear_coordination_transients()
 
     def _naval_advance_allowed(self, marshal, destination: str, world) -> bool:
         """NV-9 — may this marshal ADVANCE onto `destination` after a
@@ -1609,6 +1604,9 @@ class CombatExecutor:
                 skip_war_damage (bool): caller already applied war damage
                 skip_intel_update (bool): caller already updated intel
                 skip_coordination_clear (bool): caller already cleared
+                coordination_regions (iterable): extra regions the
+                    coordination stamp was computed over — required when the
+                    attacker has already advanced before this call
 
         Returns:
             dict with:
@@ -1639,8 +1637,14 @@ class CombatExecutor:
         }
 
         # ── 1. Clear coordination fields ──
+        # CA8-19(i): `attacker.location` is only the stamped region while the
+        # attacker has not moved yet. Paths that advance BEFORE calling the
+        # pipeline (the auto-bombardment-kill exit) must name the region the
+        # stamp was computed over via `coordination_regions`, or the origin's
+        # allies keep a bonus nothing will ever clear.
         if not ctx.get('skip_coordination_clear'):
             involved = {attacker.location, battle_region}
+            involved.update(ctx.get('coordination_regions') or ())
             if defender and getattr(defender, 'strength', 0) > 0:
                 involved.add(defender.location)
             self._clear_coordination_fields(involved, world)
@@ -1737,8 +1741,8 @@ class CombatExecutor:
         # sets mirror step 10's (relationship.get_battle_participants).
         jealousy_atk_parts = None
         jealousy_def_parts = None
-        if (not is_bombardment and not is_auto_kill and battle_result
-                and not ctx.get('skip_jealousy')):
+        if (not is_bombardment and not is_auto_kill and not is_garrison
+                and battle_result and not ctx.get('skip_jealousy')):
             from backend.game_logic import jealousy as _jealousy
             from backend.game_logic.relationship import get_battle_participants
             jealousy_atk_parts = get_battle_participants(
@@ -1780,18 +1784,34 @@ class CombatExecutor:
 
         # ── 10.5 Glory recording + §6b rivalry transitions (v3.2) ──
         # AFTER relationships (spec §0.2 item 4). Primaries score the full
-        # formula, participants base ±1; ctx['is_garrison'] is the
-        # garrison-stomp discriminator (spec §1). NOTE: the main attack
-        # path runs its relationship processing inline BEFORE this
-        # pipeline call (skip_relationships=True) — glory here is still
-        # strictly after it.
-        if (not is_bombardment and not is_auto_kill and battle_result
-                and not ctx.get('skip_jealousy')):
+        # formula, participants base ±1. NOTE: the main attack path runs its
+        # relationship processing inline BEFORE this pipeline call
+        # (skip_relationships=True) — glory here is still strictly after it.
+        #
+        # CA8-19(ii): `not is_garrison` is now STATED, and it replaces a
+        # discriminator that could never be true. Spec §1 authors "Garrison
+        # stomp: +0 (defeating a garrison — no glory in that)", and §0.2 item 4
+        # implemented that as an `is_garrison` argument to record_battle_glory.
+        # No production call site could ever supply it: both garrison ctxs pass
+        # `battle_result: None` (the path never calls resolve_battle), so this
+        # guard's `battle_result` term already excluded them — the exemption
+        # was satisfied by accident, and the argument was dead from the commit
+        # that introduced it. A garrison assault is outside the glory ladder in
+        # BOTH directions, which is a stronger rule than a caller-supplied flag
+        # and cannot be defeated by a caller forgetting to pass it.
+        # DIVERGENCE ON RECORD, owner = the CA8-19 parity gate: spec §1's
+        # DEFEATS block exempts only "Garrison defense", so a marshal REPULSED
+        # from a garrison should read "Base: −1 per defeat". He scores 0 here.
+        # Wiring that arm means ungating step 9.5 too, which mutates
+        # `jealous_of` — drama-system behaviour with M7 exposure that belongs
+        # with the parity work, not in a copy sweep.
+        if (not is_bombardment and not is_auto_kill and not is_garrison
+                and battle_result and not ctx.get('skip_jealousy')):
             from backend.game_logic import jealousy as _jealousy
             _jealousy.record_battle_glory(
                 world, attacker, defender, attacker_won, defender_won,
                 int(atk_casualties), int(def_casualties),
-                conquered=bool(conquered), is_garrison=bool(is_garrison),
+                conquered=bool(conquered),
                 pre_attacker_strength=int(pre_atk),
                 pre_defender_strength=int(pre_def),
                 attacker_participants=jealousy_atk_parts,
@@ -1924,10 +1944,23 @@ class CombatExecutor:
                     add_war_exhaustion_from_battle(
                         attacker.nation, int(atk_casualties), world)
 
-            elif not attacker_won and not defender_won and is_garrison:
-                # Garrison hold — war exhaustion for attacking nation
-                from backend.game_logic.coalition import add_war_exhaustion_from_battle as add_we
-                add_we(attacker.nation, int(atk_casualties), world)
+            # CA8-19(iii): there used to be a fourth arm here —
+            #   elif not attacker_won and not defender_won and is_garrison:
+            #       add_war_exhaustion_from_battle(attacker.nation, atk_cas)
+            # — "garrison hold: war exhaustion for the attacking nation". It was
+            # unreachable from the day it was written (be596fd): a garrison hold
+            # is a DEFENDER VICTORY and its ctx says so (`defender_won: True`),
+            # so `elif defender_won:` above always claims it first. Deleted, not
+            # repaired, because the arm above already does the job on every cell
+            # of the running board — France repulsed pays via the
+            # `attacker.nation == france` arm, an AI repulsed from a French
+            # garrison pays via `defender_nation == france`, and AI-vs-AI pays
+            # via `_third_party_battle`. (The filed claim that "an AI army
+            # repulsed from a French garrison accrues no war exhaustion at all"
+            # is FALSE; measured Austria +6.) Repairing it by flipping the hold
+            # ctx would be strictly worse: as an elif it SUPPRESSES the
+            # defender's battle_win threat, decisive_victory, coalition shock
+            # and the war-score battle record that the live arm grants.
 
             # ── 13b. EC-W3: The Butcher's Bill ──
             # Each side pays at once for the guns, horses and stores lost
@@ -1989,6 +2022,15 @@ class CombatExecutor:
         # the modifier — unlike the marshal-vs-marshal paths, garrison assault has
         # no coordination recompute, so a stale bonus left on an ally (e.g. by a
         # glorious charge out of a shared region) would otherwise be applied here.
+        #
+        # CA8-19(i): the recompute STAMPS every eligible marshal in this region
+        # (combat_executor.py:498-506), and until Aug 2026 both pipeline calls
+        # below suppressed the clear — a flag written in be596fd, when this path
+        # computed no coordination at all, and left untouched by b2de36d, which
+        # added the recompute. So every garrison assault dressed its whole
+        # origin garrison in a permanent attack bonus. `stamp_region` is the
+        # region that stamp covered; the attacker leaves it on the capture path.
+        stamp_region = marshal.location
         self._calculate_coordination_context(marshal, world)
         # MC-1c: a garrison assault IS an attack — get_attack_modifier below
         # consumes Iron Resolve stacks (anti-banking rule). Save the count
@@ -2011,6 +2053,9 @@ class CombatExecutor:
         # Garrison damage to attacker: ratio of garrison_effective to attacker_effective
         # Attacker damage to garrison: ratio of attacker_effective to garrison_effective
         if attacker_effective <= 0:
+            # CA8-19(i): this exit runs after the stamp and before either
+            # pipeline call, so it must clear for itself.
+            self._clear_coordination_fields({stamp_region}, world)
             return {
                 "success": False,
                 "message": f"{marshal.name} has no combat strength to assault the garrison."
@@ -2068,7 +2113,10 @@ class CombatExecutor:
                 'battle_result': None,
                 'conquered': True,
                 'is_garrison': True,
-                'skip_coordination_clear': True,
+                # CA8-19(i): the clear runs. It happens BEFORE move_to below,
+                # so attacker.location is still the origin; stamp_region is
+                # named anyway so the fix survives a reordering.
+                'coordination_regions': (stamp_region,),
                 'skip_log_battle_event': True,
                 'skip_intel_update': True,
                 'skip_war_damage': True,
@@ -2182,7 +2230,9 @@ class CombatExecutor:
                 'battle_result': None,
                 'conquered': False,
                 'is_garrison': True,
-                'skip_coordination_clear': True,
+                # CA8-19(i): the attacker never moves on a hold, but name the
+                # stamped region explicitly for the same reason.
+                'coordination_regions': (stamp_region,),
                 'skip_log_battle_event': True,
                 'skip_intel_update': True,
                 'skip_war_damage': True,
@@ -4370,6 +4420,14 @@ class CombatExecutor:
         # skip resolve_battle entirely. Attacker wins with 0 casualties.
         # ════════════════════════════════════════════════════════════
         if enemy_marshal.strength <= 0 and auto_bombardment_results:
+            # CA8-19(i): this exit ADVANCES the attacker (below) before it
+            # calls the pipeline, and the defender is popped from world.marshals
+            # a line from here — so by clear time `{attacker.location,
+            # battle_region}` has collapsed to the destination alone and the
+            # origin's allies (an artillery marshal on SUPPORT, typically)
+            # keep the stamp forever. Name the origin now, while it is still
+            # the attacker's location.
+            auto_kill_stamp_region = marshal.location
             # Remove destroyed defender
             world.marshals.pop(enemy_marshal.name, None)
 
@@ -4447,6 +4505,7 @@ class CombatExecutor:
                 'battle_result': auto_kill_battle_result,
                 'conquered': bool(conquest_msg),
                 'is_auto_bombardment_kill': True,
+                'coordination_regions': (auto_kill_stamp_region,),
             }, world)
 
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.

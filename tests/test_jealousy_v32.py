@@ -54,25 +54,30 @@ def _run_pass(world):
 
 class TestGloryScoring:
     def test_victory_base_point(self):
-        assert J._victory_points(100, 100, False, False, False) == 1
+        assert J._victory_points(100, 100, False, False) == 1
 
     def test_decisive_win_bonus(self):
-        assert J._victory_points(100, 200, False, False, False) == 2
+        assert J._victory_points(100, 200, False, False) == 2
 
     def test_flawless_counts_as_decisive(self):
-        assert J._victory_points(0, 500, False, False, False) == 2
+        assert J._victory_points(0, 500, False, False) == 2
 
     def test_territory_bonus(self):
-        assert J._victory_points(100, 100, True, False, False) == 2
+        assert J._victory_points(100, 100, True, False) == 2
 
     def test_outnumbered_bonus(self):
-        assert J._victory_points(100, 100, False, True, False) == 2
+        assert J._victory_points(100, 100, False, True) == 2
 
     def test_full_stack(self):
-        assert J._victory_points(100, 200, True, True, False) == 4
+        assert J._victory_points(100, 200, True, True) == 4
 
-    def test_garrison_stomp_is_zero(self):
-        assert J._victory_points(100, 500, True, True, True) == 0
+    # CA8-19(ii): `test_garrison_stomp_is_zero` USED to live here as
+    # `_victory_points(100, 500, True, True, True) == 0` — a direct unit call
+    # with a fifth argument no production path could supply, so it stayed green
+    # whether the exemption was wired or dead. It was dead. The rule is now
+    # structural (the pipeline's glory step states the garrison exclusion) and
+    # is pinned end-to-end, through a real garrison assault, in
+    # tests/test_creative_audit_ca8_2026_08_04.py::TestCA819GarrisonSeams.
 
     def test_defeat_base(self):
         assert J._defeat_points(100, 100, False, False) == -1
@@ -103,7 +108,7 @@ class TestGloryScoring:
         J.record_battle_glory(
             world, ney, mack, attacker_won=True, defender_won=False,
             attacker_casualties=1000, defender_casualties=3000,
-            conquered=True, is_garrison=False,
+            conquered=True,
             pre_attacker_strength=24000, pre_defender_strength=52000,
             attacker_participants=[ney, davout], defender_participants=[])
         # Ney: 1 base + 1 decisive + 1 territory + 1 outnumbered = 4
@@ -884,7 +889,7 @@ class TestEnemyJealousy:
         J.record_battle_glory(
             world, charles, world.marshals["Ney"], attacker_won=True,
             defender_won=False, attacker_casualties=500,
-            defender_casualties=2000, conquered=False, is_garrison=False,
+            defender_casualties=2000, conquered=False,
             pre_attacker_strength=54000, pre_defender_strength=24000)
         assert J.get_glory_score(charles, world.current_turn) > 0
         assert mack.glory_events == []

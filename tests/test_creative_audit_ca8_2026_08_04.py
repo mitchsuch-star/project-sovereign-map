@@ -1629,3 +1629,227 @@ class TestCA88ReviewRound2:
             world, "France", rows,
             {"bankrupt": False, "treasury_delta": 100})
         assert "impatient" in note.lower(), note
+
+
+# ════════════════════════════════════════════════════════════════════════
+# CA8-19 — the three latent defects inside _resolve_garrison_combat
+#
+# The row's parity work (garrison assault as a real battle) stays GATED. These
+# are the seams found inside it, each landable on its own. Note what each pin
+# is really for: (i) is a live mechanical leak, (ii) and (iii) are DEAD code
+# whose observable behaviour nothing pinned — deletions a test must now make
+# falsifiable, because the whole point is that the suite could not tell.
+# ════════════════════════════════════════════════════════════════════════
+
+def _mk_marshal(name, location, strength, nation):
+    from backend.models.marshal import Marshal
+    return Marshal(name=name, location=location, strength=strength,
+                   personality="aggressive", nation=nation,
+                   spawn_location=location)
+
+
+class TestCA819GarrisonSeams:
+
+    def _garrison_world(self, garrison=40000, attacker_strength=30000):
+        world = WorldState()
+        world.diplomatic_states[world._make_diplo_key("France", "Britain")] = "WAR"
+        world.marshals.clear()
+        for name in ("Ney", "Davout", "Soult"):
+            world.marshals[name] = _mk_marshal(name, "Paris", attacker_strength, "France")
+        world.marshals["Lannes"] = _mk_marshal("Lannes", "Normandy", 20000, "France")
+        target = world.get_region("Belgium")
+        target.controller = "Britain"
+        target.garrison_strength = garrison
+        target.garrison_detachment = False
+        return world, target
+
+    @staticmethod
+    def _stamped(world):
+        return {n: round(getattr(m, "total_coordination_attack_bonus", 0.0), 4)
+                for n, m in world.marshals.items()}
+
+    # ── (i) the coordination stamp is cleared ────────────────────────────
+
+    def test_a_garrison_assault_does_not_leave_a_permanent_attack_bonus(self):
+        """The live half of CA8-19. `_resolve_garrison_combat` recomputes
+        coordination (b2de36d) but both pipeline calls suppressed the clear
+        (be596fd), so every marshal in the origin province kept a bonus that
+        NOTHING in the game ever cleared — not advance_turn, not the tactical
+        tick, and it is not serialized so a save/load was the only reset. It is
+        not cosmetic: it is read back by `_committed_reinforcement_strength`,
+        i.e. by real combat and by the muster preview the player decides on."""
+        world, target = self._garrison_world()
+        ex = CombatExecutor(CommandExecutor())
+        res = ex._resolve_garrison_combat(
+            world.get_marshal("Ney"), target, world, {"world": world})
+        assert res["success"]
+        assert "holds" in res["message"]                      # the HOLD branch
+        assert self._stamped(world) == {"Ney": 0.0, "Davout": 0.0,
+                                        "Soult": 0.0, "Lannes": 0.0}
+
+    def test_the_leak_reached_committed_strength_not_just_the_display(self):
+        """Why (i) is a mechanics row and not a copy row: the stale stamp is
+        read back through `get_attack_modifier(consume=False)` inside
+        `_committed_reinforcement_strength`, which feeds combat resolution, the
+        CO-2 odds band and the CR-5 bad-odds modal."""
+        world, target = self._garrison_world()
+        ex = CombatExecutor(CommandExecutor())
+        allies = [world.get_marshal(n) for n in ("Ney", "Davout", "Soult")]
+        before = ex._committed_reinforcement_strength(allies[0], allies, world)
+        ex._resolve_garrison_combat(allies[0], target, world, {"world": world})
+        after = ex._committed_reinforcement_strength(allies[0], allies, world)
+        assert after == before, (before, after)
+
+    def test_the_capture_branch_clears_the_origin_it_marched_out_of(self):
+        """The capture branch MOVES the attacker, so `attacker.location` is no
+        longer the stamped province by the time the pipeline clears."""
+        world, target = self._garrison_world(garrison=3000)
+        ney = world.get_marshal("Ney")
+        ex = CombatExecutor(CommandExecutor())
+        res = ex._resolve_garrison_combat(ney, target, world, {"world": world})
+        assert res["success"] and ney.location == "Belgium"    # he advanced
+        assert self._stamped(world) == {"Ney": 0.0, "Davout": 0.0,
+                                        "Soult": 0.0, "Lannes": 0.0}
+
+    def test_the_no_strength_exit_clears_for_itself(self):
+        """This exit sits AFTER the stamp and BEFORE either pipeline call."""
+        world, target = self._garrison_world()
+        ney = world.get_marshal("Ney")
+        ney.strength = 0
+        ex = CombatExecutor(CommandExecutor())
+        res = ex._resolve_garrison_combat(ney, target, world, {"world": world})
+        assert res["success"] is False
+        assert self._stamped(world) == {"Ney": 0.0, "Davout": 0.0,
+                                        "Soult": 0.0, "Lannes": 0.0}
+
+    def test_the_stamp_itself_still_happens(self):
+        """Negative control, and the pin b2de36d never wrote: the recompute
+        that grants a garrison assault its coordination bonus is REAL. Without
+        this, 'clear it' and 'delete the recompute' are indistinguishable to
+        the suite, and the next cleanup can silently move garrison balance."""
+        world, target = self._garrison_world()
+        ex = CombatExecutor(CommandExecutor())
+        seen = {}
+        real = ex._calculate_coordination_context
+
+        def spy(primary, *a, **k):
+            out = real(primary, *a, **k)
+            seen[primary.name] = round(
+                getattr(primary, "total_coordination_attack_bonus", 0.0), 4)
+            return out
+
+        ex._calculate_coordination_context = spy
+        ex._resolve_garrison_combat(
+            world.get_marshal("Ney"), target, world, {"world": world})
+        assert seen.get("Ney", 0.0) > 0.0, seen
+
+    def test_clear_combat_transient_state_holds_the_coordination_fields(self):
+        """Its docstring promised 'any new combat-transient field MUST be added
+        here' and it held none of the eleven — which is why the reckless-cavalry
+        auto-charge, the one `resolve_battle` call site with no coordination
+        recompute on either side, could fight on leaked numbers."""
+        from backend.models.marshal import Marshal as _M
+        m = _mk_marshal("Probe", "Paris", 10000, "France")
+        for attr in _M.COORDINATION_TRANSIENT_FIELDS:
+            setattr(m, attr, 0.25)
+        m.clear_combat_transient_state()
+        assert all(getattr(m, a) == 0.0 for a in _M.COORDINATION_TRANSIENT_FIELDS)
+        # ... and the executor's list IS that list, so they cannot drift.
+        assert CombatExecutor._COORDINATION_FIELDS == list(
+            _M.COORDINATION_TRANSIENT_FIELDS)
+
+    def test_the_reckless_charge_clears_the_defender_too(self):
+        """The attacker is covered by `clear_combat_transient_state`; the
+        defender needs a coordination-ONLY clear, because clearing his full
+        transient state before the battle would strip `fortified` /
+        `square_formation` and change the fight."""
+        import inspect
+        from backend.models.world_state import WorldState as _WS
+        src = inspect.getsource(_WS._process_reckless_cavalry_turn_start)
+        assert "enemy.clear_coordination_transients()" in src
+        assert "enemy.clear_combat_transient_state()" not in src.split(
+            "resolve_battle")[0]
+
+    # ── (ii) the garrison exclusion from the glory ladder ────────────────
+
+    def test_a_garrison_assault_records_no_glory_either_way(self):
+        """CA8-19(ii). Spec §1 authors 'Garrison stomp: +0'. It used to be an
+        `is_garrison` argument to `record_battle_glory` that NO production
+        caller could set — the garrison path passes `battle_result: None`,
+        which the same guard already excluded, so the exemption held by
+        accident and its only test was a direct unit call carrying a fifth
+        argument the game cannot produce. The rule is now stated at the guard;
+        this reds the moment anyone ungates the step without deciding."""
+        for garrison, arm in ((3000, "capture"), (40000, "hold")):
+            world, target = self._garrison_world(garrison=garrison)
+            ney = world.get_marshal("Ney")
+            ex = CombatExecutor(CommandExecutor())
+            ex._resolve_garrison_combat(ney, target, world, {"world": world})
+            assert ney.glory_events == [], (arm, ney.glory_events)
+
+    def test_a_garrison_assault_does_not_resolve_a_grievance(self):
+        """The same guard governs step 9.5, which MUTATES `jealous_of` — the
+        derived -1 that coordination, objections, reinforcement, muster and the
+        enemy-AI ally filter all read. Ungating glory without deciding this
+        would move drama behaviour, which is why it is one rule, stated once."""
+        world, target = self._garrison_world(garrison=3000)
+        ney = world.get_marshal("Ney")
+        ney.jealous_of = "Davout"
+        ex = CombatExecutor(CommandExecutor())
+        ex._resolve_garrison_combat(ney, target, world, {"world": world})
+        assert ney.jealous_of == "Davout"
+
+    def test_victory_points_no_longer_takes_a_garrison_argument(self):
+        """The deletion, stated. A five-argument call that production could
+        never make is how the dead discriminator survived every green suite."""
+        import inspect
+        params = list(inspect.signature(jealousy._victory_points).parameters)
+        assert params == ["casualties_own", "casualties_enemy",
+                          "conquered", "outnumbered"], params
+        assert "is_garrison" not in inspect.signature(
+            jealousy.record_battle_glory).parameters
+
+    # ── (iii) war exhaustion: the branch was dead, the behaviour was not ──
+
+    def test_the_repulsed_attacker_pays_on_every_cell_of_the_board(self):
+        """CA8-19(iii) AS FILED says 'an AI army repulsed from a French
+        garrison accrues no war exhaustion at all'. That half is FALSE — the
+        arm above the dead one already charges him. The dead `elif` is deleted;
+        this is the behaviour it was supposed to provide, proven present."""
+        cells = [
+            ("France", "Britain", "France"),   # France repulsed -> France pays
+            ("Britain", "France", "Britain"),  # an AI repulsed from a French
+                                               # garrison -> the AI pays
+        ]
+        for attacker_nation, owner, payer in cells:
+            world = WorldState()
+            world.diplomatic_states[
+                world._make_diplo_key(attacker_nation, owner)] = "WAR"
+            world.marshals.clear()
+            m = _mk_marshal("Probe", "Belgium", 10000, attacker_nation)
+            world.marshals["Probe"] = m
+            target = world.get_region("Belgium")
+            target.controller = owner
+            target.garrison_strength = 80000
+            target.garrison_detachment = False
+            ex = CombatExecutor(CommandExecutor())
+            res = ex._resolve_garrison_combat(m, target, world, {"world": world})
+            assert res["success"] and target.garrison_strength > 0
+            # losses saturate the 0.35 cap -> 3,500 -> 3,500 // 1,000
+            assert world.war_exhaustion.get(payer, 0) == 3, (
+                attacker_nation, owner, dict(world.war_exhaustion))
+
+    def test_the_dead_garrison_exhaustion_branch_is_gone(self):
+        """It was unreachable from the commit that wrote it: a garrison hold is
+        a defender victory and its ctx says so, so `elif defender_won:` always
+        claimed it first."""
+        import inspect
+        # Strip comments: the deletion is RECORDED in one, and a naive scan
+        # would match the record and pass for the wrong reason.
+        body = inspect.getsource(CombatExecutor._post_combat_pipeline)
+        src = "\n".join(line for line in body.splitlines()
+                        if not line.lstrip().startswith("#"))
+        assert "not attacker_won and not defender_won and is_garrison" not in src
+        # ... and the record IS there, so a future reader finds the reasoning.
+        assert "CA8-19(iii)" in inspect.getsource(
+            CombatExecutor._post_combat_pipeline)
