@@ -2,7 +2,30 @@
 
 > **Updated every session by Claude Code.**
 
-## ▶ NEXT UP: RE-STAGED July 2, 2026 — the post-map / post-diplo queue
+## ▶ NEXT UP
+
+> **THE LIVE FORWARD QUEUE IS `docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15
+> positions, re-planned August 3, 2026). Positions 0, 1, 3, 3.5 and 3.75 are done.
+>
+> **▶ NEXT = POSITION 4, THE SHIPPABLE BUILD** — "it runs on someone else's
+> computer". Multi-session; the largest single variance left in the plan, which is
+> exactly why it sits at 4. *(Row 4 was corrected Aug 4: a complete build DOES
+> exist at `deploy/dist/ink_iron_server/`, dated March 10, 2026, so this starts
+> from a working pipeline — it is gitignored, four months pre-cutover, and its
+> spec predates the July-18 SDK migration.)*
+>
+> **▶ POSITION 2 — LLC + STEAMWORKS — has no entry condition and can start today,
+> in parallel.** It is the only item with weeks of *calendar* lead time and zero
+> code dependency.
+>
+> **⚠ ONE USER DECISION IS STILL OPEN (position 3.75-open):** does any Creative-Audit
+> row preempt position 4? The audit deliberately did not decide. **Default if
+> unruled: go to 4 and sweep the CA8 rows at position 13.** CA8 sweeps 1–4 have
+> since closed **20 of the 28 rows**, including all three of the code-proven P1s
+> §8 was arguing about — so the case for preempting is materially weaker than when
+> the question was filed.
+
+## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
 
 > ### ✅ CA8 SWEEP 4 — THE LAST UNGATED ROWS — LANDED August 4, 2026
 >
