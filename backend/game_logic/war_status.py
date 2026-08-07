@@ -529,9 +529,16 @@ def _collapse_shared_war_instance_rows(
         # war row now reports the WAR: same keys, honest values, no `.gd`
         # change. Single source: `calculate_side_war_score` (pair-reducing
         # by construction, so bilateral rows are untouched).
+        # Close-out review [A-F5]: aggregate over the SAME belligerent set
+        # as the rows being collapsed — an armistice-suspended member stays
+        # in `side_by_nation` but has no WAR row and no stored pair score,
+        # so counting its territory/capital here would show the player a
+        # war total no score-consuming seam agrees with.
         from backend.game_logic.diplomacy import calculate_side_war_score
+        row_opponents = [str(r.get("opponent", "")) for r in rows
+                         if r.get("opponent")]
         side_components = calculate_side_war_score(
-            france, ordered_opponents, world, return_components=True)
+            france, row_opponents, world, return_components=True)
         combined["war_score"] = int(side_components["total"])
         combined["breakdown"] = {
             "territory": int(side_components["territory"]),
@@ -551,11 +558,26 @@ def _collapse_shared_war_instance_rows(
         # The war is as old as its oldest front.
         combined["duration"] = int(
             max(int(r.get("duration", 0)) for r in rows))
+        # Close-out review [A-F3]: two score-DERIVED keys on the same row
+        # still told the leader-pair story — the settlement-tier verdict
+        # word ("White Peace" beside a +50 war score) and `started_turn`
+        # (the detail popup prints "Duration: N turns (since Turn X)", so
+        # the pair's start beside the oldest front's duration was
+        # self-contradicting arithmetic on one line).
+        from backend.game_logic.diplomacy import (
+            SETTLEMENT_TIER_DISPLAY, get_settlement_tier,
+        )
+        side_tier = get_settlement_tier(int(combined["war_score"]))
+        combined["settlement_tier"] = side_tier
+        combined["settlement_tier_display"] = SETTLEMENT_TIER_DISPLAY.get(
+            side_tier, side_tier)
+        combined["started_turn"] = int(
+            int(world.current_turn) - combined["duration"])
         # Trend on the same ±2 rule the pair rows use, over the SUM of
         # oriented pair scores (previous_war_scores stores the pair view).
         prev_scores = getattr(world, "previous_war_scores", {}) or {}
         prev_sum = 0
-        for opponent in ordered_opponents:
+        for opponent in row_opponents:
             diplo_key = world._make_diplo_key(france, opponent)
             prev = int(prev_scores.get(diplo_key, 0) or 0)
             if france != diplo_key.split("|")[0]:

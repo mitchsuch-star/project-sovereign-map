@@ -42,9 +42,57 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 4, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,334 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts).**
+> **suite 16,387 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts, untouched this session).**
+>
+> **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
+> CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by
+> ruling · CA8-25's garrison half homed.** Gate record = `CREATIVE_AUDIT_2026_08_04.md`
+> **§10** (authoritative); landing record = `BUG_FIXES.md` §Creative Audit close-out
+> block; `test_ca8_gate_closeout_2026_08_07.py` (47). In one line each: **§10.1 D2** —
+> leverage keys to the WAR (`calculate_side_war_score` live-component aggregate for the
+> HUD collapse row; `sum_stored_side_score` for the score-consuming seams — each
+> consumer keeps its pre-gate SOURCE and gains war-level breadth; bilateral wars
+> byte-identical, five pre-existing offer pins proved the distinction) and a cession
+> requires LOSING (`war_score < -20` strictly — "France cedes Nivernais at +2" is
+> impossible by construction); **§10.2 D6** — the briefing may lead with a victory
+> (`enemy_eliminated` 93 / `capital_stormed` 92 / `victory_won` 73 / `region_taken` 68,
+> all from existing events, 156 log-type pins hold; at equal scale the wound still
+> leads; a third party's kill is never our triumph; annihilation stands alone and a
+> tactical win needs the beaten marshal's rout — joined by the MAN, not the map); **§10.3
+> CA8-17 reduced** — Voice Bible §16.1a AMENDED: `SPOKEN_BLOCKER_PHRASES` (NINE
+> negative-capable components — the row said 8, the review proved `war_objective_alignment`
+> too) + per-register table framings on the live ally-petition suffix idiom; labels stay in
+> tables, phrases go in mouths; Talleyrand's headings speak the same clauses; **§10.4
+> D4** — three non-fear frames ruled (arithmetic/interest · opportunity · history/law)
+> and a third variant authored into ALL 24 hegemony banks (the 72%-exact-repeat lever;
+> two `len == 2` pins consciously flipped; roster authoring beyond this stays DEF-1);
+> **§10.5 CA8-19** — full garrison parity REJECTED as design (stated at the resolver
+> head, pinned structurally), the repulsed-attacker glory divergence CANONIZED
+> (JEALOUSY_SPEC §1), the garrison diorama homed at the Battle Gallery gate with a
+> completion definition. Backend commits `f5acc4e` + the assurance round; **a 4-lens
+> adversarial review fleet then took SIXTEEN findings, ALL FIXED — record = §10.6**,
+> headline: `enemy_eliminated` was production-unreachable as first built (elimination
+> POPS `side_by_nation` before logging — the NA-3 trap; now on the durable
+> `participant_meta` witness with the real-path test), the tactical join was dead by
+> geometry (now joined by the MAN), the suggested-terms pipeline defeated CA8-27 one
+> stage above the fixed seam AND priced with a split brain (one war-level score for the
+> whole pipeline now), the collapsed row's `settlement_tier`/`started_turn` still told
+> the leader-pair story, and the CA8-17 producer→consumer join was unpinned (Probe G).
+> Live HTTP-verified: the collapsed coalition HUD row renders war-level values on the
+> 1805 boot with unchanged keys (no `.gd` diff).
+>
+> **▶ THE ROAD TO EA WAS AMENDED August 7, 2026 (user direction): FOUR positions now
+> precede the shippable build** — **4 Music & Sound (Core)** ("we have no sound") →
+> **5 the Econ Balance pass** (row EC-P3's gate: CA8-D1 + CA8-D5 + IGR-X9 + EWC-D1/F2
+> + the plunder dissent; "econ is still unbalanced") → **6 Voice-to-Text** (approach
+> gate; recommended v1 = OS dictation certified against the command box; un-cut from
+> post-EA) → **7 Marshal Voice Tier 1 + XR-5** (the CA8-D3 gate rides this slot) →
+> **8 THE SHIPPABLE BUILD** (old 4; inherits 4's audio shell). Steam 12 · CR-6 13 ·
+> Tutorial 14 · Pre-EA 15 · Trailer 16 · **EA 17**. Position 2 (LLC + Steamworks)
+> still parallel-anytime. Honest total ~25–33 build sessions. **▶ NEXT = POSITION 4,
+> MUSIC & SOUND (CORE).**
 >
 > **~~CA8 SWEEP 4 — THE LAST UNGATED ROWS~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit; four commits `9ca0374`/`412204e`/`f132d2e`/`e97b1f9`):
@@ -218,12 +266,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > the slice: the AI-V assurance harness's seed pin was ESCAPABLE** — its fixtures are
 > module-scoped and pytest builds those BEFORE function-scoped autouse ones, so all four
 > sweep runs ran on the developer's ambient `SOVEREIGN_SEED`; `spawn_run` now pins it into
-> the child env (`TestSweepSeedIsNotEscapable`). **▶ NEXT = position 4, THE SHIPPABLE
-> BUILD.** Position 2 (LLC + Steamworks) still has no entry condition and can start in
-> parallel today. Row EC-P3 keeps the rest of the econ backlog.
+> the child env (`TestSweepSeedIsNotEscapable`). ~~▶ NEXT = position 4, THE SHIPPABLE
+> BUILD~~ *(superseded Aug 7 — the amended road puts Music & Sound at 4 and the build at
+> 8; see the top entry)*. Position 2 (LLC + Steamworks) still has no entry condition and
+> can start in parallel today. Row EC-P3's backlog now has a DATE: roadmap position 5.
 >
-> **▶ THE CREATIVE AUDIT WAS HELD August 4, 2026, AFTER position 3.5 — and it did NOT
-> re-route the queue; that is the user's call and it is OPEN.** Record =
+> **▶ THE CREATIVE AUDIT WAS HELD August 4, 2026, AFTER position 3.5** *(its routing
+> question was answered Aug 7 — sweeps 1–4 closed the ungated rows, the close-out gates
+> closed the rest; the section is CLOSED, see the top entry)*. Record =
 > **`docs/audits/CREATIVE_AUDIT_2026_08_04.md`** (authoritative; §2a is the
 > pillar→remediation map, §7 the routing, §8 the argued recommendation). A 17-turn live
 > France/1805 campaign + an 80-agent find→refute fleet. **Five pillars re-scored and every
@@ -246,20 +296,19 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > rebuilds each line from `action_type`, and 6 verbs fall through to raw snake_case
 > (measured: 12% of this campaign's AI actions). Check that key list, not an HTTP transcript.
 >
-> **⚠ ONE USER DECISION IS DUE: does any of the audit preempt position 4?** The audit did
-> not decide this. §8 argues CA8-1 is the highest-leverage change in the game and needs no
-> gate; §2a notes two independent scorers converged instead on the per-nation fog fallback
-> (**CA8-15**), one edit raising two pillars' floors. Both are session-sized. Position 4 is
-> unaffected either way — the audit found nothing that blocks a build. **Default if the user
-> does not rule: proceed to position 4 and sweep the CA8 rows at position 13.**
+> ~~**⚠ ONE USER DECISION IS DUE: does any of the audit preempt position 4?**~~ **✅
+> RESOLVED BY EVENTS Aug 4–7, 2026** — the sweeps closed every ungated row (incl. §8's
+> CA8-1 and §2a's CA8-15), the Aug-7 close-out gates closed the gated remainder, and the
+> user's Aug-7 directive re-sequenced the road (sound/econ/voice-to-text/marshal-voice
+> before the build). The default was superseded by the ruling, not taken.
 >
-> **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026.** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15 positions, ~22–30 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 4** — ⚠ *corrected Aug 4, 2026: the re-plan's "nobody has ever produced a build of this game" is FALSE and ROADMAP row 4 says so. A complete build exists at `deploy/dist/ink_iron_server/` dated March 10, 2026, and the export pipeline has run end to end. What is true is that it is gitignored, predates the July-2 map cutover by four months (337 KB `.pck`), and its spec predates the July-18 SDK migration — so the row is SMALLER than billed, not nonexistent*; **Victory & Objectives is 6–7** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance / Voice-to-Text are CUT to post-EA with named owner rows. The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
+> **▶ THE FORWARD QUEUE WAS RE-PLANNED August 3, 2026 — and AMENDED August 7, 2026 (see the top entry).** The old `8.5 → STEAM → 9 → 10 → 11 → Pre-EA → EA` spine is SUPERSEDED. Live sequence = **`docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (~25–33 build sessions plus two non-coding tracks); reasoning, four rejected alternatives, judges and self-dissent = `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md`. Headlines as amended: **LLC + Steamworks starts NOW, in parallel** (position 2, no entry condition); **the shippable build is position 8** (was 4 — sound, econ balance, voice-to-text and marshal voice now precede it by user direction) — ⚠ *corrected Aug 4, 2026: the re-plan's "nobody has ever produced a build of this game" is FALSE and the build row says so. A complete build exists at `deploy/dist/ink_iron_server/` dated March 10, 2026, and the export pipeline has run end to end. What is true is that it is gitignored, predates the July-2 map cutover by four months (337 KB `.pck`), and its spec predates the July-18 SDK migration — so the row is SMALLER than billed, not nonexistent*; **Victory & Objectives is 10–11** — the game cannot end (`turn_manager.py:1099` returns `game_over: False` on every Europe world). Gazette / Events System / Imperial Governance are CUT to post-EA with named owner rows (**Voice-to-Text was un-cut Aug 7 — now position 6, approach-gated**). The STEAM entry condition is RETIRED (it gated an LLC on a gazette).
 >
 > **~~⚠ ONE USER DECISION IS DUE~~ ✅ RULED + CLOSED August 3, 2026** — the `Normandy↔Berry` / `Flanders↔Orleanais` adjacency ruling. The user ruled "Normandy but not Flanders" and delegated the landing. **NEITHER EDGE IS CUT.** Flanders↔Orleanais kept (NV-8c already removed the London↔Flanders sea link, so Flanders cannot be landed at — the edge is purely internal now). Normandy↔Berry built, measured, REVERTED: across 5 seeds the cut left Britain with MORE territory (11.8→13.0 mean) while France lost Paris on **5 of 5 seeds** instead of holding it on 3 — it is France's own lateral road, and Paris is Normandy's SHORTEST edge (96px), so the cut could never have stopped the walk inland. Record + evidence: `NAVAL_SPEC.md` §15.15.
 >
 > **⚠ OPEN ON EVIDENCE, NOT PERMISSION** (all need a human playing, not another probe): the naval **pillar score** · the **played A2 sue-path** · the **NV-P1 live wheel check** · a **visual sign-off** on the NV-4..NV-11 surfaces · the **NV-V remainder** (anchors A1–A5 played, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check). **Nothing in the live queue is blocked on a gate.**
 >
-> **Open with their own gates, none blocking:** Pre-EA Victory & Objectives Pass · CR-6 *proper* · EC-2 pass 2 · the Battle Gallery · DEF-12 map modes · **row EC-P3** · **the 6 Creative-Audit gates CA8-D1..D6** (D1/D5 → row EC-P3 · D2 → Pre-EA Victory & Objectives · D3 → next marshal-content gate · D4 → DEF-1 · **D6 → a NEW narration gate**, pairs with the Aug-3 enemy-phase-as-theater dissent) (the new owner for IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9; its §6 Q1–Q6 ruling and the EC-7/ES-6 debt are position 3.5's, not this row's).
+> **Open with their own gates, none blocking:** Victory & Objectives Pass (now positions 10–11) · CR-6 *proper* (13) · EC-2 pass 2 · the Battle Gallery (owns the CA8-25 garrison-diorama rider since Aug 7) · DEF-12 map modes · **row EC-P3 = roadmap position 5** (owns IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9 + **CA8-D1 and CA8-D5**) · **CA8-D3** → the position-7 marshal-content gate. *(CA8-D2/D4/D6 were HELD + BUILT Aug 7 — see the top entry; the "6 Creative-Audit gates" line is discharged.)*
 
 - ~~Gate 4 visual half~~ **✅ PASSED July 3, 2026** (user confirmed the 5-item eyes-only checklist; passage recorded in STATUS.md + the cleanup spec masthead; the DWL-DIP-E7 / DWL-DIP-METTERNICH 8.EVAL triggers are LIVE).
 - ~~Slice H~~ **✅ LANDED July 3, 2026** (gate approved v1.0 + implemented same day): `request_reward_or_restoration` + `demand_bargain_honor` are LIVE (Grant/Decline/Honor through the restage seam; `ally_petition` dial-protected provenance; `ally_petition_state` serialized; tests in `test_settlement_slice_h_ally_petitions.py`). **The settlement arc is fully closed — no live successors.** SC-32 formally CLOSED; do NOT rebuild G2 sub-slices.

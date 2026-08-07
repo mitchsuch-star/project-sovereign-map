@@ -2003,11 +2003,20 @@ class TestPreviewPositiveRow:
     def _armistice_fixture(self, world):
         """The designed armistice-first route (the Pressburg shape): the
         pause holds, relations recover, and the peace on the table cedes
-        Savoy — a live design target France itself controls."""
+        Savoy — a live design target France itself controls.
+
+        CONSCIOUS RE-BLESS (CA8-27 close-out gate 10.1 + review [A-F1],
+        Aug 7 2026): was −10. A cession is now only AUTHORED when France
+        is actually losing (war_score < −20 strictly), so the Pressburg
+        shape this fixture models — France pausing a war it is losing and
+        buying peace with a design province — sits at −25. The rider-(b)
+        contract (the +12 positive row is REACHABLE on this route) is
+        unchanged; only the score that makes Talleyrand willing to cede
+        moved to the gate's honest threshold."""
         key = world._make_diplo_key("France", "Austria")
         world.diplomatic_states[key] = "ARMISTICE"
         world.invalidate_bloc_members_cache()
-        _set_war_score(world, "France", "Austria", -10)
+        _set_war_score(world, "France", "Austria", -25)
         world.nation_relations[key] = 40
 
     def test_suggested_peace_reaches_the_positive_row(self, world):

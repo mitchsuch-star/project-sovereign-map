@@ -969,8 +969,9 @@ may both lead the same turn's dispatch as headline + sub-beat (distinct facts, b
 
 **The Bible amendment is granted.** §16.1a's leaning/holds-out exemplars stop being
 verbatim-committed: the `{top_blocker}` slot is retired from those two templates in favor of
-a **spoken-register vocabulary** — the 8 negative-capable acceptance components each get a
-SPOKEN clause (`SPOKEN_BLOCKER_PHRASES`), and the two bands get per-register framings on the
+a **spoken-register vocabulary** — the **NINE** negative-capable acceptance components each
+get a SPOKEN clause (`SPOKEN_BLOCKER_PHRASES`; the audit row said 8 — §10.6's review proved
+`war_objective_alignment` negative-capable too), and the two bands get per-register framings on the
 LIVE override idiom (`settlement_multi_court_court_{leaning|holds_out}_{castlereagh|
 hardenberg|metternich|einsiedel}` with the `_chancery` fallback re-lookup — exactly the
 ally-petition pattern at `settlement_offers.py:430-458`, so DEF-1 can add named voices later
@@ -1021,3 +1022,76 @@ defender-without-a-marshal (garrison contingent: piece + coat, no locket, no sta
 — that is gallery-gate business with a visual sign-off, not a close-out patch. Completion
 definition: a stormed garrison renders a tableau whose defending contingent is the garrison
 itself; behavior test named at that gate.
+
+### 10.6 THE ASSURANCE ROUND — the 4-lens review fleet and what it took (August 7, 2026)
+
+The user's third clause was *"assure Ca fixes are good"*: after commit `f5acc4e` a
+four-agent adversarial fleet (D2-seams · dispatch-arms · voice · mutation-hunter, each
+instructed to refute its own findings) reviewed the committed diff. **Sixteen findings
+survived their own refutation; ALL are fixed in the follow-up commit, and four of them
+were corrections to this record's own claims.** The keepers:
+
+- **[B-F1, HIGH] `enemy_eliminated` was production-unreachable as first built** — the
+  arm read `side_by_nation`, but `_eliminate_nation` runs
+  `mark_participant_eliminated_in_all_wars` (which POPS the fallen court from that map)
+  **before** logging the event. The NA-3 trap, reproduced: the commit's own positive
+  test manufactured the pre-pop state by hand. Fixed: the arm reads the durable
+  `participant_meta[nation]["side"]` witness with `side_by_nation` as first read, and
+  both elimination tests now drive the REAL `_eliminate_nation` path and assert the
+  strip happened.
+- **[B-F2, MED] the tactical-victory join was dead for the standard assault geometry** —
+  battle events name the DEFENDER's region while a routed attacker's retreat event
+  stamps his ORIGIN (`from`), so a location join could never compose France's defensive
+  victories. Fixed: **the join is by the MAN** — the battle's losing marshal against
+  the routed marshal's name — with a new geometry test pinning the repulse shape.
+- **[A-F1/A-F2, P2] the suggested-terms pipeline defeated CA8-27 one stage above the
+  fixed seam and priced with a split brain** — stage 2a injected a COVETED-province
+  cession at pair `war_score < 0`, and stages 2a/2b/2e/3/4 read the pair while stage 1
+  read the war (probe-confirmed: one multi-party draft demanded Tyrol and ceded Milan).
+  Fixed: ONE war-level score for the whole pipeline; the 2a cession arm obeys `< -20`.
+- **[A-F3, P2] two score-derived keys on the collapsed row still told the leader-pair
+  story** — `settlement_tier` ("White Peace" beside +50) and `started_turn` (self-
+  contradicting beside the oldest-front duration). Fixed and pinned.
+- **[A-F4, P3] the request-terms refusal read the leader pair beside the converted
+  producer** (two AI mouths disagreeing about one war) — converted with the same
+  arity discipline.
+- **[A-F5, P3] armistice-suspended members** stayed in `side_by_nation` and inflated
+  the live display aggregate by whole belligerents while every stored seam read them 0
+  — the collapse now aggregates over the SAME belligerent set as the rows it collapses.
+- **[C-F1, MED] the vocabulary's "8 negative-capable components" was FALSE — it is
+  NINE**: `war_objective_alignment` clamps to −20/−15, and the close-out test had
+  hardcoded the 8-set, enshrining the gap (§10.3's count is corrected in place).
+  `SPOKEN_BLOCKER_PHRASES` gains the ninth phrase.
+- **[C-F2, MED] the degrade path rendered fragments** ("will not sign while Settlement
+  legitimacy") — the `{blocker_clause}` slot demands a clause, so the label fallback is
+  now wrapped ("… stands against it") and the cast-court degrade shapes are pinned
+  (the first test covered only the one em-dash shape where a noun phrase scans).
+- **[D-Probe G, P1] the CA8-17 producer→consumer join was UNPINNED** — stamping
+  `top_blocker_component: None` at the one production site killed the whole feature
+  with all 47 tests green (synthetic rows + a one-level-below unit test). Now pinned
+  through the real `compute_per_court_acceptance` with the scorer patched at the
+  stable seam. Five further unpinned claims from the mutation sweep (trend, score
+  wiring, both ±100 clamps, the EC-W4 amount, bank pairwise-distinctness) are now
+  pins; the 8 prescribed mutations were all killed on the first run.
+- **Writing fixes** (voice lens): "settled sea-lanes" → "quiet seas" (the coinage is
+  mid-19th-c.), "an asset to the crown" → "among {nation}'s surest holdings",
+  Ehrenheim's "waters France now commands" → "ports France now closes" (the shipped
+  naval model says the opposite), "treaties current" → "treaties in good repair".
+
+**Rulings recorded, not fixed (each a conscious decision):** [B-F4] a French VASSAL's
+conquest fires no success headline while a vassal's loss fires `region_lost` — ruled
+CORRECT: the dispatch's triumphs are France's OWN arms; its wounds include the
+protectorate's (the asymmetry is the protector's, and it is deliberate). [B-note] an
+auto-bombardment annihilation logs no battle event (pre-existing seam), so it yields
+`region_taken` rather than `victory_won` — accepted; the conquest is still told.
+[A-refuted] the collapse costs ~38µs per multi-war row on the boot world — GR8-clean.
+
+**Two pre-existing pins consciously re-blessed by the [A-F1] pipeline fix** (both sat
+on the OLD stage-2a behavior the gate forbids — a cession authored at a mild loss):
+`test_bugfix_proposal_flow.py::test_coveted_territory_injected_without_base_territory`
+(fixture −10 → −25; its own docstring called −10 "mild loss", the exact state the
+rule now refuses to cede in) and `test_nation_agendas.py::TestPreviewPositiveRow`'s
+armistice fixture (−10 → −25; the NA-3 rider-(b) CONTRACT — the "+12 Advances their
+design" positive row is reachable on the armistice-first route — is unchanged; only
+the score at which Talleyrand will cede moved to the gate's honest threshold, and a
+France pausing a war it is LOSING is the more Pressburg-faithful shape anyway).

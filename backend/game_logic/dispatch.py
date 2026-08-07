@@ -329,9 +329,14 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     candidates: List[Dict[str, Any]] = []
     # CA8-26 / gate CA8-D6: success accumulators. A French field victory is
     # raised from the battle event (annihilation) or from a battle WIN
-    # joined to an enemy corps' forced rout at the same location (the
-    # ordinary decisive shape — `attacker_victory` fires only on total
-    # destruction, while a routed enemy logs a separate forced retreat).
+    # joined to the LOSING marshal's forced rout (the ordinary decisive
+    # shape — `attacker_victory` fires only on total destruction, while a
+    # routed enemy logs a separate forced retreat). Close-out review
+    # [B-F2]: the join is by the MAN, not the map — a repulsed attacker's
+    # rout event stamps his ORIGIN region while the battle names the
+    # defender's, so a location join was structurally dead for the
+    # standard adjacent-assault geometry (France's defensive victories
+    # would never have composed).
     _french_wins: Dict[str, Dict[str, Any]] = {}
     _enemy_routs: Dict[str, str] = {}
 
@@ -407,13 +412,27 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             # sets every pair to PEACE before this builder runs, so the
             # instance record (kept for the AI-4 grudge window) is the
             # honest witness, not the live diplomatic state.
+            #
+            # Close-out review [B-F1]: `side_by_nation` alone is NOT that
+            # witness — `_eliminate_nation` runs
+            # `mark_participant_eliminated_in_all_wars` BEFORE logging the
+            # event, and that helper POPS the fallen court from
+            # `side_by_nation` (the same strip that made NA-3's first
+            # grudge cut production-dead). The durable key is
+            # `participant_meta[nation]["side"]`, written at attach time
+            # and never popped; `side_by_nation` stays the first read so a
+            # hand-authored or historical instance still answers.
             fallen = e.get("nation", "")
             _we_fought_them = False
             for _inst in (getattr(world, "war_instances", {}) or {}).values():
                 if not isinstance(_inst, dict):
                     continue
                 _sides = _inst.get("side_by_nation") or {}
-                _ours, _theirs = _sides.get(player_nation), _sides.get(fallen)
+                _meta = _inst.get("participant_meta") or {}
+                _ours = (_sides.get(player_nation)
+                         or (_meta.get(player_nation) or {}).get("side"))
+                _theirs = (_sides.get(fallen)
+                           or (_meta.get(fallen) or {}).get("side"))
                 if _ours and _theirs and _ours != _theirs:
                     _we_fought_them = True
                     break
@@ -469,9 +488,10 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             elif (m_nation
                     and world.get_diplomatic_state(player_nation, m_nation) == "WAR"):
                 # CA8-26: an ENEMY corps breaking is half of a French
-                # victory — joined below to a French battle win at the same
-                # field, so an AI-vs-AI rout never reads as our triumph.
-                _enemy_routs[str(region)] = marshal_disp
+                # victory — joined below to a French battle win over THAT
+                # marshal, so an AI-vs-AI rout never reads as our triumph
+                # ([B-F2]: keyed by the man, not the region).
+                _enemy_routs[str(e.get("marshal", ""))] = marshal_disp
         elif etype == "battle":
             # Own marshal mauled: >=25% of pre-battle strength lost.
             for side, cas_key in (("attacker", "attacker_casualties"),
@@ -659,10 +679,11 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     # ────────────────────────────────────────────────────────────────────
     # ── CA8-26: compose the French-victory candidates ────────────────────
     # An annihilation win stands alone; a tactical win becomes news only
-    # when the enemy corps actually broke on that field (the ordinary
-    # decisive shape). One candidate per field per turn (CA8-5 discipline).
+    # when the beaten marshal's corps actually broke ([B-F2]: joined by
+    # the loser's NAME — geometry-independent). One candidate per field
+    # per turn (CA8-5 discipline).
     for _loc, _win in _french_wins.items():
-        _routed = _enemy_routs.get(_loc, "")
+        _routed = _enemy_routs.get(str(_win.get("loser", "")), "")
         _victor_disp = humanize_entity_name(_win["victor"]) if _win["victor"] else "our arms"
         if _win["annihilation"]:
             _loser_disp = humanize_entity_name(_win["loser"]) if _win["loser"] else "the enemy"

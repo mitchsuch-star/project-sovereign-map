@@ -1956,15 +1956,20 @@ class TestSmartSuggestionPipeline:
                     )
 
     def test_coveted_territory_injected_without_base_territory(self):
-        """France controls coveted region + war_score < 0 -> territory injected
-        even when base terms had none."""
+        """France controls coveted region + France actually LOSING ->
+        territory injected even when base terms had none.
+
+        CONSCIOUS RE-BLESS (CA8-27 close-out gate 10.1 + review [A-F1],
+        Aug 7 2026): was war_score=-10 ("mild loss") — the exact state the
+        gate forbids ceding in. A cession may only be AUTHORED when the
+        field says France is losing (< -20 strictly); the injection
+        behavior this test pins survives at a losing score."""
         from backend.game_logic.diplomatic_templates import (
             generate_suggested_terms, _build_base_terms)
-        # war_score = -10 — mild loss, base terms may NOT include territory at this level
         france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
                           "Brittany", "Bordeaux", "Normandy", "Saxony"]
         world = _make_smart_world(france_controls=france_regions,
-                                  war_target="Prussia", war_score=-10)
+                                  war_target="Prussia", war_score=-25)
         base_terms = _build_base_terms("Prussia", "peace", world)
         base_territory = [s for s in base_terms.get("sweeteners", [])
                           if s.get("type") == "territory_cede"]

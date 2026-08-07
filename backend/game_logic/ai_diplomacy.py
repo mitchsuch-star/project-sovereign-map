@@ -32,6 +32,7 @@ from backend.game_logic.diplomacy import (
     calculate_acceptance,
     determine_ai_offer_decision_reason,
     get_war_score_for,
+    sum_stored_side_score,
 )
 from backend.game_logic.diplomatic_dialogue import get_game_bucket
 from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
@@ -3702,7 +3703,29 @@ def _resolve_settlement_terms_requests(
             # periodic clock — a direct request bypasses it by design; the
             # request's own cooldown gated the click. `war_too_young` was
             # already gated at click time and only shrinks.
-            score = int(get_war_score_for(world, leader, player)) if leader else 0
+            # Close-out review [A-F4]: this refusal read the LEADER PAIR
+            # while the periodic producer on the same war prices the whole
+            # side — so Britain could refuse "the winning court declines"
+            # while the producer's next offer paid France an indemnity.
+            # One mouth: the refusal reads the same war-level stored sum,
+            # oriented from the OPPOSING side's perspective.
+            score = 0
+            if leader and isinstance(war, dict):
+                side_by_nation = war.get("side_by_nation") or {}
+                player_side = side_by_nation.get(player)
+                their_members = [
+                    n for n, s in side_by_nation.items()
+                    if s and player_side and s != player_side and n != player
+                ]
+                if len(their_members) > 1:
+                    score = int(sum_stored_side_score(
+                        world, leader,
+                        [n for n in side_by_nation
+                         if side_by_nation.get(n) == player_side]))
+                else:
+                    score = int(get_war_score_for(world, leader, player))
+            elif leader:
+                score = int(get_war_score_for(world, leader, player))
             if score >= REQUEST_TERMS_REFUSAL_WAR_SCORE:
                 entry["status"] = "refused"
                 entry["resolved_turn"] = int(current_turn)

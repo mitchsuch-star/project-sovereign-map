@@ -78,7 +78,8 @@ class TestSideWarScoreSingleSource:
 
     def test_component_caps_reapply_on_the_sum(self):
         """Each component re-clamps at its own pair cap — a two-front
-        battle streak cannot exceed the ±30 battle cap."""
+        battle streak cannot exceed the ±30 battle cap, nor two decisive
+        streaks the ±20 decisive cap."""
         world = self._world_with_battles()
         key_a = world._make_diplo_key("France", "Austria")
         key_p = world._make_diplo_key("France", "Prussia")
@@ -88,9 +89,37 @@ class TestSideWarScoreSingleSource:
         world.battle_records[key_p] = [
             {"winner": "France", "turn": 10, "location": "Berlin"}
             for _ in range(12)]
+        world.decisive_battles = {
+            key_a: [{"winner": "France", "turn": 10}] * 4,
+            key_p: [{"winner": "France", "turn": 10}] * 4,
+        }
         side = calculate_side_war_score("France", ["Austria", "Prussia"],
                                         world, return_components=True)
         assert side["battles"] == 30, side
+        assert side["decisive"] == 20, side
+
+    def test_the_total_clamps_hold_on_both_aggregates(self):
+        """[Probe B] both docstrings promise ±100; both are reachable."""
+        from backend.game_logic.diplomacy import sum_stored_side_score
+        world = self._world_with_battles()
+        key_a = world._make_diplo_key("France", "Austria")
+        key_p = world._make_diplo_key("France", "Prussia")
+        # Live components: two pairs of unclamped ticking sum past 100.
+        world.war_objectives = {
+            key_a: {"France": {"accumulated_ticking": 70}},
+            key_p: {"France": {"accumulated_ticking": 70}},
+        }
+        world.battle_records = {}
+        world.decisive_battles = {}
+        assert calculate_side_war_score(
+            "France", ["Austria", "Prussia"], world) == 100
+        # Stored sums: two +80 pair scores clamp to 100.
+        for key in (key_a, key_p):
+            world.war_scores = getattr(world, "war_scores", {}) or {}
+            world.war_scores[key] = (80 if key.split("|")[0] == "France"
+                                     else -80)
+        assert sum_stored_side_score(
+            world, "France", ["Austria", "Prussia"]) == 100
 
     def test_self_and_empty_opponents_are_ignored(self):
         world = self._world_with_battles()
@@ -215,16 +244,38 @@ class TestWarRoomReadsTheWar:
     def test_score_and_battles_are_war_level(self):
         """The Prussia-led row used to read the France|Prussia pair: +0,
         0 battles. It now carries the Austria front's fighting."""
-        row = self._collapsed_row(self._coalition_world())
+        world = self._coalition_world()
+        row = self._collapsed_row(world)
         assert row["battles_fought"] == 3, row
         assert row["decisive_won"] == 1, row
         assert row["war_score"] > 0, row
         assert row["breakdown"]["battles"] > 0, row
         assert len(row["recent_battles"]) == 3
+        # [Probe C] the magnitude is WIRED, not merely sign-correct: the
+        # row equals the single source over the same belligerent set.
+        expected = calculate_side_war_score(
+            "France", sorted(row["opponents"]), world)
+        assert row["war_score"] == expected, (row["war_score"], expected)
+        # [Probe D] trend is part of the honest-values contract: no prior
+        # scores + a positive present reads RISING.
+        assert row["trend"] == "rising", row
 
     def test_duration_is_the_oldest_front(self):
         row = self._collapsed_row(self._coalition_world())
         assert row["duration"] == 10, row  # turn 12 − created 2
+        # [A-F3] the detail popup prints "(since Turn X)" beside the
+        # duration — the two must agree arithmetically on the same row.
+        assert row["started_turn"] == 2, row
+
+    def test_the_verdict_word_matches_the_war_score(self):
+        """[A-F3] `settlement_tier` is score-DERIVED — the collapsed row
+        must not say White Peace beside the war-level score it just made
+        honest."""
+        from backend.game_logic.diplomacy import get_settlement_tier
+        world = self._coalition_world()
+        row = self._collapsed_row(world)
+        assert row["settlement_tier"] == get_settlement_tier(
+            int(row["war_score"])), row
 
 
 class TestOfferProducerReadsTheWar:
@@ -268,6 +319,23 @@ class TestOfferProducerReadsTheWar:
         indemnities = [t for t in terms if t.get("type") == "gold_indemnity"]
         assert indemnities, terms
         assert indemnities[0]["to"] == "France", terms
+        # [Probe F] the EC-W4 AMOUNT reads the war too — the landing claim
+        # covers direction AND amount, so pin the formula, not the sign.
+        from backend.game_logic.ai_diplomacy import (
+            SETTLEMENT_OFFER_BASE_GOLD_AMOUNT,
+            SETTLEMENT_OFFER_MAX_TREASURY_FRACTION,
+            SETTLEMENT_OFFER_PER_DURATION_BONUS,
+            SETTLEMENT_OFFER_PER_WAR_SCORE,
+            SETTLEMENT_OFFER_TREASURY_FRACTION,
+        )
+        payer_treasury = int(world.nation_gold["Prussia"])
+        war_age = int(world.current_turn) - int(war["created_turn"])
+        scaled = (SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
+                  + war_age * SETTLEMENT_OFFER_PER_DURATION_BONUS
+                  + 50 * SETTLEMENT_OFFER_PER_WAR_SCORE
+                  + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
+        cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
+        assert indemnities[0]["amount"] == max(0, min(scaled, cap)), terms
 
     def test_without_the_war_level_read_this_was_a_white_peace(self):
         """FALSIFIABLE CONTROL: the same board scored pairwise vs the leader
@@ -373,26 +441,50 @@ class TestSuccessHeadlines:
         assert head["class"] == "capital_stormed", head
         assert "capital" in head["text"], head
 
+    @staticmethod
+    def _instance(attacker, defender):
+        """A war instance in the ATTACH-TIME shape (settlement_helpers
+        `_create_war_instance`) — side_by_nation AND participant_meta."""
+        return {
+            "attackers": [attacker], "defenders": [defender],
+            "side_by_nation": {attacker: "attackers", defender: "defenders"},
+            "active_participants": [attacker, defender],
+            "participant_meta": {
+                attacker: {"side": "attackers", "joined_turn": 1,
+                           "exited_turn": None, "entry_path": "declared"},
+                defender: {"side": "defenders", "joined_turn": 1,
+                           "exited_turn": None, "entry_path": "declared"},
+            },
+            "attacker_leader": attacker, "defender_leader": defender,
+            "created_turn": 1, "ended_turn": None,
+            "active_diplo_keys": [],
+        }
+
     def test_an_eliminated_enemy_leads_over_a_stormed_capital(self):
+        """PRODUCTION-FAITHFUL ([B-F1]): the REAL elimination path pops the
+        fallen court from `side_by_nation` BEFORE logging the event — the
+        first cut read only that map and was production-dead (the NA-3
+        trap, again). The arm must read the durable `participant_meta`
+        witness, proven here by driving `_eliminate_nation` itself."""
         w = self._world()
         self._capture(w, "Vienna", prev="Austria")
-        w.war_instances = {"w": {
-            "side_by_nation": {"France": "attackers", "Austria": "defenders"},
-            "ended_turn": None}}
-        w.event_log.append({"type": "nation_eliminated", "nation": "Austria",
-                            "turn": w.current_turn})
+        w.war_instances = {"w1": self._instance("France", "Austria")}
+        w._war_instance_indexes_dirty = True
+        w._eliminate_nation("Austria")
+        # The trap is live: the real path stripped the side map.
+        assert "Austria" not in (
+            w.war_instances["w1"].get("side_by_nation") or {})
         head = dispatch_mod._build_headline(w, "France")
-        assert head["class"] == "enemy_eliminated", head
+        assert head is not None and head["class"] == "enemy_eliminated", head
         # The stormed capital survives as a sub-beat — distinct facts.
         assert any("Vienna" in b for b in head.get("sub_beats", [])), head
 
     def test_a_third_party_elimination_is_not_our_triumph(self):
+        """Same real path, France absent from the war — never our news."""
         w = self._world()
-        w.war_instances = {"w": {
-            "side_by_nation": {"Prussia": "attackers", "Bavaria": "defenders"},
-            "ended_turn": None}}
-        w.event_log.append({"type": "nation_eliminated", "nation": "Bavaria",
-                            "turn": w.current_turn})
+        w.war_instances = {"w2": self._instance("Prussia", "Bavaria")}
+        w._war_instance_indexes_dirty = True
+        w._eliminate_nation("Bavaria")
         head = dispatch_mod._build_headline(w, "France")
         assert head is None or head["class"] != "enemy_eliminated", head
 
@@ -432,24 +524,50 @@ class TestSuccessHeadlines:
         })
         w.event_log.append({
             "type": "retreat", "marshal": "Mack", "nation": "Austria",
-            "turn": w.current_turn, "forced": True, "region": "Bohemia",
+            "turn": w.current_turn, "forced": True,
+            # [B-F2] production rout sites stamp the man's ORIGIN under
+            # `from` — never the battle's field. The join is by the MAN,
+            # so the geometry mismatch must not matter.
+            "from": "Franconia",
         })
         head = dispatch_mod._build_headline(w, "France")
         assert head and head["class"] == "victory_won", head
         assert "broken" in head["text"], head
 
     def test_an_ai_vs_ai_rout_is_not_our_victory(self):
-        """The join is on a FRENCH battle win — a Prussian rout in an
-        Austro-Prussian war never reads as France's triumph."""
+        """The join is on a FRENCH battle win over THAT marshal — a
+        Prussian rout in an Austro-Prussian war never reads as France's
+        triumph."""
         w = self._world()
         w.event_log.append({
             "type": "retreat", "marshal": "Hohenlohe", "nation": "Prussia",
-            "turn": w.current_turn, "forced": True, "region": "Silesia",
+            "turn": w.current_turn, "forced": True, "from": "Silesia",
         })
         key = w._make_diplo_key("France", "Prussia")
         w.diplomatic_states[key] = "WAR"
         head = dispatch_mod._build_headline(w, "France")
         assert head is None or head["class"] != "victory_won", head
+
+    def test_a_defensive_repulse_composes_despite_the_geometry(self):
+        """[B-F2] the standard assault shape: the battle names the
+        DEFENDER's region, the routed attacker's event names his ORIGIN.
+        The location join was structurally dead here; the name join is
+        not."""
+        w = self._world()
+        w.event_log.append({
+            "type": "battle", "turn": w.current_turn,
+            "attacker": "Mack", "defender": "Ney",
+            "attacker_nation": "Austria", "defender_nation": "France",
+            "outcome": "defender_tactical_victory", "location": "Bohemia",
+            "attacker_casualties": 4000, "defender_casualties": 1200,
+        })
+        w.event_log.append({
+            "type": "retreat", "marshal": "Mack", "nation": "Austria",
+            "turn": w.current_turn, "forced": True, "from": "Franconia",
+        })
+        head = dispatch_mod._build_headline(w, "France")
+        assert head and head["class"] == "victory_won", head
+        assert "Mack" in head["text"], head
 
     def test_the_victory_absorbs_the_bare_conquest_of_its_own_field(self):
         w = self._world()
@@ -463,8 +581,6 @@ class TestSuccessHeadlines:
         self._capture(w, "Bohemia")
         head = dispatch_mod._build_headline(w, "France")
         assert head["class"] == "victory_won", head
-        classes = {head["class"]}
-        classes.update()
         assert not any("fallen to our arms" in b
                        for b in head.get("sub_beats", [])), head
 
@@ -516,7 +632,12 @@ class TestSuccessHeadlines:
 
 class TestSpokenBlockerVocabulary:
 
-    def test_all_eight_negative_capable_components_have_phrases(self):
+    def test_all_nine_negative_capable_components_have_phrases(self):
+        """The audit row said 8; the review fleet proved
+        `war_objective_alignment` negative-capable too (ALIGN_CONTRADICT
+        −20 / ALIGN_UNRELATED_HARSH −15) — and this test's first version
+        hardcoded the 8-set, enshrining the gap. Only `war_exhaustion` and
+        `concession_credit` genuinely cannot go negative."""
         from backend.game_logic.diplomatic_templates import (
             SPOKEN_BLOCKER_PHRASES,
         )
@@ -525,18 +646,34 @@ class TestSpokenBlockerVocabulary:
             "term_harshness_penalty", "leader_own_losses",
             "burdened_participant_penalty", "projected_hegemony_mod",
             "abandoned_by_ally_acceptance_mod", "agenda_settlement_mod",
+            "war_objective_alignment",
         }
         assert set(SPOKEN_BLOCKER_PHRASES) == expected
         for phrase in SPOKEN_BLOCKER_PHRASES.values():
             assert phrase and "{" not in phrase
 
-    def test_unknown_component_degrades_to_the_label(self):
+    def test_unknown_component_degrades_to_a_clause_not_a_fragment(self):
+        """[C-F2] the `{blocker_clause}` slot demands a CLAUSE — a bare
+        label fallback rendered fragments ("will not sign while Settlement
+        legitimacy"). The label is wrapped; the default is a clause."""
         from backend.game_logic.diplomatic_templates import (
             spoken_blocker_phrase,
         )
         assert (spoken_blocker_phrase("some_future_term", "Future term")
-                == "Future term")
-        assert spoken_blocker_phrase("", "") == "the standing terms"
+                == "Future term stands against it")
+        assert (spoken_blocker_phrase("", "")
+                == "the standing terms do not yet persuade them")
+
+    def test_cast_court_degrade_paths_stay_grammatical(self):
+        """[C-F2] the four cast frames on the degrade path — every one
+        must read as a sentence, not a fragment. (The first version tested
+        only Russia, the one em-dash shape where a noun phrase happens to
+        scan.)"""
+        for court in ("Britain", "Prussia", "Austria", "Saxony"):
+            row = self._voice(self._world(), court, band="reject",
+                              component="not_a_real_component")
+            assert "stands against it" in row["line"], row
+            assert "Settlement legitimacy stands against it" in row["line"], row
 
     def _world(self):
         return WorldFactory.with_marshals(
@@ -632,6 +769,57 @@ class TestSpokenBlockerVocabulary:
                 == "settlement_tier_legitimacy")
         assert enriched["top_blocker_display"] == "Settlement legitimacy"
 
+    def test_the_component_key_reaches_production_rows(self):
+        """[Probe G / P1] the per-court row assembly is the ONLY producer
+        of `top_blocker_component` — with it stamped None the whole
+        spoken-blocker feature dies silently while every synthetic-row
+        test stays green. Pin the join through the REAL producer, scorer
+        patched at the stable seam."""
+        from unittest.mock import patch
+
+        from backend.game_logic import settlement_baseline
+        world = self._world()
+        war_instance = {
+            "attackers": ["France"], "defenders": ["Austria"],
+            "side_by_nation": {"France": "attackers",
+                               "Austria": "defenders"},
+            "active_participants": ["France", "Austria"],
+            "created_turn": 1, "ended_turn": None,
+        }
+        fake_score = {
+            "score": 20, "verdict": "reject", "band": "reject",
+            "hard_stops": [],
+            "feedback": [{"component": "settlement_tier_legitimacy",
+                          "value": -10}],
+        }
+        with patch(
+            "backend.game_logic.settlement_scoring."
+            "calculate_common_peace_acceptance",
+            return_value=fake_score,
+        ):
+            out = settlement_baseline.compute_per_court_acceptance(
+                world,
+                war_id="w1",
+                war_instance=war_instance,
+                proposer_side="attackers",
+                accepting_side="defenders",
+                proposer_side_leader="France",
+                covered_enemy_participants=["Austria"],
+                settlement_terms=[{"type": "peace"}],
+                direct_scores={"Austria": {"France": 10}},
+                side_pressure_result={"score": 10, "hard_stops": [],
+                                      "direct_scores": {},
+                                      "direct_score_sources": {},
+                                      "pressure_terms": []},
+                raw_total_harshness=0.0,
+                balance_projection={},
+            )
+        rows = [r for r in out.get("per_court_acceptance", [])
+                if r.get("nation") == "Austria"]
+        assert rows, out
+        assert (rows[0].get("top_blocker_component")
+                == "settlement_tier_legitimacy"), rows[0]
+
     def test_the_banned_words_stay_banned(self):
         """SC-32 D5 boundary on all the new committed copy."""
         from backend.game_logic.diplomatic_templates import (
@@ -684,6 +872,24 @@ class TestHegemonyBankDepth:
         for register in self._REGISTERS:
             bank = _INCOMING_MOTIVE_LINES[(register, "hegemony_pressure")]
             assert "{nation}" in bank[2], (register, bank[2])
+
+    def test_every_hegemony_bank_is_pairwise_distinct(self):
+        """[Probe E] `len >= 3` alone is satisfiable by a near-duplicate
+        of the bank's own fear line — the monoculture escape must be
+        DISTINCT lines, pinned normalized."""
+        from backend.game_logic.diplomatic_templates import (
+            _INCOMING_MOTIVE_LINES, _NAMED_MOTIVE_LINES,
+        )
+
+        def _norm(line):
+            return " ".join(line.lower().split())
+
+        for register in self._REGISTERS:
+            bank = _INCOMING_MOTIVE_LINES[(register, "hegemony_pressure")]
+            assert len({_norm(v) for v in bank}) == len(bank), register
+        for name in self._NAMED:
+            bank = _NAMED_MOTIVE_LINES[(name, "hegemony_pressure")]
+            assert len({_norm(v) for v in bank}) == len(bank), name
 
     def test_the_rotation_actually_reaches_the_third_line(self):
         """Three consecutive turns compose three DISTINCT lines for one

@@ -178,7 +178,7 @@ _INCOMING_MOTIVE_LINES = {
     ("loyalist", "hegemony_pressure"): [
         "{nation}'s sovereign would keep his house at peace with France's greatness, and sends his servant to say as much.",
         "As my master wills, {nation} seeks France's good regard rather than France's displeasure.",
-        "His Majesty judges France's friendship an asset to {nation}'s crown, and instructs his servant to secure it while it may be had on good terms.",
+        "His Majesty counts France's friendship among {nation}'s surest holdings, and instructs his servant to secure it while it may be had on good terms.",
     ],
     ("loyalist", "unknown_baseline"): [
         "His Majesty's servant lays {nation}'s offer before France, exactly as instructed.",
@@ -203,7 +203,7 @@ _NAMED_MOTIVE_LINES = {
     ("Castlereagh", "hegemony_pressure"): [
         "His Majesty's Government observes the growth of French power with concern, and prefers instruments to incidents.",
         "London does not negotiate from fear; it negotiates from arithmetic. The arithmetic has changed.",
-        "London's interest is trade, and trade wants settled sea-lanes more than it wants a satisfying enemy.",
+        "London's interest is trade, and trade wants quiet seas more than it wants a satisfying enemy.",
     ],
     ("Castlereagh", "unknown_baseline"): [
         "His Majesty's Government transmits the following for France's consideration.",
@@ -273,7 +273,7 @@ _NAMED_MOTIVE_LINES = {
     ("Einsiedel", "hegemony_pressure"): [
         "His Majesty asks most respectfully for assurance — Europe has grown loud, and Saxony is small.",
         "We beg France's patience; a small court must have papers where great ones have armies.",
-        "Saxony has kept her house through many great reigns by keeping her treaties current; His Majesty would merely continue the practice.",
+        "Saxony has kept her house through many great reigns by keeping her treaties in good repair; His Majesty would merely continue the practice.",
     ],
     ("Einsiedel", "unknown_baseline"): [
         "His Majesty submits the offer most respectfully for France's consideration.",
@@ -454,7 +454,7 @@ _NAMED_MOTIVE_LINES = {
     ('Ehrenheim', 'hegemony_pressure'): [
         "His Majesty regards the spread of French power across the north with plain disquiet, yet the Crown, weighing that disquiet against Sweden's slender means, instructs its servant to prefer terms to the trial of arms.",
         'The King does not pretend to welcome the shadow France now casts over Europe, and it is precisely because he cannot answer it in the field that his servant is sent seeking accommodation.',
-        "Sweden's trade crosses waters France now commands, and His Majesty finds a working understanding cheaper than a principled quarrel.",
+        "Sweden's trade calls at ports France now closes, and His Majesty finds a working understanding cheaper than a principled quarrel.",
     ],
     ('Ehrenheim', 'unknown_baseline'): [
         "His Majesty's servant is instructed to set this proposal before France exactly as the Crown has framed it, and to add nothing to it of his own.",
@@ -2423,13 +2423,18 @@ _MULTI_COURT_BAND_TEMPLATE = {
 
 # ═══════════════════════════════════════════════════════════════════════
 # CA8-17 (close-out gate 10.3) — the spoken-blocker vocabulary.
-# The 8 negative-capable acceptance components (the only ones the scorer's
-# feedback list can ever surface as a top blocker — it collects `v < 0`
-# terms only), each as a present-tense SPOKEN clause a diplomat can say.
+# The NINE negative-capable acceptance components (the only ones the
+# scorer's feedback list can ever surface as a top blocker — it collects
+# `v < 0` terms only), each as a present-tense SPOKEN clause a diplomat
+# can say. The audit row counted 8; the post-commit review fleet proved
+# `war_objective_alignment` negative-capable too (ALIGN_CONTRADICT −20 /
+# ALIGN_UNRELATED_HARSH −15, settlement_scoring.py) — only
+# `war_exhaustion` and `concession_credit` genuinely cannot go negative.
 # The `display_names.ACCEPTANCE_COMPONENT_DISPLAY` labels stay exactly
 # where labels belong — in the per-court TABLE — and any component missing
-# here (a future scorer term) falls back to that label, so a new component
-# degrades to the old behavior rather than rendering raw braces.
+# here (a future scorer term) falls back to that label WRAPPED INTO A
+# CLAUSE (the slot demands one), so a new component degrades grammatically
+# rather than rendering a fragment or raw braces.
 # ═══════════════════════════════════════════════════════════════════════
 SPOKEN_BLOCKER_PHRASES: Dict[str, str] = {
     "base_side_pressure": "the fortunes of war do not yet compel them",
@@ -2445,6 +2450,8 @@ SPOKEN_BLOCKER_PHRASES: Dict[str, str] = {
     "abandoned_by_ally_acceptance_mod": (
         "the memory of being abandoned still governs their pen"),
     "agenda_settlement_mod": "the terms cut against their national design",
+    "war_objective_alignment": (
+        "the terms would end the war without the object it was fought for"),
 }
 
 # The cast suffixes, per the LIVE override idiom (`settlement_offers.
@@ -2462,14 +2469,21 @@ _SETTLEMENT_TABLE_VOICE_SUFFIX = {
 def spoken_blocker_phrase(component: str, fallback: str = "") -> str:
     """The spoken form of a top-blocking acceptance component (CA8-17).
 
-    Falls back to the caller's display label (then a neutral phrase) so an
-    unmapped component degrades to the pre-CA8-17 rendering instead of
-    leaking raw braces through `_MissingSettlementSlot`.
+    The `{blocker_clause}` slot demands a CLAUSE — the register frames
+    read "…will not sign while <clause>" / "…cannot yet sign, for
+    <clause>" — so a bare noun-phrase fallback would render a sentence
+    fragment (the review fleet's finding: "will not sign while Settlement
+    legitimacy"). An unmapped component therefore degrades to its label
+    WRAPPED into a clause, and the no-information default is itself a
+    clause. No path leaks raw braces through `_MissingSettlementSlot`.
     """
     phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
     if phrase:
         return phrase
-    return str(fallback or "") or "the standing terms"
+    label = str(fallback or "")
+    if label:
+        return f"{label} stands against it"
+    return "the standing terms do not yet persuade them"
 
 
 def resolve_multi_court_settlement_voice(
@@ -3252,10 +3266,16 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
       4. Talleyrand commentary (explain WHY these terms)
       5. Return
     """
-    from backend.game_logic.diplomacy import get_war_score_for, SPECIAL_BONUSES
+    from backend.game_logic.diplomacy import SPECIAL_BONUSES, get_side_war_score_for
 
     player_nation = get_player_nation(world)
-    war_score = get_war_score_for(world, player_nation, target_nation)
+    # CA8-D2 close-out review [A-F2]: the pipeline priced with a SPLIT
+    # BRAIN — stage 1 read the war-level score while stages 2a/2b/2e/3/4
+    # read the pair, so a multi-party draft could demand Tyrol (pair +40)
+    # and cede Milan (war −30) in one package. ONE number for the whole
+    # pipeline now; bilateral wars are byte-identical by the stored-read
+    # rule.
+    war_score = get_side_war_score_for(world, player_nation, target_nation)
 
     # --- Stage 1: Base terms ---
     terms = _build_base_terms(target_nation, proposal_type, world)
@@ -3289,7 +3309,13 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                            if r not in world.get_nation_regions(player_nation)
                            and r not in world.get_nation_regions(target_nation)]
 
-    if has_territory_sweetener or (coveted and war_score < 0 and not target_holds_all_coveted):
+    # CA8-27 close-out review [A-F1]: this arm injected a COVETED-province
+    # cession at `war_score < 0` — defeating the gate's `< -20` rule one
+    # stage above the seam it fixed, and handing over the strategically
+    # worst province (the one their design wants). A cession may only be
+    # AUTHORED when the field says France is losing; re-targeting one the
+    # base terms already authored (has_territory_sweetener) stays legal.
+    if has_territory_sweetener or (coveted and war_score < -20 and not target_holds_all_coveted):
         if coveted:
             terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
                                    if s.get("type") != "territory_cede"]

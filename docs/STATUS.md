@@ -4,28 +4,113 @@
 
 ## ▶ NEXT UP
 
-> **THE LIVE FORWARD QUEUE IS `docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** (15
-> positions, re-planned August 3, 2026). Positions 0, 1, 3, 3.5 and 3.75 are done.
+> **THE LIVE FORWARD QUEUE IS `docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** —
+> re-planned August 3, 2026, **AMENDED August 7, 2026 by user direction** (*"lets add
+> some things before build, we have no sound[,] econ is still unbalanced, voice to
+> text would be cool, consider any other items worth adding"*). Positions 0, 1, 3,
+> 3.5, 3.75 and **3.8 (the CA8 close-out gates)** are done; the 3.75-open decision is
+> RESOLVED by events.
 >
-> **▶ NEXT = POSITION 4, THE SHIPPABLE BUILD** — "it runs on someone else's
-> computer". Multi-session; the largest single variance left in the plan, which is
-> exactly why it sits at 4. *(Row 4 was corrected Aug 4: a complete build DOES
-> exist at `deploy/dist/ink_iron_server/`, dated March 10, 2026, so this starts
-> from a working pipeline — it is gitignored, four months pre-cutover, and its
-> spec predates the July-18 SDK migration.)*
+> **▶ NEXT = POSITION 4, MUSIC & SOUND (CORE)** — audio-manager autoload, the four
+> buses, volume sliders on a minimal Settings surface, wire the orphaned WAVs,
+> license-verify the three zips, source + wire the core cue set. Multi-session.
+> Then: **5** the Econ Balance pass (EC-P3's gate — CA8-D1 gold sinks, CA8-D5 threat
+> ceiling, IGR-X9, EWC-D1/F2, the plunder dissent — then the build) → **6**
+> Voice-to-Text (approach gate; recommended v1 = OS dictation certified against the
+> command box) → **7** Marshal Voice Tier 1 + XR-5 (+ the CA8-D3 gate rides this
+> slot) → **8 THE SHIPPABLE BUILD** (old position 4, content unchanged; it inherits
+> position 4's audio shell).
 >
 > **▶ POSITION 2 — LLC + STEAMWORKS — has no entry condition and can start today,
 > in parallel.** It is the only item with weeks of *calendar* lead time and zero
 > code dependency.
 >
-> **⚠ ONE USER DECISION IS STILL OPEN (position 3.75-open):** does any Creative-Audit
-> row preempt position 4? The audit deliberately did not decide. **Default if
-> unruled: go to 4 and sweep the CA8 rows at position 13.** CA8 sweeps 1–4 have
-> since closed **20 of the 28 rows**, including all three of the code-proven P1s
-> §8 was arguing about — so the case for preempting is materially weaker than when
-> the question was filed.
+> **The Creative-Audit section is CLOSED** (Aug 7): 25 of 28 fixed, 1 refuted,
+> CA8-19 closed by ruling, CA8-25's garrison half homed with a completion
+> definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ THE CA8 CLOSE-OUT GATES + THE ROAD AMENDED — August 7, 2026
+>
+> User directive: *"make design gate decisions and finish CA sweep and assure Ca fixes
+> are good. then lets add some things before build, we have no sound[,] econ is still
+> unbalanced, voice to text would be cool, consider any other items worth adding or
+> fixing before build and remake roadmap status!. commit and push when done."* All six
+> clauses landed this session.
+>
+> **1) The four standing gates HELD under the delegation and their rows BUILT** — gate
+> record = `docs/audits/CREATIVE_AUDIT_2026_08_04.md` **§10** (authoritative), landing
+> record = `BUG_FIXES.md` §Creative Audit close-out block, backend commit `f5acc4e`:
+> **§10.1 CA8-D2** (CA8-3 + CA8-24 + CA8-27 — leverage keys to the WAR via
+> `calculate_side_war_score` / `sum_stored_side_score` / `get_side_war_score_for`, each
+> consumer keeping its pre-gate SOURCE and gaining war-level breadth; territory cession
+> requires `war_score < -20` STRICTLY); **§10.2 CA8-D6** (CA8-26 — four success
+> headline classes, `enemy_eliminated` 93 / `capital_stormed` 92 / `victory_won` 73 /
+> `region_taken` 68, at equal scale the wound still leads); **§10.3 CA8-17 reduced**
+> (Voice Bible §16.1a AMENDED — spoken-blocker vocabulary + per-register table framings
+> on the ally-petition suffix idiom; labels in tables, phrases in mouths); **§10.4
+> CA8-D4** (three non-fear frames; a third variant in all 24 hegemony banks); **§10.5
+> CA8-19 RULED** (full garrison parity REJECTED as design; the repulsed-attacker glory
+> divergence CANONIZED in `JEALOUSY_SPEC.md` §1; the garrison-diorama half homed at the
+> Battle Gallery gate). **THE CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1
+> refuted · CA8-19 closed by ruling · CA8-25's garrison half homed with a completion
+> definition.**
+>
+> **2) "Assure Ca fixes are good" = a 4-lens adversarial review fleet on the committed
+> diff (D2-seams · dispatch · voice · mutation-hunter), and it EARNED ITS RUN — sixteen
+> findings survived their authors' own refutation attempts and ALL are fixed in the
+> follow-up commit; record = gate record §10.6.** The headline class is familiar from
+> NA-3: **`enemy_eliminated` was production-unreachable as first built** — the real
+> elimination path POPS the fallen court from `side_by_nation` BEFORE logging the
+> event, and the slice's own positive test had manufactured the pre-pop state by hand;
+> the arm now reads the durable `participant_meta` witness and both tests drive the
+> REAL `_eliminate_nation`. Also: the tactical-victory join was structurally dead for
+> the standard assault geometry (battle names the defender's region, the rout names the
+> attacker's origin — now joined by the MAN, not the map); the suggested-terms pipeline
+> **defeated CA8-27 one stage above the fixed seam** (a coveted-province cession at
+> pair `< 0`) and priced with a split brain (stage 1 war-level, stages 2–4 pair —
+> probe-confirmed demanding Tyrol while ceding Milan in one draft; ONE score now); the
+> collapsed war row's `settlement_tier` and `started_turn` still told the leader-pair
+> story ("White Peace" beside +50); the request-terms refusal disagreed with the offer
+> producer about who was winning one war; armistice-suspended members inflated the
+> display aggregate by whole belligerents; **the vocabulary's "8 negative-capable
+> components" was FALSE — it is NINE** (`war_objective_alignment` clamps −20/−15), and
+> the close-out test had hardcoded the 8-set; the degrade path rendered sentence
+> fragments (labels now clause-wrapped, cast-court shapes pinned); and the mutation
+> hunter proved the CA8-17 producer→consumer join UNPINNED (Probe G — `None` at the one
+> production site killed the feature with all 47 tests green; now pinned through the
+> real `compute_per_court_acceptance`) plus five weaker unpinned claims, all now pins.
+> Its 8 prescribed mutations were all killed first-run. Two conscious rulings recorded,
+> not fixed: a French vassal's conquest is not France's OWN triumph (the asymmetry is
+> the protector's), and an auto-bombardment annihilation yields `region_taken` rather
+> than `victory_won` (no battle event on that pre-existing seam). Four period-language
+> fixes from the voice lens ("quiet seas", "surest holdings", "ports France now
+> closes", "treaties in good repair"). Two pre-existing pins consciously re-blessed at
+> −25 (both sat on the old cede-at-mild-loss behavior the gate forbids): the
+> smart-pipeline coveted-injection test and the NA-3 rider-(b) armistice fixture —
+> the rider's reachability contract is unchanged, and a France pausing a war it is
+> LOSING is the more Pressburg-faithful shape anyway.
+>
+> **3) The road was AMENDED (ROADMAP §THE ROAD TO EARLY ACCESS): four positions now
+> precede the shippable build** — **4 Music & Sound (Core)** (pulled from old-8) →
+> **5 the Econ Balance pass** (row EC-P3's gate finally dated: CA8-D1 gold sinks,
+> CA8-D5 threat ceiling, IGR-X9, EWC-D1/F2, the plunder dissent) → **6 Voice-to-Text**
+> (un-cut from post-EA; approach gate, recommended v1 = OS dictation certified against
+> the command box) → **7 Marshal Voice Tier 1 + XR-5** (the "consider other items"
+> pick — cheapest lever on the one pillar under target; the CA8-D3 gate rides this
+> slot) → **8 THE BUILD** (old 4; inherits 4's audio shell). Downstream renumbered
+> to EA at 17; the Aug-3 memo's "packaging before content" decision is recorded as
+> consciously PARTIALLY OVERRULED by the plan's owner; honest total ~25–33 build
+> sessions. 3.75-open is RESOLVED by events.
+>
+> Tests: `tests/test_ca8_gate_closeout_2026_08_07.py` (47 → 53 after the assurance
+> round). Suite 16,381/3 at `f5acc4e` → **16,387/3** after the round; ruff clean; golden
+> corpus 514/514; no `.gd` changes (parse harness untouched). Live HTTP spot-check: the
+> collapsed coalition row renders war-level values on the 1805 boot with unchanged keys.
+> Process note for the record: the harness shell exports
+> `PYTHONIOENCODING=utf-8:surrogateescape`, which fakes the six known subprocess ERRORs
+> — null it inline before any pytest/commit command (memory updated).
 
 > ### ✅ CA8 SWEEP 4 — THE LAST UNGATED ROWS — LANDED August 4, 2026
 >
