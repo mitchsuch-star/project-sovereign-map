@@ -7,18 +7,19 @@ and source URL was verified against its live source page before download.
 git-ignored, but the **usable shipped assets are force-tracked** (`git add -f`) so the repo
 is self-contained and the portability tests pass on any clone — fonts (`.ttf` + `OFL.txt`),
 portraits, icon/border/heraldry/ornament/decor SVG+PNG+JPG, the two icon `LICENSE` files,
-textures, and the unpacked audio files (the bulk of the audio pool remains INSIDE the zips —
-the "198 WAVs force-tracked" this note once claimed was doc-drift, corrected July 31, 2026 by
-the Battle Diorama slice: on disk are the two parchment WAVs plus `audio/battle/`'s cannon +
-drum sting). **Deliberately NOT tracked** (remain ignored to
+textures, and the unpacked audio files (as of the August 7, 2026 Music & Sound sourcing
+pass: **75 cue-named audio files across `audio/{music,ui,battle,ambient}/` + their
+`.import` sidecars are force-tracked**; the bulk of the Kenney/bang pools remains INSIDE
+the untracked zips). **Deliberately NOT tracked** (remain ignored to
 keep git history lean): the working `*.zip` master pools, the source `*.psd` files, and the
 stray `movies.avi`. Adding a new asset to a tracked subdir therefore needs another `git add -f`.
 Godot `.import` sidecars are generated + committed in UI-1 (the editor has not imported yet).
 
 **Attribution obligations at a glance:** the fonts, textures, icons, audio, flags,
-ornaments, and portraits require **no in-game credit** except two items. The **only**
-assets that require a visible/bundled credit are **Game-icons.net** and the
-**RPG GUI Construction Kit (Lamoot)** — see the CC-BY section.
+ornaments, and portraits require **no in-game credit** except three items. The **only**
+assets that require a visible/bundled credit are **Game-icons.net**, the
+**RPG GUI Construction Kit (Lamoot)**, and the **musket-volley battle sound
+(aaronsiler & Benboncan, CC-BY 4.0)** — see the CC-BY section.
 
 ---
 
@@ -80,19 +81,48 @@ already drop-in recolorable.
 
 ---
 
-## Audio — `assets/audio/` (CC0 — no attribution)
+## Audio — `assets/audio/` (CC0 / PD except ONE CC-BY file, flagged)
 
-`assets/audio/ui/`: Kenney Interface Sounds + RPG Audio (CC0), an OpenGameArt CC0
-cannon/bang pack ("25 CC0 bang/firework sfx", https://opengameart.org/content/25-cc0-bang-firework-sfx),
-and two CC0 parchment open/close WAVs. Covers click/hover/confirm/error, coins, cloth,
-distant cannon, panel open/close.
+**Full cue map + per-file inventory: `docs/MUSIC_SOUND_SPEC.md`** (the Music & Sound
+sourcing pass, August 7, 2026). Summary of provenance families:
 
-`assets/audio/battle/` (Battle Diorama, July 31, 2026): `cannon_thud.ogg` is `cannon_02.ogg`
-extracted unmodified from the CC0 bang pack above; `drum_sting.wav` is **self-authored CC0**,
-synthesized deterministically by `tools/gen_battle_audio.py` (the same own-pipeline route as
-the war-table pieces) — this closes the "drum/fife sting" gap the July-17 eval documented.
-Remaining gaps (deferred, not blocking): dedicated quill-scratch, dedicated wax-seal stamp —
-approximated from the RPG pack for now.
+**Master pools on disk (untracked zips, CC0):** Kenney Interface Sounds + Kenney RPG
+Audio (https://kenney.nl), OpenGameArt "25 CC0 bang/firework sfx"
+(https://opengameart.org/content/25-cc0-bang-firework-sfx). 28 files are extracted
+unmodified and cue-renamed into `ui/`, `battle/`, `ambient/` (the `cannon_thud.ogg`
+precedent — e.g. `click_primary.ogg` = Interface `click_002`, `page_turn_1.ogg` =
+RPG `bookFlip1`, `musket_shot_1.ogg` = bang-pack `shot_01`). CC0, no attribution.
+
+**`music/` (August 7, 2026 — 18 tracks, all PD/CC0 RECORDINGS, verified per file):**
+- Musopen Kickstarter-commissioned recordings, released to the public domain
+  (archive.org item `MusopenCollectionAsFlac`, licenseurl PD Mark): Beethoven *Eroica*
+  mvts I/II/IV, *Coriolan* Overture, Haydn *Lark* Adagio, Mozart Sym. 40 Andante.
+- Open Goldberg Variations (Kimiko Ishizaka), **CC0** (archive.org
+  `OpenGoldbergVariations`): Goldberg Aria.
+- **US federal-government works (PD):** La Marseillaise — United States Navy Band
+  (Wikimedia Commons `La_Marseillaise.ogg`, sourced from navyband.navy.mil);
+  *Marche militaire française* — "The President's Own" US Marine Band (archive.org
+  `Retrospective_738`); five US Army Old Guard Fife & Drum Corps tracks (archive.org
+  `Celebrating_50_Years-9015`, PD-marked): Brandywine Quickstep, two field-music
+  medleys, The Rage of Cornwallis, ERAFNAF Fanfare; four US military bugle calls
+  (Wikimedia Commons): First Call, Reveille, Mail Call, To the Color.
+
+**Sourced SFX (August 7, 2026 — freesound.org CC0 previews unless noted, each
+sound page's CC0 status independently verified by an adversarial license pass):**
+`ui/` quill-scribble loop + long take, quill flick, signature, wax seal, letter
+open, paper crumple, desk notification bell, coin pour, end-turn snare roll;
+`battle/` cavalry gallop, sword draw, two marching-feet takes, Revolutionary-War
+reenactment battlefield ambience (uploader's own field recording), horse whinny
+(Wikimedia Commons PD `Wiehern.ogg`); `ambient/` church-bell peal, single toll,
+ship's bell, sea surf, campfire loop, wind loop, crowd walla.
+**Provenance rule applied:** uploads by freesound user *craigsmith* (digitized
+Hollywood tape libraries mislabelled CC0) were rejected wholesale.
+
+**`battle/musket_battle_volley.mp3` is the ONE exception — CC-BY 4.0, credit
+required** (see the CC-BY section).
+
+**Self-authored (CC0-clean):** `battle/drum_sting.wav`, synthesized deterministically
+by `tools/gen_battle_audio.py`.
 
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
@@ -153,6 +183,11 @@ icons/borders actually used in the shipped build.
 - **RPG GUI Construction Kit** — CC-BY 3.0.
   Required form: *"RPG GUI by Matjaž Lamut (Lamoot), CC BY 3.0"*.
   https://opengameart.org/content/rpg-gui-construction-kit-v10
+- **Musket battle volley** (`assets/audio/battle/musket_battle_volley.mp3`) — CC-BY 4.0.
+  Required form: *"Musket battle sounds by aaronsiler & Benboncan (freesound.org), CC BY 4.0"*
+  (the compilation's ricochets derive from Benboncan's CC-BY sounds, so BOTH are credited).
+  https://freesound.org/people/aaronsiler/sounds/128981/ — if this file is ever dropped,
+  drop the credit line with it.
 
 ---
 

@@ -11,15 +11,20 @@
 > 3.5, 3.75 and **3.8 (the CA8 close-out gates)** are done; the 3.75-open decision is
 > RESOLVED by events.
 >
-> **▶ NEXT = POSITION 4, MUSIC & SOUND (CORE)** — audio-manager autoload, the four
-> buses, volume sliders on a minimal Settings surface, wire the orphaned WAVs,
-> license-verify the three zips, source + wire the core cue set. Multi-session.
-> Then: **5** the Econ Balance pass (EC-P3's gate — CA8-D1 gold sinks, CA8-D5 threat
-> ceiling, IGR-X9, EWC-D1/F2, the plunder dissent — then the build) → **6**
-> Voice-to-Text (approach gate; recommended v1 = OS dictation certified against the
-> command box) → **7** Marshal Voice Tier 1 + XR-5 (+ the CA8-D3 gate rides this
-> slot) → **8 THE SHIPPABLE BUILD** (old position 4, content unchanged; it inherits
-> position 4's audio shell).
+> **▶ NEXT = POSITION 4's WIRING HALF** — the **sourcing half LANDED August 7, 2026**
+> (second session that day; record = `docs/MUSIC_SOUND_SPEC.md` §0–§2): **75 cue-named,
+> license-verified audio files** now live under `assets/audio/{music,ui,battle,ambient}/`
+> incl. the game's first 18 music tracks (Musopen *Eroica* I/II/IV + *Coriolan* +
+> Haydn/Mozart/Goldberg calms, the US Navy Band Marseillaise, US Army Old Guard fife &
+> drum, four bugle calls — all PD/CC0 recordings, adversarially verified), the quill
+> scribble loop for imperial-log text streaming, quill flick for command send, wax
+> seal, bells, naval set, battle set. Next session builds `audio_manager.gd` (four
+> buses, sliders, the §2 cue map, the §3.5 audition gate). Then: **5** the Econ Balance
+> pass (EC-P3's gate — CA8-D1 gold sinks, CA8-D5 threat ceiling, IGR-X9, EWC-D1/F2,
+> the plunder dissent — then the build) → **6** Voice-to-Text (approach gate;
+> recommended v1 = OS dictation certified against the command box) → **7** Marshal
+> Voice Tier 1 + XR-5 (+ the CA8-D3 gate rides this slot) → **8 THE SHIPPABLE BUILD**
+> (old position 4, content unchanged; it inherits position 4's audio shell).
 >
 > **▶ POSITION 2 — LLC + STEAMWORKS — has no entry condition and can start today,
 > in parallel.** It is the only item with weeks of *calendar* lead time and zero
@@ -30,6 +35,39 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ MUSIC & SOUND (CORE) — THE SOURCING HALF — August 7, 2026 (second session)
+>
+> User directive: *"find good sounds including music, for clicks for battles etc. and
+> maybe a writing sounds for when text is generating in imperial log? and when you send
+> a command etc, anything else you can think of. commit and push when done."*
+>
+> **Landing record = `docs/MUSIC_SOUND_SPEC.md`** (new — §0 session record, §1 asset
+> inventory, §2 the cue map, §3 the wiring half's build contract, §5 licenses).
+> Method: an 11-agent research workflow (5 category finders with self-run curl
+> reachability checks → 5 adversarial license verifiers → gap critic) + 1 targeted
+> follow-up agent; 99 candidates, **90 passed license verification**, 42 downloaded +
+> 28 curated out of the on-disk CC0 zips = **75 cue-named files, ~78 MB, all
+> force-tracked with `.import` sidecars** (headless import pass EXIT=0, 75/75).
+> Highlights: the game's first music — the Musopen-commissioned PD *Eroica* (I =
+> main theme, II Marcia funebre = lament, IV = triumph), *Coriolan* (war tension),
+> Haydn *Lark* / Mozart 40 / Open-Goldberg Aria (map calms), **US Navy Band La
+> Marseillaise**, **US Army Old Guard Fife & Drum Corps** ×5, four bugle calls
+> (Reveille = the morning dispatch, Mail Call = the letter-book), Marine Band *Marche
+> militaire française* (1880 composition, anachronism disclosed §0.3); the 6.0s
+> quill-scribble loop for imperial-log text streaming + quill flick (command send) +
+> signature + **wax seal**; church-bell peal for the Proclamation; ship's bell + surf
+> + creaks for the Admiralty; musket volley / cavalry gallop / marching feet /
+> reenactment battlefield bed; desk-bell notification; end-turn snare roll; and the
+> two orphaned parchment WAVs finally assigned (map open/close). **Decisions on the
+> record (§0): the craigsmith provenance trap applied wholesale** (CC0-labelled
+> Hollywood tape digitizations — one file that PASSED a verifier was rejected by
+> cross-category consistency), the 78rpm gramophone family rejected on register, the
+> .mil sites bot-blocked → archive.org PD mirrors used, `ink_dip` cut, **nobody has
+> LISTENED yet** — §3.5 makes the in-engine audition the wiring session's gate.
+> **ONE new credit obligation**: `musket_battle_volley.mp3` CC-BY 4.0 (aaronsiler &
+> Benboncan) — recorded in `THIRD_PARTY_LICENSES.md`. Zero production code touched;
+> zero backend diff; suite untouched.
 
 > ### ✅ THE CA8 CLOSE-OUT GATES + THE ROAD AMENDED — August 7, 2026
 >
