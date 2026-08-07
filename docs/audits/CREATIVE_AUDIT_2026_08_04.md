@@ -893,3 +893,131 @@ stuttering on the turn the campaign turns.
   review fleet had launched, so they carry no refuter; each states its own evidence and its
   own correction where the first reading was wrong.
 - **No repository file was modified and no fix was applied.** Everything above is routed, per §7.
+
+---
+
+## 10. THE CLOSE-OUT GATE RECORD — August 7, 2026 (user-delegated; AUTHORITATIVE)
+
+> Sweeps 1–4 (Aug 4) closed every gate-free row: 20 of 28 fixed, 1 refuted. The user then
+> directed *"make design gate decisions and finish CA sweep"* — the four standing gates are
+> HELD here under that delegation. This section is the ruling of record; the landing records
+> ride `BUG_FIXES.md` §Creative Audit rows as usual.
+
+### 10.1 CA8-D2 — leverage keys to the WAR, and a cession requires LOSING (CA8-3 · CA8-24 · CA8-27)
+
+**Both gate questions answered YES.**
+
+1. **One new single source, `diplomacy.calculate_side_war_score(nation, opponents, world)`** —
+   the five pair components (territory / battles / decisive / capital / ticking) summed across
+   the war's whole opposing side, each component re-clamped at its own pair cap, total ±100.
+   For a single opponent it reduces **byte-identically** to `calculate_war_score` (pinned).
+   **The consumer rule (recorded after the first suite run caught the distinction): each
+   consumer keeps its pre-gate SOURCE and gains war-level breadth.** The DISPLAY surface
+   (war_status, whose own blessed rule is "always live-calculate, not cached war_scores")
+   aggregates the live components via `calculate_side_war_score`. The SCORE-CONSUMING seams
+   (offer direction, Talleyrand's drafted terms) have always read the STORED
+   `world.war_scores`; they now read `sum_stored_side_score` — the oriented stored pair
+   scores summed over the opposing side, clamped ±100 — and a BILATERAL war keeps the plain
+   stored pair read byte-identically (five `test_settlement_incoming_offers` pins caught
+   exactly the drift a source swap would have caused). Encoded in `get_side_war_score_for`
+   and the offer producer's arity branch.
+2. **Three consumers, and only these three:**
+   - the multi-participant HUD collapse row (`war_status._collapse_multi_participant_wars`) —
+     `war_score`, `breakdown`, `battles_fought`, `decisive_won`, `recent_battles`, `duration`
+     and `trend` now read the war, not the leader pair. The war room stops contradicting
+     itself on one screen (CA8-24), with **no `.gd` change** — same keys, honest values.
+   - the incoming settlement-offer producer (`ai_diplomacy._emit_settlement_offer_for_war`) —
+     offer DIRECTION and the EC-W4 amount read the war the player is actually fighting.
+     Twelve turns of victory against Austria now press on Britain's table (CA8-3).
+   - `diplomatic_templates._build_base_terms` — Talleyrand prices the war France is in, not
+     the leader pair.
+3. **CA8-27: the `or` is split.** Territory cession (R147) now requires `war_score < -20`
+   STRICTLY — actually losing. The `relation < -50` arm keeps only the ≤200g gold sweetener
+   (a hostile court may be sweetened; it is never paid in homeland provinces). The manpower
+   (−30) and AP (−50) sweeteners were already score-gated tighter and are unchanged.
+
+**Scope boundary (deliberate):** the settlement acceptance scorer's §6.3 side-pressure
+machinery is UNTOUCHED (it is already war-level — the audit's `direct_score: 43` proves it),
+and the Stage-D third-party AI peace seams (`effective_peace_threshold`,
+`settlement_third_party`) keep pair semantics — those wars are pair instances by
+construction and their pins are Stage-D blessed.
+
+### 10.2 CA8-D6 — the briefing MAY lead with a victory (CA8-26)
+
+**Ruled YES.** Four success classes enter `HEADLINE_WEIGHTS`, derived entirely from events
+that already exist (no new campaign-log type — the 156 pins hold):
+
+| class | weight | derived from |
+|---|---|---|
+| `enemy_eliminated` | **93** | the existing `nation_eliminated` event, when the fallen court was at war with France |
+| `capital_stormed` | **92** | `region_captured` by France where the region is the previous controller's capital |
+| `victory_won` | **73** | a `battle` event France won that was decisive/great or destroyed the enemy corps |
+| `region_taken` | **68** | `region_captured` by France (non-capital) |
+
+**The weight principle that replaces the retired comment:** *at equal scale the wound still
+leads — a triumph outranks only a wound of smaller scale than itself.* Concretely:
+elimination (93) and a stormed capital (92) outrank a broken corps (90) — Vienna is bigger
+news than one corps reforming; a decisive field victory (73) outranks the standing hunger
+nag (`supply_strain` 72) on the day it is won but NOT a lost province (75); a routine
+conquest (68) sits below every direct wound to France's own body and above Europe's
+business. The `:71-73` comment ("an opportunity never outranks a wound") is retired to
+"…a TRIUMPH may — at larger scale than the wound." `capital_stormed` absorbs the
+`region_taken` candidate for the same province; `enemy_eliminated` and `capital_stormed`
+may both lead the same turn's dispatch as headline + sub-beat (distinct facts, both true).
+
+### 10.3 CA8-17 — Voice Bible §16.1a AMENDED; the reduced build ships
+
+**The Bible amendment is granted.** §16.1a's leaning/holds-out exemplars stop being
+verbatim-committed: the `{top_blocker}` slot is retired from those two templates in favor of
+a **spoken-register vocabulary** — the 8 negative-capable acceptance components each get a
+SPOKEN clause (`SPOKEN_BLOCKER_PHRASES`), and the two bands get per-register framings on the
+LIVE override idiom (`settlement_multi_court_court_{leaning|holds_out}_{castlereagh|
+hardenberg|metternich|einsiedel}` with the `_chancery` fallback re-lookup — exactly the
+ally-petition pattern at `settlement_offers.py:430-458`, so DEF-1 can add named voices later
+by adding rows, never by restructuring). ~20 authored strings, two files, no `.gd`.
+The per-court table LABELS keep the `display_names` vocabulary — labels belong in tables;
+the phrases belong in mouths. Talleyrand's own headings reuse the same phrase map (the
+"spoken three times on one screen" repeat dies with no new strings). Named-envoy PER-DIPLOMAT
+registers beyond the four already-cast suffixes stay **DEF-1's scope** — this build adds
+zero per-court banks.
+
+### 10.4 CA8-D4 — what `hegemony_pressure` may sound like besides fear (CA8-16 bounded)
+
+**The gate question is answered: three frames.** (1) **ARITHMETIC/INTEREST** — France's
+power as a fact to be priced, not dreaded (the Castlereagh model the row named); (2)
+**OPPORTUNITY** — proximity to the hegemon as profit (Montgelas and Marescalchi already
+lean here); (3) **HISTORY/LAW** — precedent, the balance, the long view (Rome, the Porte,
+Czartoryski's design). **Bounded build under this ruling:** every one of the 24
+`hegemony_pressure` banks gains a THIRD variant authored in whichever non-fear frame fits
+that speaker's Voice-Bible register — 24 lines, cutting the measured exact-repeat rate for
+the register mechanically by a third and breaking the "France is big" monoculture with
+every third composition. The single `len == 2` pin (`test_w6_incoming_voice.py:118`) is
+consciously flipped to `>= 3`. **Full roster authoring across the OTHER four reasons stays
+DEF-1's** — this touches one reason's banks only.
+
+### 10.5 CA8-19 — the parity gate: garrison assault stays its own resolver, BY DESIGN
+
+**Full parity is REJECTED as design, not deferred as work.** An escalade against a static
+garrison is not a field battle: there is no opposing commander to out-general, no morale to
+break (the 5,000-collapse threshold IS the garrison's morale model), no maneuver to flank.
+The things full parity would import — variance, personality, additive terrain — are a
+balance-moving combat build that would re-record M1–M7 AND `BASELINE_SERIES` (enemy P4.25
+takes this path every campaign), require a defender object that does not exist, and consume
+`compose_battle_name` ordinals whose contract excludes garrison assaults (PC-4). The rule
+is now stated at the resolver head. If a future combat gate wants garrison texture, it
+starts from this record — nothing is left implicitly promised.
+
+**The defeat-side glory divergence is CANONIZED, not wired.** A marshal repulsed from a
+garrison reads glory 0, not the spec's −1 — ruled CORRECT: the glory ladder prices
+reputation between COMMANDERS, and an escalade has no opposing commander to lose face
+against; the repulse's cost is paid in men and materiel (both already charged). One-line
+exemption added to `JEALOUSY_SPEC.md` §1's DEFEATS block beside the existing "Garrison
+defense" exemption; the existing pin stands. Step 9.5 stays gated — `jealous_of` is not
+mutated from a new site for a rung the design rejects.
+
+**The garrison half of CA8-25 (no diorama on a garrison assault) is HOMED at the Battle
+Gallery gate** (`BATTLE_DIORAMA_SPEC.md` eval-§6 OUT list): the tableau must first learn a
+defender-without-a-marshal (garrison contingent: piece + coat, no locket, no standard-take)
+— that is gallery-gate business with a visual sign-off, not a close-out patch. Completion
+definition: a stormed garrison renders a tableau whose defending contingent is the garrison
+itself; behavior test named at that gate.

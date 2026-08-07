@@ -2354,7 +2354,12 @@ class TestSweep4IncomingVoice:
             _INCOMING_MOTIVE_LINES, _NAMED_MOTIVE_LINES)
         generic = _INCOMING_MOTIVE_LINES[("hawk", "hegemony_pressure")]
         named = _NAMED_MOTIVE_LINES[("Hardenberg", "hegemony_pressure")]
-        assert len(named) == 2                     # the pinned bank size holds
+        # CONSCIOUS FLIP (CA8-16 / close-out gate 10.4, Aug 7 2026): was
+        # `== 2`; every hegemony bank gained a third non-fear variant. The
+        # pin's PURPOSE — no generic line hiding in the named bank — is the
+        # loop below, unchanged; depth is pinned in
+        # test_ca8_gate_closeout_2026_08_07.py.
+        assert len(named) >= 2
         for g in generic:
             assert g.format(nation="Prussia") not in named, g
 

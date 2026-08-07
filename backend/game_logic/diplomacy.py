@@ -2923,6 +2923,101 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     return total
 
 
+def calculate_side_war_score(nation: str, opponents, world,
+                             return_components: bool = False):
+    """CA8-D2 (close-out gate 10.1): war-LEVEL score — `nation` against the
+    UNION of `opponents` (the whole opposing side of one war instance).
+
+    Twelve turns of victory over Austria must press on Britain's table when
+    they share a war: the five pair components are summed across every
+    opposing participant and each component is re-clamped at its own pair
+    cap (territory ±40, battles ±30, decisive ±20, capital ±30; total ±100).
+
+    Single source: each pair term IS `calculate_war_score(nation, opp)` —
+    for a single opponent this reduces byte-identically to the pair helper
+    (sum of one, idempotent clamps), so every bilateral war is untouched by
+    construction. Positive = `nation` winning the war at large.
+    """
+    sums = {"territory": 0, "battles": 0, "decisive": 0,
+            "capital": 0, "ticking": 0}
+    for opponent in opponents:
+        if not opponent or opponent == nation:
+            continue
+        pair = calculate_war_score(nation, opponent, world,
+                                   return_components=True)
+        for key in sums:
+            sums[key] += int(pair.get(key, 0))
+
+    components = {
+        "territory": max(-40, min(40, sums["territory"])),
+        "battles": max(-30, min(30, sums["battles"])),
+        "decisive": max(-20, min(20, sums["decisive"])),
+        "capital": max(-30, min(30, sums["capital"])),
+        "ticking": int(sums["ticking"]),
+    }
+    total = int(max(-100, min(100, sum(components.values()))))
+
+    if return_components:
+        return {"total": total, **components}
+    return total
+
+
+def sum_stored_side_score(world, nation: str, opponents) -> int:
+    """CA8-D2: war-level score from the STORED pair scores — the oriented
+    `get_war_score_for` reads summed over the opposing side, clamped ±100.
+
+    The score-consuming seams (offer direction, Talleyrand's drafted
+    terms) have always read `world.war_scores`; this widens WHAT they read
+    to the whole war without changing WHERE they read it from. The display
+    surface aggregates live components instead (`calculate_side_war_score`
+    — war_status's own rule is "always live-calculate"). Both are
+    war-level; each stays faithful to its pre-gate source.
+    """
+    total = 0
+    for opponent in opponents:
+        if opponent and opponent != nation:
+            total += get_war_score_for(world, nation, opponent)
+    return int(max(-100, min(100, total)))
+
+
+def get_side_war_score_for(world, nation: str, opponent: str) -> int:
+    """CA8-D2: the war-level score for the war containing `nation` and
+    `opponent` on opposite sides, resolved from the live war instance.
+
+    A MULTI-PARTY war sums the STORED pair scores over the whole opposing
+    side (`sum_stored_side_score`); a BILATERAL war (opposing side of one)
+    keeps the plain stored pair read byte-identically — the pre-gate
+    consumers all read the stored score, and swapping the source would
+    have silently moved every two-court seam the gate never ruled on.
+    """
+    instances = getattr(world, "war_instances", None) or {}
+    if instances:
+        index_getter = getattr(world, "get_war_instances_by_participant", None)
+        if callable(index_getter):
+            a_ids = list(index_getter(nation) or [])
+            b_ids = set(index_getter(opponent) or [])
+            candidate_ids = [wid for wid in a_ids if wid in b_ids]
+        else:
+            candidate_ids = list(instances.keys())
+        for war_id in candidate_ids:
+            instance = instances.get(war_id)
+            if not isinstance(instance, dict):
+                continue
+            if instance.get("ended_turn") is not None:
+                continue
+            side_by_nation = instance.get("side_by_nation") or {}
+            my_side = side_by_nation.get(nation)
+            their_side = side_by_nation.get(opponent)
+            if not my_side or not their_side or my_side == their_side:
+                continue
+            opposing = [n for n, s in side_by_nation.items()
+                        if s == their_side and n != nation]
+            if len(opposing) > 1:
+                return sum_stored_side_score(world, nation, opposing)
+            break
+    return int(get_war_score_for(world, nation, opponent))
+
+
 def apply_war_score_decay(world, *, recalculate: bool = True) -> None:
     """Apply battle-score decay and prune stale battle records.
 

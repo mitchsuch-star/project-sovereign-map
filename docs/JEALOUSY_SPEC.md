@@ -87,6 +87,12 @@ Glory from DEFEATS (v3.1 — keeps the ladder dynamic):
   Territory lost:   -1 extra (lost a region this battle)
   Outnumbered loss: +0 reduction (no shame in losing to superior numbers)
   Garrison defense: -0 (garrison losses are expected, no dishonor)
+  Garrison ASSAULT repulsed: -0 — CANONIZED Aug 7, 2026 (CA8-19 close-out
+    gate 10.5). The ladder prices reputation between COMMANDERS; an
+    escalade has no opposing commander to lose face against, and the
+    repulse's cost is already paid in men and materiel. This retires the
+    sweep-4 "recorded divergence" as design, not debt — step 9.5 stays
+    gated on the garrison path.
 
   Floor: A marshal's glory score cannot go below 0.
 ```

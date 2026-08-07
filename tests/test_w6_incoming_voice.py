@@ -107,15 +107,21 @@ class TestDiplomatLine:
 
     def test_loyalist_register_bank_defined(self):
         """DEF-1: the loyalist register class is authored for all four
-        decision reasons with two deterministic variants and a {nation}
-        slot (the Voice Bible-owned register class)."""
+        decision reasons with deterministic variants and a {nation}
+        slot (the Voice Bible-owned register class).
+
+        CONSCIOUS FLIP (CA8-16 / gate CA8-D4, Aug 7 2026): was `== 2`; the
+        hegemony_pressure banks each gained a THIRD non-fear variant under
+        the close-out gate, so the floor is now >= 2 and the hegemony bank
+        depth is pinned separately in
+        test_ca8_gate_closeout_2026_08_07.py."""
         from backend.game_logic.diplomatic_templates import (
             _INCOMING_MOTIVE_LINES,
         )
         for reason in ("war_overload", "shared_enemy_survival",
                        "hegemony_pressure", "unknown_baseline"):
             variants = _INCOMING_MOTIVE_LINES[("loyalist", reason)]
-            assert len(variants) == 2
+            assert len(variants) >= 2
             for line in variants:
                 assert "{nation}" in line
 

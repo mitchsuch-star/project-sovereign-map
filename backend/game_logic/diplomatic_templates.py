@@ -81,9 +81,14 @@ _INCOMING_MOTIVE_LINES = {
         "We share an enemy, and {nation} would rather share the fighting.",
         "{nation} sees the same storm we do, and would stand under one roof.",
     ],
+    # CA8-16 / gate CA8-D4 (close-out gate 10.4): every hegemony bank gains
+    # a THIRD variant in a non-fear frame — arithmetic/interest, opportunity,
+    # or history/law — breaking the "France is big" monoculture on every
+    # third composition. The Castlereagh arithmetic line is the model.
     ("hawk", "hegemony_pressure"): [
         "Europe grows uneasy at France's shadow, and {nation} would rather watch the roads than the frontier.",
         "{nation} does not love our reach — but they would sooner treat with it than test it.",
+        "{nation} has counted our battalions and their own, and treats on the arithmetic, not the sentiment.",
     ],
     ("hawk", "unknown_baseline"): [
         "{nation} judges the moment favorable and moves plainly.",
@@ -104,6 +109,7 @@ _INCOMING_MOTIVE_LINES = {
     ("schemer", "hegemony_pressure"): [
         "{nation} finds France's ascent… instructive, and prefers a seat near the fire to a place in it.",
         "{nation} is most attentive to our progress — attentive enough to want papers signed.",
+        "{nation} has calculated what proximity to France returns, and finds the dividend… agreeable.",
     ],
     ("schemer", "unknown_baseline"): [
         "{nation} offers no reason, which is itself a reason.",
@@ -124,6 +130,7 @@ _INCOMING_MOTIVE_LINES = {
     ("dove", "hegemony_pressure"): [
         "{nation} asks only to be reassured that France's greatness leaves room for small nations.",
         "{nation} watches our armies grow and prays a signature will suffice.",
+        "{nation} recalls that small courts have ever prospered under great patrons, and asks only to prosper quietly.",
     ],
     ("dove", "unknown_baseline"): [
         "{nation} extends the offer in evident good faith.",
@@ -144,6 +151,7 @@ _INCOMING_MOTIVE_LINES = {
     ("chancery", "hegemony_pressure"): [
         "Their chancery conveys that {nation} would rather have terms with France than reasons to fear her.",
         "The court of {nation} watches our ascent and asks for ink instead of iron.",
+        "Their chancery cites the old rule of {nation}'s policy: the powers that treat with the strongest early treat on the best terms.",
     ],
     ("chancery", "unknown_baseline"): [
         "Their chancery conveys the offer without further comment.",
@@ -170,6 +178,7 @@ _INCOMING_MOTIVE_LINES = {
     ("loyalist", "hegemony_pressure"): [
         "{nation}'s sovereign would keep his house at peace with France's greatness, and sends his servant to say as much.",
         "As my master wills, {nation} seeks France's good regard rather than France's displeasure.",
+        "His Majesty judges France's friendship an asset to {nation}'s crown, and instructs his servant to secure it while it may be had on good terms.",
     ],
     ("loyalist", "unknown_baseline"): [
         "His Majesty's servant lays {nation}'s offer before France, exactly as instructed.",
@@ -194,6 +203,7 @@ _NAMED_MOTIVE_LINES = {
     ("Castlereagh", "hegemony_pressure"): [
         "His Majesty's Government observes the growth of French power with concern, and prefers instruments to incidents.",
         "London does not negotiate from fear; it negotiates from arithmetic. The arithmetic has changed.",
+        "London's interest is trade, and trade wants settled sea-lanes more than it wants a satisfying enemy.",
     ],
     ("Castlereagh", "unknown_baseline"): [
         "His Majesty's Government transmits the following for France's consideration.",
@@ -221,6 +231,7 @@ _NAMED_MOTIVE_LINES = {
         # never wit). The bank is still 2 lines, so no pin moves.
         "Berlin will not pretend otherwise: France stands too near the Rhine. Prussia would fix that line in ink before she fixes it in blood.",
         "Prussia does not bow. But Prussia can sign.",
+        "Prussia's interest is the Rhine at peace and the army at home; Berlin signs where those two meet.",
     ],
     ("Hardenberg", "unknown_baseline"): [
         "Prussia says what she means: here is the offer.",
@@ -241,6 +252,7 @@ _NAMED_MOTIVE_LINES = {
     ("Metternich", "hegemony_pressure"): [
         "Austria is… attentive to France's progress, and would prefer that attention remain cordial.",
         "Vienna finds France's reach remarkable, and remarkable things are best bound in treaties.",
+        "Vienna has survived every colossus by outliving it politely; in the meantime, one does business.",
     ],
     ("Metternich", "unknown_baseline"): [
         "Austria offers terms; Vienna trusts France will find them — considered.",
@@ -261,6 +273,7 @@ _NAMED_MOTIVE_LINES = {
     ("Einsiedel", "hegemony_pressure"): [
         "His Majesty asks most respectfully for assurance — Europe has grown loud, and Saxony is small.",
         "We beg France's patience; a small court must have papers where great ones have armies.",
+        "Saxony has kept her house through many great reigns by keeping her treaties current; His Majesty would merely continue the practice.",
     ],
     ("Einsiedel", "unknown_baseline"): [
         "His Majesty submits the offer most respectfully for France's consideration.",
@@ -279,6 +292,7 @@ _NAMED_MOTIVE_LINES = {
     ('Araujo', 'hegemony_pressure'): [
         'Portugal has watched France grow so vast that a careful minister in Lisbon thinks less of resisting such a tide than of finding a quiet harbor within it.',
         "A kingdom as modest as ours does not measure itself against the Empire's shadow, and Lisbon would far rather reach an understanding than be caught standing in its path.",
+        "Lisbon's fortune has always sailed with whoever commands the roads of Europe, and Portugal would sooner carry France's trade than test France's patience.",
     ],
     ('Araujo', 'unknown_baseline'): [
         'Lisbon sends this proposal in the plain hope that two courts may speak frankly and part on better terms than they met.',
@@ -296,6 +310,7 @@ _NAMED_MOTIVE_LINES = {
     ('Bernstorff', 'hegemony_pressure'): [
         "The Crown of Denmark marks how far France's power now reaches across Europe, and her sovereign judges it the part of a careful neighbour to settle matters by agreement rather than by arms.",
         "As France's ascendancy spreads over the map of the Continent, the Crown Prince would keep his narrows clear of so great a contest and treat plainly with Paris instead.",
+        "Denmark's crown asks nothing of France but open narrows and honest prices, and offers plain dealing in return.",
     ],
     ('Bernstorff', 'unknown_baseline'): [
         'The Crown of Denmark sends her minister to set a proposal plainly before France, one neutral court speaking correctly to another across the narrow seas.',
@@ -313,6 +328,7 @@ _NAMED_MOTIVE_LINES = {
     ('Cevallos', 'hegemony_pressure'): [
         "His Catholic Majesty marks how far the power of France now reaches, and it is the King's wish that so weighty a friendship be fixed in settled terms and not left to chance.",
         "The Crown of Spain beholds the greatness to which France has risen, and it is His Majesty's wish that a friendship of such weight rest upon plain and honorable articles rather than upon trust alone.",
+        "His Catholic Majesty holds that the two crowns prosper together or not at all, and would see that partnership written plainly.",
     ],
     ('Cevallos', 'unknown_baseline'): [
         'His Catholic Majesty has charged this ministry to set His terms before you plainly, in the very form the King intends and no other.',
@@ -330,6 +346,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Hanover', 'hegemony_pressure'): [
         'Hanover has watched France grow until her shadow lies across the whole of the north, and a prudent electorate does not set itself against a tide it has no power to turn.',
         "This court holds no illusion of matching France's strength, and it judges a quiet understanding far the wiser course beside a proud and empty resistance.",
+        "Hanover's law is the Empire's old law: settled instruments outlast strong armies, and this court would rather hold a paper than a grievance.",
     ],
     ('Chancery of Hanover', 'unknown_baseline'): [
         'The Chancery of Hanover sets a plain proposal before France, without ornament and without any hidden design folded inside it.',
@@ -347,6 +364,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Helvetia', 'hegemony_pressure'): [
         'France has grown so vast that even an old neutrality feels its weight against the mountains, and the Confederation has always held it wiser to bend early than to be broken late.',
         'We are a small confederation that covets nothing beyond the quiet of its own valleys, and before a power so vast the cantons hold it no dishonor to seek terms rather than a stand they could not keep.',
+        'The cantons have watched armies cross the passes for five hundred years, and the confederations that endured were the ones with their accounts settled in advance.',
     ],
     ('Chancery of Helvetia', 'unknown_baseline'): [
         'The Diet has sent me with a plain proposal and no long oration, for the cantons like their business as they like their mountain roads, straight and without ornament.',
@@ -364,6 +382,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Hesse', 'hegemony_pressure'): [
         'Hesse has watched France grow very great, and a court so small knows better than to stand in the path of such a power, preferring an understanding to any quarrel.',
         'So great a power has nothing to fear from a house as small as Hesse, which asks only to come quietly to terms and give France no trouble at all.',
+        'Hesse counts what a quarrel with France would cost and what an understanding would return, and finds the ledger unanimous.',
     ],
     ('Chancery of Hesse', 'unknown_baseline'): [
         'Hesse comes to the French court with no design and no complaint, asking only to settle a small matter between them.',
@@ -381,6 +400,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Sardinia', 'hegemony_pressure'): [
         'The King of Sardinia has already felt the full weight of France upon his lost mainland, and the Crown judges it the wiser course to treat with such a power than to defy it to no purpose.',
         "His Majesty marks how far the reach of France now extends across Europe, and in the King's name his chancery would sooner secure an honorable understanding than court a ruin it already knows too well.",
+        "The King has paid once for misjudging France's reach; Turin now prefers investments to wagers.",
     ],
     ('Chancery of Sardinia', 'unknown_baseline'): [
         "The chancery of Sardinia comes before France in the King's name, charged to set this offer plainly and without ornament before you.",
@@ -398,6 +418,7 @@ _NAMED_MOTIVE_LINES = {
     ('Consalvi', 'hegemony_pressure'): [
         'France has grown so vast that her shadow now falls even upon the altar, and Rome, having no armies to set against it, would far sooner offer her friendship than her fear.',
         'Rome has outlasted the storms of many centuries by bowing her head to the wind rather than breaking against it, and she would seek only to shelter beneath the greatness of France, never to strive against it.',
+        'Rome measures powers in centuries and finds it profitable to be patient with all of them; an understanding with France costs the Church nothing that time will not repay.',
     ],
     ('Consalvi', 'unknown_baseline'): [
         'The Holy See comes to the Emperor bearing neither complaint nor condition, only a matter it would set plainly before him.',
@@ -415,6 +436,7 @@ _NAMED_MOTIVE_LINES = {
     ('Czartoryski', 'hegemony_pressure'): [
         'A Europe in which one crown grows to eclipse all the others can never settle into the design that a lasting peace requires, and Russia would far rather compose that balance by agreement than leave it to the arbitration of arms.',
         "France's star climbs so swiftly that the lesser courts grow restive, and it would honor the wisdom of both our thrones to settle the shape of things before that unease hardens into coalition.",
+        "Petersburg does not fear France's greatness; it proposes to give that greatness a settled place in Europe's design, which is worth more than any coalition.",
     ],
     ('Czartoryski', 'unknown_baseline'): [
         'Russia lays this proposal before you in the plain conviction that the affairs of Europe are best arranged by those with the vision to see the whole board.',
@@ -432,6 +454,7 @@ _NAMED_MOTIVE_LINES = {
     ('Ehrenheim', 'hegemony_pressure'): [
         "His Majesty regards the spread of French power across the north with plain disquiet, yet the Crown, weighing that disquiet against Sweden's slender means, instructs its servant to prefer terms to the trial of arms.",
         'The King does not pretend to welcome the shadow France now casts over Europe, and it is precisely because he cannot answer it in the field that his servant is sent seeking accommodation.',
+        "Sweden's trade crosses waters France now commands, and His Majesty finds a working understanding cheaper than a principled quarrel.",
     ],
     ('Ehrenheim', 'unknown_baseline'): [
         "His Majesty's servant is instructed to set this proposal before France exactly as the Crown has framed it, and to add nothing to it of his own.",
@@ -449,6 +472,7 @@ _NAMED_MOTIVE_LINES = {
     ('Marescalchi', 'hegemony_pressure'): [
         'His Majesty has raised France to a greatness Europe has never beheld, and the Kingdom of Italy, which shares his crown, asks only to be joined to that grandeur by firm covenant rather than left to stand apart from it.',
         "Where the Emperor's star climbs so high above the other courts of Europe, the Kingdom of Italy seeks no station of its own apart from his, and asks that its loyal place at his side be set down plainly for all the continent to read.",
+        "Milan's fortunes are already joined to the Emperor's star; the Kingdom asks only that the profit of that union be set down as plainly as its duty.",
     ],
     ('Marescalchi', 'unknown_baseline'): [
         'The Kingdom of Italy comes before France in the plain good faith of a house that answers to the very same sovereign.',
@@ -466,6 +490,7 @@ _NAMED_MOTIVE_LINES = {
     ('Medici', 'hegemony_pressure'): [
         'The greatness of France fills the whole of the continent now, and a court as modest as Naples has never thought it wise to stand in the path of so great a river.',
         'Naples has never confused the friendship of great powers with a burden, and a small court stays whole only by knowing where the safer shore lies.',
+        'Naples has always counted better than she has fought, and the count favors friendship with France.',
     ],
     ('Medici', 'unknown_baseline'): [
         'Naples comes to Paris in the old manner, with courtesy and an open hand, and lays a simple proposal upon the table.',
@@ -483,6 +508,7 @@ _NAMED_MOTIVE_LINES = {
     ('Montgelas', 'hegemony_pressure'): [
         'Bavaria has marked where the weight of Europe now settles, and a prudent state places itself beside the rising power, never beneath it.',
         "France's reach lengthens with every season, and Munich would sooner write the terms of that nearness now than be handed them later.",
+        'Munich has learned that standing beside the strongest is not submission but investment, and investments are best documented.',
     ],
     ('Montgelas', 'unknown_baseline'): [
         'Bavaria finds a plain advantage in this arrangement and prefers to settle such matters while they are still only advantages.',
@@ -500,6 +526,7 @@ _NAMED_MOTIVE_LINES = {
     ('Reis Efendi', 'hegemony_pressure'): [
         'The Porte watches the star of France climb ever higher and, being an old admirer of whatever endures, would sooner arrange itself gracefully beneath so great a light than stand across its path.',
         "The Sublime Porte has learned across many centuries that it is the wiser house which comes to terms with the rising tide rather than argue with it, and it finds in France's greatness every reason for accommodation and none for dispute.",
+        "The Porte has outlasted a hundred ascendancies by trading with each at its noon; France's noon has come, and the bazaar is open.",
     ],
     ('Reis Efendi', 'unknown_baseline'): [
         'The Sublime Porte approaches France in the plain and unhurried manner of an old house, laying its proposal upon the table with neither urgency nor concealment.',
@@ -517,6 +544,7 @@ _NAMED_MOTIVE_LINES = {
     ('Schimmelpenninck', 'hegemony_pressure'): [
         "Holland lives already within the reach of France's power and knows better than any nation what that reach can compass, and the Republic would have that relation settled by treaty rather than proved by arms.",
         "France now stands foremost among the powers of Europe, and the States, mindful that Holland's fortunes have long been joined to hers, have charged me to seek that this connection be made firm and lasting by treaty.",
+        "Holland's genius is commerce, and commerce does not argue with geography: France commands the roads, so the Republic would set tariffs upon them, not grievances.",
     ],
     ('Schimmelpenninck', 'unknown_baseline'): [
         'The States of Holland have directed this proposal to your Majesty, and I lay it before you as the office requires, without addition of my own.',
@@ -1674,9 +1702,14 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # Live review heading — replaces the raw verdict f-string at the
     # settlement_confirm popup heading. Talleyrand voice for outgoing
     # review where France authored the package.
+    # CA8-17 (close-out gate 10.3): the tail is a COLON form so it scans
+    # with either the spoken-register clause ("the terms claim a victory
+    # the field has not delivered") or the table label fallback
+    # ("Settlement legitimacy") — a label was being spliced into
+    # Talleyrand's mouth as speech.
     "settlement_review_heading_talleyrand": (
         "Sire, the settlement of {war_label} stands ready for ratification. "
-        "Acceptance reads as {acceptance_band}; the largest pressure remains "
+        "Acceptance reads as {acceptance_band}; what weighs heaviest: "
         "{top_blocker}."
     ),
     # Foreign-court / observer settlement voice for fog-visible
@@ -2073,9 +2106,10 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # settlement was blocked. Spec §SC-19 amendment + §SC-30 Voice Bible
     # cross-court rule require chancery voice (not Talleyrand) so the
     # observed-from-outside reading does not pretend French authorship.
+    # CA8-17: em-dash parenthetical so a spoken clause and a label both scan.
     "settlement_blocked_for_ratification_observer": (
-        "The chancery records the draft of {war_label} as blocked. "
-        "{top_blocker} leaves no court with signatures to exchange."
+        "The chancery records the draft of {war_label} as blocked — "
+        "{top_blocker} — and no court holds signatures to exchange."
     ),
     # SC-30 / Slice G1 — the Request Terms lifecycle voice family
     # (Voice Bible §16.1). The GRANT beat deliberately has no template of
@@ -2170,6 +2204,57 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     "settlement_multi_court_holdout_blocks_talleyrand": (
         "Sire, {holdout_court} will not sign; the settlement of {war_label} cannot "
         "be ratified until that court is eased toward terms or dropped to fight on."
+    ),
+    # ───────────────────────────────────────────────────────────────────
+    # CA8-17 (close-out gate 10.3) — the spoken-register table voice.
+    # The leaning/holds-out lines stop splicing a scorer column label into
+    # a diplomat's mouth: `{blocker_clause}` carries the SPOKEN form of the
+    # top-blocking component (SPOKEN_BLOCKER_PHRASES below), and each of
+    # the four cast diplomats frames the band in his own register, with
+    # the `_chancery` row as the fallback re-lookup — the live ally-petition
+    # idiom (`settlement_offers._ally_petition_voice_suffix`), so DEF-1 adds
+    # named voices later by ADDING rows, never by restructuring. Committed
+    # copy obeys SC-32 D5: no "conference"/"congress"/"veto"; every line
+    # names its {speaker} (the REFRONT-V tripwire).
+    # ───────────────────────────────────────────────────────────────────
+    "settlement_multi_court_court_leaning_castlereagh": (
+        "{speaker} finds the sum nearly in order — {court} would sign, "
+        "but {blocker_clause}, and London does not round in France's favor."
+    ),
+    "settlement_multi_court_court_leaning_hardenberg": (
+        "{speaker} does not haggle: {court} is close to terms, "
+        "yet {blocker_clause}."
+    ),
+    "settlement_multi_court_court_leaning_metternich": (
+        "{speaker} allows that {court} is… persuadable — "
+        "though {blocker_clause}."
+    ),
+    "settlement_multi_court_court_leaning_einsiedel": (
+        "{speaker} ventures, most respectfully, that {court} could be "
+        "brought to sign — though {blocker_clause}, and it troubles "
+        "His Majesty."
+    ),
+    "settlement_multi_court_court_leaning_chancery": (
+        "{speaker} conveys that {court} leans toward terms, "
+        "though {blocker_clause}."
+    ),
+    "settlement_multi_court_court_holds_out_castlereagh": (
+        "{speaker} declines for {court}: {blocker_clause}, and arithmetic "
+        "does not sign papers it cannot balance."
+    ),
+    "settlement_multi_court_court_holds_out_hardenberg": (
+        "{speaker} is plain: {court} will not sign while {blocker_clause}."
+    ),
+    "settlement_multi_court_court_holds_out_metternich": (
+        "{speaker} regrets that {court} must remain… unconvinced — "
+        "{blocker_clause}."
+    ),
+    "settlement_multi_court_court_holds_out_einsiedel": (
+        "{speaker} begs France's patience — {court} cannot yet sign, "
+        "for {blocker_clause}."
+    ),
+    "settlement_multi_court_court_holds_out_chancery": (
+        "{speaker} holds {court} back from the table — {blocker_clause}."
     ),
     # ───────────────────────────────────────────────────────────────────
     # PF-1 / DC-2 (Gate-4 pre-flight audit) — the binding-constraint voice.
@@ -2336,6 +2421,56 @@ _MULTI_COURT_BAND_TEMPLATE = {
     "reject": "settlement_multi_court_court_holds_out",
 }
 
+# ═══════════════════════════════════════════════════════════════════════
+# CA8-17 (close-out gate 10.3) — the spoken-blocker vocabulary.
+# The 8 negative-capable acceptance components (the only ones the scorer's
+# feedback list can ever surface as a top blocker — it collects `v < 0`
+# terms only), each as a present-tense SPOKEN clause a diplomat can say.
+# The `display_names.ACCEPTANCE_COMPONENT_DISPLAY` labels stay exactly
+# where labels belong — in the per-court TABLE — and any component missing
+# here (a future scorer term) falls back to that label, so a new component
+# degrades to the old behavior rather than rendering raw braces.
+# ═══════════════════════════════════════════════════════════════════════
+SPOKEN_BLOCKER_PHRASES: Dict[str, str] = {
+    "base_side_pressure": "the fortunes of war do not yet compel them",
+    "settlement_tier_legitimacy": (
+        "the terms claim a victory the field has not delivered"),
+    "term_harshness_penalty": "the terms weigh heavier than their defeat",
+    "leader_own_losses": (
+        "their crown is asked to sign away too much of its own"),
+    "burdened_participant_penalty": (
+        "the settlement lays its cost on courts that did not lose the war"),
+    "projected_hegemony_mod": (
+        "the balance of Europe tilts too far with the signature"),
+    "abandoned_by_ally_acceptance_mod": (
+        "the memory of being abandoned still governs their pen"),
+    "agenda_settlement_mod": "the terms cut against their national design",
+}
+
+# The cast suffixes, per the LIVE override idiom (`settlement_offers.
+# _ally_petition_voice_suffix`) — nation → named-diplomat suffix, everyone
+# else `chancery`. Named-envoy registers beyond these four are DEF-1
+# Roster Voices' scope (Voice Bible §16.1a as amended Aug 7, 2026).
+_SETTLEMENT_TABLE_VOICE_SUFFIX = {
+    "Britain": "castlereagh",
+    "Prussia": "hardenberg",
+    "Austria": "metternich",
+    "Saxony": "einsiedel",
+}
+
+
+def spoken_blocker_phrase(component: str, fallback: str = "") -> str:
+    """The spoken form of a top-blocking acceptance component (CA8-17).
+
+    Falls back to the caller's display label (then a neutral phrase) so an
+    unmapped component degrades to the pre-CA8-17 rendering instead of
+    leaking raw braces through `_MissingSettlementSlot`.
+    """
+    phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
+    if phrase:
+        return phrase
+    return str(fallback or "") or "the standing terms"
+
 
 def resolve_multi_court_settlement_voice(
     world: Any,
@@ -2364,19 +2499,43 @@ def resolve_multi_court_settlement_voice(
         hard_stopped = bool(row.get("hard_stops")) and row.get("total") is None
         band = str(row.get("band") or "reject")
         top_blocker = str(row.get("top_blocker_display") or "the standing terms")
+        # CA8-17 (close-out gate 10.3): the SPOKEN clause for the court's
+        # top-blocking component; the table label is only the fallback.
+        blocker_clause = spoken_blocker_phrase(
+            str(row.get("top_blocker_component") or ""), top_blocker)
         if hard_stopped:
             template_key = "settlement_multi_court_court_hard_stop"
         else:
             template_key = _MULTI_COURT_BAND_TEMPLATE.get(
                 band, "settlement_multi_court_court_holds_out"
             )
-        line = resolve_settlement_voice_line(
-            template_key,
-            speaker=speaker,
-            court=court,
-            war_label=war_label or "this war",
-            top_blocker=top_blocker,
-        )
+        line = ""
+        if template_key in ("settlement_multi_court_court_leaning",
+                            "settlement_multi_court_court_holds_out"):
+            # CA8-17: register chain — named-cast suffix → `_chancery`
+            # (the ally-petition fallback re-lookup idiom). The legacy
+            # unsuffixed template stays registered as the last resort so
+            # third-party template mods degrade, never break.
+            suffix = _SETTLEMENT_TABLE_VOICE_SUFFIX.get(court, "chancery")
+            for candidate_key in (f"{template_key}_{suffix}",
+                                  f"{template_key}_chancery"):
+                line = resolve_settlement_voice_line(
+                    candidate_key,
+                    speaker=speaker,
+                    court=court,
+                    war_label=war_label or "this war",
+                    blocker_clause=blocker_clause,
+                )
+                if line:
+                    break
+        if not line:
+            line = resolve_settlement_voice_line(
+                template_key,
+                speaker=speaker,
+                court=court,
+                war_label=war_label or "this war",
+                top_blocker=top_blocker,
+            )
         per_court_voice.append({
             "nation": court,
             "speaker": speaker,
@@ -3368,11 +3527,14 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         world: WorldState
         deterministic: If True, skip jitter (for testing). Default False.
     """
-    from backend.game_logic.diplomacy import get_war_score_for
+    # CA8-3 / CA8-D2 (close-out gate 10.1): Talleyrand prices the WAR
+    # France is actually fighting, not the leader pair — falls back to the
+    # pair score when no war instance covers the two courts.
+    from backend.game_logic.diplomacy import get_side_war_score_for
     player_nation = get_player_nation(world)
     diplo_key = world._make_diplo_key(player_nation, target_nation)
     relation = world.nation_relations.get(diplo_key, 0)
-    war_score = get_war_score_for(world, player_nation, target_nation)
+    war_score = get_side_war_score_for(world, player_nation, target_nation)
 
     terms = {
         "type": proposal_type,
@@ -3399,17 +3561,25 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
             gold_offer = min(200, max(50, int(gold_factor)))
             terms["sweeteners"].append({"type": "gold_per_turn", "value": int(gold_offer)})
 
-            # R147: Offer territory cession when losing
-            # Non-capital regions first; capital only as desperate last resort
-            player_capital = world.get_nation_capital(player_nation) or "Paris"
-            player_regions = world.get_nation_regions(player_nation)
-            non_capital = [r for r in player_regions if r != player_capital]
-            max_cede = 1 if war_score >= -40 else 2
-            for region in non_capital[:max_cede]:
-                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [region]})
-            # Capital offered only as desperate last resort (war_score < -60)
-            if war_score < -60 and len(non_capital) < max_cede:
-                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [player_capital]})
+            # R147: Offer territory cession when LOSING — strictly.
+            # CA8-27 (close-out gate 10.1): every war boots at −80/−90
+            # relations, so `relation < -50` alone reached this branch in
+            # every wartime peace France ever proposed — Talleyrand drafted
+            # "France cedes Nivernais" with Vienna taken and the war score
+            # at +2. A hostile court may be sweetened with gold above; it
+            # is never paid in homeland provinces unless the FIELD says
+            # France is losing.
+            if war_score < -20:
+                # Non-capital regions first; capital only as desperate last resort
+                player_capital = world.get_nation_capital(player_nation) or "Paris"
+                player_regions = world.get_nation_regions(player_nation)
+                non_capital = [r for r in player_regions if r != player_capital]
+                max_cede = 1 if war_score >= -40 else 2
+                for region in non_capital[:max_cede]:
+                    terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [region]})
+                # Capital offered only as desperate last resort (war_score < -60)
+                if war_score < -60 and len(non_capital) < max_cede:
+                    terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [player_capital]})
 
             # R148: Offer manpower when losing badly
             if war_score < -30:

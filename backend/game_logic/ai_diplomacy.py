@@ -3568,15 +3568,26 @@ def _emit_settlement_offer_for_war(
     ]
     war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
 
-    # AUD-c: war score from the player's perspective vs the opposing leader
-    # decides whether the offer demands or grants an indemnity.
-    from backend.game_logic.diplomacy import get_war_score_for
+    # AUD-c: war score from the player's perspective decides whether the
+    # offer demands or grants an indemnity.
+    # CA8-3 / CA8-D2 (close-out gate 10.1): a MULTI-PARTY war reads the
+    # WAR, not the leader pair — a campaign of victories over Austria
+    # presses on a Britain-led table too. Same SOURCE as ever (the stored
+    # pair scores), widened to the whole opposing side; a bilateral war is
+    # byte-identical to the pre-gate read.
+    from backend.game_logic.diplomacy import (
+        get_war_score_for, sum_stored_side_score,
+    )
     player_war_score = 0
-    if proposer_nation:
-        try:
-            player_war_score = int(get_war_score_for(world, player, proposer_nation))
-        except Exception:
-            player_war_score = 0
+    try:
+        if len(covered_enemies) > 1:
+            player_war_score = int(sum_stored_side_score(
+                world, player, covered_enemies))
+        elif proposer_nation:
+            player_war_score = int(get_war_score_for(
+                world, player, proposer_nation))
+    except Exception:
+        player_war_score = 0
 
     terms = _settlement_offer_build_terms(
         accepter=player,

@@ -375,8 +375,8 @@ A multi-party settlement seats several enemy courts at one table, each scored in
 | Template | Speaker | Band | Exemplar |
 |---|---|---|---|
 | `settlement_multi_court_court_will_sign` | Named diplomat / chancery | accept | "{speaker} signals that {court} will sign the settlement of {war_label}." |
-| `settlement_multi_court_court_leaning` | Named diplomat / chancery | near_acceptable | "{speaker} says {court} leans toward terms, though {top_blocker} still gives the court pause." |
-| `settlement_multi_court_court_holds_out` | Named diplomat / chancery | reject | "{speaker} holds {court} back from the table — {top_blocker} is the sticking point before they will sign." |
+| `settlement_multi_court_court_leaning_{suffix}` | Register-resolved (castlereagh / hardenberg / metternich / einsiedel / chancery fallback) | near_acceptable | chancery: "{speaker} conveys that {court} leans toward terms, though {blocker_clause}." — **AMENDED Aug 7, 2026 (CA8-17, close-out gate 10.3):** the old unsuffixed exemplar spliced a scorer column label into speech; `{blocker_clause}` now carries the SPOKEN form of the top-blocking component (`SPOKEN_BLOCKER_PHRASES`, 8 negative-capable components), framed per register on the live ally-petition suffix idiom. The unsuffixed template survives only as last-resort fallback. |
+| `settlement_multi_court_court_holds_out_{suffix}` | Register-resolved (same chain) | reject | chancery: "{speaker} holds {court} back from the table — {blocker_clause}." — same amendment. Named-envoy registers beyond the four cast suffixes remain **DEF-1 Roster Voices'** scope: DEF-1 adds rows to this family, never restructures it. |
 | `settlement_multi_court_court_hard_stop` | Named diplomat / chancery | hard stop | "{speaker} has no standing to settle {court} here — there is no live quarrel between us to close." |
 | `settlement_multi_court_table_talleyrand` | Talleyrand | table narration | "Sire, this settlement of {war_label} seats {court_count} courts at the table. {binding_constraint}" |
 | `settlement_multi_court_all_carry_talleyrand` | Talleyrand | binding (carries) | "Every court at the table will sign; the settlement of {war_label} carries." |
@@ -496,6 +496,14 @@ Before committing any new diplomat line to `diplomatic_templates.py`:
 ---
 
 ## Changelog
+
+- **Aug 7, 2026** — §16.1a AMENDED under the user-delegated CA8 close-out gate
+  (`CREATIVE_AUDIT_2026_08_04.md` §10.3): the multi-court leaning/holds-out lines stop
+  quoting the acceptance-component TABLE LABEL as speech. New spoken-blocker vocabulary
+  (`SPOKEN_BLOCKER_PHRASES`, 8 components) + per-register framings for the four cast
+  diplomats with `_chancery` fallback; Talleyrand's review/blocked/white-peace headings
+  now speak the same clauses (colon / em-dash forms so the label fallback still scans).
+  Labels stay in tables; phrases go in mouths.
 
 - **July 2, 2026** - Slice G1 (SC-30 Request Terms lifecycle): added the `settlement_request_terms_sent_talleyrand` / `settlement_request_terms_refused_court` / `settlement_request_terms_lapsed_talleyrand` families to §16.1. The refusal resolves its speaker through `resolve_named_diplomat("envoy", court, world)` with chancery fallback (never anonymous); the grant deliberately has no template — it produces a real incoming offer that speaks through the existing arrival family. SC-32 D5 boundary verified over the new copy.
 - **June 10, 2026** - GT-Slice-V (Settlement Guided Terms §9): added the guided per-court demand-authoring voice family to §16.1a — the DC-4 concede-court caution line (verbatim from the Gate-4 pre-flight audit), the named-court `demand_received` / `offer_received` authoring reactions, the OQ-6 budget-bound recommendation extension of `settlement_budget_bound_constraint_talleyrand`, and the eleven committed `settlement_guided_reason_*_talleyrand` suggestion-reason templates. Retargeted `settlement_incoming_offer_request_revision_talleyrand` onto the guided table (Guided Terms §5 — the beat no longer references opening an editor). SC-32 D5 boundary extended over all new copy.

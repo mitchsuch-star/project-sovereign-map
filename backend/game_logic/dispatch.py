@@ -55,6 +55,19 @@ BAND_MIDPOINTS: Dict[str, int] = {
 HEADLINE_WEIGHTS: Dict[str, int] = {
     "home_captured": 100,       # own homeland region captured by enemy
     "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
+    # ── CA8-26 / gate CA8-D6 (close-out gate 10.2, Aug 7 2026) ──────────
+    # The dispatch finally has headline classes for a FRENCH SUCCESS. The
+    # measured campaign produced 14 of 14 misfortune headlines, and on the
+    # turn France stormed Vienna AND Austria was eliminated the lead was a
+    # supply nag. The weight principle that replaces the old absolute: at
+    # equal scale the wound still leads; a triumph outranks only a wound of
+    # SMALLER scale than itself. Elimination and a stormed capital beat a
+    # broken corps (Vienna is bigger news than one corps reforming); a
+    # decisive field victory beats the standing hunger nag on the day it is
+    # won but not a lost province; a routine conquest sits below every
+    # direct wound to France's own body.
+    "enemy_eliminated": 93,     # a court France fought is knocked out
+    "capital_stormed": 92,      # France takes an enemy CAPITAL
     # CA8-9 (creative audit, Aug 4 2026): a marshal's fall told together
     # with the rise it reverses. Ranked one ABOVE the bare `own_broken` for
     # exactly the reason `region_lost_estate` sits above `region_lost` — it
@@ -75,6 +88,10 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # sentence existed and was routed to the notification bar.
     "region_lost_estate": 76,
     "region_lost": 75,          # any own/vassal region captured
+    # CA8-26: a DECISIVE field victory beats the standing hunger nag on the
+    # day it is won (73 > 72) — but never a lost province (75): at equal
+    # scale the wound leads.
+    "victory_won": 73,
     # Econ spec review §5: an army starving is a slower catastrophe than a
     # province falling and a faster one than a war declaration, so it sits
     # BETWEEN them. Before this, `supply_attrition` was not in this table at
@@ -83,6 +100,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # weight 55 led half the dispatches.
     "supply_strain": 72,
     "war_touches_us": 70,       # coalition tier change / war decl. vs us
+    # CA8-26: a routine conquest is a success below every direct wound to
+    # France's own body and above Europe's business and the household nags.
+    "region_taken": 68,         # France conquers a province (non-capital)
     "ally_broken": 60,          # ally suffered a major defeat
     "estate_eroding": 55,       # ES-7 erosion began
     # Econ spec review §6 (a): the establishment stands under the ordinance
@@ -216,6 +236,14 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "europe_crisis": "Sire — {nation} moves toward war with {target}. The design is open; the timing is not.",
     "europe_congress": "Sire — {proposer} and {accepter} have made peace without us.",
     "europe_crisis_passed": "Sire — {nation} stands down over {target}; {cause}.",
+    # CA8-26 / CA8-D6: the success classes. Composed backend-side (the
+    # `war_touches_us` idiom) because each line's shape varies with what
+    # the event actually was — liberation vs conquest, field vs the
+    # enemy's own capital, who beat whom.
+    "enemy_eliminated": "Sire — {line}",
+    "capital_stormed": "Sire — {line}",
+    "victory_won": "Sire — {line}",
+    "region_taken": "Sire — {line}",
 }
 
 # Beat-7 cause copy for the headline arm (R7 — composed backend-side).
@@ -274,6 +302,12 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "europe_crisis": "The instruments are on the table, Sire — compensate, guarantee, or let it come having been asked.",
     "europe_congress": "A peace made without France sets a table we were not at, Sire. Note who gained.",
     "europe_crisis_passed": "A war that does not happen leaves no monument, Sire — note what held it, and keep that instrument sharp.",
+    # CA8-26: Berthier closes on a triumph the way he closes on a wound —
+    # with the next decision it creates, never with congratulation alone.
+    "enemy_eliminated": "One enemy the fewer, Sire. Every court in Europe is doing its arithmetic tonight.",
+    "capital_stormed": "Their capital in our hands is worth ten field victories, Sire. Expect their court to sue — or to flee.",
+    "victory_won": "The army knows it is winning, Sire. Press the advantage before their line reforms.",
+    "region_taken": "Ground taken must be garrisoned or it bleeds, Sire. Decide what this province is for.",
 }
 
 
@@ -293,6 +327,13 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
         if s.get("lord") == player_nation
     }
     candidates: List[Dict[str, Any]] = []
+    # CA8-26 / gate CA8-D6: success accumulators. A French field victory is
+    # raised from the battle event (annihilation) or from a battle WIN
+    # joined to an enemy corps' forced rout at the same location (the
+    # ordinary decisive shape — `attacker_victory` fires only on total
+    # destruction, while a routed enemy logs a separate forced retreat).
+    _french_wins: Dict[str, Dict[str, Any]] = {}
+    _enemy_routs: Dict[str, str] = {}
 
     def _add(cls: str, identity: str = "", **fields):
         text = _HEADLINE_TEMPLATES[cls].format(**fields)
@@ -337,6 +378,50 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                         _add("region_lost", f"region_lost:{region}",
                              region=region,
                              captor=formed_display_name(world, captor))
+            elif captor == player_nation and region:
+                # ── CA8-26 / gate CA8-D6: France's own conquest is NEWS ──
+                # The dispatch had no headline class for a French success at
+                # all — 14 of 14 measured headlines were misfortunes, and
+                # the turn Vienna fell the lead was a supply nag.
+                _prev_capital = (world.get_nation_capital(prev)
+                                 if prev else None)
+                if _prev_capital and _prev_capital == region:
+                    _add("capital_stormed", f"capital_stormed:{region}",
+                         line=(f"{region} is taken — "
+                               f"{formed_display_name(world, prev)}'s own "
+                               f"capital, and the tricolor flies over it "
+                               f"this morning."))
+                elif region in home_regions:
+                    _add("region_taken", f"region_taken:{region}",
+                         line=(f"{region} is French again. The enemy is "
+                               f"driven out and the province restored."))
+                else:
+                    _add("region_taken", f"region_taken:{region}",
+                         line=(f"{region} has fallen to our arms. The "
+                               f"tricolor flies over it this morning."))
+        elif etype == "nation_eliminated":
+            # CA8-26: a court France fought, knocked out of the war — the
+            # existing event (no new campaign-log type). Gated on France
+            # having actually OPPOSED them in a war instance, so a third
+            # party's kill never reads as a French triumph. Elimination
+            # sets every pair to PEACE before this builder runs, so the
+            # instance record (kept for the AI-4 grudge window) is the
+            # honest witness, not the live diplomatic state.
+            fallen = e.get("nation", "")
+            _we_fought_them = False
+            for _inst in (getattr(world, "war_instances", {}) or {}).values():
+                if not isinstance(_inst, dict):
+                    continue
+                _sides = _inst.get("side_by_nation") or {}
+                _ours, _theirs = _sides.get(player_nation), _sides.get(fallen)
+                if _ours and _theirs and _ours != _theirs:
+                    _we_fought_them = True
+                    break
+            if fallen and _we_fought_them:
+                _add("enemy_eliminated", f"enemy_eliminated:{fallen}",
+                     line=(f"{formed_display_name(world, fallen)} is knocked "
+                           f"out of the war. No army remains beneath their "
+                           f"colours."))
         elif etype == "marshal_captured":
             _add("marshal_captured",
                  f"marshal_captured:{e.get('marshal', '?')}",
@@ -381,6 +466,12 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                      # CA8 sweep 4: the last `_add()` still passing a nation
                      # tag through the marshal-name humaniser.
                      nation=formed_display_name(world, m_nation))
+            elif (m_nation
+                    and world.get_diplomatic_state(player_nation, m_nation) == "WAR"):
+                # CA8-26: an ENEMY corps breaking is half of a French
+                # victory — joined below to a French battle win at the same
+                # field, so an AI-vs-AI rout never reads as our triumph.
+                _enemy_routs[str(region)] = marshal_disp
         elif etype == "battle":
             # Own marshal mauled: >=25% of pre-battle strength lost.
             for side, cas_key in (("attacker", "attacker_casualties"),
@@ -401,6 +492,28 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                          marshal=humanize_entity_name(name),
                          region=e.get("location", "the field"),
                          casualties=f"{casualties:,}")
+            # CA8-26: record a French battle WIN for the success composer
+            # below. Annihilation outcomes stand alone; tactical wins count
+            # only when joined to an enemy rout at the same field.
+            _outcome = str(e.get("outcome", ""))
+            _loc = str(e.get("location", "") or "")
+            if _loc:
+                if (e.get("attacker_nation") == player_nation
+                        and _outcome in ("attacker_victory",
+                                         "attacker_tactical_victory")):
+                    _french_wins[_loc] = {
+                        "victor": str(e.get("attacker", "") or ""),
+                        "loser": str(e.get("defender", "") or ""),
+                        "annihilation": _outcome == "attacker_victory",
+                    }
+                elif (e.get("defender_nation") == player_nation
+                        and _outcome in ("defender_victory",
+                                         "defender_tactical_victory")):
+                    _french_wins[_loc] = {
+                        "victor": str(e.get("defender", "") or ""),
+                        "loser": str(e.get("attacker", "") or ""),
+                        "annihilation": _outcome == "defender_victory",
+                    }
         elif etype in ("diplomatic_war_declared", "war_declaration"):
             aggressor = e.get("aggressor") or e.get("nation", "")
             target = e.get("target", "")
@@ -544,6 +657,34 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     # makes the other). Bounded: one pass over a 500-capped event log plus
     # the marshal roster, once per turn — not a hot path.
     # ────────────────────────────────────────────────────────────────────
+    # ── CA8-26: compose the French-victory candidates ────────────────────
+    # An annihilation win stands alone; a tactical win becomes news only
+    # when the enemy corps actually broke on that field (the ordinary
+    # decisive shape). One candidate per field per turn (CA8-5 discipline).
+    for _loc, _win in _french_wins.items():
+        _routed = _enemy_routs.get(_loc, "")
+        _victor_disp = humanize_entity_name(_win["victor"]) if _win["victor"] else "our arms"
+        if _win["annihilation"]:
+            _loser_disp = humanize_entity_name(_win["loser"]) if _win["loser"] else "the enemy"
+            _add("victory_won", f"victory_won:{_loc}",
+                 line=(f"Marshal {_victor_disp} has destroyed "
+                       f"{_loser_disp}'s corps at {_loc}. No enemy "
+                       f"formation remains in that field."))
+        elif _routed:
+            _add("victory_won", f"victory_won:{_loc}",
+                 line=(f"Marshal {_victor_disp} holds the field at {_loc} — "
+                       f"{_routed}'s corps is broken and flees."))
+    # Absorption: the conquest of a field France just won is the SAME story
+    # told twice — the victory line carries it; the bare map fact yields.
+    # (`capital_stormed` is never absorbed: the capital falling and the
+    # battle that took it are distinct facts, headline + sub-beat.)
+    _victory_locs = {c["identity"].split(":", 1)[1] for c in candidates
+                     if c["class"] == "victory_won"}
+    if _victory_locs:
+        candidates[:] = [c for c in candidates
+                         if not (c["class"] == "region_taken"
+                                 and c["identity"].split(":", 1)[1] in _victory_locs)]
+
     for _name, _arc in _build_marshal_arcs(world, player_nation,
                                            cap=None).items():
         if not _arc.get("reversal_line"):

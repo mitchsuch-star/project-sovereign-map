@@ -80,6 +80,10 @@ def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
     if top_components:
         enriched["top_blocker_display"] = top_components[0]["component_display"]
         enriched["top_blocker_value_display"] = top_components[0]["value_display"]
+        # CA8-17 (close-out gate 10.3): the raw component KEY rides beside
+        # the label so the table voice can speak it instead of quoting it.
+        enriched["top_blocker_component"] = str(
+            top_components[0].get("component") or "")
     return enriched
 
 
@@ -1976,6 +1980,11 @@ def compute_per_court_acceptance(
             "direction": direction,
             "direct_score": row_direct_score,
             "top_blocker_display": top_blocker,
+            # CA8-17: the component KEY beside the label, same gating —
+            # the table voice speaks it; the table itself keeps the label.
+            "top_blocker_component": (
+                enriched.get("top_blocker_component")
+                if below_threshold else None),
             "direction_summary": _court_direction_summary(
                 court, proposer_side_leader, terms,
             ),

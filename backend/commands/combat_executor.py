@@ -2000,6 +2000,22 @@ class CombatExecutor:
         """
         Resolve combat between an attacking marshal and a capital garrison.
 
+        ── CA8-19 GATE RULING (close-out gate 10.5, Aug 7 2026) ──────────
+        Garrison assault is a SEPARATE resolver BY DESIGN, not by neglect.
+        An escalade against a static garrison is not a field battle: there
+        is no opposing commander to out-general, no morale to break (the
+        5,000-collapse threshold IS the garrison's morale model), and no
+        maneuver to flank. Full `resolve_battle` parity was REJECTED at the
+        gate — it would re-record M1-M7 and BASELINE_SERIES (enemy P4.25
+        takes this path every campaign), require a defender object that
+        does not exist, and consume battle-name ordinals whose contract
+        excludes garrison assaults (PC-4). The repulsed attacker's glory
+        reads 0, canonized: the ladder prices reputation between
+        COMMANDERS, and an escalade has no opposing commander to lose face
+        against (JEALOUSY_SPEC §1 DEFEATS exemption). A future combat gate
+        that wants garrison texture starts from the §10.5 record.
+        ──────────────────────────────────────────────────────────────────
+
         Garrison fights with simplified combat: no morale, no retreat, no flanking.
         Attacker stays in their original region until garrison falls below 5,000.
         Garrison gets terrain defense bonus and fortification building bonus.

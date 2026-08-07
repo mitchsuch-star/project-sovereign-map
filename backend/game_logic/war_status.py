@@ -520,6 +520,54 @@ def _collapse_shared_war_instance_rows(
             formed_display_name(world, nation) for nation in ordered_opponents
         )
         combined["is_multi_participant_war"] = True
+
+        # ── CA8-D2 / CA8-24 (close-out gate 10.1) ────────────────────────
+        # The collapsed row used to keep the LEADER-PAIR's score, battles
+        # and duration wholesale — so France crushing Austria read "+0, 0
+        # battles across 0 turns" against a Britain-led coalition while
+        # "What stirred Europe" listed the victories one line below. The
+        # war row now reports the WAR: same keys, honest values, no `.gd`
+        # change. Single source: `calculate_side_war_score` (pair-reducing
+        # by construction, so bilateral rows are untouched).
+        from backend.game_logic.diplomacy import calculate_side_war_score
+        side_components = calculate_side_war_score(
+            france, ordered_opponents, world, return_components=True)
+        combined["war_score"] = int(side_components["total"])
+        combined["breakdown"] = {
+            "territory": int(side_components["territory"]),
+            "battles": int(side_components["battles"]),
+            "decisive": int(side_components["decisive"]),
+            "capital": int(side_components["capital"]),
+            "ticking": int(side_components["ticking"]),
+        }
+        combined["battles_fought"] = int(
+            sum(int(r.get("battles_fought", 0)) for r in rows))
+        combined["decisive_won"] = int(
+            sum(int(r.get("decisive_won", 0)) for r in rows))
+        merged_battles = [b for r in rows
+                          for b in (r.get("recent_battles") or [])]
+        merged_battles.sort(key=lambda b: int(b.get("turn", 0)), reverse=True)
+        combined["recent_battles"] = merged_battles[:5]
+        # The war is as old as its oldest front.
+        combined["duration"] = int(
+            max(int(r.get("duration", 0)) for r in rows))
+        # Trend on the same ±2 rule the pair rows use, over the SUM of
+        # oriented pair scores (previous_war_scores stores the pair view).
+        prev_scores = getattr(world, "previous_war_scores", {}) or {}
+        prev_sum = 0
+        for opponent in ordered_opponents:
+            diplo_key = world._make_diplo_key(france, opponent)
+            prev = int(prev_scores.get(diplo_key, 0) or 0)
+            if france != diplo_key.split("|")[0]:
+                prev = -prev
+            prev_sum += prev
+        now_sum = int(sum(int(r.get("war_score", 0)) for r in rows))
+        if now_sum > prev_sum + 2:
+            combined["trend"] = "rising"
+        elif now_sum < prev_sum - 2:
+            combined["trend"] = "falling"
+        else:
+            combined["trend"] = "stable"
         collapsed.append(combined)
 
     return collapsed

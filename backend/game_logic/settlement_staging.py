@@ -2435,14 +2435,25 @@ def build_settlement_confirm_dialogue(
     band_code = str(preview["acceptance"].get("band") or verdict or "near_acceptable").lower()
     band_display = acceptance_band_display(band_code) or "Under review"
     top_blocker_display = ""
+    top_blocker_component = ""
     components = list(preview["acceptance"].get("top_components") or [])
     if components:
         first = components[0] if isinstance(components[0], Mapping) else {}
         top_blocker_display = str(first.get("component_display") or first.get("display") or "")
+        top_blocker_component = str(first.get("component") or "")
     if not top_blocker_display:
         top_blocker_display = "no single dominant pressure"
     if empty_editor_block:
         top_blocker_display = "no settlement terms authored"
+        top_blocker_component = ""
+    # CA8-17 (close-out gate 10.3): Talleyrand SPEAKS the blocker — the
+    # scorer column label ("Settlement legitimacy") stays in the per-court
+    # table where labels belong; his headings carry the spoken clause. The
+    # empty-editor / no-dominant-pressure literals pass through unchanged.
+    from backend.game_logic.diplomatic_templates import spoken_blocker_phrase
+    top_blocker_spoken = (
+        spoken_blocker_phrase(top_blocker_component, top_blocker_display)
+        if top_blocker_component else top_blocker_display)
     player_nation = str(getattr(world, "player_nation", "France") or "France")
     all_members = {
         str(n)
@@ -2461,7 +2472,7 @@ def build_settlement_confirm_dialogue(
             text = resolve_settlement_voice_line(
                 "settlement_blocked_for_ratification_observer",
                 war_label=war_label,
-                top_blocker=top_blocker_display,
+                top_blocker=top_blocker_spoken,
             ) or f"The chancery records the draft of {war_label} as blocked."
     elif white_peace and can_ratify:
         # G2-Slice-W1: labeled white-peace heading variant. Reuses
@@ -2480,7 +2491,7 @@ def build_settlement_confirm_dialogue(
             resolve_settlement_voice_line(
                 "settlement_white_peace_blocked_talleyrand",
                 war_label=war_label,
-                top_blocker=top_blocker_display,
+                top_blocker=top_blocker_spoken,
             )
             or f"A white peace for {war_label} cannot be ratified now."
         )
@@ -2489,7 +2500,7 @@ def build_settlement_confirm_dialogue(
             "settlement_review_heading_talleyrand",
             war_label=war_label,
             acceptance_band=band_display,
-            top_blocker=top_blocker_display,
+            top_blocker=top_blocker_spoken,
         ) or f"Review the settlement of {war_label}."
     else:
         # SC-3 / SC-19 / SC-15b: when ratification is blocked, suppress
@@ -2500,7 +2511,7 @@ def build_settlement_confirm_dialogue(
         text = resolve_settlement_voice_line(
             "settlement_blocked_for_ratification_talleyrand",
             war_label=war_label,
-            top_blocker=top_blocker_display,
+            top_blocker=top_blocker_spoken,
         ) or f"This settlement of {war_label} cannot be ratified now."
     covered = list(preview.get("covered_enemy_participants") or [])
     selected_target = str(selected_target_nation or "").strip()

@@ -295,6 +295,15 @@ little shelf of tin dioramas you've collected. This is a real fun multiplier (it
 gate** — it needs a persistence question answered and would otherwise become the open-ended "battle
 animation backlog" §10.5 warns against. **Named here so it isn't smuggled into Tier A; not queued.**
 
+**Gallery-gate rider (CA8-25 garrison half, homed here Aug 7, 2026 — CA8-19 close-out gate 10.5):**
+a stormed garrison renders no tableau because `_resolve_garrison_combat` emits
+`garrison_assault`/`conquest` (never a `battle` event) and the tableau has no
+defender-without-a-marshal. The gallery gate owns teaching it one: a **garrison contingent**
+(war-table piece + faction coat; no locket, no standard-take — there is no commander to lose one).
+Completion definition: a garrison assault renders a tableau whose defending contingent is the
+garrison itself; behavior test named when the gate is held. Until then a garrison assault
+deliberately renders no diorama — that is this rider's debt, not an oversight.
+
 ### 12.6 What I would cut / de-risk
 
 - **Don't gild every skirmish.** The significance gate (§12.1) is not optional polish — it's the
