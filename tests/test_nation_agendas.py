@@ -1578,11 +1578,17 @@ class TestPaymasterTiers:
         assert get_paymaster_nation(world1805) is None
 
     def test_tier_ladder_and_cap(self, world):
+        # EB-2 re-bless (Econ Balance gate Aug 7 2026, B9): the fourth
+        # tier (500 above 15,000) + the raised cap (400 → 500) — the
+        # blessed-but-never-landed E4 rider (i), landed with the overseas
+        # pool so a richer Britain funds the coalition harder and the
+        # Continental System attacks the SOURCE of the subsidy.
         from backend.game_logic.agendas import (
             get_paymaster_nation, get_paymaster_subsidy_amount,
         )
         for treasury, expected in ((2001, 200), (4000, 200), (4001, 300),
-                                   (8000, 300), (8001, 400), (999999, 400)):
+                                   (8000, 300), (8001, 400), (15000, 400),
+                                   (15001, 500), (999999, 500)):
             world.nation_gold["Britain"] = treasury
             assert get_paymaster_nation(world) == "Britain"
             assert get_paymaster_subsidy_amount(world, "Britain") == expected

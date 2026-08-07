@@ -621,13 +621,27 @@ MIRROR_THREAT_RUNGS = (
 
 def get_france_perceived_intent(world) -> Tuple[str, int, Optional[str]]:
     """(perceived_price, perceived_weight, perceived_target) — Europe's
-    reading of the player, derived from observable actions only."""
+    reading of the player, derived from observable actions only.
+
+    EB-4.4 (Econ Balance gate Aug 7 2026): with the authored boot threat
+    lowered 85 → 70, the bar alone would read "coerce" while the Third
+    Coalition is literally AT WAR with France — a mirror lie. An active
+    coalition targeting the player whose members are at war with them
+    forces the "fight" rung; the bar keeps its own honest value.
+    """
     threat = int(getattr(world, "threat_level", 0))
     price = "indifferent"
     for rung, floor in MIRROR_THREAT_RUNGS:
         if threat >= floor:
             price = rung
             break
+    player = getattr(world, "player_nation", "France")
+    coalition = getattr(world, "active_coalition", None)
+    if (isinstance(coalition, dict)
+            and coalition.get("target_nation") == player
+            and any(world.is_at_war(m, player)
+                    for m in coalition.get("members", []) or [])):
+        price = "fight"
     return price, max(0, min(100, threat)), _perceived_target(world)
 
 

@@ -217,8 +217,12 @@ class TestSurfaces:
         assert mirror is not None
         assert "hegemon" in mirror["read_as"].lower()
         assert mirror["hegemon_share"] >= 0.33
-        assert mirror["perceived_price"] == "fight"  # a coalition stands
-        assert mirror["perceived_weight"] == 85      # = the alarm level
+        # EB-4 re-pin (Econ Balance gate Aug 7 2026): the authored boot
+        # threat dropped 85 → 70 for headroom; "fight" now comes from the
+        # mirror's coalition-at-war arm (EB-4.4), not the bar alone — the
+        # honest reading while the Third Coalition marches.
+        assert mirror["perceived_price"] == "fight"  # a coalition at war
+        assert mirror["perceived_weight"] == 70      # = the alarm level
         # Measured pin (re-anchor if the authored deployment moves): the
         # Grande Armee's corps read as a threat to the small neighbour
         # whose soil they stand against — §3.5's misreading, by design.
@@ -235,8 +239,12 @@ class TestSurfaces:
     def test_mirror_restraint_drifts_down(self, world):
         # §3.5 pin: a player who does nothing drifts DOWN the perceived
         # ladder — threat decay does the work, so a lower alarm must read
-        # as a lower rung.
+        # as a lower rung. EB-4.4 re-pin: while an active coalition is AT
+        # WAR with France the mirror holds "fight" whatever the bar says
+        # (the honest reading), so the drift is measured after the
+        # coalition is gone — restraint pays once the armies go home.
         hot = build_france_mirror_payload(world)
+        world.active_coalition = None
         world.threat_level = 30
         cooled = build_france_mirror_payload(world)
         assert rung_index(cooled["perceived_price"]) < \

@@ -43,10 +43,17 @@ from backend.models.world_state import WorldState
 # EC-U2 (Combat Overhaul Phase 4): infrastructure maintenance is its own
 # signed component — declared here so the guard forces the "Infrastructure"
 # render line.
-# EC-W1/EC-W2 (Econ War-Coupling pass 3, memo ECON_WAR_COUPLING_RESEARCH_
-# 2026_07_17): income suspended by hostile armies ("Contributions") and the
-# war-exhaustion treasury drain ("War Effort") are their own signed
-# components — declared here so the guard forces both render lines.
+# EC-W1 (Econ War-Coupling pass 3, memo ECON_WAR_COUPLING_RESEARCH_
+# 2026_07_17): income suspended by hostile armies ("Contributions") is its
+# own signed component — declared here so the guard forces the render line.
+# EB-1 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md):
+# EC-W2's "war_effort" key was ABSORBED into "state_charges" — the Charges
+# of Empire, the condition-priced treasury draw whose rate carries the WE
+# term. Conscious re-pin: the old key is gone from every seam.
+# EB-5a/EB-2 (same gate): "requisitions" (what our armies extract from the
+# provinces they disrupt) and "overseas" (the authored colonial pool) are
+# the two new POSITIVE components — declared here so the guard forces
+# both render lines.
 NET_GOLD_COMPONENTS = {
     "income": +1,
     "trade_income": +1,
@@ -54,9 +61,11 @@ NET_GOLD_COMPONENTS = {
     "treaty_gold": +1,
     "vassal_tribute": +1,
     "settlement_gold": +1,
+    "requisitions": +1,
+    "overseas": +1,
     "occupation": -1,
     "contributions": -1,
-    "war_effort": -1,
+    "state_charges": -1,
     "dotation_skim": -1,
     "rente_cost": -1,
     "infrastructure": -1,

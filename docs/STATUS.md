@@ -11,7 +11,16 @@
 > 3.5, 3.75 and **3.8 (the CA8 close-out gates)** are done; the 3.75-open decision is
 > RESOLVED by events.
 >
-> **▶ NEXT = POSITION 4's AUDITION GATE, then position 5.** BOTH halves of Music &
+> **✅ POSITION 4's AUDITION GATE PASSED August 7, 2026 (user) — the Music & Sound row
+> is COMPLETE.** No trims or swaps requested; pool rows stay unwired variants
+> (`MUSIC_SOUND_SPEC.md` §3.5/§3.6). **⚖ SECOND Aug-7 AMENDMENT (user, at the econ
+> hand-off): "after econ fix we make main menu and tutorial next"** — MAIN MENU is the
+> new position **6** (carved out of the build row), TUTORIAL the new **7** (up from 14,
+> "late on purpose" consciously overruled); voice-to-text 8, marshal voice 9, the
+> shippable build 10; downstream renumbered (`ROADMAP.md` §THE ROAD TO EA).
+>
+> **▶ NEXT = POSITION 5, THE ECON BALANCE PASS (gate + build).** Then 6 Main Menu →
+> 7 Tutorial. BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
@@ -20,14 +29,11 @@
 > scribble loop on the command round-trip, end-turn snare, reveille dispatch, desk-bell
 > notifications, seal/bells/sword/cavalry/toll popups, enemy-phase march bed, diorama
 > beds + verdict stings, piece-move cadence, map wind bed). Parse harness EXIT=0 (42
-> scripts), boot smoke 0 SCRIPT ERROR / 0 missing files. **What remains on the row =
-> the §3.5 audition gate**: a live session LISTENS to every cue, tunes trims, swaps any
-> muddy preview — nobody has heard these in-engine yet. Then: **5** the Econ Balance
-> pass (EC-P3's gate — CA8-D1 gold sinks, CA8-D5 threat ceiling, IGR-X9, EWC-D1/F2,
-> the plunder dissent — then the build) → **6** Voice-to-Text (approach gate;
-> recommended v1 = OS dictation certified against the command box) → **7** Marshal
-> Voice Tier 1 + XR-5 (+ the CA8-D3 gate rides this slot) → **8 THE SHIPPABLE BUILD**
-> (old position 4, content unchanged; it inherits position 4's audio shell).
+> scripts), boot smoke 0 SCRIPT ERROR / 0 missing files. The queue after 5: **6** Main
+> Menu → **7** Tutorial → **8** Voice-to-Text (approach gate) → **9** Marshal Voice
+> Tier 1 + XR-5 (+ CA8-D3's gate) → **10 THE SHIPPABLE BUILD** (inherits 4's audio
+> shell + 6's menu). Position 5's gate docket: CA8-D1 gold sinks, CA8-D5 threat
+> ceiling, IGR-X9, EWC-D1/F2, XR-4/IGR-X4 residuals, the plunder dissent.
 >
 > **▶ POSITION 2 — LLC + STEAMWORKS — has no entry condition and can start today,
 > in parallel.** It is the only item with weeks of *calendar* lead time and zero

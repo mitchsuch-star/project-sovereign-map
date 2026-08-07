@@ -122,8 +122,12 @@ class EconomyExecutor:
         occupation = int(income_data.get("occupation", 0))
         # EC-W1: income suspended by hostile armies — separate Net component
         contributions = int(income_data.get("contributions", 0))
-        # EC-W2: war-effort spending from the chest — separate Net component
-        war_effort = int(income_data.get("war_effort", 0))
+        # EB-5a: requisitions from disrupted enemy provinces (positive)
+        requisitions = int(income_data.get("requisitions", 0))
+        # EB-2: the overseas/colonial pool (positive)
+        overseas = int(income_data.get("overseas", 0))
+        # EB-1: the Charges of Empire (absorbs EC-W2's War Effort)
+        state_charges = int(income_data.get("state_charges", 0))
         # ES-7 (S7): estate redirect is a separate Net component too
         dotation_skim = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill
@@ -212,6 +216,11 @@ class EconomyExecutor:
                     f"(enemy army on our soil)"
                 )
 
+        # EB-5a: what our own armies requisition from provinces they disrupt
+        if requisitions > 0:
+            lines.append(f"\n  Requisitions: +{requisitions}g  "
+                         f"(our armies live off the enemy's provinces)")
+
         # CA8-10: trade, and the blockade eating it. Both were absent, and
         # trade is one of the largest single streams a naval power moves.
         if trade_income:
@@ -219,28 +228,32 @@ class EconomyExecutor:
         if blockade:
             lines.append(f"  Blockade: -{blockade}g  "
                          f"(enemy fleets close our ports)")
+        # EB-2: the overseas/colonial pool, sea-power-modulated
+        if overseas > 0:
+            lines.append(f"\n  Overseas trade: +{overseas}g  "
+                         f"(the colonies and the sea lanes)")
         if vassal_tribute:
             lines.append(f"\n  Vassal tribute: +{vassal_tribute}g")
         if treaty_gold:
             sign = "+" if treaty_gold >= 0 else ""
             lines.append(f"\n  Treaty gold: {sign}{treaty_gold}g/turn")
 
-        # EC-W2: the war consuming the war chest (scaled by war exhaustion)
+        # EB-1: the Charges of Empire — condition-priced draw on the chest
+        # (absorbs EC-W2's War Effort; the WE term rides inside the rate).
         #
-        # CA8-10: the explanation used to be guarded by `if war_effort > 0`,
-        # so on turn 1 — the only turn the played campaign ever opened this
-        # report — it was 0 and printed nothing. War Effort then ran
-        # -8 -> -122 -> -538 -> -1,238 with its cause never stated on any
-        # surface the player saw. A zero is not a reason to withhold the
-        # mechanic; it is the cheapest moment to teach it.
-        we_val = int(getattr(world, "war_exhaustion", {}).get(nation, 0) or 0)
-        if war_effort > 0:
-            lines.append(f"\n  War Effort: -{war_effort}g  "
-                         f"(war exhaustion {we_val} drains the war chest)")
-        elif we_val > 0 or world.get_nations_at_war_with(nation):
-            lines.append(f"\n  War Effort: -0g  (war exhaustion {we_val} — "
-                         f"this grows with every turn at war and is charged "
-                         f"against the treasury)")
+        # CA8-10's rule carries over: a zero is not a reason to withhold the
+        # mechanic; it is the cheapest moment to teach it. The named terms
+        # explain the rate the charge applies (shown = applied).
+        charges_rate = world.get_state_charges_rate(nation)
+        rate_terms = charges_rate.get("terms", [])
+        term_str = "; ".join(f"{t['label']} +{t['amount']}" for t in rate_terms)
+        if state_charges > 0:
+            lines.append(f"\n  Charges of Empire: -{state_charges}g  "
+                         f"(rate {charges_rate['rate']}: {term_str})")
+        elif rate_terms:
+            lines.append(f"\n  Charges of Empire: -0g  (the chest sits at its "
+                         f"working floor; above it the rate is "
+                         f"{charges_rate['rate']}: {term_str})")
 
         # CA8-10: the fleet's own bill, which sits in the same income dict
         # this report was already reading and was simply never subtracted.
@@ -347,7 +360,9 @@ class EconomyExecutor:
                 "income": int(income_data["income"]),
                 "occupation": int(occupation),
                 "contributions": int(contributions),
-                "war_effort": int(war_effort),
+                "requisitions": int(requisitions),
+                "overseas": int(overseas),
+                "state_charges": int(state_charges),
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
                 "infrastructure": int(infrastructure),
@@ -1109,12 +1124,20 @@ class EconomyExecutor:
         else:
             standing = (f"He expects {expectation}g/turn of estates and now "
                         f"holds {satisfaction}g/turn — the endowment falls short.")
+        # XR-4 (Econ Balance gate EB-3): a war-torn estate is a legal and
+        # honest grant, but the player must hear that the 0g is TEMPORARY —
+        # revenues recover as the province's stability does.
+        recovery_note = ""
+        if estate_income <= 0:
+            recovery_note = (" The estate lies war-torn and yields nothing "
+                             "today — its revenues will recover as the "
+                             "province's stability does.")
         return {
             "success": True,
             "message": (f"{decree}, Marshal {marshal.name} is endowed "
                         f"with {region_name} and styled {title}. Its revenues "
                         f"({estate_income}g/turn) now sustain his household, "
-                        f"not the treasury.{fee_note} {standing}"),
+                        f"not the treasury.{fee_note}{recovery_note} {standing}"),
             "events": [{
                 "type": "dotation_granted",
                 "marshal": marshal.name,

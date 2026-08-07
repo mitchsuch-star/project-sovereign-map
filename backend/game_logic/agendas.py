@@ -36,7 +36,14 @@ AGENDA_PERSISTENCE_COOLDOWN_DELTA = -2  # hawk re-ask cooldown reduction (turns)
 AGENDA_TARGET_DISTANCE_BONUS = 2      # distance-equivalent credit in target picks
 AGENDA_SUBSIDY_TIER_2 = 300           # paymaster subsidy above 4,000 treasury
 AGENDA_SUBSIDY_TIER_3 = 400           # paymaster subsidy above 8,000 treasury
-AGENDA_SUBSIDY_CAP = 400
+# EB-2 (Econ Balance gate Aug 7 2026, B9): the blessed-but-never-landed E4
+# rider (i) — subsidy capacity couples to the paymaster's actual treasury.
+# With the authored overseas pool Britain's purse deepens; a fourth tier +
+# the raised cap keep it homeostatic (Pitt's gold flows at historical
+# relative scale) and give the Continental System its economic target:
+# strangling the pool drops the tier.
+AGENDA_SUBSIDY_TIER_4 = 500           # paymaster subsidy above 15,000 treasury
+AGENDA_SUBSIDY_CAP = 500              # was 400 pre-EB-2 (conscious re-bless)
 AGENDA_GRUDGE_TURNS = 10              # post-peace grudge horizon
 AGENDA_GRUDGE_CAP = 2                 # +threat/turn cap across all nations
 AGENDA_VIOLATION_RELATION_PENALTY = -25  # the Ansbach trap, one-time per pair
@@ -850,12 +857,15 @@ def get_paymaster_nation(world) -> Optional[str]:
 def get_paymaster_subsidy_amount(world, payer: str) -> int:
     """NA-3 §5.7 — the treasury-escalated subsidy. Base 200/turn;
     AGENDA_SUBSIDY_TIER_2 above 4,000 treasury; AGENDA_SUBSIDY_TIER_3
-    above 8,000; capped at AGENDA_SUBSIDY_CAP. Deckless worlds pay the
-    historical flat 200 (legacy byte-compat rides the same base)."""
+    above 8,000; EB-2's AGENDA_SUBSIDY_TIER_4 above 15,000; capped at
+    AGENDA_SUBSIDY_CAP. Deckless worlds pay the historical flat 200
+    (legacy byte-compat rides the same base)."""
     treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0))
     if not (getattr(world, "agendas", {}) or {}):
         return 200
-    if treasury > 8000:
+    if treasury > 15000:
+        amount = AGENDA_SUBSIDY_TIER_4
+    elif treasury > 8000:
         amount = AGENDA_SUBSIDY_TIER_3
     elif treasury > 4000:
         amount = AGENDA_SUBSIDY_TIER_2

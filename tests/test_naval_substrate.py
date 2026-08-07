@@ -177,9 +177,13 @@ class TestShipUpkeep:
         assert "admiralty" in result["breakdown"]
 
     def test_admiralty_reduces_net(self, world):
+        # EB-1/EB-5a/EB-2 re-bless: war_effort became state_charges, and
+        # the two positive components (requisitions, overseas) joined the
+        # applied-net identity.
         result = world.process_income_phase("France")
-        recomputed = (result["income"] - result["occupation"]
-                      - result["contributions"] - result["war_effort"]
+        recomputed = (result["income"] + result["requisitions"]
+                      + result["overseas"] - result["occupation"]
+                      - result["contributions"] - result["state_charges"]
                       - result["dotation_skim"] - result["rente_cost"]
                       - result["infrastructure"] - result["admiralty"]
                       - result["upkeep"] + result["admin_bonus"])

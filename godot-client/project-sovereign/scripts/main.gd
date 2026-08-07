@@ -2339,16 +2339,26 @@ func _display_turn_change(event: Dictionary):
 	var contributions_str = ""
 	if contributions > 0:
 		contributions_str = " | Contributions: -" + str(int(contributions)) + "g"
-	var war_effort = int(event.get("war_effort", 0))
-	var war_effort_str = ""
-	if war_effort > 0:
-		war_effort_str = " | War Effort: -" + str(int(war_effort)) + "g"
+	# EB-1: the Charges of Empire (absorbed EC-W2's War Effort key)
+	var state_charges = int(event.get("state_charges", 0))
+	var state_charges_str = ""
+	if state_charges > 0:
+		state_charges_str = " | Charges of Empire: -" + str(int(state_charges)) + "g"
+	# EB-5a/EB-2: the positive war-and-sea components
+	var requisitions = int(event.get("requisitions", 0))
+	var requisitions_str = ""
+	if requisitions > 0:
+		requisitions_str = " | Requisitions: +" + str(int(requisitions)) + "g"
+	var overseas = int(event.get("overseas", 0))
+	var overseas_str = ""
+	if overseas > 0:
+		overseas_str = " | Overseas: +" + str(int(overseas)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + occupation_str + contributions_str + war_effort_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

@@ -248,8 +248,12 @@ class MetaExecutor:
         occupation_val = int(income_data.get("occupation", 0))
         # EC-W1: hostile-presence suspension is its own Net component
         contributions_val = int(income_data.get("contributions", 0))
-        # EC-W2: war-effort spending is its own Net component
-        war_effort_val = int(income_data.get("war_effort", 0))
+        # EB-5a: requisitions from disrupted enemy provinces (positive)
+        requisitions_val = int(income_data.get("requisitions", 0))
+        # EB-2: the overseas/colonial pool (positive)
+        overseas_val = int(income_data.get("overseas", 0))
+        # EB-1: the Charges of Empire (absorbs EC-W2's War Effort)
+        state_charges_val = int(income_data.get("state_charges", 0))
         # ES-7 (S7): estate redirect is its own Net component too
         dotation_val = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill is its own Net component
@@ -270,8 +274,9 @@ class MetaExecutor:
         # so Income - Occupation - Contributions - War Effort - Dotations -
         # Rentes - Infrastructure - Upkeep + Other == Net == the real delta.
         net_val = treasury - treasury_before_turn
-        other_val = net_val - (income_val - occupation_val - contributions_val
-                               - war_effort_val - dotation_val
+        other_val = net_val - (income_val + requisitions_val + overseas_val
+                               - occupation_val - contributions_val
+                               - state_charges_val - dotation_val
                                - rente_val - infrastructure_val
                                - admiralty_val - blockade_val - upkeep_val)
         net_sign = "+" if net_val >= 0 else ""
@@ -281,7 +286,9 @@ class MetaExecutor:
             other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
         occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
         contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
-        war_effort_str = f" | War Effort: -{war_effort_val}g" if war_effort_val > 0 else ""
+        requisitions_str = f" | Requisitions: +{requisitions_val}g" if requisitions_val > 0 else ""
+        overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
+        state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
@@ -303,7 +310,7 @@ class MetaExecutor:
             surcharge_str = f" (incl. {surcharge_val}g over-limit)"
         else:
             surcharge_str = ""
-        message += f"\n\nIncome: {income_val}g{occupation_str}{contributions_str}{war_effort_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str} | Upkeep: {upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -318,7 +325,9 @@ class MetaExecutor:
             "income": int(income_data.get("income", 0)),
             "occupation": int(occupation_val),
             "contributions": int(contributions_val),
-            "war_effort": int(war_effort_val),
+            "requisitions": int(requisitions_val),
+            "overseas": int(overseas_val),
+            "state_charges": int(state_charges_val),
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),
             "admiralty": int(admiralty_val),

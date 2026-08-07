@@ -212,10 +212,37 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 63, 60, 60, 57, 44,
 #    41, 41, 38, 35, 32, 32, 29, 26, 23, 20, 17, 17, 14, 11, 8, 5, 5, 2,
 #    0, 0, 0, 0, 0, 0]
+#
+# RE-RECORDED CONSCIOUSLY ONCE at the ECON BALANCE gate (August 7, 2026 —
+# docs/audits/ECON_BALANCE_GATE_2026_08_07.md, pre-authorized §6). THREE
+# named causes, separated by a two-arm flip experiment (the NV-4 idiom):
+#   (1) the authored boot threat 85 → 70 (EB-4.1, headroom) — index 0 by
+#       definition, and the whole series re-levels under it;
+#   (2) the DEFENSIVE-win battle_win exemption (EB-4.3) — Arm B (boot
+#       restored to 85, all else live) still lost the prior record's
+#       sporadic +3s from index 5 on: the old bar was re-pinned by France
+#       WINNING DEFENSIVE battles, which no longer alarms Europe;
+#   (3) the econ components (EB-1 charges / EB-2 overseas + subsidy tier
+#       4 / EB-5a requisitions) — Arm C (boot AND defender credit both
+#       restored, econ live) STILL diverges one point at index 5 and
+#       butterflies thereafter: Britain's deepened purse (+307/turn)
+#       crosses the subsidy tiers turns earlier and Austria requisitions
+#       +37/turn from Swabia, so the courts genuinely fight and spend on
+#       a different schedule. Causes (1)+(2)+(3) are jointly the record;
+#       the pin's job from here stays catching UNINTENDED drift.
+# The tail reaches 0 and STAYS there: with defensive wins no longer
+# feeding the alarm, an unplayed France that conquers nothing decays to
+# the honest floor — exactly the quiet-France reading EB-4 exists to
+# make possible (the old bar could never fall while France defended
+# itself competently).
+# Prior series (the IGR-X4 record, i.e. everything above this block):
+#   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 79, 76, 84, 81, 86,
+#    83, 70, 73, 78, 75, 72, 69, 69, 66, 63, 60, 60, 57, 54, 51, 54, 51,
+#    48, 45, 45, 42, 39, 36, 36]
 BASELINE_SERIES = [
-    85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 79, 76, 84, 81, 86,
-    83, 70, 73, 78, 75, 72, 69, 69, 66, 63, 60, 60, 57, 54, 51, 54, 51,
-    48, 45, 45, 42, 39, 36, 36,
+    70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 41, 43, 40, 37, 29, 26,
+    23, 20, 22, 19, 16, 18, 15, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0,
 ]
 
 

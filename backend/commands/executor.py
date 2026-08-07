@@ -1899,15 +1899,20 @@ class CommandExecutor:
             # Net on every wartime last-AP advance. Infrastructure had the
             # same pre-existing gap; all three folded in.
             contributions_val = int(income_data.get("contributions", 0))
-            war_effort_val = int(income_data.get("war_effort", 0))
+            # EB-1: the Charges of Empire (absorbs EC-W2's War Effort)
+            state_charges_val = int(income_data.get("state_charges", 0))
+            # EB-5a/EB-2: the positive components ride the banner too
+            requisitions_val = int(income_data.get("requisitions", 0))
+            overseas_val = int(income_data.get("overseas", 0))
             infrastructure_val = int(income_data.get("infrastructure", 0))
             # ES-7 (S7): estate redirect is its own Net component too
             dotation_val = int(income_data.get("dotation_skim", 0))
             # ES-7 second pass (§0.6.8): the rente bill
             rente_val = int(income_data.get("rente_cost", 0))
             spent_val = saved_gold_spent.get(nation, 0)
-            net_val = (income_val - occupation_val - contributions_val
-                       - war_effort_val - dotation_val - rente_val
+            net_val = (income_val + requisitions_val + overseas_val
+                       - occupation_val - contributions_val
+                       - state_charges_val - dotation_val - rente_val
                        - infrastructure_val - upkeep_val)
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
             turn_end_event = {
@@ -1917,7 +1922,9 @@ class CommandExecutor:
                 "income": int(income_val),
                 "occupation": int(occupation_val),
                 "contributions": int(contributions_val),
-                "war_effort": int(war_effort_val),
+                "requisitions": int(requisitions_val),
+                "overseas": int(overseas_val),
+                "state_charges": int(state_charges_val),
                 "dotation_skim": int(dotation_val),
                 "rente_cost": int(rente_val),
                 "upkeep": int(upkeep_val),
@@ -1934,14 +1941,16 @@ class CommandExecutor:
             spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
             occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
             contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
-            war_effort_str = f" | War Effort: -{war_effort_val}g" if war_effort_val > 0 else ""
+            requisitions_str = f" | Requisitions: +{requisitions_val}g" if requisitions_val > 0 else ""
+            overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
+            state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
             infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
             dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
             rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{occupation_str}{contributions_str}{war_effort_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 

@@ -242,9 +242,18 @@ def _build_economy(world, player: str) -> dict:
     # its own signed Net component, rendered as a "Contributions" line
     # (SC-33 contract; NET_GOLD_COMPONENTS-guarded).
     contributions = int(income_data.get("contributions", 0))
-    # EC-W2: war-effort spending from the chest — its own signed Net
-    # component, rendered as a "War Effort" line (same contract).
-    war_effort = int(income_data.get("war_effort", 0))
+    # EB-5a: what OUR armies requisition from the provinces they disrupt —
+    # its own positive signed Net component ("Requisitions" line).
+    requisitions = int(income_data.get("requisitions", 0))
+    # EB-2: the authored overseas/colonial pool, sea-power-modulated —
+    # its own positive signed Net component ("Overseas Trade" line).
+    overseas = int(income_data.get("overseas", 0))
+    # EB-1: the Charges of Empire (absorbs EC-W2's War Effort) — its own
+    # signed Net component, rendered as a "Charges of Empire" line, with
+    # the named condition terms riding beside it for the tooltip.
+    state_charges = int(income_data.get("state_charges", 0))
+    state_charges_terms = list(
+        (income_data.get("breakdown") or {}).get("state_charges_terms") or [])
     # ES-7 (S7): full income of endowed provinces redirected to marshals'
     # estates — its own signed Net component, rendered as a "Dotations"
     # line (SC-33 both-halves; forced by the NET_GOLD_COMPONENTS guard).
@@ -339,7 +348,8 @@ def _build_economy(world, player: str) -> dict:
 
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold - occupation - contributions - war_effort
+        + settlement_gold + requisitions + overseas
+        - occupation - contributions - state_charges
         - dotation_skim - rente_cost
         - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
     )
@@ -381,7 +391,10 @@ def _build_economy(world, player: str) -> dict:
         "admiralty": admiralty,
         "occupation": occupation,
         "contributions": contributions,
-        "war_effort": war_effort,
+        "requisitions": requisitions,
+        "overseas": overseas,
+        "state_charges": state_charges,
+        "state_charges_terms": state_charges_terms,
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "infrastructure": infrastructure,

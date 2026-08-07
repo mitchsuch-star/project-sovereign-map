@@ -7,8 +7,11 @@ forward Aug 7, 2026: *"we have no sound"*).
 §3 = its landing record — the whole §2 cue map is live: ~75 `AudioManager.*` call
 sites across 27 scripts + `audio_manager.gd` itself; parse harness EXIT=0 over the
 42-script list, boot smoke 0 SCRIPT ERROR / 0 missing-file warnings) →
-**▶ REMAINING = the §3.5 AUDITION GATE** (a live play session listens to every cue
-and tunes trims; nobody has heard these in-engine yet).
+✅ **§3.5 AUDITION GATE PASSED August 7, 2026 (user)** — the live listening session
+was played; no trims, swaps, or re-fetches were requested. **THE ROW IS COMPLETE.**
+The §3.6 pool rows stay deliberately unwired (no seam was picked at audition — they
+remain variants per §3.6's own "or stays a variant" arm, re-openable at any future
+audio pass; no player-facing promise exists).
 **License ledger:** every file below is also recorded in repo-root
 `THIRD_PARTY_LICENSES.md` (the authoritative license table). One NEW visible-credit
 obligation ships with this batch — see §5.
@@ -258,11 +261,10 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
    bed from boot.
 4. **Import**: `.import` sidecars committed for all 75 files (loops are set at
    RUNTIIME via the stream flag, so no import-option edits were needed).
-5. **▶ THE AUDITION GATE — the row's remaining work**: every §2 cue listened to
-   in-engine in a live play session; trims/volumes tuned; any muddy freesound
-   preview re-fetched at original quality (free freesound login — manual user step)
-   or swapped from the zips' pool. Any cue that fails audition is re-sourced or its
-   row cut HERE.
+5. ~~**▶ THE AUDITION GATE — the row's remaining work**~~ ✅ **PASSED August 7, 2026
+   (user)**: the live play session was held; no cue failed audition, no trims or
+   re-fetches were requested. The original-quality freesound re-fetch arm (§4) was
+   not needed and is closed with the gate.
 6. **The pool (sourced, deliberately not yet wired — each needs a seam the audition
    session picks, or stays a variant):** `command_ack` (order-executed feedback —
    the flick already marks the send; decide at audition), `coins_small` (awaits a

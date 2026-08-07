@@ -336,7 +336,10 @@ def test_third_coalition_seeded(world1805):
     assert coalition["leader"] == "Britain"
     assert coalition["target_nation"] == "France"
     assert coalition["members"] == ["Austria", "Britain", "Russia"]
-    assert world1805.threat_level == 85
+    # EB-4 re-pin (Econ Balance gate Aug 7 2026): authored boot 85 → 70
+    # for headroom (band [65,75]); the Third Coalition is authored-active,
+    # not threshold-formed, so the lower boot deletes nothing.
+    assert world1805.threat_level == 70
     assert world1805.coalition_count == 1
 
 

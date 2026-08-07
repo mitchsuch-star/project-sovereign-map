@@ -1603,8 +1603,12 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     occupation = int(income_data.get("occupation", 0))
     # EC-W1: income suspended by hostile armies — same treatment
     contributions = int(income_data.get("contributions", 0))
-    # EC-W2: war-effort spending from the chest — same treatment
-    war_effort = int(income_data.get("war_effort", 0))
+    # EB-5a: what our armies requisition from disrupted provinces (positive)
+    requisitions = int(income_data.get("requisitions", 0))
+    # EB-2: the authored overseas/colonial pool (positive)
+    overseas = int(income_data.get("overseas", 0))
+    # EB-1: the Charges of Empire (absorbs EC-W2's War Effort) — same treatment
+    state_charges = int(income_data.get("state_charges", 0))
     # ES-7 (S7): income redirected to marshals' estates — same treatment
     dotation_skim = int(income_data.get("dotation_skim", 0))
     # ES-7 second pass (§0.6.8): the rente bill — same treatment
@@ -1624,8 +1628,9 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         blockade = int(blockade_trade_loss(world).get(player_nation, 0))
     admiralty = int(income_data.get("admiralty", 0))
 
-    treasury_delta = int(income + trade_income - occupation - contributions
-                         - war_effort - dotation_skim
+    treasury_delta = int(income + trade_income + requisitions + overseas
+                         - occupation - contributions
+                         - state_charges - dotation_skim
                          - rente_cost - infrastructure
                          - blockade - admiralty - upkeep)
 
@@ -1708,10 +1713,14 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         # ES-2 (S6): occupation detail rides the dispatch like the ES-3
         # surcharge — the morning projection can explain the drain
         "occupation": occupation,
-        # EC-W1/EC-W2: the war-coupling drains ride the dispatch too, so
+        # EC-W1/EB-1: the war-coupling drains ride the dispatch too, so
         # the morning projection can explain a wartime treasury squeeze
         "contributions": contributions,
-        "war_effort": war_effort,
+        "state_charges": state_charges,
+        # EB-5a/EB-2: the positive war-and-sea components, named so the
+        # briefing can explain a rising chest too
+        "requisitions": requisitions,
+        "overseas": overseas,
         # ES-7 (S7): estate redirect + the Unmet Marshals roll-up — the
         # morning briefing names whose loyalty is at stake, not just a number
         "dotation_skim": dotation_skim,

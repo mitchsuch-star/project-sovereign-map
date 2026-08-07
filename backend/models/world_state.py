@@ -157,7 +157,29 @@ GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
 # builds through the same pipeline and pays through this same seam). Nations
 # boot with zero built structures (the 1805 scenario authors none), so this
 # is 0 at turn 1 and cannot break the E1 boot-solvency band. Sweep-tunable.
-EUROPE_INFRASTRUCTURE_UPKEEP = 40      # g per turn per built structure
+EUROPE_INFRASTRUCTURE_UPKEEP = 40      # g per turn per built structure (capital tier)
+# EB-3 (Econ Balance gate Aug 7 2026, B10): the flat 40 made a market on a
+# `city` (income 150 × 25% = +37 gross) a PERMANENT −3/turn — the modal
+# buildable tier punished building (CA8-D1's own measurement). Tier-scaled,
+# every legal slot becomes a rational want; ordering capital ≥ major ≥ city
+# is structural, the digits are in-band tunable (each ±10). Towns/rural
+# hold no building slots but CAN hold watchtowers — they bill at the
+# lightest rate. Conscious re-bless of EC-U2's blessed flat 40: the
+# Charges of Empire (EB-1) now carry the structural-drain duty, and the
+# buildings move from tax to want.
+EUROPE_INFRASTRUCTURE_UPKEEP_BY_TIER = {
+    "capital": 40,
+    "major_city": 30,
+    "city": 20,
+    "town": 20,
+    "rural": 20,
+}
+
+
+def infrastructure_upkeep_rate(region) -> int:
+    """EB-3: the per-structure maintenance rate for a region's tier."""
+    return int(EUROPE_INFRASTRUCTURE_UPKEEP_BY_TIER.get(
+        getattr(region, "region_type", "town"), EUROPE_INFRASTRUCTURE_UPKEEP))
 
 
 def _levy_status(world) -> dict:
@@ -196,12 +218,45 @@ def _drill_morale_note(marshal, gain: int) -> str:
 # invader — that rider is EWC-D1, owned by the next econ tuning gate).
 DISRUPTION_MIN_STRENGTH = 1000         # men; smaller remnants don't disrupt
 DISRUPTION_STABILITY_DRAIN = 2         # stability lost per turn under hostile presence
-# EC-W2 "The War Effort": a nation at war consumes its own war chest —
-# int(max(0, treasury) × war_exhaustion // divisor) per turn (WE 200 → 8% of
-# the hoard, WE 50 → 2%). A fraction of a POSITIVE treasury only: a poor
-# nation pays ~nothing (Austria's +18 boot margin is safe by construction)
-# and the term can never push a treasury negative by itself. Sweep-tunable.
+# EB-5a "Requisitions of War" (EWC-D1, built at the Aug-7 Econ Balance gate —
+# la guerre doit nourrir la guerre, the owed half): each region a nation
+# DISRUPTS pays the disruptor a fraction of its BASE income as a positive
+# signed "Requisitions" Net component (strongest-presence nation when
+# several disruptors share a region). The July-17 deferral reason —
+# "crediting the winner accelerates the snowball" — is structurally
+# dissolved by EB-1: extraction lands in a chest taxed at the war rate
+# while the war lasts. B11, band 0.15–0.35.
+REQUISITION_RATE = 0.25
+# EC-W2 "The War Effort" → EB-1 "THE CHARGES OF EMPIRE" (Econ Balance gate,
+# Aug 7 2026 — docs/audits/ECON_BALANCE_GATE_2026_08_07.md §3 EB-1).
+# The WE-only hoard tax generalized into ONE condition-priced rate: the
+# state's suppliers, court, pensions and administration price themselves to
+# the Empire's condition. rate = WE + the named condition terms below;
+# charge = int(max(0, treasury − CHARGES_HOARD_FLOOR) × rate // divisor).
+# A fraction of a POSITIVE chest above a floor only: a poor nation pays
+# ~nothing (Austria's +18 boot margin is safe by construction), the term can
+# never push a treasury negative by itself, and every nation boots charge-0
+# byte-identically because the max boot treasury anywhere (Britain) is
+# exactly the floor. This is what makes the treasury a CONDITIONAL fixed
+# point — the measured Aug-7 disease was that the ONLY brake (WE) switched
+# off exactly when a nation was doing well (Prussia +298/turn and Spain
+# +1,010/turn linearly forever at peace), and was condition-blind at war.
+# Golden peace (rate 30) is deliberately near-unbounded: "the economy may
+# go crazy ONLY when you are doing very well and stable" is the user's own
+# sentence, implemented literally. All values blessed starting numbers,
+# in-band tunable (gate §4); the SHAPE (treasury-fraction above a floor,
+# named condition terms) escalates.
 WAR_EFFORT_DIVISOR = 2500
+CHARGES_HOARD_FLOOR = 2000    # B6: boot-neutrality anchor (= Britain's boot gold);
+#                               lowering below 2,000 is a SHAPE change
+CHARGES_CROWN_BASE = 30       # B1: always — "the household, the pensions, the ministries"
+CHARGES_WAR_RATE = 50         # B2: any active war — "the war establishment"
+CHARGES_ILL_RATE = 75         # B3: any war going ill (side score < −20) — "the wars go ill"
+CHARGES_UNREST_RATE = 75      # B4: restless interior — "the interior is restless"
+CHARGES_GRIP_RATE = 50        # B5: imperial grip < 70 — "the Emperor's grip falters"
+CHARGES_ILL_SCORE = -20       # war-score threshold for the ILL term
+CHARGES_GRIP_THRESHOLD = 70   # grip threshold for the GRIP term
+CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is restless
 # EC-W3 "The Butcher's Bill": one-time materiel charge per battle — the guns,
 # horses and stores lost with each side's casualties. 0.05 g/man = 50g per
 # 1,000, deliberately BELOW the war recruit price (60g/1,000) so replacing
@@ -4495,25 +4550,136 @@ class WorldState:
                 disrupted.add(region.name)
         return disrupted
 
-    def calculate_war_effort_cost(self, nation: str) -> int:
-        """EC-W2: per-turn war spending drawn from the treasury.
+    def get_requisition_map(self) -> Dict[str, int]:
+        """EB-5a: {disruptor nation: gold requisitioned this turn}.
 
-        int(max(0, treasury) × war_exhaustion // WAR_EFFORT_DIVISOR) — a
-        fraction of a POSITIVE chest only, so a poor nation pays ~nothing
-        and the term can never push a treasury negative by itself. Computed
-        on the pre-income treasury; the SINGLE source for the income phase,
-        the treasury report and the ledger (shown = applied). Europe-scoped
-        (N1). Bankruptcy mercy not needed — the term is self-limiting.
+        For each EC-W1-disrupted region, the STRONGEST present disrupting
+        nation extracts int(REQUISITION_RATE × base income_value) — the
+        army eats the province's revenues and forwards a fraction to its
+        paymaster. Same ONE marshal pass as get_disrupted_regions (GR8),
+        same gates (at-war, ≥DISRUPTION_MIN_STRENGTH, not captured).
+        Europe-scoped (N1).
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return {}
+        # region -> (strength, nation) of the strongest disruptor
+        strongest: Dict[str, tuple] = {}
+        for marshal in self.marshals.values():
+            if marshal.strength < DISRUPTION_MIN_STRENGTH:
+                continue
+            if getattr(marshal, "captured_by", ""):
+                continue
+            region = self.regions.get(marshal.location)
+            if region is None or not region.controller:
+                continue
+            if region.controller == marshal.nation:
+                continue
+            if not self.is_at_war(region.controller, marshal.nation):
+                continue
+            best = strongest.get(region.name)
+            if best is None or marshal.strength > best[0]:
+                strongest[region.name] = (marshal.strength, marshal.nation)
+        requisitions: Dict[str, int] = {}
+        for region_name, (_, nation) in strongest.items():
+            region = self.regions.get(region_name)
+            if region is None:
+                continue
+            amount = int(REQUISITION_RATE * region.income_value)
+            if amount > 0:
+                requisitions[nation] = requisitions.get(nation, 0) + amount
+        return requisitions
+
+    def get_state_charges_rate(self, nation: str) -> Dict:
+        """EB-1: the condition-priced rate behind the Charges of Empire.
+
+        Returns {"rate": int, "terms": [{"key", "label", "amount"}...]} —
+        each term a NAMED reading (the AI-3r moment-term idiom) so every
+        surface can explain the rate it applies. Derived per-call from
+        existing state only; zero new serialized fields. Europe-scoped.
+        """
+        if getattr(self, "sovereign_map", "legacy") != "europe":
+            return {"rate": 0, "terms": []}
+        terms = []
+        # The existing war-exhaustion term (EC-W2's arithmetic, absorbed).
+        we = int(getattr(self, "war_exhaustion", {}).get(nation, 0) or 0)
+        if we > 0:
+            terms.append({"key": "war_exhaustion",
+                          "label": "the long war wears on", "amount": we})
+        terms.append({"key": "crown", "label": "the household and the pensions",
+                      "amount": CHARGES_CROWN_BASE})
+        at_war = self.get_nations_at_war_with(nation)
+        if at_war:
+            terms.append({"key": "war_establishment",
+                          "label": "the war establishment",
+                          "amount": CHARGES_WAR_RATE})
+            # "The wars go ill": ANY war whose side score has turned
+            # against us. Reads the CA8-D2 STORED war-level aggregate
+            # (`sum_stored_side_score` — the score-CONSUMING seam, per the
+            # §10.1 convention; the live-component aggregate is the display
+            # surface's and is far too heavy for a per-nation per-turn
+            # mechanical read — the G4 tripwire is the enforcement).
+            # No try/except: a silently-dead condition term is worse than
+            # a crash (this slice's first cut proved it twice).
+            from backend.game_logic.diplomacy import sum_stored_side_score
+            ill = False
+            for enemy in at_war:
+                if sum_stored_side_score(self, nation, [enemy]) < CHARGES_ILL_SCORE:
+                    ill = True
+                    break
+            if ill:
+                terms.append({"key": "wars_go_ill", "label": "the wars go ill",
+                              "amount": CHARGES_ILL_RATE})
+        # "The interior is restless": any held province disrupted by a
+        # hostile army or sitting at/below the unrest stability line. One
+        # pass over the nation's own regions via the cached index (GR8).
+        disrupted = self.get_disrupted_regions()
+        restless = False
+        for region_name in self.get_nation_regions(nation):
+            region = self.regions.get(region_name)
+            if region is None:
+                continue
+            if region_name in disrupted or region.stability <= CHARGES_UNREST_STABILITY:
+                restless = True
+                break
+        if restless:
+            terms.append({"key": "restless_interior",
+                          "label": "the interior is restless",
+                          "amount": CHARGES_UNREST_RATE})
+        # NOTE: no try/except here — this slice's first cut imported the
+        # wrong module path inside one and shipped a silently-DEAD term
+        # (the ILL term fell into the same trap with a wrong signature).
+        # A condition term that cannot fire must fail loudly.
+        from backend.models.authority import get_imperial_grip
+        grip = get_imperial_grip(self, nation)
+        if grip < CHARGES_GRIP_THRESHOLD:
+            terms.append({"key": "grip_falters",
+                          "label": "the Emperor's grip falters",
+                          "amount": CHARGES_GRIP_RATE})
+        return {"rate": int(sum(t["amount"] for t in terms)), "terms": terms}
+
+    def calculate_state_charges(self, nation: str) -> int:
+        """EB-1 "The Charges of Empire": the per-turn condition-priced draw
+        on the treasury (absorbs EC-W2's War Effort — the WE term rides
+        inside the rate).
+
+        int(max(0, treasury − CHARGES_HOARD_FLOOR) × rate // WAR_EFFORT_DIVISOR)
+        — a fraction of the chest ABOVE the working floor only, so a poor
+        nation pays nothing, every nation boots charge-0 (max boot treasury
+        = the floor), and the term can never push a treasury negative by
+        itself. Computed on the pre-income treasury; the SINGLE source for
+        the income phase, the treasury report and the ledger (shown =
+        applied). Europe-scoped (N1). Bankruptcy mercy not needed — the
+        term is self-limiting above the floor.
         """
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return 0
-        we = int(getattr(self, "war_exhaustion", {}).get(nation, 0) or 0)
-        if we <= 0:
-            return 0
-        gold = int(self.nation_gold.get(nation, 0))
+        gold = int(self.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR
         if gold <= 0:
             return 0
-        return int(gold * we // WAR_EFFORT_DIVISOR)
+        rate = self.get_state_charges_rate(nation)["rate"]
+        if rate <= 0:
+            return 0
+        return int(gold * rate // WAR_EFFORT_DIVISOR)
 
     def calculate_turn_income(self, nation: str = None) -> Dict:
         """Calculate income for a nation. Defaults to player_nation.
@@ -4584,13 +4750,21 @@ class WorldState:
                 occ_cost = int(region.income_value * region.get_occupation_fraction())
                 occupation_cost += occ_cost
             # EC-U2: maintenance rides this existing per-region loop (GR8 — no
-            # extra scan). Every completed building plus an active/damaged
-            # watchtower costs the flat structure rate. Europe-scoped (N1).
+            # extra scan). EB-3 (Aug 7 2026 gate): the rate is TIER-scaled
+            # (40/30/20 — a market on a city is finally net-positive) and a
+            # RUIN BILLS NOTHING — damaged buildings and damaged watchtowers
+            # are exempt until repaired; repair (150g) restores function AND
+            # the bill. This is the IGR-X9 decision: securing a built
+            # province is no longer strictly dominated by razing it, because
+            # the ruins Secure preserves cost nothing to hold and 150g each
+            # to bring back — an option, not a bill. Europe-scoped (N1).
             if europe:
-                structures = len(region.buildings)
-                if region.watchtower in ("active", "damaged"):
+                structures = sum(
+                    1 for b in region.buildings
+                    if not b.get("damaged", False))
+                if region.watchtower == "active":
                     structures += 1
-                infrastructure_cost += structures * EUROPE_INFRASTRUCTURE_UPKEEP
+                infrastructure_cost += structures * infrastructure_upkeep_rate(region)
             region_breakdown.append({
                 "region": region_name,
                 "base_income": region.income_value,
@@ -4647,6 +4821,15 @@ class WorldState:
             from backend.game_logic.naval import ship_upkeep
             admiralty_cost = int(ship_upkeep(self, nation))
 
+        # EB-2: the authored overseas/colonial pool — its own positive
+        # signed "Overseas Trade" Net component (never folded invisibly
+        # into `income`; the NV-5 decoration lesson). 0 on fleet-less
+        # worlds and for nations that author none (France by design).
+        overseas_income = 0
+        if getattr(self, "fleets", None):
+            from backend.game_logic.naval import overseas_trade_income
+            overseas_income = int(overseas_trade_income(self, nation))
+
         # ES-7 second pass (§0.6.8): the rente bill — treasury cost of the
         # nation's pensions (premium-priced). Deliberately NO bankruptcy
         # mercy in pass 1 (the arrears/default beat is DESIGN_REFINEMENT
@@ -4656,10 +4839,21 @@ class WorldState:
             from backend.game_logic.dotation import get_nation_rente_bill
             rente_cost = get_nation_rente_bill(self, nation)
 
-        # EC-W2: war-effort spending — single-source helper (0 off-Europe,
-        # 0 at WE 0 or an empty chest). No bankruptcy mercy needed: the term
-        # is a fraction of a positive treasury, self-limiting by construction.
-        war_effort = self.calculate_war_effort_cost(nation)
+        # EB-1: the Charges of Empire — single-source helper (0 off-Europe,
+        # 0 at/below the hoard floor). No bankruptcy mercy needed: the term
+        # is a fraction of a positive chest above a floor, self-limiting.
+        # Rate computed ONCE here and shared with the breakdown (G4: the
+        # rate read walks the nation's regions — never do it twice).
+        charges_rate = self.get_state_charges_rate(nation)
+        state_charges = 0
+        if europe:
+            _chest = int(self.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR
+            if _chest > 0 and charges_rate["rate"] > 0:
+                state_charges = int(
+                    _chest * charges_rate["rate"] // WAR_EFFORT_DIVISOR)
+
+        # EB-5a: what OUR armies requisition from the provinces they disrupt.
+        requisitions = int(self.get_requisition_map().get(nation, 0))
 
         return {
             "income": total_income,
@@ -4669,8 +4863,12 @@ class WorldState:
             # provinces. Not a bill the nation pays — income physically not
             # collected — so bankruptcy mercy does not apply.
             "contributions": int(contributions_cost),
-            # EC-W2: the war consuming the war chest.
-            "war_effort": int(war_effort),
+            # EB-5a: requisitioned in place from provinces WE disrupt.
+            "requisitions": requisitions,
+            # EB-2: the authored colonial pool, sea-power-modulated.
+            "overseas": int(overseas_income),
+            # EB-1: the Charges of Empire (absorbs EC-W2's War Effort).
+            "state_charges": int(state_charges),
             # ES-7: full-income redirect to marshals' estates. No bankruptcy
             # mercy needed (E6) — it redirects income the nation is earning,
             # so it structurally floors the estate's net contribution at 0.
@@ -4690,7 +4888,10 @@ class WorldState:
                 "naval_income": naval_income,
                 "occupation": int(occupation_cost),
                 "contributions": int(contributions_cost),
-                "war_effort": int(war_effort),
+                "requisitions": requisitions,
+                "overseas": int(overseas_income),
+                "state_charges": int(state_charges),
+                "state_charges_terms": charges_rate["terms"],
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
                 "infrastructure": int(infrastructure_cost),
@@ -4932,8 +5133,13 @@ class WorldState:
 
         # EC-W1: income suspended by hostile armies — same seam both sides.
         contributions = int(income_data.get("contributions", 0))
-        # EC-W2: war-effort spending from the chest — same seam both sides.
-        war_effort = int(income_data.get("war_effort", 0))
+        # EB-5a: requisitioned in place from provinces WE disrupt (GR5).
+        requisitions = int(income_data.get("requisitions", 0))
+        # EB-2: the authored overseas/colonial pool — same seam both sides.
+        overseas = int(income_data.get("overseas", 0))
+        # EB-1: the Charges of Empire — same seam both sides (absorbs
+        # EC-W2's War Effort; the WE term rides inside the rate).
+        state_charges = int(income_data.get("state_charges", 0))
         # ES-7 (S7): full income of endowed provinces is redirected to the
         # marshals' estates — same seam for player and AI (GR5).
         dotation_skim = int(income_data.get("dotation_skim", 0))
@@ -4945,7 +5151,8 @@ class WorldState:
         # sides (GR5); 0 on fleet-less worlds by construction.
         admiralty = int(income_data.get("admiralty", 0))
 
-        net = (income_data["income"] - occupation - contributions - war_effort
+        net = (income_data["income"] + requisitions + overseas
+               - occupation - contributions - state_charges
                - dotation_skim - rente_cost
                - infrastructure - admiralty - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
@@ -4957,7 +5164,11 @@ class WorldState:
         occupation_str = f", -{occupation} occupation" if occupation > 0 else ""
         contributions_str = (f", -{contributions} contributions"
                              if contributions > 0 else "")
-        war_effort_str = f", -{war_effort} war effort" if war_effort > 0 else ""
+        requisitions_str = (f", +{requisitions} requisitions"
+                            if requisitions > 0 else "")
+        overseas_str = f", +{overseas} overseas trade" if overseas > 0 else ""
+        state_charges_str = (f", -{state_charges} charges of empire"
+                             if state_charges > 0 else "")
         dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
         rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
         infrastructure_str = (f", -{infrastructure} infrastructure"
@@ -4968,7 +5179,9 @@ class WorldState:
             "income": income_data["income"],
             "occupation": occupation,
             "contributions": contributions,
-            "war_effort": war_effort,
+            "requisitions": requisitions,
+            "overseas": overseas,
+            "state_charges": state_charges,
             "dotation_skim": dotation_skim,
             "rente_cost": rente_cost,
             "infrastructure": infrastructure,
@@ -4982,7 +5195,8 @@ class WorldState:
             "upkeep_breakdown": upkeep_data["breakdown"],
             "message": (f"Turn {self.current_turn} economy: "
                        f"+{income_data['income']} income"
-                       f"{occupation_str}{contributions_str}{war_effort_str}"
+                       f"{requisitions_str}{overseas_str}"
+                       f"{occupation_str}{contributions_str}{state_charges_str}"
                        f"{dotation_str}{rente_str}"
                        f"{infrastructure_str}{admiralty_str}, "
                        f"-{upkeep_data['total']} upkeep"
@@ -10788,8 +11002,11 @@ class WorldState:
                 elif combat_result.get("victor") == enemy.name:
                     if marshal.nation == france:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
-                    if enemy.nation:
-                        add_threat(self, 3, "battle_win", target=enemy.nation)
+                    # EB-4.3 (Econ Balance gate Aug 7 2026): the defender's
+                    # battle_win threat credit is REMOVED in both combat
+                    # copies — Europe fears the conqueror, not the defender
+                    # (this arm's win is the CHARGED party repulsing the
+                    # charge). See the executor copy for the full note.
                     if enemy.nation == france:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
                     if _ac_third_party:

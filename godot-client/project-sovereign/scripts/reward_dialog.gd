@@ -93,6 +93,11 @@ func show_reward(card: Dictionary):
 					covers = " — covers his full gap"
 				else:
 					covers = " — covers " + str(income) + "g of " + str(shortfall) + "g"
+			# XR-4 (Econ Balance EB-3): the pre-flight warning — a war-torn
+			# estate yields 0 TODAY and recovers with stability; say so on
+			# the button, before the player commits.
+			if bool(d.get("war_torn", false)):
+				covers = " — war-torn: yields 0 today, recovers as stability does"
 			var fee_str = "  [+" + str(fee) + "g investiture]" if fee > 0 else ""
 			_add_option(
 				"Endow " + region + " — " + str(income) + "g/turn" + covers + fee_str,

@@ -49,6 +49,10 @@ _THREAT_SOURCE_LABELS = {
     "diplomatic_downgrade": "Downgraded diplomatic relations",
     "vassal_rebellion": "Vassal rebellion",
     "voluntary_vassal_release": "Released vassal voluntarily",
+    "region_control_50": "Controls 50%+ of map",
+    "region_control_40": "Controls 40%+ of map",
+    "region_control_30": "Controls 30%+ of map",
+    # Legacy-world keys (the 19-region fixture keeps its 60/70/80 gates, N1)
     "region_control_80": "Controls 80%+ of map",
     "region_control_70": "Controls 70%+ of map",
     "region_control_60": "Controls 60%+ of map",

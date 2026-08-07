@@ -1926,7 +1926,15 @@ class CombatExecutor:
                 if attacker.nation == france:
                     add_war_exhaustion_from_battle(attacker.nation, int(atk_casualties), world)
                 if defender_nation:
-                    add_threat(world, 3, "battle_win", target=defender_nation)
+                    # EB-4.3 (Econ Balance gate Aug 7 2026): a DEFENSIVE
+                    # battle win no longer feeds the coalition alarm —
+                    # Europe fears the conqueror, not the defender. This is
+                    # what let a quiet France's bar re-pin to 91–97 during
+                    # a war it did not start (+3/defensive win vs decay cap
+                    # 3). decisive_victory below keeps BOTH arms: a
+                    # crushing field victory alarms Europe whoever started
+                    # it. Conscious flip of the old defender-side
+                    # `add_threat(3, "battle_win")` (both combat copies).
                     if int(atk_casualties) > 0 and int(def_casualties) > 0:
                         ratio = int(atk_casualties) / int(def_casualties)
                     elif int(atk_casualties) > 0:

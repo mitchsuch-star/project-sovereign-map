@@ -458,7 +458,8 @@ class TestHistoricalByteIdentity:
         # neutral centre 0 (an unauthored pair reads 0 at every seam).
         assert world.nation_relations["Austria|Prussia"] == 0
         assert world.nation_relations["Hanover|Prussia"] == 0
-        assert world.threat_level == 85
+        # EB-4 re-pin (Aug 7 2026): the authored centre moved 85 → 70
+        assert world.threat_level == 70
         # No band residue reaches the world or the save.
         assert all(isinstance(v, int)
                    for v in world.nation_relations.values())

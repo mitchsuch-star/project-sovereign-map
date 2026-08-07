@@ -1938,18 +1938,33 @@ def process_coalition_turn(world) -> List[Dict]:
     france_regions = len(world.get_nation_regions(france))
     total_regions = len(world.regions)
 
+    # EB-4 (Econ Balance gate Aug 7 2026, §3 EB-4/B13): the old 60/70/80%
+    # gates were DEAD on the 126-province map — 60% is 76 provinces, and
+    # France (28 = 22%) could conquer half of Europe without the passive
+    # territorial term ever firing, which is half of why the bar sat where
+    # it was authored. Recentered to 30/40/50% (38/51/63 provinces) so a
+    # conquering France stays high HONESTLY. Source keys renamed with the
+    # thresholds (the ledger names each source; a key that lies about its
+    # own number would be a shown≠applied defect). Ordering structural,
+    # digits in-band (±5pp). EUROPE-SCOPED (N1): the legacy 19-region
+    # fixture keeps its 60/70/80 gates byte-identically — France holds
+    # ~30% of the legacy map at boot, so the recentered gate would have
+    # switched a standing +1/turn ON for every legacy coalition test.
+    _europe = getattr(world, "sovereign_map", "legacy") == "europe"
+    _gates = ((0.50, 3, "region_control_50"), (0.40, 2, "region_control_40"),
+              (0.30, 1, "region_control_30")) if _europe else \
+             ((0.80, 3, "region_control_80"), (0.70, 2, "region_control_70"),
+              (0.60, 1, "region_control_60"))
     if total_regions > 0:
         control_pct = france_regions / total_regions
-        if control_pct > 0.80:
-            add_threat(world, 3, "region_control_80")
-        elif control_pct > 0.70:
-            add_threat(world, 2, "region_control_70")
-        elif control_pct > 0.60:
-            add_threat(world, 1, "region_control_60")
+        for _threshold, _amount, _key in _gates:
+            if control_pct > _threshold:
+                add_threat(world, _amount, _key)
+                break
 
         # AI-4a step 5: the same passive read, per non-player nation — a
         # conqueror is a conqueror whoever wears the crown. Boot-zero for
-        # every 1805 court (nobody holds 60% of 126 provinces); the fuel
+        # every 1805 court (nobody holds 30% of 126 provinces); the fuel
         # pin 16(d)'s eclipse fixture burns. Vassals never accrue (their
         # soil is their lord's sphere and their slot could never form).
         vassal_set = set(getattr(world, 'vassals', {}).keys())
@@ -1957,12 +1972,10 @@ def process_coalition_turn(world) -> List[Dict]:
             if _n == france or _n in vassal_set:
                 continue
             _pct = len(world.get_nation_regions(_n)) / total_regions
-            if _pct > 0.80:
-                add_threat(world, 3, "region_control_80", target=_n)
-            elif _pct > 0.70:
-                add_threat(world, 2, "region_control_70", target=_n)
-            elif _pct > 0.60:
-                add_threat(world, 1, "region_control_60", target=_n)
+            for _threshold, _amount, _key in _gates:
+                if _pct > _threshold:
+                    add_threat(world, _amount, _key, target=_n)
+                    break
 
     # ────────── 1b. B-Hegemony passive pressure (§7.3) ──────────
     # Per-turn passive contribution from bloc-share dominance. Gates at
@@ -2089,7 +2102,7 @@ def process_coalition_turn(world) -> List[Dict]:
             # EC-W2: France wearies of war like everyone else (GR5) — the
             # same +8/−5 constants, keyed on being at war with ANYONE (the
             # AI rows below are France-relative because their consumers
-            # are). Feeds calculate_war_effort_cost — the treasury-fraction
+            # are). Feeds calculate_state_charges — the treasury-fraction
             # war spending (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3).
             # Europe-scoped (N1): the legacy fixture world BOOTS at war, so
             # an ungated tick would drift its pinned economy (France WE →

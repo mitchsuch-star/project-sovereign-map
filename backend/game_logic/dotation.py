@@ -155,7 +155,7 @@ def get_expectation(marshal) -> int:
                    EXPECTATION_CAP))
 
 
-def get_estate_income(marshal, world) -> int:
+def get_estate_income(marshal, world, ignore_disruption: bool = False) -> int:
     """Full effective income of the marshal's still-held estates (§0.6.7
     amendment 1 — the 0.30 skim constant is DELETED).
 
@@ -171,8 +171,14 @@ def get_estate_income(marshal, world) -> int:
     nobody — the invader eats its revenues in place, the household collects
     nothing, and the marshal's satisfaction falls with his lands (the same
     rule calculate_turn_income applies to the nation's treasury).
+
+    EWC-F2 (Econ Balance gate Aug 7 2026, EB-5.2): `ignore_disruption` is
+    for FACE COMPUTATION only (compute_rente_face) — a one-turn hostile
+    presence on the estate at grant time must not lock an oversized
+    pension that double-counts after liberation. Satisfaction and every
+    display keep the disruption rule (the default).
     """
-    disrupted = world.get_disrupted_regions()
+    disrupted = set() if ignore_disruption else world.get_disrupted_regions()
     total = 0
     for region_name in getattr(marshal, "dotation_regions", []):
         region = world.regions.get(region_name)
@@ -441,8 +447,15 @@ def compute_rente_face(marshal, world) -> int:
     """The face a fresh grant sets: expectation − estate income (never
     below 0). Granting REPLACES any existing rente with this size — one
     rente per marshal, always re-sized to close the gap at grant time, so
-    'grant him a rente' after new victories is the top-up verb."""
-    return max(0, get_expectation(marshal) - get_estate_income(marshal, world))
+    'grant him a rente' after new victories is the top-up verb.
+
+    EWC-F2 (fixed at the Aug-7 Econ Balance gate): the face reads estate
+    income IGNORING transient EC-W1 disruption — a hostile army standing
+    on the estate for the grant turn must not lock an oversized pension
+    that double-counts once the province is liberated. Satisfaction (and
+    every display) keeps the disruption rule."""
+    return max(0, get_expectation(marshal)
+               - get_estate_income(marshal, world, ignore_disruption=True))
 
 
 def build_rente_offer(marshal, world) -> Dict:

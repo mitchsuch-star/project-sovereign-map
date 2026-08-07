@@ -287,9 +287,13 @@ class TestBootDelta:
         for nation, _rec in naval.iter_fleets(world):
             income = world.calculate_turn_income(nation)
             upkeep = world.calculate_turn_upkeep(nation)
+            # EB-1/EB-5a/EB-2 re-bless: war_effort became state_charges
+            # (0 at boot — the hoard floor), and the two positive
+            # components (requisitions, overseas) join the solvency sum.
             net = (income["income"] + trade.get(nation, 0)
+                   + income["requisitions"] + income["overseas"]
                    - losses.get(nation, 0)
                    - upkeep["total"] - income["admiralty"]
                    - income["occupation"] - income["contributions"]
-                   - income["war_effort"])
+                   - income["state_charges"])
             assert net > 0, f"{nation} goes under at boot: {net}"

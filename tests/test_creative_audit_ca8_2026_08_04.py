@@ -434,15 +434,22 @@ class TestCA810IncomeScreensAgree:
         """
         world = WorldState(sovereign_map="europe")
         nation = world.player_nation
-        assert int(world.calculate_turn_income(nation).get("war_effort", 0)) == 0, (
-            "fixture: boot war_effort must be 0 for this to be the audit's case")
+        # EB-1 re-pin (Econ Balance gate Aug 7 2026): "War Effort" was
+        # absorbed into the Charges of Empire — the CA8-10 rule survives
+        # verbatim (a zero is the cheapest moment to teach the mechanic;
+        # the report explains the rate even while the charge is 0).
+        assert int(world.calculate_turn_income(nation).get("state_charges", 0)) == 0, (
+            "fixture: boot state_charges must be 0 for this to be the audit's case")
         assert world.get_nations_at_war_with(nation), "fixture: France boots at war"
         executor = CommandExecutor()
         res = executor._economy._execute_economy(
             {"action": "economy"}, {"world": world})
-        assert "War Effort" in res["message"], (
+        assert "Charges of Empire" in res["message"], (
             "the drain that grew to -1,238g is still unexplained on the one "
             "turn a new player reads this screen")
+        assert "war establishment" in res["message"], (
+            "the named rate terms are the explanation — they must render "
+            "even at charge 0")
 
 
 # ════════════════════════════════════════════════════════════════════════

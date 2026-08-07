@@ -212,6 +212,10 @@ def boot_fleets_from_navies(world, navies: Optional[dict]) -> None:
             rec["island"] = True
         if row.get("trade_dominance") is not None:
             rec["trade_dominance"] = int(row["trade_dominance"])
+        # EB-2: the authored colonial pool rides the fleet record like
+        # trade_dominance (validator-clamped [0, 1200]; runtime trusts it).
+        if row.get("overseas_income") is not None:
+            rec["overseas_income"] = int(row["overseas_income"])
         if ships > 0:
             rec.update({
                 "readiness": int(row.get("readiness", 70) or 70),
@@ -518,6 +522,48 @@ def trade_dominance_income(world, nation: str) -> Optional[int]:
     base = int(rec["trade_dominance"])
     closure = closure_against(world, nation)
     return int(base * max(TRADE_DOMINANCE_FLOOR, 1.0 - closure))
+
+
+# EB-2 "The Wealth of Nations" (Econ Balance gate, Aug 7 2026 — gate record
+# docs/audits/ECON_BALANCE_GATE_2026_08_07.md §3 EB-2): a colonial power's
+# overseas trade while AT WAR with the trade-dominance holder — the RN sits
+# on the sea lanes (the 1804 frigate seizure, the post-Trafalgar silver
+# collapse) — one derived condition, no new state. B8, band 0.0–0.4.
+OVERSEAS_WAR_FACTOR = 0.25
+
+
+def overseas_trade_income(world, nation: str) -> int:
+    """EB-2: the authored `overseas_income` pool (colonies as a MODIFIER,
+    never map objects), modulated by who commands the sea.
+
+    - The trade-dominance holder (Britain): × (1 − closure), floor ×0.4,
+      ×0 under blockade — the same rules its trade_dominance obeys. This is
+      what gives the Continental System an economic target: closure now
+      strangles the pool that funds the paymaster's subsidies.
+    - A non-holder colonial power (Spain's silver, the Dutch Indies,
+      Brazil): ×0 while blockaded · ×OVERSEAS_WAR_FACTOR while at war with
+      the dominance holder · ×1.0 otherwise.
+
+    Its own positive signed "Overseas Trade" Net component — deliberately
+    NOT folded invisibly into `income` (the NV-5 decoration lesson).
+    Returns 0 when the nation authors no overseas_income (incl. France —
+    a design pin: France's "overseas" arm is continental extraction).
+    """
+    rec = get_fleet(world, nation)
+    if not rec:
+        return 0
+    base = int(rec.get("overseas_income", 0) or 0)
+    if base <= 0:
+        return 0
+    if is_blockaded(world, nation):
+        return 0
+    holder = trade_dominance_nation(world)
+    if holder == nation:
+        closure = closure_against(world, nation)
+        return int(base * max(TRADE_DOMINANCE_FLOOR, 1.0 - closure))
+    if holder and world.is_at_war(nation, holder):
+        return int(base * OVERSEAS_WAR_FACTOR)
+    return base
 
 
 # ═══════════════════════════════════════════════════════════════════════════

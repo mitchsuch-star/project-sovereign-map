@@ -392,11 +392,28 @@ func _render_economy():
 	var contributions = int(econ.get("contributions", 0))
 	if contributions > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Contributions: -" + str(contributions) + "g[/color]\n"
-	# EC-W2 (Econ War-Coupling): war-effort spending drawn from the war
-	# chest, scaled by war exhaustion — its own signed Net component.
-	var war_effort = int(econ.get("war_effort", 0))
-	if war_effort > 0:
-		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]War Effort: -" + str(war_effort) + "g[/color]\n"
+	# EB-5a (Econ Balance): what our own armies requisition from the enemy
+	# provinces they disrupt — a positive signed Net component.
+	var requisitions = int(econ.get("requisitions", 0))
+	if requisitions > 0:
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Requisitions: +" + str(requisitions) + "g[/color]\n"
+	# EB-2 (Econ Balance): the authored overseas/colonial pool, modulated
+	# by who commands the sea — a positive signed Net component.
+	var overseas = int(econ.get("overseas", 0))
+	if overseas > 0:
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Overseas trade: +" + str(overseas) + "g[/color]\n"
+	# EB-1 (Econ Balance): the Charges of Empire — the condition-priced
+	# draw on the treasury (absorbs EC-W2's War Effort; the WE term rides
+	# inside the rate). The named terms render so the rate explains itself.
+	var state_charges = int(econ.get("state_charges", 0))
+	if state_charges > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Charges of Empire: -" + str(state_charges) + "g[/color]\n"
+		var charge_terms = econ.get("state_charges_terms", [])
+		if charge_terms is Array and charge_terms.size() > 0:
+			var term_bits = []
+			for t in charge_terms:
+				term_bits.append(str(t.get("label", "")) + " +" + str(int(t.get("amount", 0))))
+			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + ", ".join(term_bits) + ")[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).

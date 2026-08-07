@@ -360,6 +360,7 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
             region = world.regions.get(region_name)
             if region is None:
                 continue
+            row_income = estate_yield(world, region_name)
             details.append({
                 "region": region_name,
                 # CA8 sweep 4 review: `get_effective_income` carries the
@@ -367,7 +368,12 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
                 # province with a hostile army standing on it was priced at
                 # its full 200g/turn on the button that endows it, and paid 0.
                 # `estate_yield` is the same predicate the payer uses.
-                "income": estate_yield(world, region_name),
+                "income": row_income,
+                # XR-4 (Econ Balance EB-3): the pre-flight warning — a
+                # 0g estate is a legal grant but the option must say the
+                # yield is war-torn and recovers with stability, BEFORE
+                # the player commits.
+                "war_torn": bool(row_income <= 0),
             })
 
     # The Steward (§0.6.8 item 2): decision-relevant BEFORE endowing —

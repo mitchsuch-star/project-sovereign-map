@@ -63,8 +63,8 @@
         "France|Sweden": -60,
         "France|Sardinia": -70
     },
-    "threat_level": 85,
-    "threat_level_band": [80, 90],
+    "threat_level": 70,
+    "threat_level_band": [65, 75],
     "coalition_count": 1,
     "active_coalition": {
         "id": "coalition_1",
@@ -879,7 +879,7 @@
             "grudge_label": "The Irish Question"
         }
     },
-    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: the Dutch dockyard is the province Amsterdam (the map has no province named Holland; the Texel roadstead), and Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland.",
+    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: the Dutch dockyard is the province Amsterdam (the map has no province named Holland; the Texel roadstead), and Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
     "navies": {
         "Britain": {
             "ships": 100,
@@ -887,6 +887,7 @@
             "admiral": "Nelson",
             "island": true,
             "trade_dominance": 300,
+            "overseas_income": 500,
             "dockyards": ["London", "East Anglia", "Cornwall"]
         },
         "France": {
@@ -902,6 +903,7 @@
             "readiness": 65,
             "admiral": "Gravina",
             "ports": 3,
+            "overseas_income": 250,
             "dockyards": ["Galicia", "Toledo"]
         },
         "Denmark": {
@@ -922,6 +924,7 @@
             "readiness": 70,
             "admiral": "Verhuell",
             "ports": 2,
+            "overseas_income": 150,
             "dockyards": ["Amsterdam"]
         },
         "Russia": {
@@ -935,6 +938,7 @@
             "ships": 10,
             "readiness": 70,
             "ports": 2,
+            "overseas_income": 150,
             "dockyards": ["Lisbon"]
         },
         "Sweden": {

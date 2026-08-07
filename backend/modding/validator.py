@@ -851,6 +851,15 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                                or not isinstance(td, int) or td < 0):
             result.add_error(f"{path}.trade_dominance",
                              f"Must be a non-negative integer, got {td!r}")
+        # EB-2 (Econ Balance gate Aug 7 2026): the authored colonial pool —
+        # clamped here because the validator is the gate (D7 discipline);
+        # runtime never re-clamps. Band [0, 1200] per gate record B7.
+        overseas = row.get("overseas_income")
+        if overseas is not None and (isinstance(overseas, bool)
+                                     or not isinstance(overseas, int)
+                                     or not (0 <= overseas <= 1200)):
+            result.add_error(f"{path}.overseas_income",
+                             f"Must be an integer 0-1200, got {overseas!r}")
         if "admiral" in row and not isinstance(row["admiral"], str):
             result.add_error(f"{path}.admiral", "Must be a string")
         for key in ("dockyards", "camp_provinces"):

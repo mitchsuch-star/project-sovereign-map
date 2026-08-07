@@ -230,11 +230,13 @@ class TestBootAnchorsHold:
         for nation in ("Austria", "Britain", "Prussia"):
             assert world.calculate_turn_income(nation)["contributions"] == 0
 
-    def test_boot_war_effort_zero_everywhere(self, world):
-        """WE boots empty on the 1805 campaign (the Britain-60/Prussia-35
-        seeds live in the settlement SMOKE presets, not the campaign boot)."""
+    def test_boot_state_charges_zero_everywhere(self, world):
+        """EB-1 re-bless: every nation boots at/below CHARGES_HOARD_FLOOR
+        (max boot treasury = Britain's exactly 2,000 = the floor), so the
+        Charges of Empire are 0 for everyone on the boot turn — the E1
+        anchors are untouched by construction."""
         for nation in ("France", "Austria", "Britain", "Prussia", "Bavaria"):
-            assert world.calculate_war_effort_cost(nation) == 0
+            assert world.calculate_state_charges(nation) == 0
 
     def test_bavaria_boot_case_pinned_and_solvent(self, world):
         """The sole boot delta: if Austria boots at war with Bavaria with
@@ -264,55 +266,117 @@ class TestBootAnchorsHold:
 # ═══════════════════════ EC-W2: The War Effort ══════════════════════════════
 
 
-class TestWarEffortDrain:
+class TestStateChargesDrain:
+    """EB-1 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md
+    §3 EB-1): CONSCIOUS RE-BLESS of the EC-W2 formula pins. The WE-only
+    hoard tax was ABSORBED into `calculate_state_charges` — ONE
+    condition-priced rate (WE + crown + war + ill + unrest + grip terms)
+    over the SAME divisor, on the chest ABOVE a working floor. The
+    treasury-fraction SHAPE and WAR_EFFORT_DIVISOR are unchanged; the
+    WE arithmetic rides inside the rate."""
+
+    def test_rate_composition_at_war(self, world):
+        """The named terms are the formula — pin the composition on the
+        boot France (at war, stable interior, full grip): WE + crown +
+        war establishment, nothing else."""
+        from backend.models.world_state import (
+            CHARGES_CROWN_BASE, CHARGES_WAR_RATE)
+        world.war_exhaustion["France"] = 100
+        rate = world.get_state_charges_rate("France")
+        keys = {t["key"] for t in rate["terms"]}
+        assert keys == {"war_exhaustion", "crown", "war_establishment"}
+        assert rate["rate"] == 100 + CHARGES_CROWN_BASE + CHARGES_WAR_RATE
+
     def test_formula(self, world):
+        from backend.models.world_state import CHARGES_HOARD_FLOOR
         world.nation_gold["France"] = 40000
         world.war_exhaustion["France"] = 100
-        assert world.calculate_war_effort_cost("France") == 40000 * 100 // WAR_EFFORT_DIVISOR
+        rate = world.get_state_charges_rate("France")["rate"]
+        assert world.calculate_state_charges("France") == (
+            (40000 - CHARGES_HOARD_FLOOR) * rate // WAR_EFFORT_DIVISOR)
 
-    def test_zero_on_empty_or_negative_chest(self, world):
+    def test_zero_at_or_below_the_hoard_floor(self, world):
+        """The floor is the boot-neutrality anchor (B6): a chest at or
+        below 2,000 pays NOTHING whatever the conditions."""
+        from backend.models.world_state import CHARGES_HOARD_FLOOR
         world.war_exhaustion["France"] = 150
-        world.nation_gold["France"] = 0
-        assert world.calculate_war_effort_cost("France") == 0
-        world.nation_gold["France"] = -500
-        assert world.calculate_war_effort_cost("France") == 0
+        for gold in (0, -500, CHARGES_HOARD_FLOOR):
+            world.nation_gold["France"] = gold
+            assert world.calculate_state_charges("France") == 0
 
-    def test_zero_at_no_exhaustion(self, world):
-        world.nation_gold["France"] = 50000
+    def test_peacetime_crown_term_bites(self, world):
+        """THE Aug-7 disease: at peace there was NO brake at all (Prussia
+        +298/turn and Spain +1,010/turn linearly forever). The crown term
+        now charges every hoard above the floor, war or no war."""
+        from backend.models.world_state import (
+            CHARGES_CROWN_BASE, CHARGES_HOARD_FLOOR)
+        for key, state in list(world.diplomatic_states.items()):
+            if state == "WAR" and "Prussia" in key.split("|"):
+                world.diplomatic_states[key] = "PEACE"
+        world.nation_gold["Prussia"] = 10000
+        world.war_exhaustion.pop("Prussia", None)
+        rate = world.get_state_charges_rate("Prussia")
+        assert {t["key"] for t in rate["terms"]} == {"crown"}
+        assert world.calculate_state_charges("Prussia") == (
+            (10000 - CHARGES_HOARD_FLOOR) * CHARGES_CROWN_BASE
+            // WAR_EFFORT_DIVISOR)
+
+    def test_unrest_term_reads_the_interior(self, world):
+        """'The interior is restless': one held province at/below the
+        unrest line flips the term on — the condition the WE clock was
+        blind to (a collapsing France finally bleeds faster than a
+        prospering one)."""
         world.war_exhaustion.pop("France", None)
-        assert world.calculate_war_effort_cost("France") == 0
+        keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
+        assert "restless_interior" not in keys
+        region = world.regions[world.nation_starting_regions["France"][0]]
+        region.stability = 40
+        keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
+        assert "restless_interior" in keys
 
     def test_legacy_world_pays_nothing(self):
         legacy = WorldState()
         legacy.nation_gold["France"] = 50000
         legacy.war_exhaustion["France"] = 100
-        assert legacy.calculate_war_effort_cost("France") == 0
+        assert legacy.calculate_state_charges("France") == 0
 
     def test_applied_in_income_phase_and_shown_in_ledger(self, world):
+        from backend.models.world_state import CHARGES_HOARD_FLOOR
         world.nation_gold["France"] = 25000
         world.war_exhaustion["France"] = 80
-        expected = 25000 * 80 // WAR_EFFORT_DIVISOR
+        rate = world.get_state_charges_rate("France")["rate"]
+        expected = (25000 - CHARGES_HOARD_FLOOR) * rate // WAR_EFFORT_DIVISOR
         econ = _build_economy(world, "France")
-        assert econ["war_effort"] == expected
+        assert econ["state_charges"] == expected
         result = world.process_income_phase("France")
-        assert result["war_effort"] == expected
+        assert result["state_charges"] == expected
         # applied: treasury moved by net which includes the drain
         assert result["net"] <= result["income"] - expected + result["admin_bonus"]
 
     def test_gr5_ai_nation_pays_too(self, world):
+        from backend.models.world_state import CHARGES_HOARD_FLOOR
         world.nation_gold["Austria"] = 10000
         world.war_exhaustion["Austria"] = 50
-        assert world.calculate_war_effort_cost("Austria") == 10000 * 50 // WAR_EFFORT_DIVISOR
+        rate = world.get_state_charges_rate("Austria")["rate"]
+        assert world.calculate_state_charges("Austria") == (
+            (10000 - CHARGES_HOARD_FLOOR) * rate // WAR_EFFORT_DIVISOR)
 
     def test_poor_austria_pays_trivially(self, world):
         """The design property that killed the flat-rate alternative: a poor
-        nation's drain is ~nothing, so Austria's +18 boot margin can never be
-        bankrupted by this term."""
+        nation's drain is ~nothing (boot chest ≤ the floor pays ZERO), so
+        Austria's +18 boot margin can never be bankrupted by this term."""
         world.war_exhaustion["Austria"] = 200  # maximum exhaustion
-        boot_chest = int(world.nation_gold.get("Austria", 0))
-        drain = world.calculate_war_effort_cost("Austria")
-        assert drain <= max(0, boot_chest) * 200 // WAR_EFFORT_DIVISOR
-        assert drain < 100, f"poor-nation drain must be trivial, got {drain}"
+        drain = world.calculate_state_charges("Austria")
+        assert drain == 0, (
+            f"Austria's boot chest sits under the hoard floor — the charge "
+            f"must be exactly 0, got {drain}")
+
+    def test_old_seam_is_gone(self, world):
+        """The absorption is total: the old helper and the old key must not
+        survive anywhere a caller could silently keep paying WE-only."""
+        assert not hasattr(world, "calculate_war_effort_cost")
+        assert "war_effort" not in world.calculate_turn_income("France")
+        assert "war_effort" not in _build_economy(world, "France")
 
 
 class TestFranceWEAccrual:
@@ -454,19 +518,27 @@ class TestReviewRoundFixes:
               / "project-sovereign" / "scripts" / "main.gd"
               ).read_text(encoding="utf-8")
         assert '"contributions"' in gd
-        assert '"war_effort"' in gd
+        # EB-1 re-bless: the banner renders the Charges of Empire (the
+        # absorbed war_effort key must be GONE, not merely joined)
+        assert '"state_charges"' in gd
+        assert '"war_effort"' not in gd
+        # EB-5a/EB-2: the positive components render too
+        assert '"requisitions"' in gd
+        assert '"overseas"' in gd
 
     def test_auto_advance_banner_includes_new_components(self):
         """Finding #6a: the executor auto-advance turn_end net must subtract
-        contributions/war_effort/infrastructure (source-level pin — the
-        banner previously overstated Net on every wartime last-AP advance)."""
+        contributions/state_charges/infrastructure (source-level pin — the
+        banner previously overstated Net on every wartime last-AP advance).
+        EB-1 re-bless: war_effort_val became state_charges_val."""
         src = (Path(__file__).resolve().parents[1] / "backend" / "commands"
                / "executor.py").read_text(encoding="utf-8")
         anchor = src.index('"type": "turn_end"')
-        window = src[max(0, anchor - 2500):anchor]
+        window = src[max(0, anchor - 3000):anchor]
         assert "contributions_val" in window
-        assert "war_effort_val" in window
+        assert "state_charges_val" in window
         assert "infrastructure_val" in window
+        assert "war_effort_val" not in window
 
 
 # ═══════════════════════ EC-W3: The Butcher's Bill ══════════════════════════
