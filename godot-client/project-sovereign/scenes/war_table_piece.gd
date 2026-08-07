@@ -154,6 +154,9 @@ func move_to(target: Vector2, duration: float) -> void:
 	# second update retargets cleanly instead of stacking conflicting tweens.
 	if _move_tween != null and _move_tween.is_valid():
 		_move_tween.kill()
+	# A column on the march — one cadence per update batch (the cue's own
+	# throttle collapses a fleet of simultaneous moves into a single play).
+	AudioManager.play("march_step")
 	_move_tween = create_tween()
 	_move_tween.tween_property(self, "position", target, duration) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)

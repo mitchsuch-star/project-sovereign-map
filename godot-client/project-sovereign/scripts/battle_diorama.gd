@@ -80,6 +80,7 @@ var _seq: Tween = null         # master cinematic tween
 var _blocks_left: Array = []   # per-corps dicts (see _make_block)
 var _blocks_right: Array = []
 var _audio: AudioStreamPlayer = null
+var _music_ducked := false
 
 # Chrome nodes (built once in _ready)
 var _root: Control = null
@@ -134,6 +135,19 @@ func show_diorama(data: Dictionary, cinematic := true) -> void:
 	_kill_sequence()
 	_data = data
 	show()
+	# Music & Sound Core: the tableau takes the stage — music ducks under it,
+	# the field (or the sea) murmurs beneath the baize.
+	if not _music_ducked:
+		_music_ducked = true
+		AudioManager.duck_music(true)
+	if UiSettings.get_battle_sfx():
+		if _is_naval():
+			AudioManager.stop_loop("battle_bed")
+			AudioManager.start_loop("sea")
+			AudioManager.start_loop("creak")
+			AudioManager.play("ship_bell")
+		else:
+			AudioManager.start_loop("battle_bed")
 	_populate(not cinematic)
 	Utils.clamp_centered_panel(_tray)
 	if cinematic:
@@ -200,7 +214,7 @@ func _build_chrome() -> void:
 
 	_audio = AudioStreamPlayer.new()
 	_audio.name = "Audio"
-	_audio.bus = "Master"
+	_audio.bus = "SFX"
 	add_child(_audio)
 
 
@@ -971,6 +985,34 @@ func _sub_banner_text(register: String) -> String:
 			return "%s changes hands." % region
 
 
+func _play_arm_flavor() -> void:
+	"""Cinematic flavor by arms on the field: a musket volley for the foot,
+	hooves for the horse — scheduled just behind the cannon reveal, and
+	skipped entirely when battle sounds are off or the tableau is naval."""
+	if not UiSettings.get_battle_sfx() or _is_naval():
+		return
+	var has_infantry := false
+	var has_cavalry := false
+	for side in _side_payloads():
+		for c in (side as Dictionary).get("contingents", []):
+			match str(c.get("arm", "")):
+				"infantry":
+					has_infantry = true
+				"cavalry":
+					has_cavalry = true
+	if has_infantry:
+		get_tree().create_timer(0.9).timeout.connect(func():
+			if is_instance_valid(self) and visible:
+				AudioManager.play("musket_volley", 5.0))
+	if has_cavalry:
+		get_tree().create_timer(1.6).timeout.connect(func():
+			if is_instance_valid(self) and visible:
+				AudioManager.play("cavalry")
+				get_tree().create_timer(1.2).timeout.connect(func():
+					if is_instance_valid(self) and visible:
+						AudioManager.play("whinny")))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # The cinematic
 # ─────────────────────────────────────────────────────────────────────────────
@@ -982,6 +1024,7 @@ func _play_cinematic() -> void:
 	# Reveal: the tray settles into view under one cannon thud.
 	_tray.modulate.a = 0.0
 	_play_sound(AUDIO_CANNON, -8.0)
+	_play_arm_flavor()
 	_seq = create_tween()
 	_seq.tween_property(_tray, "modulate:a", 1.0, 0.24)
 
@@ -1160,10 +1203,18 @@ func _type_verdict() -> void:
 	_verdict.text = bb
 	_verdict.visible_characters = 0
 	var total := _verdict.get_total_character_count()
+	if UiSettings.get_battle_sfx():
+		AudioManager.start_loop("scribble")  # the verdict is written, not spoken
+		match str(_data.get("register", "")):
+			"triumph":
+				AudioManager.play("fanfare")
+			"defeat":
+				AudioManager.play("bell_toll")
 	var tw := create_tween()
 	tw.tween_method(
 		func(v: float): _verdict.visible_characters = int(v),
 		0.0, float(total), clampf(total / 34.0, 0.8, 2.6))
+	tw.finished.connect(func(): AudioManager.stop_loop("scribble"))
 
 
 func _enter_final(from_cinematic: bool) -> void:
@@ -1259,5 +1310,12 @@ func _on_replay_pressed() -> void:
 
 func _on_close_pressed() -> void:
 	_kill_sequence()
+	AudioManager.stop_loop("battle_bed")
+	AudioManager.stop_loop("sea")
+	AudioManager.stop_loop("creak")
+	AudioManager.stop_loop("scribble")
+	if _music_ducked:
+		_music_ducked = false
+		AudioManager.duck_music(false)
 	hide()
 	dismissed.emit()

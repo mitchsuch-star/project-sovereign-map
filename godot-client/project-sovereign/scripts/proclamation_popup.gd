@@ -29,6 +29,7 @@ func _ready():
 
 func show_proclamation(data: Dictionary):
 	"""Display the formation card. §11.8 stage 2, top to bottom."""
+	AudioManager.play("bells_peal")  # the new flag over the struck old
 	var new_name := str(data.get("display_name", ""))
 	var old_name := str(data.get("old_display_name", ""))
 	var flag_tag := str(data.get("flag_tag", ""))

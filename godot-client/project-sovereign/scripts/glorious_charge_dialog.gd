@@ -53,6 +53,7 @@ func _ready():
 
 func show_glorious_charge(data: Dictionary):
 	"""Display Glorious Charge popup with data from backend."""
+	AudioManager.play("cavalry")
 	print("GloriousChargeDialog.show_glorious_charge() ENTERED")
 	print("  Received data: ", data)
 

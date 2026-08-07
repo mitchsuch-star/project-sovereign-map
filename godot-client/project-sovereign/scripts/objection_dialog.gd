@@ -86,6 +86,7 @@ func _apply_tone_styling(tone: String):
 
 func show_objection(objection_data: Dictionary):
 	"""Display objection dialog with data from backend."""
+	AudioManager.play("sword_draw")  # a marshal stands his ground
 	current_marshal = objection_data.get("marshal", "Marshal")
 
 	# V2a: Apply tone-based styling (border color + header text)

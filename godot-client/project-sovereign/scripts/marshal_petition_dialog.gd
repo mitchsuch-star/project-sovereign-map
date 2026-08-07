@@ -38,6 +38,7 @@ func _ready():
 
 func show_petition(petition: Dictionary):
 	"""Render one backend petition: title, body, dynamic option buttons."""
+	AudioManager.play("sword_draw")
 	var kind = str(petition.get("kind", ""))
 	title_label.text = str(petition.get("title", KIND_TITLES.get(kind, "A PETITION")))
 	if title_label.text == "":

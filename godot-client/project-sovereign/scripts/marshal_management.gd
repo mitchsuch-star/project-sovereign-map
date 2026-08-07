@@ -114,6 +114,7 @@ func open(api_client):
 	"""Fetch marshal overview from backend and display it."""
 	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
+	AudioManager.play("panel_open")
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_marshal_overview(_on_data_received)
@@ -152,6 +153,8 @@ func _on_meta_clicked(meta):
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
+	if visible:
+		AudioManager.play("panel_close")
 	hide()
 	cached_data = []
 	cached_ladder = []

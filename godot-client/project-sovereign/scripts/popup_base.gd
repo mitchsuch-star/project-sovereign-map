@@ -19,6 +19,8 @@ func show_popup(_data: Dictionary = {}):
 
 func close_popup():
 	"""Standard close: disable buttons, then hide."""
+	if visible:
+		AudioManager.play("back")
 	_disable_all_buttons()
 	hide()
 

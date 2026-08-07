@@ -46,6 +46,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 	# Set title
 	title_label.text = "ENEMY PHASE - Turn %d" % turn
+	AudioManager.start_loop("march_long")  # the armies of Europe on the move
 
 	# Build content
 	_diorama_payloads = []
@@ -225,6 +226,7 @@ func _format_action(action: Dictionary) -> String:
 		var event = events[i]
 		print("[ENEMY_PHASE_DEBUG] event[", i, "] type: ", event.get("type", "NO TYPE"))
 		if event.get("type") == "battle":
+			AudioManager.play("cannon_distant")
 			print("[ENEMY_PHASE_DEBUG] Calling _format_battle for battle event")
 			# Pass the action line's own pair so the battle block does not
 			# restate it: "- Mack attacks Ney" was immediately followed by
@@ -540,10 +542,12 @@ func _on_content_meta_clicked(meta) -> void:
 	var idx := int(meta_str.trim_prefix("diorama:"))
 	if idx < 0 or idx >= _diorama_payloads.size():
 		return
+	AudioManager.stop_loop("march_long")  # the diorama takes the stage
 	view_field_requested.emit(_diorama_payloads[idx])
 
 
 func _on_continue_pressed():
 	"""Handle continue button press."""
+	AudioManager.stop_loop("march_long")
 	hide()
 	dismissed.emit()

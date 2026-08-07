@@ -90,6 +90,7 @@ func _on_overlay_input(event):
 
 func show_war(war_data: Dictionary, _coalition_data) -> void:
 	"""Show bilateral war detail (N4b)."""
+	AudioManager.play("cloth")
 	_current_nation = str(war_data.get("opponent", ""))
 	var opponent_display = Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(_current_nation))))
 	_current_war_id = str(war_data.get("war_instance_id", ""))
@@ -117,6 +118,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 
 func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	"""Show coalition overview detail (N4b coalition variant)."""
+	AudioManager.play("cloth")
 	_current_nation = str(coalition_data.get("leader", ""))
 	_current_mode = "coalition"
 	header_label.text = str(coalition_data.get("name", "COALITION")).to_upper()
@@ -144,6 +146,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 
 func show_armistice(war_data: Dictionary) -> void:
 	"""Show armistice detail (N4b armistice variant)."""
+	AudioManager.play("cloth")
 	_current_nation = str(war_data.get("opponent", ""))
 	_current_mode = "armistice"
 	header_label.text = "ARMISTICE WITH " + Utils.display_nation_name(_current_nation).to_upper()

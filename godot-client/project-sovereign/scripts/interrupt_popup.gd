@@ -41,6 +41,7 @@ func _ready():
 
 func show_interrupt(interrupt_data: Dictionary):
 	"""Display interrupt popup with dynamic buttons."""
+	AudioManager.play("drum_sting")
 	current_marshal = interrupt_data.get("marshal", "Marshal")
 	current_response_type = interrupt_data.get("interrupt_type", "unknown")
 

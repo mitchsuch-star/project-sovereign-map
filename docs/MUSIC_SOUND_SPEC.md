@@ -2,8 +2,13 @@
 
 **Owner:** ROADMAP §THE ROAD TO EA, position 4 ("Music & Sound (Core)", user-ordered
 forward Aug 7, 2026: *"we have no sound"*).
-**Status:** ✅ **SOURCING HALF COMPLETE August 7, 2026** (this document §1–§2 is its
-landing record) → **▶ WIRING HALF NEXT** (§3 is its build contract; multi-session row).
+**Status:** ✅ **SOURCING HALF COMPLETE August 7, 2026** (§1–§2 = its landing record)
+→ ✅ **WIRING HALF LANDED August 7, 2026, same day** (user-directed "wire all sounds";
+§3 = its landing record — the whole §2 cue map is live: ~75 `AudioManager.*` call
+sites across 27 scripts + `audio_manager.gd` itself; parse harness EXIT=0 over the
+42-script list, boot smoke 0 SCRIPT ERROR / 0 missing-file warnings) →
+**▶ REMAINING = the §3.5 AUDITION GATE** (a live play session listens to every cue
+and tunes trims; nobody has heard these in-engine yet).
 **License ledger:** every file below is also recorded in repo-root
 `THIRD_PARTY_LICENSES.md` (the authoritative license table). One NEW visible-credit
 obligation ships with this batch — see §5.
@@ -210,31 +215,62 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 
 ---
 
-## §3 The wiring half — build contract (NEXT session)
+## §3 The wiring half — ✅ LANDED August 7, 2026 (landing record)
 
-1. **`audio_manager.gd` autoload** (there is none): four buses **Master / Music /
-   SFX / UI** (ambience routes to SFX; revisit only if mixing demands a fifth),
-   `play_ui(cue)` / `play_sfx(cue)` / `play_music(track, crossfade)` /
-   `start_scribble()·stop_scribble()` keyed to the §2 names, stream caching,
-   round-robin for multi-take cues (page turns, clicks).
-2. **Settings surface**: volume sliders (Master/Music/SFX/UI) on the pause menu
-   beside Interface Scale, persisted via the `ui_settings.gd` config pattern; the
-   existing **`battle_sfx` toggle is honored** (it becomes "SFX" or stays a named
-   toggle — wiring session's call, recorded there).
-3. **Integration seams** (each one boots the engine after — the XR-1 rule):
-   `main.gd` (command send/ack/refusal, typewriter loop), `battle_diorama.gd`
-   (replace direct `AudioStreamPlayer` with the manager; add volley/cavalry/bed),
-   `dispatch_view.gd`/top bar (dispatch bugle, notification bell), popups
-   (letter/seal/bells via `popup_base.gd` or per-dialog), `strategic_ledger.gd` +
-   screens (page turns, panel open/close), map (province click, army march), pause
-   menu (sliders). Music state machine last (peace/war/victory/defeat).
-4. **Godot import**: every new file needs its `.import` sidecar committed (generated
-   this session via `--headless --import`); music OGGs should get `loop` enabled in
-   the import options where the slot loops.
-5. **The audition gate**: every §2 cue is listened to in-engine before its wiring
-   lands; any muddy freesound preview gets re-fetched at original quality (free
-   freesound login — manual user step, flagged per-file) or swapped from the zips'
-   remaining pool. Any cue that fails audition is re-sourced or its row cut HERE.
+1. **`scripts/audio_manager.gd`** — **built as a `class_name` STATIC singleton, NOT
+   a project.godot autoload** (recorded deviation with cause: the parse harness
+   compiles scripts under a bare `--script` SceneTree where autoload globals do not
+   resolve — `main.gd` failed compile with "Identifier not found" on the autoload
+   route; the codebase's own `Utils`/`UiSettings` static idiom compiles in every
+   context, so the manager follows it. A lazy instance node self-installs under the
+   scene root; `main._ready()` calls `AudioManager.boot.call_deferred()`). Four
+   runtime buses **Master/Music/SFX/UI**; cue registry (round-robin variants,
+   per-cue dB trim + throttle — piece fleets and button spam collapse to one play);
+   named ambient loops with runtime `loop=true` on OGG/MP3 streams; music program =
+   **PEACE/WAR shuffled rotations with 2s crossfade**, a **one-shot overlay lane**
+   (the anthem), `duck_music` refcount for the diorama, and `play_music_once` also
+   exposing the RESERVED `triumph`/`lament` tracks for the Victory Pass.
+2. **Settings**: four volume sliders (Master/Music/SFX/UI) on the pause menu,
+   code-built beside the battle toggle, live-apply + persist via
+   `UiSettings.get/set_audio_volume` (defaults 1.0/0.55/0.9/0.65). The `battle_sfx`
+   toggle KEEPS its name and now gates every diorama-emitted cue (bed, volley,
+   cavalry, verdict stings) exactly as it gated the cannon/drum.
+3. **Seams landed** (~75 call sites, 27 scripts): the global BaseButton click hook
+   (every button in every scene; CheckButton/CheckBox → toggle; opt-out
+   `set_meta("no_click_sfx", true)`) · command send quill-flick + **scribble loop
+   during the backend round-trip** (stop rides `set_input_enabled(true)`, the one
+   chokepoint every response path passes) · refused command → soft error · end-turn
+   snare roll · reveille (5s cap) on the morning dispatch · desk bell per NEW
+   notification id · Mail Call on the letter-book raise · **war-driven music**: a war
+   France had not seen → La Marseillaise overlay (the 1805 boot opener), a war
+   concluded → fanfare, mood follows the live war count (`_process_active_wars`) ·
+   wizard = panel + court-murmur loop · ledgers/screens = panel open/close +
+   page-turn tabs · dispatch view = the two parchment WAVs (finally assigned) ·
+   campaign log = book open/close · proposal result = quill-signature → wax seal
+   (0.7s) or refusal tone · Proclamation = bells peal · petition/objection = sword
+   draw · interrupt = drum sting · glorious charge = cavalry · rebellion = single
+   toll · reward dialog = To the Color (6s cap) · capture = plunder coin-pour ·
+   enemy phase = long march bed + distant cannon per battle line · war-table piece
+   moves = throttled march cadence · diorama = music duck + battlefield bed (sea +
+   creaks + ship's bell when naval), musket volley + cavalry/whinny by arms present,
+   verdict typed over the quill scribble, triumph fanfare / defeat toll · pause menu
+   = heavy doors, new-game paper crumple · save = confirm/error chimes · map wind
+   bed from boot.
+4. **Import**: `.import` sidecars committed for all 75 files (loops are set at
+   RUNTIIME via the stream flag, so no import-option edits were needed).
+5. **▶ THE AUDITION GATE — the row's remaining work**: every §2 cue listened to
+   in-engine in a live play session; trims/volumes tuned; any muddy freesound
+   preview re-fetched at original quality (free freesound login — manual user step)
+   or swapped from the zips' pool. Any cue that fails audition is re-sourced or its
+   row cut HERE.
+6. **The pool (sourced, deliberately not yet wired — each needs a seam the audition
+   session picks, or stays a variant):** `command_ack` (order-executed feedback —
+   the flick already marks the send; decide at audition), `coins_small` (awaits a
+   clean payment-result seam), `musket_shot_1-3` (diorama cascade shots — audition
+   call), `tick_subtle`/`latch_close`/`first_call`/`campfire_loop`/
+   `quill_scribble_long`/`cannon_distant-as-cue`-in-terminal (alts and beds). The
+   diorama's own `cannon_thud`/`drum_sting` calls were left on their original
+   `_play_sound` path (now routed through the SFX bus).
 
 ## §4 Gaps & routed items
 

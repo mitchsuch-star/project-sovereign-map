@@ -156,6 +156,8 @@ const COMMITMENTS_EVENT_TYPES = {
 
 var expanded_panel: PanelContainer = null
 var current_notifications: Array = []
+# Music & Sound Core: notification ids the bell has already rung for.
+var _audio_seen_ids: Dictionary = {}
 var api_client = null
 var _suspended: bool = false
 
@@ -181,6 +183,13 @@ func set_suspended(suspended: bool):
 
 
 func update_notifications(notifications: Array):
+	# Music & Sound Core: ring the desk bell once per NEW notification id —
+	# refreshes re-deliver the whole list every response, so dedupe by id.
+	for notif in notifications:
+		var nid := str(notif.get("id", ""))
+		if nid != "" and not _audio_seen_ids.has(nid):
+			_audio_seen_ids[nid] = true
+			AudioManager.play("notification")
 	current_notifications = notifications.duplicate()
 
 	for child in icon_container.get_children():

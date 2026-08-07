@@ -79,6 +79,8 @@ func open():
 	dp_label.text = ""
 	_clear_content_list()
 	_add_loading_label()
+	AudioManager.play("panel_open")
+	AudioManager.start_loop("crowd")
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
 	# open paths clamp — the wizard is reachable from F1 and from the war
@@ -100,6 +102,8 @@ func open_for_nation(nation: String):
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_clear_content_list()
 	_add_loading_label()
+	AudioManager.play("panel_open")
+	AudioManager.start_loop("crowd")
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
 	# open paths clamp — the wizard is reachable from F1 and from the war
@@ -109,6 +113,9 @@ func open_for_nation(nation: String):
 
 
 func _close_wizard():
+	if visible:
+		AudioManager.play("panel_close")
+	AudioManager.stop_loop("crowd")
 	_current_step = 0
 	_selected_nation = ""
 	_request_in_flight = false

@@ -28,6 +28,7 @@ func _ready():
 
 func show_clarification(data: Dictionary):
 	"""Display clarification popup with target options."""
+	AudioManager.play("question")
 	current_marshal = str(data.get("marshal", "Marshal"))
 	# CR-2: .get() defaults do NOT apply to present-but-null keys — a null
 	# strategic_type must not crash the typed String assignment

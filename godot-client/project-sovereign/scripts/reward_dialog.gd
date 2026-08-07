@@ -28,6 +28,7 @@ func _ready():
 
 func show_reward(card: Dictionary):
 	"""Build the reward portfolio for one marshal from his overview card."""
+	AudioManager.play("to_the_color", 6.0)  # honors for a marshal (capped)
 	var m_name = str(card.get("name", "?"))
 	title_label.text = "REWARD MARSHAL " + m_name.to_upper()
 

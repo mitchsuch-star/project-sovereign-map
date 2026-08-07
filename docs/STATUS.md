@@ -11,15 +11,18 @@
 > 3.5, 3.75 and **3.8 (the CA8 close-out gates)** are done; the 3.75-open decision is
 > RESOLVED by events.
 >
-> **▶ NEXT = POSITION 4's WIRING HALF** — the **sourcing half LANDED August 7, 2026**
-> (second session that day; record = `docs/MUSIC_SOUND_SPEC.md` §0–§2): **75 cue-named,
-> license-verified audio files** now live under `assets/audio/{music,ui,battle,ambient}/`
-> incl. the game's first 18 music tracks (Musopen *Eroica* I/II/IV + *Coriolan* +
-> Haydn/Mozart/Goldberg calms, the US Navy Band Marseillaise, US Army Old Guard fife &
-> drum, four bugle calls — all PD/CC0 recordings, adversarially verified), the quill
-> scribble loop for imperial-log text streaming, quill flick for command send, wax
-> seal, bells, naval set, battle set. Next session builds `audio_manager.gd` (four
-> buses, sliders, the §2 cue map, the §3.5 audition gate). Then: **5** the Econ Balance
+> **▶ NEXT = POSITION 4's AUDITION GATE, then position 5.** BOTH halves of Music &
+> Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
+> sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
+> music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
+> singleton, four buses, PEACE/WAR rotations, the Marseillaise war-overlay), pause-menu
+> volume sliders, ~75 call sites across 27 scripts (global button clicks, quill flick +
+> scribble loop on the command round-trip, end-turn snare, reveille dispatch, desk-bell
+> notifications, seal/bells/sword/cavalry/toll popups, enemy-phase march bed, diorama
+> beds + verdict stings, piece-move cadence, map wind bed). Parse harness EXIT=0 (42
+> scripts), boot smoke 0 SCRIPT ERROR / 0 missing files. **What remains on the row =
+> the §3.5 audition gate**: a live session LISTENS to every cue, tunes trims, swaps any
+> muddy preview — nobody has heard these in-engine yet. Then: **5** the Econ Balance
 > pass (EC-P3's gate — CA8-D1 gold sinks, CA8-D5 threat ceiling, IGR-X9, EWC-D1/F2,
 > the plunder dissent — then the build) → **6** Voice-to-Text (approach gate;
 > recommended v1 = OS dictation certified against the command box) → **7** Marshal
@@ -35,6 +38,34 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ MUSIC & SOUND (CORE) — THE WIRING HALF — August 7, 2026 (same session, cont.)
+>
+> User: *"i dont hear sounds why"* → *"wire all sounds."* The sourcing commit had
+> landed assets only; the sole wired audio was the diorama's cannon/drum. **The whole
+> §2 cue map is now live** — landing record `docs/MUSIC_SOUND_SPEC.md` §3:
+> `scripts/audio_manager.gd` built in the codebase's `class_name`-static idiom
+> (**NOT an autoload — recorded deviation**: the parse harness compiles under a bare
+> SceneTree where autoload globals don't resolve; `Utils`/`UiSettings` set the
+> pattern, and the first cut on the autoload route failed the harness exactly that
+> way), lazy self-installing instance, four buses, cue registry with round-robin +
+> per-cue trim/throttle, named loops, PEACE/WAR shuffled rotations with crossfade +
+> duck, the anthem overlay lane, and the reserved Victory-Pass tracks behind
+> `play_music_once`. ~75 call sites across 27 scripts — highlights: the global
+> BaseButton hook (every button clicks, toggles toggle, `no_click_sfx` opt-out), the
+> quill scribble UNDER the command round-trip (stop rides `set_input_enabled(true)`),
+> war-driven music keyed to the HUD's own war ids (new war → **La Marseillaise**, war
+> ends → fanfare, mood follows count), reveille capped at 5s on the dispatch, the two
+> orphaned parchment WAVs finally assigned to the dispatch view, proposal results
+> signed-then-sealed (0.7s), the diorama ducking the score under a battlefield (or
+> sea) bed with volley/cavalry by arms present and the verdict typed over a quill
+> scribble. Pause menu gained Master/Music/SFX/UI sliders (UiSettings-persisted);
+> `battle_sfx` keeps gating everything the diorama emits. **Parse harness EXTENDED to
+> 42 scripts (every touched file + the manager), EXIT=0; boot smoke with live backend:
+> 0 SCRIPT ERROR, 0 missing-audio warnings.** One bulk-edit line-ending mangle
+> (mailbox_panel) caught by the ending check and restored from HEAD before commit.
+> **⚠ open = the §3.5 audition gate** (live listen + trim pass; the §3.6 pool rows
+> decided there). No backend diff; suite untouched.
 
 > ### ✅ MUSIC & SOUND (CORE) — THE SOURCING HALF — August 7, 2026 (second session)
 >

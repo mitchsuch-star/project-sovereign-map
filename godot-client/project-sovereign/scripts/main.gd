@@ -262,6 +262,8 @@ var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "No
 var _pending_envoy_request_active: bool = false
 # IGR-F: the turn number the letter-book was last auto-raised on. -1 = never.
 var _envoy_digest_shown_turn: int = -1
+# Music & Sound Core: war ids the audio layer has reacted to (anthem/fanfare).
+var _audio_seen_war_ids: Dictionary = {}
 # IGR-F: a digest seen on the wire but not yet raised. -1 = nothing waiting.
 var _pending_envoy_digest_turn: int = -1
 var _current_envoy_count: int = 0  # Tracks pending envoy count for end-turn gate
@@ -306,6 +308,10 @@ const MAX_MESSAGES = 100
 var message_count = 0
 
 func _ready():
+	# Music & Sound Core: install the audio singleton once the tree settles
+	# (deferred — root is busy instantiating the main scene right now).
+	AudioManager.boot.call_deferred()
+
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
@@ -1124,6 +1130,7 @@ func _send_end_turn():
 	# Display the command
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► end turn[/color]")
+	AudioManager.play("end_turn")  # the drummer closes the day
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -1167,6 +1174,8 @@ func _execute_command():
 	# Display player command with prompt styling
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + command + "[/color]")
+	# The order leaves the Emperor's pen (Music & Sound Core, §2 command flow).
+	AudioManager.play("quill_flick")
 
 	# Clear input
 	command_input.text = ""
@@ -1179,11 +1188,17 @@ func _execute_command():
 		if DEBUG_VERBOSE:
 			print("REDEMPTION COMMAND DETECTED: ", command)
 		set_input_enabled(false)
+		AudioManager.start_scribble()
 		api_client.send_redemption_response(command.to_lower(), _on_redemption_response)
 		return
 
 	# Disable input while processing
 	set_input_enabled(false)
+
+	# Berthier composes the reply — quill on parchment until the response
+	# lands (stop_scribble rides set_input_enabled(true), the one chokepoint
+	# every response path already passes through).
+	AudioManager.start_scribble()
 
 	# Send to backend
 	api_client.send_command(command, _on_command_result)
@@ -1469,6 +1484,7 @@ func _show_pending_envoy_digest() -> bool:
 	_envoy_digest_shown_turn = _pending_envoy_digest_turn
 	_pending_envoy_digest_turn = -1
 	_pending_envoy_request_active = true
+	AudioManager.play("mail_call")  # the letter-book arrives
 	# Fetched rather than rendered from the stash: the panel lists EVERY
 	# pending envoy, so a great-power letter waiting behind the small courts
 	# stays visible and one click from being opened in full.
@@ -1771,7 +1787,12 @@ func _display_result(response):
 	var message = str(response.get("message", ""))
 	var events = response.get("events", [])
 	var action_info = response.get("action_info", {})
-	
+
+	# Music & Sound Core §2: a refused/failed order lands with a soft error
+	# tone (successes stay quiet — the quill flick already marked the send).
+	if typeof(response) == TYPE_DICTIONARY and response.get("success", true) == false:
+		AudioManager.play("error")
+
 	# Determine event type for coloring
 	var event_type = ""
 	if events.size() > 0:
@@ -2356,6 +2377,9 @@ func _display_morning_dispatch(data: Dictionary):
 	var peace_settlements = data.get("peace_settlements", [])
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
+	# Reveille — the camp wakes with the dispatch (capped: the full call is 21s).
+	AudioManager.play("reveille", 5.0)
+
 	# ═══ DISPATCH HEADER ═══
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]")
@@ -2933,6 +2957,9 @@ func set_input_enabled(enabled: bool):
 	diplomacy_button.disabled = not enabled
 
 	if enabled:
+		# The reply is on the desk — the quill rests. (Every response path
+		# re-enables input, so this is the scribble loop's single stop seam.)
+		AudioManager.stop_scribble()
 		command_input.grab_focus()
 
 func _show_objection_dialog(response):
@@ -4883,6 +4910,30 @@ func _process_active_wars(response: Dictionary):
 		_cached_coalition_data = active_wars_data.get("coalition", null)
 		_has_active_wars = not _cached_wars.is_empty()
 
+		# ── Music & Sound Core: the war drives the score ──
+		# A war France hadn't seen → La Marseillaise (one-shot lane over the
+		# rotation; at the 1805 boot this IS the opening anthem). A war
+		# concluded → the fanfare. Mood follows the live war count.
+		var current_war_ids := {}
+		for w in _cached_wars:
+			var wid := str(w.get("war_instance_id", w.get("war_id", "")))
+			if wid != "":
+				current_war_ids[wid] = true
+		var any_new_war := false
+		for wid in current_war_ids:
+			if not _audio_seen_war_ids.has(wid):
+				any_new_war = true
+		var any_war_ended := false
+		for wid in _audio_seen_war_ids:
+			if not current_war_ids.has(wid):
+				any_war_ended = true
+		if any_new_war:
+			AudioManager.play_music_once("marseillaise")
+		elif any_war_ended:
+			AudioManager.play("fanfare")
+		_audio_seen_war_ids = current_war_ids
+		AudioManager.set_war_mood(_has_active_wars)
+
 		# Refresh detail popup if open (in-place update, don't close)
 		if war_detail_popup and war_detail_popup.visible:
 			war_detail_popup.refresh_if_open(active_wars_data)
@@ -4899,8 +4950,10 @@ func _on_pause_save_requested():
 func _on_pause_save_result(response):
 	"""Handle save result from pause menu."""
 	if response.success:
+		AudioManager.play("confirm")
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]Game saved successfully.[/color]")
 	else:
+		AudioManager.play("error")
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Save failed: " + str(response.get("message", "Unknown error")) + "[/color]")
 	add_output("")
 

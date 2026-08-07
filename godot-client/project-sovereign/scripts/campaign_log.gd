@@ -43,6 +43,7 @@ func _ready():
 
 
 func open_log(api_client):
+	AudioManager.play("book_open")
 	empty_label.text = "Loading..."
 	empty_label.visible = true
 	scroll_container.scroll_vertical = 0
@@ -52,6 +53,8 @@ func open_log(api_client):
 
 
 func close_log():
+	if visible:
+		AudioManager.play("book_close")
 	hide()
 	closed.emit()
 

@@ -41,6 +41,7 @@ func _ready():
 
 func show_capture_choice(data: Dictionary):
 	"""Display capture choice popup with data from backend."""
+	AudioManager.play("cloth")
 	var region_val = data.get("region")
 	var capturer_val = data.get("capturer")
 
@@ -106,6 +107,7 @@ func show_capture_choice(data: Dictionary):
 
 func _on_plunder_pressed():
 	"""Player chooses the first option (plunder / confiscate)."""
+	AudioManager.play("coin_pour")
 	hide()
 	choice_made.emit("confiscate" if current_stage == "estate" else "plunder")
 

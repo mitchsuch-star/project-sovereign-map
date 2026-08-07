@@ -42,6 +42,7 @@ func _ready():
 
 
 func show_mailbox(data: Dictionary):
+	AudioManager.play("letter_open")
 	var items = data.get("items", [])
 	var count = int(data.get("count", 0))
 	_items = items.duplicate()

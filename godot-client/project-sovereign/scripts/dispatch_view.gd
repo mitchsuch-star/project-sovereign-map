@@ -28,6 +28,7 @@ func _ready():
 
 func open(api_client):
 	"""Fetch dispatch from backend and display it."""
+	AudioManager.play("parchment_open")  # the dispatch parchment, unrolled
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]Loading dispatch...[/color]"
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
@@ -35,6 +36,8 @@ func open(api_client):
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
+	if visible:
+		AudioManager.play("parchment_close")
 	hide()
 	closed.emit()
 

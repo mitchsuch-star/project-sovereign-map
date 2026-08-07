@@ -101,3 +101,22 @@ static func get_battle_sfx() -> bool:
 static func set_battle_sfx(enabled: bool) -> void:
 	_config().set_value("audio", "battle_sfx", enabled)
 	_config().save(PATH)
+
+
+# --- Bus volumes (Music & Sound Core: Master / Music / SFX / UI) ---
+# Linear 0..1, applied by AudioManager (linear→dB); pause-menu sliders write here.
+const AUDIO_VOLUME_DEFAULTS := {
+	"Master": 1.0,
+	"Music": 0.55,
+	"SFX": 0.9,
+	"UI": 0.65,
+}
+
+
+static func get_audio_volume(bus_name: String) -> float:
+	var default := float(AUDIO_VOLUME_DEFAULTS.get(bus_name, 1.0))
+	return clampf(_read_num("audio", "volume_" + bus_name.to_lower(), default), 0.0, 1.0)
+
+
+static func set_audio_volume(bus_name: String, linear: float) -> void:
+	_write_num("audio", "volume_" + bus_name.to_lower(), clampf(linear, 0.0, 1.0))

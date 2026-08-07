@@ -41,6 +41,13 @@ func show_result(data: Dictionary):
 	var decision_reason_display = data.get("decision_reason_display", "")
 	var is_accept = _is_accept_result(data)
 
+	# Signed and sealed — or refused (Music & Sound Core §2 diplomacy row).
+	if is_accept:
+		AudioManager.play("quill_sign")
+		get_tree().create_timer(0.7).timeout.connect(func(): AudioManager.play("wax_seal"))
+	else:
+		AudioManager.play("error")
+
 	var bbcode = ""
 
 	if is_accept:

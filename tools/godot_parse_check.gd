@@ -54,6 +54,22 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# chip touched these; the XR-1 rule adds every touched script.
 	"res://scripts/strategic_ledger.gd",
 	"res://scripts/region_panel.gd",
+	# Music & Sound Core (wiring half): the autoload + every script the cue
+	# map touched (XR-1 — every touched script parses in the harness).
+	"res://scripts/audio_manager.gd",
+	"res://scripts/popup_base.gd",
+	"res://scripts/campaign_log.gd",
+	"res://scripts/dispatch_view.gd",
+	"res://scripts/marshal_management.gd",
+	"res://scripts/proclamation_popup.gd",
+	"res://scripts/marshal_petition_dialog.gd",
+	"res://scripts/objection_dialog.gd",
+	"res://scripts/interrupt_popup.gd",
+	"res://scripts/glorious_charge_dialog.gd",
+	"res://scripts/clarification_popup.gd",
+	"res://scripts/vassal_rebellion_popup.gd",
+	"res://scripts/reward_dialog.gd",
+	"res://scripts/proposal_result_popup.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not

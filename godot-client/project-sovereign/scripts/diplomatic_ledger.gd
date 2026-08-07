@@ -175,6 +175,7 @@ func _open_with_tab(api_client, tab_index: int, review_target: String, route_id:
 	_open_review_target = review_target
 	_focus_settlement_route_id = route_id
 	_focus_settlement_war_id = war_id
+	AudioManager.play("panel_open")
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
@@ -183,6 +184,8 @@ func _open_with_tab(api_client, tab_index: int, review_target: String, route_id:
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
+	if visible:
+		AudioManager.play("panel_close")
 	hide()
 	cached_data = {}
 	_open_review_target = ""

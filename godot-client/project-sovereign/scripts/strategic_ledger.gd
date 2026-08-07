@@ -110,6 +110,7 @@ func open(api_client):
 	_api_client_ref = api_client
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading ledger...[/color]"
 	current_tab = 0
+	AudioManager.play("panel_open")
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
@@ -118,6 +119,8 @@ func open(api_client):
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
+	if visible:
+		AudioManager.play("panel_close")
 	hide()
 	cached_data = {}
 	closed.emit()
@@ -147,6 +150,7 @@ func _on_tab_pressed(tab_index: int):
 func _switch_tab(tab_index: int):
 	if tab_index == current_tab:
 		return
+	AudioManager.play("page_turn")
 	current_tab = tab_index
 	scroll_container.scroll_vertical = 0
 	_update_tab_highlights()

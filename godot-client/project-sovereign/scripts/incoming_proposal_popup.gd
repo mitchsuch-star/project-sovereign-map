@@ -31,6 +31,7 @@ func _ready():
 
 func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
+	AudioManager.play("letter_open")
 	current_data = data
 	var from_nation = data.get("from_nation", "Unknown")
 	var from_display = Utils.display_nation_name(str(from_nation))

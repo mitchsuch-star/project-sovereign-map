@@ -88,6 +88,7 @@ func _on_viewport_resized():
 
 func show_region(region_name: String, map_node) -> void:
 	"""Open (or retarget) the panel for a clicked province."""
+	AudioManager.play("select")
 	if region_name == "" or map_node == null:
 		return
 	var retargeted = region_name != _region
@@ -113,6 +114,8 @@ func current_region() -> String:
 
 
 func close_panel() -> void:
+	if visible:
+		AudioManager.play("back")
 	hide()
 	_region = ""
 	closed.emit()

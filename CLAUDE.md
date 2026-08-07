@@ -91,14 +91,19 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > post-EA) → **7 Marshal Voice Tier 1 + XR-5** (the CA8-D3 gate rides this slot) →
 > **8 THE SHIPPABLE BUILD** (old 4; inherits 4's audio shell). Steam 12 · CR-6 13 ·
 > Tutorial 14 · Pre-EA 15 · Trailer 16 · **EA 17**. Position 2 (LLC + Steamworks)
-> still parallel-anytime. Honest total ~25–33 build sessions. **▶ POSITION 4's
-> SOURCING HALF LANDED August 7, 2026 (second session that day)** — 75 cue-named
+> still parallel-anytime. Honest total ~25–33 build sessions. **▶ POSITION 4 —
+> MUSIC & SOUND (CORE) — BOTH HALVES LANDED August 7, 2026** (records =
+> **`docs/MUSIC_SOUND_SPEC.md`** §0–§2 sourcing + §3 wiring): 75 cue-named
 > license-verified files (the first 18 music tracks: Musopen PD *Eroica*/Coriolan/
-> calms, US Navy Band Marseillaise, Old Guard fife & drum, bugle calls; quill
-> scribble loop + flick, wax seal, bells, naval + battle sets; ONE new CC-BY credit,
-> musket volley), record + cue map + wiring contract = **`docs/MUSIC_SOUND_SPEC.md`**.
-> **▶ NEXT = POSITION 4's WIRING HALF** (spec §3: `audio_manager.gd`, four buses,
-> sliders, the cue map, the audition gate).
+> calms, US Navy Band Marseillaise, Old Guard fife & drum, bugles; ONE new CC-BY
+> credit, musket volley) AND the full cue map wired — `audio_manager.gd` built
+> `class_name`-static like Utils (autoload rejected: the parse harness can't
+> resolve autoload globals), four buses + pause-menu sliders, ~75 call sites / 27
+> scripts (global button hook, command-round-trip quill scribble, war-driven music
+> incl. the Marseillaise overlay, reveille dispatch, diorama beds + verdict stings,
+> piece-move cadence); parse harness 42 scripts EXIT=0, boot smoke clean.
+> **▶ NEXT = the spec §3.5 AUDITION GATE** (live listen + trim pass — nobody has
+> heard these in-engine yet), then position 5 (Econ Balance).
 >
 > **~~CA8 SWEEP 4 — THE LAST UNGATED ROWS~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit; four commits `9ca0374`/`412204e`/`f132d2e`/`e97b1f9`):

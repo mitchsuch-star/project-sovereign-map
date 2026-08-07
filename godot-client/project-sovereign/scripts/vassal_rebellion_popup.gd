@@ -25,6 +25,7 @@ func _ready():
 
 func show_rebellion(data: Dictionary):
 	"""Display vassal rebellion imminent popup."""
+	AudioManager.play("bell_toll")  # grave news
 	current_data = data
 	var nation = data.get("nation", "Unknown")
 	var loyalty = data.get("loyalty", 0)

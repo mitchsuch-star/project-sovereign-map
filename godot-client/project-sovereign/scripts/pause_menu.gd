@@ -63,9 +63,37 @@ func _ready():
 	sfx_toggle.button_pressed = UiSettings.get_battle_sfx()
 	sfx_toggle.toggled.connect(func(on): UiSettings.set_battle_sfx(on))
 	settings_box.add_child(sfx_toggle)
+	_add_volume_sliders()
 	_add_asset_credits()
 	_set_new_game_confirmation_visible(false)
 	hide()
+
+func _add_volume_sliders():
+	"""Music & Sound Core: the four bus volume sliders (Master/Music/SFX/UI),
+	code-built like the battle toggle so the settings box needs no scene
+	surgery. Live-apply through AudioManager; persisted via UiSettings."""
+	var header := Label.new()
+	header.text = "Volume"
+	header.add_theme_font_size_override("font_size", 13)
+	settings_box.add_child(header)
+	for bus_name in ["Master", "Music", "SFX", "UI"]:
+		var row := HBoxContainer.new()
+		var lbl := Label.new()
+		lbl.text = bus_name
+		lbl.custom_minimum_size.x = 64
+		lbl.add_theme_font_size_override("font_size", 12)
+		row.add_child(lbl)
+		var slider := HSlider.new()
+		slider.min_value = 0.0
+		slider.max_value = 1.0
+		slider.step = 0.05
+		slider.custom_minimum_size.x = 140
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.set_value_no_signal(AudioManager.get_bus_volume(bus_name))
+		slider.value_changed.connect(func(v): AudioManager.set_bus_volume(bus_name, v))
+		row.add_child(slider)
+		settings_box.add_child(row)
+
 
 func _add_asset_credits():
 	# UI-3: visible attribution for the shipped CC-BY asset (game-icons.net unit
@@ -84,6 +112,7 @@ func _add_asset_credits():
 
 func open_menu():
 	_reset_menu_state()
+	AudioManager.play("door_open")
 	# Re-sync the slider from the saved scale: the command-window "Text Size"
 	# +/- buttons write the same UiSettings value, so re-reading on open keeps
 	# this slider from showing a stale figure after the player used them.
@@ -99,6 +128,7 @@ func open_menu():
 
 func close_menu():
 	_reset_menu_state()
+	AudioManager.play("door_close")
 	hide()
 	closed.emit()
 
@@ -129,6 +159,7 @@ func _on_new_game():
 	_set_new_game_confirmation_visible(true)
 
 func _on_confirm_new_game():
+	AudioManager.play("paper_crumple")  # the old campaign, crumpled and binned
 	close_menu()
 	new_game_requested.emit()
 
