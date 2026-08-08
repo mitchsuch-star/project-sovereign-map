@@ -5009,6 +5009,31 @@ class CombatExecutor:
                     if isinstance(battle_result.get("log_battle_event"), dict):
                         battle_result["log_battle_event"]["enemy_voice"] = _voice
 
+            # ════════════════════════════════════════════════════════
+            # MARSHAL VOICE TIER 1 (position 9): the player's OWN
+            # commander speaks too — the enemy_voice mirror, same
+            # deterministic rotation, same GR6 display-only contract.
+            # `_enemy_side` already proved exactly one side is the
+            # player's, so the other marshal of the pair is his.
+            # ════════════════════════════════════════════════════════
+            from backend.game_logic.marshal_voice import (
+                derive_own_situation, pick_marshal_voice,
+            )
+            _own_m = enemy_marshal if _enemy_attacked else marshal
+            _own_attacked = not _enemy_attacked
+            _own_key = "attacker" if _own_attacked else "defender"
+            _own_situation = derive_own_situation(
+                battle_result.get("outcome", ""), _own_attacked,
+                bool(battle_result.get(_own_key, {}).get("forced_retreat")))
+            if _own_situation and _own_m.strength > 0:
+                _own_voice = pick_marshal_voice(
+                    _own_m.name,
+                    getattr(_own_m, "personality", "cautious"),
+                    _own_situation,
+                    int(world.battle_counts.get(target_location, 0)))
+                if _own_voice:
+                    battle_result["marshal_voice"] = _own_voice
+
         # Clear coordination transient fields (D5 + X1)
         # CA8 sweep 4 review: three regions cannot cover every stamped
         # marshal. `_calculate_overwatch` stamps `overwatch_penalty` on every
@@ -5562,6 +5587,9 @@ class CombatExecutor:
             # W6-6: the enemy commander's line rides the report.
             if battle_result.get("enemy_voice"):
                 result["battle_report"]["enemy_voice"] = battle_result["enemy_voice"]
+            # Marshal Voice Tier 1: so does the player's own commander's.
+            if battle_result.get("marshal_voice"):
+                result["battle_report"]["marshal_voice"] = battle_result["marshal_voice"]
             # §0.6.8 item 4c: a victory that raised the winner's reward
             # expectation says so in the report at the moment it happens,
             # not just in tomorrow's dispatch. Read as a battles_won DELTA

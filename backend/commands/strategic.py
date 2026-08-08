@@ -2339,6 +2339,15 @@ class StrategicOrderProcessor:
                 from backend.game_logic.marshal_voice import literal_completion
                 completion_msg = literal_completion(
                     original, reason, marshal.name, int(world.current_turn))
+        elif getattr(marshal, 'nation', '') == getattr(world, 'player_nation',
+                                                       'France'):
+            # Marshal Voice Tier 1: aggressive/cautious completion reports
+            # carry one register line after the plain reason (GR6,
+            # display-only; unknown personalities pass through unchanged).
+            from backend.game_logic.marshal_voice import personality_completion
+            completion_msg = personality_completion(
+                marshal.personality, reason, marshal.name,
+                int(world.current_turn))
 
         # Notification: strategic order complete (player marshals only)
         if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):

@@ -134,7 +134,13 @@ class TestOrderEcho:
         assert "Belgium is reached." in result["message"]
         assert result["precision_bonus"] is True
 
-    def test_non_literal_completion_unchanged(self):
+    def test_non_literal_completion_speaks_in_register_not_in_quotes(self):
+        # PIN CONSCIOUSLY FLIPPED Aug 8, 2026 (Marshal Voice Tier 1,
+        # position 9): W6-5's boundary was "only the literal speaks", and
+        # this test pinned non-literal completions PLAIN. Tier 1 gives
+        # aggressive/cautious their own register line after the plain
+        # reason — the LITERAL boundary that still holds (and is the
+        # doctrine) is that only HE quotes the order's verbatim words.
         ney = MarshalFactory.infantry(name="Ney", location="Belgium",
                                       personality="aggressive")
         ney.strategic_order = StrategicOrder(
@@ -143,7 +149,9 @@ class TestOrderEcho:
         world = WorldFactory.with_marshals([ney])
         proc = StrategicOrderProcessor(CommandExecutor())
         result = proc._complete_order(ney, world, "Belgium is reached.")
-        assert result["message"] == "Belgium is reached."
+        assert result["message"].startswith("Belgium is reached.")
+        assert '"Ney, march to Belgium"' not in result["message"]
+        assert result["precision_bonus"] is False
 
 
 # ════════════════════════════════════════════════════════════════════════

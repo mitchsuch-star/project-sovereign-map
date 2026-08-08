@@ -2117,6 +2117,13 @@ func _display_berthier_report(report: Dictionary):
 
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
 
+	# Marshal Voice Tier 1 (position 9): the player's own commander speaks
+	# first, in his register — the staff annotates after him. Backend-composed
+	# (marshal_voice.pick_marshal_voice), display-only.
+	var own_voice = str(report.get("marshal_voice", ""))
+	if own_voice != "" and own_voice != "<null>":
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  " + own_voice + "[/color]")
+
 	# CR-5 rider (d) "words become the record": when this battle came from a
 	# delegation the marshal INTERPRETED (not an order the player typed), quote
 	# the player's verbatim words. Backend sets this only on delegation-inferred

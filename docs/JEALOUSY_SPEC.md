@@ -55,6 +55,48 @@ The spec body's examples predate the 1805 cutover. Live mapping:
 - **Tests:** `test_jealousy_v32.py` (107) · `test_estate_riders_esp.py` (22) · `test_marshal_recruitment.py` (34) + 5 corpus rows; consciously flipped pins recorded in the backend commit. Suite 12,958/3 at the backend commit; ruff clean.
 - **Deferred (owned):** ESP-3 respect-by-treaty stays with its diplomacy-gate owner row (`DESIGN_REFINEMENT.md`); Jealousy §14's own exclusions (Council command, pride mechanic, Petition Chain/BALANCED) stand unchanged; the recruitment spec's §8 lists its own non-goals.
 
+### 0.5 CA8-D3 GATE + LANDING RECORD (August 8, 2026 — the rival is a PERSON; authoritative where it amends §1/§6)
+
+**Held under the user's delegated grant at the position-9 marshal-content slot** (the Aug-4
+creative audit's routing: `DESIGN_REFINEMENT.md` §Creative Audit row CA8-D3). The measured
+disease: `find_jealousy_target` recomputed from the rolling window alone, so **Murat's rival
+changed four times in twelve turns** — the recurrence register CA8-8 built ("again", "for the
+third time") almost never fired because the feud kept being re-cast; and the §6 confrontation
+latch was **once per pair per CAMPAIGN**, so the channel spoke once on turn 1 and every later
+escalation of the same feud passed without an audience. Both gate questions ruled **YES**:
+
+- **Q1 — RIVAL MEMORY (amends §1 targeting).** Among peers STRICTLY ABOVE on the ladder, a man
+  this marshal's envy has already fired on (any entry in the already-serialized
+  `jealousy_history`) is preferred over the rung rule — most lifetime fires first, ties by
+  worse relationship then alphabetical (the §1 tiebreak philosophy). First acquisition (no
+  history above) keeps the one-rung-up rule **byte-identically**; a passed rival falls back to
+  the rung rule (and passing still resolves with surge via the ladder-shift path); a fallen
+  rival who RISES again re-fixes the old feud — Davout–Bernadotte stays Davout–Bernadotte for
+  a whole campaign. Deeper standing gaps against a remembered high rival make the threshold
+  check fire MORE readily, which is coherent (the feud self-reinforces) and needs no new
+  constant. Single source `find_jealousy_target`; the restlessness pre-warning, the aggressive
+  autonomous-attack targeting and the enemy proxy all inherit through the same call (GR5).
+  `JEALOUSY_RIVAL_MEMORY` exists as the flip-experiment instrument, not a config surface.
+- **Q2 — PETITION PER ESCALATION LEVEL (amends §6).** The confrontation latch widens from
+  once-per-pair to **once per (pair, escalation level)**: keys `A|B@Ln` in the existing
+  `jealousy_confrontations_seen` list (zero new serialized fields; a legacy bare pair key
+  reads as "level 0 seen", so pre-gate saves get no duplicate level-0 petition but DO receive
+  the new level-rise re-fires). Bounded at four confrontations per pair per campaign (levels
+  0..3). `queue_confrontation_petition` gains the level and appends an escalation register to
+  the body (level 1 "no longer a passing mood" / 2 "entrenched… unusual heat" / 3 "the feud is
+  now mutual and the army knows it"); the §6 option arms are unchanged (the channel contract
+  holds), `context.escalation_level` rides for the client. Forced mutual-spiral fires still
+  never petition; enemy pairs still never petition.
+
+**Measured at landing:** `test_jealousy_v32.py` (107) green unchanged — every no-history pin is
+byte-identical by construction; **M1–M7 and the AI-intent `BASELINE_SERIES` held byte-identical
+WITHOUT re-record** (a fact about the ambient board: its enemy re-fires evidently never had
+history pointing at a different above-man than the rung rule chose; the flip flag stands ready
+if a future series moves). One guard from the landing review: a remembered rival repaired to
+**Devoted (+2) is skipped by the memory arm** — he is immune (THRESHOLDS None), so returning him
+would let old friendship SHADOW a fresh non-immune rung target and suppress all new envy.
+Tests: `tests/test_ca8_d3_rival_permanence.py` (19).
+
 ---
 
 ## Design Philosophy

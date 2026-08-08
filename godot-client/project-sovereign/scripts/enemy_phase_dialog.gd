@@ -414,6 +414,14 @@ func _format_berthier_report(report: Dictionary) -> String:
 			+ Utils.humanize_nation_keys_in_text(enemy_voice) + "[/color]
 ")
 
+	# Marshal Voice Tier 1 (position 9): our own commander answers in his
+	# register — enemy speaks, our marshal answers, Berthier observes.
+	var own_voice = str(report.get("marshal_voice", ""))
+	if own_voice != "" and own_voice != "<null>":
+		result += ("[color=#" + Utils.COLOR_GOLD + "]    "
+			+ Utils.humanize_nation_keys_in_text(own_voice) + "[/color]
+")
+
 	# Observation
 	var observation = report.get("observation", "")
 	if observation != "":

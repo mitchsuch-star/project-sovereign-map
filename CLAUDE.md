@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,550 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
+> **suite 16,612 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy
@@ -136,7 +136,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > Charles@Hungary, and the beat re-order bombard→battle with the capture
 > retargeted to Bohemia). Suite 16,538/3; evidence
 > `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`.
-> **⚠ open: user visual sign-off (tutor card + menu row + ADMIRALTY tab).**
+> **✅ visual sign-off PASSED August 8, 2026 (user: "sign off done") — tutor card +
+> menu row + ADMIRALTY tab; the pass surfaced TUT-F3, fixed same day (position-9 entry).**
 > **Two live-report fixes Aug 8 (record = STATUS top entry): TUT-F1** the
 > end-turn step's `int(null)` crash (`turn_ended: null` rides every
 > non-end-turn response; null survives `.get()`'s default) — null-safe
@@ -156,13 +157,52 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **(b) embedded whisper.cpp DEFERRED** behind the named re-open condition
 > (Round-0 testers actually dictating / store page needing more); **(c) cloud
 > STT REJECTED** (second key breaks single-key BYOK). Dictation FILLS the
-> command line, Enter sends — never auto-submits (PARSE-NEG discipline). ⚠
-> open: the ~1-min live spoken check (user, folds into the tutorial sign-off
-> pass); position 14's *"or speak them"* store claim gates on it.
+> command line, Enter sends — never auto-submits (PARSE-NEG discipline). **✅ the
+> ~1-min live spoken check PASSED August 8, 2026** (user: "sign off done") —
+> position 14's *"or speak them"* store claim is UNGATED.
 >
-> **▶ NEXT = POSITION 9, MARSHAL VOICE TIER 1 + XR-5 (the CA8-D3 gate rides
-> this slot)** — then 10 the shippable build (inherits the menu). The §3.5
-> AUDITION GATE PASSED (user) Aug 7 — the Music & Sound row is COMPLETE.
+> **~~POSITION 9, MARSHAL VOICE TIER 1 + XR-5 + THE CA8-D3 GATE~~ ✅ GATED +
+> BUILT August 8, 2026 in one session under the user's delegated grant** ("sign
+> off done make decisions smartly and code these in commit and push when done";
+> record = STATUS top entry): **CA8-D3 HELD, both questions YES — gate record =
+> `JEALOUSY_SPEC.md` §0.5, authoritative** (Q1 rival MEMORY:
+> `find_jealousy_target` re-fixes on the man his envy already fired on while he
+> still stands above — no history = one-rung-up byte-identical,
+> `JEALOUSY_RIVAL_MEMORY` flip flag, GR5 through the single source so
+> restlessness/autonomous-attack/enemy-proxy inherit; Q2 the §6 confrontation
+> latch widened to once per (pair, escalation level) — keys `A|B@Ln` in the
+> existing seen-list, zero new serialized fields, legacy bare keys = level-0
+> seen, bounded 4/pair/campaign, level-register body clauses; **M1–M7 +
+> `BASELINE_SERIES` byte-identical WITHOUT re-record**;
+> `test_ca8_d3_rival_permanence.py` 19). **TIER 1 BUILT** — `marshal_voice.py`
+> completes the trio on the enemy_voice pattern: the post-battle mirror
+> (`derive_own_situation`/`pick_marshal_voice`, 5 own-perspective situations ×
+> 3 registers × 3 lines + named rows Ney/Davout/Murat) rides
+> `battle_report.marshal_voice` through the ONE shared propagation seam (player
+> battles AND the enemy phase), rendered in `main.gd` (the marshal speaks first,
+> the staff annotates after) + `enemy_phase_dialog.gd` (enemy speaks, our
+> commander answers, Berthier observes); aggressive/cautious ACK banks (4 order
+> families × 3) + COMPLETION banks at the two W6-5 seams — the literal's
+> verbatim-quote doctrine untouched (banks return "" for him, pinned); player
+> marshals only, deterministic, GR6, zero LLM cost; ONE pin consciously flipped
+> (`test_w6_literal_doctrine.py` — the boundary is now "only the literal
+> QUOTES", not "only the literal speaks"). **XR-5 FIXED at its owner slot**
+> (append-only `enemy_voice.py` bank growth — named banks ≥2, Mack's four ≥3,
+> personality banks 3, index-0 anchored for the serialized `battle_counts`
+> rotation; a three-battle grind = three distinct Mack lines). **TUT-F3** (the
+> sign-off pass's live report — "Invalid call. Nonexistent 'bool' constructor"
+> after trust-Ney + end turn): GDScript's `bool()` accepts only bool/int/float,
+> so `bool(null)` AND `bool(Dictionary)` hard-error while the popup
+> passthroughs stamp `pending_objection: null` on every response (TUT-F1's
+> present-but-null trap, second family) — null-safe `_truthy` at all FIVE
+> payload-bool sites in `tutorial_overlay.gd`, regex-pinned
+> (`TestOverlayPayloadBoolSafety`). `test_marshal_voice_tier1.py` 44.
+>
+> **▶ NEXT = POSITION 10, THE SHIPPABLE BUILD** (inherits 4's audio shell +
+> 6's menu; regenerate the deploy spec — it predates the July-18 SDK migration;
+> re-gate the cheat surface on explicit debug; `%APPDATA%` saves + the menu's
+> Continue/Load arms; done = a stranger unzips it and plays in mock mode). The
+> §3.5 AUDITION GATE PASSED (user) Aug 7 — the Music & Sound row is COMPLETE.
 >
 > **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
 > CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by

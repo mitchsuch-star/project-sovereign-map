@@ -111,6 +111,14 @@ CONFRONT_PROMISE_DURATION_CUT = 2
 CONFRONT_REBUKE_TRUST = -5
 CONFRONT_REBUKE_DURATION_CUT = 1
 
+# CA8-D3 (gate held Aug 8, 2026, delegated — record: spec §0.5): THE RIVAL IS
+# A PERSON. The audit measured Murat's rival changing four times in twelve
+# turns because targeting recomputed from the rolling window alone; with
+# memory, envy RE-FIXES on the man it has already fired on whenever he still
+# stands above. The flag exists for the flip-experiment discipline (disable →
+# prior behaviour reproduces byte-identically), not as a config surface.
+JEALOUSY_RIVAL_MEMORY = True
+
 
 # ═══════════════════════════ GLORY SCORING ═══════════════════════════════
 
@@ -275,15 +283,25 @@ def get_nation_ladder(world, nation: str) -> List[Tuple[object, int]]:
 
 
 def find_jealousy_target(marshal, world):
-    """The marshal ONE RUNG ABOVE on the glory ladder (spec §1 v3).
+    """The marshal's envy object (spec §1 v3, amended by CA8-D3 — spec §0.5).
+
+    CA8-D3 Q1 (rival memory): among peers STRICTLY ABOVE on the ladder, a man
+    this marshal's envy has already fired on (any recorded fire in
+    `jealousy_history`, which is already serialized) is preferred over the
+    rung rule — most lifetime fires first, ties by worse relationship then
+    alphabetical. The rival stays a PERSON while he outshines the marshal,
+    instead of being re-cast every time the rolling window reshuffles the
+    rungs. First acquisition (no history above) keeps the one-rung-up rule
+    byte-identically; passing the remembered rival still resolves with surge
+    via the ladder-shift path, and a fallen rival who RISES again re-fixes
+    the old feud.
 
     Ties on the ladder never trigger each other; a marshal below a tie
     targets the tied marshal he has the WORSE relationship with, then
     alphabetical (spec §1 Ties).
     """
     my_glory = get_glory_score(marshal, world.current_turn)
-    target = None
-    target_glory = None
+    candidates = []
     for other in world.marshals.values():
         if (other.nation != marshal.nation or other.name == marshal.name
                 or other.strength <= 0
@@ -294,6 +312,36 @@ def find_jealousy_target(marshal, world):
         other_glory = get_glory_score(other, world.current_turn)
         if other_glory <= my_glory:
             continue
+        candidates.append((other, other_glory))
+    if not candidates:
+        return None
+
+    if JEALOUSY_RIVAL_MEMORY:
+        remembered = None
+        remembered_fires = 0
+        for other, _glory in candidates:
+            fires = _lifetime_fires(marshal, other.name)
+            if fires <= 0:
+                continue
+            if marshal.get_relationship(other.name) >= 2:
+                # A remembered rival repaired to Devoted is immune
+                # (THRESHOLDS None) — returning him would SHADOW a fresh
+                # non-immune rung target and make old friendship suppress
+                # all new envy. The feud is over; the ladder resumes.
+                continue
+            if remembered is None or fires > remembered_fires:
+                remembered, remembered_fires = other, fires
+            elif fires == remembered_fires:
+                cur = marshal.get_relationship(remembered.name)
+                new = marshal.get_relationship(other.name)
+                if new < cur or (new == cur and other.name < remembered.name):
+                    remembered = other
+        if remembered is not None:
+            return remembered
+
+    target = None
+    target_glory = None
+    for other, other_glory in candidates:
         if target_glory is None or other_glory < target_glory:
             target, target_glory = other, other_glory
         elif other_glory == target_glory:
@@ -688,13 +736,22 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
 
     _check_escalation(world, marshal, target, events, forced=forced)
 
-    # First-time confrontation popup (spec §6) — player pairs only, one
-    # petition slot at a time; unseen pairs retry on later turns.
+    # Confrontation popup (spec §6, amended by CA8-D3 Q2 — spec §0.5):
+    # player pairs only, one petition slot at a time; unseen keys retry on
+    # later turns. The latch is per (pair, ESCALATION LEVEL) — the audit
+    # measured one confrontation per pair per CAMPAIGN, fired on turn 1,
+    # while every later escalation of the same feud passed without an
+    # audience. Each level speaks once: levels 0..3 bound the channel at
+    # four confrontations per pair for a whole campaign. A legacy bare pair
+    # key (pre-CA8-D3 saves) reads as "level 0 seen".
     if is_player and not forced:
         seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
-        key = _pair_key(marshal.name, target.name)
-        if key not in seen and getattr(world, "pending_marshal_petition", None) is None:
-            queue_confrontation_petition(world, marshal, target)
+        pair = _pair_key(marshal.name, target.name)
+        level = get_escalation_level(marshal, target.name)
+        key = f"{pair}@L{level}"
+        already = key in seen or (level == 0 and pair in seen)
+        if not already and getattr(world, "pending_marshal_petition", None) is None:
+            queue_confrontation_petition(world, marshal, target, level)
             seen.add(key)
             world.jealousy_confrontations_seen = sorted(seen)
 
@@ -1059,8 +1116,10 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     return petition
 
 
-def queue_confrontation_petition(world, marshal, target) -> None:
-    """First-time jealousy confrontation (spec §6)."""
+def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None:
+    """Jealousy confrontation (spec §6; CA8-D3 Q2 re-fires it once per
+    escalation level, so `level` >= 1 carries the escalation register —
+    the audience must hear that this is the SAME feud, grown worse)."""
     ap = _player_ap(world)
     if marshal.personality == "aggressive":
         body = (f"Sire, {marshal.name} has expressed... displeasure about "
@@ -1081,6 +1140,15 @@ def queue_confrontation_petition(world, marshal, target) -> None:
                 f"his contributions be... noted.")
         promise_label = "Promise Glory"
         rebuke_rider = ""
+    escalation_clause = {
+        1: (" The staff now speak of the quarrel openly — this is no "
+            "longer a passing mood."),
+        2: (" The breach between them has become entrenched; he presses "
+            "the point with unusual heat."),
+        3: (f" The feud with {target.name} is now mutual and the army "
+            f"knows it. He asks, plainly, where the Emperor stands."),
+    }.get(int(level), "")
+    body += escalation_clause
     _push_petition(world, {
         "kind": "jealousy_confrontation",
         "title": f"Marshal {marshal.name} seeks an audience",
@@ -1102,7 +1170,8 @@ def queue_confrontation_petition(world, marshal, target) -> None:
                         + rebuke_rider).strip(),
              "cost_note": "", "enabled": True},
         ],
-        "context": {"marshal": marshal.name, "target": target.name},
+        "context": {"marshal": marshal.name, "target": target.name,
+                    "escalation_level": int(level)},
         "turn": int(world.current_turn),
     })
 

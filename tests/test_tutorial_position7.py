@@ -290,6 +290,41 @@ class TestOverlayPayloadIntSafety:
         assert overlay.count("_as_int(") >= 5
 
 
+class TestOverlayPayloadBoolSafety:
+    """TUT-F3 (Aug 8 live report, second family — 'Invalid call. Nonexistent
+    'bool' constructor' after trust + end turn): GDScript's bool() constructor
+    accepts ONLY bool/int/float, so bool(null) AND bool(Dictionary) are both
+    hard script errors — and the backend's popup passthroughs stamp
+    `pending_objection: null` / `pending_capture_choice: null` on every
+    response (present-but-null survives .get()'s default, the same trap
+    TUT-F1 closed for ints; a LIVE objection is a Dictionary, which bool()
+    rejects just as hard). Every bool read off a PAYLOAD routes through the
+    null-safe _truthy, which uses Variant truthiness instead of the
+    constructor."""
+
+    def test_truthy_helper_exists(self):
+        overlay = _read("scripts/tutorial_overlay.gd")
+        assert "static func _truthy(" in overlay
+        # The helper itself must not call the constructor it exists to avoid
+        # (its COMMENT names bool(null) — check code lines only).
+        helper = overlay.split("static func _truthy(")[1].split("\n\n")[0]
+        code_lines = [ln for ln in helper.splitlines()
+                      if not ln.strip().startswith("#")]
+        assert "bool(" not in "\n".join(code_lines).replace("-> bool", "")
+
+    def test_no_bare_bool_over_payload_reads(self):
+        import re
+
+        overlay = _read("scripts/tutorial_overlay.gd")
+        bare = re.findall(
+            r"(?<![\w])bool\((?:response|gs)[^\n]*\.get\(", overlay
+        )
+        assert not bare, f"payload bool() regressed: {bare}"
+        # The helper definition + the five payload sites (success ×3,
+        # pending_objection, pending_capture_choice).
+        assert overlay.count("_truthy(") >= 6
+
+
 class TestTutorialSaveIsolation:
     """The lesson must never eat the campaign's saves: /new_game autosaves on
     boot and every end-turn autosaves again — both were overwriting

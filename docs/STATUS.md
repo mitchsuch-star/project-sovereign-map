@@ -50,9 +50,11 @@
 > Danube Lesson scenario on the real 1805 map (**the row's "legacy 19-region
 > on-ramp, zero code change" premise was FALSE on the client — the map renderer
 > retired that path at the July cutover; the user ruled for the authored
-> scenario Aug 8**); NV-12 "The Clear Deck" = `NAVAL_SPEC.md` §16. ⚠ open:
-> user visual sign-off on the tutor card + menu row + THE ADMIRALTY tab
-> (evidence `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`).
+> scenario Aug 8**); NV-12 "The Clear Deck" = `NAVAL_SPEC.md` §16. **✅ visual
+> sign-off PASSED August 8, 2026 (user: "sign off done") — tutor card + menu row +
+> THE ADMIRALTY tab** (evidence `docs/audits/TUTORIAL_*_2026_08_08.png` +
+> `NV12_ADMIRALTY_TAB_2026_08_08.png`); the sign-off pass surfaced ONE live defect,
+> **TUT-F3, fixed same day** (see the position-9 entry below).
 > **TWO LIVE-REPORT FIXES Aug 8 (user drove the lesson, same session as
 > position 8): TUT-F1** the end-turn step CRASHED — `main.py:491` stamps
 > `turn_ended: null` on every non-end-turn response, `Dictionary.get()`'s
@@ -87,13 +89,67 @@
 > re-open-condition pin). **(b) embedded whisper.cpp DEFERRED** behind the
 > named re-open condition (Round-0 testers actually dictating / store page
 > needing a stronger claim); **(c) cloud STT REJECTED** (second vendor key
-> breaks single-key BYOK). ⚠ open: the ~1-min **live spoken check** (user —
-> folds into the tutorial sign-off pass): focus the command line, Win+H, speak
-> an order; confirm the voice-typing panel attaches to the Godot `LineEdit`
-> and the text lands. Position 14's *"or speak them"* store claim gates on it.
+> breaks single-key BYOK). **✅ the ~1-min live spoken check PASSED August 8,
+> 2026 (user: "sign off done", the tutorial sign-off pass)** — the position-14
+> *"or speak them"* store claim is UNGATED.
 > Suite **16,544/3** · parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.
-> **▶ NEXT = POSITION 9, MARSHAL VOICE TIER 1 + XR-5 (the CA8-D3 gate rides
-> this slot)** — then 10 the shippable build. BOTH halves of Music &
+> **~~POSITION 9, MARSHAL VOICE TIER 1 + XR-5 + THE CA8-D3 GATE~~ ✅ GATED +
+> BUILT August 8, 2026 in one session under the user's delegated grant**
+> (*"sign off done make decisions smartly and code these in commit and push
+> when done"*). Three pieces, plus a live-report crash fix:
+> **CA8-D3 HELD, both questions YES — gate record = `JEALOUSY_SPEC.md` §0.5
+> (authoritative)**: Q1 rival MEMORY (`find_jealousy_target` prefers, among
+> peers strictly above on the ladder, the man his envy has already fired on —
+> most lifetime fires, ties by worse relationship then alphabetical; no
+> history = the one-rung-up rule byte-identical; `JEALOUSY_RIVAL_MEMORY` is
+> the flip-experiment instrument; restlessness warnings, autonomous-attack
+> targeting and the enemy proxy all inherit through the single source, GR5)
+> and Q2 petitions RE-FIRE per escalation level (the §6 latch widened to
+> once per `(pair, level)` — keys `A|B@Ln` in the existing seen-list, zero
+> new serialized fields, legacy bare keys read as level-0 seen, bounded 4
+> per pair per campaign, level-register body clauses 1/2/3); **M1–M7 AND
+> `BASELINE_SERIES` held byte-identical WITHOUT re-record** (recorded as a
+> fact about the ambient board, the flip flag standing ready; a Devoted-repaired
+> remembered rival never shadows fresh envy — the immunity would otherwise
+> suppress ALL new fires); `test_ca8_d3_rival_permanence.py` (19).
+> **MARSHAL VOICE TIER 1** — the
+> trio completed on the proven enemy_voice pattern: `marshal_voice.py`
+> gains the post-battle mirror (`derive_own_situation` +
+> `pick_marshal_voice`: 5 player-perspective situations × 3 registers × 3
+> lines + marquee named rows Ney/Davout/Murat) riding
+> `battle_report.marshal_voice` from the SHARED combat seam (both
+> directions — player battles and the enemy phase — through the one
+> propagation site), rendered in `main.gd` `_display_berthier_report` (the
+> marshal speaks first, the staff annotates after) and
+> `enemy_phase_dialog.gd` (enemy speaks, our commander answers, Berthier
+> observes); aggressive/cautious ACK banks (4 order families × 3) at the
+> strategic-order seam and COMPLETION banks at `_complete_order` — the two
+> seams the literal has owned since W6-5, whose verbatim-quote doctrine is
+> untouched (the banks return "" for him, pinned); player marshals only,
+> deterministic rotation, GR6 display-only, zero LLM cost;
+> **ONE pin consciously flipped** (`test_w6_literal_doctrine.py` — "only
+> the literal speaks" was the W6-5 boundary; the surviving boundary is
+> "only the literal QUOTES"). **XR-5 FIXED at its named owner slot**
+> (BUG_FIXES row): append-only bank growth in `enemy_voice.py` — named
+> banks ≥2 (all four of Mack's ≥3, the measured Ulm-grind offender),
+> personality banks 3; a three-battle grind now yields three distinct Mack
+> lines; index-0 anchored so the serialized `battle_counts` rotation and
+> every W6-6 pin hold. **TUT-F3 (the sign-off pass's live report: "Invalid
+> call. Nonexistent 'bool' constructor" after trust-Ney + end turn)** —
+> GDScript's `bool()` constructor accepts ONLY bool/int/float, so
+> `bool(null)` AND `bool(Dictionary)` both hard-error, and the popup
+> passthroughs stamp `pending_objection: null` on every response (the
+> TUT-F1 present-but-null trap, second family): null-safe `_truthy`
+> (Variant truthiness) at ALL FIVE payload-bool sites in
+> `tutorial_overlay.gd`, regex-pinned like TUT-F1
+> (`test_tutorial_position7.py::TestOverlayPayloadBoolSafety`).
+> `test_marshal_voice_tier1.py` (44) · suite **16,612/3** · ruff clean ·
+> parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.
+> **▶ NEXT = POSITION 10, THE SHIPPABLE
+> BUILD** (inherits 4's audio shell + 6's menu; regenerate the deploy spec —
+> it predates the July-18 SDK migration; re-gate the cheat surface;
+> `%APPDATA%` saves + Continue/Load wiring; done = a stranger unzips it and
+> plays in mock mode). BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static

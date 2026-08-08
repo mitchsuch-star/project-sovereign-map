@@ -1373,14 +1373,28 @@ class StrategicExecutor:
             if not is_auto_upgrade:
                 msg += (f" (1 AP — {marshal.name} executes precise orders "
                         f"with fewer couriers.)")
-        elif strategic_type == "HOLD" and strategic_cost == 2:
-            # PF-6: a tactical-sounding "hold your ground" is upgraded to a
-            # 2-AP standing strategic HOLD for a non-literal marshal. Announce
-            # the upgrade inline (the V2-58 pricing stands — do NOT re-price)
-            # and name the 1-AP tactical alternative so the player can opt out.
-            msg += (" (2 AP — a standing strategic order to hold this ground "
-                    "turn after turn. For a single-turn tactical hold, order "
-                    "'defend' at 1 AP.)")
+        else:
+            # Marshal Voice Tier 1 (position 9): aggressive/cautious
+            # marshals answer a standing order in their own register —
+            # the seam the literal has owned since W6-5. Deterministic
+            # rotation (GR6), display-only, player marshals only (the AI
+            # issues orders through internal paths that skip this
+            # message builder anyway).
+            from backend.game_logic.marshal_voice import personality_ack
+            _ack = personality_ack(
+                getattr(marshal, "personality", ""), strategic_type,
+                int(world.current_turn), len(str(target or "")))
+            if _ack and marshal.nation == world.player_nation:
+                msg += f" {marshal.name}: {_ack}"
+            if strategic_type == "HOLD" and strategic_cost == 2:
+                # PF-6: a tactical-sounding "hold your ground" is upgraded
+                # to a 2-AP standing strategic HOLD for a non-literal
+                # marshal. Announce the upgrade inline (the V2-58 pricing
+                # stands — do NOT re-price) and name the 1-AP tactical
+                # alternative so the player can opt out.
+                msg += (" (2 AP — a standing strategic order to hold this "
+                        "ground turn after turn. For a single-turn tactical "
+                        "hold, order 'defend' at 1 AP.)")
 
         return {
             "success": True,

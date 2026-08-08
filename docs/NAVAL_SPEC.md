@@ -1661,6 +1661,14 @@ Map sea-link hover/tooltips (new hit-testing machinery), enemy-fleet map
 glyphs, and every NV-D row — all unchanged. The ambient-run flake note at
 the end of §15 stands.
 
+### 16.4 Sign-off
+
+**✅ THE ADMIRALTY tab visual sign-off PASSED August 8, 2026** (user, the
+position-7 tutorial sign-off pass — evidence
+`docs/audits/NV12_ADMIRALTY_TAB_2026_08_08.png`). The §15 evidence items
+(played A2 arc, naval pillar score, NV-P1 wheel check, the NV-4..NV-11
+surface sign-off) are separate and stand as listed.
+
 Tests: `tests/test_naval_ui_clarity.py` (25) — terms met/detail arithmetic,
 resolver-constant parity, fleetless chips, executor-gate parity on the build
 chip, blocked/options disjointness + reason content, bare-SHUT coverer,

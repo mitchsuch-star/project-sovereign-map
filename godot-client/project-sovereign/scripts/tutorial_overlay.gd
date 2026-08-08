@@ -239,6 +239,19 @@ static func _as_int(value, fallback: int) -> int:
 			return fallback
 
 
+static func _truthy(value) -> bool:
+	# TUT-F3 (the Aug 8 live report, second family): GDScript's bool()
+	# constructor accepts ONLY bool/int/float — bool(null) AND
+	# bool(Dictionary) are both "Invalid call. Nonexistent 'bool'
+	# constructor", and the backend's popup passthroughs stamp
+	# `pending_objection: null` / `pending_capture_choice: null` on every
+	# response (present-but-null, so .get()'s default never applies — the
+	# same trap _as_int closes for ints). Variant truthiness is what these
+	# predicates mean: null / false / 0 / "" / {} / [] all read as absent.
+	# Every bool read off a PAYLOAD goes through here, never bare bool().
+	return true if value else false
+
+
 # ── arming (world identity) ─────────────────────────────────────────────────
 
 func on_world_swap(response) -> void:
@@ -423,7 +436,7 @@ func _conclude() -> void:
 # requires a popup key and enemy_phase together.
 
 func _pred_any_success(response: Dictionary) -> bool:
-	return bool(response.get("success")) and typeof(response.get("game_state")) == TYPE_DICTIONARY
+	return _truthy(response.get("success")) and typeof(response.get("game_state")) == TYPE_DICTIONARY
 
 
 func _marshal_location(response: Dictionary, marshal_name: String) -> String:
@@ -460,13 +473,13 @@ func _pred_turn_advanced(response: Dictionary) -> bool:
 
 
 func _pred_objection_pending(response: Dictionary) -> bool:
-	return bool(response.get("pending_objection")) \
+	return _truthy(response.get("pending_objection")) \
 		or str(response.get("state", "")) == "awaiting_player_choice"
 
 
 func _pred_objection_resolved(response: Dictionary) -> bool:
 	return _saw_objection and not _pred_objection_pending(response) \
-		and bool(response.get("success"))
+		and _truthy(response.get("success"))
 
 
 func _pred_battle_happened(response: Dictionary) -> bool:
@@ -491,7 +504,7 @@ func _pred_davout_marching(response: Dictionary) -> bool:
 
 
 func _pred_capture_pending(response: Dictionary) -> bool:
-	return bool(response.get("pending_capture_choice"))
+	return _truthy(response.get("pending_capture_choice"))
 
 
 func _pred_capture_resolved(response: Dictionary) -> bool:
@@ -501,7 +514,7 @@ func _pred_capture_resolved(response: Dictionary) -> bool:
 	if choice != null and str(choice) != "":
 		return true
 	return _saw_capture and not response.get("pending_capture_choice") \
-		and bool(response.get("success"))
+		and _truthy(response.get("success"))
 
 
 func _pred_recruited(response: Dictionary) -> bool:
