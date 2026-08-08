@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,612 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
+> **suite 16,634 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy
@@ -147,6 +147,27 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > `scenario_name == "tutorial"` — it had clobbered the campaign autosave at
 > lesson BOOT and every end turn, and hijacked the menu's newest-save
 > Continue); `test_tutorial_position7.py` +6.
+> **THIRD live-report wave Aug 8 evening — ALL FIXED (record = STATUS top
+> entry; `test_tutorial_school_fixes_2026_08_08.py` 22): TUT-F4a** a stale
+> ORDER-BOUND interrupt (cannon_fire family) outlived its cancelled standing
+> order and ATE the next command naming that marshal ("Davout has no active
+> strategic order" answered the card's own "attack that name") — the
+> executor's override-cancel now clears `strategic.ORDER_BOUND_INTERRUPT_TYPES`
+> with the order; last_stand/muster_confirm decisions never dropped;
+> **TUT-F4c** the tutor card re-renders on turn change and an overdue event
+> step SAYS the school will move on (the gate+2 catch-up made visible —
+> Bohemia adjoins Vienna AND Hungary, so the reserve can park 20k+ on the
+> step-IX target; step VII/IX copy made honest, Tyrol named as the
+> alternate); **TUT-F5** the lesson world is jealousy-DORMANT
+> (`jealousy_dormant` gates `apply_jealousy` + `_push_petition` — measured
+> five Soult confrontations in three lesson turns; glory still accrues) and
+> the §6 Acknowledge arm now states its terms in the main game ("Free, and
+> it fixes nothing… stands N more turns", `JEALOUSY_SPEC.md` §0.6);
+> **TUT-F6/F6b** a marshal never objects to a move the executor is about to
+> refuse — `_execute_move`'s pre-mutation refusals extracted to the pure
+> single-source `MovementExecutor.move_refusal_probe`, consulted by the
+> pre-objection battery to suppress the wasted objection (PF-4 idiom), plus
+> the in-range attack-across-covered-water sibling.
 >
 > **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
 > (user-delegated *"what works best for steam or itch release"*; **gate +

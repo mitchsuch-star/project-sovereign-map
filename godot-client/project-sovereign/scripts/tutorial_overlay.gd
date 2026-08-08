@@ -25,9 +25,12 @@ extends CanvasLayer
 #
 # ADVANCE RULE: at most ONE step per observed response; a step whose event
 # passed unseen (the player ran ahead) is released by the turn-gate catch-up
-# so the school can never stall. Choice popups DEFER past enemy_phase
-# responses (backend main.py) — no predicate requires a popup key and
-# enemy_phase in the same response.
+# so the school can never stall. A step the WAR refuses (Aug 8 live report:
+# Austria's reserve massed in Bohemia while IX demanded its capture) releases
+# the same way — and once overdue the card SAYS so, re-rendering on turn
+# change (TUT-F4c). Choice popups DEFER past enemy_phase responses (backend
+# main.py) — no predicate requires a popup key and enemy_phase in the same
+# response.
 #
 # No timers of any kind (pulses are tweens); the SceneTreeTimer ban that is
 # test-pinned for menu code is kept absolute here.
@@ -105,7 +108,7 @@ const STEPS := [
 		"id": "first_battle",
 		"turn_gate": 4,
 		"title": "VII. First Blood",
-		"body": "Now the sword. Kienmayer's screen still stands across the Rhine on allied Bavarian soil — Ney carries three times their number. Attack, and read the battle report that follows: terrain, casualties, and the temper of the men. Then occupy Swabia if the field is empty ([color=#e8d4a8]Ney, move to Swabia[/color]).",
+		"body": "Now the sword. Kienmayer's screen still stands across the Rhine on allied Bavarian soil — Ney carries three times their number. Attack, and read the battle report that follows: terrain, casualties, and the temper of the men. Then occupy Swabia ([color=#e8d4a8]Ney, move to Swabia[/color]); if the move is refused, his corps still stands — beaten men must be broken, so strike again before you walk in.",
 		"suggest": "Ney, attack Kienmayer",
 		"suggest_action": "attack",
 		"advance": "_pred_battle_happened",
@@ -123,7 +126,7 @@ const STEPS := [
 		"id": "capture",
 		"turn_gate": 6,
 		"title": "IX. Conquest",
-		"body": "Bohemia is Austrian soil, and Davout stands at its border. March in and it is yours ([color=#e8d4a8]Davout, move to Bohemia[/color]); if an Austrian corps holds it, the refusal will name him — attack that name, and the province follows the battle. Mark the fortress figures as you pass: Munich's 10,000, Vienna's 25,000 — capitals are not taken by walking.",
+		"body": "Bohemia is Austrian soil, one march past Franconia. When Davout reaches the border, march in and it is yours ([color=#e8d4a8]Davout, move to Bohemia[/color]); if an Austrian corps holds it, the refusal names him — attack that name, and the battle that breaks the last of them hands you the province. Should Austria mass there in strength, any Austrian province serves the lesson — the battered Tyrol will do — or fight your own war and the school will catch up. Capitals are not taken by walking: Munich's fortress holds 10,000, Vienna's 25,000.",
 		"suggest": "Davout, move to Bohemia",
 		"suggest_action": "move",
 		"advance": "_pred_capture_pending",
@@ -198,6 +201,10 @@ var _saw_capture := false
 # the incoming response against this previous value.
 var _last_infantry_pool := -1
 var _pending_pulse := false
+# Aug 8 live report (TUT-F4c): the card's waiting/overdue lines derive from
+# _turn, but _render only ran on STEP change — a wedged step showed the same
+# text forever while turns passed. Re-render whenever the observed turn moves.
+var _last_rendered_turn := -1
 
 @onready var _card: PanelContainer = $Card
 @onready var _title_label: Label = $Card/VBox/HeaderRow/TitleLabel
@@ -318,6 +325,11 @@ func observe(response) -> void:
 	var pool_now := _pool_from(response)
 	if pool_now >= 0:
 		_last_infantry_pool = pool_now
+	# TUT-F4c: the waiting/overdue lines read _turn — refresh them when the
+	# turn moves even though the step did not (a step advance re-rendered
+	# already and stamped _last_rendered_turn itself).
+	if _turn != _last_rendered_turn:
+		_render()
 
 
 func _pool_from(response: Dictionary) -> int:
@@ -370,6 +382,7 @@ func on_control_returned() -> void:
 func _render() -> void:
 	if not _active:
 		return
+	_last_rendered_turn = _turn
 	var step: Dictionary = STEPS[_step_index]
 	_title_label.text = "THE SCHOOL OF WAR"
 	_step_badge.text = "%d of %d" % [_step_index + 1, STEPS.size()]
@@ -377,11 +390,22 @@ func _render() -> void:
 	lines.append("[b][color=#" + Utils.COLOR_GOLD + "]" + str(step["title"]) + "[/color][/b]")
 	lines.append("[color=#d8d4c8]" + str(step["body"]) + "[/color]")
 	var waiting := int(step["turn_gate"]) > _turn
+	# TUT-F4c: an event step the war refuses (the live case — Austria's
+	# reserve massed in Bohemia while the card demanded its capture) must
+	# SAY the school moves on. The catch-up already guarantees release at
+	# gate+2; this line makes that guarantee visible. Turn-gated free-play
+	# cards and the terminal handoff release themselves — no line there.
+	var advance_name := str(step["advance"])
+	var overdue := int(step["turn_gate"]) < _turn \
+		and not advance_name.begins_with("_pred_turn_gte") \
+		and advance_name != "_pred_never"
 	if waiting:
 		lines.append("[color=#" + Utils.COLOR_DIMMED + "]Berthier resumes with the morning dispatch — end the turn when ready.[/color]")
 	elif str(step["suggest"]) != "":
 		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), CHIP_TEXT_HEX, CHIP_BG_HEX))
 		lines.append("[color=#" + Utils.COLOR_DIMMED + "]Click the quill to place the order on your command line — you give the word.[/color]")
+	if overdue:
+		lines.append("[color=#" + Utils.COLOR_DIMMED + "]The war has outrun this page — fight it as you find it; end the turn and the school will move on.[/color]")
 	if str(step["id"]) == "handoff":
 		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", CHIP_TEXT_HEX, CHIP_BG_HEX))
 	_body.text = "\n".join(lines)

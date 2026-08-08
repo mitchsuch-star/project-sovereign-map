@@ -120,6 +120,17 @@ CONFRONT_REBUKE_DURATION_CUT = 1
 JEALOUSY_RIVAL_MEMORY = True
 
 
+def jealousy_dormant(world) -> bool:
+    """TUT-F5 (Aug 8, 2026 tutorial live report): the School of War keeps the
+    marshals' drama out of the classroom. On the lesson world no grievance
+    ever fires and no marshal petition of ANY kind queues — the live report
+    measured five Soult confrontations in three lesson turns, each a modal
+    the twelve-turn syllabus never explains. Glory itself still accrues (the
+    Generals screen stays honest); the guard is world-scoped, so both sides
+    go quiet together (GR5). Same discriminator as the TUT-F2 autosave guard."""
+    return getattr(world, "scenario_name", "") == "tutorial"
+
+
 # ═══════════════════════════ GLORY SCORING ═══════════════════════════════
 
 def get_glory_score(marshal, current_turn: int) -> int:
@@ -681,6 +692,8 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
     """Set the grievance: fields, history, escalation, expression setup,
     dispatch/campaign-log events. The -1 relationship is DERIVED from
     jealous_of (spec §0.2 item 2) — nothing to mutate here."""
+    if jealousy_dormant(world):
+        return
     turn = int(world.current_turn)
     marshal.jealous_of = target.name
     marshal.jealousy_turns_remaining = _duration_for(delta, threshold)
@@ -1062,6 +1075,11 @@ def _spend_player_ap(world, amount: int) -> bool:
 
 
 def _push_petition(world, petition: Dict) -> None:
+    # TUT-F5 belt: EVERY petition kind passes through here — the lesson world
+    # never shows one, whatever produced it (apply_jealousy is gated too, but
+    # rivalry/Fontainebleau/war-weary producers live elsewhere).
+    if jealousy_dormant(world):
+        return
     world.pending_marshal_petition = petition
     queue = getattr(world, "_popup_queue", None)
     if queue is not None:
@@ -1155,9 +1173,17 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
         "body": body,
         "speaker": marshal.name,
         "options": [
+            # Aug 8 2026 live report: "unclear what acknowledge even does."
+            # It does NOTHING — say so, and say what standing costs
+            # (shown = applied: the derived -1 tie is spec §0.2 item 2,
+            # the duration is the field the timer actually decrements).
             {"id": "acknowledge", "label": "Acknowledge",
-             "detail": "The grievance runs its course.", "cost_note": "",
-             "enabled": True},
+             "detail": (f"Free, and it fixes nothing: the grievance stands "
+                        f"{int(marshal.jealousy_turns_remaining)} more "
+                        f"turn{'s' if int(marshal.jealousy_turns_remaining) != 1 else ''}"
+                        f" — souring his ties and coordination with "
+                        f"{target.name} — then cools on its own."),
+             "cost_note": "", "enabled": True},
             {"id": "promise", "label": promise_label,
              "detail": f"His patience is bought — the grievance shortens by "
                        f"{CONFRONT_PROMISE_DURATION_CUT} turns.",

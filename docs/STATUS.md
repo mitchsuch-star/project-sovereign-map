@@ -78,6 +78,64 @@
 > +6 (regex-guarded no-bare-`int()`-over-payload, mutation-checked both
 > directions; autosave skip/write/byte-identical-through-tutorial-boot/
 > end-turn-no-write).
+> **THIRD LIVE-REPORT WAVE Aug 8 (user drove the lesson again — "can't get
+> step IX to clear" / "a general is in the way, you must attack first" /
+> "grievance popups happen a lot and it's unclear what Acknowledge even
+> does" / "sometimes the general objects even if the command can't be
+> executed"), ALL FIXED same day; record = this entry,
+> `test_tutorial_school_fixes_2026_08_08.py` (22):**
+> **the step-IX wedge REPRODUCED** — Bohemia adjoins BOTH Vienna and Hungary,
+> so it is the Austrian reserve's ONLY westward road; a lesson run a turn or
+> two slow meets 20k+ Austrians parked on the step's own target (measured:
+> Kienmayer 6,480 + Schwarzenberg 14,410 in Bohemia at turn 9), and the
+> card's recovery ("attack that name") was then EATEN by a stale interrupt —
+> **TUT-F4a** the player's refused move CANCELLED Davout's standing order but
+> left the order's cannon_fire interrupt on him, and main.py's interrupt
+> route consumed the next command as its answer ("Davout has no active
+> strategic order"): fixed at the executor's override-cancel — an ORDER-BOUND
+> interrupt (`strategic.ORDER_BOUND_INTERRUPT_TYPES`: contact /
+> contact_bad_odds / cannon_fire / destination_blocked / combat_stalemate)
+> dies WITH its order; standalone decisions (last_stand, muster_confirm) are
+> never dropped. **TUT-F4c** the card re-renders on turn change
+> (`_last_rendered_turn` — a wedged step used to show the same text forever)
+> and an OVERDUE event step appends "The war has outrun this page — fight it
+> as you find it; end the turn and the school will move on", making the
+> pre-existing gate+2 catch-up VISIBLE; step VII teaches strike-again
+> ("beaten men must be broken") and step IX drops the false position claim,
+> states that the battle that breaks the LAST defender hands you the
+> province, and names the alternate conquest (any Austrian province — the
+> battered Tyrol) — chips verbatim, T-B1 green.
+> **TUT-F5 the lesson world is jealousy-DORMANT** — measured FIVE Soult
+> confrontations in three lesson turns (authored Ney↔Soult −1 is an
+> escalation-qualified hair-trigger by design; the CA8-D3 per-level re-fire
+> multiplied it); `jealousy.jealousy_dormant` (the TUT-F2 discriminator,
+> world-scoped GR5) gates `apply_jealousy` AND `_push_petition` (every
+> petition kind), so no grievance fires and no petition of ANY kind queues in
+> the schoolroom while glory still accrues; campaign worlds pinned unchanged.
+> **The Acknowledge arm now states its terms (main game)** — it is an honest
+> no-op and now says so: "Free, and it fixes nothing: the grievance stands N
+> more turns — souring his ties and coordination with X — then cools on its
+> own" (shown=applied: the derived −1 and the real countdown field).
+> **TUT-F6 a marshal never objects to a move the executor is about to
+> refuse** ("sometimes the general objects even if the command can't be
+> executed") — the reachable shapes are the cautious path-crosses-enemy
+> MODERATE popup answered and THEN refused ("cannot begin a strategic march"
+> while engaged / "Not enough actions for a strategic march" / "enemy forces
+> present"): every pre-mutation refusal in `_execute_move` extracted VERBATIM
+> to the pure `MovementExecutor.move_refusal_probe` (already-there /
+> engaged-here / the naval crossing gate / visible-enemies-at-destination /
+> diplomatic / distant-march engaged + AP arms — single source, PF-8
+> `blocked_*` keys intact), called by `_execute_move` at its old sites AND by
+> the command executor's pre-objection battery to SUPPRESS the objection
+> (PF-4's suppression idiom — no message duplicated, the canonical refusal
+> surfaces immediately); **TUT-F6b** the PF-4 sibling for water: an in-range
+> attack the naval crossing gate will refuse no longer raises a bad-odds
+> objection first (`_attack_target_location` split shared with PF-4; the
+> refusal stays at the combat seam). Falsifiable both ways: forced-MODERATE
+> patches prove `evaluate_situation` is never consulted on a refused move and
+> STILL consulted on an executable one. M1–M7 + the `BASELINE_SERIES`
+> control byte-identical; movement/naval/objection/strategic neighbor suites
+> green; parse harness EXIT=0; boot smoke 0 SCRIPT ERROR.
 > **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
 > (user-delegated: *"what works best for steam or itch release"* / *"use best
 > decision"* — **gate + landing record = `ROADMAP.md` row 8, authoritative**).

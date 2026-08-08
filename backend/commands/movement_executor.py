@@ -107,6 +107,127 @@ class MovementExecutor:
             "depot_bonus": depot_bonus,
         }
 
+    # ════════════════════════════════════════════════════════════════════
+    # TUT-F6 (Aug 8, 2026 live report: "the general objects even if the
+    # command can't be executed"): every refusal _execute_move can raise
+    # BEFORE anything mutates lives in this ONE pure probe, shared with the
+    # command executor's pre-objection gate — a marshal must never object to
+    # a move that is about to be refused (cautious Davout objected to a
+    # distant march, the player paid the modal, and the move was then
+    # refused). Messages and structured keys are byte-identical to the
+    # inline gates this replaced; PF-8's stall detection reads blocked_*
+    # off these dicts. The "too far, no path" refusal stays inline in
+    # _execute_move — it needs pathfinding, and an unreachable target
+    # raises no objection to begin with (_path_crosses_enemy sees no path).
+    # ════════════════════════════════════════════════════════════════════
+    @staticmethod
+    def move_refusal_probe(world, marshal, target_region, target_name):
+        """Return the refusal dict a direct/strategic-upgrade move would hit,
+        or None. Pure read — no mutation, no events, no state."""
+        # Already there?
+        if marshal.location == target_name:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already in {target_name}."
+            }
+
+        current_region = world.get_region(marshal.location)
+
+        # ENEMY ENGAGEMENT CHECK: engaged marshals may only fall back to
+        # friendly soil. strength > 0 matters: captured marshals are held AT
+        # the captor's capital with strength 0 (combat_executor W6-7).
+        marshals_here = world.get_marshals_in_region(marshal.location)
+        enemies_here = [m for m in marshals_here
+                        if m.nation != marshal.nation and m.strength > 0
+                        and world.is_at_war(marshal.nation, m.nation)]
+
+        if enemies_here and target_region.controller != marshal.nation:
+            return {
+                "success": False,
+                "message": "Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
+                "engaged_with": [e.name for e in enemies_here],
+                "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
+            }
+
+        # THE CROSSING GATE (DEF-5 naval — NAVAL_SPEC §4.1). Sited BEFORE the
+        # enemy-presence check (the water is the first reality; "use ATTACK"
+        # would be a false suggestion when the attack is also sea-gated).
+        if getattr(world, "fleets", None):
+            from backend.game_logic.naval import crossing_check
+            _crossing = crossing_check(world, marshal.nation,
+                                       marshal.location, target_name)
+            if not _crossing["allowed"]:
+                return {
+                    "success": False,
+                    "message": _crossing["message"],
+                    "blocked_naval": _crossing["coverer"],
+                    "naval_ratio": _crossing["ratio"],
+                }
+
+        # DESTINATION ENEMY CHECK — fog-aware: only refuse what the player
+        # can SEE; a fogged destination is walked into blind.
+        marshals_at_dest = world.get_marshals_in_region(target_name)
+        enemies_at_dest = [m for m in marshals_at_dest
+                           if m.nation != marshal.nation and m.strength > 0
+                           and world.is_at_war(marshal.nation, m.nation)]
+        if enemies_at_dest:
+            can_see_enemies = True
+            if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
+                from backend.models.intel import FULL, PARTIAL
+                dest_intel = world.get_region_intel(target_name)
+                can_see_enemies = dest_intel.visibility in (FULL, PARTIAL)
+            if can_see_enemies:
+                # S5-2: humanize marshal keys for player-facing copy.
+                from backend.display_names import humanize_entity_name
+                enemy_names = [e.name for e in enemies_at_dest]
+                enemy_display = [humanize_entity_name(n) for n in enemy_names]
+                m_display = humanize_entity_name(marshal.name)
+                return {
+                    "success": False,
+                    "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_display)}.",
+                    "enemies_at_destination": enemy_names,
+                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}'"
+                }
+
+        # DIPLOMATIC MOVEMENT RESTRICTION (Phase 8 Session 2)
+        from backend.game_logic.diplomacy import can_enter_territory
+        dest_controller = target_region.controller if hasattr(target_region, 'controller') else None
+        if dest_controller and dest_controller != marshal.nation:
+            if not can_enter_territory(world, marshal.nation, dest_controller):
+                state = world.get_diplomatic_state(marshal.nation, dest_controller)
+                return {
+                    "success": False,
+                    "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "
+                               f"(diplomatic state: {state}). Open borders or higher required.",
+                    # PF-8: structured flags so a strategic-march stall detects
+                    # the diplomatic block robustly (no string-matching).
+                    "blocked_diplomatic": dest_controller,
+                    "blocked_state": state,
+                }
+
+        distance = world.get_distance(marshal.location, target_name)
+        move_range = getattr(marshal, 'movement_range', 1)
+        if distance > move_range:
+            # Cannot auto-upgrade to strategic march while engaged
+            if enemies_here:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is engaged with enemy forces and cannot begin a strategic march. Deal with the engagement first.",
+                    "engaged_with": [e.name for e in enemies_here],
+                    "suggestion": f"Try: '{marshal.name}, attack {enemies_here[0].name}' or '{marshal.name}, retreat'"
+                }
+            # Strategic commands cost 2 AP (1 for literal)
+            is_literal = getattr(marshal, 'personality', '') == 'literal'
+            strategic_cost = 1 if is_literal else 2
+            if marshal.nation == world.player_nation and world.actions_remaining < strategic_cost:
+                return {
+                    "success": False,
+                    "message": f"Not enough actions for a strategic march! Need {strategic_cost}, have {world.actions_remaining}.",
+                    "actions_remaining": int(world.actions_remaining),
+                    "action_summary": world.get_action_summary()
+                }
+        return None
+
     def _execute_move(self, marshal, target, world: WorldState, game_state,
                       raw_input: str = None,
                       strategic_execution: bool = False) -> Dict:
@@ -207,136 +328,27 @@ class MovementExecutor:
 
         current_region = world.get_region(marshal.location)
 
-        # Already there?
-        if marshal.location == target_name:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already in {target_name}."
-            }
-
         # ════════════════════════════════════════════════════════════
-        # ENEMY ENGAGEMENT CHECK: Cannot advance through enemies
-        # If enemy marshal in current region, can only retreat to friendly territory
+        # THE REFUSAL PROBE (TUT-F6): already-there, engaged-here, the
+        # naval crossing gate, visible-enemies-at-destination, the
+        # diplomatic restriction, and the distant-march engaged/AP
+        # refusals ALL live in move_refusal_probe — the single source the
+        # command executor also consults BEFORE objection evaluation.
         # ════════════════════════════════════════════════════════════
-        marshals_here = world.get_marshals_in_region(marshal.location)
-        # strength > 0 matters: captured marshals are held AT the captor's
-        # capital with strength 0 (combat_executor W6-7), so without the
-        # filter a prisoner "engages" every corps in the capital — live,
-        # Mack's ghost pinned Mortier inside Paris for four turns.
-        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
-
-        if enemies_here:
-            # Engaged with enemy - can only move to regions controlled by marshal's nation
-            if target_region.controller != marshal.nation:
-                return {
-                    "success": False,
-                    "message": "Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
-                    "engaged_with": [e.name for e in enemies_here],
-                    "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
-                }
-
-        # ════════════════════════════════════════════════════════════
-        # DESTINATION ENEMY CHECK: Cannot MOVE into enemy-occupied region
-        # Must use ATTACK to enter regions with enemy forces
-        # FOG-AWARE (Session 37): Only block if player can SEE enemies there.
-        # If fogged, marshal walks in blind and discovers engagement on arrival.
-        # ════════════════════════════════════════════════════════════
-        # ════════════════════════════════════════════════════════════
-        # THE CROSSING GATE (DEF-5 naval — NAVAL_SPEC §4.1). One
-        # predicate, both sides (GR5): an army may not walk a sea link a
-        # hostile fleet covers below ratio. A flat refusal, never a roll
-        # — a player never loses 40,000 men to a movement order. Sited
-        # BEFORE the enemy-presence check (the water is the first
-        # reality; "use ATTACK" would be a false suggestion when the
-        # attack is also sea-gated) and before the fogged walk-in-blind
-        # arm (fog never smuggles an army past the Royal Navy). The
-        # structured flag rides the PF-8 idiom so a strategic-march
-        # stall breaks with the naval reason instead of re-stalling
-        # silently. Dormant in one truthiness read on fleet-less worlds.
-        # ════════════════════════════════════════════════════════════
-        if getattr(world, "fleets", None):
-            from backend.game_logic.naval import crossing_check
-            _crossing = crossing_check(world, marshal.nation,
-                                       marshal.location, target_name)
-            if not _crossing["allowed"]:
-                return {
-                    "success": False,
-                    "message": _crossing["message"],
-                    "blocked_naval": _crossing["coverer"],
-                    "naval_ratio": _crossing["ratio"],
-                }
-
-        marshals_at_dest = world.get_marshals_in_region(target_name)
-        enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
-
-        if enemies_at_dest:
-            # Fog check: player marshals only blocked if destination is visible
-            can_see_enemies = True
-            if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
-                from backend.models.intel import FULL, PARTIAL
-                dest_intel = world.get_region_intel(target_name)
-                can_see_enemies = dest_intel.visibility in (FULL, PARTIAL)
-
-            if can_see_enemies:
-                # S5-2: humanize marshal keys for player-facing copy.
-                from backend.display_names import humanize_entity_name
-                enemy_names = [e.name for e in enemies_at_dest]
-                enemy_display = [humanize_entity_name(n) for n in enemy_names]
-                m_display = humanize_entity_name(marshal.name)
-                return {
-                    "success": False,
-                    "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_display)}.",
-                    "enemies_at_destination": enemy_names,
-                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}'"
-                }
-            # Fogged: marshal walks in blind — will discover enemies on arrival
-
-        # ════════════════════════════════════════════════════════════
-        # DIPLOMATIC MOVEMENT RESTRICTION (Phase 8 Session 2)
-        # Cannot enter territory of nations at PEACE/NON_AGGRESSION/ARMISTICE
-        # unless OPEN_BORDERS or above. WAR allows entry (combat handles it).
-        # ════════════════════════════════════════════════════════════
-        from backend.game_logic.diplomacy import can_enter_territory
-        dest_controller = target_region.controller if hasattr(target_region, 'controller') else None
-        if dest_controller and dest_controller != marshal.nation:
-            if not can_enter_territory(world, marshal.nation, dest_controller):
-                state = world.get_diplomatic_state(marshal.nation, dest_controller)
-                return {
-                    "success": False,
-                    "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "
-                               f"(diplomatic state: {state}). Open borders or higher required.",
-                    # PF-8: structured flags so a strategic-march stall detects
-                    # the diplomatic block robustly (no string-matching) and can
-                    # reroute or break the order with a reason instead of
-                    # re-stalling silently every turn.
-                    "blocked_diplomatic": dest_controller,
-                    "blocked_state": state,
-                }
+        _refusal = self.move_refusal_probe(world, marshal, target_region,
+                                           target_name)
+        if _refusal is not None:
+            return _refusal
 
         distance = world.get_distance(marshal.location, target_name)
         move_range = getattr(marshal, 'movement_range', 1)
 
         # Check if destination is within movement range
         if distance > move_range:
-            # Cannot auto-upgrade to strategic march while engaged
-            if enemies_here:
-                return {
-                    "success": False,
-                    "message": f"{marshal.name} is engaged with enemy forces and cannot begin a strategic march. Deal with the engagement first.",
-                    "engaged_with": [e.name for e in enemies_here],
-                    "suggestion": f"Try: '{marshal.name}, attack {enemies_here[0].name}' or '{marshal.name}, retreat'"
-                }
+            # (engaged / AP refusals already cleared by move_refusal_probe)
             # Auto-upgrade to strategic MOVE_TO for distant regions
-            # Pre-check: strategic commands cost 2 AP (1 for literal)
             is_literal = getattr(marshal, 'personality', '') == 'literal'
             strategic_cost = 1 if is_literal else 2
-            if marshal.nation == world.player_nation and world.actions_remaining < strategic_cost:
-                return {
-                    "success": False,
-                    "message": f"Not enough actions for a strategic march! Need {strategic_cost}, have {world.actions_remaining}.",
-                    "actions_remaining": int(world.actions_remaining),
-                    "action_summary": world.get_action_summary()
-                }
             # PF-8: prefer a passable corridor for a player's strategic march
             # (AI keeps its omniscient routing). Fall back to the terrain-only
             # path if no passable route exists so the order still forms and the

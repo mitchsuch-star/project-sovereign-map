@@ -441,17 +441,22 @@ class CommandExecutor:
         to `_execute_attack`) and for an unresolvable target (so the unknown-
         target error still surfaces) — the gate is strictly about reachability.
         """
-        if not target:
-            return False
-        enemy_by_name, _ = self._fuzzy_match_enemy(target, world, marshal.nation)
-        if enemy_by_name is not None:
-            loc = enemy_by_name.location
-        else:
-            region, _ = self._fuzzy_match_region(target, world)
-            loc = region.name if region is not None else None
+        loc = self._attack_target_location(target, marshal, world)
         if not loc:
             return False
         return world.get_distance(marshal.location, loc) > marshal.movement_range
+
+    def _attack_target_location(self, target, marshal, world):
+        """Shared PF-4 / TUT-F6b resolver: where an explicit attack `target`
+        points (enemy's location, else region name), via the SAME primitives
+        `_execute_attack` uses. None for a bare or unresolvable target."""
+        if not target:
+            return None
+        enemy_by_name, _ = self._fuzzy_match_enemy(target, world, marshal.nation)
+        if enemy_by_name is not None:
+            return enemy_by_name.location
+        region, _ = self._fuzzy_match_region(target, world)
+        return region.name if region is not None else None
 
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
@@ -864,6 +869,18 @@ class CommandExecutor:
                         if old_order and old_order.command_type == "HOLD":
                             marshal.holding_position = False
                             marshal.hold_region = ""
+                        # TUT-F4a (Aug 8 2026): an interrupt raised BY this
+                        # order dies WITH it — a stale one hijacks the very
+                        # next command naming this marshal (main.py's
+                        # interrupt route) and answers it with "no active
+                        # strategic order". Standalone decisions
+                        # (last_stand, muster_confirm) are preserved.
+                        from backend.commands.strategic import (
+                            ORDER_BOUND_INTERRUPT_TYPES)
+                        _stale = getattr(marshal, "pending_interrupt", None)
+                        if (_stale and _stale.get("interrupt_type")
+                                in ORDER_BOUND_INTERRUPT_TYPES):
+                            marshal.pending_interrupt = None
                         print(f"[STRATEGIC] {marshal.name}'s strategic order "
                               f"cancelled by player {action} command")
 
@@ -1148,6 +1165,51 @@ class CommandExecutor:
                 if action == 'attack' and self._attack_target_beyond_range(
                         marshal, command.get('target'), world):
                     should_check_objection = False
+
+                # ═══════════════════════════════════════════════════════════
+                # TUT-F6: MOVE REFUSAL PRE-CHECK — Validation BEFORE objection
+                # (Aug 8 2026 live report: "the general objects even if the
+                # command can't be executed.") A cautious marshal objected to
+                # a distant march, the player answered the modal, and the
+                # move was then refused (engaged / AP / enemy at the
+                # destination). The SAME pure probe _execute_move returns its
+                # refusals from runs here; any refusal suppresses the
+                # objection so the canonical refusal message surfaces
+                # immediately — no condition is duplicated, no message moves.
+                # Resolution mirrors _execute_move (_fuzzy_match_region);
+                # unresolvable targets fall through untouched.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'move' and should_check_objection \
+                        and command.get('target'):
+                    _mv_region, _mv_error = self._fuzzy_match_region(
+                        command.get('target'), world)
+                    if _mv_error is None and _mv_region is not None:
+                        from backend.commands.movement_executor import (
+                            MovementExecutor)
+                        if MovementExecutor.move_refusal_probe(
+                                world, marshal, _mv_region,
+                                _mv_region.name) is not None:
+                            should_check_objection = False
+
+                # ═══════════════════════════════════════════════════════════
+                # TUT-F6b (PF-4 sibling): an in-range attack the naval
+                # crossing gate will refuse (covered water on the reach) must
+                # not raise a bad-odds objection first — the refusal lives at
+                # the combat seam and stays there; this only suppresses the
+                # wasted objection. Dormant in one truthiness read on
+                # fleet-less worlds.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'attack' and should_check_objection \
+                        and getattr(world, "fleets", None):
+                    _atk_loc = self._attack_target_location(
+                        command.get('target'), marshal, world)
+                    if _atk_loc and _atk_loc != marshal.location:
+                        from backend.game_logic.naval import (
+                            crossing_check_reach)
+                        if not crossing_check_reach(
+                                world, marshal.nation, marshal.location,
+                                _atk_loc)["allowed"]:
+                            should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # RECKLESSNESS STANCE CHECK — Validation BEFORE objection

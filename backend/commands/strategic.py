@@ -31,6 +31,19 @@ def _strategic_command_flavor(cmd_type: str) -> str:
     }.get(cmd_type, "his orders")
 
 
+# Aug 8 2026 tutorial live report (TUT-F4a): interrupts raised BY a strategic
+# order are meaningless once that order is gone, and a stale one hijacks the
+# player's next command — the School of War's own "attack that name" advice
+# was consumed as a cannon_fire answer and refused with "no active strategic
+# order". The executor's override-cancel clears these WITH the order it kills;
+# `last_stand` and `muster_confirm` are standalone player decisions and are
+# NEVER cleared this way (dropping them strands the marshal / the attack).
+ORDER_BOUND_INTERRUPT_TYPES = frozenset({
+    "contact", "contact_bad_odds", "cannon_fire",
+    "destination_blocked", "combat_stalemate",
+})
+
+
 # F1b fix: the strategic "attack anyway" interrupt handler rebuilds a fresh result
 # dict and previously surfaced only `message`, silently dropping the top-level combat
 # fields the direct /command attack path preserves. Carry the player-facing extras

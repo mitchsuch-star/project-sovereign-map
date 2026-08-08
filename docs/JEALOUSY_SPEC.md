@@ -97,6 +97,27 @@ if a future series moves). One guard from the landing review: a remembered rival
 would let old friendship SHADOW a fresh non-immune rung target and suppress all new envy.
 Tests: `tests/test_ca8_d3_rival_permanence.py` (19).
 
+### 0.6 TUT-F5 ADDENDUM (August 8, 2026, same-day live report — the schoolroom is dormant; the Acknowledge arm states its terms)
+
+The user drove The School of War hours after the Q2 landing and measured **five Soult
+confrontations in three lesson turns** — the tutorial's authored Ney↔Soult −1 is an
+escalation-qualified hair-trigger *by design*, and the per-level re-fire multiplied it inside a
+twelve-turn syllabus that never explains the channel. Two amendments, record = STATUS top entry
++ `test_tutorial_school_fixes_2026_08_08.py`:
+
+- **The tutorial world is jealousy-DORMANT.** `jealousy_dormant(world)`
+  (`scenario_name == "tutorial"`, the TUT-F2 autosave discriminator) early-returns
+  `apply_jealousy` and `_push_petition` — no grievance ever fires and no marshal petition of
+  ANY kind (§6 / §6b / ESP-1 / ESP-2) queues on the lesson world; glory itself still accrues
+  (the Generals screen stays honest). World-scoped, both sides together (GR5). Campaign worlds
+  are pinned unchanged.
+- **§6's Acknowledge detail is now honest about being a no-op** (the report: "it's unclear what
+  acknowledge even does" — it does nothing, deliberately): *"Free, and it fixes nothing: the
+  grievance stands N more turns — souring his ties and coordination with {target} — then cools
+  on its own."* Shown = applied: N is the live `jealousy_turns_remaining` countdown and the
+  tie/coordination clause is the §8 derived −1. Promise/Rebuke details already stated their
+  numbers and are unchanged.
+
 ---
 
 ## Design Philosophy
