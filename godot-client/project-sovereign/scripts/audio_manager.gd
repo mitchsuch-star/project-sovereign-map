@@ -43,9 +43,14 @@ const CUES := {
 	"confirm": {"files": ["ui/confirm_chime.ogg"], "bus": "UI", "db": -8.0},
 	"error": {"files": ["ui/error_soft.ogg"], "bus": "UI", "db": -8.0},
 	"question": {"files": ["ui/question_open.ogg"], "bus": "UI", "db": -8.0},
-	"panel_open": {"files": ["ui/panel_open.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
-	"panel_close": {"files": ["ui/panel_close.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
-	"back": {"files": ["ui/back_dismiss.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
+	# Aug 8, 2026 (user, round 2): the panel/dismiss whooshes were the LAST
+	# Interface-pack synths on the screen-nav path — opening the ledger still
+	# read as "laser". The big screens now open and close as the books they
+	# are, and a dismissal is a leather tap. Old files stay on disk as pool
+	# variants (MUSIC_SOUND_SPEC §2 carries the swap).
+	"panel_open": {"files": ["ui/book_open.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
+	"panel_close": {"files": ["ui/book_close.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
+	"back": {"files": ["ui/leather_tap_2.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 200},
 	"page_turn": {"files": ["ui/page_turn_1.ogg", "ui/page_turn_2.ogg", "ui/page_turn_3.ogg"], "bus": "UI", "db": -8.0, "throttle_ms": 150},
 	"book_open": {"files": ["ui/book_open.ogg"], "bus": "UI", "db": -8.0},
 	"book_close": {"files": ["ui/book_close.ogg"], "bus": "UI", "db": -8.0},

@@ -197,11 +197,11 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 | Chip / tab / small control | click2 | `ui/click_soft.ogg` or `tick_subtle.ogg` |
 | List row select / map province click | select | `ui/leather_tap_1/2.ogg` (rotate) — same Aug-8 re-cue (Kenney RPG `handleSmallLeather1/2`); `select_item.ogg` stays as a pool variant |
 | Toggle | toggle | `ui/toggle_switch.ogg` |
-| Screen/panel open · close | panel | `ui/panel_open.ogg` · `panel_close.ogg` |
+| Screen/panel open · close | panel | `ui/book_open.ogg` · `book_close.ogg` *(Aug 8 round 2: the Interface-pack `panel_open/close.ogg` whooshes read as "laser" on the ledger — the big screens open as the books they are; old files stay as pool variants)* |
 | Map open · close (the two orphaned WAVs, finally assigned) | map | `ui/parchment_open_snd_use_map.wav` · `parchment_close_snd_close_map.wav` |
 | Ledger/dispatch tab switch | page | `ui/page_turn_1/2/3.ogg` (rotate) |
 | Campaign log open · close | book | `ui/book_open.ogg` · `book_close.ogg` |
-| Modal dismiss / ESC | back | `ui/back_dismiss.ogg` |
+| Modal dismiss / ESC | back | `ui/leather_tap_2.ogg` *(Aug 8 round 2 — same synth family as the panel whooshes; a dismissal is a leather tap now; `back_dismiss.ogg` stays as a pool variant)* |
 | Accept / confirm | confirm | `ui/confirm_chime.ogg` |
 | War-room transitions (optional flavor) | door | `ui/door_open_heavy.ogg` · `door_close_heavy.ogg` / `latch_close.ogg` |
 
