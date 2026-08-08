@@ -108,6 +108,15 @@ _DEFAULT_SCENARIO_PATH = (
 # env value that means "no scenario — boot the bare flag-resolved world".
 SCENARIO_NONE_SENTINEL = "none"
 
+# POSITION 7: named scenarios a client may request over HTTP (/new_game).
+# Names map to repo-root-derived paths (the _DEFAULT_SCENARIO_PATH idiom) —
+# a raw path is NEVER accepted over the wire.
+TUTORIAL_SCENARIO_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "godot-client" / "project-sovereign" / "assets" / "maps" / "tutorial_1805.json"
+)
+SCENARIO_ALLOWLIST = {"tutorial": TUTORIAL_SCENARIO_PATH}
+
 
 def _resolve_scenario_path() -> str:
     """Resolve the scenario for the game bootstrap (Slice 7 default-boot flip).
@@ -135,14 +144,23 @@ def _resolve_scenario_path() -> str:
     return str(_DEFAULT_SCENARIO_PATH)
 
 
-def _build_new_world(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
+def _build_new_world(
+    player_nation: str = DEFAULT_PLAYER_NATION,
+    scenario_override: str = "",
+) -> WorldState:
     """Create a fresh campaign world with the default start-state.
 
     A configured SOVEREIGN_SCENARIO fails LOUDLY (missing file / invalid
     scenario raises) — silently falling back to the default world would run
     the wrong campaign and hide scenario-authoring errors.
+
+    POSITION 7: `scenario_override` (an allowlist-resolved PATH, already
+    validated by the caller) outranks the whole env precedence chain — an
+    explicit player request beats process env, which is also what makes it
+    reachable under the test suite's SOVEREIGN_SCENARIO=none pin. Empty
+    override → byte-identical to the pre-override behavior.
     """
-    scenario_path = _resolve_scenario_path()
+    scenario_path = str(scenario_override).strip() or _resolve_scenario_path()
     if scenario_path:
         if os.getenv("SOVEREIGN_SMOKE_START", "").strip():
             # An EXPLICIT scenario + a smoke preset is the documented
@@ -168,9 +186,14 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     return new_world
 
 
-def _reset_world_state(player_nation: str = DEFAULT_PLAYER_NATION) -> WorldState:
+def _reset_world_state(
+    player_nation: str = DEFAULT_PLAYER_NATION,
+    scenario_override: str = "",
+) -> WorldState:
     """Replace the active campaign with a fresh world."""
-    return _set_active_world(_build_new_world(player_nation=player_nation))
+    return _set_active_world(
+        _build_new_world(player_nation=player_nation, scenario_override=scenario_override)
+    )
 
 
 _reset_world_state()
@@ -1527,6 +1550,15 @@ class LoadRequest(BaseModel):
 class DeleteSaveRequest(BaseModel):
     """Request model for deleting a save file."""
     filename: str
+
+
+class NewGameRequest(BaseModel):
+    """Request model for /new_game (POSITION 7).
+
+    `scenario` is an ALLOWLIST NAME (see SCENARIO_ALLOWLIST), never a path;
+    empty/absent keeps today's boot byte-identical.
+    """
+    scenario: str = ""
 
 
 @app.get("/test")
@@ -3301,11 +3333,31 @@ async def save_endpoint(request: SaveRequest):
 
 
 @app.post("/new_game")
-async def new_game_endpoint():
-    """Start a fresh campaign without restarting the backend process."""
+async def new_game_endpoint(request: Optional[NewGameRequest] = None):
+    """Start a fresh campaign without restarting the backend process.
+
+    POSITION 7: an optional `scenario` allowlist NAME boots a named authored
+    scenario ("tutorial" → The Danube Lesson). Unknown names fail loudly and
+    the running world is NOT swapped. Absent/empty → today's default boot.
+    """
     try:
+        requested = (request.scenario or "").strip() if request else ""
+        scenario_override = ""
+        if requested:
+            if requested not in SCENARIO_ALLOWLIST:
+                return build_base_response(
+                    world,
+                    success=False,
+                    message=(
+                        f"Unknown scenario {requested!r}. "
+                        f"Available: {sorted(SCENARIO_ALLOWLIST)}"
+                    ),
+                )
+            scenario_override = str(SCENARIO_ALLOWLIST[requested])
         player_nation = get_player_nation(world)
-        new_world = _reset_world_state(player_nation=player_nation)
+        new_world = _reset_world_state(
+            player_nation=player_nation, scenario_override=scenario_override
+        )
         autosave_result = autosave(new_world)
         autosave_ok = bool(autosave_result.get("success", False))
         message = "New campaign started."

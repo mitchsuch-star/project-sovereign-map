@@ -168,6 +168,7 @@ A future save/load system should use this as the specification.
 | `player_nation` | string | "France" | Nation controlled by player |
 | `sovereign_map` | string | "legacy" | Which map the world was built on: "legacy" (19-region fixture) or "europe" (126-province game map). `from_dict` rebuilds the matching region set + roster (Map Slice 4/5). |
 | `campaign_seed` | string | "historical" | **AI-0b (`AI_INTENT_SPEC.md` §3.8, D7):** the campaign's serialized variance seed. `from_dict` restores the stored value EXACTLY — never a fresh or env-derived one (§5 pin 14c); a pre-seed save reads "historical". "historical" (or unset `SOVEREIGN_SEED`) reproduces today's boot byte-for-byte; any other string resolves the scenario's authored variance bands deterministically. Also mirrored into save METADATA for slot display. |
+| `scenario_name` | string | "" | **POSITION 7:** display-only identity of the authored scenario this world booted from (`""` = bare/default world). Stamped via `from_dict` from the scenario JSON's `scenario_name`; the client's School of War overlay arms on `"tutorial"`. NO mechanic may ever branch on it. |
 | `current_turn` | int | 1 | Current turn number |
 | `max_turns` | int | 40 | Maximum turns before game ends |
 | `gold` | int | 800 | Player's treasury (backward compat, reads from nation_gold) |

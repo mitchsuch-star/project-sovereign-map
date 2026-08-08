@@ -1414,6 +1414,13 @@ class WorldState:
         from backend.game_logic.campaign_variance import resolve_campaign_seed
         self.campaign_seed: str = resolve_campaign_seed()
 
+        # POSITION 7: display-only identity of the authored scenario this world
+        # was booted from ("" for a bare/default world). Stamped via from_dict
+        # from the scenario JSON's `scenario_name` key; the client's tutorial
+        # overlay arms on the value "tutorial". NO mechanic may ever branch on
+        # this field — it exists so the client can recognize the world.
+        self.scenario_name: str = ""
+
         self._apply_smoke_start_preset()
 
         # R9: Build marshal-by-region index before visibility calc uses it
@@ -5870,6 +5877,8 @@ class WorldState:
             "sovereign_map": getattr(self, "sovereign_map", "legacy"),
             # AI-0b: the campaign seed round-trips exactly (pin 14c).
             "campaign_seed": str(getattr(self, "campaign_seed", "historical")),
+            # POSITION 7: display-only scenario identity ("" = bare/default).
+            "scenario_name": str(getattr(self, "scenario_name", "")),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -6310,6 +6319,12 @@ class WorldState:
         from backend.game_logic.campaign_variance import HISTORICAL_SEED
         world.campaign_seed = str(
             data.get("campaign_seed") or HISTORICAL_SEED)
+
+        # POSITION 7: display-only scenario identity — a pre-field save (or a
+        # scenario JSON without the key) reads "". from_scenario funnels the
+        # scenario dict through here, so the JSON's `scenario_name` lands
+        # without any from_scenario change.
+        world.scenario_name = str(data.get("scenario_name") or "")
 
         # ═══════ CORE GAME STATE ═══════
         # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
@@ -7496,6 +7511,10 @@ class WorldState:
                 "artillery": int(self.manpower_pools.get(self.player_nation, {}).get("artillery", 0)),
             },
             "player_nation": self.player_nation,
+            # POSITION 7: display-only scenario identity — the client's tutorial
+            # overlay arms on "tutorial". Rides every response via
+            # build_base_response and the /test connection payload.
+            "scenario_name": str(getattr(self, "scenario_name", "")),
             # "The Levy is Open" (econ spec review §6): nation-level, computed
             # ONCE per summary — deliberately not per-region, so the region
             # panel can say what the establishment allows without this

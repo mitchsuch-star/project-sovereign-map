@@ -1,0 +1,174 @@
+{
+    "_comment": "POSITION 7 tutorial scenario - The Danube Lesson, September 1805. Authored-deterministic: no variance bands (boot byte-identical under ANY seed), no navies (naval dormant), no agendas (deckless - AI-side survival only), no marshal_pool (no commissioning), no coalition. France + Bavaria (ALLIANCE - the transit bridge) vs Austria only; Austria at PEACE with Bavaria is WALLED by can_enter_territory, so the front is one-way except the two literal anchor corps authored forward. Player treasury 900 <= the EB-1 hoard floor 2000 (boot charges exactly 0). scenario_name is the ID the client's School of War overlay arms on - the pretty title lives in scenario_description. The four engine hint latches are authored true so engine one-shot popups never collide with tutor cards. Personality = character (MC-4): Mack is canonically LITERAL and belongs at Ulm, so the Vienna pair here is ArchdukeCharles + Schwarzenberg (both cautious, values verbatim from europe_1805.json); Kienmayer and Jellacic are the historical Ulm-campaign screen commanders, authored literal so the forward corps hold their ground (MC-V-2: enemy literals play literal).",
+    "scenario_schema_version": 1,
+    "scenario_name": "tutorial",
+    "scenario_description": "The Danube Lesson, September 1805. The Grande Armee wheels from the Channel to the Rhine. Austria has pushed two screening corps over the Iller; her main army musters at Vienna. A short, supervised campaign - Berthier keeps the school.",
+    "sovereign_map": "europe",
+    "player_nation": "France",
+    "current_turn": 1,
+    "gold": 900,
+
+    "region_overrides": {
+        "Franche-Comte": {"garrison_strength": 12000}
+    },
+
+    "starting_wars": [
+        {"attacker": "France", "defender": "Austria"}
+    ],
+
+    "diplomatic_states": {
+        "Bavaria|France": "ALLIANCE",
+        "France|Holland": "VASSAL",
+        "France|KingdomOfItaly": "VASSAL",
+        "France|Switzerland": "VASSAL"
+    },
+
+    "nation_relations": {
+        "Austria|France": -70,
+        "Austria|Bavaria": 20,
+        "Bavaria|France": 60,
+        "France|Prussia": 10,
+        "Britain|France": -20,
+        "France|Russia": -20
+    },
+
+    "threat_level": 20,
+
+    "coordination_tutorial_shown": true,
+    "opening_attack_guidance_shown": true,
+    "delegation_hint_shown": true,
+    "muster_hint_shown": true,
+
+    "marshals": {
+        "Ney": {
+            "name": "Ney",
+            "nation": "France",
+            "location": "Rhineland",
+            "strength": 24000,
+            "personality": "aggressive",
+            "skills": { "tactical": 5, "shock": 9, "defense": 6, "logistics": 4, "administration": 3, "command": 7 },
+            "tactical_skill": 5,
+            "trust": { "value": 75 },
+            "movement_range": 1,
+            "ability": {
+                "name": "Bravest of the Brave",
+                "description": "Ney's aggressive leadership inspires devastating attacks",
+                "trigger": "when_attacking",
+                "effect": "+2 Shock skill when attacking (not defending)"
+            },
+            "biography": "VI Corps on the Rhine - the bravest of the brave, first over every bridge. The Emperor keeps him on a short leash for the lesson.",
+            "relationships": { "Soult": -1 }
+        },
+        "Davout": {
+            "name": "Davout",
+            "nation": "France",
+            "location": "Lorraine",
+            "strength": 26000,
+            "personality": "cautious",
+            "skills": { "tactical": 8, "shock": 6, "defense": 8, "logistics": 7, "administration": 8, "command": 9 },
+            "tactical_skill": 8,
+            "trust": { "value": 85 },
+            "movement_range": 1,
+            "ability": {
+                "name": "Iron Resolve",
+                "description": "The iron marshal coils behind his earthworks - patient discipline becomes a hammer-blow when III Corps springs",
+                "trigger": "when_fortifying",
+                "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
+            },
+            "biography": "III Corps in its Lorraine camps - the iron marshal, whose books balance and whose sentries never sleep.",
+            "relationships": {}
+        },
+        "Soult": {
+            "name": "Soult",
+            "nation": "France",
+            "location": "Paris",
+            "strength": 40000,
+            "personality": "literal",
+            "skills": { "tactical": 9, "shock": 6, "defense": 7, "logistics": 6, "administration": 7, "command": 6 },
+            "tactical_skill": 9,
+            "trust": { "value": 70 },
+            "movement_range": 1,
+            "ability": {
+                "name": "Drillmaster of Boulogne",
+                "description": "Soult drilled the camps of Boulogne to clockwork - his corps sharpens in a single day",
+                "trigger": "when_drilling",
+                "effect": "Drill completes in 1 turn (not 2) and never locks him out of your orders"
+            },
+            "biography": "IV Corps, the depot army at Paris - a superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
+            "relationships": { "Ney": -1 }
+        },
+        "Senarmont": {
+            "name": "Senarmont",
+            "nation": "France",
+            "location": "Franche-Comte",
+            "strength": 14000,
+            "personality": "cautious",
+            "artillery": true,
+            "skills": { "tactical": 7, "shock": 3, "defense": 6, "logistics": 6, "administration": 6, "command": 6 },
+            "tactical_skill": 7,
+            "trust": { "value": 75 },
+            "movement_range": 1,
+            "biography": "The Reserve Artillery - Senarmont's guns, which will one day roll to canister range at Friedland. For now they teach the trade.",
+            "relationships": {}
+        },
+
+        "Kienmayer": {
+            "name": "Kienmayer",
+            "nation": "Austria",
+            "location": "Swabia",
+            "strength": 8000,
+            "personality": "literal",
+            "skills": { "tactical": 4, "shock": 4, "defense": 4, "logistics": 4, "administration": 4, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 70 },
+            "movement_range": 1,
+            "biography": "An advance screen over the Iller, holding the ground it was given - to the letter, and no further.",
+            "relationships": {}
+        },
+        "Jellacic": {
+            "name": "Jellacic",
+            "nation": "Austria",
+            "location": "Tyrol",
+            "strength": 8000,
+            "personality": "literal",
+            "skills": { "tactical": 3, "shock": 3, "defense": 5, "logistics": 4, "administration": 4, "command": 3 },
+            "tactical_skill": 3,
+            "trust": { "value": 70 },
+            "movement_range": 1,
+            "biography": "The mountain flank guard in the Tyrol passes - ordered to stand, and standing.",
+            "relationships": {}
+        },
+        "ArchdukeCharles": {
+            "name": "ArchdukeCharles",
+            "nation": "Austria",
+            "location": "Vienna",
+            "strength": 26000,
+            "personality": "cautious",
+            "skills": { "tactical": 8, "shock": 6, "defense": 8, "logistics": 7, "administration": 8, "command": 8 },
+            "tactical_skill": 8,
+            "trust": { "value": 55 },
+            "movement_range": 1,
+            "ability": {
+                "name": "Habsburg Resolve",
+                "description": "Archduke Charles steadies the line with calm under fire",
+                "trigger": "when_defending",
+                "effect": "+3% flat defense bonus when defending"
+            },
+            "biography": "The Habsburgs' best soldier, mustering the main army at Vienna - he will come west when he is ready, and not an hour sooner.",
+            "relationships": { "Schwarzenberg": 1 }
+        },
+        "Schwarzenberg": {
+            "name": "Schwarzenberg",
+            "nation": "Austria",
+            "location": "Vienna",
+            "strength": 24000,
+            "personality": "cautious",
+            "skills": { "tactical": 6, "shock": 4, "defense": 7, "logistics": 7, "administration": 7, "command": 8 },
+            "tactical_skill": 6,
+            "trust": { "value": 70 },
+            "movement_range": 1,
+            "biography": "The diplomat-soldier. Careful, patient, and impossible to provoke into a battle he has not already won.",
+            "relationships": { "ArchdukeCharles": 1 }
+        }
+    }
+}
