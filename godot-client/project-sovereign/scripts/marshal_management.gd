@@ -198,7 +198,9 @@ func _render_current_view():
 
 func _render_all_cards():
 	"""Render the glory ladder header, then all marshal cards."""
-	var bbcode = _render_glory_ladder()
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	var bbcode = "[color=#" + Utils.COLOR_DIMMED + "]Your marshals — loyalty, glory, and grievance; reward them before they ask. Press G to close.[/color]\n\n"
+	bbcode += _render_glory_ladder()
 
 	for i in range(cached_data.size()):
 		var m = cached_data[i]

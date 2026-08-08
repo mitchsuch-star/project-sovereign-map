@@ -291,7 +291,9 @@ func _format_bloc_stamp(stamp) -> String:
 func _render_nations():
 	var nations = cached_data.get("nations", [])
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]\n"
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.[/color]\n\n"
 
 	# AI-1b (the mirror): Europe's derived reading of FRANCE — the player's
 	# own row, first. Omitted when null (legacy/bare worlds).

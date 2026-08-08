@@ -160,6 +160,8 @@ func update_wars(data: Dictionary) -> void:
 		return
 
 	header_label.text = "ACTIVE WARS"
+	# R159 (POSITION 7): the HUD names its mechanic on hover.
+	header_label.tooltip_text = "Your active wars and Europe's own — click a card for the full ledger of one war."
 
 	var coalition_data = data.get("coalition", null)
 	var has_coalition = coalition_data != null

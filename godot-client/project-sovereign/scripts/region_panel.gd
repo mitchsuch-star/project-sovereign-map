@@ -160,6 +160,8 @@ func _render() -> void:
 			bbcode += " · " + terrain.replace("_", " ").capitalize()
 		bbcode += "[/color]"
 	bbcode += "\n"
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
 
 	# ── Fog-honest economy block ──
 	if visibility == "unknown" or visibility == "last_known":

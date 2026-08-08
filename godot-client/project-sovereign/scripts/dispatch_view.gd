@@ -70,6 +70,8 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]What changed overnight, before you spend a single order. Press R to reread it any time.[/color]\n"
 	bbcode += "\n"
 
 	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══

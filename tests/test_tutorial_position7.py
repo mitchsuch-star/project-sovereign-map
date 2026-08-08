@@ -235,6 +235,27 @@ class TestClientStructuralPins:
         assert "static func get_tutorial_done" in settings
         assert "static func set_tutorial_done" in settings
 
+    def test_g7_r159_screen_teaching_lines(self):
+        """T-G7 (R159): each core screen names the mechanic it displays —
+        one distinctive substring per surface."""
+        ledger = _read("scripts/strategic_ledger.gd")
+        for fragment in (
+            "The muster of your corps",
+            "The provinces of the Empire",
+            "The treasury's books",
+            "What the fog concedes",
+            "The levy pools your recruits draw on",
+            "Orders that march without you",
+        ):
+            assert fragment in ledger, fragment
+        assert "reward them before they ask" in _read("scripts/marshal_management.gd")
+        assert "Every court of Europe" in _read("scripts/diplomatic_ledger.gd")
+        assert "tooltip_text" in _read("scripts/war_status_panel.gd")
+        assert "the price of peace" in _read("scripts/war_detail_popup.gd")
+        assert "One province — who holds it" in _read("scripts/region_panel.gd")
+        assert "it lapses" in _read("scripts/mailbox_panel.gd")
+        assert "before you spend a single order" in _read("scripts/dispatch_view.gd")
+
     def test_g8_parse_harness_covers_the_new_files(self):
         harness = (REPO / "tools" / "godot_parse_check.gd").read_text(encoding="utf-8")
         assert "res://scripts/tutorial_overlay.gd" in harness

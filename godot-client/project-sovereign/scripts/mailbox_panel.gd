@@ -25,7 +25,9 @@ const ITEM_TYPE_DISPLAY = {
 @onready var empty_state_label: Label = $PanelContainer/VBoxContainer/ScrollContainer/ListContent/EmptyStateLabel
 @onready var close_btn: Button = $PanelContainer/VBoxContainer/ButtonContainer/CloseButton
 
-const DEFAULT_SUBTITLE = "Every envoy still awaiting your answer. Select a row to reopen or activate it."
+# R159 (POSITION 7): the subtitle names the mechanic — unanswered envoys ARE
+# diplomacy in waiting, and they lapse.
+const DEFAULT_SUBTITLE = "Every envoy still awaiting your answer — diplomacy waiting on your word; ignored, it lapses. Select a row to reopen or activate it."
 
 var _items: Array = []
 # IGR-F: mailbox_id -> the letter-book row for that item. Only rows in this

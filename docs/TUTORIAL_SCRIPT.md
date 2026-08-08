@@ -1,8 +1,19 @@
 # Ink & Iron: Tutorial Script
 
-> **Living document. Updated every phase. Feeds the Pre-EA tutorial.**
+> **Living document. Updated every phase. Feeds the tutorial.**
 > **Format: What the player needs to learn, and how to teach it.**
-> **Last Updated:** February 19, 2026 (Session 55: Artillery, Manpower, Garrison, Starting Forces catchup)
+> **Last Updated:** August 8, 2026 (POSITION 7: THE TUTORIAL IS BUILT — "The
+> School of War" on the authored Danube Lesson scenario; see §The Danube
+> Lesson below. The concept tables remain the teaching INVENTORY for hints
+> and future beats; the live script is `tutorial_overlay.gd` STEPS.)
+>
+> **⚠ Staleness note (Aug 8 refresh):** the pre-cutover tables below were
+> written against the legacy 19-region world (Feb 2026). Numbers corrected in
+> place where they had drifted: admin-AP bonus 25g (was written 75g), plunder
+> ×4 income (was 1.75×), fortify caps aggressive 8% / cautious 12%, THREE
+> implemented personality types (balanced/loyal retired by MC-4). The legacy
+> world survives only as the `SOVEREIGN_MAP=legacy` rollback fixture — the
+> shipped tutorial runs on the real 1805 map.
 
 ---
 
@@ -20,8 +31,11 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 - Phase 7: Add coordination, adjacent support, reinforcement (Grouchy Rule) entries
 - Phase 8: Add diplomacy chat, peace treaty, leader personality entries
-- Phase 8.5: Add events, gazette, marshal voice entries
-- Pre-EA: Final review pass + build `TutorialManager` + Short Waterloo Scenario scripting
+- ~~Pre-EA: build `TutorialManager` + Short Waterloo Scenario~~ ✅ **DONE at
+  Road-to-EA position 7 (Aug 8, 2026)** as "The School of War" on the Danube
+  Lesson scenario — see that section below. New-feature rows still land here
+  first; promoting one into the built tutorial means editing
+  `tutorial_overlay.gd` STEPS + its two test files.
 
 ---
 
@@ -34,7 +48,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Two AP pools: 4 combat + 2 admin per turn | AP counters visible: "4 military actions, 2 admin actions remaining" | Must-know |
 | Combat AP: attack, move, scout, defend, drill, fortify, stance, garrison (2 AP) | Tooltip on first action: "Military orders cost combat AP" | Must-know |
 | Admin AP: recruit, build, repair | Tooltip on first admin action: "Administration costs admin AP" | Must-know |
-| Unused admin AP earns 75 gold each | End-of-turn summary shows admin bonus: "Saved 1 admin action: +75 gold" | Should-know |
+| Unused admin AP earns 25 gold each | End-of-turn summary shows admin bonus: "Saved 1 admin action: +25 gold" | Should-know |
 | Move to adjacent regions | "Ney, move to Belgium" as first order suggestion | Must-know |
 | Attack requires enemy in range | Error message if no valid target, suggest alternatives | Must-know |
 | Combat uses strength + modifiers | Post-battle analysis shows breakdown | Should-know |
@@ -63,7 +77,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 |---------|----------|----------|
 | Marshals have personalities | Brief intro: "Ney is aggressive. Davout is cautious. Drouot is cautious. Grouchy follows orders exactly." | Must-know |
 | Personality affects combat modifiers | Tooltip: "Ney gets +15% attack. Davout gets +20% defense when outnumbered." | Should-know |
-| Personality-specific fortify caps | Tooltip: "Davout fortifies faster (max 20%). Ney's cap is lower (max 10%)." | Nice-to-know |
+| Personality-specific fortify caps | Tooltip: "Davout fortifies faster (max 12%). Ney's cap is lower (max 8%)." | Nice-to-know |
 | Marshals can object to orders | Scripted: Ney objects to first defensive order on turn 2 | Must-know |
 | Objections have severity levels (MILD to CRITICAL) | MILD concerns appear as "Field Dispatches" in turn log; MAJOR+ trigger popup | Should-know |
 | Trust/Insist/Compromise choices | Objection popup explains each option with consequences | Must-know |
@@ -71,7 +85,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Insist always works but costs trust | Popup shows: "Insist: -10 trust, marshal obeys" | Should-know |
 | Compromise builds trust with partial resolution | Popup shows: "Compromise: +5 trust, modified order" | Should-know |
 | Grouchy needs clear orders | First vague order to Grouchy triggers clarification popup | Should-know |
-| 5 personality types exist | Help text: "Aggressive, Cautious, Literal, Balanced, Loyal — each has different triggers" | Nice-to-know |
+| 3 personality types exist | Help text: "Aggressive, Cautious, Literal — each has different triggers" (balanced/loyal retired by MC-4) | Nice-to-know |
 
 ## Cavalry & Charges (Phase 4)
 
@@ -199,7 +213,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Concept | Teach by | Priority |
 |---------|----------|----------|
 | Capturing enemy regions triggers choice: Plunder or Secure | Popup on first capture: "Plunder for gold or secure for stability?" | Must-know |
-| Plunder: immediate gold (1.75x income), stability 10, heavy damage | "Plunder: 525 gold now, but region devastated (buildings destroyed)" | Should-know |
+| Plunder: immediate gold (4x income, quoted live in the prompt), stability 10, heavy damage | "Plunder for +400 gold" — the modal quotes the real figure (IGR-E: shown = paid; a re-sack pays 0) | Should-know |
 | Secure: stability 25, buildings damaged not destroyed | "Secure: no gold bonus, but region recovers faster" | Should-know |
 | Fortified regions require occupation (hold for turns) | "Region fortified — must hold position to capture" | Should-know |
 
@@ -258,73 +272,91 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 ---
 
-## Future Phases (NOT YET IMPLEMENTED)
+## Shipped Since February (teaching inventory — NOT yet in the built tutorial)
 
-> The following sections describe planned features. They are included for tutorial planning purposes but **no code exists yet**.
+> These systems SHIPPED (coalitions/multi-marshal July 2025-era phases;
+> diplomacy Phase 8; jealousy/estates/naval/agendas 2026). The Danube Lesson
+> deliberately teaches the CORE LOOP only — these rows are the inventory for
+> R159 screen lines, first-encounter hints in the real campaign, and any
+> future tutorial expansion. The Gazette row is CUT to post-EA (Aug-3
+> re-plan) and kept only as provenance.
 
-### Coalitions & Multi-Marshal (Phase 7 — Planned)
+### Coalitions & Multi-Marshal (SHIPPED)
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
 | Coalition threat rises with conquest | Threat indicator visible, tooltip explains | Must-know |
-| Multiple marshals can fight together | First time two marshals in same region, explain | Should-know |
-| Relationships affect coordination | Tooltip after multi-marshal battle | Nice-to-know |
+| Multiple marshals can fight together | Coordination happens by standing together; the muster preview names the committed figure | Should-know |
+| Relationships affect coordination | Battle report + Berthier observations after multi-marshal battle | Nice-to-know |
 
-### Diplomacy (Phase 8 — Planned)
-
-| Concept | Teach by | Priority |
-|---------|----------|----------|
-| You can talk to nation leaders | First diplomatic contact triggered by event | Must-know |
-| Type proposals naturally | Example: "I offer Austria peace if they cede Tyrol" | Must-know |
-| Leaders have personalities | Brief intro when first meeting each leader | Should-know |
-| War score affects negotiation | Tooltip on diplomatic screen | Should-know |
-
-### Events & Narrative (Phase 8.5 — Planned)
+### Diplomacy (SHIPPED)
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| Gazette summarizes events | First gazette appears, explain what it is | Nice-to-know |
-| Creative commands earn bonuses | After 5 turns, tooltip: "Try creative phrasing for bonuses" | Nice-to-know |
-| Marshals remember past events | First time it triggers, let it speak for itself | Nice-to-know |
+| You can treat with every court | F1 wizard + D ledger (R159 lines name both) | Must-know |
+| Type proposals naturally | Example: "offer Austria peace" — or use the wizard's guided terms | Must-know |
+| Courts have designs (agendas) | Ledger Design rows + war-room per-belligerent lines | Should-know |
+| War score affects negotiation | War detail popup (R159 line: "its score, its fronts, and the price of peace") | Should-know |
+
+### Marshals Deepened (SHIPPED — jealousy, estates, recruitment)
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| Glory breeds jealousy; the ladder ranks it | Generals screen LAURELS ladder + petition popups speak for themselves | Should-know |
+| Success raises reward expectation (estates/rentes) | The Reward chip on every Generals card states its gate reason | Should-know |
+| New marshals can be commissioned | Commission bench on the Generals screen (honest availability) | Nice-to-know |
+
+### Naval (SHIPPED — DEF-5 "The Wooden Wall")
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| A hostile fleet shuts a crossing | Crimson SHUT link + the march refusal states the remedy | Must-know |
+| Expeditions land small corps (≤15,000) | THE ADMIRALTY ledger tab: gate terms + landing chips quote the odds (NV-12) | Should-know |
+| Blockade strangles trade + war-weariness | Blockade Board rows + signed ledger components | Should-know |
 
 ---
 
-## Short Waterloo Scenario (Pre-EA)
+## The Danube Lesson (BUILT — POSITION 7, August 8, 2026)
 
-10-15 turn guided scenario using current 19-region map. 40-turn max game. Victory: control 15+ regions at turn 40 or total conquest. Teaches:
-1. Turn 1: Issue first order (move). Introduce 2 AP pools (4 combat, 2 admin). Type 'economy' to see treasury. Note manpower HUD.
-2. Turn 2: Ney objects (scripted) — learn Trust/Insist/Compromise. See MILD "Field Dispatches" in log.
-3. Turn 3: Attack enemy — learn combat, terrain bonuses, post-battle damage.
-4. Turn 4: Bombard with Drouot — learn artillery bombardment from range. Note: can't attack after moving.
-5. Turn 5: Strategic command — learn multi-turn orders (MOVE_TO). See AP cost difference (2 vs 1).
-6. Turn 6: Capture a region — learn Plunder/Secure choice. Note capital garrison blocks easy capture. Check economy impact.
-7. Turn 7: Recruit troops, build a market — learn admin AP and manpower pools. See morale dilution from recruits.
-8. Turn 8-12: Play freely with gentle tooltips (cavalry charges, garrison placement, supply, fortification, fog of war).
-9. Win/lose condition: control 15 regions or take all enemy territory. Lose if Paris falls or all marshals destroyed.
+**The shipped tutorial.** "The School of War" — Berthier's non-modal tutor
+card (`tutorial_overlay.gd`, CanvasLayer 90) on the authored scenario
+`tutorial_1805.json` (the real 126-province 1805 map; France + Bavaria
+ALLIANCE vs Austria only; naval/agendas/commissioning dormant by authoring;
+Austria PEACE-walled so the front is one-way). Launched from the main menu
+("The School of War — a guided campaign", confirm-guarded) via
+`POST /new_game {"scenario": "tutorial"}`. The client arms on
+`game_state.scenario_name == "tutorial"`; steps resume by turn on reload;
+skip/completion latches per-machine (`UiSettings.tutorial done`).
 
-### Starting Map Reference
+**The live script IS the `STEPS` table in `tutorial_overlay.gd`** — this
+section mirrors it for design review. Every precondition below is pinned as
+arithmetic in `tests/test_tutorial_scenario.py`; every suggested command is
+mock-parse-verified against the tutorial roster in
+`tests/test_tutorial_position7.py` (T-B1).
 
-**French (Player):** Paris (capital, urban, 300g), Belgium (town, plains, 100g), Normandy (town, plains, 100g), Lyon (major_city, hills, 200g), Brittany (rural, forest, 50g), Bordeaux (rural, plains, 50g), Marseille (city, plains, 150g), Milan (city, urban, 150g). Starting gold: 800. Manpower: 80k inf / 15k cav / 10k art.
+| Turn | Beat | Suggested command | The real system that answers |
+|------|------|-------------------|------------------------------|
+| 1 | The situation + free actions | `economy` | Free treasury report; boot charges 0 (treasury 900 under the EB-1 floor) |
+| 1 | First march + AP pools | `Senarmont, move to Munich` | Allied ALLIANCE transit; artillery `moved_this_turn` foreshadows T4 |
+| 1 | Close the day | `end turn` | Enemy phase + morning dispatch |
+| 2 | The marshal's temper | `Ney, defend` | REAL aggressive objection at STRONG (24k vs PARTIAL-midpoint 10k = 2.4; popup survives mood variance). Never `hold` (strategic, evaluates NONE) or `fortify` (2 AP + immobilizes) |
+| 2 | Trust/Insist/Compromise | *(typed answer)* | W6-0 pending-question router takes `trust`/`insist`/`compromise`; Trust branch = Ney attacks early and the next card pivots |
+| 3 | First blood | `Ney, attack Kienmayer` | Battle on allied Bavarian soil (PT-F1: no capture modal) — pure combat lesson; Kienmayer has no friendly exit (breaks in place or dies) |
+| 4 | The guns speak | `Senarmont, bombard Jellacic` | Munich→Tyrol adjacent; moved-T1 so the moved-this-turn refusal cannot fire; then clear Swabia |
+| 5 | Standing orders | `Davout, march to Franconia` | 2-hop auto-upgrade to strategic MOVE_TO at 2 AP (literal Soult pays 1 — the card contrasts) |
+| 6 | Conquest | `Ney, attack Jellacic` | Battle-win capture → Plunder/Secure modal (typed answers work; no estate stage — no enemy `dotation_regions`); fallback `Ney, move to Tyrol` = PF-3 move-capture, same modal. Capitals lesson: Munich 10,000 / Vienna 25,000 on screen |
+| 6 | The conqueror's choice | *(typed answer)* | `plunder` (×4 income, quoted live) vs `secure` — the card counsels SECURE on an allied front |
+| 7 | The depots | `Soult, recruit troops` | 450g at Paris (200 × 0.75 capital × 3 war; admin-7 neutral Intendance — pinned); second admin action: `build watchtower in Lorraine` |
+| 8+ | The fog | `Davout, scout Bohemia` | The telegraphed Austrian counter-blow (P3.7 pulls the Vienna pair west ~T8-10) |
+| 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs ~50k cautious Austrians |
+| 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic |
+| 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 
-Marshals: Ney (72k, Belgium, cavalry, aggressive), Davout (48k, Paris, infantry, cautious), Grouchy (28k, Lyon, infantry, literal), Drouot (25k, Paris, artillery, cautious).
-
-**British:** Netherlands (rural, plains, 50g), Waterloo (rural, hills, 50g), Hanover (town, plains, 100g). Starting gold: 1,500.
-
-Marshals: Wellington (52k, Waterloo, infantry, cautious), Uxbridge (24k, Hanover, cavalry, aggressive).
-
-**Prussian:** Berlin (capital, urban, 300g), Rhineland (town, river_crossing, 100g). Starting gold: 800.
-
-Marshals: Blucher (40k, Berlin, infantry, aggressive), Gneisenau (32k, Rhineland, infantry, cautious).
-
-**Austrian:** Vienna (capital, urban, 300g), Bavaria (town, hills, 100g), Bohemia (city, forest, 150g), Tyrol (town, mountains, 100g). Starting gold: 600. At PEACE with France (relation -30).
-
-Marshals: Archduke Charles (35k, Vienna, infantry, cautious), Schwarzenberg (25k, Bohemia, infantry, cautious).
-
-**Saxon:** Dresden (town, hills, 100g), Saxony (city, plains, 150g). Starting gold: 200. At PEACE with France (French-leaning, relation +40).
-
-Marshals: Reynier (18k, Dresden, infantry, literal).
-
-**All capitals start with 15,000 garrison troops.** Victory requires 15 regions (of 19).
+**Design rules (pinned):** the tutorial steers the player into REAL system
+responses — nothing is faked; the overlay is observe-only (never routes,
+never sends); every beat tolerates its fallback branch; turn-gate catch-up
+guarantees the school can never stall; GR6 absolute (zero mechanics changes;
+`scenario_name` is display-only).
 
 ---
 

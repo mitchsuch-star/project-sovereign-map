@@ -356,6 +356,9 @@ func _render_war_detail(w: Dictionary):
 
 	var bbcode = ""
 
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	bbcode += "[color=#808080]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
+
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:
 		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]\n"
