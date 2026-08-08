@@ -415,6 +415,13 @@ func _render_war_detail(w: Dictionary):
 		elif we_int >= 40:
 			we_color = COLOR_AMBER
 		bbcode += "Enemy War Exhaustion: [color=" + we_color + "]" + str(we_int) + "[/color]\n"
+
+	# NV-12 (recon gap 8): the per-belligerent fleet line — built by
+	# war_status.py since NV-0 (counts/postures are ruled PUBLIC) and
+	# consumed by NOTHING until now.
+	var naval_line = str(w.get("naval_line", ""))
+	if naval_line != "":
+		bbcode += "Their fleet: " + Utils.humanize_nation_keys_in_text(naval_line) + "\n"
 	else:
 		bbcode += "Enemy War Exhaustion: [color=" + COLOR_DIMMED + "]Unknown[/color]\n"
 

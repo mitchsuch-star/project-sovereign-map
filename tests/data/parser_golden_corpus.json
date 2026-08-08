@@ -3638,6 +3638,17 @@
     "notes": "DEF-5 NV-2 (the H4 verb): the two-word-window regex — 'land <marshal> in <province>' fires while 'hold the land between the rivers' and the VS-3 'grant land to X' stay on their own paths."
   },
   {
+    "id": "naval-land-confirmed-reissue",
+    "utterance": "land Soult in Munster confirmed",
+    "world": "1805",
+    "expected": {
+      "action": "naval_expedition",
+      "marshal": "Soult"
+    },
+    "source": "tests/test_naval_ui_clarity.py",
+    "notes": "NV-12: the EXACT string the expedition confirm button reissues (naval_executor builds 'land <marshal> in <target> confirmed'). The clarification path had no corpus coverage — a parser regression here would break the button, not just typing."
+  },
+  {
     "id": "naval-order-the-diversion",
     "utterance": "order the diversion",
     "world": "1805",

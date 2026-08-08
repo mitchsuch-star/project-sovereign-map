@@ -1624,16 +1624,38 @@ def build_admiralty_report(world) -> Dict:
                     f"expedition, not marched into")
         elif v == "window":
             own_rec = get_fleet(world, player) or {}
+            # NV-12: the countdown finally names what the window DOES.
             line = (f"{a}–{b}: WINDOW — open "
-                    f"{int(own_rec.get('window_turns', 0) or 0)} more turn(s)")
+                    f"{int(own_rec.get('window_turns', 0) or 0)} more turn(s) "
+                    "(their coverage halved; the defended-shore rule waived)")
         else:
-            line = (f"{a}–{b}: SHUT — "
-                    f"{_fleet_label(verdict['coverer'], get_fleet(world, verdict['coverer']) or {})}"
-                    f" at {1.0 / verdict['ratio']:.1f}×"
-                    if verdict.get("ratio") else f"{a}–{b}: SHUT")
+            coverer = verdict.get("coverer")
+            coverer_label = (_fleet_label(coverer,
+                                          get_fleet(world, coverer) or {})
+                             if coverer else "")
+            if verdict.get("ratio"):
+                line = (f"{a}–{b}: SHUT — {coverer_label}"
+                        f" at {1.0 / verdict['ratio']:.1f}×")
+            elif coverer_label:
+                # NV-12 (recon trap 1): a destroyed fleet made the ratio
+                # falsy and the row degraded to a bare "SHUT" — the
+                # worst-informed state produced the least information. The
+                # coverer is still named.
+                line = (f"{a}–{b}: SHUT — {coverer_label} commands the "
+                        "water unopposed")
+            else:
+                line = f"{a}–{b}: SHUT"
         crossings.append({"link_a": a, "link_b": b, "verdict": v,
                           "line": line})
     report["crossings"] = crossings
+    # NV-12: one legend + remedy line under the Crossings header (chosen
+    # over per-row remedy tails — same clarity, less noise; §16 records the
+    # deviation). The remedy copy previously fired ONLY on an attempted
+    # march.
+    report["crossings_legend"] = (
+        "crimson = shut · amber = defended shore · gold = window. A shut "
+        "crossing opens by building or pooling a fleet — or a small "
+        "expedition slips past it.")
 
     # Honest gate terms IN ORDER (the §11.6 idiom) for the two gambles.
     own_ships = int((own or {}).get("ships", 0) or 0)
@@ -1658,12 +1680,53 @@ def build_admiralty_report(world) -> Dict:
     report["diversion_terms"] = diversion_terms
     report["diversion_available"] = all(t["met"] for t in diversion_terms)
     yards = controlled_dockyards(world, player)
+    # NV-12 "The Clear Deck": the expedition's gate terms, evaluated against
+    # the player's REAL candidates (the Diversion idiom). This list was
+    # built at NV-6 and then read by NO surface at all — the Diversion
+    # rendered its terms while the Expedition's were dropped. Term 2 is
+    # honest availability: it names who qualifies, or who is over the lift
+    # and by exactly how much.
+    player_corps = list(world.get_marshals_by_nation(player))
+    ready_corps = sorted(
+        (m for m in player_corps
+         if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+         and m.location in yards),
+        key=lambda m: -int(m.strength))
+    over_corps = [m for m in player_corps
+                  if int(m.strength) > EXPEDITION_MAX_TROOPS
+                  and m.location in yards]
+    if ready_corps:
+        corps_detail = "ready: " + ", ".join(
+            f"{m.name} ({int(m.strength):,} at {m.location})"
+            for m in ready_corps[:3])
+    elif over_corps:
+        smallest = min(over_corps, key=lambda m: int(m.strength))
+        corps_detail = (
+            f"{smallest.name} commands {int(smallest.strength):,} — detach "
+            f"{int(smallest.strength) - EXPEDITION_MAX_TROOPS:,} first")
+    else:
+        corps_detail = "march a corps to a yard"
     expedition_terms = [
-        {"text": "a dockyard under our flag", "met": bool(yards)},
-        {"text": f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer",
-         "met": True},
+        {"text": "a dockyard under our flag", "met": bool(yards),
+         "detail": ", ".join(yards) if yards else "take or build one"},
+        {"text": (f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer "
+                  "standing at a yard"),
+         "met": bool(ready_corps), "detail": corps_detail},
     ]
     report["expedition_terms"] = expedition_terms
+    # The numbers a captain would ask before sailing — from the SAME
+    # constants the resolver rolls (shown = applied).
+    report["expedition_notes"] = [
+        ("odds fall with corps size and the hostile fleet's effective "
+         "strength — effective = sail × readiness"),
+        (f"a failed run: intercepted ~{int(EXPEDITION_INTERCEPT_LOSS * 100)}% "
+         f"of the corps lost, turned back ~{int(EXPEDITION_TURNBACK_LOSS * 100)}% "
+         f"— and the fleet's readiness −{EXPEDITION_TURNBACK_READINESS} either way"),
+    ]
+    # Payload-driven client numbers (the client's hardcoded fallbacks were
+    # duplicated backend constants — trap 8 of the NV-12 recon).
+    report["ship_cost"] = int(SHIP_COST)
+    report["camp_required"] = int(DESCENT_CAMP_MIN_TROOPS)
 
     # ── NV-6: the chips (§9's "usability" clause, the §11.6 honest idiom) ──
     # Every naval verb but `build_fleet` was typed-command only. Each chip
@@ -1695,26 +1758,60 @@ def build_admiralty_report(world) -> Dict:
                 "note": ("closes " + ", ".join(
                     sorted(display_nation(n) for n in blockadable))
                     if blockadable else "")})
-        if not report["diversion_available"]:
-            unmet = [t.get("unmet") or t["text"]
-                     for t in diversion_terms if not t["met"]]
-            chips.append({
-                "command": "order the diversion",
-                "label": "The Grand Diversion",
-                "enabled": False,
-                "reason": "; ".join(unmet), "note": ""})
-        else:
-            # The verb does NOT require a staged camp, and deliberately is
-            # not being made to — but spending a once-per-war card to open
-            # two turns of water with no army on the beach is a trap, so
-            # the chip says so instead of quietly letting it happen.
-            note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
-            if not camp_staged(world, player):
-                note += "; no army is staged to use the open water"
-            chips.append({
-                "command": "order the diversion",
-                "label": "The Grand Diversion",
-                "enabled": True, "reason": "", "note": note})
+    else:
+        # NV-12 (recon trap 9): the whole list used to be gated on
+        # own_ships > 0 — which deleted the Orders header, every
+        # disabled-with-reason chip AND the embark hint for exactly the
+        # player who needs the explanation most. The fleetless state now
+        # reads as present-but-locked, never as missing.
+        chips.append({
+            "command": "blockade the enemy",
+            "label": "Blockade the enemy",
+            "enabled": False,
+            "reason": "we keep no fleet in commission",
+            "note": ""})
+    # The Diversion chip stands OUTSIDE the fleet gate: its own terms carry
+    # the fleetless reason.
+    if not report["diversion_available"]:
+        unmet = [t.get("unmet") or t["text"]
+                 for t in diversion_terms if not t["met"]]
+        chips.append({
+            "command": "order the diversion",
+            "label": "The Grand Diversion",
+            "enabled": False,
+            "reason": "; ".join(unmet), "note": ""})
+    else:
+        # The verb does NOT require a staged camp, and deliberately is
+        # not being made to — but spending a once-per-war card to open
+        # two turns of water with no army on the beach is a trap, so
+        # the chip says so instead of quietly letting it happen.
+        note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
+        if not camp_staged(world, player):
+            note += "; no army is staged to use the open water"
+        chips.append({
+            "command": "order the diversion",
+            "label": "The Grand Diversion",
+            "enabled": True, "reason": "", "note": note})
+    # NV-12: the keel chip — build_fleet was region-panel-only, and that
+    # chip is region-scoped in appearance while nation-scoped in effect
+    # (recon gap 11). THE ADMIRALTY is its honest, nation-scoped home; the
+    # gate composes check_build_fleet (the executor's own validator) with
+    # the executor's treasury check, so enabled state IS the executor gate.
+    build_reason = check_build_fleet(world, player)
+    if build_reason is None:
+        treasury = int(getattr(world, "nation_gold", {}).get(player, 0))
+        if treasury < SHIP_COST:
+            build_reason = (f"a ship of the line costs {SHIP_COST}g — the "
+                            f"treasury holds {treasury}g")
+    build_label = (f"Lay down ships ({SHIP_COST}g at {yards[0]})"
+                   if yards else f"Lay down ships ({SHIP_COST}g)")
+    chips.append({
+        "command": "build ships",
+        "label": build_label,
+        "enabled": build_reason is None,
+        "reason": "" if build_reason is None else build_reason,
+        "note": ("a keel joins the fleet at green readiness"
+                 if build_reason is None else "")})
     report["chips"] = chips
 
     # The expedition needs a DESTINATION, and the map is where a
@@ -1736,7 +1833,8 @@ def map_naval_overlay(world) -> Dict:
     sea-link verdict tint (player perspective) + the port blockade glyph on
     blockaded nations' dockyard provinces. Fog-clean (Q4: public data)."""
     if not has_naval_layer(world):
-        return {"sea_link_verdicts": [], "blockaded_ports": []}
+        return {"sea_link_verdicts": [], "blockaded_ports": [],
+                "expedition_blocked": {}}
     verdicts = [
         {"link_a": key.split("|")[0], "link_b": key.split("|")[1],
          "verdict": v["verdict"]}
@@ -1763,7 +1861,11 @@ def map_naval_overlay(world) -> Dict:
             # rolls (shown = applied). A chip that appears is a chip that
             # sails; the region panel never guesses.
             "expedition_landings": (expedition_landing_options(world, player)
-                                    if player else {})}
+                                    if player else {}),
+            # NV-12: the honest-availability partner — why a coastal province
+            # got NO landing chip (the executor's own gates, named).
+            "expedition_blocked": (expedition_blocked_reasons(world, player)
+                                   if player else {})}
 
 
 def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
@@ -1812,6 +1914,62 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
                 "from": marshal.location,
             })
     return options
+
+
+def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
+    """NV-12 "The Clear Deck" — the honest-availability partner of
+    expedition_landing_options: for every coastal province that gets NO
+    landing chip, the NAMEABLE reason why (recon gap 3: absence was the only
+    signal — a too-large, inland, or non-consenting landing produced no chip
+    and no message anywhere).
+
+    Mirrors the executor's own gates; region-independent causes are computed
+    ONCE and fanned out (GR8 — this runs per map refresh)."""
+    if not has_naval_layer(world) or not get_fleet(world, nation):
+        return {}
+    yards = set(controlled_dockyards(world, nation))
+    all_corps = list(world.get_marshals_by_nation(nation))
+    eligible = [m for m in all_corps
+                if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+                and (m.location in yards
+                     or (_controller(world, m.location) != nation
+                         and getattr(world.regions.get(m.location),
+                                     "is_coastal", False)))]
+    # The one region-independent near-miss, computed once: a corps standing
+    # in a yard but over the transports' lift.
+    no_corps_reason = ""
+    if not eligible:
+        over_at_yard = [m for m in all_corps
+                        if int(m.strength) > EXPEDITION_MAX_TROOPS
+                        and m.location in yards]
+        if over_at_yard:
+            m = min(over_at_yard, key=lambda m: int(m.strength))
+            no_corps_reason = (
+                f"the transports lift {EXPEDITION_MAX_TROOPS:,} — "
+                f"{m.name} commands {int(m.strength):,}; detach "
+                f"{int(m.strength) - EXPEDITION_MAX_TROOPS:,} first")
+        elif yards:
+            no_corps_reason = (
+                f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "
+                f"a yard ({', '.join(sorted(yards))}) — march one there")
+        else:
+            no_corps_reason = "we control no dockyard to embark from"
+    blocked: Dict[str, str] = {}
+    for region_name, region in world.regions.items():
+        if not getattr(region, "is_coastal", False):
+            continue
+        holder = _controller(world, region_name)
+        if holder == nation:
+            continue  # own soil sealift is an option row, never a refusal
+        if (holder and not world.is_at_war(nation, holder)
+                and not is_expedition_host(world, nation, holder)):
+            from backend.display_names import display_nation
+            blocked[region_name] = (
+                f"{display_nation(holder)} has not opened her ports — court "
+                "her to friendship (25), ally, or make it war")
+        elif no_corps_reason:
+            blocked[region_name] = no_corps_reason
+    return blocked
 
 
 def nation_is_penned_in(world, nation: str) -> bool:

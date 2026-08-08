@@ -3,9 +3,11 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Strategic Ledger Screen (Session B)
 # =============================================================================
-# 6-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER, ORDERS
-# Number keys 1-6 switch sub-tabs (guarded by visible check).
+# 7-section sub-tabbed screen. CanvasLayer 50.
+# Tabs: FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER, ORDERS,
+# ADMIRALTY (NV-12 "The Clear Deck" — the naval block was buried at the
+# bottom of ECONOMY; it is a first-class book now).
+# Number keys 1-7 switch sub-tabs (guarded by visible check).
 # =============================================================================
 
 signal closed
@@ -27,9 +29,10 @@ const _NAVAL_CHIP_BG = "233043"
 @onready var intel_tab = $PanelContainer/VBoxContainer/SubTabRow/IntelTab
 @onready var manpower_tab = $PanelContainer/VBoxContainer/SubTabRow/ManpowerTab
 @onready var orders_tab = $PanelContainer/VBoxContainer/SubTabRow/OrdersTab
+@onready var admiralty_tab = $PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab
 
 # State
-var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders
+var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders, 6=admiralty
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 
@@ -42,7 +45,7 @@ func _ready():
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 
-	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab]
+	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab, admiralty_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
@@ -97,6 +100,8 @@ func _input(event):
 				_switch_tab(4)
 			KEY_6:
 				_switch_tab(5)
+			KEY_7:
+				_switch_tab(6)
 			_:
 				switched = false
 		if switched:
@@ -181,6 +186,8 @@ func _render_current_tab():
 			_render_manpower()
 		5:
 			_render_orders()
+		6:
+			_render_admiralty_tab()
 
 
 # =============================================================================
@@ -526,20 +533,36 @@ func _render_economy():
 			var cturns = int(item.get("turns_remaining", 0))
 			bbcode += "  " + cregion + ": " + cbuilding + " (" + str(cturns) + " turns)\n"
 
-	bbcode += _render_admiralty_block()
+	# NV-12 "The Clear Deck": THE ADMIRALTY is a first-class book now
+	# (tab 7, key 7) — it used to render at the BOTTOM of this tab, behind
+	# treasury/income/trade/infrastructure, with no way in but scrolling.
+	# The economy page keeps its signed naval lines and points across.
+	var adm_ptr = cached_data.get("admiralty", {})
+	if adm_ptr is Dictionary and adm_ptr.get("active", false):
+		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]→ THE ADMIRALTY has its own book — press 7.[/color]\n"
 
 	content_area.text = bbcode
 
 
-func _render_admiralty_block() -> String:
-	# DEF-5 naval (NAVAL_SPEC §9): THE ADMIRALTY — own fleet, the Blockade
-	# board (both directions), CS closure, the Crossings verdict lines and
-	# the honest gate terms. Backend-derived, shown = applied; absent or
-	# inactive on fleet-less worlds (the arm renders nothing).
+func _render_admiralty_tab():
+	# NV-12: the naval theatre's own book.
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
+	# R159 (POSITION 7): each core screen names the mechanic it displays.
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1-7 turn the ledger's books.[/color]\n"
 	var adm = cached_data.get("admiralty", {})
 	if not (adm is Dictionary) or not adm.get("active", false):
-		return ""
-	var bbcode = "\n[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]This campaign has no naval theatre.[/color]\n"
+		content_area.text = bbcode
+		return
+	bbcode += _render_admiralty_block(adm)
+	content_area.text = bbcode
+
+
+func _render_admiralty_block(adm: Dictionary) -> String:
+	# DEF-5 naval (NAVAL_SPEC §9): THE ADMIRALTY — own fleet, the Blockade
+	# board (both directions), CS closure, the Crossings verdict lines and
+	# the honest gate terms. Backend-derived, shown = applied.
+	var bbcode = ""
 	var fleet = adm.get("own_fleet")
 	if fleet is Dictionary:
 		var posture = str(fleet.get("posture", "guard"))
@@ -558,12 +581,19 @@ func _render_admiralty_block() -> String:
 		if window > 0:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + str(window) + " turn(s) remain[/color]\n"
 		var camp_strength = int(fleet.get("camp_strength", 0))
-		if camp_strength > 0:
+		var camp_required = int(adm.get("camp_required", 40000))
+		if camp_strength >= camp_required:
 			var camp_turns = int(fleet.get("camp_turns", 0))
 			bbcode += "  The Camp: " + _format_number(camp_strength) + " men on the invasion coast"
 			if camp_turns >= 2:
 				bbcode += "  [color=#" + Utils.COLOR_WARNING + "](STAGED — the enemy has seen it)[/color]"
 			bbcode += "\n"
+		elif camp_strength > 0:
+			# NV-12 (recon gap 5): below the threshold the camp row used to
+			# vanish entirely — a player massing 35,000 men saw NOTHING. The
+			# march to a descent is now a visible count.
+			bbcode += "  The Camp: " + _format_number(camp_strength) + " of the " \
+				+ _format_number(camp_required) + " men a descent requires\n"
 	else:
 		bbcode += "  We keep no fleet in commission.\n"
 	var cs = adm.get("continental_system")
@@ -606,7 +636,12 @@ func _render_admiralty_block() -> String:
 				cx_color = Utils.COLOR_ORANGE
 			elif verdict == "window":
 				cx_color = Utils.COLOR_SUCCESS
-			bbcode += "  [color=#" + cx_color + "]" + str(cx.get("line", "")) + "[/color]\n"
+			bbcode += "  [color=#" + cx_color + "]" + Utils.humanize_nation_keys_in_text(str(cx.get("line", ""))) + "[/color]\n"
+		# NV-12: the legend + remedy line (the remedy copy used to fire ONLY
+		# on an attempted march; the map has no legend at all).
+		var legend = str(adm.get("crossings_legend", ""))
+		if legend != "":
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + legend + "[/color]\n"
 	var div_terms = adm.get("diversion_terms", [])
 	if div_terms is Array and div_terms.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Grand Diversion[/color]  (\"order the diversion\")\n"
@@ -616,6 +651,27 @@ func _render_admiralty_block() -> String:
 			var met = bool(term.get("met", false))
 			var mark = "[color=#" + Utils.COLOR_SUCCESS + "]+[/color]" if met else "[color=#" + Utils.COLOR_ERROR + "]x[/color]"
 			bbcode += "  " + mark + " " + str(term.get("text", "")) + "\n"
+	# NV-12 (recon gap 2): the Expedition's gate terms were BUILT at NV-6 and
+	# read by no surface — the Diversion rendered its terms while the
+	# Expedition's were dropped, and the 15,000 cap appeared in no client
+	# copy at all. Rendered the same way, with per-term detail.
+	var exp_terms = adm.get("expedition_terms", [])
+	if exp_terms is Array and exp_terms.size() > 0:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Expedition[/color]  (\"land <marshal> in <province>\")\n"
+		for term in exp_terms:
+			if not (term is Dictionary):
+				continue
+			var met = bool(term.get("met", false))
+			var mark = "[color=#" + Utils.COLOR_SUCCESS + "]+[/color]" if met else "[color=#" + Utils.COLOR_ERROR + "]x[/color]"
+			bbcode += "  " + mark + " " + str(term.get("text", ""))
+			var detail = str(term.get("detail", ""))
+			if detail != "":
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + detail + "[/color]"
+			bbcode += "\n"
+		var notes = adm.get("expedition_notes", [])
+		if notes is Array:
+			for note in notes:
+				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· " + str(note) + "[/color]\n"
 	bbcode += _render_admiralty_orders(adm)
 	return bbcode
 
@@ -644,7 +700,10 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 			if note != "":
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + note + "[/color]"
 		else:
-			bbcode += "[color=#" + Utils.COLOR_GREY + "]" + label + " — " \
+			# NV-12 (recon gap 13): disabled chips were grey TEXT, reading as
+			# a different control family than the region panel's disabled
+			# pills — same pill shape now, reason after it.
+			bbcode += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_GREY + "]" \
 				+ str(chip.get("reason", "not available")) + "[/color]"
 		bbcode += "\n"
 	if ready is Array and ready.size() > 0:

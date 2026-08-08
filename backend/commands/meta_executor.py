@@ -591,7 +591,9 @@ THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
                Strait lies open two turns; fail and be brought to
                battle coming home.
   - An army cannot walk a sea crossing a hostile fleet commands -
-    the map draws a shut strait CRIMSON, an open window GOLD.
+    the map draws a shut strait CRIMSON, an open window GOLD, and
+    a DEFENDED SHORE (the water is ours, the far coast is not)
+    AMBER: that shore is taken by expedition, never by marching.
 
 DIPLOMACY (via Talleyrand - or press F1 for the wizard):
   assess     - "Talleyrand, assess our situation" (the war room -

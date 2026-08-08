@@ -224,8 +224,12 @@ class NavalExecutor:
                 "message": (
                     f"The expedition is drawn up, Sire: {marshal.name} with "
                     f"{troops:,} men, {location} to {target}. {odds_line}"
-                    f"{coverer_line}. On a failed run the corps is turned "
-                    f"back with losses — or brought to battle at sea. "
+                    f"{coverer_line}. A failed run costs "
+                    f"~{int(naval.EXPEDITION_INTERCEPT_LOSS * 100)}% of the "
+                    f"corps if intercepted, "
+                    f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
+                    f"back — and the fleet's readiness "
+                    f"−{naval.EXPEDITION_TURNBACK_READINESS} either way. "
                     f"Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [

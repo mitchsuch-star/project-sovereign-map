@@ -263,8 +263,14 @@ func _render() -> void:
 			var yards = overlay.get("player_dockyards", [])
 			if yards is Array and _region in yards:
 				var ship_cost = int(overlay.get("ship_cost", 400))
+				# NV-12 (recon gap 11): the chip is region-scoped in
+				# appearance but NATION-scoped in effect — the keel lands in
+				# the first yard, which may not be this one. Say where.
+				var yard_note = "a keel in this yard"
+				if yards.size() > 0 and str(yards[0]) != _region:
+					yard_note = "the keel is laid at " + str(yards[0]) + " (the senior yard)"
 				action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
-					+ "  [color=#" + Utils.COLOR_GREY + "]a keel in this yard[/color]")
+					+ "  [color=#" + Utils.COLOR_GREY + "]" + yard_note + "[/color]")
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
 
@@ -290,6 +296,16 @@ func _render() -> void:
 					+ Utils.format_number(int(corps.get("strength", 0)))
 					+ " men from " + str(corps.get("from", "")) + " · "
 					+ str(odds) + " in 100 slip past[/color]")
+		else:
+			# NV-12 (recon gap 3): a too-large, inland, or non-consenting
+			# landing used to produce NO chip and NO message — absence was
+			# the only signal. The withheld chip now states the executor's
+			# own reason (honest availability: never dark and silent).
+			var blocked = naval.get("expedition_blocked", {})
+			if blocked is Dictionary and blocked.has(_region):
+				action_rows.append("  " + Utils.bb_chip_disabled("No landing here")
+					+ "  [color=#" + Utils.COLOR_GREY + "]"
+					+ Utils.humanize_nation_keys_in_text(str(blocked[_region])) + "[/color]")
 
 	if action_rows.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]ACTIONS[/color]\n"

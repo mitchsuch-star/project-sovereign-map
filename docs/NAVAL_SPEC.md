@@ -1568,3 +1568,108 @@ hypothesis was raised and **disproved** — `ai_v_sweep.run_one` already forces
 no-op and was reverted rather than shipped as a fix for something it does not
 fix. The flake is real, pre-existing at HEAD, and unexplained; it belongs to
 whoever next touches the AI-V sweep.
+
+---
+
+## §16. NV-12 "THE CLEAR DECK" — the naval UI clarity pass (landing record,
+## August 8, 2026 — user-directed at position 7: "make the ui for naval more
+## clear like naval expeditions etc")
+
+Zero mechanics — payload/copy + rendering only (GR6-clean; every resolver,
+gate and constant untouched). The driving audit: a 6-question recon of every
+naval surface found the system mechanically complete and presentationally
+buried — a 13-gap list, of which the headline four: THE ADMIRALTY rendered at
+the BOTTOM of the ledger's ECONOMY tab behind eight money sections;
+`expedition_terms` was built at NV-6 and consumed by NO `.gd` file (the
+Diversion rendered its gate terms, the Expedition's were dropped); the 15,000
+transports cap appeared in no client copy anywhere (help text + two refusals
+only); and an ineligible landing produced NO chip and NO message — absence
+was the only signal, violating the NV-6 pin's own spirit ("no chip is ever
+dark and silent").
+
+### 16.1 What landed
+
+- **THE ADMIRALTY is ledger tab 7** (`strategic_ledger.tscn` AdmiraltyTab +
+  key 7). The ECONOMY page keeps its signed naval lines and points across
+  ("→ THE ADMIRALTY has its own book — press 7"). Naval-less worlds render
+  an honest "no naval theatre" page.
+- **The Expedition block** renders beside the Diversion's: per-term
+  {text, met, detail} — the dockyard term names the yards, the corps term
+  names who is READY ("Ney (9,000 at Brittany)") or who is over the lift and
+  by exactly how much ("detach 9,000 first") — plus two informational notes
+  quoting the resolver's OWN constants (intercepted ~30% / turned back ~5% /
+  readiness −10) and finally defining "effective = sail × readiness".
+- **The Orders block survives fleetlessness** (recon trap 9): the chips list
+  is no longer gated on `own_ships > 0` — Blockade renders disabled with
+  "we keep no fleet in commission", the Diversion chip stands outside the
+  fleet gate (its terms carry the reason), and a NEW nation-scoped
+  **"Lay down ships (400g at {yard})"** chip lives here (the region-panel
+  chip was region-scoped in appearance, nation-scoped in effect — recon gap
+  11; its note now names the senior yard when they differ). The build chip's
+  enabled state composes `check_build_fleet` WITH the executor's treasury
+  check — honest availability end to end.
+- **Blocked landings explained** (recon gap 3): `expedition_blocked_reasons`
+  — the honest-availability partner of `expedition_landing_options`, riding
+  `map_naval_overlay` as `expedition_blocked` — gives every coastal province
+  that gets no landing chip its NAMEABLE executor reason: non-consenting
+  shore ("court her to friendship (25), ally, or make it war"), corps over
+  the lift ("detach N first"), or no corps at a yard ("march one there").
+  The region panel renders it as a `bb_chip_disabled` pill + reason. The two
+  dicts partition the coastal answer (disjointness pinned).
+- **Crossings copy**: the destroyed-fleet bare-SHUT row (falsy ratio — recon
+  trap 1) now names the coverer ("SHUT — the Royal Navy commands the water
+  unopposed"); the WINDOW row names its effects ("their coverage halved; the
+  defended-shore rule waived"); ONE legend + remedy line renders under the
+  rows ("crimson = shut · amber = defended shore · gold = window. A shut
+  crossing opens by building or pooling a fleet — or a small expedition
+  slips past it") — **recorded deviation**: the plan's per-row remedy tails
+  were folded into the single legend line (same clarity, less noise). The
+  crossings line + chip notes now run through
+  `humanize_nation_keys_in_text`.
+- **The camp below threshold** (recon gap 5): 0 < camp < 40,000 renders
+  "The Camp: 26,000 of the 40,000 men a descent requires" — the march to a
+  descent is a visible count instead of nothing.
+- **`war_detail_popup` consumes `naval_line`** (recon gap 8): the
+  per-belligerent fleet strength/readiness/posture line `war_status.py` has
+  built since NV-0 — and nothing had ever rendered — now shows as "Their
+  fleet: …".
+- **Confirm quote** states the loss magnitudes from the same constants the
+  resolver rolls; **help text** teaches the AMBER verdict it omitted;
+  disabled Admiralty chips join the `bb_chip_disabled` pill family (recon
+  gap 13); client magic numbers (camp threshold, ship cost) became
+  payload-driven (`camp_required`, `ship_cost` report keys).
+- **Parser coverage**: golden-corpus row `naval-land-confirmed-reissue` pins
+  the EXACT string the confirm button reissues (previously uncovered — a
+  parser regression would have broken the button, not just typing);
+  `prompt_builder.py` gains the `naval_diversion` few-shot (the only naval
+  verb the live LLM had never been shown).
+
+### 16.2 Found in passing, recorded not fixed
+
+A cold parse (`CommandParser.parse(text, world=w)` with NO `game_state`)
+resolves "land Soult in Munster" to marshal **Lannes** — the token "land"
+outbids "Soult" in the world-side fuzzy stage once the mock scan's legacy
+roster misses. **No production path uses this convention** (main.py always
+passes the live-roster `game_state`, under which binding is correct — pinned
+in `test_naval_ui_clarity.py`), so this is recorded as a calling-convention
+quirk of the PARSE-NEG phantom family (*land*→Lannes joins *more*→Moore),
+not filed as a defect.
+
+### 16.3 Out of scope, still owned elsewhere
+
+Map sea-link hover/tooltips (new hit-testing machinery), enemy-fleet map
+glyphs, and every NV-D row — all unchanged. The ambient-run flake note at
+the end of §15 stands.
+
+Tests: `tests/test_naval_ui_clarity.py` (25) — terms met/detail arithmetic,
+resolver-constant parity, fleetless chips, executor-gate parity on the build
+chip, blocked/options disjointness + reason content, bare-SHUT coverer,
+legend, dormant-world shape, client consumption pins, corpus row + few-shot.
+**ONE pin flipped consciously** (`test_naval_host_rule.py` — the old
+`test_a_fleetless_court_is_offered_nothing` pinned exactly the trap-9
+behavior this pass exists to kill; now
+`test_a_fleetless_court_is_offered_reasons_not_silence`, asserting the
+disabled-with-reason chips + the build chip under Austria's own executor
+gates). Every other standing naval suite byte-green; corpus 515 rows / 526
+harness tests green; Godot import + parse harness EXIT=0; boot smoke
+0 SCRIPT ERROR.

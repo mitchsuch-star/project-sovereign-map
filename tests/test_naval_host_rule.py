@@ -503,13 +503,28 @@ class TestTheAdmiraltyChips:
             assert term["text"] and term["unmet"]
             assert term["text"] != term["unmet"]
 
-    def test_a_fleetless_court_is_offered_nothing(self, world):
-        """Austria keeps ports and no navy — the block renders, the orders
-        do not."""
+    def test_a_fleetless_court_is_offered_reasons_not_silence(self, world):
+        """PIN FLIPPED CONSCIOUSLY — NV-12 "The Clear Deck", Aug 8, 2026.
+        The old contract ("the block renders, the orders do not") was recon
+        trap 9: gating the chips on ships>0 deleted the Orders header, every
+        disabled-with-reason chip AND the build chip for exactly the court
+        that needs the explanation most. New contract: Austria (ports, no
+        navy) gets the fleet-gated chips DISABLED with the fleetless reason,
+        and the build chip — her one road INTO the naval game — enabled iff
+        her own executor gates pass."""
         world.player_nation = "Austria"
         report = naval.build_admiralty_report(world)
         assert report["own_fleet"] is None
-        assert report["chips"] == []
+        chips = {c["command"]: c for c in report["chips"]}
+        assert chips, "the fleetless Orders block must not be empty"
+        assert chips["blockade the enemy"]["enabled"] is False
+        assert "no fleet in commission" in chips["blockade the enemy"]["reason"]
+        assert "order the diversion" in chips
+        assert chips["order the diversion"]["enabled"] is False
+        assert "build ships" in chips
+        assert chips["build ships"]["enabled"] is (
+            naval.check_build_fleet(world, "Austria") is None
+            and world.nation_gold.get("Austria", 0) >= naval.SHIP_COST)
 
 
 class TestTheLandingChips:

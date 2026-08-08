@@ -252,6 +252,19 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 5,
         },
     },
+    # NV-12: the diversion had NO few-shot — the only naval verb the live
+    # LLM had never been shown.
+    {
+        "input": "order the diversion",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "naval_diversion",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",
