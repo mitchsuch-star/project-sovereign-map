@@ -269,7 +269,9 @@ EWC-D2 casualty→pool drain (Pre-EA Balance Pass, unchanged owner) · EWC-D3 ra
 today — detaching removes upkeep — so the cap is not an econ lever; the EC-3 row note
 stands for a future garrison pass with its own design question) · any change to
 upkeep-on-fielded-strength (user-ruled July 14, structural) · the AI +25 admin bonus
-faucet (Q4's declared AP↔gold rate, kept).
+faucet (Q4's declared AP↔gold rate, kept) · **NV-D3/NV-D9** (the naval-econ deferral
+residue EC-P3 carried — RE-HOMED to EC-2 pass 2's gate, which now owns them beside
+ES-4/ES-7b; recorded in CLAUDE.md's open-gates line).
 
 ## §8 LANDING RECORD — BUILT August 7, 2026 (same session as the gate)
 
@@ -324,6 +326,72 @@ and STAYS: a quiet France finally decays to the honest floor, which the old bar
 structurally could not do while France won defensive battles. M1–M7 untouched
 (the harness never runs the income phase — a fact about the harness; the
 behaviours are pinned directly).
+
+### §8.1 THE REVIEW ROUND — a 44-agent find→2-refuter fleet took THIRTEEN
+confirmed findings (24 raw), ALL FIXED same session (second commit):
+
+- **[0] P2 — the ILL term read bare PAIR scores, not the war-level side score**
+  its own comment and this record specify: a nation WINNING its coalition war
+  still paid +75 because one pair lagged (probed live: war-level +15, term
+  firing). Fixed to `get_side_war_score_for` (the war-instance resolver); the
+  new discrimination test stages both directions — and its own first fixture
+  had the stored-score ORIENTATION backwards (France|Russia stores France's
+  OWN perspective), which is worth a sentence here because it is exactly the
+  trap the production code fell into.
+- **[1] P2 — shown ≠ applied on every solvent end turn**: both financial
+  banners RECOMPUTED `calculate_turn_income` after the phase, so the Charges
+  figure shown was priced on the POST-income chest (probed: applied 96 vs
+  shown 104), the error silently absorbed into the meta banner's "Other"
+  plug. `_advance_turn_internal` now caches the APPLIED per-nation results
+  transiently (`_income_phase_results`, display cache, never serialized) and
+  both banners prefer it; E2E pin quotes the banner string.
+- **[12] P2 — pre-EB-2 saves would NEVER receive the colonial pool** (fleets
+  round-trip verbatim; the scenario transform runs only at from_scenario).
+  `from_dict` backfills MISSING `overseas_income` keys from
+  `naval.OVERSEAS_INCOME_BACKFILL` (the IGR-E precedent), whose DRIFT PIN
+  asserts it equals the scenario's authored values; an authored/modded value
+  round-trips untouched.
+- **[8] P2 — the defensive-win pin's combat_executor half was INERT**: the
+  scrape anchored at the FIRST of the file's five `elif defender_won:`
+  occurrences, 13,000 chars short of the removal site — re-adding the credit
+  passed the pin. Re-pinned as a comment-stripped whole-file CALL-SITE census:
+  every battle_win `add_threat` call in both combat copies is enumerated and
+  must credit the ATTACKER.
+- **[3] P3** — requisitions attributed to the strongest single MARSHAL, not
+  the strongest NATION (two 5,000-man French corps lost to one 6,000-man
+  Austrian): per-nation presence summed before the winner is chosen.
+- **[2] P3** — the auto-advance banner's net omitted the Admiralty bill its
+  meta sibling reconciles (90g overstatement on every wartime auto-advance at
+  the naval boot): folded in + carried on the event.
+- **[4] P3** — the XR-4 copy promised the WRONG recovery mechanism for a
+  DISRUPTED estate ("recovers as stability does" while disruption drains
+  stability −2/turn): the two 0g causes now carry different flags
+  (`occupied` vs `war_torn`) and different sentences on all three surfaces.
+- **[5] P3** — the dispatch `treasury_delta` was still hand-assembled (the
+  CA8-10 class; omitted vassal tribute 712g + admin bonus at boot — the
+  briefing and the ledger disagreed about the same turn): now reads
+  `_build_economy`'s reconciled net; three older hand-formula pins re-pinned
+  to the ledger identity.
+- **[6] P3** — the Godot turn banner never rendered admiralty/blockade/other
+  though the event carried them and Net included them (visible lines did not
+  sum to the Net beside them): three renders added.
+- **[9]/[10]/[11] P3 (test rigor)** — the recentered-gate test pinned source
+  presence but no AMOUNTS (the +1/+2/+3 ladder, the ordering, and the
+  per-nation arm are now pinned across three tests); the XR-4 estate test's
+  `if estate in rows:` guard became a hard assert; the CurveInverts staging
+  still encoded the RETIRED WE-only bound (passed by slack — this §6's
+  "re-pin" claim was ahead of the code) and now derives its bound from the
+  live rate composition.
+- **[7] — the exploit lens returned CLEAN with computations on the record**:
+  no charge-immune liquid gold park exists (every spend is a real sink;
+  spend-to-floor is the design working — the chest converted to army/works
+  is the point), requisition farming with commissioned corps is a wash
+  against upkeep, and vassal tribute cannot capture a vassal's overseas pool
+  (tribute reads province income only). Recorded so the trail shows they
+  were checked.
+
+Post-fix: suite **16,436 / 3** (+9), ruff clean, parse harness EXIT=0, boot
+smoke 0 SCRIPT ERROR.
 
 **§5 acceptance, measured on the re-run 40-turn probe (seed `historical`):**
 1. *(no unbounded growth)* France **converges at 22.1k** (last-10 delta +163/turn

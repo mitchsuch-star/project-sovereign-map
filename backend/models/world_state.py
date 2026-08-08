@@ -4562,8 +4562,11 @@ class WorldState:
         """
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return {}
-        # region -> (strength, nation) of the strongest disruptor
-        strongest: Dict[str, tuple] = {}
+        # region -> {nation: summed presence} — review [3]: the winner is
+        # the strongest NATION (its corps' strengths summed), never the
+        # strongest single marshal; two 5,000-man French corps outweigh
+        # one 6,000-man Austrian one.
+        presence: Dict[str, Dict[str, int]] = {}
         for marshal in self.marshals.values():
             if marshal.strength < DISRUPTION_MIN_STRENGTH:
                 continue
@@ -4576,17 +4579,18 @@ class WorldState:
                 continue
             if not self.is_at_war(region.controller, marshal.nation):
                 continue
-            best = strongest.get(region.name)
-            if best is None or marshal.strength > best[0]:
-                strongest[region.name] = (marshal.strength, marshal.nation)
+            by_nation = presence.setdefault(region.name, {})
+            by_nation[marshal.nation] = (
+                by_nation.get(marshal.nation, 0) + marshal.strength)
         requisitions: Dict[str, int] = {}
-        for region_name, (_, nation) in strongest.items():
+        for region_name, by_nation in presence.items():
             region = self.regions.get(region_name)
             if region is None:
                 continue
+            winner = max(by_nation.items(), key=lambda kv: kv[1])[0]
             amount = int(REQUISITION_RATE * region.income_value)
             if amount > 0:
-                requisitions[nation] = requisitions.get(nation, 0) + amount
+                requisitions[winner] = requisitions.get(winner, 0) + amount
         return requisitions
 
     def get_state_charges_rate(self, nation: str) -> Dict:
@@ -4612,18 +4616,20 @@ class WorldState:
             terms.append({"key": "war_establishment",
                           "label": "the war establishment",
                           "amount": CHARGES_WAR_RATE})
-            # "The wars go ill": ANY war whose side score has turned
-            # against us. Reads the CA8-D2 STORED war-level aggregate
-            # (`sum_stored_side_score` — the score-CONSUMING seam, per the
-            # §10.1 convention; the live-component aggregate is the display
-            # surface's and is far too heavy for a per-nation per-turn
-            # mechanical read — the G4 tripwire is the enforcement).
-            # No try/except: a silently-dead condition term is worse than
-            # a crash (this slice's first cut proved it twice).
-            from backend.game_logic.diplomacy import sum_stored_side_score
+            # "The wars go ill": ANY war whose WAR-LEVEL side score has
+            # turned against us. `get_side_war_score_for` resolves the war
+            # instance and sums the STORED pair scores over the whole
+            # opposing side (the CA8-D2 score-CONSUMING seam; the
+            # live-component aggregate is the display surface's and blew
+            # the G4 tripwire). Review [0] caught the first cut passing a
+            # singleton — a bare pair read that charged a nation WINNING
+            # its coalition war because one pair lagged. No try/except: a
+            # silently-dead condition term is worse than a crash (this
+            # slice's first cut proved that twice).
+            from backend.game_logic.diplomacy import get_side_war_score_for
             ill = False
             for enemy in at_war:
-                if sum_stored_side_score(self, nation, [enemy]) < CHARGES_ILL_SCORE:
+                if get_side_war_score_for(self, nation, enemy) < CHARGES_ILL_SCORE:
                     ill = True
                     break
             if ill:
@@ -6384,6 +6390,22 @@ class WorldState:
             str(k): copy.deepcopy(dict(v or {}))
             for k, v in (data.get("fleets") or {}).items()
         }
+        # EB-2 save-compat (review [12] — the IGR-E backfill precedent): a
+        # pre-EB-2 Europe save's fleet records carry no `overseas_income`,
+        # and since fleets round-trip verbatim the whole authored colonial
+        # pool would silently never arrive for an in-flight campaign.
+        # Backfill MISSING keys only (an authored-0 scenario or a modded
+        # value round-trips untouched) from naval.OVERSEAS_INCOME_BACKFILL,
+        # whose drift pin asserts it equals the shipped scenario's authored
+        # values.
+        if world.fleets:
+            from backend.game_logic.naval import OVERSEAS_INCOME_BACKFILL
+            for _fleet_nation, _rec in world.fleets.items():
+                if (_fleet_nation in OVERSEAS_INCOME_BACKFILL
+                        and isinstance(_rec, dict)
+                        and "ships" in _rec
+                        and "overseas_income" not in _rec):
+                    _rec["overseas_income"] = OVERSEAS_INCOME_BACKFILL[_fleet_nation]
         # NA-6c §11.10 decision 6 / seam-map L1: `nation_capitals` is
         # deliberately NOT serialized — it is rebuilt from the authored
         # table at construction, which is why the enforcement test excludes
@@ -8110,8 +8132,18 @@ class WorldState:
         # Calculates income - upkeep + admin bonus, updates gold
         # (bankruptcy check deferred until after all income sources)
         # ════════════════════════════════════════════════════════════
+        # EB review [1]: the APPLIED per-nation result is kept for the
+        # turn's financial banners — both end-turn surfaces used to
+        # RECOMPUTE calculate_turn_income() after the phase, so every
+        # treasury-fraction figure (the Charges of Empire above all) was
+        # shown off the POST-income chest while the applied one read the
+        # pre-income chest: shown != applied on every solvent turn, the
+        # error silently absorbed by the meta banner's "Other" plug.
+        # Transient by design (display cache, never serialized — a loaded
+        # save recomputes on its next turn; readers must fall back).
+        self._income_phase_results = {}
         for nation in all_nations:
-            self.process_income_phase(nation)
+            self._income_phase_results[nation] = self.process_income_phase(nation)
 
         # ════════════════════════════════════════════════════════════
         # TRADE INCOME (Phase 8 §7e) — bilateral trade from diplomatic states

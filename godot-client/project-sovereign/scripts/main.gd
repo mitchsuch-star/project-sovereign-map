@@ -2353,12 +2353,28 @@ func _display_turn_change(event: Dictionary):
 	var overseas_str = ""
 	if overseas > 0:
 		overseas_str = " | Overseas: +" + str(int(overseas)) + "g"
+	# EB review [6]: the event carries admiralty/blockade/other and the
+	# backend Net includes them — without these three renders the banner's
+	# visible lines did not sum to the Net beside them (the SC-33 class).
+	var admiralty = int(event.get("admiralty", 0))
+	var admiralty_str = ""
+	if admiralty > 0:
+		admiralty_str = " | Admiralty: -" + str(int(admiralty)) + "g"
+	var blockade = int(event.get("blockade", 0))
+	var blockade_str = ""
+	if blockade > 0:
+		blockade_str = " | Blockade: -" + str(int(blockade)) + "g"
+	var other_val = int(event.get("other", 0))
+	var other_str = ""
+	if other_val != 0:
+		var other_sign = "+" if other_val >= 0 else ""
+		other_str = " | Other: " + other_sign + str(int(other_val)) + "g"
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + admiralty_str + blockade_str + other_str + " | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

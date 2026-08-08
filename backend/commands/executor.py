@@ -1887,7 +1887,12 @@ class CommandExecutor:
 
             # Build turn_end financial event (same as _execute_end_turn)
             nation = world.player_nation
-            income_data = world.calculate_turn_income(nation)
+            # EB review [1]: prefer the APPLIED income-phase result (the
+            # transient _advance_turn_internal cache) — recomputing here
+            # read the POST-income treasury, so the Charges of Empire
+            # figure shown was never the one charged.
+            income_data = (getattr(world, "_income_phase_results", None) or {}).get(nation) \
+                or world.calculate_turn_income(nation)
             upkeep_data = world.calculate_turn_upkeep(nation)
             treasury = world.nation_gold.get(nation, 0)
             income_val = income_data["income"]
@@ -1905,6 +1910,11 @@ class CommandExecutor:
             requisitions_val = int(income_data.get("requisitions", 0))
             overseas_val = int(income_data.get("overseas", 0))
             infrastructure_val = int(income_data.get("infrastructure", 0))
+            # EB review [2]: the Admiralty bill was the one applied-net
+            # component this banner's formula omitted (its meta sibling
+            # reconciles it) — the banner overstated Net by 90g on every
+            # wartime auto-advance at the naval boot.
+            admiralty_val = int(income_data.get("admiralty", 0))
             # ES-7 (S7): estate redirect is its own Net component too
             dotation_val = int(income_data.get("dotation_skim", 0))
             # ES-7 second pass (§0.6.8): the rente bill
@@ -1913,7 +1923,7 @@ class CommandExecutor:
             net_val = (income_val + requisitions_val + overseas_val
                        - occupation_val - contributions_val
                        - state_charges_val - dotation_val - rente_val
-                       - infrastructure_val - upkeep_val)
+                       - infrastructure_val - admiralty_val - upkeep_val)
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
             turn_end_event = {
                 "type": "turn_end",
@@ -1927,6 +1937,7 @@ class CommandExecutor:
                 "state_charges": int(state_charges_val),
                 "dotation_skim": int(dotation_val),
                 "rente_cost": int(rente_val),
+                "admiralty": int(admiralty_val),
                 "upkeep": int(upkeep_val),
                 "spent": int(spent_val),
                 "net": int(net_val),
@@ -1945,12 +1956,13 @@ class CommandExecutor:
             overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
             state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
             infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
+            admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
             dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
             rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str} | Upkeep: {upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 

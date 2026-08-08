@@ -413,7 +413,7 @@ func _render_economy():
 			var term_bits = []
 			for t in charge_terms:
 				term_bits.append(str(t.get("label", "")) + " +" + str(int(t.get("amount", 0))))
-			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + ", ".join(term_bits) + ")[/color]\n"
+			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + ", ".join(PackedStringArray(term_bits)) + ")[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).

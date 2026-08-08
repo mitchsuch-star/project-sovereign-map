@@ -719,7 +719,16 @@ class TestCurveInverts:
             region = _french_region(world)
             _park(world, moore.name, region.name)
         coupled = _build_economy(world, "France")["net"]
-        drain = 51000 * 150 // WAR_EFFORT_DIVISOR  # 3,060
+        # EB-1 re-derivation (review [11]): the first re-bless left the
+        # RETIRED WE-only bound here (51000×150//2500 = 3,060, no floor,
+        # no condition terms) — it passed only by slack. The staged charge
+        # is now derived from the live rate composition itself (WE 150 +
+        # crown + war establishment + the unrest term Moore's presence
+        # flips), over the chest above the hoard floor.
+        from backend.models.world_state import CHARGES_HOARD_FLOOR
+        staged_rate = world.get_state_charges_rate("France")["rate"]
+        assert staged_rate >= 150, "staging must carry the WE term"
+        drain = (51000 - CHARGES_HOARD_FLOOR) * staged_rate // WAR_EFFORT_DIVISOR
         assert coupled <= uncoupled - drain + 100  # presence term on top
         assert coupled < 1500, (
             f"a France losing at home with a fat chest must feel pressure; "

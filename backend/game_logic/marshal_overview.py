@@ -361,6 +361,12 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
             if region is None:
                 continue
             row_income = estate_yield(world, region_name)
+            # XR-4 + review [4]: the two 0g causes carry DIFFERENT
+            # recovery mechanisms and must not share a sentence — a
+            # DISRUPTED estate pays nothing until the hostile army is
+            # driven off (and its stability is FALLING −2/turn), while a
+            # war-torn one recovers as stability grows.
+            row_disrupted = region_name in world.get_disrupted_regions()
             details.append({
                 "region": region_name,
                 # CA8 sweep 4 review: `get_effective_income` carries the
@@ -370,10 +376,10 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
                 # `estate_yield` is the same predicate the payer uses.
                 "income": row_income,
                 # XR-4 (Econ Balance EB-3): the pre-flight warning — a
-                # 0g estate is a legal grant but the option must say the
-                # yield is war-torn and recovers with stability, BEFORE
-                # the player commits.
-                "war_torn": bool(row_income <= 0),
+                # 0g estate is a legal grant but the option must state the
+                # true recovery mechanism BEFORE the player commits.
+                "war_torn": bool(row_income <= 0 and not row_disrupted),
+                "occupied": bool(row_income <= 0 and row_disrupted),
             })
 
     # The Steward (§0.6.8 item 2): decision-relevant BEFORE endowing —

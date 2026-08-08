@@ -235,7 +235,14 @@ class MetaExecutor:
         # Show income/upkeep/net after turn processing
         # ════════════════════════════════════════════════════════════
         nation = world.player_nation
-        income_data = world.calculate_turn_income(nation)
+        # EB review [1]: prefer the APPLIED income-phase result the turn
+        # just ran (stored transiently by _advance_turn_internal) — a
+        # recompute here reads the POST-income treasury, so every
+        # treasury-fraction figure (Charges of Empire) showed a number
+        # that was never charged. Fallback recompute covers loaded saves
+        # and any path that did not run the phase.
+        income_data = (getattr(world, "_income_phase_results", None) or {}).get(nation) \
+            or world.calculate_turn_income(nation)
         upkeep_data = world.calculate_turn_upkeep(nation)
         # Admin bonus was already applied during process_income_phase in advance_turn
         # Use 0 here since AP was already consumed/saved

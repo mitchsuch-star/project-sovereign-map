@@ -631,17 +631,16 @@ class TestThreading:
         assert entry["satisfaction"] == region.get_effective_income()
         assert entry["shortfall"] == max(
             0, 240 - region.get_effective_income())
-        # treasury_delta subtracts the redirect
-        income_data = world.calculate_turn_income("France")
-        upkeep_data = world.calculate_turn_upkeep("France")
-        from backend.game_logic.diplomacy import calculate_trade_income
-        trade = calculate_trade_income(world).get("France", 0)
-        assert situation["treasury_delta"] == (
-            income_data["income"] + trade - income_data["occupation"]
-            - income_data["dotation_skim"] - upkeep_data["total"]
-            # DEF-5 naval (conscious flip): the dispatch projection now
-            # carries the blockade loss + the Admiralty bill.
-            - situation["blockade"] - situation["admiralty"])
+        # treasury_delta subtracts the redirect. EB review [5] re-pin
+        # (Aug 7 2026): the delta stopped being hand-assembled (the
+        # CA8-10 class — it omitted vassal tribute / admin bonus / treaty
+        # + settlement gold) and now reads the ledger's reconciled net;
+        # the redirect's presence in it is guaranteed by the ledger's own
+        # NET_GOLD_COMPONENTS identity, and asserted here via the ledger.
+        from backend.game_logic.ledger import _build_economy
+        econ = _build_economy(world, "France")
+        assert econ["dotation_skim"] == region.get_effective_income()
+        assert situation["treasury_delta"] == int(econ["net"])
 
     def test_dispatch_gd_renders_unmet_marshals(self):
         src = (REPO / "godot-client" / "project-sovereign" / "scripts"

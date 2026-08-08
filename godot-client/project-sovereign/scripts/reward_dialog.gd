@@ -93,10 +93,14 @@ func show_reward(card: Dictionary):
 					covers = " — covers his full gap"
 				else:
 					covers = " — covers " + str(income) + "g of " + str(shortfall) + "g"
-			# XR-4 (Econ Balance EB-3): the pre-flight warning — a war-torn
-			# estate yields 0 TODAY and recovers with stability; say so on
-			# the button, before the player commits.
-			if bool(d.get("war_torn", false)):
+			# XR-4 (Econ Balance EB-3, + review [4]): the pre-flight
+			# warning names the TRUE recovery mechanism — an OCCUPIED
+			# estate pays nothing until the enemy army is driven off
+			# (its stability is falling), a war-torn one recovers as
+			# stability grows.
+			if bool(d.get("occupied", false)):
+				covers = " — under enemy occupation: yields nothing until the army is driven off"
+			elif bool(d.get("war_torn", false)):
 				covers = " — war-torn: yields 0 today, recovers as stability does"
 			var fee_str = "  [+" + str(fee) + "g investiture]" if fee > 0 else ""
 			_add_option(

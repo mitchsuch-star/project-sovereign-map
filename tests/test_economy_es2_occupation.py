@@ -323,12 +323,15 @@ class TestThreading:
         situation = _build_situation(europe, "France")
         expected = int(region.income_value * OCCUPATION_STABLE_FRACTION)
         assert situation["occupation"] == expected
-        income_data = europe.calculate_turn_income("France")
-        upkeep_data = europe.calculate_turn_upkeep("France")
-        from backend.game_logic.diplomacy import calculate_trade_income
-        trade = calculate_trade_income(europe).get("France", 0)
-        assert situation["treasury_delta"] == (
-            income_data["income"] + trade - expected - upkeep_data["total"])
+        # EB review [5] re-pin (Aug 7 2026): the dispatch delta stopped
+        # being hand-assembled (it omitted vassal tribute / admin bonus /
+        # treaty + settlement gold — the CA8-10 class) and now reads the
+        # ledger's reconciled net, whose own guard pins net == the signed
+        # component sum. The occupation term still moves it (asserted via
+        # the component key above and the ledger identity here).
+        from backend.game_logic.ledger import _build_economy
+        assert situation["treasury_delta"] == int(
+            _build_economy(europe, "France")["net"])
 
     def test_treasury_report_shows_occupation_lines(self, world1805):
         world = _copy(world1805)

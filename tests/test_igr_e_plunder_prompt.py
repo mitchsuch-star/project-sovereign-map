@@ -40,7 +40,6 @@ from backend.commands.executor import CommandExecutor
 from backend.commands.combat_executor import CombatExecutor
 from backend.models.region import Region, get_starting_controllers
 from backend.models.world_state import (
-    EUROPE_INFRASTRUCTURE_UPKEEP,
     PLUNDER_INCOME_MULTIPLIER,
     WorldState,
     ai_prefers_plunder,
@@ -78,20 +77,21 @@ def cumulative_net(income: int, stability: int, war_damage: float,
       * process_war_damage_recovery -> -0.02
       * income collected          -> Region.get_effective_income()
       * ES-2 occupation cost      -> income_value * Region.get_occupation_fraction()
-      * EC-U2 infrastructure bill -> EUROPE_INFRASTRUCTURE_UPKEEP per
-        standing structure (post-landing review #2 — a DAMAGED building
-        yields nothing yet is still billed, which is the term the first
-        cut of this model omitted)
+      * EC-U2 infrastructure bill -> a DAMAGED structure bills NOTHING
+        (EB-3.2, the Econ Balance gate Aug 7 2026 — the IGR-X9 decision:
+        a ruin has no garrison of clerks; repair restores function AND
+        the bill. Before that gate a damaged building yielded nothing yet
+        billed EUROPE_INFRASTRUCTURE_UPKEEP every turn, which was the
+        razing-dominance defect this model published.)
 
     The occupation term is what makes this honest: it is charged on BASE
     income regardless of what the province actually yields, so the extra
     turns Plunder spends in a worse stability tier cost real gold.
 
-    `damaged_buildings` models Secure's aftermath pessimally: the enemy's
-    structures survive DAMAGED — producing nothing until a 150g + 1-AP
-    repair, but billed every turn. (A rational owner repairs; the repair
-    restores function whose value is partly military — forts defend,
-    depots supply — and gold cannot price that, so the model does not try.)
+    `damaged_buildings` is KEPT as a parameter so the razing pin below
+    can assert its billing term is now structurally zero (shown=applied
+    against production, which skips damaged structures at the billing
+    seam in calculate_turn_income).
     """
     region = _model_region(income)
     region.stability = stability
@@ -102,7 +102,9 @@ def cumulative_net(income: int, stability: int, war_damage: float,
         region.recover_war_damage(0.02)
         total += region.get_effective_income()
         total -= int(region.income_value * region.get_occupation_fraction())
-        total -= damaged_buildings * EUROPE_INFRASTRUCTURE_UPKEEP
+        # EB-3.2: damaged structures bill nothing — the term is retained
+        # at coefficient ZERO deliberately (see docstring).
+        total -= damaged_buildings * 0
     return total
 
 
@@ -315,35 +317,39 @@ class TestTheFalsifiableAcceptanceTest:
             income, self.LATE_HORIZON, garrisoned=False)
         assert forgone_ungarrisoned > loot        # the real inversion
 
-    def test_on_a_built_province_razing_pays_and_is_multiplier_invariant(self):
-        """The EC-U2 interaction, published rather than hidden (post-landing
-        review #2 — the term the model's first cut omitted).
+    def test_on_a_built_province_razing_no_longer_wins_by_bill_shedding(self):
+        """IGR-X9 RESOLVED at the Econ Balance gate (Aug 7 2026, EB-3.2 —
+        docs/audits/ECON_BALANCE_GATE_2026_08_07.md §3): a ruin bills
+        nothing, so Secure's damaged structures are an OPTION (150g repair
+        restores function and the bill together), not a liability, and
+        the old inversion — razing winning on gold at ANY multiplier
+        because one building's 30-turn bill (1,200g) exceeded the whole
+        581g revenue gap — is dead by construction.
 
-        Secure keeps the enemy's structures DAMAGED: producing nothing
-        until a 150g + 1-AP repair, yet billed EUROPE_INFRASTRUCTURE_UPKEEP
-        every turn. Plunder deletes bill and asset together. On a province
-        carrying enemy structures the gold therefore favours razing at ANY
-        multiplier — including 0: one building's 30-turn bill (1,200g)
-        alone exceeds the whole bare-province revenue gap (581g at the
-        median).
+        CONSCIOUS FLIP of the old
+        `test_on_a_built_province_razing_pays_and_is_multiplier_invariant`
+        pin, which pinned the DEFECT's existence while it awaited its
+        gate. The dissent counter was never touched by either version
+        (the term was and is multiplier-invariant).
 
-        This is NOT an acceptance failure of the blessed x4 and does NOT
-        touch the dissent counter: the acceptance test judges the
-        MULTIPLIER, and a term invariant to the multiplier cannot be moved
-        by re-tuning it. The design question — whether shedding the EC-U2
-        bill by razing is too attractive — is homed at the econ gate
-        (BUG_FIXES.md IGR-X9). The counterweight gold cannot price is the
-        structures' function: forts defend, depots supply.
+        Two assertions: (i) the published model agrees with production —
+        a built province's forgone-revenue gap equals the bare one's,
+        because the damaged structures cost nothing to hold; (ii) the
+        production billing seam itself skips damaged structures (pinned
+        directly in test_economy_sink_reachable.TestEB3TierScaleAndRuins;
+        here we pin the MODEL half so the two cannot drift apart again).
         """
         income = MEDIAN_INCOME
         cost_bare = forgone_by_plundering(income, self.LATE_HORIZON)
         cost_built = forgone_by_plundering(income, self.LATE_HORIZON,
                                            buildings=1)
-        assert cost_built == cost_bare - (
-            self.LATE_HORIZON * EUROPE_INFRASTRUCTURE_UPKEEP)
-        assert cost_built < 0, (
-            "one damaged building's bill should exceed the revenue gap — "
-            "razing wins on gold even at multiplier 0")
+        assert cost_built == cost_bare, (
+            "a damaged structure must cost nothing to hold — the EB-3.2 "
+            "ruins rule; if these diverge the model and production have "
+            "drifted apart again")
+        assert cost_bare > 0, (
+            "securing a median province must beat razing it on gold over "
+            "the long horizon once the bill-shedding exploit is dead")
 
     def test_the_acceptance_test_can_fail_negative_control(self):
         """FALSIFIABILITY. At the OLD x1.75 arm A fails — which is exactly

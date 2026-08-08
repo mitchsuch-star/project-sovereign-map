@@ -1628,11 +1628,15 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         blockade = int(blockade_trade_loss(world).get(player_nation, 0))
     admiralty = int(income_data.get("admiralty", 0))
 
-    treasury_delta = int(income + trade_income + requisitions + overseas
-                         - occupation - contributions
-                         - state_charges - dotation_skim
-                         - rente_cost - infrastructure
-                         - blockade - admiralty - upkeep)
+    # EB review [5] (the CA8-10 class, closed the CA8-10 way): this delta
+    # was hand-assembled from a subset of the streams — it omitted vassal
+    # tribute (712g at boot), the admin bonus, treaty gold and settlement
+    # gold, so the morning briefing and the strategic ledger disagreed
+    # about the same turn's net on every vassal-holding boot. Stop
+    # hand-assembling: `_build_economy`'s net is the surface pinned to
+    # equal the signed sum of its declared components.
+    from backend.game_logic.ledger import _build_economy
+    treasury_delta = int(_build_economy(world, player_nation)["net"])
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the

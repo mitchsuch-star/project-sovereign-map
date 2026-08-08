@@ -368,11 +368,15 @@ class TestTradeIncomeVisibility:
         situation = _build_situation(world, world.player_nation)
         trade = situation["trade_income"]
         assert trade > 0  # ALLIANCE = 200g
-        # treasury_delta should account for trade
-        income_data = world.calculate_turn_income(world.player_nation)
-        upkeep_data = world.calculate_turn_upkeep(world.player_nation)
-        expected_delta = income_data["income"] + trade - upkeep_data["total"]
-        assert situation["treasury_delta"] == expected_delta
+        # treasury_delta should account for trade. EB review [5] re-pin
+        # (Aug 7 2026): the delta now reads the ledger's reconciled net
+        # (the CA8-10 fix — the hand-assembled formula omitted admin
+        # bonus/tribute/treaty gold), so trade's inclusion is asserted
+        # through the ledger identity: net moves one-for-one with trade.
+        from backend.game_logic.ledger import _build_economy
+        econ = _build_economy(world, world.player_nation)
+        assert econ["trade_income"] == trade
+        assert situation["treasury_delta"] == int(econ["net"])
 
     def test_ledger_includes_trade_income(self):
         """Ledger economy section includes trade_income field."""

@@ -44,7 +44,49 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,387 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (28 scripts, untouched this session).**
+> **suite 16,436 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (42 scripts).**
+>
+> **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
+> August 7, 2026 in one session under the user's delegated grant** (*"economy
+> shouldn't go crazy unless you are doing very well and stable… abstraction is
+> fine… abstract England's relative wealth"*). **Gate + landing record =
+> `docs/audits/ECON_BALANCE_GATE_2026_08_07.md` (authoritative).** The measured
+> disease: peacetime runaway is LINEAR and structural (Prussia +298/turn, Spain
+> +1,010/turn forever — the WE tax switches off exactly when a nation does well)
+> and the war brake was condition-blind. Landed, zero new serialized fields:
+> **EB-1 THE CHARGES OF EMPIRE** (`calculate_state_charges` absorbs the WE tax —
+> rate = WE + crown 30 + war 50 + ill 75 (war-level side score) + unrest 75 +
+> grip 50, on the chest above the 2,000 floor = boot-byte-neutral by construction;
+> `war_effort` key RETIRED everywhere → `state_charges`; golden peace ~1.2% may
+> grow rich, war ≈20k, collapse ≈11k falling) · **EB-2 the overseas pools**
+> (authored `overseas_income`: Britain 500/Spain 250/Holland 150/Portugal 150,
+> France none BY DESIGN; holder ×(1−closure), blockade zeroes, war-with-the-RN
+> ×0.25; own "Overseas Trade" line; subsidy tier 4 = 500>15k cap 500; save-compat
+> backfill with a drift pin) · **EB-3** tier-scaled infra 40/30/20 (a city market
+> flips −3 → +17/turn) + **a ruin bills nothing** (IGR-X9 DECIDED — the razing
+> dominance dead; the published break-even model flipped WITH the fix) + XR-4 ·
+> **EB-4 threat headroom** (CA8-D5 ANSWERED: authored boot 85→70 band [65,75],
+> region_control gates recentered 30/40/50% Europe-scoped, DEFENSIVE battle wins
+> no longer feed the alarm both copies, the mirror's coalition-at-war fight arm) ·
+> **EB-5 Requisitions of War** (EWC-D1 BUILT — 0.25×base income to the
+> strongest-presence nation; boot = Austria +37 from Mack@Swabia) + EWC-F2 + the
+> plunder dissent untouched (green at ×4, counter ONE of two). After-probe: France
+> CONVERGES 22.1k / Austria 13.4k / Russia 14.7k; `BASELINE_SERIES` re-recorded
+> ONCE with a THREE-cause flip-experiment attribution; M1–M7 byte-identical (a
+> fact about the harness). **The §8.1 review round (44 agents) took 13 confirmed
+> findings, ALL FIXED** — headliners: the ILL term read bare pair scores (a nation
+> WINNING its war paid the ill rate), shown≠applied on both end-turn banners
+> (recomputed on the post-income chest — now a transient applied-results cache),
+> pre-EB-2 saves would never receive the colonial pool, and the defensive-win pin
+> was INERT (wrong anchor among FIVE `elif defender_won:` — now a call-site
+> census). `test_econ_balance_eb.py` (60+) + re-blessed families.
+>
+> **▶ NEXT = POSITION 6, THE MAIN MENU, then 7 TUTORIAL** (the user's second Aug-7
+> amendment: *"after econ fix we make main menu and tutorial next"* — recorded in
+> ROADMAP §THE ROAD TO EA; the tutorial's old "late on purpose" rationale
+> consciously overruled by the plan's owner; voice-to-text 8, marshal voice 9, the
+> shippable build 10). The §3.5 AUDITION GATE PASSED (user) the same day — the
+> Music & Sound row is COMPLETE.
 >
 > **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
 > CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by
@@ -83,27 +125,24 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > Live HTTP-verified: the collapsed coalition HUD row renders war-level values on the
 > 1805 boot with unchanged keys (no `.gd` diff).
 >
-> **▶ THE ROAD TO EA WAS AMENDED August 7, 2026 (user direction): FOUR positions now
-> precede the shippable build** — **4 Music & Sound (Core)** ("we have no sound") →
-> **5 the Econ Balance pass** (row EC-P3's gate: CA8-D1 + CA8-D5 + IGR-X9 + EWC-D1/F2
-> + the plunder dissent; "econ is still unbalanced") → **6 Voice-to-Text** (approach
-> gate; recommended v1 = OS dictation certified against the command box; un-cut from
-> post-EA) → **7 Marshal Voice Tier 1 + XR-5** (the CA8-D3 gate rides this slot) →
-> **8 THE SHIPPABLE BUILD** (old 4; inherits 4's audio shell). Steam 12 · CR-6 13 ·
-> Tutorial 14 · Pre-EA 15 · Trailer 16 · **EA 17**. Position 2 (LLC + Steamworks)
-> still parallel-anytime. Honest total ~25–33 build sessions. **▶ POSITION 4 —
-> MUSIC & SOUND (CORE) — BOTH HALVES LANDED August 7, 2026** (records =
-> **`docs/MUSIC_SOUND_SPEC.md`** §0–§2 sourcing + §3 wiring): 75 cue-named
-> license-verified files (the first 18 music tracks: Musopen PD *Eroica*/Coriolan/
-> calms, US Navy Band Marseillaise, Old Guard fife & drum, bugles; ONE new CC-BY
-> credit, musket volley) AND the full cue map wired — `audio_manager.gd` built
-> `class_name`-static like Utils (autoload rejected: the parse harness can't
-> resolve autoload globals), four buses + pause-menu sliders, ~75 call sites / 27
-> scripts (global button hook, command-round-trip quill scribble, war-driven music
-> incl. the Marseillaise overlay, reveille dispatch, diorama beds + verdict stings,
-> piece-move cadence); parse harness 42 scripts EXIT=0, boot smoke clean.
-> **▶ NEXT = the spec §3.5 AUDITION GATE** (live listen + trim pass — nobody has
-> heard these in-engine yet), then position 5 (Econ Balance).
+> **▶ THE ROAD TO EA WAS AMENDED August 7, 2026 (user direction) and AMENDED AGAIN
+> the same day at the econ hand-off** (*"after econ fix we make main menu and
+> tutorial next"*): the live spine is now **4 Music & Sound** (✅ COMPLETE — both
+> halves + the §3.5 audition gate PASSED Aug 7) → **5 Econ Balance** (✅ COMPLETE
+> Aug 7, see the entry above) → **▶ 6 THE MAIN MENU** (carved out of the build row —
+> title scene, Settings surface promoted from the pause menu, in-client API-key
+> field, shipping name/icon) → **7 TUTORIAL** (up from 14 — `TutorialManager` +
+> `TUTORIAL_SCRIPT.md` + the legacy 19-region on-ramp; "late on purpose"
+> consciously overruled, the Victory-touch-up cost recorded on the row) →
+> **8 Voice-to-Text** (approach gate) → **9 Marshal Voice Tier 1 + XR-5** (the
+> CA8-D3 gate rides this slot) → **10 THE SHIPPABLE BUILD** (inherits 4's audio
+> shell + 6's menu). Round 0 = 11 · Victory 12–13 · Steam 14 · CR-6 15 · Pre-EA 16 ·
+> Trailer 17 · **EA 18**. Position 2 (LLC + Steamworks) still parallel-anytime.
+> **POSITION 4 — MUSIC & SOUND (CORE) — COMPLETE August 7, 2026** (records =
+> **`docs/MUSIC_SOUND_SPEC.md`** §0–§2 sourcing + §3 wiring + §3.5 audition PASSED):
+> 75 cue-named license-verified files AND the full cue map wired —
+> `audio_manager.gd` class_name-static, four buses + pause-menu sliders, ~75 call
+> sites / 27 scripts; parse harness 42 scripts EXIT=0, boot smoke clean.
 >
 > **~~CA8 SWEEP 4 — THE LAST UNGATED ROWS~~ ✅ August 4, 2026** (landing record
 > `BUG_FIXES.md` §Creative Audit; four commits `9ca0374`/`412204e`/`f132d2e`/`e97b1f9`):
@@ -319,7 +358,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >
 > **⚠ OPEN ON EVIDENCE, NOT PERMISSION** (all need a human playing, not another probe): the naval **pillar score** · the **played A2 sue-path** · the **NV-P1 live wheel check** · a **visual sign-off** on the NV-4..NV-11 surfaces · the **NV-V remainder** (anchors A1–A5 played, the NV-D7/NV-D8 verdicts, the Q7 texture re-open check). **Nothing in the live queue is blocked on a gate.**
 >
-> **Open with their own gates, none blocking:** Victory & Objectives Pass (now positions 10–11) · CR-6 *proper* (13) · EC-2 pass 2 · the Battle Gallery (owns the CA8-25 garrison-diorama rider since Aug 7) · DEF-12 map modes · **row EC-P3 = roadmap position 5** (owns IGR-X9 / EWC-F2 / EWC-D1 / NV-D3 / NV-D9 + **CA8-D1 and CA8-D5**) · **CA8-D3** → the position-7 marshal-content gate. *(CA8-D2/D4/D6 were HELD + BUILT Aug 7 — see the top entry; the "6 Creative-Audit gates" line is discharged.)*
+> **Open with their own gates, none blocking:** Victory & Objectives Pass (now positions 12–13) · CR-6 *proper* (15) · EC-2 pass 2 (owns ES-4 development + ES-7b confer_title + the NV-D3/NV-D9 naval-econ residue) · the Battle Gallery (owns the CA8-25 garrison-diorama rider since Aug 7) · DEF-12 map modes · **CA8-D3** → the position-9 marshal-content gate. *(CA8-D2/D4/D6 were HELD + BUILT Aug 7; **row EC-P3's econ position LANDED Aug 7** — IGR-X9/EWC-F2/EWC-D1/CA8-D1/CA8-D5 all disposed at the Econ Balance gate, see the top entry.)*
 
 - ~~Gate 4 visual half~~ **✅ PASSED July 3, 2026** (user confirmed the 5-item eyes-only checklist; passage recorded in STATUS.md + the cleanup spec masthead; the DWL-DIP-E7 / DWL-DIP-METTERNICH 8.EVAL triggers are LIVE).
 - ~~Slice H~~ **✅ LANDED July 3, 2026** (gate approved v1.0 + implemented same day): `request_reward_or_restoration` + `demand_bargain_honor` are LIVE (Grant/Decline/Honor through the restage seam; `ally_petition` dial-protected provenance; `ally_petition_state` serialized; tests in `test_settlement_slice_h_ally_petitions.py`). **The settlement arc is fully closed — no live successors.** SC-32 formally CLOSED; do NOT rebuild G2 sub-slices.

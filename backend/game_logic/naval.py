@@ -531,6 +531,20 @@ def trade_dominance_income(world, nation: str) -> Optional[int]:
 # collapse) — one derived condition, no new state. B8, band 0.0–0.4.
 OVERSEAS_WAR_FACTOR = 0.25
 
+# EB-2 save-compat (review [12]): pre-EB-2 Europe saves round-trip fleet
+# records without `overseas_income`, so from_dict backfills MISSING keys
+# from this map — otherwise an in-flight campaign silently never receives
+# the colonial pool. This deliberately DUPLICATES the europe_1805.json
+# authored values; the duplication is safe because a drift pin
+# (test_econ_balance_eb.py) asserts the two stay equal. France authors
+# NONE by design and is absent here too.
+OVERSEAS_INCOME_BACKFILL = {
+    "Britain": 500,
+    "Spain": 250,
+    "Holland": 150,
+    "Portugal": 150,
+}
+
 
 def overseas_trade_income(world, nation: str) -> int:
     """EB-2: the authored `overseas_income` pool (colonies as a MODIFIER,

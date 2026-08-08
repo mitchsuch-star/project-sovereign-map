@@ -111,6 +111,39 @@ class TestConditionBeatsClock:
         keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
         assert "wars_go_ill" in keys
 
+    def test_the_ill_term_reads_the_whole_war_not_the_pair(self, world):
+        """Review [0]: the first cut read bare PAIR scores, so a nation
+        WINNING its coalition war still paid the ill rate because one
+        pair lagged. The term reads `get_side_war_score_for` — the
+        war-level resolver that sums the stored pair scores over the
+        WHOLE opposing side of the shared war instance.
+
+        Boot France fights ONE coalition war vs Austria+Britain+Russia:
+        losing one pair −25 while winning another +40 is a WON war
+        (side score +15) — no ill term. Losing −15 to each of the three
+        (side −45) is a war going ill — the term fires."""
+        k = world._make_diplo_key
+        # arm 1: one pair lost, the war won — no term. Stored scores read
+        # from the ALPHABETICALLY-FIRST nation's perspective: on
+        # "Austria|France" +25 is Austria's (France −25); on
+        # "France|Russia" France is first, so +40 IS France's.
+        world.war_scores[k("France", "Austria")] = 25   # France −25
+        world.war_scores[k("France", "Russia")] = 40    # France +40
+        keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
+        assert "wars_go_ill" not in keys, (
+            "a nation WINNING its coalition war must not pay the ill rate "
+            "for one lagging pair")
+        # arm 2: every pair mildly lost, the war lost — the term fires
+        # (France second on Austria|France and Britain|France → +15 is the
+        # enemy's; France FIRST on France|Russia → −15 is France's own)
+        world.war_scores[k("France", "Austria")] = 15   # France −15
+        world.war_scores[k("France", "Britain")] = 15   # France −15
+        world.war_scores[k("France", "Russia")] = -15   # France −15
+        keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
+        assert "wars_go_ill" in keys, (
+            "−15 to each of three coalition partners is a war-level −45 — "
+            "the pair read would never see it")
+
     def test_the_grip_term_reads_imperial_grip(self, world, monkeypatch):
         import backend.models.authority as authority
         keys = {t["key"] for t in world.get_state_charges_rate("France")["terms"]}
@@ -334,29 +367,113 @@ class TestThreatHeadroom:
         world.invalidate_active_nations_cache()
         before = world.threat_level
         process_coalition_turn(world)
-        sources = [s["source"] for s in world.threat_sources_this_turn]
-        assert "region_control_30" in sources, (
+        rows = {s["source"]: s.get("amount")
+                for s in world.threat_sources_this_turn}
+        assert "region_control_30" in rows, (
             f"France holds {len(world.get_nation_regions('France'))} of "
             f"{len(world.regions)} — the recentered gate must fire "
-            f"(sources: {sources}, threat {before}→{world.threat_level})")
+            f"(sources: {rows}, threat {before}→{world.threat_level})")
+        # Review [9]: the AMOUNT is pinned too — the 30% band pays +1,
+        # never the 40/50 bands' +2/+3 (gate record B13 amounts)
+        assert rows["region_control_30"] == 1
+
+    def test_gate_ladder_amounts_and_ordering(self, world):
+        """Review [9]: the full ladder — 41% pays +2, 51% pays +3, the
+        per-nation arm fires at the same recentered thresholds, and the
+        gate record B13's structural ordering (higher control never pays
+        less) is pinned as arithmetic across the three bands."""
+        from backend.game_logic.coalition import process_coalition_turn
+
+        def _set_france_share(share):
+            # reset: hand every province to its scenario controller first
+            fresh = WorldState.from_scenario(str(SCENARIO_PATH))
+            target = int(share * len(fresh.regions)) + 1
+            flipped = len(fresh.get_nation_regions("France"))
+            for region in fresh.regions.values():
+                if flipped >= target:
+                    break
+                if region.controller != "France":
+                    region.controller = "France"
+                    flipped += 1
+            fresh.invalidate_active_nations_cache()
+            return fresh
+
+        amounts = {}
+        for share, key in ((0.40, "region_control_40"),
+                           (0.50, "region_control_50")):
+            w = _set_france_share(share)
+            process_coalition_turn(w)
+            rows = {s["source"]: s.get("amount")
+                    for s in w.threat_sources_this_turn}
+            assert key in rows, (
+                f"{key} must fire at {share:.0%}+1 control — got {rows}")
+            amounts[key] = rows[key]
+        assert amounts["region_control_40"] == 2
+        assert amounts["region_control_50"] == 3
+
+    def test_per_nation_arm_uses_the_recentered_gates(self, world):
+        """Review [9]: a non-player conqueror crosses the SAME recentered
+        thresholds into its own slot (the AI-4a step-5 arm)."""
+        from backend.game_logic.coalition import process_coalition_turn
+        target = int(0.30 * len(world.regions)) + 1
+        flipped = len(world.get_nation_regions("Austria"))
+        for region in world.regions.values():
+            if flipped >= target:
+                break
+            if region.controller != "Austria":
+                region.controller = "Austria"
+                flipped += 1
+        world.invalidate_active_nations_cache()
+        process_coalition_turn(world)
+        austria_rows = [
+            s for s in world.threat_sources_this_turn
+            if s["source"] == "region_control_30"
+            and s.get("target") == "Austria"]
+        assert austria_rows, (
+            "an Austria holding 30%+ of the map must accrue into its OWN "
+            "slot through the recentered per-nation arm")
 
     def test_defensive_win_no_longer_feeds_the_alarm(self, world):
-        """EB-4.3: the executor pipeline's defender-win arm adds NO
-        battle_win threat (source-level pin on both copies — the +3 per
-        defensive win vs decay cap 3 is what pinned the bar at 91–97)."""
-        exec_src = (Path(__file__).resolve().parents[1] / "backend"
-                    / "commands" / "combat_executor.py").read_text(encoding="utf-8")
-        anchor = exec_src.index("elif defender_won:")
-        window = exec_src[anchor:anchor + 2200]
-        assert '"battle_win"' not in window, (
-            "the defender-side battle_win credit returned to combat_executor")
-        ws_src = (Path(__file__).resolve().parents[1] / "backend" / "models"
-                  / "world_state.py").read_text(encoding="utf-8")
-        anchor2 = ws_src.index('elif combat_result.get("victor") == enemy.name:')
-        window2 = ws_src[anchor2:anchor2 + 1200]
-        assert '"battle_win"' not in window2, (
-            "the defender-side battle_win credit returned to the "
-            "world_state auto-charge mirror")
+        """EB-4.3: NO defender-side battle_win credit survives in either
+        combat copy — the +3 per defensive win vs decay cap 3 is what
+        pinned the bar at 91–97.
+
+        Review [8] found the first cut of this pin INERT: it anchored a
+        char-window at the FIRST of the file's five `elif defender_won:`
+        occurrences, 13,000 characters short of the removal site, so
+        re-adding the credit passed the pin. Re-pinned as a whole-file
+        CALL-SITE census: every `add_threat(... "battle_win" ...)` call
+        in both combat copies is enumerated and each must credit the
+        ATTACKER — a defender-crediting call anywhere in either file
+        fails, wherever it is inserted."""
+        import re
+        call_re = re.compile(r'add_threat\([^)]*"battle_win"[^)]*\)')
+
+        def _strip_comments(src):
+            # census CODE only — the removal-site comment quotes the old
+            # call and must not satisfy (or fail) the pin
+            return "\n".join(line for line in src.splitlines()
+                             if not line.lstrip().startswith("#"))
+
+        exec_src = _strip_comments(
+            (Path(__file__).resolve().parents[1] / "backend"
+             / "commands" / "combat_executor.py").read_text(encoding="utf-8"))
+        exec_calls = call_re.findall(exec_src)
+        assert exec_calls == [
+            'add_threat(world, 3, "battle_win", target=attacker.nation)'
+        ], (
+            f"combat_executor battle_win call census changed: {exec_calls} "
+            f"— only the attacker-crediting call may exist (EB-4.3)")
+        ws_src = _strip_comments(
+            (Path(__file__).resolve().parents[1] / "backend" / "models"
+             / "world_state.py").read_text(encoding="utf-8"))
+        ws_calls = call_re.findall(ws_src)
+        assert ws_calls == [
+            'add_threat(self, 3, "battle_win", target=marshal.nation)'
+        ], (
+            f"world_state battle_win call census changed: {ws_calls} "
+            f"— only the auto-charge ATTACKER arm may credit (EB-4.3; "
+            f"`marshal` is the charging attacker in that scope)")
 
     def test_attacker_win_still_feeds_the_alarm(self, world):
         """Europe still fears the conqueror: the attacker-side credit and
@@ -456,9 +573,40 @@ class TestXR4EndowCopy:
         world.invalidate_active_nations_cache()
         block = _build_estates(marshal, world)
         rows = {d["region"]: d for d in block["eligible_estate_details"]}
-        if estate in rows:
-            assert rows[estate]["war_torn"] is True
-            assert rows[estate]["income"] == 0
+        # Review [10]: HARD assert — the `if estate in rows` guard made
+        # this pin structurally degradable to a silent no-op.
+        assert estate in rows, (
+            f"the staged war-torn fixture ({estate}) fell out of the "
+            f"eligible rows — the XR-4 pin has nothing to test "
+            f"(rows: {sorted(rows)})")
+        assert rows[estate]["war_torn"] is True
+        assert rows[estate]["occupied"] is False
+        assert rows[estate]["income"] == 0
+
+    def test_occupied_estate_flag_names_the_other_mechanism(self, world):
+        """Review [4]: a DISRUPTED estate (hostile army standing on it) is
+        `occupied`, never `war_torn` — its revenues return when the army
+        leaves, not as stability grows (stability is FALLING under it)."""
+        from backend.game_logic.marshal_overview import _build_estates
+        marshal = next(m for m in world.marshals.values()
+                       if m.nation == "France" and m.strength > 0)
+        marshal.battles_won = 10
+        estate = next(iter(world.get_nation_regions("Austria")))
+        world.regions[estate].controller = "France"
+        world.regions[estate].stability = 100  # healthy — only disruption zeroes it
+        world.invalidate_active_nations_cache()
+        # a hostile army stands on it
+        enemy = next(m for m in world.marshals.values()
+                     if m.nation == "Austria" and m.strength >= 1000)
+        enemy.location = estate
+        world.diplomatic_states[
+            world._make_diplo_key("France", "Austria")] = "WAR"
+        assert estate in world.get_disrupted_regions()
+        block = _build_estates(marshal, world)
+        rows = {d["region"]: d for d in block["eligible_estate_details"]}
+        assert estate in rows, f"fixture fell out of eligibility ({sorted(rows)})"
+        assert rows[estate]["occupied"] is True
+        assert rows[estate]["war_torn"] is False
 
     def test_result_copy_carries_the_recovery_clause(self, world):
         """XR-4 result half: endowing a war-torn province states that the
@@ -467,6 +615,87 @@ class TestXR4EndowCopy:
                / "economy_executor.py").read_text(encoding="utf-8")
         assert "revenues will recover as the" in src
         assert "stability does" in src
+
+
+# ═══════════════ review-round pins (the Aug-7 find→refute fleet) ════════════
+
+
+class TestShownEqualsApplied:
+    """Review [1]: both end-turn banners used to RECOMPUTE
+    calculate_turn_income after the phase — the Charges of Empire figure
+    shown was computed on the POST-income chest and was never the one
+    charged. The banners now read the transient applied-result cache."""
+
+    def test_advance_turn_stores_the_applied_results(self, world):
+        _peace_out(world, "France")
+        world.nation_gold["France"] = 10_000
+        world.advance_turn()
+        stored = getattr(world, "_income_phase_results", {}).get("France")
+        assert stored is not None, (
+            "_advance_turn_internal must cache the applied income-phase "
+            "results for the turn's financial banners")
+        # the applied charge was computed on the PRE-income 10,000 chest
+        assert stored["state_charges"] == (
+            (10_000 - CHARGES_HOARD_FLOOR) * CHARGES_CROWN_BASE
+            // WAR_EFFORT_DIVISOR)
+
+    def test_end_turn_banner_quotes_the_applied_charge(self, world):
+        """E2E through the real end-turn path (the meta executor, the CA8-10
+        direct-call idiom): the banner's Charges figure equals the stored
+        APPLIED one, not a post-income recompute."""
+        from backend.commands.executor import CommandExecutor
+        world.nation_gold["France"] = 10_000
+        executor = CommandExecutor()
+        result = executor._meta._execute_end_turn(
+            {"action": "end_turn"}, {"world": world})
+        stored = getattr(world, "_income_phase_results", {}).get("France")
+        assert stored is not None, "end_turn must run the income phase"
+        applied = int(stored["state_charges"])
+        assert applied > 0, (
+            "fixture: a 10,000g war chest must be charged — if this is 0 "
+            "the fixture no longer stages the mechanic")
+        assert f"Charges of Empire: -{applied}g" in result["message"], (
+            f"the end-turn banner must quote the applied charge "
+            f"({applied}) — a recompute reads the post-income chest")
+
+
+class TestOverseasSaveBackfill:
+    """Review [12]: fleets round-trip verbatim, so a pre-EB-2 Europe save
+    would silently never receive the authored colonial pool. from_dict
+    backfills MISSING overseas_income keys (the IGR-E precedent)."""
+
+    def test_pre_eb2_save_receives_the_pool_at_load(self, world):
+        data = world.to_dict()
+        for rec in data["fleets"].values():
+            if isinstance(rec, dict):
+                rec.pop("overseas_income", None)
+        loaded = WorldState.from_dict(data)
+        from backend.game_logic.naval import overseas_trade_income
+        assert overseas_trade_income(loaded, "Britain") == 307
+        assert loaded.calculate_turn_income("Portugal")["overseas"] == 150
+
+    def test_an_authored_value_is_never_clobbered(self, world):
+        """The backfill touches MISSING keys only — a modded 0 (or any
+        authored value) round-trips untouched."""
+        data = world.to_dict()
+        data["fleets"]["Britain"]["overseas_income"] = 0
+        loaded = WorldState.from_dict(data)
+        from backend.game_logic.naval import overseas_trade_income
+        assert overseas_trade_income(loaded, "Britain") == 0
+
+    def test_backfill_map_matches_the_shipped_scenario(self):
+        """THE DRIFT PIN that makes the deliberate duplication safe: the
+        backfill constant equals the scenario's authored values exactly.
+        Re-author the scenario → this fails until the constant follows."""
+        import json
+        from backend.game_logic.naval import OVERSEAS_INCOME_BACKFILL
+        navies = json.load(open(SCENARIO_PATH, encoding="utf-8"))["navies"]
+        authored = {
+            nation: row["overseas_income"]
+            for nation, row in navies.items()
+            if isinstance(row, dict) and "overseas_income" in row
+        }
+        assert OVERSEAS_INCOME_BACKFILL == authored
 
 
 # ═══════════════════ the ledger identity, with everything live ═══════════════

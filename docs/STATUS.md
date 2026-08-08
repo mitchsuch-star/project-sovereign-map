@@ -19,8 +19,27 @@
 > "late on purpose" consciously overruled); voice-to-text 8, marshal voice 9, the
 > shippable build 10; downstream renumbered (`ROADMAP.md` §THE ROAD TO EA).
 >
-> **▶ NEXT = POSITION 5, THE ECON BALANCE PASS (gate + build).** Then 6 Main Menu →
-> 7 Tutorial. BOTH halves of Music &
+> **~~POSITION 5, THE ECON BALANCE PASS~~ ✅ GATED + BUILT + REVIEWED August 7, 2026
+> (same session as the audition close)** — gate + landing record =
+> **`docs/audits/ECON_BALANCE_GATE_2026_08_07.md`** (§3 decisions · §4 blessed numbers
+> B1–B13 · §8 landing · §8.1 the 44-agent review round, 13 findings ALL FIXED).
+> Commits `96997fe` + the review round. In one line: **the treasury is now a
+> CONDITIONAL fixed point** — the Charges of Empire (EB-1, absorbs the WE tax; named
+> condition terms WE/crown/war/ill/unrest/grip over the chest above a 2,000 floor)
+> kill the measured peacetime linear runaway (Prussia +298/turn, Spain +1,010/turn
+> forever) and the condition-blind war brake; golden peace stays near-unbounded (the
+> user's carve-out, literally); the authored overseas pools (EB-2 — Britain 500,
+> Spain 250, Holland 150, Portugal 150) give the Continental System an economic
+> target and Pitt's gold a fourth tier; buildings become wants (EB-3 tier-scaled
+> infra; a ruin bills nothing — IGR-X9 decided); the threat bar gets headroom (EB-4 —
+> boot 70, gates recentered, defensive wins no longer feed the alarm — CA8-D5
+> answered); Requisitions of War pay the disruptor (EB-5a — EWC-D1 built). After-probe:
+> France converges 22.1k, Austria 13.4k, Russia 14.7k; `BASELINE_SERIES` re-recorded
+> ONCE with a three-cause flip-experiment attribution. Suite **16,436/3**, zero new
+> serialized fields, boot byte-identical (E1 anchors untouched).
+>
+> **▶ NEXT = POSITION 6, THE MAIN MENU** (user-ordered Aug 7: front door after econ),
+> **then 7 TUTORIAL.** BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
@@ -44,6 +63,99 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ THE ECON BALANCE PASS (position 5, row EC-P3) — August 7, 2026 — GATED + BUILT + REVIEWED, one session
+>
+> User (after passing the audition gate live): *"do econ pass and make it actually
+> engaging and good… you can make decisions, consult history, other game concepts…
+> economy shouldn't go crazy unless you are doing very well and stable… abstraction
+> is fine, even good — this is not a spreadsheet game… we should abstract England's
+> relative wealth — colonies as a modifier"* + a second routing directive: *"after
+> econ fix we make main menu and tutorial next."*
+>
+> **Gate + landing record = `docs/audits/ECON_BALANCE_GATE_2026_08_07.md`
+> (authoritative — §1 the measured disease, §3 decisions EB-1..EB-5, §4 blessed
+> numbers B1–B13, §5 the falsifiable acceptance, §8 the landing, §8.1 the review
+> round).** Method: a 7-agent research fleet FIRST (~1.6M tokens — the full gold
+> pipeline map, 2×40-turn treasury trajectory probes, the threat-bar map, a
+> constraints/pin ledger, the sinks inventory, the Britain decomposition, a
+> history+genre anti-runaway brief), then the delegated gate, then the build, then
+> a 44-agent find→2-refuter review fleet.
+>
+> **The measured disease (§1):** treasury runaway is a PEACETIME disease and it is
+> LINEAR — Prussia (at war with nobody) gained a constant +298/turn for 30 straight
+> turns; Spain gained +1,010/turn from the moment it made peace and finished the
+> ambient run RICHER THAN FRANCE — because the only treasury-coupled brake in the
+> game (the EC-W2 WE tax) switches off exactly when a nation is doing well. At war
+> the brake was condition-blind: collapsing France and conquering Austria converged
+> to the same band. And CA8-D1's 44× was the climb to that plateau with 88% of
+> income unspendable.
+>
+> **What landed (zero new serialized fields):**
+> - **EB-1 THE CHARGES OF EMPIRE** — `calculate_state_charges`: ONE condition-priced
+>   treasury draw absorbing the WE tax (rate = WE + crown 30 always + war 50 + ill 75
+>   + unrest 75 + grip 50, over the chest above the 2,000 hoard floor — boot
+>   byte-identical BY CONSTRUCTION since Britain's boot 2,000 is the map's maximum).
+>   Golden peace ≈1.2%/turn (doing very well and stable MAY grow rich — the user's
+>   sentence implemented literally); ordinary war plateaus ≈20k; collapse ≈11k and
+>   falling. The `war_effort` key is RETIRED on every seam (`state_charges`
+>   everywhere; the treasury report teaches the rate even at charge 0 — CA8-10's
+>   rule); the named terms render on every surface (shown = applied).
+> - **EB-2 THE WEALTH OF NATIONS** — authored `overseas_income` on the navies rows
+>   (Britain 500 / Spain 250 / Holland 150 / Portugal 150; **France none by
+>   design** — its overseas arm is continental extraction), holder ×(1−CS closure),
+>   blockade zeroes, war-with-the-RN quarters (the 1804 silver seizure, in both
+>   directions); its own positive "Overseas Trade" Net line; subsidy tier 4
+>   (500 > 15k, cap 500 — the blessed-never-landed E4 rider (i)). Boot deltas
+>   exactly as gated: Britain +307, Portugal +150, Spain/Holland 0 (blockaded).
+> - **EB-3** — tier-scaled infrastructure (40/30/20; a market on a city flips
+>   −3 → **+17/turn** — every one of CA8-D1's 13 slots is finally a want) + **a
+>   ruin bills nothing** (IGR-X9 DECIDED: razing no longer strictly dominates
+>   securing; the published break-even model flipped WITH the fix) + XR-4.
+> - **EB-4** — the threat bar gets headroom (CA8-D5 answered): authored boot 85→70
+>   (band [65,75]), the DEAD region_control gates recentered 60/70/80% → 30/40/50%
+>   Europe-scoped (legacy keeps its gates — N1), **defensive battle wins no longer
+>   feed the alarm** (both combat copies; decisive victories still do), the §3.5
+>   mirror gains the coalition-at-war "fight" arm so it cannot lie at boot 70.
+> - **EB-5** — **Requisitions of War** (EWC-D1 BUILT: 0.25 × base income per
+>   disrupted enemy province to the strongest-presence NATION; boot = Austria +37
+>   from Mack@Swabia, the historically exact case) + EWC-F2 (rente face ignores
+>   transient disruption) + the plunder dissent untouched (re-ran green at ×4 —
+>   counter stays ONE of two).
+>
+> **After-measurement (the §5 acceptance):** France CONVERGES at 22.1k (last-10
+> delta +163/turn vs first-10 +1,536), Austria 13.4k, Russia 14.7k, Britain ~95% of
+> its computed fixed point; Spain — at TOTAL peace with the silver flowing, the
+> blessed case literally — bounded but rich (honest note + the two named dials in
+> the record §8). `BASELINE_SERIES` re-recorded ONCE with a THREE-cause attribution
+> separated by a two-arm flip experiment (the authored boot · the defensive-win
+> exemption · the econ components); the tail now reaches 0 and STAYS — a quiet
+> France finally decays to the honest floor, which the old bar structurally could
+> not do while France won defensive battles. M1–M7 byte-identical (the harness never
+> runs the income phase — recorded as a fact about the harness).
+>
+> **The review round (§8.1): 44 agents, 24 raw → 13 CONFIRMED, ALL FIXED** — 4 P2
+> headliners: the ILL term read bare PAIR scores (a nation WINNING its coalition
+> war paid the ill rate — fixed to the war-level resolver; and the fix's OWN first
+> test had the stored-score orientation backwards, the same trap); **shown≠applied
+> on every solvent end turn** (both banners recomputed on the post-income chest —
+> now read the transient applied-results cache); **pre-EB-2 saves would silently
+> never receive the colonial pool** (fleets round-trip verbatim — from_dict now
+> backfills MISSING keys with a drift-pinned constant); and the defensive-win pin's
+> combat_executor half was INERT (anchored at the wrong one of FIVE
+> `elif defender_won:` occurrences — re-pinned as a comment-stripped call-site
+> census). Plus requisitions strongest-NATION aggregation, the disrupted-vs-war-torn
+> copy split, the dispatch delta reading the reconciled ledger net (the CA8-10
+> class), the turn banner's missing admiralty/blockade/other renders, and four
+> test-rigor hardenings. Exploit lens returned CLEAN with computations on record.
+>
+> **Also this session:** the §3.5 audition gate PASSED (user — the Music & Sound
+> row is COMPLETE) · **the ROADMAP was re-sequenced by user direction**: MAIN MENU
+> is position 6, TUTORIAL 7 (up from 14, "late on purpose" consciously overruled),
+> voice-to-text 8, marshal voice 9, the shippable build 10. Suite **16,436/3** ·
+> ruff clean · parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR ×2 · live
+> HTTP-verified on a fresh backend (ledger components + the charge-0 teaching line).
+> **▶ NEXT = position 6, THE MAIN MENU.**
 
 > ### ✅ MUSIC & SOUND (CORE) — THE WIRING HALF — August 7, 2026 (same session, cont.)
 >

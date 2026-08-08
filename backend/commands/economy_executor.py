@@ -1124,14 +1124,21 @@ class EconomyExecutor:
         else:
             standing = (f"He expects {expectation}g/turn of estates and now "
                         f"holds {satisfaction}g/turn — the endowment falls short.")
-        # XR-4 (Econ Balance gate EB-3): a war-torn estate is a legal and
-        # honest grant, but the player must hear that the 0g is TEMPORARY —
-        # revenues recover as the province's stability does.
+        # XR-4 (Econ Balance gate EB-3, + review [4]): a 0g estate is a
+        # legal and honest grant, but the copy must name the TRUE recovery
+        # mechanism — a DISRUPTED estate pays nothing until the hostile
+        # army is driven off (its stability is falling under it), while a
+        # war-torn one recovers as the province's stability does.
         recovery_note = ""
         if estate_income <= 0:
-            recovery_note = (" The estate lies war-torn and yields nothing "
-                             "today — its revenues will recover as the "
-                             "province's stability does.")
+            if region_name in world.get_disrupted_regions():
+                recovery_note = (" The estate lies under enemy occupation "
+                                 "and yields nothing — its revenues return "
+                                 "when the invader is driven off.")
+            else:
+                recovery_note = (" The estate lies war-torn and yields nothing "
+                                 "today — its revenues will recover as the "
+                                 "province's stability does.")
         return {
             "success": True,
             "message": (f"{decree}, Marshal {marshal.name} is endowed "
