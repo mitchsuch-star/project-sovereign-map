@@ -88,6 +88,16 @@ func list_saves(callback: Callable):
 	_send_get("/saves", callback)
 
 
+func set_llm_key(key: String, callback: Callable):
+	# BYOK (Main Menu pass): push the player's Anthropic key to the backend's
+	# in-memory parser config. An empty key reverts to .env configuration.
+	_send_post("/config/llm", {"api_key": key}, callback)
+
+
+func get_llm_config(callback: Callable):
+	_send_get("/config/llm", callback)
+
+
 func get_campaign_log(callback: Callable):
 	_send_get("/campaign_log", callback)
 

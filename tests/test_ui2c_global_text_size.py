@@ -97,11 +97,20 @@ def test_main_step_reuses_apply_ui_scale():
 
 
 def test_pause_menu_resyncs_slider_on_open():
+    """Pin RELOCATED Aug 8, 2026 (Main Menu pass): the slider moved into the
+    shared SettingsPanel; open_menu now re-syncs by calling the panel's
+    refresh(), whose body performs the same saved-scale re-read."""
     text = _read(SCRIPTS / "pause_menu.gd")
     open_body = text.split("func open_menu", 1)
     assert len(open_body) == 2, "pause_menu.gd must define open_menu"
     body = open_body[1].split("\nfunc ", 1)[0]
-    assert "set_value_no_signal(UiSettings.get_ui_scale())" in body, (
-        "open_menu must re-read the saved scale so the slider matches the "
-        "Text Size buttons"
+    assert "_settings_panel.refresh()" in body, (
+        "open_menu must refresh the shared SettingsPanel so the slider "
+        "matches the Text Size buttons"
+    )
+    panel = _read(SCRIPTS / "settings_panel.gd")
+    refresh_body = panel.split("func refresh", 1)[1].split("\nfunc ", 1)[0]
+    assert "set_value_no_signal(UiSettings.get_ui_scale())" in refresh_body, (
+        "SettingsPanel.refresh must re-read the saved scale so the slider "
+        "matches the Text Size buttons"
     )

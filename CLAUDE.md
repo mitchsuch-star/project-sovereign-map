@@ -81,12 +81,42 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > was INERT (wrong anchor among FIVE `elif defender_won:` — now a call-site
 > census). `test_econ_balance_eb.py` (60+) + re-blessed families.
 >
-> **▶ NEXT = POSITION 6, THE MAIN MENU, then 7 TUTORIAL** (the user's second Aug-7
-> amendment: *"after econ fix we make main menu and tutorial next"* — recorded in
-> ROADMAP §THE ROAD TO EA; the tutorial's old "late on purpose" rationale
-> consciously overruled by the plan's owner; voice-to-text 8, marshal voice 9, the
-> shippable build 10). The §3.5 AUDITION GATE PASSED (user) the same day — the
-> Music & Sound row is COMPLETE.
+> **~~POSITION 6, THE MAIN MENU~~ ✅ BUILT August 8, 2026 in one session with two
+> user-flagged UX fixes** (landing record = ROADMAP row 6 + the STATUS top entry;
+> evidence `docs/audits/MAIN_MENU_2026_08_08.png` ×2; `test_main_menu_and_ux_pass.py`
+> 35): the project boots into `main_menu.tscn` — a Ken Burns slideshow of six
+> Commons-license-verified PD battle paintings (Gérard's Austerlitz opens) under a
+> Cinzel-700 title, the §2 title theme on a new AudioManager "menu" mood, and an
+> honest-availability campaign column (Begin confirm-guarded / Continue newest-save
+> / Load / Settings / Quit + "Return to the War Room" via the pause menu's new Main
+> Menu button; `GET /test` poll names the real launch command when the war office is
+> down). The Settings surface is PROMOTED to a shared `settings_panel.tscn` (menu +
+> pause both embed it; two pins consciously relocated) and gains THE PARSER (AI):
+> the in-client Anthropic key, stored in `user://ui_settings.cfg`, pushed through
+> the NEW `/config/llm` endpoint to the existing `LLMClient.create` BYOK seam (a
+> key forces live parsing even under mock; empty reverts to .env; never echoed) at
+> every campaign start. Scene hand-off = `menu_boot.gd` statics consumed once by
+> the connection test — New/Continue/Load reuse the pause-menu world-swap flows.
+> Shipping identity: `config/name="Ink & Iron"`, generated quill-&-sabre
+> `icon.png`, navy splash. Fixed in passing: both /saves handlers gated on a
+> `success` field the endpoint never sends; menu timers are child nodes (a
+> SceneTreeTimer fires on the FREED menu after campaign start); the audio-install
+> race (menu audio statics `call_deferred` like main.gd's boot). **The UX pair:**
+> the Generals-card Reward affordance is a REAL always-visible chip — enabled on
+> shortfall/pension, otherwise disabled WITH its stated gate reason via new
+> `Utils.bb_chip_disabled` (ES-7's reactive gate untouched per the standing
+> feedback memory) — and the "laser" UI clicks are re-cued to CC0 wood taps
+> (`click` = bookPlace1/2/3) + leather taps (`select`), old files kept as pool
+> variants. Harness 48 scripts + 5 scenes EXIT=0, boot smoke clean, screenshots
+> captured against a live backend. **⚠ open: user visual sign-off (menu look +
+> click feel).**
+>
+> **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
+> + the legacy 19-region on-ramp; "late on purpose" consciously overruled by the
+> plan's owner; the Victory-touch-up cost recorded on the row) — then 8
+> voice-to-text (approach gate), 9 marshal voice, 10 the shippable build (inherits
+> the menu). The §3.5 AUDITION GATE PASSED (user) Aug 7 — the Music & Sound row is
+> COMPLETE.
 >
 > **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
 > CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by
@@ -129,9 +159,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > the same day at the econ hand-off** (*"after econ fix we make main menu and
 > tutorial next"*): the live spine is now **4 Music & Sound** (✅ COMPLETE — both
 > halves + the §3.5 audition gate PASSED Aug 7) → **5 Econ Balance** (✅ COMPLETE
-> Aug 7, see the entry above) → **▶ 6 THE MAIN MENU** (carved out of the build row —
-> title scene, Settings surface promoted from the pause menu, in-client API-key
-> field, shipping name/icon) → **7 TUTORIAL** (up from 14 — `TutorialManager` +
+> Aug 7, see the entry above) → **6 THE MAIN MENU** (✅ **BUILT Aug 8** — title
+> scene w/ PD battle-painting slideshow, shared SettingsPanel promoted from the
+> pause menu, in-client API-key via `/config/llm`, "Ink & Iron" name + generated
+> icon; see the top entry) → **▶ 7 TUTORIAL** (up from 14 — `TutorialManager` +
 > `TUTORIAL_SCRIPT.md` + the legacy 19-region on-ramp; "late on purpose"
 > consciously overruled, the Victory-touch-up cost recorded on the row) →
 > **8 Voice-to-Text** (approach gate) → **9 Marshal Voice Tier 1 + XR-5** (the

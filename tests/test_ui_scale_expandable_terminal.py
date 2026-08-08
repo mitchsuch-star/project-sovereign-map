@@ -141,19 +141,32 @@ def test_main_refreshes_map_on_scale_change():
 
 
 def test_pause_menu_scene_has_ui_scale_slider():
+    """Pin RELOCATED Aug 8, 2026 (Main Menu pass): the Interface Scale slider
+    now lives in the shared SettingsPanel (code-built, embedded by BOTH the
+    pause menu and the Main Menu) instead of pause_menu.tscn nodes."""
     text = _read(SCENES / "pause_menu.tscn")
-    assert '[node name="UiScaleSlider" type="HSlider"' in text
-    # The old dead stub is gone.
-    assert "Settings coming soon" not in text
+    assert "Settings coming soon" not in text  # the old dead stub stays gone
+    pause = _read(SCRIPTS / "pause_menu.gd")
+    assert "settings_panel.tscn" in pause
+    panel = _read(SCRIPTS / "settings_panel.gd")
+    assert "HSlider.new()" in panel
+    assert "UiSettings.MIN_UI_SCALE" in panel
+    assert "UiSettings.MAX_UI_SCALE" in panel
+    assert "UiSettings.UI_SCALE_STEP" in panel
 
 
 def test_pause_menu_emits_ui_scale_changed():
+    """Pin RELOCATED Aug 8, 2026: the slider mechanics live in SettingsPanel;
+    pause_menu forwards the panel's signal so main.gd's wiring is unchanged."""
     text = _read(SCRIPTS / "pause_menu.gd")
     assert "signal ui_scale_changed" in text
     assert "ui_scale_changed.emit(" in text
-    assert "func _on_ui_scale_slider_changed" in text
+    panel = _read(SCRIPTS / "settings_panel.gd")
+    assert "signal ui_scale_changed" in panel
+    assert "func _on_scale_changed" in panel
+    assert "drag_started" in panel and "drag_ended" in panel
     # Initializes from the saved preference without a spurious boot emit.
-    assert "set_value_no_signal(" in text
+    assert "set_value_no_signal(" in panel
 
 
 def test_main_connects_pause_menu_scale_signal():

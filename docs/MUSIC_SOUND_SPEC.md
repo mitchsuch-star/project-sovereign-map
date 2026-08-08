@@ -193,9 +193,9 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 ### Screens & chrome
 | Moment | Cue | Asset |
 |---|---|---|
-| Button press | click | `ui/click_primary.ogg` |
+| Button press | click | `ui/wood_tap_1/2/3.ogg` (rotate) — **re-cued Aug 8, 2026**: the user flagged the Interface-pack blips as "laser, not thematic" on the screen-nav buttons; the war room now clicks in wood (Kenney RPG `bookPlace1/2/3`, CC0, extract-unmodified + cue-rename). `click_primary/click_soft` stay on disk as pool variants |
 | Chip / tab / small control | click2 | `ui/click_soft.ogg` or `tick_subtle.ogg` |
-| List row select / map province click | select | `ui/select_item.ogg` |
+| List row select / map province click | select | `ui/leather_tap_1/2.ogg` (rotate) — same Aug-8 re-cue (Kenney RPG `handleSmallLeather1/2`); `select_item.ogg` stays as a pool variant |
 | Toggle | toggle | `ui/toggle_switch.ogg` |
 | Screen/panel open · close | panel | `ui/panel_open.ogg` · `panel_close.ogg` |
 | Map open · close (the two orphaned WAVs, finally assigned) | map | `ui/parchment_open_snd_use_map.wav` · `parchment_close_snd_close_map.wav` |
@@ -208,7 +208,7 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 ### The music program
 | Slot | Track(s) |
 |---|---|
-| Main theme / title | `theme_eroica_i.ogg` (fade or loop-trim ~4–5 min in) |
+| Main theme / title | `theme_eroica_i.ogg` (fade or loop-trim ~4–5 min in) — **WIRED Aug 8, 2026**: the Main Menu (position 6) plays it on a dedicated AudioManager `"menu"` mood (a one-track rotation, so the refill-on-empty idiom loops it with a crossfade); entering the campaign hands off to peace/war via the existing first-war-data flip, and the theme doubles as the peace rotation's opener so the transition is musically continuous |
 | Map, peace | rotate `calm_haydn_lark_adagio` · `calm_mozart40_andante` · `calm_goldberg_aria` (+ `wind_map_loop` bed when music paused) |
 | Map, at war | `tension_coriolan.ogg`; field color: `fife_drum_brandywine` / `fife_drum_field_medley` / `fife_drum_warlike_medley` / `drums_rage_of_cornwallis` |
 | France goes to war / Grande Armée moments | `marseillaise_navy_band.ogg`, `marche_militaire_francaise.mp3` |

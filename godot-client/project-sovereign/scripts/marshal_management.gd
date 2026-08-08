@@ -485,22 +485,33 @@ func _render_card(m: Dictionary, index: int) -> String:
 		if steward_note != "" and (estate_income > 0 or shortfall > 0):
 			var steward_color = Utils.COLOR_SUCCESS if str(m.get("steward_tier", "")) == "prosperous" else Utils.COLOR_ORANGE
 			bbcode += "  [color=#" + steward_color + "]" + steward_note + "[/color]\n"
-		# §0.6.8 item 6: the Reward button — opens the estate/rente dialog.
-		# Never for a PRISONER (the executors refuse him; review fix).
-		if (shortfall > 0 or pension > 0) and not m.get("captured", false):
-			bbcode += "  [url=reward:" + str(index) + "][color=#" + Utils.COLOR_GOLD + "][ Reward… ][/color][/url]"
+		# §0.6.8 item 6, re-surfaced Aug 8, 2026 (user: "I don't see a button to
+		# reward marshals"): the Reward affordance is a real CHIP in the fixed
+		# spot on every card — enabled when there is something to grant or
+		# revoke, otherwise DISABLED with its gate reason stated (the UI-6
+		# honest-availability idiom). The ES-7 reactive gate itself is design
+		# and unchanged: no proactive endow, and never for a PRISONER (the
+		# executors refuse him; review fix).
+		if m.get("captured", false):
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+				+ "  [color=#" + COLOR_DIM + "]held prisoner — his rewards await his release[/color]\n"
+		elif shortfall > 0 or pension > 0:
+			bbcode += "  " + _button_chip("reward:" + str(index), "Reward — estate or rente…", "f4e6bd", "3a2f18", _ICON_GAME + "estate-domaine.svg")
 			var eligible = m.get("eligible_estates", [])
 			if shortfall > 0 and eligible is Array and eligible.size() > 0:
 				var m_name_hint = str(m.get("name", "?"))
 				bbcode += "  [color=#" + COLOR_DIM + "]or type: 'endow " + m_name_hint + " with " + str(eligible[0]) + "'[/color]"
 			bbcode += "\n"
+		else:
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+				+ "  [color=#" + COLOR_DIM + "]his expectation is met — new victories raise it[/color]\n"
 	elif is_dotation and not m.get("captured", false):
-		# The reward portfolio is REACTIVE by design (ES-7 "cost of success"):
-		# there is nothing to grant until he EARNS an expectation by winning
-		# battles (and you hold a conquered province to endow). Surface that
-		# it exists — otherwise the buttons the player is looking for read as
-		# simply missing. (Fix for "where are the reward/duchy buttons?")
-		bbcode += "  [color=#" + COLOR_DIM + "]Reward: victories in the field raise his expectation — then [ Reward… ] appears here to endow a conquered province (a Duchy) or grant a rente (gold per turn).[/color]\n"
+		# Fresh marshal, no expectation yet. The reward portfolio is REACTIVE
+		# by design (ES-7 "cost of success"): there is nothing to grant until
+		# he EARNS an expectation by winning battles. The chip sits in its
+		# fixed place, locked, and says exactly what unlocks it.
+		bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+			+ "  [color=#" + COLOR_DIM + "]victories raise his expectation — then endow a conquered province (a Duchy) or grant a rente (gold/turn)[/color]\n"
 
 	# ═══════ CURRENT STATUS ═══════
 	var location = str(m.get("location", "?"))

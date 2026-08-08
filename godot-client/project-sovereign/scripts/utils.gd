@@ -399,6 +399,17 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
 
 
+static func bb_chip_disabled(label: String, icon_path := "") -> String:
+	"""The honest-availability partner of bb_button_chip: the same pill shape
+	with NO url and dimmed ink, so a gated action reads as present-but-locked
+	instead of missing. Pair it with a short stated reason after the chip."""
+	var inner := ""
+	if icon_path != "":
+		inner += bb_icon(icon_path, 18, "6f7480") + " "
+	inner += "[color=#6f7480]" + label + "[/color]"
+	return "[bgcolor=#20242c]  " + inner + "  [/bgcolor]"
+
+
 # === Layout Helpers ===
 
 static func clamp_centered_panel(panel: Control) -> void:

@@ -1,0 +1,99 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+
+[sub_resource type="Gradient" id="Gradient_vig"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 0.58)
+
+[sub_resource type="GradientTexture2D" id="GradTex_vig"]
+gradient = SubResource("Gradient_vig")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.44)
+fill_to = Vector2(0.5, 1.18)
+
+[sub_resource type="Gradient" id="Gradient_left"]
+offsets = PackedFloat32Array(0, 0.62, 1)
+colors = PackedColorArray(0.008, 0.014, 0.03, 0.88, 0.008, 0.014, 0.03, 0.38, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradTex_left"]
+gradient = SubResource("Gradient_left")
+width = 512
+height = 64
+fill_from = Vector2(0, 0.5)
+fill_to = Vector2(0.72, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_bottom"]
+offsets = PackedFloat32Array(0.5, 1)
+colors = PackedColorArray(0, 0, 0, 0, 0.008, 0.012, 0.028, 0.8)
+
+[sub_resource type="GradientTexture2D" id="GradTex_bottom"]
+gradient = SubResource("Gradient_bottom")
+width = 64
+height = 512
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="SlideA" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch_mode = 6
+
+[node name="SlideB" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch_mode = 6
+
+[node name="LeftShade" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradTex_left")
+
+[node name="Vignette" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradTex_vig")
+
+[node name="BottomShade" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradTex_bottom")
+
+[node name="StatusHttp" type="HTTPRequest" parent="."]
+timeout = 4.0

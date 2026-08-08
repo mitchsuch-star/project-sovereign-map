@@ -120,3 +120,16 @@ static func get_audio_volume(bus_name: String) -> float:
 
 static func set_audio_volume(bus_name: String, linear: float) -> void:
 	_write_num("audio", "volume_" + bus_name.to_lower(), clampf(linear, 0.0, 1.0))
+
+
+# --- The parser key (BYOK — Main Menu pass, position 6) ---
+# The Anthropic API key the player enters in Settings. Plaintext in the local
+# user:// config — the same trust level as the developer .env; it never leaves
+# this machine except to the player's OWN backend at 127.0.0.1:8005.
+static func get_api_key() -> String:
+	return str(_config().get_value("llm", "api_key", ""))
+
+
+static func set_api_key(key: String) -> void:
+	_config().set_value("llm", "api_key", key.strip_edges())
+	_config().save(PATH)

@@ -467,6 +467,7 @@ func _ready():
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
 		pause_menu.new_game_requested.connect(_on_pause_new_game_requested)
+		pause_menu.main_menu_requested.connect(_on_pause_main_menu_requested)
 
 	# ── Top Bar + Screens (special setup, not managed by DialogManager) ──
 	var top_bar_scene = load("res://scenes/top_bar.tscn")
@@ -662,12 +663,75 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: M cycles view (blended / political / terrain), +/- zoom, Home recenters[/color]")
 		add_output("")
 		_add_separator()
-		
+
 		set_input_enabled(true)
+
+		# Main Menu pass (position 6): the stored parser key (Settings → THE
+		# PARSER) travels to the backend at every campaign start, then the
+		# menu's requested action is consumed exactly once (Golden Rule 4).
+		_push_stored_llm_key()
+		_consume_menu_boot_action()
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
 		add_output("[color=#" + Utils.COLOR_INFO + "]Start the Python server: python -m backend.main[/color]")
 		add_output("")
+
+
+func _push_stored_llm_key() -> void:
+	"""BYOK (Main Menu pass): if the player stored an Anthropic key in
+	Settings, hand it to the backend's /config/llm now — the backend keeps it
+	in memory only, so every fresh server start needs this push."""
+	var stored_key := UiSettings.get_api_key()
+	if stored_key == "":
+		return
+	api_client.set_llm_key(stored_key, _on_llm_key_pushed)
+
+
+func _on_llm_key_pushed(response) -> void:
+	if response.success:
+		add_output("[color=#" + Utils.COLOR_DIMMED + "]Berthier's aide holds your parser key (…"
+			+ UiSettings.get_api_key().right(4) + ") — live parsing armed.[/color]")
+	else:
+		add_output("[color=#" + Utils.COLOR_DIMMED + "]Your stored parser key was not accepted; the backend keeps its .env configuration.[/color]")
+
+
+func _consume_menu_boot_action() -> void:
+	"""Execute what the Main Menu asked for, through the SAME flows the pause
+	menu uses (one world-swap machinery — no second hydration path)."""
+	var action := MenuBoot.take_action()
+	match action:
+		"new_game":
+			_on_pause_new_game_requested()
+		"continue":
+			add_output("[color=#" + Utils.COLOR_INFO + "]Resuming the campaign from the latest save...[/color]")
+			set_input_enabled(false)
+			api_client.list_saves(_on_continue_saves_listed)
+		"load":
+			_show_load_dialog()
+		_:
+			pass
+
+
+func _on_continue_saves_listed(response) -> void:
+	"""Menu 'Continue': /saves is newest-first — load the head of the list.
+	NOTE: /saves carries NO `success` field (it returns {"saves": [...]}
+	bare), so gate on the payload shape, never on response.success."""
+	var saves = response.get("saves", []) if response is Dictionary else []
+	if saves is Array and saves.size() > 0:
+		api_client.load_game(str(saves[0].get("filename", "")), _on_load_result)
+	else:
+		set_input_enabled(true)
+		add_output("[color=#" + Utils.COLOR_ERROR + "]No save found to continue — the current campaign stands.[/color]")
+
+
+func _on_pause_main_menu_requested() -> void:
+	"""Leave the campaign for the Main Menu. The world lives on in the
+	backend's memory (plus the per-turn autosave), so the menu's 'Return to
+	the War Room' re-enters it without a load."""
+	MenuBoot.came_from_game = true
+	MenuBoot.pending_action = ""
+	AudioManager.stop_all_loops()
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 
 func _on_map_topology_received(response):
@@ -3540,9 +3604,13 @@ func _show_load_dialog():
 	api_client.list_saves(_on_saves_listed)
 
 func _on_saves_listed(response):
-	"""Handle saves list response from backend."""
-	if response.success and response.has("saves"):
-		load_dialog.show_saves(response.saves)
+	"""Handle saves list response from backend. /saves returns a bare
+	{"saves": [...]} with NO `success` field — gate on the payload shape
+	(Main Menu pass hardening; the old response.success gate read a missing
+	key)."""
+	var saves = response.get("saves") if response is Dictionary else null
+	if saves is Array:
+		load_dialog.show_saves(saves)
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Failed to list saves.[/color]")
 		set_input_enabled(true)

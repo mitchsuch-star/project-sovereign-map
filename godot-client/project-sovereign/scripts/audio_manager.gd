@@ -32,9 +32,13 @@ const AUDIO_ROOT := "res://assets/audio/"
 # Cue registry: cue -> {files: [...], bus, db (trim), throttle_ms}
 const CUES := {
 	# ── UI chrome ──
-	"click": {"files": ["ui/click_primary.ogg", "ui/click_soft.ogg"], "bus": "UI", "db": -12.0, "throttle_ms": 90},
+	# Aug 8, 2026 (user): the Interface-pack synth blips read as "laser" on the
+	# screen-nav buttons — the war room clicks in wood and leather now. The old
+	# click_primary/click_soft/select_item files stay on disk as pool variants
+	# (MUSIC_SOUND_SPEC §2 cue table carries the swap).
+	"click": {"files": ["ui/wood_tap_1.ogg", "ui/wood_tap_2.ogg", "ui/wood_tap_3.ogg"], "bus": "UI", "db": -8.0, "throttle_ms": 90},
 	"toggle": {"files": ["ui/toggle_switch.ogg"], "bus": "UI", "db": -12.0, "throttle_ms": 90},
-	"select": {"files": ["ui/select_item.ogg"], "bus": "UI", "db": -10.0, "throttle_ms": 120},
+	"select": {"files": ["ui/leather_tap_1.ogg", "ui/leather_tap_2.ogg"], "bus": "UI", "db": -8.0, "throttle_ms": 120},
 	"tick": {"files": ["ui/tick_subtle.ogg"], "bus": "UI", "db": -16.0, "throttle_ms": 90},
 	"confirm": {"files": ["ui/confirm_chime.ogg"], "bus": "UI", "db": -8.0},
 	"error": {"files": ["ui/error_soft.ogg"], "bus": "UI", "db": -8.0},
@@ -101,7 +105,10 @@ const LOOPS := {
 # The music program (docs/MUSIC_SOUND_SPEC.md §2). Rotations crossfade on
 # mood change and advance on track end. triumph/lament are RESERVED for the
 # Victory Pass endings (positions 10-11) — reachable via play_music_once().
+# "menu" is the Main Menu's slot (position 6): the §2 title theme, alone in
+# its rotation so the refill-on-empty behaviour loops it with a crossfade.
 const MUSIC := {
+	"menu": ["music/theme_eroica_i.ogg"],
 	"peace": ["music/theme_eroica_i.ogg", "music/calm_haydn_lark_adagio.ogg",
 			"music/calm_mozart40_andante.ogg", "music/calm_goldberg_aria.mp3"],
 	"war": ["music/tension_coriolan.ogg", "music/fife_drum_brandywine.ogg",
@@ -175,7 +182,29 @@ static func stop_scribble() -> void:
 static func set_war_mood(at_war: bool) -> void:
 	var inst := _inst()
 	if inst != null:
-		inst._set_war_mood(at_war)
+		inst._set_mood("war" if at_war else "peace")
+
+
+static func set_menu_mood() -> void:
+	"""Main Menu (position 6): the title theme on the rotation lane. Entering
+	the campaign flips the mood via set_war_mood on the first live war data —
+	and the theme doubles as the peace rotation's opener, so the hand-off is
+	musically continuous."""
+	var inst := _inst()
+	if inst != null:
+		inst._set_mood("menu")
+
+
+static func stop_all_loops() -> void:
+	"""Scene-change hygiene (game ↔ menu): the loop players live under the
+	persistent AudioManager node, so a scene change does NOT free them — the
+	departing scene's beds (wind, march, battle, sea, scribble) must be
+	stopped explicitly."""
+	var inst := _inst()
+	if inst == null:
+		return
+	for tag in inst._loop_players.keys().duplicate():
+		inst._stop_loop(tag)
 
 
 static func play_music_once(name_key: String) -> void:
@@ -332,16 +361,18 @@ func _stop_loop(tag: String) -> void:
 
 # ── music ───────────────────────────────────────────────────────────────────
 
-func _set_war_mood(at_war: bool) -> void:
-	var mood := "war" if at_war else "peace"
-	if mood == _music_mood:
+func _set_mood(mood: String) -> void:
+	if mood == _music_mood or not MUSIC.has(mood):
 		return
 	_music_mood = mood
 	_music_queue = (MUSIC[mood] as Array).duplicate()
 	_music_queue.shuffle()
-	if _music_overlay.playing:
+	# Null-safe: a static call can land before _ready has built the players
+	# (the lazy install races scene setup — the call sites defer, this guards).
+	if _music_overlay != null and _music_overlay.playing:
 		return  # the overlay finishing will pull from the new mood's queue
-	_play_next_music_track()
+	if _music_a != null:
+		_play_next_music_track()
 
 
 func _play_music_once(name_key: String) -> void:

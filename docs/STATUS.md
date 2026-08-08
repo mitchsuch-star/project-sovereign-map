@@ -38,8 +38,12 @@
 > ONCE with a three-cause flip-experiment attribution. Suite **16,436/3**, zero new
 > serialized fields, boot byte-identical (E1 anchors untouched).
 >
-> **▶ NEXT = POSITION 6, THE MAIN MENU** (user-ordered Aug 7: front door after econ),
-> **then 7 TUTORIAL.** BOTH halves of Music &
+> **~~POSITION 6, THE MAIN MENU~~ ✅ BUILT August 8, 2026** (with the two same-day
+> UX fixes: thematic clicks + the Reward chip) — see the top entry below.
+> **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
+> + the legacy 19-region on-ramp; the Victory-touch-up cost is recorded on the
+> row). ⚠ open: user visual sign-off on the menu look + the new wood/leather
+> click feel (standing convention). BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
@@ -63,6 +67,101 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ THE MAIN MENU (position 6) + two UX fixes — August 8, 2026 — BUILT, one session
+>
+> User: *"make main menu and i dont see a buttons to reward marshals in marshal
+> screens for ease of ux and i dont like the lazer sound when clicking diplomacy
+> generals etc it is not thematic at all … for main menu make it pretty use a
+> painting or something and get good font and motion if it works maybe a slide of
+> battle paintings?"* Three deliverables, all landed; tests
+> `tests/test_main_menu_and_ux_pass.py` (35) + 2 relocated pins; evidence
+> `docs/audits/MAIN_MENU_2026_08_08.png` + `MAIN_MENU_SETTINGS_2026_08_08.png`.
+>
+> **1 · THE MAIN MENU (the ROADMAP row carries the full landing record).** The
+> project boots into `scenes/main_menu.tscn`: a Ken Burns slideshow of SIX
+> license-verified public-domain battle paintings sourced via the Commons API
+> (`LicenseShortName` = "Public domain" checked per file BEFORE download;
+> Gérard's *Austerlitz* opens, then David's *Alps*, Meissonier's *Friedland*,
+> Gros's *Eylau*, Vernet's *Jena*, Turner's *Trafalgar*; ≤2560px, credited in
+> `THIRD_PARTY_LICENSES.md` §Menu paintings + in-menu captions), title in
+> **Cinzel wght-700** over an IM Fell overline/subtitle with flanking flourishes,
+> slow crossfade + per-slide drift pivots + entrance stagger, and the §2 title
+> theme (`theme_eroica_i`) on a NEW AudioManager **"menu" mood** (loops via the
+> rotation-refill idiom; entering the campaign hands off musically — the theme
+> doubles as the peace rotation's opener). Campaign column: **Begin the 1805
+> Campaign** (confirm-guarded whenever a save or a running campaign would be
+> replaced — /new_game refreshes the autosave), **Continue** (loads the newest
+> save, turn number on the button), **Load a Campaign…**, **Settings**, **Quit**,
+> plus **Return to the War Room** when the pause menu's new **Main Menu** button
+> brought the player here mid-campaign (plain re-entry, no load — the world
+> lives in the backend's memory). All campaign buttons are HONEST against a
+> live `GET /test` poll: down = disabled + the status line names the real
+> command (`.venv\Scripts\python.exe -m backend.main`).
+>
+> **The Settings surface is PROMOTED** (the position-6 contract): new shared
+> `settings_panel.tscn/.gd` embedded by BOTH the menu and the pause menu —
+> INTERFACE (the UI-2 scale slider, drag semantics + persist-on-release intact,
+> pause_menu forwards the same `ui_scale_changed` signal so main.gd's map
+> compensation is untouched) · SOUND (battle toggle + the four bus sliders) ·
+> **THE PARSER (AI)** — the in-client Anthropic API-key field: stored in
+> `user://ui_settings.cfg` (plaintext local, the .env trust level, never leaves
+> the machine), pushed to the NEW **`/config/llm`** endpoint (GET = honest
+> status line "Live parser: ANTHROPIC — your key/…from .env/OFF"; POST swaps
+> `parser.llm` via the EXISTING `LLMClient.create` BYOK seam — a key forces
+> live Anthropic even under `LLM_MODE=mock`, empty reverts to .env, held in
+> memory only, never echoed) and re-pushed by main.gd at every campaign start ·
+> CREDITS (now incl. paintings + audio). The pause menu builds NONE of it
+> itself anymore (two pins consciously RELOCATED in
+> `test_ui2c_global_text_size.py` + `test_ui_scale_expandable_terminal.py`).
+>
+> **Scene hand-off:** `menu_boot.gd` class-name statics (`pending_action` +
+> `came_from_game`), consumed EXACTLY once at the end of main.gd's connection
+> test (Golden Rule 4) — "new_game" calls the pause flow, "continue" loads
+> `saves[0]` (newest-first), "load" opens the existing dialog: ONE world-swap
+> machinery, no second hydration path. **Fixed in passing:** BOTH /saves
+> handlers (`_on_saves_listed` + the new continue arm) gated on a `success`
+> field the endpoint never sends — now shape-gated; and the menu uses child
+> Timer NODES, never `get_tree().create_timer` (a SceneTreeTimer outlives the
+> scene and fires on the FREED menu after every campaign start — pinned).
+> **Shipping identity:** `config/name="Ink & Iron"` (the user-data dir moved
+> with it), generated crossed quill-&-sabre `icon.png` (`tools/gen_app_icon.py`,
+> ORIGINAL procedural art, 3 visual iterations), navy `boot_splash` with the
+> default logo OFF. The boot-smoke round-trip found + fixed the audio-install
+> race (menu audio statics now `call_deferred` like main.gd's boot — the lazy
+> AudioManager instance cannot add_child to a root busy instantiating the very
+> scene calling it; `_set_mood` null-hardened).
+>
+> **2 · REWARD DISCOVERABILITY (user: "i dont see buttons to reward marshals").**
+> The Generals-card `[Reward…]` bbcode text link is now a REAL gold chip
+> (`_button_chip`, estate-domaine icon, commission-chip styling) — and per the
+> standing feedback memory (*reactive but discoverable — fix discoverability,
+> NEVER the gate*), the ES-7 reactive design is untouched: the chip is ALWAYS
+> on the card, enabled when shortfall/pension exists, otherwise DISABLED with
+> its stated gate reason via new `Utils.bb_chip_disabled` (the UI-6
+> honest-availability idiom): "held prisoner — his rewards await his release" /
+> "his expectation is met — new victories raise it" / "victories raise his
+> expectation — then endow a conquered province (a Duchy) or grant a rente".
+>
+> **3 · THEMATIC CLICKS (user: "the lazer sound … is not thematic at all").**
+> The global button click was `click_primary/click_soft` — Kenney
+> Interface-pack synth blips. Re-cued from the on-disk CC0 RPG pool (the
+> `cannon_thud` extract-unmodified precedent): **`click` = wood_tap_1/2/3**
+> (bookPlace1/2/3 — the war-room table) and **`select` = leather_tap_1/2**
+> (handleSmallLeather1/2) for row/province clicks; old files stay as pool
+> variants; §2 cue table + licenses updated (extractions 28 → 33).
+>
+> **Verification:** suite green incl. the 35 new tests; ruff clean; Godot
+> `--import` + parse harness (48 scripts + 5 scenes incl. the two NEW) EXIT=0
+> ×2; headless boot smoke of the menu 0 SCRIPT ERROR; windowed screenshot
+> harness (`tools/main_menu_screenshot.gd`, kept like its two committed
+> siblings) captured both surfaces against a LIVE backend — the settings shot
+> proves the `/config/llm` round-trip on screen ("Live parser: ANTHROPIC — key
+> from the backend's .env"). **⚠ open: user visual sign-off** on the menu look,
+> title/button typography, painting choice/rotation, and the new click feel.
+> **Deferred, homed:** the build row (10) owns wiring Continue/Load to
+> `%APPDATA%` saves + the supervised-backend boot screen; position 8 owns the
+> Settings dictation hint if 8(a) verifies.
 
 > ### ✅ THE ECON BALANCE PASS (position 5, row EC-P3) — August 7, 2026 — GATED + BUILT + REVIEWED, one session
 >

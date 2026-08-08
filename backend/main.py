@@ -1510,6 +1510,10 @@ class StrategicInterruptResponse(BaseModel):
     choice: str  # varies by response_type
 
 
+class LLMConfigRequest(BaseModel):
+    api_key: str = ""
+
+
 class SaveRequest(BaseModel):
     """Request model for saving game state."""
     save_name: str = "Quicksave"
@@ -3341,6 +3345,46 @@ async def list_saves_endpoint():
     """List all available save files."""
     saves = list_saves()
     return {"saves": saves}
+
+
+# ════════════════════════════════════════════════════════════
+# LLM CONFIG (Main Menu pass, position 6 — the in-client API key)
+# ════════════════════════════════════════════════════════════
+
+def _llm_config_payload() -> dict:
+    llm = parser.llm
+    return {
+        "success": True,
+        "provider": llm.provider_name,
+        "key_source": llm.key_source,
+        "live": llm.use_real_api,
+    }
+
+
+@app.get("/config/llm")
+async def get_llm_config():
+    """Effective parser configuration — the Settings panel's honesty line."""
+    return _llm_config_payload()
+
+
+@app.post("/config/llm")
+async def set_llm_config(request: LLMConfigRequest):
+    """BYOK from the client Settings panel (Main Menu / pause).
+
+    A non-empty key swaps the parser's LLM client to a BYOK Anthropic client
+    (LLMClient.create forces live mode, so a key works even when .env says
+    mock); an empty key reverts to the .env configuration. The key is held in
+    MEMORY only — nothing server-side persists it (the client keeps its copy
+    in user://ui_settings.cfg and re-pushes at each campaign start).
+    """
+    from backend.ai.llm_client import LLMClient
+    key = (request.api_key or "").strip()
+    try:
+        parser.llm = LLMClient.create(key if key else None)
+        return _llm_config_payload()
+    except Exception as e:  # a bad key string must never take the server down
+        print(f"[ERROR] /config/llm: {e}")
+        return {"success": False, "message": f"Could not configure parser: {e}"}
 
 
 @app.post("/delete_save")

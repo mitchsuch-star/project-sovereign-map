@@ -70,6 +70,12 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/vassal_rebellion_popup.gd",
 	"res://scripts/reward_dialog.gd",
 	"res://scripts/proposal_result_popup.gd",
+	# Main Menu pass (position 6): the front door + the shared Settings
+	# surface + the scene hand-off statics (XR-1 — every touched script
+	# parses in the harness).
+	"res://scripts/main_menu.gd",
+	"res://scripts/settings_panel.gd",
+	"res://scripts/menu_boot.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -99,6 +105,10 @@ const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/main.tscn",
 	"res://scenes/europe_map_smoke.tscn",
 	"res://scenes/battle_diorama.tscn",  # BD: runtime-registered modal
+	# Main Menu pass (position 6): the project's NEW main scene + the shared
+	# Settings component it instantiates at runtime (IGR-E gap class).
+	"res://scenes/main_menu.tscn",
+	"res://scenes/settings_panel.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
