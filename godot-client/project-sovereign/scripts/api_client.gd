@@ -191,8 +191,13 @@ func save_game(save_name: String, callback: Callable):
 func load_game(filename: String, callback: Callable):
 	_send_post("/load", {"filename": filename}, callback)
 
-func new_game(callback: Callable):
-	_send_post("/new_game", {}, callback)
+func new_game(callback: Callable, scenario: String = ""):
+	# POSITION 7: `scenario` is an allowlist NAME ("tutorial"), never a path.
+	# Empty keeps the wire body {} byte-identical to the pre-tutorial client.
+	var body = {}
+	if scenario != "":
+		body["scenario"] = scenario
+	_send_post("/new_game", body, callback)
 
 
 func cancel_strategic_order(marshal_name: String, callback: Callable):

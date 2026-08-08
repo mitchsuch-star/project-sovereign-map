@@ -62,6 +62,12 @@ var _caption: Label
 var _status_label: Label
 var _buttons: Dictionary = {}          # id -> Button
 var _confirm_box: VBoxContainer
+# POSITION 7: Begin and the School of War share the one confirm row — both
+# REPLACE the backend's running world. The pressed handler stamps which
+# action the yes-button launches plus the matching copy.
+var _confirm_action := "new_game"
+var _confirm_label: Label
+var _confirm_yes: Button
 var _menu_column: VBoxContainer
 var _settings_view: PanelContainer
 var _settings_panel: SettingsPanel
@@ -234,11 +240,13 @@ func _build_menu_column() -> void:
 	warn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	warn.add_theme_constant_override("shadow_offset_y", 1)
 	_confirm_box.add_child(warn)
+	_confirm_label = warn
 	var confirm_row := HBoxContainer.new()
 	confirm_row.add_theme_constant_override("separation", 10)
 	var yes := _make_button("Confirm — begin anew", false)
 	yes.custom_minimum_size = Vector2(220, 44)
-	yes.pressed.connect(func(): _launch("new_game"))
+	yes.pressed.connect(func(): _launch(_confirm_action))
+	_confirm_yes = yes
 	confirm_row.add_child(yes)
 	var no := _make_button("Keep my campaign", false)
 	no.custom_minimum_size = Vector2(200, 44)
@@ -247,6 +255,7 @@ func _build_menu_column() -> void:
 	_confirm_box.add_child(confirm_row)
 	_menu_column.add_child(_confirm_box)
 
+	_add_menu_button("tutorial", "The School of War — a guided campaign", _on_tutorial_pressed, false)
 	_add_menu_button("continue", "Continue", _on_continue_pressed, false)
 	_add_menu_button("load", "Load a Campaign…", _on_load_pressed, false)
 	_add_menu_button("settings", "Settings", _open_settings, false)
@@ -418,9 +427,25 @@ func _on_begin_pressed() -> void:
 	# A fresh campaign REPLACES the backend's running world and refreshes the
 	# autosave (POST /new_game) — confirm when there is anything to lose.
 	if _saves.size() > 0 or MenuBoot.came_from_game:
+		_confirm_action = "new_game"
+		_confirm_label.text = "Begin anew? The autosave of your running campaign is replaced."
+		_confirm_yes.text = "Confirm — begin anew"
 		_confirm_box.visible = not _confirm_box.visible
 	else:
 		_launch("new_game")
+
+
+func _on_tutorial_pressed() -> void:
+	# POSITION 7: the School of War REPLACES the backend's running world
+	# exactly like Begin (POST /new_game with the tutorial scenario) — the
+	# same confirm row guards it when there is anything to lose.
+	if _saves.size() > 0 or MenuBoot.came_from_game:
+		_confirm_action = "tutorial"
+		_confirm_label.text = "Enter the School of War? The autosave of your running campaign is replaced."
+		_confirm_yes.text = "Confirm — to school"
+		_confirm_box.visible = not _confirm_box.visible
+	else:
+		_launch("tutorial")
 
 
 func _on_continue_pressed() -> void:
@@ -505,7 +530,7 @@ func _apply_backend_state() -> void:
 	for id in _buttons:
 		var b: Button = _buttons[id]
 		match id:
-			"begin", "return":
+			"begin", "return", "tutorial":
 				b.disabled = not _backend_up
 			"continue":
 				b.disabled = not (_backend_up and has_saves)

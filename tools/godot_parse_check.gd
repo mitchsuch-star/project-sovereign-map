@@ -76,6 +76,10 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/main_menu.gd",
 	"res://scripts/settings_panel.gd",
 	"res://scripts/menu_boot.gd",
+	# POSITION 7: the School of War tutor card — runtime-registered via
+	# dialog_manager (the IGR-E gap class: covered by neither main.tscn nor
+	# the script list unless named here).
+	"res://scripts/tutorial_overlay.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -109,6 +113,8 @@ const SCENE_INSTANTIATION_CHECKS = [
 	# Settings component it instantiates at runtime (IGR-E gap class).
 	"res://scenes/main_menu.tscn",
 	"res://scenes/settings_panel.tscn",
+	# POSITION 7: the School of War tutor card (runtime-registered).
+	"res://scenes/tutorial_overlay.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"

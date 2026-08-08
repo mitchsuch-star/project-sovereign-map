@@ -103,6 +103,18 @@ static func set_battle_sfx(enabled: bool) -> void:
 	_config().save(PATH)
 
 
+# --- POSITION 7: the School of War completion/skip latch ---
+# Per-machine is ACCEPTED for "don't re-open the tutor": the in-campaign step
+# is DERIVED from game_state.turn, never stored here.
+static func get_tutorial_done() -> bool:
+	return bool(_config().get_value("tutorial", "done", false))
+
+
+static func set_tutorial_done(done: bool) -> void:
+	_config().set_value("tutorial", "done", done)
+	_config().save(PATH)
+
+
 # --- Bus volumes (Music & Sound Core: Master / Music / SFX / UI) ---
 # Linear 0..1, applied by AudioManager (linear→dB); pause-menu sliders write here.
 const AUDIO_VOLUME_DEFAULTS := {

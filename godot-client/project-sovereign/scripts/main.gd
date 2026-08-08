@@ -275,6 +275,9 @@ var _post_hud_response_routes: Array = []
 # Pause Menu (Phase 6.5)
 var pause_menu = null
 
+# POSITION 7: the School of War tutor card (non-modal, CanvasLayer 90)
+var tutorial_overlay = null
+
 # Campaign Log (Phase 6.5)
 var campaign_log = null
 var dispatch_view = null
@@ -443,6 +446,13 @@ func _ready():
 		# live top edge, and closing it clears the map's selected-province glow.
 		region_panel.avoid_control = bottom_left_ui
 		region_panel.closed.connect(_on_region_panel_closed)
+
+	# POSITION 7: the School of War tutor card — non-modal like the war HUD.
+	# modal=false is LOAD-BEARING: a modal registration would block ESC/pause,
+	# hide the war HUD + region panel, and block every screen hotkey.
+	tutorial_overlay = dialog_manager.register("tutorial_overlay", "res://scenes/tutorial_overlay.tscn", false)
+	if tutorial_overlay:
+		tutorial_overlay.suggest_command.connect(_on_tutorial_suggest_command)
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
@@ -633,6 +643,12 @@ func _on_connection_test(response):
 		# N4i: Initialize war status HUD on game start
 		_process_active_wars(response)
 
+		# POSITION 7: plain entry / Return-to-the-War-Room — the /test payload
+		# carries the full game_state, so the tutor card arms (or disarms)
+		# from the world's own scenario_name here too.
+		if tutorial_overlay:
+			tutorial_overlay.on_world_swap(response)
+
 		# Fetch static map topology (adjacencies) from backend — §3.2 replaces
 		# the hardcoded REGION_CONNECTIONS that used to live in map.gd.
 		_initial_topology_failed = false
@@ -702,6 +718,8 @@ func _consume_menu_boot_action() -> void:
 	match action:
 		"new_game":
 			_on_pause_new_game_requested()
+		"tutorial":
+			_on_tutorial_boot_requested()
 		"continue":
 			add_output("[color=#" + Utils.COLOR_INFO + "]Resuming the campaign from the latest save...[/color]")
 			set_input_enabled(false)
@@ -1677,6 +1695,12 @@ func _on_command_result(response):
 		_stash_proclamation(response)
 		_stash_envoy_digest(response)
 		_stash_diorama(response)  # BD: same discipline — stash before routing
+		# POSITION 7: observe-only — the School of War reads every response
+		# ahead of routing so an early-returning route (objection, capture)
+		# still reaches the tutor. NEVER a _post_hud_response_routes entry
+		# (that is the documented end-turn-tail soft-lock).
+		if tutorial_overlay:
+			tutorial_overlay.observe(response)
 
 	# ═══════════════════════════════════════════════════════════
 	# DEBUG TRACE: Exact step-by-step debugging
@@ -3476,6 +3500,12 @@ func _on_enemy_phase_dismissed():
 	# Morning Dispatch — displayed last, right before player gets control
 	_show_pending_dispatch()
 
+	# POSITION 7: cosmetic pulse — replay the tutor's advance cue if a step
+	# turned while the enemy-phase dialog covered the card. Correctness never
+	# depends on this hook.
+	if tutorial_overlay:
+		tutorial_overlay.on_control_returned()
+
 	_return_control_to_player()
 
 
@@ -3672,6 +3702,12 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	_reset_frontend_state_for_world_swap(true)
 	_sync_response_hud(response)
 	_process_active_wars(response)
+
+	# POSITION 7: arm/disarm the School of War from the world's own
+	# scenario_name. This is also the mandatory re-assert after the reset's
+	# dialog_manager.hide_all() (raw hide(), no signal).
+	if tutorial_overlay:
+		tutorial_overlay.on_world_swap(response)
 
 	if success_text != "":
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + success_text + "[/color]")
@@ -3970,6 +4006,11 @@ func _on_interrupt_response(response):
 	# answer gave two different outcomes.
 	if typeof(response) == TYPE_DICTIONARY:
 		_stash_diorama(response)
+		# POSITION 7: this route BYPASSES _on_command_result — without this
+		# observe, a muster "Attack Anyway" battle would never advance an
+		# attack step of the School of War.
+		if tutorial_overlay:
+			tutorial_overlay.observe(response)
 	if response.success:
 		# A muster "Attack Anyway" RESOLVES a battle — render it with the same
 		# battle / After-Action formatting a direct attack gets, not a flat
@@ -5060,6 +5101,25 @@ func _on_pause_new_game_requested():
 	add_output("[color=#" + Utils.COLOR_INFO + "]Starting a new campaign. Current autosave will be replaced.[/color]")
 	set_input_enabled(false)
 	api_client.new_game(_on_new_game_result)
+
+func _on_tutorial_boot_requested():
+	"""POSITION 7: boot the School of War scenario (replaces the running
+	world and the autosave, exactly like a new campaign — the menu's shared
+	confirm row already guarded it)."""
+	add_output("[color=#" + Utils.COLOR_INFO + "]Convening the School of War. Current autosave will be replaced.[/color]")
+	set_input_enabled(false)
+	api_client.new_game(_on_new_game_result, "tutorial")
+
+func _on_tutorial_suggest_command(cmd: String) -> void:
+	"""POSITION 7: the tutor chip FILLS the command line — the player presses
+	Enter themselves (muscle memory for a typed-command game). It never
+	sends. Respects the shared chip latch: filling cannot double-send, but it
+	must not clobber the line while a chip command is mid-flight."""
+	if cmd.is_empty() or _chip_command_in_flight or not command_input.editable:
+		return
+	command_input.text = cmd
+	command_input.caret_column = cmd.length()
+	command_input.grab_focus()
 
 func _on_new_game_result(response):
 	"""Handle fresh-campaign hydration from backend."""

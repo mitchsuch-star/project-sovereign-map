@@ -157,3 +157,115 @@ class TestScenarioNameSerialization:
         client.post("/new_game", json={"scenario": "tutorial"})
         response = client.get("/test")
         assert response.json()["game_state"]["scenario_name"] == "tutorial"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# The School of War — client structural pins (T-G*) + the suggest-command
+# guarantee (T-B1). The .gd files are asserted as text, mirroring
+# tests/test_main_menu_and_ux_pass.py.
+# ═══════════════════════════════════════════════════════════════════════════
+
+GODOT = REPO / "godot-client" / "project-sovereign"
+
+
+def _read(rel: str) -> str:
+    return (GODOT / rel).read_text(encoding="utf-8")
+
+
+def _func_body(source: str, func_name: str) -> str:
+    """Slice one function's body out of a .gd file (to the next top-level
+    func) — the _on_continue_saves_listed slicing idiom."""
+    start = source.index(f"func {func_name}")
+    end = source.find("\nfunc ", start + 1)
+    return source[start:end] if end != -1 else source[start:]
+
+
+class TestClientStructuralPins:
+    def test_g1_consume_arms_old_and_new(self):
+        """T-G1: the NEW tutorial arm exists AND the position-6 pinned
+        new_game literal survives byte-for-byte."""
+        gd = _read("scripts/main.gd")
+        assert '"new_game":\n\t\t\t_on_pause_new_game_requested()' in gd
+        assert '"tutorial":\n\t\t\t_on_tutorial_boot_requested()' in gd
+
+    def test_g2_nonmodal_registration_and_observe_only(self):
+        """T-G2: registered NON-modal (load-bearing — modal would block
+        ESC/hotkeys/war HUD); observed on BOTH response paths; NEVER a
+        response-routes entry (the documented end-turn-tail soft-lock)."""
+        gd = _read("scripts/main.gd")
+        assert 'tutorial_overlay = dialog_manager.register("tutorial_overlay", ' \
+               '"res://scenes/tutorial_overlay.tscn", false)' in gd
+        assert gd.count("tutorial_overlay.observe(") >= 2
+        routes = _func_body(gd, "_configure_response_routes")
+        assert "tutorial" not in routes
+
+    def test_g3_observe_before_routing(self):
+        """T-G3: inside _on_command_result the observe sits AHEAD of
+        _route_response_ui so early-returning routes still reach the tutor."""
+        body = _func_body(_read("scripts/main.gd"), "_on_command_result")
+        assert body.index("tutorial_overlay.observe(") \
+            < body.index("_route_response_ui(")
+
+    def test_g4_menu_pins(self):
+        menu = _read("scripts/main_menu.gd")
+        assert '_add_menu_button("tutorial"' in menu
+        assert '_launch("tutorial")' in menu
+        assert '"begin", "return", "tutorial":' in menu
+        assert '"tutorial"' in _read("scripts/menu_boot.gd")
+
+    def test_g5_api_client_signature(self):
+        api = _read("scripts/api_client.gd")
+        assert 'func new_game(callback: Callable, scenario: String = "")' in api
+        assert '"scenario"' in api
+
+    def test_g6_overlay_hygiene(self):
+        """T-G6: no timers of any kind; the overlay can never SEND a command
+        (fills only, via the suggest signal); layer 90 under the modal band;
+        hidden until armed; the layer index + the UiSettings latch exist."""
+        overlay = _read("scripts/tutorial_overlay.gd")
+        assert "get_tree().create_timer" not in overlay
+        assert "send_command" not in overlay
+        assert "suggest:" in overlay
+        assert "signal suggest_command" in overlay
+        scene = _read("scenes/tutorial_overlay.tscn")
+        assert "layer = 90" in scene
+        assert "visible = false" in scene
+        assert "90: tutorial_overlay" in _read("scripts/dialog_manager.gd")
+        settings = _read("scripts/ui_settings.gd")
+        assert "static func get_tutorial_done" in settings
+        assert "static func set_tutorial_done" in settings
+
+    def test_g8_parse_harness_covers_the_new_files(self):
+        harness = (REPO / "tools" / "godot_parse_check.gd").read_text(encoding="utf-8")
+        assert "res://scripts/tutorial_overlay.gd" in harness
+        assert "res://scenes/tutorial_overlay.tscn" in harness
+
+
+class TestSuggestCommandsParse:
+    def test_b1_every_suggest_mock_parses_to_its_action(self):
+        """T-B1: every chip the tutor offers is guaranteed to parse — each
+        (suggest, suggest_action) pair from the step table is mock-parsed
+        against the tutorial world's own roster. Edit the two fields
+        together; an unparseable chip is a dead button."""
+        import re
+
+        from backend.commands.parser import CommandParser
+
+        overlay = _read("scripts/tutorial_overlay.gd")
+        suggests = re.findall(r'"suggest":\s*"([^"]*)"', overlay)
+        actions = re.findall(r'"suggest_action":\s*"([^"]*)"', overlay)
+        assert len(suggests) == len(actions)
+        assert len(suggests) >= 10, "the step table lost its suggests"
+        pairs = [(s, a) for s, a in zip(suggests, actions) if s != ""]
+        assert pairs, "no non-empty suggests found"
+
+        world = WorldState.from_scenario(
+            str((REPO / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "tutorial_1805.json")))
+        parser = CommandParser(use_real_llm=False)
+        for suggest, expected_action in pairs:
+            assert expected_action != "", suggest
+            result = parser.parse(suggest, world=world)
+            assert result.get("success"), (suggest, result.get("error"))
+            got = result["command"]["action"]
+            assert got == expected_action, (suggest, got, expected_action)

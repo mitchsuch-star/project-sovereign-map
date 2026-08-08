@@ -8,6 +8,10 @@ class_name DialogManager
 # modal tracking. Replaces ~275 lines of boilerplate in main.gd _ready().
 #
 # Layer assignments (set in .tscn files, higher = draws on top):
+#    90: tutorial_overlay (POSITION 7 — the School of War tutor card,
+#        NON-modal: above the layer-50 screens and TopBar 75 so it survives
+#        the ledger opening, UNDER the whole 101+ modal band so an objection
+#        popup draws over it)
 #   101: load_dialog
 #   102: clarification_popup
 #   103: interrupt_popup

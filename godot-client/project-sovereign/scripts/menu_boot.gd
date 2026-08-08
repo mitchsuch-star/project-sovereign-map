@@ -16,6 +16,9 @@ class_name MenuBoot
 #   "new_game"  — POST /new_game (fresh 1805 campaign; autosave refreshed)
 #   "continue"  — load the NEWEST save file (autosave included)
 #   "load"      — open the Load Campaign dialog over the fresh session
+#   "tutorial"  — POST /new_game {"scenario": "tutorial"} (POSITION 7: the
+#                 School of War / Danube Lesson; replaces the running world
+#                 and the autosave exactly like new_game)
 # =============================================================================
 
 static var pending_action := ""
