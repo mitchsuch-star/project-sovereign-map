@@ -40,6 +40,13 @@ HOW TO LAUNCH:
 TYPE COMMANDS in the terminal at the bottom of the screen.
 Press Enter to send.
 
+SPEAK COMMANDS (optional):
+  Click the command line, press Win+H, and dictate.
+  Windows voice typing writes into the terminal —
+  review the text, then press Enter to send.
+  (Windows 10: turn on "Online speech recognition"
+  in Windows Settings if the panel refuses to listen.)
+
 HOTKEYS:
   F1  — Diplomacy wizard (propose treaties, negotiate)
   D   — Morning Dispatch (turn briefing)

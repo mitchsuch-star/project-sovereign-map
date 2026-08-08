@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,538 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
+> **suite 16,544 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy
@@ -138,9 +138,22 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`.
 > **⚠ open: user visual sign-off (tutor card + menu row + ADMIRALTY tab).**
 >
-> **▶ NEXT = POSITION 8, VOICE-TO-TEXT (approach gate)** — then 9 marshal
-> voice, 10 the shippable build (inherits the menu). The §3.5 AUDITION GATE
-> PASSED (user) Aug 7 — the Music & Sound row is COMPLETE.
+> **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
+> (user-delegated *"what works best for steam or itch release"*; **gate +
+> landing record = `ROADMAP.md` row 8, authoritative**): ruling = **(a) OS
+> dictation (Win+H) as the supported v1** — SPOKEN ORDERS section on the shared
+> `settings_panel.gd` + README_TESTER SPEAK COMMANDS block +
+> `tests/test_voice_dictation_v1.py` (GR6 display-only pin, GR9 re-open pin);
+> **(b) embedded whisper.cpp DEFERRED** behind the named re-open condition
+> (Round-0 testers actually dictating / store page needing more); **(c) cloud
+> STT REJECTED** (second key breaks single-key BYOK). Dictation FILLS the
+> command line, Enter sends — never auto-submits (PARSE-NEG discipline). ⚠
+> open: the ~1-min live spoken check (user, folds into the tutorial sign-off
+> pass); position 14's *"or speak them"* store claim gates on it.
+>
+> **▶ NEXT = POSITION 9, MARSHAL VOICE TIER 1 + XR-5 (the CA8-D3 gate rides
+> this slot)** — then 10 the shippable build (inherits the menu). The §3.5
+> AUDITION GATE PASSED (user) Aug 7 — the Music & Sound row is COMPLETE.
 >
 > **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
 > CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by

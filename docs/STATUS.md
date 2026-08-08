@@ -53,8 +53,24 @@
 > scenario Aug 8**); NV-12 "The Clear Deck" = `NAVAL_SPEC.md` §16. ⚠ open:
 > user visual sign-off on the tutor card + menu row + THE ADMIRALTY tab
 > (evidence `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`).
-> **▶ NEXT = POSITION 8, VOICE-TO-TEXT (approach gate)** — then 9 marshal
-> voice, 10 the shippable build. BOTH halves of Music &
+> **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
+> (user-delegated: *"what works best for steam or itch release"* / *"use best
+> decision"* — **gate + landing record = `ROADMAP.md` row 8, authoritative**).
+> Ruling = **(a) OS dictation (Win+H) as the supported v1**: SPOKEN ORDERS
+> section on the shared `settings_panel.gd` (menu + pause inherit; review-then-
+> send wording — dictation FILLS the command line, Enter sends, PARSE-NEG
+> discipline) + the README_TESTER.txt SPEAK COMMANDS block +
+> `tests/test_voice_dictation_v1.py` (GR6 display-only structural pin + GR9
+> re-open-condition pin). **(b) embedded whisper.cpp DEFERRED** behind the
+> named re-open condition (Round-0 testers actually dictating / store page
+> needing a stronger claim); **(c) cloud STT REJECTED** (second vendor key
+> breaks single-key BYOK). ⚠ open: the ~1-min **live spoken check** (user —
+> folds into the tutorial sign-off pass): focus the command line, Win+H, speak
+> an order; confirm the voice-typing panel attaches to the Godot `LineEdit`
+> and the text lands. Position 14's *"or speak them"* store claim gates on it.
+> Suite **16,544/3** · parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.
+> **▶ NEXT = POSITION 9, MARSHAL VOICE TIER 1 + XR-5 (the CA8-D3 gate rides
+> this slot)** — then 10 the shippable build. BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static

@@ -14,6 +14,11 @@ class_name SettingsPanel
 #     user://ui_settings.cfg, pushed to the player's OWN backend at
 #     127.0.0.1:8005 (/config/llm); an empty key reverts the backend to its
 #     .env configuration. The key is never sent anywhere else.
+#   • SPOKEN ORDERS — the Voice-to-Text v1 hint (Road-to-EA position 8):
+#     OS dictation (Win+H) into the command line. Display-only by design —
+#     dictation types text; the SAME deterministic parser reads it (GR6).
+#     Embedded STT (whisper.cpp) is deferred behind the ROADMAP row-8 re-open
+#     condition (Round-0 tester usage).
 #   • CREDITS   — the CC-BY obligations + courtesy lines
 #
 # The host applies scale itself (main.gd owns map compensation in-game; the
@@ -43,6 +48,7 @@ func _ready() -> void:
 	_build_interface_section()
 	_build_sound_section()
 	_build_parser_section()
+	_build_voice_section()
 	_build_credits_section()
 	_http = HTTPRequest.new()
 	_http.timeout = 6.0
@@ -281,6 +287,17 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 	if mode == "push":
 		line = "Applied. " + line
 	_parser_status.text = line
+
+
+# ── SPOKEN ORDERS (Voice-to-Text v1: OS dictation) ──────────────────────────
+
+func _build_voice_section() -> void:
+	_add_header("SPOKEN ORDERS")
+	_add_hint("Dictation is supported through Windows voice typing: click the "
+		+ "command line, press Win+H, and speak your order. It is typed into "
+		+ "the box for you to review and send with Enter — through the same "
+		+ "parser as typed orders. On Windows 10, turn on 'Online speech "
+		+ "recognition' in Windows Settings if the panel refuses to listen.")
 
 
 # ── CREDITS ─────────────────────────────────────────────────────────────────
