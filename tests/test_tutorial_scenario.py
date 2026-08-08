@@ -93,14 +93,20 @@ class TestBootFacts:
 
     def test_roster_as_authored(self, tutorial_world):
         w = tutorial_world
+        # S5 live-drive retune (Aug 8): Jellacic CAUTIOUS (a literal's
+        # stagnation-breaker lunged him off the Tyrol anchor by turn 4 —
+        # a cautious defender fortifies the pass and stays); Charles at
+        # HUNGARY (a Vienna-paired reserve combined and sortied by turn 5,
+        # 44k onto the scripted beats — apart, the combined-strength attack
+        # arrives in the designed turn-8+ window).
         expected = {
             "Ney": ("France", "Rhineland", 24000, "aggressive"),
             "Davout": ("France", "Lorraine", 26000, "cautious"),
             "Soult": ("France", "Paris", 40000, "literal"),
             "Senarmont": ("France", "Franche-Comte", 14000, "cautious"),
             "Kienmayer": ("Austria", "Swabia", 8000, "literal"),
-            "Jellacic": ("Austria", "Tyrol", 8000, "literal"),
-            "ArchdukeCharles": ("Austria", "Vienna", 26000, "cautious"),
+            "Jellacic": ("Austria", "Tyrol", 8000, "cautious"),
+            "ArchdukeCharles": ("Austria", "Hungary", 26000, "cautious"),
             "Schwarzenberg": ("Austria", "Vienna", 24000, "cautious"),
         }
         assert len(w.marshals) == len(expected)

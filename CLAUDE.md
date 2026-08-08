@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,436 passed / 3 skipped · ruff clean · golden corpus 514/514 · Godot parse harness EXIT=0 (42 scripts).**
+> **suite 16,538 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy
@@ -111,12 +111,36 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > captured against a live backend. **✅ Visual sign-off PASSED August 8, 2026
 > (user) — position 6 is CLOSED.**
 >
-> **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
-> + the legacy 19-region on-ramp; "late on purpose" consciously overruled by the
-> plan's owner; the Victory-touch-up cost recorded on the row) — then 8
-> voice-to-text (approach gate), 9 marshal voice, 10 the shippable build (inherits
-> the menu). The §3.5 AUDITION GATE PASSED (user) Aug 7 — the Music & Sound row is
-> COMPLETE.
+> **~~POSITION 7, THE TUTORIAL~~ ✅ BUILT August 8, 2026 in one session — "THE
+> SCHOOL OF WAR" + the NV-12 "Clear Deck" naval-clarity rider** (user: "create
+> the tutorial and while doing it make the ui for naval more clear like naval
+> expeditions etc"; landing record = STATUS top entry, naval half =
+> `NAVAL_SPEC.md` §16): the row's "legacy on-ramp, zero code change" premise
+> was FALSE on the client (map renderer Europe-hardwired since the cutover) —
+> user ruled Aug 8 for an AUTHORED scenario on the real 1805 map. Five slices:
+> S1 the allowlisted `/new_game {"scenario":"tutorial"}` + ONE serialized
+> display-only `WorldState.scenario_name` + `tutorial_1805.json` "The Danube
+> Lesson" (Ulm in miniature; every beat precondition pinned as arithmetic) ·
+> S2 `tutorial_overlay.gd` (Berthier's NON-modal tutor card, layer 90,
+> observe-only at the stash chokepoints, suggest chips FILL the command line,
+> T-B1 mock-parse-pins every suggest) + the menu row sharing Begin's confirm ·
+> S3 R159 nine screens teach themselves + TUTORIAL_SCRIPT.md refreshed ·
+> S4 NV-12 (Admiralty = ledger tab 7; the dead expedition_terms payload
+> renders with detail + loss constants; fleetless Orders survive with reasons
+> + a build chip; expedition_blocked_reasons on the region panel; bare-SHUT
+> names the coverer; crossings legend; camp threshold; naval_line consumed;
+> corpus confirm-reissue row + diversion few-shot; ONE pin flipped
+> consciously) · S5 the live drive (whole lesson over HTTP 20/20 green —
+> caught 4 defects the suite could not: the marshals-dict payload shape, two
+> AI-choreography anchor breaks fixed by re-authoring Jellacic cautious +
+> Charles@Hungary, and the beat re-order bombard→battle with the capture
+> retargeted to Bohemia). Suite 16,538/3; evidence
+> `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`.
+> **⚠ open: user visual sign-off (tutor card + menu row + ADMIRALTY tab).**
+>
+> **▶ NEXT = POSITION 8, VOICE-TO-TEXT (approach gate)** — then 9 marshal
+> voice, 10 the shippable build (inherits the menu). The §3.5 AUDITION GATE
+> PASSED (user) Aug 7 — the Music & Sound row is COMPLETE.
 >
 > **~~THE CA8 CLOSE-OUT GATES~~ ✅ HELD + BUILT August 7, 2026 (user-delegated) — THE
 > CREATIVE-AUDIT SECTION IS CLOSED: 25 of 28 fixed · 1 refuted · CA8-19 closed by
@@ -162,7 +186,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > Aug 7, see the entry above) → **6 THE MAIN MENU** (✅ **BUILT Aug 8** — title
 > scene w/ PD battle-painting slideshow, shared SettingsPanel promoted from the
 > pause menu, in-client API-key via `/config/llm`, "Ink & Iron" name + generated
-> icon; see the top entry) → **▶ 7 TUTORIAL** (up from 14 — `TutorialManager` +
+> icon; see the top entry) → **~~7 TUTORIAL~~** (✅ **BUILT Aug 8** — up from 14 — `TutorialManager` +
 > `TUTORIAL_SCRIPT.md` + the legacy 19-region on-ramp; "late on purpose"
 > consciously overruled, the Victory-touch-up cost recorded on the row) →
 > **8 Voice-to-Text** (approach gate) → **9 Marshal Voice Tier 1 + XR-5** (the

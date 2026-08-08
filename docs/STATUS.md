@@ -40,11 +40,21 @@
 >
 > **~~POSITION 6, THE MAIN MENU~~ ✅ BUILT August 8, 2026 + VISUAL SIGN-OFF
 > PASSED August 8, 2026 (user: "approved main menu") — the row is CLOSED** (with
-> the two same-day UX fixes: thematic clicks + the Reward chip) — see the top
-> entry below.
-> **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
-> + the legacy 19-region on-ramp; the Victory-touch-up cost is recorded on the
-> row). The standing UI sign-off convention has NO open items. BOTH halves of Music &
+> the two same-day UX fixes: thematic clicks + the Reward chip).
+>
+> **~~POSITION 7, THE TUTORIAL~~ ✅ BUILT August 8, 2026 in one session — "THE
+> SCHOOL OF WAR" + the NV-12 naval clarity rider** (user: "create the tutorial
+> and while doing it make the ui for naval more clear like naval expeditions
+> etc") — see the top session entry below. Five slices S1–S5, commits
+> `6cede4a`/`cff5a98`/`5fb7f72`/`cd1be00`/+S5; the tutorial runs on the AUTHORED
+> Danube Lesson scenario on the real 1805 map (**the row's "legacy 19-region
+> on-ramp, zero code change" premise was FALSE on the client — the map renderer
+> retired that path at the July cutover; the user ruled for the authored
+> scenario Aug 8**); NV-12 "The Clear Deck" = `NAVAL_SPEC.md` §16. ⚠ open:
+> user visual sign-off on the tutor card + menu row + THE ADMIRALTY tab
+> (evidence `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`).
+> **▶ NEXT = POSITION 8, VOICE-TO-TEXT (approach gate)** — then 9 marshal
+> voice, 10 the shippable build. BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
@@ -68,6 +78,78 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ THE SCHOOL OF WAR (position 7) + NV-12 "THE CLEAR DECK" — August 8, 2026 — BUILT, one session
+>
+> User: *"create the tutorial and while doing it make the ui for naval more
+> clear like naval expeditions etc."* Plan-mode session (3 recon + 2 design
+> agents), then five slices, each committed green:
+>
+> - **S1 `6cede4a`** — `/new_game` gains an ALLOWLISTED scenario name
+>   (`{"scenario": "tutorial"}`; raw paths never accepted; unknown names fail
+>   loudly, world untouched); ONE serialized display-only field
+>   `WorldState.scenario_name`; **`tutorial_1805.json` "The Danube Lesson"**
+>   (Sept 1805 Ulm in miniature: France+Bavaria ALLIANCE bridge vs Austria
+>   only, one-way front by `can_enter_territory`, naval/agendas/commissioning
+>   dormant by authoring, treasury 900 under the EB-1 floor → boot charges 0;
+>   personality=character honored — canon-literal Mack NOT re-cast, the
+>   reserve pair is Charles+Schwarzenberg verbatim from the shipped file).
+>   `test_tutorial_scenario.py` (22) pins every beat precondition as
+>   arithmetic — T2 objection STRONG pre-variance (popup survives mood
+>   variance), recruit 450g, movement walls, containment ratios.
+> - **S2 `cff5a98`** — `tutorial_overlay.gd/.tscn`: Berthier's tutor card,
+>   NON-modal CanvasLayer 90, 15-step table, observe-only at the stash-first
+>   chokepoints (+ the interrupt path), suggest chips that FILL the command
+>   line (never send), turn-derived resume, skip/minimize, per-machine
+>   completion latch; menu button "The School of War — a guided campaign"
+>   sharing Begin's parameterized confirm row; **T-B1: every suggest string
+>   is mock-parsed against the tutorial world by a standing test.**
+> - **S3 `5fb7f72`** — R159: nine screens teach themselves (ledger per-tab,
+>   Generals, diplomatic ledger, war HUD+detail, region panel, mailbox,
+>   dispatch); TUTORIAL_SCRIPT.md refreshed after six stale months (numbers
+>   corrected, shipped systems re-inventoried, the Danube beat table replaces
+>   Short Waterloo).
+> - **S4 `cd1be00`** — **NV-12 "The Clear Deck"** (`NAVAL_SPEC.md` §16, zero
+>   mechanics): THE ADMIRALTY becomes ledger tab 7; the dead
+>   `expedition_terms` payload finally renders WITH per-term detail + the
+>   resolver's own loss constants + "effective = sail × readiness"; the
+>   Orders block survives fleetlessness (ONE pin flipped consciously —
+>   offered-NOTHING became offered-REASONS) + a nation-scoped build chip
+>   composing the executor's two gates; `expedition_blocked_reasons` names
+>   why every chip-less coastal province refuses (court-her / detach-N /
+>   march-to-a-yard) as region-panel disabled pills; bare-SHUT names the
+>   coverer; WINDOW names its effects; ONE crossings legend+remedy line; the
+>   camp shows its 40,000 threshold below it; `war_detail` consumes the
+>   never-rendered `naval_line`; corpus row for the confirm-button's exact
+>   reissue string + the missing `naval_diversion` few-shot.
+>   `test_naval_ui_clarity.py` (25).
+> - **S5** — the live drive: a fresh backend + the WHOLE lesson over HTTP in
+>   mock mode, **20/20 checks green** — and it caught FOUR real defects the
+>   suite could not: `game_state.marshals` is a DICT (the overlay's location
+>   predicates read a phantom list shape), a literal Jellacic's
+>   stagnation-breaker lunged him off the Tyrol anchor by turn 4 (now
+>   CAUTIOUS — a fortifying defender stays), a Vienna-paired reserve
+>   combined and sortied by turn 5 onto the scripted beats (Charles now
+>   starts at HUNGARY; the combined-strength attack arrives in the designed
+>   turn-8+ free-play window), and the beats re-ordered bombard→battle
+>   (T3/T4) with the capture retargeted to BOHEMIA via Davout's own march
+>   line (both arms — empty-province PF-3 and defended-province
+>   attack-the-name — observed working across runs). Evidence:
+>   `TUTORIAL_MENU_2026_08_08.png`, `TUTORIAL_SCHOOL_OF_WAR_2026_08_08.png`
+>   (the card ARMED live on the real path), `NV12_ADMIRALTY_TAB_2026_08_08.png`
+>   (every new field on screen); harness `tools/tutorial_screenshot.gd`
+>   kept committed like its siblings.
+>
+> **Recorded correction:** the roadmap row's "legacy 19-region on-ramp, zero
+> code change" was FALSE on the client (the map renderer is Europe-hardwired;
+> the 19-circle path is retired and five weeks of UI postdate it). Put to the
+> user Aug 8; ruled: authored 1805-map scenario. **Deferred, homed:** the T6
+> defended-Bohemia arm relies on card language + the turn-gate catch-up (no
+> scripted multi-marshal lesson — the shipped coordination_tutorial owns that
+> and is authored pre-shown); the shipped 1805 campaign now reports its own
+> `scenario_name` ("The Third Coalition, 1805"), display-only.
+> ⚠ open: user visual sign-off (tutor card look/feel, menu row, ADMIRALTY tab,
+> region-panel naval rows).
 
 > ### ✅ THE MAIN MENU (position 6) + two UX fixes — August 8, 2026 — BUILT, one session
 >

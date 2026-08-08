@@ -93,28 +93,28 @@ const STEPS := [
 		"advance": "_pred_objection_resolved",
 	},
 	{
-		"id": "first_battle",
-		"turn_gate": 3,
-		"title": "VI. First Blood",
-		"body": "Now the sword. Kienmayer's 8,000 stand across the Rhine on allied Bavarian soil — Ney carries three times their number. Attack, and read the battle report that follows: terrain, casualties, and the temper of the men.",
-		"suggest": "Ney, attack Kienmayer",
-		"suggest_action": "attack",
-		"advance": "_pred_battle_happened",
-	},
-	{
 		"id": "bombardment",
-		"turn_gate": 4,
-		"title": "VII. The Guns Speak",
-		"body": "Senarmont's batteries at Munich range the Tyrol passes. Artillery fires one province distant — but never on the day it marched; the guns must be laid. Bombard Jellacic, then let Ney finish or occupy Swabia.",
+		"turn_gate": 3,
+		"title": "VI. The Guns Speak",
+		"body": "Senarmont's batteries at Munich range the Tyrol passes, where Jellacic digs in. Artillery fires one province distant — but never on the day it marched; the guns must be laid. Bombard him while he still holds the pass; Austria rotates her corps within days.",
 		"suggest": "Senarmont, bombard Jellacic",
 		"suggest_action": "attack",
 		"advance": "_pred_bombardment",
 	},
 	{
+		"id": "first_battle",
+		"turn_gate": 4,
+		"title": "VII. First Blood",
+		"body": "Now the sword. Kienmayer's screen still stands across the Rhine on allied Bavarian soil — Ney carries three times their number. Attack, and read the battle report that follows: terrain, casualties, and the temper of the men. Then occupy Swabia if the field is empty ([color=#e8d4a8]Ney, move to Swabia[/color]).",
+		"suggest": "Ney, attack Kienmayer",
+		"suggest_action": "attack",
+		"advance": "_pred_battle_happened",
+	},
+	{
 		"id": "strategic_order",
 		"turn_gate": 5,
 		"title": "VIII. Standing Orders",
-		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the second leg move without you tomorrow.",
+		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own).",
 		"suggest": "Davout, march to Franconia",
 		"suggest_action": "move",
 		"advance": "_pred_davout_marching",
@@ -123,9 +123,9 @@ const STEPS := [
 		"id": "capture",
 		"turn_gate": 6,
 		"title": "IX. Conquest",
-		"body": "The Tyrol is Austrian soil, held by a mauled corps. Take it — by battle, or by marching in if Jellacic is already broken ([color=#e8d4a8]Ney, move to Tyrol[/color]). Note the fortress figures on the map as you pass: Munich's 10,000, Vienna's 25,000 — capitals are not taken by walking.",
-		"suggest": "Ney, attack Jellacic",
-		"suggest_action": "attack",
+		"body": "Bohemia is Austrian soil, and Davout stands at its border. March in and it is yours ([color=#e8d4a8]Davout, move to Bohemia[/color]); if an Austrian corps holds it, the refusal will name him — attack that name, and the province follows the battle. Mark the fortress figures as you pass: Munich's 10,000, Vienna's 25,000 — capitals are not taken by walking.",
+		"suggest": "Davout, move to Bohemia",
+		"suggest_action": "move",
 		"advance": "_pred_capture_pending",
 	},
 	{
@@ -405,12 +405,22 @@ func _pred_any_success(response: Dictionary) -> bool:
 
 
 func _marshal_location(response: Dictionary, marshal_name: String) -> String:
+	# The REAL payload shape (caught by the S5 live drive, not by any unit
+	# test): game_state.marshals is a DICTIONARY of name -> {location,
+	# strength, morale}. A list-of-dicts arm is kept as tolerance.
 	var gs = response.get("game_state")
 	if typeof(gs) != TYPE_DICTIONARY:
 		return ""
-	for m in gs.get("marshals", []):
-		if typeof(m) == TYPE_DICTIONARY and str(m.get("name", "")) == marshal_name:
-			return str(m.get("location", ""))
+	var marshals = gs.get("marshals")
+	if typeof(marshals) == TYPE_DICTIONARY:
+		var rec = marshals.get(marshal_name)
+		if typeof(rec) == TYPE_DICTIONARY:
+			return str(rec.get("location", ""))
+		return ""
+	if typeof(marshals) == TYPE_ARRAY:
+		for m in marshals:
+			if typeof(m) == TYPE_DICTIONARY and str(m.get("name", "")) == marshal_name:
+				return str(m.get("location", ""))
 	return ""
 
 
@@ -452,7 +462,10 @@ func _pred_bombardment(response: Dictionary) -> bool:
 
 
 func _pred_davout_marching(response: Dictionary) -> bool:
-	return _marshal_location(response, "Davout") in ["Swabia", "Franconia"]
+	# Any waypoint counts — the S5 live drive saw the pathfinder route the
+	# second leg through Munich around an enemy-held Franconia, which IS the
+	# lesson ("he routes around enemies on his own").
+	return _marshal_location(response, "Davout") in ["Swabia", "Munich", "Franconia"]
 
 
 func _pred_capture_pending(response: Dictionary) -> bool:
