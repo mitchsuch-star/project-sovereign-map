@@ -256,6 +256,107 @@ class TestClientStructuralPins:
         assert "it lapses" in _read("scripts/mailbox_panel.gd")
         assert "before you spend a single order" in _read("scripts/dispatch_view.gd")
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Aug 8 live-report fixes (user drove the lesson): the end-turn int(null)
+# crash + the tutorial eating the campaign's autosave.
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestOverlayPayloadIntSafety:
+    """The end-turn step crashed live: main.py stamps `turn_ended: null` on
+    every non-end-turn response, Dictionary.get()'s default does NOT apply to
+    a present-but-null key (the CLAUDE.md `.get('key', 0)` trap), and
+    GDScript int(null) is a script error ("Nonexistent 'int' constructor").
+    Every int read off a PAYLOAD must route through the null-safe _as_int;
+    authored STEPS constants may keep bare int()."""
+
+    def test_as_int_helper_exists(self):
+        overlay = _read("scripts/tutorial_overlay.gd")
+        assert "static func _as_int(" in overlay
+
+    def test_no_bare_int_over_payload_reads(self):
+        import re
+
+        overlay = _read("scripts/tutorial_overlay.gd")
+        # A BARE int( — not the tail of _as_int( — over any .get() payload
+        # read. (The naive substring check matched inside _as_int itself.)
+        bare = re.findall(
+            r"(?<![\w])int\((?:response|gs)[^\n]*\.get\(", overlay
+        )
+        assert not bare, f"payload int() regressed: {bare}"
+        # The helper definition + the four payload sites (turn ×2, pool,
+        # turn_ended).
+        assert overlay.count("_as_int(") >= 5
+
+
+class TestTutorialSaveIsolation:
+    """The lesson must never eat the campaign's saves: /new_game autosaves on
+    boot and every end-turn autosaves again — both were overwriting
+    autosave.json, and the menu's Continue reads the NEWEST save, so one
+    tutorial session destroyed the campaign autosave AND hijacked Continue.
+    The guard lives in save_manager.autosave() (single source — every call
+    site inherits); manual player-named tutorial saves stay allowed."""
+
+    def test_autosave_skips_tutorial_world(self, tmp_path):
+        from backend import save_manager
+
+        world = WorldState()
+        world.scenario_name = "tutorial"
+        with patch("backend.save_manager.SAVE_DIR", tmp_path):
+            result = save_manager.autosave(world)
+        assert result["success"] is True
+        assert result.get("skipped") == "tutorial"
+        assert not (tmp_path / save_manager.AUTOSAVE_FILENAME).exists()
+
+    def test_autosave_still_writes_campaign_world(self, tmp_path):
+        from backend import save_manager
+
+        world = WorldState()
+        assert world.scenario_name == ""
+        with patch("backend.save_manager.SAVE_DIR", tmp_path):
+            result = save_manager.autosave(world)
+        assert result["success"] is True
+        assert result.get("skipped") is None
+        assert (tmp_path / save_manager.AUTOSAVE_FILENAME).exists()
+
+    def test_new_game_tutorial_leaves_existing_autosave_untouched(
+        self, handshake_client
+    ):
+        client, main_module = handshake_client
+        from backend import save_manager
+
+        # A campaign autosave exists first (default boot refreshes it).
+        response = client.post("/new_game")
+        assert response.json()["autosave_success"] is True
+        autosave_path = Path("saves") / "__tutorial_handshake_tmp__" \
+            / save_manager.AUTOSAVE_FILENAME
+        assert autosave_path.exists()
+        before = autosave_path.read_bytes()
+
+        # Booting the LESSON leaves it byte-identical and says so.
+        response = client.post("/new_game", json={"scenario": "tutorial"})
+        data = response.json()
+        assert data["success"] is True
+        assert data["autosave_success"] is True
+        assert "campaign autosave is untouched" in data["message"]
+        assert autosave_path.read_bytes() == before
+
+    def test_tutorial_end_turn_does_not_write_autosave(self, handshake_client):
+        client, main_module = handshake_client
+        from backend import save_manager
+
+        client.post("/new_game", json={"scenario": "tutorial"})
+        autosave_path = Path("saves") / "__tutorial_handshake_tmp__" \
+            / save_manager.AUTOSAVE_FILENAME
+        assert not autosave_path.exists()
+        response = client.post("/command", json={"command": "end turn"})
+        assert response.json()["success"] is True
+        assert main_module.world.current_turn == 2
+        assert not autosave_path.exists(), (
+            "the end-turn autosave wrote the campaign slot from the tutorial"
+        )
+
     def test_g8_parse_harness_covers_the_new_files(self):
         harness = (REPO / "tools" / "godot_parse_check.gd").read_text(encoding="utf-8")
         assert "res://scripts/tutorial_overlay.gd" in harness

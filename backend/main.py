@@ -3361,7 +3361,11 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
         autosave_result = autosave(new_world)
         autosave_ok = bool(autosave_result.get("success", False))
         message = "New campaign started."
-        if autosave_ok:
+        if autosave_result.get("skipped") == "tutorial":
+            # The lesson never writes the campaign's autosave slot — shown,
+            # not silent, so nobody reads "refreshed" over a skip.
+            message += " Your campaign autosave is untouched."
+        elif autosave_ok:
             message += " Autosave refreshed."
         else:
             message += " Warning: autosave refresh failed."

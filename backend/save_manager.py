@@ -158,7 +158,23 @@ def load_game(filepath: Path) -> Dict:
 
 
 def autosave(world: WorldState) -> Dict:
-    """Save to autosave slot. Called at start of each new turn."""
+    """Save to autosave slot. Called at start of each new turn.
+
+    The tutorial ("The Danube Lesson") NEVER touches the slot: autosave.json
+    belongs to the player's campaign, and the menu's Continue reads the newest
+    save — a lesson that wrote here would both destroy the campaign autosave
+    (at /new_game AND every tutorial end-turn) and hijack Continue into
+    resuming the school instead of the war. Manual, player-named saves of the
+    tutorial stay allowed (scenario_name rides the save, so the overlay
+    re-arms on load). Position-8 session fix, Aug 8 2026.
+    """
+    if str(getattr(world, "scenario_name", "")) == "tutorial":
+        return {
+            "success": True,
+            "skipped": "tutorial",
+            "message": "Tutorial — campaign autosave untouched",
+            "filepath": "",
+        }
     return save_game(
         world,
         save_name=f"Autosave - Turn {world.current_turn}",

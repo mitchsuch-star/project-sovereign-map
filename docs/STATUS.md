@@ -53,6 +53,29 @@
 > scenario Aug 8**); NV-12 "The Clear Deck" = `NAVAL_SPEC.md` §16. ⚠ open:
 > user visual sign-off on the tutor card + menu row + THE ADMIRALTY tab
 > (evidence `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`).
+> **TWO LIVE-REPORT FIXES Aug 8 (user drove the lesson, same session as
+> position 8): TUT-F1** the end-turn step CRASHED — `main.py:491` stamps
+> `turn_ended: null` on every non-end-turn response, `Dictionary.get()`'s
+> default does NOT apply to a present-but-null key (the CLAUDE.md trap), and
+> GDScript `int(null)` is a hard script error; fixed with the null-safe
+> `_as_int` helper at ALL FOUR payload-int sites in `tutorial_overlay.gd` (+
+> the `capture_choice` `str(null)`→"<null>" false-advance guarded), proven by
+> a one-off headless SceneTree drive (null survives + no false advance; a real
+> end turn advances 2→3) — **tutorial-only by construction** (the predicates
+> run only while the overlay is armed on `scenario_name == "tutorial"`; the
+> campaign never executes them). **TUT-F2 the tutorial ATE the campaign's
+> saves** — `/new_game {"scenario":"tutorial"}` autosaved the fresh lesson
+> world (main.py:3361) and every tutorial end-turn autosaved again, all into
+> the ONE `autosave.json` slot the menu's Continue reads newest-first: one
+> lesson destroyed the campaign autosave AND hijacked Continue. Fixed at the
+> single source — `save_manager.autosave()` no-ops for
+> `scenario_name == "tutorial"` (every call site inherits), `/new_game`'s
+> banner says "Your campaign autosave is untouched" instead of lying
+> "refreshed", manual player-named tutorial saves stay allowed (scenario rides
+> the save; the overlay re-arms on load). Pins: `test_tutorial_position7.py`
+> +6 (regex-guarded no-bare-`int()`-over-payload, mutation-checked both
+> directions; autosave skip/write/byte-identical-through-tutorial-boot/
+> end-turn-no-write).
 > **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
 > (user-delegated: *"what works best for steam or itch release"* / *"use best
 > decision"* — **gate + landing record = `ROADMAP.md` row 8, authoritative**).

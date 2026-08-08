@@ -44,7 +44,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (August 7, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 16,544 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
+> **suite 16,550 passed / 3 skipped · ruff clean · golden corpus 515 rows / 526 harness tests · Godot parse harness EXIT=0 (49 scripts + 6 scenes).**
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy
@@ -137,6 +137,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > retargeted to Bohemia). Suite 16,538/3; evidence
 > `docs/audits/TUTORIAL_*_2026_08_08.png` + `NV12_ADMIRALTY_TAB_2026_08_08.png`.
 > **⚠ open: user visual sign-off (tutor card + menu row + ADMIRALTY tab).**
+> **Two live-report fixes Aug 8 (record = STATUS top entry): TUT-F1** the
+> end-turn step's `int(null)` crash (`turn_ended: null` rides every
+> non-end-turn response; null survives `.get()`'s default) — null-safe
+> `_as_int` at all four payload-int sites in `tutorial_overlay.gd`,
+> tutorial-only by construction; **TUT-F2** the tutorial no longer touches
+> `autosave.json` (`save_manager.autosave()` no-ops on
+> `scenario_name == "tutorial"` — it had clobbered the campaign autosave at
+> lesson BOOT and every end turn, and hijacked the menu's newest-save
+> Continue); `test_tutorial_position7.py` +6.
 >
 > **~~POSITION 8, VOICE-TO-TEXT~~ ✅ GATE HELD + v1 BUILT August 8, 2026**
 > (user-delegated *"what works best for steam or itch release"*; **gate +

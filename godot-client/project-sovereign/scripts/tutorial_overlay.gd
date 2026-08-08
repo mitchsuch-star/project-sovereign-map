@@ -217,6 +217,28 @@ func _ready() -> void:
 	_restore_button.pressed.connect(_on_restore)
 
 
+# ── payload safety ──────────────────────────────────────────────────────────
+
+static func _as_int(value, fallback: int) -> int:
+	# JSON null SURVIVES Dictionary.get()'s default (the key exists, holding
+	# null — the `.get('key', 0)` trap from the CLAUDE.md table), and
+	# int(null) is a script error ("Nonexistent 'int' constructor"): the
+	# backend stamps `turn_ended: null` on every non-end-turn response, which
+	# crashed the end-turn step live (Aug 8). Every int read off a PAYLOAD
+	# goes through here; authored STEPS constants may keep bare int().
+	match typeof(value):
+		TYPE_INT:
+			return value
+		TYPE_FLOAT:
+			return int(value)
+		TYPE_BOOL:
+			return 1 if value else 0
+		TYPE_STRING:
+			return int(value) if str(value).is_valid_int() else fallback
+		_:
+			return fallback
+
+
 # ── arming (world identity) ─────────────────────────────────────────────────
 
 func on_world_swap(response) -> void:
@@ -230,7 +252,7 @@ func on_world_swap(response) -> void:
 	var name := ""
 	if typeof(gs) == TYPE_DICTIONARY:
 		name = str(gs.get("scenario_name", ""))
-		_turn = int(gs.get("turn", _turn))
+		_turn = _as_int(gs.get("turn"), _turn)
 	if name != "tutorial" or UiSettings.get_tutorial_done():
 		_active = false
 		hide()
@@ -272,7 +294,7 @@ func observe(response) -> void:
 		return
 	var gs = response.get("game_state")
 	if typeof(gs) == TYPE_DICTIONARY:
-		_turn = int(gs.get("turn", _turn))
+		_turn = _as_int(gs.get("turn"), _turn)
 	_note_observations(response)
 	var step: Dictionary = STEPS[_step_index]
 	if call(str(step["advance"]), response):
@@ -288,7 +310,7 @@ func observe(response) -> void:
 func _pool_from(response: Dictionary) -> int:
 	var gs = response.get("game_state")
 	if typeof(gs) == TYPE_DICTIONARY and typeof(gs.get("manpower_pools")) == TYPE_DICTIONARY:
-		return int(gs["manpower_pools"].get("infantry", -1))
+		return _as_int(gs["manpower_pools"].get("infantry"), -1)
 	return -1
 
 
@@ -429,7 +451,7 @@ func _pred_senarmont_in_munich(response: Dictionary) -> bool:
 
 
 func _pred_turn_advanced(response: Dictionary) -> bool:
-	if int(response.get("turn_ended", 0)) > 0:
+	if _as_int(response.get("turn_ended"), 0) > 0:
 		return true
 	var info = response.get("action_info")
 	if typeof(info) == TYPE_DICTIONARY and info.get("turn_advanced"):
@@ -473,7 +495,10 @@ func _pred_capture_pending(response: Dictionary) -> bool:
 
 
 func _pred_capture_resolved(response: Dictionary) -> bool:
-	if str(response.get("capture_choice", "")) != "":
+	# Null-guarded: /capture_choice answers carry `capture_choice: null` when
+	# the token was invalid, and str(null) is "<null>" — a false advance.
+	var choice = response.get("capture_choice")
+	if choice != null and str(choice) != "":
 		return true
 	return _saw_capture and not response.get("pending_capture_choice") \
 		and bool(response.get("success"))
