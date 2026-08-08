@@ -108,8 +108,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > feedback memory) — and the "laser" UI clicks are re-cued to CC0 wood taps
 > (`click` = bookPlace1/2/3) + leather taps (`select`), old files kept as pool
 > variants. Harness 48 scripts + 5 scenes EXIT=0, boot smoke clean, screenshots
-> captured against a live backend. **⚠ open: user visual sign-off (menu look +
-> click feel).**
+> captured against a live backend. **✅ Visual sign-off PASSED August 8, 2026
+> (user) — position 6 is CLOSED.**
 >
 > **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
 > + the legacy 19-region on-ramp; "late on purpose" consciously overruled by the

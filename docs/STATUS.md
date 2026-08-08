@@ -38,12 +38,13 @@
 > ONCE with a three-cause flip-experiment attribution. Suite **16,436/3**, zero new
 > serialized fields, boot byte-identical (E1 anchors untouched).
 >
-> **~~POSITION 6, THE MAIN MENU~~ ✅ BUILT August 8, 2026** (with the two same-day
-> UX fixes: thematic clicks + the Reward chip) — see the top entry below.
+> **~~POSITION 6, THE MAIN MENU~~ ✅ BUILT August 8, 2026 + VISUAL SIGN-OFF
+> PASSED August 8, 2026 (user: "approved main menu") — the row is CLOSED** (with
+> the two same-day UX fixes: thematic clicks + the Reward chip) — see the top
+> entry below.
 > **▶ NEXT = POSITION 7, THE TUTORIAL** (`TutorialManager` + `TUTORIAL_SCRIPT.md`
 > + the legacy 19-region on-ramp; the Victory-touch-up cost is recorded on the
-> row). ⚠ open: user visual sign-off on the menu look + the new wood/leather
-> click feel (standing convention). BOTH halves of Music &
+> row). The standing UI sign-off convention has NO open items. BOTH halves of Music &
 > Sound (Core) **LANDED August 7, 2026** (records = `docs/MUSIC_SOUND_SPEC.md` §0–§2
 > sourcing + §3 wiring): 75 cue-named license-verified files (the game's first 18
 > music tracks) AND the full cue map wired — `audio_manager.gd` (class_name static
@@ -157,8 +158,9 @@
 > harness (`tools/main_menu_screenshot.gd`, kept like its two committed
 > siblings) captured both surfaces against a LIVE backend — the settings shot
 > proves the `/config/llm` round-trip on screen ("Live parser: ANTHROPIC — key
-> from the backend's .env"). **⚠ open: user visual sign-off** on the menu look,
-> title/button typography, painting choice/rotation, and the new click feel.
+> from the backend's .env"). **✅ Visual sign-off PASSED August 8, 2026 (user:
+> "approved main menu")** — look, typography, paintings and the wood/leather
+> click feel approved as shipped; the standing convention has no open items.
 > **Deferred, homed:** the build row (10) owns wiring Continue/Load to
 > `%APPDATA%` saves + the supervised-backend boot screen; position 8 owns the
 > Settings dictation hint if 8(a) verifies.
