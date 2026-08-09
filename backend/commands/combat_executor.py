@@ -3162,6 +3162,11 @@ class CombatExecutor:
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
 
+        # CA9-F6: set by the two PT-F1 pursuit-capture gates below, and
+        # delivered on whichever result this call returns. Never None on a
+        # path that staged the hard stop — that was the lockout.
+        staged_war_purpose = None
+
         def _stage_war_purpose_for_attack(target_nation: str) -> Dict:
             """Stage WPS-A purpose selection instead of auto-declaring by attack."""
             popup = self._stage_war_purpose_selection(
@@ -4486,7 +4491,7 @@ class CombatExecutor:
                         conquest_msg = pursuit_block["message"]
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation):
-                        self._stage_war_purpose_selection(
+                        staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg = (
                             f" To seize {battle_region_name} is to make war on "
@@ -4591,7 +4596,8 @@ class CombatExecutor:
                 result["message"] = covering_message + result["message"]
             if cavalry_charge_message:
                 result["message"] = cavalry_charge_message + result["message"]
-            return result
+            return self._attach_staged_war_purpose(
+                result, world, staged_war_purpose)
 
         # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
@@ -5407,7 +5413,7 @@ class CombatExecutor:
                 if (pursuit_block["arm"] == "neutral"
                         and marshal.nation == world.player_nation
                         and can_advance and marshal.strength > 0):
-                    self._stage_war_purpose_selection(
+                    staged_war_purpose = self._stage_war_purpose_selection(
                         world, marshal.nation, pursuit_block["owner"])
                     conquest_msg += (
                         f" To seize it is to make war on "
@@ -5860,7 +5866,8 @@ class CombatExecutor:
                     f"An infantry assault would now have favorable odds."
                 )
 
-        return result
+        return self._attach_staged_war_purpose(
+            result, world, staged_war_purpose)
 
     def _execute_form_square(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -6304,6 +6311,7 @@ class CombatExecutor:
         conquered = False
         conquest_msg = ""
         capture_result = None  # IGR-X8: read by the event-parity block below
+        staged_war_purpose = None  # CA9-F6: delivered on charge_result below
         if attacker_won and marshal.strength > 0 and marshal.location == charge_battle_region:
             target_region = world.get_region(charge_battle_region)
             if target_region and target_region.controller != marshal.nation:
@@ -6320,7 +6328,7 @@ class CombatExecutor:
                     conquest_msg = pursuit_block["message"]
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation):
-                        self._stage_war_purpose_selection(
+                        staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg += (
                             f" To seize it is to make war on "
@@ -6426,7 +6434,8 @@ class CombatExecutor:
                 from backend.models.world_state import capture_choice_prompt
                 charge_result["message"] += capture_choice_prompt(
                     world.pending_capture_choice)
-        return charge_result
+        return self._attach_staged_war_purpose(
+            charge_result, world, staged_war_purpose)
 
     def respond_to_glorious_charge(self, response: str, world: WorldState) -> Dict:
         """
@@ -6539,6 +6548,29 @@ class CombatExecutor:
         elif getattr(region, 'watchtower', 'none') == "under_construction":
             region.watchtower = "none"
             region.watchtower_turns_remaining = 0
+
+    @staticmethod
+    def _attach_staged_war_purpose(result: Dict, world, popup) -> Dict:
+        """CA9-F6: deliver a staged WPS-A dialogue with the response that
+        staged it.
+
+        `war_purpose_selection` is a HARD STOP. If the response that pushes
+        it does not carry `diplomatic_dialogue`, the client never renders
+        the question (`main.gd:1617` gates the whole popup route on that
+        key) — and every subsequent command, INCLUDING `end turn`, is then
+        swallowed by an invisible block. Measured four times in the CA9
+        campaign.
+
+        `_execute_attack`'s undefended-territory gate (`:3176`) has always
+        stamped these three keys; the three battle-advance sites did not.
+        One helper now, four call sites, so the next one cannot drift.
+        """
+        if not popup:
+            return result
+        result["war_purpose_popup"] = popup
+        result["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
+        result["awaiting_diplomatic_response"] = True
+        return result
 
     def _stage_war_purpose_selection(self, world, attacker_nation: str,
                                      target_nation: str) -> dict:

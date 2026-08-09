@@ -3331,6 +3331,18 @@ class DiplomaticExecutor:
                 )
                 result["suppress_proposal_result_popup"] = True
                 return _enforce_settlement_response_shape(result, dialogue)
+            # CA9-F6 backstop: EVERY hard stop must re-attach itself on an
+            # unresolvable answer, not just the settlement family. The Godot
+            # popup hides itself the moment it sends a response, so a bare
+            # refusal on any other hard-stop type leaves the player at an
+            # invisible block — which is exactly how the unwired
+            # `war_purpose_selection` swallowed four turns of commands. This
+            # arm costs nothing when the dialogue was rendered normally and
+            # saves the next dialogue type someone forgets to wire.
+            from backend.models.dialogue_manager import DialogueManager
+            if dtype in DialogueManager.HARD_STOP_TYPES:
+                result["diplomatic_dialogue"] = dialogue
+                result["awaiting_diplomatic_response"] = True
             return result
 
         def _enumerated_choice_prompt() -> str:
