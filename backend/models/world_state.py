@@ -5264,6 +5264,33 @@ class WorldState:
         # sees an accurate honored-titles set.
         prune_respected_estates(self)
 
+        def _dismiss_reward_notices(world, m):
+            """CA9-N3: retire BOTH reward-rail notices for one marshal.
+
+            The two branches that end erosion — expectation MET, and the
+            W6-7 capture freeze — each left the HIGH `DOTATION_EROSION`
+            row standing while retiring only the NORMAL one. Measured: a
+            marshal paid in full still read "his victories remain
+            unrewarded … holds 0g/turn" eighteen turns later.
+
+            Filtered per marshal: an unfiltered dismiss would clear
+            everyone else's live grievance, which is the laziest wrong fix
+            and is pinned against.
+            """
+            if m.nation != world.player_nation:
+                return
+            from backend.notifications import (
+                DOTATION_EROSION, DOTATION_EXPECTATION,
+            )
+
+            def _mine(n, mn=m.name):
+                return n.get("details", {}).get("marshal") == mn
+
+            world.notifications.dismiss_by_type(
+                DOTATION_EXPECTATION, filter_fn=_mine)
+            world.notifications.dismiss_by_type(
+                DOTATION_EROSION, filter_fn=_mine)
+
         def _post_expectation_notice(m, expectation, satisfaction, shortfall,
                                      remaining_grace):
             # S5-3: keep the reward-expectation rail notice LIVE. It was
@@ -5309,6 +5336,11 @@ class WorldState:
             # test_w6_marshal_fates.py).
             if getattr(marshal, "captured_by", ""):
                 marshal.expectation_grace_turn = -1
+                # CA9-N3: the freeze IS "erosion has stopped", so both rail
+                # notices stop being true here — they were asking the player
+                # to endow a man who cannot hold an estate and whose loyalty
+                # is not, in fact, fraying.
+                _dismiss_reward_notices(self, marshal)
                 continue
             # 1) Prune lost estates — state-driven: ANY way a funding
             #    province leaves the nation's hands (peace cede, recapture,
@@ -5342,12 +5374,16 @@ class WorldState:
                 # player rewards him, drop the stale "reward him" rail notice
                 # so it never contradicts the grant confirmation ("his
                 # expectation is met"). Was previously only dismissed on erosion.
-                if marshal.nation == self.player_nation:
-                    from backend.notifications import DOTATION_EXPECTATION
-                    self.notifications.dismiss_by_type(
-                        DOTATION_EXPECTATION,
-                        filter_fn=lambda n, mn=marshal.name: (
-                            n.get("details", {}).get("marshal") == mn))
+                #
+                # CA9-N3: …and drop the EROSION notice with it. S5-3 retired
+                # the NORMAL notice here and left the HIGH one standing, so a
+                # marshal paid IN FULL kept "his victories remain unrewarded
+                # … holds 0g/turn" at the top of the rail for the rest of the
+                # campaign — measured 18 turns after the debt was settled,
+                # beside a Generals card correctly showing his pension. The
+                # tray's own docstring calls itself "a list of things still
+                # true"; erosion has stopped here by definition.
+                _dismiss_reward_notices(self, marshal)
                 continue
 
             if marshal.expectation_grace_turn < 0:
@@ -5387,7 +5423,18 @@ class WorldState:
             marshal.modify_trust(-points)
 
             # First eroding turn: legibility notification (player only).
-            if elapsed == GRACE_TURNS and marshal.nation == self.player_nation:
+            #
+            # CA9-N3 (the audit's own quoted sentence): `== GRACE_TURNS`
+            # posted the notice ONCE and froze its figures at that instant,
+            # so a marshal now drawing a 240g rente against a 300g
+            # expectation still read "holds 0g/turn" — the memo's §5 case,
+            # contradicted by the same screen's `"pension": 240`. The gate
+            # is now `>=` and the row is REPLACED each eroding turn, so its
+            # numbers are the numbers. The dismiss MUST precede the add:
+            # `NotificationCollector.add` collapses a duplicate into the
+            # existing row and re-titles it "(x2)", which would render a
+            # refresh as a second grievance.
+            if elapsed >= GRACE_TURNS and marshal.nation == self.player_nation:
                 from backend.notifications import (
                     DOTATION_EROSION, NotificationPriority,
                     create_notification,
@@ -5416,6 +5463,10 @@ class WorldState:
                     remedy = ("no conquered province remains to endow — "
                               "grant a rente, or let victory furnish an "
                               "estate.")
+                self.notifications.dismiss_by_type(
+                    DOTATION_EROSION,
+                    filter_fn=lambda n, mn=marshal.name: (
+                        n.get("details", {}).get("marshal") == mn))
                 self.notifications.add(create_notification(
                     notification_type=DOTATION_EROSION,
                     priority=NotificationPriority.HIGH,
@@ -10363,6 +10414,35 @@ class WorldState:
                     })
                 else:
                     debug_print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
+
+        # ════════════════════════════════════════════════════════════
+        # CA9-N17: the rail row is RECONCILED against live state, not
+        # dismissed at a seam.
+        #
+        # `counter_punch_available` is cleared in THREE places — the expiry
+        # above, consumption in `_execute_attack`, and
+        # `Marshal.clear_combat_transient_state` (a rout) — and the
+        # notification survived all three. Worse than the filed
+        # eight-turn persistence: consumption and rout both zero
+        # `counter_punch_turns`, and the expiry loop above is gated on
+        # `> 0`, so those marshals never reach it at all. A player who
+        # actually USES the free attack kept "free attack!" in the rail
+        # forever. A dismissal written at the expiry seam alone would have
+        # left both permanent cases intact.
+        #
+        # Derived from the flag itself, so a fourth clearing seam inherits
+        # it for free. GR8: ONE dismiss call per tick regardless of roster
+        # size — the armed set is built in the pass above's own loop.
+        # ════════════════════════════════════════════════════════════
+        _still_armed = {
+            m.name for m in self.marshals.values()
+            if getattr(m, 'counter_punch_available', False)
+        }
+        from backend.notifications import COUNTER_PUNCH_EARNED
+        self.notifications.dismiss_by_type(
+            COUNTER_PUNCH_EARNED,
+            filter_fn=lambda n: (
+                n.get("details", {}).get("marshal") not in _still_armed))
 
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH MASTERY EXPIRATION (Davout's Iron Marshal ability)

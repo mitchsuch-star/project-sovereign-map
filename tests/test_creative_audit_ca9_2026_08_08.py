@@ -1289,3 +1289,290 @@ class TestF14TheArmisticeSibling:
             "Austria", "armistice", world, deterministic=True)
         assert peace["sweeteners"] == [] and armistice["sweeteners"] == [], (
             f"peace={peace['sweeteners']} armistice={armistice['sweeteners']}")
+
+
+# =======================================================================
+# N3 + N17 - the notification rail advertises expired state
+#
+# The tray's own docstring calls itself "a list of things still true".
+# DOTATION_EROSION had ZERO dismissers anywhere in backend/.
+# COUNTER_PUNCH_EARNED had three CLEARING seams and no dismisser on any
+# of them - and the two the filed root cause missed are the PERMANENT
+# ones, because consumption and rout both zero `counter_punch_turns` and
+# the expiry loop is gated on `> 0`.
+# =======================================================================
+
+from backend.notifications import (  # noqa: E402
+    COUNTER_PUNCH_EARNED, DOTATION_EROSION, DOTATION_EXPECTATION,
+    NotificationPriority, create_notification,
+)
+
+
+def _rows(world, ntype, marshal=None):
+    return [n for n in world.notifications.get_pending()
+            if n.get("type") == ntype
+            and (marshal is None
+                 or n.get("details", {}).get("marshal") == marshal)]
+
+
+class TestN3DotationErosionIsRetired:
+
+    @staticmethod
+    def _eroding(world, name="Ney", battles=2):
+        """Drive a marshal to a live erosion notice."""
+        m = world.marshals[name]
+        m.battles_won = battles
+        m.dotation_regions = []
+        m.pension = 0
+        world.notifications.dismiss_all()
+        for turn in range(10, 16):
+            world.current_turn = turn
+            world._dotation_processed_turn = -1
+            world._process_dotation_state()
+        return m
+
+    def test_the_erosion_notice_fires_first(self, world):
+        m = self._eroding(world)
+        assert _rows(world, DOTATION_EROSION, m.name), (
+            "board precondition broken — no erosion notice to retire")
+
+    def test_paying_in_full_retires_it(self, world):
+        """The measured live defect: eighteen turns after the debt was
+        settled the HIGH row still read 'victories remain unrewarded'."""
+        from backend.game_logic.dotation import get_expectation
+        m = self._eroding(world)
+        assert _rows(world, DOTATION_EROSION, m.name)
+
+        m.pension = int(get_expectation(m)) + 50   # paid in full and more
+        world.current_turn = 16
+        world._dotation_processed_turn = -1
+        world._process_dotation_state()
+
+        assert _rows(world, DOTATION_EROSION, m.name) == [], (
+            "a marshal paid in full still reads 'his victories remain "
+            "unrewarded ... holds 0g/turn'")
+        assert _rows(world, DOTATION_EXPECTATION, m.name) == []
+
+    def test_a_partly_paid_marshal_keeps_his_grievance(self, world):
+        """NEGATIVE CONTROL — the fix is not 'dismiss always'. Erosion has
+        NOT stopped here, so the row is still a thing that is true."""
+        from backend.game_logic.dotation import get_expectation
+        m = self._eroding(world)
+        expectation = int(get_expectation(m))
+        assert expectation > 20, "board precondition broken"
+        m.pension = expectation // 4
+        world.current_turn = 16
+        world._dotation_processed_turn = -1
+        world._process_dotation_state()
+        assert _rows(world, DOTATION_EROSION, m.name), (
+            "a marshal still owed three quarters of his due stopped "
+            "complaining")
+
+    def test_the_partly_paid_notice_states_what_he_actually_holds(
+            self, world):
+        """The memo's own §5 sentence: the rail told the player to pay a
+        marshal it showed as already drawing a pension, because the notice
+        was posted once and frozen at satisfaction 0."""
+        from backend.game_logic.dotation import get_expectation
+        m = self._eroding(world)
+        before = _rows(world, DOTATION_EROSION, m.name)[0]
+        assert "holds 0g/turn" in before["message"]
+
+        m.pension = max(10, int(get_expectation(m)) // 4)
+        world.current_turn = 16
+        world._dotation_processed_turn = -1
+        world._process_dotation_state()
+
+        after = _rows(world, DOTATION_EROSION, m.name)
+        assert len(after) == 1, (
+            f"the refresh stacked instead of replacing: {after}")
+        assert f"holds {m.pension}g/turn" in after[0]["message"], (
+            f"the notice still quotes its birth figures: "
+            f"{after[0]['message']!r}")
+        assert after[0].get("repeat_count", 1) == 1, (
+            "the add collapsed into the old row and re-titled it '(x2)' — "
+            "a refresh rendered as a second grievance. The dismiss must "
+            "precede the add.")
+        assert "(x2)" not in after[0]["title"]
+
+    def test_capture_retires_both_notices(self, world):
+        """W6-7 freezes a captured marshal's expectations — so the rail
+        must stop asking the player to endow a man who cannot hold an
+        estate and whose loyalty is not, in fact, fraying."""
+        m = self._eroding(world)
+        assert _rows(world, DOTATION_EROSION, m.name)
+        m.captured_by = "Austria"
+        world.current_turn = 16
+        world._dotation_processed_turn = -1
+        world._process_dotation_state()
+        assert _rows(world, DOTATION_EROSION, m.name) == []
+        assert _rows(world, DOTATION_EXPECTATION, m.name) == []
+
+    def test_the_dismissal_is_per_marshal(self, world):
+        """Kills the laziest wrong fix: an unfiltered `dismiss_by_type`
+        would clear every other marshal's live grievance."""
+        from backend.game_logic.dotation import get_expectation
+        ney = self._eroding(world, "Ney")
+        soult = world.marshals["Soult"]
+        soult.battles_won = 3
+        soult.dotation_regions = []
+        soult.pension = 0
+        for turn in range(16, 22):
+            world.current_turn = turn
+            world._dotation_processed_turn = -1
+            world._process_dotation_state()
+        assert _rows(world, DOTATION_EROSION, "Soult"), (
+            "board precondition broken — Soult is not eroding")
+
+        ney.pension = int(get_expectation(ney)) + 50
+        world.current_turn = 22
+        world._dotation_processed_turn = -1
+        world._process_dotation_state()
+
+        assert _rows(world, DOTATION_EROSION, "Ney") == []
+        assert _rows(world, DOTATION_EROSION, "Soult"), (
+            "paying Ney silenced Soult")
+
+
+class TestN17CounterPunchIsReconciledNotDismissed:
+
+    @staticmethod
+    def _armed(world, name="Davout", turns=2):
+        m = world.marshals[name]
+        m.counter_punch_available = True
+        m.counter_punch_turns = turns
+        world.notifications.dismiss_all()
+        world.notifications.add(create_notification(
+            notification_type=COUNTER_PUNCH_EARNED,
+            priority=NotificationPriority.HIGH,
+            title=f"{m.name} — free attack!",
+            message="earned a free attack",
+            turn_created=int(world.current_turn),
+            details={"marshal": m.name},
+        ))
+        return m
+
+    def test_expiry_retires_the_row(self, world):
+        """The filed arm — the BOUNDED case."""
+        m = self._armed(world)
+        for _ in range(3):
+            world._process_tactical_states()
+        assert m.counter_punch_available is False
+        assert _rows(world, COUNTER_PUNCH_EARNED, m.name) == []
+
+    def test_USING_the_punch_retires_the_row(self, world):
+        """THE arm the filed root cause misses, and the worse one.
+
+        Consumption zeroes `counter_punch_turns`, and the expiry loop is
+        gated on `> 0` — so a marshal who SPENDS his free attack never
+        reaches the expiry seam at all and kept 'free attack!' in the rail
+        forever. A dismissal written at the expiry site alone leaves this
+        permanent."""
+        m = self._armed(world)
+        m.counter_punch_available = False   # exactly what _execute_attack does
+        m.counter_punch_turns = 0
+        for _ in range(3):
+            world._process_tactical_states()
+        assert _rows(world, COUNTER_PUNCH_EARNED, m.name) == [], (
+            "the player used the free attack and the rail still offers it")
+
+    def test_a_ROUT_retires_the_row(self, world):
+        """The third clearing seam — `clear_combat_transient_state`, a
+        model method no executor-sited dismissal could ever reach."""
+        m = self._armed(world)
+        m.clear_combat_transient_state()
+        assert m.counter_punch_available is False, (
+            "precondition: the rout clears the flag")
+        world._process_tactical_states()
+        assert _rows(world, COUNTER_PUNCH_EARNED, m.name) == []
+
+    def test_a_marshal_who_still_has_it_keeps_his_row(self, world):
+        """NEGATIVE CONTROL. Without this, a bare
+        `dismiss_by_type(COUNTER_PUNCH_EARNED)` passes every test above."""
+        m = self._armed(world, turns=3)
+        created = _rows(world, COUNTER_PUNCH_EARNED, m.name)[0]["turn_created"]
+        world._process_tactical_states()
+        rows = _rows(world, COUNTER_PUNCH_EARNED, m.name)
+        assert rows, "an armed marshal lost his notice"
+        assert rows[0]["turn_created"] == created, (
+            "the reconcile re-created the row instead of leaving it alone")
+
+    def test_two_marshals_one_spent_one_armed(self, world):
+        armed = self._armed(world, "Davout", turns=3)
+        spent = world.marshals["Soult"]
+        spent.counter_punch_available = False
+        spent.counter_punch_turns = 0
+        world.notifications.add(create_notification(
+            notification_type=COUNTER_PUNCH_EARNED,
+            priority=NotificationPriority.HIGH,
+            title="Soult — free attack!", message="x",
+            turn_created=int(world.current_turn),
+            details={"marshal": "Soult"},
+        ))
+        world._process_tactical_states()
+        assert _rows(world, COUNTER_PUNCH_EARNED, "Soult") == []
+        assert _rows(world, COUNTER_PUNCH_EARNED, armed.name)
+
+    def test_earning_a_second_punch_now_produces_a_second_notice(
+            self, world):
+        """The second-order defect the row does not mention: the creation
+        site guards on `already_has`, so while the first row was immortal
+        a marshal who spent his punch and earned another got NOTHING."""
+        m = self._armed(world)
+        m.counter_punch_available = False
+        m.counter_punch_turns = 0
+        world._process_tactical_states()
+        assert _rows(world, COUNTER_PUNCH_EARNED, m.name) == []
+
+        world.current_turn = int(world.current_turn) + 4
+        m.counter_punch_available = True
+        m.counter_punch_turns = 2
+        world.notifications.add(create_notification(
+            notification_type=COUNTER_PUNCH_EARNED,
+            priority=NotificationPriority.HIGH,
+            title=f"{m.name} — free attack!", message="again",
+            turn_created=int(world.current_turn),
+            details={"marshal": m.name},
+        ))
+        rows = _rows(world, COUNTER_PUNCH_EARNED, m.name)
+        assert rows and rows[0]["turn_created"] == int(world.current_turn), (
+            "the stale row blocked the new one via the already_has guard")
+
+    def test_the_reconcile_is_one_call_per_tick(self, world):
+        """GR8: never one dismiss per marshal over a 40-marshal roster."""
+        self._armed(world)
+        calls = []
+        original = world.notifications.dismiss_by_type
+
+        def counting(ntype, filter_fn=None):
+            calls.append(ntype)
+            return original(ntype, filter_fn=filter_fn)
+
+        world.notifications.dismiss_by_type = counting
+        try:
+            world._process_tactical_states()
+        finally:
+            world.notifications.dismiss_by_type = original
+        assert calls.count(COUNTER_PUNCH_EARNED) == 1, (
+            f"{calls.count(COUNTER_PUNCH_EARNED)} dismiss calls in one tick "
+            f"over {len(world.marshals)} marshals")
+
+    def test_a_save_made_before_this_fix_is_cleaned_on_load(self, world):
+        """State-driven, not event-driven — so campaigns already in
+        progress are repaired on their next tick rather than the fix
+        applying only to new games."""
+        m = world.marshals["Davout"]
+        m.counter_punch_available = False
+        m.counter_punch_turns = 0
+        world.notifications.dismiss_all()
+        world.notifications.add(create_notification(
+            notification_type=COUNTER_PUNCH_EARNED,
+            priority=NotificationPriority.HIGH,
+            title="orphan", message="x", turn_created=1,
+            details={"marshal": "Davout"},
+        ))
+        revived = WorldState.from_dict(world.to_dict())
+        assert _rows(revived, COUNTER_PUNCH_EARNED, "Davout"), (
+            "precondition: the orphan survives the round trip")
+        revived._process_tactical_states()
+        assert _rows(revived, COUNTER_PUNCH_EARNED, "Davout") == []
