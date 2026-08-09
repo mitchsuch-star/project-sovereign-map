@@ -89,6 +89,16 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 			content += "\n"
 
+	# CA9-F7: courts that acted but whose actions were entirely fogged.
+	# Its OWN key, appended AFTER the nation blocks — `fog_hidden_summary`
+	# above branches INSTEAD of the loop, so reusing that key would have
+	# deleted every visible action.
+	var hidden_courts = enemy_phase.get("fog_hidden_nations", [])
+	if hidden_courts.size() > 0 and not enemy_phase.has("fog_hidden_summary"):
+		content += "[color=#" + Utils.COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
+		for line in hidden_courts:
+			content += "[color=#" + Utils.COLOR_INFO + "]" + str(line) + "[/color]\n"
+
 	# Set content
 	content_label.text = content
 

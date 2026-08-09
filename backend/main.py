@@ -948,7 +948,37 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
     cleaned_phase = _collapse_enemy_move_chains(cleaned_phase, world)
 
+    # ── CA9-N40: `action_count` is what the CLIENT prints, and it was the
+    # PRODUCER's number. Three passes rewrite `actions` after it is
+    # copied — the fog filter, the wait-spam collapse and the move-chain
+    # collapse (which sets it, alone among the three) — so the header said
+    # "4 actions" over two lines. Measured wrong on 8 nation-turns.
+    # Recomputed once, at the END of the pipeline, so a fourth pass
+    # inherits it. Must run BEFORE the F7 line below, which quotes it.
+    for _nd in cleaned_phase.get("nations", {}).values():
+        _nd["action_count"] = len(_nd.get("actions", []))
+
     if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
+        # ── CA9-F7 / CA8-15 §2a: the fog fallback was WHOLE-PHASE ────────
+        # It fired only when EVERY court's actions were hidden — once in
+        # fifteen phases, and it then named all nine courts at once. The
+        # ordinary case is the one that went unreported: some courts
+        # visible, others entirely fogged, and the fogged ones simply
+        # vanished from the screen with no sign they had acted.
+        #
+        # Under a NEW key, deliberately. `enemy_phase_dialog.gd` branches
+        # on `fog_hidden_summary` INSTEAD OF the nations loop, so reusing
+        # it here would delete every visible action — which is the exact
+        # shape of the defect it is meant to close.
+        _visible = set(cleaned_phase.get("nations", {}).keys())
+        _hidden = [n for n in raw_nations if n not in _visible]
+        if _hidden:
+            cleaned_phase["fog_hidden_nations"] = [
+                f"{with_definite_article(formed_display_name(world, n), capitalize=True)} "
+                f"stirred as well, but their formations remain beyond our "
+                f"sight."
+                for n in _hidden
+            ]
         return cleaned_phase
     if raw_total > 0:
         # N28 (CA9): the raw tag reached the player — "within Ottoman's

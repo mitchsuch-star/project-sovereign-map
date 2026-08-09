@@ -22,6 +22,8 @@ from backend.commands.executor import CommandExecutor
 from backend.models.dialogue_manager import DialogueManager
 from backend.models.world_state import WorldState
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 SCENARIO_PATH = (
     Path(__file__).resolve().parents[1]
     / "godot-client" / "project-sovereign" / "assets" / "maps"
@@ -2412,3 +2414,146 @@ class TestN47EscalationCanActuallyFire:
             head = _pick(memo, [_eroding()])
             assert head["class"] == "estate_eroding"
             assert "Davout" in head["text"]
+
+
+# =======================================================================
+# F7 + N40 - the enemy phase under fog
+#
+# F7: the fog fallback was WHOLE-PHASE. It fired only when EVERY court's
+#     actions were hidden - once in fifteen phases - and then named nine
+#     courts at once. The ordinary case went unreported: some courts
+#     visible, others entirely fogged and simply absent from the screen.
+# N40: `action_count` is what the client PRINTS in the nation header, and
+#     it was the producer's number - three passes rewrite `actions` after
+#     it is copied. Wrong on 8 nation-turns.
+# =======================================================================
+
+class TestF7PerNationFogFallback:
+
+    @staticmethod
+    def _phase(nations):
+        return {
+            "total_actions": sum(len(a) for a in nations.values()),
+            "nations": {n: {"actions": list(a), "action_count": len(a)}
+                        for n, a in nations.items()},
+        }
+
+    def test_a_fogged_court_is_reported_beside_the_visible_ones(
+            self, world, monkeypatch):
+        import backend.main as main_module
+
+        # Austria stays visible; the Ottoman phase is filtered away.
+        def fake_filter(phase, _world):
+            phase["nations"].pop("Ottoman", None)
+            phase["total_actions"] = sum(
+                len(d["actions"]) for d in phase["nations"].values())
+            return phase
+
+        monkeypatch.setattr(main_module, "_filter_enemy_phase_by_visibility",
+                            fake_filter)
+        monkeypatch.setattr(main_module, "_collapse_enemy_move_chains",
+                            lambda phase, _w: phase)
+
+        out = main_module._build_visible_enemy_phase(self._phase({
+            "Austria": [{"message": "Mack fortifies"}],
+            "Ottoman": [{"message": "hidden"}],
+        }), world)
+
+        assert out is not None
+        assert "Austria" in out["nations"], (
+            "the visible court was deleted — the exact hazard of reusing "
+            "fog_hidden_summary, which the client branches on INSTEAD of "
+            "the nations loop")
+        assert "fog_hidden_summary" not in out, (
+            "reusing that key would blank every visible action")
+        lines = out.get("fog_hidden_nations") or []
+        assert lines, "the fogged court vanished with no sign it acted"
+        assert any("Ottoman Empire" in ln for ln in lines), lines
+        assert not any("Austria" in ln for ln in lines), lines
+
+    def test_the_whole_phase_fallback_is_untouched(self, world, monkeypatch):
+        """CONTROL — when EVERYTHING is hidden the original key still
+        carries it, because that is the branch the client renders alone."""
+        import backend.main as main_module
+
+        def fake_filter(phase, _world):
+            phase["nations"] = {}
+            phase["total_actions"] = 0
+            return phase
+
+        monkeypatch.setattr(main_module, "_filter_enemy_phase_by_visibility",
+                            fake_filter)
+        monkeypatch.setattr(main_module, "_collapse_enemy_move_chains",
+                            lambda phase, _w: phase)
+        out = main_module._build_visible_enemy_phase(self._phase({
+            "Austria": [{"message": "x"}],
+        }), world)
+        assert out is not None
+        assert out.get("fog_hidden_summary")
+        assert "fog_hidden_nations" not in out
+
+    def test_nothing_hidden_emits_no_line(self, world, monkeypatch):
+        """FALSIFIABLE NEGATIVE — a fully visible phase gains nothing."""
+        import backend.main as main_module
+        monkeypatch.setattr(main_module, "_filter_enemy_phase_by_visibility",
+                            lambda phase, _w: phase)
+        monkeypatch.setattr(main_module, "_collapse_enemy_move_chains",
+                            lambda phase, _w: phase)
+        out = main_module._build_visible_enemy_phase(self._phase({
+            "Austria": [{"message": "x"}],
+        }), world)
+        assert "fog_hidden_nations" not in out
+
+    def test_the_client_renders_it_after_the_loop_not_instead_of_it(self):
+        """The whole reason for a new key, pinned in the client source."""
+        gd = (REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
+              / "enemy_phase_dialog.gd").read_text(encoding="utf-8")
+        summary_at = gd.index('enemy_phase.has("fog_hidden_summary")')
+        loop_at = gd.index("for nation in nations:")
+        hidden_at = gd.index('enemy_phase.get("fog_hidden_nations"')
+        assert summary_at < loop_at < hidden_at, (
+            "fog_hidden_nations must render AFTER the nation blocks; "
+            "fog_hidden_summary branches instead of them")
+
+
+class TestN40ActionCountIsRecomputed:
+
+    def test_the_header_count_matches_the_lines_below_it(
+            self, world, monkeypatch):
+        import backend.main as main_module
+
+        def fake_filter(phase, _world):
+            # Drop one of Austria's two actions, as the fog filter does.
+            phase["nations"]["Austria"]["actions"] = (
+                phase["nations"]["Austria"]["actions"][:1])
+            phase["total_actions"] = 1
+            return phase
+
+        monkeypatch.setattr(main_module, "_filter_enemy_phase_by_visibility",
+                            fake_filter)
+        monkeypatch.setattr(main_module, "_collapse_enemy_move_chains",
+                            lambda phase, _w: phase)
+        out = main_module._build_visible_enemy_phase({
+            "total_actions": 2,
+            "nations": {"Austria": {
+                "actions": [{"message": "a"}, {"message": "b"}],
+                "action_count": 2}},
+        }, world)
+        nd = out["nations"]["Austria"]
+        assert nd["action_count"] == len(nd["actions"]) == 1, (
+            f"the header says {nd['action_count']} over "
+            f"{len(nd['actions'])} lines")
+
+    def test_it_is_recomputed_at_the_end_of_the_pipeline(self):
+        """Sited once, after every pass, so a fourth pass inherits it —
+        the move-chain collapse was the only one of three that set it."""
+        import inspect
+
+        import backend.main as main_module
+        src = inspect.getsource(main_module._build_visible_enemy_phase)
+        recompute = src.index('_nd["action_count"] = len(_nd.get("actions"')
+        collapse = src.index("_collapse_enemy_move_chains(cleaned_phase")
+        assert collapse < recompute, (
+            "the recompute runs before a pass that rewrites actions")
+        assert recompute < src.index('"fog_hidden_nations"'), (
+            "the F7 line quotes the count and must see the fixed one")
