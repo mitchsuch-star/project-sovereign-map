@@ -219,7 +219,29 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > payload-bool sites in `tutorial_overlay.gd`, regex-pinned
 > (`TestOverlayPayloadBoolSafety`). `test_marshal_voice_tier1.py` 44.
 >
-> **▶ NEXT = POSITION 10, THE SHIPPABLE BUILD** (inherits 4's audio shell +
+> **▶ NEXT = THE CA9 FIX QUEUE, then POSITION 10.**
+>
+> **CA9 — the August 8, 2026 creative audit (26-turn France/1805 played campaign).**
+> **20 rows filed, ALL OPEN, none gate-blocked.** Memo =
+> `docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative) · rows =
+> `docs/BUG_FIXES.md` §Creative Audit CA9 · **build order + method notes =
+> `docs/STATUS.md` §NEXT SESSION STARTS HERE**. 12 findings NARROWED by
+> adversarial refuters, 2 survived outright, 0 killed; 7 further claims corrected
+> or withdrawn and listed rather than dropped. Headlines: **CA9-1** three PT-F1
+> sites discard `_stage_war_purpose_selection`'s return so a HARD STOP is armed the
+> client can never render (it ate `end turn`) · **CA9-2/3** the muster preview
+> weighs my whole army against the enemy's *one named marshal* and never mentions
+> supply (52,677 lost to hunger vs 38,016 in battle) · **CA9-4** "Soult will march
+> to Ney's guns" is false as written · **CA9-5/6** 26 turns of victory could not be
+> exchanged for one province, and the default peace **pays the loser** ·
+> **CA9-7** the dispatch leads with third parties' prisoners at weight 95.
+> *Through-line: a producer and a consumer disagree about what a number or a promise
+> means, with no seam forcing them to agree.*
+> ⚠ **A visual sign-off on the CA9 surfaces is owed** (the audit's visual half was
+> deliberately skipped — the client is hardwired to 8005, which the user's own live
+> session owned; drive over HTTP on a second port if a client is open).
+>
+> **THEN POSITION 10, THE SHIPPABLE BUILD** (inherits 4's audio shell +
 > 6's menu; regenerate the deploy spec — it predates the July-18 SDK migration;
 > re-gate the cheat surface on explicit debug; `%APPDATA%` saves + the menu's
 > Continue/Load arms; done = a stranger unzips it and plays in mock mode). The

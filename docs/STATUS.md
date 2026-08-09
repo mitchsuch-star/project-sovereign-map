@@ -4,6 +4,88 @@
 
 ## ▶ NEXT UP
 
+> ## ⚠ NEXT SESSION STARTS HERE — THE CA9 FIX QUEUE (filed August 8, 2026)
+>
+> **A 26-turn France/1805 creative audit was played live on August 8, 2026 and filed
+> 20 rows, ALL OPEN, none gate-blocked.** Record =
+> **`docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative)**; rows =
+> **`docs/BUG_FIXES.md` §Creative Audit CA9**; evidence =
+> `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md` (player-visible transcript) +
+> `docs/audits/CA9_PLAY_NOTES_2026_08_08.md` (live play log incl. every claim I later
+> corrected). Every finding was put to an independent skeptic instructed to refute it:
+> **12 NARROWED, 2 survived outright, 0 killed**; seven further claims were corrected
+> or withdrawn and are listed in the memo rather than dropped.
+>
+> **The campaign in one line.** France won nearly every battle, lost **52,677 men to
+> hunger against 38,016 in battle**, had three corps dragged into Ottoman Albania
+> chasing a fleeing British officer, and at war score **+13 in its favour** — holding
+> two Austrian provinces with Mack captured — was advised to **pay Austria 77g/turn**
+> for peace. From T16 to T26 the map never moved (31/95) and one dispatch sentence
+> appeared **14 times verbatim**.
+>
+> **The through-line: a producer and a consumer disagree about what a number or a
+> promise means, with no seam forcing them to agree.** Four questions the player
+> actually decides on — *how strong is the enemy · how many men will this cost · what
+> will this order do · what is my victory worth* — each currently has two or more
+> answers in the shipped build.
+>
+> ### Suggested build order (cheapest-highest-impact first; all unblocked)
+>
+> 1. **CA9-1 (P1) — the invisible war-purpose hard stop.** Three sites discard
+>    `_stage_war_purpose_selection`'s return value, so a HARD STOP is armed that the
+>    client can never render; it swallowed two orders and once `end turn`. Fired 4× in
+>    26 turns. Smallest fix in the queue, largest player impact.
+>    *+ rider:* the hard-stop router matches `_DIALOGUE_RESPONSE_KEYWORDS` by **bare
+>    substring** ("no", "send", "garrison"…), so `march on Normandy` can answer it.
+> 2. **CA9-7 (P1) — the dispatch leads with third parties' prisoners at weight 95.**
+>    One-line branch on `e.get("nation")`, which the event already carries.
+> 3. **CA9-10 (P2) + CA9-9 (P2) — the two "two numbers for one thing" repairs.**
+>    Accumulate instead of overwrite in the AP charge loop; stop discarding the
+>    whole-army casualty total in `_reconcile_report_survivors`.
+> 4. **CA9-2 + CA9-3 (P1, together) — make the muster preview honest.** Add a
+>    defaulted `committed_defender` (leaves every CR-5 pin byte-identical) and a
+>    `supply_note` row. These two are why the campaign's best affordance is also its
+>    biggest trap.
+> 5. **CA9-4 (P1) — decide the SUPPORT contract.** Either make the copy true (free) or
+>    widen the predicate (**changes combat mass — measure first**).
+> 6. **CA9-8 (P1) — guard reinforcer relocation and announce voided orders.**
+> 7. **CA9-5 + CA9-6 (P1) — the leverage/terms loop.** Two of CA9-6's four mechanisms
+>    are pure defect repair and land today (the missing `strength > 0 and not
+>    captured_by` guard on both contested-capital arms; the decisive cap not keyed per
+>    winner). The rest — a casualty/army-destruction term in `calculate_war_score`, and
+>    CA9-5's sweetener disjunct — move blessed numbers: **land behind a measurement,
+>    not a guess.**
+> 8. **CA9-11, CA9-12, CA9-13, CA9-14 (P2)** then the P3 copy rows CA9-15..CA9-20.
+>
+> **CA9-12 is the Aug-4 CA8-15 row, still unbuilt** — independently chosen by both the
+> narration and aliveness scorers as the highest-value narration fix. Note its fix
+> **cannot reuse the existing key**: `enemy_phase_dialog.gd:68-75` branches on
+> `fog_hidden_summary` *instead of* the nations loop.
+>
+> ### What the audit confirmed is FIXED and must not be re-broken
+> **0 raw-snake_case AI verbs** across 26 turns (CA8-6 holding, measured by a harness
+> that mirrors `_format_action`'s own key list) · the dispatch **does** now lead with
+> French victories (CA8-26/D6) · terminal and campaign-log casualties agree (CA8-1;
+> only Berthier's report is still lead-only) · the plunder prompt states its price and
+> pays it (IGR-E) · the letter-book renders, batches and answers correctly (IGR-F) ·
+> the jealousy recurrence register is live and is some of the best writing in the game.
+>
+> ### Two method notes for whoever picks this up
+> - **A contamination event is on record.** The user's own Godot client (live on 8005)
+>   fired `POST /new_game` mid-session and reset the audit world. Three early
+>   observations were withdrawn; the campaign was replayed on an **isolated backend at
+>   port 8015**. If you drive the game over HTTP while a client is open, use a second
+>   port.
+> - **The visual half was deliberately NOT performed** (the client is hardwired to 8005,
+>   which the user's session owned). Every client-side claim was verified by reading the
+>   shipped `.gd` source. **A visual sign-off on the CA9 surfaces is still owed.**
+>
+> *(Pillar re-scoring was still running when this entry was written and is NOT included;
+> the findings above are complete and independently verified. Score the pillars from the
+> committed transcript if a number is wanted.)*
+>
+
+
 > **THE LIVE FORWARD QUEUE IS `docs/ROADMAP.md` §THE ROAD TO EARLY ACCESS** —
 > re-planned August 3, 2026, **AMENDED August 7, 2026 by user direction** (*"lets add
 > some things before build, we have no sound[,] econ is still unbalanced, voice to

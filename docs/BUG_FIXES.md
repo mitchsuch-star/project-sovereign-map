@@ -31,6 +31,186 @@
 ---
 
 
+## Creative Audit CA9 — filed August 8, 2026 (26-turn France/1805 played campaign; **ALL OPEN**)
+
+> Source: `docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative). Evidence:
+> `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md`, `docs/audits/CA9_PLAY_NOTES_2026_08_08.md`.
+> Every row below was put to an independent skeptic instructed to refute it. **12 NARROWED,
+> 2 survived outright, 0 killed** — the rows state the CORRECTED claim, and the memo's
+> "Corrected or killed" table carries the seven claims that did not survive.
+> **Nothing here is gate-blocked.** CA9-5 and CA9-6 move blessed balance numbers and should be
+> landed behind a measurement, not a guess; the rest are defect repair.
+
+### P1 — land these first
+
+- [ ] **CA9-1 — the war-purpose hard stop is created and never delivered (total input lockout).**
+  All three PT-F1 pursuit-capture sites call `_stage_war_purpose_selection(...)` and discard the
+  return value, so the dialogue lives only on `world.dialogue_manager` and no key reaches the
+  result dict. `main.py:2449` is the only thing on the `/command` path that stamps
+  `diplomatic_dialogue`, and it never runs for these. The client CAN render it —
+  `war_purpose_selection` is whitelisted at `main.gd:32`. Observed 4× in 26 turns; it swallowed two
+  orders and once ate `end turn`, answering with an option list the player was never shown.
+  *Sites:* `combat_executor.py:4489`, `:5410`, `:6323`; working wrapper to copy at `:3165-3178`.
+  *Fix:* capture the return and stamp `diplomatic_dialogue` / `awaiting_diplomatic_response` at all
+  three, exactly as `:3176` does. For the autonomous-attack case (jealousy glory attack), either do
+  not stage it at all — the marshal never asked — or deliver it. **Add a regression test that a
+  PT-F1 halt puts a renderable dialogue on the response, not just on the manager.**
+  *Rider (P1, latent, same family):* while a hard stop is pending, `main.py:2067-2071` matches
+  `_DIALOGUE_RESPONSE_KEYWORDS` by **bare substring, first match wins** — the list contains "no",
+  "yes", "send", "more", "garrison", "invest", "demand", "review", "consider", "side", "start",
+  "begin". So `Ney, march on Normandy` contains "no". The soft-stop branch was hardened against
+  exactly this (its comment names "garrison"); the hard-stop branch was not.
+
+- [ ] **CA9-2 — the muster preview's verdict is asymmetric by construction.**
+  `inferred_attack_effective_ratio` does `attacker += committed_attacker` (the player's whole
+  mustered joint force) against `defender = max(1, enemy.strength)` — the single named enemy
+  marshal, with no `committed_defender` term. "The balance of force looks favorable" is therefore
+  computed against one man. The same wrong word also suppresses the confirm modal, so the player is
+  neither warned nor asked. *Sites:* `objection_v2.py:867-883`, driven from
+  `combat_executor.py:828-832`.
+  *Fix:* in `_build_muster_preview`, mirror the loop that already exists — enumerate enemy-nation
+  marshals at/adjacent to `battle_region`, run them through `_committed_reinforcement_strength`,
+  pass as a new **defaulted** `committed_defender`. `inferred_attack_odds_band` has exactly one
+  production call site (`combat_executor.py:830`) and the CR-5 gate uses the separate
+  `inferred_attack_favorable` (which passes no committed strength), so a defaulted parameter leaves
+  every CR-5 pin byte-identical. Keep the *printed* enemy figure fog-banded; add a hedge row when
+  unseen enemy corps are adjacent, so an honest verdict does not become a fog leak.
+
+- [ ] **CA9-3 — the muster preview never mentions supply, and the muster relocates every joiner.**
+  `_build_muster_preview` holds `region` and the full `will_join_marshals` list and never reads
+  `region.supply_capacity`; `combat_executor.py:4288` then physically moves every non-artillery
+  joiner onto the battle square. Massing 107,722 at Swabia (feeds 40,000) on the game's own advice
+  cost **8,676 men the next tick** vs 1,940 taking it. Campaign total: **52,677 lost to hunger vs
+  38,016 in battle.** *Fix:* after `will_join_marshals` resolves (`combat_executor.py:798`) compute
+  projected occupancy against `region.supply_capacity` (×1.5 on own soil) and emit one `supply_note`
+  row in the preview. Note artillery already stays adjacent (`:4281-4286`) — that is the precedent.
+
+- [ ] **CA9-4 — "Soult will march to Ney's guns" is false as written.**
+  The Grouchy Rule accepts a SUPPORT order only when `order.target == primary.name`, i.e. only when
+  the supported marshal *leads* the battle — so a battle led by a different French marshal gets a
+  refusal. Reproduced 3× with the exact command the muster preview prescribes; 28,202 men sat out
+  the fall of Milan. *Sites:* `combat_executor.py:1071-1073`, mirrored `:725-726`, `:596`, `:663`,
+  arrival bonus `:1020-1023`; the promise is written at `strategic_executor.py:1326-1329` and
+  repeated by the muster preview's own WILL-NOT row.
+  *Fix (decide which):* (a) make the copy true — "…will march to any battle Ney **leads**, and
+  stands down once Ney is secure"; or (b) widen the predicate so a supporter joins any battle his
+  principal is *in*. **(b) changes combat mass and needs a measurement; (a) is free.**
+
+- [ ] **CA9-5 — the default peace offer pays tribute to the court you are beating.**
+  `diplomatic_templates.py:3581-3588`: arms are `if war_score > 20` (demand gold) /
+  `elif war_score < -20 **or relation < -50**` (offer gold). The Aug-7 CA8-27/D2 fix was placed
+  *inside* the second arm at `:3598` and guards only the **territory cession** — the gold sweetener
+  above it is still reachable through the `relation < -50` disjunct, which is true in every war.
+  Measured at **+13 in France's favour**, holding two Austrian provinces with Mack captured: the
+  recommended one-click option was *offer Austria 77g/turn, demand nothing*, directly above an
+  option reading "Harsher terms: Demand more — we can afford to push".
+  *Fix:* require the field to agree — `elif war_score < -20 or (relation < -50 and war_score <= 0)`
+  — and close the ±20 dead band. *Also here:* "Even harsher" produces **byte-identical** terms to
+  "Harsher" (`diplomatic_executor.py:3963-3968`), and no harshness level can demand territory.
+
+- [ ] **CA9-6 — the conquest→leverage→terms loop is dead (four mechanisms).**
+  Two are pure defect repair and land today: the war-score **contested-capital** arms count
+  marshals with `strength <= 0` and captured marshals, missing the `strength > 0 and not
+  captured_by` guard their two siblings already carry (`diplomacy.py:2892`, `:2899` — cf. `:7036`,
+  `:9667`); and the decisive-victory cap is not keyed per winner (`diplomacy.py:9060`). The other
+  two are design: there is **no casualty / army-destruction term** in `calculate_war_score` at all,
+  and `base_side_pressure` contributed **+1 of a 50-point acceptance threshold** after an enemy
+  field army was annihilated and its commander captured. Consequence: 26 turns of victory, map
+  frozen at 31/95 from T16, territory undemandable at every harshness.
+
+- [ ] **CA9-7 — the dispatch leads with third parties' prisoners, at the highest weight in the game.**
+  `dispatch.py:444-454` reads only `marshal` and `captor`, never `e["nation"]` — which
+  `_capture_marshal` already stamps (`combat_executor.py:2452`, `:2496-2498`). At **weight 95**.
+  Led 3× in 16 turns; once *"Marshal Paget has been taken. Spain holds him prisoner"* outranked a
+  French victory and a sub-beat reporting 10,718 French dead. *Fix:* branch on `e.get("nation")` —
+  ours → keep; we are the captor → route to a French-success class; neither → drop or demote to the
+  Europe block. No war-instance archaeology needed (unlike the `enemy_eliminated` D6 fix).
+
+- [ ] **CA9-8 — auto-reinforcement crosses into neutral countries and silently voids written orders.**
+  `combat_executor.py:4288` relocates every arriving reinforcer onto the battle square with **no
+  diplomatic-ownership guard**; `:5141-5146` then nulls their `strategic_order` with no event, no
+  notification, no message. Live: Davout, Murat and Massena ended in **Ottoman Albania** (9 provinces
+  from the war) chasing a beaten British marshal, and Murat's live `MOVE_TO Vienna` was destroyed
+  silently — discovered only when an attack failed with "cannot reach Vienna from Albania".
+  *Fix:* (a) gate the relocation with the PT-F1 predicate the advance already uses, so a reinforcer
+  supports from adjacent rather than crossing — exactly as artillery already does at `:4281-4286`;
+  (b) emit one event per cleared order naming what it voided.
+
+### P2
+
+- [ ] **CA9-9 — Berthier's casualty figure is lead-only and unlabelled.**
+  `_reconcile_report_survivors` (CO-5) **overwrites** `casualty_summary.attacker_casualties` with
+  `attacker_original − lead.strength` *after* casualties are distributed across all participants.
+  Two lines a few rows apart, both headed "Casualties:", differ ~6× (1,940 vs 316).
+  *Site:* `combat_executor.py:1366-1369`. *Fix:* stash the whole-army total before overwriting
+  (`attacker_casualties_army`) and render "Ney 316 of 1,940 (army)" when they differ.
+  **This defect is not academic — I reproduced it in my own audit arithmetic and had to correct a
+  published ratio because of it.**
+
+- [ ] **CA9-10 — `action_info.cost` under-reports multi-AP orders.** `executor.py:1788-1789`
+  reassigns `action_result` in the charge loop instead of accumulating, so `:1803` reports the last
+  single call's base cost (1) rather than the loop total (2). Same shape at
+  `meta_executor.py:2003-2011`. AP is deducted correctly, so the on-screen counter is honest — but
+  the per-order price the player budgets on is wrong. *Also:* extend the "(2 AP)" caption at
+  `strategic_executor.py:1389` beyond `HOLD` so every non-literal strategic order states its price.
+
+- [ ] **CA9-11 — fog defaults are rendered as facts.** `world_state.py:7612` substitutes
+  `supply_capacity: 0` (plus income/stability/war_damage 0) below FULL visibility as crash-safe
+  defaults, and **both** render sites print the sentinel as a literal number
+  (`region_panel.gd:179`, `map_renderer_base.gd:2581`). A province that feeds 40,000 reads
+  `Supply: 0`. *Fix:* send `-1` and print "Unknown" — the `-1` sentinel already exists twelve lines
+  below for garrisons (`:7633`) and is already handled by both clients.
+
+- [ ] **CA9-12 — the fog fallback is whole-phase, not per-nation** (the Aug-4 **CA8-15** row, still
+  unbuilt; it was independently chosen by both the narration and aliveness scorers as the highest-
+  value narration fix). `main.py:944-953` emits `fog_hidden_summary` only when the world-wide
+  post-filter total is zero, so one visible action anywhere hides all of Europe; nations with no
+  visible action are absent from `nations` entirely. Compounded by `main.py:1400` and `:778-780`.
+  *Fix:* emit `set(raw_nations) - set(cleaned_phase["nations"])` unconditionally — **but not under
+  the existing key**: `enemy_phase_dialog.gd:68-75` branches on `fog_hidden_summary` *instead of*
+  the nations loop, so reusing it would hide the visible actions.
+
+- [ ] **CA9-13 — the supply headline prescribes a build the executor refuses.**
+  `dispatch.py:1382-1393` models depot legality with two predicates; `_execute_build`
+  (`economy_executor.py:1400-1431`) enforces nine. Stability is one it never asks about — and
+  securing a conquest sets stability to 25, so a **just-taken province can never accept a depot**,
+  which is exactly where a campaigning army stands. Live: *"A supply depot at Tyrol would ease it"*
+  → *"Cannot build in Tyrol — region stability too low (35/100). Need 51+."*
+  *Fix:* extract one pure `can_build(region, building_type, nation) -> (ok, reason)` and have both
+  the executor and `_supply_strain_candidate` call it.
+
+- [ ] **CA9-14 — `pursue` only accepts the raw internal key.** `strategic_parser.py:537-554` matches
+  the roster by exact key only; on failure `:647-653` misclassifies the target as a region, which
+  routes it to the wrong fuzzy list in `parser.py:1161-1196`. The UI prints "Archduke Charles" 28×
+  and `ArchdukeCharles` 105×; only the latter works. `attack` resolves it correctly — the two verbs
+  use different resolvers. *Fix:* route the target through `_fuzzy_match_enemy` before the
+  region fallback so both verbs share one enemy resolver.
+
+### P3 — copy and small contract rows
+
+- [ ] **CA9-15** — the standing-headline cooldown **demotes but never suppresses**. PC-7 works, but
+  the demoted line repeats verbatim as a sub-beat forever: *"Marshal Davout's household goes unpaid"*
+  appeared **14 times in 25 dispatches**. `_STANDING_ESCALATION` variants exist but are consulted
+  only on the keeps-the-lead branch. `dispatch.py:789-815`.
+- [ ] **CA9-16** — three "should I attack?" advisors use three different neighbourhoods. The
+  `[HINT] X is undefended` test reads marshals in the **target region only**
+  (`movement_executor.py:661-669`) and ignores adjacent reinforcement, so it said "undefended" while
+  Charles (46,573) stood one province away; the marshal's objection said "too strong" and was right.
+- [ ] **CA9-17** — objections never state their vocabulary. `/pending_objection` exposes
+  `choices: ["trust","insist"]`; neither word is ever shown to the player, plain English ("Davout is
+  right, cancel that attack") is rejected, and a pending objection blocks the **free, read-only**
+  `status` — so the player must judge blind.
+- [ ] **CA9-18** — the dialogue router **never consults the nation the player named**
+  (`main.py:2046-2110`); an answer verb binds to whichever dialogue is active. Live (pre-reset):
+  `accept Portugal's open borders proposal` signed a **permanent Open Borders treaty with Prussia**.
+  Serious in a game whose letter-book exists because several courts write at once.
+- [ ] **CA9-19** — raw internal key in player text: `mailbox.summary` renders
+  `"PapalStates — Open Borders"` (the envoy digest correctly says "Papal States").
+- [ ] **CA9-20** — the settlement acceptance breakdown prints `capital: -20` with no label. The
+  value is **correct** (an ally's capital is occupied — Kingdom of Italy's Milan) but nothing tells
+  the player that, and it is the second-largest term working against them.
+
+
 ## Creative Audit — filed August 4, 2026 (**✅ SECTION CLOSED August 7, 2026 — 25 of 28 FIXED, 1 REFUTED, 2 CANONIZED/HOMED**, see landing records below)
 
 > ### ✅ LANDING RECORD — THE CLOSE-OUT GATES, August 7, 2026 (user-delegated)
