@@ -1576,3 +1576,133 @@ class TestN17CounterPunchIsReconciledNotDismissed:
             "precondition: the orphan survives the round trip")
         revived._process_tactical_states()
         assert _rows(revived, COUNTER_PUNCH_EARNED, "Davout") == []
+
+
+# =======================================================================
+# F12 + N2 - `marshal_captured` had no direction
+#
+# weight 95, the file's second-highest. France taking Mack at Ulm led the
+# briefing as a French disaster, twice in one campaign, and Berthier
+# closed on paying his ransom. A THIRD arm neither row carried: a capture
+# France was not party to ALSO led, at 95, phrased as a French loss.
+# =======================================================================
+
+class TestF12CaptureHasADirection:
+
+    @staticmethod
+    def _world_with(event):
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney")
+        world = WorldFactory.with_marshals([ney], current_turn=5)
+        world.event_log = [dict(event, turn=5)]
+        return world
+
+    @staticmethod
+    def _headline(world):
+        from backend.game_logic import dispatch as dispatch_mod
+        return dispatch_mod._build_headline(world, "France") or {}
+
+    @staticmethod
+    def _note(headline_class):
+        """The note is picked at its own seam, keyed on the class string
+        alone — which is exactly why splitting the class fixes N2."""
+        from backend.game_logic import dispatch as dispatch_mod
+        return dispatch_mod._pick_berthier_note(
+            None, "France", [], {}, headline_class=headline_class)
+
+    def test_our_own_marshal_taken_is_still_the_wound(self):
+        """CONTROL — the arm that always worked is untouched."""
+        head = self._headline(self._world_with({
+            "type": "marshal_captured", "marshal": "Ney",
+            "nation": "France", "captor": "Austria", "location": "Ulm"}))
+        assert head.get("class") == "marshal_captured"
+        assert "has been taken" in head["text"]
+        assert "Austria holds him prisoner" in head["text"]
+        assert "ransom" in self._note("marshal_captured")
+
+    def test_our_own_triumph_is_no_longer_reported_as_a_disaster(self):
+        """The measured live defect: France takes Mack at Ulm and the
+        morning briefing leads with a French catastrophe."""
+        head = self._headline(self._world_with({
+            "type": "marshal_captured", "marshal": "Mack",
+            "nation": "Austria", "captor": "France", "location": "Ulm"}))
+        assert head.get("class") == "enemy_marshal_captured", head
+        text = head["text"]
+        assert "has been taken. France holds him prisoner" not in text, (
+            "France's own triumph still renders in the wound's words")
+        assert "our prisoner" in text
+        assert "Mack" in text and "Ulm" in text
+
+    def test_and_berthier_stops_proposing_to_pay_the_ransom(self):
+        """N2 — the note is keyed on the class string alone, so splitting
+        the class by direction is the whole fix."""
+        head = self._headline(self._world_with({
+            "type": "marshal_captured", "marshal": "Mack",
+            "nation": "Austria", "captor": "France", "location": "Ulm"}))
+        assert head.get("class") == "enemy_marshal_captured"
+        note = self._note("enemy_marshal_captured")
+        assert note, "the new class shipped without a Berthier note"
+        assert "ransom" not in note, (
+            f"France holds the man and Berthier proposes buying him back: "
+            f"{note!r}")
+        assert "his captors" not in note, (
+            "'make his captors regret the keeping' — France IS the captor")
+
+    def test_a_third_partys_capture_is_not_frances_news(self):
+        """Found by the recon, carried by neither row: `_build_headline`
+        reads the raw event log, so AUSTRIA taking a RUSSIAN marshal led
+        France's briefing at weight 95, phrased as a French loss. Gate
+        CA8-D6 ("a third party's kill is never our triumph") disposes of
+        it, and it is not our wound either — so it produces nothing."""
+        head = self._headline(self._world_with({
+            "type": "marshal_captured", "marshal": "Bagration",
+            "nation": "Russia", "captor": "Austria", "location": "Moravia"}))
+        assert head.get("class") not in (
+            "marshal_captured", "enemy_marshal_captured"), head
+        assert "Bagration" not in str(head.get("text", "")), head
+
+    def test_the_triumph_never_outranks_the_wound(self):
+        """CA8-D6's weight principle, as arithmetic: at equal scale the
+        wound still leads."""
+        from backend.game_logic import dispatch as dispatch_mod
+        w = dispatch_mod.HEADLINE_WEIGHTS
+        assert w["enemy_marshal_captured"] < w["marshal_captured"]
+        assert w["enemy_marshal_captured"] < w["own_broken"]
+        assert w["enemy_marshal_captured"] < w["capital_stormed"]
+        assert w["enemy_marshal_captured"] < w["enemy_eliminated"]
+        # …and it outranks the smaller wounds and the routine conquest.
+        assert w["enemy_marshal_captured"] > w["own_mauled"]
+        assert w["enemy_marshal_captured"] > w["victory_won"]
+        assert w["enemy_marshal_captured"] > w["region_taken"]
+
+    def test_a_capture_beside_our_own_loss_still_leads_with_the_loss(self):
+        """The principle end to end, not just in the weight table."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.infantry(name="Ney")
+        world = WorldFactory.with_marshals([ney], current_turn=5)
+        world.event_log = [
+            {"type": "marshal_captured", "marshal": "Mack", "turn": 5,
+             "nation": "Austria", "captor": "France", "location": "Ulm"},
+            {"type": "marshal_captured", "marshal": "Ney", "turn": 5,
+             "nation": "France", "captor": "Austria", "location": "Jena"},
+        ]
+        head = self._headline(world)
+        assert head.get("class") == "marshal_captured", head
+
+    def test_the_new_class_is_not_a_standing_headline(self):
+        """A capture is an event, not a condition — it must stay out of
+        the standing machinery (and therefore needs no escalation copy)."""
+        from backend.game_logic import dispatch as dispatch_mod
+        assert ("enemy_marshal_captured"
+                not in dispatch_mod.STANDING_HEADLINE_CLASSES)
+
+    def test_the_captive_court_is_named_by_its_living_name(self):
+        """The CA8 dead-name discipline applies to the NEW slot too — the
+        captive's court is a nation tag exactly as the captor's is."""
+        head = self._headline(self._world_with({
+            "type": "marshal_captured", "marshal": "Eugene",
+            "nation": "KingdomOfItaly", "captor": "France",
+            "location": "Milan"}))
+        blob = " ".join(str(v) for v in head.values())
+        assert "KingdomOfItaly" not in blob and "Kingdom Of Italy" not in blob, blob
+        assert "Kingdom of Italy" in blob, blob

@@ -77,6 +77,14 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # the sub-beat never restates the headline.
     "marshal_reversal": 91,
     "own_broken": 90,           # own marshal broken / force-retreated
+    # ── CA9-F12: the mirror of the file's top-weight wound ──────────────
+    # An enemy commander taken is PERMANENT, and it contains a decisive
+    # field win (73) — it is that win plus the man. It sits BELOW
+    # `own_broken` (90) because CA8-D6's principle is "at equal scale the
+    # wound still leads", and below `capital_stormed` (92) /
+    # `enemy_eliminated` (93) so the triumph ladder stays ordered by its
+    # own scale. In-band tunable.
+    "enemy_marshal_captured": 88,
     "own_mauled": 85,           # own marshal lost >=25% strength
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
     # CA8-22 (creative audit, Aug 4 2026): the same province, when it was a
@@ -203,6 +211,9 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
 _HEADLINE_TEMPLATES: Dict[str, str] = {
     "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
+    # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
+    # because the captive court and the field are both optional.
+    "enemy_marshal_captured": "Sire — {line}",
     # CA8-9: the joined arc. The whole sentence is composed backend-side by
     # `_compose_reversal_line` because its shape varies with how many acts
     # the campaign actually produced (crowned / endowed / beaten /
@@ -273,6 +284,12 @@ def _crisis_cause_headline(cause: str) -> str:
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "home_captured": "France herself is under the enemy's boot, Sire. Every other matter is secondary.",
     "marshal_captured": "We must consider his ransom, Sire — or make his captors regret the keeping.",
+    # CA9-N2: the same note fired when FRANCE was the captor — "consider
+    # his ransom … or make his captors regret the keeping" while the man
+    # sat in a French prison. The note is keyed on the class string alone
+    # (`_pick_berthier_note`), so splitting the class by direction is the
+    # whole fix; this is its other half.
+    "enemy_marshal_captured": "A commander is not replaced like a battalion, Sire. Press them before they find another.",
     # CA8-9: Berthier closes on the man, not the ledger — the note answers
     # the arc the headline opened.
     #
@@ -442,16 +459,56 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
                            f"out of the war. No army remains beneath their "
                            f"colours."))
         elif etype == "marshal_captured":
-            _add("marshal_captured",
-                 f"marshal_captured:{e.get('marshal', '?')}",
-                 marshal=humanize_entity_name(e.get("marshal", "?")),
-                 # CA8 sweep 4: `captor` is a NATION TAG (combat_executor
-                 # stamps `captor_nation`), so `humanize_entity_name` — a
-                 # marshal-name humaniser — rendered "Kingdom Of Italy holds
-                 # him prisoner." at weight 95: a dead name AND a mis-case,
-                 # from the highest-weight headline in the file.
-                 captor=(formed_display_name(world, e["captor"])
-                         if e.get("captor") else "the enemy"))
+            # ── CA9 F12 + N2: the capture has a DIRECTION ────────────────
+            # `nation` is the CAPTIVE's own court (`combat_executor`'s
+            # `_capture_marshal` stamps `owner = marshal.nation`); `captor`
+            # is the taker. This branch read NEITHER, so France taking Mack
+            # at Ulm led the briefing at weight 95 as a French disaster —
+            # twice in one played campaign — and Berthier closed on paying
+            # his ransom (N2). Splitting the CLASS by direction fixes N2
+            # for free: `_pick_berthier_note` keys on the class string
+            # alone, so the note follows without a new parameter.
+            #
+            # The ladder mirrors `own_broken`/`ally_broken` thirty lines
+            # below. The third arm — a capture France is neither party to —
+            # is a finding neither row carried: `_build_headline` reads the
+            # raw event log, so AUSTRIA taking a RUSSIAN marshal led
+            # France's morning briefing at 95, phrased as a French loss. It
+            # now produces no candidate at all, which IS gate CA8-D6 ("a
+            # third party's kill is never our triumph"), and is not our
+            # wound either.
+            #
+            # `enemy_eliminated`'s D6 `war_instances` witness is
+            # deliberately NOT reused. That loop exists because
+            # `nation_eliminated` names only the fallen court; this event
+            # NAMES its captor, so France's part is a one-key read. Reusing
+            # the loop would credit France whenever it merely shared a war
+            # with the victim — manufacturing the exact misread D6 forbids.
+            cap_nation = e.get("nation", "")
+            cap_captor = e.get("captor", "")
+            cap_marshal = humanize_entity_name(e.get("marshal", "?"))
+            if cap_nation == player_nation:
+                _add("marshal_captured",
+                     f"marshal_captured:{e.get('marshal', '?')}",
+                     marshal=cap_marshal,
+                     # CA8 sweep 4: `captor` is a NATION TAG (combat_executor
+                     # stamps `captor_nation`), so `humanize_entity_name` — a
+                     # marshal-name humaniser — rendered "Kingdom Of Italy holds
+                     # him prisoner." at weight 95: a dead name AND a mis-case,
+                     # from the highest-weight headline in the file.
+                     captor=(formed_display_name(world, cap_captor)
+                             if cap_captor else "the enemy"))
+            elif cap_captor == player_nation:
+                # Same dead-name discipline on the new slot — the captive's
+                # court is a nation tag too.
+                _of = (f" of {formed_display_name(world, cap_nation)}"
+                       if cap_nation else "")
+                _at = (f" at {e['location']}" if e.get("location") else "")
+                _add("enemy_marshal_captured",
+                     f"enemy_marshal_captured:{e.get('marshal', '?')}",
+                     line=(f"Marshal {cap_marshal}{_of} is taken{_at} — he "
+                           f"is our prisoner, and their order of battle is "
+                           f"one commander shorter."))
         elif etype in ("marshal_broken", "retreat"):
             # ────────────────────────────────────────────────────────────
             # CA8-5 (creative audit, Aug 4 2026): `own_broken` carries the

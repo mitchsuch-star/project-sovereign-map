@@ -2259,7 +2259,16 @@ class TestSweep4DeadNames:
         from tests.conftest import MarshalFactory, WorldFactory
         ney = MarshalFactory.infantry(name="Ney")
         world = WorldFactory.with_marshals([ney], current_turn=5)
+        # CA9-F12 (fixture amended consciously): the real producer stamps
+        # `nation` — the CAPTIVE's court — and this hand-built event
+        # omitted it. Once the headline reads direction, an event with no
+        # `nation` is not France's wound, and a `KingdomOfItaly` captor is
+        # not France's triumph either, so the branch correctly produces no
+        # candidate and the blob is empty. The dead-name claim is
+        # unchanged; the fixture is now the shape `_capture_marshal`
+        # actually writes.
         world.event_log = [{"type": "marshal_captured", "marshal": "Ney",
+                            "nation": "France",
                             "captor": "KingdomOfItaly", "turn": 5}]
         head = dispatch_mod._build_headline(world, "France") or {}
         blob = " ".join(str(v) for v in head.values())
