@@ -616,7 +616,17 @@ class TestExecutorIntegration:
         result = executor.handle_objection_response("invalid_choice", game_state)
 
         assert result["success"] == False
-        assert "Invalid choice" in result["message"]
+        # CA9-N5 (pin consciously re-blessed): the refusal no longer opens
+        # with the internal phrase "Invalid choice: '<token>'. Valid
+        # choices: trust, insist" — it speaks in the game's register and,
+        # more to the point, states the words that clear the block through
+        # the ONE helper every blocking surface now uses. What is pinned is
+        # the information, not the wording: the rejected token, and every
+        # legal answer, quoted so it can be typed verbatim.
+        assert "invalid_choice" in result["message"]
+        assert "'trust'" in result["message"]
+        assert "'insist'" in result["message"]
+        assert result["choices"] == ["trust", "insist"]
 
     def test_world_state_has_pending_objection_field(self):
         """WorldState has pending_objection initialized to None."""

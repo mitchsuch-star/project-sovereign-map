@@ -107,6 +107,31 @@ def dialogue_options(dialogue: Optional[dict]) -> List[dict]:
     return list(options)
 
 
+def format_answer_words(choices) -> str:
+    """CA9-N5: the exact words that clear a block, quoted so the player can
+    type them verbatim — ``'trust', 'insist' or 'compromise'``.
+
+    A blocking state that does not name its own exits is the "the game
+    stopped listening" moment. Six of them in the CA9 campaign, and the
+    words were already in the payload every time; only the sentence
+    omitted them. One helper, so shown = offered.
+    """
+    words = [f"'{str(c).strip()}'" for c in (choices or []) if str(c).strip()]
+    if not words:
+        return ""
+    if len(words) == 1:
+        return words[0]
+    return ", ".join(words[:-1]) + " or " + words[-1]
+
+
+def format_numbered_options(dialogue: Optional[dict]) -> str:
+    """CA9-N5: ``1=Conquest, 2=Forced Alliance, 3=Back Out`` — a live
+    dialogue's own option list, read off the dialogue rather than
+    re-described."""
+    labels = [str(o.get("label", "?")) for o in dialogue_options(dialogue)]
+    return ", ".join(f"{i + 1}={label}" for i, label in enumerate(labels))
+
+
 def _whole_phrase_in(phrase: str, text: str) -> bool:
     """Word-boundary containment. `no` must not match "north", and
     `start` must not match "restart" — the bare-substring scan is exactly

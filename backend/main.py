@@ -21,7 +21,10 @@ from pydantic import BaseModel, Field  # noqa: F401
 
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
-from backend.commands.dialogue_routing import match_dialogue_answer
+from backend.commands.dialogue_routing import (
+    match_dialogue_answer,
+    format_answer_words,
+)
 from backend.models.world_state import WorldState
 from backend.nation_config import DEFAULT_PLAYER_NATION, get_player_nation
 from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
@@ -1784,13 +1787,30 @@ def execute_command(request: CommandRequest):
         # most recent questions win) and before CR-4 carryover/parsing.
         # ════════════════════════════════════════════════════════════
         _pending_answer_token = command_text.strip().lower()
-        if (_pending_answer_token in ("trust", "insist", "compromise")
-                and (world.pending_objection is not None
-                     or getattr(world, "pending_strategic_objection", None)
-                     is not None)):
+        _objection_pending = (
+            world.pending_objection is not None
+            or getattr(world, "pending_strategic_objection", None) is not None)
+        if _pending_answer_token in ("trust", "insist", "compromise") \
+                and _objection_pending:
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> objection response")
             return _respond_to_objection_sync(_pending_answer_token)
+        # CA9-N5: the exact-token gate above rejected plain English meaning
+        # one of its own words — "I trust him", "insist on it", "trust
+        # Davout" all fell through to the parser and then died on the
+        # objection block, which (before this row) did not name the words
+        # either. Nothing else can execute while an objection stands, so a
+        # line naming exactly ONE answer word as a whole word is
+        # unambiguous; two words is ambiguous and gets the question back.
+        if _objection_pending and _pending_answer_token:
+            _spoken = [
+                w for w in ("trust", "insist", "compromise")
+                if re.search(rf"(?<![a-z]){w}(?![a-z])", _pending_answer_token)
+            ]
+            if len(_spoken) == 1:
+                print(f"[PENDING-QUESTION] Plain-English objection answer "
+                      f"'{command_text}' -> {_spoken[0]}")
+                return _respond_to_objection_sync(_spoken[0])
         if (_pending_answer_token in ("plunder", "secure",
                                       "confiscate", "respect")
                 and getattr(world, "pending_capture_choice", None)):
@@ -2111,7 +2131,7 @@ def execute_command(request: CommandRequest):
                         world, success=False,
                         message=(
                             f"{_objecting} awaits your answer, Sire — reply "
-                            f"{' or '.join(repr(c) for c in _obj_choices)}."),
+                            f"{format_answer_words(_obj_choices)}."),
                         objection=world.pending_objection,
                         choices=_obj_choices,
                         action_info={

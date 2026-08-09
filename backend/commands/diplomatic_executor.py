@@ -3447,10 +3447,12 @@ class DiplomaticExecutor:
             return _unresolved_choice_failure(_enumerated_choice_prompt())
 
         if not selected:
-            labels = [opt.get("label", "?") for opt in options]
-            numbered = ", ".join(
-                f"{i+1}={label}" for i, label in enumerate(labels)
+            # CA9-N5: the numbered list comes from the one helper every
+            # blocking surface uses, read off the LIVE dialogue.
+            from backend.commands.dialogue_routing import (
+                format_numbered_options,
             )
+            numbered = format_numbered_options(dialogue)
             return _unresolved_choice_failure(
                 f"I don't understand that choice, Sire. Options: {numbered}")
 

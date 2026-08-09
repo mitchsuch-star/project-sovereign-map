@@ -44,6 +44,17 @@ from backend.commands.movement_executor import MovementExecutor
 from backend.commands.naval_executor import NavalExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 
+# CA9-N5: a pending objection blocked EVERYTHING, including asking what
+# is going on. These five are pure reads — they mutate no state, cost no
+# AP, and their executors are marked `free_action` — so a marshal
+# standing on his dignity may not also stop the Emperor from reading the
+# intelligence report that would decide the argument. Deliberately NOT
+# the `free_actions` list at :653: that one holds diplomacy and vassal
+# verbs, which mutate.
+OBJECTION_FREE_READS = frozenset({
+    "status", "help", "economy", "treasury", "finances",
+})
+
 # Combat methods delegated to CombatExecutor (R10A+R10B backward compat)
 _COMBAT_DELEGATED = {
     # R10A: Combat execution
@@ -517,14 +528,28 @@ class CommandExecutor:
         # the player's pending dialogues.)
         # ============================================================
 
-        if world.pending_objection is not None and not is_ai_command:
+        if (world.pending_objection is not None and not is_ai_command
+                and _early_command.get("action") not in OBJECTION_FREE_READS):
+            from backend.commands.dialogue_routing import format_answer_words
             objecting = world.pending_objection.get("marshal", "A marshal")
+            _choices = (
+                ["trust", "insist", "compromise"]
+                if world.pending_objection.get("alternative")
+                else ["trust", "insist"])
             return {
                 "success": False,
-                "message": f"{objecting} awaits your answer, Sire — settle the objection before issuing new orders.",
+                # CA9-N5: the block names the words that clear it. They were
+                # already in `choices` below and the sentence omitted them —
+                # so the player was told to "settle the objection" with no
+                # way to learn how, and the block ate every order until they
+                # guessed. shown = offered, from the one list.
+                "message": (
+                    f"{objecting} awaits your answer, Sire — settle the "
+                    f"objection before issuing new orders. Reply "
+                    f"{format_answer_words(_choices)}."),
                 "awaiting_response": True,
                 "objection": world.pending_objection,
-                "choices": ["trust", "insist", "compromise"] if world.pending_objection.get("alternative") else ["trust", "insist"]
+                "choices": _choices,
             }
 
         # ============================================================

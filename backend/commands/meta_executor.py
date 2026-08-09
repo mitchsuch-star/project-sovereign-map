@@ -1531,9 +1531,16 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             valid_choices.append("compromise")
 
         if choice not in valid_choices:
+            # CA9-N5: one helper for every surface that names the words
+            # clearing a block, so the refusal and the block agree.
+            from backend.commands.dialogue_routing import format_answer_words
             return {
                 "success": False,
-                "message": f"Invalid choice: '{choice}'. Valid choices: {', '.join(valid_choices)}"
+                "message": (
+                    f"{marshal_name} awaits your answer, Sire — "
+                    f"'{choice}' is not one of the roads open. Reply "
+                    f"{format_answer_words(valid_choices)}."),
+                "choices": list(valid_choices),
             }
 
         # Process the choice through disobedience system

@@ -13,6 +13,7 @@ these tests pin the CALL.
 from __future__ import annotations
 
 import random
+import re
 from pathlib import Path
 
 import pytest
@@ -420,3 +421,194 @@ class TestHardStopMatcherIsNoLongerABareSubstringScan:
             "the inline table came back — two definitions of what a word "
             "means is the defect this collapsed")
         assert "accept" in DIALOGUE_ACTION_KEYWORDS
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# N5 — the objection that never states its options
+#
+# "A pending objection blocks everything including free reads (`status`),
+# never names the two words that clear it, and rejects plain English
+# meaning one of them." `choices` was already in the payload and the
+# sentence omitted it.
+# ═══════════════════════════════════════════════════════════════════════
+
+def _pending_objection(world, marshal="Davout", alternative=None):
+    world.pending_objection = {
+        "type": "major_objection",
+        "marshal": marshal,
+        "message": f"{marshal} objects.",
+        "original_order": {"action": "attack", "marshal": marshal,
+                           "target": "Bohemia"},
+        "suggested_alternative": alternative,
+        "alternative": alternative,
+        "compromise": None,
+    }
+    return world.pending_objection
+
+
+class TestN5ObjectionStatesItsOptions:
+
+    def _blocked(self, world, executor, action="attack", **extra):
+        cmd = {"type": "specific", "marshal": "Ney", "action": action}
+        cmd.update(extra)
+        return executor.execute(
+            {"success": True, "command": cmd}, {"world": world})
+
+    def test_the_block_names_the_two_words_that_clear_it(
+            self, world, executor):
+        _pending_objection(world)
+        result = self._blocked(world, executor, target="Bohemia")
+
+        assert result.get("success") is False
+        msg = result["message"]
+        assert "'trust'" in msg and "'insist'" in msg, (
+            "the block told the player to 'settle the objection' and never "
+            "named a single word that would settle it — while returning "
+            f"those exact words in `choices`: {msg!r}")
+        # shown == offered: the sentence is built from the payload list.
+        for choice in result["choices"]:
+            assert f"'{choice}'" in msg
+
+    def test_a_third_road_is_named_when_it_exists(self, world, executor):
+        _pending_objection(world, alternative={"action": "scout"})
+        result = self._blocked(world, executor, target="Bohemia")
+        assert "'compromise'" in result["message"]
+        assert result["choices"] == ["trust", "insist", "compromise"]
+
+    def test_free_reads_pass_the_block(self, world, executor):
+        """A marshal standing on his dignity may not also stop the Emperor
+        from reading the report that would decide the argument."""
+        from backend.commands.executor import OBJECTION_FREE_READS
+
+        for action in sorted(OBJECTION_FREE_READS):
+            _pending_objection(world)
+            result = executor.execute(
+                {"success": True, "command": {"type": "general",
+                                              "action": action}},
+                {"world": world})
+            assert "settle the objection" not in str(
+                result.get("message", "")), (
+                f"'{action}' is a pure read and was blocked by an objection")
+            assert world.pending_objection is not None, (
+                f"'{action}' cleared the objection — a read must not answer "
+                f"the question")
+
+    def test_a_free_read_costs_nothing_and_changes_nothing(
+            self, world, executor):
+        """The exemption is only safe because these five are pure."""
+        _pending_objection(world)
+        ap_before = int(world.actions_remaining)
+        snapshot = world.to_dict()
+        executor.execute(
+            {"success": True, "command": {"type": "general",
+                                          "action": "status"}},
+            {"world": world})
+        assert int(world.actions_remaining) == ap_before
+        assert world.to_dict() == snapshot
+
+    def test_an_order_is_still_blocked(self, world, executor):
+        """The control arm — the block is still a block."""
+        _pending_objection(world)
+        result = self._blocked(world, executor, target="Bohemia")
+        assert result.get("success") is False
+        assert "settle the objection" in result["message"]
+
+    def test_the_ai_is_never_blocked_by_the_players_objection(
+            self, world, executor):
+        _pending_objection(world)
+        result = executor.execute({
+            "success": True,
+            "command": {"type": "specific", "marshal": "Mack",
+                        "action": "fortify", "_autonomous_execution": True},
+        }, {"world": world})
+        assert "settle the objection" not in str(result.get("message", ""))
+
+
+class TestN5PlainEnglishAnswers:
+    """The exact-token gate rejected plain English meaning one of its own
+    words. Nothing else can execute while an objection stands, so a line
+    naming exactly one answer word is unambiguous."""
+
+    @staticmethod
+    def _answers(text):
+        return [w for w in ("trust", "insist", "compromise")
+                if re.search(rf"(?<![a-z]){w}(?![a-z])", text.strip().lower())]
+
+    @pytest.mark.parametrize("line", [
+        "I trust him",
+        "trust Davout",
+        "insist on it",
+        "very well, insist",
+        "let us compromise",
+    ])
+    def test_plain_english_resolves_to_exactly_one_answer(self, line):
+        assert len(self._answers(line)) == 1, (
+            f"'{line}' must resolve to exactly one objection answer")
+
+    @pytest.mark.parametrize("line", [
+        "Ney, march on Bohemia",
+        "status",
+        "distrusting the marshals",   # 'trust' inside a longer word
+        "insistence is not a plan",   # 'insist' inside a longer word
+    ])
+    def test_ordinary_lines_are_not_objection_answers(self, line):
+        assert self._answers(line) == [], (
+            f"'{line}' was read as an objection answer")
+
+    def test_two_answer_words_stay_ambiguous(self):
+        assert len(self._answers("trust him or insist?")) == 2
+
+    def test_main_routes_the_plain_english_form(self):
+        """Pin the wiring, not just the predicate."""
+        import inspect
+
+        import backend.main as main_module
+
+        src = inspect.getsource(main_module.execute_command)
+        assert "_objection_pending" in src
+        assert "Plain-English objection answer" in src
+
+
+class TestN5OneHelperForEveryBlockingSurface:
+
+    def test_format_answer_words_shape(self):
+        from backend.commands.dialogue_routing import format_answer_words
+        assert format_answer_words(
+            ["trust", "insist"]) == "'trust' or 'insist'"
+        assert format_answer_words(
+            ["trust", "insist", "compromise"]
+        ) == "'trust', 'insist' or 'compromise'"
+        assert format_answer_words(["plunder"]) == "'plunder'"
+        assert format_answer_words([]) == ""
+
+    def test_format_numbered_options_reads_the_live_dialogue(
+            self, world, executor):
+        from backend.commands.dialogue_routing import format_numbered_options
+        executor._combat._stage_war_purpose_selection(world, "France", "Hesse")
+        rendered = format_numbered_options(world.pending_diplomatic_dialogue)
+        labels = [o["label"]
+                  for o in world.pending_diplomatic_dialogue["options"]]
+        assert rendered.startswith("1=")
+        for i, label in enumerate(labels):
+            assert f"{i + 1}={label}" in rendered
+
+    def test_every_blocking_surface_uses_the_helper(self):
+        """Falsifiability: four surfaces named the words by hand; they now
+        share one. A fifth hand-rolled join must not creep back."""
+        import inspect
+
+        import backend.main as main_module
+        from backend.commands import diplomatic_executor as de
+        from backend.commands import executor as ex
+        from backend.commands import meta_executor as me
+
+        for module, needle in (
+            (ex, "format_answer_words"),
+            (me, "format_answer_words"),
+            (main_module, "format_answer_words"),
+            (de, "format_numbered_options"),
+        ):
+            assert needle in inspect.getsource(module), (
+                f"{module.__name__} stopped using {needle}")
+        assert "repr(c) for c in" not in inspect.getsource(main_module), (
+            "a hand-rolled choice join came back")
