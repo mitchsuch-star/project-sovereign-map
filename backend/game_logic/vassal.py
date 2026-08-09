@@ -576,6 +576,13 @@ def process_vassal_loyalty(world) -> List[dict]:
         # Apply delta
         new_loyalty = max(LOYALTY_MIN, min(LOYALTY_MAX, old_loyalty + delta))
         state["loyalty"] = int(new_loyalty)
+        # N31 (CA9): the loyalty MECHANIC already took the clamped value on
+        # the line above — but the event gate, the sign and the printed
+        # figure all read the RAW delta, so a vassal already at the 100
+        # ceiling reported "loyalty 100 (+2)" every turn. All three French
+        # vassals boot at 100, so it fired from turn 1 and four times in
+        # the played campaign. `applied_delta` is what actually happened.
+        applied_delta = int(new_loyalty) - int(old_loyalty)
 
         # Generate event if significant change.
         # VS-1 (Combat Overhaul Phase 5): the gate was abs(delta) >= 3, which
@@ -583,18 +590,19 @@ def process_vassal_loyalty(world) -> List[dict]:
         # player never saw a healthy-band vassal slipping, nor learned the
         # levers to arrest it. Lowered to >= 2 so a bare satellite's drift
         # surfaces every turn, and a recovery hint teaches the fix.
-        if abs(delta) >= 2 or new_loyalty <= 20:
+        if abs(applied_delta) >= 2 or new_loyalty <= 20:
             # W6-3 §5.4: name the top same-sign contributors (max 2) so the
             # dispatch/log line reads "Switzerland 84 (−8): puppet
             # resentment, the lord's defeats".
-            sign = 1 if delta >= 0 else -1
+            sign = 1 if applied_delta >= 0 else -1
             dominant = sorted(
                 ((label, value) for label, value in contributions.items()
                  if value * sign > 0),
                 key=lambda kv: abs(kv[1]), reverse=True,
             )[:2]
             reason = ", ".join(label for label, _ in dominant)
-            delta_str = f"+{delta}" if delta >= 0 else str(delta)
+            delta_str = (f"+{applied_delta}" if applied_delta >= 0
+                         else str(applied_delta))
 
             # VS-1 "teach it": a vassal slipping while still in the healthy
             # band (>= 40) gets a one-line reminder of the arresting levers, so
@@ -616,7 +624,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "nation": lord,
                 "old_loyalty": int(old_loyalty),
                 "new_loyalty": int(new_loyalty),
-                "delta": int(delta),
+                "delta": int(applied_delta),
                 "reason": reason,
                 "recovery_hint": recovery_hint,
                 "message": (

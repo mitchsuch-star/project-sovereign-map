@@ -523,10 +523,28 @@ def _assess_situation(world) -> Dict:
         key=lambda kv: int(kv[1].get("loyalty", 100)))
     if own_vassals:
         lines.append("")
-        from backend.game_logic.vassal import AUTONOMY_DRIFT
+        # N32 (CA9): this derived the trend from AUTONOMY TIER ALONE —
+        # one of six terms — and measured two of three wrong on the boot
+        # board: "Holland: loyalty 100, falling" (really stable, shared
+        # enemies cancel the drift) and "KingdomOfItaly: loyalty 100,
+        # falling" (really rising, capital garrisoned). It now calls
+        # `forecast_vassal_loyalty`, whose own docstring names this exact
+        # failure as the reason it exists and which already serves the
+        # ledger Vassals tab and the wizard preview. The advisory was the
+        # copy nobody migrated.
+        from backend.game_logic.vassal import (
+            LOYALTY_MAX, LOYALTY_MIN, forecast_vassal_loyalty,
+        )
         for name, record in own_vassals[:4]:
             loyalty = int(record.get("loyalty", 0))
-            drift = AUTONOMY_DRIFT.get(record.get("autonomy", 1), 0)
+            forecast = forecast_vassal_loyalty(world, player, name)
+            drift = int(forecast.get("forecast", 0))
+            # N31's lesson on the advisory side: a delta the clamp will
+            # discard is not a trend. At the ceiling nothing rises; at the
+            # floor nothing falls.
+            if (loyalty >= LOYALTY_MAX and drift > 0) or (
+                    loyalty <= LOYALTY_MIN and drift < 0):
+                drift = 0
             trend = ("rising" if drift > 0
                      else "falling" if drift < 0 else "steady")
             reason = _recent_vassal_reason(world, name)

@@ -113,8 +113,13 @@ class TestBaselineUnchanged:
         events = [e for e in tick(w) if e.get("type") == "retreat_recovery"]
         assert len(events) == 1
         assert events[0]["penalty"] == "-30%"
+        # CA9-N37 (pin re-blessed): the sentence gained its terminator.
+        # Without it the rally note ran straight on — "penalty: -40% The
+        # rout's disorder lingers" — and the bare arm ended mid-air. The
+        # MC-Q3 claim this pins (a command-5 marshal's baseline penalty
+        # string) is unchanged.
         assert events[0]["message"] == (
-            f"{m.name}'s army is recovering. Effectiveness penalty: -30%")
+            f"{m.name}'s army is recovering. Effectiveness penalty: -30%.")
 
     def test_command_4_gets_normal_penalties(self):
         """Boundary: the poor arm starts at <= 3, not 4."""

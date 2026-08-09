@@ -684,6 +684,11 @@ def _recurrence_clause(marshal, target_name: str, turn: int) -> str:
         return " once more, the same day it was set aside"
     if fires >= 3:
         return f" for the {_ORDINALS.get(fires, f'{fires}th')} time"
+    # N25 (CA9): "again, 1 turns after the last". This is NOT the arm the
+    # CA8 sweep dropped — that one made a claim about COOLING the data
+    # cannot support. This says only what `gap` means: fire to fire.
+    if gap == 1:
+        return " again, the very next turn"
     return f" again, {gap} turns after the last"
 
 

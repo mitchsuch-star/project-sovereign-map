@@ -908,6 +908,9 @@ def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
 
 def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     """Serialize enemy-phase data and apply fog filtering for Godot."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+
     cleaned_phase = {
         "nations": {},
         "total_actions": enemy_phase.get("total_actions", 0),
@@ -948,8 +951,17 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
         return cleaned_phase
     if raw_total > 0:
+        # N28 (CA9): the raw tag reached the player — "within Ottoman's
+        # borders". `display_nation` is the chokepoint (Ottoman -> Ottoman
+        # Empire); `humanize_entity_name` is a NO-OP on it, being the
+        # camelCase MARSHAL repair. `formed_display_name` wraps
+        # `display_nation` and adds the NA-6 dead-name repair for free.
+        # `with_definite_article` also kills the unfiled sibling: the
+        # possessive rendered "Papal States's borders", and PapalStates is
+        # in the boot roster.
         cleaned_phase["fog_hidden_summary"] = [
-            f"Our scouts report activity within {nation}'s borders, "
+            f"Our scouts report activity within the borders of "
+            f"{with_definite_article(formed_display_name(world, nation))}, "
             f"but their formations remain beyond our sight."
             for nation in raw_nations
         ]

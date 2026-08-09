@@ -921,6 +921,11 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+# N26 (CA9): one number-word source for the file. `_derive_danger` had
+# the word "two" hardcoded into a sentence that ran on a five-turn famine.
+_COUNT_WORDS = {2: "two", 3: "three", 4: "four", 5: "five"}
+
+
 def _turns_ago_phrase(turn: Optional[int], now: int) -> str:
     """'this turn' / 'last turn' / 'three turns ago' — CA8-9 joins beats
     that are up to five turns apart, so the gap has to be spoken."""
@@ -931,8 +936,7 @@ def _turns_ago_phrase(turn: Optional[int], now: int) -> str:
         return "this turn"
     if gap == 1:
         return "last turn"
-    _words = {2: "two", 3: "three", 4: "four", 5: "five"}
-    return f"{_words.get(gap, str(gap))} turns ago"
+    return f"{_COUNT_WORDS.get(gap, str(gap))} turns ago"
 
 
 def _compose_reversal_line(world, marshal, crown_turn, estate, lost_estate,
@@ -1343,11 +1347,29 @@ def _derive_danger(marshal, world, player_nation: str,
             marshal, "retreated_this_turn", False):
         return "Fell back under fire — the corps is recovering."
     # 4. Supply attrition 2+ consecutive turns.
+    #
+    # N26 (CA9): this said "two turns running" on a famine that had run
+    # five, while the headline on the same screen said "3 turns". The
+    # honest figure is the TRAILING CONSECUTIVE RUN — deliberately NOT
+    # `len(turns)`, because the window (`_collect_supply_attrition_turns`,
+    # current_turn - 5) can hold a gap: [3, 4, 8] has len 3 and a real
+    # streak of 1, and correctly says nothing at all today.
+    #
+    # Recorded, not absorbed: the roster reads a 6-turn window and the
+    # headline a 3-turn one, so a five-turn famine now reads "five turns
+    # running" beside a headline that says "3 turns". Two honest numbers
+    # from two windows is strictly better than one false one, but it is
+    # not agreement — that window belongs to the headline's own row.
     turns = sorted(set(supply_turns.get(marshal.name, [])))
-    for i in range(1, len(turns)):
-        if (turns[i] - turns[i - 1] == 1
-                and turns[i] >= world.current_turn - 1):
-            return f"Starving — supply has failed at {marshal.location} two turns running."
+    if turns and turns[-1] >= world.current_turn - 1:
+        run = 1
+        for i in range(len(turns) - 1, 0, -1):
+            if turns[i] - turns[i - 1] != 1:
+                break
+            run += 1
+        if run >= 2:
+            return (f"Starving — supply has failed at {marshal.location} "
+                    f"{_COUNT_WORDS.get(run, str(run))} turns running.")
     return ""
 
 
@@ -2211,12 +2233,23 @@ def _build_turn_events(
                           "fontainebleau_petition"):
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
-                            "drill_complete", "retreat_recovery",
+                            "drill_complete",
                             "garrison_regen", "broken_recovered",
                             "marshal_released",
                             "jealousy_resolved", "jealousy_ladder_shift",
                             "glory_crowned", "marshal_commissioned"):
             severity = "good"
+        elif event_type == "retreat_recovery":
+            # N37 (CA9): a corps still carrying a -40% effectiveness
+            # penalty was reported as GOOD news. It is good news only at
+            # the stage where the penalty is gone.
+            #
+            # It must NOT simply become "info": `retreat_recovered` is not
+            # in `_DISPATCH_EVENT_TYPES`, so the final stage of THIS event
+            # is the only recovery news the player ever gets. Stage 3 keeps
+            # `good`; the intermediate stages, which are reports of a corps
+            # still broken, drop to `info`.
+            severity = "good" if int(event.get("stage", 0)) >= 3 else "info"
         elif event_type == "vassal_loyalty":
             # W6-3: falling loyalty is a warning; rising is mere info.
             severity = "warning" if int(event.get("delta", 0)) < 0 else "info"

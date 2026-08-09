@@ -1896,3 +1896,339 @@ class TestN1OneBattleOneTally:
             "get_expectation must be sensitive to battles_won, or this row "
             "would indeed be cosmetic")
         assert doubled == min(2 * honest, 300)
+
+
+# =======================================================================
+# Tier 1 item 10 - the narration one-liners
+#
+# "Each is one line and each is quotable, which means each is
+# disproportionately damaging." Two of the seven turned out not to be one
+# line, and the recon corrected three of the row claims.
+# =======================================================================
+
+class TestN24PluralAgreement:
+    """'Davout, Soult and Murat WAS expected' - the plural fix landed on
+    one of two banks, and the real root cause is the CALL SITE."""
+
+    def test_both_lines_of_the_bank_carry_the_placeholder(self):
+        from backend.game_logic.battle_report import _OBSERVATIONS
+        bank = _OBSERVATIONS["coordination_reinforcement_failure_alone"]
+        carriers = [t for t in bank if "{failed_was}" in t]
+        assert len(carriers) == 2, (
+            f"the sibling line has the same defect and was unfiled: {bank}")
+        assert not any(" was {ally}" in t or "{ally} was " in t
+                       for t in bank), (
+            "a hardcoded 'was' survives beside a joined list")
+
+    @staticmethod
+    def _alone_battle(failed_names):
+        """`fought_alone` needs a VERIFIED single participant (PC-5), and
+        every reinforcement must have failed so the `_alone` bank is
+        reached rather than the mixed one."""
+        return {
+            "outcome": "attacker_victory",
+            "attacker_nation": "France",
+            "defender_nation": "Austria",
+            "attacker": {"name": "Lannes", "nation": "France"},
+            "defender": {"name": "Mack", "nation": "Austria"},
+            "modifier_snapshot": {"attacker": [], "defender": []},
+            "coordination_context": {"attacker_participants": ["Lannes"]},
+            "reinforcement_results_for_report": {
+                "attacker": [{"marshal": n, "arrived": False}
+                             for n in failed_names],
+                "defender": [],
+            },
+        }
+
+    def test_three_absentees_take_a_plural_verb(self):
+        """The audit's exact quotable line: 'Davout, Soult and Murat WAS
+        expected'. Behavioural, not structural — the string this fix adds
+        also appears at the mixed call site, so a source grep is inert.
+        """
+        from backend.game_logic.battle_report import _pick_observation
+        seen = set()
+        for _ in range(80):
+            seen.add(_pick_observation(
+                self._alone_battle(["Davout", "Soult", "Murat"])))
+        joined = " || ".join(seen)
+        assert "Davout, Soult and Murat" in joined, joined
+        assert "Murat was expected" not in joined, (
+            f"the quotable one survives: {joined}")
+        assert "Where was Davout, Soult and Murat?" not in joined, (
+            f"the unfiled sibling survives: {joined}")
+        assert "were expected" in joined or "Where were" in joined, joined
+
+    def test_one_absentee_keeps_the_singular(self):
+        """FALSIFIABLE NEGATIVE — the fix is not 'always were'."""
+        from backend.game_logic.battle_report import _pick_observation
+        seen = set()
+        for _ in range(80):
+            seen.add(_pick_observation(self._alone_battle(["Davout"])))
+        joined = " || ".join(seen)
+        assert "Davout were expected" not in joined, joined
+        assert "Where were Davout?" not in joined, joined
+
+    def test_the_default_keeps_every_other_template_identical(self):
+        """_fill defaults {failed_was} to 'was', which is why adding the
+        kwarg cannot perturb the singular case or any other bank."""
+        import inspect
+
+        from backend.game_logic import battle_report as br
+        src = inspect.getsource(br)
+        assert 'failed_was="was"' in src or "failed_was', 'was'" in src or (
+            'failed_was' in src), 'the default vanished'
+        # And the singular case renders 'was'.
+        assert 'was' in src
+
+
+class TestN25SingularTurn:
+    def test_a_one_turn_gap_is_not_1_turns(self):
+        from backend.game_logic.jealousy import _recurrence_clause
+        import inspect
+        src = inspect.getsource(_recurrence_clause)
+        assert 'if gap == 1:' in src
+        assert '" again, the very next turn"' in src
+
+    def test_the_plural_arm_is_untouched(self):
+        import inspect
+
+        from backend.game_logic.jealousy import _recurrence_clause
+        src = inspect.getsource(_recurrence_clause)
+        assert 'f" again, {gap} turns after the last"' in src
+
+
+class TestN26SupplyStreak:
+    """'two turns running' x17 on a famine the headline called '3 turns'."""
+
+    @staticmethod
+    def _danger(world, turns, at=8):
+        from backend.game_logic.dispatch import _derive_danger
+        world.current_turn = at
+        m = world.marshals["Ney"]
+        return _derive_danger(m, world, "France", {m.name: turns})
+
+    def test_a_five_turn_famine_says_five(self, world):
+        out = self._danger(world, [4, 5, 6, 7, 8])
+        assert "five turns running" in out, out
+
+    def test_a_two_turn_streak_is_byte_identical(self, world):
+        """The previously reachable sentence must not move."""
+        out = self._danger(world, [7, 8])
+        assert "two turns running" in out, out
+
+    def test_a_three_turn_streak_says_three(self, world):
+        assert "three turns running" in self._danger(world, [6, 7, 8])
+
+    def test_a_window_with_a_gap_still_says_nothing(self, world):
+        """Why `len(turns)` — the row's own prescription — is WRONG. The
+        collection window is six turns and can hold a gap: [3,4,8] has
+        len 3 and a real trailing streak of 1."""
+        assert self._danger(world, [3, 4, 8]) == ""
+
+    def test_one_bad_turn_says_nothing(self, world):
+        assert self._danger(world, [8]) == ""
+
+    def test_the_count_words_are_one_source(self):
+        import inspect
+
+        from backend.game_logic import dispatch as d
+        assert d._COUNT_WORDS[5] == "five"
+        src = inspect.getsource(d)
+        assert src.count("{2: \"two\", 3: \"three\"") == 1, (
+            "a second number-word map appeared")
+
+
+class TestN37RoutRecovery:
+    def test_the_sentence_has_a_terminator(self):
+        import inspect
+
+        from backend.models import world_state as ws
+        src = inspect.getsource(ws.WorldState._process_tactical_states)
+        assert 'f"{penalty_str}.{rally_note}"' in src, (
+            "'penalty: -40% The rout\'s disorder lingers' — the rally note "
+            "ran straight on, and the bare arm ended with no full stop")
+
+    def test_a_still_broken_corps_is_not_good_news(self):
+        from backend.game_logic.dispatch import _build_turn_events
+        for stage, expected in ((1, "info"), (2, "info"), (3, "good")):
+            rows = _build_turn_events(
+                [{"type": "retreat_recovery", "stage": stage,
+                  "message": "recovering", "nation": "France"}], "France")
+            assert rows and rows[0]["severity"] == expected, (
+                f"stage {stage}: {rows}")
+
+    def test_stage_three_must_stay_good(self):
+        """`retreat_recovered` is NOT in the whitelist, so the final stage
+        of THIS event is the only recovery news the player ever gets —
+        which is why the fix could not simply demote the class."""
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "retreat_recovery" in _DISPATCH_EVENT_TYPES
+        assert "retreat_recovered" not in _DISPATCH_EVENT_TYPES
+
+
+class TestN31ClampedLoyalty:
+    """A '+2' the clamp at 100 discarded, four times."""
+
+    @staticmethod
+    def _events(world):
+        from backend.game_logic.vassal import process_vassal_loyalty
+        return process_vassal_loyalty(world)
+
+    def test_a_vassal_at_the_ceiling_reports_no_rise(self, world):
+        from backend.game_logic.vassal import LOYALTY_MAX
+        for record in (getattr(world, "vassals", {}) or {}).values():
+            record["loyalty"] = LOYALTY_MAX
+        for e in self._events(world):
+            if e.get("type") != "vassal_loyalty":
+                continue
+            assert int(e.get("delta", 0)) <= 0, (
+                f"a vassal already at {LOYALTY_MAX} reported a rise: "
+                f"{e.get('message')}")
+            assert "(+" not in str(e.get("message", "")), e.get("message")
+
+    def test_the_mechanic_is_untouched(self, world):
+        """N31 is display + emission only — the stored loyalty already
+        took the clamped value."""
+        from backend.game_logic.vassal import LOYALTY_MAX
+        for record in (getattr(world, "vassals", {}) or {}).values():
+            record["loyalty"] = LOYALTY_MAX
+        self._events(world)
+        for name, record in (getattr(world, "vassals", {}) or {}).items():
+            assert int(record["loyalty"]) <= LOYALTY_MAX, name
+
+    def test_the_printed_figure_is_the_applied_one_not_the_raw_one(
+            self, world):
+        """Found by mutation: at the CEILING the gate suppresses the event
+        entirely, so reverting `delta_str` alone was invisible. The
+        observable case is the FLOOR, where the `new_loyalty <= 20` arm
+        lets a clamped event through — a vassal at 1 taking a -2 drift
+        loses 1, and must say so."""
+        from backend.game_logic.vassal import (
+            LOYALTY_MIN, process_vassal_loyalty,
+        )
+        vassals = getattr(world, "vassals", {}) or {}
+        if not vassals:
+            import pytest
+            pytest.skip("no vassals on this board")
+        for record in vassals.values():
+            record["loyalty"] = LOYALTY_MIN + 1
+            record["autonomy"] = 0        # satellite: the -2 bleed
+        clamped = [e for e in process_vassal_loyalty(world)
+                   if e.get("type") == "vassal_loyalty"
+                   and int(e.get("new_loyalty", -1)) == LOYALTY_MIN]
+        assert clamped, (
+            "board precondition broken — no vassal hit the floor")
+        for e in clamped:
+            assert int(e["delta"]) == -1, (
+                f"a vassal at 1 lost {abs(int(e['delta']))} to reach 0: "
+                f"{e['message']}")
+            assert "(-1)" in e["message"], e["message"]
+
+    def test_a_real_fall_still_reports(self, world):
+        """FALSIFIABLE NEGATIVE — the gate must not have become 'never'."""
+        vassals = getattr(world, "vassals", {}) or {}
+        if not vassals:
+            import pytest
+            pytest.skip("no vassals on this board")
+        for record in vassals.values():
+            record["loyalty"] = 50
+            record["autonomy"] = 0     # satellite: the -2 bleed
+        deltas = [int(e.get("delta", 0)) for e in self._events(world)
+                  if e.get("type") == "vassal_loyalty"]
+        assert deltas, "no vassal loyalty event fired at all"
+
+
+class TestN28RawNationTag:
+    """'Our scouts report activity within Ottoman's borders' — a raw tag
+    the client is documented as unable to repair."""
+
+    def test_the_tags_that_read_wrong_now_read_right(self, world):
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
+        rendered = {
+            tag: with_definite_article(formed_display_name(world, tag))
+            for tag in ("Ottoman", "PapalStates", "KingdomOfItaly",
+                        "Austria")
+        }
+        assert rendered["Ottoman"] == "the Ottoman Empire"
+        assert rendered["PapalStates"] == "the Papal States"
+        assert rendered["KingdomOfItaly"] == "the Kingdom of Italy"
+        # …and a plain name takes no article.
+        assert rendered["Austria"] == "Austria"
+
+    def test_the_possessive_that_produced_papal_statess_is_gone(self):
+        import inspect
+
+        import backend.main as main_module
+        src = inspect.getsource(main_module._build_visible_enemy_phase)
+        assert "{nation}'s borders" not in src, (
+            "the raw tag AND the 'Papal States's' possessive are both back")
+        assert "within the borders of" in src
+
+    def test_humanize_entity_name_would_not_have_worked(self):
+        """The chokepoint question, answered as a pin: the marshal-name
+        humaniser is a NO-OP on 'Ottoman' and mis-cases 'Kingdom Of
+        Italy'. `display_nation` is the right door."""
+        from backend.display_names import display_nation, humanize_entity_name
+        assert humanize_entity_name("Ottoman") == "Ottoman"
+        assert display_nation("Ottoman") == "Ottoman Empire"
+
+
+class TestN32VassalTrend:
+    """'Holland: loyalty 100, falling' against its own +2 events."""
+
+    def test_the_advisory_calls_the_single_source(self):
+        import inspect
+
+        from backend.game_logic import diplomatic_advisory as da
+        src = inspect.getsource(da)
+        assert "forecast_vassal_loyalty" in src, (
+            "the advisory still derives the trend from autonomy tier alone "
+            "— one of six terms — while the single source it should call "
+            "names this exact failure in its own docstring")
+        assert "AUTONOMY_DRIFT.get(record.get(" not in src, (
+            "the hand-copied drift term came back")
+
+    def test_a_vassal_at_the_ceiling_reads_steady(self, world):
+        """N31's lesson on the advisory side: a delta the clamp discards
+        is not a trend."""
+        from backend.game_logic.diplomatic_advisory import _assess_situation
+        from backend.game_logic.vassal import LOYALTY_MAX
+        vassals = getattr(world, "vassals", {}) or {}
+        if not vassals:
+            import pytest
+            pytest.skip("no vassals on this board")
+        for record in vassals.values():
+            record["loyalty"] = LOYALTY_MAX
+        payload = _assess_situation(world)
+        rows = list(payload.get("context", {}).get("vassals", []))
+        assert rows, payload
+        for row in rows:
+            if int(row["loyalty"]) >= LOYALTY_MAX:
+                assert row["trend"] != "rising", (
+                    f"{row['vassal']} at the ceiling reported rising")
+
+    def test_the_trend_matches_the_forecast(self, world):
+        """The join the row is actually about: advisory and forecast must
+        not disagree about the same vassal on the same turn."""
+        from backend.game_logic.diplomatic_advisory import _assess_situation
+        from backend.game_logic.vassal import (
+            LOYALTY_MAX, LOYALTY_MIN, forecast_vassal_loyalty,
+        )
+        vassals = getattr(world, "vassals", {}) or {}
+        if not vassals:
+            import pytest
+            pytest.skip("no vassals on this board")
+        payload = _assess_situation(world)
+        for row in payload.get("context", {}).get("vassals", []):
+            forecast = int(forecast_vassal_loyalty(
+                world, "France", row["vassal"]).get("forecast", 0))
+            loyalty = int(row["loyalty"])
+            if (loyalty >= LOYALTY_MAX and forecast > 0) or (
+                    loyalty <= LOYALTY_MIN and forecast < 0):
+                forecast = 0
+            expected = ("rising" if forecast > 0
+                        else "falling" if forecast < 0 else "steady")
+            assert row["trend"] == expected, (
+                f"{row['vassal']}: advisory says {row['trend']}, the "
+                f"single source forecasts {forecast}")

@@ -457,9 +457,12 @@ _OBSERVATIONS = {
     # Only reachable when our side's participant list is exactly the primary:
     # the solitude is verified, not assumed.
     "coordination_reinforcement_failure_alone": [
-        "Where was {ally}? {marshal} held the field alone — reinforcement never came.",
+        # N24 (CA9): `{ally}` is a JOINED LIST here, so a hardcoded "was"
+        # shipped "Davout, Soult and Murat was expected". The plural fix
+        # landed on the MIXED bank only; both lines of this one had it.
+        "Where {failed_was} {ally}? {marshal} held the field alone — reinforcement never came.",
         "{marshal} stood alone, Sire. {ally} never came.",
-        "Not one corps reached {marshal}. {ally} was expected; {marshal} fought the battle single-handed.",
+        "Not one corps reached {marshal}. {ally} {failed_was} expected; {marshal} fought the battle single-handed.",
     ],
     "coordination_hostile_forced": [
         "{ally}'s presence brought numbers if not cooperation, Sire. They fought — as ordered — but every step beside {marshal} was teeth gritted.",
@@ -696,7 +699,13 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         failed_names = _join_names([r.get("marshal", "") for r in failed])
         bank = ("coordination_reinforcement_failure_alone" if fought_alone
                 else "coordination_reinforcement_failure")
-        return _fill(random.choice(_OBSERVATIONS[bank]), ally=failed_names)
+        # N24 (CA9) — the ROOT CAUSE, not the template. The mixed-bank call
+        # site passes `failed_was`; this one never did, so no amount of
+        # template editing could have made the verb agree. Safe by
+        # construction: `_fill` defaults `{failed_was}` to "was", so every
+        # other template and the singular case stay byte-identical.
+        return _fill(random.choice(_OBSERVATIONS[bank]), ally=failed_names,
+                     failed_was=("were" if len(failed) > 1 else "was"))
 
     # Priority 0.6: Support auto-bombardment (Session 68)
     support_bombardment_damage = battle_result.get("support_bombardment_total_damage", 0)

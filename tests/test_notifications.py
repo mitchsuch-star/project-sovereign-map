@@ -638,7 +638,7 @@ class TestDispatchSeverity:
 
         good_types = [
             "construction_complete", "occupation_complete",
-            "drill_complete", "retreat_recovery",
+            "drill_complete",
             "garrison_regen", "broken_recovered",
         ]
 
@@ -648,6 +648,25 @@ class TestDispatchSeverity:
             assert len(result) == 1, f"{event_type} should pass whitelist filter"
             assert result[0]["severity"] == "good", \
                 f"{event_type} should be 'good' severity, got '{result[0]['severity']}'"
+
+    def test_retreat_recovery_is_good_only_when_it_is_good(self):
+        """CA9-N37 (pin re-blessed and SPLIT): a corps still carrying a
+        -40% effectiveness penalty was reported as GOOD news, unconditionally.
+
+        It could not simply become "info": `retreat_recovered` is absent
+        from `_DISPATCH_EVENT_TYPES`, so the final stage of THIS event is
+        the only recovery news the player ever gets. Stage 3 keeps `good`;
+        the intermediate stages, which report a corps still broken, are
+        `info`."""
+        from backend.game_logic.dispatch import _build_turn_events
+
+        for stage, expected in ((1, "info"), (2, "info"), (3, "good")):
+            events = [{"type": "retreat_recovery", "stage": stage,
+                       "message": "recovering", "nation": "France"}]
+            result = _build_turn_events(events, "France")
+            assert len(result) == 1
+            assert result[0]["severity"] == expected, (
+                f"stage {stage} reported as {result[0]["severity"]}")
 
     def test_info_events_get_info_severity(self):
         from backend.game_logic.dispatch import _build_turn_events

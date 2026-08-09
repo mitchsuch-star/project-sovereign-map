@@ -10258,7 +10258,14 @@ class WorldState:
                         "nation": marshal.nation,
                         "stage": new_stage,
                         "penalty": penalty_str,
-                        "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalty_str}{rally_note}"
+                        # N37 (CA9): no sentence terminator, so the rally
+                        # note ran straight on — "penalty: -40% The rout's
+                        # disorder lingers". Both notes above open with a
+                        # space and their own capital; the bare arm ended
+                        # with no full stop at all.
+                        "message": (f"{marshal.name}'s army is recovering. "
+                                    f"Effectiveness penalty: "
+                                    f"{penalty_str}.{rally_note}")
                     })
 
                     # Check if fully recovered
