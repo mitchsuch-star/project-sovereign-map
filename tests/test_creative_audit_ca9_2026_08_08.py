@@ -2174,6 +2174,53 @@ class TestN28RawNationTag:
         assert display_nation("Ottoman") == "Ottoman Empire"
 
 
+class TestF9PrisonerIsNotASiege:
+    """Capturing the enemy commander SUBTRACTED 10 from your own war
+    score: a captured marshal sits at his captor's capital at strength 0,
+    and the contested-capital arm counted him as a besieger."""
+
+    @staticmethod
+    def _capital_score(world):
+        from backend.game_logic.diplomacy import calculate_war_score
+        return calculate_war_score(
+            "France", "Austria", world,
+            return_components=True)["capital"]
+
+    def test_a_prisoner_in_paris_does_not_contest_paris(self, world):
+        paris = world.get_nation_capital("France")
+        before = self._capital_score(world)
+        mack = world.marshals["Mack"]
+        mack.location = paris
+        mack.strength = 0
+        mack.captured_by = "France"
+        assert self._capital_score(world) == before, (
+            "the enemy commander is our prisoner in our own capital and "
+            "the score reads it as a siege")
+
+    def test_a_real_besieger_still_contests(self, world):
+        """FALSIFIABLE NEGATIVE — the guard must not have deleted the
+        mechanic."""
+        paris = world.get_nation_capital("France")
+        before = self._capital_score(world)
+        mack = world.marshals["Mack"]
+        mack.location = paris
+        mack.strength = 20000
+        mack.captured_by = ""
+        assert self._capital_score(world) < before, (
+            "a live Austrian army standing on Paris stopped counting")
+
+    def test_a_destroyed_corps_does_not_contest_either(self, world):
+        """Sibling parity: both other readers of this pattern already
+        carried `strength > 0`."""
+        paris = world.get_nation_capital("France")
+        before = self._capital_score(world)
+        mack = world.marshals["Mack"]
+        mack.location = paris
+        mack.strength = 0
+        mack.captured_by = ""
+        assert self._capital_score(world) == before
+
+
 class TestN32VassalTrend:
     """'Holland: loyalty 100, falling' against its own +2 events."""
 

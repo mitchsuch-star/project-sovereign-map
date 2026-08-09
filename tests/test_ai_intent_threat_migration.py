@@ -239,10 +239,35 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   [85, 83, 81, 79, 77, 75, 73, 71, 69, 66, 66, 63, 79, 76, 84, 81, 86,
 #    83, 70, 73, 78, 75, 72, 69, 69, 66, 63, 60, 60, 57, 54, 51, 54, 51,
 #    48, 45, 45, 42, 39, 36, 36]
+# RE-RECORDED CONSCIOUSLY ONCE for CA9-F9 (August 8, 2026), single cause,
+# ATTRIBUTION VERIFIED BY A FOUR-ARM EXPERIMENT (the NV-4 idiom):
+#
+# The war score's contested-capital arm counted ANY marshal of the enemy
+# nation standing in the capital province — and a CAPTURED marshal is held
+# at his captor's capital at strength 0. So taking the enemy commander
+# prisoner and holding him in Paris scored "Austria contests the French
+# capital" and SUBTRACTED 10 from France's own war score. Both sibling
+# readers of that pattern already carried the `strength > 0` guard.
+#
+# The experiment ran four arms of `_besieges`: control (neither clause),
+# `captured_by` alone, `strength > 0` alone, and both as landed. All THREE
+# fix arms produce the IDENTICAL series — which is itself the finding: on
+# this board the two clauses catch exactly the same marshals, because a
+# prisoner is precisely the strength-0 case. Single cause, no interaction.
+#
+# Divergence at index 11 (41 -> 46) and the tail runs four turns longer
+# before reaching the floor: France's score is no longer docked for its own
+# prisoners, so Europe stays alarmed about it for longer. The direction is
+# what the fix predicts.
+#
+# Prior series (the ECON BALANCE record, i.e. everything above this block):
+#   [70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 41, 43, 40, 37, 29, 26,
+#    23, 20, 22, 19, 16, 18, 15, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0]
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 41, 43, 40, 37, 29, 26,
-    23, 20, 22, 19, 16, 18, 15, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0,
+    70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 46, 48, 45, 47, 44, 31,
+    28, 30, 27, 24, 21, 18, 15, 12, 14, 11, 8, 10, 7, 4, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
 ]
 
 

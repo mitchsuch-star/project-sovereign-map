@@ -2832,6 +2832,26 @@ def _decay_battle_score(raw_score: int, records: List[Dict], current_turn: int) 
     return min(0, raw_score + decay_amount)
 
 
+def _besieges(marshal, nation: str, capital: str) -> bool:
+    """CA9-F9: does this marshal actually CONTEST that capital?
+
+    The contested-capital arm counted any marshal of the enemy nation
+    standing in the province — and a CAPTURED marshal is held at his
+    captor's capital at strength 0. So taking the enemy commander
+    prisoner and holding him in Paris scored "Austria contests the French
+    capital" and SUBTRACTED 10 from France's own war score: a triumph
+    priced as a siege. Both sibling readers of this pattern already carry
+    the `strength > 0` guard; `captured_by` is the self-documenting half,
+    and the two catch exactly the same marshals (a prisoner IS the
+    strength-0 case — proved by the four-arm attribution experiment
+    recorded at `BASELINE_SERIES`).
+    """
+    return (getattr(marshal, "nation", None) == nation
+            and getattr(marshal, "location", None) == capital
+            and int(getattr(marshal, "strength", 0) or 0) > 0
+            and not getattr(marshal, "captured_by", ""))
+
+
 def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
     """Calculate war score between two nations. Positive = nation_a winning.
 
@@ -2889,14 +2909,14 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
         b_cap_region = world.regions[b_capital]
         if b_cap_region.controller == nation_a:
             capital_score += 20
-        elif any(m.nation == nation_a and m.location == b_capital
+        elif any(_besieges(m, nation_a, b_capital)
                  for m in world.marshals.values()):
             capital_score += 10  # Contested
     if a_capital and a_capital in world.regions:
         a_cap_region = world.regions[a_capital]
         if a_cap_region.controller == nation_b:
             capital_score -= 20
-        elif any(m.nation == nation_b and m.location == a_capital
+        elif any(_besieges(m, nation_b, a_capital)
                  for m in world.marshals.values()):
             capital_score -= 10  # Contested
     capital_score = max(-30, min(30, capital_score))
