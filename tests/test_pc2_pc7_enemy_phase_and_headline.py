@@ -205,7 +205,17 @@ def test_a_yielded_standing_crisis_is_demoted_not_deleted():
          "text": "Sire — Austria and Bavaria have made peace without us."},
     ]
     head = _pick(world, candidates)
-    assert "household goes unpaid" in " ".join(head["sub_beats"])
+    # CA9-N9 (pin re-blessed): the crisis is still reported in the
+    # sub-beat, which is the claim — but it is no longer reported in the
+    # SAME WORDS. The escalation bank now applies to a standing candidate
+    # wherever it lands, not only when it is the sole news, because a
+    # demoted crisis repeating verbatim in the sub-beat slot is exactly
+    # what N9 measured (the Tyrol supply line, six consecutive
+    # dispatches). Pin the subject and the fact, not the frozen phrase.
+    beats = " ".join(head["sub_beats"])
+    assert "Davout" in beats, beats
+    assert ("unpaid" in beats or "unrewarded" in beats), beats
+    assert head["class"] != "estate_eroding", "it should have yielded"
 
 
 def test_sole_standing_crisis_keeps_the_lead_but_changes_its_words():

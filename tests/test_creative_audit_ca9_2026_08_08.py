@@ -2279,3 +2279,136 @@ class TestN32VassalTrend:
             assert row["trend"] == expected, (
                 f"{row['vassal']}: advisory says {row['trend']}, the "
                 f"single source forecasts {forecast}")
+
+
+# =======================================================================
+# N9 + N47 - the dispatch repeats itself, and its best lines never fired
+#
+# N9: sub-beats had no cross-turn memory - the Tyrol supply sentence ran
+#     SIX consecutive dispatches verbatim, and T15/T16 were the same three
+#     sentences permuted.
+# N47: `_STANDING_ESCALATION` had NEVER fired. It sat in the `else` of a
+#     `for` that breaks on the first differing identity, so it needed the
+#     standing class to be the ONLY candidate on the page - AND it needed
+#     `streak > STANDING_LEAD_MAX`, which the yield makes unreachable by
+#     re-keying the memory to whatever led instead. Self-gating.
+# =======================================================================
+
+class _Memo:
+    """Minimal world stand-in: the two fields _select_headline reads."""
+
+    def __init__(self, memory=None, prev_text=""):
+        self.headline_lead_memory = dict(memory or {})
+        self.last_morning_dispatch = (
+            {"headline": {"text": prev_text}} if prev_text else {})
+
+
+def _eroding(name="Davout", weight=55):
+    return {"class": "estate_eroding", "weight": weight,
+            "identity": f"estate_eroding:{name}",
+            "fields": {"marshal": name},
+            "text": f"Sire - Marshal {name}'s household goes unpaid."}
+
+
+def _other(weight=48):
+    return {"class": "europe_congress", "weight": weight,
+            "identity": "europe_congress", "fields": {},
+            "text": "Sire - Austria and Bavaria have made peace without us."}
+
+
+def _pick(memo, candidates):
+    from backend.game_logic.dispatch import _select_headline
+    return _select_headline(memo, [dict(c) for c in candidates])
+
+
+class TestN47EscalationCanActuallyFire:
+
+    def test_the_bank_exists_and_is_non_trivial(self):
+        from backend.game_logic.dispatch import _STANDING_ESCALATION
+        assert _STANDING_ESCALATION, "the bank was deleted"
+        assert any(len(v) >= 2 for v in _STANDING_ESCALATION.values())
+
+    def test_a_demoted_standing_crisis_no_longer_repeats_itself(self):
+        """N9's measured shape: the crisis yields the lead, lands in the
+        sub-beat, and says the SAME THING every turn."""
+        memo = _Memo()
+        texts = []
+        for _ in range(6):
+            head = _pick(memo, [_eroding(), _other()])
+            line = next((b for b in head["sub_beats"] if "Davout" in b),
+                        head["text"] if "Davout" in head["text"] else "")
+            texts.append(line)
+        assert all(texts), f"the crisis vanished from the page: {texts}"
+        assert len(set(texts)) > 1, (
+            f"six consecutive dispatches, one frozen sentence: {texts[0]!r}")
+
+    def test_the_escalation_no_longer_needs_to_be_the_only_news(self):
+        """THE N47 fix. Before, a single other candidate anywhere on the
+        page held the whole ladder shut forever."""
+        memo = _Memo()
+        seen_escalated = False
+        for _ in range(5):
+            head = _pick(memo, [_eroding(), _other()])
+            blob = head["text"] + " " + " ".join(head["sub_beats"])
+            if "household goes unpaid" not in blob and "Davout" in blob:
+                seen_escalated = True
+        assert seen_escalated, (
+            "with a second candidate present the escalation bank still "
+            "never fires")
+
+    def test_the_run_counts_turns_reported_not_turns_led(self):
+        """The distinction that makes N47 reachable: `streak` counts
+        consecutive turns in the LEAD, and the PC-7 yield resets it."""
+        memo = _Memo()
+        for _ in range(4):
+            _pick(memo, [_eroding(), _other()])
+        runs = memo.headline_lead_memory.get("runs") or {}
+        assert runs.get("estate_eroding:Davout", 0) >= 3, (
+            f"the crisis has been on the page four turns and the run says "
+            f"{runs.get('estate_eroding:Davout')}")
+
+    def test_a_crisis_that_lapses_resets_its_run(self):
+        """FALSIFIABLE NEGATIVE — `runs` counts CONSECUTIVE turns, so a
+        resolved-then-recurring grievance reads as fresh news again."""
+        memo = _Memo()
+        for _ in range(4):
+            _pick(memo, [_eroding(), _other()])
+        _pick(memo, [_other()])          # the crisis is off the page
+        _pick(memo, [_eroding(), _other()])
+        runs = memo.headline_lead_memory.get("runs") or {}
+        assert runs.get("estate_eroding:Davout") == 1, (
+            f"a lapsed crisis kept its old run: {runs}")
+
+    def test_a_non_standing_class_is_never_escalated(self):
+        """Scope guard: the bank belongs to STANDING classes."""
+        from backend.game_logic.dispatch import STANDING_HEADLINE_CLASSES
+        assert "europe_congress" not in STANDING_HEADLINE_CLASSES
+        memo = _Memo()
+        texts = set()
+        for _ in range(5):
+            texts.add(_pick(memo, [_other()])["text"])
+        assert len(texts) == 1, (
+            f"an EVENT class started escalating: {texts}")
+
+    def test_a_pre_ca9_save_keeps_counting_rather_than_restarting(self):
+        """`runs` rides an already-serialized field as a new KEY, so an
+        in-progress campaign carries a memory with `streak` and no `runs`.
+        Seed from it, or a long-running crisis silently resets."""
+        from backend.game_logic.dispatch import STANDING_LEAD_MAX
+        legacy = _Memo({"class": "estate_eroding",
+                        "identity": "estate_eroding:Davout",
+                        "streak": STANDING_LEAD_MAX + 1})
+        head = _pick(legacy, [_eroding()])
+        assert "household goes unpaid" not in head["text"], (
+            "a campaign already six turns into a grievance restarted its "
+            "count on load")
+        assert "Davout" in head["text"]
+
+    def test_the_sole_crisis_still_keeps_the_lead(self):
+        """The July-19 rule the escalation exists to serve: a lone crisis
+        is demoted to nothing, so it must keep the lead."""
+        memo = _Memo()
+        for _ in range(4):
+            head = _pick(memo, [_eroding()])
+            assert head["class"] == "estate_eroding"
+            assert "Davout" in head["text"]

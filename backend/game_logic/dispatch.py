@@ -857,6 +857,66 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
             and top_candidate["identity"] == memory.get("identity")):
         streak = int(memory.get("streak") or 0)
 
+    # ── CA9-N9: cross-turn memory for EVERY candidate, not just the lead ──
+    # `streak` counts consecutive turns in the LEAD, so a standing crisis
+    # demoted to a sub-beat by the PC-7 cooldown had its count reset — and
+    # then repeated the same sentence in the sub-beat slot indefinitely.
+    # Measured: the Tyrol supply line ran six consecutive dispatches
+    # verbatim, and T15/T16 were the same three sentences permuted.
+    #
+    # `runs` rides `headline_lead_memory`, which is ALREADY a serialized
+    # field, as a new KEY — so this needs no new state and pre-CA9 saves
+    # land on `{}` and behave exactly as before. It counts consecutive
+    # turns each identity has APPEARED anywhere on the page.
+    prior_runs = dict(memory.get("runs") or {})
+    # A pre-CA9 save (and the PC-7 unit fixtures) carry `streak` and no
+    # `runs`. Seed the leader's run from it so a campaign already in
+    # progress escalates on its next dispatch rather than restarting its
+    # count — and so the PC-7 sole-crisis rule keeps its meaning.
+    _mem_identity = memory.get("identity")
+    if _mem_identity and _mem_identity not in prior_runs:
+        prior_runs[_mem_identity] = int(memory.get("streak") or 0)
+    runs = {c["identity"]: int(prior_runs.get(c["identity"], 0)) + 1
+            for c in candidates}
+
+    # ── CA9-N47: the escalation bank, hoisted out of the `for…else` ──────
+    # `_STANDING_ESCALATION` had NEVER fired. It sat in the `else` of a
+    # `for` that breaks on the first candidate with a different identity —
+    # so it needed the standing class to be the ONLY candidate on the page
+    # — AND it needed `streak > STANDING_LEAD_MAX`, which the yield below
+    # makes unreachable by re-keying the memory to whatever led instead.
+    # It was self-gating: reachable only from a state only it could produce.
+    #
+    # It now keys on the RUN (turns the crisis has been reported, wherever
+    # it landed) rather than on the lead streak, and is applied BEFORE the
+    # yield decision — so the sentence advances whether the standing class
+    # leads or is demoted. That is what kills the verbatim repetition; the
+    # variants say how long it has gone unanswered, which is the one thing
+    # about a standing crisis that IS new each turn.
+    for _idx, _cand in enumerate(candidates):
+        if _cand["class"] not in STANDING_HEADLINE_CLASSES:
+            continue
+        _run = int(runs.get(_cand["identity"], 1))
+        if _run <= STANDING_LEAD_MAX:
+            continue
+        variants = _STANDING_ESCALATION.get(_cand["class"]) or []
+        if not variants:
+            continue
+        step = min(_run - STANDING_LEAD_MAX - 1, len(variants) - 1)
+        fmt = dict(_cand.get("fields") or {})
+        # The identity-derived name stays authoritative (it is what the
+        # run is keyed on); for `estate_eroding` the two agree, so the
+        # escalation copy renders exactly as it was authored to.
+        fmt["marshal"] = _cand.get("identity", "").split(":", 1)[-1]
+        fmt["turns"] = _run
+        try:
+            candidates[_idx] = dict(_cand, text=variants[step].format(**fmt))
+        except (KeyError, IndexError):
+            # A variant naming a field this candidate does not carry keeps
+            # the authored line rather than crashing the briefing.
+            continue
+    top_candidate = candidates[0]
+
     if top_candidate["class"] in STANDING_HEADLINE_CLASSES and streak >= STANDING_LEAD_MAX:
         # Yield to any other candidate; the standing one falls to a sub-beat
         # through the loop below, so it is reported, never deleted.
@@ -864,21 +924,6 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
             if _c["identity"] != top_candidate["identity"]:
                 candidates.insert(0, candidates.pop(_i))
                 break
-        else:
-            # Genuinely the only news. It keeps the lead — the July-19 rule —
-            # but says something new about how long it has gone unanswered.
-            variants = _STANDING_ESCALATION.get(top_candidate["class"]) or []
-            if variants:
-                step = min(streak - STANDING_LEAD_MAX, len(variants) - 1)
-                marshal = top_candidate.get("identity", "").split(":", 1)[-1]
-                fmt = dict(top_candidate.get("fields") or {})
-                # The identity-derived name stays authoritative (it is what
-                # the streak is keyed on); for `estate_eroding` the two agree,
-                # so existing escalation output is byte-identical.
-                fmt["marshal"] = marshal
-                fmt["turns"] = streak + 1
-                candidates[0] = dict(top_candidate,
-                                     text=variants[step].format(**fmt))
 
     top = candidates[0]
     world.headline_lead_memory = {
@@ -888,6 +933,7 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
                    if (top["class"] == memory.get("class")
                        and top["identity"] == memory.get("identity"))
                    else 1),
+        "runs": runs,
     }
     # ────────────────────────────────────────────────────────────────────
     # CA8-5: dedupe on (class, identity), not on rendered TEXT.
