@@ -1397,39 +1397,19 @@ class EconomyExecutor:
                 build_marshal_obj = world.get_marshal(build_marshal_name)
                 if build_marshal_obj:
                     build_acting_nation = build_marshal_obj.nation
-        if region.controller != build_acting_nation:
-            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {build_acting_nation}"}
+        # CA9-F10: the eight preconditions live in ONE predicate
+        # (`region.can_build`) so the `supply_strain` briefing can consult
+        # the same gate instead of modelling two of them. Every refusal
+        # string below is produced there, verbatim.
+        from backend.models.region import can_build
+        ok, refusal, _remedy = can_build(
+            world, region, building_type, build_acting_nation)
+        if not ok:
+            return {"success": False, "message": refusal}
 
-        # Region type must allow buildings
-        if region.max_building_slots() == 0:
-            return {"success": False, "message": f"Cannot build in {region_name} — {region.region_type} regions don't support buildings (need city or larger)"}
-
-        # Allowed region type for this building
         btype_info = BUILDING_TYPES[building_type]
-        if region.region_type not in btype_info["allowed_in"]:
-            return {"success": False, "message": f"Cannot build {building_type.replace('_', ' ')} in {region.region_type} region"}
-
-        # Already constructing (check before slot count since construction uses a slot)
-        if region.building_under_construction:
-            return {"success": False, "message": f"Already constructing {region.building_under_construction['type'].replace('_', ' ')} in {region_name}"}
-
-        # Available slots
-        if region.available_building_slots() <= 0:
-            return {"success": False, "message": f"No building slots available in {region_name} ({len(region.buildings)}/{region.max_building_slots()})"}
-
-        # Stability gate (same as recruit: need > 50)
-        if region.stability <= 50:
-            return {"success": False, "message": f"Cannot build in {region_name} — region stability too low ({region.stability}/100). Need 51+."}
-
-        # Duplicate check
-        if region.has_building(building_type, functional_only=False):
-            return {"success": False, "message": f"{region_name} already has a {building_type.replace('_', ' ')}"}
-
-        # Gold check (use acting nation's treasury)
         gold_cost = btype_info["gold_cost"]
         build_treasury = world.nation_gold.get(build_acting_nation, 0)
-        if build_treasury < gold_cost:
-            return {"success": False, "message": f"Insufficient gold! Need {gold_cost}, have {build_treasury}"}
 
         # Start construction
         region.building_under_construction = {

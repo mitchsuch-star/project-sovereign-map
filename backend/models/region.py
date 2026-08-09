@@ -112,6 +112,91 @@ BUILDING_SLOT_LIMITS = {
     "rural": 0,
 }
 
+def can_build(world, region, building_type: str, nation: str):
+    """CA9-F10: the SINGLE build gate — ``(ok, reason, remedy)``.
+
+    The `supply_strain` dispatch headline modelled depot legality with two
+    preconditions while `_execute_build` enforced eight, so the briefing
+    prescribed a depot the executor then refused — six identical false
+    firings in the played campaign, on the mechanic that killed ~43,000
+    men. It is a recurrence of closed CA8-2 on a different gate arm, and
+    the written contract already required this
+    (`ECONOMY_REVISIT_SPEC.md:175`, *"names whichever remedy is LEGAL"*).
+
+    So the advisory surface now calls the executor's own predicate rather
+    than keeping a simplified model of it. Every refusal string is the one
+    `_execute_build` already produced, verbatim, so the pins hold.
+
+    ``remedy`` is the advisory half: ``"build"`` when the order is legal,
+    ``"repair"`` when the only thing in the way is a DAMAGED building of
+    the same type (the executor's duplicate check uses
+    ``functional_only=False``, so a damaged depot blocks a build while
+    `has_building()` reads it as absent — that divergence is exactly how
+    the briefing came to recommend an illegal order), and ``""`` when
+    nothing legal can be done here.
+    """
+    if region is None:
+        return False, "Unknown region", ""
+    if building_type not in BUILDING_TYPES:
+        return False, (
+            f"Unknown building type. Valid types: "
+            f"{', '.join(BUILDING_TYPES.keys())}, watchtower"), ""
+
+    name = region.name
+
+    # The remedy is "what can legally be done here", and it does NOT
+    # depend on which gate refuses first. A damaged depot occupies its
+    # slot, so on a one-slot city the executor answers "No building slots
+    # available" long before it reaches the duplicate check — and the
+    # honest advice is still `repair`.
+    damaged_here = any(
+        b.get("type") == building_type and b.get("damaged", False)
+        for b in region.buildings)
+    under = region.building_under_construction or {}
+    rising_here = under.get("type") == building_type
+
+    def _refuse(reason: str):
+        if damaged_here:
+            return False, reason, "repair"
+        if rising_here:
+            return False, reason, "wait"
+        return False, reason, ""
+
+    if region.controller != nation:
+        # Someone else's province: neither remedy is ours to take.
+        return False, (f"Cannot build in {name} — not controlled by "
+                       f"{nation}"), ""
+    if region.max_building_slots() == 0:
+        return _refuse(f"Cannot build in {name} — {region.region_type} "
+                       f"regions don't support buildings (need city or "
+                       f"larger)")
+    btype_info = BUILDING_TYPES[building_type]
+    if region.region_type not in btype_info["allowed_in"]:
+        return _refuse(f"Cannot build {building_type.replace('_', ' ')} in "
+                       f"{region.region_type} region")
+    if region.building_under_construction:
+        return _refuse(
+            f"Already constructing "
+            f"{under['type'].replace('_', ' ')} in {name}")
+    if region.available_building_slots() <= 0:
+        return _refuse(f"No building slots available in {name} "
+                       f"({len(region.buildings)}/"
+                       f"{region.max_building_slots()})")
+    if region.stability <= 50:
+        return _refuse(f"Cannot build in {name} — region stability too low "
+                       f"({region.stability}/100). Need 51+.")
+    if region.has_building(building_type, functional_only=False):
+        return _refuse(f"{name} already has a "
+                       f"{building_type.replace('_', ' ')}")
+    gold_cost = btype_info["gold_cost"]
+    treasury = (world.nation_gold.get(nation, 0)
+                if world is not None else 0)
+    if treasury < gold_cost:
+        return _refuse(f"Insufficient gold! Need {gold_cost}, have "
+                       f"{treasury}")
+    return True, "", "build"
+
+
 # Supply capacity by region type (max troops region can sustain)
 SUPPLY_BY_TYPE = {
     "capital": 50000,

@@ -857,3 +857,222 @@ class TestF1SymmetricCommittedDefender:
         assert '_target_disclosure' in src, (
             "the muster interrupt drops the engine-picked-target "
             "disclosure on the one surface asking the player to commit")
+
+
+# =======================================================================
+# F10 - the supply headline prescribed a depot the executor refuses
+#
+# `dispatch.py` modelled 2 preconditions; `_execute_build` enforces 8.
+# Six identical false firings, on the mechanic that killed ~43,000 men.
+# The one time the player obeyed: "Cannot build in Tyrol - region
+# stability too low (35/100). Need 51+."
+# =======================================================================
+
+class TestF10OneBuildGate:
+
+    @staticmethod
+    def _france_city(world):
+        for r in world.regions.values():
+            if (r.controller == "France" and r.region_type in
+                    ("city", "major_city", "capital")):
+                return r
+        raise AssertionError("no French city on the board")
+
+    def test_the_executor_calls_the_shared_predicate(self):
+        import inspect
+
+        from backend.commands import economy_executor as ee
+
+        src = inspect.getsource(ee.EconomyExecutor._execute_build)
+        assert "can_build(" in src, (
+            "the executor kept its own copy of the eight preconditions")
+
+    def test_the_headline_calls_the_shared_predicate(self):
+        import inspect
+
+        from backend.game_logic import dispatch as d
+
+        src = inspect.getsource(d._supply_strain_candidate)
+        assert "can_build(" in src, (
+            "the advisory surface still models the gate instead of asking "
+            "it - this is the CA9 through-line, and the row it names")
+        assert "BUILDING_TYPES[\"supply_depot\"][\"allowed_in\"]" not in src, (
+            "the two-precondition model came back")
+
+    def test_every_refusal_is_the_executors_own_sentence(
+            self, world, executor):
+        """The whole point: what the briefing quotes is what the order
+        would have earned, character for character."""
+        from backend.models.region import can_build
+
+        region = self._france_city(world)
+        # Walk each gate arm and compare the predicate's string to the
+        # message `_execute_build` actually returns.
+        arms = []
+        # (1) stability
+        region.stability = 20
+        arms.append(("stability", region))
+        for _label, _r in arms:
+            ok, refusal, _remedy = can_build(
+                world, _r, "supply_depot", "France")
+            assert ok is False
+            result = executor.execute({"success": True, "command": {
+                "type": "general", "action": "build", "target": _r.name,
+                "building_type": "supply_depot"}}, {"world": world})
+            assert result.get("success") is False
+            assert result["message"] == refusal, (
+                f"{_label}: the predicate and the executor disagree | "
+                f"predicate={refusal!r} | executor={result['message']!r}")
+
+    def test_the_tyrol_case_the_campaign_hit(self, world, executor):
+        """Stability 35 - the exact refusal the player was handed after
+        following the briefing's advice six times."""
+        from backend.models.region import can_build
+
+        region = self._france_city(world)
+        region.stability = 35
+        ok, refusal, remedy = can_build(
+            world, region, "supply_depot", "France")
+        assert ok is False
+        assert "stability too low" in refusal
+        assert "35/100" in refusal
+        assert remedy == "", "an illegal depot must prescribe nothing"
+
+    def test_a_damaged_depot_prescribes_repair_not_build(
+            self, world, executor):
+        """The divergence that made the row a LIE rather than a gap:
+        `has_building()` reads a damaged depot as absent, while the
+        executor's duplicate check uses functional_only=False and refuses
+        the build. So the briefing recommended an order that could never
+        succeed, and never named the one that would."""
+        from backend.models.region import can_build
+
+        region = self._france_city(world)
+        region.stability = 80
+        region.buildings.append({"type": "supply_depot", "damaged": True})
+        assert region.has_building("supply_depot") is False, (
+            "precondition: a damaged building reads as absent")
+
+        ok, refusal, remedy = can_build(
+            world, region, "supply_depot", "France")
+        assert ok is False
+        assert remedy == "repair", (
+            "the only legal remedy is repair and the gate did not say so")
+        result = executor.execute({"success": True, "command": {
+            "type": "general", "action": "build", "target": region.name,
+            "building_type": "supply_depot"}}, {"world": world})
+        assert result.get("success") is False
+        assert result["message"] == refusal
+
+    def test_a_legal_depot_still_reads_legal(self, world, executor):
+        from backend.models.region import can_build
+
+        region = self._france_city(world)
+        region.stability = 80
+        region.buildings = []
+        region.building_under_construction = None
+        world.nation_gold["France"] = 5000
+        ok, refusal, remedy = can_build(
+            world, region, "supply_depot", "France")
+        assert ok is True, refusal
+        assert remedy == "build"
+        result = executor.execute({"success": True, "command": {
+            "type": "general", "action": "build", "target": region.name,
+            "building_type": "supply_depot"}}, {"world": world})
+        assert result.get("success") is True, result.get("message")
+
+    def test_gr5_the_gate_is_nation_parameterised(self, world):
+        """The AI builds through the same executor (GR5), so the predicate
+        must never assume the player."""
+        from backend.models.region import can_build
+
+        region = self._france_city(world)
+        region.stability = 80
+        region.buildings = []
+        region.building_under_construction = None
+        world.nation_gold["France"] = 5000
+        ok_fr, _, _ = can_build(world, region, "supply_depot", "France")
+        ok_at, refusal_at, _ = can_build(
+            world, region, "supply_depot", "Austria")
+        assert ok_fr is True
+        assert ok_at is False and "not controlled by Austria" in refusal_at
+
+
+class TestF10TheHeadlineNeverPrescribesAnIllegalOrder:
+    """The behavioural half. The six false firings all had a LEGAL region
+    type and failed on a gate the briefing did not model."""
+
+    @staticmethod
+    def _starving_world(region_type="city", **region_attrs):
+        world = WorldState.from_scenario(str(SCENARIO_PATH))
+        corps = [m for m in world.marshals.values()
+                 if m.nation == "France"][:3]
+        loc = corps[0].location
+        for m in corps:
+            m.location = loc
+        region = world.get_region(loc)
+        region.region_type = region_type
+        for key, value in region_attrs.items():
+            setattr(region, key, value)
+        for turn in (9, 10):
+            world.current_turn = turn
+            for m in corps:
+                world.log_event({"type": "supply_attrition",
+                                 "marshal": m.name, "nation": "France",
+                                 "region": loc, "losses": 1400})
+        world.current_turn = 10
+        return world, loc
+
+    def _headline(self, world):
+        from backend.game_logic.dispatch import _build_headline
+        return (_build_headline(world, "France") or {}).get("text", "")
+
+    def test_the_tyrol_case_no_longer_prescribes_the_depot(self):
+        """Stability 35 on a legal region type — the exact live shape.
+        The old model saw 'city' + 'no depot yet' and said build; the
+        executor answered 'stability too low (35/100). Need 51+.'"""
+        world, loc = self._starving_world(region_type="city", stability=35)
+        text = self._headline(world)
+
+        from backend.models.region import can_build
+        ok, refusal, _ = can_build(
+            world, world.get_region(loc), "supply_depot", "France")
+        assert ok is False and "stability" in refusal, (
+            "board precondition broken — re-derive the shape")
+
+        assert f"A supply depot at {loc} would ease it" not in text, (
+            "the briefing still prescribes an order the executor refuses — "
+            "six identical false firings, on the mechanic that killed "
+            "~43,000 men")
+        assert "stability" in text.lower(), (
+            "and it must say WHY, in the executor's own words")
+
+    def test_a_damaged_depot_is_told_to_repair_not_build(self):
+        world, loc = self._starving_world(region_type="city", stability=80)
+        region = world.get_region(loc)
+        region.buildings = [{"type": "supply_depot", "damaged": True}]
+        text = self._headline(world)
+        assert "repair" in text.lower(), (
+            "a ruined depot reads as absent to has_building(), so the old "
+            "model recommended building a second one")
+        assert f"A supply depot at {loc} would ease it" not in text
+
+    def test_a_legal_depot_is_still_recommended(self):
+        """The control arm — the advice must not become uniformly timid."""
+        world, loc = self._starving_world(region_type="city", stability=80)
+        region = world.get_region(loc)
+        region.buildings = []
+        region.building_under_construction = None
+        world.nation_gold["France"] = 5000
+        text = self._headline(world)
+        assert f"A supply depot at {loc} would ease it" in text
+
+    def test_a_depot_already_rising_says_so_with_its_countdown(self):
+        world, loc = self._starving_world(region_type="city", stability=80)
+        region = world.get_region(loc)
+        region.buildings = []
+        region.building_under_construction = {
+            "type": "supply_depot", "turns_remaining": 2}
+        text = self._headline(world)
+        assert "already going up" in text
+        assert "2 turns" in text

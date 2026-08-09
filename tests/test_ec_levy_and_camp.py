@@ -342,7 +342,17 @@ class TestSupplyStrainHeadline:
         world, loc = self._starving(region_type="town")
         text = (_build_headline(world, "France") or {})["text"]
         assert "depot" in text.lower()
-        assert "no depot may be laid" in text
+        assert "No depot may be laid" in text
+        # CA9-F10: the reason is no longer this surface's own paraphrase —
+        # it is the string `_execute_build` would have answered with, so
+        # the briefing and the order cannot say different things.
+        from backend.models.region import can_build
+        _ok, _refusal, _remedy = can_build(
+            world, world.get_region(loc), "supply_depot", "France")
+        assert _ok is False
+        assert _refusal.rstrip(".")[1:] in text, (
+            f"the headline paraphrased the gate instead of quoting it: "
+            f"{text!r} vs {_refusal!r}")
         assert "Move a corps" in text
 
     def test_it_names_the_depot_where_one_is_legal(self):

@@ -1309,6 +1309,16 @@ def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
     return result
 
 
+def _lower_first(text: str) -> str:
+    """Fold the executor's own refusal into the middle of a sentence
+    without rewriting it — CA9-F10 quotes those strings verbatim so the
+    briefing and the order cannot say different things."""
+    text = str(text or "").rstrip(".")
+    if not text:
+        return text
+    return text[0].lower() + text[1:]
+
+
 def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, Any]]:
     """The starving-corps headline's data, or None (econ spec review §5).
 
@@ -1379,18 +1389,41 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
     if over <= 0:
         return None
 
-    depot_ok = (region.region_type
-                in BUILDING_TYPES["supply_depot"]["allowed_in"])
-    already = region.has_building("supply_depot")
-    if already or not depot_ok:
-        why = (f"{region_name} already has its depot."
-               if already
-               else f"{region_name} is a {region.region_type.replace('_', ' ')} "
-                    f"— no depot may be laid there.")
-        remedy = f"{why} Move a corps, or continue to pay."
-    else:
+    # ────────────────────────────────────────────────────────────────────
+    # CA9-F10: ask the EXECUTOR whether the depot is legal.
+    #
+    # This modelled two preconditions (region type, already-built) while
+    # `_execute_build` enforced eight, so the briefing prescribed a depot
+    # the executor refused — six identical false firings in the played
+    # campaign, and the one time the player obeyed it: "Cannot build in
+    # Tyrol — region stability too low (35/100). Need 51+." Same class as
+    # closed CA8-2, different gate arm. §ECONOMY_REVISIT_SPEC:175 already
+    # required this surface to name "whichever remedy is LEGAL".
+    #
+    # `can_build` returns the executor's own refusal string, so the
+    # briefing can quote the exact sentence the order would have earned.
+    # ────────────────────────────────────────────────────────────────────
+    from backend.models.region import can_build
+    depot_legal, depot_refusal, depot_remedy = can_build(
+        world, region, "supply_depot", player_nation)
+    if depot_legal:
         remedy = (f"A supply depot at {region_name} would ease it; "
                   f"dispersing a corps would end it.")
+    elif depot_remedy == "repair":
+        # The gate that made this row a lie: a DAMAGED depot reads as
+        # absent to `has_building()` and blocks a build in the executor.
+        remedy = (f"{region_name}'s depot is in ruins — repair it, or "
+                  f"disperse a corps.")
+    elif depot_remedy == "wait":
+        turns = int((region.building_under_construction or {}).get(
+            "turns_remaining", 0))
+        remedy = (f"{region_name}'s depot is already going up "
+                  f"({turns} turn{'s' if turns != 1 else ''} yet). "
+                  f"Move a corps, or continue to pay.")
+    else:
+        remedy = (f"No depot may be laid at {region_name} — "
+                  f"{_lower_first(depot_refusal)}. "
+                  f"Move a corps, or continue to pay.")
 
     # ────────────────────────────────────────────────────────────────────
     # CA8-2 (b)+(c): NAME THE MEN WHO ARE THERE. `slot["marshals"]`
