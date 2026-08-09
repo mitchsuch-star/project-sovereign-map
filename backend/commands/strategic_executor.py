@@ -150,7 +150,24 @@ class StrategicExecutor:
 
         token = (typed or "").strip()
         names = [n for n in candidates if n]
-        if not token or len(token.split()) != 1 or not names:
+        if not token or not names:
+            return None
+        # F11 (CA9): the single-TOKEN gate is CA8-28's discipline for the
+        # REGION arm — aiming a fuzzy matcher at a sentence is how that
+        # family of defects got in. A marshal is different: this map has
+        # multi-word display names, so "Archduke Charles" (which is what
+        # the player reads on every screen) could never match the key
+        # `ArchdukeCharles`, and `pursue` had ZERO tolerance while
+        # `attack` was fully tolerant.
+        #
+        # The discipline survives intact, because `_plausible_name_typo`
+        # is the real gate and it already answers correctly:
+        # ("Archduke Charles", "ArchdukeCharles") is True at edit distance
+        # 1, while the bare surname "Charles" is False. So the relaxation
+        # admits the display name and nothing else — a phrase is still
+        # bounded to a short one, since a fuzzy match on a sentence is
+        # what the token gate existed to prevent.
+        if len(token.split()) > 3:
             return None
         result = self._executor.fuzzy_matcher.match_with_context(token, names)
         match = result.get("match") or ""

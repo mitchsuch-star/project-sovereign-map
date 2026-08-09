@@ -2942,3 +2942,140 @@ class TestN7TheFutilityBrakeCanFire:
         src = inspect.getsource(ea.EnemyAI._find_attack_opportunity)
         assert ">= 3" in src
         assert ">= 1" not in src.split("futility")[1][:200]
+
+
+# =======================================================================
+# N27 + F11 - raw camelCase keys in prose, and `pursue`'s zero tolerance
+#
+# N27: `humanize_entity_name` was called by exactly ONE surface. 135 raw
+#      occurrences reached the player against 44 spaced ones.
+# F11: `pursue` had ZERO typo/display-name tolerance while `attack` was
+#      fully tolerant - so "pursue Archduke Charles", the name printed on
+#      every screen, was misfiled as a REGION and refused.
+# =======================================================================
+
+class TestN27ProseNamesTheManNotTheKey:
+
+    def test_the_diorama_rival_line(self):
+        import inspect
+
+        from backend.game_logic import battle_diorama as bd
+        src = inspect.getsource(bd)
+        assert 'f"He resents {rival}' not in src, (
+            "the tableau still says 'He resents ArchdukeCharles's glory.'")
+        assert "humanize_entity_name(str(rival))" in src
+
+    def test_the_diorama_NAME_field_is_deliberately_raw(self):
+        """Scope guard with teeth: the contingent's `name` feeds the
+        portrait loader (`res://assets/portraits/<name>.jpg`) and a
+        present-set keyed against `world.marshals`. Humanising it in
+        place would break both."""
+        import inspect
+
+        from backend.game_logic import battle_diorama as bd
+        src = inspect.getsource(bd)
+        assert '"name": marshal.name' in src
+
+    def test_the_pursue_surfaces_name_the_man(self, world, executor):
+        """Behavioural: a source grep cannot tell the PURSUE line from
+        its SUPPORT sibling four lines below (mutation proved it).
+
+        This drives the refusal the player actually meets — and it was a
+        FOURTH leak of the same family, unfiled, found while writing this
+        pin: "No intelligence on ArchdukeCharles's position, Sire."
+        """
+        from backend.commands.strategic import StrategicOrderProcessor
+        from backend.models.marshal import StrategicOrder
+
+        ney = world.marshals["Ney"]
+        ney.strategic_order = StrategicOrder(
+            command_type="PURSUE", target="ArchdukeCharles",
+            target_type="marshal", started_turn=1,
+            original_command="Ney, pursue Archduke Charles")
+        events = StrategicOrderProcessor(executor).process_strategic_orders(
+            world, {"world": world}) or []
+        blob = " ".join(str(e.get("message", "")) for e in events)
+        assert blob.strip(), "the order produced no message at all"
+        assert "ArchdukeCharles" not in blob, blob
+        assert "Archduke Charles" in blob, blob
+
+    def test_the_pursue_progress_line_names_the_man(self):
+        """The `is pursuing …` line itself, pinned precisely enough that
+        its SUPPORT sibling cannot satisfy it."""
+        import inspect
+        import re
+
+        from backend.commands import strategic as st
+        src = inspect.getsource(st.StrategicOrderProcessor
+                                .process_strategic_orders)
+        pursuing = re.search(r"is pursuing[^\n]*\n[^\n]*", src)
+        assert pursuing, "the pursue progress line vanished"
+        assert "_hum(order.target)" in pursuing.group(0), (
+            f"'is pursuing ArchdukeCharles' survives: "
+            f"{pursuing.group(0)!r}")
+
+    def test_the_supply_shortage_line_names_the_man(self, world):
+        """Behavioural, for the same reason."""
+        m = world.marshals["ArchdukeCharles"]
+        region = world.get_region(m.location)
+        m.strength = int(region.supply_capacity) * 4
+        events = world.process_supply_attrition() or []
+        lines = [str(e.get("message", "")) for e in events
+                 if e.get("marshal") == m.name]
+        if not lines:
+            import pytest
+            pytest.skip("no attrition on this board shape")
+        blob = " ".join(lines)
+        assert "ArchdukeCharles" not in blob, blob
+        assert "Archduke Charles" in blob, blob
+
+
+class TestF11PursueAcceptsTheNameOnTheScreen:
+
+    @staticmethod
+    def _enemies(world):
+        return [m.name for m in world.marshals.values()
+                if m.nation != "France"]
+
+    def _match(self, world, executor, typed):
+        return executor._strategic._closest_marshal_name(
+            typed, self._enemies(world))
+
+    def test_the_display_name_resolves(self, world, executor):
+        """"Archduke Charles" is what every screen prints. `pursue` could
+        not accept it, because the phrase gate refused anything with a
+        space before `_plausible_name_typo` ever ran."""
+        assert self._match(world, executor, "Archduke Charles") ==             "ArchdukeCharles"
+
+    def test_the_key_still_resolves(self, world, executor):
+        assert self._match(world, executor, "ArchdukeCharles") ==             "ArchdukeCharles"
+
+    def test_the_ca8_28_discipline_is_intact(self, world, executor):
+        """The gate that matters is `_plausible_name_typo`, not the token
+        count — and it already answered correctly in both directions."""
+        from backend.commands.parser import _plausible_name_typo
+        assert _plausible_name_typo("Archduke Charles", "ArchdukeCharles")
+        assert not _plausible_name_typo("Charles", "ArchdukeCharles")
+        # …so ordinary English still grounds nothing.
+        assert self._match(world, executor, "the enemy army") is None
+        assert self._match(world, executor, "the weakest enemy") is None
+
+    def test_a_sentence_is_still_refused(self, world, executor):
+        """A fuzzy match aimed at a sentence is what the token gate
+        existed to prevent (PARSE-NEG / CA8-28); the relaxation is
+        bounded, not removed.
+
+        RECORDED KNOWN-INERT SEAM: mutation shows the `> 3` word bound is
+        DEFENCE IN DEPTH, not load-bearing — deleting it entirely leaves
+        this test green, because `_plausible_name_typo` refuses these
+        inputs on its own. It is kept as the second gate, and this note
+        exists so the next reader does not mistake a passing test for
+        proof that the bound does work. The gate that IS load-bearing is
+        pinned in `test_the_ca8_28_discipline_is_intact` above."""
+        assert self._match(
+            world, executor, "hold the pass now and wait for orders") is None
+        import inspect
+
+        from backend.commands import strategic_executor as se
+        assert "len(token.split()) > 3" in inspect.getsource(
+            se.StrategicExecutor._closest_marshal_name)

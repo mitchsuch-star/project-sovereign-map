@@ -124,6 +124,10 @@ class StrategicOrderProcessor:
         Returns:
             List of reports for UI display
         """
+        from backend.display_names import (
+            humanize_entity_name as _hum,
+        )
+
         reports = []
 
         print(f"[STRATEGIC] Processing orders for turn {world.current_turn}")
@@ -173,9 +177,16 @@ class StrategicOrderProcessor:
                     else:
                         msg = f"{marshal.name} is marching to hold {order.target} ({remaining} turn(s) remaining)."
                 elif order.command_type == "PURSUE":
-                    msg = f"{marshal.name} is pursuing {order.target} ({remaining} turn(s) remaining)."
+                    # N27 (CA9): `order.target` is a raw marshal KEY, so
+                    # this printed the camelCase key rather than the man.
+                    # Same family as the already-filed N42 / S5-2.
+                    msg = (f"{marshal.name} is pursuing "
+                           f"{_hum(order.target)} "
+                           f"({remaining} turn(s) remaining).")
                 elif order.command_type == "SUPPORT":
-                    msg = f"{marshal.name} is moving to support {order.target} ({remaining} turn(s) remaining)."
+                    msg = (f"{marshal.name} is moving to support "
+                           f"{_hum(order.target)} "
+                           f"({remaining} turn(s) remaining).")
                 else:  # MOVE_TO
                     msg = f"{marshal.name} is marching to {order.target} ({remaining} turn(s) remaining)."
 
@@ -1146,6 +1157,8 @@ class StrategicOrderProcessor:
         Physical co-location checks (same region) use real data because the
         marshal is physically there — that's a discovery, not intelligence.
         """
+        from backend.display_names import humanize_entity_name
+
         order = marshal.strategic_order
         target = world.get_marshal(order.target)
 
@@ -1198,7 +1211,13 @@ class StrategicOrderProcessor:
         # ═══════════════════════════════════════════════════════════
         if is_player_marshal and not last_known:
             return self._break_order(marshal, world,
-                f"No intelligence on {order.target}'s position, Sire.")
+                # N27 (CA9), unfiled sibling found while pinning the
+                # PURSUE prose: this is the line the player actually
+                # meets, and it named the raw key —
+                # "No intelligence on ArchdukeCharles's position, Sire."
+                f"No intelligence on "
+                f"{humanize_entity_name(str(order.target))}'s position, "
+                f"Sire.")
 
         # Same region? Engage and complete (physical encounter — real data).
         if marshal.location == target.location:

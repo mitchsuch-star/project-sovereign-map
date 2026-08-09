@@ -102,7 +102,14 @@ def _grudge_line(marshal, world) -> Optional[str]:
     rival = getattr(marshal, "jealous_of", None)
     if not rival:
         return None
-    return f"He resents {rival}'s glory."
+    # N27 (CA9): a genuine PROSE leak inside the diorama payload —
+    # `jealous_of` is a raw marshal key, so this rendered "He resents
+    # ArchdukeCharles's glory." Humanised HERE, backend-side; the
+    # contingent's own `name` field is deliberately NOT touched, because
+    # the diorama's portrait loader builds `res://assets/portraits/<name>`
+    # from it and a present-set is keyed on it against `world.marshals`.
+    from backend.display_names import humanize_entity_name
+    return f"He resents {humanize_entity_name(str(rival))}'s glory."
 
 
 def _contingent(marshal, committed: int, casualties: int, remaining: int,

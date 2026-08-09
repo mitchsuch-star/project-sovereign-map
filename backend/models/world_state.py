@@ -5588,6 +5588,10 @@ class WorldState:
         get 1.5x effective supply capacity. Defenders on home turf are well-supplied;
         invaders in enemy territory suffer more from logistics strain.
         """
+        from backend.display_names import (
+            humanize_entity_name as _hum_marshal,
+        )
+
         # R9: Rebuild index to ensure freshness (O(N) cost, avoids O(R*N) linear scans)
         self._build_marshal_index()
         events = []
@@ -5630,7 +5634,13 @@ class WorldState:
                         "nation": m.nation,
                         "region": region.name,
                         "losses": int(losses),
-                        "message": f"Supply shortage at {region.name}: {m.name} loses {losses:,} troops"
+                        # N27 (CA9): `m.name` is a raw marshal key —
+                        # "ArchdukeCharles loses 1,400 troops". This is the
+                        # most-repeated of the leaking message fields.
+                        "message": (
+                            f"Supply shortage at {region.name}: "
+                            f"{_hum_marshal(m.name)} loses "
+                            f"{losses:,} troops")
                     }
                     events.append(event)
                     # W6-3 §5.2: the dispatch danger flag needs attrition
