@@ -6,6 +6,25 @@
 
 ---
 
+## CA9 Design Answers — ANSWERED August 9, 2026, BUILD NEXT SESSION
+
+> **Record = `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` (authoritative).**
+> The user answered all three and instructed: document now, build next session,
+> then playtest everything including the 31 CA9 rows already landed. **Nothing
+> is coded for these three.** GR9 owners, landings and completion definitions:
+
+| Row | Decision | Owner / landing | Done when |
+|---|---|---|---|
+| **CA9-D1** peace terms | F14 STAYS; the cheese is the cheap SCORE, not the recommendation. Battles + decisive are ±50 of ±100 with zero territory (EU4 caps battles at 25%); no term reads the war's AGE. Recommended: war-age penalty on acceptance FIRST, battle/territory re-weight after the playtest | `diplomacy.calculate_war_score` + `settlement_scoring`; next session | A short war cannot be settled for cash; a genuinely won war still has an exit (watch the TERRITORY arm); acceptance breakdown NAMES the new term; `BASELINE_SERIES` re-recorded with flip-experiment attribution |
+| **CA9-D2** attack confirm popup | Arm only when band is `unfavorable` (not `even`) AND the marshal is `cautious`. Preview still prints honest numbers on every attack; only the BLOCK narrows | `combat_executor._execute_attack` muster gate; next session | An aggressive marshal charges bad odds unasked (in character); a cautious one asks; one predicate decides both the popup and the copy; CR-5's own bad-odds gate untouched |
+| **CA9-D3** grievances + popups | A REVISIT slice, NOT a TTL on N4. Audit every popup producer, queue slot, blocking class and retirement path, then fix | New slice; next session. Starting list: N4 (P1), N21, N8, IGR-X7 drain family, the 11-slot PopupQueue priority order, the per-surface stash-and-raise discipline | Every producer has a retirement path; nothing blocks a channel indefinitely; the queue order is justified rather than accreted |
+
+**Then ONE playtest** covering the three new slices AND the 31 rows landed
+August 9 — which also discharges the owed visual sign-off on `Supply: Unknown`
+(region panel + map tooltip) and the per-court fog line.
+
+---
+
 ## Summary
 
 | Category | Count | Status |

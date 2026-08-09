@@ -4,6 +4,47 @@
 
 ## ▶ NEXT UP
 
+> ## ⚠ NEXT SESSION STARTS HERE — THREE ANSWERED DESIGN ROWS, THEN ONE PLAYTEST
+>
+> **The user answered the three CA9 questions on August 9, 2026 and said: build
+> them next session, then playtest EVERYTHING including the 31 rows already
+> landed. Nothing was coded for these three.**
+> **Record = `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` (authoritative).**
+>
+> 1. **Peace terms — "a short war should be hard to end."** *"look at euiv, if
+>    war is short its way harder to end avoids cheesing 1 battle for free cash."*
+>    F14 STAYS: it made the recommendation's sign honest, and that is not what
+>    creates the cheese. The cheese is that the SCORE is cheap — **battles +
+>    decisive are ±50 of a ±100 scale, earned with zero territory taken**
+>    (EU4 caps battle warscore at 25%), and **no term anywhere reads how old
+>    the war is.** Recommended: a war-age penalty on peace acceptance FIRST
+>    (cheap, uses the already-serialized `war_start_turns`, and renders itself
+>    in the per-court breakdown that already names its components), then the
+>    battle-vs-territory re-weight as a tuning call after the playtest. ⚠ Both
+>    make wars harder to END, and CA9's campaign already closed with "a war
+>    with no way out" — the two complaints are ends of one dial.
+> 2. **The attack confirm popup.** *"only show popup if they are entering
+>    potential disaster and general is cautious."* Arm it only when the band is
+>    `unfavorable` (not merely `even`) AND the acting marshal is `cautious`.
+>    The preview still prints honest numbers on every attack; only the BLOCK
+>    changes. The personality half is the point — an aggressive marshal
+>    charging bad odds unasked is in character, the way W6-5's literal doctrine
+>    made objections a character beat.
+> 3. **Grievances and popups — a REVISIT slice, not a patch.** *"we need to
+>    revisit grievences and popups in general and check for issues."* So N4
+>    does NOT get a TTL bolted on. Audit every popup producer, its queue slot,
+>    its blocking class and whether anything retires it, then fix. Known
+>    starting list in the record: N4 (P1), N21, N8, the IGR-X7 drain family,
+>    the 11-slot PopupQueue priority order, and the per-surface
+>    stash-and-raise discipline that has already been got wrong twice.
+>
+> **Then ONE playtest covering all of it** — the three new slices AND the 31
+> CA9 rows landed August 9, which have never been played. That playtest also
+> discharges the visual sign-off owed on `Supply: Unknown` (region panel + map
+> tooltip) and the per-court fog line.
+>
+
+
 > ## ✅ THE CA9 FIX QUEUE — TIERS 1 AND 2 LANDED (August 9, 2026)
 >
 > **17 commits, `4ab1cc6` … `3764f6f`. Suite 16,634 → 16,820 / 3 skipped · ruff
