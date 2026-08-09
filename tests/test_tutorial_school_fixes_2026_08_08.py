@@ -195,11 +195,32 @@ class TestAcknowledgeDetailStatesTerms:
         return by_id
 
     def test_acknowledge_names_cost_effect_duration_and_stakes(self):
-        detail = self._petition_with_remaining(3)["acknowledge"]["detail"]
+        """CONSCIOUS PIN FLIP (CA9 row 3 §3, Aug 9 2026).
+
+        This asserted the word "coordination", and that abstraction was the
+        problem: the audit's finding was that "souring his ties and
+        coordination" is not a decision, while "he brings NONE of his 30,000
+        men to any battle Davout leads" is. The arm is also renamed to
+        "Let it stand" — `Acknowledge` is the DISMISS verb everywhere else in
+        the client, which framed the whole card as an inbox receipt. The
+        option ID is unchanged because it is the POST value.
+
+        The contract asserted is now stronger, not weaker: the cost must be
+        stated in MEN, and the number must be the marshal's real strength.
+        """
+        world, ney, davout = _french_pair()
+        ney.jealousy_turns_remaining = 3
+        jealousy.queue_confrontation_petition(world, ney, davout, 0)
+        by_id = {o["id"]: o for o in world.pending_marshal_petition["options"]}
+        arm = by_id["acknowledge"]
+        assert arm["label"] == "Let it stand"
+        detail = arm["detail"]
         assert "Free, and it fixes nothing" in detail
         assert "3 more turns" in detail
         assert "Davout" in detail
-        assert "coordination" in detail
+        assert f"{int(ney.strength):,}" in detail, (
+            "the cost must be stated in men, not in adjectives")
+        assert "harden" in detail
 
     def test_singular_turn_reads_singular(self):
         detail = self._petition_with_remaining(1)["acknowledge"]["detail"]

@@ -109,6 +109,13 @@ WAR_WEARY_HEED_TRUST = 3
 CONFRONT_PROMISE_AP = 1
 CONFRONT_PROMISE_DURATION_CUT = 2
 CONFRONT_REBUKE_TRUST = -5
+# Q1(b) (CA9 row 3 ruling): how long the Emperor's promise holds the pair's
+# escalation level. In-band tunable. This is what the 1 AP now buys that
+# nothing else on the card can: the quarrel cannot get WORSE while it stands.
+# Before it, `promise` was strictly DOMINATED — it shortened a timer and, by
+# clearing with `resolved_by_action=False`, forfeited the +10% surge the free
+# battle path grants, so paying was worse than ignoring the popup.
+CONFRONT_PROMISE_HOLD_TURNS = 6
 # A9 (CA9 row 3): turns between §6b "Separate Them" proximity warnings for a
 # pair. In-band tunable. The first proximity always warns; this only stops the
 # per-turn nag that made the one honest arm of the rivalry modal a punishment
@@ -788,6 +795,46 @@ def _check_escalation(world, marshal, target, events: List[Dict],
     qualifies = stored_rel <= -1 or fires >= ESCALATION_LIFETIME_FIRES
     if not qualifies:
         return
+    # ══════════════════════════════════════════════════════════════════
+    # Q1(b) (CA9 row 3 ruling): the Emperor's promise HOLDS the line.
+    #
+    # This is the ONE seam that writes escalation, which is exactly why no
+    # petition arm could previously change any outcome: whatever the player
+    # answered, the pair marched to permanent -2 on schedule. A hold cannot
+    # un-write history — it only stops the next rung — which is why the
+    # ruling chose it over buying a rung back.
+    #
+    # Checked in BOTH directions: `_set_escalation_level` writes the pair
+    # together, so a promise given to one man must not be defeated by his
+    # rival's fire arriving first.
+    #
+    # `forced` bypasses it deliberately — the mutual-spiral path and the
+    # test hooks that pass forced=True are asserting the ladder itself.
+    # ══════════════════════════════════════════════════════════════════
+    if not forced:
+        _now = int(getattr(world, "current_turn", 0) or 0)
+        _held_until = max(
+            int(marshal.jealousy_escalation_hold.get(target.name, -1)),
+            int(target.jealousy_escalation_hold.get(marshal.name, -1)),
+        )
+        if _held_until >= _now:
+            if marshal.nation == world.player_nation:
+                events.append({
+                    "type": "jealousy_escalation",
+                    "message": (
+                        f"{marshal.name} presses his grievance against "
+                        f"{target.name} again — but he holds to the "
+                        f"Emperor's word, and the quarrel goes no further "
+                        f"for now."),
+                    "nation": marshal.nation,
+                    "marshal": marshal.name,
+                    "target": target.name,
+                    # The level did NOT move; consumers that render an
+                    # escalation register must not claim it did.
+                    "level": get_escalation_level(marshal, target.name),
+                    "held": True,
+                })
+            return
     _mutual_applied = False
     level = min(ESCALATION_MUTUAL_LEVEL,
                 max(get_escalation_level(marshal, target.name),
@@ -884,6 +931,11 @@ _COOLING_CAUSE = {
     "the Emperor's promise": "He holds you to your word.",
     "the Emperor's rebuke": "He has swallowed the rebuke.",
     "the rival is gone": "There is no one left to envy.",
+    # Q4(a): the §6b mend arms. Before this they charged AP, printed a
+    # handshake and moved nothing a mechanic reads.
+    "the Emperor forced the reconciliation":
+        "They shook hands before the staff, and it held.",
+    "the Emperor's mediation": "Your word carried between them.",
 }
 
 
@@ -1219,6 +1271,30 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     return petition
 
 
+def _standing_cost_detail(marshal, target) -> str:
+    """§3 (CA9 row 3): what letting the grievance stand actually costs, in
+    men and turns rather than in adjectives.
+
+    The magnitude comes from the same rule the combat math uses — an
+    aggressive marshal withholds ENTIRELY, anyone else brings about half —
+    so the modal cannot promise a different number from the one the battle
+    resolves on. (`CombatExecutor._pair_contribution_scale` owns the rule;
+    this reads its two thresholds, which are personality-only and need no
+    executor instance.)
+    """
+    turns = int(getattr(marshal, "jealousy_turns_remaining", 0) or 0)
+    plural = "s" if turns != 1 else ""
+    men = int(getattr(marshal, "strength", 0) or 0)
+    if getattr(marshal, "personality", "") == "aggressive":
+        weight = (f"he brings NONE of his {men:,} men to any battle "
+                  f"{target.name} leads")
+    else:
+        weight = (f"he brings about half the weight of his {men:,} men to "
+                  f"any battle {target.name} leads")
+    return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
+            f"{weight}, and the quarrel may harden further.")
+
+
 def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None:
     """Jealousy confrontation (spec §6; CA8-D3 Q2 re-fires it once per
     escalation level, so `level` >= 1 carries the escalation register —
@@ -1258,20 +1334,41 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
         "body": body,
         "speaker": marshal.name,
         "options": [
-            # Aug 8 2026 live report: "unclear what acknowledge even does."
-            # It does NOTHING — say so, and say what standing costs
-            # (shown = applied: the derived -1 tie is spec §0.2 item 2,
-            # the duration is the field the timer actually decrements).
-            {"id": "acknowledge", "label": "Acknowledge",
-             "detail": (f"Free, and it fixes nothing: the grievance stands "
-                        f"{int(marshal.jealousy_turns_remaining)} more "
-                        f"turn{'s' if int(marshal.jealousy_turns_remaining) != 1 else ''}"
-                        f" — souring his ties and coordination with "
-                        f"{target.name} — then cools on its own."),
-             "cost_note": "", "enabled": True},
+            # ════════════════════════════════════════════════════════
+            # §3 (CA9 row 3): the user's own observation — "acknowledge
+            # seems to do nothing". It does nothing, by design since v2,
+            # and the Aug-8 fix made the copy honest without making the
+            # option a choice.
+            #
+            # RENAMED, not deleted and not given a fourth price. Deleting
+            # it makes Rebuke the only free arm and coerces a -5 trust hit
+            # at 0 AP; a fourth price on a card whose problem was that all
+            # prices bought the same outcome makes it worse.
+            # "Let it stand" is the system's own vocabulary (§6b already
+            # ships "Let Them Sort It Out") and, unlike "Acknowledge" —
+            # which is the DISMISS verb everywhere else in the client
+            # (proclamation_popup, notification_bar) — it is honest about
+            # being a refusal to act.
+            #
+            # And the price is now stated in the units the player feels.
+            # "Souring his ties and coordination" is not a decision; "he
+            # brings none of his 24,000 men to any battle Davout leads" is.
+            # Read off `_pair_contribution_scale`'s own thresholds so the
+            # sentence cannot drift from the combat math.
+            # ════════════════════════════════════════════════════════
+            {"id": "acknowledge", "label": "Let it stand",
+             "detail": _standing_cost_detail(marshal, target),
+             "cost_note": "Free", "enabled": True},
+            # Q1(b): the arm now buys something no other arm can — the
+            # quarrel cannot HARDEN while your word stands. Said out loud,
+            # because a mechanic the player cannot see is not a decision;
+            # the old detail named only the timer, which is why paying read
+            # as worse than ignoring the card.
             {"id": "promise", "label": promise_label,
-             "detail": f"His patience is bought — the grievance shortens by "
-                       f"{CONFRONT_PROMISE_DURATION_CUT} turns.",
+             "detail": (f"His patience is bought — the grievance shortens by "
+                        f"{CONFRONT_PROMISE_DURATION_CUT} turns, and for "
+                        f"{CONFRONT_PROMISE_HOLD_TURNS} turns the quarrel "
+                        f"cannot harden further."),
              "cost_note": f"{CONFRONT_PROMISE_AP} AP",
              "ap_cost": CONFRONT_PROMISE_AP,
              "enabled": ap >= CONFRONT_PROMISE_AP},
@@ -1531,12 +1628,23 @@ def _apply_confrontation_choice(world, choice: str, context: Dict) -> Dict:
                     "message": "Not enough action points to promise glory."}
         marshal.jealousy_turns_remaining = max(
             0, marshal.jealousy_turns_remaining - CONFRONT_PROMISE_DURATION_CUT)
+        # Q1(b): the promise HOLDS the line. Written both directions, because
+        # `_set_escalation_level` advances the pair together and a promise to
+        # one man must not be defeated by his rival's fire landing first.
+        _hold_until = int(world.current_turn) + CONFRONT_PROMISE_HOLD_TURNS
+        _target_name = context.get("target")
+        if _target_name:
+            marshal.jealousy_escalation_hold[_target_name] = _hold_until
+            _other = world.marshals.get(_target_name)
+            if _other is not None:
+                _other.jealousy_escalation_hold[marshal.name] = _hold_until
         if marshal.jealousy_turns_remaining == 0 and marshal.jealous_of:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=_pending_events(world),
                            reason="the Emperor's promise")
         message = (f"{marshal.name} bows. \"I will hold you to it, Sire.\" "
-                   f"His grievance shortens.")
+                   f"His grievance shortens, and while your word stands the "
+                   f"quarrel will go no further.")
     elif choice == "rebuke":
         marshal.modify_trust(CONFRONT_REBUKE_TRUST)
         marshal.jealousy_turns_remaining = max(
@@ -1576,8 +1684,47 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
     roll = random.random()
 
     def _restore(to_value: int) -> None:
-        marshal.set_relationship(other.name, to_value)
-        other.set_relationship(marshal.name, to_value)
+        """§6b mend. Q4(a) (CA9 row 3 ruling) makes two things explicit.
+
+        THE TRAPDOOR IS INTENDED. At stored -2 a shared victory maxes at 35
+        against `relationship.py`'s strict `> 50`, so Hostile does not heal
+        through play, and the §6b escape only ever queues on a DOWNWARD
+        transition — so the pairs authored at -2 in the scenario (Davout and
+        Bernadotte's Auerstedt no-show) can never produce one. That is
+        deliberate authored character, not a gap, and it is stated here
+        because two lenses read it as a bug.
+
+        Which is also why a mend must never raise a pair whose escalation
+        the game has already called PERMANENT. The entrenchment is a record;
+        a handshake may stop the bleeding, it may not erase the wound. The
+        clamp keeps a free 60%-chance arm from laundering authored hostility
+        into neutrality.
+        """
+        # A CEILING, not a floor: the clamp limits how HIGH a mend may lift
+        # an entrenched pair, so `min` is correct here and `max` would be a
+        # no-op (max(-1, 0) == 0). Stated because the first cut got it
+        # backwards and the pin caught it.
+        _entrenched = max(get_escalation_level(marshal, other.name),
+                          get_escalation_level(other, marshal.name)) \
+            >= ESCALATION_PERMANENT_LEVEL
+        _value = min(int(to_value), -1) if _entrenched else int(to_value)
+        marshal.set_relationship(other.name, _value)
+        other.set_relationship(marshal.name, _value)
+
+    def _mend_grievance(reason: str) -> None:
+        """Q4(a): a SUCCESSFUL mend must move something a mechanic reads.
+
+        `_restore` writes STORED, but `get_relationship` subtracts 1 for a
+        live grievance — so `force_reconciliation` charged 2 AP, printed
+        "Under your eye they shake hands", and left the derived value
+        exactly where it was. A second inert paid arm, on top of the promise
+        arm the audit found strictly dominated. The ruling's option: clear
+        the grievance on success, so the handshake is real.
+        """
+        for a, b in ((marshal, other), (other, marshal)):
+            if getattr(a, "jealous_of", None) == b.name:
+                clear_jealousy(world, a, resolved_by_action=False,
+                               events=_pending_events(world), reason=reason)
 
     outcome: str
     if new_value == -1:
@@ -1602,12 +1749,14 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
             if authority >= 70:
                 if roll < 0.70:
                     _restore(0)
+                    _mend_grievance("the Emperor's mediation")
                     outcome = "Your word carries. The breach is mended."
                 else:
                     outcome = "They listen politely. Nothing changes."
             elif authority >= 40:
                 if roll < 0.40:
                     _restore(0)
+                    _mend_grievance("the Emperor's mediation")
                     outcome = "A grudging peace is brokered."
                 elif roll < 0.90:
                     outcome = "They nod and change nothing."
@@ -1656,12 +1805,14 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
             if authority >= 80:
                 if roll < 0.50:
                     _restore(-1)
+                    _mend_grievance("the Emperor forced the reconciliation")
                     outcome = "Under your eye they shake hands. Barely."
                 else:
                     outcome = "Cold correctness. Nothing more."
             elif authority >= 60:
                 if roll < 0.30:
                     _restore(-1)
+                    _mend_grievance("the Emperor forced the reconciliation")
                     outcome = "A stiff, public handshake. It holds — for now."
                 elif roll < 0.80:
                     outcome = "Neither yields. The breach stands."
@@ -1671,6 +1822,7 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
             else:
                 if roll < 0.10:
                     _restore(-1)
+                    _mend_grievance("the Emperor forced the reconciliation")
                     outcome = "A miracle of protocol. It holds — for now."
                 elif roll < 0.40:
                     outcome = "Neither yields. The breach stands."

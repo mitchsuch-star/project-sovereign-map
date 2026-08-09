@@ -626,6 +626,19 @@ class Marshal:
         # Set when an aggressive marshal is rebuked; suppresses his
         # autonomous glory-attack for that cycle. Cleared by the evaluation
         # pass once the grievance is gone.
+        # ══════════════════════════════════════════════════════════════
+        # Q1(b) (CA9 row 3 ruling): {other_marshal_name: turn} — the
+        # escalation HOLD. While the stored turn is in the future, a
+        # qualifying fire against that man cannot advance the pair's
+        # escalation level.
+        #
+        # This is the field that makes the §6 confrontation a decision.
+        # Before it, escalation history and level were written ONLY at fire
+        # time, so NO petition arm could reach either and every answer —
+        # including not answering — converged on the same permanent -2. The
+        # arms could differ in price and in nothing else.
+        # ══════════════════════════════════════════════════════════════
+        self.jealousy_escalation_hold: Dict[str, int] = {}
         self.jealousy_rebuked_cycle: bool = False
         # Set when a literal marshal is rebuked: the turn on which his
         # obsessive-patrol intel expression is suppressed. -1 = never.
@@ -1506,6 +1519,9 @@ class Marshal:
             "separation_warned_turn": {
                 k: int(v) for k, v in self.separation_warned_turn.items()
             },
+            "jealousy_escalation_hold": {
+                k: int(v) for k, v in self.jealousy_escalation_hold.items()
+            },
             "jealousy_rebuked_cycle": bool(self.jealousy_rebuked_cycle),
             "literal_intel_paused_turn": int(self.literal_intel_paused_turn),
             "glory_crowned": bool(self.glory_crowned),
@@ -1690,6 +1706,12 @@ class Marshal:
         }
         # A10: absent on pre-CA9 saves. `False` / -1 are the same values
         # `__init__` sets, so a legacy load is byte-identical to today.
+        # Q1(b): absent on pre-CA9 saves = no promise outstanding, which is
+        # the same as `__init__`, so a legacy load is byte-identical.
+        marshal.jealousy_escalation_hold = {
+            k: int(v) for k, v in
+            (data.get("jealousy_escalation_hold") or {}).items()
+        }
         marshal.jealousy_rebuked_cycle = bool(
             data.get("jealousy_rebuked_cycle", False))
         marshal.literal_intel_paused_turn = int(
