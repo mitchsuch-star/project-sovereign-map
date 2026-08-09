@@ -601,6 +601,35 @@ class Marshal:
         # §6b "Separate Them": {marshal_name: True} — dispatch warns when a
         # flagged pair shares or adjoins a region. A management tool, not a fix.
         self.separation_flagged: Dict[str, bool] = {}
+        # A9 (CA9 row 3): {marshal_name: turn} — when this pair was last
+        # warned about. The subscription above was set True in one place and
+        # False in NO place anywhere in `backend/`, and it re-warned every
+        # single turn the pair stood in reach, so the one honest arm of the
+        # §6b modal was a permanent un-cancellable nag. This gives the
+        # warning a cooldown; `jealousy.py` also retires the subscription
+        # itself once the rivalry it watches is mended.
+        self.separation_warned_turn: Dict[str, int] = {}
+        # ══════════════════════════════════════════════════════════════
+        # A10 (CA9 row 3): two latches that used to be dynamic `_`-prefixed
+        # attributes created by setattr at their write sites, and were
+        # therefore invisible to save/load AND to
+        # `test_serialization_enforcement.py`, which filters `_` names out
+        # of the field set it derives. Declared here and serialized below,
+        # so the enforcement test covers them structurally from now on
+        # rather than by a bespoke pin.
+        #
+        # Both are PROMISES the game makes out loud in the §6 rebuke arm
+        # ("He will not act on his own this cycle", "His patrols pause a
+        # turn"), so a save between the rebuke and the next evaluation pass
+        # used to break a promise the player paid 5 trust for.
+        # ══════════════════════════════════════════════════════════════
+        # Set when an aggressive marshal is rebuked; suppresses his
+        # autonomous glory-attack for that cycle. Cleared by the evaluation
+        # pass once the grievance is gone.
+        self.jealousy_rebuked_cycle: bool = False
+        # Set when a literal marshal is rebuked: the turn on which his
+        # obsessive-patrol intel expression is suppressed. -1 = never.
+        self.literal_intel_paused_turn: int = -1
         # Crowned with Glory: #1 on the nation's glory ladder. Recomputed
         # every evaluation pass (serialized so a mid-turn save keeps the
         # buff live for battles before the next recompute).
@@ -1474,6 +1503,11 @@ class Marshal:
             },
             "consecutive_hold_turns": int(self.consecutive_hold_turns),
             "separation_flagged": self.separation_flagged.copy(),
+            "separation_warned_turn": {
+                k: int(v) for k, v in self.separation_warned_turn.items()
+            },
+            "jealousy_rebuked_cycle": bool(self.jealousy_rebuked_cycle),
+            "literal_intel_paused_turn": int(self.literal_intel_paused_turn),
             "glory_crowned": bool(self.glory_crowned),
 
             # ═══════ TACTICAL STATE - DRILL ═══════
@@ -1648,6 +1682,18 @@ class Marshal:
         }
         marshal.consecutive_hold_turns = int(data.get("consecutive_hold_turns", 0) or 0)
         marshal.separation_flagged = (data.get("separation_flagged") or {}).copy()
+        # A9: absent on pre-CA9 saves — an empty map means "never warned",
+        # so the first proximity after a load warns and then cools down.
+        marshal.separation_warned_turn = {
+            k: int(v) for k, v in
+            (data.get("separation_warned_turn") or {}).items()
+        }
+        # A10: absent on pre-CA9 saves. `False` / -1 are the same values
+        # `__init__` sets, so a legacy load is byte-identical to today.
+        marshal.jealousy_rebuked_cycle = bool(
+            data.get("jealousy_rebuked_cycle", False))
+        marshal.literal_intel_paused_turn = int(
+            data.get("literal_intel_paused_turn", -1) or -1)
         marshal.glory_crowned = bool(data.get("glory_crowned", False))
 
         # ═══════ TACTICAL STATE - DRILL ═══════

@@ -656,6 +656,25 @@ class WorldState:
         # silent, want-changes silent (agenda_shift owns them), only a
         # same-want RUNG change makes a line.
         self.nation_intent_seen: Dict[str, str] = {}
+        # ══════════════════════════════════════════════════════════════
+        # A10 (CA9 row 3): two world latches that used to be dynamic
+        # `_`-prefixed attributes created by setattr, invisible to save/load
+        # AND to `test_serialization_enforcement.py` (which filters `_`
+        # names out of the field set it derives). Declared here so the
+        # enforcement test covers them structurally.
+        #
+        # Both guard ONCE-PER-CAMPAIGN beats, which is exactly the class of
+        # promise a missing serialization silently breaks: reload and the
+        # game offers a moment it already spent, or re-offers one it
+        # promised was unique.
+        # ══════════════════════════════════════════════════════════════
+        # ESP-2: {"marshal|target_nation"} pairs whose war-weary petition has
+        # already been offered. A set in memory; a sorted list on disk.
+        self.war_weary_petitions_seen: set = set()
+        # ESP-1 Fontainebleau: the collective petition's re-arm latch. True
+        # means "may fire"; the beat disarms it and the cooldown re-arms it.
+        # Boots True — the old code's `getattr(..., True)` default.
+        self.fontainebleau_armed: bool = True
         # NA-6 §11.1/§11.10-1: the formation latch — tag -> {id, sponsor,
         # turn}. Formation is PERMANENT and once-only; the tag never
         # changes (serialization safety), only the display identity.
@@ -5956,6 +5975,11 @@ class WorldState:
                                    for k, v in self.nation_agenda_seen.items()},
             "nation_intent_seen": {str(k): str(v)
                                    for k, v in self.nation_intent_seen.items()},
+            # A10: sorted so a save is byte-stable across runs (a set's
+            # iteration order is not, since str hashing is randomised).
+            "war_weary_petitions_seen": sorted(
+                str(k) for k in self.war_weary_petitions_seen),
+            "fontainebleau_armed": bool(self.fontainebleau_armed),
             # deepcopy, NOT the flat str() arm above: NA-6 records are
             # dicts and would stringify (the §11.1 Dict[str, str] shape
             # was amended to Dict[str, dict] by §11.10 decision 1).
@@ -6444,6 +6468,13 @@ class WorldState:
             str(k): str(v)
             for k, v in (data.get("nation_intent_seen") or {}).items()
         }
+        # A10: absent on pre-CA9 saves. An empty set and `True` are exactly
+        # what `__init__` sets and what the old `getattr` defaults produced,
+        # so a legacy load behaves identically to today.
+        world.war_weary_petitions_seen = set(
+            str(k) for k in (data.get("war_weary_petitions_seen") or []))
+        world.fontainebleau_armed = bool(
+            data.get("fontainebleau_armed", True))
         # NA-6: the formation latch. Absent on pre-NA-6 saves = nothing has
         # formed. deepcopy for the same aliasing reason as `agendas`.
         world.nation_formations = {

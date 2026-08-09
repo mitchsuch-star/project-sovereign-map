@@ -2221,16 +2221,39 @@ class DiplomaticExecutor:
             from backend.game_logic import jealousy as _jealousy
             objector = _jealousy.find_war_weary_objector(world)
             if objector is not None:
-                _ww_seen = set(getattr(world, "_war_weary_petitions_seen", set()))
+                _ww_seen = set(getattr(world, "war_weary_petitions_seen", set()))
                 _ww_key = f"{objector.name}|{target_nation}"
-                if _ww_key not in _ww_seen:
-                    _ww_seen.add(_ww_key)
-                    world._war_weary_petitions_seen = _ww_seen
+                # ════════════════════════════════════════════════════════
+                # A4 (CA9 row 3). Two defects, one shape.
+                #
+                # This is the ONLY petition producer with no pending guard,
+                # while `jealousy._push_petition` assigns
+                # `pending_marshal_petition` unconditionally. So declaring
+                # war on top of a queued §6 confrontation DESTROYED it —
+                # and because the confrontation's `pair@L{level}` latch is
+                # stamped when it is queued, that beat was deleted for the
+                # rest of the campaign, not deferred.
+                #
+                # And the `_ww_seen` stamp was written BEFORE the push, so
+                # any path that did not deliver still burned the
+                # once-per-(marshal, target) promise.
+                #
+                # Fix: skip while the channel is occupied, and stamp only
+                # after a push that is actually returned. Skipping is safe
+                # and deliberate — control falls through to the ally-entry
+                # preview and the declaration proceeds. The marshal keeps
+                # his objection for the next war he is asked to march to.
+                # ════════════════════════════════════════════════════════
+                _channel_busy = getattr(
+                    world, "pending_marshal_petition", None) is not None
+                if _ww_key not in _ww_seen and not _channel_busy:
                     resume_data = dict(diplomatic_data)
                     resume_data["_war_weary_resolved"] = True
                     petition = _jealousy.queue_war_weary_petition(
                         world, objector, target_nation,
                         original_command=resume_data)
+                    _ww_seen.add(_ww_key)
+                    world.war_weary_petitions_seen = _ww_seen
                     return {
                         "success": True,
                         "message": petition["body"],

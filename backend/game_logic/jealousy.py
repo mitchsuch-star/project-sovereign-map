@@ -109,6 +109,11 @@ WAR_WEARY_HEED_TRUST = 3
 CONFRONT_PROMISE_AP = 1
 CONFRONT_PROMISE_DURATION_CUT = 2
 CONFRONT_REBUKE_TRUST = -5
+# A9 (CA9 row 3): turns between §6b "Separate Them" proximity warnings for a
+# pair. In-band tunable. The first proximity always warns; this only stops the
+# per-turn nag that made the one honest arm of the rivalry modal a punishment
+# for using it.
+SEPARATION_WARNING_COOLDOWN = 4
 CONFRONT_REBUKE_DURATION_CUT = 1
 
 # CA8-D3 (gate held Aug 8, 2026, delegated — record: spec §0.5): THE RIVAL IS
@@ -866,6 +871,22 @@ def _check_escalation(world, marshal, target, events: List[Dict],
     })
 
 
+# A2 (CA9 row 3): the four `reason=` strings the non-action branch can be
+# handed, mapped to the clause that names the cause. Keyed on the literal
+# strings the call sites pass (`jealousy.py` promise/rebuke arms, the
+# rival-gone sweep) so an unrecognised or absent reason falls through to the
+# unchanged "cooled with time" wording — which is what keeps `reason="time"`
+# and every legacy caller byte-identical.
+#
+# Deliberately NOT a personality bank: this states what the EMPEROR did, and
+# it reads the same in any register. Voice for the marshal himself is A14.
+_COOLING_CAUSE = {
+    "the Emperor's promise": "He holds you to your word.",
+    "the Emperor's rebuke": "He has swallowed the rebuke.",
+    "the rival is gone": "There is no one left to envy.",
+}
+
+
 def clear_jealousy(world, marshal, resolved_by_action: bool,
                    events: Optional[List[Dict]] = None,
                    reason: str = "") -> None:
@@ -901,6 +922,9 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
                     f"{reason or 'he has proven himself'}. {surge_note}"),
                 "nation": marshal.nation,
                 "marshal": marshal.name,
+                # See the sibling branch: A13's discriminator. THIS is the
+                # beat a narration cap must never collapse.
+                "by_action": True,
             })
         else:
             # ────────────────────────────────────────────────────────────
@@ -919,6 +943,25 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
             # this marshal's own entry is the pair's level.
             _level = get_escalation_level(marshal, target_name)
             _times = _lifetime_fires(marshal, target_name)
+            # ────────────────────────────────────────────────────────────
+            # A2 (CA9 row 3, Aug 9 2026): say WHY it cooled.
+            #
+            # `reason` was accepted by this function, documented, and then
+            # read on the action branch only — so a grievance ended by the
+            # Emperor's paid 1-AP promise, by a rebuke that cost 5 trust,
+            # and by the rival being ridden down ALL printed "cooled with
+            # time". That single sentence is a large part of why the channel
+            # reads as inert: the player spends an action point and the game
+            # reports patience.
+            #
+            # Threaded as a CLAUSE INSIDE the existing three-variant ladder
+            # rather than as a fourth variant, because both CA8-8 pins must
+            # keep holding: entrenched still outranks everything (its "has
+            # not been" clause is the load-bearing half), and `reason="time"`
+            # must still render "cooled with time" verbatim on an ordinary
+            # pair. Only a NAMED cause changes the wording.
+            # ────────────────────────────────────────────────────────────
+            _cause = _COOLING_CAUSE.get(str(reason or ""), "")
             if _level >= ESCALATION_PERMANENT_LEVEL:
                 _msg = (f"{marshal.name}'s resentment of {target_name} has "
                         f"cooled for now. What was settled between them at "
@@ -934,14 +977,26 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
                 # lines. The number is now named for what it counts.
                 _msg = (f"{marshal.name}'s resentment of {target_name} has "
                         f"cooled. The quarrel has flared {_times} times.")
+            elif _cause:
+                # A named cause did the work, so "with time" would be a lie.
+                _msg = (f"{marshal.name}'s resentment of {target_name} is "
+                        f"set aside.")
             else:
                 _msg = (f"{marshal.name}'s resentment of {target_name} has "
                         f"cooled with time.")
+            if _cause:
+                _msg = f"{_msg} {_cause}"
             events.append({
                 "type": "jealousy_resolved",
                 "message": _msg,
                 "nation": marshal.nation,
                 "marshal": marshal.name,
+                # A13's prerequisite, added here because this is the seam
+                # that knows: an EARNED resolution and a timer expiry are
+                # both `jealousy_resolved` with no discriminator, so a
+                # narration cap could not exempt one and collapse the other.
+                # A key on the existing event, not a new log type.
+                "by_action": False,
             })
 
 
@@ -1305,9 +1360,9 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
                and m.strength > 0
                and not getattr(m, "captured_by", "")
                and dotation.is_eroding(m, world)]
-    armed = bool(getattr(world, "_fontainebleau_armed", True))
+    armed = bool(getattr(world, "fontainebleau_armed", True))
     if len(eroding) < FONTAINEBLEAU_MIN_ERODING:
-        world._fontainebleau_armed = True
+        world.fontainebleau_armed = True
         return
     last = int(getattr(world, "fontainebleau_last_turn", -999))
     if not armed or world.current_turn - last < FONTAINEBLEAU_COOLDOWN:
@@ -1315,7 +1370,7 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
     if getattr(world, "pending_marshal_petition", None) is not None:
         return
     world.fontainebleau_last_turn = int(world.current_turn)
-    world._fontainebleau_armed = False
+    world.fontainebleau_armed = False
     queue_fontainebleau_petition(world, eroding)
     events.append({
         "type": "fontainebleau_petition",
@@ -1414,6 +1469,37 @@ def _apply_confrontation_choice(world, choice: str, context: Dict) -> Dict:
     marshal = world.marshals.get(context.get("marshal"))
     if marshal is None:
         return {"success": True, "message": "The moment has passed."}
+    # ══════════════════════════════════════════════════════════════════
+    # A3 (CA9 row 3) — the stale-answer guard. CA9-N4's fixable half.
+    #
+    # The petition never expired and never re-validated, so a card queued
+    # on turn 11 and answered on turn 16 was applied to LIVE state:
+    # measured, `promise` spent 1 AP and reported "His grievance shortens"
+    # against `jealous_of = None`, and `rebuke` applied a real -5 trust to
+    # a marshal whose quarrel was already over. Charging for a quarrel
+    # that has ended and reporting success is the exact "the surface tells
+    # the player something the state does not support" shape CA9 filed.
+    #
+    # Scoped to `jealousy_confrontation` DELIBERATELY. `war_weary` carries
+    # the assembled declare-war command in its context
+    # (`diplomatic_executor._apply_war_weary_choice`), so retiring one of
+    # those on a mismatch would silently cancel a war declaration — a
+    # worse bug than the one being fixed. The other two kinds have no
+    # single-marshal target to re-validate against.
+    #
+    # The card is RETIRED rather than re-served: it was already popped
+    # from the queue by `handle_petition_response` above, and re-pushing a
+    # card whose subject has changed is how the turn-4-to-41 zombie in the
+    # memo happened.
+    # ══════════════════════════════════════════════════════════════════
+    _asked_about = context.get("target")
+    if _asked_about and marshal.jealous_of != _asked_about:
+        return {
+            "success": True,
+            "message": (
+                f"The moment has passed — {marshal.name}'s quarrel with "
+                f"{_asked_about} is already behind him. Nothing was spent."),
+        }
     if choice == "promise":
         if not _spend_player_ap(world, CONFRONT_PROMISE_AP):
             return {"success": False,
@@ -1432,9 +1518,9 @@ def _apply_confrontation_choice(world, choice: str, context: Dict) -> Dict:
             0, marshal.jealousy_turns_remaining - CONFRONT_REBUKE_DURATION_CUT)
         if marshal.personality == "aggressive":
             marshal.jealousy_autonomous_warned = False
-            marshal._jealousy_rebuked_cycle = True
+            marshal.jealousy_rebuked_cycle = True
         if marshal.personality == "literal":
-            marshal._literal_intel_paused_turn = int(world.current_turn) + 1
+            marshal.literal_intel_paused_turn = int(world.current_turn) + 1
         if marshal.jealousy_turns_remaining == 0 and marshal.jealous_of:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=_pending_events(world),
@@ -1842,7 +1928,7 @@ def process_turn(world) -> List[Dict]:
         if not getattr(marshal, "jealous_of", None) \
                 or marshal.personality != "aggressive":
             continue
-        if getattr(marshal, "_jealousy_rebuked_cycle", False):
+        if getattr(marshal, "jealousy_rebuked_cycle", False):
             continue
         if not _is_standing(marshal):
             marshal.jealousy_autonomous_warned = False
@@ -1868,20 +1954,75 @@ def process_turn(world) -> List[Dict]:
     # 6) crowns
     events.extend(recompute_crowns(world))
 
+    # ══════════════════════════════════════════════════════════════════
     # 7) §6b separation warnings
+    #
+    # A9 (CA9 row 3): this was a permanent, un-cancellable subscription
+    # with a per-turn nag. `separation_flagged` was set True in exactly one
+    # place and False in NO place anywhere in `backend/`, so the one arm of
+    # the §6b modal that honestly described itself ("Not a fix — Berthier
+    # will warn you whenever their commands stand together") became the
+    # most annoying thing the channel does, forever, for a rivalry the
+    # player may have long since mended.
+    #
+    # Two fixes, both here:
+    #   * RETIREMENT — the flag watches a rivalry. When the rivalry is gone
+    #     (the pair's stored standing is no longer negative) the
+    #     subscription retires itself, both directions. `set_relationship`
+    #     is not used: this only ever deletes the watcher, never touches
+    #     the authored relationship (Q4 rules that mend arms must not
+    #     launder authored character).
+    #   * COOLDOWN — `SEPARATION_WARNING_COOLDOWN` turns between warnings
+    #     for a pair. The FIRST proximity always warns (an absent entry
+    #     means never warned), which is what `test_jealousy_v32.py`'s
+    #     presence pin asserts.
+    # ══════════════════════════════════════════════════════════════════
+    _turn_now = int(getattr(world, "current_turn", 0) or 0)
     for marshal in world.marshals.values():
         if marshal.nation != world.player_nation:
             continue
-        for other_name, flagged in getattr(marshal, "separation_flagged", {}).items():
+        # Iterate a snapshot: the retirement arm mutates the dict.
+        for other_name, flagged in list(
+                getattr(marshal, "separation_flagged", {}).items()):
             if not flagged or marshal.name > other_name:
                 continue        # one warning per pair
             other = world.marshals.get(other_name)
             if other is None or not _is_standing(other) or not _is_standing(marshal):
                 continue
+            # Retirement: the quarrel this watches is over.
+            #
+            # Reads the STORED value, not `get_relationship`. The derived
+            # getter subtracts 1 for a live grievance, so a marshal with any
+            # active envy toward his old rival would read as still-hostile
+            # and the file would never close. What this watches is the §6b
+            # RIVALRY, and a successful `mediate` writes stored 0 through
+            # `set_relationship` — so the file closes exactly when the
+            # player's mediation actually worked.
+            if marshal.relationships.get(other_name, 0) >= 0:
+                marshal.separation_flagged.pop(other_name, None)
+                marshal.separation_warned_turn.pop(other_name, None)
+                other.separation_flagged.pop(marshal.name, None)
+                other.separation_warned_turn.pop(marshal.name, None)
+                events.append({
+                    "type": "jealousy_separation_warning",
+                    "message": (f"Berthier closes the file on {marshal.name} "
+                                f"and {other_name}: whatever stood between "
+                                f"them is settled. You will not be warned "
+                                f"about them again."),
+                    "nation": marshal.nation,
+                    "marshal": marshal.name,
+                })
+                continue
             region = world.regions.get(marshal.location)
             adjacent = set(getattr(region, "adjacent_regions", []) or []) \
                 if region else set()
             if other.location == marshal.location or other.location in adjacent:
+                _last = marshal.separation_warned_turn.get(other_name)
+                if (_last is not None
+                        and _turn_now - int(_last) < SEPARATION_WARNING_COOLDOWN):
+                    continue
+                marshal.separation_warned_turn[other_name] = _turn_now
+                other.separation_warned_turn[marshal.name] = _turn_now
                 events.append({
                     "type": "jealousy_separation_warning",
                     "message": (f"Berthier reminds you: {marshal.name} and "
@@ -1896,9 +2037,9 @@ def process_turn(world) -> List[Dict]:
 
     # clear the per-cycle rebuke latch
     for marshal in world.marshals.values():
-        if getattr(marshal, "_jealousy_rebuked_cycle", False) \
+        if getattr(marshal, "jealousy_rebuked_cycle", False) \
                 and not getattr(marshal, "jealous_of", None):
-            marshal._jealousy_rebuked_cycle = False
+            marshal.jealousy_rebuked_cycle = False
 
     return events
 

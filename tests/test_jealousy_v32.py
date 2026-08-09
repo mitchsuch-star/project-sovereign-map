@@ -964,8 +964,15 @@ class TestAutonomousAttack:
         assert world.actions_remaining == ap_before
 
     def test_rebuke_suppresses_cycle(self, world):
+        # A10 (CA9 row 3): the latch lost its `_` prefix and is now declared
+        # in `Marshal.__init__` and serialized, so a save between the rebuke
+        # and the next evaluation pass no longer breaks the promise the modal
+        # makes out loud ("He will not act on his own this cycle"). The
+        # rename is also what puts it inside
+        # `test_serialization_enforcement.py`'s derived field set, which
+        # filters `_`-prefixed names — that filter is how it hid.
         ney, _ = self._warned_ney(world)
-        ney._jealousy_rebuked_cycle = True
+        ney.jealousy_rebuked_cycle = True
         _run_pass(world)
         assert not ney.jealousy_autonomous_warned
 
