@@ -162,6 +162,82 @@ which is what W6-5's literal doctrine did for objections.
   logic and is not in scope.
 - Whatever the rule, the *same* predicate must decide the popup and the copy.
 
+### ✅ LANDED August 9, 2026 — landing record (authoritative for row 2)
+
+Built exactly as ruled. One predicate, `objection_v2.muster_gate_arms`
+(`MUSTER_GATE_BAND = "unfavorable"` + `MUSTER_GATE_PERSONALITIES =
+{"cautious"}`), consumed at the single gate site in
+`combat_executor._execute_attack`. `even` no longer blocks anybody; only a
+cautious marshal stops to ask. Tests: `tests/test_ca9_row2_muster_gate_scope.py`
+(30). Suite 16,820 → **16,874 / 3 skipped**, ruff clean, no `.gd`.
+**M1–M7 and `BASELINE_SERIES` byte-identical WITHOUT re-record** — correct by
+construction, since the gate is guarded on `command is not None` and
+`marshal.nation == world.player_nation`, so no AI behaviour can move.
+
+The modal is now a character beat, so it speaks in the cautious register:
+`marshal_voice.cautious_muster_halt` (3 rotated lines, deterministic, GR6),
+spoken **only** behind a True from the predicate, with a falsifiable negative
+that an aggressive marshal is never narrated as hesitating.
+
+**Three things the build found that this record did not know.**
+
+1. **The gate's surviving window is narrower than the ruling implies, and the
+   severe case was already covered.** A cautious marshal at ≥2:1 raises a
+   **V2a objection** — trust / insist / compromise, a richer decision with
+   trust consequences — and it fires *before* the muster gate. Measured
+   (enemy:own):
+
+   | ratio | band | what the player meets |
+   |---|---|---|
+   | ≥ 2.00 | unfavorable | V2a objection |
+   | 1.43–2.00 | unfavorable | **muster confirm** ← the gate's real window |
+   | 1.00–1.43 | even | nothing (row 2 removed this) |
+   | < 1.00 | favorable | nothing |
+
+   So the ruling is coherent rather than redundant — whichever surface owns
+   the severity band asks, and **the player is asked exactly once**. Insisting
+   past an objection never yields a second modal (the post-objection path
+   bypasses the gate). That is the CR-5 "objection-first ONE-modal legibility"
+   guardrail, and it is now pinned in `TestTheTwoSurfacesDoNotStack` rather
+   than assumed.
+
+2. **The gate is not a guarantee even for the personality it is scoped to.**
+   `objection_v2.apply_mood_variance` promotes a concern one level 10% of the
+   time, so ~1 attack in 10 inside the gate's own window produces a blocking
+   objection instead. This is intended (day-to-day mood) and is left alone,
+   but it is the reason three test files needed the function neutralised —
+   its own docstring prescribes exactly that — and it is pinned as real
+   behaviour in `TestMoodVarianceCanPreEmptTheGate`. Anyone reading an "it
+   gated yesterday and objected today" report should start there.
+
+3. **A latent test-isolation defect, fixed in passing.** The
+   `muster_endpoint` fixture never swapped `main_module.executor`, which
+   carries per-marshal objection state (`major_objections_this_turn`) across
+   tests — so that class's result depended on what ran before it. It now
+   swaps the executor like the sweep-5 fixture always did. Found only because
+   re-pointing the fixture at a cautious marshal made the objection layer
+   relevant to it.
+
+**Consciously flipped pins.** `test_w6_literal_doctrine.py::
+test_literal_never_objects` asserted the muster confirm "is what catches"
+a literal marshal ordered into terrible odds. Nothing catches him now, which
+is a *stronger* statement of that file's own W6-5 doctrine — "generals who do
+what they're ordered" — and the test says so. Gate fixtures in three files
+moved from Ney to **Davout**, the roster's cautious French marshal: scoping a
+gate by character means the fixture must have the character. One endpoint
+assertion was also re-based from battle-outcome copy ("<name> leads the
+charge", which never appears when the marshal *loses*) onto casualties, which
+is the claim it was always trying to make.
+
+**Not verified live over HTTP.** Port 8005 was held by a live session and I
+did not disturb it. `TestMusterTypedAnswerEndpoint` drives the real FastAPI
+app through `TestClient` (the same path minus the socket) and the change adds
+no new response fields — only a message string — so there is no serialization
+risk of the kind an HTTP pass exists to catch. The copy itself was read off a
+real executor run. **The playtest still owns the feel question**, which is
+the one thing none of this measures: a non-cautious marshal now walks into a
+2.5:1 fight with no warning at all.
+
 ---
 
 ## 3. Grievances and popups — a revisit slice, not a patch
@@ -189,6 +265,21 @@ So N4 is **not** getting a TTL bolted on. The whole channel gets looked at.
   reflects what a player most needs to see.
 - **The stash-and-raise discipline** (NA-6b, BD §14.1) is applied per-surface
   rather than centrally, and has already been got wrong twice.
+- **NEW, added by row 2's build (Aug 9, 2026): the objection layer carries
+  per-turn state on the module-global executor, and it leaks.**
+  `DisobedienceSystem.major_objections_this_turn` gates a cap that *downgrades
+  a major objection to a mild one* — so whether the player gets a blocking
+  modal or a grumble depends on how many objections already fired, held on an
+  object whose lifetime is the process, not the turn. A TestClient fixture
+  that did not replace `main_module.executor` was order-dependent because of
+  it. Worth auditing alongside the queue: this is the same class of defect as
+  the popup slots — a blocking decision made from state nobody retires —
+  and it sits on the surface the player meets most often.
+- **Also for the audit's list, not a defect:** `apply_mood_variance` promotes
+  a concern one level 10% of the time, which can turn a non-blocking advisory
+  into a blocking modal. It is intended and should stay, but it means *no*
+  popup-frequency measurement is reproducible without pinning it, and any
+  before/after count for this slice must account for it.
 
 ### Shape of the slice
 

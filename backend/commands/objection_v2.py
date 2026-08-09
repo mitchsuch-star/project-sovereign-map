@@ -933,9 +933,12 @@ def inferred_attack_odds_band(marshal, enemy, game_state=None,
                               committed_attacker: float = 0.0,
                               committed_defender: float = 0.0) -> str:
     """W6-4 muster preview: three-way display band over the single odds
-    formula. `favorable` (ratio >= 1.0) resolves immediately; `even`
-    (the CR-5 0.7 floor up to parity) and `unfavorable` (< 0.7) route
-    the player attack through the one-modal muster confirm.
+    formula. `favorable` (ratio >= 1.0), `even` (the CR-5 0.7 floor up to
+    parity) and `unfavorable` (< 0.7).
+
+    The band is a DISPLAY reading and rides every resolved player attack.
+    Whether it also BLOCKS is a separate question owned by
+    `muster_gate_arms` below — do not re-derive that rule from the band.
 
     CO-2: `committed_attacker` folds the mustered reinforcement strength into
     the ratio so the band reflects the total committed force.
@@ -948,6 +951,53 @@ def inferred_attack_odds_band(marshal, enemy, game_state=None,
     if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:
         return "even"
     return "unfavorable"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# THE MUSTER GATE POLICY — character, not odds alone
+# ════════════════════════════════════════════════════════════════════════════
+# CA9 row 2 (Aug 9 2026). Gate record:
+# docs/audits/CA9_GATE_ANSWERS_2026_08_09.md §2 — the user's ruling was
+# "only show popup if they are entering potential disaster and general is
+# cautious".
+#
+# Before this, ANY player attack whose band was not `favorable` blocked, for
+# every marshal regardless of personality. CA9-F1 then made the preview count
+# the DEFENDER's reinforcements, so `even` became common and the modal fired
+# constantly — that is the texture being cut back. Two narrowings:
+#
+#   1. `even` no longer blocks anybody. Only `unfavorable` (below the CR-5
+#      0.7 floor) is "potential disaster".
+#   2. Only a `cautious` marshal stops to ask. An aggressive marshal who
+#      charges bad odds without being asked is IN CHARACTER and owns the
+#      consequence; a literal marshal does what he is told (the W6-5
+#      doctrine). The gate stops being a UI interlock and becomes a
+#      character beat.
+#
+# What is removed is the INTERRUPTION, not the information: the muster
+# preview is still built for every player attack and still prepended to
+# every resolved battle message (combat_executor.py ~5664 / ~5750), so the
+# numbers reach the player either way.
+#
+# GR-spirit note: this is the ONE source for the decision AND for the copy
+# that explains it (`marshal_voice.cautious_muster_halt` is only ever spoken
+# behind a True here), so the modal can never claim a reason the rule no
+# longer has. If this policy widens, the copy follows for free.
+MUSTER_GATE_BAND = "unfavorable"
+MUSTER_GATE_PERSONALITIES = frozenset({"cautious"})
+
+
+def muster_gate_arms(marshal, odds_band: str) -> bool:
+    """Does a player-issued attack stop for the blocking muster confirm?
+
+    Both terms are load-bearing and independent: hold the band fixed and
+    flip the personality and this flips; hold the personality fixed and
+    flip the band and this flips too. Callers must not add a third term
+    here without moving the gate record.
+    """
+    return (odds_band == MUSTER_GATE_BAND
+            and getattr(marshal, "personality", None)
+            in MUSTER_GATE_PERSONALITIES)
 
 
 # ════════════════════════════════════════════════════════════════════════════

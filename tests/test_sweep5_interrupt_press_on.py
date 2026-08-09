@@ -22,14 +22,39 @@ def _war(world, a="France", b="Austria"):
     world.war_start_turns[key] = world.current_turn
 
 
+@pytest.fixture(autouse=True)
+def _no_mood_variance(monkeypatch):
+    """CA9 row 2 made the muster gate cautious-only, so this file's fixture
+    marshal is cautious — and `apply_mood_variance` promotes his MILD odds
+    concern to a blocking MODERATE 10% of the time, meaning he objects and
+    the gate this file needs raised never arms. The function's own docstring
+    prescribes mocking it; the promotion is pinned as real behaviour in
+    test_ca9_row2_muster_gate_scope.py::TestMoodVarianceCanPreEmptTheGate.
+    """
+    monkeypatch.setattr("backend.commands.executor.apply_mood_variance",
+                        lambda concern: concern)
+
+
 def _bad_odds_world():
-    ney = MarshalFactory.infantry(name="Ney", location="Belgium",
-                                  strength=20000, personality="aggressive")
+    # CA9 row 2 (Aug 9 2026): the muster gate now arms only for an
+    # `unfavorable` band AND a *cautious* marshal, so this fixture's
+    # attacker changed from Ney (aggressive) to Davout — otherwise
+    # `_raise_muster_gate` below has no gate to raise and every test in
+    # this file would be testing nothing. The keyword-routing behaviour
+    # under test is unchanged and personality-independent.
+    # 30k (not 20k) vs 50k: at 2.5:1 a cautious marshal objects first and
+    # the muster gate never arms. 1.67:1 is `unfavorable` with only MILD
+    # concern, which is the band the gate actually owns.
+    davout = MarshalFactory.infantry(name="Davout", location="Belgium",
+                                     strength=30000, personality="cautious")
     mack = MarshalFactory.enemy(name="Mack", location="Belgium",
                                 nation="Austria", strength=50000,
                                 personality="cautious")
-    world = WorldFactory.with_marshals([ney, mack])
+    world = WorldFactory.with_marshals([davout, mack])
     _war(world)
+    # A cautious marshal objects on poor intel alone, and that objection
+    # pre-empts the muster gate this file needs raised.
+    world.calculate_visibility()
     return world
 
 
@@ -58,14 +83,14 @@ def _raise_muster_gate(main_module):
     """Store the real muster_confirm interrupt via the production attack path."""
     result = main_module.executor.execute(
         {"success": True,
-         "command": {"marshal": "Ney", "action": "attack", "target": "Mack"}},
+         "command": {"marshal": "Davout", "action": "attack", "target": "Mack"}},
         main_module.game_state)
-    ney = main_module.world.get_marshal("Ney")
+    davout = main_module.world.get_marshal("Davout")
     assert result.get("requires_input") is True
-    assert ney.pending_interrupt is not None
-    assert "attack_anyway" in ney.pending_interrupt.get("options", [])
-    assert "continue_order" not in ney.pending_interrupt.get("options", [])
-    return ney
+    assert davout.pending_interrupt is not None
+    assert "attack_anyway" in davout.pending_interrupt.get("options", [])
+    assert "continue_order" not in davout.pending_interrupt.get("options", [])
+    return davout
 
 
 def test_press_on_resolves_attack_anyway(endpoint):
@@ -74,7 +99,7 @@ def test_press_on_resolves_attack_anyway(endpoint):
     mack_before = m.world.get_marshal("Mack").strength
     data = client.post("/command", json={"command": "press on"}).json()
     assert data.get("success") is True
-    assert m.world.get_marshal("Ney").pending_interrupt is None
+    assert m.world.get_marshal("Davout").pending_interrupt is None
     assert m.world.get_marshal("Mack").strength < mack_before
 
 
@@ -83,17 +108,17 @@ def test_continue_resolves_attack_anyway(endpoint):
     _raise_muster_gate(m)
     data = client.post("/command", json={"command": "continue"}).json()
     assert data.get("success") is True
-    assert m.world.get_marshal("Ney").pending_interrupt is None
+    assert m.world.get_marshal("Davout").pending_interrupt is None
 
 
 def test_continue_order_still_preferred_when_offered(endpoint):
     """FALSIFIABLE NEGATIVE: when an interrupt DOES offer continue_order,
     the continue-family must keep resolving to it, not to attack_anyway."""
     client, m = endpoint
-    ney = m.world.get_marshal("Ney")
+    davout = m.world.get_marshal("Davout")
     # A synthetic march interrupt of the kind that offers both choices.
-    ney.pending_interrupt = {
-        "marshal": "Ney", "interrupt_type": "enemy_spotted",
+    davout.pending_interrupt = {
+        "marshal": "Davout", "interrupt_type": "enemy_spotted",
         "enemy": "Mack", "location": "Belgium",
         "options": ["continue_order", "hold_position", "cancel_order"],
     }
@@ -118,5 +143,5 @@ def test_cancel_still_routes_to_cancel(endpoint):
     _raise_muster_gate(m)
     mack_before = m.world.get_marshal("Mack").strength
     client.post("/command", json={"command": "belay that"})
-    assert m.world.get_marshal("Ney").pending_interrupt is None
+    assert m.world.get_marshal("Davout").pending_interrupt is None
     assert m.world.get_marshal("Mack").strength == mack_before

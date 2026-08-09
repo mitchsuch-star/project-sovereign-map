@@ -23,13 +23,29 @@
 >    battle-vs-territory re-weight as a tuning call after the playtest. ⚠ Both
 >    make wars harder to END, and CA9's campaign already closed with "a war
 >    with no way out" — the two complaints are ends of one dial.
-> 2. **The attack confirm popup.** *"only show popup if they are entering
->    potential disaster and general is cautious."* Arm it only when the band is
->    `unfavorable` (not merely `even`) AND the acting marshal is `cautious`.
->    The preview still prints honest numbers on every attack; only the BLOCK
->    changes. The personality half is the point — an aggressive marshal
->    charging bad odds unasked is in character, the way W6-5's literal doctrine
->    made objections a character beat.
+> 2. ~~**The attack confirm popup.**~~ ✅ **LANDED August 9, 2026** — landing
+>    record = `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` §2 (authoritative).
+>    Built as ruled: one predicate `objection_v2.muster_gate_arms`
+>    (`unfavorable` AND `cautious`) decides the block and the copy, and the
+>    modal now speaks in the cautious register
+>    (`marshal_voice.cautious_muster_halt`). `even` blocks nobody. Suite
+>    16,820 → **16,874/3**, ruff clean, no `.gd`, **M1–M7 + `BASELINE_SERIES`
+>    byte-identical without re-record** (the gate is player-only by
+>    construction). **Three things the build found that the gate record did
+>    not know:** (a) a cautious marshal at ≥2:1 already raises a **V2a
+>    objection** that fires FIRST, so the gate's real window is only
+>    1.43–2.0:1 and the player is asked exactly once — measured table + the
+>    no-stacking pin in the record; (b) `apply_mood_variance` promotes a
+>    concern one level 10% of the time, so the gate is not a guarantee even
+>    for cautious marshals — intended, left alone, now pinned; (c) the
+>    `muster_endpoint` fixture never swapped `main_module.executor`, a latent
+>    order-dependence fixed in passing. Consciously flipped: the W6-5 literal
+>    doctrine test now asserts that **nothing** catches a literal marshal,
+>    which is a stronger statement of its own doctrine. ⚠ **Not verified over
+>    HTTP** (port 8005 held by a live session; the endpoint test drives the
+>    real app via TestClient and no new response fields were added) — and the
+>    **feel** question is the playtest's: a non-cautious marshal now walks
+>    into a 2.5:1 fight with no warning at all.
 > 3. **Grievances and popups — a REVISIT slice, not a patch.** *"we need to
 >    revisit grievences and popups in general and check for issues."* So N4
 >    does NOT get a TTL bolted on. Audit every popup producer, its queue slot,

@@ -1,11 +1,23 @@
 """W6-4 — Muster preview + standing orders surfaced (EXP-C1 + E-CA-4).
 
 Before a risky battle the player sees who will fight and WHY the others
-won't; unfavorable/even odds route through a one-modal muster confirm
-(the E-CA-4 odds warning), favorable odds resolve straight through with
-the block prepended. The odds band reads the CR-5 single source
+won't. The block rides EVERY resolved player attack; whether it also
+BLOCKS is the separate muster-gate policy.
+
+CA9 row 2 (Aug 9 2026) narrowed that policy: the confirm arms only for
+an `unfavorable` band AND a `cautious` marshal
+(`objection_v2.muster_gate_arms`). `even` no longer blocks anyone, and an
+aggressive or literal marshal is never stopped. The gate fixtures here
+therefore use DAVOUT — the roster's cautious French marshal — where they
+previously used Ney; scoping the gate by character means the fixture has
+to have the character. Coverage for the arms that no longer block lives
+in `test_ca9_row2_muster_gate_scope.py`.
+
+The odds band still reads the CR-5 single source
 (`objection_v2.inferred_attack_effective_ratio`) — no second formula.
 """
+
+import pytest
 
 from backend.commands.executor import CommandExecutor
 from backend.commands.strategic import StrategicOrderProcessor
@@ -19,6 +31,22 @@ def _war(world, a="France", b="Austria"):
     key = "|".join(sorted([a, b]))
     world.diplomatic_states[key] = "WAR"
     world.war_start_turns[key] = world.current_turn
+
+
+@pytest.fixture(autouse=True)
+def _no_mood_variance(monkeypatch):
+    """CA9 row 2 scoped the muster gate to CAUTIOUS marshals, so this file's
+    gate fixtures use one — and `apply_mood_variance` promotes his MILD odds
+    concern to a blocking MODERATE 10% of the time, meaning he objects and
+    the gate never arms. That made roughly 1 run in 10 of this file fail on
+    a coin flip. The function's own docstring prescribes mocking it, and
+    nothing in this file is about mood, so it is neutralised file-wide.
+
+    The promotion is real, intended behaviour and is pinned as such in
+    test_ca9_row2_muster_gate_scope.py::TestMoodVarianceCanPreEmptTheGate.
+    """
+    monkeypatch.setattr("backend.commands.executor.apply_mood_variance",
+                        lambda concern: concern)
 
 
 def _attack(executor, world, marshal="Ney", target="Mack",
@@ -143,27 +171,39 @@ class TestMusterReasons:
 
 class TestMusterGate:
     def _bad_odds_world(self):
-        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
-                                      strength=20000,
-                                      personality="aggressive")
+        # CA9 row 2: the gate arms on character. Davout is the 1805
+        # roster's cautious French marshal, so he is the one who stops to
+        # ask — Ney (aggressive) charges, and is covered next door.
+        # 30k vs 50k, not 20k: at 2.5:1 a cautious marshal raises a V2a
+        # OBJECTION, which fires before the muster gate and would leave
+        # this class testing the objection system. 1.67:1 is `unfavorable`
+        # (so the gate arms) but only MILD concern (so nothing pre-empts
+        # it). See test_ca9_row2_muster_gate_scope.py for the measured map.
+        davout = MarshalFactory.infantry(name="Davout", location="Belgium",
+                                         strength=30000,
+                                         personality="cautious")
         mack = MarshalFactory.enemy(name="Mack", location="Belgium",
                                     nation="Austria", strength=50000,
                                     personality="cautious")
-        world = WorldFactory.with_marshals([ney, mack])
+        world = WorldFactory.with_marshals([davout, mack])
         _war(world)
+        # A cautious marshal objects on poor intel alone (STRONG on UNKNOWN,
+        # MODERATE on STALE), and that objection pre-empts the muster gate —
+        # so this class needs its fog pinned to keep testing the gate.
+        world.calculate_visibility()
         return world, CommandExecutor()
 
     def test_unfavorable_interrupts_without_resolving(self):
         world, executor = self._bad_odds_world()
         ap_before = world.actions_remaining
         mack_before = world.get_marshal("Mack").strength
-        result = _attack(executor, world)
+        result = _attack(executor, world, marshal="Davout")
         assert result.get("requires_input") is True
         interrupt = result["pending_interrupt"]
         assert interrupt["interrupt_type"] == "muster_confirm"
         # The July-7 L1 lesson: every stored interrupt carries `marshal`.
-        assert interrupt["marshal"] == "Ney"
-        assert world.get_marshal("Ney").pending_interrupt is not None
+        assert interrupt["marshal"] == "Davout"
+        assert world.get_marshal("Davout").pending_interrupt is not None
         # Nothing resolved, nothing spent.
         assert world.get_marshal("Mack").strength == mack_before
         assert world.actions_remaining == ap_before
@@ -171,14 +211,14 @@ class TestMusterGate:
 
     def test_attack_anyway_resolves_the_battle(self):
         world, executor = self._bad_odds_world()
-        _attack(executor, world)
+        _attack(executor, world, marshal="Davout")
         ap_before = world.actions_remaining
         proc = StrategicOrderProcessor(executor)
-        result = proc.handle_response("Ney", "muster_confirm",
+        result = proc.handle_response("Davout", "muster_confirm",
                                       "attack_anyway", world,
                                       {"world": world})
         assert result.get("success") is True
-        assert world.get_marshal("Ney").pending_interrupt is None
+        assert world.get_marshal("Davout").pending_interrupt is None
         # The battle actually happened this time.
         assert world.get_marshal("Mack").strength < 50000
         # And the resolved attack paid its AP.
@@ -186,10 +226,10 @@ class TestMusterGate:
 
     def test_cancel_stands_down_free(self):
         world, executor = self._bad_odds_world()
-        _attack(executor, world)
+        _attack(executor, world, marshal="Davout")
         ap_before = world.actions_remaining
         proc = StrategicOrderProcessor(executor)
-        result = proc.handle_response("Ney", "muster_confirm",
+        result = proc.handle_response("Davout", "muster_confirm",
                                       "cancel_order", world,
                                       {"world": world})
         assert result["success"] is True
@@ -213,10 +253,13 @@ class TestMusterGate:
         assert world.get_marshal("Mack").strength < 8000
 
     def test_strategic_execution_bypasses_the_gate(self):
+        # Davout WOULD be stopped by the gate on a direct order (see
+        # test_unfavorable_interrupts_without_resolving), so this genuinely
+        # exercises the bypass rather than passing vacuously.
         world, executor = self._bad_odds_world()
         result = executor.execute(
             {"success": True,
-             "command": {"marshal": "Ney", "action": "attack",
+             "command": {"marshal": "Davout", "action": "attack",
                          "target": "Mack", "_strategic_execution": True}},
             {"world": world})
         assert result.get("pending_interrupt") is None
@@ -242,8 +285,10 @@ class TestMusterGate:
         assert world.get_marshal("Mack").pending_interrupt is None
 
     def test_confirmed_reissue_skips_gate_but_keeps_block(self):
+        # Same point: the marshal here is the one the gate WOULD stop, so
+        # `_muster_confirmed` is doing the work being tested.
         world, executor = self._bad_odds_world()
-        result = _attack(executor, world, confirmed=True)
+        result = _attack(executor, world, marshal="Davout", confirmed=True)
         assert result.get("requires_input") is None
         assert result.get("muster_preview") is not None
         assert world.get_marshal("Mack").strength < 50000
@@ -320,7 +365,6 @@ class TestStandingOrders:
 # Soult's muster question was still pending).
 # ════════════════════════════════════════════════════════════════════════
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -329,57 +373,84 @@ def muster_endpoint():
     import backend.main as main_module
     from backend.commands.parser import CommandParser as _CP
 
-    ney = MarshalFactory.infantry(name="Ney", location="Belgium",
-                                  strength=20000, personality="aggressive")
-    massena = MarshalFactory.infantry(name="Massena", location="Paris",
-                                      strength=60000,
-                                      personality="aggressive")
-    # CO-2 (Combat Overhaul Phase 1): the odds band now reflects the TOTAL
-    # committed force — Massena (adjacent, aggressive) musters in, so Mack must
-    # be strong enough that the odds stay non-favorable WITH that committed
-    # contribution, or the gate would (correctly) not arm.
+    # CA9 row 2: the acting marshal must be CAUTIOUS or the gate no longer
+    # arms at all, so Ney is replaced by Davout. The second marshal is the
+    # literal Soult rather than the aggressive Massena for the same reason
+    # the strengths changed — see below.
+    davout = MarshalFactory.infantry(name="Davout", location="Belgium",
+                                     strength=50000, personality="cautious")
+    soult = MarshalFactory.infantry(name="Soult", location="Paris",
+                                    strength=60000,
+                                    personality="literal")
+    # CO-2 (Combat Overhaul Phase 1): the odds band reflects the TOTAL
+    # committed force, so an adjacent AGGRESSIVE musterer would drag 50k vs
+    # 90k up to `favorable` and the gate would (correctly) not arm. Soult is
+    # literal with no support order, so `literal_awaits_orders` keeps him
+    # out of the muster — which is his own W6-5 doctrine, not a fudge — and
+    # he remains present for the "the answer resolved for the RIGHT marshal"
+    # assertion below.
+    # 50k vs 90k is 1.8:1 — `unfavorable` (gate arms) at only MILD concern
+    # (no V2a objection pre-empts it). Measured; see
+    # test_ca9_row2_muster_gate_scope.py for the full map.
     mack = MarshalFactory.enemy(name="Mack", location="Belgium",
                                 nation="Austria", strength=90000)
-    world = WorldFactory.with_marshals([ney, massena, mack])
+    world = WorldFactory.with_marshals([davout, soult, mack])
     _war(world)
-    orig = (main_module.parser, main_module.world, main_module.game_state)
+    world.calculate_visibility()  # see TestMusterGate._bad_odds_world
+    # The executor is swapped too. It was not before, and that was a latent
+    # flake: /command uses the MODULE-GLOBAL executor, which carries
+    # per-marshal objection state across tests, so this class's result
+    # depended on what ran before it in the module. Caught while re-pointing
+    # the fixture at Davout — the class passed alone and failed in the
+    # module. Same shape as the sweep-5 fixture, which always did this.
+    from backend.commands.executor import CommandExecutor as _CE
+    orig = (main_module.parser, main_module.world, main_module.game_state,
+            main_module.executor)
     main_module.parser = _CP(use_real_llm=False)
     main_module.world = world
     main_module.game_state = {"world": world}
+    main_module.executor = _CE()
     try:
         yield TestClient(main_module.app), world
     finally:
-        (main_module.parser, main_module.world,
-         main_module.game_state) = orig
+        (main_module.parser, main_module.world, main_module.game_state,
+         main_module.executor) = orig
 
 
 class TestMusterTypedAnswerEndpoint:
     def test_attack_anyway_resolves_the_pending_gate(self, muster_endpoint):
         client, world = muster_endpoint
         opening = client.post(
-            "/command", json={"command": "Ney, attack Mack"}).json()
+            "/command", json={"command": "Davout, attack Mack"}).json()
         pending = opening.get("pending_interrupt") or {}
         assert pending.get("interrupt_type") == "muster_confirm", opening.get(
             "message")
-        ney = world.marshals["Ney"]
-        assert getattr(ney, "pending_interrupt", None)
+        davout = world.marshals["Davout"]
+        assert getattr(davout, "pending_interrupt", None)
 
         answer = client.post(
             "/command", json={"command": "attack anyway"}).json()
-        # The gate resolved for NEY vs MACK — the question was consumed,
+        # The gate resolved for DAVOUT vs MACK — the question was consumed,
         # no other marshal fought, and the battle actually happened.
-        assert getattr(ney, "pending_interrupt", None) is None
-        msg = str(answer.get("message", ""))
-        assert "Ney leads the charge" in msg
-        assert "Massena leads the charge" not in msg
+        #
+        # Asserted MECHANICALLY, not on battle copy. This previously matched
+        # "<name> leads the charge", which is one of several outcome-dependent
+        # narrations: Davout at 1.8:1 against loses, so that phrasing never
+        # appears and the test failed for a reason unrelated to routing.
+        # Casualties on the right marshal and none on the wrong one is the
+        # actual claim.
+        assert getattr(davout, "pending_interrupt", None) is None
         assert world.marshals["Mack"].strength < 90000
+        assert world.marshals["Davout"].strength < 50000
+        assert world.marshals["Soult"].strength == 60000
+        assert "Davout" in str(answer.get("message", ""))
 
     def test_cancel_still_stands_down(self, muster_endpoint):
         client, world = muster_endpoint
-        client.post("/command", json={"command": "Ney, attack Mack"})
+        client.post("/command", json={"command": "Davout, attack Mack"})
         answer = client.post(
             "/command", json={"command": "cancel"}).json()
-        ney = world.marshals["Ney"]
-        assert getattr(ney, "pending_interrupt", None) is None
+        davout = world.marshals["Davout"]
+        assert getattr(davout, "pending_interrupt", None) is None
         assert world.marshals["Mack"].strength == 90000
         assert answer.get("success") is not False

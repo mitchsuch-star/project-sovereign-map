@@ -4171,7 +4171,14 @@ class CombatExecutor:
                 marshal, enemy_marshal, world, game_state)
             gate_armed = (not command.get("_muster_confirmed")
                           and not is_counter_punch)
-            if gate_armed and muster_preview["odds_band"] != "favorable":
+            # CA9 row 2: the blocking confirm is armed by CHARACTER, not by
+            # odds alone — `unfavorable` AND a cautious marshal. ONE source
+            # (objection_v2.muster_gate_arms) decides this and the copy
+            # below; the band itself still rides every resolved attack, so
+            # narrowing the gate removes the interruption, not the numbers.
+            from backend.commands.objection_v2 import muster_gate_arms
+            if gate_armed and muster_gate_arms(
+                    marshal, muster_preview["odds_band"]):
                 # E-CA-4: the attack does NOT resolve on the first call —
                 # the muster block IS the odds warning. The interrupt
                 # carries `marshal` (the July-7 L1 lesson) and resolves
@@ -4183,9 +4190,14 @@ class CombatExecutor:
                 # interrupt did not. So an engine-picked target that ALSO
                 # armed the muster gate had its substitution silently
                 # dropped, on the one surface where the player is being
-                # asked to commit. Latent before; F1 makes the gate arm far
-                # more often, which is exactly why it must be carried here.
+                # asked to commit. (F1's own rationale here was "the gate
+                # now arms far more often"; row 2 narrows it again, but the
+                # carry is still required — the surviving cautious case is
+                # exactly the one where the player is asked to commit.)
                 _disclosure = (command or {}).get("_target_disclosure")
+                from backend.game_logic.marshal_voice import (
+                    cautious_muster_halt,
+                )
                 interrupt = {
                     "interrupt_type": "muster_confirm",
                     "marshal": marshal.name,
@@ -4193,9 +4205,12 @@ class CombatExecutor:
                     "options": ["attack_anyway", "cancel_order"],
                     "message": (
                         (f"{_disclosure}\n\n" if _disclosure else "")
-                        + f"The odds read {muster_preview['odds_band']}, Sire. "
-                        f"Review the muster, then [b]Commit the Attack[/b] to "
-                        f"send {marshal.name} in — or Cancel to hold him "
+                        + cautious_muster_halt(
+                            marshal.name, int(world.current_turn))
+                        + f"\n\nThe muster reads "
+                        f"{muster_preview['odds_band']}. "
+                        f"[b]Commit the Attack[/b] to send him in "
+                        f"regardless — or Cancel to hold him "
                         f"back.\n{muster_text}"
                     ),
                     "muster_preview": muster_preview,

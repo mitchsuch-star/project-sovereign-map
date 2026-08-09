@@ -42,8 +42,21 @@ def _literal(name="Soult", location="Belgium", strength=20000):
 class TestLiteralNeverObjects:
     def test_literal_never_objects(self):
         """A literal marshal ordered into terrible odds raises NO objection
-        — the order proceeds/gates through the normal odds machinery
-        (the W6-4 muster confirm) instead."""
+        AND is not stopped by the odds machinery — he goes.
+
+        CONSCIOUS PIN FLIP (CA9 row 2, Aug 9 2026). This test used to assert
+        that the W6-4 muster confirm "is what catches it". Row 2 scoped that
+        gate to `unfavorable` odds AND a *cautious* marshal
+        (`objection_v2.muster_gate_arms`), so nothing catches a literal
+        marshal any more — which is a STRONGER statement of this file's own
+        doctrine than the assertion it replaces. The W6-5 fantasy is
+        "generals who do what they're ordered"; a literal marshal who was
+        silently rescued by a modal was only half doing that.
+
+        The information is not withheld: the muster block is still built and
+        still prepended to the resolved battle, so the player reads the
+        unfavorable band — just after the fact, having already decided.
+        """
         soult = _literal(strength=10000)
         mack = MarshalFactory.enemy(name="Mack", location="Belgium",
                                     nation="Austria", strength=60000)
@@ -57,9 +70,17 @@ class TestLiteralNeverObjects:
             {"world": world})
         assert world.pending_objection is None
         assert result.get("pending_objection") is None
-        # The odds machinery (muster confirm) is what catches it.
-        assert result.get("pending_interrupt", {}).get(
-            "interrupt_type") == "muster_confirm"
+        # Nothing gated him: no muster confirm, on the result or the man.
+        # (A W6-7 last-stand interrupt may legitimately follow the battle,
+        # so this names the type rather than asserting the field is empty.)
+        assert (result.get("pending_interrupt") or {}).get(
+            "interrupt_type") != "muster_confirm"
+        assert (getattr(soult, "pending_interrupt", None) or {}).get(
+            "interrupt_type") != "muster_confirm"
+        # And the odds still reached him — as a report, not a checkpoint.
+        assert result.get("muster_preview") is not None
+        assert result["muster_preview"]["odds_band"] == "unfavorable"
+        assert "MUSTER" in result["message"]
 
     def test_literal_triggers_table_is_empty_by_design(self):
         from backend.models.personality import (

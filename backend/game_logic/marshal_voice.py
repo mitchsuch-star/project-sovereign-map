@@ -450,6 +450,35 @@ def personality_ack(personality: str, order_type: str, turn: int,
     return _pick(bank, int(turn) + int(key_extra))
 
 
+# ── The halt before a hopeless assault ─────────────────────────────────
+# CA9 row 2: the W6-4 muster confirm now arms ONLY for a cautious marshal
+# at unfavorable odds (`objection_v2.muster_gate_arms`), which turns a UI
+# interlock into a character beat — so the modal speaks in HIS register
+# instead of the staff's. Aggressive and literal marshals never reach this
+# seam by construction, which is why there is no bank for them here: an
+# aggressive man charges without asking, and a literal man is already
+# marching. Do not add one without moving the gate record.
+_MUSTER_HALT_LINES: List[str] = [
+    "\"I will go if you order it, Sire — but look at the ground first. "
+    "This is not a battle, it is an arithmetic problem.\"",
+    "\"Before I commit the corps: the odds are against us, and I would "
+    "rather be told twice than bury them once.\"",
+    "\"I can attack, Sire. I cannot promise you an army afterwards. "
+    "Say the word and it is done.\"",
+]
+
+
+def cautious_muster_halt(name: str, turn: int) -> str:
+    """The cautious marshal's own words on the muster-confirm modal.
+
+    Deterministic (GR6 — display only, rotated on the turn like every
+    other voice bank) and spoken ONLY behind a True from
+    `objection_v2.muster_gate_arms`.
+    """
+    return f"{name} halts before the order is carried out. " \
+           f"{_pick(_MUSTER_HALT_LINES, int(turn))}"
+
+
 # ── Completion: the order is done, reported in register ─────────────────
 _COMPLETION_LINES: Dict[str, List[str]] = {
     "aggressive": [
