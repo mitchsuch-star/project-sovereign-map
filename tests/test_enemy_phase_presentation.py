@@ -270,11 +270,17 @@ class TestMusterOneVoiceOdds:
     def test_header_names_the_committed_figure(self):
         text = self._muster_lines(committed=41000)
         assert "24,000" in text
-        assert "41,000 with the muster committed" in text, (
+        # CA9-F1 (pin consciously re-blessed): the qualifier changed from
+        # "with the muster committed" to "if all march". The figure is what
+        # the muster LADDER predicts, not what has happened — the played
+        # campaign fought Franconia at 18,101 under a preview of 54,408, and
+        # the unqualified past-tense phrasing read as a promise. What is
+        # pinned is unchanged: the header names the figure its verdict uses.
+        assert "41,000 if all march" in text, (
             "the odds band is priced on the committed force — the header "
             "must name the figure its verdict uses")
 
     def test_header_stays_legacy_for_a_solo_muster(self):
         text = self._muster_lines(committed=24000)
-        assert "with the muster committed" not in text
+        assert "if all march" not in text
         assert "MUSTER — Ney (24,000) vs" in text

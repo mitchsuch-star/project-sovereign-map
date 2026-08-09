@@ -765,6 +765,43 @@ class CombatExecutor:
             return True, "aggressive_marches"
         return True, "answers_the_guns"
 
+    def _defender_muster(self, enemy_marshal, world):
+        """CA9-F1: the DEFENDER's muster, read off the same ladder as ours.
+
+        Returns ``(joining_marshals, committed_strength)``.
+
+        CO-2 landed only the attacker's half of the committed term, so the
+        preview committed OUR muster and modelled THEIRS as a single man —
+        and the resulting error always pointed at "favorable", which is the
+        direction that makes the player commit. The resolver has taken both
+        terms since CO-1 and its call site says so in a comment
+        ("Symmetric for a reinforced defender (GR5)").
+
+        Same predicate (`_muster_reason`), same summer
+        (`_committed_reinforcement_strength`), same adjacency rule — the
+        function, not a copy of it. `_muster_reason` is already
+        nation-parameterised, so it reads the enemy's board unchanged.
+        """
+        battle_region = getattr(enemy_marshal, "location", None)
+        region = world.get_region(battle_region) if battle_region else None
+        adjacent = set(region.adjacent_regions) if region else set()
+        nation = enemy_marshal.nation
+        joining = []
+        for m in world.marshals.values():
+            if (m.nation != nation or m.name == enemy_marshal.name
+                    or m.strength <= 0):
+                continue
+            if m.location != battle_region and m.location not in adjacent:
+                continue
+            will_join, _code = self._muster_reason(
+                m, enemy_marshal, battle_region, nation, world)
+            if will_join:
+                joining.append(m)
+        if not joining:
+            return [], 0.0
+        return joining, self._committed_reinforcement_strength(
+            enemy_marshal, joining, world)
+
     def _build_muster_preview(self, marshal, enemy_marshal, world, game_state):
         """W6-4 §6.1: who will fight, who won't, and why — before the shot.
 
@@ -827,9 +864,35 @@ class CombatExecutor:
         # WILL JOIN) so the preview matches what CO-1 resolves.
         committed_attacker = self._committed_reinforcement_strength(
             marshal, will_join_marshals, world)
+        # CA9-F1: and the same term for the other side. The RATIO reads
+        # ground truth, exactly as the fort/terrain terms already do and for
+        # the reason given in `inferred_attack_favorable`'s docstring — this
+        # is a safety gate on the player's own marshal, not enemy intel
+        # surfaced to the player, and under-protecting in fog is the wrong
+        # failure direction. The PRINTED figures stay fog-legal below.
+        defender_joining, committed_defender = self._defender_muster(
+            enemy_marshal, world)
         odds_band = inferred_attack_odds_band(
             marshal, enemy_marshal, game_state,
-            committed_attacker=committed_attacker)
+            committed_attacker=committed_attacker,
+            committed_defender=committed_defender)
+
+        # The hedge row, fog-honest: it names only corps the player can
+        # already SEE, and says "at least", because the band above may be
+        # counting more than that. A subset of the truth is never a leak
+        # and never a lie.
+        visible_names = {
+            m.name for m in world.get_visible_enemies(nation)
+        } if hasattr(world, "get_visible_enemies") else set()
+        seen_joining = [m for m in defender_joining if m.name in visible_names]
+        defender_note = ""
+        if seen_joining:
+            corps = "corps" if len(seen_joining) == 1 else "corps"
+            defender_note = (
+                f"{enemy_marshal.name} does not stand alone: at least "
+                f"{len(seen_joining)} enemy {corps} within reach of "
+                f"{battle_region} would march to him."
+            )
 
         preview = {
             "attacker": {"name": marshal.name,
@@ -837,7 +900,8 @@ class CombatExecutor:
                          "committed_strength": int(marshal.strength + committed_attacker)},
             "target": {"name": enemy_marshal.name,
                        "location": battle_region,
-                       "strength_display": target_strength_display},
+                       "strength_display": target_strength_display,
+                       "reinforcement_note": defender_note},
             "odds_band": odds_band,
             "rows": rows,
             "shared_casualty_note": shared_casualty_note,
@@ -960,7 +1024,12 @@ class CombatExecutor:
         committed = int(preview['attacker'].get(
             'committed_strength', preview['attacker']['strength']))
         if committed > preview['attacker']['strength']:
-            attacker_display += f"; {committed:,} with the muster committed"
+            # CA9-F1: "if all march" — the committed figure is what the
+            # muster ladder says WILL happen, not what has happened. The
+            # unqualified number read as a promise; the played campaign
+            # fought Franconia at 18,101 under a preview of 54,408.
+            attacker_display += (
+                f"; {committed:,} if all march")
         lines = [
             f"MUSTER — {preview['attacker']['name']} "
             f"({attacker_display}) vs "
@@ -975,6 +1044,8 @@ class CombatExecutor:
             if row.get("standing_order_hint"):
                 line += f" {row['standing_order_hint']}"
             lines.append(line)
+        if preview["target"].get("reinforcement_note"):
+            lines.append(f"  {preview['target']['reinforcement_note']}")
         if preview.get("shared_casualty_note"):
             lines.append(f"  {preview['shared_casualty_note']}")
         if preview.get("hint"):
@@ -4099,13 +4170,23 @@ class CombatExecutor:
                 # carries `marshal` (the July-7 L1 lesson) and resolves
                 # via /strategic_response.
                 muster_text = self._format_muster_lines(muster_preview)
+                # CA9-F1 (found by the F1 landing): the executor's ESP-EV-4
+                # disclosure prepend is suppressed on `requires_input`,
+                # because "an interrupt already owns its copy" — and this
+                # interrupt did not. So an engine-picked target that ALSO
+                # armed the muster gate had its substitution silently
+                # dropped, on the one surface where the player is being
+                # asked to commit. Latent before; F1 makes the gate arm far
+                # more often, which is exactly why it must be carried here.
+                _disclosure = (command or {}).get("_target_disclosure")
                 interrupt = {
                     "interrupt_type": "muster_confirm",
                     "marshal": marshal.name,
                     "target": enemy_marshal.name,
                     "options": ["attack_anyway", "cancel_order"],
                     "message": (
-                        f"The odds read {muster_preview['odds_band']}, Sire. "
+                        (f"{_disclosure}\n\n" if _disclosure else "")
+                        + f"The odds read {muster_preview['odds_band']}, Sire. "
                         f"Review the muster, then [b]Commit the Attack[/b] to "
                         f"send {marshal.name} in — or Cancel to hold him "
                         f"back.\n{muster_text}"

@@ -865,7 +865,8 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
 
 
 def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
-                                    committed_attacker: float = 0.0) -> float:
+                                    committed_attacker: float = 0.0,
+                                    committed_defender: float = 0.0) -> float:
     """The fortification/terrain-aware attacker/effective-defender ratio —
     the SINGLE odds formula (see inferred_attack_favorable's docstring).
     W6-4 extracts it so the muster preview's odds band reads the same
@@ -874,7 +875,25 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
     CO-2 (Combat Overhaul Phase 1): `committed_attacker` adds the muster's
     committed reinforcement strength so the odds band reflects the TOTAL
     force that will fight, not the lead alone — matching what CO-1 resolves.
-    Defaults to 0.0 → the CR-5 gate's lead-only read is unchanged."""
+    Defaults to 0.0 → the CR-5 gate's lead-only read is unchanged.
+
+    CA9-F1: `committed_defender` is the same term for the other side. CO-2
+    landed only the attacker's half, so the preview committed OUR muster
+    and modelled THEIRS as one man — and every error the asymmetry
+    produced pointed at "favorable". Measured live: preview 43,778 v
+    32,131; the battle 26,219 v 36,931. `resolve_battle` has taken both
+    terms since CO-1 and says so in a comment at the call site
+    ("Symmetric for a reinforced defender (GR5)",
+    `combat_executor.py:4610`); this closes the preview's half.
+
+    It is added AFTER the terrain/fortification multiplier because that is
+    where `combat.py:1099` adds it — committed mass arrives already
+    effective and is not multiplied by the ground it arrives on. Same
+    shape as the resolver, not a second model of it.
+
+    Both committed terms default to 0.0, so the four
+    `inferred_attack_favorable` call sites (which pass neither) stay
+    byte-identical."""
     attacker = max(0, getattr(marshal, "strength", 0) or 0)
     attacker += max(0.0, committed_attacker)
     defender = max(1, getattr(enemy, "strength", 0) or 0)
@@ -899,21 +918,24 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
                     and region.has_building("fortification")):
                 bonus += REGION_FORTIFICATION_DEFENSE_BONUS
 
-    effective_defender = defender * (1.0 + bonus)
+    effective_defender = defender * (1.0 + bonus) + max(0.0, committed_defender)
     return attacker / effective_defender
 
 
 def inferred_attack_odds_band(marshal, enemy, game_state=None,
-                              committed_attacker: float = 0.0) -> str:
+                              committed_attacker: float = 0.0,
+                              committed_defender: float = 0.0) -> str:
     """W6-4 muster preview: three-way display band over the single odds
     formula. `favorable` (ratio >= 1.0) resolves immediately; `even`
     (the CR-5 0.7 floor up to parity) and `unfavorable` (< 0.7) route
     the player attack through the one-modal muster confirm.
 
     CO-2: `committed_attacker` folds the mustered reinforcement strength into
-    the ratio so the band reflects the total committed force."""
+    the ratio so the band reflects the total committed force.
+    CA9-F1: `committed_defender` does the same for the other side."""
     ratio = inferred_attack_effective_ratio(
-        marshal, enemy, game_state, committed_attacker=committed_attacker)
+        marshal, enemy, game_state, committed_attacker=committed_attacker,
+        committed_defender=committed_defender)
     if ratio >= 1.0:
         return "favorable"
     if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:

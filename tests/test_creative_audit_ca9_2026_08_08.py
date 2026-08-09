@@ -612,3 +612,248 @@ class TestN5OneHelperForEveryBlockingSurface:
                 f"{module.__name__} stopped using {needle}")
         assert "repr(c) for c in" not in inspect.getsource(main_module), (
             "a hand-rolled choice join came back")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# F1 — the muster preview models the enemy as one man
+#
+# CO-2 landed the attacker's committed term and not the defender's, so
+# the preview committed OUR muster and modelled THEIRS as a single
+# marshal. `resolve_battle` has taken both terms since CO-1 and the call
+# site says so: "Symmetric for a reinforced defender (GR5)".
+# Measured live: preview 43,778 v 32,131; the battle 26,219 v 36,931.
+# Both errors pointed at "favorable" — the direction that makes the
+# player commit.
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestF1SymmetricCommittedDefender:
+
+    def test_the_four_cr5_gate_call_sites_stay_byte_identical(self):
+        """`inferred_attack_favorable` passes neither committed term, so
+        both default to 0.0 and the CR-5 lethal gate is untouched."""
+        import inspect
+
+        from backend.commands import objection_v2 as ov
+
+        src = inspect.getsource(ov.inferred_attack_favorable)
+        assert "committed" not in src, (
+            "the CR-5 gate started pricing a muster — it must keep reading "
+            "the acting marshal's SOLO strength (PC-8's recorded ruling)")
+
+    def test_the_ratio_is_unchanged_when_nobody_reinforces(self):
+        from types import SimpleNamespace
+
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio,
+        )
+        atk = SimpleNamespace(strength=30000, name="Ney")
+        dfd = SimpleNamespace(strength=20000, name="Mack", fortified=False,
+                              location=None)
+        bare = inferred_attack_effective_ratio(atk, dfd)
+        assert inferred_attack_effective_ratio(
+            atk, dfd, committed_defender=0.0) == bare
+
+    def test_a_committed_defender_lowers_the_ratio(self):
+        from types import SimpleNamespace
+
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio,
+        )
+        atk = SimpleNamespace(strength=30000, name="Ney")
+        dfd = SimpleNamespace(strength=20000, name="Mack", fortified=False,
+                              location=None)
+        solo = inferred_attack_effective_ratio(atk, dfd)
+        joint = inferred_attack_effective_ratio(
+            atk, dfd, committed_defender=15000)
+        assert joint < solo
+        assert joint == pytest.approx(30000 / 35000)
+
+    def test_committed_mass_is_added_after_the_terrain_multiplier(self):
+        """The resolver adds committed mass AFTER the multipliers
+        (`combat.py:1099`) — committed troops arrive already effective and
+        are not multiplied by the ground they arrive on. Same shape here,
+        or the preview is a second model rather than the same one."""
+        from types import SimpleNamespace
+
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio,
+        )
+        atk = SimpleNamespace(strength=30000)
+        dfd = SimpleNamespace(strength=20000, fortified=True,
+                              defense_bonus=0.5, location=None)
+        got = inferred_attack_effective_ratio(
+            atk, dfd, committed_defender=10000)
+        # 20000 * 1.5 + 10000, NOT (20000 + 10000) * 1.5
+        assert got == pytest.approx(30000 / (20000 * 1.5 + 10000))
+
+    def test_the_defender_muster_uses_the_same_ladder(self, world, executor):
+        """The function, not a copy of it."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+
+        src = inspect.getsource(ce.CombatExecutor._defender_muster)
+        assert "self._muster_reason(" in src, (
+            "the defender's muster grew its own eligibility rule")
+        assert "self._committed_reinforcement_strength(" in src, (
+            "the defender's muster grew its own summer")
+
+    @staticmethod
+    def _isolate(world, keep=("Ney",)):
+        """Clear the boot board's other French corps out of reach so the
+        two musters can be measured separately. The 1805 opening has six
+        French marshals within one march of Swabia — realistic, and useless
+        for isolating one term."""
+        for m in list(world.marshals.values()):
+            if m.nation == "France" and m.name not in keep:
+                m.location = "Brittany"
+
+    def test_the_preview_now_counts_the_enemys_muster(self, world, executor):
+        """The measured shape: a second enemy corps beside the target."""
+        combat = executor._combat
+        self._isolate(world)
+        mack = world.marshals["Mack"]
+        mack.strength = 25000
+        ney = world.marshals["Ney"]
+        ney.location = mack.location
+        ney.strength = 30000
+
+        alone = combat._build_muster_preview(
+            ney, mack, world, {"world": world})
+        assert alone["odds_band"] == "favorable", (
+            "board precondition broken — re-derive the shape")
+
+        # A second Austrian corps beside Mack, free to march.
+        john = world.marshals["ArchdukeJohn"]
+        john.location = mack.location
+        john.strength = 25000
+        for flag in ("fortified", "holding_position", "moved_this_turn",
+                     "reinforced_this_turn", "drilling", "square_formation"):
+            setattr(john, flag, False)
+
+        joined = combat._build_muster_preview(
+            ney, mack, world, {"world": world})
+
+        _, committed = combat._defender_muster(mack, world)
+        assert committed > 0, (
+            "an unengaged enemy corps in the battle province contributed "
+            "nothing to the odds — the preview still models one man")
+        assert joined["odds_band"] != "favorable", (
+            f"25,000 fresh defenders arrived and the preview's verdict did "
+            f"not move ({alone['odds_band']} -> {joined['odds_band']}). The "
+            f"measured live shape: preview 43,778 v 32,131, battle 26,219 v "
+            f"36,931, verdict 'favorable'.")
+
+    def test_the_preview_band_is_the_shared_formula_with_both_terms(
+            self, world, executor):
+        """Binds the preview to the single odds source with BOTH committed
+        terms — so the defender half cannot be quietly dropped again while
+        the attacker half keeps the band looking right."""
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio, inferred_attack_odds_band,
+        )
+        combat = executor._combat
+        # Isolated, so the two bands can actually differ — on the full boot
+        # board the French muster is large enough that both read favorable
+        # and the comparison would pass vacuously.
+        self._isolate(world)
+        mack = world.marshals["Mack"]
+        mack.strength = 25000
+        ney = world.marshals["Ney"]
+        ney.location = mack.location
+        ney.strength = 30000
+        john = world.marshals["ArchdukeJohn"]
+        john.location = mack.location
+        john.strength = 25000
+        for flag in ("fortified", "holding_position", "moved_this_turn",
+                     "reinforced_this_turn", "drilling", "square_formation"):
+            setattr(john, flag, False)
+        gs = {"world": world}
+
+        preview = combat._build_muster_preview(ney, mack, world, gs)
+        atk_committed = (preview["attacker"]["committed_strength"]
+                         - preview["attacker"]["strength"])
+        _, def_committed = combat._defender_muster(mack, world)
+        assert def_committed > 0, "board precondition broken"
+
+        assert preview["odds_band"] == inferred_attack_odds_band(
+            ney, mack, gs, committed_attacker=atk_committed,
+            committed_defender=def_committed)
+        # …and it is NOT the band the attacker-only formula would give, or
+        # this test could not tell the two apart.
+        assert preview["odds_band"] != inferred_attack_odds_band(
+            ney, mack, gs, committed_attacker=atk_committed), (
+            "the preview still reports the attacker-only band")
+        # The omission was never neutral — it always flattered the attacker.
+        with_def = inferred_attack_effective_ratio(
+            ney, mack, gs, committed_attacker=atk_committed,
+            committed_defender=def_committed)
+        without = inferred_attack_effective_ratio(
+            ney, mack, gs, committed_attacker=atk_committed)
+        assert without > with_def
+
+    def test_the_printed_target_strength_stays_fog_banded(
+            self, world, executor):
+        """Fog rule: the RATIO may read ground truth (same doctrine as the
+        fort/terrain terms — it is a safety gate on our own marshal), but
+        the PRINTED figure must stay `_fog_banded_strength`."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+
+        src = inspect.getsource(ce.CombatExecutor._build_muster_preview)
+        assert "self._fog_banded_strength(enemy_marshal, world)" in src
+        # And the hedge line is built from what the player can SEE.
+        assert "get_visible_enemies" in src, (
+            "the reinforcement hedge must be fog-honest")
+
+    def test_the_hedge_never_names_a_corps_the_player_cannot_see(
+            self, world, executor):
+        combat = executor._combat
+        mack = world.marshals["Mack"]
+        ney = world.marshals["Ney"]
+        ney.location = mack.location
+        john = world.marshals["ArchdukeJohn"]
+        john.location = mack.location
+
+        preview = combat._build_muster_preview(
+            ney, mack, world, {"world": world})
+        note = preview["target"].get("reinforcement_note", "")
+        visible = {m.name for m in world.get_visible_enemies("France")}
+        for m in world.marshals.values():
+            if m.nation == "France" or m.name in visible:
+                continue
+            assert m.name not in note, (
+                f"the hedge named {m.name}, whom the player cannot see")
+
+    def test_the_committed_figure_is_qualified_if_all_march(
+            self, world, executor):
+        combat = executor._combat
+        text = combat._format_muster_lines({
+            "attacker": {"name": "Ney", "strength": 24000,
+                         "committed_strength": 41000},
+            "target": {"name": "Mack", "location": "Ulm",
+                       "strength_display": "30,000 men",
+                       "reinforcement_note": ""},
+            "odds_band": "favorable",
+            "rows": [],
+            "shared_casualty_note": "",
+        })
+        assert "41,000 if all march" in text, (
+            "the committed figure read as a promise; the played campaign "
+            "fought Franconia at 18,101 under a preview of 54,408")
+
+    def test_the_muster_interrupt_carries_the_target_disclosure(
+            self, world, executor):
+        """Found by this landing: the executor's ESP-EV-4 disclosure is
+        suppressed on `requires_input` because 'an interrupt already owns
+        its copy' — and the muster interrupt did not. Latent before F1;
+        F1 arms this gate far more often."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+
+        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        assert '_target_disclosure' in src, (
+            "the muster interrupt drops the engine-picked-target "
+            "disclosure on the one surface asking the player to commit")
