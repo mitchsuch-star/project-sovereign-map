@@ -7660,7 +7660,13 @@ class WorldState:
                 filtered_region["stability"] = 0
                 filtered_region["stability_label"] = "Unknown"
                 filtered_region["war_damage"] = 0
-                filtered_region["supply_capacity"] = 0
+                # CA9-F5: -1 means "not known", never a fabricated 0.
+                # A province at PARTIAL shipped supply_capacity 0 against a
+                # true 40,000 — on the one surface a player reads BEFORE
+                # marching an army in. Mirrors the `garrison_strength`
+                # sentinel a few lines below; BOTH .gd readers must branch,
+                # because `format_number(-1)` renders "-1".
+                filtered_region["supply_capacity"] = -1
                 filtered_region["buildings"] = []
                 filtered_region["building_under_construction"] = None
                 filtered_region["max_building_slots"] = 0

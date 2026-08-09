@@ -176,7 +176,12 @@ func _render() -> void:
 		var stability = int(data.get("stability", 100))
 		bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
 		bbcode += "   Stability: " + str(stability) + "%"
-		bbcode += "   Supply: " + Utils.format_number(int(data.get("supply_capacity", 0))) + "\n"
+		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
+		# "-1", so both readers of this key must branch — the garrison
+		# sibling just below already does.
+		var supply_cap := int(data.get("supply_capacity", 0))
+		var supply_text := "Unknown" if supply_cap < 0 else Utils.format_number(supply_cap)
+		bbcode += "   Supply: " + supply_text + "\n"
 		var garrison_info = _map_node.region_garrisons.get(_region, null)
 		if garrison_info != null:
 			var g_strength = int(garrison_info.get("strength", 0))

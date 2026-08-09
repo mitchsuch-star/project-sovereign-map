@@ -1752,7 +1752,13 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
 
     # Compute projected income/upkeep for this turn (same values the
     # executor shows in the turn header — recalculated on new-turn state)
-    income_data = world.calculate_turn_income(player_nation)
+    # CA9-N11: the dispatch describes the turn that JUST RAN, so every
+    # component it names must be the one that was actually charged. Same
+    # applied-cache preference the two turn-end banners already use
+    # (meta_executor / executor); the fallback covers a loaded save and any
+    # surface built before a turn has been processed.
+    income_data = (getattr(world, "_income_phase_results", None) or {}).get(
+        player_nation) or world.calculate_turn_income(player_nation)
     upkeep_data = world.calculate_turn_upkeep(player_nation)
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
@@ -1794,7 +1800,13 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     # hand-assembling: `_build_economy`'s net is the surface pinned to
     # equal the signed sum of its declared components.
     from backend.game_logic.ledger import _build_economy
-    treasury_delta = int(_build_economy(world, player_nation)["net"])
+    # CA9-N11: rendered to the player as "the turn's change", and it was
+    # a fresh forward projection — wrong on all 15 turns of the played
+    # campaign and wrong in SIGN twice.
+    treasury_delta = int(_build_economy(
+        world, player_nation,
+        income_data=(getattr(world, "_income_phase_results", None) or {}).get(
+            player_nation))["net"])
 
     # ES-7 "Unmet Marshals" roll-up: every player marshal whose reward
     # expectation exceeds his estate income, with the eroding flag once the

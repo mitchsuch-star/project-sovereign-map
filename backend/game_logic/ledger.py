@@ -217,9 +217,18 @@ def _levy_block(world) -> dict:
     return get_levy_status(world)
 
 
-def _build_economy(world, player: str) -> dict:
-    """Build economy section."""
-    income_data = world.calculate_turn_income(player)
+def _build_economy(world, player: str, income_data: dict = None) -> dict:
+    """Build economy section.
+
+    CA9-N11: every treasury-FRACTION term — EB-1's Charges of Empire above
+    all — is priced on the PRE-income chest, so recomputing AFTER the phase
+    has run yields a number that was never charged. A caller describing a
+    turn that ALREADY HAPPENED passes the applied income-phase result; a
+    caller projecting forward (the ledger's own economy tab) passes nothing
+    and keeps today's behaviour byte-identically.
+    """
+    if income_data is None:
+        income_data = world.calculate_turn_income(player)
     upkeep_data = world.calculate_turn_upkeep(player)
 
     income = int(income_data["income"])

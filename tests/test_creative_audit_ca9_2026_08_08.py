@@ -2557,3 +2557,149 @@ class TestN40ActionCountIsRecomputed:
             "the recompute runs before a pass that rewrites actions")
         assert recompute < src.index('"fog_hidden_nations"'), (
             "the F7 line quotes the count and must see the fixed one")
+
+
+# =======================================================================
+# Tier 2 item 16 - N11, F5, F8's copy half
+# =======================================================================
+
+class TestN11TreasuryDeltaIsWhatHappened:
+    """`treasury_delta` is rendered as the turn's change and was a fresh
+    forward PROJECTION - wrong on all 15 turns, wrong SIGN twice. Every
+    treasury-FRACTION term (EB-1's Charges of Empire above all) is priced
+    on the PRE-income chest, so recomputing after the phase has run yields
+    a number that was never charged."""
+
+    def test_the_briefing_reports_the_income_that_was_actually_charged(
+            self, world):
+        """Behavioural, because a source grep is inert here: two lines in
+        this module read the cache and either alone satisfies it."""
+        from backend.game_logic.dispatch import _build_situation
+
+        projected = _build_situation(world, "France")
+        applied = dict(world.calculate_turn_income("France"))
+        applied["state_charges"] = int(applied.get("state_charges", 0)) + 4000
+        world._income_phase_results = {"France": applied}
+        described = _build_situation(world, "France")
+
+        assert described != projected, (
+            "the briefing describes the turn that JUST RAN and still "
+            "recomputes it from scratch — every treasury-FRACTION term is "
+            "priced on the PRE-income chest, so the recomputed number was "
+            "never charged")
+        assert (int(described["state_charges"])
+                - int(projected["state_charges"])) == 4000, (
+            f"the Charges of Empire the briefing NAMES is not the one that "
+            f"was charged: {projected['state_charges']} vs "
+            f"{described['state_charges']}")
+
+    def test_the_treasury_delta_follows_it_too(self, world):
+        from backend.game_logic.dispatch import _build_situation
+        applied = dict(world.calculate_turn_income("France"))
+        applied["state_charges"] = int(applied.get("state_charges", 0)) + 4000
+        world._income_phase_results = {"France": applied}
+        described = _build_situation(world, "France")
+        world._income_phase_results = {}
+        projected = _build_situation(world, "France")
+        assert (int(described["treasury_delta"])
+                != int(projected["treasury_delta"])), (
+            "treasury_delta is rendered as the turn's CHANGE and is still "
+            "a forward projection")
+
+    def test_it_is_the_same_read_the_turn_end_banners_use(self):
+        """The EB-1 review round fixed exactly this class on both banners;
+        the dispatch was the third surface."""
+        import inspect
+
+        from backend.commands import meta_executor as me
+        from backend.game_logic import dispatch as d
+        needle = '(getattr(world, "_income_phase_results", None) or {})'
+        assert needle in inspect.getsource(me)
+        assert needle in inspect.getsource(d)
+
+    def test_the_ledger_projection_is_byte_identical(self, world):
+        """FALSIFIABLE NEGATIVE: a caller PROJECTING forward (the ledger's
+        own economy tab) passes nothing and must be unchanged."""
+        from backend.game_logic.ledger import _build_economy
+        assert not getattr(world, "_income_phase_results", None)
+        a = _build_economy(world, "France")
+        b = _build_economy(world, "France",
+                           income_data=world.calculate_turn_income("France"))
+        assert a == b
+
+    def test_the_applied_cache_wins_when_it_exists(self, world):
+        """The behaviour: given an applied result, the net follows IT."""
+        from backend.game_logic.ledger import _build_economy
+        applied = dict(world.calculate_turn_income("France"))
+        applied["income"] = int(applied.get("income", 0)) + 5000
+        world._income_phase_results = {"France": applied}
+        projected = _build_economy(world, "France")["net"]
+        actual = _build_economy(world, "France", income_data=applied)["net"]
+        assert actual != projected
+        assert actual - projected == 5000
+
+
+class TestF5SupplyCapacityIsNotFabricated:
+    """A province at PARTIAL shipped `supply_capacity: 0` against a true
+    40,000 — on the one surface a player reads BEFORE marching in."""
+
+    def test_the_fogged_value_is_the_sentinel_not_zero(self):
+        import inspect
+
+        from backend.models import world_state as ws
+        src = inspect.getsource(ws)
+        assert 'filtered_region["supply_capacity"] = -1' in src
+        assert 'filtered_region["supply_capacity"] = 0' not in src
+
+    def test_both_gd_readers_branch(self):
+        """THE landmine: `format_number(-1)` renders "-1", so a sentinel
+        with one reader fixed is a worse lie than the zero."""
+        scripts = REPO_ROOT / "godot-client" / "project-sovereign"
+        panel = (scripts / "scripts" / "region_panel.gd").read_text(
+            encoding="utf-8")
+        tooltip = (scripts / "scenes" / "map_renderer_base.gd").read_text(
+            encoding="utf-8")
+        for name, src in (("region_panel", panel),
+                          ("map_renderer_base", tooltip)):
+            at = src.index('supply_capacity')
+            window = src[max(0, at - 400):at + 400]
+            assert "supply_cap < 0" in window, (
+                f"{name}.gd prints the raw sentinel — the player reads "
+                f"'Supply: -1'")
+            assert "Unknown" in window, name
+
+    def test_the_owned_ledger_reader_is_deliberately_untouched(self):
+        """Scope: the Strategic Ledger's territories tab reads own-soil
+        rows only and is never fogged."""
+        src = (REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
+               / "strategic_ledger.gd").read_text(encoding="utf-8")
+        assert "supply_cap < 0" not in src
+
+
+class TestF8ConfirmationStopsOverpromising:
+    """`strategic_executor` stated an unconditional guarantee the code
+    scopes three ways. The COPY only — the mechanic is out of scope."""
+
+    def test_the_promise_is_scoped_to_the_case_the_rule_honours(self):
+        import inspect
+
+        from backend.commands import strategic_executor as se
+        src = inspect.getsource(se)
+        assert "will march to" not in src or "leads a battle within reach" in src
+        assert "leads a battle within reach" in src, (
+            "the confirmation still promises an unconditional march")
+        assert "lapses of itself" in src, (
+            "…and never mentions that an undated order ends the first "
+            "quiet turn")
+
+    def test_the_mechanic_is_untouched(self):
+        """Scope guard, stated as a pin: F8's three scoping seams are
+        READ-ONLY for this row."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+        from backend.commands import strategic as st
+        assert 'order.target == primary.name' in inspect.getsource(ce), (
+            "the Grouchy Rule's primary-only scope was changed — that is "
+            "a mechanic change and belongs to its own gate")
+        assert 'ally_safe' in inspect.getsource(st)

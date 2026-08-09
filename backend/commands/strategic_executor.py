@@ -1323,10 +1323,28 @@ class StrategicExecutor:
             msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
             # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
             # order authorizes even a literal marshal to march to the guns.
+            # CA9-F8 (the COPY half; the mechanic is out of scope and
+            # untouched). W6-4 §6.3 confirms the standing-orders doctrine,
+            # but the code scopes it THREE ways and this sentence stated it
+            # flat:
+            #   1. the Grouchy Rule reads the order only when its target is
+            #      the battle's PRIMARY — the man leading. Ney fighting as
+            #      somebody else's reinforcement does not count, which is
+            #      the one refusal in the played campaign that WAS this
+            #      defect (T6/Tyrol).
+            #   2. arrival is still a roll: the order buys a lower
+            #      threshold and a bonus on the score, not a guarantee.
+            #   3. the order auto-completes the first turn the ally is
+            #      safe, unless the player named a duration.
             msg += (
-                f" {marshal.name} will march to {target}'s guns — "
-                f"he holds your written order."
+                f" {marshal.name} holds your written order: when {target} "
+                f"leads a battle within reach, he will march to the guns."
             )
+            if not (condition and getattr(condition, "max_turns", None)):
+                msg += (
+                    f" The order lapses of itself once {target} is out of "
+                    f"danger — name a duration to hold him to it."
+                )
             # A-M3: Berthier advisory — fortified/square marshal cannot reinforce
             if getattr(marshal, 'fortified', False):
                 msg += (

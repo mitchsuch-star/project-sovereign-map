@@ -2578,7 +2578,10 @@ func _draw_region_tooltip():
 		stability_color = Color(0.85, 0.75, 0.4)
 	_push_tooltip_line(lines, "Stability: %s%% (%s)" % [stability, stability_label], stability_color)
 
-	_push_tooltip_line(lines, "Supply: " + _format_number(data.get("supply_capacity", 0)), Color(0.6, 0.8, 0.7))
+	# CA9-F5: -1 is the fog sentinel (see region_panel.gd).
+	var supply_cap := int(data.get("supply_capacity", 0))
+	var supply_text := "Unknown" if supply_cap < 0 else _format_number(supply_cap)
+	_push_tooltip_line(lines, "Supply: " + supply_text, Color(0.6, 0.8, 0.7))
 
 	var garrison_info = region_garrisons.get(hovered_region, null)
 	if garrison_info != null:

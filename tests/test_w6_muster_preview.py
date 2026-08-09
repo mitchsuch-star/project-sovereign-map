@@ -271,8 +271,21 @@ class TestStandingOrders:
                          "target": "Ney"}},
             {"world": world})
         assert result.get("success") is True
-        assert "march to Ney's guns" in result["message"]
+        # CA9-F8 (pin re-blessed): the doctrine is still confirmed and the
+        # "written order" is still named — that is what this test is for.
+        # What changed is the unconditional GUARANTEE. The old sentence
+        # promised "Soult will march to Ney's guns" flat, while the code
+        # scopes it three ways: the Grouchy Rule honours the order only
+        # when Ney LEADS the battle (the one refusal in the played
+        # campaign that really was this defect), arrival is still a roll,
+        # and the order auto-completes the first turn the ally is safe.
         assert "written order" in result["message"]
+        assert "march to the guns" in result["message"]
+        assert "when Ney leads a battle" in result["message"], (
+            "the confirmation must scope the promise to the case the "
+            "Grouchy Rule actually honours")
+        assert "lapses of itself" in result["message"], (
+            "…and say that an undated order ends the first quiet turn")
 
     def test_literal_without_support_still_never_auto_reinforces(self):
         """§6.4 scope boundary pin: this slice surfaces the Grouchy Rule —
