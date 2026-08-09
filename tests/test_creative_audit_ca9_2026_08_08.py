@@ -223,3 +223,200 @@ class TestF6UnresolvedChoiceBackstop:
             "march on Bohemia", {"world": world})
         assert result.get("success") is False
         assert "diplomatic_dialogue" not in result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The typed dialogue router — it never read the court the player named
+#
+# Live: with Prussia's proposal ACTIVE, `accept Portugal's proposal`
+# signed a PERMANENT TREATY WITH PRUSSIA. The client-side guard for this
+# exact class already shipped (W6-0's dialogue_id binding); the typed
+# path — this game's premise — never got it.
+# ═══════════════════════════════════════════════════════════════════════
+
+def _incoming_proposal(nation, ptype="alliance"):
+    """The shape `ai_diplomacy._build_incoming_proposal_dialogue` produces."""
+    return {
+        "type": "incoming_proposal",
+        "target_nation": nation,
+        "talleyrand_text": f"A proposal from {nation}.",
+        "options": [
+            {"label": "Accept", "action": "accept_ai_proposal"},
+            {"label": "Reject", "action": "reject_ai_proposal"},
+            {"label": "Counter-offer", "action": "counter_ai_proposal"},
+        ],
+        "context": {
+            "proposal": {"type": ptype, "target_nation": nation},
+            "source_nation": nation,
+            "acceptance_score": 90,
+            "proposal_type": ptype,
+        },
+        "turn_created": 1,
+        "blocking": False,
+    }
+
+
+class TestTypedDialogueRouterReadsTheCourt:
+
+    def _prussia_active(self, world):
+        world.dialogue_manager.replace(_incoming_proposal("Prussia"))
+        return world.pending_diplomatic_dialogue
+
+    def test_the_live_case_accepting_portugal_never_answers_prussia(
+            self, world, executor):
+        self._prussia_active(world)
+        before = dict(world.diplomatic_states)
+
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world},
+            raw_text="accept Portugal's proposal")
+
+        # The damage first: NO treaty may be signed with anyone.
+        assert dict(world.diplomatic_states) == before, (
+            "the answer was applied to whichever dialogue was ACTIVE — this "
+            "is how `accept Portugal's proposal` signed a PERMANENT TREATY "
+            "with Prussia")
+        assert result.get("success") is False
+        assert result.get("court_mismatch") is True
+        assert "Prussia" in result["message"], (
+            "a refusal that does not name the court on the table teaches "
+            "the player nothing")
+        # The hard requirement from the memo: refuse AND say which court is
+        # being answered.
+        assert result.get("diplomatic_dialogue") is not None
+
+    def test_naming_the_active_court_proceeds(self, world, executor):
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world},
+            raw_text="accept Prussia's proposal")
+        assert result.get("court_mismatch") is not True
+
+    def test_naming_no_court_proceeds_unchanged(self, world, executor):
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world}, raw_text="accept")
+        assert result.get("court_mismatch") is not True
+
+    def test_naming_both_courts_proceeds_when_the_active_one_is_named(
+            self, world, executor):
+        """`reject Prussia's demand for Hanover` names two — the active
+        court is one of them, so it is an answer, not a misdelivery."""
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "reject", {"world": world},
+            raw_text="reject Prussia's demand for Hanover")
+        assert result.get("court_mismatch") is not True
+
+    def test_a_province_that_shares_a_nation_tag_is_not_an_addressee(
+            self, world, executor):
+        """Under-refusing is the safe direction. Hanover is a province on
+        this map as well as a court; a bare mention must not refuse."""
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world},
+            raw_text="accept, and we keep Hanover")
+        assert result.get("court_mismatch") is not True
+
+    def test_the_popup_path_is_untouched(self, world, executor):
+        """The button route carries an action id and no raw text; the
+        guard must be structurally unreachable for it."""
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "reject_ai_proposal", {"world": world})
+        assert result.get("court_mismatch") is not True
+
+    def test_the_refusal_names_the_letter_book_when_the_court_is_queued(
+            self, world, executor):
+        world.dialogue_manager.replace(_incoming_proposal("Prussia"))
+        world.dialogue_manager.push(_incoming_proposal("Portugal"))
+        # Prussia stays ACTIVE; Portugal queues behind it.
+        assert world.pending_diplomatic_dialogue.get(
+            "target_nation") == "Prussia"
+
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world},
+            raw_text="accept Portugal's proposal")
+        assert result.get("court_mismatch") is True
+        assert "letter-book" in result["message"], result["message"]
+        assert "Portugal" in result["message"]
+
+    def test_demonym_addressing_is_read(self, world, executor):
+        self._prussia_active(world)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            "accept", {"world": world},
+            raw_text="accept the Portuguese offer")
+        assert result.get("court_mismatch") is True
+
+
+class TestHardStopMatcherIsNoLongerABareSubstringScan:
+    """`main.py`'s hard-stop arm scanned a fixed keyword list for bare
+    substrings, and that list held ordinary game words."""
+
+    def _staged(self, world, executor):
+        executor._combat._stage_war_purpose_selection(world, "France", "Hesse")
+        return world.pending_diplomatic_dialogue
+
+    def test_send_a_marshal_somewhere_is_not_an_answer(self, world, executor):
+        from backend.commands.dialogue_routing import match_dialogue_answer
+        dlg = self._staged(world, executor)
+        assert match_dialogue_answer(dlg, "send ney to bavaria") is None, (
+            "'send' matched as a bare substring and was applied to the "
+            "staged hard stop")
+
+    def test_move_north_is_not_the_word_no(self, world, executor):
+        from backend.commands.dialogue_routing import match_dialogue_answer
+        dlg = self._staged(world, executor)
+        assert match_dialogue_answer(dlg, "ney, move north") is None
+
+    def test_garrison_paris_never_declares_a_war_of_conquest(
+            self, world, executor):
+        from backend.commands.dialogue_routing import match_dialogue_answer
+        dlg = self._staged(world, executor)
+        assert match_dialogue_answer(dlg, "garrison paris") is None
+
+    def test_the_real_answers_still_resolve(self, world, executor):
+        from backend.commands.dialogue_routing import match_dialogue_answer
+        dlg = self._staged(world, executor)
+        labels = [o.get("label", "") for o in dlg["options"]]
+        assert labels, "the staged dialogue offers nothing to answer"
+        for label in labels:
+            assert match_dialogue_answer(dlg, label.lower()) is not None, (
+                f"a verbatim option label '{label}' stopped resolving")
+        # "back out" is the Back Out label; "no"/"reconsider" map onto its
+        # action, which this dialogue does offer.
+        assert match_dialogue_answer(dlg, "no") is not None
+        assert match_dialogue_answer(dlg, "reconsider") is not None
+
+    def test_a_verb_only_matches_when_the_dialogue_offers_that_action(
+            self, world, executor):
+        """The gate that makes the whole-word scan safe."""
+        from backend.commands.dialogue_routing import match_dialogue_answer
+        dlg = self._staged(world, executor)
+        offered = {o.get("action") for o in dlg["options"]}
+        assert "send_override" not in offered
+        assert match_dialogue_answer(dlg, "send") is None
+        # …and on a dialogue that DOES offer it, the same word lands.
+        proposal = {
+            "type": "proposal_confirm",
+            "options": [{"label": "Send it", "action": "send_override"}],
+        }
+        assert match_dialogue_answer(proposal, "send") is not None
+
+    def test_the_extracted_keyword_table_is_the_one_the_executor_uses(self):
+        """Falsifiability: the table moved out of the executor; pin that
+        the executor reads the moved copy rather than keeping a fork."""
+        import inspect
+
+        from backend.commands import diplomatic_executor as de
+        from backend.commands.dialogue_routing import (
+            DIALOGUE_ACTION_KEYWORDS,
+        )
+
+        src = inspect.getsource(de.DiplomaticExecutor
+                                .handle_diplomatic_dialogue_response)
+        assert "DIALOGUE_ACTION_KEYWORDS as action_map" in src
+        assert "action_map = {" not in src, (
+            "the inline table came back — two definitions of what a word "
+            "means is the defect this collapsed")
+        assert "accept" in DIALOGUE_ACTION_KEYWORDS

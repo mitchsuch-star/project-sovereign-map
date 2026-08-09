@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field  # noqa: F401
 
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
+from backend.commands.dialogue_routing import match_dialogue_answer
 from backend.models.world_state import WorldState
 from backend.nation_config import DEFAULT_PLAYER_NATION, get_player_nation
 from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
@@ -1894,13 +1895,10 @@ def execute_command(request: CommandRequest):
             if world.dialogue_manager.is_hard_stop():
                 _consumed_as_dialogue_answer = True
             else:
-                _raw_lower = command_text.lower()
-                for _opt in world.pending_diplomatic_dialogue.get("options", []):
-                    _lbl = (_opt.get("label") or "").lower().strip()
-                    _act = (_opt.get("action") or "").lower().strip()
-                    if (_lbl and _lbl in _raw_lower) or (_act and _act in _raw_lower):
-                        _consumed_as_dialogue_answer = True
-                        break
+                # CA9: the third copy of the option-match rule, now the
+                # same call the routing gate below makes.
+                _consumed_as_dialogue_answer = bool(match_dialogue_answer(
+                    world.pending_diplomatic_dialogue, command_text.lower()))
         if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
             world.add_to_command_history({
@@ -2047,72 +2045,30 @@ def execute_command(request: CommandRequest):
             raw_lower = command_text.lower()
             is_hard_stop = world.dialogue_manager.is_hard_stop()
 
-            _DIALOGUE_RESPONSE_KEYWORDS = [
-                "accept", "reject", "decline", "counter",
-                "proceed", "cancel", "confront", "overlook",
-                "apologize", "replace", "continue", "invest", "garrison",
-                "send", "execute", "reconsider", "modify",
-                "honor", "side", "dismiss",
-                "harsh", "generous", "adjust",  # Proposal confirm popup actions
-                "nudge", "insist",  # PL-23: Drafting pushback actions
-                "deliver", "ultimatum", "customize", "demand",  # PL-14/15: Ultimatum wizard
-                "confirm", "back out", "back_out", "revise", "revise_terms",  # Imperial settlement
-                "elaborate", "review", "consider",  # Template actions (GAP-1)
-                "begin",  # Mission start (GAP-4/6)
-                "yes", "agree", "start", "more", "no", "never mind",
-            ]
-
-            matched_keyword = None
-            if is_hard_stop:
-                # Hard-stop: broad substring keyword matching (current behavior)
-                for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
-                    if keyword in raw_lower:
-                        matched_keyword = keyword
-                        break
-            else:
-                # PL-27: Soft-stop — only match against actual dialogue options
-                # to avoid capturing unrelated commands like "garrison"
-                dialogue = world.pending_diplomatic_dialogue
-                _soft_options = dialogue.get("options") or []
-                if not _soft_options and isinstance(
-                        dialogue.get("popup_payload"), dict):
-                    # Settlement offers carry their options only inside
-                    # popup_payload — with no top-level options this matcher
-                    # had NOTHING to match, so even a verbatim "reject offer"
-                    # fell through to the parser (live: "reject the offer"
-                    # with Britain's offer on screen became a
-                    # downgrade-relations clarification). Same fallback the
-                    # response handler itself uses.
-                    _soft_options = dialogue["popup_payload"].get(
-                        "options") or []
-                _raw_words = set(re.findall(r"[a-z_]+", raw_lower))
-                for opt in _soft_options:
-                    label = (opt.get("label") or "").lower().strip()
-                    action = (opt.get("action") or "").lower().strip()
-                    if label and label in raw_lower:
-                        matched_keyword = label
-                        break
-                    if action and action in raw_lower:
-                        matched_keyword = action
-                        break
-                    # Token-subset: "reject THE offer" answers the "Reject
-                    # Offer" option even with an article between the words.
-                    # Every label word must appear — a lone "offer" or
-                    # unrelated command never matches.
-                    _label_words = set(re.findall(r"[a-z]+", label))
-                    if _label_words and _label_words <= _raw_words:
-                        matched_keyword = action or label
-                        break
+            # CA9: ONE matcher for both stop kinds — only a dialogue's own
+            # options may claim a typed line (`dialogue_routing`).
+            #
+            # The hard-stop arm used to scan a fixed keyword list for BARE
+            # SUBSTRINGS, and that list held ordinary game words: "no",
+            # "send", "garrison", "start", "more", "side", "continue". So
+            # `Ney, move north` answered "no" (→ back_out / reconsider) and
+            # `send Ney to Bavaria` answered "send" (→ send_override) on
+            # whatever hard stop happened to be staged — and the answer was
+            # applied to that dialogue regardless of what the sentence was
+            # about. The list is gone; a verb now has to resolve onto an
+            # action the live dialogue actually offers, as a whole word.
+            matched_keyword = match_dialogue_answer(
+                world.pending_diplomatic_dialogue, raw_lower)
 
             if matched_keyword:
                 print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
                 result = executor.handle_diplomatic_dialogue_response(
-                    matched_keyword, game_state)
+                    matched_keyword, game_state, raw_text=command_text)
             elif is_hard_stop:
                 # Hard-stop: label matching fallback, then executor (which blocks)
                 print(f"[DIPLOMATIC] Hard-stop fallback label-match: {raw_lower}")
                 result = executor.handle_diplomatic_dialogue_response(
-                    command_text, game_state)
+                    command_text, game_state, raw_text=command_text)
                 msg = (result or {}).get("message", "")
                 if "Please choose an option" in msg:
                     result = executor.execute(parsed, game_state)

@@ -3186,7 +3186,7 @@ class DiplomaticExecutor:
 
     def handle_diplomatic_dialogue_response(
         self, choice, game_state: Dict, action_params: Optional[Dict] = None,
-        dialogue_id=None,
+        dialogue_id=None, raw_text: Optional[str] = None,
     ) -> Dict:
         """Handle player's response to a diplomatic dialogue.
 
@@ -3204,6 +3204,15 @@ class DiplomaticExecutor:
                 applied (the stack shifted between presentation and answer);
                 the current dialogue is re-attached instead. The typed
                 terminal path omits it (it always answers the visible top).
+            raw_text: CA9 — the player's line, VERBATIM, passed only by the
+                typed terminal routes. A typed answer carries no
+                ``dialogue_id``, so the W6-0 binding above cannot protect it;
+                what it carries instead is the court's name, in the player's
+                own words. Measured live: with Prussia's proposal active,
+                ``accept Portugal's proposal`` signed a permanent treaty
+                **with Prussia**. When this names a court that is not the
+                one on the table, the answer is refused and the court that
+                *is* on the table is named.
 
         Returns:
             Result dict with success, message, and any new state.
@@ -3252,6 +3261,15 @@ class DiplomaticExecutor:
                     ),
                     "diplomatic_dialogue": dialogue,
                 }
+
+        # ── CA9: bind a TYPED response to the court the player named ──
+        # The sibling of the W6-0 check above, for the surface that has no
+        # dialogue id. Runs before any choice parsing, for the same reason.
+        if raw_text:
+            from backend.commands.dialogue_routing import court_mismatch_refusal
+            _mismatch = court_mismatch_refusal(world, dialogue, raw_text)
+            if _mismatch is not None:
+                return _mismatch
         options = dialogue.get("options", [])
         if not options and isinstance(dialogue.get("popup_payload"), dict):
             # Gate-4 1805 smoke (E-3): dialogues promoted before the offer
@@ -3407,47 +3425,13 @@ class DiplomaticExecutor:
                 if not selected:
                     # Map keywords to action(s). List means try in order
                     # (e.g. "accept" tries AI proposal accept first, then player proposal send).
-                    action_map = {
-                        "dismiss": ["dismiss"], "cancel": ["cancel_pushback", "cancel_mission", "dismiss"], "never mind": ["dismiss"],
-                        "nudge": ["accept_nudge"], "insist": ["insist_original"],
-                        "send": ["send_override", "send", "execute_proposal"],
-                        "confirm": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war"],
-                        "ratify": ["confirm_settlement"],
-                        # W6-9: execute_suggestion rides LAST in each list —
-                        # it only wins on the advisory dialogue, whose only
-                        # other option is dismiss.
-                        "proceed": ["confirm_settlement", "send_override", "execute_proposal", "force_declare_war", "execute_suggestion"],
-                        "do it": ["execute_suggestion"],
-                        "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal", "accept_ai_ultimatum", "force_declare_war", "execute_suggestion"],
-                        "reconsider": ["back_out_settlement", "reconsider"], "no": ["back_out_settlement", "reconsider"], "wait": ["reconsider"],
-                        "harsh": ["modify_harsh"], "generous": ["modify_generous"],
-                        "adjust": ["adjust_terms", "expand_options"],
-                        "territory": ["ultimatum_territory_yes", "territory_yes", "offer_region"],
-                        "enough": ["ultimatum_enough_territory", "ultimatum_done_manpower", "enough_territory"],
-                        "offer": ["offer_region", "offer_gold", "offer_ap"],
-                        "skip": ["ultimatum_skip_gold", "ultimatum_skip_territory", "ultimatum_skip_manpower", "skip_region", "skip_gold", "skip_ap"],
-                        "another": ["ultimatum_another_type"],
-                        "start over": ["ultimatum_start_over"],
-                        "less": ["ultimatum_less_gold", "ultimatum_less_manpower"],
-                        "begin": ["start_mission"], "start": ["start_mission"],
-                        "accept": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "accept_ai_ultimatum", "execute_proposal"],
-                        "agree": ["confirm_settlement", "accept_with_conflict", "accept_ai_proposal", "accept_ai_ultimatum", "execute_proposal"],
-                        "reject": ["reject_ai_proposal", "reject_ai_ultimatum"], "decline": ["reject_ai_proposal", "reject_ai_ultimatum"],
-                        # NA-5 §8: the ultimatum's own register — typed
-                        # "yield"/"defy" resolve only on the ultimatum
-                        # dialogue (no other dialogue carries these actions).
-                        "yield": ["accept_ai_ultimatum"],
-                        "defy": ["reject_ai_ultimatum"], "refuse": ["reject_ai_ultimatum"],
-                        "counter": ["counter_ai_proposal"],
-                        "thank": ["dismiss"],
-                        "customize": ["ultimatum_customize"],
-                        "deliver": ["execute_ultimatum"],
-                        "trust": ["send_suggested"],
-                        "elaborate": ["elaborate", "expand_to_proposal"],
-                        "more": ["ultimatum_more_gold", "ultimatum_more_manpower", "ultimatum_another_type", "elaborate", "expand_to_proposal"],
-                        "review": ["review_counter"],
-                        "consider": ["review_counter"],
-                    }
+                    # CA9: the table moved to
+                    # `backend/commands/dialogue_routing.py` so main.py's
+                    # "is this an answer?" gate and this resolver cannot
+                    # disagree about what a word means.
+                    from backend.commands.dialogue_routing import (
+                        DIALOGUE_ACTION_KEYWORDS as action_map,
+                    )
                     for keyword, action_matches in action_map.items():
                         if keyword in choice_lower:
                             for action_match in action_matches:
