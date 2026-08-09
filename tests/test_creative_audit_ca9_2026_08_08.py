@@ -3378,3 +3378,57 @@ class TestReviewCaptureLineTakesItsArticle:
         """FALSIFIABLE NEGATIVE — not 'the Austria'."""
         text = self._headline("Austria")
         assert "of Austria" in text and "of the Austria" not in text, text
+
+
+class TestReviewF11ActuallyIssuesTheOrder:
+    """F11 was recorded as CLOSED and was not. The first cut relaxed
+    `_closest_marshal_name`'s phrase gate, but that helper only ever fed a
+    "Did you mean…?" SUGGESTION — `pursue Archduke Charles` still created
+    no order, while `attack` accepted the same words. Pinned at the seam
+    that makes the order, which is what the row is about."""
+
+    @staticmethod
+    def _issue(line, seed=3):
+        import random
+
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+        from backend.models.world_state import WorldState
+
+        world = WorldState.from_scenario(str(SCENARIO_PATH))
+        random.seed(seed)
+        parsed = CommandParser().parse(line, {"world": world}, world=world)
+        result = CommandExecutor().execute(parsed, {"world": world})
+        order = getattr(world.marshals["Ney"], "strategic_order", None)
+        return result, getattr(order, "target", None)
+
+    def test_the_display_name_issues_the_same_order_as_the_key(self):
+        by_name, target_name = self._issue("Ney, pursue Archduke Charles")
+        by_key, target_key = self._issue("Ney, pursue ArchdukeCharles")
+        assert by_name.get("success") is True, by_name.get("message")
+        assert "Cannot find" not in str(by_name.get("message", "")), (
+            "the name printed on every screen is still refused")
+        assert target_name == target_key == "ArchdukeCharles", (
+            f"display name gave {target_name!r}, key gave {target_key!r}")
+
+    def test_the_bare_surname_is_still_refused(self):
+        """FALSIFIABLE NEGATIVE — CA8-28's discipline decides, and
+        `_plausible_name_typo("Charles", "ArchdukeCharles")` is False."""
+        result, target = self._issue("Ney, pursue Charles")
+        assert result.get("success") is False
+        assert target is None
+
+    def test_the_resolution_happens_where_the_order_is_made(self):
+        import inspect
+
+        from backend.commands import strategic_executor as se
+        src = inspect.getsource(se.StrategicExecutor)
+        at = src.index('# PURSUE must target an enemy marshal')
+        window = src[at:at + 1600]
+        assert "humanize_entity_name(_m.name).lower() == _typed" in window, (
+            "the display-name resolution still only feeds the suggestion")
+        assert "enemy = world.get_marshal(target)" in window
+        # …and it is EXACT, not fuzzy: CA8-28 ruled the strategic arms
+        # SUGGEST a typo rather than correcting it, and scopes that
+        # suggestion to what fog already reveals. Neither is crossed.
+        assert "_closest_marshal_name(" not in window

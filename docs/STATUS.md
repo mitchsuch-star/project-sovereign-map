@@ -62,6 +62,24 @@
 >   open question. That is the intended direction ("the game starts *asking*
 >   before the disaster") but it is a texture change the user should see in play.
 >
+> **▶ A REVIEW ROUND FOLLOWED, AND IT CORRECTED ME TWICE.** A 38-agent
+> find→refute fleet over the committed diff returned 29 surviving claims; six
+> were confirmed against the real endpoint and are fixed. Two of them are
+> corrections to the landing record above, kept on the record rather than
+> edited away: **(a) "the hard-stop bare-substring matcher is gone" was false**
+> — it survived one function deeper, in the resolver the fallback feeds, and
+> `Ney, move north` still popped a live hard stop because "no" is inside
+> "north"; **(b) F11 was recorded CLOSED and was not** — the relaxed gate fed
+> only a "Did you mean…?" suggestion, so `pursue Archduke Charles` still made
+> no order. Both are now genuinely fixed, F11 scoped to an exact display-name
+> match so CA8-28's suggest-don't-correct and fog rules stay intact. The other
+> four: F13 docked −3 trust from the marshals its own guard turned back and
+> told the player they were slow; N5's plain-English router executed the
+> opposite of a negated line; N5's block offered two roads where the validator
+> accepts three (it read a key no producer writes); and F1's committed term was
+> on the wrong side of the terrain multiplier — my stated justification for
+> that placement was simply wrong. Full detail in `BUG_FIXES.md`.
+>
 > **⚠ A VISUAL SIGN-OFF IS OWED** on the three `.gd` surfaces this queue touched:
 > the per-court fog line in the enemy phase (F7) and `Supply: Unknown` on both
 > the region panel and the map tooltip (F5). The CA9 audit's own visual half was

@@ -595,6 +595,34 @@ class StrategicExecutor:
         # PURSUE must target an enemy marshal
         if strategic_type == "PURSUE":
             enemy = world.get_marshal(target)
+            if not enemy and target:
+                # CA9-F11 (review round): the first cut relaxed
+                # `_closest_marshal_name`'s phrase gate — but that helper
+                # only ever fed a "Did you mean…?" SUGGESTION, so
+                # `pursue Archduke Charles` (the name printed on every
+                # screen) still created no order at all, while `attack`
+                # accepted it. The row was recorded as closed and was not.
+                #
+                # Scoped to an EXACT DISPLAY-NAME match, deliberately —
+                # not to fuzzy correction. CA8-28 ruled that the strategic
+                # arms SUGGEST rather than auto-correct a typo, and that
+                # the suggestion is fog-scoped because a ranked guess at a
+                # hidden army is free intelligence. Neither is crossed
+                # here: "Archduke Charles" is not a typo, it is the name
+                # the game prints on every screen, and the player supplied
+                # it, so resolving it reveals nothing they did not type.
+                # `pursue Macck` still gets the fog-limited suggestion.
+                from backend.display_names import humanize_entity_name
+                _typed = str(target).strip().lower()
+                for _m in world.marshals.values():
+                    if _m.nation == marshal.nation:
+                        continue
+                    if humanize_entity_name(_m.name).lower() == _typed:
+                        print(f"[STRATEGIC] PURSUE '{target}' -> "
+                              f"'{_m.name}' (display name)")
+                        target = _m.name
+                        enemy = _m
+                        break
             if not enemy:
                 # Check if it's a region
                 region = world.get_region(target) if target else None

@@ -97,6 +97,46 @@
 > `coordination_reinforcement_mixed` call site clobbered, and
 > `test_live_pass_fixes_2026_07_25`'s grammar pin caught it.
 >
+> ### ⚠ CORRECTIONS FROM THE REVIEW ROUND (August 9, 2026)
+>
+> A 38-agent find→refute fleet over the committed tiers-1+2 diff returned **29
+> surviving claims**. Six were confirmed against the real endpoint and are FIXED
+> in commits `a4bfd57` + the follow-up; **two of them correct statements made
+> above, and both corrections are recorded here rather than edited away.**
+>
+> 1. **"the hard-stop BARE-SUBSTRING matcher is gone" WAS FALSE.** It was gone
+>    from main.py's *gate*; `handle_diplomatic_dialogue_response` kept its own
+>    `if keyword in choice_lower:` over the same table, and the hard-stop
+>    fallback feeds it the whole sentence. Measured over the real endpoint:
+>    `Ney, move north` answered "Back Out" and popped a live war-purpose
+>    dialogue ("no" is inside "north"); 3 of 12 ordinary orders consumed it; on
+>    a `settlement_confirm` the same input discarded a drafted treaty. The
+>    resolver now uses the shared word-boundary predicate. **The claim is true
+>    as of the review round, and was not true when it was written.**
+> 2. **F11 was recorded CLOSED and was not.** The relaxed phrase gate fed only
+>    the "Did you mean…?" *suggestion*; `pursue Archduke Charles` still created
+>    no order. Now resolved at the seam that makes the order, scoped to an
+>    EXACT DISPLAY-NAME match — deliberately not fuzzy, because CA8-28 ruled the
+>    strategic arms suggest a typo rather than correct it and scopes that
+>    suggestion to what fog reveals. Both rules verified intact: `pursue Macck`
+>    still suggests, `pursue Kutuzow` still says nothing, `pursue Charles` is
+>    still refused.
+>
+> Also fixed: **F13 punished the marshals its own guard turned back** (−3 trust
+> each, and "could not reach the battlefield in time" for men the engine
+> stopped — plus the muster preview promising a march it would refuse);
+> **N5's plain-English router had no negation guard**, so "I don't trust him"
+> executed TRUST; **N5's objection block offered 'trust' or 'insist' while the
+> validator accepted 'compromise'**, because it read an `alternative` key no
+> producer writes; and **F1's committed term sat on the wrong side of the
+> terrain multiplier** — my justification for the placement was factually
+> wrong, and the error hid `committed_defender × bonus` effective defenders
+> (measured: a real board read `favorable` at a true ratio of 0.99).
+>
+> Nine-mutation sweep, 9/9, after three survivors were found by it — two of
+> them my own tests mirroring the router's logic instead of driving it, which
+> is the third time that shape produced an inert pin in this session.
+>
 > **⚠ A VISUAL SIGN-OFF IS OWED** on three `.gd` surfaces this queue touched:
 > the per-court fog line in the enemy phase (F7), and the `Supply: Unknown`
 > sentinel on both the region panel and the map tooltip (F5).
