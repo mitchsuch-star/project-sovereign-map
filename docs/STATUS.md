@@ -76,13 +76,52 @@
 >    real app via TestClient and no new response fields were added) — and the
 >    **feel** question is the playtest's: a non-cautious marshal now walks
 >    into a 2.5:1 fight with no warning at all.
-> 3. **Grievances and popups — a REVISIT slice, not a patch.** *"we need to
->    revisit grievences and popups in general and check for issues."* So N4
->    does NOT get a TTL bolted on. Audit every popup producer, its queue slot,
->    its blocking class and whether anything retires it, then fix. Known
->    starting list in the record: N4 (P1), N21, N8, the IGR-X7 drain family,
->    the 11-slot PopupQueue priority order, and the per-surface
->    stash-and-raise discipline that has already been got wrong twice.
+> 3. **Grievances and popups — ▶ AUDIT DONE August 9, 2026, BUILD OPEN ON
+>    FIVE RULINGS.** Record =
+>    **`docs/audits/GRIEVANCE_REVISIT_INVESTIGATION_2026_08_09.md`**
+>    (authoritative). 27 read-only agents — 8 ground-truth readers, 6 design
+>    lenses, 12 refuters, ~7.8M tokens.
+>
+>    **VERDICT: not fun as it stands.** Lenses 4/3/2/3/3/3 (mean 3.0); four
+>    said *not fun*, two *partly*, **none recommended cutting it**. The
+>    content is good; the choice structure is empty. **Root cause, measured:**
+>    escalation history and level are written ONLY at fire time
+>    (`jealousy.py:705`, `:790-791`), so **no petition arm can reach either** —
+>    acknowledge / no-answer / promise / rebuke all converge to escalation 2,
+>    stored −2, coordination ×0.0, differing only in price (0 AP / 0 AP /
+>    7 AP / permanent −5 trust). And `promise` clears with
+>    `resolved_by_action=False`, forfeiting the +10% surge the free battle path
+>    grants — **the paid arm is strictly worse than ignoring the popup, and
+>    ignoring it is byte-identical to Acknowledge.**
+>
+>    Numbers: 107 player grievances vs 15 enemy over three passive 30–40 turn
+>    runs · **66% fire at hair-trigger threshold 1** off the *authored* boot
+>    web · ~15 drama lines per answerable decision · **1 petition SERVED of
+>    32** (the channel is *starved*, not noisy) · same card re-pushed unchanged
+>    turns 4→41 · committed strength **24,840 → 0**, win rate **7/8 → 1/8** —
+>    and that consequence is named on **no surface anywhere**.
+>
+>    **KEEP, conditionally.** The argument that decides it: this is the only
+>    system where **success costs cohesion** — EC-P3 and ES-7 both make success
+>    cost gold, nothing else makes it cost anything social. Conditional on
+>    Phase A landing; if it will not be built, the honest move is to cut the
+>    grievance layer and keep glory + crown + the ESP riders.
+>
+>    ✅ **A1 BUILT** (the one P1 needing no ruling): the petition's "Later"
+>    button was a bare `hide()` with no signal, and every
+>    `_post_hud_response_routes` entry returns before `set_input_enabled(true)`
+>    — **the polite button disabled the command line, Send, End Turn and the
+>    diplomacy wizard for the rest of the session.** Fixed in the Proclamation's
+>    `dismissed` pattern; pin mutation-tested; `marshal_petition_dialog.gd`
+>    added to the parse harness's staleness list (it was parsed but not
+>    staleness-guarded, which is how the soft-lock shipped).
+>
+>    ⚠ **OPEN: five design rulings in §5** (Q1 may an arm touch the escalation
+>    ratchet · Q2 build the excluded "to my tent" council-command arm · Q3 does
+>    a first grievance get a first act · Q4 is permanent Hostile intended · Q5
+>    when to fix `modify_relationship`). **Phase A's other 11 items + Phase B
+>    are specified but NOT built.** §6 lists 7 things NOT to do with reasons,
+>    incl. why restoring v3's Promise Glory deadline is a category error.
 >
 > **Then ONE playtest covering all of it** — the three new slices AND the 31
 > CA9 rows landed August 9, which have never been played. That playtest also
