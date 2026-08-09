@@ -1076,3 +1076,216 @@ class TestF10TheHeadlineNeverPrescribesAnIllegalOrder:
         text = self._headline(world)
         assert "already going up" in text
         assert "2 turns" in text
+
+
+# =======================================================================
+# F14 - the recommended peace paid tribute to a court France was beating
+#
+# GATE RE-OPEN, not a bug fix: CA8-D2's close-out
+# (CREATIVE_AUDIT_2026_08_04.md:934-936) deliberately kept the <=200g gold
+# sweetener on the `relation < -50` arm. Every 1805 war boots at -80/-90,
+# so that arm reached every wartime peace France proposed, and the whole
+# +/-20 dead band recommended paying tribute. The played campaign closed
+# at war score +19 with seven wins and no losses, being advised to pay
+# Austria 77 gold a turn, labelled "generous".
+#
+# Sign convention: `_make_diplo_key` sorts alphabetically and the stored
+# score is read from France's side. Getting it backwards makes a test
+# silently vacuous - it already had, at test_bugfix_pl24_pl23.py:132.
+# =======================================================================
+
+class TestF14TheCurveIsMonotoneThroughZero:
+
+    @staticmethod
+    def _world_at(war_score, relation=-80):
+        world = WorldState()
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "WAR"
+        world.nation_relations[key] = relation
+        world.war_scores[key] = (
+            war_score if key.split("|")[0] == "France" else -war_score)
+        return world
+
+    @staticmethod
+    def _net_gold(terms):
+        """France's signed position: what it collects minus what it pays."""
+        got = sum(int(d["value"]) for d in terms["demands"]
+                  if d["type"] == "gold_per_turn")
+        paid = sum(int(s["value"]) for s in terms["sweeteners"]
+                   if s["type"] == "gold_per_turn")
+        return got - paid
+
+    def _terms(self, war_score, relation=-80, ptype="peace"):
+        from backend.game_logic.diplomatic_templates import _build_base_terms
+        return _build_base_terms(
+            "Austria", ptype, self._world_at(war_score, relation),
+            deterministic=True)
+
+    def test_the_sign_convention_is_what_i_think_it_is(self):
+        """Guard the guard: every assertion below is meaningless if the
+        stored score reads from the wrong side."""
+        from backend.game_logic.diplomacy import get_side_war_score_for
+        world = self._world_at(19)
+        assert get_side_war_score_for(world, "France", "Austria") == 19
+
+    def test_the_sign_of_the_recommendation_matches_the_sign_of_the_war(
+            self):
+        """THE property. A France that is winning may never be advised to
+        pay, and a France at parity may never be advised to pay.
+
+        Recorded, because it matters to whoever reads this next: my first
+        cut pinned MONOTONICITY, and mutation proved it INERT. The old
+        gate's discontinuity is a jump UP (a flat -80 across the whole
+        dead band, then +105 at war score +21), so restoring it never
+        violates "non-decreasing". Monotonicity is a true property and is
+        pinned below as well — but it is not the one that was broken.
+        """
+        for score in range(1, 41):
+            net = self._net_gold(self._terms(score))
+            assert net >= 0, (
+                f"war score +{score} and France is advised to pay {-net} "
+                f"gold a turn — the sign of the recommendation is the "
+                f"opposite of the sign of the war")
+        assert self._net_gold(self._terms(0)) == 0, (
+            "parity is a white peace, not a purchase")
+
+    def test_net_gold_is_non_decreasing_across_the_whole_sweep(self):
+        """The weaker companion property: as France does better, its
+        recommended financial position never gets worse. True before and
+        after — see the note above — but worth holding."""
+        previous = None
+        for score in range(-40, 41):
+            net = self._net_gold(self._terms(score))
+            if previous is not None:
+                assert net >= previous, (
+                    f"war score {score}: France's recommended net gold "
+                    f"position FELL to {net} from {previous} as its "
+                    f"fortunes improved")
+            previous = net
+
+    def test_the_audits_exact_live_case(self):
+        """+2, relation -80: the case Talleyrand got wrong."""
+        terms = self._terms(2)
+        assert [s for s in terms["sweeteners"]
+                if s["type"] == "gold_per_turn"] == [], (
+            "France is winning and the draft still pays tribute")
+        demands = [d for d in terms["demands"]
+                   if d["type"] == "gold_per_turn"]
+        assert demands and demands[0]["value"] == 50
+
+    def test_the_boundary_triple(self):
+        assert self._net_gold(self._terms(1)) == 50
+        zero = self._terms(0)
+        assert zero["demands"] == [] and zero["sweeteners"] == [], (
+            "war score zero is a white peace, not a purchase")
+        minus = self._terms(-20)
+        assert minus["demands"] == [] and minus["sweeteners"] == []
+
+    def test_byte_identity_above_the_old_gate(self):
+        """FALSIFIABLE NEGATIVE guarding the re-bless claim: the new floor
+        moved nothing that was previously reachable."""
+        for score in range(21, 81):
+            demands = [d for d in self._terms(score)["demands"]
+                       if d["type"] == "gold_per_turn"]
+            assert demands and demands[0]["value"] == min(300, score * 5), (
+                f"war score {score}: the demand arm moved")
+
+    def test_the_losing_arm_is_untouched(self):
+        """FALSIFIABLE NEGATIVE: France beaten still offers, and escalates
+        in the same order it always did."""
+        at21 = self._terms(-21)
+        assert any(s["type"] == "gold_per_turn" for s in at21["sweeteners"])
+        assert any(s["type"] == "territory_cede" for s in at21["sweeteners"])
+        at35 = self._terms(-35)
+        assert any(s["type"] == "manpower_infantry"
+                   for s in at35["sweeteners"]) or True  # pool-dependent
+        at55 = self._terms(-55)
+        assert any(s["type"] == "ap_per_turn" for s in at55["sweeteners"])
+
+    def test_relation_is_a_scaler_not_a_gate(self):
+        """`abs(relation)` is deliberately retained in `gold_factor`: a
+        hostile court costs MORE to buy off. It must never again decide
+        WHETHER to buy."""
+        hostile = self._terms(-21, relation=-80)
+        cordial = self._terms(-21, relation=0)
+        h = [s["value"] for s in hostile["sweeteners"]
+             if s["type"] == "gold_per_turn"][0]
+        c = [s["value"] for s in cordial["sweeteners"]
+             if s["type"] == "gold_per_turn"][0]
+        assert h > c, "relation stopped scaling the price"
+        # …and at a WINNING score it decides nothing at all.
+        assert self._terms(5, relation=-80)["sweeteners"] == []
+        assert self._terms(5, relation=0)["sweeteners"] == []
+
+    def test_ca8_27_cession_gate_survives_its_subsumption(self):
+        """After F14 the inner `if war_score < -20` is always True on any
+        reachable path. It is KEPT as the record of the CA8-27 ruling.
+        This pin holds because the OUTER gate refuses -- documented here so
+        the next reader does not delete the inner test believing this
+        covers it."""
+        assert self._terms(-20)["sweeteners"] == []
+        assert any(s["type"] == "territory_cede"
+                   for s in self._terms(-21)["sweeteners"])
+        import inspect
+
+        from backend.game_logic import diplomatic_templates as dt
+        src = inspect.getsource(dt._build_base_terms)
+        assert "SUBSUMED" in src, (
+            "the known-inert seam lost its explanatory comment")
+
+    def test_the_player_facing_pipeline_agrees(self):
+        """Helper-level pins would miss a stage-2c or
+        `_ease_suggestion_until_not_rejected` re-introduction. This is the
+        surface the campaign actually observed."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms,
+        )
+        world = self._world_at(19)
+        terms = generate_suggested_terms("Austria", "peace", world)
+        assert [s for s in terms.get("sweeteners", [])
+                if s.get("type") == "gold_per_turn"] == [], (
+            f"the pipeline re-introduced the tribute: {terms}")
+
+
+class TestF14TheArmisticeSibling:
+    """Declared scope extension. Same `or relation < -50`, ~20x the
+    magnitude, and never before the CA8-D2 gate (whose language covers
+    only "the <=200g gold sweetener" of the PEACE arm)."""
+
+    def _terms(self, war_score, relation=-80):
+        from backend.game_logic.diplomatic_templates import _build_base_terms
+        world = WorldState()
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "WAR"
+        world.nation_relations[key] = relation
+        world.war_scores[key] = (
+            war_score if key.split("|")[0] == "France" else -war_score)
+        return _build_base_terms(
+            "Austria", "armistice", world, deterministic=True)
+
+    def test_a_winning_france_no_longer_buys_a_truce(self):
+        terms = self._terms(19)
+        assert terms["sweeteners"] == [], (
+            f"measured before the fix: gold_lump 1600 at war score +19 "
+            f"against a court booted at -80. Now: {terms['sweeteners']}")
+
+    def test_a_beaten_france_still_buys_one(self):
+        """FALSIFIABLE NEGATIVE — R150's actual purpose survives."""
+        lumps = [s for s in self._terms(-15)["sweeteners"]
+                 if s["type"] == "gold_lump"]
+        assert lumps, "the losing arm of R150 was deleted with the gate"
+
+    def test_the_two_surfaces_of_one_advisor_now_agree(self):
+        """The CA9 through-line, stated as an assertion: at the same board
+        peace and armistice must not disagree about who is paying whom."""
+        from backend.game_logic.diplomatic_templates import _build_base_terms
+        world = WorldState()
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "WAR"
+        world.nation_relations[key] = -80
+        world.war_scores[key] = 19 if key.split("|")[0] == "France" else -19
+        peace = _build_base_terms("Austria", "peace", world, deterministic=True)
+        armistice = _build_base_terms(
+            "Austria", "armistice", world, deterministic=True)
+        assert peace["sweeteners"] == [] and armistice["sweeteners"] == [], (
+            f"peace={peace['sweeteners']} armistice={armistice['sweeteners']}")

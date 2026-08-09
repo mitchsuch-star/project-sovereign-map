@@ -133,15 +133,28 @@ class TestPL24HarshnessScoring:
         """Verify _build_base_terms uses manpower_infantry (not infantry_manpower)."""
         from backend.game_logic.diplomatic_templates import _build_base_terms
         world = WorldState()
-        # Set up conditions for manpower sweetener: war_score < -30
+        # Set up conditions for manpower sweetener: war_score < -30.
+        #
+        # CA9 (found by the F14 recon): this was VACUOUS. `_make_diplo_key`
+        # sorts alphabetically, so the key is "Austria|France" and a stored
+        # -35 means FRANCE IS WINNING at +35 — the sweetener branch never
+        # ran, the loop below iterated zero times, and the test passed no
+        # matter what the naming was. Sign now derived from the key, and
+        # the list is asserted non-empty so the loop cannot be empty again.
         diplo_key = world._make_diplo_key("France", "Austria")
-        world.war_scores[diplo_key] = -35  # France losing badly
+        world.war_scores[diplo_key] = (
+            -35 if diplo_key.split("|")[0] == "France" else 35)
         world.manpower_pools["France"] = {"infantry": 10000, "cavalry": 2000, "artillery": 1000}
         # Need to be at war
         world.diplomatic_states[diplo_key] = "WAR"
         terms = _build_base_terms("Austria", "peace", world)
-        # Check if any sweetener has old name
-        for s in terms.get("sweeteners", []):
+        sweeteners = terms.get("sweeteners", [])
+        assert sweeteners, (
+            "France is losing badly and offers nothing — this test cannot "
+            "check a name it never sees")
+        assert any(s["type"] == "manpower_infantry" for s in sweeteners), (
+            f"the manpower sweetener is missing entirely: {sweeteners}")
+        for s in sweeteners:
             assert s["type"] != "infantry_manpower", "Should be manpower_infantry, not infantry_manpower"
 
 

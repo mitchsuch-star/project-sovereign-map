@@ -376,11 +376,37 @@ class TestCessionRequiresLosing:
                  if s.get("type") == "territory_cede"]
         assert cedes == [], terms["sweeteners"]
 
-    def test_hostile_gold_sweetener_survives(self):
+    def test_hostile_but_winning_is_not_sweetened_at_all(self):
+        """CA9-F14 — THE GATE RE-OPEN, recorded here rather than deleted.
+
+        CA8-D2 (this file's own gate, `CREATIVE_AUDIT_2026_08_04.md:934-936`)
+        split the `or` for TERRITORY and deliberately KEPT the <=200g gold
+        sweetener on the hostility arm: "a hostile court may be sweetened".
+        This test pinned that half, asserting a gold sweetener EXISTS at
+        war score +2.
+
+        The CA9 played campaign falsified it. Every 1805 war boots at
+        -80/-90, so the hostility arm reached every wartime peace France
+        proposed and the whole +/-20 dead band recommended paying TRIBUTE
+        to a court France was beating: +21 collects 105 g/turn, +20 PAYS 80.
+        The terminal step of a 26-turn campaign was Talleyrand recommending
+        France pay Austria 77 g/turn at +19, seven wins and no losses.
+
+        The assertion is therefore INVERTED, consciously: hostility now
+        prices the peace through the acceptance formula's own R141-dampened
+        relations term, never by inverting the sign of the recommendation.
+        The other three tests in this class are byte-unchanged and are the
+        proof that both the losing arm and the winning arm survived.
+        """
         terms = self._terms(self._world(war_score=2, relation=-80))
         golds = [s for s in terms["sweeteners"]
                  if s.get("type") == "gold_per_turn"]
-        assert golds, terms["sweeteners"]
+        assert golds == [], (
+            f"France is WINNING at +2 and still offers gold: {golds}")
+        assert any(d.get("type") == "gold_per_turn"
+                   for d in terms["demands"]), (
+            f"and the curve must be continuous through zero — a winning "
+            f"France demands: {terms['demands']}")
 
     def test_actually_losing_still_cedes(self):
         """FALSIFIABLE NEGATIVE: the losing branch is unchanged."""

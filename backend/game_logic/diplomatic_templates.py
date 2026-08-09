@@ -3577,12 +3577,38 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         if relation > -20:
             terms["clauses"].append("open_borders")
 
-        # If winning, demand gold/turn proportional to advantage
-        if war_score > 20:
-            gold_demand = min(300, war_score * 5)
+        # ────────────────────────────────────────────────────────────
+        # F14 (CA9) — the curve is continuous and MONOTONE through zero.
+        #
+        # The demand arm opened only above +20 while the sweetener arm was
+        # reachable on `relation < -50` ALONE, and every 1805 war boots at
+        # −80/−90. So the whole ±20 dead band recommended paying TRIBUTE to
+        # a court France was beating: measured, +21 collects 105 g/turn and
+        # +20 PAYS 80, a 185 g/turn discontinuity whose sign flips across
+        # one point of war score. The played campaign's terminal step was
+        # Talleyrand recommending France pay Austria 77 g/turn at war score
+        # +19, seven battles won and none lost, labelled "generous".
+        #
+        # THIS RE-OPENS a gate decision: CA8-D2's close-out
+        # (`CREATIVE_AUDIT_2026_08_04.md:934-936`) split the `or` for
+        # TERRITORY and deliberately kept the ≤200g gold sweetener on the
+        # hostility arm — "a hostile court may be sweetened". CA9 measured
+        # what that produces over 26 turns and calls it falsified.
+        # Hostility now prices the peace through the acceptance formula's
+        # own R141-dampened relations term (the IGR-X3 shape), never by
+        # inverting the sign of the recommendation.
+        #
+        # `max(50, ...)` is the file's own floor idiom
+        # (`generate_ultimatum_terms`) and is a PROVEN no-op above +20:
+        # `min(300, ws*5) == min(300, max(50, ws*5))` for every ws in
+        # 21..399, so the previously reachable range is byte-identical.
+        # ────────────────────────────────────────────────────────────
+        if war_score > 0:
+            gold_demand = min(300, max(50, war_score * 5))
             terms["demands"].append({"type": "gold_per_turn", "value": int(gold_demand)})
-        elif war_score < -20 or relation < -50:
-            # If losing or deeply hostile, offer gold to sweeten
+        elif war_score < -20:
+            # Losing. `abs(relation)` survives below as a MAGNITUDE scaler
+            # only — a hostile court costs more to buy off — never a gate.
             gold_factor = max(abs(war_score) * 3, abs(relation))
             gold_offer = min(200, max(50, int(gold_factor)))
             terms["sweeteners"].append({"type": "gold_per_turn", "value": int(gold_offer)})
@@ -3595,6 +3621,13 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
             # at +2. A hostile court may be sweetened with gold above; it
             # is never paid in homeland provinces unless the FIELD says
             # France is losing.
+            #
+            # F14 NOTE: this test is now SUBSUMED by the branch gate above
+            # and is True on every reachable path. It is kept DELIBERATELY:
+            # it is the local record of the CA8-27 ruling and the seam at
+            # which the two thresholds may diverge again. Do not delete it
+            # as dead code — a future widening of the outer gate would then
+            # silently re-author cessions. Recorded as a known-inert seam.
             if war_score < -20:
                 # Non-capital regions first; capital only as desperate last resort
                 player_capital = world.get_nation_capital(player_nation) or "Paris"
@@ -3642,9 +3675,19 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         # Armistice is a temporary ceasefire
         terms["type"] = "armistice_losing" if war_score < 0 else "armistice_winning"
 
-        # R150: Sweeten armistice when losing OR when relation is very hostile
-        # Hostile nations won't accept bare armistice even at neutral war score
-        needs_sweetener = war_score < -10 or relation < -50
+        # R150: Sweeten armistice when losing.
+        #
+        # F14 (CA9), declared scope extension: this is the peace arm's
+        # sibling with the identical `or relation < -50` pathology and
+        # roughly TWENTY TIMES the magnitude — measured `gold_lump 1600`
+        # at war score +19 against a court booted at −80. The CA8-D2
+        # blessing language covers only "the ≤200g gold sweetener" of the
+        # PEACE arm, so this number was never before that gate; it is an
+        # unblessed instance of the defect, not a second re-open. Left
+        # alone it would put two surfaces of the same advisor in
+        # contradiction on one board — peace demanding gold while
+        # armistice offers 1,600 — which is the CA9 through-line itself.
+        needs_sweetener = war_score < -10
         if needs_sweetener:
             gold_amount = max(200, min(2000, max(abs(war_score), abs(relation)) * 20))
             terms["sweeteners"].append({"type": "gold_lump", "value": int(gold_amount)})

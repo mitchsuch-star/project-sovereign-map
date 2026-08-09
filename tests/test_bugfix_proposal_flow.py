@@ -522,21 +522,46 @@ class TestNoRawDataInCommentary:
 class TestHostileArmisticeSweeteners:
     """Armistice to hostile nation must include sweetener clauses."""
 
-    def test_armistice_hostile_has_sweetener(self):
-        """Armistice to nation with relation < -50 includes at least 1 sweetener."""
+    def test_armistice_hostile_but_not_losing_is_not_sweetened(self):
+        """CA9-F14 (declared scope extension): R150's `or relation < -50`
+        is the peace arm's sibling with ~20x the magnitude — measured
+        `gold_lump 1600` at war score +19 against a court booted at -80.
+        The CA8-D2 blessing language covers only "the <=200g gold
+        sweetener" of the PEACE arm, so this number was never before that
+        gate. Left alone it would put two surfaces of one advisor in
+        contradiction on the same board.
+
+        Pin inverted consciously: hostility alone no longer buys a truce.
+        """
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
         world = _make_world()
-        # Set hostile relation
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[diplo_key] = -80
-        # War score neutral
         world.war_scores[diplo_key] = 0
 
         terms = generate_suggested_terms("Prussia", "armistice", world)
-        sweeteners = terms.get("sweeteners", [])
-        assert len(sweeteners) >= 1, (
-            f"Expected sweeteners for hostile armistice, got none. Terms: {terms}"
-        )
+        assert terms.get("sweeteners", []) == [], (
+            f"a hostile but un-beaten France still buys its truce: {terms}")
+
+    def test_armistice_when_losing_is_still_sweetened(self):
+        """FALSIFIABLE NEGATIVE for the arm above — the losing case, which
+        is what R150 was actually for, is untouched.
+
+        Sign convention: `_make_diplo_key` sorts alphabetically and the
+        stored score is read from France's side, so the sign of the stored
+        value depends on which name sorts first. Getting this backwards
+        silently makes a test vacuous (see `test_bugfix_pl24_pl23.py:132`).
+        """
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -80
+        losing = -40 if diplo_key.split("|")[0] == "France" else 40
+        world.war_scores[diplo_key] = losing
+
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        assert len(terms.get("sweeteners", [])) >= 1, (
+            f"a beaten France stopped offering anything: {terms}")
 
     def test_armistice_neutral_relation_no_forced_sweetener(self):
         """Armistice with neutral relation and positive war_score needs no sweeteners."""
@@ -551,8 +576,11 @@ class TestHostileArmisticeSweeteners:
         # No sweeteners needed when not hostile and not losing
         assert len(sweeteners) == 0
 
-    def test_peace_hostile_has_sweetener(self):
-        """Peace proposal to nation with relation < -50 includes gold sweetener."""
+    def test_peace_hostile_but_not_losing_is_not_sweetened(self):
+        """CA9-F14: pin inverted consciously. The full gate re-open record
+        lives at `test_ca8_gate_closeout_2026_08_07.py
+        ::test_hostile_but_winning_is_not_sweetened_at_all`. Hostility
+        alone no longer buys a peace."""
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
         world = _make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
@@ -560,12 +588,21 @@ class TestHostileArmisticeSweeteners:
         world.war_scores[diplo_key] = 0
 
         terms = generate_suggested_terms("Prussia", "peace", world)
-        sweeteners = terms.get("sweeteners", [])
-        # Bug 4 fix: Nations with gold_pref=low get territory instead of gold
-        # when territory alternatives exist
-        assert len(sweeteners) >= 1, (
-            f"Expected sweeteners for hostile peace, got: {sweeteners}"
-        )
+        assert terms.get("sweeteners", []) == [], (
+            f"hostility alone still buys a peace: {terms}")
+
+    def test_peace_when_losing_is_still_sweetened(self):
+        """FALSIFIABLE NEGATIVE: the losing arm is untouched."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -80
+        losing = -35 if diplo_key.split("|")[0] == "France" else 35
+        world.war_scores[diplo_key] = losing
+
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        assert len(terms.get("sweeteners", [])) >= 1, (
+            f"a beaten France stopped offering anything: {terms}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
