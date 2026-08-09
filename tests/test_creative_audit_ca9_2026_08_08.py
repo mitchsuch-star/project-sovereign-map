@@ -2703,3 +2703,150 @@ class TestF8ConfirmationStopsOverpromising:
             "the Grouchy Rule's primary-only scope was changed — that is "
             "a mechanic change and belongs to its own gate")
         assert 'ally_safe' in inspect.getsource(st)
+
+
+# =======================================================================
+# F13 - three corps teleported into neutral Ottoman Albania, and a
+# standing order died with no word
+#
+# The muster relocation is a bare `arriving.location = battle_region_name`
+# with no diplomatic guard. A jealousy-driven autonomous attack chased a
+# beaten British officer into ALBANIA and carried the whole muster with
+# it: Davout, Murat and Massena stood nine provinces from their war, on
+# ground no legal order could have sent them to, and starved there two
+# turns. Murat's standing march on Vienna was cancelled by it, silently.
+# =======================================================================
+
+class TestF13NoTeleportOntoNeutralSoil:
+
+    def test_the_guard_is_the_same_predicate_the_other_seams_use(self):
+        """The function, not a copy: `_pursuit_capture_guard` is the rule
+        the movement seam and the battle-advance already enforce."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        head = src[:src.index("arriving.location = battle_region_name")]
+        assert "self._pursuit_capture_guard(" in head, (
+            "the relocation still teleports with no diplomatic guard")
+        assert '_block["arm"] == "neutral"' in head
+
+    def test_a_reinforcement_will_not_march_onto_a_peaceful_court(
+            self, world, executor):
+        """The Albania shape, on the boot board: the battle is fought on
+        HESSE's soil, with France at peace with Hesse."""
+        from backend.models.marshal import StrategicOrder
+
+        mack = world.marshals["Mack"]
+        mack.location = "Nassau"
+        mack.strength = 6000
+        assert world.get_region("Nassau").controller == "Hesse"
+        assert world.get_diplomatic_state("France", "Hesse") == "PEACE"
+
+        ney = world.marshals["Ney"]
+        ney.location = "Rhineland"
+        soult = world.marshals["Soult"]
+        soult.location = "Rhineland"
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Ney", target_type="marshal",
+            started_turn=int(world.current_turn),
+            original_command="Soult, support Ney")
+        where_he_was = soult.location
+
+        _attack(world, executor, "Ney", "Mack")
+
+        assert soult.location == where_he_was, (
+            f"Soult was teleported to {soult.location} — a court France is "
+            f"at PEACE with, on ground no legal order could have sent him "
+            f"to")
+
+    def test_an_ally_liberation_still_marches(self, world, executor):
+        """FALSIFIABLE NEGATIVE — the ALLY arm is untouched. Driving the
+        enemy off an ally's province is what the alliance is FOR, and the
+        guard must not have become 'never leave home'."""
+        from backend.models.marshal import StrategicOrder
+        mack = world.marshals["Mack"]
+        assert mack.location == "Swabia"
+        assert world.get_region("Swabia").controller == "Bavaria"
+        assert world.get_diplomatic_state("France", "Bavaria") == "ALLIANCE"
+        mack.strength = 6000
+
+        ney = world.marshals["Ney"]
+        ney.location = "Rhineland"
+        soult = world.marshals["Soult"]
+        soult.location = "Rhineland"
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Ney", target_type="marshal",
+            started_turn=int(world.current_turn),
+            original_command="Soult, support Ney")
+
+        result = _attack(world, executor, "Ney", "Mack")
+        assert result.get("success"), result.get("message")
+        # He is permitted to march; whether he arrives is the roll's business.
+        assert soult.location in ("Rhineland", "Swabia")
+
+    def test_an_ordinary_at_war_battle_still_musters(self, world, executor):
+        """CONTROL: the enemy's own soil is the ordinary case."""
+        from backend.models.marshal import StrategicOrder
+        mack = world.marshals["Mack"]
+        mack.location = "Tyrol"
+        mack.strength = 4000
+        world.marshals["ArchdukeJohn"].location = "Vienna"
+        assert world.get_region("Tyrol").controller == "Austria"
+        assert world.is_at_war("France", "Austria")
+
+        massena = world.marshals["Massena"]
+        assert massena.location == "Milan"
+        soult = world.marshals["Soult"]
+        soult.location = "Milan"
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Massena", target_type="marshal",
+            started_turn=int(world.current_turn),
+            original_command="Soult, support Massena")
+
+        result = _attack(world, executor, "Massena", "Mack")
+        assert result.get("success"), result.get("message")
+
+
+class TestF13AVoidedOrderSaysSo:
+
+    def test_the_event_type_is_visible_to_the_player(self):
+        from backend.campaign_log import CAMPAIGN_LOG_TYPES
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "order_voided_by_battle" in CAMPAIGN_LOG_TYPES
+        assert "order_voided_by_battle" in _DISPATCH_EVENT_TYPES
+
+    def test_it_has_a_real_one_liner_not_the_fallback(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner({
+            "type": "order_voided_by_battle", "marshal": "Murat",
+            "nation": "France", "region": "Albania",
+            "order": "MOVE_TO", "order_target": "Vienna"})
+        assert not line.startswith("Event: "), line
+        assert "Murat" in line and "Vienna" in line and "void" in line
+
+    def test_it_reads_as_a_warning_not_as_good_news(self):
+        from backend.game_logic.dispatch import _build_turn_events
+        rows = _build_turn_events([{
+            "type": "order_voided_by_battle", "marshal": "Murat",
+            "nation": "France", "message": "his order is void"}], "France")
+        assert rows and rows[0]["severity"] == "warning", rows
+
+    def test_the_order_is_still_actually_cleared(self):
+        """FALSIFIABLE NEGATIVE — the row is about SAYING so, not about
+        keeping the order. A-C2 clears it deliberately."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        assert "arriving.strategic_order = None" in src
+
+    def test_only_the_players_own_orders_are_narrated(self):
+        """The dispatch is the PLAYER's briefing; an AI marshal's voided
+        order is not his news."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        at = src.index('"type": "order_voided_by_battle"')
+        assert "arriving.nation == world.player_nation" in src[at - 900:at]

@@ -135,7 +135,7 @@ class TestTypeWhitelist:
         # Stage C review fixes (July 24, 2026): +1 instrument_lapsed — an
         # instrument ending WITHOUT a breaker (term served / ward
         # aggression / unattributable war) must still reach the record.
-        assert len(CAMPAIGN_LOG_TYPES) == 156  # 142->156 flipped consciously: DEF-5 naval NV-0..NV-3 appends 14 types (NAVAL_SPEC section 8)
+        assert len(CAMPAIGN_LOG_TYPES) == 157  # 156->157 flipped consciously: CA9-F13 adds `order_voided_by_battle` (a standing order cancelled by a battle the marshal answered rather than chose — it died silently). Prior: 142->156, DEF-5 naval NV-0..NV-3, NAVAL_SPEC section 8.
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""

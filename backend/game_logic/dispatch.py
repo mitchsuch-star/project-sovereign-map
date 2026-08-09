@@ -2215,6 +2215,10 @@ _DISPATCH_EVENT_TYPES = {
     # Good severity
     "construction_complete", "occupation_complete",
     "drill_complete", "retreat_recovery",
+    # CA9-F13: a standing order voided by a battle the marshal answered
+    # rather than chose. It died silently; the player learned of it by
+    # giving him an order two turns later.
+    "order_voided_by_battle",
     "garrison_regen", "broken_recovered",
     # Info severity (no special highlight)
     "occupation_continues", "drill_locked", "drill_started",
@@ -2297,6 +2301,9 @@ def _build_turn_events(
                             "jealousy_resolved", "jealousy_ladder_shift",
                             "glory_crowned", "marshal_commissioned"):
             severity = "good"
+        elif event_type == "order_voided_by_battle":
+            # CA9-F13: not good news — a plan the player made is gone.
+            severity = "warning"
         elif event_type == "retreat_recovery":
             # N37 (CA9): a corps still carrying a -40% effectiveness
             # penalty was reported as GOOD news. It is good news only at

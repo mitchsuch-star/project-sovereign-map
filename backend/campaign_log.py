@@ -248,6 +248,11 @@ CAMPAIGN_LOG_TYPES = {
     "rente_defaulted",
     # Marshal recruitment
     "marshal_commissioned",
+    # CA9-F13: a standing order voided by a battle the marshal
+    # ANSWERED rather than chose. It died silently — Murat's march
+    # on Vienna was cancelled by a jealousy attack and the player
+    # found out by giving him an order two turns later.
+    "order_voided_by_battle",
     # Nation Agendas NA-1 (docs/NATION_AGENDAS_SPEC.md)
     "agenda_shift",
     # Nation Agendas NA-3 §5.9 — the Ansbach trap
@@ -348,6 +353,7 @@ CATEGORY_MAP = {
     "fontainebleau_petition": "command",
     "rente_defaulted": "economy",
     "marshal_commissioned": "command",
+    "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "last_stand": "combat",
     "marshal_released": "diplomacy",
@@ -932,7 +938,8 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "jealousy_escalation", "jealousy_autonomous",
                           "jealousy_confrontation", "rivalry_confrontation",
                           "glory_crowned", "fontainebleau_petition",
-                          "rente_defaulted", "marshal_commissioned"):
+                          "rente_defaulted", "marshal_commissioned",
+                          "order_voided_by_battle"):
             if event.get("nation") == world_state.player_nation:
                 filtered.append(event)
             continue
@@ -1505,6 +1512,19 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the capital")
         return (f"{_name_tag(marshal, nation)} commissioned to the "
                 f"marshalate — raises his corps at {location}")
+
+    if event_type == "order_voided_by_battle":
+        # CA9-F13: the standing order the marshal lost by answering a
+        # battle he did not choose. Murat's march on Vienna went this way
+        # in the played campaign and nothing said so.
+        marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
+        region = event.get("region", "the field")
+        verb = str(event.get("order", "") or "march").replace("_", " ").lower()
+        target = humanize_entity_name(str(event.get("order_target", "") or ""))
+        tail = f" to {verb} {target}".rstrip() if target else ""
+        return (f"{_name_tag(marshal, nation)} marched to the guns at "
+                f"{region} — his standing order{tail} is void")
 
     if event_type == "agenda_shift":
         nation = display_nation(event.get("nation", "Unknown"))

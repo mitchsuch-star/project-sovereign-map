@@ -4352,6 +4352,31 @@ class CombatExecutor:
             for result in results_list:
                 if result["arrived"]:
                     arriving = world.marshals.get(result["marshal"])
+                    # ── CA9-F13: no reinforcement TELEPORTS onto soil it
+                    # could not legally march to.
+                    #
+                    # The relocation below is a bare assignment with no
+                    # diplomatic guard, so a jealousy-driven autonomous
+                    # attack that chased a beaten officer into neutral
+                    # OTTOMAN ALBANIA carried the whole muster with it:
+                    # Davout, Murat and Massena stood nine provinces from
+                    # their war, on ground no legal order could have sent
+                    # them to, and starved there for two turns.
+                    #
+                    # Gated with the PT-F1 predicate, which is the same
+                    # rule the movement seam and the battle-advance already
+                    # use — its NEUTRAL arm is precisely "an uninvited army
+                    # may not stand on a peaceful court's soil". The ALLY
+                    # arm still marches (driving the enemy off an ally's
+                    # province is what the alliance is for), so this only
+                    # bites the case that had no legal route.
+                    if arriving is not None:
+                        _block = self._pursuit_capture_guard(
+                            arriving, battle_region_name, world)
+                        if _block is not None and _block["arm"] == "neutral":
+                            result["arrived"] = False
+                            result["reason"] = "neutral_soil"
+                            arriving = None
                     if arriving:
                         # Record arrived_via_support BEFORE any changes (A-C2)
                         order = getattr(arriving, 'strategic_order', None)
@@ -5260,7 +5285,39 @@ class CombatExecutor:
                 if result["arrived"]:
                     arriving = world.marshals.get(result["marshal"])
                     if arriving:
+                        # CA9-F13, second half: a standing order died here
+                        # SILENTLY. Murat's MOVE_TO Vienna was cancelled by
+                        # answering a battle he never chose to join, and no
+                        # event, message or log line ever said so — the
+                        # player found out by giving him an order two turns
+                        # later. Say what was voided, and by what.
+                        _voided = arriving.strategic_order
                         arriving.strategic_order = None
+                        if (_voided is not None
+                                and arriving.nation == world.player_nation):
+                            from backend.display_names import (
+                                humanize_entity_name as _hum,
+                            )
+                            _verb = str(
+                                getattr(_voided, "command_type", "")
+                                or "march").replace("_", " ").lower()
+                            _obj = _hum(str(
+                                getattr(_voided, "target", "") or ""))
+                            world.log_event({
+                                "type": "order_voided_by_battle",
+                                "marshal": arriving.name,
+                                "nation": arriving.nation,
+                                "order": str(getattr(
+                                    _voided, "command_type", "") or ""),
+                                "order_target": str(getattr(
+                                    _voided, "target", "") or ""),
+                                "region": battle_region_name,
+                                "message": (
+                                    f"{arriving.name} marched to the guns at "
+                                    f"{battle_region_name}; his standing "
+                                    f"order to {_verb} {_obj} is void. He "
+                                    f"awaits fresh orders."),
+                            })
 
         # Fog of War (Session 34A): Battle grants FULL visibility on battle region
         world.update_intel_from_battle(battle_region_name, world.current_turn)

@@ -543,7 +543,7 @@ class TestEndpoint:
 class TestContracts:
 
     def test_no_new_event_type(self):
-        assert len(CAMPAIGN_LOG_TYPES) == 156  # 142->156 flipped consciously: DEF-5 naval NV-0..NV-3 appends 14 types (NAVAL_SPEC section 8)
+        assert len(CAMPAIGN_LOG_TYPES) == 157  # 156->157 flipped consciously: CA9-F13 adds `order_voided_by_battle` (a standing order cancelled by a battle the marshal answered rather than chose — it died silently). Prior: 142->156, DEF-5 naval NV-0..NV-3, NAVAL_SPEC section 8.
 
     def test_the_collapse_is_not_inside_the_filter(self):
         """51 test call sites depend on `filter_campaign_log`'s contract."""
