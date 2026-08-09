@@ -57,13 +57,23 @@ _ABSENCE_LABELS = {
     "literal_personality": "awaits explicit orders",
     "fate_intervened": "fate intervened on the march",
     "eyes_on_a_crown": "weighed his own ambitions",
+    # A5 (CA9 row 3): the tableau's parallel of the muster preview's own
+    # arm. A marshal held back by a quarrel used to fall through to
+    # `_ABSENCE_DEFAULT` — "could not reach the field" — which narrates
+    # character as geography, the same defect A6 fixes on the dispatch side.
+    "grievance_withheld": "would not march for him",
 }
 _ABSENCE_DEFAULT = "could not reach the field"
 
 # PT-D2: refusal is a CHOICE, a failed arrival is not — the same line the
 # Session-61a trust dock draws (it exempts by-design character refusals
 # and docks only the honest failed roll).
-_REFUSAL_REASONS = ("literal_personality", "eyes_on_a_crown")
+_REFUSAL_REASONS = ("literal_personality", "eyes_on_a_crown",
+                    # A5: a grievance is a CHOICE, so it belongs with the
+                    # by-design refusals rather than the failed rolls —
+                    # which is also what keeps the Session-61a trust dock
+                    # from charging a marshal for his own sulk.
+                    "grievance_withheld")
 
 # The absence family — every status the shelf (not the line) renders.
 ABSENT_STATUSES = ("failed_arrive", "refused", "out_of_reach")

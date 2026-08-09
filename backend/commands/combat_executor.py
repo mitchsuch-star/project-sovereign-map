@@ -292,6 +292,38 @@ class CombatExecutor:
     # both the resolution path and the muster odds band (CO-2).
     COMMITTED_ALPHA = 0.6
 
+    def _pair_contribution_scale(self, lead, ally) -> float:
+        """How much of `ally`'s weight actually reaches a battle `lead` leads.
+
+        A5 (CA9 row 3): EXTRACTED, not new. This body was inline in
+        `_committed_reinforcement_strength` and nowhere else, so the muster
+        preview — the screen the player reads immediately before committing —
+        had no way to know that an aggressive marshal nursing a grievance
+        brings a hard ZERO. Measured in the audit: committed strength
+        24,840 -> 0, win rate 7/8 -> 1/8, and the row still read "will march
+        to the sound of the guns".
+        There is now ONE source, and the preview calls it rather than keeping
+        a second opinion (the house pattern: the advisory surface calls the
+        executor's own predicate).
+
+        ×0.0 hostile … ×1.5 devoted on the MC-3 scale, then the Jealousy v3.2
+        withholding, which mirrors `_calculate_per_ally_coordination`: an
+        aggressive grievance is a hard 0.0, a non-aggressive one reads the
+        worse direction of the pair.
+        """
+        scale = self._RELATIONSHIP_SCALING.get(
+            lead.get_relationship(ally.name), 1.0)
+        lead_jealous = getattr(lead, "jealous_of", None) == ally.name
+        ally_jealous = getattr(ally, "jealous_of", None) == lead.name
+        if lead_jealous or ally_jealous:
+            jealous_one = lead if lead_jealous else ally
+            if jealous_one.personality == "aggressive":
+                return 0.0
+            pair_rel = min(lead.get_relationship(ally.name),
+                           ally.get_relationship(lead.name))
+            scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
+        return scale
+
     def _committed_reinforcement_strength(self, lead, participants, world) -> float:
         """CO-1/CO-1b: additive committed strength a lead's reinforcers bring
         to the clash (everyone in `participants` except the lead).
@@ -319,21 +351,7 @@ class CombatExecutor:
             if getattr(r, "strength", 0) <= 0:
                 continue
 
-            rel = lead.get_relationship(r.name)
-            scale = self._RELATIONSHIP_SCALING.get(rel, 1.0)
-
-            # Jealousy v3.2 withholding — mirror _calculate_per_ally_coordination
-            # so committed mass and coordination read the same grievance.
-            lead_jealous = getattr(lead, "jealous_of", None) == r.name
-            r_jealous = getattr(r, "jealous_of", None) == lead.name
-            if lead_jealous or r_jealous:
-                jealous_one = lead if lead_jealous else r
-                if jealous_one.personality == "aggressive":
-                    scale = 0.0
-                else:
-                    pair_rel = min(lead.get_relationship(r.name),
-                                   r.get_relationship(lead.name))
-                    scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
+            scale = self._pair_contribution_scale(lead, r)
 
             if scale <= 0.0:
                 continue
@@ -677,8 +695,34 @@ class CombatExecutor:
         Mirrors _is_reinforcement_eligible + the Grouchy Rule as a REASON
         ladder — display only, the mechanics stay in their own functions.
         """
-        # Co-located friendlies share the field (and the casualties).
+        # ══════════════════════════════════════════════════════════════
+        # A5 (CA9 row 3): the co-located hole, and it was the worst one.
+        #
+        # This arm returned True/"shares_the_field" BEFORE any hostility
+        # check, and `_build_muster_preview` then stamped
+        # `shared_casualty_note` — "his men will absorb part of any losses"
+        # — while `_get_casualty_participants` DROPS a derived-hostile
+        # marshal without a SUPPORT order outright. So the screen the
+        # player reads before committing promised help from a man standing
+        # right there who would neither fight nor bleed.
+        #
+        # The same exclusion is applied here, with the SAME SUPPORT
+        # exemption `_get_casualty_participants` uses, so the two cannot
+        # disagree. Band-safe by construction: a derived-hostile ally
+        # scales to ×0.0 in `_pair_contribution_scale`, so he contributed
+        # nothing to `committed_attacker` before this change either —
+        # `TestBandInvariance` proves it rather than asserting it.
+        # ══════════════════════════════════════════════════════════════
         if candidate.location == battle_region:
+            if candidate.get_relationship(primary.name) == -2:
+                _order = getattr(candidate, 'strategic_order', None)
+                _has_support = (
+                    _order is not None
+                    and getattr(_order, 'command_type', None) == "SUPPORT"
+                    and getattr(_order, 'target', None) == primary.name
+                )
+                if not _has_support:
+                    return False, "shares_the_field_apart"
             return True, "shares_the_field"
         # NV-9 (shown = applied): reinforcement Rule 2b refuses a corps
         # across a covered sea link, but this ladder had no naval arm —
@@ -864,6 +908,32 @@ class CombatExecutor:
                     f"{m.name} shares the field at {battle_region} — his men "
                     f"will absorb part of any losses."
                 )
+            # ══════════════════════════════════════════════════════════
+            # A5, the second half: a marshal who marches but WITHHOLDS.
+            #
+            # `will_join` is deliberately NOT flipped here — it feeds
+            # `committed_attacker` and therefore the odds band, and this
+            # must not move row 2's arithmetic. What was missing was any
+            # word at all: the audit measured an aggressive marshal with a
+            # grievance bringing a hard ZERO (24,840 -> 0, win rate 7/8 ->
+            # 1/8) while his row read "will march to the sound of the
+            # guns". Read off the SAME predicate the combat math uses, so
+            # the sentence cannot drift from the number.
+            #
+            # A separate `withholds` field, not a `{placeholder}` in
+            # MUSTER_REASON_DISPLAY — that map is consumed as
+            # `.get(code, code)` and would render the braces raw.
+            # ══════════════════════════════════════════════════════════
+            if will_join:
+                _scale = self._pair_contribution_scale(marshal, m)
+                if _scale <= 0.0:
+                    row["withholds"] = (
+                        f"— but he is nursing a grievance and will bring "
+                        f"NOTHING to the fighting")
+                elif _scale < 1.0:
+                    row["withholds"] = (
+                        f"— but he and {marshal.name} are at odds; expect "
+                        f"about half his weight")
             rows.append(row)
 
         # CO-2: the odds band reflects the TOTAL committed force (lead + the
@@ -964,7 +1034,13 @@ class CombatExecutor:
                 continue
             joins, _code = self._muster_reason(
                 m, marshal, battle_region, marshal.nation, world)
-            if joins:
+            # A5, the third caller. This note NAMES the men who "would
+            # answer the guns" and then prints a joint figure that already
+            # excludes anyone contributing zero — so a marshal withholding
+            # over a grievance was named in the promise and absent from the
+            # arithmetic, on the CR-5 bad-odds modal. Names and figure now
+            # come from the same predicate.
+            if joins and self._pair_contribution_scale(marshal, m) > 0.0:
                 will_join.append(m)
         if not will_join:
             return ""
@@ -1050,6 +1126,10 @@ class CombatExecutor:
             line = f"  {verdict} — {row['marshal']}: {row['reason_display']}"
             if row.get("standing_order_hint"):
                 line += f" {row['standing_order_hint']}"
+            # A5: the quarrel that is deleting a corps from the odds gets
+            # named on the one screen the player reads before committing.
+            if row.get("withholds"):
+                line += f" {row['withholds']}"
             lines.append(line)
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
@@ -1214,6 +1294,29 @@ class CombatExecutor:
                 if (not has_explicit_order and hasattr(candidate, 'ability')
                         and candidate.ability.get("name") == "Eyes on a Crown"):
                     reason = "eyes_on_a_crown"
+                # ══════════════════════════════════════════════════════
+                # A6 (CA9 row 3): stop narrating character as weather.
+                #
+                # A grievance depresses the arrival score, so a marshal who
+                # did not march BECAUSE he resents the man he was marching
+                # to was reported as "could not reach the battlefield in
+                # time" — the roads. The audit's through-line exactly: the
+                # engine knows and tells the player something else.
+                #
+                # Sited beside its two siblings and gated the same way (a
+                # written SUPPORT order means the player DID order him, so
+                # a miss stays a logistics failure he can be docked for).
+                #
+                # DELIBERATELY left out of the Session-61a trust-dock
+                # exempt tuple: this reclassification is copy only, and
+                # adding it there would silently change trust arithmetic.
+                # The dock stays byte-identical — see the guard's own note
+                # and `TestA6TrustDockUnchanged`.
+                # ══════════════════════════════════════════════════════
+                elif (not has_explicit_order
+                        and getattr(candidate, "jealous_of", None)
+                        == primary.name):
+                    reason = "grievance_withheld"
 
             reinforcement_results.append({
                 "marshal": candidate.name,
@@ -5918,6 +6021,14 @@ class CombatExecutor:
                         f"{r['marshal']} halted at the frontier — the "
                         f"field lies on soil we are not at war with, and "
                         f"no order could send him there.")
+                elif reason == "grievance_withheld":
+                    # A6 (CA9 row 3): the roads were fine. He did not want
+                    # to. Naming it is the whole point — the grievance
+                    # system's largest consequence was, measurably, its
+                    # least visible.
+                    friendly_reason = (
+                        f"{r['marshal']} did not march. His quarrel with "
+                        f"{marshal.name} kept him where he stood.")
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
@@ -6029,6 +6140,14 @@ class CombatExecutor:
             # trust for that is punishing a man for the Emperor's peace
             # treaty. Measured: Soult 70 -> 67 and Davout 85 -> 82 on the
             # Nassau fixture, both with arrival scores ABOVE threshold.
+            # A6 (CA9 row 3): `grievance_withheld` is DELIBERATELY absent
+            # from this tuple. That reclassification is copy only — before
+            # it, the same marshal carried `low_score` and was docked, so
+            # leaving him docked keeps the trust arithmetic byte-identical
+            # and keeps A6 out of the balance. Whether a sulk should ALSO
+            # be exempt is a design question, not a rename, and it belongs
+            # with Q1's ratchet ruling. Pinned by
+            # `TestA6TrustDockUnchanged`.
             if not reinf_result["arrived"] and reinf_result["reason"] not in (
                     "literal_personality", "fate_intervened",
                     "eyes_on_a_crown", "neutral_soil"):

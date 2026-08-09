@@ -1110,6 +1110,31 @@ def check_rivalry_transitions(world, changes: Optional[List[Dict]]) -> None:
             continue            # one petition at a time; transition stays unseen
         seen.add(key)
         world.rivalry_transitions_seen = sorted(seen)
+        # ══════════════════════════════════════════════════════════════
+        # A8 (CA9 row 3): queue from the man who is ACTUALLY aggrieved.
+        #
+        # `Marshal.modify_relationship` reads the DERIVED value and writes
+        # stored, so for a marshal carrying a live grievance the returned
+        # change is 0 — and the loop above skips non-negative changes. The
+        # envious man's own transition therefore never reached here and the
+        # petition was built from his TARGET's change instead. Measured on
+        # the 1805 boot: *"Sire, Ney has refused to attend council where
+        # Murat is present"* while `Murat.jealous_of == 'Ney'` and
+        # `Ney.jealous_of is None`. The flagship modal named the wrong man
+        # as the sulker, and every arm then acted on him.
+        #
+        # Fixed HERE and not at the writer, per the Q5 ruling (option c):
+        # a refuter MEASURED that repairing `modify_relationship` diverges
+        # `BASELINE_SERIES` at index 20 with 21 of 41 readings changed and
+        # the tail collapsing to 0 — a balance change in the flatter
+        # direction, on the slice immediately before the playtest that is
+        # meant to judge this row. This swap touches no relationship value,
+        # no combat path and no harness; `_pair_key` is symmetric so the
+        # seen-key is unaffected.
+        # ══════════════════════════════════════════════════════════════
+        if (getattr(other, "jealous_of", None) == marshal.name
+                and getattr(marshal, "jealous_of", None) != other.name):
+            marshal, other = other, marshal
         queue_rivalry_petition(world, marshal, other, new_value)
 
 

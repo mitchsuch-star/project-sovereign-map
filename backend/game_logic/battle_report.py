@@ -865,9 +865,16 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
                      ally=our_devoted_allies[0])
 
     # Priority 9.6 (coordination): Rival→Professional relationship improvement (A-I3)
+    # A8 (CA9 row 3): only narrate a thaw that actually happened. A `+1` on a
+    # pair carrying a live grievance is REPORTED and never lands (see
+    # `relationship.py`'s `stored_moved` note), so Berthier used to
+    # congratulate the player on a reconciliation on the very battle where
+    # the grievance penalty applied. `stored_moved` defaults True so any
+    # other producer of `relationship_changes` is unaffected.
     player_rel_improvements = [
         r for r in relationship_changes
         if r.get("nation") == player_nation and r.get("direction") == "improved"
+        and r.get("stored_moved", True)
     ]
     if player_rel_improvements:
         rc = player_rel_improvements[0]

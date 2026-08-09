@@ -180,6 +180,14 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
 
     if len(attacker_participants) >= 2:
         for a, b in permutations(attacker_participants, 2):
+            # A8 (CA9 row 3): capture the STORED value across the call.
+            # `Marshal.modify_relationship` reads the DERIVED value and
+            # writes stored, so for a pair carrying a live grievance a `+1`
+            # computes new = (stored - 1) + 1 = stored, writes stored, and
+            # still RETURNS +1. The change was reported and never landed —
+            # and Berthier congratulated the player on a thaw on the very
+            # battle where the grievance penalty applied.
+            _stored_before = a.relationships.get(b.name, 0)
             change = check_shared_battle_relationship(
                 a, b, battle_result, attacker_won, world)
             if change != 0:
@@ -193,6 +201,12 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
                     "new_label": label,
                     "direction": direction,
                     "nation": a.nation,
+                    # Did anything a mechanic can read actually move?
+                    # Consumers that narrate a THAW must check this. Fixed
+                    # here rather than at the writer per the Q5 ruling (c):
+                    # repairing `modify_relationship` was MEASURED to
+                    # diverge BASELINE_SERIES at index 20.
+                    "stored_moved": a.relationships.get(b.name, 0) != _stored_before,
                 })
 
     # Defender side
@@ -206,6 +220,14 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
 
     if len(defender_participants) >= 2:
         for a, b in permutations(defender_participants, 2):
+            # A8 (CA9 row 3): capture the STORED value across the call.
+            # `Marshal.modify_relationship` reads the DERIVED value and
+            # writes stored, so for a pair carrying a live grievance a `+1`
+            # computes new = (stored - 1) + 1 = stored, writes stored, and
+            # still RETURNS +1. The change was reported and never landed —
+            # and Berthier congratulated the player on a thaw on the very
+            # battle where the grievance penalty applied.
+            _stored_before = a.relationships.get(b.name, 0)
             change = check_shared_battle_relationship(
                 a, b, battle_result, defender_won, world)
             if change != 0:
@@ -219,6 +241,12 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
                     "new_label": label,
                     "direction": direction,
                     "nation": a.nation,
+                    # Did anything a mechanic can read actually move?
+                    # Consumers that narrate a THAW must check this. Fixed
+                    # here rather than at the writer per the Q5 ruling (c):
+                    # repairing `modify_relationship` was MEASURED to
+                    # diverge BASELINE_SERIES at index 20.
+                    "stored_moved": a.relationships.get(b.name, 0) != _stored_before,
                 })
 
     return changes

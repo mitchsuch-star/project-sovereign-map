@@ -644,6 +644,13 @@ STANCE_DISPLAY = {
 # the mechanics are untouched.
 MUSTER_REASON_DISPLAY = {
     "shares_the_field": "stands on the field and will fight beside him",
+    # A5 (CA9 row 3): standing on the same ground is not the same as
+    # fighting. A derived-hostile marshal without a written SUPPORT order is
+    # dropped by `_get_casualty_participants`, so he neither fights nor
+    # bleeds — and the preview used to promise both.
+    "shares_the_field_apart": (
+        "stands on the same field and will do NOTHING — order him to "
+        "support, or he watches"),
     "has_support_order": "marches under your written support order",
     "aggressive_marches": "will march to the sound of the guns",
     "answers_the_guns": "is willing to march if the roads allow",
