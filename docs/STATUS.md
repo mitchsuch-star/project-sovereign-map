@@ -116,12 +116,49 @@
 >    added to the parse harness's staleness list (it was parsed but not
 >    staleness-guarded, which is how the soft-lock shipped).
 >
->    ⚠ **OPEN: five design rulings in §5** (Q1 may an arm touch the escalation
->    ratchet · Q2 build the excluded "to my tent" council-command arm · Q3 does
->    a first grievance get a first act · Q4 is permanent Hostile intended · Q5
->    when to fix `modify_relationship`). **Phase A's other 11 items + Phase B
->    are specified but NOT built.** §6 lists 7 things NOT to do with reasons,
->    incl. why restoring v3's Promise Glory deadline is a category error.
+>    ✅ **ALL FIVE §5 RULINGS TAKEN August 9, 2026** at the memo's
+>    recommendations (user: *"proceed at all recommendations"*) — Q1(b) an arm
+>    HOLDS the escalation level at a cost · Q2(a) build the excluded
+>    council-command arm · Q3(b) a second fire required on stored −1 pairs ·
+>    Q4(a) permanent Hostile is intended, clamp the mend arms · Q5(c) fix the
+>    visible symptoms now, defer the `modify_relationship` writer past the
+>    playtest (a refuter MEASURED that fixing it diverges `BASELINE_SERIES` at
+>    index 20, 21 of 41 readings).
+>
+>    **▶ BUILT SO FAR — 5 commits, suite 16,820 → 17,000/3, ruff clean,
+>    M1–M7 + `BASELINE_SERIES` byte-identical throughout:**
+>    - `361d991` **A1** the "Later" soft-lock (P1) + the parse-harness
+>      staleness gap that let it ship.
+>    - `8100b11` **A2** the cooling names its cause (+ A13's `by_action`
+>      discriminator, no new log type) · **A3** the stale-answer guard, scoped
+>      to the confrontation kind · **A4** war_weary stops destroying a queued
+>      petition · **A9** "Separate Them" gets retirement + a 4-turn cooldown ·
+>      **A10** four `_`-prefixed latches become declared, serialized fields
+>      (the rename is the load-bearing half — the enforcement test filters
+>      `_` names, which is how they hid).
+>    - `bc3c448` **A5** the muster preview stops lying (one extracted source
+>      `_pair_contribution_scale`; the co-located casualty lie; the
+>      `withholds` row; the bad-odds note; the diorama row) · **A6** a
+>      grievance no-show is attributed to ambition, not the roads, with the
+>      trust dock left byte-identical on purpose · **A8** the rivalry petition
+>      names the man who is actually aggrieved, and Berthier stops
+>      congratulating the player on a thaw that never landed.
+>    - `3f8468c` **Q1(b)** the escalation HOLD — the paid arm finally buys
+>      something no other arm can, ending the convergence the audit measured ·
+>      **§3** Acknowledge → **"Let it stand"**, priced in men · **Q4(a)** the
+>      second inert paid arm fixed, the trapdoor stated, the mend clamped.
+>
+>    **▶ STILL TO BUILD (queue, in order):** **A7** `jealousy_note` reaches
+>    every battle · **A11** the three `.gd` sentences that teach the system
+>    (needs the XR-1 boot check) · **A12** de-duplicate the briefing — **own
+>    commit + flip experiment, moves `BASELINE_SERIES`** · **Q2(a)** the
+>    council-command "to my tent" arm (the only proposal that makes the modal
+>    a decision AND answers "why does this exist" in one stroke) · **Q3(b)**
+>    a first grievance gets a first act — **also moves `BASELINE_SERIES`** ·
+>    Phase B **A13** the drama-line cap (its `by_action` prerequisite
+>    landed with A2) and **A14** the modal renders the marshal.
+>    §6 lists 7 things NOT to do with reasons, incl. why restoring v3's
+>    Promise Glory deadline is a category error.
 >
 > **Then ONE playtest covering all of it** — the three new slices AND the 31
 > CA9 rows landed August 9, which have never been played. That playtest also
