@@ -6,83 +6,109 @@
 
 > ## ⚠ NEXT SESSION STARTS HERE — THE CA9 FIX QUEUE (filed August 8, 2026)
 >
-> **A 26-turn France/1805 creative audit was played live on August 8, 2026 and filed
-> 20 rows, ALL OPEN, none gate-blocked.** Record =
-> **`docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative)**; rows =
-> **`docs/BUG_FIXES.md` §Creative Audit CA9**; evidence =
-> `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md` (player-visible transcript) +
-> `docs/audits/CA9_PLAY_NOTES_2026_08_08.md` (live play log incl. every claim I later
-> corrected). Every finding was put to an independent skeptic instructed to refute it:
-> **12 NARROWED, 2 survived outright, 0 killed**; seven further claims were corrected
-> or withdrawn and are listed in the memo rather than dropped.
+> **A 26-turn France/1805 creative audit was played live on August 8, 2026.** Record =
+> **`docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative)** · rows =
+> **`docs/BUG_FIXES.md` §Creative Audit CA9** · evidence =
+> `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md` + `docs/audits/CA9_PLAY_NOTES_2026_08_08.md`.
+> The play pass filed 14 findings; a **42-agent verify → refute → sweep → score fleet** then
+> narrowed six, killed one sub-claim, ruled one UNDETERMINED, **raised two from P3 to P1**, and
+> **found 47 more**. **~60 confirmed rows, ALL OPEN, only three gate-blocked.**
 >
-> **The campaign in one line.** France won nearly every battle, lost **52,677 men to
-> hunger against 38,016 in battle**, had three corps dragged into Ottoman Albania
-> chasing a fleeing British officer, and at war score **+13 in its favour** — holding
-> two Austrian provinces with Mack captured — was advised to **pay Austria 77g/turn**
-> for peace. From T16 to T26 the map never moved (31/95) and one dispatch sentence
-> appeared **14 times verbatim**.
+> **⚠ Commit `73faf17` shipped the first-pass severities; commit `<this one>` supersedes them.**
+> If you read the play notes, read the BUG_FIXES table too — where they disagree the table wins.
 >
-> **The through-line: a producer and a consumer disagree about what a number or a
-> promise means, with no seam forcing them to agree.** Four questions the player
-> actually decides on — *how strong is the enemy · how many men will this cost · what
-> will this order do · what is my victory worth* — each currently has two or more
-> answers in the shipped build.
+> ### The campaign in one line
+> France won almost every battle and lost the campaign to its own systems: **~52,700 men to supply
+> and marching against ~38,000 to the enemy**; three corps teleported into **Ottoman Albania** by a
+> jealousy-driven autonomous attack that voided a standing MOVE_TO with no message; four separate
+> total input lockouts from an unrendered war-purpose dialogue that ate `end turn`; and at war score
+> **+19 with seven wins and no losses**, the recommended one-click peace was **France paying Austria
+> 77 gold a turn**, labelled *"generous"*, and not even predicted to be accepted.
 >
-> ### Suggested build order (cheapest-highest-impact first; all unblocked)
+> ### The through-line — read this before picking a row
+> **Every system computes the right answer and then tells the player a different one, and the
+> divergence is always in the direction that makes the player commit.** The advisory surface and the
+> executor are separate implementations of the same rule, and only one is maintained. The fix shape
+> that closes most of the queue: **make the advisory surface call the executor's own predicate** —
+> the same function, not a copy. The pillar that regressed hardest is not narration; it is **trust**.
 >
-> 1. **CA9-1 (P1) — the invisible war-purpose hard stop.** Three sites discard
->    `_stage_war_purpose_selection`'s return value, so a HARD STOP is armed that the
->    client can never render; it swallowed two orders and once `end turn`. Fired 4× in
->    26 turns. Smallest fix in the queue, largest player impact.
->    *+ rider:* the hard-stop router matches `_DIALOGUE_RESPONSE_KEYWORDS` by **bare
->    substring** ("no", "send", "garrison"…), so `march on Normandy` can answer it.
-> 2. **CA9-7 (P1) — the dispatch leads with third parties' prisoners at weight 95.**
->    One-line branch on `e.get("nation")`, which the event already carries.
-> 3. **CA9-10 (P2) + CA9-9 (P2) — the two "two numbers for one thing" repairs.**
->    Accumulate instead of overwrite in the AP charge loop; stop discarding the
->    whole-army casualty total in `_reconcile_report_survivors`.
-> 4. **CA9-2 + CA9-3 (P1, together) — make the muster preview honest.** Add a
->    defaulted `committed_defender` (leaves every CR-5 pin byte-identical) and a
->    `supply_note` row. These two are why the campaign's best affordance is also its
->    biggest trap.
-> 5. **CA9-4 (P1) — decide the SUPPORT contract.** Either make the copy true (free) or
->    widen the predicate (**changes combat mass — measure first**).
-> 6. **CA9-8 (P1) — guard reinforcer relocation and announce voided orders.**
-> 7. **CA9-5 + CA9-6 (P1) — the leverage/terms loop.** Two of CA9-6's four mechanisms
->    are pure defect repair and land today (the missing `strength > 0 and not
->    captured_by` guard on both contested-capital arms; the decisive cap not keyed per
->    winner). The rest — a casualty/army-destruction term in `calculate_war_score`, and
->    CA9-5's sweetener disjunct — move blessed numbers: **land behind a measurement,
->    not a guess.**
-> 8. **CA9-11, CA9-12, CA9-13, CA9-14 (P2)** then the P3 copy rows CA9-15..CA9-20.
+> ### Pillar scores (directional **≈6.3**; Aug 4 ≈6.9; Jul 25 ≈7.4 — attributed to campaign LENGTH)
+> Combat **5.5** (−1.0) · Marshal drama **6.5** (−1.0) · Economy **6.0** (−0.5) ·
+> Diplomacy **6.5** (−0.5) · **Narration 6.5 (+0.5 — the only pillar that rose)** ·
+> Command/parsing **6.0** (−1.0) · AI aliveness **7.0** (flat).
 >
-> **CA9-12 is the Aug-4 CA8-15 row, still unbuilt** — independently chosen by both the
-> narration and aliveness scorers as the highest-value narration fix. Note its fix
-> **cannot reuse the existing key**: `enemy_phase_dialog.gd:68-75` branches on
-> `fog_hidden_summary` *instead of* the nations loop.
+> ### Tier 1 — unblocked, days, highest trust-per-line (in this order)
+> 1. **F6 — stamp `diplomatic_dialogue` at the three PT-F1 sites** (`combat_executor.py:4489/5410/6323`,
+>    copying `:3176`). One line each; total input lockout; no defence. Also widen
+>    `_unresolved_choice_failure`'s re-attach to all `HARD_STOP_TYPES` as a backstop. **Do this first.**
+> 2. **The typed dialogue router** (`main.py:2092`, + `main.py:1901`, `diplomatic_executor.py:3380`) —
+>    it substring-matches an option label and applies it to whichever dialogue is **ACTIVE**, never
+>    reading the court the player named. Live: `accept Portugal's proposal` signed a **permanent
+>    treaty with Prussia**. The client-side fix for this exact class already shipped
+>    (`diplomatic_executor.py:3222-3224`); the typed path — this game's premise — never got it.
+> 3. **N5 — one helper that prints the live dialogue's own option list** (`executor.py:524`,
+>    `main.py:2111`). `choices` is already returned and thrown away. While there, swap the hard-stop
+>    **bare-substring** matcher for the option-matcher twenty lines below, or `garrison Paris` will
+>    keep declaring wars of conquest.
+> 4. **F1 — symmetric `committed_defender` in the muster band** (`objection_v2.py:867` +
+>    `combat_executor.py:828`). One defaulted parameter; all four `inferred_attack_favorable` sites
+>    stay byte-identical. The resolver already comments *"Symmetric for a reinforced defender (GR5)"*.
+> 5. **F10 — extract `can_build(region, type, nation) -> (ok, reason)`** and have both
+>    `_execute_build` and `_supply_strain_candidate` call it. Recurrence of closed CA8-2.
+> 6. **F14 — drop `or relation < -50` from the sweetener branch** (`diplomatic_templates.py:3584`).
+>    *Caveat: current behaviour is gate-blessed at `CREATIVE_AUDIT_2026_08_04.md:934-936`, so this is
+>    a one-line **re-open** of a decision this campaign falsified, not a bug fix.*
+> 7. **N3 + N17 — dismiss `DOTATION_EROSION` and `COUNTER_PUNCH_EARNED`.** Neither is dismissed by
+>    any code path; both advertised expired state for the rest of the campaign.
+> 8. **F12 + N2 — branch `marshal_captured` on `e["nation"]`** (already on the event) and give the
+>    Berthier note the same direction — it currently says *"make his captors regret the keeping"*
+>    when **France is the captor**. The CA8 pin builds its event with no `nation` key and will red.
+> 9. **N1 — dedupe the double `battles_won` increment** (`combat_executor.py:4950-4967`). **Not
+>    cosmetic:** every arrived reinforcement banks two wins for one battle, so the entire ES-7 reward
+>    economy is priced off a doubled number. Re-measure the band after.
+> 10. **The narration one-liners** — N24 (`{failed_was}` — *"Davout, Soult and Murat **was**
+>     expected"*), N25 (*"1 turns after the last"*), N26, N31, N28, N32, N37. One line each, all quotable.
+>
+> ### Tier 2 — one slice each
+> N9 + **N47** (cross-turn sub-beat memory, and hoist `_STANDING_ESCALATION` out of its `for…else` —
+> **its variant bank has never once fired**) · F7/CA8-15 §2a per-nation fog fallback (**under a NEW
+> key** — `enemy_phase_dialog.gd:68` branches *instead of* the nations loop; fix N40's stale
+> `action_count` first) · N6 + N7 (the AI divides its army by the **weakest** enemy corps present —
+> same defender-invisibility bug on the other side; 12 suicide assaults, 4.7:1 against itself) ·
+> F13 (gate the muster relocation; **measure M1–M7**) · N27 + F11 (`humanize_entity_name` on the
+> three remaining surfaces) · F8's copy half · F5's `-1` sentinel (**both `.gd` sites** —
+> `format_number(-1)` returns `"-1"`) · N11 `treasury_delta`.
+>
+> ### Tier 3 — needs a design gate
+> F9's leverage question (three of its four mechanisms are **spec-verbatim and documented as
+> anti-farming** — only the captured-marshal capital inversion is a defect and ships in tier 1;
+> the rest belongs at **Victory & Objectives**) · N19 Requisitions (structurally unreachable for a
+> *winning* army) · N20 (starvation currently reads as an economic **win**: 40,000 dead retired both
+> upkeep surcharges, −1,224g/turn) · F4's general form (order-time supply disclosure on every path —
+> touches the **undisclosed `(n-1)×1%` stacking penalty, which fires under capacity**) · N10
+> (splitting jealousy's fire from its escalation moves M7).
 >
 > ### What the audit confirmed is FIXED and must not be re-broken
-> **0 raw-snake_case AI verbs** across 26 turns (CA8-6 holding, measured by a harness
-> that mirrors `_format_action`'s own key list) · the dispatch **does** now lead with
-> French victories (CA8-26/D6) · terminal and campaign-log casualties agree (CA8-1;
-> only Berthier's report is still lead-only) · the plunder prompt states its price and
-> pays it (IGR-E) · the letter-book renders, batches and answers correctly (IGR-F) ·
-> the jealousy recurrence register is live and is some of the best writing in the game.
+> **0 raw-snake_case AI verbs in 26 turns** (CA8-6, measured by a harness mirroring `_format_action`'s
+> own key list) · the dispatch **does** lead with French victories (CA8-26/D6) · terminal and
+> campaign-log casualties agree (CA8-1) · the plunder prompt states and pays its price (IGR-E) · the
+> letter-book renders, batches and answers correctly (IGR-F) · the jealousy recurrence register.
+>
+> ### Nine open design questions are recorded in the memo §9
+> Headline ones: should the muster preview be a *decision* surface at all (today all four musters
+> read "favorable", so the confirm gate never armed and the block was prepended to an
+> **already-resolved** battle)? Is 6% attrition on a six-corps stack a trap or a lesson? Should
+> conquest pay — France took four provinces and income moved **+4.2%**? Should "ENEMY PHASE" be
+> renamed, given **32% of its actions are France's own allies**?
 >
 > ### Two method notes for whoever picks this up
-> - **A contamination event is on record.** The user's own Godot client (live on 8005)
->   fired `POST /new_game` mid-session and reset the audit world. Three early
->   observations were withdrawn; the campaign was replayed on an **isolated backend at
->   port 8015**. If you drive the game over HTTP while a client is open, use a second
->   port.
-> - **The visual half was deliberately NOT performed** (the client is hardwired to 8005,
->   which the user's session owned). Every client-side claim was verified by reading the
->   shipped `.gd` source. **A visual sign-off on the CA9 surfaces is still owed.**
->
-> *(Pillar re-scoring was still running when this entry was written and is NOT included;
-> the findings above are complete and independently verified. Score the pillars from the
-> committed transcript if a number is wanted.)*
+> - **Contamination is on record.** The user's own Godot client (live on 8005) fired `POST /new_game`
+>   mid-session and reset the audit world; three observations were withdrawn and the campaign
+>   replayed on an **isolated backend at port 8015**. Drive over HTTP on a second port if a client
+>   is open.
+> - **The visual half was deliberately NOT performed** (the client is hardwired to 8005, which the
+>   user's session owned). Every client-side claim was verified by reading the shipped `.gd` source.
+>   **A visual sign-off on the CA9 surfaces is still owed.**
 >
 
 

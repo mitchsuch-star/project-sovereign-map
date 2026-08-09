@@ -1,110 +1,16 @@
-# Creative Audit — August 8, 2026 (post–tutorial, post–marshal-voice; pre–shippable build)
+# CA9 Creative Audit — 16-turn France/1805 campaign, August 8 2026
 
-> **What this is.** A play-first creative audit built from a **26-turn France/1805 campaign** driven
-> through the real backend at master `de5af03` — i.e. after ROADMAP positions 4 (Music & Sound),
-> 5 (Econ Balance), 6 (Main Menu), 7 (Tutorial), 8 (Voice-to-Text) and 9 (Marshal Voice Tier 1)
-> landed. `LLM_MODE=anthropic`, seed `historical`. Evidence:
-> `CA9_CAMPAIGN_DIGEST_2026_08_08.md` (player-visible transcript) and
-> `CA9_PLAY_NOTES_2026_08_08.md` (the live play log, including every claim I later corrected).
->
-> **The question asked was "what's fun and what isn't", so this memo leads with play, not with
-> code.** Findings were then put to an adversarial verify→refute fleet against master; claims that
-> did not survive are corrected in place, never quietly dropped.
+**Evidence base:** `docs/audits/CA9_PLAY_NOTES_2026_08_08.md` + `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md`, played live over HTTP against the real backend at `de5af03`. Every claim below was verified against a file:line I opened or a verbatim transcript line, then attacked by a skeptic pass. Findings that did not survive are listed, not deleted.
 
 ---
 
-## 0. Methodology, and two things that must be read first
-
-**0.1 — The transcript is honest about what the *client* renders.** The Aug-4 audit's governing
-caveat was that its digest was assembled from each enemy action's `message` field, which the
-shipped Godot client never reads. This audit's harness instead **mirrors
-`enemy_phase_dialog.gd::_format_action`'s own key list**, verb by verb, and stamps a
-`<<<RAW-FALLBACK>>>` marker wherever the client would fall through to printing a raw internal verb.
-Measured across the whole campaign: **zero fallbacks** — CA8-6 is holding.
-
-**0.2 — A contamination event, and what it invalidated.** Mid-session the user's own Godot client
-(PID 28048, live on `127.0.0.1:8005`) fired `POST /new_game` and reset my world to turn 1
-(`backend.log:792`). Three of my early observations were read from that fresh world and are
-**withdrawn** — they are listed as withdrawn in the play notes rather than deleted. The audit then
-moved to an **isolated backend on port 8015** so nothing external could reset it, and the campaign
-reported here was replayed from turn 1 on that isolated world. Findings dated before the reset were
-re-verified on the clean run before being carried forward.
-
-**0.3 — The visual half was not performed, deliberately.** The Godot client is hardwired to port
-8005, which the user's own live session owns. Rather than disturb their game or edit the client, I
-verified every client-side claim by reading the shipped `.gd` source (quoted inline). A visual
-sign-off pass on the surfaces named here is still owed.
-
----
-
-## 1. What the campaign actually was
-
-Turn 1, one sentence: *"Marshal Ney, march on Mack at Swabia and destroy him."* Ney reports the odds
-are bad and asks for orders. I mass instead — Soult gets a written order and answers *"No more and
-no less"*; Bernadotte answers *"I move when the need is real, not before."* Six marshals, 107,722
-men, converge on Swabia and break Mack's corps for 1,940 casualties. It is a superb opening five
-minutes.
-
-The next tick, **8,676 of those men starve**, because the province the game just told me to fill
-feeds 40,000 and I put 107,722 in it. Nothing warned me. The number exists — the region panel shows
-it once you occupy the province — but no surface in the ordering path mentions supply at all, and
-the muster preview that talks you into concentrating is silent about it (CA9-3).
-
-That is the whole campaign in miniature, and it repeats for twenty-five more turns. Murat's
-cavalry turns a rout into annihilation and the game stops him at Hesse's border to ask what our war
-purpose is — then never renders the question, and silently eats my next two orders. Lannes, hungry
-for glory, attacks on his own initiative and drags the same invisible prompt back. Archduke Charles
-grinds Massena down at Milan; Soult, one province away and holding a written order to support him,
-**refuses** — after the game promised in so many words that *"Soult will march to Ney's guns."*
-(My reading of *why* was wrong and the fleet corrected it: the order tracks the man dynamically, but
-the Grouchy Rule only honours it when that man **leads** the battle. See F8 below — the code is
-defensible; the sentence promising otherwise is not.)
-
-By turn 13 Davout, Murat and Massena are standing in **Ottoman Albania**, nine provinces from their
-war, having followed a beaten British officer there; Murat's standing order to march on Vienna has
-been silently cancelled and no event mentions it. By turn 16 Talleyrand reports the campaign's best
-moment: **Austria's national design has flipped to *Revanche* — against Russia**, its own ally, for
-holding Bohemia. Nothing scripted that. It is a real, exploitable fracture in the Third Coalition,
-reported accurately and actionably.
-
-And then nothing happens, for eleven turns. Provinces frozen at **31/95 from T16 to T26**. The
-headline is a victory at Bohemia on six of eight turns, the same sentence with a different marshal's
-name. The line *"Sire — Marshal Davout's household goes unpaid. His patience erodes with his
-purse"* appears **fourteen times, verbatim**. At war score +13, holding two Austrian provinces with
-Mack captured and his army destroyed, Talleyrand's *recommended* peace terms are to **pay Austria 77
-gold a turn and demand nothing.**
-
-Final accounting: France won nearly every engagement it fought. It lost **52,677 men to hunger**
-against **38,016 in battle** — hunger killed 1.39 times as many French soldiers as the enemy did.
-The army went 189,000 → 86,573. Trust ended at Bernadotte 10, Massena 26, Ney 53. Thirty-one
-provinces of 126, and a war with no way out.
-
-*(Correction on record: earlier in the play notes I wrote "4.5× more men died of hunger than of the
-enemy". That was wrong — I was totalling lead-corps figures for battles against all-corps figures
-for supply, which is exactly the confusion finding F2 describes. I made the same mistake the game
-makes. The honest ratio is 1.39:1.)*
-
----
-
-> **⚠ SUPERSESSION NOTE.** Sections 0 and 1 above are the play record, written first.
-> Everything below is the output of a 42-agent verify -> refute -> sweep -> score fleet run
-> afterwards against master, and **it supersedes the first-pass severities I filed from play.**
-> Six of my fourteen findings were narrowed (F1 P1->P2, F2 P2->P3, F3 P2->P3, F4 P1->P2 as scoped,
-> F8 P1->P2 with the copy half carrying the weight, F9 narrowed to one guard plus a gate question),
-> one sub-claim was killed (F14b, "no draft can demand territory" — `modify_harsh` round 2 does),
-> one was ruled UNDETERMINED and must not be filed ("Even harsher is byte-identical"), and two I
-> had filed as P3 were **raised to P1** (the typed dialogue router; the objection with no stated
-> options). The sweeps also found **47 findings I missed**. Where the two disagree, the fleet wins.
-
----
-
-## 3. The verdict
+## 1. The verdict
 
 Sixteen turns of France winning almost every battle and losing the campaign to its own systems. The army fought 25 battles, won nearly all of them, annihilated Mack's corps and took him prisoner at Franconia — and lost **~52,700 men to supply attrition and marching against ~38,000 to the enemy**, because the game's central affordance (muster + `support`) concentrates six corps in one province, prices that concentration nowhere, and then bills it at 6%/turn under a headline that prescribes a supply depot the executor refuses to build. The one time I asked for that depot: *"Cannot build in Tyrol — region stability too low (35/100). Need 51+."* Three corps ended up in **Ottoman Albania** — soil no legal order can reach, teleported there by a jealousy-driven autonomous attack that voided a standing MOVE_TO with no message — where they starved for two turns and Murat could no longer reach Vienna. Four times an unrendered war-purpose dialogue silently ate every subsequent command *including `end turn`*, answering `Ney, march on Bohemia` with *"I don't understand that choice, Sire. Options: 1=Conquest, 2=Forced Alliance…"* for a question never displayed. And the terminal step: at war score +19, seven battles won, none lost, enemy holding nothing of ours, the recommended one-click peace was **France paying Austria 77 gold a turn**, labelled *"generous"*, and not even predicted to be accepted (`"outcome": "COUNTER"`). The writing throughout is the best it has ever been — Talleyrand correctly reporting that Austria's revenge design had retargeted onto **Russia**, its own coalition partner, is genuinely superb — but that sentence arrived on turn 16, under a dispatch whose headline was a recruitment bulletin about the price of 10,000 foot at Paris. The game is currently a beautifully-narrated machine for punishing the player for using it as designed.
 
 ---
 
-## 4. Findings
+## 2. Findings
 
 ### Confirmed
 
@@ -190,7 +96,7 @@ Sixteen turns of France winning almost every battle and losing the campaign to i
 
 ---
 
-## 5. The through-line
+## 3. The through-line
 
 **Every system in this game computes the right answer and then tells the player a different one — and the divergence is always in the direction that makes the player commit.**
 
@@ -212,7 +118,7 @@ A useful reframing for the road to EA: the pillar that regressed hardest is not 
 
 ---
 
-## 6. Pillar scores
+## 4. Pillar scores
 
 | Pillar | Aug 4 | CA9 | Δ | What moves it |
 |---|---|---|---|---|
@@ -228,7 +134,7 @@ A useful reframing for the road to EA: the pillar that regressed hardest is not 
 
 ---
 
-## 7. What is genuinely excellent
+## 5. What is genuinely excellent
 
 Do not touch any of this.
 
@@ -270,7 +176,7 @@ Do not touch any of this.
 
 ---
 
-## 8. Recommended order of work
+## 6. Recommended order of work
 
 Ordering principle: **restore trust before adding reach.** Every item in tier 1 is a case of the game asserting something false while the player commits; none needs a design gate; several are one line. Feature work on top of a lying advisory layer compounds the problem.
 
@@ -306,7 +212,7 @@ Ordering principle: **restore trust before adding reach.** Every item in tier 1 
 
 ---
 
-## 9. Open questions for the developer
+## 7. Open questions for the developer
 
 1. **Should the muster preview be a *decision* surface at all?** Today all four musters read "favorable", so the gate at `combat_executor.py:4091` never armed and the block was prepended to an already-resolved battle. Fixing the arithmetic (F1) makes more previews read unfavorable, which arms the confirm modal — is that the intended texture, or should the preview move to a pre-commit seam (the `support`/`move` response) where it can be acted on?
 

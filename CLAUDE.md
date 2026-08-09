@@ -222,21 +222,26 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **▶ NEXT = THE CA9 FIX QUEUE, then POSITION 10.**
 >
 > **CA9 — the August 8, 2026 creative audit (26-turn France/1805 played campaign).**
-> **20 rows filed, ALL OPEN, none gate-blocked.** Memo =
+> **~60 confirmed rows, ALL OPEN, only three gate-blocked.** Memo =
 > `docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative) · rows =
-> `docs/BUG_FIXES.md` §Creative Audit CA9 · **build order + method notes =
-> `docs/STATUS.md` §NEXT SESSION STARTS HERE**. 12 findings NARROWED by
-> adversarial refuters, 2 survived outright, 0 killed; 7 further claims corrected
-> or withdrawn and listed rather than dropped. Headlines: **CA9-1** three PT-F1
-> sites discard `_stage_war_purpose_selection`'s return so a HARD STOP is armed the
-> client can never render (it ate `end turn`) · **CA9-2/3** the muster preview
-> weighs my whole army against the enemy's *one named marshal* and never mentions
-> supply (52,677 lost to hunger vs 38,016 in battle) · **CA9-4** "Soult will march
-> to Ney's guns" is false as written · **CA9-5/6** 26 turns of victory could not be
-> exchanged for one province, and the default peace **pays the loser** ·
-> **CA9-7** the dispatch leads with third parties' prisoners at weight 95.
-> *Through-line: a producer and a consumer disagree about what a number or a promise
-> means, with no seam forcing them to agree.*
+> `docs/BUG_FIXES.md` §Creative Audit CA9 · **tiered build order + pillar scores +
+> method notes = `docs/STATUS.md` §NEXT SESSION STARTS HERE**.
+> A play pass filed 14; a 42-agent verify→refute→sweep→score fleet then narrowed six,
+> killed one sub-claim, raised two P3s to P1, and **found 47 more**.
+> **Directional ≈6.3** (Aug 4 ≈6.9) — attributed to campaign LENGTH, not regression;
+> narration is the only pillar that rose.
+> **Tier-1 order:** F6 (three PT-F1 sites discard `_stage_war_purpose_selection`'s
+> return → an unrenderable HARD STOP that ate `end turn`, 4×) → the typed dialogue
+> router (`main.py:2092` applies an answer verb to whichever dialogue is ACTIVE,
+> never reading the court named — signed a **permanent treaty with Prussia**) →
+> N5 (objections never state their two magic words) → F1 (symmetric
+> `committed_defender`) → F10 → F14 → N3+N17 → F12+N2 → **N1 (every reinforcement
+> banks TWO battle-wins — the whole ES-7 reward economy is priced off a doubled
+> number)** → the narration one-liners.
+> *Through-line: **every system computes the right answer and then tells the player a
+> different one, and the divergence always points the way that makes them commit.**
+> The advisory surface and the executor are separate implementations of one rule and
+> only one is maintained. The regressed pillar is **trust**.*
 > ⚠ **A visual sign-off on the CA9 surfaces is owed** (the audit's visual half was
 > deliberately skipped — the client is hardwired to 8005, which the user's own live
 > session owned; drive over HTTP on a second port if a client is open).
