@@ -4,7 +4,90 @@
 
 ## ▶ NEXT UP
 
-> ## ⚠ NEXT SESSION STARTS HERE — THE CA9 FIX QUEUE (filed August 8, 2026)
+> ## ✅ THE CA9 FIX QUEUE — TIERS 1 AND 2 LANDED (August 9, 2026)
+>
+> **17 commits, `4ab1cc6` … `3764f6f`. Suite 16,634 → 16,820 / 3 skipped · ruff
+> clean · Godot parse harness EXIT=0 (46 scripts) · boot smoke 0 SCRIPT ERROR.**
+> Landing record = **`docs/BUG_FIXES.md` §Creative Audit CA9 (authoritative)**.
+> Tests: `tests/test_creative_audit_ca9_2026_08_08.py` (181).
+>
+> **31 rows closed** — all ten tier-1 items in order, all six tier-2 items, plus
+> F9's one-guard defect. The queue's own framing held up: *every system computed
+> the right answer and told the player a different one, and the divergence always
+> pointed the way that made the player commit.* Most rows closed by making the
+> advisory surface CALL the executor's predicate rather than keep a copy of it —
+> `region.can_build` (F10), `_muster_reason` + `_committed_reinforcement_strength`
+> on the enemy's board (F1), `_pursuit_capture_guard` at the muster relocation
+> (F13), `forecast_vassal_loyalty` in Talleyrand's advisory (N32), the applied
+> income cache in the briefing (N11), and one `dialogue_routing` module replacing
+> three copies of the option rule.
+>
+> **▶ WHAT I DELIBERATELY DID NOT DO, AND WHY**
+>
+> 1. **Tier 3 — untouched, as instructed.** F9's leverage question (three of its
+>    four mechanisms are spec-verbatim and documented as anti-farming; only the
+>    capital inversion was a defect and it shipped) · N19 Requisitions · N20 ·
+>    F4's general form · N10. These need the design gate and belong with memo §9.
+> 2. **N4 — the marshal petition's TTL. This is a P1 and it is NOT fixed.** It is
+>    in neither tier because memo §9 Q8 makes it a design question ("a TTL, a
+>    re-validation at serve time, or a queue?"). Flagging it explicitly because a
+>    reader scanning severities will otherwise assume every P1 landed: the
+>    petition still never expires, never re-validates, and is answered against
+>    live state.
+> 3. **`generate_suggested_terms`' `war_score > 30` territory gate** — the memo's
+>    pillar table pairs it with F14, the filed row does not, and the recon
+>    measured that it moves blessed acceptance arithmetic on the demand side.
+>    Left for a gate.
+> 4. **F8's mechanic half** (re-targeting SUPPORT to the ally's current province)
+>    — the row was narrowed to the copy, and the three scoping seams are pinned
+>    READ-ONLY.
+> 5. **The co-located-ally `idle_turns` gap**, found by the N1 recon and real:
+>    a marshal who fought and won while already at the front still ends the
+>    battle idle. Not bundled, because `idle_turns` feeds jealousy, which moves
+>    M7 — and landing it beside N1 would have destroyed N1's attribution
+>    experiment. It needs its own row.
+> 6. **~24 unranked P2/P3 rows** in neither tier (N8, N12, N14–N16, N18, N22,
+>    N23, N29, N30, N33–N36, N38, N39, N41–N46, F2, F3). Enumerated in BUG_FIXES.
+>
+> **⚠ TWO THINGS FOR THE USER TO RULE ON**
+>
+> - **F14 is a GATE RE-OPEN, not a bug fix** — it reverses half of CA8-D2's
+>   close-out, which deliberately kept the ≤200g gold sweetener on the hostility
+>   arm. The campaign falsified it (+21 collects 105 g/turn, +20 PAYS 80), and
+>   the brief authorised the re-open, but it is a decision to confirm. **The
+>   armistice sibling went with it as a DECLARED scope extension** (same `or`, ~20×
+>   the magnitude, `gold_lump 1600` at war score +19, and the gate's language
+>   covered only the peace arm) — that half is mine to justify, not the gate's.
+> - **F1 arms the muster confirm modal far more often**, which is memo §9 Q1's
+>   open question. That is the intended direction ("the game starts *asking*
+>   before the disaster") but it is a texture change the user should see in play.
+>
+> **⚠ A VISUAL SIGN-OFF IS OWED** on the three `.gd` surfaces this queue touched:
+> the per-court fog line in the enemy phase (F7) and `Supply: Unknown` on both
+> the region panel and the map tooltip (F5). The CA9 audit's own visual half was
+> already owed and still is.
+>
+> **Numbers worth carrying forward.** `BASELINE_SERIES` re-recorded TWICE, each
+> with the cause proved by experiment: F9 by a four-arm run (all three fix arms
+> byte-identical — a prisoner IS the strength-0 case) and N6 by a six-arm run
+> (N6-P0 alone and N7 alone are each byte-identical to control; N6's P4 rung is
+> the whole move, and the AI still fights — 13 battles in 20 ambient turns, 24
+> marshals standing). N1 moves `battles_won` 104 → 98 across the ambient board
+> while the series stays byte-identical: measured, not assumed. M1–M7
+> byte-identical throughout without a re-record — and on F13 that is a fact about
+> coverage, since the harness has no battle on a third party's soil.
+>
+> **Six inert pins were found by mutation and replaced**, including two of my
+> own first cuts: F14's monotonicity property (which the OLD gate never violated
+> — the discontinuity is a jump *up*; the property that was broken is sign
+> coherence) and two source greps that could not tell the PURSUE line from its
+> SUPPORT sibling four lines below. Reported rather than buried: a crashed run of
+> my own mutation script left a call site clobbered, and
+> `test_live_pass_fixes_2026_07_25`'s grammar pin caught it.
+>
+> ---
+>
+> ## ⚠ THE CA9 QUEUE AS FILED (August 8, 2026) — kept for the rows not yet done
 >
 > **A 26-turn France/1805 creative audit was played live on August 8, 2026.** Record =
 > **`docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative)** · rows =
@@ -12,7 +95,9 @@
 > `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md` + `docs/audits/CA9_PLAY_NOTES_2026_08_08.md`.
 > The play pass filed 14 findings; a **42-agent verify → refute → sweep → score fleet** then
 > narrowed six, killed one sub-claim, ruled one UNDETERMINED, **raised two from P3 to P1**, and
-> **found 47 more**. **~60 confirmed rows, ALL OPEN, only three gate-blocked.**
+> **found 47 more**. **~60 confirmed rows filed; 31 CLOSED August 9, 2026
+> (tiers 1 + 2) — see the landing record above; the rest are enumerated in
+> `BUG_FIXES.md` §Creative Audit CA9.**
 >
 > **⚠ Commit `73faf17` shipped the first-pass severities; commit `<this one>` supersedes them.**
 > If you read the play notes, read the BUG_FIXES table too — where they disagree the table wins.

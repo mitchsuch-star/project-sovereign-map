@@ -31,7 +31,94 @@
 ---
 
 
-## Creative Audit CA9 — filed August 8, 2026 (26-turn France/1805 played campaign; **ALL OPEN**)
+## Creative Audit CA9 — filed August 8, 2026 (**TIERS 1 AND 2 LANDED August 9, 2026**)
+
+> ### ✅ LANDING RECORD — the CA9 fix queue, tiers 1 + 2, August 9, 2026
+>
+> **17 commits, `4ab1cc6` … `3764f6f`. Suite 16,634 → 16,820 / 3 skipped, ruff
+> clean, Godot parse harness EXIT=0 (46 scripts), boot smoke 0 SCRIPT ERROR.**
+> Tests: `tests/test_creative_audit_ca9_2026_08_08.py` (181).
+>
+> **31 rows closed.** Tier 1 (all ten items, in order): **F6** the war-purpose
+> hard stop is DELIVERED (one shared `_attach_staged_war_purpose`; the three
+> battle-advance sites staged a HARD STOP and returned without it, so the client
+> rendered nothing and every later command — including `end turn` — was
+> swallowed; plus the `_unresolved_choice_failure` backstop widened to every
+> `HARD_STOP_TYPES` member) · **the typed dialogue router** reads the court the
+> player named (new `backend/commands/dialogue_routing.py`; the guard sits inside
+> `handle_diplomatic_dialogue_response` behind a `raw_text` parameter so every
+> typed route inherits it and the popup route is structurally unreachable —
+> *the mutation reproduces the live `PEACE → ALLIANCE`*; the hard-stop
+> BARE-SUBSTRING matcher is gone, and all three copies of the option rule now
+> make one call) · **N5** every blocking state names the words that clear it,
+> free reads pass, and plain English resolves · **F1** symmetric
+> `committed_defender` in the muster band (the four CR-5 gate call sites stay
+> byte-identical; the ratio reads ground truth by the same doctrine as the
+> fort/terrain terms, the printed figures stay fog-legal, and the committed
+> figure is qualified *"if all march"*) · **F10** one `region.can_build`
+> predicate, so the briefing quotes the executor's own refusal verbatim ·
+> **F14** the peace curve is continuous and its sign matches the war
+> (**A GATE RE-OPEN** — see below) · **N3 + N17** the rail stops advertising
+> expired state (N17's filed root cause named one of THREE clearing seams, and
+> the two it missed were the permanent ones) · **F12 + N2** a capture has a
+> direction (plus a third arm neither row carried: a THIRD PARTY's capture led
+> France's briefing at weight 95) · **N1** one battle, one tally (the whole ES-7
+> reward economy was priced off a doubled number) · **the seven narration
+> one-liners** N24 N25 N26 N37 N31 N28 N32. Plus **F9's** one-guard defect (a
+> prisoner in Paris is not a siege of Paris).
+>
+> Tier 2 (all six): **N9 + N47** · **F7 + N40** · **N6 + N7** · **F13** ·
+> **N27 + F11** · **F8's copy half + F5 + N11**.
+>
+> **`BASELINE_SERIES` re-recorded TWICE, each consciously and each with the
+> cause proved by experiment rather than argued** — F9 by a FOUR-arm run (all
+> three fix arms byte-identical, because a prisoner IS the strength-0 case) and
+> N6 by a SIX-arm run (N6-P0 alone and N7 alone are both byte-identical to
+> control; N6's P4 rung is the whole move). N1 moves `battles_won` 104 → 98 over
+> the ambient board and the series is byte-identical anyway — measured, not
+> assumed. **M1–M7 byte-identical throughout, without a re-record.**
+>
+> **⚠ F14 IS A GATE RE-OPEN, not a bug fix**, and the row said so. CA8-D2's
+> close-out (`CREATIVE_AUDIT_2026_08_04.md:934-936`) deliberately kept the ≤200g
+> gold sweetener on the `relation < -50` arm. CA9 measured what that produces
+> over 26 turns — +21 collects 105 g/turn and +20 PAYS 80 — and calls it
+> falsified. **The armistice sibling was fixed with it as a DECLARED SCOPE
+> EXTENSION** (identical `or relation < -50`, ~20× the magnitude, and the gate's
+> language covered only the peace arm's ≤200g sweetener, so that number was never
+> before it). Both are the user's to veto.
+>
+> **Nine pins re-blessed and two fixture defects repaired**, each carrying its
+> reason at the seam. **Six inert pins were found by mutation and replaced** —
+> including my own first cut of F14's property (monotonicity, which the old gate
+> never violated) and N1's `>= 1` predecessor. **Mutation sweeps: 4/4, 4/4, 4/4,
+> 6/6, 10/10, 5/5, plus per-row checks on F6, the router, F1, F10 and F12.**
+>
+> Reported rather than buried: a crashed run of my own mutation script left the
+> `coordination_reinforcement_mixed` call site clobbered, and
+> `test_live_pass_fixes_2026_07_25`'s grammar pin caught it.
+>
+> **⚠ A VISUAL SIGN-OFF IS OWED** on three `.gd` surfaces this queue touched:
+> the per-court fog line in the enemy phase (F7), and the `Supply: Unknown`
+> sentinel on both the region panel and the map tooltip (F5).
+>
+> **What was deliberately NOT done is listed in `docs/STATUS.md`'s landing
+> entry** — tier 3 stays gated, and eight P2/P3 rows plus the P1 **N4** (the
+> petition TTL, which memo §9 Q8 makes a design question) are untouched.
+
+### Rows still open after the tiers-1-and-2 pass
+
+**Gated (tier 3, needs a design gate — do not build):** F9's leverage question ·
+N19 Requisitions · N20 · F4's general form · N10.
+**Design questions (memo §9):** **N4** (petition TTL / re-validation — Q8) ·
+N21 (drama budget — Q9) · N13 (rename the ENEMY PHASE — Q7) · N19/N20 (Q3).
+**Unranked P2/P3, not in either tier and not attempted:** N8 · N12 · N14 · N15 ·
+N16 · N18 · N22 · N23 · N29 · N30 · N33 · N34 · N35 · N36 · N38 · N39 · N41 ·
+N42 (merges with open S5-2) · N43 · N44 · N45 · N46 · F2 · F3 · F8's mechanic
+half.
+
+---
+
+### The finding table as filed (August 8, 2026)
 
 > **Record = `docs/audits/CREATIVE_AUDIT_2026_08_08.md` (authoritative).** Evidence:
 > `docs/audits/CA9_CAMPAIGN_DIGEST_2026_08_08.md` (player-visible transcript) +
