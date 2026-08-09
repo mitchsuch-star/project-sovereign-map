@@ -299,11 +299,20 @@ class TestParticipationCounts:
         assert result.get("success") is not False
 
         reinf = (result.get("battle_report") or {})
-        # The mechanical assertions (independent of report shape):
-        if soult.last_battle_turn == 4:
-            # Soult arrived — his record must reflect the battle.
-            assert soult.battles_won + soult.battles_lost >= 1
-            assert soult.idle_turns == 0
+        # The mechanical assertions (independent of report shape).
+        #
+        # CA9-N1: this block was INERT TWICE. (a) `>= 1` is satisfied by 1
+        # OR 2, so it could not see the double-count it was closest to;
+        # (b) the fixture places Soult in Belgium, the SAME region as Ney,
+        # so he is a CO-LOCATED ALLY and never a reinforcement at all —
+        # `_is_reinforcement_eligible` Rule 2 requires adjacency — and the
+        # guarded body therefore never ran (measured `last_battle_turn ==
+        # -1`). The guard is now an assertion about the shape the fixture
+        # actually produces, and the tally is exact.
+        assert soult in world.marshals.values()
+        assert soult.battles_won + soult.battles_lost == 1, (
+            f"a marshal who stood on the field records the battle exactly "
+            f"once: {soult.battles_won}W/{soult.battles_lost}L")
         # The primary pair always records the turn.
         assert ney.last_battle_turn == 4
         assert mack.last_battle_turn == 4

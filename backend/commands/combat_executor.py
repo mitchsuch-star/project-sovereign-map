@@ -5034,6 +5034,35 @@ class CombatExecutor:
         marshal.idle_turns = 0
         enemy_marshal.last_battle_turn = _w6_turn
         enemy_marshal.idle_turns = 0
+        # ── CA9-N1: dedupe against the coordinated tally above ──────────
+        # The coordinated branch has ALREADY tallied every element of
+        # `atk_participants` / `def_participants`, and an arrived
+        # reinforcement is one of them BY CONSTRUCTION: the arrival loop
+        # relocates him into the battle region (and appends artillery that
+        # stayed adjacent) BEFORE `_get_casualty_participants` runs, and
+        # `_is_reinforcement_eligible` applies the same alive / not-broken
+        # / not-retreating / hostile-needs-SUPPORT filters that list does.
+        # `is_coordinated_battle` is therefore always True whenever this
+        # loop has an arrival, so seam A always fired first.
+        #
+        # So this banked TWO wins per reinforcement for one battle while
+        # the lead banked one — measured 2 vs 1 on the attacker side, on
+        # the defender side, and for an enemy-nation reinforcer (GR5). It
+        # is not cosmetic: `get_expectation` is `40 × battles_won`, so the
+        # ENTIRE ES-7 reward economy — the endowment the player is asked
+        # for, the rente face the treasury actually pays, the trust
+        # erosion when it goes unpaid, and the AI's own grant rung — was
+        # priced off a doubled number.
+        #
+        # Deduped rather than deleted, so that if the two filters ever
+        # diverge the record is lost rather than silently doubled; a pin
+        # asserts they cannot drift unnoticed. The `idle_turns` /
+        # `last_battle_turn` writes below are NOT duplicated by seam A and
+        # stay exactly as they are.
+        _already_tallied = set()
+        if is_coordinated_battle:
+            _already_tallied = {p.name for p in atk_participants}
+            _already_tallied.update(p.name for p in def_participants)
         for _side_results, _side_won, _side_lost in (
             (attacker_reinforcements, _atk_won,
              _def_won or _w6_outcome == "mutual_destruction"),
@@ -5046,10 +5075,11 @@ class CombatExecutor:
                 _fighter = world.get_marshal(_r.get("marshal", ""))
                 if _fighter is None:
                     continue
-                if _side_won:
-                    _fighter.battles_won += 1
-                elif _side_lost:
-                    _fighter.battles_lost += 1
+                if _fighter.name not in _already_tallied:
+                    if _side_won:
+                        _fighter.battles_won += 1
+                    elif _side_lost:
+                        _fighter.battles_lost += 1
                 _fighter.idle_turns = 0
                 _fighter.last_battle_turn = _w6_turn
 

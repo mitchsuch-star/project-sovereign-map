@@ -1706,3 +1706,193 @@ class TestF12CaptureHasADirection:
         blob = " ".join(str(v) for v in head.values())
         assert "KingdomOfItaly" not in blob and "Kingdom Of Italy" not in blob, blob
         assert "Kingdom of Italy" in blob, blob
+
+
+# =======================================================================
+# N1 - every arrived reinforcement banked TWO wins for one battle
+#
+# NOT cosmetic. `get_expectation` is `40 x battles_won`, so the entire
+# ES-7 reward economy - the endowment the player is asked for, the rente
+# face the treasury pays, the trust erosion when it goes unpaid, and the
+# AI's own grant rung - was priced off a doubled number.
+#
+# Two seams tally one battle: the coordinated branch walks
+# atk_participants/def_participants, and the W6-1 participation block
+# walks the arrival lists again. The overlap is TOTAL by construction:
+# the arrival loop relocates a reinforcer INTO the battle region before
+# `_get_casualty_participants` runs, and the two eligibility filters are
+# the same set.
+# =======================================================================
+
+class TestN1OneBattleOneTally:
+
+    @staticmethod
+    def _board(reinforcer_at, defender_nation="Austria"):
+        """Ney leads at Belgium; Soult stands where the caller says."""
+        from backend.models.marshal import StrategicOrder
+        from tests.conftest import MarshalFactory, WorldFactory
+
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=60000,
+                                      personality="aggressive")
+        soult = MarshalFactory.infantry(name="Soult", location=reinforcer_at,
+                                        strength=30000,
+                                        personality="aggressive")
+        mack = MarshalFactory.enemy(name="Mack", location="Belgium",
+                                    nation=defender_nation, strength=8000,
+                                    personality="cautious")
+        world = WorldFactory.with_marshals([ney, soult, mack])
+        key = "|".join(sorted(["France", defender_nation]))
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = world.current_turn
+        world.current_turn = 4
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Ney", target_type="marshal",
+            started_turn=4, original_command="Soult, support Ney")
+        return world, ney, soult, mack
+
+    @staticmethod
+    def _fight(world, attacker, target, seed=1):
+        import random
+
+        from backend.commands.executor import CommandExecutor
+        random.seed(seed)
+        return CommandExecutor().execute({
+            "success": True,
+            "command": {"type": "specific", "marshal": attacker,
+                        "action": "attack", "target": target},
+        }, {"world": world})
+
+    def _adjacent_to_belgium(self, world):
+        region = world.get_region("Belgium")
+        for name in region.adjacent_regions:
+            other = world.get_region(name)
+            if other is not None:
+                return name
+        raise AssertionError("Belgium has no adjacent region on this fixture")
+
+    def test_an_arrived_reinforcement_banks_exactly_one_win(self):
+        """The measured defect: the lead banked 1, the reinforcer 2."""
+        world, ney, soult, mack = self._board("Belgium")
+        adjacent = self._adjacent_to_belgium(world)
+        soult.location = adjacent
+
+        result = self._fight(world, "Ney", "Mack")
+        assert result.get("success") is not False, result.get("message")
+
+        assert soult.last_battle_turn == 4, (
+            "board precondition broken — Soult did not arrive at seed 1; "
+            "re-derive the seed rather than skipping, or this pin is a "
+            "no-op the day the arrival roll shifts")
+        assert ney.battles_won == 1, (
+            f"board precondition: the lead should bank one, got "
+            f"{ney.battles_won}")
+        assert soult.battles_won == 1, (
+            f"the arrived reinforcement banked {soult.battles_won} wins "
+            f"for ONE battle while the lead banked {ney.battles_won} — "
+            f"every ES-7 number is 40 x this")
+
+    def test_a_co_located_ally_still_banks_his_one(self):
+        """CONTROL. Seam A is the ONLY tally that covers a marshal already
+        standing at the front — he is never in the arrival lists, because
+        reinforcement eligibility requires adjacency. Deleting seam A
+        instead of deduping seam B would silently strip his record."""
+        world, ney, soult, mack = self._board("Belgium")
+        result = self._fight(world, "Ney", "Mack")
+        assert result.get("success") is not False
+        assert soult.battles_won == 1, (
+            f"a co-located ally who fought recorded {soult.battles_won}")
+
+    def test_the_arrival_still_stops_being_idle(self):
+        """The `idle_turns` / `last_battle_turn` writes in the W6-1 block
+        are NOT duplicated by seam A and must survive the dedupe — that is
+        the whole reason the block is deduped rather than deleted."""
+        world, ney, soult, mack = self._board("Belgium")
+        soult.location = self._adjacent_to_belgium(world)
+        soult.idle_turns = 3
+        self._fight(world, "Ney", "Mack")
+        assert soult.last_battle_turn == 4, (
+            "board precondition broken — Soult did not arrive at seed 1")
+        assert soult.idle_turns == 0
+        assert soult.last_battle_turn == 4
+
+    def test_the_defender_side_arrival_is_tallied_once_too(self):
+        """The dedupe must cover BOTH arrival lists. The W6-1 block walks
+        `attacker_reinforcements` and `defender_reinforcements` against
+        one key set; this is the defending arm, driven by an AI attack so
+        the reinforcement rides the defender list.
+
+        Deterministic at seed 0 (searched: the first seed producing a
+        decisive outcome WITH an arrival — a stalemate counts for nobody
+        on either seam, which is correct and would make the pin vacuous).
+        """
+        from backend.models.marshal import StrategicOrder
+        from tests.conftest import MarshalFactory, WorldFactory
+
+        ney = MarshalFactory.infantry(name="Ney", location="Belgium",
+                                      strength=30000,
+                                      personality="aggressive")
+        mack = MarshalFactory.enemy(name="Mack", location="Belgium",
+                                    nation="Austria", strength=9000,
+                                    personality="aggressive")
+        world = WorldFactory.with_marshals([ney, mack])
+        adjacent = self._adjacent_to_belgium(world)
+        soult = MarshalFactory.infantry(name="Soult", location=adjacent,
+                                        strength=25000,
+                                        personality="aggressive")
+        world.marshals["Soult"] = soult
+        key = "|".join(sorted(["France", "Austria"]))
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = world.current_turn
+        world.current_turn = 4
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Ney", target_type="marshal",
+            started_turn=4, original_command="Soult, support Ney")
+
+        import random
+
+        from backend.commands.executor import CommandExecutor
+        random.seed(0)
+        CommandExecutor().execute({
+            "success": True,
+            "command": {"type": "specific", "marshal": "Mack",
+                        "action": "attack", "target": "Ney",
+                        "_autonomous_execution": True,
+                        "_acting_nation": "Austria"},
+        }, {"world": world})
+
+        assert soult.last_battle_turn == 4, (
+            "board precondition broken — Soult did not arrive; re-derive "
+            "the seed")
+        assert soult.battles_won + soult.battles_lost == 1, (
+            f"the defender-side arrival recorded "
+            f"{soult.battles_won}W/{soult.battles_lost}L for one battle")
+        assert ney.battles_won + ney.battles_lost == 1
+
+    def test_the_dedupe_reads_the_participant_lists_not_a_copy(self):
+        """Structural: the dedupe key set is built FROM the two lists the
+        other seam tallied, so the two can never disagree about who was
+        counted. A re-derived predicate could."""
+        import inspect
+
+        from backend.commands import combat_executor as ce
+
+        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        assert "_already_tallied = {p.name for p in atk_participants}" in src
+        assert "_already_tallied.update(p.name for p in def_participants)" in src
+        assert "if _fighter.name not in _already_tallied:" in src
+
+    def test_the_expectation_that_prices_everything_halves_with_it(self):
+        """Why this row is not cosmetic, stated as arithmetic."""
+        from backend.game_logic.dotation import get_expectation
+        from tests.conftest import MarshalFactory
+
+        m = MarshalFactory.infantry(name="Ney")
+        m.battles_won = 4
+        honest = get_expectation(m)
+        m.battles_won = 8          # what the doubled seam produced
+        doubled = get_expectation(m)
+        assert doubled > honest, (
+            "get_expectation must be sensitive to battles_won, or this row "
+            "would indeed be cosmetic")
+        assert doubled == min(2 * honest, 300)
