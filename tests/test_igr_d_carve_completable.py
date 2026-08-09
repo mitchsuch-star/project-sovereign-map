@@ -42,6 +42,18 @@ def _europe_world():
     world = WorldState.from_scenario(SCENARIO)
     declare_war(world, "France", "Prussia")
     world.regions["Posen"].controller = "France"
+    # CA9 row 1 (Aug 9 2026): acceptance now reads how OLD the war is
+    # (`diplomacy.war_age_acceptance_mod`, -30 at declaration decaying to 0
+    # by turn 8). `declare_war` stamps the start at the CURRENT turn, so this
+    # fixture was implicitly a war zero turns old — and a France that has
+    # broken Prussia's army and taken Posen manifestly is not. The docstring
+    # above says this is "the exact board the review reached by play", and
+    # play takes turns; six is enough that the penalty no longer dominates
+    # while staying inside the window, which keeps BOTH bars of
+    # `test_the_carve_is_reachable_for_a_victor_and_not_for_a_marginal_win`
+    # true (measured 58 vs 38 at this age).
+    _pair = world._make_diplo_key("France", "Prussia")
+    world.war_start_turns[_pair] = int(world.current_turn) - 6
     world.invalidate_active_nations_cache()
     return world
 
@@ -592,6 +604,90 @@ class TestTheCarveIsPriced:
         assert carve_score(world_one) < 50, (
             "a single captured province is enough to dismember a state"
         )
+
+    def test_the_carve_is_unreachable_in_a_war_that_just_started(self):
+        """CA9 row 1's interaction with this clause, contracted.
+
+        A carve is the most extractive term in the game, so a war-age
+        penalty should make it unavailable early — and it does: measured 24
+        against the bar of 50 for a victor holding ALL of Prussia at war age
+        0, rising through 48 at age 4 to 58 at age 6.
+
+        Recorded honestly: the sibling test above was tuned in July against
+        an implicit war age of 0, because nothing read war age then. Its
+        blessed 54/34 were age-0 numbers. The pair now sits at age 6.
+        """
+        from backend.game_logic.diplomacy import (
+            calculate_acceptance, recalculate_war_scores,
+        )
+        world = _europe_world()
+        for marshal in list(world.marshals.values()):
+            if marshal.nation == "Prussia":
+                marshal.strength = 2000
+                marshal.morale = 20
+        for region in world.regions.values():
+            if region.controller == "Prussia":
+                region.controller = "France"
+        world.invalidate_active_nations_cache()
+        recalculate_war_scores(world)
+        # Re-stamp the war as declared THIS turn, undoing the fixture's age.
+        pair = world._make_diplo_key("France", "Prussia")
+        world.war_start_turns[pair] = int(world.current_turn)
+        result = calculate_acceptance({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [{"type": "gold_lump", "value": 6000}],
+            "demands": [_carve_demand()],
+        }, world)
+        assert result["score"] < 50, (
+            "a kingdom can be dismembered in the first turn of its war")
+        assert result["components"]["war_age_penalty"] < 0, (
+            "the refusal must come from the war's AGE — if this term is 0 "
+            "the test is passing for some other reason and proves nothing")
+
+    def test_a_long_war_lets_even_a_marginal_win_carve_and_that_predates_row_1(self):
+        """A PRE-EXISTING gap in the sibling test's contract, surfaced by
+        row 1 rather than caused by it — recorded so nobody later files it
+        as a regression of the war-age penalty.
+
+        `test_..._not_for_a_marginal_win` asserts a victor holding only Posen
+        scores < 50. That is true at war age 0 (measured 34) and FALSE in a
+        long war (measured 54 at age 10), because `war_weariness` climbs to
+        +20 and nothing ever capped it for this clause. The war-age penalty
+        is exactly 0 at that age, so the number is byte-identical to what
+        master produced before row 1 — the flip experiment is the assertion
+        below.
+
+        Whether an exhausted Prussia SHOULD concede a client after ten turns
+        of grinding war is a design question, and a defensible yes. It is
+        left as it is, and named.
+        """
+        from backend.game_logic.diplomacy import (
+            calculate_acceptance, recalculate_war_scores,
+        )
+        world = _europe_world()
+        for marshal in list(world.marshals.values()):
+            if marshal.nation == "Prussia":
+                marshal.strength = 2000
+                marshal.morale = 20
+        world.invalidate_active_nations_cache()
+        recalculate_war_scores(world)
+        pair = world._make_diplo_key("France", "Prussia")
+        world.war_start_turns[pair] = int(world.current_turn) - 10
+        result = calculate_acceptance({
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [{"type": "gold_lump", "value": 6000}],
+            "demands": [_carve_demand()],
+        }, world)
+        assert result["components"]["war_age_penalty"] == 0, (
+            "past the window the age term must be exactly 0, which is what "
+            "makes this a statement about PRE-row-1 behaviour")
+        assert result["score"] >= 50, (
+            "if this ever drops below 50 the long-war carve has been closed "
+            "by something else — find out what before editing this test")
 
     def test_a_bigger_carve_costs_strictly_more(self):
         world = _europe_world()

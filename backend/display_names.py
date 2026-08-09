@@ -515,6 +515,14 @@ FEEDBACK_STRINGS = {
         "negative": "the war has dragged on too long",
         "positive": "exhaustion from prolonged conflict",
     },
+    # CA9 row 1 (war-age penalty). Only ever negative — the term is 0 or
+    # below by construction — but both keys are authored so a future sign
+    # flip cannot fall through to "unknown factors".
+    "war_age_penalty": {
+        "negative": "the war is barely begun — no court signs away a "
+                    "province over one skirmish",
+        "positive": "the war has run long enough to be worth ending",
+    },
     "stalemate_duration": {
         "negative": "the deadlock shows no sign of breaking",
         "positive": "neither side can gain the upper hand",

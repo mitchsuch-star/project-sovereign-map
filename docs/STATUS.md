@@ -11,7 +11,37 @@
 > landed. Nothing was coded for these three.**
 > **Record = `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` (authoritative).**
 >
-> 1. **Peace terms — "a short war should be hard to end."** *"look at euiv, if
+> 1. ~~**Peace terms — "a short war should be hard to end."**~~ ✅ **LANDED
+>    August 9, 2026** — landing record =
+>    `docs/audits/CA9_GATE_ANSWERS_2026_08_09.md` §1 (authoritative).
+>    **Option B built, option A deliberately not** (the battle-vs-territory
+>    re-weight still waits on the playtest). Single source
+>    `diplomacy.war_age_acceptance_mod` (−30 at declaration → 0 by turn 8),
+>    wired in `calculate_acceptance` beside the R142 weariness term it
+>    mirrors, rendered as **"The war is barely begun"**. Suite 16,874 →
+>    **16,904/3**, ruff clean, no `.gd`, 4-of-4 mutation sweep.
+>    **Measured effect at the surface the player uses:** Talleyrand
+>    recommends *nothing* for a 1-turn war and `gold_per_turn 174` for a
+>    9-turn one — the loop closed. **Three decisions beyond the letter:** a
+>    white peace is exempt at any age (answers this row's own "war with no
+>    way out" caution); the **armistice arms are included as a declared
+>    scope extension** (F14 measured `gold_lump 1600` there, ~20× the peace
+>    arm — penalising peace alone moves the cheese one door left; reversible
+>    in one line); and the **multilateral settlement scorer is deliberately
+>    NOT touched** — built there first, then removed, because it fired
+>    exclusively in fixtures (8 tuned contracts across 5 files, zero live
+>    effect) while the gate's own prescription names the bilateral
+>    `war_start_turns`. Reasoning recorded at the seam. **Two findings:** an
+>    asymmetry I introduced and fixed (unknown war start was being charged
+>    the full penalty forever), and **a pre-existing gap in IGR-D's carve
+>    contract surfaced not caused** — "a marginal win cannot carve" was only
+>    ever true at war age 0; at age 10 it scores 54, byte-identical to
+>    pre-row-1 master. **M1–M7 + `BASELINE_SERIES` byte-identical, with a
+>    measured reason:** zero outcome-band flips across all 14 directed pairs
+>    of the 7 boot wars, because those peaces were already REJECT on hostile
+>    relations. ⚠ Watch in the playtest: whether a won war stays exitable.
+>
+> 1b. *(original ruling, kept for reference)* *"look at euiv, if
 >    war is short its way harder to end avoids cheesing 1 battle for free cash."*
 >    F14 STAYS: it made the recommendation's sign honest, and that is not what
 >    creates the cheese. The cheese is that the SCORE is cheap — **battles +

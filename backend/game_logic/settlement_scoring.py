@@ -2258,6 +2258,34 @@ def calculate_common_peace_acceptance(
         "accepting_leader": accepting_leader,
     }
 
+    # ── CA9 row 1: why the war-age penalty is NOT a component here ──
+    # It was built here first and then deliberately removed. Recorded so it
+    # is not re-added by someone reading only the gate memo.
+    #
+    # The gate (docs/audits/CA9_GATE_ANSWERS_2026_08_09.md §1) prescribes a
+    # penalty on peace acceptance "reading `war_start_turns`, which is
+    # already serialized" — and `war_start_turns` is the BILATERAL map. The
+    # cheese it exists to kill is a bilateral loop: declare, win one battle,
+    # demand gold, peace out. That lives in
+    # `diplomacy.calculate_acceptance`, where the term now is.
+    #
+    # Adding a twelfth component here bought nothing measurable and cost a
+    # great deal: a multilateral congress settling a war in that war's first
+    # eight turns is not a route real play reaches (the Imperial Settlement
+    # arc runs on coalition wars that take dozens of turns), this scorer
+    # already carries `war_exhaustion` as its time-like input, and the only
+    # thing the component actually moved was eight fixtures that declare and
+    # settle a war on the same turn — i.e. it fired exclusively in tests.
+    # Re-blessing eight tuned contracts for a term with no demonstrated live
+    # effect is how a real regression gets hidden in the churn.
+    #
+    # If a playtest finds an early-cash route through the multilateral
+    # surface, this is where it goes, and `war_age_acceptance_mod` is already
+    # the single source for the curve: pass the instance's `created_turn`
+    # (bilateral skeleton) or `started_turn` (coalition path), with absent →
+    # None → no penalty, and derive `extracts_value` from
+    # `leader_own_losses < 0` so the white-peace waiver stays per-court.
+
     # Step 13: aggregate.
     components = {
         "base_side_pressure": int(base_debug["score"]),

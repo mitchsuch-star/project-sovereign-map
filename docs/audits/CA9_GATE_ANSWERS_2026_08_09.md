@@ -115,6 +115,92 @@ The armistice half of F14 (the `gold_lump 1600` at war score +19) was a
 declared scope extension and is included in "F14 stays". It was never before
 the CA8-D2 gate, whose language covered only the peace arm's ≤200g sweetener.
 
+### ✅ LANDED August 9, 2026 — landing record (authoritative for row 1)
+
+**Option B built, option A not built** — the battle-vs-territory re-weight
+stays deferred to a judgement after the playtest, exactly as this memo
+prescribes. Single source `diplomacy.war_age_acceptance_mod`
+(`WAR_AGE_PENALTY_MAX = 30`, `WAR_AGE_PENALTY_WINDOW = 8`, linear decay),
+consumed in `diplomacy.calculate_acceptance` beside the R142 war-weariness
+term it mirrors. Tests: `tests/test_ca9_row1_war_age_penalty.py` (28), 4-of-4
+mutation sweep. Suite 16,874 → **16,904 / 3 skipped**, ruff clean, no `.gd`.
+
+**Three deliberate design decisions beyond the letter of the ruling.**
+
+1. **A white peace is exempt at any age** (`proposal_extracts_value` reads the
+   DEMAND side only; sweeteners are what the proposer pays and are ignored).
+   This is the answer to this memo's own caution that "both options make wars
+   harder to END, and CA9's campaign already closed with *a war with no way
+   out*". Mutual withdrawal is always signable; only extraction is gated. It
+   also means buying your way out of a war you started badly stays available,
+   which is a good move a player should keep.
+2. **The armistice arms are included**, as a declared scope extension rather
+   than something the gate said — the same shape F14's own armistice
+   extension took. Reason: the stated goal is that the cash loop has "no exit
+   to run to", and F14 measured the armistice sibling carrying `gold_lump
+   1600` at war score +19, ~20× the peace arm. Penalising peace alone moves
+   the cheese one door left. **Reversible in one line** (drop the two
+   `armistice_*` entries from `WAR_AGE_PENALTY_TYPES`) if the user disagrees.
+3. **The multilateral settlement scorer is deliberately NOT touched**, and
+   the reasoning is recorded at the seam in `settlement_scoring.py`. It was
+   built there first and removed: this memo prescribes reading
+   `war_start_turns`, which is the *bilateral* map; the cheese is a bilateral
+   loop; that scorer already carries `war_exhaustion` as its time-like input;
+   and a congress settling a war inside that war's first eight turns is not a
+   route real play reaches. Measured, the component fired **exclusively in
+   fixtures** — it moved eight tuned contracts across five files and nothing
+   else. Re-blessing eight blessed-number contracts for a term with no
+   demonstrated live effect is how a real regression hides in the churn. If
+   the playtest finds an early-cash route through the multilateral surface,
+   the seam and its recipe are written down.
+
+**What it actually does, measured.** The live effect is at the surface the
+player uses — Talleyrand's own recommendation, which prices through
+acceptance (NA-3 rider b). France winning on points (+30) against Prussia at
+relation +20:
+
+| war age | `generate_suggested_terms` demands |
+|---|---|
+| 1 turn | *(nothing)* |
+| 9 turns | `gold_per_turn 174` |
+
+That is the loop closing: ask your foreign minister what to demand for a
+two-turn war and he now has nothing to suggest. Both arms carry a negative
+control that re-runs them with the curve flattened and asserts the opposite,
+so neither can pass against a constant 0.
+
+**Two things found that this memo did not know.**
+
+1. **An asymmetry I introduced and then fixed.** The bilateral read defaults
+   `war_start_turns` to `current_turn` for R142's benefit — harmless for a
+   *bonus*, wrong for a *penalty*, because it makes "start never recorded"
+   indistinguishable from "declared this turn" and charges the full −30
+   forever. The age term now reads key presence explicitly; unknown age →
+   no penalty. Caught by a fixture, pinned, and mutation-tested.
+2. **A pre-existing gap in IGR-D's carve contract, surfaced not caused.**
+   `test_..._not_for_a_marginal_win` asserts a victor holding only Posen
+   scores < 50. That is true at war age 0 (its blessed 34) and **false in a
+   long war** (measured 54 at age 10) because `war_weariness` climbs to +20
+   and nothing capped it for that clause. The age term is exactly 0 at that
+   age, so the number is byte-identical to pre-row-1 master — the fixture had
+   only ever been verified at an implicit age of 0. `_europe_world()` now
+   models age 6 (a France that has broken Prussia's army and taken Posen
+   manifestly is not one turn into the war), where both of IGR-D's bars hold
+   at 58 vs 38, and the long-war case is pinned as its own named test so
+   nobody files it later as a regression of this row. Whether an exhausted
+   Prussia *should* concede a client after ten turns is a design question and
+   a defensible yes; it is left alone and named.
+
+**M1–M7 and `BASELINE_SERIES` byte-identical WITHOUT re-record — with a
+reason, not a shrug.** A peace-acceptance change could plausibly move AI
+behaviour, so it was measured: across all 14 directed pairs of the 7 boot
+wars, the age term causes **zero outcome-band flips**. Every one of those
+extractive peaces was already REJECT on hostile relations (France→Austria
+−86 → −116; both reject), so no AI decision changes and the 40-turn series
+cannot move. That also disposes of the concern that the 1805 boot — which
+opens mid-war historically with all 7 wars stamped at turn 1 — would spend
+eight turns unable to make peace: it could not make those peaces anyway.
+
 ---
 
 ## 2. The attack confirm popup — scope it to a real disaster, and to character

@@ -201,6 +201,111 @@ SWEETENER_VALUES = {
 }
 SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated offers improve acceptance
 
+# ════════════════════════════════════════════════════════════════════════════
+# THE WAR-AGE PENALTY — a war that has barely begun is hard to cash in
+# ════════════════════════════════════════════════════════════════════════════
+# CA9 row 1 (Aug 9 2026). Gate record:
+# docs/audits/CA9_GATE_ANSWERS_2026_08_09.md §1 — the user's complaint was
+# "if war is short its way harder to end avoids cheesing 1 battle for free
+# cash", with EU4 named as the reference.
+#
+# NOTHING in either acceptance formula read how old a war was. War exhaustion
+# is the only time-like input and it is slow and symmetric, and R142's war
+# weariness only ever makes peace EASIER as a war ages. So the loop
+# "declare → win one battle → demand gold → peace out" had an exit to run to
+# on turn 2, and battles + decisive are ±50 of a ±100 war score earned with
+# zero territory taken (EU4 caps battle warscore at 25%).
+#
+# This is option B from the gate record, and only option B. Option A — the
+# battle-vs-territory re-weight on `calculate_war_score` itself — is
+# deliberately NOT built here: the gate defers it to a judgement after the
+# playtest, because it is a balance retune that wants a played campaign.
+WAR_AGE_PENALTY_MAX = 30      # at the moment the war is declared
+WAR_AGE_PENALTY_WINDOW = 8    # turns until it has decayed to nothing
+
+# War-ENDING or war-SUSPENDING instruments only. Alliances, open borders and
+# the rest are untouched — this is about closing a war, not about diplomacy.
+#
+# The armistice arms are INCLUDED, and that is a declared scope extension
+# rather than something the gate said. The reason: the gate's stated goal is
+# that the cash loop has "no exit to run to", and F14's own landing measured
+# the armistice sibling carrying `gold_lump 1600` at war score +19 — roughly
+# 20× the peace arm's magnitude. Penalising peace alone would move the cheese
+# one door left rather than close it. Easy to reverse if the user disagrees:
+# drop the two `armistice_*` entries and nothing else changes.
+WAR_AGE_PENALTY_TYPES = frozenset({
+    "peace", "harsh_peace", "armistice",
+    "armistice_losing", "armistice_winning",
+})
+
+# Demand types that carry real weight without a scalar `value` — they name
+# provinces, marshals or a client state instead. Same convention
+# `DEMAND_VALUES` already uses for `prisoner_return` / `create_client`.
+_MATERIAL_WITHOUT_SCALAR = frozenset({
+    "territory", "territory_cede", "create_client", "prisoner_return",
+    "forced_alliance", "liberation",
+})
+
+
+def war_age_acceptance_mod(turns_at_war, *, extracts_value: bool) -> int:
+    """How much a court resents being asked to close a war this young.
+
+    ONE source for the CURVE. Each caller supplies its own `turns_at_war`,
+    because the two acceptance seams have different authorities for it — the
+    bilateral scorer reads `world.war_start_turns[pair]`, the common-peace
+    scorer reads the war instance's own start turn — and neither should be
+    re-deriving the shape. -30 on the turn war is declared, decaying linearly
+    to 0 by turn 8.
+
+    `turns_at_war=None` means "age unknown" and returns 0. That is the
+    deliberate direction: an instance missing its start key must not be
+    treated as brand new and charged the maximum, which would silently
+    re-price legacy saves and odd fixtures.
+
+    `extracts_value=False` also returns 0. A white peace is always signable
+    at any age — that is what keeps this from turning a war that has gone
+    wrong into a war with no way out, which is both the gate record's own
+    caution and the note CA9's campaign actually closed on.
+    """
+    if not extracts_value or turns_at_war is None:
+        return 0
+    t = max(0, int(turns_at_war))
+    if t >= WAR_AGE_PENALTY_WINDOW:
+        return 0
+    return -int(round(
+        WAR_AGE_PENALTY_MAX
+        * (WAR_AGE_PENALTY_WINDOW - t) / WAR_AGE_PENALTY_WINDOW
+    ))
+
+
+def proposal_extracts_value(proposal: Dict) -> bool:
+    """Does this bilateral proposal TAKE something material from the target?
+
+    Reads the demand side only. Sweeteners are what the proposer PAYS, and
+    are deliberately ignored: paying a court to sign an early peace is not
+    the behaviour this penalty exists to discourage — buying your way out of
+    a war you started badly is a perfectly good thing for a player to do.
+
+    A demand whose type is unpriced, or whose scalar value is zero and which
+    is not one of the province/marshal/client markers, does not count. That
+    keeps a genuinely empty package reading as the white peace it is.
+    """
+    for demand in (proposal.get("demands") or []):
+        if not isinstance(demand, dict):
+            continue
+        dtype = str(demand.get("type", ""))
+        if dtype not in DEMAND_VALUES:
+            continue
+        if dtype in _MATERIAL_WITHOUT_SCALAR:
+            return True
+        try:
+            if float(demand.get("value") or 0) != 0:
+                return True
+        except (TypeError, ValueError):
+            # A malformed value is still an attempt to take something.
+            return True
+    return False
+
 DEMAND_VALUES = {
     "gold_per_turn": -5 / 100,     # -5 per 100g/turn demanded (PL-12-E: was -2)
     "gold_lump": -3 / 100,         # -3 per 100g lump demanded (PL-18)
@@ -6810,10 +6915,31 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
 
     # ── War Weariness (R142: +2/turn at war, cap +20) ──
     war_weariness_mod = 0
+    # None means "we never recorded when this war began", which is NOT the
+    # same as "it began this turn". R142's default below cannot tell them
+    # apart, and it does not need to: collapsing both to 0 is harmless for a
+    # BONUS. It is wrong for a PENALTY — an unrecorded war would be charged
+    # the full -30 forever — so the age term reads presence explicitly.
+    turns_at_war_for_age = None
     if current_diplo_state == "WAR":
-        war_start = getattr(world, 'war_start_turns', {}).get(diplo_key, world.current_turn)
+        _war_starts = getattr(world, 'war_start_turns', {}) or {}
+        war_start = _war_starts.get(diplo_key, world.current_turn)
         turns_at_war = max(0, int(world.current_turn) - int(war_start))
         war_weariness_mod = min(20, turns_at_war * 2)
+        if diplo_key in _war_starts:
+            turns_at_war_for_age = turns_at_war
+
+    # ── War Age Penalty (CA9 row 1) ──
+    # The mirror of the term above, and the reason it needed one: weariness
+    # only ever made peace EASIER with time, so nothing anywhere resisted
+    # closing a two-turn war for cash. Scoped to war-exit instruments that
+    # actually TAKE something; a white peace is signable at any age.
+    war_age_mod = 0
+    if current_diplo_state == "WAR" and proposal_type in WAR_AGE_PENALTY_TYPES:
+        war_age_mod = war_age_acceptance_mod(
+            turns_at_war_for_age,
+            extracts_value=proposal_extracts_value(proposal),
+        )
 
     # ── Stalemate Duration (R143: +1/stalemate turn, cap +15) ──
     stalemate_duration_mod = 0
@@ -7142,6 +7268,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + war_score_mod
         + relation_mod
         + war_weariness_mod
+        + war_age_mod
         + stalemate_duration_mod
         + political_subtotal_clamped
         + settlement_gratitude_value
@@ -7216,6 +7343,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "war_score_modifier": round(war_score_mod, 1),
         "relation_modifier": round(relation_mod, 1),
         "war_weariness": int(war_weariness_mod),
+        "war_age_penalty": int(war_age_mod),
         "stalemate_duration": int(stalemate_duration_mod),
         "hegemony_target_mod": int(hegemony_target),
         "bilateral_betrayal_mod": int(bilateral_betrayal),
@@ -7271,7 +7399,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     # Find largest positive and negative components
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
-        "war_weariness", "stalemate_duration",
+        "war_weariness", "war_age_penalty", "stalemate_duration",
         "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "hegemony_target_mod", "bilateral_betrayal_mod",
@@ -10953,6 +11081,10 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "war_score_modifier": "Our military dominance",
                 "relation_modifier": "Current relations",
                 "war_weariness": "Exhaustion from prolonged conflict",
+                # CA9 row 1: the option-B argument is that the rule teaches
+                # itself through a surface that already names its terms, so
+                # this label is load-bearing, not decoration.
+                "war_age_penalty": "The war is barely begun",
                 "stalemate_duration": "Stalemate weariness",
                 "hegemony_target_mod": "Hegemon bloc pressure",
                 "bilateral_betrayal_mod": "Remembered betrayals",
