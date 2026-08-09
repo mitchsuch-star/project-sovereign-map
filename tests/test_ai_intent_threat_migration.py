@@ -260,14 +260,41 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # prisoners, so Europe stays alarmed about it for longer. The direction is
 # what the fix predicts.
 #
-# Prior series (the ECON BALANCE record, i.e. everything above this block):
-#   [70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 41, 43, 40, 37, 29, 26,
-#    23, 20, 22, 19, 16, 18, 15, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
-#    0, 0, 0, 0]
+# RE-RECORDED CONSCIOUSLY A SECOND TIME the same day for CA9-N6, single
+# cause, ATTRIBUTION VERIFIED BY A SIX-ARM EXPERIMENT (the NV-4 idiom):
+#
+# Both AI attack rungs summed the acting nation's WHOLE army and divided
+# it by ONE enemy marshal — P4 by the named target, P0 by the WEAKEST
+# corps present. Three enemy corps in a province therefore read as a
+# walkover and the AI charged into the other two: twelve failed assaults
+# over the played campaign for a 4.7:1 exchange against itself, which is
+# why Europe read as busy rather than dangerous. It is the same
+# defender-invisibility defect CA9-F1 fixed on the player's side.
+#
+# Arms: control (all three edits reverted) · N6-P0 alone · N6-P4 alone ·
+# N7 alone · both N6 rungs · everything as landed. Result:
+#   - N6-P0 alone   -> IDENTICAL to control. The P0 rung fires only when
+#                      already engaged in the same province, a shape the
+#                      ambient board does not produce differently.
+#   - N7 alone      -> IDENTICAL to control. No marshal reaches three
+#                      failed assaults on one target in 40 quiet turns.
+#   - N6-P4 alone   -> the whole move, and `both N6 rungs` and `all` are
+#                      BYTE-IDENTICAL to it. Single cause, no interaction.
+#
+# Divergence at index 4 (62 -> 72) and the tail no longer reaches the
+# floor: an AI that refuses the assaults it would lose keeps its armies,
+# and Europe's alarm decays far more slowly. Counter-check that the fix
+# is not simply passivity: 13 battles still fought in the first 20
+# ambient turns, 24 marshals still standing. M1-M7 byte-identical.
+#
+# Prior series (the CA9-F9 record, i.e. everything above this block):
+#   [70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 46, 48, 45, 47, 44, 31,
+#    28, 30, 27, 24, 21, 18, 15, 12, 14, 11, 8, 10, 7, 4, 1, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0]
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 46, 48, 45, 47, 44, 31,
-    28, 30, 27, 24, 21, 18, 15, 12, 14, 11, 8, 10, 7, 4, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
+    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 66, 64, 70, 71, 69,
+    66, 66, 66, 66, 69, 72, 73, 71, 68, 65, 62, 49, 46, 43, 40, 37, 34,
+    31, 28, 25, 22, 19, 16, 13,
 ]
 
 

@@ -1532,7 +1532,23 @@ class EnemyAI:
             weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
             # Use combined allied strength for decision (allies in same region will follow up)
             combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
-            ratio = combined_strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
+            # ── CA9-N6: divide by the FIELD, not by one man ─────────────
+            # This summed the AI's whole army and divided it by the
+            # WEAKEST enemy corps present — so three enemy corps in one
+            # province read as a 7:1 walkover, and the AI charged into
+            # the other two. Measured across the campaign: twelve failed
+            # assaults for a 4.7:1 exchange against ITSELF, which is why
+            # Europe reads as busy rather than dangerous.
+            #
+            # This is the same defender-invisibility defect as CA9-F1 on
+            # the other side of the board: the player's muster preview
+            # modelled the enemy as one man too. Both now price the
+            # committed field. Target choice is unchanged — the weakest
+            # is still the sensible man to hit; what changes is what the
+            # decision COSTS.
+            defenders = self._defending_strength_in_region(
+                enemies_in_region)
+            ratio = combined_strength / defenders if defenders > 0 else 999
             threshold = self._get_mood_adjusted_threshold(marshal, world)
 
             print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
@@ -2456,6 +2472,31 @@ class EnemyAI:
             and not getattr(other, 'retreated_this_turn', False)
         )
 
+    @staticmethod
+    def _defending_strength_in_region(defenders) -> int:
+        """CA9-N6: the field the attacker would actually meet.
+
+        The mirror of `_get_combined_strength_in_region`, and the AI's half
+        of the same defender-invisibility defect CA9-F1 fixed on the
+        player's muster preview: both rungs summed the acting nation's
+        WHOLE army and divided it by ONE enemy marshal — P4 by the named
+        target, P0 by the WEAKEST corps present. Three enemy corps in a
+        province therefore read as a walkover, and the AI charged into the
+        other two: twelve failed assaults over the played campaign, for a
+        4.7:1 exchange against itself.
+
+        Same exclusions as the friendly sum, so the two sides are counted
+        by the same rule: a broken corps and one that has already
+        retreated this turn are not part of the field.
+        """
+        return sum(
+            int(getattr(d, "strength", 0) or 0)
+            for d in (defenders or [])
+            if int(getattr(d, "strength", 0) or 0) > 0
+            and not getattr(d, "broken", False)
+            and not getattr(d, "retreated_this_turn", False)
+        )
+
     def _find_attack_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Find a valid attack target based on personality."""
         # Check if already drilling (cannot attack)
@@ -2573,7 +2614,13 @@ class EnemyAI:
 
                 # Calculate base strength ratio using combined allied strength for decision
                 combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
-                base_ratio = combined_strength / enemy.strength
+                # CA9-N6: against the FIELD standing with him, not against
+                # him alone — see the P0 rung for the measurement.
+                _defenders = self._defending_strength_in_region(
+                    world.get_live_visible_enemies_in_region(
+                        enemy.location, nation))
+                _defenders = max(_defenders, int(enemy.strength))
+                base_ratio = combined_strength / _defenders
                 # Calculate effective ratio considering target's tactical state
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
 
@@ -2625,7 +2672,12 @@ class EnemyAI:
         for entry in valid_targets:
             e, br, er, d = entry
             key = f"{marshal.name}:{e.name}"
-            if futility.get(key, 0) >= 3 and getattr(e, 'fortified', False):
+            # CA9-N7: the brake was gated on `fortified`, and the shape
+            # that actually happens is an UNFORTIFIED stack that simply
+            # outnumbers the attacker — so the brake could not fire on the
+            # twelve assaults it exists to stop. Three failures against the
+            # same man is the evidence, whatever he is standing behind.
+            if futility.get(key, 0) >= 3:
                 futile_targets.append(e.name)
             else:
                 non_futile.append(entry)

@@ -2850,3 +2850,95 @@ class TestF13AVoidedOrderSaysSo:
         src = inspect.getsource(ce.CombatExecutor._execute_attack)
         at = src.index('"type": "order_voided_by_battle"')
         assert "arriving.nation == world.player_nation" in src[at - 900:at]
+
+
+# =======================================================================
+# N6 + N7 - the AI divided its army by ONE enemy corps
+#
+# P4 by the named target, P0 by the WEAKEST corps present. Three enemy
+# corps in a province read as a walkover and the AI charged into the
+# other two: twelve failed assaults for a 4.7:1 exchange against itself.
+# Same defender-invisibility defect as F1, on the other side of the board.
+# =======================================================================
+
+class TestN6TheAIPricesTheField:
+
+    @staticmethod
+    def _ai():
+        from backend.ai.enemy_ai import EnemyAI
+        return EnemyAI
+
+    def test_the_field_sum_mirrors_the_friendly_sum(self):
+        """Both sides counted by the same rule, or the ratio is a lie in
+        one direction."""
+        from types import SimpleNamespace
+        f = self._ai()._defending_strength_in_region
+        live = SimpleNamespace(strength=10000, broken=False,
+                               retreated_this_turn=False)
+        broken = SimpleNamespace(strength=9000, broken=True,
+                                 retreated_this_turn=False)
+        fled = SimpleNamespace(strength=8000, broken=False,
+                               retreated_this_turn=True)
+        dead = SimpleNamespace(strength=0, broken=False,
+                               retreated_this_turn=False)
+        assert f([live]) == 10000
+        assert f([live, broken]) == 10000, "a broken corps is not the field"
+        assert f([live, fled]) == 10000, "a fled corps is not the field"
+        assert f([live, dead]) == 10000
+        assert f([]) == 0 and f(None) == 0
+
+    def test_three_corps_are_not_one_corps(self):
+        from types import SimpleNamespace
+        f = self._ai()._defending_strength_in_region
+        stack = [SimpleNamespace(strength=n, broken=False,
+                                 retreated_this_turn=False)
+                 for n in (8000, 26000, 26000)]
+        assert f(stack) == 60000, (
+            "the AI saw 8,000 (the weakest) and charged into 60,000")
+
+    def test_both_rungs_read_it(self):
+        import inspect
+
+        from backend.ai import enemy_ai as ea
+        src = inspect.getsource(ea)
+        assert src.count("_defending_strength_in_region(") >= 3, (
+            "one of the two attack rungs still divides by a single man")
+        # …and neither keeps the old single-man denominator.
+        assert "combined_strength / enemy.strength" not in src
+        assert ("combined_strength / weakest_enemy.strength"
+                not in src)
+
+    def test_the_target_choice_is_unchanged(self):
+        """Scope: the weakest man is still the sensible one to hit. What
+        changed is what the decision COSTS."""
+        import inspect
+
+        from backend.ai import enemy_ai as ea
+        src = inspect.getsource(ea)
+        assert ("weakest_enemy = min(enemies_in_region, key=lambda e: "
+                "e.strength)" in src)
+
+
+class TestN7TheFutilityBrakeCanFire:
+
+    def test_it_is_no_longer_gated_on_fortified(self):
+        """The shape that actually happens is an UNFORTIFIED stack that
+        simply outnumbers the attacker, so the brake could not fire on
+        the twelve assaults it exists to stop."""
+        import inspect
+
+        from backend.ai import enemy_ai as ea
+        src = inspect.getsource(ea.EnemyAI._find_attack_opportunity)
+        assert "futility.get(key, 0) >= 3" in src
+        assert ("futility.get(key, 0) >= 3 and getattr(e, 'fortified', "
+                "False)" not in src), (
+            "the brake still requires the target to be dug in")
+
+    def test_three_failures_is_still_the_bar(self):
+        """FALSIFIABLE NEGATIVE — the brake did not become hair-trigger."""
+        import inspect
+
+        from backend.ai import enemy_ai as ea
+        src = inspect.getsource(ea.EnemyAI._find_attack_opportunity)
+        assert ">= 3" in src
+        assert ">= 1" not in src.split("futility")[1][:200]
