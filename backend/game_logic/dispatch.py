@@ -501,7 +501,9 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
             elif cap_captor == player_nation:
                 # Same dead-name discipline on the new slot — the captive's
                 # court is a nation tag too.
-                _of = (f" of {formed_display_name(world, cap_nation)}"
+                # CA9 review round: "of Ottoman Empire" / "of Kingdom
+                # of Italy" — the same article the F7 line already takes.
+                _of = (f" of {with_definite_article(formed_display_name(world, cap_nation))}"
                        if cap_nation else "")
                 _at = (f" at {e['location']}" if e.get("location") else "")
                 _add("enemy_marshal_captured",
@@ -1546,9 +1548,30 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
                   f"({turns} turn{'s' if turns != 1 else ''} yet). "
                   f"Move a corps, or continue to pay.")
     else:
-        remedy = (f"No depot may be laid at {region_name} — "
-                  f"{_lower_first(depot_refusal)}. "
-                  f"Move a corps, or continue to pay.")
+        # CA9 review round, two defects in one sentence:
+        #   (a) STUTTER — several of the executor's refusals open with
+        #       "Cannot build in <region> — ", so wrapping them produced
+        #       "No depot may be laid at Tyrol — cannot build in Tyrol —
+        #       not controlled by France."
+        #   (b) CASE — `_lower_first` lowercased the one refusal that
+        #       opens with the region NAME: "tyrol already has a supply
+        #       depot".
+        # Strip the executor's own redundant lead-in and keep the prefix,
+        # so the subject (a DEPOT) is never lost — my first cut dropped
+        # the prefix wholesale and produced "town regions don't support
+        # buildings" in a supply headline, with nothing saying of WHAT.
+        _refusal = depot_refusal.rstrip(".")
+        _lead = f"Cannot build in {region_name} — "
+        if _refusal.startswith(_lead):
+            _refusal = _refusal[len(_lead):]
+        if _refusal.startswith(region_name):
+            # Already a complete sentence about this province; prefixing
+            # it would only repeat the name.
+            remedy = f"{_refusal}. Move a corps, or continue to pay."
+        else:
+            remedy = (f"No depot may be laid at {region_name} — "
+                      f"{_lower_first(_refusal)}. "
+                      f"Move a corps, or continue to pay.")
 
     # ────────────────────────────────────────────────────────────────────
     # CA8-2 (b)+(c): NAME THE MEN WHO ARE THERE. `slot["marshals"]`

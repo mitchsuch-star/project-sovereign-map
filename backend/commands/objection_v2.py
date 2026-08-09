@@ -886,10 +886,16 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
     ("Symmetric for a reinforced defender (GR5)",
     `combat_executor.py:4610`); this closes the preview's half.
 
-    It is added AFTER the terrain/fortification multiplier because that is
-    where `combat.py:1099` adds it — committed mass arrives already
-    effective and is not multiplied by the ground it arrives on. Same
-    shape as the resolver, not a second model of it.
+    It is added INSIDE the terrain/fortification multiplier, because
+    that is where the resolver ends up putting it: `_calculate_effective_
+    strength` adds `committed` to the defender's effective strength, and
+    `resolve_battle` THEN multiplies the whole figure by
+    `(1 + terrain + fortification)`. My first cut read only the first of
+    those two lines and placed the term outside — the review round
+    measured the cost at `committed_defender x bonus` effective
+    defenders, enough to flip a real board from `even` to `favorable`
+    and skip the confirm modal (40,000 v a fortified 8,000 in mountains
+    with 24,000 committed: 0.83 -> 1.11).
 
     Both committed terms default to 0.0, so the four
     `inferred_attack_favorable` call sites (which pass neither) stay
@@ -918,7 +924,8 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
                     and region.has_building("fortification")):
                 bonus += REGION_FORTIFICATION_DEFENSE_BONUS
 
-    effective_defender = defender * (1.0 + bonus) + max(0.0, committed_defender)
+    effective_defender = (defender + max(0.0, committed_defender)) * (
+        1.0 + bonus)
     return attacker / effective_defender
 
 

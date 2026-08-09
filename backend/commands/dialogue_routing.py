@@ -132,7 +132,7 @@ def format_numbered_options(dialogue: Optional[dict]) -> str:
     return ", ".join(f"{i + 1}={label}" for i, label in enumerate(labels))
 
 
-def _whole_phrase_in(phrase: str, text: str) -> bool:
+def whole_phrase_in(phrase: str, text: str) -> bool:
     """Word-boundary containment. `no` must not match "north", and
     `start` must not match "restart" — the bare-substring scan is exactly
     how ordinary orders were eaten as dialogue answers."""
@@ -167,7 +167,7 @@ def match_dialogue_answer(dialogue: Optional[dict],
             return action or label
     offered = {str(o.get("action") or "") for o in options}
     for keyword, actions in DIALOGUE_ACTION_KEYWORDS.items():
-        if not _whole_phrase_in(keyword, raw_lower):
+        if not whole_phrase_in(keyword, raw_lower):
             continue
         if any(a in offered for a in actions):
             return keyword

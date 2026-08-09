@@ -1845,9 +1845,26 @@ def execute_command(request: CommandRequest):
         # line naming exactly ONE answer word as a whole word is
         # unambiguous; two words is ambiguous and gets the question back.
         if _objection_pending and _pending_answer_token:
+            # CA9 review round: this sits BEFORE the parser, which is where
+            # PARSE-NEG's `strip_negated_clauses` lives — so "I don't trust
+            # him", "do not insist" and "no compromise" each matched
+            # exactly one word and executed its OPPOSITE. Blank the negated
+            # clauses first, with the same guard the parser uses; if the
+            # answer word only survives inside the negation, nothing routes
+            # and the block re-prompts.
+            from backend.ai.clause_guards import strip_negated_clauses
+            _answer_text, _ = strip_negated_clauses(_pending_answer_token)
+            # `strip_negated_clauses` owns "not"/"don't"/"never" and is the
+            # single source for them. It does not treat a BARE "no" as a
+            # marker — widening it would move the whole parser — so this
+            # router adds the one shape it needs: a refusal immediately
+            # before the answer word ("no compromise").
+            _answer_text = re.sub(
+                r"(?<![a-z])no\s+(trust|insist|compromise)(?![a-z])",
+                " ", _answer_text)
             _spoken = [
                 w for w in ("trust", "insist", "compromise")
-                if re.search(rf"(?<![a-z]){w}(?![a-z])", _pending_answer_token)
+                if re.search(rf"(?<![a-z]){w}(?![a-z])", _answer_text)
             ]
             if len(_spoken) == 1:
                 print(f"[PENDING-QUESTION] Plain-English objection answer "
@@ -2165,10 +2182,14 @@ def execute_command(request: CommandRequest):
                 if world.pending_objection is not None:
                     _objecting = world.pending_objection.get(
                         "marshal", "A marshal")
-                    _obj_choices = (
-                        ["trust", "insist", "compromise"]
-                        if world.pending_objection.get("alternative")
-                        else ["trust", "insist"])
+                    # CA9 review round: same missing key as the
+                    # executor block — see `OBJECTION_FREE_READS`'s
+                    # neighbour there. Read the validator's own predicate.
+                    _obj_choices = ["trust", "insist"]
+                    if (world.pending_objection.get("suggested_alternative")
+                            or world.pending_objection.get("compromise")
+                            or world.pending_objection.get("alternative")):
+                        _obj_choices.append("compromise")
                     return build_base_response(
                         world, success=False,
                         message=(

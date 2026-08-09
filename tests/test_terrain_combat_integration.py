@@ -436,10 +436,17 @@ class TestExecutorTerrainWiring:
 
         self.executor.combat_resolver.resolve_battle = mock_resolve
 
-        result = self.executor.execute(
-            make_command("attack", "Ney", "Wellington"),
-            self.game_state
-        )
+        # CA9-F1 (review round): this board is 100,000 French against
+        # Wellington's 50,000 PLUS Uxbridge's 31,050 muster, in mountains
+        # — an honest ratio of 0.99, so the muster-confirm gate now arms
+        # and the attack asks before it resolves. That is the fix working;
+        # this test is about TERRAIN WIRING, so it confirms the muster and
+        # exercises the path it is actually for.
+        _cmd = make_command("attack", "Ney", "Wellington")
+        _cmd.setdefault("command", _cmd).setdefault(
+            "_muster_confirmed", True)
+        _cmd["command"]["_muster_confirmed"] = True
+        result = self.executor.execute(_cmd, self.game_state)
 
         assert len(captured_terrain) > 0, "resolve_battle was not called"
         assert captured_terrain[0] == "mountains", (

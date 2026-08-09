@@ -670,11 +670,21 @@ class TestF1SymmetricCommittedDefender:
         assert joint < solo
         assert joint == pytest.approx(30000 / 35000)
 
-    def test_committed_mass_is_added_after_the_terrain_multiplier(self):
-        """The resolver adds committed mass AFTER the multipliers
-        (`combat.py:1099`) — committed troops arrive already effective and
-        are not multiplied by the ground they arrive on. Same shape here,
-        or the preview is a second model rather than the same one."""
+    def test_committed_mass_is_scaled_by_the_ground_like_the_resolver(self):
+        """PIN CORRECTED by the review round — my first cut had this
+        BACKWARDS, and asserted the backwards version.
+
+        I read `_calculate_effective_strength`, which adds `committed` to
+        the defender's effective strength, and stopped there. But
+        `resolve_battle` THEN multiplies the whole figure by
+        `(1 + terrain + fortification)` — so in the resolver the committed
+        defenders ARE scaled by the ground they defend. Placing the term
+        outside the multiplier under-counted the field by
+        `committed_defender x bonus`: measured on a real board, 100,000
+        French against a 50,000 lead plus a 31,050 muster in mountains
+        read `favorable` and skipped the confirm modal, when the honest
+        ratio is 0.99.
+        """
         from types import SimpleNamespace
 
         from backend.commands.objection_v2 import (
@@ -685,8 +695,11 @@ class TestF1SymmetricCommittedDefender:
                               defense_bonus=0.5, location=None)
         got = inferred_attack_effective_ratio(
             atk, dfd, committed_defender=10000)
-        # 20000 * 1.5 + 10000, NOT (20000 + 10000) * 1.5
-        assert got == pytest.approx(30000 / (20000 * 1.5 + 10000))
+        # (20000 + 10000) * 1.5 — the resolver's own shape.
+        assert got == pytest.approx(30000 / ((20000 + 10000) * 1.5))
+        # …and the difference is not academic: it is the 5,000 effective
+        # defenders the wrong placement dropped.
+        assert got < 30000 / (20000 * 1.5 + 10000)
 
     def test_the_defender_muster_uses_the_same_ladder(self, world, executor):
         """The function, not a copy of it."""
@@ -3079,3 +3092,289 @@ class TestF11PursueAcceptsTheNameOnTheScreen:
         from backend.commands import strategic_executor as se
         assert "len(token.split()) > 3" in inspect.getsource(
             se.StrategicExecutor._closest_marshal_name)
+
+
+# =======================================================================
+# THE REVIEW ROUND (August 9, 2026)
+#
+# A 38-agent find -> refute fleet over the committed tiers-1+2 diff
+# returned 29 surviving claims. These pin the five P1s and the P2 that
+# were confirmed against the real endpoint - including one where MY OWN
+# LANDING RECORD WAS FALSE.
+# =======================================================================
+
+class TestReviewHardStopSubstringIsActuallyGone:
+    """The router commit claimed "the hard-stop BARE-SUBSTRING matcher is
+    gone". It was only gone from main.py's GATE; the resolver kept its own
+    copy, and the hard-stop fallback feeds it the whole sentence. Measured
+    over the real endpoint: `Ney, move north` answered "Back Out" and
+    popped a war-purpose hard stop, because "no" is inside "north". 3 of
+    12 ordinary orders consumed the dialogue."""
+
+    def _staged(self, world, executor):
+        executor._combat._stage_war_purpose_selection(world, "France", "Hesse")
+        return world.pending_diplomatic_dialogue
+
+    @pytest.mark.parametrize("line", [
+        "Ney, move north",
+        "Ney, charge the cannons",
+        "nothing to report",
+    ])
+    def test_an_ordinary_order_no_longer_answers_a_hard_stop(
+            self, world, executor, line):
+        self._staged(world, executor)
+        result = executor._diplomatic.handle_diplomatic_dialogue_response(
+            line, {"world": world}, raw_text=line)
+        assert world.pending_diplomatic_dialogue is not None, (
+            f"'{line}' popped the hard stop — a substring hit on a "
+            f"keyword, exactly what the router commit said was fixed")
+        assert result.get("success") is False
+
+    def test_the_resolver_uses_the_shared_word_boundary_rule(self):
+        import inspect
+
+        from backend.commands import diplomatic_executor as de
+        src = inspect.getsource(
+            de.DiplomaticExecutor.handle_diplomatic_dialogue_response)
+        assert "whole_phrase_in(keyword, choice_lower)" in src
+        assert "if keyword in choice_lower:" not in src, (
+            "the bare-substring loop came back")
+
+    def test_a_real_verb_still_resolves(self, world, executor):
+        """FALSIFIABLE NEGATIVE — word-boundary is not word-blindness."""
+        from backend.commands.dialogue_routing import whole_phrase_in
+        assert whole_phrase_in("no", "no")
+        assert whole_phrase_in("back out", "back out of it")
+        assert not whole_phrase_in("no", "north")
+        assert not whole_phrase_in("start", "restart")
+
+
+class TestReviewF13DoesNotPunishItsOwnTurnBack:
+    """The guard flips a marshal who WAS marching to `arrived: False`, and
+    the Session-61a no-show penalty docked him -3 trust for the Emperor's
+    peace treaty. Measured: Soult 70 -> 67, Davout 85 -> 82, both with
+    arrival scores ABOVE threshold."""
+
+    def _nassau(self, world):
+        from backend.models.marshal import StrategicOrder
+        mack = world.marshals["Mack"]
+        mack.location = "Nassau"
+        mack.strength = 6000
+        ney = world.marshals["Ney"]
+        ney.location = "Rhineland"
+        soult = world.marshals["Soult"]
+        soult.location = "Rhineland"
+        soult.strategic_order = StrategicOrder(
+            command_type="SUPPORT", target="Ney", target_type="marshal",
+            started_turn=int(world.current_turn),
+            original_command="Soult, support Ney")
+        return soult
+
+    def test_no_trust_is_docked_for_the_engines_own_refusal(
+            self, world, executor):
+        soult = self._nassau(world)
+        before = {m.name: int(m.trust.value)
+                  for m in world.marshals.values() if m.nation == "France"}
+        _attack(world, executor, "Ney", "Mack")
+        after = {m.name: int(m.trust.value)
+                 for m in world.marshals.values() if m.nation == "France"}
+        dropped = {n: (before[n], after[n]) for n in before
+                   if after[n] < before[n]}
+        assert not dropped, (
+            f"marshals punished as no-shows for a frontier the ENGINE "
+            f"closed: {dropped}")
+        assert soult.location == "Rhineland"
+
+    def test_the_message_says_he_was_stopped_not_that_he_was_slow(
+            self, world, executor):
+        self._nassau(world)
+        result = _attack(world, executor, "Ney", "Mack")
+        blob = " ".join(str(m) for m in
+                        (result.get("reinforcement_messages") or []))
+        if not blob:
+            import pytest
+            pytest.skip("no reinforcement message on this board")
+        assert "could not reach the battlefield in time" not in blob, (
+            f"the turn-back is reported as a failure to arrive: {blob}")
+        assert "halted at the frontier" in blob, blob
+
+    def test_the_preview_stops_promising_the_march(self, world, executor):
+        """shown = applied: the preview must not print WILL JOIN for corps
+        the relocation guard is about to turn back — nor price them into
+        the committed figure the odds band uses."""
+        self._nassau(world)
+        preview = executor._combat._build_muster_preview(
+            world.marshals["Ney"], world.marshals["Mack"], world,
+            {"world": world})
+        rows = {r["marshal"]: r for r in preview["rows"]}
+        assert rows, "no muster rows on this board"
+        for name, row in rows.items():
+            if row["reason"] == "neutral_soil":
+                assert row["will_join"] is False, name
+        assert any(r["reason"] == "neutral_soil" for r in rows.values()), (
+            "the preview still promises a march the engine will refuse")
+
+
+class TestReviewObjectionAnswersAreNegationSafe:
+    """The plain-English router sits BEFORE the parser, which is where
+    PARSE-NEG's `strip_negated_clauses` lives — so "I don't trust him"
+    executed TRUST.
+
+    Behavioural, through main.py's real endpoint. My first cut MIRRORED
+    the router's logic in the test and mutation proved it inert twice
+    over: deleting either guard from production left it green.
+    """
+
+    @staticmethod
+    def _drive(line):
+        import backend.main as main_module
+        from backend.models.world_state import WorldState
+
+        world = WorldState.from_scenario(str(SCENARIO_PATH))
+        main_module._set_active_world(world)
+        world.pending_objection = {
+            "type": "major_objection",
+            "marshal": "Davout",
+            "message": "Davout objects.",
+            "original_order": {"action": "attack", "marshal": "Davout",
+                               "target": "Bohemia"},
+            "suggested_alternative": None,
+            "compromise": None,
+        }
+        try:
+            main_module.execute_command(
+                main_module.CommandRequest(command=line))
+        except Exception:
+            pass
+        return world.pending_objection
+
+    @pytest.mark.parametrize("line", [
+        "i don't trust him",
+        "do not insist",
+        "no compromise",
+        "never trust davout",
+    ])
+    def test_a_negated_answer_executes_nothing(self, line):
+        assert self._drive(line) is not None, (
+            f"'{line}' answered the objection — it executed its own "
+            f"OPPOSITE, and the router runs before the parser where "
+            f"PARSE-NEG's guard lives")
+
+    @pytest.mark.parametrize("line", ["I trust him", "insist on it"])
+    def test_the_affirmative_still_routes(self, line):
+        """FALSIFIABLE NEGATIVE — the guard is not 'refuse everything'."""
+        assert self._drive(line) is None, (
+            f"'{line}' stopped resolving the objection")
+
+    def test_main_applies_both_guards_before_matching(self):
+        import inspect
+
+        import backend.main as main_module
+        src = inspect.getsource(main_module.execute_command)
+        at = src.index("Plain-English objection answer")
+        head = src[:at]
+        assert "strip_negated_clauses" in head
+        assert "no\\s+(trust|insist|compromise)" in head
+
+
+class TestReviewObjectionOffersEveryLegalAnswer:
+    """The block read `alternative`, a key NO producer ever writes — both
+    objection sites write `suggested_alternative`. So it could never name
+    'compromise', while `handle_objection_response` accepts it: the popup
+    showed a COMPROMISE button and the next blocked command said "Reply
+    'trust' or 'insist'."""
+
+    @staticmethod
+    def _real_objection(world, **extra):
+        """The payload the PRODUCER builds — deliberately WITHOUT an
+        `alternative` key, which is the whole point. My original fixture
+        manufactured it, the same failure mode IGR-E flagged."""
+        payload = {
+            "type": "major_objection",
+            "marshal": "Davout",
+            "message": "Davout objects.",
+            "original_order": {"action": "attack", "marshal": "Davout"},
+            "suggested_alternative": None,
+            "compromise": None,
+        }
+        payload.update(extra)
+        world.pending_objection = payload
+        return payload
+
+    def test_shown_equals_accepted(self, world, executor):
+        from backend.commands.meta_executor import MetaExecutor  # noqa: F401
+        self._real_objection(
+            world, suggested_alternative={"action": "scout"})
+        result = executor.execute({"success": True, "command": {
+            "type": "specific", "marshal": "Ney", "action": "attack",
+            "target": "Bohemia"}}, {"world": world})
+        assert "'compromise'" in result["message"], (
+            f"a compromise the validator ACCEPTS is not offered: "
+            f"{result['message']!r}")
+        assert "compromise" in result["choices"]
+
+    def test_the_compromise_key_alone_also_counts(self, world, executor):
+        self._real_objection(world, compromise={"action": "wait"})
+        result = executor.execute({"success": True, "command": {
+            "type": "specific", "marshal": "Ney", "action": "attack",
+            "target": "Bohemia"}}, {"world": world})
+        assert "compromise" in result["choices"]
+
+    def test_a_two_road_objection_still_offers_two(self, world, executor):
+        """FALSIFIABLE NEGATIVE — not 'always three'."""
+        self._real_objection(world)
+        result = executor.execute({"success": True, "command": {
+            "type": "specific", "marshal": "Ney", "action": "attack",
+            "target": "Bohemia"}}, {"world": world})
+        assert result["choices"] == ["trust", "insist"]
+        assert "compromise" not in result["message"]
+
+    def test_the_offer_matches_the_validators_own_predicate(self, world):
+        """The join, pinned: whatever the block offers, the handler must
+        accept — and vice versa."""
+        from backend.commands.executor import CommandExecutor
+        ex = CommandExecutor()
+        for extra in ({}, {"suggested_alternative": {"action": "scout"}},
+                      {"compromise": {"action": "wait"}}):
+            self._real_objection(world, **extra)
+            blocked = ex.execute({"success": True, "command": {
+                "type": "specific", "marshal": "Ney", "action": "attack",
+                "target": "Bohemia"}}, {"world": world})
+            offered = set(blocked["choices"])
+            accepted = {"trust", "insist"}
+            obj = world.pending_objection
+            if obj.get("suggested_alternative") or obj.get("compromise"):
+                accepted.add("compromise")
+            assert offered == accepted, (
+                f"offered {offered} but the validator accepts {accepted}")
+
+
+class TestReviewCaptureLineTakesItsArticle:
+    """F12's new triumph line rendered "Marshal X of Ottoman Empire" and
+    "of Kingdom of Italy" — the same article the F7 fog line takes."""
+
+    @staticmethod
+    def _headline(nation_tag):
+        from tests.conftest import MarshalFactory, WorldFactory
+
+        from backend.game_logic import dispatch as dispatch_mod
+        ney = MarshalFactory.infantry(name="Ney")
+        world = WorldFactory.with_marshals([ney], current_turn=5)
+        world.event_log = [{
+            "type": "marshal_captured", "marshal": "Mack", "turn": 5,
+            "nation": nation_tag, "captor": "France", "location": "Ulm"}]
+        return (dispatch_mod._build_headline(world, "France") or {}).get(
+            "text", "")
+
+    def test_a_state_that_takes_the_article_gets_it(self):
+        text = self._headline("Ottoman")
+        assert "of the Ottoman Empire" in text, text
+
+    def test_kingdom_of_italy_too(self):
+        text = self._headline("KingdomOfItaly")
+        assert "of the Kingdom of Italy" in text, text
+
+    def test_a_plain_name_does_not_take_one(self):
+        """FALSIFIABLE NEGATIVE — not 'the Austria'."""
+        text = self._headline("Austria")
+        assert "of Austria" in text and "of the Austria" not in text, text

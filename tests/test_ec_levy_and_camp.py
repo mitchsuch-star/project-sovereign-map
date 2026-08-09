@@ -341,6 +341,11 @@ class TestSupplyStrainHeadline:
         assert "town" not in BUILDING_TYPES["supply_depot"]["allowed_in"]
         world, loc = self._starving(region_type="town")
         text = (_build_headline(world, "France") or {})["text"]
+        # CA9 review round: the remedy no longer WRAPS a refusal that
+        # already names the region — that produced "No depot may be laid
+        # at Tyrol — cannot build in Tyrol — not controlled by France."
+        # For the region-TYPE arm the executor's sentence does not name
+        # the province, so the prefix (and the word "depot") still rides.
         assert "depot" in text.lower()
         assert "No depot may be laid" in text
         # CA9-F10: the reason is no longer this surface's own paraphrase —
@@ -350,9 +355,16 @@ class TestSupplyStrainHeadline:
         _ok, _refusal, _remedy = can_build(
             world, world.get_region(loc), "supply_depot", "France")
         assert _ok is False
-        assert _refusal.rstrip(".")[1:] in text, (
+        # CA9 review round: the headline strips the executor's own
+        # redundant "Cannot build in <region> — " lead-in (it was
+        # stuttering against the prefix) and quotes the REASON verbatim.
+        _reason = _refusal.rstrip(".")
+        _lead = f"Cannot build in {loc} — "
+        if _reason.startswith(_lead):
+            _reason = _reason[len(_lead):]
+        assert _reason in text, (
             f"the headline paraphrased the gate instead of quoting it: "
-            f"{text!r} vs {_refusal!r}")
+            f"{text!r} vs {_reason!r}")
         assert "Move a corps" in text
 
     def test_it_names_the_depot_where_one_is_legal(self):

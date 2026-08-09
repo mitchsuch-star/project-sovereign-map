@@ -3432,8 +3432,27 @@ class DiplomaticExecutor:
                     from backend.commands.dialogue_routing import (
                         DIALOGUE_ACTION_KEYWORDS as action_map,
                     )
+                    from backend.commands.dialogue_routing import (
+                        whole_phrase_in,
+                    )
                     for keyword, action_matches in action_map.items():
-                        if keyword in choice_lower:
+                        # CA9 review round: this was `keyword in choice_lower`
+                        # — a BARE SUBSTRING test, and it is the one the
+                        # hard-stop fallback feeds with the player's whole
+                        # sentence. Measured over the real endpoint with a
+                        # war-purpose hard stop staged: `Ney, move north`
+                        # answered "Back Out" and popped the dialogue,
+                        # because "no" is inside "north" and maps to
+                        # `reconsider`. On a `settlement_confirm` the same
+                        # input discarded a drafted treaty. 3 of 12 ordinary
+                        # orders consumed the hard stop.
+                        #
+                        # The router commit claimed this matcher was gone.
+                        # It had only been removed from main.py's gate; the
+                        # resolver kept its own copy. Same word-boundary
+                        # rule as `match_dialogue_answer` now, from the same
+                        # module, so the two cannot drift again.
+                        if whole_phrase_in(keyword, choice_lower):
                             for action_match in action_matches:
                                 for opt in options:
                                     if opt.get("action") == action_match:

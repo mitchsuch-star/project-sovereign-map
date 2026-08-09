@@ -706,6 +706,13 @@ class CombatExecutor:
             return False, "drilling"
         if getattr(candidate, 'square_formation', False):
             return False, "square_formation"
+        # CA9-F13 (review round): the relocation guard will turn him back
+        # at the frontier, so promising a march here — and pricing him
+        # into `committed_attacker` — is the preview lying about the very
+        # thing it exists to show. Same predicate as the guard.
+        _frontier = self._pursuit_capture_guard(candidate, battle_region, world)
+        if _frontier is not None and _frontier["arm"] == "neutral":
+            return False, "neutral_soil"
         if getattr(candidate, 'reinforced_this_turn', False) \
                 or getattr(candidate, 'moved_this_turn', False):
             return False, "cooldown_spent"
@@ -5887,6 +5894,15 @@ class CombatExecutor:
                     # preview's honest arm — ambition, not the roads.
                     friendly_reason = (f"{r['marshal']} hesitated — the I Corps weighed "
                                        f"its own ambitions and did not march.")
+                elif reason == "neutral_soil":
+                    # CA9 review round: he did not fail to arrive — he was
+                    # STOPPED, by our own peace. Saying "could not reach
+                    # the battlefield in time" of a marshal the engine
+                    # turned back is the CA9 through-line in new prose.
+                    friendly_reason = (
+                        f"{r['marshal']} halted at the frontier — the "
+                        f"field lies on soil we are not at war with, and "
+                        f"no order could send him there.")
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
@@ -5992,8 +6008,15 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         all_reinforcements = attacker_reinforcements + defender_reinforcements
         for reinf_result in all_reinforcements:
+            # CA9 review round: `neutral_soil` added. F13 flips a
+            # marshal who WAS marching to `arrived: False` because the
+            # ENGINE's own diplomatic rule stopped him — docking him -3
+            # trust for that is punishing a man for the Emperor's peace
+            # treaty. Measured: Soult 70 -> 67 and Davout 85 -> 82 on the
+            # Nassau fixture, both with arrival scores ABOVE threshold.
             if not reinf_result["arrived"] and reinf_result["reason"] not in (
-                    "literal_personality", "fate_intervened", "eyes_on_a_crown"):
+                    "literal_personality", "fate_intervened",
+                    "eyes_on_a_crown", "neutral_soil"):
                 failing = world.marshals.get(reinf_result["marshal"])
                 if failing:
                     # Determine which primary this marshal was trying to reinforce

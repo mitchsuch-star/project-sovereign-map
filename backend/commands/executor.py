@@ -532,10 +532,19 @@ class CommandExecutor:
                 and _early_command.get("action") not in OBJECTION_FREE_READS):
             from backend.commands.dialogue_routing import format_answer_words
             objecting = world.pending_objection.get("marshal", "A marshal")
-            _choices = (
-                ["trust", "insist", "compromise"]
-                if world.pending_objection.get("alternative")
-                else ["trust", "insist"])
+            # CA9 review round: this read `alternative`, a key NO
+            # producer in backend/ ever writes — both objection sites write
+            # `suggested_alternative` + `compromise`. So the sentence could
+            # structurally never name 'compromise', while
+            # `handle_objection_response` accepts it whenever either key is
+            # set: the popup showed a COMPROMISE button and the very next
+            # blocked command said "Reply 'trust' or 'insist'." Read the
+            # SAME predicate the validator uses, so shown == accepted.
+            _choices = ["trust", "insist"]
+            if (world.pending_objection.get("suggested_alternative")
+                    or world.pending_objection.get("compromise")
+                    or world.pending_objection.get("alternative")):
+                _choices.append("compromise")
             return {
                 "success": False,
                 # CA9-N5: the block names the words that clear it. They were

@@ -655,6 +655,11 @@ MUSTER_REASON_DISPLAY = {
     "vassal_wavering": "will not march — his homeland's loyalty wavers",
     # NV-9: reinforcement Rule 2b — the sea between him and the guns
     "sea_barred": "cannot reach the guns — the enemy's sail lie between",
+    # CA9-F13 (review round): the field is on a court we are at peace
+    # with, so no order can send him there. shown = applied — the
+    # relocation guard turns him back, and the preview must say so
+    # rather than promising a march and pricing him into the odds.
+    "neutral_soil": "cannot march — the field is on soil we are not at war with",
 }
 
 TRUST_TIER_DISPLAY = {
