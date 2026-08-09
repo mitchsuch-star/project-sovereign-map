@@ -39,6 +39,14 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     "top_bar.gd",
     "notification_bar.gd",
     "mailbox_panel.gd",
+    # CA9 row 3 / A1 (Aug 9 2026): the marshal-petition card. It was already
+    # PARSED by the harness (`tools/godot_parse_check.gd:65`) but absent from
+    # this staleness list, so an edit to it alone left the committed report
+    # untouched and the suite green — which is exactly the shape that let the
+    # `Later` soft-lock ship. Added because A1 edits this file and because
+    # `marshal_petition_dialog.gd` is a BLOCKING modal: a parse error in it
+    # takes the turn with it.
+    "marshal_petition_dialog.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

@@ -16,6 +16,14 @@ extends CanvasLayer
 # =============================================================================
 
 signal petition_choice(choice_id: String)
+# CA9 row 3 / A1 (Aug 9 2026): "Later" used to be a bare `hide()`. The card is
+# shown from `_post_hud_response_routes`, and EVERY entry there returns before
+# `set_input_enabled(true)` — so deferring the petition left the command line,
+# Send, End Turn and the diplomacy wizard permanently disabled with no
+# recovery path short of reloading. The polite button bricked the turn.
+# Same contract as the Proclamation's `dismissed` (proclamation_popup.gd):
+# the shower does not hand control back, the dismiss handler does.
+signal petition_deferred
 
 @onready var title_label = $PanelContainer/VBoxContainer/TitleLabel
 @onready var body_label = $PanelContainer/VBoxContainer/BodyLabel
@@ -113,3 +121,7 @@ func _on_option_pressed(choice_id: String):
 
 func _on_later():
 	hide()
+	# The pending petition genuinely does re-surface next turn (the backend
+	# never popped it), so there is no answer to POST — but control MUST come
+	# back, or the deferral is indistinguishable from a crash.
+	petition_deferred.emit()

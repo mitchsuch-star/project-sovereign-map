@@ -365,6 +365,13 @@ func _ready():
 	marshal_petition_dialog = dialog_manager.register("marshal_petition", "res://scenes/marshal_petition_dialog.tscn")
 	if marshal_petition_dialog:
 		marshal_petition_dialog.petition_choice.connect(_on_marshal_petition_choice)
+		# CA9 row 3 / A1: "Later" hands control back. Without this the
+		# deferral affordance left input disabled for the rest of the
+		# session — the same trap `dismissed` exists to close for the
+		# Proclamation, whose route is the neighbouring entry in
+		# `_post_hud_response_routes`.
+		marshal_petition_dialog.petition_deferred.connect(
+			_on_marshal_petition_deferred)
 
 	# NA-6b (spec §11.8 stage 2): The Proclamation. Choice-less, so there is
 	# no backend response to send — but `dismissed` MUST still be connected:
@@ -1500,6 +1507,23 @@ func _show_pending_proclamation() -> bool:
 	pending_proclamation_data = null
 	proclamation_popup.show_proclamation(data)
 	return true
+
+func _on_marshal_petition_deferred():
+	"""CA9 row 3 / A1 — the player chose "Later".
+
+	There is no answer to send: the backend never popped the petition, so it
+	re-surfaces next turn exactly as the dialog's header promises. All this
+	owes is control, which the route that showed the card deliberately did
+	not return. Follows the Proclamation's tail so anything stashed behind
+	the petition still gets its turn.
+	"""
+	if _show_pending_proclamation():
+		return
+	if _show_pending_envoy_digest():
+		return  # _on_mailbox_panel_closed re-enables input
+	set_input_enabled(true)
+	command_input.grab_focus()
+
 
 func _on_proclamation_dismissed():
 	# A second formation on the same tick queues behind the first.
