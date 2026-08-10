@@ -291,10 +291,49 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   [70, 68, 66, 64, 62, 59, 56, 53, 50, 47, 44, 46, 48, 45, 47, 44, 31,
 #    28, 30, 27, 24, 21, 18, 15, 12, 14, 11, 8, 10, 7, 4, 1, 0, 0, 0, 0,
 #    0, 0, 0, 0, 0]
+#
+# ── RE-RECORDED August 9, 2026 — CA9 row 3, A12 ────────────────────────
+# "De-duplicate the briefing". A pair that cooled in step 1 of the
+# jealousy pass could be handed straight back to the SAME marshal by
+# step 3 of the same pass, because `clear_jealousy` writes no
+# "cooled this turn" marker and rival memory returns the man he just
+# stopped resenting. Measured on the ambient board: 26 same-pair
+# cool-then-refire events across 20 of 40 turns, and one briefing page
+# carrying "his resentment has cooled" above "he resents him, for the
+# fourth time".
+#
+# ATTRIBUTION — 5-arm flip experiment, each arm a single reverted edit:
+#   control (all three reverted)  -> reproduces the PRIOR series above,
+#                                    byte-for-byte. (i)
+#   (a) same-pass suppression     -> reproduces `all` byte-for-byte, and
+#                                    diverges from control at INDEX 15.
+#                                    SOLE CAUSE. (ii)
+#   (b) the level-1 escalation
+#       line no longer co-emits
+#       with its own fire         -> BYTE-IDENTICAL to control. (iii)
+#   (c) the rung-3.5 ranking      -> BYTE-IDENTICAL to control. (iii)
+#       (consistent with the measurement that `build_morning_dispatch`
+#        is called ZERO times in an ambient run — the dispatch is a
+#        player surface and this runner never builds one.)
+#
+# WHY IT MOVES: `jealous_of` is read at the combat coordination
+# chokepoint on BOTH boards, so suppressing the re-fires changes who
+# holds a grievance and therefore how AI-vs-AI battles resolve. Measured
+# on the same trace: player fires 41 -> 21, ENEMY fires 15 -> 2,
+# escalations 39 -> 17. Downstream the run diverges visibly — Austria's
+# and Russia's recruitment cadences shift later and lengthen, Russia
+# commissions an extra marshal on turn 31, the Swiss vassal rebellion
+# opens on turn 27 instead of 29, Holland ends at loyalty 100 instead of
+# 80, and Russia promotes one more emergent design.
+#
+# THE TAIL REACHING 0 IS NOT A NEW MECHANIC. Both arms decay at the same
+# -3/turn; the new curve simply starts its decay from a lower peak (index
+# 24: 45 vs 71) and so reaches the floor inside the 40-turn window. The
+# prior record ended at 13 mid-decay.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 66, 64, 70, 71, 69,
-    66, 66, 66, 66, 69, 72, 73, 71, 68, 65, 62, 49, 46, 43, 40, 37, 34,
-    31, 28, 25, 22, 19, 16, 13,
+    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 66, 64, 70, 68, 69,
+    66, 63, 60, 57, 54, 51, 48, 45, 45, 32, 29, 26, 28, 30, 27, 24, 21,
+    18, 15, 12, 9, 6, 3, 0,
 ]
 
 

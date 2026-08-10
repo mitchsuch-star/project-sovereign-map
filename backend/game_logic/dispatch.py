@@ -2425,13 +2425,36 @@ def _pick_berthier_note(
     # actionable fact.
     _idle_by_name = {m.get("name"): int(m.get("idle_turns", 0) or 0)
                      for m in marshals_data}
+    # A12 (CA9 row 3): this rung used to read `jealous[0]` and `jealous[:2]`
+    # in `world.marshals` DICT ORDER — i.e. whichever Frenchman appears
+    # earliest in the scenario JSON, never the most aggrieved. Measured over
+    # a 40-turn ambient run, every one of the 27 grievance-bearing turns
+    # fell to the collective fallback and named the same two men.
+    #
+    # Ranked by the system's own severity vocabulary, all from stored state
+    # (no `_threshold_for` recompute at a display seam): escalation level
+    # first, then how many times the quarrel has flared, then how long it
+    # has left to run. Ties break on name so the sentence is stable.
+    def _grievance_rank(m):
+        rival_name = getattr(m, "jealous_of", "") or ""
+        return (
+            -int(get_escalation_level(m, rival_name)),
+            -int(_lifetime_fires(m, rival_name)),
+            -int(getattr(m, "jealousy_turns_remaining", 0) or 0),
+            m.name,
+        )
+
     try:
-        from backend.game_logic.jealousy import any_player_grievance
+        from backend.game_logic.jealousy import (
+            _lifetime_fires,
+            any_player_grievance,
+            get_escalation_level,
+        )
         if any_player_grievance(world):
-            jealous = [
+            jealous = sorted((
                 m for m in world.marshals.values()
                 if m.nation == player_nation and getattr(m, "jealous_of", None)
-            ]
+            ), key=_grievance_rank)
             if jealous:
                 first = jealous[0]
                 rival = humanize_entity_name(
@@ -2445,11 +2468,13 @@ def _pick_berthier_note(
                 if len(jealous) == 1 and rival:
                     return (f"{who} nurses a grievance against {rival}, Sire. "
                             f"The rivalry wants settling before it is tested.")
+                # Two or more, worst first. The singular arm that used to
+                # hang off this sentence was structurally dead — it sits
+                # below two `len == 1` returns.
                 names = ", ".join(humanize_entity_name(m.name)
                                   for m in jealous[:2])
                 return (f"The marshals' rivalries demand attention, Sire — "
-                        f"{names} nurse{'s' if len(jealous) == 1 else ''} a "
-                        f"grievance.")
+                        f"{names} nurse a grievance, {who}'s the deepest.")
     except Exception:
         pass
 

@@ -131,6 +131,24 @@ CONFRONT_REBUKE_DURATION_CUT = 1
 # prior behaviour reproduces byte-identically), not as a config surface.
 JEALOUSY_RIVAL_MEMORY = True
 
+# A12 (CA9 row 3, Aug 9 2026): A PAIR THAT COOLED THIS PASS DOES NOT RE-FIRE
+# IN THE SAME PASS. `clear_jealousy` writes no "cooled this turn" marker, so
+# a marshal cleared in step 1 reads `jealous_of is None` in step 3 and rival
+# memory hands him back the SAME man — measured on 20 of 40 ambient turns,
+# and the briefing then carried "his resentment has cooled" and "he resents
+# him, for the fourth time" on one page.
+#
+# Deliberately NOT applied to `forced=True` fires: the level-3 mutual spiral
+# writes `jealous_of` on the TARGET through `_check_escalation`'s reciprocity
+# arm, and suppressing that would break the ladder rather than de-duplicate
+# a sentence.
+#
+# This is the arm that moves BASELINE_SERIES (it changes which marshals hold
+# a grievance, which the combat coordination chokepoint reads, on BOTH
+# boards). The flag exists for the flip-experiment discipline — disable and
+# the prior series reproduces byte-identically — not as a config surface.
+JEALOUSY_SUPPRESS_SAME_PASS_REFIRE = True
+
 
 def jealousy_dormant(world) -> bool:
     """TUT-F5 (Aug 8, 2026 tutorial live report): the School of War keeps the
@@ -764,7 +782,11 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
             "target": target.name,
         })
 
-    _check_escalation(world, marshal, target, events, forced=forced)
+    # A12: `is_player` is exactly the condition under which the fire line
+    # above was appended, so the escalation arm can tell whether the player
+    # has ALREADY been told about this trigger on this page.
+    _check_escalation(world, marshal, target, events, forced=forced,
+                      fire_announced=bool(is_player))
 
     # Confrontation popup (spec §6, amended by CA8-D3 Q2 — spec §0.5):
     # player pairs only, one petition slot at a time; unseen keys retry on
@@ -787,7 +809,8 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
 
 
 def _check_escalation(world, marshal, target, events: List[Dict],
-                      forced: bool = False) -> None:
+                      forced: bool = False,
+                      fire_announced: bool = False) -> None:
     """Escalation (spec §10): qualifying fire = stored relationship already
     Rival-or-worse OR 3rd lifetime fire. Levels advance 1 -> 2 -> 3."""
     stored_rel = marshal.relationships.get(target.name, 0)
@@ -843,7 +866,15 @@ def _check_escalation(world, marshal, target, events: List[Dict],
     _set_escalation_level(target, marshal.name, level)
 
     is_player = marshal.nation == world.player_nation
-    if level == 1 and is_player:
+    if level == 1 and is_player and not fire_announced:
+        # A12: this arm used to co-emit with the `jealousy_fired` line that
+        # caused it — one trigger, two bullets on the same page, saying the
+        # same news at two registers ("X appears envious of Y's laurels" /
+        # "the rivalry between X and Y has become a matter of concern").
+        # The fire line already names both men and the resentment, so when
+        # it was shown, this adds nothing. Levels 2 and 3 still announce:
+        # "entrenched" and "mutual" are genuinely new facts, and level 2
+        # additionally applies a permanent -1 in both directions.
         events.append({
             "type": "jealousy_escalation",
             "message": (
@@ -2098,6 +2129,11 @@ def process_turn(world) -> List[Dict]:
             marshal.jealousy_surge_turns -= 1
 
     # 1) timers + ladder-shift resolution for live grievances
+    #
+    # A12: every pair cooled HERE is remembered for the rest of this pass,
+    # so step 3 cannot hand the same man straight back. See
+    # `JEALOUSY_SUPPRESS_SAME_PASS_REFIRE`.
+    cooled_this_pass = set()
     for marshal in list(world.marshals.values()):
         target_name = getattr(marshal, "jealous_of", None)
         if not target_name:
@@ -2107,12 +2143,14 @@ def process_turn(world) -> List[Dict]:
                 or target.nation != marshal.nation:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=events, reason="the rival is gone")
+            cooled_this_pass.add((marshal.name, target_name))
             continue
         # Ladder shift (spec §2): passing the target resolves with surge.
         if get_glory_score(marshal, turn) > get_glory_score(target, turn):
             clear_jealousy(world, marshal, resolved_by_action=True,
                            events=events,
                            reason=f"he has surpassed {target_name} in glory")
+            cooled_this_pass.add((marshal.name, target_name))
             if marshal.nation == world.player_nation:
                 events.append({
                     "type": "jealousy_ladder_shift",
@@ -2126,6 +2164,7 @@ def process_turn(world) -> List[Dict]:
         if marshal.jealousy_turns_remaining <= 0:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=events, reason="time")
+            cooled_this_pass.add((marshal.name, target_name))
 
     # 2) literal sidelining counters (uses live per-turn flags)
     update_literal_hold_counters(world)
@@ -2168,6 +2207,15 @@ def process_turn(world) -> List[Dict]:
             continue
         threshold, requires_idle = gate
         if requires_idle and getattr(marshal, "idle_turns", 0) < HOSTILE_IDLE_TURNS:
+            continue
+        # A12: the pair cooled earlier in THIS pass — a resentment cannot
+        # cool and flare on the same page. Sited at the CANDIDATE gate, not
+        # at the apply loop, so the suppressed man does not consume one of
+        # his nation's two fire slots (`MAX_FIRES_PER_NATION_TURN`); the
+        # slot goes to the next-most-aggrieved marshal instead, which is
+        # the behaviour the rate limit was written for.
+        if JEALOUSY_SUPPRESS_SAME_PASS_REFIRE \
+                and (marshal.name, target.name) in cooled_this_pass:
             continue
         delta = get_glory_score(target, turn) - get_glory_score(marshal, turn)
         if delta >= threshold:
