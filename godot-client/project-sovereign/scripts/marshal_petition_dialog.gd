@@ -52,8 +52,30 @@ func show_petition(petition: Dictionary):
 	if title_label.text == "":
 		title_label.text = KIND_TITLES.get(kind, "A PETITION")
 
-	var body = "[color=#d0c0b0]" + str(petition.get("body", "")) + "[/color]"
+	# A14 (CA9 row 3): the modal renders the MARSHAL. The backend has set
+	# `speaker` on every petition since v3.2 and no .gd file ever read it,
+	# so the flagship drama card arrived as an unsigned staff memo — which
+	# is why `war_weary`, the one petition carrying a spoken clause, was
+	# the only one that read as drama. His own words go FIRST, in gold,
+	# above the staff's summary; the header names him.
+	var speaker = str(petition.get("speaker", ""))
+	if speaker != "" and speaker != "<null>":
+		title_label.text = Utils.humanize_nation_keys_in_text(speaker).to_upper() \
+			+ " — " + title_label.text
+	var body = ""
+	var spoken = str(petition.get("speaker_line", ""))
+	if spoken != "" and spoken != "<null>":
+		body += "[color=#" + Utils.COLOR_GOLD + "]" \
+			+ Utils.humanize_nation_keys_in_text(spoken) + "[/color]\n\n"
+	body += "[color=#d0c0b0]" + str(petition.get("body", "")) + "[/color]"
 	body_label.text = body
+	# The scene authors BodyLabel at a bounded 120px with scroll_active so
+	# `Utils.clamp_centered_panel` can shrink it (an unbounded fit_content
+	# RichTextLabel cannot be clamped). The spoken line adds two lines, so
+	# raise the floor rather than let the man's own words scroll out of
+	# sight — still bounded, so the clamp still works.
+	if body_label:
+		body_label.custom_minimum_size.y = 170.0
 
 	for child in options_container.get_children():
 		child.queue_free()

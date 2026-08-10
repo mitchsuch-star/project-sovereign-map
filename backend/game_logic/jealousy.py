@@ -1499,6 +1499,55 @@ def command_arm_availability(world, marshal):
     return True, "", quarry
 
 
+# ── A14 (CA9 row 3): the modal renders the MARSHAL ───────────────────────
+#
+# The backend has set a `speaker` on every petition since v3.2 and ZERO
+# `.gd` files ever read it, so the flagship drama card was an unsigned
+# staff memo. `war_weary` is the only petition that reads as drama, and
+# the reason is one clause: *"I have my duchy, Sire. Why do we march
+# again?"* — the man speaks.
+#
+# Authored HERE, not in `marshal_voice.py`, whose banks are keyed to five
+# BATTLE situations with no consumer joining them to a petition.
+# Deterministic (GR6), indexed by the pair's lifetime fires so a second
+# audience does not repeat the first word for word.
+_PETITION_VOICE = {
+    "aggressive": (
+        "\"Sire — I have earned better than to watch {target} take the "
+        "field while I hold a road.\"",
+        "\"Am I to be a garrison officer, Sire? Give me the enemy and I "
+        "will give you {target}'s laurels twice over.\"",
+        "\"I ask once more, Sire. A command. Any command.\"",
+    ),
+    "cautious": (
+        "\"I do not complain, Sire. I observe that {target}'s despatches "
+        "are read first, and mine are read after.\"",
+        "\"My corps is in good order, Sire. It has been in good order for "
+        "some time now.\"",
+        "\"I have said my piece before. I will not say it a third time "
+        "unless you wish it.\"",
+    ),
+    "literal": (
+        "\"My orders have been carried out exactly, Sire. I note that "
+        "{target} was given orders worth carrying out.\"",
+        "\"I have made a full report of the patrols, Sire. There were "
+        "eleven. There was nothing in any of them.\"",
+        "\"I request reassignment, Sire. I will state the reason if it is "
+        "required of me.\"",
+    ),
+}
+
+
+def petition_speaker_line(marshal, target_name: str = "") -> str:
+    """The marshal's own words for the petition header (display only)."""
+    bank = _PETITION_VOICE.get(getattr(marshal, "personality", ""), ())
+    if not bank:
+        return ""
+    fires = max(0, _lifetime_fires(marshal, target_name) - 1)
+    line = bank[min(fires, len(bank) - 1)]
+    return line.format(target=humanize_entity_name(target_name or "him"))
+
+
 def _command_arm_ap(marshal) -> int:
     return (COMMAND_ARM_AP_LITERAL
             if getattr(marshal, "personality", "") == "literal"
@@ -1652,6 +1701,9 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
         "title": f"Marshal {marshal.name} seeks an audience",
         "body": body,
         "speaker": marshal.name,
+        # A14: the man says something. `speaker` has been set since v3.2
+        # and read by nothing.
+        "speaker_line": petition_speaker_line(marshal, target.name),
         "options": [
             # ════════════════════════════════════════════════════════
             # §3 (CA9 row 3): the user's own observation — "acknowledge
@@ -1745,6 +1797,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> None:
         "title": "A rivalry among the marshals",
         "body": body,
         "speaker": marshal.name,
+        "speaker_line": petition_speaker_line(marshal, other.name),
         "options": options,
         "context": {"marshal": marshal.name, "other": other.name,
                     "new_value": int(new_value)},
@@ -1856,9 +1909,14 @@ def queue_war_weary_petition(world, marshal, target_nation: str,
         "title": f"Marshal {marshal.name} counsels peace",
         "body": (f"Sire, {marshal.name} — {title} secured, his household "
                  f"provided for — begs you reconsider this war with "
-                 f"{target_nation}: \"I have my duchy, Sire. Why do we "
-                 f"march again?\""),
+                 f"{target_nation}."),
         "speaker": marshal.name,
+        # A14: this petition was ALREADY the only one that read as drama,
+        # and the reason was this clause. Lifted out of the staff prose
+        # into the field the modal speaks, so every kind works the same
+        # way rather than this one being accidentally good.
+        "speaker_line": ("\"I have my duchy, Sire. Why do we march "
+                         "again?\""),
         "options": [
             {"id": "march_anyway", "label": "\"We march\"",
              "detail": f"The war is declared. {marshal.name} obeys — "

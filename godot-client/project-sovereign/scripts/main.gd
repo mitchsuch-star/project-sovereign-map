@@ -946,7 +946,15 @@ func _unhandled_input(event):
 				get_viewport().set_input_as_handled()
 			return
 		if event.keycode == KEY_G:
-			if not _is_hotkey_blocked():
+			# A14 (CA9 row 3): the petition asks a question ABOUT a
+			# marshal, so the player must be able to look him up while it
+			# is on screen. The card stays modal — it must not be
+			# answerable past — but the Generals screen is a read-only
+			# lookup, and Q2(a)'s command arm made the character sheet
+			# decision-relevant. The alternative the memo rejected was
+			# duplicating a stat block onto the card; the card should not
+			# own what the Generals screen already owns.
+			if not _is_hotkey_blocked() or _petition_allows_lookup():
 				if top_bar and top_bar.screens.has("generals") and top_bar.screens["generals"] != null:
 					top_bar.toggle_screen("generals")
 				get_viewport().set_input_as_handled()
@@ -4361,6 +4369,19 @@ func _is_screen_open() -> bool:
 func _is_hotkey_blocked() -> bool:
 	"""True when hotkeys should not fire (typing or modal open)."""
 	return command_input.has_focus() or _is_modal_dialog_open()
+
+
+func _petition_allows_lookup() -> bool:
+	"""A14: G opens the Generals screen while a marshal petition is up.
+
+	Scoped deliberately — it is true ONLY while the petition card itself is
+	the thing on screen, and never while the player is typing. Every other
+	hotkey stays blocked, and the petition stays modal."""
+	if command_input and command_input.has_focus():
+		return false
+	if marshal_petition_dialog == null or not marshal_petition_dialog.visible:
+		return false
+	return true
 
 func _on_screen_changed(screen_name: String):
 	"""Handle top bar screen open/close — toggle map interaction."""
