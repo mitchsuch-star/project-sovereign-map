@@ -57,6 +57,9 @@ var cached_data: Array = []
 # same /marshal_overview payload.
 var cached_ladder: Array = []
 var cached_recruitment: Dictionary = {}
+# A11 (CA9 row 3): the glory window, served by the backend so the ladder
+# caption cannot drift from `jealousy.GLORY_WINDOW` again.
+var cached_glory_window: int = 8
 # Commission view toggle — true renders the candidate bench instead of the
 # marshal cards ([url=commission_open] / [url=commission_back]).
 var _commission_view := false
@@ -174,6 +177,10 @@ func _on_data_received(response):
 
 	cached_data = response.get("marshals", [])
 	cached_ladder = response.get("glory_ladder", [])
+	# A11: the window comes from the backend constant (GLORY_WINDOW), never
+	# a number typed here. The 8 below is only the fallback for an old
+	# payload; the caption used to say 5, three turns adrift of the engine.
+	cached_glory_window = int(response.get("glory_window", 8))
 	cached_recruitment = response.get("recruitment", {})
 	# A wiped standing roster must STILL render the glory ladder + Commission
 	# link (the sole UI door to the Marshalate recovery feature) when a bench
@@ -199,7 +206,15 @@ func _render_current_view():
 func _render_all_cards():
 	"""Render the glory ladder header, then all marshal cards."""
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	var bbcode = "[color=#" + Utils.COLOR_DIMMED + "]Your marshals — loyalty, glory, and grievance; reward them before they ask. Press G to close.[/color]\n\n"
+	# A11 (CA9 row 3): the previous caption urged the player to reward a
+	# marshal pre-emptively, which was false twice — a grievance threshold
+	# reads relationship, idle turns and authority and carries NO reward
+	# term at all, and the [ Reward… ] chip is gated shut until he HAS
+	# asked. It pointed the player at gold for a problem gold cannot
+	# touch. (The old wording is deliberately not repeated here: the R159
+	# pin is a source grep, and a comment quoting it would satisfy the
+	# assertion while the screen said something else.)
+	var bbcode = "[color=#" + Utils.COLOR_DIMMED + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.[/color]\n\n"
 	bbcode += _render_glory_ladder()
 
 	for i in range(cached_data.size()):
@@ -222,7 +237,11 @@ func _render_glory_ladder() -> String:
 	if cached_ladder is Array and cached_ladder.size() > 1:
 		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
-		bbcode += "  [color=#" + COLOR_DIM + "](glory, last 5 turns — the man above draws the envy of the man below)[/color]\n"
+		# A11: the window is INTERPOLATED from the backend constant, and the
+		# rule is stated as the engine actually implements it — envy fixes
+		# on a REMEMBERED rival (JEALOUSY_RIVAL_MEMORY), not on whoever
+		# happens to stand one rung up this turn.
+		bbcode += "  [color=#" + COLOR_DIM + "](glory, last " + str(cached_glory_window) + " turns — a marshal envies the man above him, and keeps that rival while he stays above)[/color]\n"
 		for i in range(cached_ladder.size()):
 			var row = cached_ladder[i]
 			var rname = str(row.get("name", "?"))

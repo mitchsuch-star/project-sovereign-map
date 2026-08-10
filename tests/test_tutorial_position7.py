@@ -248,7 +248,15 @@ class TestClientStructuralPins:
             "Orders that march without you",
         ):
             assert fragment in ledger, fragment
-        assert "reward them before they ask" in _read("scripts/marshal_management.gd")
+        # CONSCIOUS FLIP, A11 (CA9 row 3), Aug 9 2026. The R159 sentence
+        # for this screen used to be "reward them before they ask", which
+        # the grievance audit measured as false in both halves: no reward,
+        # expectation, estate or pension term appears anywhere in
+        # `jealousy._threshold_for`, and the [ Reward… ] chip is gated
+        # shut until the marshal HAS asked. R159 asks each screen to name
+        # the mechanic it displays — naming it wrongly is worse than not
+        # naming it, so the sentence changed and this pin moved with it.
+        assert "only glory answers envy" in _read("scripts/marshal_management.gd")
         assert "Every court of Europe" in _read("scripts/diplomatic_ledger.gd")
         assert "tooltip_text" in _read("scripts/war_status_panel.gd")
         assert "the price of peace" in _read("scripts/war_detail_popup.gd")

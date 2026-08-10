@@ -4179,7 +4179,10 @@ def get_marshal_overview():
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     from backend.game_logic.marshal_overview import build_marshal_overview
-    from backend.game_logic.jealousy import build_glory_ladder_payload
+    from backend.game_logic.jealousy import (
+        GLORY_WINDOW,
+        build_glory_ladder_payload,
+    )
     from backend.game_logic.recruitment import build_recruitment_payload
     overview = build_marshal_overview(world)
     payload = {
@@ -4187,6 +4190,12 @@ def get_marshal_overview():
         "marshals": overview,
         # Jealousy v3.2: the player's glory ladder (Generals screen header)
         "glory_ladder": build_glory_ladder_payload(world),
+        # A11 (CA9 row 3): the ladder header states its own window, and the
+        # client INTERPOLATES this rather than re-hardcoding a number. The
+        # caption said "last 5 turns" against a live GLORY_WINDOW of 8 —
+        # stale since DR-2 lengthened it, and the only sentence in the
+        # product that states the causal rule at all.
+        "glory_window": int(GLORY_WINDOW),
         # Marshal recruitment: the commissionable candidate pool
         "recruitment": build_recruitment_payload(world),
     }

@@ -479,14 +479,22 @@ def _build_unit_specifics(marshal: Marshal) -> Dict[str, Any]:
 def _build_relationships(marshal: Marshal, world) -> List[Dict[str, Any]]:
     """Build relationship list, filtered to living marshals in world."""
     relationships = []
-    for other_name, value in marshal.relationships.items():
+    for other_name in list(marshal.relationships.keys()):
         # Filter: other marshal must exist in world.marshals AND be alive
         other = world.marshals.get(other_name)
         if other is None or other.strength <= 0:
             continue
+        # A11 (CA9 row 3): read the DERIVED value, not the stored int.
+        # A live grievance is a derived -1 toward its target that is never
+        # written into the stored dict, so this card printed "Ney:
+        # Professional" two lines under its own "GRIEVANCE: envious of
+        # Ney" — the card contradicting the engine on the same screen,
+        # while every mechanical seam (coordination, SUPPORT objections,
+        # reinforcement, the muster preview) already reads the getter.
+        value = int(marshal.get_relationship(other_name))
         relationships.append({
             "name": other_name,
-            "value": int(value),
+            "value": value,
             "label": _RELATIONSHIP_LABELS.get(value, "Professional"),
         })
     return relationships

@@ -625,6 +625,26 @@ YOUR MARSHALS (press G - each card shows skills, trust, ability):
   Massena "Child of Victory" - hardest to kill when outnumbered
   Enemy generals carry famed abilities too - intel will name them.
 
+GLORY AND GRIEVANCE (the ladder on the Generals screen):
+  Victories earn GLORY, counted over the last 8 turns. A marshal who
+  falls behind a peer starts to ENVY him - and once he does, that man
+  stays his rival for as long as he is above.
+  ESTATES AND RENTES CANNOT TOUCH THIS. Gold answers a marshal's
+  LOYALTY; only glory answers his envy. Rewarding a jealous marshal
+  is not wrong - it is simply a different quarrel.
+  A grievance costs you a corps: he will not coordinate with the man
+  he resents, and at the worst he will not march beside him at all.
+  Watch the muster preview - it names the quarrel when it bites.
+  What ENDS it is the field. An aggressive marshal needs a win against
+  a real foe; a cautious one a victory won shoulder to shoulder; a
+  literal one only meaningful contact with the enemy. A hard defeat
+  costs glory - unless he was outnumbered, which carries no shame -
+  and out-bleeding the enemy 2-to-1 earns glory even when the field is
+  left undecided.
+  While he is aggrieved he attacks at +15% with no marshal of yours
+  counted on the field beside him. Send him alone and he fights like
+  a man with something to prove.
+
 FREE ACTIONS: help, end turn, wait, retreat, economy
 
 DEBUG COMMANDS (for testing):
