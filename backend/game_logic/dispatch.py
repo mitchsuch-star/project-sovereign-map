@@ -2272,6 +2272,9 @@ _DISPATCH_EVENT_TYPES = {
     "glory_crown_lost",
     # ESP-1: the collective petition announcement line.
     "fontainebleau_petition",
+    # A13 (CA9 row 3): the overflow tail when the routine drama lines are
+    # capped. AI-6's `intent_movement_tail` idiom, on this pipeline.
+    "jealousy_drama_tail",
     # Marshal recruitment: a new commander joins the roster.
     "marshal_commissioned",
 }

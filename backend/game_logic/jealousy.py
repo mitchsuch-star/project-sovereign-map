@@ -921,6 +921,9 @@ def _check_escalation(world, marshal, target, events: List[Dict],
             "nation": marshal.nation,
             "marshal": marshal.name,
             "target": target.name,
+            # A13: the cap exempts escalation-to-PERMANENT, not every
+            # escalation, so the level has to ride the event.
+            "level": 1,
         })
     elif level == ESCALATION_PERMANENT_LEVEL:
         # Permanent -1 both directions (does NOT restore on resolution).
@@ -936,6 +939,7 @@ def _check_escalation(world, marshal, target, events: List[Dict],
                 "nation": marshal.nation,
                 "marshal": marshal.name,
                 "target": target.name,
+                "level": ESCALATION_PERMANENT_LEVEL,
             })
         if change_a or change_b:
             check_rivalry_transitions(world, [
@@ -2332,6 +2336,102 @@ def _apply_war_weary_choice(world, choice: str, context: Dict,
 
 # ═══════════════════════ THE MASTER TURN PASS ═════════════════════════════
 
+# ── A13 (CA9 row 3): the narration cap, AI-6 shape ───────────────────────
+#
+# The audit measured ~15 marshal-drama lines per answerable decision, 48
+# lines in 12 turns, and a peak of 10-12 in a single briefing — against
+# `INTENT_DISPATCH_CAP = 2` for intent narration and 3 for marshal arcs.
+# Jealousy capped FIRES only, never LINES.
+#
+# Deliberately built LAST (memo §6 #3): half the volume was duplication
+# and self-contradiction, and a cap applied first would have preserved
+# the wrongness and collapsed the correct lines. A12 removed the
+# duplication; this bounds what remains.
+#
+# The cap lives in the PRODUCER so it governs routine movement only. The
+# BEATS are exempt by type — and, for `jealousy_resolved`, by
+# `by_action`, because an earned resolution and a timer expiry share a
+# type and are told apart only by A13's own prerequisite (landed in A2).
+# AI-6's exemption could be purely structural because its beats are
+# produced elsewhere; this one cannot, which is exactly why that key had
+# to exist first.
+JEALOUSY_DISPATCH_CAP = 3          # routine drama lines per dispatch
+
+JEALOUSY_NARRATION_EXEMPT = (
+    "glory_crowned",                 # the crown changes heads
+    "glory_crown_lost",
+    "jealousy_autonomous_warning",   # the fore-warning and its counter-lever
+    "jealousy_autonomous_attack",    # ...and the attack actually landing
+    "jealousy_separation_warning",   # the one arm the player OPTED INTO
+    "fontainebleau_petition",        # a petition arriving
+    "marshal_commissioned",
+)
+
+# `jealousy_escalation` is NOT exempt wholesale — the memo's list says
+# escalation-to-PERMANENT, and it is right. "The wound will not close on
+# its own" (level 2) and the mutual spiral (level 3) are beats; "has
+# become a matter of concern" (level 1) is routine movement, and so is
+# the held-promise line, which repeats for as long as the promise stands.
+JEALOUSY_EXEMPT_ESCALATION_LEVEL = ESCALATION_PERMANENT_LEVEL
+
+
+def _drama_rank(world, event: Dict):
+    """Which routine lines survive the cap: the deepest quarrel first.
+
+    Same severity vocabulary as A12's rung-3.5 ranking, so the briefing's
+    closing note and its event list cannot disagree about which quarrel
+    matters most.
+    """
+    marshal = world.marshals.get(event.get("marshal") or "")
+    target = event.get("target") or (
+        getattr(marshal, "jealous_of", None) if marshal else None) or ""
+    if marshal is None:
+        return (0, 0, str(event.get("marshal") or ""))
+    return (-int(get_escalation_level(marshal, target)),
+            -int(_lifetime_fires(marshal, target)),
+            marshal.name)
+
+
+def _cap_routine_drama(world, events: List[Dict], start: int) -> None:
+    """Bound the routine lines this pass added; never touch a beat."""
+    added = events[start:]
+    if not added:
+        return
+    routine, keep = [], []
+    for event in added:
+        etype = str(event.get("type", ""))
+        if etype in JEALOUSY_NARRATION_EXEMPT:
+            keep.append(event)
+        elif etype == "jealousy_resolved" and event.get("by_action"):
+            # An EARNED resolution is the payoff beat of the whole system.
+            keep.append(event)
+        elif (etype == "jealousy_escalation"
+                and not event.get("held")
+                and int(event.get("level") or 0)
+                >= JEALOUSY_EXEMPT_ESCALATION_LEVEL):
+            keep.append(event)
+        else:
+            routine.append(event)
+    if len(routine) <= JEALOUSY_DISPATCH_CAP:
+        return
+    routine.sort(key=lambda e: _drama_rank(world, e))
+    shown = routine[:JEALOUSY_DISPATCH_CAP]
+    overflow = len(routine) - JEALOUSY_DISPATCH_CAP
+    nation = (shown[0].get("nation") if shown else world.player_nation)
+    tail = {
+        "type": "jealousy_drama_tail",
+        "message": (
+            f"The staff report {overflow} further matter"
+            f"{'' if overflow == 1 else 's'} among the marshals — the "
+            f"Generals screen has the particulars."),
+        "nation": nation,
+        "count": int(overflow),
+    }
+    # Rebuild in place: the caller holds a reference to this list, and
+    # `advance_turn` drains the same object.
+    events[start:] = keep + shown + [tail]
+
+
 def _pending_events(world) -> List[Dict]:
     events = getattr(world, "_pending_jealousy_turn_events", None)
     if events is None:
@@ -2354,6 +2454,10 @@ def process_turn(world) -> List[Dict]:
         return []
     world._jealousy_processed_turn = world.current_turn
     events = _pending_events(world)
+    # A13: the cap governs what THIS pass adds. Anything already stashed
+    # (battle-time hooks, autonomous attacks) has its own surface and its
+    # own rate limits, and is left alone.
+    _cap_from = len(events)
     turn = int(world.current_turn)
 
     # An unanswered petition re-surfaces each turn (the popup queue pops
@@ -2637,6 +2741,7 @@ def process_turn(world) -> List[Dict]:
                 and not getattr(marshal, "jealous_of", None):
             marshal.jealousy_rebuked_cycle = False
 
+    _cap_routine_drama(world, events, _cap_from)
     return events
 
 
