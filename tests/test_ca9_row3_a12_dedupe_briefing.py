@@ -247,7 +247,10 @@ class TestTheEscalationLineDoesNotEchoItsOwnFire:
         ney.relationships["Murat"] = -1
         murat.relationships["Ney"] = -1
         events = []
-        # Fire until the pair reaches level 1, capturing each pass.
+        # Fire until the pair reaches level 1, capturing each pass. Q3(b)
+        # makes that the SECOND fire on a Rival pair, which is exactly why
+        # this loop is written to drive to the level rather than assume
+        # which fire reaches it.
         for _ in range(4):
             if J.get_escalation_level(ney, "Murat") >= 1:
                 break
@@ -273,6 +276,10 @@ class TestTheEscalationLineDoesNotEchoItsOwnFire:
         # before the level is even computed.
         ney.relationships["Murat"] = -1
         murat.relationships["Ney"] = -1
+        # Q3(b): a Rival pair qualifies on its SECOND fire, and
+        # `apply_jealousy` appends the current one — so one prior fire in
+        # the history is what makes the next call qualify.
+        ney.jealousy_history.setdefault("Murat", []).append(0)
         J._set_escalation_level(ney, "Murat", 1)
         J._set_escalation_level(murat, "Ney", 1)
         ney.jealous_of = None
@@ -286,6 +293,10 @@ class TestTheEscalationLineDoesNotEchoItsOwnFire:
         the level. If no fire line was shown, the escalation must speak."""
         world, ney, murat = feud
         ney.relationships["Murat"] = -1
+        # Q3(b): `_check_escalation` is called DIRECTLY here, so the
+        # history must already carry the fire that production would have
+        # appended — two entries for a Rival pair's qualifying moment.
+        ney.jealousy_history.setdefault("Murat", []).extend([0, 0])
         events = []
         J._check_escalation(world, ney, murat, events, fire_announced=False)
         assert [e for e in events if e["type"] == "jealousy_escalation"
@@ -297,6 +308,7 @@ class TestTheEscalationLineDoesNotEchoItsOwnFire:
         player's paid choice working."""
         world, ney, murat = feud
         ney.relationships["Murat"] = -1
+        ney.jealousy_history.setdefault("Murat", []).extend([0, 0])
         ney.jealousy_escalation_hold["Murat"] = world.current_turn + 3
         events = []
         J._check_escalation(world, ney, murat, events, fire_announced=True)

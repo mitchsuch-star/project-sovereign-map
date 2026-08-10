@@ -88,6 +88,13 @@ AGGRESSIVE_RESOLUTION_RATIO = 0.70  # enemy >= 70% of own strength (EC-K, raw)
 CAUTIOUS_ALLY_RESOLUTION = 3        # 3+ same-nation participants incl. self
 
 ESCALATION_LIFETIME_FIRES = 3       # 3rd lifetime fire between a pair
+# Q3(b) (CA9 row 3): a stored RIVAL pair needs its quarrel to RECUR before
+# the staff start speaking of it openly; a stored HOSTILE pair escalates on
+# sight, because those men already have a history. Before this, 14 of the
+# 18 authored French edges reached escalation 1 on their FIRST fire and the
+# mild register was unreachable.
+ESCALATION_RIVAL_FIRES = 2          # stored -1: the SECOND fire qualifies
+ESCALATION_IMMEDIATE_RELATIONSHIP = -2   # stored -2 or worse: on sight
 ESCALATION_PERMANENT_LEVEL = 2      # tier 2: permanent -1 both directions
 ESCALATION_MUTUAL_LEVEL = 3         # tier 3: mutual spiral
 
@@ -815,7 +822,37 @@ def _check_escalation(world, marshal, target, events: List[Dict],
     Rival-or-worse OR 3rd lifetime fire. Levels advance 1 -> 2 -> 3."""
     stored_rel = marshal.relationships.get(target.name, 0)
     fires = _lifetime_fires(marshal, target.name)
-    qualifies = stored_rel <= -1 or fires >= ESCALATION_LIFETIME_FIRES
+    # ══════════════════════════════════════════════════════════════════
+    # Q3(b) (CA9 row 3 ruling): A FIRST GRIEVANCE GETS A FIRST ACT.
+    #
+    # This was `stored_rel <= -1 or fires >= 3`. On the authored 1805
+    # board 14 of 18 directed French edges sit at Rival or worse, so the
+    # player's very FIRST card on those pairs opened at escalation 1 —
+    # "the staff now speak of the quarrel openly; this is no longer a
+    # passing mood" — about a resentment one turn old. There was no mild
+    # register, because the mild register was never reachable.
+    #
+    # A stored HOSTILE pair (-2) still escalates on sight: those men have
+    # a history the campaign did not invent. A stored RIVAL pair (-1) now
+    # needs a second fire — the quarrel has to actually recur.
+    #
+    # `jealousy_history` is appended by `apply_jealousy` BEFORE this runs,
+    # so fire 1 already reads `_lifetime_fires == 1`; "the second fire" is
+    # therefore `>= 2`. (This is also why the memo's rejected variant —
+    # gating the level-1 ANNOUNCEMENT on `fires >= 2` — is inert: the
+    # count is already 1 when the announcement is decided.)
+    #
+    # One predicate moves all three surfaces together, which is what the
+    # ruling required: the level, the card's escalation register (read
+    # from the level), and the `pair@L{level}` petition latch (keyed on
+    # the level AFTER this call). No separate wiring.
+    # ══════════════════════════════════════════════════════════════════
+    if stored_rel <= ESCALATION_IMMEDIATE_RELATIONSHIP:
+        qualifies = True
+    elif stored_rel == -1:
+        qualifies = fires >= ESCALATION_RIVAL_FIRES
+    else:
+        qualifies = fires >= ESCALATION_LIFETIME_FIRES
     if not qualifies:
         return
     # ══════════════════════════════════════════════════════════════════

@@ -659,17 +659,47 @@ class TestEscalation:
         self._fire(world, massena, davout)
         assert J.get_escalation_level(massena, "Davout") == 0
 
-    def test_rival_pair_escalates_immediately(self, world):
+    def test_rival_pair_needs_the_quarrel_to_RECUR(self, world):
+        """CONSCIOUS FLIP — Q3(b) (CA9 row 3), Aug 9 2026.
+
+        Was `test_rival_pair_escalates_immediately`. A stored RIVAL pair
+        used to reach escalation 1 on its FIRST fire, which on the
+        authored 1805 board covered 14 of the 18 negative French edges —
+        so the player's opening card on nearly every quarrel announced
+        that "this is no longer a passing mood" about a resentment one
+        turn old, and the mild register was unreachable. A first
+        grievance now gets a first act; the SECOND fire escalates.
+
+        A stored HOSTILE pair is unchanged and still escalates on sight
+        (`test_hostile_pair_still_escalates_on_sight`): those men have a
+        history the campaign did not invent.
+        """
         murat = world.marshals["Murat"]   # authored -1 toward Davout
         davout = world.marshals["Davout"]
+        self._fire(world, murat, davout)
+        assert J.get_escalation_level(murat, "Davout") == 0
+        J.clear_jealousy(world, murat, resolved_by_action=False)
+        self._fire(world, murat, davout)
+        assert J.get_escalation_level(murat, "Davout") == 1
+
+    def test_hostile_pair_still_escalates_on_sight(self, world):
+        """The other half of the Q3(b) rule, and the reason it is a
+        narrowing rather than a delay across the board."""
+        murat = world.marshals["Murat"]
+        davout = world.marshals["Davout"]
+        murat.set_relationship("Davout", -2)
+        davout.set_relationship("Murat", -2)
         self._fire(world, murat, davout)
         assert J.get_escalation_level(murat, "Davout") == 1
 
     def test_second_escalation_permanent_damage(self, world):
+        """Q3(b): one more fire than before, because the first no longer
+        qualifies on a Rival pair. The tier-2 mechanics are unchanged."""
         murat = world.marshals["Murat"]
         davout = world.marshals["Davout"]
-        self._fire(world, murat, davout)
-        J.clear_jealousy(world, murat, resolved_by_action=False)
+        for _ in range(2):
+            self._fire(world, murat, davout)
+            J.clear_jealousy(world, murat, resolved_by_action=False)
         stored_before = murat.relationships.get("Davout", 0)
         self._fire(world, murat, davout)
         assert J.get_escalation_level(murat, "Davout") == 2
@@ -679,9 +709,11 @@ class TestEscalation:
         assert murat.relationships.get("Davout", 0) == stored_before - 1
 
     def test_third_escalation_mutual_spiral(self, world):
+        """Q3(b): three qualifying fires now take four, because the first
+        no longer qualifies on a Rival pair."""
         murat = world.marshals["Murat"]
         davout = world.marshals["Davout"]
-        for _ in range(2):
+        for _ in range(3):
             self._fire(world, murat, davout)
             J.clear_jealousy(world, murat, resolved_by_action=False)
         self._fire(world, murat, davout)

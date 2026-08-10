@@ -330,10 +330,43 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # -3/turn; the new curve simply starts its decay from a lower peak (index
 # 24: 45 vs 71) and so reaches the floor inside the 40-turn window. The
 # prior record ended at 13 mid-decay.
+# ── RE-RECORDED AGAIN, same day — CA9 row 3, Q3(b) ─────────────────────
+# "A first grievance gets a first act". `_check_escalation` qualified on
+# `stored_rel <= -1 or fires >= 3`, and 14 of the 18 authored negative
+# French edges sit at Rival, so the player's FIRST card on nearly every
+# quarrel opened at escalation 1 — "this is no longer a passing mood" —
+# about a resentment one turn old. A stored HOSTILE pair still escalates
+# on sight; a stored RIVAL pair now needs the quarrel to RECUR.
+#
+# ATTRIBUTION — 3-arm flip experiment:
+#   control (predicate reverted) -> reproduces the A12 series above,
+#                                   byte-for-byte;
+#   landed                       -> diverges from control at INDEX 12;
+#   hostile_only (a sensitivity
+#     arm: drop the Rival clause
+#     entirely)                  -> a THIRD distinct series, also from
+#                                   index 12 — measured so a cheaper
+#                                   fallback exists if this proves too
+#                                   large in play.
+#
+# Measured on the ambient board: escalations landing on a pair's FIRST
+# fire 6 -> 1 (the remaining one is a stored-Hostile pair, which is the
+# intended exemption). Player fires rise 21 -> 28 and enemy fires 2 -> 12,
+# because delaying escalation ALSO delays the tier-2 `modify_relationship`
+# that pushes a pair to Hostile, where the idle requirement damps it —
+# so pairs linger at hair-trigger Rival instead. That is a real
+# consequence of the ruling, not a side effect of the implementation.
+#
+# ⚠ CUMULATIVE, AND WORTH A PLAYED CHECK: across A12 and Q3(b) the tail
+# now reaches 0 at index 34, where the pre-row-3 record ended at 13. This
+# is a PASSIVE France doing nothing for 40 turns, so a decay to zero is
+# defensible on its face — but "Europe's alarm flattens" is exactly the
+# direction the Q5(c) refuter warned about, and the harness cannot see an
+# ACTIVE France. The playtest owns that question.
 BASELINE_SERIES = [
-    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 66, 64, 70, 68, 69,
-    66, 63, 60, 57, 54, 51, 48, 45, 45, 32, 29, 26, 28, 30, 27, 24, 21,
-    18, 15, 12, 9, 6, 3, 0,
+    70, 68, 66, 64, 72, 70, 68, 66, 64, 62, 60, 58, 59, 57, 55, 53, 51,
+    48, 49, 47, 45, 46, 44, 42, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0,
+    0, 0, 0, 0, 0, 0,
 ]
 
 

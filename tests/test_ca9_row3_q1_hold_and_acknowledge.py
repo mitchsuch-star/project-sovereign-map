@@ -40,9 +40,24 @@ def pair():
 
 
 def _qualifying(marshal, target, stored=-1):
-    """A pair whose next fire WOULD escalate: stored Rival-or-worse."""
+    """A pair whose next fire WOULD escalate.
+
+    Q3(b) (CA9 row 3, Aug 9 2026) narrowed the qualifier: a stored HOSTILE
+    pair still escalates on sight, but a stored RIVAL pair now needs the
+    quarrel to RECUR (a second lifetime fire). These tests are about the
+    Q1(b) HOLD, not about the threshold, so the fixture is updated to
+    produce a genuinely qualifying pair under the new rule rather than
+    weakened to dodge it — one prior fire is stamped into the history the
+    production predicate reads.
+    """
     marshal.set_relationship(target.name, stored)
     target.set_relationship(marshal.name, stored)
+    if stored == -1:
+        # TWO entries: these tests call `_check_escalation` DIRECTLY, and
+        # in production `apply_jealousy` has already appended the current
+        # fire by the time it runs. So "the second fire" reads as a
+        # history of length 2 at this seam, not 1.
+        marshal.jealousy_history.setdefault(target.name, []).extend([0, 0])
 
 
 # ════════════════════════════════════════════════════════════════════════
