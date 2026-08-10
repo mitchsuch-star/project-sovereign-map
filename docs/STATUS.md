@@ -4,7 +4,15 @@
 
 ## ▶ NEXT UP
 
-> ## ⚠ NEXT SESSION STARTS HERE — THREE ANSWERED DESIGN ROWS, THEN ONE PLAYTEST
+> ## ⚠ NEXT SESSION STARTS HERE
+>
+> **▶ HANDOFF PROMPT (consume-once): `docs/audits/CA9_ROW3_NEXT_SESSION_PROMPT.md`**
+> — the remaining row-3 queue in order (A7 · A11 · A12 · Q2a · Q3b · A13 ·
+> A14), then the full playtest, plus the per-commit verification protocol and
+> the ten traps this session paid for. Rows 1 and 2 are DONE; row 3 is four
+> batches in with all five rulings taken.
+>
+> ### The original framing, kept for context — THREE ANSWERED DESIGN ROWS, THEN ONE PLAYTEST
 >
 > **The user answered the three CA9 questions on August 9, 2026 and said: build
 > them next session, then playtest EVERYTHING including the 31 rows already
