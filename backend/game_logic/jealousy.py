@@ -939,12 +939,49 @@ _COOLING_CAUSE = {
 }
 
 
+def _action_resolution_event(record: Dict) -> Dict:
+    """The dispatch bullet for an EARNED resolution.
+
+    A7 (CA9 row 3): single source, because it is now built in two places —
+    here at clear time, and again by `emit_unreported_resolutions` when a
+    battle-time resolution could not be reported at the battle surface.
+    Two copies of this sentence is how the surfaces drift apart.
+    """
+    surge_note = {
+        "aggressive": "He fights with renewed purpose (+10% attack this turn).",
+        "cautious": "He holds with renewed purpose (+10% defense this turn).",
+        "literal": "His patrols keep their edge one turn more.",
+    }.get(record.get("personality", ""), "")
+    return {
+        "type": "jealousy_resolved",
+        "message": (
+            f"{record['marshal']}'s grievance is satisfied — "
+            f"{record.get('reason') or 'he has proven himself'}. "
+            f"{surge_note}"),
+        "nation": record.get("nation", ""),
+        "marshal": record["marshal"],
+        # See the sibling branch: A13's discriminator. THIS is the
+        # beat a narration cap must never collapse.
+        "by_action": True,
+    }
+
+
 def clear_jealousy(world, marshal, resolved_by_action: bool,
                    events: Optional[List[Dict]] = None,
-                   reason: str = "") -> None:
+                   reason: str = "") -> Optional[Dict]:
     """Clear the grievance. Action resolutions grant the 1-turn surge
     (spec §4); timer expiry grants nothing. The derived -1 restores
-    itself the moment jealous_of clears."""
+    itself the moment jealous_of clears.
+
+    A7 (CA9 row 3): RETURNS the resolution record. Everything the battle
+    surface needs to name what happened is known here and was previously
+    thrown away — which is why the battle note had to INFER a resolution
+    from `jealousy_surge_turns > 0 and not jealous_of`, a heuristic that
+    is wrong in three ways (it claims a settlement for a surge granted by
+    last turn's ladder shift, it repeats itself on a marshal's second
+    battle in a turn, and it cannot see a PARTICIPANT's resolution at
+    all). Additive: no caller is obliged to read it.
+    """
     target_name = marshal.jealous_of
     marshal.jealous_of = None
     marshal.jealousy_turns_remaining = 0
@@ -960,24 +997,18 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
         "by_action": bool(resolved_by_action),
         "reason": reason,
     })
+    record = {
+        "marshal": marshal.name,
+        "target": target_name,
+        "nation": marshal.nation,
+        "personality": marshal.personality,
+        "by_action": bool(resolved_by_action),
+        "reason": reason,
+        "is_player": bool(is_player),
+    }
     if is_player and events is not None:
         if resolved_by_action:
-            surge_note = {
-                "aggressive": "He fights with renewed purpose (+10% attack this turn).",
-                "cautious": "He holds with renewed purpose (+10% defense this turn).",
-                "literal": "His patrols keep their edge one turn more.",
-            }.get(marshal.personality, "")
-            events.append({
-                "type": "jealousy_resolved",
-                "message": (
-                    f"{marshal.name}'s grievance is satisfied — "
-                    f"{reason or 'he has proven himself'}. {surge_note}"),
-                "nation": marshal.nation,
-                "marshal": marshal.name,
-                # See the sibling branch: A13's discriminator. THIS is the
-                # beat a narration cap must never collapse.
-                "by_action": True,
-            })
+            events.append(_action_resolution_event(record))
         else:
             # ────────────────────────────────────────────────────────────
             # CA8-8: "cooled with time" was told the same way whether this
@@ -1050,16 +1081,104 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
                 # A key on the existing event, not a new log type.
                 "by_action": False,
             })
+    return record
 
 
 # ═══════════════════ BATTLE-TIME RESOLUTION (spec §3) ═════════════════════
+
+
+def compose_battle_jealousy_note(world, primaries, resolutions):
+    """Berthier's line about jealous conduct on the field (spec §11, GR6).
+
+    A7 (CA9 row 3). Returns `(sentence, reported_names)` — the sentence for
+    the battle report, and the marshals whose RESOLUTION it named, so the
+    caller can suppress the duplicate next-morning bullet for exactly those
+    men (N36) and leave every non-battle resolution's bullet alone.
+
+    Display-only. The settled arm is driven by the resolver's own records
+    rather than by `jealousy_surge_turns`, which fixes three lies the
+    heuristic told — see `clear_jealousy`'s docstring.
+    """
+    notes: List[str] = []
+    reported: List[str] = []
+    settled = {r["marshal"]: r for r in (resolutions or [])
+               if r.get("is_player") and r.get("by_action")}
+    seen = set()
+
+    def _settled_line(name: str) -> str:
+        return (f"{name} fought like a man with something to "
+                f"prove — and proved it. His grievance is settled.")
+
+    # The two primaries first, in their historical order, so the copy for
+    # the ordinary one-primary battle is byte-identical to the pre-A7 note.
+    for m in (primaries or []):
+        if m is None or m.nation != world.player_nation:
+            continue
+        if m.name in seen:
+            continue
+        seen.add(m.name)
+        if m.name in settled:
+            notes.append(_settled_line(m.name))
+            reported.append(m.name)
+        elif getattr(m, "jealous_of", None):
+            if m.personality == "aggressive":
+                notes.append(
+                    f"{m.name} fought with particular ferocity — "
+                    f"though one wonders if it was for France or for "
+                    f"himself.")
+            elif m.personality == "cautious":
+                notes.append(
+                    f"{m.name}'s commitment was... measured. His "
+                    f"grievance against {m.jealous_of} shows in "
+                    f"the field.")
+            else:
+                notes.append(
+                    f"{m.name} fought with an intensity "
+                    f"suggesting something to prove.")
+
+    # Then the PARTICIPANTS who settled a grievance in this battle. The
+    # resolver has always cleared these (cautious "shoulder to shoulder",
+    # literal contact); no surface has ever said so.
+    for r in (resolutions or []):
+        if not r.get("is_player") or not r.get("by_action"):
+            continue
+        if r["marshal"] in seen:
+            continue
+        seen.add(r["marshal"])
+        notes.append(_settled_line(r["marshal"]))
+        reported.append(r["marshal"])
+
+    return " ".join(notes), reported
+
+
+def emit_unreported_resolutions(world, resolutions, reported) -> None:
+    """Append the next-morning bullet for battle resolutions the battle
+    surface did NOT name (A7 / N36).
+
+    The battle surface owns the report when it exists; this is the
+    belt-and-braces arm for a path that resolved a grievance without a
+    `battle_report` to write on. Non-battle resolutions never come through
+    here, so A2's cause-naming and A13's `by_action` discriminator are
+    untouched.
+    """
+    if not resolutions:
+        return
+    events = _pending_events(world)
+    named = set(reported or [])
+    for record in resolutions:
+        if not record.get("is_player") or not record.get("by_action"):
+            continue
+        if record["marshal"] in named:
+            continue
+        events.append(_action_resolution_event(record))
 
 def check_battle_resolution(world, attacker, defender, attacker_won: bool,
                             defender_won: bool, pre_attacker_strength: int,
                             pre_defender_strength: int,
                             attacker_participants: Optional[List] = None,
                             defender_participants: Optional[List] = None,
-                            defender_broken: bool = False) -> None:
+                            defender_broken: bool = False,
+                            defer_dispatch: bool = False) -> List[Dict]:
     """Per-personality action resolution, checked at battle time BEFORE the
     Win/Loss relationship step (EC-F: the derived -1 restores before the
     battle's relationship processing when the battle itself resolves the
@@ -1071,8 +1190,24 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
                 3+ same-nation participants (EC-L)
     literal:    enemy contact — any battle participation (attack, defense
                 survived unbroken, strategic-order battle)
+
+    A7 (CA9 row 3): RETURNS the resolution records so the caller can name
+    them at the battle surface.
+
+    `defer_dispatch=True` withholds the next-morning bullet, which the
+    caller then owes to `emit_unreported_resolutions` for anything the
+    battle note could not carry. It defaults to FALSE deliberately: a
+    caller that forgets keeps today's behaviour (a duplicated line) rather
+    than silently losing the beat entirely.
     """
-    events = _pending_events(world)
+    events = None if defer_dispatch else _pending_events(world)
+    records: List[Dict] = []
+
+    def _clear(m, reason: str) -> None:
+        rec = clear_jealousy(world, m, resolved_by_action=True,
+                             events=events, reason=reason)
+        if rec is not None:
+            records.append(rec)
 
     winning_side = []
     if attacker_won:
@@ -1099,17 +1234,13 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
         if not getattr(marshal, "jealous_of", None):
             continue
         if marshal.personality == "aggressive" and qualifying:
-            clear_jealousy(world, marshal, resolved_by_action=True,
-                           events=events,
-                           reason="a victory against a worthy foe")
+            _clear(marshal, "a victory against a worthy foe")
         elif marshal.personality == "cautious":
             shared = marshal.jealous_of in winner_names
             team = len([m for m in winning_side
                         if m.nation == marshal.nation])
             if shared or team >= CAUTIOUS_ALLY_RESOLUTION:
-                clear_jealousy(world, marshal, resolved_by_action=True,
-                               events=events,
-                               reason="a victory won shoulder to shoulder")
+                _clear(marshal, "a victory won shoulder to shoulder")
 
     # Literal: enemy contact resolves regardless of outcome — attacking,
     # or defending without breaking (the enemy validated his post).
@@ -1125,8 +1256,8 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
             if was_defender and defender_broken and marshal is not None \
                     and m.name == marshal.name:
                 continue        # broken on defense — no vindication
-            clear_jealousy(world, m, resolved_by_action=True, events=events,
-                           reason="meaningful contact with the enemy")
+            _clear(m, "meaningful contact with the enemy")
+    return records
 
 
 # ═══════════════════ RIVALRY CONFRONTATION (§6b) ══════════════════════════

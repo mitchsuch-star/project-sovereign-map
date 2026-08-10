@@ -1930,12 +1930,34 @@ class CombatExecutor:
                 attacker, battle_region, attacker.nation, world)
             jealousy_def_parts = get_battle_participants(
                 defender, battle_region, defender_nation, world) if defender else []
-            _jealousy.check_battle_resolution(
+            _jl_pipe_res = _jealousy.check_battle_resolution(
                 world, attacker, defender, attacker_won, defender_won,
                 int(pre_atk), int(pre_def),
                 attacker_participants=jealousy_atk_parts,
                 defender_participants=jealousy_def_parts,
-                defender_broken=bool(defender and getattr(defender, 'broken', False)))
+                defender_broken=bool(defender and getattr(defender, 'broken', False)),
+                defer_dispatch=True)
+            # A7 (CA9 row 3): the shared seam finally reports itself. This
+            # is the ONLY composer for the glorious charge (`:_glorious`),
+            # which resolves grievances and ships a battle_report and has
+            # never carried a note. At the `_execute_attack` caller the
+            # resolutions are already spent, so this writes at most the
+            # still-aggrieved arm and `_execute_attack`'s own richer note
+            # overwrites it a few hundred lines later — hence `not in`,
+            # never an unconditional assignment.
+            _jl_pipe_note, _jl_pipe_named = \
+                _jealousy.compose_battle_jealousy_note(
+                    world, (attacker, defender), _jl_pipe_res)
+            _jl_pipe_report = (battle_result or {}).get("battle_report")
+            if _jl_pipe_note:
+                pipeline_out['jealousy_note'] = _jl_pipe_note
+                if isinstance(_jl_pipe_report, dict) \
+                        and "jealousy_note" not in _jl_pipe_report:
+                    _jl_pipe_report["jealousy_note"] = _jl_pipe_note
+            if not isinstance(_jl_pipe_report, dict):
+                _jl_pipe_named = []   # nothing delivered — the bullet is owed
+            _jealousy.emit_unreported_resolutions(
+                world, _jl_pipe_res, _jl_pipe_named)
 
         # ── 10. Win/Loss Relationships ──
         if (not is_bombardment and not is_garrison and battle_result
@@ -5339,14 +5361,19 @@ class CombatExecutor:
         _jl_outcome = battle_result.get("outcome", "")
         _jl_atk_won = "attacker" in _jl_outcome and "victory" in _jl_outcome
         _jl_def_won = "defender" in _jl_outcome and "victory" in _jl_outcome
-        _jealousy.check_battle_resolution(
+        # A7: the records feed the battle note below (`_jl_resolutions`), and
+        # `defer_dispatch` withholds the next-morning bullet for exactly the
+        # men that note names — the battle surface owns what happened at the
+        # battle. Anything it cannot carry is re-emitted at `:_jl_report`.
+        _jl_resolutions = _jealousy.check_battle_resolution(
             world, marshal, enemy_marshal, _jl_atk_won, _jl_def_won,
             int(pre_battle_attacker_strength), int(pre_battle_defender_strength),
             attacker_participants=get_battle_participants(
                 marshal, battle_region_name, marshal.nation, world),
             defender_participants=get_battle_participants(
                 enemy_marshal, battle_region_name, enemy_marshal.nation, world),
-            defender_broken=bool(getattr(enemy_marshal, 'broken', False)))
+            defender_broken=bool(getattr(enemy_marshal, 'broken', False)),
+            defer_dispatch=True)
         # [7B-1] Split artillery reinforcements by nation for relationship processing
         atk_artillery = [a for a in artillery_reinforced_adjacent if a.nation == marshal.nation]
         def_artillery = [a for a in artillery_reinforced_adjacent if a.nation == enemy_marshal.nation]
@@ -5925,33 +5952,21 @@ class CombatExecutor:
         # Jealousy v3.2 (spec §11): Berthier notes jealous conduct on the
         # field — display-only rider on the battle report (GR6), player
         # marshals only. Mirrors the expectation_note glue above.
-        if isinstance(result.get("battle_report"), dict):
-            _jl_notes = []
-            for _jl_m in (marshal, enemy_marshal):
-                if _jl_m is None or _jl_m.nation != world.player_nation:
-                    continue
-                if getattr(_jl_m, "jealousy_surge_turns", 0) > 0 \
-                        and not getattr(_jl_m, "jealous_of", None):
-                    _jl_notes.append(
-                        f"{_jl_m.name} fought like a man with something to "
-                        f"prove — and proved it. His grievance is settled.")
-                elif getattr(_jl_m, "jealous_of", None):
-                    if _jl_m.personality == "aggressive":
-                        _jl_notes.append(
-                            f"{_jl_m.name} fought with particular ferocity — "
-                            f"though one wonders if it was for France or for "
-                            f"himself.")
-                    elif _jl_m.personality == "cautious":
-                        _jl_notes.append(
-                            f"{_jl_m.name}'s commitment was... measured. His "
-                            f"grievance against {_jl_m.jealous_of} shows in "
-                            f"the field.")
-                    else:
-                        _jl_notes.append(
-                            f"{_jl_m.name} fought with an intensity "
-                            f"suggesting something to prove.")
-            if _jl_notes:
-                result["battle_report"]["jealousy_note"] = " ".join(_jl_notes)
+        #
+        # A7 (CA9 row 3): the settled arm is driven by the resolver's own
+        # records instead of the `jealousy_surge_turns` heuristic, and the
+        # composer is shared with the two battle paths that never had a note
+        # at all (the glorious charge and the reckless auto-charge).
+        _jl_note, _jl_reported = _jealousy.compose_battle_jealousy_note(
+            world, (marshal, enemy_marshal), _jl_resolutions)
+        if _jl_note and isinstance(result.get("battle_report"), dict):
+            result["battle_report"]["jealousy_note"] = _jl_note
+        else:
+            # No battle report to write on — the note was never delivered,
+            # so the men it would have named are owed their bullet.
+            _jl_reported = []
+        _jealousy.emit_unreported_resolutions(
+            world, _jl_resolutions, _jl_reported)
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if auto_bombardment_results:

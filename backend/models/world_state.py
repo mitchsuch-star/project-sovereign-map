@@ -10996,12 +10996,29 @@ class WorldState:
                     enemy, auto_charge_battle_region, enemy.nation, self)
                 # Resolution BEFORE relationships (EC-F): a grievance the
                 # battle satisfied restores the derived -1 first.
-                _jealousy.check_battle_resolution(
+                _ac_jl_res = _jealousy.check_battle_resolution(
                     self, marshal, enemy, _ac_atk_won, _ac_def_won,
                     int(pre_battle_atk), int(pre_battle_def),
                     attacker_participants=_ac_atk_parts,
                     defender_participants=_ac_def_parts,
-                    defender_broken=bool(getattr(enemy, "broken", False)))
+                    defender_broken=bool(getattr(enemy, "broken", False)),
+                    defer_dispatch=True)
+                # A7 (CA9 row 3): the reckless charge reports its own
+                # grievances. The row-3 memo said this site "has no
+                # battle_report in scope" — it does: `combat_result`
+                # carries one, and it is the very dict copied onto
+                # `auto_charge_event` below, hoisted to the top level by
+                # `meta_executor` and rendered by `main.gd`.
+                _ac_jl_note, _ac_jl_named = \
+                    _jealousy.compose_battle_jealousy_note(
+                        self, (marshal, enemy), _ac_jl_res)
+                _ac_jl_report = combat_result.get("battle_report")
+                if _ac_jl_note and isinstance(_ac_jl_report, dict):
+                    _ac_jl_report["jealousy_note"] = _ac_jl_note
+                else:
+                    _ac_jl_named = []
+                _jealousy.emit_unreported_resolutions(
+                    self, _ac_jl_res, _ac_jl_named)
 
                 # [4B-1] Process battle relationships (must run before destruction removes marshals)
                 from backend.game_logic.relationship import process_battle_relationships

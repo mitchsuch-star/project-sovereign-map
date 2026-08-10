@@ -432,6 +432,18 @@ func _format_berthier_report(report: Dictionary) -> String:
 			+ Utils.humanize_nation_keys_in_text(own_voice) + "[/color]
 ")
 
+	# Jealousy v3.2 (spec §11) — A7 (CA9 row 3): jealous conduct on the
+	# field. The payload has always carried this key here; this whitelist
+	# simply never read it, so a grievance settled or shown on DEFENCE —
+	# which is most of them, since the enemy phase is when the player is
+	# attacked — was reported nowhere. Mirrors main.gd's ordering
+	# (voice -> jealousy_note -> observation).
+	var jl_note = str(report.get("jealousy_note", ""))
+	if jl_note != "" and jl_note != "<null>":
+		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+			+ Utils.humanize_nation_keys_in_text(jl_note) + "[/color]
+")
+
 	# Observation
 	var observation = report.get("observation", "")
 	if observation != "":
