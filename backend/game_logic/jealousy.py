@@ -1373,6 +1373,122 @@ def _spend_player_ap(world, amount: int) -> bool:
     return True
 
 
+# ═══════════════════ Q2(a): THE COUNCIL COMMAND ══════════════════════════
+#
+# CA9 row 3, ruling Q2(a). `JEALOUSY_SPEC.md` deferred a "council command
+# ('to my tent')" arm with NO owner row — a GR9 orphan — while the
+# confrontation body has always asked for exactly that: "He requests a
+# command worthy of his talents."
+#
+# Every other arm writes `jealousy_turns_remaining` and nothing else, so
+# the three of them cannot differ in KIND, only in price. This one is
+# different in kind: it gives him a named objective, and the grievance
+# then ends the way the system says grievances end — through
+# `check_battle_resolution`'s per-personality predicate, on the field.
+#
+# It issues an EXISTING strategic order (PURSUE) through the shared
+# executor at that order's own AP price. No new verb, no parser row, no
+# `VALID_ACTIONS` entry, no campaign-log type: this is a dialogue option
+# id, the same class as the NA-5 ultimatum arms.
+COMMAND_ARM_ID = "command"
+COMMAND_ARM_AP = 2          # a strategic order's own price...
+COMMAND_ARM_AP_LITERAL = 1  # ...which the literal pays at half, as always
+
+
+def command_arm_availability(world, marshal):
+    """Can the Emperor give this man a command right now?
+
+    Returns `(enabled, reason, quarry)` where `quarry` is the
+    `(enemy, region)` the order would name.
+
+    Re-derived at BOTH build time and ANSWER time — the A3 discipline.
+    Every gate below MIRRORS a refusal `_execute_strategic_command` will
+    itself raise, so the card can never offer something the executor is
+    about to decline (and, worse, charge for). They are checked in the
+    executor's own order.
+    """
+    if marshal is None:
+        return False, "", None
+    if int(getattr(marshal, "retreat_recovery", 0) or 0) > 0:
+        return (False, f"{marshal.name} is still reforming after the retreat.",
+                None)
+    if getattr(marshal, "broken", False):
+        return (False, f"{marshal.name}'s army is broken — rally it first.",
+                None)
+    if getattr(marshal, "artillery", False):
+        return (False, f"{marshal.name}'s guns cannot pursue.", None)
+
+    quarry = find_autonomous_attack_target(world, marshal)
+    if quarry is None:
+        return (False, "There is no enemy within his reach to send him "
+                       "against.", None)
+    enemy, region = quarry
+
+    # F10: an identical standing order is a documented NO-OP that returns
+    # success and charges nothing. Offering it would be the exact CA9
+    # shape — a surface promising what the executor will not do.
+    existing = getattr(marshal, "strategic_order", None)
+    if (existing is not None
+            and getattr(existing, "command_type", None) == "PURSUE"
+            and str(getattr(existing, "target", "") or "").lower()
+            == enemy.name.lower()
+            and not getattr(existing, "condition", None)):
+        return (False, f"{marshal.name} is already marching on "
+                       f"{enemy.name}.", None)
+
+    # The executor refuses a strategic march by an ENGAGED marshal unless
+    # the quarry is one of the enemies standing on him.
+    here = world.get_enemies_in_region(marshal.location, marshal.nation)
+    if here and not any(e.name == enemy.name for e in here):
+        return (False, f"{marshal.name} is already engaged at "
+                       f"{marshal.location}.", None)
+
+    # A first step INTO a contested province raises a `pending_interrupt`
+    # that no `objection_response` can suppress — a second modal stacked
+    # on this one. A co-located quarry never takes that path (the pursue
+    # is handled in place) and an adjacent one filters the quarry itself
+    # out of the blocking set, so the only opening left is a THIRD army
+    # standing where we are sending him. Refuse it, with the reason said.
+    if enemy.location != marshal.location:
+        others = [e for e in world.get_enemies_in_region(
+            region, marshal.nation) if e.name != enemy.name]
+        if others:
+            return (False, f"{region} is held in force — sending him there "
+                           f"needs an order of its own.", None)
+    return True, "", quarry
+
+
+def _command_arm_ap(marshal) -> int:
+    return (COMMAND_ARM_AP_LITERAL
+            if getattr(marshal, "personality", "") == "literal"
+            else COMMAND_ARM_AP)
+
+
+def _command_option(world, marshal) -> Dict:
+    """The Q2(a) option, with its availability already derived."""
+    enabled, reason, quarry = command_arm_availability(world, marshal)
+    cost = _command_arm_ap(marshal)
+    if not enabled:
+        return {"id": COMMAND_ARM_ID, "label": "Give him a command",
+                "detail": reason, "unavailable_reason": reason,
+                "cost_note": f"{cost} AP", "ap_cost": cost,
+                "enabled": False}
+    enemy, region = quarry
+    where = ("where he stands" if region == marshal.location
+             else f"into {region}")
+    return {
+        "id": COMMAND_ARM_ID,
+        "label": "Give him a command",
+        "detail": (f"Send him against {enemy.name} {where}. A grievance "
+                   f"ends on the field, not at the table — if he makes "
+                   f"good on it, it ends for good. Giving the order may "
+                   f"bring on a battle at once."),
+        "cost_note": f"{cost} AP",
+        "ap_cost": cost,
+        "enabled": _player_ap(world) >= cost,
+    }
+
+
 def _push_petition(world, petition: Dict) -> None:
     # TUT-F5 belt: EVERY petition kind passes through here — the lesson world
     # never shows one, whatever produced it (apply_jealousy is gated too, but
@@ -1539,6 +1655,11 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
                         f"shortens by {CONFRONT_REBUKE_DURATION_CUT} turn. "
                         + rebuke_rider).strip(),
              "cost_note": "", "enabled": True},
+            # Q2(a): he asked for a command. This is the arm that gives him
+            # one — and the only arm whose outcome is not a number on a
+            # hidden timer. Honest availability: when the executor would
+            # refuse, the button says so instead of failing after the click.
+            _command_option(world, marshal),
         ],
         "context": {"marshal": marshal.name, "target": target.name,
                     "escalation_level": int(level)},
@@ -1737,7 +1858,11 @@ def handle_petition_response(world, choice: str, executor=None,
         queue.set("pending_marshal_petition", None)
 
     if kind == "jealousy_confrontation":
-        return _apply_confrontation_choice(world, choice, context)
+        # Q2(a): the command arm needs the executor, exactly as the
+        # war-weary arm already does for its declare-war command.
+        return _apply_confrontation_choice(world, choice, context,
+                                           executor=executor,
+                                           game_state=game_state)
     if kind == "rivalry_confrontation":
         return _apply_rivalry_choice(world, choice, context)
     if kind == "fontainebleau":
@@ -1749,7 +1874,83 @@ def handle_petition_response(world, choice: str, executor=None,
     return {"success": False, "message": f"Unknown petition kind '{kind}'."}
 
 
-def _apply_confrontation_choice(world, choice: str, context: Dict) -> Dict:
+def _apply_command_choice(world, marshal, executor, game_state) -> Dict:
+    """Q2(a): the Emperor gives him the command he asked for.
+
+    Issues an EXISTING strategic order (PURSUE) through the shared
+    executor. Deliberate details, each one a defect avoided:
+
+    * availability is RE-DERIVED here, not trusted from the card — the
+      card may be several turns old (A3's discipline);
+    * `objection_response="proceed"` with `v2_insist_penalty=0` suppresses
+      the strategic objection that would otherwise stack a second modal on
+      this one. Any other string returns "Unknown objection response";
+      omitting the penalty key costs a real -10 trust;
+    * the AP charge reads `result.get("variable_action_cost")` with a
+      default. On the objection return that key is ABSENT, not zero, so a
+      subscript is a KeyError -> a blanket except -> the player sees
+      "Error: 'variable_action_cost'" AFTER the petition has been popped
+      and the world mutated;
+    * `delegation_inferred` is never set, which keeps the CR-5 inferred
+      first-step gate structurally dead on this path;
+    * `cancel_autonomous_warning_on_order` is called explicitly — it
+      normally rides `executor.execute`, which this path bypasses, and a
+      marshal who has just been GIVEN an objective must not still launch
+      the attack he was warned about.
+    """
+    if executor is None or game_state is None:
+        return {"success": False,
+                "message": "There is no staff to carry the order."}
+    enabled, reason, quarry = command_arm_availability(world, marshal)
+    if not enabled:
+        return {"success": False,
+                "message": reason or "He cannot take the field just now."}
+    enemy, region = quarry
+
+    cost = _command_arm_ap(marshal)
+    if _player_ap(world) < cost:
+        return {"success": False,
+                "message": "Not enough action points to give the order."}
+
+    phrase = f"{marshal.name}, deal with {enemy.name}"
+    result = executor._execute_strategic_command(
+        {"strategic_type": "PURSUE", "raw_input": phrase},
+        {"marshal": marshal.name, "target": enemy.name,
+         "target_type": "marshal",
+         "objection_response": "proceed", "v2_insist_penalty": 0},
+        game_state) or {}
+
+    if not result.get("success"):
+        return {"success": False,
+                "message": result.get("message")
+                or "The order could not be carried."}
+
+    spent = int(result.get("variable_action_cost") or 0)
+    if spent:
+        _spend_player_ap(world, spent)
+    cancel_autonomous_warning_on_order(world, marshal)
+
+    world.log_event({
+        "type": "jealousy_confrontation",
+        "marshal": marshal.name,
+        "target": getattr(marshal, "jealous_of", None),
+        "nation": marshal.nation,
+        "choice": COMMAND_ARM_ID,
+    })
+    message = (f"\"{enemy.name}, then.\" {marshal.name} takes the command "
+               f"and goes. {result.get('message', '')}").strip()
+    out = {"success": True, "message": message}
+    # Carry whatever the first step produced — the order can bring on a
+    # battle immediately, and the card must not swallow it.
+    for key in ("battle_report", "pending_interrupt", "requires_input",
+                "first_step_interrupt", "path", "strategic_type"):
+        if key in result:
+            out[key] = result[key]
+    return out
+
+
+def _apply_confrontation_choice(world, choice: str, context: Dict,
+                                executor=None, game_state=None) -> Dict:
     marshal = world.marshals.get(context.get("marshal"))
     if marshal is None:
         return {"success": True, "message": "The moment has passed."}
@@ -1784,6 +1985,8 @@ def _apply_confrontation_choice(world, choice: str, context: Dict) -> Dict:
                 f"The moment has passed — {marshal.name}'s quarrel with "
                 f"{_asked_about} is already behind him. Nothing was spent."),
         }
+    if choice == COMMAND_ARM_ID:
+        return _apply_command_choice(world, marshal, executor, game_state)
     if choice == "promise":
         if not _spend_player_ap(world, CONFRONT_PROMISE_AP):
             return {"success": False,

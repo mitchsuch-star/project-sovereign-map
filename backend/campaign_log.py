@@ -1469,8 +1469,11 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
         choice = event.get("choice", "acknowledge")
+        # Q2(a) (CA9 row 3): the `command` arm needs its own row, or a
+        # player who gave a marshal an army reads that he "was heard".
         choice_str = {"promise": "was promised glory",
                       "rebuke": "was rebuked",
+                      "command": "was given a command",
                       "acknowledge": "was heard"}.get(choice, "was heard")
         return f"{_name_tag(marshal, nation)} aired his grievance and {choice_str}"
 

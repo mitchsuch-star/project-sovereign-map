@@ -716,8 +716,16 @@ class TestConfrontationPetition:
         petition = world.pending_marshal_petition
         assert petition is not None
         assert petition["kind"] == "jealousy_confrontation"
+        # CONSCIOUS FLIP, Q2(a) (CA9 row 3), Aug 9 2026. A fourth arm —
+        # "Give him a command" — joins the set. The audit's root finding
+        # was that all three existing arms write `jealousy_turns_remaining`
+        # and NOTHING else, so they cannot differ in kind, only in price;
+        # the spec had deferred this arm with no owner row while the card's
+        # own body asked for it ("He requests a command worthy of his
+        # talents"). The `id` is the POST value, so this set equality is
+        # the contract the client answers against.
         assert {o["id"] for o in petition["options"]} == \
-            {"acknowledge", "promise", "rebuke"}
+            {"acknowledge", "promise", "rebuke", "command"}
 
     def test_second_time_no_petition(self, world):
         massena, davout = self._fire_first_time(world)
