@@ -11,6 +11,29 @@ import copy
 from typing import Dict, List, Optional, Callable
 
 
+def _proposal_display(ptype: str) -> str:
+    """PT-G5(b): the mailbox row read "Armistice Losing" while the popup
+    for the SAME item read "Armistice".
+
+    `display_names.PROPOSAL_TYPE_DISPLAY` already maps all four armistice
+    variants and simply was not imported here; `.title()` on the raw key
+    is what invented the second name. It reaches the player unmodified —
+    `mailbox_panel.gd:125` renders `summary_text` verbatim.
+    """
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+
+    key = str(ptype or "")
+    return PROPOSAL_TYPE_DISPLAY.get(key, key.replace("_", " ").title())
+
+
+def _nation_display(source: str) -> str:
+    """PT-G5(b), second leak in the same dict: `source` is a raw nation
+    key and `mailbox_panel.gd:123` renders it with no repair."""
+    from backend.display_names import display_nation
+
+    return display_nation(str(source or ""))
+
+
 class DialogueManager:
     """Manages the active dialogue slot and priority queue.
 
@@ -390,7 +413,7 @@ class DialogueManager:
                     or ctx.get("proposal_terms_summary", "")
                     or (
                         f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Diplomatic item')}: "
-                        f"{ptype.replace('_', ' ').title()}"
+                        f"{_proposal_display(ptype)}"
                     )
                 ).strip()
             summary = summary.splitlines()[0]
@@ -404,7 +427,7 @@ class DialogueManager:
                 "proposal_type": ptype,
                 "arrival_turn": int(turn),
                 "summary_text": summary,
-                "summary": f"{source} — {ptype.replace('_', ' ').title()}",
+                "summary": f"{_nation_display(source)} — {_proposal_display(ptype)}",
             }
 
         # Active mailbox item first

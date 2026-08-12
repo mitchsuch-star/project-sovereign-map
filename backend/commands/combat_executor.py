@@ -222,6 +222,18 @@ def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
     return {"success": False, "message": message}
 
 
+def _voice_rotation_key(world, region_name: str) -> int:
+    """PT-G1: a 0-BASED battle index for the voice banks.
+
+    `world.battle_counts[region]` is incremented by `compose_battle_name`
+    before either voice site reads it, so the raw value is 1 on a
+    province's first battle. Both voice callers use this, so the two
+    sides stay in phase with each other as they always did — they simply
+    start at the line the banks were authored to open with.
+    """
+    return max(0, int(getattr(world, "battle_counts", {}).get(region_name, 1)) - 1)
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -5493,6 +5505,20 @@ class CombatExecutor:
         # W6-6 ENEMY VOICE (EXP-M2): after a battle that involves the
         # player, the enemy commander gets one line in his register —
         # display-only (GR6), deterministic rotation via battle_counts.
+        #
+        # PT-G1: the key is `count - 1`. `compose_battle_name` is called
+        # twenty lines above and is the counter's sole writer, so a bare
+        # read here is POST-increment — the first battle in a province
+        # passed key 1, and on a 126-province map most provinces only ever
+        # see one battle. For a 2-line bank index 1 IS the line and index 0
+        # is decoration: Archduke Charles said "Even the Grande Armée
+        # bleeds when pressed at the right hour" in FOUR of his five
+        # attacks. Doubling the banks would not have fixed it.
+        #
+        # It also contradicted `enemy_voice.py:24-29`, whose XR-5 comment
+        # states index 0 is pinned "by the deterministic rotation" — every
+        # marquee enemy's authored OPENING line was structurally
+        # unreachable as an opening.
         # ════════════════════════════════════════════════════════════
         _player_nation = world.player_nation
         _enemy_side = None
@@ -5514,7 +5540,7 @@ class CombatExecutor:
                     _enemy_m.name,
                     getattr(_enemy_m, "personality", "cautious"),
                     _situation,
-                    int(world.battle_counts.get(target_location, 0)))
+                    _voice_rotation_key(world, target_location))
                 if _voice:
                     battle_result["enemy_voice"] = _voice
                     if isinstance(battle_result.get("log_battle_event"), dict):
@@ -5541,7 +5567,7 @@ class CombatExecutor:
                     _own_m.name,
                     getattr(_own_m, "personality", "cautious"),
                     _own_situation,
-                    int(world.battle_counts.get(target_location, 0)))
+                    _voice_rotation_key(world, target_location))
                 if _own_voice:
                     battle_result["marshal_voice"] = _own_voice
 

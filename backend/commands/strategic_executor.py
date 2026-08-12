@@ -1476,7 +1476,8 @@ class StrategicExecutor:
             from backend.game_logic.marshal_voice import personality_ack
             _ack = personality_ack(
                 getattr(marshal, "personality", ""), strategic_type,
-                int(world.current_turn), len(str(target or "")))
+                int(world.current_turn), len(str(target or "")),
+                marshal_name=marshal.name)
             if _ack and marshal.nation == world.player_nation:
                 msg += f" {marshal.name}: {_ack}"
             if strategic_type == "HOLD" and strategic_cost == 2:

@@ -122,7 +122,11 @@ func _format_action(action: Dictionary) -> String:
 		print("[ENEMY_PHASE_DEBUG] NO events key in action!")
 
 	var ai_action = action.get("ai_action", {})
-	var marshal_name = ai_action.get("marshal", "")
+	# PT-G5(a): humanized ONCE at extraction, so every interpolation below
+	# inherits it. Six sites rendered the raw camelCase key ~84 times in
+	# one campaign, with the correctly spaced name three lines below in
+	# `enemy_voice` — which the BACKEND humanizes.
+	var marshal_name = Utils.humanize_entity_name(str(ai_action.get("marshal", "")))
 	var action_type = ai_action.get("action", "unknown")
 	var target = ai_action.get("target", "")
 	var nation = action.get("nation", "")
@@ -286,13 +290,15 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	var defender = event.get("defender", {})
 	var outcome = event.get("outcome", "unknown")
 	var victor = event.get("victor", null)
+	if typeof(victor) == TYPE_STRING:
+		victor = Utils.humanize_entity_name(str(victor))  # PT-G5(a)
 
-	var attacker_name = attacker.get("name", "Unknown")
+	var attacker_name = Utils.humanize_entity_name(str(attacker.get("name", "Unknown")))
 	var attacker_casualties = attacker.get("casualties", 0)
 	var attacker_remaining = attacker.get("remaining", 0)
 	var attacker_morale = attacker.get("morale", 0)
 
-	var defender_name = defender.get("name", "Unknown")
+	var defender_name = Utils.humanize_entity_name(str(defender.get("name", "Unknown")))
 	var defender_casualties = defender.get("casualties", 0)
 	var defender_remaining = defender.get("remaining", 0)
 	var defender_morale = defender.get("morale", 0)
@@ -454,8 +460,8 @@ func _format_berthier_report(report: Dictionary) -> String:
 func _format_bombardment(event: Dictionary) -> String:
 	"""Format bombardment event details."""
 	var result = ""
-	var attacker_name = str(event.get("attacker", "Artillery"))
-	var defender_name = str(event.get("defender", "Enemy"))
+	var attacker_name = Utils.humanize_entity_name(str(event.get("attacker", "Artillery")))
+	var defender_name = Utils.humanize_entity_name(str(event.get("defender", "Enemy")))
 	var atk_location = str(event.get("attacker_location", ""))
 	var def_location = str(event.get("defender_location", ""))
 	var def_casualties = int(event.get("defender_casualties", 0))
@@ -539,7 +545,7 @@ func _victor_is_player(event: Dictionary, victor: String) -> bool:
 	battle event (attacker_nation/defender_nation) — never a hardcoded roster,
 	which broke for the 1805 marshals and Marshalate recruits."""
 	var defender_dict = event.get("defender", {})
-	var defender_name = str(defender_dict.get("name", "")) if defender_dict is Dictionary else ""
+	var defender_name = Utils.humanize_entity_name(str(defender_dict.get("name", ""))) if defender_dict is Dictionary else ""
 	var side_nation = ""
 	if victor == defender_name:
 		side_nation = str(event.get("defender_nation", ""))

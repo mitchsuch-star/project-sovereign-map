@@ -1538,13 +1538,54 @@ _PETITION_VOICE = {
 }
 
 
+_PETITION_BODY = {
+    "aggressive": (
+        "Sire, {marshal} has expressed... displeasure about {target}'s "
+        "recent recognition. He requests a command worthy of his talents.",
+        "Sire, {marshal} has taken to reading the despatches aloud in "
+        "his own tent — {target}'s despatches. He asks for work.",
+        "Sire, {marshal} presented himself at headquarters unannounced. "
+        "He wishes to know what {target} has that he has not.",
+    ),
+    "cautious": (
+        "Sire, {marshal} has expressed reservations about the recognition "
+        "afforded to {target}. He requests that his contributions be... "
+        "noted.",
+        "Sire, {marshal} submitted a summary of his corps' service this "
+        "season. It is accurate, and it is longer than it needed to be.",
+        "Sire, {marshal} observes — without complaint, he is careful to "
+        "say — that {target}'s name reaches you before his own.",
+    ),
+    "literal": (
+        "Sire, {marshal}'s dispatches have become unusually detailed — "
+        "obsessively so. Staff report he feels his current assignment is... "
+        "beneath his abilities.",
+        "Sire, {marshal} has filed his orders, his counter-orders and his "
+        "objections in triplicate. The objections are new.",
+        "Sire, {marshal} requests written confirmation that his present "
+        "duties are the ones intended for him.",
+    ),
+}
+
+
+def _pick_petition_body(personality: str, marshal, target, fires: int) -> str:
+    """PT-G3: one of three, rotated on the pair's lifetime fires."""
+    bank = _PETITION_BODY.get(personality) or _PETITION_BODY["cautious"]
+    return bank[int(fires) % len(bank)].format(
+        marshal=marshal.name, target=target.name)
+
+
 def petition_speaker_line(marshal, target_name: str = "") -> str:
     """The marshal's own words for the petition header (display only)."""
     bank = _PETITION_VOICE.get(getattr(marshal, "personality", ""), ())
     if not bank:
         return ""
     fires = max(0, _lifetime_fires(marshal, target_name) - 1)
-    line = bank[min(fires, len(bank) - 1)]
+    # PT-G3: `min`, not `%`, meant the bank CLAMPED — the 3rd, 4th and
+    # 10th audience all repeated the last line verbatim, forever. The
+    # escalation register is carried by the body's own clause, so the
+    # spoken line may cycle.
+    line = bank[fires % len(bank)]
     return line.format(target=humanize_entity_name(target_name or "him"))
 
 
@@ -1712,23 +1753,25 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> None
     escalation level, so `level` >= 1 carries the escalation register —
     the audience must hear that this is the SAME feud, grown worse)."""
     ap = _player_ap(world)
+    # PT-G3: the body had NO bank at all — a three-arm if/elif/else, one
+    # hardcoded f-string each. So Murat's petition on turn 2 and Massena's
+    # on turn 7 were word for word identical in BOTH `body` and
+    # `speaker_line`, and every aggressive marshal in every campaign opens
+    # with the same sentence. Rotated on the pair's own lifetime fires,
+    # which is the counter `petition_speaker_line` already uses, so the
+    # two surfaces move together instead of repeating together.
+    _fires = max(0, _lifetime_fires(marshal, target.name) - 1)
     if marshal.personality == "aggressive":
-        body = (f"Sire, {marshal.name} has expressed... displeasure about "
-                f"{target.name}'s recent recognition. He requests a command "
-                f"worthy of his talents.")
+        body = _pick_petition_body("aggressive", marshal, target, _fires)
         promise_label = "Promise Glory"
         rebuke_rider = ("He will not act on his own this cycle — he "
                         "respects the Emperor's anger, briefly.")
     elif marshal.personality == "literal":
-        body = (f"Sire, {marshal.name}'s dispatches have become unusually "
-                f"detailed — obsessively so. Staff report he feels his "
-                f"current assignment is... beneath his abilities.")
+        body = _pick_petition_body("literal", marshal, target, _fires)
         promise_label = "Reassign"
         rebuke_rider = "His patrols pause a turn in reluctant compliance."
     else:
-        body = (f"Sire, {marshal.name} has expressed reservations about the "
-                f"recognition afforded to {target.name}. He requests that "
-                f"his contributions be... noted.")
+        body = _pick_petition_body("cautious", marshal, target, _fires)
         promise_label = "Promise Glory"
         rebuke_rider = ""
     escalation_clause = {

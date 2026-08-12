@@ -2118,10 +2118,27 @@ class DiplomaticExecutor:
             if breach_preview:
                 actor_personality = breach_preview.get("actor_personality", "") or ""
 
+            # ══════════════════════════════════════════════════════════
+            # PT-G4: the highest-stakes sentence Talleyrand speaks, and
+            # it broke four rules of his own Voice Bible at once.
+            #
+            # "Sire!" is the ONLY exclamation mark in the diplomatic
+            # layer, and `DIPLOMAT_VOICE_BIBLE.md:36` lists exclamation
+            # marks under "Never says". "shatter" is military vocabulary
+            # as metaphor (`:38`). "mark us as oath-breakers" is a moral
+            # absolute (`:39`) — he deals in consequences, not ethics.
+            # And it carried no hedge, where the register calls for
+            # "urbane, ironic, never flustered" (`:27`).
+            #
+            # He is not alarmed that we might break a treaty. He is
+            # noting the price, and that Europe keeps accounts.
+            # ══════════════════════════════════════════════════════════
             warning_text = (
-                f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
-                f"Declaring war would shatter that commitment and mark us as oath-breakers "
-                f"in the eyes of Europe. Shall I proceed regardless?"
+                f"Sire, we have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
+                f"Setting a treaty aside is a matter of arithmetic, not of "
+                f"honour; permit me only to observe that Europe keeps the "
+                f"longer memory, and will price our next undertaking "
+                f"accordingly. Shall I proceed regardless?"
             )
             world.dialogue_manager.replace({
                 "type": "force_declare_war_confirmation",

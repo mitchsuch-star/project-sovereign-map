@@ -382,7 +382,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Hesse', 'hegemony_pressure'): [
         'Hesse has watched France grow very great, and a court so small knows better than to stand in the path of such a power, preferring an understanding to any quarrel.',
         'So great a power has nothing to fear from a house as small as Hesse, which asks only to come quietly to terms and give France no trouble at all.',
-        'Hesse counts what a quarrel with France would cost and what an understanding would return, and finds the ledger unanimous.',
+        'Hesse counts what a quarrel with France would cost and what an understanding would return, and finds his councillors of one mind.',
     ],
     ('Chancery of Hesse', 'unknown_baseline'): [
         'Hesse comes to the French court with no design and no complaint, asking only to settle a small matter between them.',
@@ -400,7 +400,7 @@ _NAMED_MOTIVE_LINES = {
     ('Chancery of Sardinia', 'hegemony_pressure'): [
         'The King of Sardinia has already felt the full weight of France upon his lost mainland, and the Crown judges it the wiser course to treat with such a power than to defy it to no purpose.',
         "His Majesty marks how far the reach of France now extends across Europe, and in the King's name his chancery would sooner secure an honorable understanding than court a ruin it already knows too well.",
-        "The King has paid once for misjudging France's reach; Turin now prefers investments to wagers.",
+        "The King has paid once for misjudging France's reach; in his name his chancery would sooner be certain than be quick.",
     ],
     ('Chancery of Sardinia', 'unknown_baseline'): [
         "The chancery of Sardinia comes before France in the King's name, charged to set this offer plainly and without ornament before you.",
@@ -508,7 +508,7 @@ _NAMED_MOTIVE_LINES = {
     ('Montgelas', 'hegemony_pressure'): [
         'Bavaria has marked where the weight of Europe now settles, and a prudent state places itself beside the rising power, never beneath it.',
         "France's reach lengthens with every season, and Munich would sooner write the terms of that nearness now than be handed them later.",
-        'Munich has learned that standing beside the strongest is not submission but investment, and investments are best documented.',
+        'Munich has learned that standing beside the strongest is not submission but investment, and understandings are best set down in writing.',
     ],
     ('Montgelas', 'unknown_baseline'): [
         'Bavaria finds a plain advantage in this arrangement and prefers to settle such matters while they are still only advantages.',
@@ -526,7 +526,7 @@ _NAMED_MOTIVE_LINES = {
     ('Reis Efendi', 'hegemony_pressure'): [
         'The Porte watches the star of France climb ever higher and, being an old admirer of whatever endures, would sooner arrange itself gracefully beneath so great a light than stand across its path.',
         "The Sublime Porte has learned across many centuries that it is the wiser house which comes to terms with the rising tide rather than argue with it, and it finds in France's greatness every reason for accommodation and none for dispute.",
-        "The Porte has outlasted a hundred ascendancies by trading with each at its noon; France's noon has come, and the bazaar is open.",
+        "The Porte has outlasted a hundred ascendancies by keeping its counsel with each at its noon; France's noon has come, and the Sublime Porte observes it without haste.",
     ],
     ('Reis Efendi', 'unknown_baseline'): [
         'The Sublime Porte approaches France in the plain and unhurried manner of an old house, laying its proposal upon the table with neither urgency nor concealment.',

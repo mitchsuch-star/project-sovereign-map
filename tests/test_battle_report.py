@@ -1297,7 +1297,17 @@ class TestCoordinationObservations:
             },
         )
         obs = _pick_observation(result, player_nation="France")
-        assert "TestAlly" in obs, f"Expected 'TestAlly' in observation: {obs}"
+        # PIN FLIPPED CONSCIOUSLY — PT-G5(f), August 12, 2026.
+        #
+        # This asserted the RAW camelCase key survived into Berthier's
+        # mouth. `battle_report.py` contained zero calls to
+        # `humanize_entity_name` — the project's single source for this
+        # repair — so he said "ArchdukeCharles broke through Ney's
+        # prepared defenses" three lines above an `enemy_voice` line that
+        # printed the same man correctly spaced, because the backend
+        # humanizes there and not here.
+        assert "Test Ally" in obs, f"Expected the spaced name in: {obs}"
+        assert "TestAlly" not in obs
         assert "{ally}" not in obs
 
     def test_fill_handles_missing_extra_keys_gracefully(self):

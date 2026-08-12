@@ -671,7 +671,16 @@ def _format_enemies(game_state: Dict[str, Any]) -> str:
         else:
             strength_k = f"{strength // 1000}K" if strength >= 1000 else str(strength)
 
-        lines.append(f"- {name} ({nation}) at {location}, {strength_k} troops")
+        # PT-G6 rider: this fed the model raw camelCase keys —
+        # "- ArchdukeCharles (Austria) at Swabia" — and the recovery
+        # prompt then asks it to "suggest a concrete rephrasing using
+        # real marshal/enemy names", i.e. explicitly instructs it to echo
+        # the key back at the player.
+        from backend.display_names import humanize_entity_name
+
+        lines.append(
+            f"- {humanize_entity_name(name)} ({nation}) at {location}, "
+            f"{strength_k} troops")
 
     return "\n".join(lines) if lines else "- No enemies visible"
 
@@ -906,7 +915,22 @@ def build_berthier_recovery_prompt(
         "React briefly to the Emperor's tone — if he is rude, dismissive, or absurd, "
         "show flustered dignity before helping. If he is polite, be warmly efficient. "
         "2-3 sentences max. Suggest a valid rephrasing. "
-        "Always address the player as 'Sire'."
+        "Always address the player as 'Sire'. "
+        # ══════════════════════════════════════════════════════════════
+        # PT-G6: the reply is rendered as BBCode in a RichTextLabel, and
+        # nothing strips or escapes it — so a model answering with
+        # "*Adjusts spectacles nervously*" or a `**bold**` example printed
+        # the asterisks literally, and a stray "[" opens an unclosed tag.
+        # This path is reachable only in LLM_MODE=anthropic, i.e. the
+        # shipping BYOK path.
+        #
+        # The system prompt carried NO output-format constraint at all,
+        # while the user prompt below trains the model on markdown for the
+        # length of the message.
+        # ══════════════════════════════════════════════════════════════
+        "Reply in plain prose only. Never use markdown: no asterisks, "
+        "no backticks, no hash marks, no hyphen bullet lists, and no "
+        "square brackets. Put any suggested order in double quotes."
     )
 
     user_prompt = f"""# Unrecognised Order
@@ -926,7 +950,7 @@ The Emperor said: "{raw_input}"
 ## Valid Actions
 {actions_list}
 
-Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names."""
+Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names, written with spaces exactly as they appear above."""
 
     return (system_prompt, user_prompt)
 

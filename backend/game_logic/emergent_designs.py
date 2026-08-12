@@ -303,8 +303,13 @@ def process_emergent_designs(world) -> List[Dict]:
         from backend.game_logic.agendas import _live_nation_name
         nation_display = _live_nation_name(world, nation)
         author_display = _live_nation_name(world, author)
-        province_line = (first + (f" and {len(lost) - 1} more provinces"
-                                  if len(lost) > 1 else ""))
+        # PT-G5(e): `EMERGENT_DESIGN_MIN_LOST = 2`, so the commonest case
+        # is exactly one other province — and this rendered "Bohemia and 1
+        # more provinces", in a MODAL.
+        _others = len(lost) - 1
+        province_line = (first + (
+            f" and {_others} more province{'s' if _others != 1 else ''}"
+            if _others > 0 else ""))
         event = {
             "type": "design_promoted",
             "nation": nation,

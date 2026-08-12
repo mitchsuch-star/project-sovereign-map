@@ -440,14 +440,58 @@ _ACK_LINES: Dict[str, Dict[str, List[str]]] = {
 
 
 def personality_ack(personality: str, order_type: str, turn: int,
-                    key_extra: int = 0) -> str:
+                    key_extra: int = 0, marshal_name: str = "") -> str:
     """Register line appended to a standing-order acknowledgment for
     aggressive/cautious marshals ("" for literal — his quote ack is the
-    W6-5 doctrine — and for unknown personalities/order types)."""
+    W6-5 doctrine — and for unknown personalities/order types).
+
+    ══════════════════════════════════════════════════════════════════
+    PT-G2 — the key needs a MARSHAL term.
+
+    It was `turn + len(str(target))`, and no marshal term existed
+    anywhere in it. So two marshals sent to same-length destinations on
+    the same turn said the same sentence back to back. Measured on
+    consecutive commands: Lannes then Ney, both "Good. An army rots
+    standing still."; Davout and Bernadotte both "As ordered. I keep my
+    flanks as I go."
+
+    `_name_key` is a small stable hash of the name — deterministic (GR6),
+    and it does not disturb the existing turn/target terms, so two
+    marshals now differ from each other while each still rotates.
+    ══════════════════════════════════════════════════════════════════
+    """
     bank = _ACK_LINES.get(personality, {}).get(order_type)
     if not bank:
         return ""
-    return _pick(bank, int(turn) + int(key_extra))
+    return _pick(bank, int(turn) + int(key_extra) + _name_key(marshal_name))
+
+
+def _name_key(name: str) -> int:
+    """A stable per-marshal offset. PT-G2.
+
+    `hash()` is salted per process in Python 3, so it CANNOT be used —
+    the same marshal would speak differently across restarts and the
+    banks would not be pinnable.
+
+    A plain SUM of code points is not enough either, and the first draft
+    used one: "Lannes" sums to 609 and "Ney" to 300 — both 0 mod 3, so
+    against a three-line bank the two men collided on exactly the
+    measured pair.
+
+    Nor is a `*31` polynomial, which the second draft used: 31 is 1 mod 3
+    and so is the modulus, so the whole expression collapses BACK to that
+    sum mod 3 and five of the six French marshals still shared a line.
+    That is the trap this row is about — a hash that looks distributed and
+    is not.
+
+    FNV-1a: the XOR breaks the linearity, and its multiplier is not 1 mod
+    3. `TestTheAckKeyKnowsWhoIsSpeaking` pins the real roster, not the
+    arithmetic.
+    """
+    key = 2166136261
+    for ch in str(name or ""):
+        key = ((key ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return key
 
 
 # ── The halt before a hopeless assault ─────────────────────────────────

@@ -189,6 +189,26 @@ const PROSE_NATION_KEY_SUBSTITUTIONS = {
 	"PapalStates": "Papal States",
 }
 
+# PT-G5(a): the client had NO marshal-name helper at all. Nation keys are
+# routed (`display_nation_name`), marshal keys never were — measured ~84
+# raw camelCase renders in one campaign, with the correctly spaced name
+# printing three lines below in the same block because the BACKEND
+# humanizes `enemy_voice` and the dialog does not humanize its own.
+#
+# Mirrors `display_names.humanize_entity_name` exactly: split camelCase
+# boundaries, and underscores to spaces.
+static func humanize_entity_name(name: String) -> String:
+	if name == "":
+		return name
+	var out := ""
+	for i in name.length():
+		var ch := name[i]
+		if i > 0 and ch == ch.to_upper() and ch != ch.to_lower() 				and name[i - 1] != " " and name[i - 1] == name[i - 1].to_lower() 				and name[i - 1] != name[i - 1].to_upper():
+			out += " "
+		out += ch
+	return out.replace("_", " ")
+
+
 static func humanize_nation_keys_in_text(text: String) -> String:
 	var result := text
 	# NA-6: the formation overrides run FIRST and shadow the static map.

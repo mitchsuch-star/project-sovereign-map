@@ -637,17 +637,25 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         return 0
 
     def _fill(template: str, **extra) -> str:
+        # PT-G5(f): Berthier said "ArchdukeCharles broke through Ney's
+        # prepared defenses" in his own mouth. This file contained ZERO
+        # calls to `humanize_entity_name`, the project's single source for
+        # exactly this repair, while the enemy_voice line three rows below
+        # in the same block printed the name correctly spaced — because
+        # the BACKEND humanizes there and not here.
+        from backend.display_names import humanize_entity_name as _hz
+
         result = template
-        result = result.replace("{marshal}", our_name)
-        result = result.replace("{enemy}", enemy_name)
+        result = result.replace("{marshal}", _hz(our_name))
+        result = result.replace("{enemy}", _hz(enemy_name))
         # Coordination placeholders (Session 65, M6)
-        result = result.replace("{ally}", extra.get("ally", ""))
-        result = result.replace("{failed_ally}", extra.get("failed_ally", ""))
+        result = result.replace("{ally}", _hz(extra.get("ally", "")))
+        result = result.replace("{failed_ally}", _hz(extra.get("failed_ally", "")))
         result = result.replace("{relationship}", extra.get("relationship", ""))
         result = result.replace("{coordination_bonus}", extra.get("coordination_bonus", ""))
         result = result.replace("{arrival_score}", extra.get("arrival_score", ""))
         # Session 68: artillery name placeholder
-        result = result.replace("{artillery}", extra.get("artillery", ""))
+        result = result.replace("{artillery}", _hz(extra.get("artillery", "")))
         # Number agreement for the multi-name coordination banks: three
         # absent marshals took a singular verb ("Lannes and Murat and
         # Bernadotte, however, was conspicuously absent").

@@ -2585,7 +2585,12 @@ def handle_incoming_settlement_offer_action(
         # as "answering with a counter draft", not "Will they accept?".
         revision_voice = resolve_settlement_voice_line(
             "settlement_incoming_offer_request_revision_talleyrand",
-            war_label=str(war_id),
+            # PT-G5(c): the module's own `_war_label_for_id` exists
+            # for exactly this and is used correctly at `:744` and
+            # `:936`. Here the raw id reached THREE surfaces —
+            # `talleyrand_text`, the staged dialogue's copy, and
+            # `message`: "the offered terms for war_1".
+            war_label=_war_label_for_id(world, war_id),
             proposer_leader=str(offer_proposer_nation or "their leader"),
         )
         if revision_voice:

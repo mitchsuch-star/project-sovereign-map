@@ -2283,8 +2283,13 @@ def _build_strategic_options(
 
     # Preferred option (if available)
     if preferred:
+        from backend.display_names import humanize_entity_name
+
         action = preferred.get("action", "")
-        target = preferred.get("target", "")
+        # PT-G5(d): this becomes a Button LABEL — "Trust: Murat pursues
+        # ArchdukeCharles" — and a Button does not pass through
+        # `add_output`, so the terminal's own key repair can never reach it.
+        target = humanize_entity_name(preferred.get("target", ""))
 
         if action == "attack":
             desc = f"{marshal.name} attacks {target}"
