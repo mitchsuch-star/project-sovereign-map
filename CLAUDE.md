@@ -58,16 +58,28 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > then tells the player a different one* — is closed at all eight seams the
 > playtest measured, and PT-A's three regressions cannot recur.
 >
-> **▶ NEXT = the four §4 rulings, then a played campaign.** §4 needs the user:
-> PT-I1 (the armistice permanently ejects the court from the coalition —
-> mechanics, not copy), **PT-I2 give the war a memory** (the one with real
-> design weight, and the playtest it was deferred for has happened), PT-I3
-> (EB-1's condition terms — losing 76,361 men was worth +1,236g/turn), PT-I4
-> (surface marshal commissioning). The row's own acceptance also owes a played
-> 20-turn campaign showing the CA9 row-2 gate arm at least once, plus the three
-> standing visual sign-offs — to which this row adds one fog sentence instead
-> of nine, a DIPLOMATIC EVENTS rail, collapsed turn events, the autonomous
-> attack drawing a real battle, and the redemption raising on control return.
+> **✅ THE FOUR §4 RULINGS WERE TAKEN August 12, 2026** (all at recommended
+> defaults; **gate record = `docs/PLAYTEST_FIXES_SPEC.md` §4, authoritative;
+> build contracts = §4.1, slices PT-J1..J4; NOTHING CODED YET**): PT-I1 →
+> eject + betray on **formal PEACE only** (truce keeps membership, collapse
+> resumes the coalition war; the widened arm also closes the masked
+> ARMISTICE→PEACE never-ejects hole at `world_state.py:9737`); PT-I2 → the
+> **campaign ledger + re-weight** (serialized per-war unique-captures +
+> casualties per side → two bounded score components, battle-count weight
+> DOWN per CA9 row 1's farm guard; numbers at a build mini-gate); PT-I3 →
+> the **"pensions of the fallen"** EB-1 condition term on the SAME ledger
+> substrate (EC-U1 stands: dead men stop drawing pay, their pensions bill
+> the crown — kills "losing 76,361 men was worth +1,236g/turn"); PT-I4 →
+> three advisory surfaces (counsel rung, death/capture dispatch beat,
+> once-latched first-affordable notification; the levy-nag cross-sell
+> DECLINED at the gate, not deferred).
+>
+> **▶ NEXT = build PT-J1 → PT-J2 → PT-J3 → PT-J4, then the played campaign.**
+> The row's own acceptance owes a played 20-turn campaign showing the CA9
+> row-2 gate arm at least once, plus the three standing visual sign-offs — to
+> which row PT adds one fog sentence instead of nine, a DIPLOMATIC EVENTS
+> rail, collapsed turn events, the autonomous attack drawing a real battle,
+> and the redemption raising on control return.
 >
 > <details><summary>The row's queueing record, kept for context</summary>
 >

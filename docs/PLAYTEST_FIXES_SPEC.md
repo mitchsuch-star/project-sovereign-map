@@ -524,16 +524,31 @@ swallow — and a played 20-turn campaign shows the row-2 gate arming at least o
 
 ---
 
-## 4. What needs a user decision
+## 4. What needed a user decision — ✅ **RULED August 12, 2026 (gate record, authoritative)**
 
-Nothing in §2 does. These do:
+Nothing in §2 did. These four did; **all four were ruled August 12, 2026 at the
+recommended defaults** after a code-grounded sitting. Build contracts in §4.1.
 
 - **PT-I1 — the armistice is announced as "a separate peace".** It permanently
   ejects the court from the coalition with a −15 betrayal penalty, and the collapse
-  never re-adds it (`world_state.py:9666-9670`; `coalition.py:1818,1823`). This is
-  **mechanics**, not copy — it changes coalition composition. Measured live: my
-  Austrian armistice collapsed back to war five turns later with the ejection
+  never re-adds it (`world_state.py:9737` — the arm fires on `current_state ==
+  "WAR" and target_state != "WAR"`, so a mere truce ejects; `coalition.py:1818,1823`).
+  This is **mechanics**, not copy — it changes coalition composition. Measured live:
+  my Austrian armistice collapsed back to war five turns later with the ejection
   standing.
+  **✅ RULED: eject + betray on formal PEACE only.** The condition becomes
+  `current_state in ("WAR", "ARMISTICE") and target_state == "PEACE"` — which
+  ALSO closes the masked hole the sitting found: today `ARMISTICE → PEACE` never
+  ejects at all (the arm requires `current_state == "WAR"`), invisible only
+  because the truce had already done the ejecting. A truce keeps membership;
+  `ARMISTICE → WAR` collapse resumes the coalition war intact. Grounds: the 1813
+  Armistice of Pläswitz paused the whole coalition war with the coalition intact,
+  Austria left the Third Coalition at *Pressburg* (the peace), and the standing
+  AUD-b/NA-2 pin — "a bare armistice never entrenches" — while permanent
+  coalition fracture is the biggest entrenchment there is. The elimination-path
+  caller (`world_state.py:3581`) is untouched. Suspend-during-armistice was
+  considered and REJECTED (a third membership state for display nuance the
+  per-pair war panel already carries).
 - **PT-I2 — give the war a memory.** `calculate_war_score` is a live board read, so
   losing four provinces and retaking them nets to zero. Measured
   `settlement_tier_display: "White Peace"` on **every single sample across 18
@@ -543,6 +558,17 @@ Nothing in §2 does. These do:
   and decays slowly. **This is the deep version of the CA9 row-1 conversation**, and
   it is the option-A retune that row deliberately deferred until after a playtest.
   The playtest has now happened.
+  **✅ RULED: build the campaign ledger + re-weight.** A serialized per-war record
+  (unique provinces captured per side; casualties per side) feeding two NEW
+  bounded score components — campaign captures and the blood differential — while
+  live territory stays the dominant term and the raw battle-count weight comes
+  **DOWN**, honoring CA9 row 1's farm guard (battles + decisive were ±50 of ±100;
+  EU4 caps battles at 25%). The design case: a bled-out enemy at status-quo
+  territory SHOULD concede — Austerlitz → Pressburg is Austria losing the army,
+  not the map. The light retune (raise battle caps/slow decay, no new state) was
+  REJECTED — it cannot distinguish a bled-out enemy at status-quo territory and
+  pushes against the farm guard. Component numbers are blessed at the build's own
+  mini-gate, in-band tunable after.
 - **PT-I3 — EB-1's condition terms.** The brake **is** converging (Charges 0 →
   2,643 while Net decayed +2,191 → +626; pre-charge surplus +74.5% and plateaued;
   fixed point ≈32,600g around turn 30–35). But Net was positive **18 of 18** turns,
@@ -551,11 +577,56 @@ Nothing in §2 does. These do:
   the Emperor pays least exactly when he is losing. The lever is the rate's
   **condition terms** (they respond to play — the rate dropped 273 → 206 the turn
   the Austrian armistice was signed), not the fraction.
+  **✅ RULED: the named blood term.** "The pensions of the fallen" — a new
+  condition term in `get_state_charges_rate` pricing a rolling window of the
+  nation's own war dead, read from the SAME campaign-ledger substrate PT-I2
+  serializes (one substrate, two consumers), GR5-symmetric. The EC-U1 ruling
+  STANDS — upkeep bills fielded strength, dead men stop drawing pay — but their
+  pensions, invalids and replacement drafts now bill the crown, so "losing
+  76,361 men was worth +1,236g/turn" dies. The zero-new-fields retune (steepen
+  WE, band ILL by margin) was REJECTED as saturating — WE caps, so it cannot
+  tell 10,000 dead from 76,000. Rate numbers at the same mini-gate as PT-I2's.
 - **PT-I4 — surface marshal commissioning.** France's bench holds six men at
   3,500–6,000g — the only sink whose price matches the chest, and the only one that
   converts gold into the thing the campaign actually lacked. The word "commission"
   appears **zero times in 108 responses**. An army at 48% strength sitting on
   24,415g should be told it can buy a marshal, not nagged for 450g it cannot spend.
+  **✅ RULED: three advisory surfaces ship** — (1) the Talleyrand/assess counsel
+  rung (chest covers a commission + roster thin or army under-strength → counsel
+  names the bench and a price), (2) the death/capture dispatch beat (the
+  Marshalate IS W6-7's designed recovery path; the loss moment is the teaching
+  moment), (3) a once-latched first-affordable notification. All GR6 — advisory
+  strings over the existing executor gate, zero mechanics. **The levy-nag
+  cross-sell was DECLINED at the gate** (considered, not deferred — do not
+  re-file it as a gap).
+
+### 4.1 Build contracts (row PT-J)
+
+Four slices, ruled into existence by the §4 gate. Order: **PT-J1 → PT-J2 →
+PT-J3 → PT-J4** (J3 consumes J2's substrate; J1 and J4 are independent).
+
+- **PT-J1 "The Truce Holds"** — move ejection + betrayal to the formal-PEACE arm
+  as ruled. Completion: pins for truce-keeps-membership, collapse-resumes-intact,
+  armistice-then-peace ejects exactly ONCE (the masked hole), WAR→PEACE
+  byte-identical, elimination teardown untouched. Watch: coalition dissolution
+  checks fire from `remove_coalition_member` — the pin set must cover a
+  final-member peace on both routes.
+- **PT-J2 "The Campaign Ledger"** — the serialized per-war record on the
+  `war_instances` substrate (unique captures per side; casualties per side) +
+  the two bounded score components + the battle-weight re-weight. Numbers at a
+  mini-gate in the build session. Serialization checklist applies
+  (`SAVE_FORMAT_REFERENCE.md`); GR5 both sides; expect settlement-behavior
+  movement — any `BASELINE_SERIES` / M1–M7 delta must be flip-attributed and
+  consciously re-recorded, per standing practice.
+- **PT-J3 "The Pensions of the Fallen"** — the EB-1 condition term reading J2's
+  rolling casualty window. Shown = applied on every rate surface (the EB-1
+  named-terms idiom already carries it). Boot-neutral by construction (no
+  casualties at boot).
+- **PT-J4 "The Bench Speaks"** — the three ruled surfaces. The notification
+  latch needs one small serialized field (or an existing-store ride — builder's
+  choice, serialization checklist either way); counsel + dispatch beats are
+  derived. Completion: a campaign that loses a marshal while rich HEARS about
+  the bench within a turn, pinned at the producer and the render.
 
 **UNDETERMINED, not a row:** whether the `foreign_wars` HUD panel is reachable at
 all on this scenario — empty in **102 of 102** payloads carrying `active_wars`, but
@@ -571,8 +642,9 @@ B1 must land with **PT-C1**) → **PT-E** (the turn report; E1+E2 together or E2
 empty) → **PT-D** (the battle report; D1 ships inside A2) → **PT-C** (the rest of
 the numbers) → **PT-F** → **PT-G** → **PT-H**.
 
-Gates in §4 whenever the user chooses; **PT-I2 is the one with real design weight**
-and it wants its own sitting.
+~~Gates in §4 whenever the user chooses; **PT-I2 is the one with real design weight**
+and it wants its own sitting.~~ **✅ The sitting was held August 12, 2026 — all four
+ruled; §4 is the gate record and §4.1 the build contracts (PT-J1..J4).**
 
 **A visual sign-off is owed and this queue should discharge it** — F7's per-court
 fog line (**PT-E4**) and F5's `Supply: Unknown` on the region panel and the map
@@ -729,11 +801,10 @@ after the build as well as before it.
 
 ### 7.6 Still open, unchanged by this row
 
-* **§4's four items still need a user ruling** — PT-I1 (the armistice ejects the
-  court from the coalition permanently), PT-I2 (give the war a memory: the deep
-  version of CA9 row 1, now that the playtest has happened), PT-I3 (EB-1's
-  condition terms — losing 76,361 men was worth +1,236g/turn), PT-I4 (surface
-  marshal commissioning: "commission" appears zero times in 108 responses).
+* ~~**§4's four items still need a user ruling**~~ **✅ ALL FOUR RULED August 12,
+  2026** — gate record = §4, build contracts = §4.1 (slices PT-J1..J4: the
+  truce holds · the campaign ledger + re-weight · the pensions of the fallen ·
+  the bench speaks). Nothing coded yet; the build is the next session's queue.
 * **The three owed visual sign-offs stand**, and this row adds surfaces to them:
   F7's per-court fog line is now ONE sentence (PT-E4), the terminal has a
   DIPLOMATIC EVENTS rail (PT-E2), turn events collapse (PT-E3), the autonomous

@@ -37,12 +37,22 @@
 >    INPUT was what defeated it (pricing the arrival roll can only move the band
 >    toward `unfavorable`, pinned as a monotonicity property); it cannot prove
 >    the gate fires in the wild without play.
-> 2. **§4's four items still need a user ruling** — PT-I1 armistice-as-separate-
->    peace (mechanics, not copy), **PT-I2 give the war a memory** (the one with
->    real design weight; the deep version of the CA9 row-1 conversation, and the
->    playtest it was deferred for has now happened), PT-I3 EB-1's condition terms
->    (losing 76,361 men was worth +1,236g/turn), PT-I4 surface marshal
->    commissioning ("commission" appears zero times in 108 responses).
+> 2. ~~**§4's four items still need a user ruling**~~ **✅ ALL FOUR RULED
+>    August 12, 2026 — gate record = `docs/PLAYTEST_FIXES_SPEC.md` §4
+>    (authoritative), build contracts = §4.1, slices PT-J1..J4, NOTHING CODED
+>    YET:** PT-I1 → eject + betray on formal PEACE only (truce keeps
+>    membership; collapse resumes the coalition war; the widened arm also
+>    closes the masked ARMISTICE→PEACE never-ejects hole); PT-I2 → the
+>    **campaign ledger + re-weight** (serialized per-war unique-captures +
+>    casualties per side feeding two bounded score components, battle-count
+>    weight DOWN per CA9 row 1; numbers at a build mini-gate); PT-I3 → the
+>    named **"pensions of the fallen"** EB-1 condition term reading the SAME
+>    ledger substrate (EC-U1 stands — dead men stop drawing pay, their
+>    pensions bill the crown); PT-I4 → three advisory surfaces (counsel rung,
+>    death/capture dispatch beat, once-latched first-affordable notification;
+>    the levy-nag cross-sell DECLINED at the gate). **Build order PT-J1 →
+>    PT-J2 → PT-J3 → PT-J4, then the played 20-turn campaign** that also
+>    discharges item 1 and the visual sign-offs.
 > 3. **The three owed visual sign-offs stand**, and this row adds to them: one
 >    fog sentence instead of nine, a DIPLOMATIC EVENTS rail in the terminal,
 >    collapsed turn events, the autonomous attack drawing a real battle, and the
