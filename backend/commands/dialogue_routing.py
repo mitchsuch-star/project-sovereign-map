@@ -55,6 +55,13 @@ DIALOGUE_ACTION_KEYWORDS: Dict[str, List[str]] = {
     "reconsider": ["back_out_settlement", "reconsider"],
     "no": ["back_out_settlement", "reconsider"],
     "wait": ["reconsider"],
+    # PT-A3: the war-purpose dialogue is RAISED with the sentence
+    # "…choose our purpose, or let the province stand." That phrase was
+    # offered by the engine and refused by the engine — the four
+    # `_stage_war_purpose_selection` call sites speak it and the router
+    # had no vocabulary for it. Shown == accepted.
+    "let the province stand": ["reconsider"],
+    "let it stand": ["reconsider"],
     "harsh": ["modify_harsh"],
     "generous": ["modify_generous"],
     "adjust": ["adjust_terms", "expand_options"],
@@ -122,6 +129,34 @@ def format_answer_words(choices) -> str:
     if len(words) == 1:
         return words[0]
     return ", ".join(words[:-1]) + " or " + words[-1]
+
+
+# PT-A3: what the player is being asked, in words, so a hard stop can
+# name its own blocker the way an objection names the marshal who raised
+# it. Keyed on `DialogueManager.HARD_STOP_TYPES` — the only dialogues
+# that can reach the refusal.
+_HARD_STOP_SUBJECT = {
+    "force_declare_war_confirmation": "The declaration of war",
+    "force_break_treaty_confirmation": "The breaking of the treaty",
+    "alliance_paradox": "The conflict between your alliances",
+    "commitment_paradox": "The conflict between your commitments",
+    "war_purpose_selection": "Our purpose in this war",
+    "settlement_confirm": "The terms on the table",
+}
+
+
+def hard_stop_subject(dialogue: Optional[dict]) -> str:
+    """Name the thing that is blocking, for a hard-stop refusal.
+
+    PT-A3. A hard stop that answers "I don't understand that choice" to a
+    sentence about something else has told the player neither what is
+    waiting nor how to clear it. The objection block has named its blocker
+    since CA9-N5; this is the same courtesy one branch over.
+    """
+    dtype = ""
+    if isinstance(dialogue, dict):
+        dtype = str(dialogue.get("type") or "")
+    return _HARD_STOP_SUBJECT.get(dtype, "A decision")
 
 
 def format_numbered_options(dialogue: Optional[dict]) -> str:

@@ -421,8 +421,17 @@ class CombatResolver:
                         # When reinforcers are committed the muster header speaks
                         # in the joint frame, so this line must say which frame
                         # it is using or the two read as a contradiction.
-                        _alone = " alone" if committed_attacker > 0 else ""
-                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_alone}. (Cautious: -10% attack)"
+                        #
+                        # The CONDITION is right and stays: the qualifier belongs
+                        # exactly where there is a joint frame to distinguish
+                        # from. The WORD was backwards. "alone" was meant
+                        # adverbially — "his odds, considered alone" — and read
+                        # as "he attacked by himself", printed two lines above
+                        # `Massed effective strength: … + 12,806 committed
+                        # (Lannes)`. Measured on the same screen, same turn.
+                        _frame = (" on his own numbers"
+                                  if committed_attacker > 0 else "")
+                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Cautious: -10% attack)"
                     if current_stance == Stance.AGGRESSIVE:
                         if not attacker_personality_message:
                             attacker_personality_message = f"{attacker.name} is hesitant in aggressive posture. (Cautious: -5% attack)"

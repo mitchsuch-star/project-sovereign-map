@@ -89,9 +89,21 @@ def objecting_board():
 
 
 def _petition(world):
+    """Build the petition and return it AS THE PLAYER RECEIVES IT.
+
+    PT-A1 re-site. These assertions used to read the builder's output
+    directly, which is exactly why the defect shipped: `_command_option`
+    was honest and `refresh_petition_affordability` — run unconditionally
+    at the delivery seam, `main.py:1304` — then overwrote `enabled` and
+    popped the reason. Eight green pins, and 6 of 10 petitions in a live
+    campaign shipped the `command` arm enabled with no reason at all.
+
+    Every card assertion in this file now binds where the player reads.
+    """
     J.queue_confrontation_petition(world, world.marshals["Ney"],
                                    world.marshals["Murat"], 1)
-    return world.pending_marshal_petition
+    return J.refresh_petition_affordability(
+        world.pending_marshal_petition, world)
 
 
 def _answer(world, executor, choice="command"):

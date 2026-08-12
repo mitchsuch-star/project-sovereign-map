@@ -324,7 +324,8 @@ class CombatExecutor:
             scale = self._RELATIONSHIP_SCALING.get(pair_rel, 1.0)
         return scale
 
-    def _committed_reinforcement_strength(self, lead, participants, world) -> float:
+    def _committed_reinforcement_strength(self, lead, participants, world,
+                                          expected_at=None) -> float:
         """CO-1/CO-1b: additive committed strength a lead's reinforcers bring
         to the clash (everyone in `participants` except the lead).
 
@@ -343,6 +344,27 @@ class CombatExecutor:
         An aggressive/high-shock reinforcer pushes harder than a cautious one of
         equal size; a marshal who resents the lead contributes ≈0. Returns a
         float (0.0 when the lead fights alone).
+
+        ══════════════════════════════════════════════════════════════════
+        PT-A2 — `expected_at`: THE PREVIEW COUNTS ARRIVALS, NOT ELIGIBILITY.
+
+        Called with `expected_at=None` (the RESOLVER) this sums a list of
+        marshals who have already arrived and relocated — every one of them
+        is a certainty, and weighting them would be wrong.
+
+        Called with `expected_at=<battle region>` (the three PREVIEW
+        surfaces) it sums a list of marshals who merely COULD come:
+        `_muster_reason` is a pure eligibility ladder — broken, fortified,
+        literal, hostile, grievance — with no arrival term anywhere in it,
+        while arrival is a separate roll in the resolver. So the preview
+        was pricing a die at its maximum. Measured live: `39,240 if all
+        march` against 31,680 real, a 24% over-promise, and it is what
+        defeated CA9 row 2 — the cautious-marshal gate reads the band this
+        number produces and never armed once in 19 turns.
+
+        Each contribution is scaled by the probability of the roll the
+        resolver will actually make.
+        ══════════════════════════════════════════════════════════════════
         """
         total = 0.0
         for r in participants:
@@ -355,6 +377,12 @@ class CombatExecutor:
 
             if scale <= 0.0:
                 continue
+
+            if expected_at is not None:
+                scale *= self._expected_arrival_weight(lead, r, world,
+                                                       expected_at)
+                if scale <= 0.0:
+                    continue
 
             eff = r.get_combat_effectiveness()
             atk_mult = r.get_attack_modifier(1.0, consume=False)
@@ -850,8 +878,11 @@ class CombatExecutor:
                 joining.append(m)
         if not joining:
             return [], 0.0
+        # PT-A2: the defender's muster is a forecast too — same weight, same
+        # reason. Leaving this side unweighted would re-open exactly the
+        # asymmetry CA9-F1 landed to close.
         return joining, self._committed_reinforcement_strength(
-            enemy_marshal, joining, world)
+            enemy_marshal, joining, world, expected_at=battle_region)
 
     def _build_muster_preview(self, marshal, enemy_marshal, world, game_state):
         """W6-4 §6.1: who will fight, who won't, and why — before the shot.
@@ -939,8 +970,11 @@ class CombatExecutor:
         # CO-2: the odds band reflects the TOTAL committed force (lead + the
         # personality/relationship-scaled contribution of every marshal that
         # WILL JOIN) so the preview matches what CO-1 resolves.
+        # PT-A2: `expected_at` — these men have not marched yet. Each is
+        # priced at the probability of the arrival roll the resolver will
+        # make for him, not at certainty.
         committed_attacker = self._committed_reinforcement_strength(
-            marshal, will_join_marshals, world)
+            marshal, will_join_marshals, world, expected_at=battle_region)
         # CA9-F1: and the same term for the other side. The RATIO reads
         # ground truth, exactly as the fort/terrain terms already do and for
         # the reason given in `inferred_attack_favorable`'s docstring — this
@@ -1044,8 +1078,9 @@ class CombatExecutor:
                 will_join.append(m)
         if not will_join:
             return ""
+        # PT-A2: the third preview surface, weighted like the other two.
         committed = self._committed_reinforcement_strength(
-            marshal, will_join, world)
+            marshal, will_join, world, expected_at=battle_region)
         if committed <= 0:
             return ""
         # Same prose form the coordination observations use — one source for
@@ -1139,14 +1174,90 @@ class CombatExecutor:
             lines.append(f"  ({preview['hint']})")
         return "\n".join(lines)
 
-    def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant, world):
-        """Calculate deterministic base + components + random variance.
+    # ══════════════════════════════════════════════════════════════════
+    # PT-A2 — arrival is a ROLL, and the preview must price it as one.
+    #
+    # `_ARRIVAL_VARIANCE` is the half-width of the uniform jitter added to
+    # every arrival score. Naming it is what lets the preview compute the
+    # probability of the roll the resolver will make, from the SAME
+    # deterministic sum — shown equals applied by construction.
+    # ══════════════════════════════════════════════════════════════════
+    _ARRIVAL_VARIANCE = 8          # random.randint(-8, +8): 17 outcomes
+    _ARRIVAL_FUMBLE_ABOVE = 80     # scores above this carry the 5% fumble
+    _ARRIVAL_FUMBLE_CHANCE = 0.05
 
-        Formula from MULTI_MARSHAL_SPEC §7:
-        score = 50 + logistics*5 + relationship_mod + terrain_mod + personality_mod + support_bonus + variance
+    def _arrival_threshold(self, reinforcing_marshal, primary_combatant,
+                           battle_region, world) -> int:
+        """The A-I4 variable threshold, as ONE source.
+
+        A written order is worth +15 effective: +10 on the score (the
+        SUPPORT bonus) and −5 here. Extracted so the muster preview reads
+        the same number the resolver compares against.
         """
-        import random
+        order = getattr(reinforcing_marshal, 'strategic_order', None)
+        has_explicit_order = False
+        if order is not None:
+            if (order.command_type == "SUPPORT"
+                    and order.target == primary_combatant.name):
+                has_explicit_order = True
+            elif order.command_type == "PURSUE":
+                pursue_tgt = world.marshals.get(order.target)
+                if pursue_tgt and pursue_tgt.location == battle_region:
+                    has_explicit_order = True
+        return 60 if has_explicit_order else 65
 
+    def _arrival_probability(self, deterministic: int, threshold: int) -> float:
+        """P(this reinforcer actually arrives), over the jitter alone.
+
+        The resolver arrives on ``score > threshold`` with
+        ``score = deterministic + randint(-v, +v)``, then fumbles 5% of the
+        time when ``score > 80``. Both are folded in here, exactly, rather
+        than approximated — the whole point of PT-A2 is that the preview
+        stops rounding a roll up to a certainty.
+        """
+        v = self._ARRIVAL_VARIANCE
+        outcomes = 2 * v + 1
+        total = 0.0
+        for jitter in range(-v, v + 1):
+            score = deterministic + jitter
+            if score <= threshold:
+                continue
+            total += (1.0 - self._ARRIVAL_FUMBLE_CHANCE
+                      if score > self._ARRIVAL_FUMBLE_ABOVE else 1.0)
+        return total / outcomes
+
+    def _expected_arrival_weight(self, lead, reinforcer, world,
+                                 battle_region) -> float:
+        """How much of a reinforcer's weight the PREVIEW should promise.
+
+        Three cases, each read off what the resolver actually does:
+
+        * already on the field -> 1.0. He makes no march and no roll.
+        * artillery -> 0.0. An arriving gun is appended to
+          `artillery_reinforced_adjacent` and NEVER relocates, so it never
+          enters `_get_casualty_participants` and contributes exactly zero
+          to the resolver's committed term (it earns a coordination bonus
+          instead). No artillery marshal is authored on the 1805 board, but
+          six sit in `marshal_pool`, so this is reachable in a real campaign.
+        * otherwise -> the probability of his arrival roll.
+        """
+        if getattr(reinforcer, "location", None) == battle_region:
+            return 1.0
+        if getattr(reinforcer, "artillery", False):
+            return 0.0
+        deterministic = self._arrival_deterministic(reinforcer, lead, world)
+        threshold = self._arrival_threshold(reinforcer, lead, battle_region,
+                                            world)
+        return self._arrival_probability(deterministic, threshold)
+
+    def _arrival_deterministic(self, reinforcing_marshal, primary_combatant,
+                               world) -> int:
+        """Everything in the arrival score EXCEPT the jitter.
+
+        PT-A2 extraction. `_calculate_arrival_score` is now this plus one
+        `randint`, which is what makes the preview's probability and the
+        resolver's roll provably the same distribution.
+        """
         base = 50
 
         logistics = reinforcing_marshal.skills.get("logistics", 5)
@@ -1193,10 +1304,23 @@ class CombatExecutor:
         elif ability_name == "Eyes on a Crown":
             ability_mod = -15
 
-        variance = random.randint(-8, 8)
+        return (base + logistics_bonus + rel_mod + terrain_mod
+                + personality_mod + support_bonus + ability_mod)
 
-        return (base + logistics_bonus + rel_mod + terrain_mod + personality_mod
-                + support_bonus + ability_mod + variance)
+    def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant,
+                                 world):
+        """Deterministic base + components + random variance.
+
+        Formula from MULTI_MARSHAL_SPEC §7:
+        score = 50 + logistics*5 + relationship_mod + terrain_mod
+                + personality_mod + support_bonus + variance
+        """
+        import random
+
+        return (self._arrival_deterministic(
+                    reinforcing_marshal, primary_combatant, world)
+                + random.randint(-self._ARRIVAL_VARIANCE,
+                                 self._ARRIVAL_VARIANCE))
 
     def _calculate_reinforcements(self, primary, defender, battle_region, nation, world):
         """Check adjacent marshals for reinforcement arrival.

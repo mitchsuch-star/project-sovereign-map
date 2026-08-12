@@ -1559,9 +1559,16 @@ def _command_option(world, marshal) -> Dict:
     enabled, reason, quarry = command_arm_availability(world, marshal)
     cost = _command_arm_ap(marshal)
     if not enabled:
+        # PT-A1: `available` is the NON-AP verdict, and it is what makes
+        # this refusal survive delivery. `enabled` alone cannot carry it:
+        # the builder runs during the turn pass, before `advance_turn`
+        # refills AP, so IGR-1's refresher must be free to re-enable an
+        # arm that only zero-AP had shut — and it cannot tell the two
+        # cases apart from a bare `False`.
         return {"id": COMMAND_ARM_ID, "label": "Give him a command",
                 "detail": reason, "unavailable_reason": reason,
                 "cost_note": f"{cost} AP", "ap_cost": cost,
+                "available": False,
                 "enabled": False}
     enemy, region = quarry
     where = ("where he stands" if region == marshal.location
@@ -1575,6 +1582,7 @@ def _command_option(world, marshal) -> Dict:
                    f"bring on a battle at once."),
         "cost_note": f"{cost} AP",
         "ap_cost": cost,
+        "available": True,
         "enabled": _player_ap(world) >= cost,
     }
 
@@ -1606,6 +1614,33 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     `ap_cost` is authored on the option; affordability is decided HERE, at the
     moment the petition is handed to the client. Options that carry no
     `ap_cost` keep whatever `enabled` they were authored with.
+
+    ══════════════════════════════════════════════════════════════════════
+    PT-A1 — THE DELIVERY SEAM IS SUBTRACTIVE.
+
+    The July-25 fix above over-corrected. It wrote `enabled = ap >= cost`
+    *unconditionally*, so an arm `_command_option` had honestly refused —
+    "There is no enemy within his reach to send him against." — arrived
+    at the player ENABLED with its reason popped. Measured over a 19-turn
+    campaign: 6 of 10 petitions shipped the `command` arm that way, and
+    pressing it returned `success: False`, charged 0 AP, and destroyed the
+    petition.
+
+    Affordability is ONE gate among several, and it is the only one this
+    function knows about. It may therefore only ever take an option AWAY.
+
+    The verdict it must not overturn is `available` — the builder's NON-AP
+    gate. A bare `enabled: False` cannot serve, because the builder bakes
+    build-time AP into it too, and re-enabling exactly that case is what
+    IGR-1 landed this function to do. So: options carrying
+    `available: False` stay shut with their own reason; options with no
+    `available` key (every arm that has no gate but its price) are
+    governed by AP alone, exactly as before.
+
+    This function is PURE — it copies the petition and every option, and
+    never mutates its input, so the stored petition keeps the builder's
+    verdict and every re-delivery re-derives from it.
+    ══════════════════════════════════════════════════════════════════════
     """
     if not isinstance(petition, dict):
         return petition
@@ -1622,10 +1657,19 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
         if cost is None:
             refreshed.append(option)
             continue
+        gate_open = option.get("available")
+        gate_open = True if gate_open is None else bool(gate_open)
+        authored_reason = option.get("unavailable_reason")
         option = dict(option)
         cost = int(cost)
-        option["enabled"] = ap >= cost
-        if ap < cost:
+        affordable = ap >= cost
+        option["enabled"] = gate_open and affordable
+        if not gate_open:
+            # Shut for a reason that has nothing to do with action points.
+            # Say THAT reason — AP is not why he cannot go.
+            if authored_reason is not None:
+                option["unavailable_reason"] = authored_reason
+        elif not affordable:
             # Never grey a choice silently — say what it would take.
             option["unavailable_reason"] = (
                 f"Needs {cost} action point{'s' if cost != 1 else ''} — "
@@ -1951,26 +1995,54 @@ def handle_petition_response(world, choice: str, executor=None,
                 "marshal_petition": petition}
     kind = petition.get("kind")
     context = petition.get("context", {}) or {}
-    world.pending_marshal_petition = None
-    queue = getattr(world, "_popup_queue", None)
-    if queue is not None:
-        queue.set("pending_marshal_petition", None)
 
+    # ══════════════════════════════════════════════════════════════════
+    # PT-A1 — A REFUSAL MUST NOT DESTROY THE DECISION.
+    #
+    # The pop used to run HERE, before the arm was tried. So every
+    # `success: False` an arm can return — no legal target, not enough
+    # AP, the executor declining — silently deleted the petition: the
+    # player was told "no", charged nothing, and never offered the card
+    # again. Measured live on the `command` arm, which PT-A1's other half
+    # had been mis-enabling in the first place.
+    #
+    # The petition is now retired by SUCCESS. Two details are load-bearing:
+    #   * the retirement is IDENTITY-checked, because an arm may push a
+    #     NEW petition (escalation) and that one must survive;
+    #   * a failed answer re-attaches the card to the result, so the
+    #     client re-renders the decision it still has to make. (The turn
+    #     pass also re-pushes an unanswered petition, `:2523` — this is
+    #     the same-response half of that promise.)
+    # ══════════════════════════════════════════════════════════════════
     if kind == "jealousy_confrontation":
         # Q2(a): the command arm needs the executor, exactly as the
         # war-weary arm already does for its declare-war command.
-        return _apply_confrontation_choice(world, choice, context,
-                                           executor=executor,
-                                           game_state=game_state)
-    if kind == "rivalry_confrontation":
-        return _apply_rivalry_choice(world, choice, context)
-    if kind == "fontainebleau":
-        return _apply_fontainebleau_choice(world, choice, context)
-    if kind == "war_weary":
-        return _apply_war_weary_choice(world, choice, context,
-                                       executor=executor,
-                                       game_state=game_state)
-    return {"success": False, "message": f"Unknown petition kind '{kind}'."}
+        result = _apply_confrontation_choice(world, choice, context,
+                                             executor=executor,
+                                             game_state=game_state)
+    elif kind == "rivalry_confrontation":
+        result = _apply_rivalry_choice(world, choice, context)
+    elif kind == "fontainebleau":
+        result = _apply_fontainebleau_choice(world, choice, context)
+    elif kind == "war_weary":
+        result = _apply_war_weary_choice(world, choice, context,
+                                         executor=executor,
+                                         game_state=game_state)
+    else:
+        result = {"success": False,
+                  "message": f"Unknown petition kind '{kind}'."}
+
+    if not isinstance(result, dict):
+        return result
+    if result.get("success"):
+        if getattr(world, "pending_marshal_petition", None) is petition:
+            world.pending_marshal_petition = None
+            queue = getattr(world, "_popup_queue", None)
+            if queue is not None:
+                queue.set("pending_marshal_petition", None)
+    else:
+        result.setdefault("marshal_petition", petition)
+    return result
 
 
 def _apply_command_choice(world, marshal, executor, game_state) -> Dict:

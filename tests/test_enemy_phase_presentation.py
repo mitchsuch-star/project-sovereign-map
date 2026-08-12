@@ -232,17 +232,29 @@ class TestMusterOneVoiceOdds:
     def _mk(self, name, strength, personality, nation):
         return Marshal(name, "TestField", int(strength), personality, nation)
 
-    def test_cautious_solo_frame_says_alone_when_joint_frame_exists(self):
+    def test_cautious_solo_frame_names_its_frame_without_claiming_solitude(self):
+        """PT-D1. The CONDITION was always right; the WORD was backwards.
+
+        Pin flipped consciously August 12, 2026. The qualifier fires
+        exactly when reinforcers ARE committed — that is the only case
+        with a joint frame to distinguish from — but it used to read
+        "at unfavorable odds alone" on the same screen that printed
+        "Massed effective strength: 18,874 (lead) + 12,806 committed".
+        "alone" was meant adverbially and read as "by himself".
+        """
         random.seed(5)
         a = self._mk("Moore", 20000, "cautious", "Britain")
         d = self._mk("Ney", 30000, "aggressive", "France")
         r = CombatResolver().resolve_battle(
             a, d, terrain="plains", committed_attacker=15000.0)
         line = r.get("attacker_personality_triggered") or ""
-        assert "at unfavorable odds alone" in line, (
+        assert "at unfavorable odds on his own numbers" in line, (
             "with reinforcers committed, the solo -10% line must name its "
             "frame — beside a joint-frame muster header it read as a "
             "contradiction")
+        assert "alone" not in line, (
+            "the man is NOT alone — that is the whole condition under "
+            "which this qualifier prints")
 
     def test_solo_battle_copy_is_byte_stable(self):
         random.seed(5)

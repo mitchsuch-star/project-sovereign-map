@@ -2144,13 +2144,49 @@ def execute_command(request: CommandRequest):
                 result = executor.handle_diplomatic_dialogue_response(
                     matched_keyword, game_state, raw_text=command_text)
             elif is_hard_stop:
-                # Hard-stop: label matching fallback, then executor (which blocks)
-                print(f"[DIPLOMATIC] Hard-stop fallback label-match: {raw_lower}")
-                result = executor.handle_diplomatic_dialogue_response(
-                    command_text, game_state, raw_text=command_text)
-                msg = (result or {}).get("message", "")
-                if "Please choose an option" in msg:
-                    result = executor.execute(parsed, game_state)
+                # ══════════════════════════════════════════════════════
+                # PT-A3 — A HARD STOP MUST NOT SWALLOW AN UNRELATED ORDER.
+                #
+                # This arm used to hand the player's WHOLE SENTENCE to the
+                # choice resolver as if it were an answer. Measured live:
+                # `Davout, march to Munich and relieve the Bavarians` came
+                # back "I don't understand that choice, Sire." — the game
+                # claiming it misunderstood a sentence that was never
+                # about the dialogue, and never saying what was blocking.
+                #
+                # The escape hatch below it was DEAD. It gated on the
+                # literal "Please choose an option", which
+                # `_enumerated_choice_prompt` emits only for a non-str or
+                # out-of-range-int choice; `main.py` always passes a `str`
+                # here, and an unresolved `str` returns "I don't
+                # understand that choice" instead. So no typed string
+                # could ever reach `executor.execute`. CA9-N5 rewrote that
+                # failure string and killed the fall-through with it.
+                #
+                # Answer the way the OBJECTION block answers (`executor.py
+                # :531-562`): never feed the sentence to a resolver, name
+                # the blocker, say nothing was relayed, and quote the exact
+                # words that clear it — read off the live dialogue, so
+                # shown == accepted.
+                # ══════════════════════════════════════════════════════
+                print(f"[DIPLOMATIC] Hard-stop refusal (unrelated): {raw_lower}")
+                from backend.commands.dialogue_routing import (
+                    format_numbered_options, hard_stop_subject)
+                _dlg = world.pending_diplomatic_dialogue
+                _numbered = format_numbered_options(_dlg)
+                _waiting = hard_stop_subject(_dlg)
+                _msg = f"{_waiting} awaits your answer, Sire"
+                if _numbered:
+                    _msg += (f" — nothing was relayed. Answer with one of: "
+                             f"{_numbered}.")
+                else:
+                    _msg += " — nothing was relayed."
+                result = {
+                    "success": False,
+                    "message": _msg,
+                    "awaiting_response": True,
+                    "diplomatic_dialogue": _dlg,
+                }
             else:
                 # PL-27: Soft-stop — no dialogue keyword match, execute normally
                 print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
