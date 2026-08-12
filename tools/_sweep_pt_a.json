@@ -1,0 +1,135 @@
+[
+ {
+  "id": "PT-A1 refresher is subtractive",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        option[\"enabled\"] = gate_open and affordable",
+  "new": "        option[\"enabled\"] = affordable",
+  "tests": "tests/test_pt_a_regressions.py tests/test_ca9_row3_q2_council_command.py"
+ },
+ {
+  "id": "PT-A1 the non-AP reason survives",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if not gate_open:\n            # Shut for a reason that has nothing to do with action points.\n            # Say THAT reason \u2014 AP is not why he cannot go.\n            if authored_reason is not None:\n                option[\"unavailable_reason\"] = authored_reason\n        elif not affordable:",
+  "new": "        if False:\n            if authored_reason is not None:\n                option[\"unavailable_reason\"] = authored_reason\n        elif not affordable:",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A1 builder states its non-AP verdict",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "                \"available\": False,\n                \"enabled\": False}",
+  "new": "                \"enabled\": False}",
+  "tests": "tests/test_pt_a_regressions.py tests/test_ca9_row3_q2_council_command.py"
+ },
+ {
+  "id": "PT-A1 retire on success only",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    if result.get(\"success\"):\n        if getattr(world, \"pending_marshal_petition\", None) is petition:",
+  "new": "    if True:\n        if True:",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A1 identity check on retirement",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "        if getattr(world, \"pending_marshal_petition\", None) is petition:\n            world.pending_marshal_petition = None",
+  "new": "        if True:\n            world.pending_marshal_petition = None",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A1 a refusal re-attaches the card",
+  "file": "backend/game_logic/jealousy.py",
+  "old": "    else:\n        result.setdefault(\"marshal_petition\", petition)\n    return result",
+  "new": "    else:\n        pass\n    return result",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 the preview weights by arrival",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if expected_at is not None:\n                scale *= self._expected_arrival_weight(lead, r, world,\n                                                       expected_at)",
+  "new": "            if False:\n                scale *= self._expected_arrival_weight(lead, r, world,\n                                                       expected_at)",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 artillery is priced at zero",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if getattr(reinforcer, \"artillery\", False):\n            return 0.0",
+  "new": "        if False:\n            return 0.0",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 a man on the field is certain",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if getattr(reinforcer, \"location\", None) == battle_region:\n            return 1.0",
+  "new": "        if False:\n            return 1.0",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 the probability is real",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            total += (1.0 - self._ARRIVAL_FUMBLE_CHANCE\n                      if score > self._ARRIVAL_FUMBLE_ABOVE else 1.0)\n        return total / outcomes",
+  "new": "            total += (1.0 - self._ARRIVAL_FUMBLE_CHANCE\n                      if score > self._ARRIVAL_FUMBLE_ABOVE else 1.0)\n        return 1.0",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 the muster preview passes expected_at",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            marshal, will_join_marshals, world, expected_at=battle_region)",
+  "new": "            marshal, will_join_marshals, world)",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-D1 the solo frame names itself",
+  "file": "backend/game_logic/combat.py",
+  "old": "                        _frame = (\" on his own numbers\"\n                                  if committed_attacker > 0 else \"\")",
+  "new": "                        _frame = (\" alone\"\n                                  if committed_attacker > 0 else \"\")",
+  "tests": "tests/test_pt_a_regressions.py tests/test_enemy_phase_presentation.py"
+ },
+ {
+  "id": "PT-A3 the hard stop refuses instead of resolving",
+  "file": "backend/main.py",
+  "old": "                result = {\n                    \"success\": False,\n                    \"message\": _msg,\n                    \"awaiting_response\": True,\n                    \"diplomatic_dialogue\": _dlg,\n                }",
+  "new": "                result = executor.handle_diplomatic_dialogue_response(\n                    command_text, game_state, raw_text=command_text)",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A3 the refusal names the blocker",
+  "file": "backend/main.py",
+  "old": "                _waiting = hard_stop_subject(_dlg)",
+  "new": "                _waiting = \"A decision\"",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A3 the refusal quotes the exits",
+  "file": "backend/main.py",
+  "old": "                    _msg += (f\" \u2014 nothing was relayed. Answer with one of: \"\n                             f\"{_numbered}.\")",
+  "new": "                    _msg += \" \u2014 nothing was relayed.\"",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A3 the offered phrase is answerable",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"let the province stand\": [\"reconsider\"],",
+  "new": "",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A3 every hard-stop type has a subject",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    \"war_purpose_selection\": \"Our purpose in this war\",",
+  "new": "",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 _defender_muster passes expected_at",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            enemy_marshal, joining, world, expected_at=battle_region)",
+  "new": "            enemy_marshal, joining, world)",
+  "tests": "tests/test_pt_a_regressions.py"
+ },
+ {
+  "id": "PT-A2 _bad_odds_muster_note passes expected_at",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            marshal, will_join, world, expected_at=battle_region)",
+  "new": "            marshal, will_join, world)",
+  "tests": "tests/test_pt_a_regressions.py"
+ }
+]

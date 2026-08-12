@@ -384,6 +384,66 @@ class TestThePreviewPricesTheRoll:
             expected_at="Belgium") == 0.0
 
 
+class TestTheThreeProducersActuallyPassIt:
+    """Found by the mutation sweep, and it is PT-A1's own lesson.
+
+    The first draft of this file pinned `_committed_reinforcement_strength`
+    directly and never asserted that the surfaces the player reads pass
+    `expected_at` at all — so deleting the argument at the call site left
+    every pin green. A pin on the helper is not a pin on the seam.
+    """
+
+    def test_the_muster_preview_discounts_a_reinforcer_who_must_march(
+            self, muster_board):
+        world = muster_board
+        ex = _combat()
+        lead = world.marshals["Davout"]
+        joiners = [world.marshals["Murat"]]
+        preview = ex._build_muster_preview(
+            lead, world.marshals["Charles"], world, {"world": world})
+        certain = int(lead.strength
+                      + ex._committed_reinforcement_strength(
+                          lead, joiners, world))
+        assert preview["attacker"]["committed_strength"] < certain, (
+            "the muster header is the sentence that reads '39,240 if all "
+            "march' — it must price the roll, not the roster")
+
+    def test_the_defenders_muster_is_weighted_too(self, muster_board):
+        """CA9-F1 landed the defender's term precisely so the error stopped
+        pointing one way. An unweighted defender would re-open it."""
+        world = muster_board
+        ex = _combat()
+        charles = world.marshals["Charles"]
+        # NOT Paris: Murat stands there, so `_muster_reason` returns
+        # `engaged` and the muster is EMPTY — which is how the first draft
+        # of this pin passed while proving nothing (found by the sweep).
+        john = MarshalFactory.enemy(name="John", location="Normandy",
+                                    nation="Austria", strength=20000,
+                                    personality="aggressive")
+        world.marshals["John"] = john
+        joining, committed = ex._defender_muster(charles, world)
+        assert [m.name for m in joining] == ["John"], (
+            "the fixture must actually produce a defender reinforcer or "
+            "this pin proves nothing")
+        certain = ex._committed_reinforcement_strength(charles, [john], world)
+        assert 0 < committed < certain
+
+    def test_the_bad_odds_note_is_weighted_too(self, muster_board):
+        """The CR-5 modal's addendum — the third producer."""
+        world = muster_board
+        ex = _combat()
+        lead = world.marshals["Davout"]
+        murat = world.marshals["Murat"]
+        note = ex._bad_odds_muster_note(lead, world.marshals["Charles"], world)
+        assert note, "fixture must produce a note for this pin to bind"
+        certain = int(lead.strength
+                      + ex._committed_reinforcement_strength(
+                          lead, [murat], world))
+        assert f"{certain:,}" not in note, (
+            "the note names the men and then prints a joint figure — the "
+            "figure must be the weighted one")
+
+
 class TestRow2GateBecomesReachable:
     def test_the_band_can_now_reach_unfavorable_where_it_could_not(self):
         """CA9 row 2 reads FAIL because the gate never armed once in 19
