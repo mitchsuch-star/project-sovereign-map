@@ -102,6 +102,14 @@ def _filter_tactical_events_by_fog(events: list, world) -> list:
             continue
 
         intel = world.get_region_intel(location)
+        # PT-E6: PARTIAL is the right threshold for MARSHAL-state events —
+        # that is what this arm was written for. It is the wrong one for a
+        # foreign power's construction: `FOG_OF_WAR_SPEC.md:327` classes
+        # buildings FULL-only on foreign soil, and 7 of 11 leaked.
+        if event_type == "construction_complete":
+            if intel.visibility == FULL:
+                filtered.append(event)
+            continue
         if intel.visibility in (FULL, PARTIAL):
             filtered.append(event)
 

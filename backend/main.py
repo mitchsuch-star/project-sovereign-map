@@ -906,6 +906,30 @@ def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
     return cleaned_phase
 
 
+def _join_courts(names: list, capitalize: bool = False) -> str:
+    """PT-E4: "A", "A and B", "A, B and C", "A, B and four others".
+
+    Bounded like IGR-B's `COLLAPSE_NAMED_LIMIT`: a short list loses no
+    names, a long one stops being a wall. The 1805 boot can hide nine
+    courts at once.
+    """
+    _NAMED_LIMIT = 3
+    names = [str(n) for n in names if str(n).strip()]
+    if not names:
+        return ""
+    if len(names) > _NAMED_LIMIT:
+        rest = len(names) - _NAMED_LIMIT
+        head = ", ".join(names[:_NAMED_LIMIT])
+        joined = f"{head} and {rest} other court{'s' if rest != 1 else ''}"
+    elif len(names) == 1:
+        joined = names[0]
+    else:
+        joined = ", ".join(names[:-1]) + " and " + names[-1]
+    if capitalize and joined:
+        joined = joined[0].upper() + joined[1:]
+    return joined
+
+
 def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     """Serialize enemy-phase data and apply fog filtering for Godot."""
     from backend.display_names import with_definite_article
@@ -970,14 +994,26 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
         # on `fog_hidden_summary` INSTEAD OF the nations loop, so reusing
         # it here would delete every visible action — which is the exact
         # shape of the defect it is meant to close.
+        #
+        # PT-E4: ONE sentence, naming the courts. The list comprehension
+        # here emitted a full sentence per hidden court and
+        # `enemy_phase_dialog.gd:96-100` printed every one with no cap, no
+        # dedupe and no collapse — measured 7-10 near-identical lines on
+        # 16 of 18 phases, all ending in the same seven words. It is the
+        # single largest contributor to the ~149 fog sentences the
+        # campaign produced against 63 real enemy actions, and it is why
+        # narration is held under 7 by VOLUME rather than quality.
+        #
+        # Still a list, because that is the shape the client's loop
+        # consumes — one entry, so no `.gd` change and no new key.
         _visible = set(cleaned_phase.get("nations", {}).keys())
         _hidden = [n for n in raw_nations if n not in _visible]
         if _hidden:
+            _names = [with_definite_article(formed_display_name(world, n))
+                      for n in _hidden]
             cleaned_phase["fog_hidden_nations"] = [
-                f"{with_definite_article(formed_display_name(world, n), capitalize=True)} "
-                f"stirred as well, but their formations remain beyond our "
-                f"sight."
-                for n in _hidden
+                f"{_join_courts(_names, capitalize=True)} stirred as well, "
+                f"but their formations remain beyond our sight."
             ]
         return cleaned_phase
     if raw_total > 0:
@@ -1420,6 +1456,27 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                             involves_player = True
                             break
 
+            # ── PT-E5: a bloodless capture of OUR OWN SOIL ──────────────
+            # Own soil is PARTIAL by construction, so an enemy marching
+            # UNOPPOSED into a French province failed both arms above and
+            # was suppressed by the FULL gate below — measured three
+            # times in three turns (Provence, Languedoc, Rhineland).
+            #
+            # This is the one screen whose job is reporting what Europe
+            # did, and it silently dropped Europe taking our provinces.
+            # It leaks nothing: the same payload already flips the
+            # province on the map, names the marshal in `fogged_forces`,
+            # and leads the briefing with a `home_captured` headline at
+            # weight 100. Precisely the reasoning behind the NV-9 and
+            # CA8-15 carve-outs in this same function.
+            if not involves_player and isinstance(events, list):
+                for evt in events:
+                    if not isinstance(evt, dict):
+                        continue
+                    if evt.get("captured_from") == player_nation:
+                        involves_player = True
+                        break
+
             if involves_player:
                 filtered_actions.append(action)
                 continue
@@ -1439,6 +1496,27 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
             if action_region:
                 intel = world_state.get_region_intel(action_region)
                 if intel.visibility == FULL:
+                    # PT-E5, the other direction: keying on the marshal's
+                    # location alone OVER-shows. `ai_marshal.location` is
+                    # where he finished, so a whole three-hop route through
+                    # provinces the player cannot see renders in full
+                    # because the traveller happened to end on a lit
+                    # square. Show it only if the march BEGAN somewhere we
+                    # could see, or ended there having started nowhere we
+                    # can name.
+                    _origin = ""
+                    if isinstance(events, list):
+                        for evt in events:
+                            if isinstance(evt, dict) and evt.get("from"):
+                                _origin = str(evt["from"])
+                                break
+                    if _origin:
+                        _from_intel = world_state.get_region_intel(_origin)
+                        if _from_intel.visibility != FULL:
+                            # We saw him arrive, not where he came from.
+                            # Report the arrival, not the road.
+                            action = dict(action)
+                            action["route_fogged"] = True
                     filtered_actions.append(action)
                     continue
             # Missing region or below FULL -> suppress (safe default)

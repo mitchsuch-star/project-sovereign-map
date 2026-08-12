@@ -2789,6 +2789,31 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
+	# ═══ DIPLOMATIC EVENTS ═══
+	# PT-E2: this block existed only on the re-read screen
+	# (`dispatch_view.gd:321`) and `main.gd` had ZERO references to
+	# `diplomatic_events` — so every agenda shift, revanche, subsidy
+	# switch, intent change and third-party peace lived on a screen
+	# nobody opens, while the one the player reads every turn skipped
+	# diplomacy entirely. Paired with PT-E1, which is what puts anything
+	# in the rail at all.
+	var diplo_events = data.get("diplomatic_events", [])
+	if diplo_events.size() > 0:
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]DIPLOMATIC EVENTS[/color]")
+		for de in diplo_events:
+			var de_text = str(de.get("text", ""))
+			var de_priority = str(de.get("priority", "MEDIUM"))
+			var de_color = Utils.COLOR_INFO
+			match de_priority:
+				"HIGH":
+					de_color = Utils.COLOR_BATTLE
+				"MEDIUM":
+					de_color = Utils.COLOR_INFO
+				"LOW":
+					de_color = "808088"
+			add_output("[color=#" + de_color + "]  " + de_text + "[/color]")
+		add_output("")
+
 	# Peace Deals BPH-D: previous-turn ratification summaries
 	if peace_settlements.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]PEACE SETTLEMENTS[/color]")

@@ -5714,6 +5714,7 @@ class WorldState:
                         "type": "construction_complete",
                         "region": region.name,
                         "building": completed_type,
+                        "nation": region.controller or "",   # PT-E6
                         "message": f"Construction complete: {completed_type.replace('_', ' ').title()} in {region.name}!"
                     })
                     # Log building_completed event
@@ -5734,6 +5735,19 @@ class WorldState:
                         "type": "construction_complete",
                         "region": region.name,
                         "building": "watchtower",
+                        # PT-E6: stamp the owner. Without it
+                        # `_filter_tactical_events_by_fog`'s player-side
+                        # check can never match, so the event always fell
+                        # to the REGION arm, which passes at PARTIAL —
+                        # and `FOG_OF_WAR_SPEC.md:327` classes buildings
+                        # FULL-only on foreign soil. 7 of 11 leaked,
+                        # including "Supply Depot in Berlin!". It also
+                        # made the event's own dispatch row structurally
+                        # unreachable: `_build_turn_events` drops anything
+                        # with no `nation` (`dispatch.py:2303-2308`), so
+                        # its type whitelist entry and `severity="good"`
+                        # were both dead code.
+                        "nation": region.controller or "",
                         "message": f"Construction complete: Watchtower in {region.name}!"
                     })
                     self.log_event({
@@ -8062,8 +8076,56 @@ class WorldState:
         # S2: Clear per-turn relation delta tracker
         self._relation_deltas_this_turn = {}
 
-        # Dispatch events - clear before systems populate new events
-        self.pending_dispatch_events = []
+        # ══════════════════════════════════════════════════════════════
+        # PT-E1 — THE DISPATCH CAN NOW NARRATE THE TURN IT REPORTS ON.
+        #
+        # This used to be `= []`, and it ran in the middle of the cycle,
+        # not at the start of it. `TurnManager.end_turn` fills this queue
+        # from FIVE phases — the jealousy glory attacks (:184), the enemy
+        # AI phase (:222), the AI diplomatic phase (:259), strategic
+        # orders (:271) and the jealousy pass (:282) — and only THEN calls
+        # `advance_turn` (:292). Every one of those events was wiped
+        # unread, moments before the dispatch that exists to report them
+        # was built.
+        #
+        # Measured: across 18 consecutive dispatches not one carried a
+        # `nation_eliminated` or war-declaration line although three
+        # fired. The Kingdom of Italy — the player's OWN vassal — was
+        # destroyed on turn 2 and the turn-3 briefing led with
+        # `diplomatic_dp_regen`. The fog rule on both lost types is
+        # "always": this was ordering, not fog.
+        # (`settlement_ratify.py:1369` documents the same trap in-code.)
+        #
+        # PRUNE, don't wipe. Each event carries the turn it was queued on,
+        # so this drops last cycle's leftovers and keeps this one's —
+        # which means it stays correct for the direct `advance_turn()`
+        # callers too, with no cycle flag to get out of step. The turn
+        # increments below (`:8090`), so `current_turn` here is still the
+        # turn those five phases just ran.
+        # ══════════════════════════════════════════════════════════════
+        # Three producers append to this queue directly instead of through
+        # `queue_dispatch_event` (`turn_manager.py:595`,
+        # `settlement_reactions.py:1099` and `:1187`); two of them already
+        # stamp `turn`. Read either key, and an event carrying NEITHER is
+        # kept — the safe direction, since the failure this row fixes was
+        # deleting events, not keeping them.
+        _this_turn = int(self.current_turn)
+
+        def _is_current(event) -> bool:
+            if not isinstance(event, dict):
+                return False
+            stamp = event.get("queued_turn", event.get("turn"))
+            if stamp is None:
+                return True
+            try:
+                return int(stamp) >= _this_turn
+            except (TypeError, ValueError):
+                return True
+
+        self.pending_dispatch_events = [
+            event for event in self.pending_dispatch_events
+            if _is_current(event)
+        ]
 
         # R9: Rebuild marshal-by-region index for this turn's processing
         self._build_marshal_index()

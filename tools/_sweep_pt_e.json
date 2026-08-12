@@ -1,0 +1,114 @@
+[
+ {
+  "id": "PT-E1 the queue is pruned, not wiped",
+  "file": "backend/models/world_state.py",
+  "old": "        self.pending_dispatch_events = [\n            event for event in self.pending_dispatch_events\n            if _is_current(event)\n        ]",
+  "new": "        self.pending_dispatch_events = []",
+  "tests": "tests/test_pt_e_turn_report.py tests/test_session8d_dispatch_polish.py"
+ },
+ {
+  "id": "PT-E1 events carry their turn",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        \"queued_turn\": int(getattr(world, \"current_turn\", 0)),",
+  "new": "",
+  "tests": "tests/test_pt_e_turn_report.py tests/test_session8d_dispatch_polish.py"
+ },
+ {
+  "id": "PT-E1 the prune drops last turn",
+  "file": "backend/models/world_state.py",
+  "old": "                return int(stamp) >= _this_turn",
+  "new": "                return True",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E2 the terminal renders the rail",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar diplo_events = data.get(\"diplomatic_events\", [])",
+  "new": "\tvar diplo_events = []",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 the collapse runs",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    return collapse_turn_events(result)",
+  "new": "    return [{k: v for k, v in r.items() if k != '_source'} for r in result]",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 a bucket of one is not a repeat",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if len(indices) >= 2 and index == indices[0]:",
+  "new": "        if indices and index == indices[0]:",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 the allowlist is explicit",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if row_type not in COLLAPSIBLE_TURN_EVENT_TYPES:\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 the supply line sums and names",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    return (f\"Supply cost you {losses:,} men, at {where}.\"\n            if where else f\"Supply cost you {losses:,} men.\")",
+  "new": "    return \"Supply told on the corps.\"",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 the collapse never mutates its input",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        clean = {\"message\": row.get(\"message\", \"\"),\n                 \"severity\": row.get(\"severity\", \"info\"),\n                 \"type\": row.get(\"type\", \"\")}",
+  "new": "        clean = row",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E3 the long list is bounded",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        return f\"{', '.join(names[:TURN_EVENT_NAMED_LIMIT])} and {rest} more\"",
+  "new": "        return \", \".join(names)",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E4 one fog sentence",
+  "file": "backend/main.py",
+  "old": "                f\"{_join_courts(_names, capitalize=True)} stirred as well, \"",
+  "new": "                f\"{_names[0]} stirred as well, \"",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E4 the court list is bounded",
+  "file": "backend/main.py",
+  "old": "        joined = f\"{head} and {rest} other court{'s' if rest != 1 else ''}\"",
+  "new": "        joined = \", \".join(names)",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E5 the move event carries the capture",
+  "file": "backend/commands/movement_executor.py",
+  "old": "            events[0][\"captured_from\"] = _old_controller",
+  "new": "            pass",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E5 the filter reads it",
+  "file": "backend/main.py",
+  "old": "                    if evt.get(\"captured_from\") == player_nation:",
+  "new": "                    if False:",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E6 the event names its owner",
+  "file": "backend/models/world_state.py",
+  "old": "                        \"nation\": region.controller or \"\",   # PT-E6",
+  "new": "",
+  "tests": "tests/test_pt_e_turn_report.py"
+ },
+ {
+  "id": "PT-E6 a foreign build needs FULL",
+  "file": "backend/commands/meta_executor.py",
+  "old": "        if event_type == \"construction_complete\":\n            if intel.visibility == FULL:\n                filtered.append(event)\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_pt_e_turn_report.py"
+ }
+]

@@ -2359,9 +2359,124 @@ def _build_turn_events(
             # W6-3: falling loyalty is a warning; rising is mere info.
             severity = "warning" if int(event.get("delta", 0)) < 0 else "info"
 
-        result.append({"message": msg, "severity": severity})
+        result.append({"message": msg, "severity": severity,
+                       "type": event_type, "_source": event})
 
-    return result
+    return collapse_turn_events(result)
+
+
+# ── PT-E3: the turn report becomes readable ────────────────────────────
+#
+# The narration pillar is the only one that ROSE in the playtest, and it
+# is held under 7 by VOLUME: 101 dispatch lines over 14 turns, 7.2 per
+# morning, 30% of them supply, with the identical vassal remedy tail
+# eleven times. Neither renderer caps or buckets anything — N events
+# produce N lines, on both surfaces, byte-parallel.
+#
+# The machinery is IGR-B's, proven one surface over (`campaign_log.
+# collapse_refusal_family`), and its discipline is copied exactly:
+#
+#   * PURE and view-layer. The producer and every serialized event are
+#     untouched; this reduces the rendered list only.
+#   * An explicit TYPE ALLOWLIST, never a bare key. IGR-B's own docstring
+#     records why: a bucket key that is not unique to the family deletes
+#     rows that merely share its vocabulary.
+#   * A bucket of one passes through UNCHANGED — same object, same
+#     sentence. Only a genuine repeat collapses.
+#   * The collapsed row is a shallow copy carrying display-only keys, and
+#     its sentence is built from the source events' STRUCTURED fields
+#     (region, losses, vassal), never by re-parsing the prose.
+#   * Zero `.gd` diff: the row keeps `message` + `severity`.
+COLLAPSIBLE_TURN_EVENT_TYPES = ("supply_attrition", "vassal_loyalty")
+TURN_EVENT_NAMED_LIMIT = 3
+
+
+def _collapsed_supply_line(sources) -> str:
+    losses = sum(int(e.get("losses", 0) or 0) for e in sources)
+    places = []
+    for event in sources:
+        region = str(event.get("region", "") or "")
+        if region and region not in places:
+            places.append(region)
+    where = _join_place_names(places)
+    if not losses:
+        return f"Supply told on the corps at {where}."
+    return (f"Supply cost you {losses:,} men, at {where}."
+            if where else f"Supply cost you {losses:,} men.")
+
+
+def _collapsed_vassal_line(sources) -> str:
+    """A bucket is severity-homogeneous by construction: the key includes
+    `severity`, and a falling vassal is `warning` while a rising one is
+    `info`. So a mixed bucket cannot occur, and no branch pretends to
+    handle one — the direction is read off the bucket, not guessed."""
+    names, falling = [], 0
+    for event in sources:
+        name = str(event.get("vassal", "") or "")
+        if not name:
+            continue
+        names.append(name)
+        if int(event.get("delta", 0) or 0) < 0:
+            falling += 1
+    if not names:
+        return "The satellites shifted."
+    verb = "drifted" if falling >= len(names) - falling else "steadied"
+    return (f"{len(names)} satellite{'s' if len(names) != 1 else ''} "
+            f"{verb} — {_join_place_names(names)}.")
+
+
+_COLLAPSED_LINE_BUILDERS = {
+    "supply_attrition": _collapsed_supply_line,
+    "vassal_loyalty": _collapsed_vassal_line,
+}
+
+
+def _join_place_names(names) -> str:
+    """Bounded like IGR-B's `COLLAPSE_NAMED_LIMIT` — a short list loses no
+    names, a long one stops being a wall."""
+    names = [str(n) for n in names if str(n).strip()]
+    if not names:
+        return ""
+    if len(names) > TURN_EVENT_NAMED_LIMIT:
+        rest = len(names) - TURN_EVENT_NAMED_LIMIT
+        return f"{', '.join(names[:TURN_EVENT_NAMED_LIMIT])} and {rest} more"
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def collapse_turn_events(rows: List[Dict]) -> List[Dict[str, str]]:
+    """Bucket repeated families into one line each, in first-seen order."""
+    buckets: Dict[tuple, List[int]] = {}
+    for index, row in enumerate(rows):
+        row_type = row.get("type", "")
+        if row_type not in COLLAPSIBLE_TURN_EVENT_TYPES:
+            continue
+        buckets.setdefault((row_type, row.get("severity")), []).append(index)
+
+    superseded = set()
+    for key, indices in buckets.items():
+        if len(indices) < 2:
+            continue          # a bucket of one is not a repeat
+        superseded.update(indices[1:])
+
+    out: List[Dict[str, str]] = []
+    for index, row in enumerate(rows):
+        if index in superseded:
+            continue
+        key = (row.get("type", ""), row.get("severity"))
+        indices = buckets.get(key) or []
+        clean = {"message": row.get("message", ""),
+                 "severity": row.get("severity", "info"),
+                 "type": row.get("type", "")}
+        if len(indices) >= 2 and index == indices[0]:
+            builder = _COLLAPSED_LINE_BUILDERS.get(clean["type"])
+            sources = [rows[i].get("_source") or {} for i in indices]
+            if builder:
+                clean["message"] = builder(sources)
+            clean["collapsed_count"] = len(indices)
+        out.append(clean)
+    return out
 
 
 # ============================================================================
@@ -3531,6 +3646,10 @@ def queue_dispatch_event(world, event_type: str, template_vars: dict, fog_rule: 
         "type": event_type,
         "template_vars": template_vars,
         "fog_rule": fog_rule,
+        # PT-E1: the turn this was queued on, so `_advance_turn_internal`
+        # can prune last cycle's leftovers instead of wiping the queue
+        # mid-cycle and destroying the events it is about to report.
+        "queued_turn": int(getattr(world, "current_turn", 0)),
     })
 
 

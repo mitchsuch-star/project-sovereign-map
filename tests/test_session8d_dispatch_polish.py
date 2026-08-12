@@ -833,14 +833,41 @@ class TestDispatchEventsSerialization:
         assert len(world2.pending_dispatch_events) == 1
         assert world2.pending_dispatch_events[0]["type"] == "diplomatic_war_declared"
 
-    def test_cleared_on_advance_turn(self):
+    def test_this_turns_events_survive_advance_turn(self):
+        """PIN FLIPPED CONSCIOUSLY — PT-E1, August 12, 2026.
+
+        This asserted that `advance_turn` WIPES the queue, and that wipe
+        is the defect. `TurnManager.end_turn` fills this queue from five
+        phases and only then calls `advance_turn`, so everything the
+        enemy phase, the AI diplomatic phase, strategic orders and the
+        jealousy passes queued was destroyed moments before the dispatch
+        that reports them was built. Measured: 18 consecutive dispatches,
+        not one war declaration or elimination line, although three
+        fired.
+
+        The contract is now a PRUNE, and it is pinned in both directions:
+        this turn's events survive, last turn's do not.
+        """
         world = _make_world()
         queue_dispatch_event(world, "diplomatic_war_declared",
                             {"nation": "Austria", "target": "France"},
                             "partial_on_nation")
         assert len(world.pending_dispatch_events) == 1
         world.advance_turn()
-        # Old events cleared; only DP regen event (S1) may be re-added during turn processing
+        war_events = [e for e in world.pending_dispatch_events
+                      if e["type"] == "diplomatic_war_declared"]
+        assert len(war_events) == 1, (
+            "an event queued during the turn being reported must reach "
+            "the dispatch that reports it")
+
+    def test_last_turns_events_are_pruned(self):
+        """The other half — the queue must not grow without bound."""
+        world = _make_world()
+        queue_dispatch_event(world, "diplomatic_war_declared",
+                            {"nation": "Austria", "target": "France"},
+                            "partial_on_nation")
+        world.advance_turn()          # the dispatch for that turn is built
+        world.advance_turn()          # the next cycle drops it
         war_events = [e for e in world.pending_dispatch_events
                       if e["type"] == "diplomatic_war_declared"]
         assert len(war_events) == 0

@@ -588,6 +588,16 @@ class MovementExecutor:
             "from": old_location,
             "to": target_name
         }]
+        # PT-E5: a bloodless capture must be VISIBLE on the move that made
+        # it. The `region_captured` row went to `world.log_event` — the
+        # campaign log — and the executor's own `events` list said only
+        # "move", so the enemy-phase visibility filter had nothing to read
+        # and an enemy marching unopposed into a French province was
+        # suppressed as a routine march through fog. Structured field, not
+        # prose (the message already says "falls to"); GR5, both sides.
+        if captured_on_move:
+            events[0]["captured_from"] = _old_controller
+            events[0]["captured_by"] = marshal.nation
 
         # Transit intel: cavalry passing through intermediate region gets PARTIAL snapshot
         if distance == 2 and intermediate and marshal.nation == world.player_nation:
