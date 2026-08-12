@@ -2292,8 +2292,15 @@ func _display_berthier_report(report: Dictionary):
 	var def_orig = int(casualty.get("defender_original", 0))
 	var def_rem = int(casualty.get("defender_remaining", 0))
 
+	# PT-D5: this figure is the LEAD's own corps; the terminal line three
+	# rows above prints the WHOLE ARMY's total under the same word. Both
+	# are right, and a player seeing two casualty figures for one battle
+	# stops trusting every number in the game. The backend says whose
+	# losses these are, and only when it differs.
+	var atk_scope = str(casualty.get("attacker_casualties_scope", ""))
+	var atk_label = atk_name if atk_scope == "" else atk_name + "'s " + atk_scope
 	# Format with thousands separators
-	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_name + " " + _format_number(atk_cas) + " | " + def_name + " " + _format_number(def_cas) + "[/color]")
+	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_label + " " + _format_number(atk_cas) + " | " + def_name + " " + _format_number(def_cas) + "[/color]")
 	add_output("[color=#" + COLOR_REPORT + "]  Strength: " + atk_name + " " + _format_number(atk_orig) + " -> " + _format_number(atk_rem) + " | " + def_name + " " + _format_number(def_orig) + " -> " + _format_number(def_rem) + "[/color]")
 
 	# Berthier's observation

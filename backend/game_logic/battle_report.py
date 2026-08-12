@@ -349,6 +349,28 @@ _OBSERVATIONS = {
         "{marshal}'s army has been badly mauled. {enemy} proved the stronger force today.",
         "The toll on {marshal}'s forces is heavy, Sire. This defeat will be felt.",
     ],
+    # ── PT-D4: the outcome the selector had no arm for ─────────────────
+    # `The Great Battle of Milan` — Massena broken, routed, Milan lost —
+    # was reported as "A standard affair. Nothing unusual to report."
+    # Not bad luck: he took 26.2%, just under the 30% `lost_costly`
+    # threshold, and a grep of the whole selector returned ZERO
+    # references to `forced_retreat`, `routed` or `region_conquered`.
+    #
+    # SCOPED DELIBERATELY to the rout. `forced_retreat` is published on
+    # both side dicts (`combat.py:966/972`) and was simply never read —
+    # so this arm is backed by data that already exists. The other two
+    # thirds of the row are NOT built, because at this seam they would be
+    # dead code: `generate_battle_report` runs inside `combat.py`, where
+    # the province is not yet known to have changed hands (conquest is
+    # decided afterwards, in `combat_executor`) and `broken` lives on the
+    # Marshal, never on the payload. Shipping banks that cannot fire is
+    # the defect this row is about. The measured case is covered — the
+    # rout is what happened to Massena.
+    "routed": [
+        "{marshal}'s corps broke, Sire. They are streaming back from the field.",
+        "The line gave way. {marshal} is falling back, and not in good order.",
+        "{marshal} was driven from the field. His men are scattered.",
+    ],
     "won_flawless": [
         "A flawless victory, Sire! {marshal} defeated {enemy} without a single loss.",
         "Not a man lost! {marshal}'s handling of {enemy} was nothing short of masterful.",
@@ -535,6 +557,20 @@ def _join_names(names) -> str:
     if len(clean) == 2:
         return f"{clean[0]} and {clean[1]}"
     return ", ".join(clean[:-1]) + f" and {clean[-1]}"
+
+
+def _our_side(battle_result: Dict, player_nation: str = "France") -> Dict:
+    """PT-D4: the player's own side of the battle payload.
+
+    `forced_retreat` has been published on both sides since the rout
+    system landed (`combat.py:966/972`); the observation selector simply
+    never read it. `broken` and `region_lost` ride the same dicts when the
+    resolver sets them.
+    """
+    attacker_nation = battle_result.get("attacker_nation", "")
+    side = "attacker" if attacker_nation == player_nation else "defender"
+    data = battle_result.get(side, {})
+    return data if isinstance(data, dict) else {}
 
 
 def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str:
@@ -838,7 +874,17 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         return _fill(random.choice(_OBSERVATIONS["won_drilled"]))
 
     # Priority 8: We lost + no drill + narrow margin (< 15% of our original strength)
-    if we_lost and not _has_mod(our_mods, "drill", "bonus"):
+    #
+    # PT-D4: ...but a defeat that ended in a ROUT is not a narrow one. This
+    # arm is what caught the measured case — Massena broken, routed and
+    # Milan lost came back "A narrow defeat, Sire. Better-prepared troops
+    # might have tipped the balance." The margin was indeed narrow; the
+    # sentence was still wrong about the day. Guarded rather than
+    # reordered, so the whole ladder above stays byte-identical and only
+    # the routed case falls through to its own arm at 8.6.
+    if (we_lost and not _has_mod(our_mods, "drill", "bonus")
+            and not _our_side(battle_result, player_nation).get(
+                "forced_retreat")):
         if our_original > 0:
             margin = abs(our_casualties - enemy_casualties)
             if margin < our_original * 0.15:
@@ -849,6 +895,13 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Without this, devastating defeats like losing half an army fall through to "standard affair".
     if we_lost and our_original > 0 and our_casualties > our_original * 0.30:
         return _fill(random.choice(_OBSERVATIONS["lost_costly"]))
+
+    # ── PT-D4, priority 8.6 ─────────────────────────────────────────────
+    # Below the 30% line and above the default. A rout is not about the
+    # butcher's bill — a corps can be driven from the field having taken
+    # 26% — and there was no arm for it at any priority.
+    if _our_side(battle_result, player_nation).get("forced_retreat"):
+        return _fill(random.choice(_OBSERVATIONS["routed"]))
 
     # Priority 8.7: Flawless victory (we won with zero casualties)
     if we_won and our_casualties == 0 and enemy_casualties > 0:

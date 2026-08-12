@@ -958,9 +958,46 @@ class CombatExecutor:
             if will_join:
                 _scale = self._pair_contribution_scale(marshal, m)
                 if _scale <= 0.0:
-                    row["withholds"] = (
-                        f"— but he is nursing a grievance and will bring "
-                        f"NOTHING to the fighting")
+                    # ══════════════════════════════════════════════════
+                    # PT-D2: the 0.0 arm renders a PAIR property as the
+                    # joiner's personal state.
+                    #
+                    # `_pair_contribution_scale` is symmetric — it fires
+                    # on `lead_jealous or ally_jealous` — while "he is
+                    # nursing a grievance" is always about `m`. Measured
+                    # turn 7: the row on NEY read "but he is nursing a
+                    # grievance and will bring NOTHING"; Ney held no
+                    # grievance. Bernadotte, the LEAD, was
+                    # `jealous_of: Ney`.
+                    #
+                    # And the arm fires with no jealousy at all: a −2
+                    # hostile pair scales to 0.0, and such a marshal is
+                    # eligible on two paths (co-located with a SUPPORT
+                    # order, or any candidate holding SUPPORT/PURSUE,
+                    # which returns BEFORE the hostile check). So a man
+                    # marching under the player's own written order was
+                    # narrated as nursing a grievance he did not have.
+                    #
+                    # Three states, three sentences, read off the same
+                    # predicate the arithmetic uses.
+                    # ══════════════════════════════════════════════════
+                    _lead_jealous = (
+                        getattr(marshal, "jealous_of", None) == m.name)
+                    _ally_jealous = (
+                        getattr(m, "jealous_of", None) == marshal.name)
+                    if _ally_jealous:
+                        row["withholds"] = (
+                            f"— but he is nursing a grievance and will "
+                            f"bring NOTHING to the fighting")
+                    elif _lead_jealous:
+                        row["withholds"] = (
+                            f"— but {marshal.name} resents him, and will "
+                            f"make no use of him: NOTHING of his weight "
+                            f"reaches the fighting")
+                    else:
+                        row["withholds"] = (
+                            f"— but he and {marshal.name} are openly at "
+                            f"odds; he will bring NOTHING to the fighting")
                 elif _scale < 1.0:
                     row["withholds"] = (
                         f"— but he and {marshal.name} are at odds; expect "
@@ -1441,6 +1478,25 @@ class CombatExecutor:
                         and getattr(candidate, "jealous_of", None)
                         == primary.name):
                     reason = "grievance_withheld"
+                # ══════════════════════════════════════════════════════
+                # PT-D3. The audit asked for this arm to be made
+                # symmetric; the verification fleet REFUTED that and it is
+                # not done — the arrival score reads
+                # `candidate.get_relationship(primary)`, and the derived
+                # −1 applies only when the CANDIDATE is the jealous one,
+                # so a jealous LEAD cannot depress the candidate's score
+                # and there is nothing to misclassify.
+                #
+                # What survives is the same class of defect one band over:
+                # an openly hostile marshal carries a −20 relationship
+                # modifier — the largest single term in the whole score —
+                # and is eligible ONLY under a written SUPPORT order,
+                # which forces `has_explicit_order` and so skips both
+                # overrides above. His failure always rendered as "could
+                # not reach the battlefield in time". The roads were fine.
+                # ══════════════════════════════════════════════════════
+                elif candidate.get_relationship(primary.name) <= -2:
+                    reason = "hostility_withheld"
 
             reinforcement_results.append({
                 "marshal": candidate.name,
@@ -1672,6 +1728,25 @@ class CombatExecutor:
         cs["attacker_casualties"] = max(0, a_orig - a_remaining)
         cs["defender_remaining"] = d_remaining
         cs["defender_casualties"] = max(0, d_orig - d_remaining)
+        # ══════════════════════════════════════════════════════════════
+        # PT-D5 — TWO FIGURES, ONE LABEL.
+        #
+        # This function makes the report honest about the LEAD's own
+        # corps. CA8-1 made the terminal line honest about the WHOLE
+        # ARMY ("Ney's army 8,141"). Both are correct, and they printed
+        # on consecutive lines under the identical word `Casualties:` —
+        # "Ney's army 8,141" then "Casualties: Ney 2,171". A player who
+        # sees two casualty figures for one battle stops trusting every
+        # number in the game, which is CA8-1's own argument.
+        #
+        # The number stays. The label says whose losses it is — only
+        # when it actually differs from the whole-army total, so a solo
+        # battle's line is byte-identical.
+        # ══════════════════════════════════════════════════════════════
+        _raw_atk = int((battle_result.get("attacker") or {}).get(
+            "casualties", cs["attacker_casualties"]))
+        cs["attacker_casualties_scope"] = (
+            "own corps" if _raw_atk != cs["attacker_casualties"] else "")
 
     @staticmethod
     def _rewrite_primary_casualties(description, atk_name, atk_raw, atk_share,
@@ -6174,6 +6249,14 @@ class CombatExecutor:
                     friendly_reason = (
                         f"{r['marshal']} did not march. His quarrel with "
                         f"{marshal.name} kept him where he stood.")
+                elif reason == "hostility_withheld":
+                    # PT-D3: he was ordered, and he is openly hostile to
+                    # the man he was ordered to save. That is a −20 on his
+                    # arrival roll, not weather.
+                    friendly_reason = (
+                        f"{r['marshal']} took his time. He and "
+                        f"{marshal.name} are openly at odds, and it "
+                        f"showed on the march.")
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)

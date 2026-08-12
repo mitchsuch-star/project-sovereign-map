@@ -1067,6 +1067,24 @@ class CombatResolver:
             "outcome": outcome,
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
+            # ══════════════════════════════════════════════════════════
+            # PT-D6: how many men each side ACTUALLY had to lose.
+            #
+            # Casualties are computed uncapped and `take_casualties`
+            # clamps the STRENGTH, not the number, so the overkill is
+            # absorbed silently and then printed verbatim: measured
+            # `Mack 15,815 / 15,437 men`. The campaign log said 15,815
+            # and Berthier's report said 15,437 — the D5 two-truths
+            # shape again, one seam over.
+            #
+            # The MECHANICAL figure above is deliberately untouched:
+            # `defender_casualties` feeds war exhaustion, the DR-1
+            # out-bled predicate and the score, and clamping it would
+            # move M1-M7. This pair is display-only, and the renderer
+            # clamps against it.
+            # ══════════════════════════════════════════════════════════
+            "attacker_strength_before": int(attacker_original_strength),
+            "defender_strength_before": int(defender_original_strength),
             # Fort degradation (for enemy phase dialog display) — FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
             "fortification_old": int(fortification_old * 100),

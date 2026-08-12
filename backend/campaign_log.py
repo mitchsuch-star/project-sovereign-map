@@ -1270,6 +1270,19 @@ def format_event_oneliner(event: dict) -> str:
         outcome = event.get("outcome", "")
         atk_cas = event.get("attacker_casualties", 0)
         def_cas = event.get("defender_casualties", 0)
+        # PT-D6: an army cannot lose more men than it had. Casualties are
+        # computed uncapped and `take_casualties` clamps the strength
+        # rather than the number, so an annihilation printed the overkill
+        # — "Mack 15,815" against 15,437 men — while Berthier's report,
+        # which derives from the surviving strength, printed 15,437.
+        # Clamp the RENDER; the mechanical figure is untouched by design
+        # (it feeds exhaustion, the out-bled predicate and the score).
+        _atk_before = event.get("attacker_strength_before")
+        _def_before = event.get("defender_strength_before")
+        if _atk_before is not None:
+            atk_cas = min(int(atk_cas), int(_atk_before))
+        if _def_before is not None:
+            def_cas = min(int(def_cas), int(_def_before))
         # F9 fix: combat.py emits attacker_victory / defender_victory /
         # attacker_tactical_victory / defender_tactical_victory / stalemate /
         # mutual_destruction — never the "*_wins" forms this branch used to test,

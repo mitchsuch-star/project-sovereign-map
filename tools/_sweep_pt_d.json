@@ -1,0 +1,73 @@
+[
+ {"id": "PT-D2 the jealous-lead arm",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    elif _lead_jealous:",
+  "new": "                    elif False:",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D2 the hostile-pair arm",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        row[\"withholds\"] = (\n                            f\"— but he and {marshal.name} are openly at \"\n                            f\"odds; he will bring NOTHING to the fighting\")",
+  "new": "                        row[\"withholds\"] = (\n                            f\"— but he is nursing a grievance and will \"\n                            f\"bring NOTHING to the fighting\")",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D2 the joiner's own grievance still reads as his",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if _ally_jealous:",
+  "new": "                    if False:",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D3 the hostility classifier",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                elif candidate.get_relationship(primary.name) <= -2:\n                    reason = \"hostility_withheld\"",
+  "new": "                elif False:\n                    reason = \"hostility_withheld\"",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D4 the rout arm fires",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if _our_side(battle_result, player_nation).get(\"forced_retreat\"):\n        return _fill(random.choice(_OBSERVATIONS[\"routed\"]))",
+  "new": "    if False:\n        return _fill(random.choice(_OBSERVATIONS[\"routed\"]))",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D4 a rout is not a narrow defeat",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "            and not _our_side(battle_result, player_nation).get(\n                \"forced_retreat\")):",
+  "new": "            ):",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D4 the catastrophe still outranks the rout",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if we_lost and our_original > 0 and our_casualties > our_original * 0.30:\n        return _fill(random.choice(_OBSERVATIONS[\"lost_costly\"]))",
+  "new": "    if False:\n        return _fill(random.choice(_OBSERVATIONS[\"lost_costly\"]))",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D4 the arm reads the player's own side",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    side = \"attacker\" if attacker_nation == player_nation else \"defender\"",
+  "new": "    side = \"attacker\"",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D5 the scope label",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        cs[\"attacker_casualties_scope\"] = (\n            \"own corps\" if _raw_atk != cs[\"attacker_casualties\"] else \"\")",
+  "new": "        cs[\"attacker_casualties_scope\"] = \"\"",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D5 the client renders it",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tvar atk_scope = str(casualty.get(\"attacker_casualties_scope\", \"\"))",
+  "new": "\tvar atk_scope = \"\"",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D6 the log clamps overkill",
+  "file": "backend/campaign_log.py",
+  "old": "        if _def_before is not None:\n            def_cas = min(int(def_cas), int(_def_before))",
+  "new": "        if _def_before is not None:\n            pass",
+  "tests": "tests/test_pt_d_battle_report.py"},
+
+ {"id": "PT-D6 the event carries pre-battle strength",
+  "file": "backend/game_logic/combat.py",
+  "old": "            \"defender_strength_before\": int(defender_original_strength),",
+  "new": "",
+  "tests": "tests/test_pt_d_battle_report.py"}
+]
