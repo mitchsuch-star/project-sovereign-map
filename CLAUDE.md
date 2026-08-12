@@ -42,12 +42,34 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 ### Active work items
 
-> **▶ LIVE STATE (August 10, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
+> **▶ LIVE STATE (August 12, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
-> **suite 17,144 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0.**
+> **suite 17,347 passed / 3 skipped · ruff clean · Godot parse harness EXIT=0 · boot smoke 0 SCRIPT ERROR.**
 >
-> **▶ NEXT = ROW PT, THE PLAYTEST FIXES. Build spec = `docs/PLAYTEST_FIXES_SPEC.md`
-> (v1.0, authoritative); routing = `docs/STATUS.md` §NEXT UP.** Queued August 10,
+> **▶ ROW PT IS BUILD-COMPLETE (August 12, 2026).** All eight slices landed in
+> spec order, commits `297b939`..`769a3cb`; **landing record =
+> `docs/PLAYTEST_FIXES_SPEC.md` §7, authoritative**; routing =
+> `docs/STATUS.md` §NEXT UP. 192 new tests; **122 mutations swept, 122 killed,
+> 0 inert at close** (`tools/mutation_sweep.py` + `tools/_sweep_pt_*.json`);
+> M1–M7 and `BASELINE_SERIES` byte-identical throughout, no re-record on any
+> slice. The CA9 through-line — *every system computes the right answer and
+> then tells the player a different one* — is closed at all eight seams the
+> playtest measured, and PT-A's three regressions cannot recur.
+>
+> **▶ NEXT = the four §4 rulings, then a played campaign.** §4 needs the user:
+> PT-I1 (the armistice permanently ejects the court from the coalition —
+> mechanics, not copy), **PT-I2 give the war a memory** (the one with real
+> design weight, and the playtest it was deferred for has happened), PT-I3
+> (EB-1's condition terms — losing 76,361 men was worth +1,236g/turn), PT-I4
+> (surface marshal commissioning). The row's own acceptance also owes a played
+> 20-turn campaign showing the CA9 row-2 gate arm at least once, plus the three
+> standing visual sign-offs — to which this row adds one fog sentence instead
+> of nine, a DIPLOMATIC EVENTS rail, collapsed turn events, the autonomous
+> attack drawing a real battle, and the redemption raising on control return.
+>
+> <details><summary>The row's queueing record, kept for context</summary>
+>
+> Queued August 10,
 > 2026 from a **19-turn France/1805 campaign** driven live over HTTP
 > (`LLM_MODE=anthropic`, master `26bbcbe`, 108 request/response pairs) plus a
 > **47-agent verify → refute → sweep → score** fleet that killed five findings and
@@ -66,6 +88,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > 18 of 18, the treasury rose ×34.5, and losing 76,361 men was worth +1,236g/turn
 > — spec §4 PT-I3. Four items need a user ruling (§4); no visual pass was taken and
 > the three owed sign-offs stand.
+>
+> </details>
 >
 > **~~POSITION 5 — THE ECON BALANCE PASS (row EC-P3)~~ ✅ GATED + BUILT + REVIEWED
 > August 7, 2026 in one session under the user's delegated grant** (*"economy

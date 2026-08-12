@@ -44,6 +44,7 @@ A future save/load system should use this as the specification.
 
   "nation_bankruptcy_turns": {"France": 0, "Britain": 0},
   "gold_spent_this_turn": {"France": 0, "Britain": 0, "Prussia": 0},
+  "materiel_spent_this_turn": {"France": 137},
 
   "regions": { ... },
   "marshals": { ... },
@@ -183,6 +184,7 @@ A future save/load system should use this as the specification.
 | `max_admin_actions` | int | 2 | Max admin actions per turn (Phase 6.2.B) |
 | `nation_bankruptcy_turns` | dict | {} | Per-nation bankruptcy counter {nation: int} (Phase 6.2.B) |
 | `gold_spent_this_turn` | dict | {} | Per-nation gold spending tracker for turn summary. Records all gold spent this turn (recruit, build, repair). Reset at start of each turn. |
+| `materiel_spent_this_turn` | dict | {} | **PT-C4.** Per-nation EC-W3 Butcher's Bill for the span of one end-turn report. The bill mutates the treasury directly and declares no Net component, so the enemy-phase copy landed inside the banner's measured window and vanished into the `Other` residual. Opened (reset) in `_execute_end_turn` at the same instant `treasury_before_turn` is snapshotted — NOT in `advance_turn`, because the enemy phase runs before it. |
 | `regions` | dict | {} | Map of region_name -> Region |
 | `marshals` | dict | {} | Map of marshal_name -> Marshal |
 | `authority_tracker` | dict | {} | AuthorityTracker state |

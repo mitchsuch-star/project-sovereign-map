@@ -4,12 +4,66 @@
 
 ## ▶ NEXT UP
 
-> ## ⚠ NEXT SESSION STARTS HERE — **ROW PT, THE PLAYTEST FIXES**
+> ## ✅ ROW PT IS BUILD-COMPLETE (August 12, 2026)
 >
-> **▶ BUILD SPEC: `docs/PLAYTEST_FIXES_SPEC.md` (v1.0, authoritative).**
-> Build order **PT-A → PT-B → PT-E → PT-D → PT-C → PT-F → PT-G → PT-H**; the four
-> items that need a user ruling are §4; the five traps are §6. **PT-A is
-> indivisible and goes first.**
+> **All eight slices landed in spec order**, commits `297b939`..`769a3cb`.
+> **Landing record = `docs/PLAYTEST_FIXES_SPEC.md` §7, authoritative.**
+>
+> **Suite 17,144 → 17,347 / 3 skipped · ruff clean · Godot parse harness
+> EXIT=0 · boot smoke 0 `SCRIPT ERROR` · M1–M7 and `BASELINE_SERIES`
+> byte-identical throughout, no re-record on any slice.**
+> 192 new tests across `tests/test_pt_{a..h}_*.py`; **122 mutations swept,
+> 122 killed, 0 inert at close** (harness committed at
+> `tools/mutation_sweep.py`, sets at `tools/_sweep_pt_*.json`).
+>
+> **The through-line is closed.** All eight of the spec's §1 rows — an honest
+> computation destroyed one seam downstream — are fixed, and PT-A's three
+> regressions cannot recur: the delivery seam is subtractive, the muster band
+> counts arrivals rather than eligibility, and a hard stop cannot swallow an
+> unrelated order.
+>
+> ### ⚠ What is NOT discharged
+>
+> 1. **The row-2 acceptance clause needs a played campaign** — "a 20-turn
+>    campaign shows the gate arming at least once". The build proves the gate's
+>    INPUT was what defeated it (pricing the arrival roll can only move the band
+>    toward `unfavorable`, pinned as a monotonicity property); it cannot prove
+>    the gate fires in the wild without play.
+> 2. **§4's four items still need a user ruling** — PT-I1 armistice-as-separate-
+>    peace (mechanics, not copy), **PT-I2 give the war a memory** (the one with
+>    real design weight; the deep version of the CA9 row-1 conversation, and the
+>    playtest it was deferred for has now happened), PT-I3 EB-1's condition terms
+>    (losing 76,361 men was worth +1,236g/turn), PT-I4 surface marshal
+>    commissioning ("commission" appears zero times in 108 responses).
+> 3. **The three owed visual sign-offs stand**, and this row adds to them: one
+>    fog sentence instead of nine, a DIPLOMATIC EVENTS rail in the terminal,
+>    collapsed turn events, the autonomous attack drawing a real battle, and the
+>    redemption raising on control return.
+>
+> ### Four rows were narrowed on evidence, each with a negative pin
+>
+> **PT-D3's filed fix was REFUTED and is not built** (a jealous LEAD cannot
+> depress the candidate's arrival score, so there is nothing to misclassify);
+> **PT-D4 shipped one arm of three** because the other two would be dead code at
+> that seam; **PT-F8's first wording was REFUTED** — the comparator necessarily
+> banked glory, the subject's clause is what was false; **PT-D6 clamps the
+> render, not the mechanical figure**, which feeds exhaustion and the score.
+>
+> ### The sweep earned its place
+>
+> Nine pins passed their own suite and proved nothing — four file-wide greps
+> matching an import or a comment, three producer call sites deletable with
+> every assertion green, two prefix matches, two fixtures that never reached the
+> code they claimed to test. Two of the first pass's "inert pins" were **invalid
+> mutations** (no-ops) and are recorded as such rather than counted as passes.
+> And the sweep found two production bugs by failing: the PT-G2 name key did not
+> distribute (a `*31` polynomial collapses back to a sum of code points mod 3),
+> and PT-E5's first draft read an event that never reaches the executor's
+> `events` list.
+>
+> ---
+>
+> ### The queue this row came from, kept for context
 >
 > **Evidence of record:** `docs/audits/PLAYTEST_CA9_2026_08_09.md`
 > (authoritative) + `docs/audits/PLAYTEST_CA9_2026_08_09_FLEET_REPORT.md` (the

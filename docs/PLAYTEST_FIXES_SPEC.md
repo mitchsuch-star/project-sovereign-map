@@ -602,3 +602,117 @@ Written down because the next session will meet them.
    P1; another refuted it. Arbitrate in writing; do not pick silently.
 5. **A fix's own test can pass on the wrong side of the seam.** PT-A1 and PT-F2
    both shipped past pins that never touched the executed path.
+
+---
+
+## 7. Landing record — **ROW PT IS BUILD-COMPLETE** (August 12, 2026)
+
+> **This section is the authoritative record of what was built.** All eight
+> slices landed in spec order across eight commits, `297b939`..`769a3cb` on
+> master. Suite **17,144 → 17,347 / 3 skipped**, ruff clean, Godot parse
+> harness EXIT=0, boot smoke 0 `SCRIPT ERROR`, **M1–M7 and `BASELINE_SERIES`
+> byte-identical throughout — no re-record, on any slice.**
+
+### 7.1 What shipped
+
+| Slice | Commit | Rows | Tests |
+|---|---|---|---|
+| **PT-A** | `297b939` + `e0b7f23` | A1, A2, A3 (+D1) | 31 |
+| **PT-B/C** | `7129f08` | B1, B2, C1–C4 | 15 + 23 |
+| **PT-E** | `8bf7aae` | E1–E6 | 29 |
+| **PT-D** | `898b636` | D2, D3, D4, D5, D6 | 19 |
+| **PT-F** | `63716f8` | F1, F2, F3, F5–F9 | 24 |
+| **PT-G** | `e20b5cc` | G1–G6 | 32 |
+| **PT-H** | `769a3cb` | H1, H3, H4, H5, H6 | 19 |
+
+**192 new tests. Mutation sweeps: 19 + 7 + 17 + 16 + 12 + 19 + 19 + 13 = 122
+mutations, 122 killed, 0 inert at close.** The harness is committed at
+`tools/mutation_sweep.py`; per-slice mutation sets are `tools/_sweep_pt_*.json`.
+
+### 7.2 The through-line closed
+
+The spec's §1 table listed eight honest computations destroyed at a downstream
+seam. All eight are closed, and the three regressions PT-A owns cannot recur:
+the delivery seam is **subtractive**, the band **counts arrivals**, and the hard
+stop **cannot swallow**.
+
+⚠ **The one acceptance clause NOT discharged: "a played 20-turn campaign shows
+the row-2 gate arming at least once."** That needs a played campaign, not a
+build. What *is* proven is that the gate's input was the thing defeating it —
+pricing the roll can only ever move the band toward `unfavorable`, pinned as a
+monotonicity property in `TestRow2GateBecomesReachable`.
+
+### 7.3 Scope taken deliberately, and stated
+
+Four rows were **narrowed on evidence**, each with a negative pin:
+
+* **PT-D3's filed fix is REFUTED and not built.** The audit asked for the
+  post-battle classifier to be made symmetric; the arrival score reads
+  `candidate.get_relationship(primary)` and the derived −1 applies only when the
+  CANDIDATE is jealous, so a jealous lead cannot depress the candidate's score.
+  The *hostile* case survives and is what shipped.
+* **PT-D4 shipped one arm of three.** The province and the broken-corps arms
+  would be dead code at that seam — `generate_battle_report` runs inside
+  `combat.py`, where conquest is not yet decided and `broken` lives on the
+  Marshal, never on the payload. The measured case (Massena) is the rout.
+* **PT-F8's first wording is REFUTED** — the comparator necessarily banked
+  glory. The subject's clause is what was false.
+* **PT-D6 clamps the RENDER, not the mechanical figure**, which feeds war
+  exhaustion, the DR-1 out-bled predicate and the score.
+
+**PT-C's `suggestion` row and PT-H2 collapsed into one fix** (H1 is H2's root
+cause, as §2 says). **PT-F4's table rows F5–F9 all landed.**
+
+### 7.4 Pins flipped consciously
+
+Each is annotated at the assertion with the reason:
+
+1. `test_enemy_phase_presentation` — `" alone"` → `" on his own numbers"` (D1).
+2. `test_session8d_dispatch_polish::test_cleared_on_advance_turn` → **both
+   directions** of the prune (E1).
+3. `test_ca8_d3_rival_permanence` + `test_jealousy_v32` — `jealousy_ladder_shift`
+   **retired**; it had exactly one producer, so its two `dispatch.py` entries went
+   with it rather than becoming dead code (F7).
+4. `test_battle_report::test_fill_handles_ally_placeholder` — asserted the RAW
+   camelCase key reached Berthier's mouth (G5f).
+5. `test_ec_levy_and_camp` ×4 — the fixture asserted an offer the executor
+   refuses; it now stations a marshal at the capital, which is the player's own
+   remedy (H4).
+6. `test_objection_v2` — the two inert `idle_turns` tests **replaced, not
+   extended**, exactly as §2 PT-F2 demands.
+
+### 7.5 What the mutation sweep caught that review did not
+
+Nine pins passed their own test suite and proved nothing. Recorded because the
+pattern is this row's subject:
+
+* **Four file-wide greps matched an import or a comment** rather than the call
+  (PT-C1 ×2, PT-C2, PT-F5).
+* **Three `expected_at=` producer call sites** could be deleted with every
+  assertion green — the pins bound the helper, not the seam (PT-A2).
+* **Two prefix matches** let a renamed function through (PT-B1, PT-G5a).
+* **Two fixtures never reached the code they claimed to test**: PT-B2's
+  reinforcer was `engaged`, and PT-D3's classifier never saw a no-show.
+* **Two "inert pins" were INVALID MUTATIONS** — both no-ops — and are recorded
+  as such rather than counted as passes (PT-E3).
+
+And two production bugs were found by the sweep's own failures rather than by
+reading: **the PT-G2 name key did not distribute** (a sum of code points put
+Lannes and Ney on one line; a `*31` polynomial collapsed back to that sum mod 3
+and five of six French marshals still shared a line), and **PT-E5's first draft
+read a `region_captured` event that never reaches the executor's `events` list**.
+
+### 7.6 Still open, unchanged by this row
+
+* **§4's four items still need a user ruling** — PT-I1 (the armistice ejects the
+  court from the coalition permanently), PT-I2 (give the war a memory: the deep
+  version of CA9 row 1, now that the playtest has happened), PT-I3 (EB-1's
+  condition terms — losing 76,361 men was worth +1,236g/turn), PT-I4 (surface
+  marshal commissioning: "commission" appears zero times in 108 responses).
+* **The three owed visual sign-offs stand**, and this row adds surfaces to them:
+  F7's per-court fog line is now ONE sentence (PT-E4), the terminal has a
+  DIPLOMATIC EVENTS rail (PT-E2), turn events collapse (PT-E3), the autonomous
+  attack draws a battle (PT-F1), and the redemption raises on control return
+  (PT-B1). `region_panel.gd:182-184`'s `Supply: Unknown` sentinel is untouched.
+* **UNDETERMINED, not a row:** whether `foreign_wars` is reachable on this
+  scenario.
